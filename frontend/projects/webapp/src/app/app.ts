@@ -5,7 +5,7 @@ import { RouterOutlet } from '@angular/router';
   selector: 'pulpe-root',
   imports: [RouterOutlet],
   templateUrl: './app.html',
-  styleUrl: './app.scss'
+  styleUrl: './app.scss',
 })
 export class App {
   protected title = 'webapp';
