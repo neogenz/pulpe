@@ -1,0 +1,60 @@
+# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
+
+# Dependencies (tous projets)
+**/node_modules
+**/.dart_tool
+**/packages
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+
+# Compiled output (tous projets)
+**/dist
+**/build
+**/tmp
+**/out-tsc
+**/bazel-out
+
+# Angular specific
+**/.angular/cache
+.sass-cache/
+/connect.lock
+/coverage
+/libpeerconnection.log
+testem.log
+/typings
+
+# Flutter specific
+**/*.lock
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/ios/Flutter/flutter_export_environment.sh
+**/android/.gradle/
+
+# Hono/Node specific
+**/.env
+**/.env.local
+
+# IDEs and editors
+.idea/
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/*
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
