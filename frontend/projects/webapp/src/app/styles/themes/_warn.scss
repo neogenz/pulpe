@@ -3,10 +3,10 @@
 	Update this file using `@ngm-dev/cli update styles/themes`
 */
 
-@use '@angular/material' as mat;
+@use "@angular/material" as mat;
 
 // In mat-button and some other components, color="warn" is used to indicate urgent or error state.
-[color='warn'],
+[color="warn"],
 .warn-theme {
   @include mat.theme-overrides(
     (
