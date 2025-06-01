@@ -69,8 +69,8 @@
               }
             ],
             "styles": [
-              "@angular/material/prebuilt-themes/azure-blue.css",
-              "projects/webapp/src/styles.scss"
+              "projects/webapp/src/styles.scss",
+              "projects/webapp/src/app/styles/main.scss"
             ]
           },
           "configurations": {
