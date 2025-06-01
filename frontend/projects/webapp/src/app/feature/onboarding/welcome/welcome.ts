@@ -4,7 +4,7 @@ import { MatButtonModule } from '@angular/material/button';
 import {
   OnboardingCardComponent,
   OnboardingCardData,
-} from '../../../ui/onboarding-card/onboarding-card';
+} from '../onboarding-card/onboarding-card';
 
 @Component({
   selector: 'pulpe-welcome',
