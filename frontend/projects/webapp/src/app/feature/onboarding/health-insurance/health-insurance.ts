@@ -3,7 +3,7 @@ import { Router } from '@angular/router';
 import {
   OnboardingCardComponent,
   OnboardingCardData,
-} from '../onboarding-card/onboarding-card';
+} from '../onboarding-card';
 import { OnboardingCurrencyInputComponent } from '../currency-input';
 
 @Component({

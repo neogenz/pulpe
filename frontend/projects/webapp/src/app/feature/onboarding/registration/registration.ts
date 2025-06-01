@@ -7,7 +7,7 @@ import { MatIconModule } from '@angular/material/icon';
 import {
   OnboardingCardComponent,
   OnboardingCardData,
-} from '../onboarding-card/onboarding-card';
+} from '../onboarding-card';
 
 @Component({
   selector: 'pulpe-registration',
