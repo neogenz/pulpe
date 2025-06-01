@@ -3,51 +3,50 @@ description:
 globs: 
 alwaysApply: true
 ---
-# Component Naming Conventions
+---
+description: Apply Angular 20 component naming conventions for classes, selectors, files, and generation commands with ESLint enforcement when creating or modifying Angular components
+globs: frontend/projects/webapp/src/app/**/*.ts
+alwaysApply: false
+---
 
-## Angular Schematics Configuration
-The project has custom schematics configured in @angular.json under `projects.webapp.schematics`:
+Class Naming:
+- Use `Component` suffix for classes
+- Use PascalCase for class names
+- Follow `HomeComponent` pattern
+- Follow `MainLayoutComponent` pattern
+- Enforce with ESLint rules
 
-### Component Generation Defaults
-- **inlineTemplate**: `true` - Templates are inline in component files
-- **inlineStyle**: `true` - Styles are inline in component files
-- **style**: `"scss"` - Use SCSS for styling
-- **displayBlock**: `true` - Components have `display: block` by default
-- **skipTests**: `true` - No test files generated
-- **standalone**: `true` - Components are standalone (no modules)
-- **changeDetection**: `"OnPush"` - Use OnPush change detection strategy
-- **flat**: `true` - No separate folder for components
+Selector Naming:
+- Use `pulpe-` prefix for selectors
+- Use kebab-case for selectors
+- Follow `pulpe-home` pattern
+- Follow `pulpe-main-layout` pattern
+- Configure prefix in angular.json
 
-## Naming Conventions
+File Naming:
+- Use component name for files
+- Omit `Component` suffix in filenames
+- Use `.ts` extension for components
+- Use `.routes.ts` for route files
+- Follow `home.ts` pattern
 
-### Component Class Names
-- **MUST** end with `Component` suffix (enforced by ESLint)
-- Use PascalCase: `HomeComponent`, `MainLayoutComponent`
+Schematics Configuration:
+- Use `inlineTemplate: true` setting
+- Use `inlineStyle: true` setting
+- Use `standalone: true` setting
+- Use `changeDetection: OnPush` setting
+- Use `flat: true` setting
 
-### Component Selectors
-- **Prefix**: `pulpe-` (configured in @angular.json)
-- **Style**: `kebab-case` (enforced by ESLint)
-- Examples: `pulpe-home`, `pulpe-main-layout`
+Generation Commands:
+- Use `ng g c feature/name/component --project=webapp`
+- Use `ng g c layout/name --project=webapp`
+- Use `ng g c ui/name --project=webapp`
+- Generate in appropriate folders
+- Follow project structure conventions
 
-### File Naming
-- Component files use the component name without suffix: `home.ts`, `main-layout.ts`
-- Route files use `.routes.ts` suffix: `home.routes.ts`
-
-## Generation Commands
-
-### Create Components
-```bash
-ng g c feature/feature-name/component-name --project=webapp
-ng g c layout/layout-name --project=webapp
-ng g c ui/component-name --project=webapp
-```
-
-### Examples from Current Project
-- **@projects/webapp/src/app/app.ts** - `AppComponent`
-- **@projects/webapp/src/app/layout/main-layout.ts** - `MainLayoutComponent`
-- **@projects/webapp/src/app/feature/home/home.ts** - `HomeComponent`
-
-## ESLint Rules
-Component naming is enforced by ESLint rules in @eslint.config.js:
-- `@angular-eslint/component-class-suffix` - Ensures Component suffix
-- `@angular-eslint/component-selector` - Enforces pulpe- prefix and kebab-case
+ESLint Enforcement:
+- Configure `@angular-eslint/component-class-suffix` rule
+- Configure `@angular-eslint/component-selector` rule
+- Enforce naming conventions automatically
+- Validate prefix and case rules
+- Maintain consistency across project

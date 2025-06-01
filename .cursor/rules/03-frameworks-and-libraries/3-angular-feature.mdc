@@ -3,77 +3,39 @@ description:
 globs: frontend/projects/webapp/src/**/*.ts
 alwaysApply: false
 ---
-# Feature Development Pattern
+---
+description: Apply Angular feature development patterns for lazy-loaded modules with proper routing, component organization, and boundary compliance when creating or modifying features
+globs: frontend/projects/webapp/src/app/feature/**/*.ts
+alwaysApply: false
+---
 
-## Lazy Feature Structure
-Features are organized as lazy-loaded modules in the `feature/` directory.
+Feature Structure:
+- Create features in `feature/` directory
+- Use lazy loading with dynamic imports
+- Export routes with `export default`
+- Generate components with Angular CLI
+- Use `ng g c feature/feature-name/feature-name --project=webapp`
 
-### Example: Home Feature
-The home feature demonstrates the pattern:
-- **[projects/webapp/src/app/feature/home](mdc:frontend/projects/webapp/src/app/feature/home)** - Feature folder
-- **[projects/webapp/src/app/feature/home/home.routes.ts](mdc:frontend/projects/webapp/src/app/feature/home/home.routes.ts)** - Feature routes using `export default`
-- **[projects/webapp/src/app/feature/home/home.ts](mdc:frontend/projects/webapp/src/app/feature/home/home.ts)** - Feature component
+Route Configuration:
+- Add `loadChildren` to app routes
+- Use dynamic import syntax
+- Configure root redirect to home
+- Add fallback route for 404
 
-### Creating a New Feature
+Feature Organization:
+- Create `components/` for feature-specific components
+- Create `services/` for feature-specific services
+- Use main component as entry point
+- Keep routes file separate
 
-1. **Create Feature Directory**
-   ```bash
-   mkdir -p projects/webapp/src/app/feature/feature-name
-   ```
+Boundary Rules:
+- Never import other features directly
+- Use shared services from `core/`
+- Import only `core/`, `ui/`, `pattern/`
+- Create shared features as standard features
 
-2. **Create Routes File** (`feature-name.routes.ts`)
-   ```typescript
-   import { Routes } from '@angular/router';
-   import { FeatureNameComponent } from './feature-name';
-
-   export default [
-     {
-       path: '',
-       component: FeatureNameComponent,
-     },
-   ] as Routes;
-   ```
-
-3. **Generate Feature Component**
-   ```bash
-   ng g c feature/feature-name/feature-name --project=webapp
-   ```
-
-4. **Add to App Routes** in [app.routes.ts](mdc:frontend/projects/webapp/src/app/app.routes.ts)
-   ```typescript
-   {
-     path: 'feature-name',
-     loadChildren: () => import('./feature/feature-name/feature-name.routes'),
-   }
-   ```
-
-## Routing Configuration
-App routes are configured in [app.routes.ts](mdc:frontend/projects/webapp/src/app/app.routes.ts) with:
-- **Root redirect** to home feature
-- **Lazy loading** using dynamic imports
-- **Fallback route** (404 handling)
-
-## Feature Sub-Components
-Features can have their own sub-components and services:
-```
-feature/
-  feature-name/
-    feature-name.ts          # Main feature component
-    feature-name.routes.ts   # Feature routes
-    components/              # Feature-specific components
-    services/                # Feature-specific services
-```
-
-## Shared Features
-Features that need to be shared between multiple other features should:
-1. Be created as a standard feature in the `feature/` folder
-2. Be imported as sub-routes in parent features
-3. Never directly import other features (use shared services in `core/`)
-
-## Navigation Integration
-Add new features to the main navigation in [main-layout.ts](mdc:frontend/projects/webapp/src/app/layout/main-layout.ts):
-```typescript
-@for (route of ['home', 'new-feature']; track $index) {
-  <!-- navigation item -->
-}
-```
+Navigation Integration:
+- Add feature routes to main layout
+- Use route arrays for navigation
+- Update navigation in `main-layout.ts`
+- Track routes with `$index`

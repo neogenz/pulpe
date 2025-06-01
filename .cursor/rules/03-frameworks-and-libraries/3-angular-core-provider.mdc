@@ -3,124 +3,43 @@ description:
 globs: 
 alwaysApply: false
 ---
-# Core Provider
+---
+description: Apply Angular core provider pattern for centralized application configuration, router setup, and provider management when configuring app-level services and dependencies
+globs: frontend/projects/webapp/src/app/core/**/*.ts
+alwaysApply: false
+---
 
-## Core Configuration System
-The project uses a centralized provider pattern in [core/core.ts](mdc:frontend/projects/webapp/src/app/core/core.ts) instead of configuring providers directly in app.config.ts.
+Core Provider Pattern:
+- Use `provideCore()` function for providers
+- Centralize providers in `core/core.ts`
+- Keep `app.config.ts` minimal
+- Export single provider function
+- Return provider array from core
 
-### Core Provider Function
-The `provideCore()` function in [core/core.ts](mdc:frontend/projects/webapp/src/app/core/core.ts) centralizes all application-level providers:
+Router Configuration:
+- Configure router with input binding
+- Enable blocking initial navigation
+- Use memory scrolling restoration
+- Allow same URL reload
+- Pass routes through options
 
-```typescript
-export function provideCore({ routes }: CoreOptions) {
-  return [
-    // Animation providers
-    provideAnimationsAsync(),
-    
-    // Router configuration
-    provideRouter(
-      routes,
-      withRouterConfig({ onSameUrlNavigation: 'reload' }),
-      withComponentInputBinding(),
-      withEnabledBlockingInitialNavigation(),
-      withInMemoryScrolling({
-        anchorScrolling: 'enabled',
-        scrollPositionRestoration: 'enabled',
-      }),
-    ),
-    
-    // App initialization
-    provideAppInitializer(() => {
-      // Custom initialization logic
-    }),
-  ];
-}
-```
+Provider Management:
+- Add new providers to core function
+- Use environment-specific providers
+- Extend `CoreOptions` interface for config
+- Import providers from libraries
+- Organize by functionality
 
-### App Configuration
-[app.config.ts](mdc:frontend/projects/webapp/src/app/app.config.ts) remains minimal and uses the core provider:
+App Initialization:
+- Use `provideAppInitializer` for startup
+- Initialize APIs in provider
+- Check authentication at start
+- Load feature flags early
+- Setup global error handling
 
-```typescript
-export const appConfig: ApplicationConfig = {
-  providers: [
-    provideCore({ routes }),
-  ],
-};
-```
-
-## Router Configuration Features
-The router is configured with these features:
-- **Component Input Binding** - Route params automatically injected as component inputs
-- **Blocking Initial Navigation** - Prevents app rendering until initial route resolves
-- **Memory Scrolling** - Restores scroll position on navigation
-- **Same URL Reload** - Allows reloading the same route
-
-## Adding New Providers
-
-### Third-Party Libraries
-Add providers to the core function:
-```typescript
-export function provideCore({ routes }: CoreOptions) {
-  return [
-    // Existing providers...
-    
-    // Add new providers here
-    provideStore(),           // NgRx
-    provideHttpClient(),      // HTTP client
-    // etc.
-  ];
-}
-```
-
-### Environment-Specific Providers
-Use environment files to conditionally add providers:
-```typescript
-import { environment } from '../../environments/environment';
-
-export function provideCore({ routes }: CoreOptions) {
-  const providers = [
-    // Base providers...
-  ];
-  
-  if (environment.production) {
-    providers.push(/* production-only providers */);
-  }
-  
-  return providers;
-}
-```
-
-## Core Options Interface
-Extend the `CoreOptions` interface for additional configuration:
-```typescript
-export interface CoreOptions {
-  routes: Routes;
-  enableTracing?: boolean;    // Example extension
-  apiBaseUrl?: string;        // Example extension
-}
-```
-
-## Benefits of This Pattern
-- **Centralized Configuration** - All providers in one place
-- **Testable** - Easy to mock providers for testing
-- **Extensible** - Simple to add new configuration options
-- **Clean Separation** - App config stays minimal
-- **Environment Aware** - Can adapt based on environment
-
-## App Initialization
-The `provideAppInitializer()` is called last and can be used for:
-- API initialization
-- User authentication checks
-- Feature flag loading
-- Global error handling setup
-
-## Usage in Tests
-Mock the core provider for testing:
-```typescript
-TestBed.configureTestingModule({
-  providers: [
-    provideCore({ routes: testRoutes }),
-    // Test-specific overrides
-  ],
-});
-```
+Testing Integration:
+- Mock core provider in tests
+- Use test routes in TestBed
+- Override providers for testing
+- Configure test-specific providers
+- Keep provider function testable
