@@ -1,0 +1,43 @@
+{
+  "eslint.workingDirectories": [
+    {
+      "pattern": "frontend/"
+    },
+    {
+      "pattern": "backend/"
+    }
+  ],
+  "eslint.format.enable": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+
+  // Configuration par type de fichier
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+
+  // Configuration spécifique Flutter (si besoin)
+  "[dart]": {
+    "editor.formatOnSave": true,
+    "editor.rulers": [80]
+  },
+
+  // Exclusions pour de meilleures performances
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/.angular": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/.angular": true,
+    "**/pnpm-lock.yaml": true
+  }
+}
