@@ -14,24 +14,7 @@ module.exports = tseslint.config(
       ...angular.configs.tsRecommended,
     ],
     processor: angular.processInlineTemplates,
-    rules: {
-      "@angular-eslint/directive-selector": [
-        "error",
-        {
-          type: "attribute",
-          prefix: "pulpe",
-          style: "camelCase",
-        },
-      ],
-      "@angular-eslint/component-selector": [
-        "error",
-        {
-          type: "element",
-          prefix: "pulpe",
-          style: "kebab-case",
-        },
-      ],
-    },
+    rules: {},
   },
   {
     files: ["**/*.ts"],
@@ -53,8 +36,8 @@ module.exports = tseslint.config(
         {
           type: "app",
           mode: "file",
-          pattern: "app*.ts",
-          basePattern: "projects/**/src/app",
+          pattern: "app/app*.ts",
+          basePattern: "projects/**/src",
           baseCapture: ["app"],
         },
         {
@@ -115,6 +98,17 @@ module.exports = tseslint.config(
         },
       ],
     },
+  },
+  {
+    files: ["**/*.html"],
+    extends: [
+      ...angular.configs.templateRecommended,
+      ...angular.configs.templateAccessibility,
+    ],
+    rules: {},
+  },
+  {
+    files: ["**/*.ts"],
     rules: {
       "boundaries/element-types": [
         "error",
@@ -163,6 +157,7 @@ module.exports = tseslint.config(
                 ["ui", { app: "${from.app}" }],
                 ["layout", { app: "${from.app}" }],
                 ["feature-routes", { app: "${from.app}" }],
+                ["feature", { app: "${from.app}" }],
                 ["env", { app: "${from.app}" }],
               ],
             },
@@ -202,23 +197,15 @@ module.exports = tseslint.config(
             },
             {
               from: ["lib-api"],
-              allow: [["lib", { app: "${from.lib}" }]],
+              allow: [["lib", { lib: "${from.lib}" }]],
             },
             {
               from: ["lib"],
-              allow: [["lib", { app: "${from.lib}" }]],
+              allow: [["lib", { lib: "${from.lib}" }]],
             },
           ],
         },
       ],
     },
-  },
-  {
-    files: ["**/*.html"],
-    extends: [
-      ...angular.configs.templateRecommended,
-      ...angular.configs.templateAccessibility,
-    ],
-    rules: {},
   },
 );
