@@ -18,9 +18,10 @@ export interface OnboardingCardData {
   standalone: true,
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
+
   template: `
     <div
-      class="min-h-screen bg-gradient-to-br from-green-400 via-green-500 to-yellow-400 flex items-center justify-center p-4"
+      class="min-h-screen pulpe-gradient flex items-center justify-center p-4"
     >
       <div class="w-full max-w-md bg-white rounded-3xl shadow-2xl p-8">
         <!-- Progress indicators -->

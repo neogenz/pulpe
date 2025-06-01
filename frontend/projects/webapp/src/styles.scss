@@ -32,3 +32,23 @@ body {
   margin: 0;
   font-family: Roboto, "Helvetica Neue", sans-serif;
 }
+
+// Pulpe brand gradient - blue starts from bottom left
+.pulpe-gradient {
+  background: linear-gradient(
+    45deg,
+    #000066 0%,
+    #00379e 8%,
+    #0061c2 15%,
+    #0b88cc 22%,
+    #0aadbd 29%,
+    #00d199 36%,
+    #2eef6f 43%,
+    #69f15f 50%,
+    #8df148 58%,
+    #adf137 66%,
+    #caf024 75%,
+    #e6ed12 86%,
+    #ffea00 100%
+  );
+}

@@ -10,6 +10,7 @@ import {
   standalone: true,
   imports: [OnboardingCardComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
+
   template: `
     <pulpe-onboarding-card
       [cardData]="cardData"
@@ -19,13 +20,7 @@ import {
     >
       <!-- Logo Pulpe -->
       <div class="flex justify-center mb-6">
-        <div
-          class="w-24 h-24 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center shadow-lg"
-        >
-          <div
-            class="w-16 h-16 bg-gradient-to-br from-blue-500 to-green-400 rounded-full"
-          ></div>
-        </div>
+        <div class="w-24 h-24 pulpe-gradient rounded-full"></div>
       </div>
 
       <!-- Contenu -->
