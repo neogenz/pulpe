@@ -1,0 +1,19 @@
+---
+description: Apply Angular component default export pattern for cleaner route imports and simplified lazy loading syntax when creating or modifying Angular components that will be used in routing configurations
+globs: 
+alwaysApply: false
+---
+Component Export Pattern:
+- Use `export default class` for routed components
+- Avoid named exports for route-loaded components
+- Keep component class name descriptive
+
+Route Configuration:
+- Use direct `import()` without `.then()` chaining
+- Leverage default exports in `loadComponent`
+- Simplify dynamic import syntax
+
+Import Syntax:
+- Remove `.then((m) => m.ComponentName)` pattern
+- Use `() => import('./path/component')` directly
+- Maintain lazy loading functionality

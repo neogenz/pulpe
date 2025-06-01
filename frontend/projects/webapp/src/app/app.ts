@@ -1,9 +1,9 @@
 import { Component } from '@angular/core';
-import { MainLayoutComponent } from './layout/main-layout';
+import { RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'pulpe-root',
-  imports: [MainLayoutComponent],
-  template: ` <pulpe-main-layout /> `,
+  imports: [RouterOutlet],
+  template: `<router-outlet />`,
 })
 export class App {}

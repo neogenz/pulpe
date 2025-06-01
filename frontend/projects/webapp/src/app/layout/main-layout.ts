@@ -32,7 +32,7 @@ import { RouterModule } from '@angular/router';
             @for (route of ['home']; track $index) {
               <!-- add more routes here -->
               <a
-                [routerLink]="['/', route]"
+                [routerLink]="['/app', route]"
                 routerLinkActive
                 #rla="routerLinkActive"
                 [color]="rla.isActive ? 'accent' : 'primary'"

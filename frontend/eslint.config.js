@@ -206,6 +206,10 @@ module.exports = tseslint.config(
           ],
         },
       ],
+      // Disable class suffix rules in accordance with Angular v20 style guide
+      "@angular-eslint/component-class-suffix": "off",
+      "@angular-eslint/directive-class-suffix": "off",
+      "@angular-eslint/pipe-class-suffix": "off",
     },
   },
 );
