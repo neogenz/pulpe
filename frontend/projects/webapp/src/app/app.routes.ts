@@ -1,4 +1,8 @@
 import { Routes } from '@angular/router';
+import {
+  OnboardingCompletedGuard,
+  OnboardingRedirectGuard,
+} from './core/onboarding';
 
 export const routes: Routes = [
   {
@@ -8,6 +12,7 @@ export const routes: Routes = [
   },
   {
     path: 'app',
+    canActivate: [OnboardingCompletedGuard],
     loadComponent: () =>
       import('./layout/main-layout').then((m) => m.MainLayoutComponent),
     children: [
@@ -19,6 +24,7 @@ export const routes: Routes = [
   },
   {
     path: 'onboarding',
+    canActivate: [OnboardingRedirectGuard],
     loadChildren: () => import('./feature/onboarding/onboarding.routes'),
   },
   {
