@@ -1,15 +1,24 @@
 import { Component, ChangeDetectionStrategy, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatIconModule } from '@angular/material/icon';
 import {
   OnboardingCardComponent,
   OnboardingCardData,
 } from '../../../ui/onboarding-card/onboarding-card';
-import { TextInputComponent } from '../../../ui/text-input/text-input';
 
 @Component({
   selector: 'pulpe-personal-info',
   standalone: true,
-  imports: [OnboardingCardComponent, TextInputComponent],
+  imports: [
+    OnboardingCardComponent,
+    FormsModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatIconModule,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <pulpe-onboarding-card
@@ -19,14 +28,16 @@ import { TextInputComponent } from '../../../ui/text-input/text-input';
       (previous)="navigatePrevious()"
     >
       <div class="space-y-6">
-        <pulpe-text-input
-          [value]="firstNameValue()"
-          [icon]="true"
-          placeholder="Prénom"
-          (valueChange)="onFirstNameChange($event)"
-        >
-          <span slot="icon" class="material-icons text-gray-500">person</span>
-        </pulpe-text-input>
+        <mat-form-field class="w-full" appearance="outline">
+          <mat-label>Prénom</mat-label>
+          <input
+            matInput
+            [value]="firstNameValue()"
+            (input)="onFirstNameChange($event)"
+            placeholder="Quel est ton prénom ?"
+          />
+          <mat-icon matPrefix>person</mat-icon>
+        </mat-form-field>
       </div>
     </pulpe-onboarding-card>
   `,
@@ -48,8 +59,9 @@ export default class PersonalInfoComponent {
     return this.firstNameValue().trim().length > 0;
   }
 
-  protected onFirstNameChange(value: string): void {
-    this.firstNameValue.set(value);
+  protected onFirstNameChange(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    this.firstNameValue.set(target.value);
   }
 
   protected navigateNext(): void {

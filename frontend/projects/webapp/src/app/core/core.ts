@@ -13,6 +13,7 @@ import {
   provideBrowserGlobalErrorListeners,
 } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { MAT_ICON_DEFAULT_OPTIONS } from '@angular/material/icon';
 
 export interface CoreOptions {
   routes: Routes; // possible to extend options with more props in the future
@@ -48,5 +49,11 @@ export function provideCore({ routes }: CoreOptions) {
     provideAppInitializer(() => {
       // ...
     }),
+    {
+      provide: MAT_ICON_DEFAULT_OPTIONS,
+      useValue: {
+        fontSet: 'material-symbols-outlined',
+      },
+    },
   ];
 }

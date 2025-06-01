@@ -1,15 +1,24 @@
 import { Component, ChangeDetectionStrategy, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatIconModule } from '@angular/material/icon';
 import {
   OnboardingCardComponent,
   OnboardingCardData,
 } from '../../../ui/onboarding-card/onboarding-card';
-import { TextInputComponent } from '../../../ui/text-input/text-input';
 
 @Component({
   selector: 'pulpe-registration',
   standalone: true,
-  imports: [OnboardingCardComponent, TextInputComponent],
+  imports: [
+    OnboardingCardComponent,
+    FormsModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatIconModule,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <pulpe-onboarding-card
@@ -20,15 +29,17 @@ import { TextInputComponent } from '../../../ui/text-input/text-input';
       (previous)="navigatePrevious()"
     >
       <div class="space-y-6">
-        <pulpe-text-input
-          [value]="emailValue()"
-          [icon]="true"
-          type="email"
-          placeholder="Email"
-          (valueChange)="onEmailChange($event)"
-        >
-          <span slot="icon" class="material-icons text-gray-500">email</span>
-        </pulpe-text-input>
+        <mat-form-field class="w-full" appearance="outline">
+          <mat-label>Email</mat-label>
+          <input
+            matInput
+            type="email"
+            [value]="emailValue()"
+            (input)="onEmailChange($event)"
+            placeholder="Email"
+          />
+          <mat-icon matPrefix>email</mat-icon>
+        </mat-form-field>
       </div>
     </pulpe-onboarding-card>
   `,
@@ -51,8 +62,9 @@ export default class RegistrationComponent {
     return emailRegex.test(this.emailValue());
   }
 
-  protected onEmailChange(value: string): void {
-    this.emailValue.set(value);
+  protected onEmailChange(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    this.emailValue.set(target.value);
   }
 
   protected navigateNext(): void {

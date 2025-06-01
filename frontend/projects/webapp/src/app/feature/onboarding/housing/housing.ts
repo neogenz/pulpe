@@ -4,12 +4,12 @@ import {
   OnboardingCardComponent,
   OnboardingCardData,
 } from '../../../ui/onboarding-card/onboarding-card';
-import { CurrencyInputComponent } from '../../../ui/currency-input/currency-input';
+import { OnboardingCurrencyInputComponent } from '../currency-input';
 
 @Component({
   selector: 'pulpe-housing',
   standalone: true,
-  imports: [OnboardingCardComponent, CurrencyInputComponent],
+  imports: [OnboardingCardComponent, OnboardingCurrencyInputComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <pulpe-onboarding-card
@@ -19,12 +19,11 @@ import { CurrencyInputComponent } from '../../../ui/currency-input/currency-inpu
       (previous)="navigatePrevious()"
     >
       <div class="space-y-6">
-        <pulpe-currency-input
+        <pulpe-onboarding-currency-input
+          label="Montant de ton loyer"
           [value]="housingValue()"
-          [placeholder]="'Montant de ton loyer'"
           (valueChange)="onHousingChange($event)"
-        >
-        </pulpe-currency-input>
+        />
       </div>
     </pulpe-onboarding-card>
   `,
