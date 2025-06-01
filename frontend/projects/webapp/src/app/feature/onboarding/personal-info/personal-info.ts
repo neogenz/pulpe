@@ -28,7 +28,7 @@ import {
       (previous)="navigatePrevious()"
     >
       <div class="space-y-6">
-        <mat-form-field class="w-full" appearance="outline">
+        <mat-form-field class="w-full" appearance="fill">
           <mat-label>Prénom</mat-label>
           <input
             matInput

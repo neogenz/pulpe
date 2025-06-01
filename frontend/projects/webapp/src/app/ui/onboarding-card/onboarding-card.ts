@@ -25,7 +25,7 @@ export interface OnboardingCardData {
       class="min-h-screen md:h-screen pulpe-gradient flex items-center justify-center p-4"
     >
       <div
-        class="w-full max-w-3xl h-fit md:h-[800px] bg-surface rounded-2xl p-16 flex flex-col"
+        class="w-full max-w-3xl h-fit md:h-[800px] bg-surface rounded-2xl md:p-16 p-8 flex flex-col"
       >
         <!-- Progress indicators -->
         @if (showProgress()) {
@@ -62,7 +62,7 @@ export interface OnboardingCardData {
         </div>
 
         <!-- Navigation buttons -->
-        <div class="flex gap-8 mt-8">
+        <div class="flex md:gap-8 gap-4 mt-8">
           @if (showPreviousButton()) {
             <div class="flex-1">
               <button
