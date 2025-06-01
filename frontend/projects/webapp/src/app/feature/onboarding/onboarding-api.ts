@@ -1,6 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 
-export interface OnboardingData {
+interface OnboardingData {
   monthlyIncome: number | null;
   housingCosts: number | null;
   healthInsurance: number | null;
@@ -14,7 +14,7 @@ export interface OnboardingData {
 @Injectable({
   providedIn: 'root',
 })
-export class OnboardingDataService {
+export class OnboardingApi {
   private readonly onboardingDataSignal = signal<OnboardingData>({
     monthlyIncome: null,
     housingCosts: null,

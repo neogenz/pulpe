@@ -1,10 +1,12 @@
 import { Routes } from '@angular/router';
+import { OnboardingApi } from './onboarding-api';
 
 const routes: Routes = [
   {
     path: '',
     pathMatch: 'full',
     redirectTo: 'welcome',
+    providers: [OnboardingApi],
   },
   {
     path: 'welcome',
