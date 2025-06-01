@@ -36,7 +36,7 @@ export default class PersonalInfoComponent {
     title: "Comment je dois t'appeler ?",
     subtitle:
       "Ton prénom va m'aider à savoir comment je vais devoir t'appeler tout au long de notre collaboration. Il ne sera en aucun cas communiqué.",
-    currentStep: 7,
+    currentStep: 1,
     totalSteps: 8,
   };
 
@@ -53,10 +53,10 @@ export default class PersonalInfoComponent {
   }
 
   protected navigateNext(): void {
-    this.router.navigate(['/onboarding/registration']);
+    this.router.navigate(['/onboarding/income']);
   }
 
   protected navigatePrevious(): void {
-    this.router.navigate(['/onboarding/transport']);
+    this.router.navigate(['/onboarding/welcome']);
   }
 }

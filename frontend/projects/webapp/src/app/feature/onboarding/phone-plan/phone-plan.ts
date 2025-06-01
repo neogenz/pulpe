@@ -34,7 +34,7 @@ export default class PhonePlanComponent {
     title: 'Forfait téléphone ?',
     subtitle:
       'Combien payes-tu frais téléphoniques chaque mois ? (Par ex. Swisscom, Sunrise, etc...)',
-    currentStep: 5,
+    currentStep: 6,
     totalSteps: 8,
   };
 

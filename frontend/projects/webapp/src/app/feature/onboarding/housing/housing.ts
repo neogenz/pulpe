@@ -34,7 +34,7 @@ export default class HousingComponent {
     title: 'Logement ?',
     subtitle:
       'Combien payes-tu de loyer ou crédit, pour ton logement chaque mois ?',
-    currentStep: 2,
+    currentStep: 3,
     totalSteps: 8,
   };
 

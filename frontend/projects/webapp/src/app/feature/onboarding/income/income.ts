@@ -34,7 +34,7 @@ export default class IncomeComponent {
     title: 'Quel est le montant de tes revenus mensuels ?',
     subtitle:
       "Tes revenus mensuels correspondent par exemple à ton salaire, tes rentes, etc. Je vais l'utiliser pour calculer ton budget de base. On pourra le modifier par la suite.",
-    currentStep: 1,
+    currentStep: 2,
     totalSteps: 8,
   };
 
@@ -55,6 +55,6 @@ export default class IncomeComponent {
   }
 
   protected navigatePrevious(): void {
-    this.router.navigate(['/onboarding/welcome']);
+    this.router.navigate(['/onboarding/personal-info']);
   }
 }

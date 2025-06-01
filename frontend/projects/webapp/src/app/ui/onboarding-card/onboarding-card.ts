@@ -28,10 +28,10 @@ export interface OnboardingCardData {
       >
         <!-- Progress indicators -->
         @if (showProgress()) {
-          <div class="flex justify-center space-x-2 mb-8">
+          <div class="flex gap-2 mb-8">
             @for (step of progressSteps; track step; let i = $index) {
               <div
-                class="h-2 w-8 rounded-full transition-colors duration-300"
+                class="h-2 flex-1 rounded-full transition-colors duration-300"
                 [class]="
                   i < cardData().currentStep ? 'bg-green-600' : 'bg-gray-200'
                 "

@@ -33,7 +33,7 @@ export default class HealthInsuranceComponent {
   protected readonly cardData: OnboardingCardData = {
     title: 'Assurance maladie ?',
     subtitle: "Combien payes-tu d'assurance maladie chaque mois ?",
-    currentStep: 3,
+    currentStep: 4,
     totalSteps: 8,
   };
 

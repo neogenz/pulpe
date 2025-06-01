@@ -34,7 +34,7 @@ export default class LeasingCreditComponent {
     title: 'Leasing ou crédit à la consommation ?',
     subtitle:
       'Combien payes-tu de leasing ou crédit à la consommation chaque mois ?',
-    currentStep: 4,
+    currentStep: 5,
     totalSteps: 8,
   };
 

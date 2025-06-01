@@ -60,6 +60,6 @@ export default class WelcomeComponent {
   constructor(private router: Router) {}
 
   protected navigateNext(): void {
-    this.router.navigate(['/onboarding/income']);
+    this.router.navigate(['/onboarding/personal-info']);
   }
 }

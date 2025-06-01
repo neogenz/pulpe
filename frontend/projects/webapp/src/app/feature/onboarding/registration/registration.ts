@@ -60,6 +60,6 @@ export default class RegistrationComponent {
   }
 
   protected navigatePrevious(): void {
-    this.router.navigate(['/onboarding/personal-info']);
+    this.router.navigate(['/onboarding/transport']);
   }
 }

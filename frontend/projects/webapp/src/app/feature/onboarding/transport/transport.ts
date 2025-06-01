@@ -35,7 +35,7 @@ export default class TransportComponent {
     title: 'Transport public ?',
     subtitle:
       "Combien payes-tu d'abonnements à des transports publics chaque mois ?",
-    currentStep: 6,
+    currentStep: 7,
     totalSteps: 8,
   };
 
@@ -52,7 +52,7 @@ export default class TransportComponent {
   }
 
   protected navigateNext(): void {
-    this.router.navigate(['/onboarding/personal-info']);
+    this.router.navigate(['/onboarding/registration']);
   }
 
   protected navigatePrevious(): void {
