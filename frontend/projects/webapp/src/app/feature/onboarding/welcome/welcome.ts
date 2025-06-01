@@ -15,7 +15,8 @@ import {
     <pulpe-onboarding-card
       [cardData]="cardData"
       [showPreviousButton]="false"
-      [nextButtonText]="'Suivant'"
+      [showProgress]="false"
+      [nextButtonText]="'Commencer'"
       (next)="navigateNext()"
     >
       <!-- Logo Pulpe -->
@@ -36,7 +37,7 @@ import {
       </div>
 
       <!-- Lien de connexion -->
-      <div class="text-center mt-8">
+      <div slot="footer" class="text-center mt-6">
         <p class="text-gray-600">
           Tu as déjà un compte ?
           <button

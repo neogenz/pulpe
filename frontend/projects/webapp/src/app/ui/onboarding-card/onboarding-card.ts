@@ -21,23 +21,27 @@ export interface OnboardingCardData {
 
   template: `
     <div
-      class="min-h-screen pulpe-gradient flex items-center justify-center p-4"
+      class="min-h-screen md:h-screen pulpe-gradient flex items-center justify-center p-4"
     >
-      <div class="w-full max-w-md bg-white rounded-3xl shadow-2xl p-8">
+      <div
+        class="w-full max-w-3xl h-fit md:h-[600px] bg-white rounded-2xl p-8 flex flex-col"
+      >
         <!-- Progress indicators -->
-        <div class="flex justify-center space-x-2 mb-8">
-          @for (step of progressSteps; track step; let i = $index) {
-            <div
-              class="h-2 w-8 rounded-full transition-colors duration-300"
-              [class]="
-                i < cardData().currentStep ? 'bg-green-600' : 'bg-gray-200'
-              "
-            ></div>
-          }
-        </div>
+        @if (showProgress()) {
+          <div class="flex justify-center space-x-2 mb-8">
+            @for (step of progressSteps; track step; let i = $index) {
+              <div
+                class="h-2 w-8 rounded-full transition-colors duration-300"
+                [class]="
+                  i < cardData().currentStep ? 'bg-green-600' : 'bg-gray-200'
+                "
+              ></div>
+            }
+          </div>
+        }
 
         <!-- Content -->
-        <div class="space-y-6">
+        <div class="space-y-6 flex-1">
           <div class="text-center space-y-2">
             <h1 class="text-2xl font-bold text-gray-900">
               {{ cardData().title }}
@@ -70,6 +74,9 @@ export interface OnboardingCardData {
             {{ nextButtonText() }}
           </button>
         </div>
+
+        <!-- Footer content -->
+        <ng-content select="[slot=footer]"></ng-content>
       </div>
     </div>
   `,
@@ -77,6 +84,7 @@ export interface OnboardingCardData {
 export class OnboardingCardComponent {
   cardData = input.required<OnboardingCardData>();
   showPreviousButton = input<boolean>(true);
+  showProgress = input<boolean>(true);
   canContinue = input<boolean>(true);
   nextButtonText = input<string>('Continuer');
 
