@@ -1,4 +1,5 @@
 {
+  "tailwindCSS.lint.invalidConfigPath": "ignore",
   "eslint.workingDirectories": [
     {
       "pattern": "frontend/"
