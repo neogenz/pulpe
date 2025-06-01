@@ -1,5 +1,6 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { Router } from '@angular/router';
+import { MatButtonModule } from '@angular/material/button';
 import {
   OnboardingCardComponent,
   OnboardingCardData,
@@ -8,7 +9,7 @@ import {
 @Component({
   selector: 'pulpe-welcome',
   standalone: true,
-  imports: [OnboardingCardComponent],
+  imports: [OnboardingCardComponent, MatButtonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
 
   template: `
@@ -21,16 +22,16 @@ import {
     >
       <!-- Logo Pulpe -->
       <div class="flex justify-center mb-6">
-        <div class="w-24 h-24 pulpe-gradient rounded-full"></div>
+        <div class="w-48 h-48 pulpe-gradient rounded-full"></div>
       </div>
 
       <!-- Contenu -->
       <div class="text-center space-y-4">
-        <h2 class="text-3xl font-bold text-gray-900">
+        <h2 class="text-display-small text-on-surface">
           Bienvenue dans Pulpe,<br />
           commençons
         </h2>
-        <p class="text-gray-600 leading-relaxed px-4">
+        <p class="text-body-large text-on-surface-variant leading-relaxed px-4">
           Pulpe regroupe tes revenus et dépenses pour te donner une vision nette
           et des conseils adaptés dès aujourd'hui.
         </p>
@@ -38,13 +39,9 @@ import {
 
       <!-- Lien de connexion -->
       <div slot="footer" class="text-center mt-6">
-        <p class="text-gray-600">
+        <p class="text-body-medium text-on-surface-variant">
           Tu as déjà un compte ?
-          <button
-            class="text-green-600 font-medium underline hover:text-green-700"
-          >
-            Se connecter
-          </button>
+          <button mat-button color="primary" class="ml-1">Se connecter</button>
         </p>
       </div>
     </pulpe-onboarding-card>

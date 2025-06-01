@@ -3,7 +3,7 @@
 	Update this file using `@ngm-dev/cli update styles/vendors`
 */
 
-@import 'tailwindcss';
+@import "tailwindcss";
 
 /* base for setting the font-families */
 @layer base {
@@ -28,14 +28,134 @@
 
 @utility form-field-error-icon {
   vertical-align: bottom;
-  font-variation-settings: 'FILL' 1;
+  font-variation-settings: "FILL" 1;
   height: 16px !important;
   width: 16px !important;
   font-size: 16px !important;
 }
 
 @utility icon-filled {
-  font-variation-settings: 'FILL' 1;
+  font-variation-settings: "FILL" 1;
+}
+
+@utility text-display-large {
+  font-size: var(--text-display-large);
+  line-height: var(--text-display-large--line-height);
+  letter-spacing: var(--text-display-large--letter-spacing);
+  font-weight: var(--text-display-large--font-weight);
+  font-family: var(--text-display-large--font-family);
+}
+
+@utility text-display-medium {
+  font-size: var(--text-display-medium);
+  line-height: var(--text-display-medium--line-height);
+  letter-spacing: var(--text-display-medium--letter-spacing);
+  font-weight: var(--text-display-medium--font-weight);
+  font-family: var(--text-display-medium--font-family);
+}
+
+@utility text-display-small {
+  font-size: var(--text-display-small);
+  line-height: var(--text-display-small--line-height);
+  letter-spacing: var(--text-display-small--letter-spacing);
+  font-weight: var(--text-display-small--font-weight);
+  font-family: var(--text-display-small--font-family);
+}
+
+@utility text-headline-large {
+  font-size: var(--text-headline-large);
+  line-height: var(--text-headline-large--line-height);
+  letter-spacing: var(--text-headline-large--letter-spacing);
+  font-weight: var(--text-headline-large--font-weight);
+  font-family: var(--text-headline-large--font-family);
+}
+
+@utility text-headline-medium {
+  font-size: var(--text-headline-medium);
+  line-height: var(--text-headline-medium--line-height);
+  letter-spacing: var(--text-headline-medium--letter-spacing);
+  font-weight: var(--text-headline-medium--font-weight);
+  font-family: var(--text-headline-medium--font-family);
+}
+
+@utility text-headline-small {
+  font-size: var(--text-headline-small);
+  line-height: var(--text-headline-small--line-height);
+  letter-spacing: var(--text-headline-small--letter-spacing);
+  font-weight: var(--text-headline-small--font-weight);
+  font-family: var(--text-headline-small--font-family);
+}
+
+@utility text-title-large {
+  font-size: var(--text-title-large);
+  line-height: var(--text-title-large--line-height);
+  letter-spacing: var(--text-title-large--letter-spacing);
+  font-weight: var(--text-title-large--font-weight);
+  font-family: var(--text-title-large--font-family);
+}
+
+@utility text-title-medium {
+  font-size: var(--text-title-medium);
+  line-height: var(--text-title-medium--line-height);
+  letter-spacing: var(--text-title-medium--letter-spacing);
+  font-weight: var(--text-title-medium--font-weight);
+  font-family: var(--text-title-medium--font-family);
+}
+
+@utility text-title-small {
+  font-size: var(--text-title-small);
+  line-height: var(--text-title-small--line-height);
+  letter-spacing: var(--text-title-small--letter-spacing);
+  font-weight: var(--text-title-small--font-weight);
+  font-family: var(--text-title-small--font-family);
+}
+
+@utility text-body-large {
+  font-size: var(--text-body-large);
+  line-height: var(--text-body-large--line-height);
+  letter-spacing: var(--text-body-large--letter-spacing);
+  font-weight: var(--text-body-large--font-weight);
+  font-family: var(--text-body-large--font-family);
+}
+
+@utility text-body-medium {
+  font-size: var(--text-body-medium);
+  line-height: var(--text-body-medium--line-height);
+  letter-spacing: var(--text-body-medium--letter-spacing);
+  font-weight: var(--text-body-medium--font-weight);
+  font-family: var(--text-body-medium--font-family);
+}
+
+@utility text-body-small {
+  font-size: var(--text-body-small);
+  line-height: var(--text-body-small--line-height);
+  letter-spacing: var(--text-body-small--letter-spacing);
+  font-weight: var(--text-body-small--font-weight);
+  font-family: var(--text-body-small--font-family);
+}
+
+@utility text-label-large {
+  font-size: var(--text-label-large);
+  line-height: var(--text-label-large--line-height);
+  letter-spacing: var(--text-label-large--letter-spacing);
+  font-weight: var(--text-label-large--font-weight);
+  font-family: var(--text-label-large--font-family);
+}
+
+@utility text-label-medium {
+  font-size: var(--text-label-medium);
+  line-height: var(--text-label-medium--line-height);
+  letter-spacing: var(--text-label-medium--letter-spacing);
+  font-weight: var(--text-label-medium--font-weight);
+  font-family: var(--text-label-medium--font-family);
+}
+
+@utility text-label-small {
+  font-size: var(--text-label-small);
+  line-height: var(--text-label-small--line-height);
+  letter-spacing: var(--text-label-small--letter-spacing);
+  font-weight: var(--text-label-small--font-weight);
+  font-family: var(--text-label-small--font-family);
 }
 
 /* `.dark-theme` is the class name to enable dark mode in our application */
@@ -76,8 +196,9 @@
 
   /* same as `plain-family` in angular material */
   --font-sans: var(--mat-sys-body-large-font), sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco,
-    Consolas, Liberation Mono, Courier New, monospace;
+  --font-mono:
+    "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    Liberation Mono, Courier New, monospace;
   --font-display: var(--mat-sys-display-large-font), sans-serif;
 
   /* angular material radiuses */

@@ -5,6 +5,7 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { MatButtonModule } from '@angular/material/button';
 
 export interface OnboardingCardData {
   title: string;
@@ -16,7 +17,7 @@ export interface OnboardingCardData {
 @Component({
   selector: 'pulpe-onboarding-card',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, MatButtonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
 
   template: `
@@ -24,16 +25,18 @@ export interface OnboardingCardData {
       class="min-h-screen md:h-screen pulpe-gradient flex items-center justify-center p-4"
     >
       <div
-        class="w-full max-w-3xl h-fit md:h-[600px] bg-white rounded-2xl p-8 flex flex-col"
+        class="w-full max-w-3xl h-fit md:h-[800px] bg-surface rounded-2xl p-16 flex flex-col"
       >
         <!-- Progress indicators -->
         @if (showProgress()) {
-          <div class="flex gap-2 mb-8">
+          <div class="flex gap-2 mb-16">
             @for (step of progressSteps; track step; let i = $index) {
               <div
                 class="h-2 flex-1 rounded-full transition-colors duration-300"
                 [class]="
-                  i < cardData().currentStep ? 'bg-green-600' : 'bg-gray-200'
+                  i < cardData().currentStep
+                    ? 'bg-primary'
+                    : 'bg-secondary-container'
                 "
               ></div>
             }
@@ -43,11 +46,13 @@ export interface OnboardingCardData {
         <!-- Content -->
         <div class="space-y-6 flex-1">
           <div class="text-center space-y-2">
-            <h1 class="text-2xl font-bold text-gray-900">
+            <h1 class="text-headline-large text-on-surface">
               {{ cardData().title }}
             </h1>
             @if (cardData().subtitle) {
-              <p class="text-gray-600 leading-relaxed">
+              <p
+                class="text-body-large text-on-surface-variant leading-relaxed"
+              >
                 {{ cardData().subtitle }}
               </p>
             }
@@ -57,22 +62,29 @@ export interface OnboardingCardData {
         </div>
 
         <!-- Navigation buttons -->
-        <div class="flex space-x-4 mt-8">
+        <div class="flex gap-8 mt-8">
           @if (showPreviousButton()) {
-            <button
-              (click)="onPrevious()"
-              class="flex-1 py-3 px-6 border border-gray-300 rounded-full text-gray-700 font-medium hover:bg-gray-50 transition-colors"
-            >
-              Précédent
-            </button>
+            <div class="flex-1">
+              <button
+                matButton="outlined"
+                (click)="onPrevious()"
+                class="w-full"
+              >
+                Précédent
+              </button>
+            </div>
           }
-          <button
-            (click)="onNext()"
-            [disabled]="!canContinue()"
-            class="flex-1 py-3 px-6 bg-green-600 text-white rounded-full font-medium hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-          >
-            {{ nextButtonText() }}
-          </button>
+          <div class="flex-1">
+            <button
+              mat-flat-button
+              color="primary"
+              (click)="onNext()"
+              [disabled]="!canContinue()"
+              class="w-full"
+            >
+              {{ nextButtonText() }}
+            </button>
+          </div>
         </div>
 
         <!-- Footer content -->
