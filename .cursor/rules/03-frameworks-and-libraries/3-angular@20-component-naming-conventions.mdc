@@ -1,12 +1,12 @@
 ---
 description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
 # Component Naming Conventions
 
 ## Angular Schematics Configuration
-The project has custom schematics configured in [angular.json](mdc:frontend/angular.json) under `projects.webapp.schematics`:
+The project has custom schematics configured in @angular.json under `projects.webapp.schematics`:
 
 ### Component Generation Defaults
 - **inlineTemplate**: `true` - Templates are inline in component files
@@ -25,7 +25,7 @@ The project has custom schematics configured in [angular.json](mdc:frontend/angu
 - Use PascalCase: `HomeComponent`, `MainLayoutComponent`
 
 ### Component Selectors
-- **Prefix**: `pulpe-` (configured in [angular.json](mdc:frontend/angular.json))
+- **Prefix**: `pulpe-` (configured in @angular.json)
 - **Style**: `kebab-case` (enforced by ESLint)
 - Examples: `pulpe-home`, `pulpe-main-layout`
 
@@ -43,11 +43,11 @@ ng g c ui/component-name --project=webapp
 ```
 
 ### Examples from Current Project
-- **[projects/webapp/src/app/app.ts](mdc:frontend/projects/webapp/src/app/app.ts)** - `AppComponent`
-- **[projects/webapp/src/app/layout/main-layout.ts](mdc:frontend/projects/webapp/src/app/layout/main-layout.ts)** - `MainLayoutComponent`
-- **[projects/webapp/src/app/feature/home/home.ts](mdc:frontend/projects/webapp/src/app/feature/home/home.ts)** - `HomeComponent`
+- **@projects/webapp/src/app/app.ts** - `AppComponent`
+- **@projects/webapp/src/app/layout/main-layout.ts** - `MainLayoutComponent`
+- **@projects/webapp/src/app/feature/home/home.ts** - `HomeComponent`
 
 ## ESLint Rules
-Component naming is enforced by ESLint rules in [eslint.config.js](mdc:frontend/eslint.config.js):
+Component naming is enforced by ESLint rules in @eslint.config.js:
 - `@angular-eslint/component-class-suffix` - Ensures Component suffix
 - `@angular-eslint/component-selector` - Enforces pulpe- prefix and kebab-case

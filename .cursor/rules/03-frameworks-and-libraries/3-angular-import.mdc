@@ -1,0 +1,9 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+### ESLint & Boundaries
+- Respecter les règles `eslint-plugin-boundaries`
+- Les features ne peuvent importer que du `core/`, `ui/`, `pattern/`
+- Les layouts peuvent importer de `core/`, `ui/`, `pattern/`

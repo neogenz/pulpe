@@ -1,5 +1,5 @@
 ---
-description: 
+description: APPLY eslint rules WHEN create or move some angular elements
 globs: 
 alwaysApply: false
 ---

@@ -1,0 +1,10 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+### Style et formatting
+- Utiliser Tailwind CSS pour le styling
+- Utiliser Angular Material pour les composants UI
+- Préférer les `@if`, `@for` aux directives structurelles
+- Import standalone dans les composants

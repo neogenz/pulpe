@@ -1,5 +1,7 @@
 ---
-description: Règles générales pour le monorepo pulpe-workspace
+description: Règles générales pour comprendre la structure du workspace
+globs:
+alwaysApply: false
 ---
 
 ## Structure du Monorepo
@@ -30,9 +32,3 @@ pulpe-workspace/
 
 - Préfixer par le projet : `frontend:`, `backend:`, `mobile:`
 - Exemple : `frontend: add new layout component`
-
-### ESLint et Linting
-
-- Configuration flat config ESLint dans `frontend/eslint.config.js`
-- Working directories configurés dans `.vscode/settings.json`
-- Chaque projet peut avoir ses propres rules spécifiques

@@ -3,7 +3,7 @@ description:
 globs: 
 alwaysApply: false
 ---
-# Core Provider Pattern
+# Core Provider
 
 ## Core Configuration System
 The project uses a centralized provider pattern in [core/core.ts](mdc:frontend/projects/webapp/src/app/core/core.ts) instead of configuring providers directly in app.config.ts.
