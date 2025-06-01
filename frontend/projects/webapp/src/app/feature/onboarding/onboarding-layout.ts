@@ -7,7 +7,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 
-export interface OnboardingCardData {
+export interface OnboardingLayoutData {
   title: string;
   subtitle?: string;
   currentStep: number;
@@ -15,7 +15,7 @@ export interface OnboardingCardData {
 }
 
 @Component({
-  selector: 'pulpe-onboarding-card',
+  selector: 'pulpe-onboarding-layout',
   standalone: true,
   imports: [CommonModule, MatButtonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -34,7 +34,7 @@ export interface OnboardingCardData {
               <div
                 class="h-2 flex-1 rounded-full transition-colors duration-300"
                 [class]="
-                  i < cardData().currentStep
+                  i < onboardingLayoutData().currentStep
                     ? 'bg-primary'
                     : 'bg-secondary-container'
                 "
@@ -47,13 +47,13 @@ export interface OnboardingCardData {
         <div class="space-y-6 flex-1">
           <div class="text-center space-y-2">
             <h1 class="text-headline-large text-on-surface">
-              {{ cardData().title }}
+              {{ onboardingLayoutData().title }}
             </h1>
-            @if (cardData().subtitle) {
+            @if (onboardingLayoutData().subtitle) {
               <p
                 class="text-body-large text-on-surface-variant leading-relaxed"
               >
-                {{ cardData().subtitle }}
+                {{ onboardingLayoutData().subtitle }}
               </p>
             }
           </div>
@@ -93,8 +93,8 @@ export interface OnboardingCardData {
     </div>
   `,
 })
-export class OnboardingCardComponent {
-  cardData = input.required<OnboardingCardData>();
+export class OnboardingLayout {
+  onboardingLayoutData = input.required<OnboardingLayoutData>();
   showPreviousButton = input<boolean>(true);
   showProgress = input<boolean>(true);
   canContinue = input<boolean>(true);
@@ -104,7 +104,7 @@ export class OnboardingCardComponent {
   next = output<void>();
 
   protected get progressSteps(): number[] {
-    return Array(this.cardData().totalSteps).fill(0);
+    return Array(this.onboardingLayoutData().totalSteps).fill(0);
   }
 
   protected onPrevious(): void {

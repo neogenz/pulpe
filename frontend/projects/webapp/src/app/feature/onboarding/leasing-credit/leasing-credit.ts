@@ -1,19 +1,16 @@
 import { Component, ChangeDetectionStrategy, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import {
-  OnboardingCardComponent,
-  OnboardingCardData,
-} from '../onboarding-card';
-import { OnboardingCurrencyInputComponent } from '../currency-input';
+import { OnboardingLayout, OnboardingLayoutData } from '../onboarding-layout';
+import { OnboardingCurrencyInput } from '../currency-input';
 
 @Component({
   selector: 'pulpe-leasing-credit',
   standalone: true,
-  imports: [OnboardingCardComponent, OnboardingCurrencyInputComponent],
+  imports: [OnboardingLayout, OnboardingCurrencyInput],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <pulpe-onboarding-card
-      [cardData]="cardData"
+    <pulpe-onboarding-layout
+      [onboardingLayoutData]="onboardingLayoutData"
       [canContinue]="canContinue()"
       (next)="navigateNext()"
       (previous)="navigatePrevious()"
@@ -25,11 +22,11 @@ import { OnboardingCurrencyInputComponent } from '../currency-input';
           (valueChange)="onLeasingCreditChange($event)"
         />
       </div>
-    </pulpe-onboarding-card>
+    </pulpe-onboarding-layout>
   `,
 })
-export default class LeasingCreditComponent {
-  protected readonly cardData: OnboardingCardData = {
+export default class LeasingCredit {
+  protected readonly onboardingLayoutData: OnboardingLayoutData = {
     title: 'Leasing ou crédit à la consommation ?',
     subtitle:
       'Combien payes-tu de leasing ou crédit à la consommation chaque mois ?',

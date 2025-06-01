@@ -40,7 +40,7 @@ Examples of feature components:
 ```typescript
 // ❌ In ui/ but feature-specific
 @Component({
-  selector: 'pulpe-onboarding-card', // Feature-specific naming
+  selector: 'pulpe-onboarding-layout', // Feature-specific naming
   // Contains onboarding-specific logic
 })
 ```

@@ -1,19 +1,16 @@
 import { Component, ChangeDetectionStrategy, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import {
-  OnboardingCardComponent,
-  OnboardingCardData,
-} from '../onboarding-card';
-import { OnboardingCurrencyInputComponent } from '../currency-input';
+import { OnboardingLayout, OnboardingLayoutData } from '../onboarding-layout';
+import { OnboardingCurrencyInput } from '../currency-input';
 
 @Component({
   selector: 'pulpe-transport',
   standalone: true,
-  imports: [OnboardingCardComponent, OnboardingCurrencyInputComponent],
+  imports: [OnboardingLayout, OnboardingCurrencyInput],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <pulpe-onboarding-card
-      [cardData]="cardData"
+    <pulpe-onboarding-layout
+      [onboardingLayoutData]="onboardingLayoutData"
       [canContinue]="canContinue()"
       [nextButtonText]="'Terminer'"
       (next)="navigateNext()"
@@ -26,11 +23,11 @@ import { OnboardingCurrencyInputComponent } from '../currency-input';
           (valueChange)="onTransportChange($event)"
         />
       </div>
-    </pulpe-onboarding-card>
+    </pulpe-onboarding-layout>
   `,
 })
-export default class TransportComponent {
-  protected readonly cardData: OnboardingCardData = {
+export default class Transport {
+  protected readonly onboardingLayoutData: OnboardingLayoutData = {
     title: 'Transport public ?',
     subtitle:
       "Combien payes-tu d'abonnements à des transports publics chaque mois ?",

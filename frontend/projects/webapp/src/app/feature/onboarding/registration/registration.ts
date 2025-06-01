@@ -4,16 +4,13 @@ import { FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
-import {
-  OnboardingCardComponent,
-  OnboardingCardData,
-} from '../onboarding-card';
+import { OnboardingLayout, OnboardingLayoutData } from '../onboarding-layout';
 
 @Component({
   selector: 'pulpe-registration',
   standalone: true,
   imports: [
-    OnboardingCardComponent,
+    OnboardingLayout,
     FormsModule,
     MatFormFieldModule,
     MatInputModule,
@@ -21,8 +18,8 @@ import {
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <pulpe-onboarding-card
-      [cardData]="cardData"
+    <pulpe-onboarding-layout
+      [onboardingLayoutData]="onboardingLayoutData"
       [canContinue]="canContinue()"
       nextButtonText="Je m'inscris"
       (next)="navigateNext()"
@@ -41,11 +38,11 @@ import {
           <mat-icon matPrefix>email</mat-icon>
         </mat-form-field>
       </div>
-    </pulpe-onboarding-card>
+    </pulpe-onboarding-layout>
   `,
 })
-export default class RegistrationComponent {
-  protected readonly cardData: OnboardingCardData = {
+export default class Registration {
+  protected readonly onboardingLayoutData: OnboardingLayoutData = {
     title: 'Presque fini !',
     subtitle:
       'Afin de pouvoir te reconnecter facilement et de pouvoir faire vivre ton budget, tu dois renseigner ton email.',

@@ -1,20 +1,17 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
-import {
-  OnboardingCardComponent,
-  OnboardingCardData,
-} from '../onboarding-card';
+import { OnboardingLayout, OnboardingLayoutData } from '../onboarding-layout';
 
 @Component({
   selector: 'pulpe-welcome',
   standalone: true,
-  imports: [OnboardingCardComponent, MatButtonModule],
+  imports: [OnboardingLayout, MatButtonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
 
   template: `
-    <pulpe-onboarding-card
-      [cardData]="cardData"
+    <pulpe-onboarding-layout
+      [onboardingLayoutData]="onboardingLayoutData"
       [showPreviousButton]="false"
       [showProgress]="false"
       [nextButtonText]="'Commencer'"
@@ -44,11 +41,11 @@ import {
           <button mat-button color="primary" class="ml-1">Se connecter</button>
         </p>
       </div>
-    </pulpe-onboarding-card>
+    </pulpe-onboarding-layout>
   `,
 })
-export default class WelcomeComponent {
-  protected readonly cardData: OnboardingCardData = {
+export default class Welcome {
+  protected readonly onboardingLayoutData: OnboardingLayoutData = {
     title: '',
     currentStep: 0,
     totalSteps: 8,

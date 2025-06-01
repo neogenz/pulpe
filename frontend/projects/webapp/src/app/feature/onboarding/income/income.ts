@@ -1,19 +1,16 @@
 import { Component, ChangeDetectionStrategy, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import {
-  OnboardingCardComponent,
-  OnboardingCardData,
-} from '../onboarding-card';
-import { OnboardingCurrencyInputComponent } from '../currency-input';
+import { OnboardingLayout, OnboardingLayoutData } from '../onboarding-layout';
+import { OnboardingCurrencyInput } from '../currency-input';
 
 @Component({
   selector: 'pulpe-income',
   standalone: true,
-  imports: [OnboardingCardComponent, OnboardingCurrencyInputComponent],
+  imports: [OnboardingLayout, OnboardingCurrencyInput],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <pulpe-onboarding-card
-      [cardData]="cardData"
+    <pulpe-onboarding-layout
+      [onboardingLayoutData]="onboardingLayoutData"
       [canContinue]="canContinue()"
       (next)="navigateNext()"
       (previous)="navigatePrevious()"
@@ -25,11 +22,11 @@ import { OnboardingCurrencyInputComponent } from '../currency-input';
           (valueChange)="onIncomeChange($event)"
         />
       </div>
-    </pulpe-onboarding-card>
+    </pulpe-onboarding-layout>
   `,
 })
-export default class IncomeComponent {
-  protected readonly cardData: OnboardingCardData = {
+export default class Income {
+  protected readonly onboardingLayoutData: OnboardingLayoutData = {
     title: 'Quel est le montant de tes revenus mensuels ?',
     subtitle:
       "Tes revenus mensuels correspondent par exemple à ton salaire, tes rentes, etc. Je vais l'utiliser pour calculer ton budget de base. On pourra le modifier par la suite.",

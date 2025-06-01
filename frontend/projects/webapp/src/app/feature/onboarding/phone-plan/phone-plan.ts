@@ -1,19 +1,16 @@
 import { Component, ChangeDetectionStrategy, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import {
-  OnboardingCardComponent,
-  OnboardingCardData,
-} from '../onboarding-card';
-import { OnboardingCurrencyInputComponent } from '../currency-input';
+import { OnboardingLayout, OnboardingLayoutData } from '../onboarding-layout';
+import { OnboardingCurrencyInput } from '../currency-input';
 
 @Component({
   selector: 'pulpe-phone-plan',
   standalone: true,
-  imports: [OnboardingCardComponent, OnboardingCurrencyInputComponent],
+  imports: [OnboardingLayout, OnboardingCurrencyInput],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <pulpe-onboarding-card
-      [cardData]="cardData"
+    <pulpe-onboarding-layout
+      [onboardingLayoutData]="onboardingLayoutData"
       [canContinue]="canContinue()"
       (next)="navigateNext()"
       (previous)="navigatePrevious()"
@@ -25,11 +22,11 @@ import { OnboardingCurrencyInputComponent } from '../currency-input';
           (valueChange)="onPhonePlanChange($event)"
         />
       </div>
-    </pulpe-onboarding-card>
+    </pulpe-onboarding-layout>
   `,
 })
-export default class PhonePlanComponent {
-  protected readonly cardData: OnboardingCardData = {
+export default class PhonePlan {
+  protected readonly onboardingLayoutData: OnboardingLayoutData = {
     title: 'Forfait téléphone ?',
     subtitle:
       'Combien payes-tu frais téléphoniques chaque mois ? (Par ex. Swisscom, Sunrise, etc...)',

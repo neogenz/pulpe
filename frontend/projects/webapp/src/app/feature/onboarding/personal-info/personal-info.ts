@@ -4,16 +4,13 @@ import { FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
-import {
-  OnboardingCardComponent,
-  OnboardingCardData,
-} from '../onboarding-card';
+import { OnboardingLayout, OnboardingLayoutData } from '../onboarding-layout';
 
 @Component({
   selector: 'pulpe-personal-info',
   standalone: true,
   imports: [
-    OnboardingCardComponent,
+    OnboardingLayout,
     FormsModule,
     MatFormFieldModule,
     MatInputModule,
@@ -21,8 +18,8 @@ import {
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <pulpe-onboarding-card
-      [cardData]="cardData"
+    <pulpe-onboarding-layout
+      [onboardingLayoutData]="onboardingLayoutData"
       [canContinue]="canContinue()"
       (next)="navigateNext()"
       (previous)="navigatePrevious()"
@@ -39,11 +36,11 @@ import {
           <mat-icon matPrefix>person</mat-icon>
         </mat-form-field>
       </div>
-    </pulpe-onboarding-card>
+    </pulpe-onboarding-layout>
   `,
 })
-export default class PersonalInfoComponent {
-  protected readonly cardData: OnboardingCardData = {
+export default class PersonalInfo {
+  protected readonly onboardingLayoutData: OnboardingLayoutData = {
     title: "Comment je dois t'appeler ?",
     subtitle:
       "Ton prénom va m'aider à savoir comment je vais devoir t'appeler tout au long de notre collaboration. Il ne sera en aucun cas communiqué.",

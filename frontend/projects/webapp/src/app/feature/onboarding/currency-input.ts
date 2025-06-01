@@ -39,7 +39,7 @@ import { MatInputModule } from '@angular/material/input';
     `,
   ],
 })
-export class OnboardingCurrencyInputComponent {
+export class OnboardingCurrencyInput {
   label = input.required<string>();
   value = input<number | null>(null);
   placeholder = input<string>('0.00');
