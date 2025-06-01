@@ -2,7 +2,8 @@
   "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
   "version": 1,
   "cli": {
-    "packageManager": "pnpm"
+    "packageManager": "pnpm",
+    "schematicCollections": ["angular-eslint"]
   },
   "newProjectRoot": "projects",
   "projects": {
@@ -10,6 +11,7 @@
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
+          "type": "component",
           "inlineTemplate": true,
           "inlineStyle": true,
           "style": "scss",
@@ -23,21 +25,30 @@
           "skipTests": true
         },
         "@schematics/angular:directive": {
+          "type": "directive",
           "skipTests": true
         },
         "@schematics/angular:guard": {
+          "typeSeparator": ".",
           "skipTests": true
         },
         "@schematics/angular:interceptor": {
+          "typeSeparator": ".",
           "skipTests": true
         },
+        "@schematics/angular:module": {
+          "typeSeparator": "."
+        },
         "@schematics/angular:pipe": {
+          "typeSeparator": ".",
           "skipTests": true
         },
         "@schematics/angular:resolver": {
+          "typeSeparator": ".",
           "skipTests": true
         },
         "@schematics/angular:service": {
+          "type": "service",
           "skipTests": true
         }
       },
@@ -57,7 +68,10 @@
                 "input": "projects/webapp/public"
               }
             ],
-            "styles": ["projects/webapp/src/styles.scss"]
+            "styles": [
+              "@angular/material/prebuilt-themes/azure-blue.css",
+              "projects/webapp/src/styles.scss"
+            ]
           },
           "configurations": {
             "production": {
@@ -78,7 +92,13 @@
             "development": {
               "optimization": false,
               "extractLicenses": false,
-              "sourceMap": true
+              "sourceMap": true,
+              "fileReplacements": [
+                {
+                  "replace": "projects/webapp/src/environments/environment.ts",
+                  "with": "projects/webapp/src/environments/environment.development.ts"
+                }
+              ]
             }
           },
           "defaultConfiguration": "production"
@@ -109,7 +129,20 @@
                 "input": "projects/webapp/public"
               }
             ],
-            "styles": ["projects/webapp/src/styles.scss"]
+            "styles": [
+              "@angular/material/prebuilt-themes/azure-blue.css",
+              "projects/webapp/src/styles.scss"
+            ]
+          }
+        },
+        "lint": {
+          "builder": "@angular-eslint/builder:lint",
+          "options": {
+            "lintFilePatterns": [
+              "projects/webapp/**/*.ts",
+              "projects/webapp/**/*.html"
+            ],
+            "eslintConfig": "projects/webapp/eslint.config.js"
           }
         }
       }

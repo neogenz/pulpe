@@ -1,0 +1,125 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# ESLint Boundaries Rules
+
+## Architecture Validation
+The project uses `eslint-plugin-boundaries` to enforce architectural constraints defined in [eslint.config.js](mdc:frontend/eslint.config.js).
+
+## Element Types
+The following architectural element types are defined:
+
+### Core Elements
+- **main** - Entry point files (`main.ts`)
+- **app** - App-level files (`app*.ts`)
+- **env** - Environment configuration files
+
+### Architecture Layers
+- **core** - Injectables and headless logic
+- **ui** - Shared UI components
+- **layout** - Layout components
+- **pattern** - Shared patterns
+- **feature** - Feature modules
+- **feature-routes** - Feature route configurations
+
+### Library Elements
+- **lib-api** - Library public APIs
+- **lib** - Library implementations
+
+## Dependency Rules
+
+### What Each Layer Can Import
+
+#### Main (`main.ts`)
+- ✅ App files
+- ✅ Environment files
+
+#### App (`app.ts`, `app.config.ts`)
+- ✅ Core layer
+- ✅ UI layer
+- ✅ Layout layer
+- ✅ Feature routes
+- ✅ Environment files
+- ✅ Library APIs
+
+#### Core
+- ✅ Other core files
+- ✅ Environment files
+- ✅ Library APIs
+- ❌ UI, Layout, Pattern, Feature layers
+
+#### UI
+- ✅ Other UI files
+- ✅ Environment files
+- ✅ Library APIs
+- ❌ Core, Layout, Pattern, Feature layers
+
+#### Layout
+- ✅ Core layer
+- ✅ UI layer
+- ✅ Pattern layer
+- ✅ Environment files
+- ✅ Library APIs
+- ❌ Feature layer
+
+#### Pattern
+- ✅ Core layer
+- ✅ UI layer
+- ✅ Other pattern files
+- ✅ Environment files
+- ✅ Library APIs
+- ❌ Layout, Feature layers
+
+#### Feature
+- ✅ Core layer
+- ✅ UI layer
+- ✅ Pattern layer
+- ✅ Environment files
+- ✅ Library APIs
+- ❌ Other features, Layout layer
+
+#### Feature Routes
+- ✅ Core layer
+- ✅ Pattern layer (same feature only)
+- ✅ Feature files (same feature only)
+- ✅ Other feature routes (different features)
+- ✅ Environment files
+- ✅ Library APIs
+
+## Validation Commands
+Run ESLint to validate architecture:
+```bash
+pnpm run lint
+```
+
+## Common Violations
+
+### ❌ Feature importing another Feature
+```typescript
+// In feature/user/user.ts
+import { ProductComponent } from '../product/product'; // VIOLATION
+```
+
+### ❌ UI importing Feature
+```typescript
+// In ui/button.ts
+import { HomeComponent } from '../feature/home/home'; // VIOLATION
+```
+
+### ✅ Correct Cross-Layer Communication
+```typescript
+// In feature/user/user.ts
+import { UserService } from '../../core/services/user.service'; // OK
+
+// In layout/main-layout.ts
+import { ButtonComponent } from '../ui/button'; // OK
+```
+
+## Architecture Benefits
+- **Prevents circular dependencies**
+- **Enforces separation of concerns**
+- **Makes refactoring safer**
+- **Improves code organization**
+- **Enables better testing strategies**

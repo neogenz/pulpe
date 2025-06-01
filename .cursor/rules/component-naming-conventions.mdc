@@ -1,0 +1,53 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Component Naming Conventions
+
+## Angular Schematics Configuration
+The project has custom schematics configured in [angular.json](mdc:frontend/angular.json) under `projects.webapp.schematics`:
+
+### Component Generation Defaults
+- **inlineTemplate**: `true` - Templates are inline in component files
+- **inlineStyle**: `true` - Styles are inline in component files
+- **style**: `"scss"` - Use SCSS for styling
+- **displayBlock**: `true` - Components have `display: block` by default
+- **skipTests**: `true` - No test files generated
+- **standalone**: `true` - Components are standalone (no modules)
+- **changeDetection**: `"OnPush"` - Use OnPush change detection strategy
+- **flat**: `true` - No separate folder for components
+
+## Naming Conventions
+
+### Component Class Names
+- **MUST** end with `Component` suffix (enforced by ESLint)
+- Use PascalCase: `HomeComponent`, `MainLayoutComponent`
+
+### Component Selectors
+- **Prefix**: `pulpe-` (configured in [angular.json](mdc:frontend/angular.json))
+- **Style**: `kebab-case` (enforced by ESLint)
+- Examples: `pulpe-home`, `pulpe-main-layout`
+
+### File Naming
+- Component files use the component name without suffix: `home.ts`, `main-layout.ts`
+- Route files use `.routes.ts` suffix: `home.routes.ts`
+
+## Generation Commands
+
+### Create Components
+```bash
+ng g c feature/feature-name/component-name --project=webapp
+ng g c layout/layout-name --project=webapp
+ng g c ui/component-name --project=webapp
+```
+
+### Examples from Current Project
+- **[projects/webapp/src/app/app.ts](mdc:frontend/projects/webapp/src/app/app.ts)** - `AppComponent`
+- **[projects/webapp/src/app/layout/main-layout.ts](mdc:frontend/projects/webapp/src/app/layout/main-layout.ts)** - `MainLayoutComponent`
+- **[projects/webapp/src/app/feature/home/home.ts](mdc:frontend/projects/webapp/src/app/feature/home/home.ts)** - `HomeComponent`
+
+## ESLint Rules
+Component naming is enforced by ESLint rules in [eslint.config.js](mdc:frontend/eslint.config.js):
+- `@angular-eslint/component-class-suffix` - Ensures Component suffix
+- `@angular-eslint/component-selector` - Enforces pulpe- prefix and kebab-case

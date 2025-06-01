@@ -1,0 +1,42 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Angular Architecture Overview
+
+## Project Structure
+This is an Angular 20 project using a scalable architecture pattern with enforced boundaries.
+
+### Core Architecture Folders
+- **[projects/webapp/src/app/core](mdc:frontend/projects/webapp/src/app/core)** - Injectables and headless logic, providers, and app-level configuration
+- **[projects/webapp/src/app/ui](mdc:frontend/projects/webapp/src/app/ui)** - Shared UI components that can be reused across features
+- **[projects/webapp/src/app/layout](mdc:frontend/projects/webapp/src/app/layout)** - Layout components like headers, footers, main layout
+- **[projects/webapp/src/app/feature](mdc:frontend/projects/webapp/src/app/feature)** - Lazy-loaded feature modules organized by domain
+- **[projects/webapp/src/app/pattern](mdc:frontend/projects/webapp/src/app/pattern)** - Shared patterns and complex reusable components
+
+### Key Configuration Files
+- **[frontend/angular.json](mdc:frontend/angular.json)** - Angular CLI configuration with custom schematics
+- **[frontend/eslint.config.js](mdc:frontend/eslint.config.js)** - ESLint with boundaries plugin for architecture validation
+- **[frontend/package.json](mdc:frontend/package.json)** - Dependencies and analysis scripts
+- **[frontend/.postcssrc.json](mdc:frontend/.postcssrc.json)** - PostCSS configuration for Tailwind CSS
+
+### Entry Points
+- **[frontend/projects/webapp/src/main.ts](mdc:frontend/projects/webapp/src/main.ts)** - Application bootstrap
+- **[frontend/projects/webapp/src/app/app.ts](mdc:frontend/projects/webapp/src/app/app.ts)** - Root component
+- **[frontend/projects/webapp/src/app/app.config.ts](mdc:frontend/projects/webapp/src/app/app.config.ts)** - Application configuration using core providers
+
+## Technology Stack
+- **Angular 20** with standalone components
+- **Tailwind CSS 4** for styling
+- **Angular Material** with Azure Blue theme
+- **TypeScript** with strict configuration
+- **ESLint** with architectural boundaries validation
+- **pnpm** as package manager
+
+## Development Workflow
+Use the scripts in [package.json](mdc:frontend/package.json) for development tasks:
+- `pnpm start` - Development server
+- `pnpm run lint` - Architecture validation
+- `pnpm run analyze:deps:all` - Generate dependency graphs
+- `pnpm run analyze` - Bundle analysis

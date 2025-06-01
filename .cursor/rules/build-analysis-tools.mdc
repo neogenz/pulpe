@@ -1,0 +1,95 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Build and Analysis Tools
+
+## Bundle Analysis Scripts
+The project includes comprehensive analysis tools configured in [package.json](mdc:frontend/package.json).
+
+### Available Analysis Commands
+
+#### Bundle Size Analysis
+```bash
+pnpm run analyze
+```
+- Builds the app with stats.json
+- Uses `esbuild-visualizer` with treemap template
+- Opens bundle analysis in browser at `dist/webapp/analyse/`
+
+#### Source Map Exploration
+```bash
+pnpm run analyze:sme
+```
+- Builds with source maps
+- Uses `source-map-explorer` to analyze JavaScript bundles
+- Opens source map visualization at `dist/webapp/sme/`
+
+#### Dependency Graph Analysis
+```bash
+pnpm run analyze:deps
+```
+Runs all dependency analysis scripts:
+
+```bash
+pnpm run analyze:deps:all
+```
+- Generates dependency graph for entire application
+- Creates image at `./deps/webapp/_all.jpg`
+
+```bash
+pnpm run analyze:deps:ui
+```
+- Analyzes UI layer dependencies
+- Creates image at `./deps/webapp/ui.png`
+
+## Analysis Output Location
+Analysis outputs are stored in dedicated directories:
+- **[frontend/deps/webapp](mdc:frontend/deps/webapp)** - Dependency graphs and analysis images
+- **`dist/webapp/analyse/`** - Bundle analysis HTML (generated)
+- **`dist/webapp/sme/`** - Source map exploration HTML (generated)
+
+## Tool Configuration
+
+### Esbuild Visualizer
+- **Template**: `treemap` for visual bundle size representation
+- **Metadata**: Uses Angular CLI's `--stats-json` output
+- **Output**: HTML file with interactive visualization
+
+### Source Map Explorer
+- **Input**: All JavaScript files in `dist/webapp/browser/`
+- **Output**: HTML file showing source map breakdown
+- **Includes**: All lazy chunks and main bundles
+
+### Madge (Dependency Analysis)
+- **TypeScript Config**: Uses `tsconfig.json` for module resolution
+- **Extensions**: Analyzes `.ts` files
+- **Output Format**: JPG/PNG images with dependency graphs
+
+## Build Options for Analysis
+The analysis scripts use specific Angular CLI build flags:
+- `--stats-json` - Generates webpack stats for bundle analysis
+- `--source-map` - Enables source maps for exploration
+- `--output-hashing none` - Prevents hash changes in filenames
+- `--named-chunks` - Uses readable chunk names
+
+## Dependencies Required
+Analysis tools dependencies (already installed):
+- `esbuild-visualizer` - Bundle visualization
+- `source-map-explorer` - Source map analysis
+- `http-server` - Local server for viewing results
+- `madge` - Dependency graph generation
+- `npm-run-all` - Run multiple scripts
+
+## External Requirement
+For visual dependency graphs, Graphviz must be installed:
+```bash
+brew install graphviz  # macOS
+```
+
+## Usage Tips
+1. Run analysis after significant changes to track bundle size
+2. Use dependency graphs to identify circular dependencies
+3. Source map explorer helps identify which libraries contribute most to bundle size
+4. Regular analysis helps maintain performance budgets
