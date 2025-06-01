@@ -1,14 +1,8 @@
 ---
-description: 
-globs: frontend/**
-alwaysApply: false
----
----
 description: Apply Angular core provider pattern for centralized application configuration, router setup, and provider management when configuring app-level services and dependencies
 globs: frontend/projects/webapp/src/app/core/**/*.ts
 alwaysApply: false
 ---
-
 Core Provider Pattern:
 - Use `provideCore()` function for providers
 - Centralize providers in `core/core.ts`
