@@ -5,6 +5,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { OnboardingLayout, OnboardingLayoutData } from '../onboarding-layout';
+import { OnboardingApi } from '../onboarding-api';
 
 @Component({
   selector: 'pulpe-registration',
@@ -52,7 +53,15 @@ export default class Registration {
 
   protected emailValue = signal<string>('');
 
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private onboardingApi: OnboardingApi,
+  ) {
+    const currentEmail = this.onboardingApi.onboardingData().email;
+    if (currentEmail) {
+      this.emailValue.set(currentEmail);
+    }
+  }
 
   protected canContinue(): boolean {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -61,11 +70,20 @@ export default class Registration {
 
   protected onEmailChange(event: Event): void {
     const target = event.target as HTMLInputElement;
-    this.emailValue.set(target.value);
+    const email = target.value;
+    this.emailValue.set(email);
+    this.onboardingApi.updateEmail(email);
   }
 
   protected navigateNext(): void {
-    this.router.navigate(['/home']);
+    this.onboardingApi.submitOnboardingData().subscribe({
+      next: () => {
+        this.router.navigate(['/home']);
+      },
+      error: (error) => {
+        console.error('Error saving onboarding data:', error);
+      },
+    });
   }
 
   protected navigatePrevious(): void {

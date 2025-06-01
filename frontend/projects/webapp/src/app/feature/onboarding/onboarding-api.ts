@@ -1,4 +1,5 @@
 import { Injectable, signal } from '@angular/core';
+import { Observable, of, throwError } from 'rxjs';
 
 interface OnboardingData {
   monthlyIncome: number | null;
@@ -104,5 +105,54 @@ export class OnboardingApi {
   isOnboardingComplete(): boolean {
     const data = this.onboardingData();
     return !!(data.monthlyIncome && data.firstName.trim() && data.email.trim());
+  }
+
+  submitOnboardingData(): Observable<void> {
+    // TODO: Replace with HTTP call to backend
+    // return this.http.post<void>('/api/onboarding', this.onboardingData())
+    const data = this.onboardingData();
+    try {
+      localStorage.setItem('onboarding-data', JSON.stringify(data));
+      localStorage.setItem('onboarding-completed', 'true');
+      return of(undefined);
+    } catch (error) {
+      console.error('Failed to save onboarding data to localStorage:', error);
+      return throwError(() => new Error('Unable to save onboarding data'));
+    }
+  }
+
+  loadOnboardingData(): Observable<OnboardingData | null> {
+    // TODO: Replace with HTTP call to backend
+    // return this.http.get<OnboardingData>('/api/onboarding').pipe(
+    //   tap(data => this.onboardingDataSignal.set(data)),
+    //   catchError(() => of(null))
+    // )
+    try {
+      const savedData = localStorage.getItem('onboarding-data');
+      if (savedData) {
+        const parsedData = JSON.parse(savedData) as OnboardingData;
+        this.onboardingDataSignal.set(parsedData);
+        return of(parsedData);
+      }
+      return of(null);
+    } catch (error) {
+      console.error('Failed to load onboarding data from localStorage:', error);
+      return throwError(() => new Error('Unable to load onboarding data'));
+    }
+  }
+
+  checkOnboardingStatus(): Observable<boolean> {
+    // TODO: Replace with HTTP call to backend
+    // return this.http.get<{ completed: boolean }>('/api/onboarding/status').pipe(
+    //   map(response => response.completed)
+    // )
+    try {
+      const isCompleted =
+        localStorage.getItem('onboarding-completed') === 'true';
+      return of(isCompleted);
+    } catch (error) {
+      console.error('Failed to check onboarding status:', error);
+      return throwError(() => new Error('Unable to check onboarding status'));
+    }
   }
 }
