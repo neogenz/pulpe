@@ -1,0 +1,26 @@
+---
+description: 
+globs: frontend/**
+alwaysApply: false
+---
+Import Hierarchy Rules:
+- Main can import app and env only
+- App can import core, UI, layout, feature-routes
+- Core can import lib-api and other core only
+- UI can import lib-api and other UI only
+- Layout can import core, UI, patterns
+- Features can import core, UI, patterns
+- Patterns can import core, UI, other patterns
+
+Forbidden Dependencies:
+- UI cannot import from core
+- Features cannot import other features
+- Patterns cannot import from features
+- Core cannot import from features/patterns
+- No circular dependencies allowed
+
+Library Boundaries:
+- Lib-api can only import from same lib
+- Use ESLint boundaries plugin for validation
+- Configure element types and capture groups
+- Validate import paths automatically

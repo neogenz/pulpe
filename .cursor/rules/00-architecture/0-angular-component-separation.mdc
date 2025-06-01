@@ -1,0 +1,32 @@
+---
+description: 
+globs: frontend/**
+alwaysApply: false
+---
+UI Component Constraints:
+- Receive data through input properties only
+- Notify changes through output events only
+- Never inject services directly
+- Define local interfaces for specific needs
+- Keep components self-contained
+
+Core Service Rules:
+- Implement business logic and state management
+- Provide data to features and layouts
+- Never contain template-related code
+- Use dependency injection patterns
+- Organize by business domains
+
+Feature Isolation:
+- Features cannot import from each other
+- Always use lazy loading for features
+- Implement as complete black boxes
+- Easy to extract as separate libraries
+- Share logic by moving to core
+
+Pattern Implementation:
+- Package standalones with injectables
+- Implement cross-cutting business features
+- Provide drop-in component interface
+- Reuse across multiple features
+- Handle document management, audit logs, etc.

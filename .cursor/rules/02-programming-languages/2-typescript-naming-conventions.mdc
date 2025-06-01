@@ -1,6 +1,6 @@
 ---
 description: APPLY TypeScript naming conventions WHEN writing code (files, variables, functions etc)
-globs: **/*.ts, **/*/.tsx
+globs: **/*.ts
 alwaysApply: false
 ---
 

@@ -1,7 +1,7 @@
 ---
 description: 
-globs: 
-alwaysApply: true
+globs: frontend/**
+alwaysApply: false
 ---
 ---
 description: Apply Angular 20 component naming conventions for classes, selectors, files, and generation commands with ESLint enforcement when creating or modifying Angular components

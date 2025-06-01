@@ -1,7 +1,7 @@
 ---
 description: 
-globs: 
-alwaysApply: true
+globs: frontend/**
+alwaysApply: false
 ---
 ### Style et formatting
 - Utiliser Tailwind CSS pour le styling

@@ -1,0 +1,25 @@
+---
+description: 
+globs: frontend/**
+alwaysApply: false
+---
+Feature Lazy Loading:
+- Always use `loadChildren()` for features
+- Never eager load feature modules
+- Implement consistent routing API
+- Support nested lazy sub-features
+- Extract shared logic appropriately
+
+Route Configuration:
+- Use `loadChildren()` in route config
+- Support multiple lazy loading levels
+- Parent components must have router-outlet
+- Implement consistent navigation patterns
+- Handle sub-feature routing properly
+
+Bundle Optimization:
+- Single lazy: bundle with feature
+- Multiple lazy: create virtual pre-bundle
+- Eager and lazy: bundle in main.js
+- Consider moving single-use to feature
+- Extract when reused across features

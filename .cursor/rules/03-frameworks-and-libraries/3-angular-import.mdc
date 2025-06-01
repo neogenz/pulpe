@@ -1,7 +1,7 @@
 ---
 description: 
-globs: 
-alwaysApply: true
+globs: frontend/**
+alwaysApply: false
 ---
 ### ESLint & Boundaries
 - Respecter les règles `eslint-plugin-boundaries`

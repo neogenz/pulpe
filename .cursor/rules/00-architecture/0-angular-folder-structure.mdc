@@ -1,0 +1,44 @@
+---
+description: 
+globs: frontend/**
+alwaysApply: false
+---
+Domain Organization:
+- Use domain-based grouping in subfolders
+- Avoid building block type grouping
+- Structure by business domains not technical layers
+
+Core Folder Rules:
+- Implement eager services in `core/` folder
+- Structure by domains: `core/user/`, `core/auth/`
+- Only headless building blocks allowed
+- Configure in `provideCore()` function
+- Extract shared logic used by multiple features
+
+UI Folder Rules:
+- Only template-based standalones in `ui/` folder
+- Generic reusable components only
+- Communicate through inputs and outputs
+- Never bind to specific state services
+- Cannot import from core folder
+
+Layout Folder Rules:
+- Implement in `layout/` folder for eager templates
+- Consume core services for state
+- Use UI components for presentation
+- Support multiple layouts per application
+- Handle authentication-based filtering
+
+Feature Folder Rules:
+- Implement in `feature/<name>/` folder
+- Always lazy-loaded via routing
+- Complete isolation between features
+- Cannot import from other features
+- Follow "extract one level up" sharing rule
+
+Pattern Folder Rules:
+- Implement reusable cross-cutting functionality
+- Combine standalones and injectables
+- Can import from core and UI
+- Consumed via drop-in components
+- Never import from features
