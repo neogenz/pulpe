@@ -19,7 +19,9 @@ import { OnboardingLayout, OnboardingLayoutData } from '../onboarding-layout';
     >
       <!-- Logo Pulpe -->
       <div class="flex justify-center mb-6">
-        <div class="w-48 h-48 pulpe-gradient rounded-full"></div>
+        <div
+          class="w-24 h-24 sm:w-32 sm:h-32 md:w-48 md:h-48 pulpe-gradient rounded-full"
+        ></div>
       </div>
 
       <!-- Contenu -->

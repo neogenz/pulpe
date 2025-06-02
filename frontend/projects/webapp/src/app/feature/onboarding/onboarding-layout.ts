@@ -25,7 +25,7 @@ export interface OnboardingLayoutData {
       class="min-h-screen md:h-screen pulpe-gradient flex items-center justify-center p-4"
     >
       <div
-        class="w-full max-w-3xl h-fit md:h-[800px] bg-surface rounded-2xl md:p-16 p-8 flex flex-col"
+        class="w-full max-w-3xl min-h-[600px] md:h-[800px] bg-surface rounded-2xl md:p-16 p-8 flex flex-col"
       >
         <!-- Progress indicators -->
         @if (showProgress()) {
