@@ -34,3 +34,31 @@ Test Structure:
 - Write specific test names with `should`
 - Keep tests isolated and independent
 - Test one behavior per `it` block
+
+Storage Mocking:
+- Use `Storage.prototype` over `localStorage` directly
+- Mock `getItem` and `setItem` in `beforeEach`
+- Return `null` by default for `getItem`
+- Use `mockImplementation(() => undefined)` for `setItem`
+- Create fresh service instances after mock setup
+
+Spy Management:
+- Avoid storing spy variables when unnecessary
+- Use direct `vi.spyOn()` calls in `beforeEach`
+- Create local spies only when asserting calls
+- Prefer simple mocking over complex types
+- Let TypeScript infer spy types automatically
+
+Observable Testing:
+- Test synchronous observables with direct subscription
+- Assert state changes after observable subscription
+- Avoid assertions inside observable callbacks
+- Use fresh service instances for isolation
+- Test observable return values separately
+
+Service Isolation:
+- Create new service instances per test when needed
+- Reset all mocks in `beforeEach` setup
+- Avoid shared state between test cases
+- Test state mutations on isolated instances
+- Mock external dependencies consistently

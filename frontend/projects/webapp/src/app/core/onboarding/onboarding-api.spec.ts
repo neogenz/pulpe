@@ -3,14 +3,10 @@ import { OnboardingApi } from './onboarding-api';
 
 describe('OnboardingApi', () => {
   let service: OnboardingApi;
-  let getItemSpy: any;
-  let setItemSpy: any;
 
   beforeEach(() => {
-    getItemSpy = vi.spyOn(Storage.prototype, 'getItem');
-    setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
-    getItemSpy.mockReturnValue(null);
-    setItemSpy.mockImplementation(() => undefined);
+    vi.spyOn(Storage.prototype, 'getItem').mockReturnValue(null);
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => undefined);
     service = new OnboardingApi();
   });
 
@@ -111,6 +107,8 @@ describe('OnboardingApi', () => {
   });
 
   it('should handle localStorage operations for onboarding data submission', () => {
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
+
     service.updateIncome(5000);
     service.updateFirstName('John');
     service.updateEmail('john@example.com');
@@ -145,7 +143,9 @@ describe('OnboardingApi', () => {
       email: 'john@example.com',
     };
 
-    getItemSpy.mockReturnValue(JSON.stringify(mockData));
+    vi.spyOn(Storage.prototype, 'getItem').mockReturnValue(
+      JSON.stringify(mockData),
+    );
     const testService = new OnboardingApi();
 
     testService.loadOnboardingData().subscribe();
@@ -154,7 +154,7 @@ describe('OnboardingApi', () => {
   });
 
   it('should check onboarding status from localStorage', () => {
-    getItemSpy.mockReturnValue('true');
+    vi.spyOn(Storage.prototype, 'getItem').mockReturnValue('true');
 
     service.checkOnboardingStatus().subscribe((isCompleted) => {
       expect(isCompleted).toBe(true);
