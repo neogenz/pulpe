@@ -1,0 +1,10 @@
+---
+description: 
+globs: frontend/**
+alwaysApply: false
+---
+Import Requirements :
+- Import `inject` from `@angular/core`
+- Add `inject` to existing imports
+- Remove constructor parameter types from imports
+- Use `inject(ServiceName)` syntax

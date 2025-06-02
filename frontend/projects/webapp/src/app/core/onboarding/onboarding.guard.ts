@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { CanActivate, Router } from '@angular/router';
 import { Observable, map } from 'rxjs';
 import { OnboardingApi } from './onboarding-api';
@@ -7,10 +7,8 @@ import { OnboardingApi } from './onboarding-api';
   providedIn: 'root',
 })
 export class OnboardingCompletedGuard implements CanActivate {
-  constructor(
-    private onboardingApi: OnboardingApi,
-    private router: Router,
-  ) {}
+  private readonly onboardingApi = inject(OnboardingApi);
+  private readonly router = inject(Router);
 
   canActivate(): Observable<boolean> {
     return this.onboardingApi.checkOnboardingStatus().pipe(
@@ -29,10 +27,8 @@ export class OnboardingCompletedGuard implements CanActivate {
   providedIn: 'root',
 })
 export class OnboardingRedirectGuard implements CanActivate {
-  constructor(
-    private onboardingApi: OnboardingApi,
-    private router: Router,
-  ) {}
+  private readonly onboardingApi = inject(OnboardingApi);
+  private readonly router = inject(Router);
 
   canActivate(): Observable<boolean> {
     return this.onboardingApi.checkOnboardingStatus().pipe(
