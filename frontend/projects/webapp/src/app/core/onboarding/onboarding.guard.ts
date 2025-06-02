@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { CanActivate, Router } from '@angular/router';
 import { Observable, map } from 'rxjs';
-import { OnboardingApi } from '../../feature/onboarding/onboarding-api';
+import { OnboardingApi } from './onboarding-api';
 
 @Injectable({
   providedIn: 'root',

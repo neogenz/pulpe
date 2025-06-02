@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable, tap } from 'rxjs';
-import { OnboardingApi } from '../../feature/onboarding/onboarding-api';
+import { OnboardingApi } from './onboarding-api';
 
 @Injectable({
   providedIn: 'root',
