@@ -1,9 +1,16 @@
+import { describe, beforeEach, it, expect, vi } from 'vitest';
 import { OnboardingApi } from './onboarding-api';
 
 describe('OnboardingApi', () => {
   let service: OnboardingApi;
+  let getItemSpy: any;
+  let setItemSpy: any;
 
   beforeEach(() => {
+    getItemSpy = vi.spyOn(Storage.prototype, 'getItem');
+    setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
+    getItemSpy.mockReturnValue(null);
+    setItemSpy.mockImplementation(() => undefined);
     service = new OnboardingApi();
   });
 
@@ -104,21 +111,26 @@ describe('OnboardingApi', () => {
   });
 
   it('should handle localStorage operations for onboarding data submission', () => {
-    spyOn(localStorage, 'setItem');
     service.updateIncome(5000);
     service.updateFirstName('John');
     service.updateEmail('john@example.com');
 
     service.submitOnboardingData().subscribe();
 
-    expect(localStorage.setItem).toHaveBeenCalledWith(
+    expect(setItemSpy).toHaveBeenCalledWith(
       'onboarding-data',
-      jasmine.any(String),
+      JSON.stringify({
+        monthlyIncome: 5000,
+        housingCosts: null,
+        healthInsurance: null,
+        leasingCredit: null,
+        phonePlan: null,
+        transportCosts: null,
+        firstName: 'John',
+        email: 'john@example.com',
+      }),
     );
-    expect(localStorage.setItem).toHaveBeenCalledWith(
-      'onboarding-completed',
-      'true',
-    );
+    expect(setItemSpy).toHaveBeenCalledWith('onboarding-completed', 'true');
   });
 
   it('should load onboarding data from localStorage', () => {
@@ -133,16 +145,16 @@ describe('OnboardingApi', () => {
       email: 'john@example.com',
     };
 
-    spyOn(localStorage, 'getItem').and.returnValue(JSON.stringify(mockData));
+    getItemSpy.mockReturnValue(JSON.stringify(mockData));
+    const testService = new OnboardingApi();
 
-    service.loadOnboardingData().subscribe((data) => {
-      expect(data).toEqual(mockData);
-      expect(service.onboardingData()).toEqual(mockData);
-    });
+    testService.loadOnboardingData().subscribe();
+
+    expect(testService.onboardingData()).toEqual(mockData);
   });
 
   it('should check onboarding status from localStorage', () => {
-    spyOn(localStorage, 'getItem').and.returnValue('true');
+    getItemSpy.mockReturnValue('true');
 
     service.checkOnboardingStatus().subscribe((isCompleted) => {
       expect(isCompleted).toBe(true);
