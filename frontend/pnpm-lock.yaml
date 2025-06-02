@@ -29,6 +29,9 @@ importers:
       '@angular/material':
         specifier: 20.0.1
         version: 20.0.1(3b0fced6df9f6996f693829da08920e2)
+      '@angular/material-date-fns-adapter':
+        specifier: 20.0.1
+        version: 20.0.1(@angular/core@20.0.0(@angular/compiler@20.0.0)(rxjs@7.8.2)(zone.js@0.15.1))(@angular/material@20.0.1(3b0fced6df9f6996f693829da08920e2))(date-fns@4.1.0)
       '@angular/platform-browser':
         specifier: ^20.0.0
         version: 20.0.0(@angular/animations@20.0.0(@angular/common@20.0.0(@angular/core@20.0.0(@angular/compiler@20.0.0)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.0.0(@angular/compiler@20.0.0)(rxjs@7.8.2)(zone.js@0.15.1)))(@angular/common@20.0.0(@angular/core@20.0.0(@angular/compiler@20.0.0)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.0.0(@angular/compiler@20.0.0)(rxjs@7.8.2)(zone.js@0.15.1))
@@ -38,6 +41,9 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4.1.8
         version: 4.1.8
+      date-fns:
+        specifier: ^4.1.0
+        version: 4.1.0
       postcss:
         specifier: ^8.5.4
         version: 8.5.4
@@ -307,6 +313,13 @@ packages:
       '@angular/core': 20.0.0
       '@angular/platform-browser': 20.0.0
       rxjs: ^6.5.3 || ^7.4.0
+
+  '@angular/material-date-fns-adapter@20.0.1':
+    resolution: {integrity: sha512-vuVCGmnm5g6Udn0NyIR8nnluBsgAmrM7Ghm1OfUAZzLX66xWwFf4mUZlVDPj+Wgbu9WToEP4ftolNADIp5hW6Q==}
+    peerDependencies:
+      '@angular/core': ^20.0.0 || ^21.0.0
+      '@angular/material': 20.0.1
+      date-fns: '>2.20.0 <5.0'
 
   '@angular/material@20.0.1':
     resolution: {integrity: sha512-ip1hLYSVi2+UtMsONnRFocof0bk+0mCXErrdfH3MLg1j5ZtJ8XEOUY9TeGqWFCkVf8J37mIAI5g2TZW1YuJLUg==}
@@ -2004,6 +2017,9 @@ packages:
   data-view-byte-offset@1.0.1:
     resolution: {integrity: sha512-BS8PfmtDGnrgYdOonGZQdLZslWIeCGFP9tpan0hi1Co2Zr2NKADsvGYA8XxuG/4UWgJ6Cjtv+YJnB6MM69QGlQ==}
     engines: {node: '>= 0.4'}
+
+  date-fns@4.1.0:
+    resolution: {integrity: sha512-Ukq0owbQXxa/U3EGtsdVBkR1w7KOQ5gIBqdH2hkvknzZPYvBxb/aa6E8L7tmjFtkwZBu3UXBbjIgPo/Ez4xaNg==}
 
   date-format@4.0.14:
     resolution: {integrity: sha512-39BOQLs9ZjKh0/patS9nrT8wc3ioX3/eA/zgbKNopnF2wCqJEoxywwwElATYvRsXdnOxA/OQeQoFZ3rFjVajhg==}
@@ -4755,6 +4771,13 @@ snapshots:
       rxjs: 7.8.2
       tslib: 2.8.1
 
+  '@angular/material-date-fns-adapter@20.0.1(@angular/core@20.0.0(@angular/compiler@20.0.0)(rxjs@7.8.2)(zone.js@0.15.1))(@angular/material@20.0.1(3b0fced6df9f6996f693829da08920e2))(date-fns@4.1.0)':
+    dependencies:
+      '@angular/core': 20.0.0(@angular/compiler@20.0.0)(rxjs@7.8.2)(zone.js@0.15.1)
+      '@angular/material': 20.0.1(3b0fced6df9f6996f693829da08920e2)
+      date-fns: 4.1.0
+      tslib: 2.8.1
+
   '@angular/material@20.0.1(3b0fced6df9f6996f693829da08920e2)':
     dependencies:
       '@angular/cdk': 20.0.1(@angular/common@20.0.0(@angular/core@20.0.0(@angular/compiler@20.0.0)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.0.0(@angular/compiler@20.0.0)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2)
@@ -6400,6 +6423,8 @@ snapshots:
       call-bound: 1.0.4
       es-errors: 1.3.0
       is-data-view: 1.0.2
+
+  date-fns@4.1.0: {}
 
   date-format@4.0.14:
     optional: true

@@ -3,12 +3,6 @@ description:
 globs: frontend/**
 alwaysApply: false
 ---
----
-description: Apply Angular 20 component naming conventions for classes, selectors, files, and generation commands with ESLint enforcement when creating or modifying Angular components
-globs: frontend/projects/webapp/src/app/**/*.ts
-alwaysApply: false
----
-
 Class Naming:
 - Use `Component` suffix for classes
 - Use PascalCase for class names

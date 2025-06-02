@@ -14,7 +14,7 @@ import { MatInputModule } from '@angular/material/input';
   imports: [FormsModule, MatFormFieldModule, MatInputModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <mat-form-field class="w-full" appearance="outline">
+    <mat-form-field class="w-full" appearance="fill">
       <mat-label>{{ label() }}</mat-label>
       <input
         matInput

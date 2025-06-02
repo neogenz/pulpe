@@ -8,12 +8,12 @@ import {
 } from '@angular/router';
 
 import {
-  provideAppInitializer,
-  provideZonelessChangeDetection,
   provideBrowserGlobalErrorListeners,
+  provideZonelessChangeDetection,
 } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
-import { MAT_ICON_DEFAULT_OPTIONS } from '@angular/material/icon';
+import { provideLocale } from './locale';
+import { provideAngularMaterial } from './angular-material';
 
 export interface CoreOptions {
   routes: Routes; // possible to extend options with more props in the future
@@ -40,20 +40,11 @@ export function provideCore({ routes }: CoreOptions) {
         scrollPositionRestoration: 'enabled',
       }),
     ),
-
-    // other 3rd party libraries providers like NgRx, provideStore()
-
-    // other application specific providers and setup
-
     // perform initialization, has to be last
-    provideAppInitializer(() => {
-      // ...
-    }),
-    {
-      provide: MAT_ICON_DEFAULT_OPTIONS,
-      useValue: {
-        fontSet: 'material-symbols-outlined',
-      },
-    },
+    //provideAppInitializer(() => {
+    // ...
+    //}),
+    provideLocale(),
+    provideAngularMaterial(),
   ];
 }

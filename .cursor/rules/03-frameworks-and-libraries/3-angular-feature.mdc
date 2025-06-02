@@ -3,12 +3,6 @@ description:
 globs: frontend/projects/webapp/src/app/feature/**
 alwaysApply: false
 ---
----
-description: Apply Angular feature development patterns for lazy-loaded modules with proper routing, component organization, and boundary compliance when creating or modifying features
-globs: frontend/projects/webapp/src/app/feature/**/*.ts
-alwaysApply: false
----
-
 Feature Structure:
 - Create features in `feature/` directory
 - Use lazy loading with dynamic imports
