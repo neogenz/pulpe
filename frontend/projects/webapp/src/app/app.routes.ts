@@ -3,6 +3,7 @@ import {
   OnboardingCompletedGuard,
   OnboardingRedirectGuard,
 } from './core/onboarding';
+import { MainLayout } from './layout/main-layout';
 
 export const routes: Routes = [
   {
@@ -11,21 +12,20 @@ export const routes: Routes = [
     redirectTo: 'app',
   },
   {
+    path: 'onboarding',
+    canActivate: [OnboardingRedirectGuard],
+    loadChildren: () => import('./feature/onboarding/onboarding.routes'),
+  },
+  {
     path: 'app',
     canActivate: [OnboardingCompletedGuard],
-    loadComponent: () =>
-      import('./layout/main-layout').then((m) => m.MainLayoutComponent),
+    component: MainLayout,
     children: [
       {
         path: '',
         loadChildren: () => import('./feature/home/home.routes'),
       },
     ],
-  },
-  {
-    path: 'onboarding',
-    canActivate: [OnboardingRedirectGuard],
-    loadChildren: () => import('./feature/onboarding/onboarding.routes'),
   },
   {
     path: '**', // fallback route (can be used to display dedicated 404 lazy feature)
