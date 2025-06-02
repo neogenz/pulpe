@@ -1,0 +1,42 @@
+---
+description: APPLY Angular Material button patterns WHEN implementing buttons to ensure consistent UI/UX, proper accessibility, and adherence to Material Design principles across all button types including text, elevated, outlined, filled, tonal, icon, and FAB variants
+globs: 
+alwaysApply: false
+---
+Basic Button Variants:
+- Use `matButton` for text buttons
+- Use `matButton="elevated"` for elevated buttons
+- Use `matButton="outlined"` for outlined buttons
+- Use `matButton="filled"` for filled buttons
+- Use `matButton="tonal"` for tonal buttons
+- Support `disabled` attribute on all variants
+- Use `<a matButton>` for link buttons
+
+Icon Buttons:
+- Use `matIconButton` for circular icon buttons
+- Wrap icons with `<mat-icon>` component
+- Always include `aria-label` for accessibility
+- Support `disabled` state for icon buttons
+- Use Material Design icon names
+
+Floating Action Buttons:
+- Use `matFab` for standard FABs
+- Use `matMiniFab` for smaller FABs
+- Use `matFab extended` for extended FABs
+- Include `<mat-icon>` for FAB icons
+- Support text content in extended FABs
+- Use `<a matFab>` for link FABs
+
+Accessibility Requirements:
+- Include `aria-label` on icon-only buttons
+- Use descriptive text for screen readers
+- Support keyboard navigation patterns
+- Maintain proper focus management
+- Test with assistive technologies
+
+State Management:
+- Use `disabled` for inactive buttons
+- Handle loading states appropriately
+- Provide visual feedback on interaction
+- Support proper hover states
+- Maintain consistent spacing patterns

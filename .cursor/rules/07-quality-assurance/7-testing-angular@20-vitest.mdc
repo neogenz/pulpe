@@ -1,0 +1,36 @@
+---
+description: Apply Angular testing patterns with Vitest for unit and integration tests when writing test files in Angular projects using zoneless architecture, focusing on service testing with signals, component testing without Zone.js dependencies, and proper Vitest import usage
+globs: 
+alwaysApply: false
+---
+Vitest Imports:
+- Import `describe`, `beforeEach`, `it`, `expect` from `vitest`
+- Never import `signal` unless actually used
+- Never import `zone.js` in zoneless projects
+- Use `vitest/globals` in `tsconfig.spec.json` types
+
+Zoneless Setup:
+- Avoid `zone.js` imports in test setup
+- Skip `getTestBed` configuration for simple tests
+- Use minimal or empty `test-setup.ts`
+- Configure `jsdom` environment in Vitest config
+
+Service Testing:
+- Instantiate services directly with `new Service()`
+- Test signal-based state with `.asReadonly()`
+- Test business logic methods individually
+- Assert signal value changes with `.toBe()`
+- Test null/undefined edge cases
+
+Component Testing:
+- Skip `TestBed` for pure logic testing
+- Focus on component logic over DOM
+- Mock external service dependencies
+- Test input/output behavior separately
+
+Test Structure:
+- Group related tests in `describe` blocks
+- Use `beforeEach` for test setup
+- Write specific test names with `should`
+- Keep tests isolated and independent
+- Test one behavior per `it` block

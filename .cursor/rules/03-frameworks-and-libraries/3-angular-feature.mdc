@@ -1,6 +1,6 @@
 ---
 description: 
-globs: frontend/projects/webapp/src/**/*.ts
+globs: frontend/projects/webapp/src/app/feature/**
 alwaysApply: false
 ---
 ---

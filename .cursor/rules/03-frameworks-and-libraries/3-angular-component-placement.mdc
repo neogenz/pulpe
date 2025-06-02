@@ -1,0 +1,106 @@
+---
+description: 
+globs: frontend/projects/webapp/**
+alwaysApply: false
+---
+# Angular Component Placement Rules
+
+## UI Folder Components
+Place components in `ui/` folder ONLY when:
+- Component is **truly generic and reusable** across multiple features
+- Component has **no business logic** or feature-specific behavior
+- Component communicates **only through inputs and outputs**
+- Component **never imports from core services** directly
+- Component can be used in **any context** without modification
+
+Examples of UI components:
+- Generic button variants
+- Loading spinners
+- Modal containers
+- Form input wrappers
+- Data tables
+
+## Feature Folder Components
+Place components in `feature/[feature-name]/` folder when:
+- Component is **specific to one feature** only
+- Component contains **feature-specific business logic**
+- Component is **unlikely to be reused** in other features
+- Component has **feature-specific styling** or behavior
+- Component **imports feature-specific services** or types
+
+Examples of feature components:
+- Onboarding card with specific step logic
+- Feature-specific forms
+- Domain-specific data displays
+- Feature workflow components
+
+## Decision Guidelines
+
+### Move from UI to Feature when:
+```typescript
+// ❌ In ui/ but feature-specific
+@Component({
+  selector: 'pulpe-onboarding-layout', // Feature-specific naming
+  // Contains onboarding-specific logic
+})
+```
+
+### Keep in UI when:
+```typescript
+// ✅ In ui/ and truly generic
+@Component({
+  selector: 'pulpe-button', // Generic naming
+  // No business logic, only presentation
+})
+```
+
+## Refactoring Process
+
+### Moving Component from UI to Feature:
+1. **Create target directory**: `feature/[feature-name]/[component-name]/`
+2. **Move component file**: Update file location
+3. **Update imports**: Change import paths in consuming components
+4. **Verify boundaries**: Ensure no other features import this component
+5. **Remove empty UI folder** if component was only content
+
+### Moving Component from Feature to UI:
+1. **Verify reusability**: Confirm component is used in multiple features
+2. **Remove feature dependencies**: Extract business logic to services
+3. **Generalize interfaces**: Create generic input/output contracts
+4. **Move to ui/ folder**: Place in appropriate UI subfolder
+5. **Update all imports**: Update paths in all consuming features
+
+## Implementation Examples
+
+### Feature-Specific Component Structure:
+```
+feature/onboarding/
+├── onboarding-card/
+│   └── onboarding-card.ts       # Onboarding-specific card
+├── personal-info/
+│   └── personal-info.ts         # Uses onboarding-card
+└── welcome/
+    └── welcome.ts               # Uses onboarding-card
+```
+
+### Generic UI Component Structure:
+```
+ui/
+├── button/
+│   └── button.ts                # Generic button
+├── card/
+│   └── card.ts                  # Generic card container
+└── form/
+    └── form-field.ts            # Generic form field
+```
+
+## Import Path Updates
+When moving components, update imports accordingly:
+
+```typescript
+// Before (from UI)
+import { OnboardingCardComponent } from '../../../ui/onboarding-card/onboarding-card';
+
+// After (within feature)
+import { OnboardingCardComponent } from '../onboarding-card/onboarding-card';
+```
