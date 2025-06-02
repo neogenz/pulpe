@@ -1,6 +1,6 @@
 ---
-description: Apply Angular testing patterns with Vitest for unit and integration tests when writing test files in Angular projects using zoneless architecture, focusing on service testing with signals, component testing without Zone.js dependencies, and proper Vitest import usage
-globs: 
+description: 
+globs: frontend/**/*.spec.ts
 alwaysApply: false
 ---
 Vitest Imports:
