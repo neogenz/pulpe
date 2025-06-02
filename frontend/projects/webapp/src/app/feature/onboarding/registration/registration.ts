@@ -4,8 +4,11 @@ import { FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
-import { OnboardingLayout, OnboardingLayoutData } from '../onboarding-layout';
-import { OnboardingApi } from '../../../core/onboarding/onboarding-api';
+import {
+  OnboardingLayout,
+  OnboardingLayoutData,
+} from '@features/onboarding/onboarding-layout';
+import { OnboardingApi } from '@core/onboarding/onboarding-api';
 
 @Component({
   selector: 'pulpe-registration',
@@ -80,7 +83,7 @@ export default class Registration {
       next: () => {
         this.router.navigate(['/home']);
       },
-      error: (error) => {
+      error: (error: unknown) => {
         console.error('Error saving onboarding data:', error);
       },
     });

@@ -4,7 +4,17 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "outDir": "../../out-tsc/app",
-    "types": []
+    "types": [],
+    "baseUrl": "src",
+    "paths": {
+      "@core/*": ["app/core/*"],
+      "@ui/*": ["app/ui/*"],
+      "@features/*": ["app/feature/*"],
+      "@env/*": ["environments/*"],
+      "@layout/*": ["app/layout/*"],
+      "@pattern/*": ["app/pattern/*"],
+      "@app/*": ["app/*"]
+    }
   },
   "include": ["src/**/*.ts"],
   "exclude": ["src/**/*.spec.ts"]

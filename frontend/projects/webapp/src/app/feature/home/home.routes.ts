@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { HomeComponent } from './home';
+import { HomeComponent } from '@features/home/home';
 
 export default [
   {

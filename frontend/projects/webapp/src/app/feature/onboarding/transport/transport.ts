@@ -1,7 +1,10 @@
 import { Component, ChangeDetectionStrategy, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { OnboardingLayout, OnboardingLayoutData } from '../onboarding-layout';
-import { OnboardingCurrencyInput } from '../currency-input';
+import {
+  OnboardingLayout,
+  OnboardingLayoutData,
+} from '@features/onboarding/onboarding-layout';
+import { OnboardingCurrencyInput } from '@features/onboarding/currency-input';
 
 @Component({
   selector: 'pulpe-transport',

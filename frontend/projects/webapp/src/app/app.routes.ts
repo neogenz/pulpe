@@ -2,8 +2,8 @@ import { Routes } from '@angular/router';
 import {
   OnboardingCompletedGuard,
   OnboardingRedirectGuard,
-} from './core/onboarding';
-import { MainLayout } from './layout/main-layout';
+} from '@core/onboarding';
+import { MainLayout } from '@layout/main-layout';
 
 export const routes: Routes = [
   {

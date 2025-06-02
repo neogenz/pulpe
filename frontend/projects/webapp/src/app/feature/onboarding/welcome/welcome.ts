@@ -1,7 +1,10 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
-import { OnboardingLayout, OnboardingLayoutData } from '../onboarding-layout';
+import {
+  OnboardingLayout,
+  OnboardingLayoutData,
+} from '@features/onboarding/onboarding-layout';
 
 @Component({
   selector: 'pulpe-welcome',
