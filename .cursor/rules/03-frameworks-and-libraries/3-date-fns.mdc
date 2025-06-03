@@ -1,0 +1,40 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Imports:
+- Import specific functions only
+- Use named imports always
+- Import `locale` when formatting
+- Prefer tree-shakable imports
+
+Formatting:
+- Use `format` for date display
+- Use `formatDistance` for relative time
+- Use `formatISO` for API calls
+- Apply consistent date patterns
+
+Manipulation:
+- Use `add` for date addition
+- Use `sub` for date subtraction
+- Use `set` for date modification
+- Prefer immutable operations always
+
+Comparison:
+- Use `isAfter` for future checks
+- Use `isBefore` for past checks
+- Use `isEqual` for exact comparison
+- Use `compareAsc` for sorting
+
+Parsing:
+- Use `parseISO` for ISO strings
+- Use `parse` with format pattern
+- Use `isValid` for validation
+- Handle invalid dates gracefully
+
+Timezone:
+- Use `zonedTimeToUtc` for UTC conversion
+- Use `utcToZonedTime` for local display
+- Import timezone functions separately
+- Handle timezone edge cases
