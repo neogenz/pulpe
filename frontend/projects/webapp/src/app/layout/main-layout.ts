@@ -7,11 +7,10 @@ import {
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatListModule } from '@angular/material/list';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { RouterModule } from '@angular/router';
-import { NavigationService } from '@core/navigation';
+import { NavigationMenu } from './navigation-menu';
 
 @Component({
   selector: 'pulpe-main-layout',
@@ -20,8 +19,8 @@ import { NavigationService } from '@core/navigation';
     MatToolbarModule,
     MatButtonModule,
     MatIconModule,
-    MatListModule,
     RouterModule,
+    NavigationMenu,
   ],
   template: `
     <mat-sidenav-container class="h-full">
@@ -32,34 +31,7 @@ import { NavigationService } from '@core/navigation';
         [opened]="sidenavOpened()"
         (openedChange)="onSidenavOpenedChange($event)"
       >
-        <div class="md:p-4 h-full">
-          <div class="bg-surface-container rounded-2xl h-full px-2">
-            <div class="flex justify-center items-center py-4">
-              <div class="w-10 h-10 pulpe-gradient rounded-full"></div>
-            </div>
-
-            <mat-nav-list>
-              @for (
-                section of navigationService.navigationSections();
-                track section.title
-              ) {
-                <div mat-subheader>{{ section.title }}</div>
-                @for (item of section.items; track item.route) {
-                  <a
-                    mat-list-item
-                    [routerLink]="item.route"
-                    routerLinkActive="active"
-                    [routerLinkActiveOptions]="{ exact: true }"
-                    (click)="onNavItemClick($event)"
-                  >
-                    <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
-                    <span matListItemTitle>{{ item.label }}</span>
-                  </a>
-                }
-              }
-            </mat-nav-list>
-          </div>
-        </div>
+        <pulpe-navigation-menu (navItemClick)="onNavItemClick($event)" />
       </mat-sidenav>
 
       <mat-sidenav-content>
@@ -84,28 +56,11 @@ import { NavigationService } from '@core/navigation';
       </mat-sidenav-content>
     </mat-sidenav-container>
   `,
-  styles: [
-    `
-      @use '@angular/material' as mat;
-
-      .active {
-        --mat-list-list-item-label-text-color: var(
-          --mat-sys-on-secondary-container
-        );
-        --mat-list-list-item-leading-icon-color: var(
-          --mat-sys-on-secondary-container
-        );
-        --mat-list-list-item-container-color: var(
-          --mat-sys-secondary-container
-        );
-      }
-    `,
-  ],
+  styles: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MainLayout {
   private readonly breakpointObserver = inject(BreakpointObserver);
-  readonly navigationService = inject(NavigationService);
 
   readonly isHandset = this.breakpointObserver.isMatched([
     Breakpoints.Handset,
