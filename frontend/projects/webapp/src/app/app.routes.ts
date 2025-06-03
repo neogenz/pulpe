@@ -23,7 +23,21 @@ export const routes: Routes = [
     children: [
       {
         path: '',
-        loadChildren: () => import('./feature/home/home.routes'),
+        redirectTo: 'current-month',
+        pathMatch: 'full',
+      },
+      {
+        path: 'current-month',
+        loadComponent: () => import('./feature/current-month/current-month'),
+      },
+      {
+        path: 'other-months',
+        loadComponent: () => import('./feature/other-months/other-months'),
+      },
+      {
+        path: 'budget-templates',
+        loadComponent: () =>
+          import('./feature/budget-templates/budget-templates'),
       },
     ],
   },
