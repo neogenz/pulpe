@@ -29,16 +29,16 @@ import { RouterModule } from '@angular/router';
           </a>
 
           <div class="flex items-center gap-4">
-            @for (route of ['home']; track $index) {
+            @for (route of []; track $index) {
               <!-- add more routes here -->
               <a
-                [routerLink]="['/app', route]"
+                [routerLink]="['/app']"
                 routerLinkActive
                 #rla="routerLinkActive"
                 [color]="rla.isActive ? 'accent' : 'primary'"
                 mat-flat-button
               >
-                {{ route | titlecase }}
+                {{ 'home' | titlecase }}
               </a>
             }
           </div>

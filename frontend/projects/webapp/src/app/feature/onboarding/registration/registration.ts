@@ -81,7 +81,7 @@ export default class Registration {
   protected navigateNext(): void {
     this.onboardingApi.submitOnboardingData().subscribe({
       next: () => {
-        this.router.navigate(['/home']);
+        this.router.navigate(['/app']);
       },
       error: (error: unknown) => {
         console.error('Error saving onboarding data:', error);
