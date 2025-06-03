@@ -8,16 +8,12 @@ import {
   selector: 'pulpe-current-month',
   imports: [FinancialSummary],
   template: `
-    <div class="p-6">
-      <h1 class="text-2xl font-bold mb-4">Mois en cours</h1>
-      <div class="bg-surface-container rounded-lg p-4">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4">
-          <pulpe-financial-summary [data]="incomeData" />
-          <pulpe-financial-summary [data]="expenseData" />
-          <pulpe-financial-summary [data]="savingsData" />
-          <pulpe-financial-summary [data]="negativeData" />
-        </div>
-      </div>
+    <h1 class="text-display-small mb-4">Budget du mois courant</h1>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <pulpe-financial-summary [data]="incomeData" />
+      <pulpe-financial-summary [data]="expenseData" />
+      <pulpe-financial-summary [data]="savingsData" />
+      <pulpe-financial-summary [data]="negativeData" />
     </div>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -33,7 +33,7 @@ export interface FinancialSummaryData {
             <h3 class="text-sm font-medium mb-1 financial-title">
               {{ data().title }}
             </h3>
-            <p class="text-2xl font-bold financial-amount">
+            <p class="text-headline-small financial-amount">
               {{ data().amount }}
             </p>
           </div>

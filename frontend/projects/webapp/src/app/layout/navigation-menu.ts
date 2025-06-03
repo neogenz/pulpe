@@ -13,7 +13,7 @@ import { NavigationService } from '@core/navigation';
   selector: 'pulpe-navigation-menu',
   imports: [MatIconModule, MatListModule, RouterModule],
   template: `
-    <div class="md:p-4 h-full">
+    <div class="h-full">
       <div class="bg-surface-container rounded-2xl h-full px-2">
         <div class="flex justify-center items-center py-4">
           <div class="w-10 h-10 pulpe-gradient rounded-full"></div>
@@ -45,6 +45,9 @@ import { NavigationService } from '@core/navigation';
   styles: [
     `
       @use '@angular/material' as mat;
+      :host {
+        display: block;
+      }
 
       .active {
         --mat-list-list-item-label-text-color: var(

@@ -31,7 +31,10 @@ import { NavigationMenu } from './navigation-menu';
         [opened]="sidenavOpened()"
         (openedChange)="onSidenavOpenedChange($event)"
       >
-        <pulpe-navigation-menu (navItemClick)="onNavItemClick($event)" />
+        <pulpe-navigation-menu
+          class="md:pt-4 md:pb-4 md:pl-4 h-full"
+          (navItemClick)="onNavItemClick($event)"
+        />
       </mat-sidenav>
 
       <mat-sidenav-content>
@@ -50,7 +53,7 @@ import { NavigationMenu } from './navigation-menu';
           <div class="w-8 h-8 pulpe-gradient rounded-full toolbar-logo"></div>
         </mat-toolbar>
 
-        <main class="main-content">
+        <main class="main-content p-4">
           <router-outlet />
         </main>
       </mat-sidenav-content>
