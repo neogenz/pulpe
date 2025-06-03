@@ -1,0 +1,22 @@
+// Financial Summary Colors
+// Used by the pulpe-financial-summary component
+
+:root {
+  // Primary financial colors
+  --pulpe-financial-income: #0061a6;
+  --pulpe-financial-expense: #c26c00;
+  --pulpe-financial-savings: #27ae60;
+  --pulpe-financial-negative: var(--mat-sys-error);
+
+  // Light variants for backgrounds
+  --pulpe-financial-income-light: #e3f2fd;
+  --pulpe-financial-expense-light: #fff3e0;
+  --pulpe-financial-savings-light: #e8f5e8;
+  --pulpe-financial-negative-light: #ffebee;
+
+  // Dark variants for text/borders
+  --pulpe-financial-income-dark: #004494;
+  --pulpe-financial-expense-dark: #a85600;
+  --pulpe-financial-savings-dark: #1e8449;
+  --pulpe-financial-negative-dark: var(--mat-sys-on-error-container);
+}
