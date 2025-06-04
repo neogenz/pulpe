@@ -22,6 +22,7 @@ budgetRoutes.get("/", authMiddleware, async (c) => {
     const supabase = c.get("supabase");
     const user = c.get("user");
 
+    // RLS s'assure automatiquement que seuls les budgets de l'utilisateur sont retournés
     const { data: budgets, error } = await supabase
       .from("budgets")
       .select("*")
@@ -29,6 +30,7 @@ budgetRoutes.get("/", authMiddleware, async (c) => {
       .order("month", { ascending: false });
 
     if (error) {
+      console.error("Erreur récupération budgets:", error);
       return c.json<ErrorResponse>(
         {
           success: false,
@@ -58,12 +60,15 @@ budgetRoutes.get("/", authMiddleware, async (c) => {
 budgetRoutes.post("/", authMiddleware, async (c) => {
   try {
     const supabase = c.get("supabase");
+    const user = c.get("user");
     const body = await c.req.json();
 
+    // Inclure automatiquement le user_id pour le RLS
     const budgetData: BudgetInsert = {
       month: body.month,
       year: body.year,
       description: body.description,
+      user_id: user.id, // Ajout automatique du user_id
     };
 
     const { data: budget, error } = await supabase
@@ -73,6 +78,7 @@ budgetRoutes.post("/", authMiddleware, async (c) => {
       .single();
 
     if (error) {
+      console.error("Erreur création budget:", error);
       return c.json<ErrorResponse>(
         {
           success: false,
@@ -105,8 +111,10 @@ budgetRoutes.post("/", authMiddleware, async (c) => {
 budgetRoutes.get("/:id", authMiddleware, async (c) => {
   try {
     const supabase = c.get("supabase");
+    const user = c.get("user");
     const budgetId = c.req.param("id");
 
+    // RLS s'assure automatiquement que seuls les budgets de l'utilisateur sont accessibles
     const { data: budget, error } = await supabase
       .from("budgets")
       .select("*")
@@ -117,7 +125,7 @@ budgetRoutes.get("/:id", authMiddleware, async (c) => {
       return c.json<ErrorResponse>(
         {
           success: false,
-          error: "Budget introuvable",
+          error: "Budget introuvable ou accès non autorisé",
         },
         404
       );
@@ -129,6 +137,94 @@ budgetRoutes.get("/:id", authMiddleware, async (c) => {
     });
   } catch (error) {
     console.error("Erreur récupération budget:", error);
+    return c.json<ErrorResponse>(
+      {
+        success: false,
+        error: "Erreur interne du serveur",
+      },
+      500
+    );
+  }
+});
+
+// Mettre à jour un budget
+budgetRoutes.put("/:id", authMiddleware, async (c) => {
+  try {
+    const supabase = c.get("supabase");
+    const user = c.get("user");
+    const budgetId = c.req.param("id");
+    const body = await c.req.json();
+
+    // RLS s'assure que seuls les budgets de l'utilisateur peuvent être modifiés
+    const { data: budget, error } = await supabase
+      .from("budgets")
+      .update({
+        month: body.month,
+        year: body.year,
+        description: body.description,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", budgetId)
+      .select()
+      .single();
+
+    if (error || !budget) {
+      console.error("Erreur modification budget:", error);
+      return c.json<ErrorResponse>(
+        {
+          success: false,
+          error: "Budget introuvable ou modification non autorisée",
+        },
+        404
+      );
+    }
+
+    return c.json<BudgetResponse>({
+      success: true,
+      budget,
+    });
+  } catch (error) {
+    console.error("Erreur modification budget:", error);
+    return c.json<ErrorResponse>(
+      {
+        success: false,
+        error: "Erreur interne du serveur",
+      },
+      500
+    );
+  }
+});
+
+// Supprimer un budget
+budgetRoutes.delete("/:id", authMiddleware, async (c) => {
+  try {
+    const supabase = c.get("supabase");
+    const user = c.get("user");
+    const budgetId = c.req.param("id");
+
+    // RLS s'assure que seuls les budgets de l'utilisateur peuvent être supprimés
+    const { error } = await supabase
+      .from("budgets")
+      .delete()
+      .eq("id", budgetId);
+
+    if (error) {
+      console.error("Erreur suppression budget:", error);
+      return c.json<ErrorResponse>(
+        {
+          success: false,
+          error: "Budget introuvable ou suppression non autorisée",
+        },
+        404
+      );
+    }
+
+    return c.json({
+      success: true,
+      message: "Budget supprimé avec succès",
+    });
+  } catch (error) {
+    console.error("Erreur suppression budget:", error);
     return c.json<ErrorResponse>(
       {
         success: false,

@@ -4,6 +4,7 @@ import { logger } from "hono/logger";
 import { budgetRoutes } from "./domains/budget";
 import { authRoutes } from "./domains/auth";
 import { userRoutes } from "./domains/user";
+import { transactionRoutes } from "./domains/transaction";
 
 const app = new Hono();
 
@@ -22,6 +23,7 @@ app.use(
 app.route("/api/auth", authRoutes);
 app.route("/api/user", userRoutes);
 app.route("/api/budget", budgetRoutes);
+app.route("/api/transaction", transactionRoutes);
 
 // Routes de test/santé (optionnel)
 app.get("/", (c) =>
