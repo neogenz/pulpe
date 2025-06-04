@@ -7,6 +7,9 @@ describe('OnboardingApi', () => {
   beforeEach(() => {
     vi.spyOn(Storage.prototype, 'getItem').mockReturnValue(null);
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => undefined);
+    vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(
+      () => undefined,
+    );
     service = new OnboardingApi();
   });
 
@@ -15,7 +18,7 @@ describe('OnboardingApi', () => {
   });
 
   it('should initialize with empty onboarding data', () => {
-    const data = service.onboardingData();
+    const data = service.onboardingSteps();
     expect(data.monthlyIncome).toBeNull();
     expect(data.housingCosts).toBeNull();
     expect(data.healthInsurance).toBeNull();
@@ -27,108 +30,115 @@ describe('OnboardingApi', () => {
   });
 
   it('should update monthly income', () => {
-    service.updateIncome(5000);
-    expect(service.onboardingData().monthlyIncome).toBe(5000);
+    service.updateIncomeStep(5000);
+    expect(service.onboardingSteps().monthlyIncome).toBe(5000);
   });
 
   it('should update housing costs', () => {
-    service.updateHousingCosts(1200);
-    expect(service.onboardingData().housingCosts).toBe(1200);
+    service.updateHousingStep(1200);
+    expect(service.onboardingSteps().housingCosts).toBe(1200);
   });
 
   it('should update health insurance', () => {
-    service.updateHealthInsurance(300);
-    expect(service.onboardingData().healthInsurance).toBe(300);
+    service.updateHealthInsuranceStep(300);
+    expect(service.onboardingSteps().healthInsurance).toBe(300);
   });
 
   it('should update leasing credit', () => {
-    service.updateLeasingCredit(400);
-    expect(service.onboardingData().leasingCredit).toBe(400);
+    service.updateLeasingCreditStep(400);
+    expect(service.onboardingSteps().leasingCredit).toBe(400);
   });
 
   it('should update phone plan', () => {
-    service.updatePhonePlan(50);
-    expect(service.onboardingData().phonePlan).toBe(50);
+    service.updatePhonePlanStep(50);
+    expect(service.onboardingSteps().phonePlan).toBe(50);
   });
 
   it('should update transport costs', () => {
-    service.updateTransportCosts(100);
-    expect(service.onboardingData().transportCosts).toBe(100);
+    service.updateTransportStep(100);
+    expect(service.onboardingSteps().transportCosts).toBe(100);
   });
 
-  it('should update first name', () => {
-    service.updateFirstName('John');
-    expect(service.onboardingData().firstName).toBe('John');
-  });
-
-  it('should update email', () => {
-    service.updateEmail('john@example.com');
-    expect(service.onboardingData().email).toBe('john@example.com');
+  it('should update personal info', () => {
+    service.updatePersonalInfoStep('John', 'john@example.com');
+    const data = service.onboardingSteps();
+    expect(data.firstName).toBe('John');
+    expect(data.email).toBe('john@example.com');
   });
 
   it('should calculate total expenses correctly', () => {
-    service.updateHousingCosts(1200);
-    service.updateHealthInsurance(300);
-    service.updateLeasingCredit(400);
-    service.updatePhonePlan(50);
-    service.updateTransportCosts(100);
+    service.updateIncomeStep(5000);
+    service.updateHousingStep(1200);
+    service.updateHealthInsuranceStep(300);
+    service.updateLeasingCreditStep(400);
+    service.updatePhonePlanStep(50);
+    service.updateTransportStep(100);
+    service.updatePersonalInfoStep('John', 'john@example.com');
 
-    expect(service.getTotalExpenses()).toBe(2050);
+    const payload = service.getOnboardingSubmissionPayload();
+    const totalExpenses =
+      payload.housingCosts +
+      payload.healthInsurance +
+      payload.leasingCredit +
+      payload.phonePlan +
+      payload.transportCosts;
+    expect(totalExpenses).toBe(2050);
   });
 
   it('should calculate remaining budget correctly', () => {
-    service.updateIncome(5000);
-    service.updateHousingCosts(1200);
-    service.updateHealthInsurance(300);
-    service.updateLeasingCredit(400);
-    service.updatePhonePlan(50);
-    service.updateTransportCosts(100);
+    service.updateIncomeStep(5000);
+    service.updateHousingStep(1200);
+    service.updateHealthInsuranceStep(300);
+    service.updateLeasingCreditStep(400);
+    service.updatePhonePlanStep(50);
+    service.updateTransportStep(100);
+    service.updatePersonalInfoStep('John', 'john@example.com');
 
-    expect(service.getRemainingBudget()).toBe(2950);
+    const payload = service.getOnboardingSubmissionPayload();
+    const totalExpenses =
+      payload.housingCosts +
+      payload.healthInsurance +
+      payload.leasingCredit +
+      payload.phonePlan +
+      payload.transportCosts;
+    const remainingBudget = payload.monthlyIncome - totalExpenses;
+    expect(remainingBudget).toBe(2950);
   });
 
   it('should return false for incomplete onboarding', () => {
-    expect(service.isOnboardingComplete()).toBe(false);
+    expect(service.isOnboardingReadyForSubmission()).toBe(false);
   });
 
   it('should return true for complete onboarding', () => {
-    service.updateIncome(5000);
-    service.updateFirstName('John');
-    service.updateEmail('john@example.com');
+    service.updateIncomeStep(5000);
+    service.updatePersonalInfoStep('John', 'john@example.com');
 
-    expect(service.isOnboardingComplete()).toBe(true);
+    expect(service.isOnboardingReadyForSubmission()).toBe(true);
   });
 
   it('should handle null values in expense calculation', () => {
-    service.updateHousingCosts(null);
-    service.updateHealthInsurance(300);
+    service.updateHousingStep(null);
+    service.updateHealthInsuranceStep(300);
+    service.updatePersonalInfoStep('John', 'john@example.com');
+    service.updateIncomeStep(5000);
 
-    expect(service.getTotalExpenses()).toBe(300);
+    const payload = service.getOnboardingSubmissionPayload();
+    expect(payload.housingCosts).toBe(0);
+    expect(payload.healthInsurance).toBe(300);
   });
 
   it('should handle localStorage operations for onboarding data submission', () => {
     const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
 
-    service.updateIncome(5000);
-    service.updateFirstName('John');
-    service.updateEmail('john@example.com');
+    service.updateIncomeStep(5000);
+    service.updatePersonalInfoStep('John', 'john@example.com');
 
-    service.submitOnboardingData().subscribe();
+    service.submitCompletedOnboarding();
 
     expect(setItemSpy).toHaveBeenCalledWith(
-      'onboarding-data',
-      JSON.stringify({
-        monthlyIncome: 5000,
-        housingCosts: null,
-        healthInsurance: null,
-        leasingCredit: null,
-        phonePlan: null,
-        transportCosts: null,
-        firstName: 'John',
-        email: 'john@example.com',
-      }),
+      'pulpe-onboarding-completed',
+      'true',
     );
-    expect(setItemSpy).toHaveBeenCalledWith('onboarding-completed', 'true');
   });
 
   it('should load onboarding data from localStorage', () => {
@@ -148,16 +158,56 @@ describe('OnboardingApi', () => {
     );
     const testService = new OnboardingApi();
 
-    testService.loadOnboardingData().subscribe();
-
-    expect(testService.onboardingData()).toEqual(mockData);
+    expect(testService.onboardingSteps()).toEqual(mockData);
   });
 
   it('should check onboarding status from localStorage', () => {
     vi.spyOn(Storage.prototype, 'getItem').mockReturnValue('true');
 
-    service.checkOnboardingStatus().subscribe((isCompleted) => {
-      expect(isCompleted).toBe(true);
+    service
+      .checkOnboardingCompletionStatus()
+      .subscribe((isCompleted: boolean) => {
+        expect(isCompleted).toBe(true);
+      });
+  });
+
+  it('should clear onboarding data', () => {
+    const removeItemSpy = vi.spyOn(Storage.prototype, 'removeItem');
+
+    service.updateIncomeStep(5000);
+    service.updatePersonalInfoStep('John', 'john@example.com');
+
+    service.clearOnboardingData();
+
+    const data = service.onboardingSteps();
+    expect(data.monthlyIncome).toBeNull();
+    expect(data.firstName).toBe('');
+    expect(data.email).toBe('');
+    expect(removeItemSpy).toHaveBeenCalledWith('pulpe-onboarding-steps');
+    expect(removeItemSpy).toHaveBeenCalledWith('pulpe-onboarding-completed');
+  });
+
+  it('should throw error when trying to get payload for incomplete onboarding', () => {
+    expect(() => service.getOnboardingSubmissionPayload()).toThrow(
+      'Onboarding data is incomplete',
+    );
+  });
+
+  it('should throw error when trying to submit incomplete onboarding', () => {
+    expect(() => service.submitCompletedOnboarding()).toThrow(
+      'Onboarding data is incomplete',
+    );
+  });
+
+  it('should handle localStorage errors gracefully', () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('Storage error');
+    });
+
+    service.checkOnboardingCompletionStatus().subscribe({
+      error: (error: Error) => {
+        expect(error.message).toBe('Unable to check onboarding status');
+      },
     });
   });
 });

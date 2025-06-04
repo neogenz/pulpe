@@ -1,10 +1,17 @@
-import { Component, ChangeDetectionStrategy, signal } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  signal,
+  inject,
+} from '@angular/core';
 import { Router } from '@angular/router';
 import {
   OnboardingLayout,
   OnboardingLayoutData,
 } from '@features/onboarding/onboarding-layout';
 import { OnboardingCurrencyInput } from '@features/onboarding/currency-input';
+import { OnboardingApi } from '@core/onboarding/onboarding-api';
+import { ONBOARDING_TOTAL_STEPS } from '../onboarding-constants';
 
 @Component({
   selector: 'pulpe-income',
@@ -29,17 +36,25 @@ import { OnboardingCurrencyInput } from '@features/onboarding/currency-input';
   `,
 })
 export default class Income {
+  private readonly router = inject(Router);
+  private readonly onboardingApi = inject(OnboardingApi);
+
   protected readonly onboardingLayoutData: OnboardingLayoutData = {
     title: 'Quel est le montant de tes revenus mensuels ?',
     subtitle:
       "Tes revenus mensuels correspondent par exemple à ton salaire, tes rentes, etc. Je vais l'utiliser pour calculer ton budget de base. On pourra le modifier par la suite.",
     currentStep: 2,
-    totalSteps: 8,
+    totalSteps: ONBOARDING_TOTAL_STEPS,
   };
 
   protected incomeValue = signal<number | null>(null);
 
-  constructor(private router: Router) {}
+  constructor() {
+    const existingIncome = this.onboardingApi.onboardingSteps().monthlyIncome;
+    if (existingIncome !== null) {
+      this.incomeValue.set(existingIncome);
+    }
+  }
 
   protected canContinue(): boolean {
     return this.incomeValue() !== null && this.incomeValue()! > 0;
@@ -50,6 +65,7 @@ export default class Income {
   }
 
   protected navigateNext(): void {
+    this.onboardingApi.updateIncomeStep(this.incomeValue());
     this.router.navigate(['/onboarding/housing']);
   }
 

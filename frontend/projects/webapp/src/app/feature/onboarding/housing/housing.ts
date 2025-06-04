@@ -1,10 +1,17 @@
-import { Component, ChangeDetectionStrategy, signal } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  signal,
+  inject,
+} from '@angular/core';
 import { Router } from '@angular/router';
 import {
   OnboardingLayout,
   OnboardingLayoutData,
 } from '@features/onboarding/onboarding-layout';
 import { OnboardingCurrencyInput } from '@features/onboarding/currency-input';
+import { OnboardingApi } from '@core/onboarding/onboarding-api';
+import { ONBOARDING_TOTAL_STEPS } from '../onboarding-constants';
 
 @Component({
   selector: 'pulpe-housing',
@@ -29,17 +36,25 @@ import { OnboardingCurrencyInput } from '@features/onboarding/currency-input';
   `,
 })
 export default class Housing {
+  private readonly router = inject(Router);
+  private readonly onboardingApi = inject(OnboardingApi);
+
   protected readonly onboardingLayoutData: OnboardingLayoutData = {
     title: 'Logement ?',
     subtitle:
       'Combien payes-tu de loyer ou crédit, pour ton logement chaque mois ?',
     currentStep: 3,
-    totalSteps: 8,
+    totalSteps: ONBOARDING_TOTAL_STEPS,
   };
 
   protected housingValue = signal<number | null>(null);
 
-  constructor(private router: Router) {}
+  constructor() {
+    const existingHousing = this.onboardingApi.onboardingSteps().housingCosts;
+    if (existingHousing !== null) {
+      this.housingValue.set(existingHousing);
+    }
+  }
 
   protected canContinue(): boolean {
     return this.housingValue() !== null && this.housingValue()! > 0;
@@ -50,6 +65,7 @@ export default class Housing {
   }
 
   protected navigateNext(): void {
+    this.onboardingApi.updateHousingStep(this.housingValue());
     this.router.navigate(['/onboarding/health-insurance']);
   }
 

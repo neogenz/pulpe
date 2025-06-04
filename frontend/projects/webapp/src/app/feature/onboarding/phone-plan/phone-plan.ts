@@ -1,10 +1,17 @@
-import { Component, ChangeDetectionStrategy, signal } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  signal,
+  inject,
+} from '@angular/core';
 import { Router } from '@angular/router';
 import {
   OnboardingLayout,
   OnboardingLayoutData,
 } from '@features/onboarding/onboarding-layout';
 import { OnboardingCurrencyInput } from '@features/onboarding/currency-input';
+import { OnboardingApi } from '@core/onboarding/onboarding-api';
+import { ONBOARDING_TOTAL_STEPS } from '../onboarding-constants';
 
 @Component({
   selector: 'pulpe-phone-plan',
@@ -29,17 +36,25 @@ import { OnboardingCurrencyInput } from '@features/onboarding/currency-input';
   `,
 })
 export default class PhonePlan {
+  private readonly router = inject(Router);
+  private readonly onboardingApi = inject(OnboardingApi);
+
   protected readonly onboardingLayoutData: OnboardingLayoutData = {
     title: 'Forfait téléphone ?',
     subtitle:
       'Combien payes-tu frais téléphoniques chaque mois ? (Par ex. Swisscom, Sunrise, etc...)',
     currentStep: 6,
-    totalSteps: 8,
+    totalSteps: ONBOARDING_TOTAL_STEPS,
   };
 
   protected phonePlanValue = signal<number | null>(null);
 
-  constructor(private router: Router) {}
+  constructor() {
+    const existingPhonePlan = this.onboardingApi.onboardingSteps().phonePlan;
+    if (existingPhonePlan !== null) {
+      this.phonePlanValue.set(existingPhonePlan);
+    }
+  }
 
   protected canContinue(): boolean {
     return this.phonePlanValue() !== null && this.phonePlanValue()! >= 0;
@@ -50,6 +65,7 @@ export default class PhonePlan {
   }
 
   protected navigateNext(): void {
+    this.onboardingApi.updatePhonePlanStep(this.phonePlanValue());
     this.router.navigate(['/onboarding/transport']);
   }
 

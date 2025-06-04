@@ -1,4 +1,9 @@
-import { Component, ChangeDetectionStrategy, signal } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  signal,
+  inject,
+} from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -8,6 +13,8 @@ import {
   OnboardingLayout,
   OnboardingLayoutData,
 } from '@features/onboarding/onboarding-layout';
+import { OnboardingApi } from '@core/onboarding/onboarding-api';
+import { ONBOARDING_TOTAL_STEPS } from '../onboarding-constants';
 
 @Component({
   selector: 'pulpe-personal-info',
@@ -43,17 +50,25 @@ import {
   `,
 })
 export default class PersonalInfo {
+  private readonly router = inject(Router);
+  private readonly onboardingApi = inject(OnboardingApi);
+
   protected readonly onboardingLayoutData: OnboardingLayoutData = {
     title: "Comment je dois t'appeler ?",
     subtitle:
       "Ton prénom va m'aider à savoir comment je vais devoir t'appeler tout au long de notre collaboration. Il ne sera en aucun cas communiqué.",
     currentStep: 1,
-    totalSteps: 8,
+    totalSteps: ONBOARDING_TOTAL_STEPS,
   };
 
   protected firstNameValue = signal<string>('');
 
-  constructor(private router: Router) {}
+  constructor() {
+    const existingFirstName = this.onboardingApi.onboardingSteps().firstName;
+    if (existingFirstName) {
+      this.firstNameValue.set(existingFirstName);
+    }
+  }
 
   protected canContinue(): boolean {
     return this.firstNameValue().trim().length > 0;
@@ -65,6 +80,11 @@ export default class PersonalInfo {
   }
 
   protected navigateNext(): void {
+    const currentSteps = this.onboardingApi.onboardingSteps();
+    this.onboardingApi.updatePersonalInfoStep(
+      this.firstNameValue(),
+      currentSteps.email,
+    );
     this.router.navigate(['/onboarding/income']);
   }
 
