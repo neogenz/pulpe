@@ -9,7 +9,7 @@ import type {
 @Injectable({
   providedIn: 'root',
 })
-export class NavigationService {
+export class Navigation {
   private readonly router = inject(Router);
 
   private readonly navigationConfig: NavigationConfig = [

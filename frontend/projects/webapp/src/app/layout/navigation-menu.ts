@@ -7,7 +7,7 @@ import {
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { RouterModule } from '@angular/router';
-import { NavigationService } from '@core/navigation';
+import { Navigation } from '@core/navigation';
 
 @Component({
   selector: 'pulpe-navigation-menu',
@@ -21,7 +21,7 @@ import { NavigationService } from '@core/navigation';
 
         <mat-nav-list>
           @for (
-            section of navigationService.navigationSections();
+            section of navigation.navigationSections();
             track section.title
           ) {
             <div mat-subheader>{{ section.title }}</div>
@@ -65,7 +65,7 @@ import { NavigationService } from '@core/navigation';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NavigationMenu {
-  readonly navigationService = inject(NavigationService);
+  readonly navigation = inject(Navigation);
   readonly navItemClick = output<Event>();
 
   onNavItemClick(event: Event): void {
