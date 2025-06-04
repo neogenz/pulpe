@@ -1,10 +1,11 @@
+import { CurrencyPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 
 export interface FinancialSummaryData {
   readonly title: string;
-  readonly amount: string;
+  readonly amount: number | string;
   readonly icon: string;
   readonly type: 'income' | 'expense' | 'savings' | 'negative';
   readonly isClickable?: boolean;
@@ -12,7 +13,7 @@ export interface FinancialSummaryData {
 
 @Component({
   selector: 'pulpe-financial-summary',
-  imports: [MatCardModule, MatIconModule],
+  imports: [MatCardModule, MatIconModule, CurrencyPipe],
   template: `
     <mat-card
       appearance="outlined"
@@ -34,7 +35,9 @@ export interface FinancialSummaryData {
               {{ data().title }}
             </h3>
             <p class="text-headline-small financial-amount">
-              {{ data().amount }}
+              {{
+                data().amount | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH'
+              }}
             </p>
           </div>
         </div>

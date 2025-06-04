@@ -21,34 +21,34 @@ import {
 export default class CurrentMonth {
   // Data configuration matching screenshot
   readonly incomeData: FinancialSummaryData = {
-    title: 'Gagné', // Income in French
-    amount: "8'500 CHF", // Swiss formatting
-    icon: 'trending_up', // Blue upward arrow
-    type: 'income', // Blue background
+    title: 'Gagné',
+    amount: 8500,
+    icon: 'trending_up',
+    type: 'income',
     isClickable: true,
   };
 
   readonly expenseData: FinancialSummaryData = {
-    title: 'Dépensé', // Expense in French
-    amount: "7'438 CHF", // Swiss formatting
-    icon: 'trending_down', // Orange downward arrow
-    type: 'expense', // Orange background
+    title: 'Dépensé',
+    amount: 7438,
+    icon: 'trending_down',
+    type: 'expense',
     isClickable: true,
   };
 
   readonly savingsData: FinancialSummaryData = {
-    title: 'Économisé', // Savings in French
-    amount: "1'234 CHF", // Swiss formatting
-    icon: 'attach_money', // Green dollar sign
-    type: 'savings', // Green background
+    title: 'Économisé',
+    amount: 1234,
+    icon: 'attach_money',
+    type: 'savings',
     isClickable: true,
   };
 
   readonly negativeData: FinancialSummaryData = {
-    title: 'Négatif', // Negative in French
-    amount: '234 CHF', // Swiss formatting
-    icon: 'money_off', // Red dollar sign with slash
-    type: 'negative', // Red background
+    title: 'Négatif',
+    amount: 234,
+    icon: 'money_off',
+    type: 'negative',
     isClickable: true,
   };
 }
