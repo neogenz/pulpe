@@ -1,7 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 import { Observable, of, throwError } from 'rxjs';
 
-interface OnboardingData {
+interface OnboardingStepData {
   monthlyIncome: number | null;
   housingCosts: number | null;
   healthInsurance: number | null;
@@ -12,11 +12,25 @@ interface OnboardingData {
   email: string;
 }
 
+interface OnboardingSubmissionPayload {
+  monthlyIncome: number;
+  housingCosts: number;
+  healthInsurance: number;
+  leasingCredit: number;
+  phonePlan: number;
+  transportCosts: number;
+  firstName: string;
+  email: string;
+}
+
+const ONBOARDING_STORAGE_KEY = 'pulpe-onboarding-steps';
+const ONBOARDING_STATUS_KEY = 'pulpe-onboarding-completed';
+
 @Injectable({
   providedIn: 'root',
 })
 export class OnboardingApi {
-  private readonly onboardingDataSignal = signal<OnboardingData>({
+  private readonly onboardingStepsSignal = signal<OnboardingStepData>({
     monthlyIncome: null,
     housingCosts: null,
     healthInsurance: null,
@@ -27,132 +41,173 @@ export class OnboardingApi {
     email: '',
   });
 
-  readonly onboardingData = this.onboardingDataSignal.asReadonly();
+  readonly onboardingSteps = this.onboardingStepsSignal.asReadonly();
 
-  updateIncome(amount: number | null): void {
-    this.onboardingDataSignal.update((data) => ({
-      ...data,
-      monthlyIncome: amount,
-    }));
+  constructor() {
+    this.loadStepsFromLocalStorage();
   }
 
-  updateHousingCosts(amount: number | null): void {
-    this.onboardingDataSignal.update((data) => ({
-      ...data,
-      housingCosts: amount,
-    }));
+  updateIncomeStep(amount: number | null): void {
+    this.updateStepAndSave('monthlyIncome', amount);
   }
 
-  updateHealthInsurance(amount: number | null): void {
-    this.onboardingDataSignal.update((data) => ({
-      ...data,
-      healthInsurance: amount,
-    }));
+  updateHousingStep(amount: number | null): void {
+    this.updateStepAndSave('housingCosts', amount);
   }
 
-  updateLeasingCredit(amount: number | null): void {
-    this.onboardingDataSignal.update((data) => ({
-      ...data,
-      leasingCredit: amount,
-    }));
+  updateHealthInsuranceStep(amount: number | null): void {
+    this.updateStepAndSave('healthInsurance', amount);
   }
 
-  updatePhonePlan(amount: number | null): void {
-    this.onboardingDataSignal.update((data) => ({
-      ...data,
-      phonePlan: amount,
-    }));
+  updateLeasingCreditStep(amount: number | null): void {
+    this.updateStepAndSave('leasingCredit', amount);
   }
 
-  updateTransportCosts(amount: number | null): void {
-    this.onboardingDataSignal.update((data) => ({
-      ...data,
-      transportCosts: amount,
-    }));
+  updatePhonePlanStep(amount: number | null): void {
+    this.updateStepAndSave('phonePlan', amount);
   }
 
-  updateFirstName(firstName: string): void {
-    this.onboardingDataSignal.update((data) => ({
-      ...data,
+  updateTransportStep(amount: number | null): void {
+    this.updateStepAndSave('transportCosts', amount);
+  }
+
+  updatePersonalInfoStep(firstName: string, email: string): void {
+    this.onboardingStepsSignal.update((steps) => ({
+      ...steps,
       firstName,
-    }));
-  }
-
-  updateEmail(email: string): void {
-    this.onboardingDataSignal.update((data) => ({
-      ...data,
       email,
     }));
+    this.saveStepsToLocalStorage();
   }
 
-  getTotalExpenses(): number {
-    const data = this.onboardingData();
-    return (
-      (data.housingCosts || 0) +
-      (data.healthInsurance || 0) +
-      (data.leasingCredit || 0) +
-      (data.phonePlan || 0) +
-      (data.transportCosts || 0)
+  isOnboardingReadyForSubmission(): boolean {
+    const steps = this.onboardingSteps();
+    return !!(
+      steps.monthlyIncome &&
+      steps.firstName.trim() &&
+      steps.email.trim()
     );
   }
 
-  getRemainingBudget(): number {
-    const income = this.onboardingData().monthlyIncome || 0;
-    const expenses = this.getTotalExpenses();
-    return income - expenses;
-  }
-
-  isOnboardingComplete(): boolean {
-    const data = this.onboardingData();
-    return !!(data.monthlyIncome && data.firstName.trim() && data.email.trim());
-  }
-
-  submitOnboardingData(): Observable<void> {
-    // TODO: Replace with HTTP call to backend
-    // return this.http.post<void>('/api/onboarding', this.onboardingData())
-    const data = this.onboardingData();
-    try {
-      localStorage.setItem('onboarding-data', JSON.stringify(data));
-      localStorage.setItem('onboarding-completed', 'true');
-      return of(undefined);
-    } catch (error) {
-      console.error('Failed to save onboarding data to localStorage:', error);
-      return throwError(() => new Error('Unable to save onboarding data'));
+  submitCompletedOnboarding(): Observable<void> {
+    if (!this.isOnboardingReadyForSubmission()) {
+      return throwError(() => new Error('Onboarding data is incomplete'));
     }
+
+    const payload = this.buildSubmissionPayload();
+    return this.sendOnboardingToServer(payload);
   }
 
-  loadOnboardingData(): Observable<OnboardingData | null> {
-    // TODO: Replace with HTTP call to backend
-    // return this.http.get<OnboardingData>('/api/onboarding').pipe(
-    //   tap(data => this.onboardingDataSignal.set(data)),
-    //   catchError(() => of(null))
-    // )
-    try {
-      const savedData = localStorage.getItem('onboarding-data');
-      if (savedData) {
-        const parsedData = JSON.parse(savedData) as OnboardingData;
-        this.onboardingDataSignal.set(parsedData);
-        return of(parsedData);
-      }
-      return of(null);
-    } catch (error) {
-      console.error('Failed to load onboarding data from localStorage:', error);
-      return throwError(() => new Error('Unable to load onboarding data'));
-    }
-  }
-
-  checkOnboardingStatus(): Observable<boolean> {
-    // TODO: Replace with HTTP call to backend
-    // return this.http.get<{ completed: boolean }>('/api/onboarding/status').pipe(
-    //   map(response => response.completed)
-    // )
+  checkOnboardingCompletionStatus(): Observable<boolean> {
     try {
       const isCompleted =
-        localStorage.getItem('onboarding-completed') === 'true';
+        localStorage.getItem(ONBOARDING_STATUS_KEY) === 'true';
       return of(isCompleted);
     } catch (error) {
-      console.error('Failed to check onboarding status:', error);
+      console.error('Failed to check onboarding completion status:', error);
       return throwError(() => new Error('Unable to check onboarding status'));
     }
+  }
+
+  clearOnboardingData(): void {
+    this.onboardingStepsSignal.set({
+      monthlyIncome: null,
+      housingCosts: null,
+      healthInsurance: null,
+      leasingCredit: null,
+      phonePlan: null,
+      transportCosts: null,
+      firstName: '',
+      email: '',
+    });
+
+    try {
+      localStorage.removeItem(ONBOARDING_STORAGE_KEY);
+      localStorage.removeItem(ONBOARDING_STATUS_KEY);
+    } catch (error) {
+      console.error(
+        'Failed to clear onboarding data from localStorage:',
+        error,
+      );
+    }
+  }
+
+  private updateStepAndSave(
+    field: keyof Pick<
+      OnboardingStepData,
+      | 'monthlyIncome'
+      | 'housingCosts'
+      | 'healthInsurance'
+      | 'leasingCredit'
+      | 'phonePlan'
+      | 'transportCosts'
+    >,
+    amount: number | null,
+  ): void {
+    this.onboardingStepsSignal.update((steps) => ({
+      ...steps,
+      [field]: amount,
+    }));
+    this.saveStepsToLocalStorage();
+  }
+
+  private saveStepsToLocalStorage(): void {
+    try {
+      const stepsData = this.onboardingSteps();
+      localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(stepsData));
+    } catch (error) {
+      console.error('Failed to save onboarding steps to localStorage:', error);
+    }
+  }
+
+  private loadStepsFromLocalStorage(): void {
+    try {
+      const savedSteps = localStorage.getItem(ONBOARDING_STORAGE_KEY);
+      if (savedSteps) {
+        const parsedSteps = JSON.parse(savedSteps) as OnboardingStepData;
+        this.onboardingStepsSignal.set(parsedSteps);
+      }
+    } catch (error) {
+      console.error(
+        'Failed to load onboarding steps from localStorage:',
+        error,
+      );
+    }
+  }
+
+  private buildSubmissionPayload(): OnboardingSubmissionPayload {
+    const steps = this.onboardingSteps();
+    return {
+      monthlyIncome: steps.monthlyIncome || 0,
+      housingCosts: steps.housingCosts || 0,
+      healthInsurance: steps.healthInsurance || 0,
+      leasingCredit: steps.leasingCredit || 0,
+      phonePlan: steps.phonePlan || 0,
+      transportCosts: steps.transportCosts || 0,
+      firstName: steps.firstName,
+      email: steps.email,
+    };
+  }
+
+  private sendOnboardingToServer(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _payload: OnboardingSubmissionPayload,
+  ): Observable<void> {
+    // TODO: Replace with actual HTTP call to backend
+    // return this.httpClient.post<void>('/api/onboarding/complete', payload);
+
+    // Mock server call with delay - simulates network request
+    return new Observable<void>((observer) => {
+      setTimeout(() => {
+        try {
+          // In real implementation, this would be handled by the server response
+          localStorage.setItem(ONBOARDING_STATUS_KEY, 'true');
+          observer.next();
+          observer.complete();
+        } catch {
+          observer.error(new Error('Failed to mark onboarding as completed'));
+        }
+      }, 1500);
+    });
   }
 }

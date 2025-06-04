@@ -60,7 +60,7 @@ export default class Registration {
     private router: Router,
     private onboardingApi: OnboardingApi,
   ) {
-    const currentEmail = this.onboardingApi.onboardingData().email;
+    const currentEmail = this.onboardingApi.onboardingSteps().email;
     if (currentEmail) {
       this.emailValue.set(currentEmail);
     }
@@ -75,11 +75,12 @@ export default class Registration {
     const target = event.target as HTMLInputElement;
     const email = target.value;
     this.emailValue.set(email);
-    this.onboardingApi.updateEmail(email);
+    const currentSteps = this.onboardingApi.onboardingSteps();
+    this.onboardingApi.updatePersonalInfoStep(currentSteps.firstName, email);
   }
 
   protected navigateNext(): void {
-    this.onboardingApi.submitOnboardingData().subscribe({
+    this.onboardingApi.submitCompletedOnboarding().subscribe({
       next: () => {
         this.router.navigate(['/app']);
       },

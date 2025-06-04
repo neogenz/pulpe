@@ -11,7 +11,7 @@ export class OnboardingCompletedGuard implements CanActivate {
   private readonly router = inject(Router);
 
   canActivate(): Observable<boolean> {
-    return this.onboardingApi.checkOnboardingStatus().pipe(
+    return this.onboardingApi.checkOnboardingCompletionStatus().pipe(
       map((isCompleted) => {
         if (!isCompleted) {
           this.router.navigate(['/onboarding']);
@@ -31,7 +31,7 @@ export class OnboardingRedirectGuard implements CanActivate {
   private readonly router = inject(Router);
 
   canActivate(): Observable<boolean> {
-    return this.onboardingApi.checkOnboardingStatus().pipe(
+    return this.onboardingApi.checkOnboardingCompletionStatus().pipe(
       map((isCompleted) => {
         if (isCompleted) {
           this.router.navigate(['/app']);
