@@ -1,0 +1,17 @@
+{
+  "name": "@pulpe/shared",
+  "version": "1.0.0",
+  "description": "Shared models and types for Pulpe application",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "zod": "^3.25.51"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

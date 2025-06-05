@@ -14,6 +14,7 @@ import {
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideLocale } from './locale';
 import { provideAngularMaterial } from './angular-material';
+import { provideAuth } from './auth/auth.providers';
 
 export interface CoreOptions {
   routes: Routes; // possible to extend options with more props in the future
@@ -46,5 +47,6 @@ export function provideCore({ routes }: CoreOptions) {
     //}),
     provideLocale(),
     provideAngularMaterial(),
+    ...provideAuth(),
   ];
 }

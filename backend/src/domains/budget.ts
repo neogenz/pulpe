@@ -1,18 +1,18 @@
-// authors.ts
 import { Hono } from "hono";
 import { authMiddleware } from "../supabase/auth-middleware";
-import type { Budget, BudgetInsert } from "../supabase/client";
-
-interface BudgetResponse {
-  readonly success: boolean;
-  readonly budget?: Budget;
-  readonly budgets?: Budget[];
-}
-
-interface ErrorResponse {
-  readonly success: false;
-  readonly error: string;
-}
+import {
+  budgetCreateRequestSchema,
+  budgetUpdateRequestSchema,
+} from "@pulpe/shared";
+import type {
+  Budget,
+  BudgetInsert,
+  BudgetResponse,
+  BudgetErrorResponse,
+  BudgetCreateRequest,
+  BudgetUpdateRequest,
+} from "@pulpe/shared";
+import { validateRequestBody } from "../utils/validation";
 
 const budgetRoutes = new Hono();
 
@@ -31,7 +31,7 @@ budgetRoutes.get("/", authMiddleware, async (c) => {
 
     if (error) {
       console.error("Erreur récupération budgets:", error);
-      return c.json<ErrorResponse>(
+      return c.json<BudgetErrorResponse>(
         {
           success: false,
           error: "Erreur lors de la récupération des budgets",
@@ -46,7 +46,7 @@ budgetRoutes.get("/", authMiddleware, async (c) => {
     });
   } catch (error) {
     console.error("Erreur liste budgets:", error);
-    return c.json<ErrorResponse>(
+    return c.json<BudgetErrorResponse>(
       {
         success: false,
         error: "Erreur interne du serveur",
@@ -61,13 +61,19 @@ budgetRoutes.post("/", authMiddleware, async (c) => {
   try {
     const supabase = c.get("supabase");
     const user = c.get("user");
-    const body = await c.req.json();
+
+    // Validation des données avec Zod
+    const validationResult = await validateRequestBody(
+      c,
+      budgetCreateRequestSchema
+    );
+    if (!validationResult.success) {
+      return validationResult.response;
+    }
 
     // Inclure automatiquement le user_id pour le RLS
     const budgetData: BudgetInsert = {
-      month: body.month,
-      year: body.year,
-      description: body.description,
+      ...validationResult.data,
       user_id: user.id, // Ajout automatique du user_id
     };
 
@@ -79,7 +85,7 @@ budgetRoutes.post("/", authMiddleware, async (c) => {
 
     if (error) {
       console.error("Erreur création budget:", error);
-      return c.json<ErrorResponse>(
+      return c.json<BudgetErrorResponse>(
         {
           success: false,
           error: "Erreur lors de la création du budget",
@@ -97,7 +103,7 @@ budgetRoutes.post("/", authMiddleware, async (c) => {
     );
   } catch (error) {
     console.error("Erreur création budget:", error);
-    return c.json<ErrorResponse>(
+    return c.json<BudgetErrorResponse>(
       {
         success: false,
         error: "Erreur interne du serveur",
@@ -122,7 +128,7 @@ budgetRoutes.get("/:id", authMiddleware, async (c) => {
       .single();
 
     if (error || !budget) {
-      return c.json<ErrorResponse>(
+      return c.json<BudgetErrorResponse>(
         {
           success: false,
           error: "Budget introuvable ou accès non autorisé",
@@ -137,7 +143,7 @@ budgetRoutes.get("/:id", authMiddleware, async (c) => {
     });
   } catch (error) {
     console.error("Erreur récupération budget:", error);
-    return c.json<ErrorResponse>(
+    return c.json<BudgetErrorResponse>(
       {
         success: false,
         error: "Erreur interne du serveur",
@@ -153,15 +159,21 @@ budgetRoutes.put("/:id", authMiddleware, async (c) => {
     const supabase = c.get("supabase");
     const user = c.get("user");
     const budgetId = c.req.param("id");
-    const body = await c.req.json();
+
+    // Validation des données avec Zod
+    const validationResult = await validateRequestBody(
+      c,
+      budgetUpdateRequestSchema
+    );
+    if (!validationResult.success) {
+      return validationResult.response;
+    }
 
     // RLS s'assure que seuls les budgets de l'utilisateur peuvent être modifiés
     const { data: budget, error } = await supabase
       .from("budgets")
       .update({
-        month: body.month,
-        year: body.year,
-        description: body.description,
+        ...validationResult.data,
         updated_at: new Date().toISOString(),
       })
       .eq("id", budgetId)
@@ -170,7 +182,7 @@ budgetRoutes.put("/:id", authMiddleware, async (c) => {
 
     if (error || !budget) {
       console.error("Erreur modification budget:", error);
-      return c.json<ErrorResponse>(
+      return c.json<BudgetErrorResponse>(
         {
           success: false,
           error: "Budget introuvable ou modification non autorisée",
@@ -185,7 +197,7 @@ budgetRoutes.put("/:id", authMiddleware, async (c) => {
     });
   } catch (error) {
     console.error("Erreur modification budget:", error);
-    return c.json<ErrorResponse>(
+    return c.json<BudgetErrorResponse>(
       {
         success: false,
         error: "Erreur interne du serveur",
@@ -210,7 +222,7 @@ budgetRoutes.delete("/:id", authMiddleware, async (c) => {
 
     if (error) {
       console.error("Erreur suppression budget:", error);
-      return c.json<ErrorResponse>(
+      return c.json<BudgetErrorResponse>(
         {
           success: false,
           error: "Budget introuvable ou suppression non autorisée",
@@ -225,7 +237,7 @@ budgetRoutes.delete("/:id", authMiddleware, async (c) => {
     });
   } catch (error) {
     console.error("Erreur suppression budget:", error);
-    return c.json<ErrorResponse>(
+    return c.json<BudgetErrorResponse>(
       {
         success: false,
         error: "Erreur interne du serveur",

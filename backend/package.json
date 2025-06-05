@@ -11,9 +11,11 @@
     "db:status": "supabase migration list"
   },
   "dependencies": {
+    "@pulpe/shared": "file:../shared",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.49.10",
-    "hono": "^4.7.11"
+    "hono": "^4.7.11",
+    "zod": "^3.25.51"
   },
   "devDependencies": {
     "@types/bun": "latest",

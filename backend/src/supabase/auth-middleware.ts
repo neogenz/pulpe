@@ -1,5 +1,4 @@
 import { createMiddleware } from "hono/factory";
-import { getCookie } from "hono/cookie";
 import {
   createSupabaseClient,
   type AuthenticatedSupabaseClient,
@@ -24,9 +23,7 @@ export const authMiddleware = createMiddleware<{
   };
 }>(async (c, next) => {
   try {
-    const accessToken =
-      getCookie(c, "sb-access-token") ||
-      c.req.header("Authorization")?.replace("Bearer ", "");
+    const accessToken = c.req.header("Authorization")?.replace("Bearer ", "");
 
     if (!accessToken) {
       return c.json<ErrorResponse>(
@@ -85,9 +82,7 @@ export const optionalAuthMiddleware = createMiddleware<{
   };
 }>(async (c, next) => {
   try {
-    const accessToken =
-      getCookie(c, "sb-access-token") ||
-      c.req.header("Authorization")?.replace("Bearer ", "");
+    const accessToken = c.req.header("Authorization")?.replace("Bearer ", "");
 
     if (accessToken) {
       const supabase = createSupabaseClient(accessToken);
