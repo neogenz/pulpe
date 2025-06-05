@@ -5,7 +5,10 @@
     "types:generate": "bunx supabase gen types typescript --project-id \"xvrbcvltpkqwiiexvfxh\" > src/types/database.ts",
     "build": "bun build src/index.ts --outdir dist --target bun --minify",
     "start": "bun run src/index.ts",
-    "start:prod": "bun run dist/index.js"
+    "start:prod": "bun run dist/index.js",
+    "db:pull": "supabase db pull",
+    "db:migrate:new": "supabase migration new",
+    "db:status": "supabase migration list"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",

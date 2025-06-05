@@ -30,8 +30,8 @@ userRoutes.get("/me", authMiddleware, async (c) => {
       user: {
         id: user.id,
         email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        ...(user.firstName && { firstName: user.firstName }),
+        ...(user.lastName && { lastName: user.lastName }),
       },
     });
   } catch (error) {
@@ -84,10 +84,14 @@ userRoutes.put("/profile", authMiddleware, async (c) => {
     return c.json<UserResponse>({
       success: true,
       user: {
-        id: user.id,
-        email: user.email,
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
+        id: updatedUser.user.id,
+        email: updatedUser.user.email!,
+        ...(updatedUser.user.user_metadata?.firstName && {
+          firstName: updatedUser.user.user_metadata.firstName,
+        }),
+        ...(updatedUser.user.user_metadata?.lastName && {
+          lastName: updatedUser.user.user_metadata.lastName,
+        }),
       },
     });
   } catch (error) {
