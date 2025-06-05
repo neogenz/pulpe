@@ -11,11 +11,15 @@
     "db:status": "supabase migration list"
   },
   "dependencies": {
+    "@hono/swagger-ui": "^0.5.1",
+    "@hono/zod-validator": "^0.7.0",
     "@pulpe/shared": "file:../shared",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.49.10",
     "hono": "^4.7.11",
-    "zod": "^3.25.51"
+    "hono-openapi": "^0.4.8",
+    "zod": "^3.25.51",
+    "zod-openapi": "^4.2.4"
   },
   "devDependencies": {
     "@types/bun": "latest",

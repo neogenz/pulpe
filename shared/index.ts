@@ -7,6 +7,12 @@ export {
   budgetUpdateRequestSchema,
 } from "./models/budget.schema";
 
+export {
+  budgetResponseSchema,
+  budgetErrorResponseSchema,
+  budgetDeleteResponseSchema,
+} from "./models/response.schema";
+
 // Types TypeScript
 export type {
   Budget,
