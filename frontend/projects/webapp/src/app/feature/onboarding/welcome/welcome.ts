@@ -1,6 +1,6 @@
 import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
-import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
+import { Navigation } from '@core/navigation';
 import {
   OnboardingLayout,
   OnboardingLayoutData,
@@ -57,7 +57,7 @@ import {
   `,
 })
 export default class Welcome {
-  readonly #router = inject(Router);
+  readonly #navigation = inject(Navigation);
 
   protected readonly onboardingLayoutData: OnboardingLayoutData = {
     title: '',
@@ -66,10 +66,10 @@ export default class Welcome {
   };
 
   protected navigateNext(): void {
-    this.#router.navigate(['/onboarding/personal-info']);
+    this.#navigation.navigateTo('onboarding/personal-info');
   }
 
   protected navigateToLogin(): void {
-    this.#router.navigate(['/login']);
+    this.#navigation.navigateToLogin();
   }
 }

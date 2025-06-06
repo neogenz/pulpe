@@ -18,6 +18,13 @@ export class Navigation {
     LOGIN: 'login',
     ONBOARDING: 'onboarding',
     APP: 'app',
+    // App sub-routes
+    CURRENT_MONTH: 'app/current-month',
+    OTHER_MONTHS: 'app/other-months',
+    BUDGET_TEMPLATES: 'app/budget-templates',
+    // Onboarding sub-routes (commonly used)
+    ONBOARDING_REGISTRATION: 'onboarding/registration',
+    ONBOARDING_WELCOME: 'onboarding/welcome',
   } as const;
   readonly #navigationConfig: NavigationConfig = [
     {
@@ -25,17 +32,17 @@ export class Navigation {
       items: [
         {
           label: 'Mois en cours',
-          route: '/app/current-month',
+          route: `/${Navigation.PATHS.CURRENT_MONTH}`,
           icon: 'today',
         },
         {
           label: 'Autres mois',
-          route: '/app/other-months',
+          route: `/${Navigation.PATHS.OTHER_MONTHS}`,
           icon: 'calendar_month',
         },
         {
           label: 'Modèles de budget',
-          route: '/app/budget-templates',
+          route: `/${Navigation.PATHS.BUDGET_TEMPLATES}`,
           icon: 'description',
         },
       ],

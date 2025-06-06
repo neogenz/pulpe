@@ -1,20 +1,21 @@
 import { Injectable, inject } from '@angular/core';
-import { CanActivate, Router } from '@angular/router';
+import { CanActivate } from '@angular/router';
 import { Observable, map } from 'rxjs';
+import { Navigation } from '@core/navigation';
 import { OnboardingApi } from './onboarding-api';
 
 @Injectable({
   providedIn: 'root',
 })
 export class OnboardingCompletedGuard implements CanActivate {
-  private readonly onboardingApi = inject(OnboardingApi);
-  private readonly router = inject(Router);
+  readonly #onboardingApi = inject(OnboardingApi);
+  readonly #navigation = inject(Navigation);
 
   canActivate(): Observable<boolean> {
-    return this.onboardingApi.checkOnboardingCompletionStatus().pipe(
+    return this.#onboardingApi.checkOnboardingCompletionStatus().pipe(
       map((isCompleted) => {
         if (!isCompleted) {
-          this.router.navigate(['/onboarding']);
+          this.#navigation.navigateToOnboarding();
           return false;
         }
         return true;
@@ -27,14 +28,14 @@ export class OnboardingCompletedGuard implements CanActivate {
   providedIn: 'root',
 })
 export class OnboardingRedirectGuard implements CanActivate {
-  private readonly onboardingApi = inject(OnboardingApi);
-  private readonly router = inject(Router);
+  readonly #onboardingApi = inject(OnboardingApi);
+  readonly #navigation = inject(Navigation);
 
   canActivate(): Observable<boolean> {
-    return this.onboardingApi.checkOnboardingCompletionStatus().pipe(
+    return this.#onboardingApi.checkOnboardingCompletionStatus().pipe(
       map((isCompleted) => {
         if (isCompleted) {
-          this.router.navigate(['/app']);
+          this.#navigation.navigateToApp();
           return false;
         }
         return true;

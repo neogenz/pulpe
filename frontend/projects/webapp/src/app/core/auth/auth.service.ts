@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Router } from '@angular/router';
+import { Navigation } from '@core/navigation';
 import {
   createClient,
   type SupabaseClient,
@@ -21,8 +21,8 @@ export interface AuthState {
   providedIn: 'root',
 })
 export class AuthService {
-  private readonly router = inject(Router);
-  private readonly errorLocalizer = inject(AuthErrorLocalizer);
+  readonly #navigation = inject(Navigation);
+  readonly #errorLocalizer = inject(AuthErrorLocalizer);
 
   private readonly supabaseClient: SupabaseClient;
 
@@ -71,7 +71,7 @@ export class AuthService {
             break;
           case 'SIGNED_OUT':
             this.updateAuthState(null, null);
-            this.router.navigate(['/login']);
+            this.#navigation.navigateToLogin();
             break;
           case 'USER_UPDATED':
             this.updateAuthState(session?.user || null, session);
@@ -109,7 +109,7 @@ export class AuthService {
       if (error) {
         return {
           success: false,
-          error: this.errorLocalizer.localizeError(error.message),
+          error: this.#errorLocalizer.localizeError(error.message),
         };
       }
 
@@ -135,7 +135,7 @@ export class AuthService {
       if (error) {
         return {
           success: false,
-          error: this.errorLocalizer.localizeError(error.message),
+          error: this.#errorLocalizer.localizeError(error.message),
         };
       }
 
