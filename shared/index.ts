@@ -4,6 +4,7 @@ export {
   budgetInsertSchema,
   budgetUpdateSchema,
   budgetCreateRequestSchema,
+  budgetUpdateRequestDocSchema,
   budgetUpdateRequestSchema,
 } from "./models/budget.schema";
 

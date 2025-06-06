@@ -4,7 +4,7 @@ import {
   type AuthenticatedSupabaseClient,
 } from "./client";
 
-interface AuthenticatedUser {
+export interface AuthenticatedUser {
   readonly id: string;
   readonly email: string;
   readonly firstName?: string;
