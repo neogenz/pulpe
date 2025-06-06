@@ -10,9 +10,16 @@ import type {
   providedIn: 'root',
 })
 export class Navigation {
-  private readonly router = inject(Router);
+  readonly #router = inject(Router);
 
-  private readonly navigationConfig: NavigationConfig = [
+  // Root paths constants
+  static readonly PATHS = {
+    HOME: '',
+    LOGIN: 'login',
+    ONBOARDING: 'onboarding',
+    APP: 'app',
+  } as const;
+  readonly #navigationConfig: NavigationConfig = [
     {
       title: 'Budget',
       items: [
@@ -36,18 +43,45 @@ export class Navigation {
   ];
 
   readonly navigationSections = signal<readonly NavigationSection[]>(
-    this.navigationConfig,
+    this.#navigationConfig,
   );
 
   getNavigationConfig(): readonly NavigationSection[] {
-    return this.navigationConfig;
+    return this.#navigationConfig;
   }
 
   navigateToItem(navigationItem: NavigationItem): Promise<boolean> {
-    return this.router.navigate([navigationItem.route]);
+    return this.#router.navigate([navigationItem.route]);
   }
 
   isRouteActive(route: string): boolean {
-    return this.router.url === route;
+    return this.#router.url === route;
+  }
+
+  // Navigation methods for root paths
+  navigateToHome(): Promise<boolean> {
+    return this.#router.navigate([Navigation.PATHS.HOME]);
+  }
+
+  navigateToLogin(): Promise<boolean> {
+    return this.#router.navigate([Navigation.PATHS.LOGIN]);
+  }
+
+  navigateToOnboarding(): Promise<boolean> {
+    return this.#router.navigate([Navigation.PATHS.ONBOARDING]);
+  }
+
+  navigateToApp(): Promise<boolean> {
+    return this.#router.navigate([Navigation.PATHS.APP]);
+  }
+
+  // Utility method for custom navigation
+  navigateTo(path: string): Promise<boolean> {
+    return this.#router.navigate([path]);
+  }
+
+  // Get available root paths
+  getRootPaths(): typeof Navigation.PATHS {
+    return Navigation.PATHS;
   }
 }

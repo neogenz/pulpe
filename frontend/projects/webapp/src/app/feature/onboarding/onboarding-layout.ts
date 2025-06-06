@@ -76,8 +76,7 @@ export interface OnboardingLayoutData {
           }
           <div class="flex-1">
             <button
-              mat-flat-button
-              color="primary"
+              matButton="filled"
               (click)="onNext()"
               [disabled]="!canContinue()"
               class="w-full"

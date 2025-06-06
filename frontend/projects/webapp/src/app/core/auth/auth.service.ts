@@ -8,6 +8,7 @@ import {
 } from '@supabase/supabase-js';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { AuthErrorLocalizer } from './auth-error-localizer';
 
 export interface AuthState {
   readonly user: User | null;
@@ -21,6 +22,7 @@ export interface AuthState {
 })
 export class AuthService {
   private readonly router = inject(Router);
+  private readonly errorLocalizer = inject(AuthErrorLocalizer);
 
   private readonly supabaseClient: SupabaseClient;
 
@@ -99,22 +101,20 @@ export class AuthService {
     password: string,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const { data, error } = await this.supabaseClient.auth.signInWithPassword(
-        {
-          email,
-          password,
-        },
-      );
+      const { error } = await this.supabaseClient.auth.signInWithPassword({
+        email,
+        password,
+      });
 
       if (error) {
         return {
           success: false,
-          error: error.message,
+          error: this.errorLocalizer.localizeError(error.message),
         };
       }
 
       return { success: true };
-    } catch (error) {
+    } catch (_) {
       return {
         success: false,
         error: 'Erreur inattendue lors de la connexion',
@@ -127,7 +127,7 @@ export class AuthService {
     password: string,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const { data, error } = await this.supabaseClient.auth.signUp({
+      const { error } = await this.supabaseClient.auth.signUp({
         email,
         password,
       });
@@ -135,12 +135,12 @@ export class AuthService {
       if (error) {
         return {
           success: false,
-          error: error.message,
+          error: this.errorLocalizer.localizeError(error.message),
         };
       }
 
       return { success: true };
-    } catch (error) {
+    } catch (_) {
       return {
         success: false,
         error: "Erreur inattendue lors de l'inscription",
@@ -197,88 +197,6 @@ export class AuthService {
         error,
       );
       return false;
-    }
-  }
-
-  async signInWithMagicLink(
-    email: string,
-  ): Promise<{ success: boolean; error?: string }> {
-    try {
-      const { data, error } = await this.supabaseClient.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-
-      if (error) {
-        return {
-          success: false,
-          error: error.message,
-        };
-      }
-
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        error: "Erreur inattendue lors de l'envoi du lien magique",
-      };
-    }
-  }
-
-  async signInWithOTP(
-    email: string,
-  ): Promise<{ success: boolean; error?: string }> {
-    try {
-      const { data, error } = await this.supabaseClient.auth.signInWithOtp({
-        email,
-        options: {
-          shouldCreateUser: true,
-        },
-      });
-
-      if (error) {
-        return {
-          success: false,
-          error: error.message,
-        };
-      }
-
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        error: "Erreur inattendue lors de l'envoi du code",
-      };
-    }
-  }
-
-  async verifyOTP(
-    email: string,
-    token: string,
-    type: 'email' | 'magiclink' = 'email',
-  ): Promise<{ success: boolean; error?: string }> {
-    try {
-      const { data, error } = await this.supabaseClient.auth.verifyOtp({
-        email,
-        token,
-        type,
-      });
-
-      if (error) {
-        return {
-          success: false,
-          error: error.message,
-        };
-      }
-
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        error: 'Erreur inattendue lors de la vérification',
-      };
     }
   }
 

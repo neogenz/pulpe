@@ -12,20 +12,6 @@ export const routes: Routes = [
     redirectTo: 'app',
   },
   {
-    path: 'auth',
-    children: [
-      {
-        path: 'callback',
-        loadComponent: () => import('./feature/auth/callback/callback'),
-      },
-      {
-        path: 'magic-link-sent',
-        loadComponent: () =>
-          import('./feature/onboarding/magic-link-sent/magic-link-sent'),
-      },
-    ],
-  },
-  {
     path: 'login',
     loadComponent: () => import('./feature/auth/login/login'),
   },

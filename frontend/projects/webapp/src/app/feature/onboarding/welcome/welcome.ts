@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import {
@@ -43,22 +43,33 @@ import {
       <div slot="footer" class="text-center mt-6">
         <p class="text-body-medium text-on-surface-variant">
           Tu as déjà un compte ?
-          <button mat-button color="primary" class="ml-1">Se connecter</button>
+          <button
+            mat-button
+            color="primary"
+            class="ml-1"
+            (click)="navigateToLogin()"
+          >
+            Se connecter
+          </button>
         </p>
       </div>
     </pulpe-onboarding-layout>
   `,
 })
 export default class Welcome {
+  readonly #router = inject(Router);
+
   protected readonly onboardingLayoutData: OnboardingLayoutData = {
     title: '',
     currentStep: 0,
     totalSteps: 8,
   };
 
-  constructor(private router: Router) {}
-
   protected navigateNext(): void {
-    this.router.navigate(['/onboarding/personal-info']);
+    this.#router.navigate(['/onboarding/personal-info']);
+  }
+
+  protected navigateToLogin(): void {
+    this.#router.navigate(['/login']);
   }
 }

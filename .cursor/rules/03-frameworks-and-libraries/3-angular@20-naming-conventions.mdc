@@ -1,0 +1,47 @@
+---
+description: 
+globs: frontend/projects/**
+alwaysApply: false
+---
+Class Naming:
+- Remove traditional suffixes from class names
+- Use PascalCase for all class names
+- Follow `Home` pattern for components
+- Follow `AuthErrorLocalizer` pattern for services
+- Follow `CurrencyFormatter` pattern for pipes
+- Follow `AuthGuard` pattern for guards (exception)
+- Follow `AuthInterceptor` pattern for interceptors (exception)
+- Use descriptive nouns for classes
+- Avoid abbreviations in class names
+
+File Naming:
+- Remove suffix from file names
+- Use kebab-case for file names
+- Follow `home.ts` pattern for components
+- Follow `auth-error-localizer.ts` pattern for services
+- Follow `currency-formatter.ts` pattern for pipes
+- Follow `auth.guard.ts` pattern for guards
+- Follow `auth.interceptor.ts` pattern for interceptors
+- Use `.ts` extension for all TypeScript files
+
+Selector Naming:
+- Use project prefix for component selectors
+- Use kebab-case for selectors
+- Follow `pulpe-home` pattern for components
+- Apply only to components and directives
+- Configure prefix in angular.json
+
+Generation Commands:
+- Use `ng g c name` without component suffix
+- Use `ng g s name` without service suffix
+- Use `ng g p name` without pipe suffix
+- Use `ng g g name` for guards
+- Use `ng g interceptor name` for interceptors
+- Generate in appropriate folder structure
+
+ESLint Configuration:
+- Configure class suffix rules as warnings
+- Allow guard and interceptor suffixes
+- Enforce consistent naming patterns
+- Validate file naming conventions
+- Maintain project consistency
