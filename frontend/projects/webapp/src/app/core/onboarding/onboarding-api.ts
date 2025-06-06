@@ -12,7 +12,7 @@ interface OnboardingStepData {
   email: string;
 }
 
-interface OnboardingSubmissionPayload {
+export interface OnboardingSubmissionPayload {
   monthlyIncome: number;
   housingCosts: number;
   healthInsurance: number;
@@ -83,19 +83,36 @@ export class OnboardingApi {
   isOnboardingReadyForSubmission(): boolean {
     const steps = this.onboardingSteps();
     return !!(
-      steps.monthlyIncome &&
+      steps.monthlyIncome !== null &&
       steps.firstName.trim() &&
       steps.email.trim()
     );
   }
 
-  submitCompletedOnboarding(): Observable<void> {
+  getOnboardingSubmissionPayload(): OnboardingSubmissionPayload {
     if (!this.isOnboardingReadyForSubmission()) {
-      return throwError(() => new Error('Onboarding data is incomplete'));
+      throw new Error('Onboarding data is incomplete');
     }
 
-    const payload = this.buildSubmissionPayload();
-    return this.sendOnboardingToServer(payload);
+    const steps = this.onboardingSteps();
+    return {
+      monthlyIncome: steps.monthlyIncome || 0,
+      housingCosts: steps.housingCosts || 0,
+      healthInsurance: steps.healthInsurance || 0,
+      leasingCredit: steps.leasingCredit || 0,
+      phonePlan: steps.phonePlan || 0,
+      transportCosts: steps.transportCosts || 0,
+      firstName: steps.firstName,
+      email: steps.email,
+    };
+  }
+
+  submitCompletedOnboarding(): void {
+    if (!this.isOnboardingReadyForSubmission()) {
+      throw new Error('Onboarding data is incomplete');
+    }
+
+    this.#markOnboardingAsCompleted();
   }
 
   checkOnboardingCompletionStatus(): Observable<boolean> {
@@ -175,39 +192,11 @@ export class OnboardingApi {
     }
   }
 
-  private buildSubmissionPayload(): OnboardingSubmissionPayload {
-    const steps = this.onboardingSteps();
-    return {
-      monthlyIncome: steps.monthlyIncome || 0,
-      housingCosts: steps.housingCosts || 0,
-      healthInsurance: steps.healthInsurance || 0,
-      leasingCredit: steps.leasingCredit || 0,
-      phonePlan: steps.phonePlan || 0,
-      transportCosts: steps.transportCosts || 0,
-      firstName: steps.firstName,
-      email: steps.email,
-    };
-  }
-
-  private sendOnboardingToServer(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _payload: OnboardingSubmissionPayload,
-  ): Observable<void> {
-    // TODO: Replace with actual HTTP call to backend
-    // return this.httpClient.post<void>('/api/onboarding/complete', payload);
-
-    // Mock server call with delay - simulates network request
-    return new Observable<void>((observer) => {
-      setTimeout(() => {
-        try {
-          // In real implementation, this would be handled by the server response
-          localStorage.setItem(ONBOARDING_STATUS_KEY, 'true');
-          observer.next();
-          observer.complete();
-        } catch {
-          observer.error(new Error('Failed to mark onboarding as completed'));
-        }
-      }, 1500);
-    });
+  #markOnboardingAsCompleted(): void {
+    try {
+      localStorage.setItem(ONBOARDING_STATUS_KEY, 'true');
+    } catch {
+      throw new Error('Failed to mark onboarding as completed');
+    }
   }
 }

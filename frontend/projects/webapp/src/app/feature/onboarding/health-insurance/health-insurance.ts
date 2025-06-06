@@ -1,10 +1,17 @@
-import { Component, ChangeDetectionStrategy, signal } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  signal,
+  inject,
+} from '@angular/core';
 import { Router } from '@angular/router';
 import {
   OnboardingLayout,
   OnboardingLayoutData,
 } from '@features/onboarding/onboarding-layout';
 import { OnboardingCurrencyInput } from '@features/onboarding/currency-input';
+import { OnboardingApi } from '@core/onboarding/onboarding-api';
+import { ONBOARDING_TOTAL_STEPS } from '../onboarding-constants';
 
 @Component({
   selector: 'pulpe-health-insurance',
@@ -29,20 +36,29 @@ import { OnboardingCurrencyInput } from '@features/onboarding/currency-input';
   `,
 })
 export default class HealthInsurance {
+  private readonly router = inject(Router);
+  private readonly onboardingApi = inject(OnboardingApi);
+
   protected readonly onboardingLayoutData: OnboardingLayoutData = {
     title: 'Assurance maladie ?',
     subtitle: "Combien payes-tu d'assurance maladie chaque mois ?",
     currentStep: 4,
-    totalSteps: 8,
+    totalSteps: ONBOARDING_TOTAL_STEPS,
   };
 
   protected healthInsuranceValue = signal<number | null>(null);
 
-  constructor(private router: Router) {}
+  constructor() {
+    const existingHealthInsurance =
+      this.onboardingApi.onboardingSteps().healthInsurance;
+    if (existingHealthInsurance !== null) {
+      this.healthInsuranceValue.set(existingHealthInsurance);
+    }
+  }
 
   protected canContinue(): boolean {
     return (
-      this.healthInsuranceValue() !== null && this.healthInsuranceValue()! > 0
+      this.healthInsuranceValue() !== null && this.healthInsuranceValue()! >= 0
     );
   }
 
@@ -51,6 +67,7 @@ export default class HealthInsurance {
   }
 
   protected navigateNext(): void {
+    this.onboardingApi.updateHealthInsuranceStep(this.healthInsuranceValue());
     this.router.navigate(['/onboarding/leasing-credit']);
   }
 
