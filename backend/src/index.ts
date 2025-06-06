@@ -2,6 +2,7 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { swaggerUI } from "@hono/swagger-ui";
+import { authRoutes } from "./domains/auth";
 import { budgetRoutes } from "./domains/budget";
 import { userRoutes } from "./domains/user";
 import { transactionRoutes } from "./domains/transaction";

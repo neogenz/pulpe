@@ -4,6 +4,7 @@ import {
   signal,
   inject,
   computed,
+  DestroyRef,
 } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import {
@@ -19,6 +20,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { AuthService } from '@core/auth/auth.service';
 import { Navigation } from '@core/navigation';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'pulpe-login',
@@ -164,11 +166,13 @@ export default class Login {
   readonly #authService = inject(AuthService);
   readonly #formBuilder = inject(FormBuilder);
   readonly #navigation = inject(Navigation);
+  readonly #destroyRef = inject(DestroyRef);
 
   protected hidePassword = signal<boolean>(true);
   protected isSubmitting = signal<boolean>(false);
   protected errorMessage = signal<string>('');
   protected successMessage = signal<string>('');
+  protected formValid = signal<boolean>(false);
 
   protected loginForm: FormGroup = this.#formBuilder.group({
     email: ['', [Validators.required, Validators.email]],
@@ -176,8 +180,27 @@ export default class Login {
   });
 
   protected canSubmit = computed(() => {
-    return this.loginForm.valid && !this.isSubmitting();
+    return this.formValid() && !this.isSubmitting();
   });
+
+  constructor() {
+    // Écouter les changements du formulaire pour mettre à jour le signal
+    this.loginForm.valueChanges
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe(() => {
+        this.formValid.set(this.loginForm.valid);
+      });
+
+    // Écouter les changements de statut du formulaire
+    this.loginForm.statusChanges
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe(() => {
+        this.formValid.set(this.loginForm.valid);
+      });
+
+    // Initialiser l'état du formulaire
+    this.formValid.set(this.loginForm.valid);
+  }
 
   protected togglePasswordVisibility(): void {
     this.hidePassword.set(!this.hidePassword());
