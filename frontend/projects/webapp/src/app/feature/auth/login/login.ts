@@ -5,8 +5,13 @@ import {
   inject,
   computed,
 } from '@angular/core';
-import { Router, RouterModule } from '@angular/router';
-import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
+import {
+  ReactiveFormsModule,
+  FormBuilder,
+  FormGroup,
+  Validators,
+} from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -18,7 +23,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
   selector: 'pulpe-login',
   standalone: true,
   imports: [
-    FormsModule,
+    ReactiveFormsModule,
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
@@ -41,23 +46,26 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
           </p>
         </div>
 
-        <form (ngSubmit)="signIn()" #loginForm="ngForm" class="space-y-6">
+        <form [formGroup]="loginForm" (ngSubmit)="signIn()" class="space-y-6">
           <mat-form-field appearance="outline" class="w-full">
             <mat-label>Email</mat-label>
             <input
               matInput
               type="email"
-              name="email"
-              [ngModel]="emailValue()"
-              (ngModelChange)="emailValue.set($event); clearMessages()"
+              formControlName="email"
+              (input)="clearMessages()"
               placeholder="votre@email.com"
               [disabled]="isSubmitting()"
-              required
-              #emailInput="ngModel"
             />
             <mat-icon matPrefix>email</mat-icon>
-            @if (emailInput.invalid && emailInput.touched) {
-              <mat-error> Une adresse email valide est requise. </mat-error>
+            @if (emailControl?.invalid && emailControl?.touched) {
+              <mat-error>
+                @if (emailControl?.hasError('required')) {
+                  L'email est requis.
+                } @else if (emailControl?.hasError('email')) {
+                  Une adresse email valide est requise.
+                }
+              </mat-error>
             }
           </mat-form-field>
 
@@ -66,14 +74,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
             <input
               matInput
               [type]="hidePassword() ? 'password' : 'text'"
-              name="password"
-              [ngModel]="passwordValue()"
-              (ngModelChange)="passwordValue.set($event); clearMessages()"
+              formControlName="password"
+              (input)="clearMessages()"
               placeholder="Mot de passe"
               [disabled]="isSubmitting()"
-              required
-              minlength="6"
-              #passwordInput="ngModel"
             />
             <mat-icon matPrefix>lock</mat-icon>
             <button
@@ -88,9 +92,13 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
                 hidePassword() ? 'visibility_off' : 'visibility'
               }}</mat-icon>
             </button>
-            @if (passwordInput.invalid && passwordInput.touched) {
+            @if (passwordControl?.invalid && passwordControl?.touched) {
               <mat-error>
-                Le mot de passe doit contenir au moins 6 caractères.
+                @if (passwordControl?.hasError('required')) {
+                  Le mot de passe est requis.
+                } @else if (passwordControl?.hasError('minlength')) {
+                  Le mot de passe doit contenir au moins 6 caractères.
+                }
               </mat-error>
             }
           </mat-form-field>
@@ -117,7 +125,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
             color="primary"
             type="submit"
             class="w-full h-12"
-            [disabled]="loginForm.invalid || isSubmitting()"
+            [disabled]="!canSubmit() || isSubmitting()"
           >
             @if (isSubmitting()) {
               <div class="flex items-center justify-center">
@@ -152,21 +160,21 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
   `,
 })
 export default class Login {
-  private readonly router = inject(Router);
-  private readonly authService = inject(AuthService);
+  readonly #authService = inject(AuthService);
+  readonly #formBuilder = inject(FormBuilder);
 
-  protected emailValue = signal<string>('');
-  protected passwordValue = signal<string>('');
   protected hidePassword = signal<boolean>(true);
   protected isSubmitting = signal<boolean>(false);
   protected errorMessage = signal<string>('');
   protected successMessage = signal<string>('');
 
+  protected loginForm: FormGroup = this.#formBuilder.group({
+    email: ['', [Validators.required, Validators.email]],
+    password: ['', [Validators.required, Validators.minLength(6)]],
+  });
+
   protected canSubmit = computed(() => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const isEmailValid = emailRegex.test(this.emailValue());
-    const isPasswordValid = this.passwordValue().length >= 6;
-    return isEmailValid && isPasswordValid;
+    return this.loginForm.valid && !this.isSubmitting();
   });
 
   protected togglePasswordVisibility(): void {
@@ -178,22 +186,33 @@ export default class Login {
     this.successMessage.set('');
   }
 
+  protected get emailControl() {
+    return this.loginForm.get('email');
+  }
+
+  protected get passwordControl() {
+    return this.loginForm.get('password');
+  }
+
   protected async signIn(): Promise<void> {
-    if (!this.canSubmit()) return;
+    if (!this.loginForm.valid) {
+      this.loginForm.markAllAsTouched();
+      this.errorMessage.set(
+        'Veuillez corriger les erreurs dans le formulaire.',
+      );
+      return;
+    }
 
     this.isSubmitting.set(true);
     this.clearMessages();
 
+    const { email, password } = this.loginForm.value;
+
     try {
-      const result = await this.authService.signInWithEmail(
-        this.emailValue(),
-        this.passwordValue(),
-      );
+      const result = await this.#authService.signInWithEmail(email, password);
 
       if (result.success) {
         this.successMessage.set('Connexion réussie ! Redirection...');
-        // The redirection is handled by the auth state change,
-        // so no need for a manual router.navigate here.
       } else {
         this.errorMessage.set(
           result.error || 'Email ou mot de passe incorrect.',
