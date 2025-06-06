@@ -1,26 +1,30 @@
 import { Injectable, inject } from '@angular/core';
-import { CanActivate } from '@angular/router';
+import { CanActivate, Router } from '@angular/router';
 import { Observable, map } from 'rxjs';
-import { Navigation } from '@core/navigation';
-import { OnboardingApi } from './onboarding-api';
+import { NAVIGATION_PATHS } from '@core/navigation';
+import { OnboardingStatus } from '@core/user';
+import { AuthApi } from '@core/auth';
 
 @Injectable({
   providedIn: 'root',
 })
 export class OnboardingCompletedGuard implements CanActivate {
-  readonly #onboardingApi = inject(OnboardingApi);
-  readonly #navigation = inject(Navigation);
+  readonly #onboardingStatus = inject(OnboardingStatus);
+  readonly #router = inject(Router);
+  readonly #authApi = inject(AuthApi);
 
   canActivate(): Observable<boolean> {
-    return this.#onboardingApi.checkOnboardingCompletionStatus().pipe(
-      map((isCompleted) => {
-        if (!isCompleted) {
-          this.#navigation.navigateToOnboarding();
-          return false;
-        }
-        return true;
-      }),
-    );
+    return this.#onboardingStatus
+      .checkOnboardingCompletionStatus(this.#authApi.isAuthenticated)
+      .pipe(
+        map((isCompleted) => {
+          if (!isCompleted) {
+            this.#router.navigate([NAVIGATION_PATHS.ONBOARDING]);
+            return false;
+          }
+          return true;
+        }),
+      );
   }
 }
 
@@ -28,18 +32,21 @@ export class OnboardingCompletedGuard implements CanActivate {
   providedIn: 'root',
 })
 export class OnboardingRedirectGuard implements CanActivate {
-  readonly #onboardingApi = inject(OnboardingApi);
-  readonly #navigation = inject(Navigation);
+  readonly #onboardingStatus = inject(OnboardingStatus);
+  readonly #router = inject(Router);
+  readonly #authApi = inject(AuthApi);
 
   canActivate(): Observable<boolean> {
-    return this.#onboardingApi.checkOnboardingCompletionStatus().pipe(
-      map((isCompleted) => {
-        if (isCompleted) {
-          this.#navigation.navigateToApp();
-          return false;
-        }
-        return true;
-      }),
-    );
+    return this.#onboardingStatus
+      .checkOnboardingCompletionStatus(this.#authApi.isAuthenticated)
+      .pipe(
+        map((isCompleted) => {
+          if (isCompleted) {
+            this.#router.navigate([NAVIGATION_PATHS.CURRENT_MONTH]);
+            return false;
+          }
+          return true;
+        }),
+      );
   }
 }

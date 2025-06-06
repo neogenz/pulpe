@@ -21,7 +21,8 @@ import {
   OnboardingSubmissionPayload,
 } from '@core/onboarding/onboarding-api';
 import { BudgetApi, CreateOnboardingBudgetRequest } from '@core/budget';
-import { AuthService } from '@core/auth/auth.service';
+import { AuthApi } from '@core/auth/auth-api';
+import { NAVIGATION_PATHS } from '@core/navigation';
 import { ONBOARDING_TOTAL_STEPS } from '../onboarding-constants';
 
 @Component({
@@ -109,7 +110,7 @@ export default class Registration {
   private readonly router = inject(Router);
   private readonly onboardingApi = inject(OnboardingApi);
   private readonly budgetApi = inject(BudgetApi);
-  private readonly authService = inject(AuthService);
+  private readonly authService = inject(AuthApi);
 
   protected readonly onboardingLayoutData: OnboardingLayoutData = {
     title: 'Presque fini !',
@@ -179,10 +180,7 @@ export default class Registration {
         return;
       }
 
-      // 2. Finaliser l'onboarding
-      this.onboardingApi.submitCompletedOnboarding();
-
-      // 3. Créer le budget avec les données d'onboarding
+      // 2. Créer le budget avec les données d'onboarding
       const onboardingPayload =
         this.onboardingApi.getOnboardingSubmissionPayload();
       const budgetRequest = this.#buildBudgetCreationRequest(onboardingPayload);
@@ -191,14 +189,17 @@ export default class Registration {
         this.budgetApi.createOnboardingBudget$(budgetRequest),
       );
 
+      // 3. Finaliser l'onboarding côté serveur
+      await firstValueFrom(this.onboardingApi.submitCompletedOnboarding());
+
       // 4. Succès
       this.successMessage.set(
         'Votre compte a été créé avec succès ! Redirection vers votre budget...',
       );
 
-      // 5. Rediriger vers le dashboard
+      // 5. Rediriger vers current-month
       setTimeout(() => {
-        this.router.navigate(['/dashboard']);
+        this.router.navigate([NAVIGATION_PATHS.CURRENT_MONTH]);
       }, 2000);
     } catch (error) {
       console.error("Erreur lors de l'inscription:", error);

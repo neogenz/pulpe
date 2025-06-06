@@ -1,2 +1,8 @@
-export * from './navigation.models';
-export * from './navigation';
+export {
+  NAVIGATION_PATHS,
+  NAVIGATION_CONFIG,
+  type NavigationPath,
+  type NavigationItem,
+  type NavigationSection,
+  type NavigationConfig,
+} from './navigation';

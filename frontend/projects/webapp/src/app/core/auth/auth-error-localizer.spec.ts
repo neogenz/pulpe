@@ -23,10 +23,10 @@ describe('AuthErrorLocalizer', () => {
     expect(service.localizeError('')).toBe(
       "Une erreur inattendue s'est produite",
     );
-    expect(service.localizeError(null as any)).toBe(
+    expect(service.localizeError(null as string)).toBe(
       "Une erreur inattendue s'est produite",
     );
-    expect(service.localizeError(undefined as any)).toBe(
+    expect(service.localizeError(undefined as unknown as string)).toBe(
       "Une erreur inattendue s'est produite",
     );
   });

@@ -1,10 +1,9 @@
 import { Injectable, inject } from '@angular/core';
-import { Navigation } from '@core/navigation';
 import {
   createClient,
+  type Session,
   type SupabaseClient,
   type User,
-  type Session,
 } from '@supabase/supabase-js';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -20,8 +19,7 @@ export interface AuthState {
 @Injectable({
   providedIn: 'root',
 })
-export class AuthService {
-  readonly #navigation = inject(Navigation);
+export class AuthApi {
   readonly #errorLocalizer = inject(AuthErrorLocalizer);
 
   private readonly supabaseClient: SupabaseClient;
@@ -71,7 +69,6 @@ export class AuthService {
             break;
           case 'SIGNED_OUT':
             this.updateAuthState(null, null);
-            this.#navigation.navigateToLogin();
             break;
           case 'USER_UPDATED':
             this.updateAuthState(session?.user || null, session);
@@ -114,7 +111,7 @@ export class AuthService {
       }
 
       return { success: true };
-    } catch (_) {
+    } catch {
       return {
         success: false,
         error: 'Erreur inattendue lors de la connexion',
@@ -140,7 +137,7 @@ export class AuthService {
       }
 
       return { success: true };
-    } catch (_) {
+    } catch {
       return {
         success: false,
         error: "Erreur inattendue lors de l'inscription",

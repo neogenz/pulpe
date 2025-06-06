@@ -21,7 +21,7 @@ app.use(logger());
 app.use(
   "/api/*",
   cors({
-    origin: ["http://localhost:4200"],
+    origin: process.env.FRONTEND_URL?.split(",") || ["http://localhost:4200"],
     credentials: true,
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
@@ -57,6 +57,8 @@ app.doc("/api/openapi", {
   ],
   security: [{ bearerAuth: [] }],
   tags: [
+    { name: "Auth", description: "Authentification et validation des tokens" },
+    { name: "User", description: "Gestion des profils utilisateurs" },
     { name: "Budgets", description: "Gestion des budgets" },
     { name: "Transactions", description: "Gestion des transactions" },
   ],

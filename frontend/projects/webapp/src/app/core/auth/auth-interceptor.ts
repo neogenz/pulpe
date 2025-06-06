@@ -7,12 +7,12 @@ import {
   HttpErrorResponse,
 } from '@angular/common/http';
 import { Observable, throwError, from, switchMap, catchError } from 'rxjs';
-import { AuthService } from './auth.service';
+import { AuthApi } from './auth-api';
 import { environment } from '../../../environments/environment';
 
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
-  private readonly authService = inject(AuthService);
+  readonly #authApi = inject(AuthApi);
 
   intercept(
     req: HttpRequest<unknown>,
@@ -37,7 +37,7 @@ export class AuthInterceptor implements HttpInterceptor {
   private async addAuthToken(
     req: HttpRequest<unknown>,
   ): Promise<HttpRequest<unknown>> {
-    const session = await this.authService.getCurrentSession();
+    const session = await this.#authApi.getCurrentSession();
 
     if (session?.access_token) {
       return req.clone({
@@ -56,9 +56,9 @@ export class AuthInterceptor implements HttpInterceptor {
     originalReq: HttpRequest<unknown>,
     next: HttpHandler,
   ): Observable<HttpEvent<unknown>> {
-    if (error.status === 401 && this.authService.isAuthenticated) {
+    if (error.status === 401 && this.#authApi.isAuthenticated) {
       // Token expiré, essayer de le rafraîchir
-      return from(this.authService.refreshSession()).pipe(
+      return from(this.#authApi.refreshSession()).pipe(
         switchMap((refreshSuccess) => {
           if (refreshSuccess) {
             // Réessayer la requête avec le nouveau token
@@ -67,7 +67,7 @@ export class AuthInterceptor implements HttpInterceptor {
             );
           } else {
             // Impossible de rafraîchir, déconnecter l'utilisateur
-            this.authService.signOut();
+            this.#authApi.signOut();
             return throwError(
               () => new Error('Session expirée, veuillez vous reconnecter'),
             );
@@ -75,7 +75,7 @@ export class AuthInterceptor implements HttpInterceptor {
         }),
         catchError((refreshError) => {
           // Erreur lors du rafraîchissement
-          this.authService.signOut();
+          this.#authApi.signOut();
           return throwError(() => refreshError);
         }),
       );

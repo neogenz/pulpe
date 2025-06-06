@@ -17,8 +17,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { AuthService } from '@core/auth/auth.service';
-import { Navigation } from '@core/navigation';
+import { AuthApi } from '@core/auth/auth-api';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
@@ -163,9 +162,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
   `,
 })
 export default class Login {
-  readonly #authService = inject(AuthService);
+  readonly #authService = inject(AuthApi);
   readonly #formBuilder = inject(FormBuilder);
-  readonly #navigation = inject(Navigation);
   readonly #destroyRef = inject(DestroyRef);
 
   protected hidePassword = signal<boolean>(true);
@@ -238,9 +236,7 @@ export default class Login {
 
       if (result.success) {
         this.successMessage.set('Connexion réussie ! Redirection...');
-        setTimeout(() => {
-          this.#navigation.navigateToApp();
-        }, 1000);
+        // La redirection est maintenant gérée automatiquement par l'AuthService
       } else {
         this.errorMessage.set(
           result.error || 'Email ou mot de passe incorrect.',

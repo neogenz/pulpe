@@ -1,5 +1,6 @@
-import { Injectable, signal } from '@angular/core';
-import { Observable, of, throwError } from 'rxjs';
+import { Injectable, signal, inject } from '@angular/core';
+import { Observable, of, throwError, catchError, map } from 'rxjs';
+import { UserApi } from '@core/user';
 
 interface OnboardingStepData {
   monthlyIncome: number | null;
@@ -30,6 +31,8 @@ const ONBOARDING_STATUS_KEY = 'pulpe-onboarding-completed';
   providedIn: 'root',
 })
 export class OnboardingApi {
+  readonly #userApi = inject(UserApi);
+
   private readonly onboardingStepsSignal = signal<OnboardingStepData>({
     monthlyIncome: null,
     housingCosts: null,
@@ -107,23 +110,25 @@ export class OnboardingApi {
     };
   }
 
-  submitCompletedOnboarding(): void {
+  submitCompletedOnboarding(): Observable<void> {
     if (!this.isOnboardingReadyForSubmission()) {
-      throw new Error('Onboarding data is incomplete');
+      return throwError(() => new Error('Onboarding data is incomplete'));
     }
 
-    this.#markOnboardingAsCompleted();
-  }
-
-  checkOnboardingCompletionStatus(): Observable<boolean> {
-    try {
-      const isCompleted =
-        localStorage.getItem(ONBOARDING_STATUS_KEY) === 'true';
-      return of(isCompleted);
-    } catch (error) {
-      console.error('Failed to check onboarding completion status:', error);
-      return throwError(() => new Error('Unable to check onboarding status'));
-    }
+    return this.#userApi.markOnboardingCompleted().pipe(
+      map(() => {
+        this.#markOnboardingAsCompleted();
+      }),
+      catchError((error) => {
+        console.error(
+          'Failed to mark onboarding as completed on server:',
+          error,
+        );
+        // En cas d'erreur serveur, marquer quand même localement
+        this.#markOnboardingAsCompleted();
+        return of(void 0);
+      }),
+    );
   }
 
   clearOnboardingData(): void {

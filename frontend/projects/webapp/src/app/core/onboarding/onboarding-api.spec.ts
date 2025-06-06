@@ -1,8 +1,14 @@
 import { describe, beforeEach, it, expect, vi } from 'vitest';
+import { TestBed } from '@angular/core/testing';
+import { provideZonelessChangeDetection } from '@angular/core';
+import { of } from 'rxjs';
 import { OnboardingApi } from './onboarding-api';
+import { UserApi, OnboardingStatus } from '@core/user';
 
 describe('OnboardingApi', () => {
   let service: OnboardingApi;
+  let mockUserApi: Partial<UserApi>;
+  let mockOnboardingStatus: Partial<OnboardingStatus>;
 
   beforeEach(() => {
     vi.spyOn(Storage.prototype, 'getItem').mockReturnValue(null);
@@ -10,7 +16,32 @@ describe('OnboardingApi', () => {
     vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(
       () => undefined,
     );
-    service = new OnboardingApi();
+
+    mockUserApi = {
+      markOnboardingCompleted: vi
+        .fn()
+        .mockReturnValue(of({ success: true, message: 'OK' })),
+      getOnboardingStatus: vi
+        .fn()
+        .mockReturnValue(of({ success: true, onboardingCompleted: false })),
+    };
+
+    mockOnboardingStatus = {
+      checkOnboardingCompletionStatus: vi.fn().mockReturnValue(of(false)),
+      markOnboardingAsCompletedLocally: vi.fn(),
+      clearOnboardingStatus: vi.fn(),
+    };
+
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        OnboardingApi,
+        { provide: UserApi, useValue: mockUserApi },
+        { provide: OnboardingStatus, useValue: mockOnboardingStatus },
+      ],
+    });
+
+    service = TestBed.inject(OnboardingApi);
   });
 
   it('should be created', () => {
@@ -133,7 +164,7 @@ describe('OnboardingApi', () => {
     service.updateIncomeStep(5000);
     service.updatePersonalInfoStep('John', 'john@example.com');
 
-    service.submitCompletedOnboarding();
+    service.submitCompletedOnboarding().subscribe();
 
     expect(setItemSpy).toHaveBeenCalledWith(
       'pulpe-onboarding-completed',
@@ -156,19 +187,21 @@ describe('OnboardingApi', () => {
     vi.spyOn(Storage.prototype, 'getItem').mockReturnValue(
       JSON.stringify(mockData),
     );
-    const testService = new OnboardingApi();
+
+    // Créer un nouveau TestBed avec la mock configurée
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        OnboardingApi,
+        { provide: UserApi, useValue: mockUserApi },
+        { provide: OnboardingStatus, useValue: mockOnboardingStatus },
+      ],
+    });
+
+    const testService = TestBed.inject(OnboardingApi);
 
     expect(testService.onboardingSteps()).toEqual(mockData);
-  });
-
-  it('should check onboarding status from localStorage', () => {
-    vi.spyOn(Storage.prototype, 'getItem').mockReturnValue('true');
-
-    service
-      .checkOnboardingCompletionStatus()
-      .subscribe((isCompleted: boolean) => {
-        expect(isCompleted).toBe(true);
-      });
   });
 
   it('should clear onboarding data', () => {
@@ -194,19 +227,9 @@ describe('OnboardingApi', () => {
   });
 
   it('should throw error when trying to submit incomplete onboarding', () => {
-    expect(() => service.submitCompletedOnboarding()).toThrow(
-      'Onboarding data is incomplete',
-    );
-  });
-
-  it('should handle localStorage errors gracefully', () => {
-    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
-      throw new Error('Storage error');
-    });
-
-    service.checkOnboardingCompletionStatus().subscribe({
-      error: (error: Error) => {
-        expect(error.message).toBe('Unable to check onboarding status');
+    service.submitCompletedOnboarding().subscribe({
+      error: (error) => {
+        expect(error.message).toBe('Onboarding data is incomplete');
       },
     });
   });

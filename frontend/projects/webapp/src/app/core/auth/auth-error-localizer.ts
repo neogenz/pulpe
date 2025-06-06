@@ -1,8 +1,6 @@
 import { Injectable } from '@angular/core';
 
-export interface AuthErrorTranslations {
-  readonly [key: string]: string;
-}
+export type AuthErrorTranslations = Record<string, string>;
 
 @Injectable({
   providedIn: 'root',

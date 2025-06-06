@@ -1,22 +1,272 @@
-import { Hono } from "hono";
-import { authMiddleware } from "../supabase/auth-middleware";
-import type { Transaction, TransactionInsert } from "../supabase/client";
+import type {
+  TransactionErrorResponse,
+  TransactionInsert,
+  TransactionResponse,
+} from "@pulpe/shared";
+import {
+  transactionCreateRequestSchema,
+  transactionDeleteResponseSchema,
+  transactionErrorResponseSchema,
+  transactionResponseSchema,
+  transactionUpdateRequestSchema,
+} from "@pulpe/shared";
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
+import {
+  authMiddleware,
+  type AuthenticatedUser,
+} from "../supabase/auth-middleware";
+import type { AuthenticatedSupabaseClient } from "../supabase/client";
 
-interface TransactionResponse {
-  readonly success: boolean;
-  readonly transaction?: Transaction;
-  readonly transactions?: Transaction[];
-}
+const transactionRoutes = new OpenAPIHono<{
+  Variables: {
+    user: AuthenticatedUser;
+    supabase: AuthenticatedSupabaseClient;
+  };
+}>();
 
-interface ErrorResponse {
-  readonly success: false;
-  readonly error: string;
-}
+// Parameter schema for ID routes
+const TransactionParamsSchema = z.object({
+  id: z
+    .string()
+    .uuid()
+    .openapi({
+      param: { name: "id", in: "path" },
+      description: "Identifiant unique de la transaction",
+      example: "123e4567-e89b-12d3-a456-426614174000",
+    }),
+});
 
-const transactionRoutes = new Hono();
+const BudgetParamsSchema = z.object({
+  budgetId: z
+    .string()
+    .uuid()
+    .openapi({
+      param: { name: "budgetId", in: "path" },
+      description: "Identifiant unique du budget",
+      example: "123e4567-e89b-12d3-a456-426614174000",
+    }),
+});
+
+// Route definitions
+const listTransactionsRoute = createRoute({
+  method: "get",
+  path: "/",
+  tags: ["Transactions"],
+  summary: "Liste toutes les transactions de l'utilisateur connecté",
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: transactionResponseSchema,
+        },
+      },
+      description: "Liste des transactions récupérée avec succès",
+    },
+    500: {
+      content: {
+        "application/json": {
+          schema: transactionErrorResponseSchema,
+        },
+      },
+      description: "Erreur interne du serveur",
+    },
+  },
+});
+
+const listTransactionsByBudgetRoute = createRoute({
+  method: "get",
+  path: "/budget/{budgetId}",
+  tags: ["Transactions"],
+  summary: "Liste les transactions d'un budget spécifique",
+  request: {
+    params: BudgetParamsSchema,
+  },
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: transactionResponseSchema,
+        },
+      },
+      description: "Liste des transactions du budget récupérée avec succès",
+    },
+    500: {
+      content: {
+        "application/json": {
+          schema: transactionErrorResponseSchema,
+        },
+      },
+      description: "Erreur interne du serveur",
+    },
+  },
+});
+
+const createTransactionRoute = createRoute({
+  method: "post",
+  path: "/",
+  tags: ["Transactions"],
+  summary: "Crée une nouvelle transaction",
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: transactionCreateRequestSchema,
+        },
+      },
+      description: "Données de la transaction à créer",
+      required: true,
+    },
+  },
+  responses: {
+    201: {
+      content: {
+        "application/json": {
+          schema: transactionResponseSchema,
+        },
+      },
+      description: "Transaction créée avec succès",
+    },
+    400: {
+      content: {
+        "application/json": {
+          schema: transactionErrorResponseSchema,
+        },
+      },
+      description: "Données invalides",
+    },
+    500: {
+      content: {
+        "application/json": {
+          schema: transactionErrorResponseSchema,
+        },
+      },
+      description: "Erreur interne du serveur",
+    },
+  },
+});
+
+const getTransactionRoute = createRoute({
+  method: "get",
+  path: "/{id}",
+  tags: ["Transactions"],
+  summary: "Récupère une transaction spécifique par son ID",
+  request: {
+    params: TransactionParamsSchema,
+  },
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: transactionResponseSchema,
+        },
+      },
+      description: "Transaction récupérée avec succès",
+    },
+    404: {
+      content: {
+        "application/json": {
+          schema: transactionErrorResponseSchema,
+        },
+      },
+      description: "Transaction non trouvée",
+    },
+    500: {
+      content: {
+        "application/json": {
+          schema: transactionErrorResponseSchema,
+        },
+      },
+      description: "Erreur interne du serveur",
+    },
+  },
+});
+
+const updateTransactionRoute = createRoute({
+  method: "put",
+  path: "/{id}",
+  tags: ["Transactions"],
+  summary: "Met à jour une transaction existante",
+  request: {
+    params: TransactionParamsSchema,
+    body: {
+      content: {
+        "application/json": {
+          schema: transactionUpdateRequestSchema,
+        },
+      },
+      description: "Données de la transaction à mettre à jour",
+      required: true,
+    },
+  },
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: transactionResponseSchema,
+        },
+      },
+      description: "Transaction mise à jour avec succès",
+    },
+    404: {
+      content: {
+        "application/json": {
+          schema: transactionErrorResponseSchema,
+        },
+      },
+      description: "Transaction non trouvée",
+    },
+    500: {
+      content: {
+        "application/json": {
+          schema: transactionErrorResponseSchema,
+        },
+      },
+      description: "Erreur interne du serveur",
+    },
+  },
+});
+
+const deleteTransactionRoute = createRoute({
+  method: "delete",
+  path: "/{id}",
+  tags: ["Transactions"],
+  summary: "Supprime une transaction existante",
+  request: {
+    params: TransactionParamsSchema,
+  },
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: transactionDeleteResponseSchema,
+        },
+      },
+      description: "Transaction supprimée avec succès",
+    },
+    404: {
+      content: {
+        "application/json": {
+          schema: transactionErrorResponseSchema,
+        },
+      },
+      description: "Transaction non trouvée",
+    },
+    500: {
+      content: {
+        "application/json": {
+          schema: transactionErrorResponseSchema,
+        },
+      },
+      description: "Erreur interne du serveur",
+    },
+  },
+});
+
+// Apply auth middleware to all routes
+transactionRoutes.use("/*", authMiddleware);
 
 // Lister toutes les transactions de l'utilisateur connecté
-transactionRoutes.get("/", authMiddleware, async (c) => {
+transactionRoutes.openapi(listTransactionsRoute, async (c) => {
   try {
     const supabase = c.get("supabase");
     const user = c.get("user");
@@ -29,24 +279,27 @@ transactionRoutes.get("/", authMiddleware, async (c) => {
 
     if (error) {
       console.error("Erreur récupération transactions:", error);
-      return c.json<ErrorResponse>(
+      return c.json(
         {
-          success: false,
+          success: false as const,
           error: "Erreur lors de la récupération des transactions",
         },
         500
       );
     }
 
-    return c.json<TransactionResponse>({
-      success: true,
-      transactions: transactions || [],
-    });
+    return c.json(
+      {
+        success: true as const,
+        transactions: transactions || [],
+      },
+      200
+    );
   } catch (error) {
     console.error("Erreur liste transactions:", error);
-    return c.json<ErrorResponse>(
+    return c.json(
       {
-        success: false,
+        success: false as const,
         error: "Erreur interne du serveur",
       },
       500
@@ -55,11 +308,11 @@ transactionRoutes.get("/", authMiddleware, async (c) => {
 });
 
 // Lister les transactions d'un budget spécifique
-transactionRoutes.get("/budget/:budgetId", authMiddleware, async (c) => {
+transactionRoutes.openapi(listTransactionsByBudgetRoute, async (c) => {
   try {
     const supabase = c.get("supabase");
     const user = c.get("user");
-    const budgetId = c.req.param("budgetId");
+    const { budgetId } = c.req.valid("param");
 
     // RLS s'assure que seules les transactions de l'utilisateur pour le budget spécifié sont retournées
     const { data: transactions, error } = await supabase
@@ -70,24 +323,27 @@ transactionRoutes.get("/budget/:budgetId", authMiddleware, async (c) => {
 
     if (error) {
       console.error("Erreur récupération transactions budget:", error);
-      return c.json<ErrorResponse>(
+      return c.json(
         {
-          success: false,
+          success: false as const,
           error: "Erreur lors de la récupération des transactions du budget",
         },
         500
       );
     }
 
-    return c.json<TransactionResponse>({
-      success: true,
-      transactions: transactions || [],
-    });
+    return c.json(
+      {
+        success: true as const,
+        transactions: transactions || [],
+      },
+      200
+    );
   } catch (error) {
     console.error("Erreur liste transactions budget:", error);
-    return c.json<ErrorResponse>(
+    return c.json(
       {
-        success: false,
+        success: false as const,
         error: "Erreur interne du serveur",
       },
       500
@@ -96,20 +352,15 @@ transactionRoutes.get("/budget/:budgetId", authMiddleware, async (c) => {
 });
 
 // Créer une nouvelle transaction
-transactionRoutes.post("/", authMiddleware, async (c) => {
+transactionRoutes.openapi(createTransactionRoute, async (c) => {
   try {
     const supabase = c.get("supabase");
     const user = c.get("user");
-    const body = await c.req.json();
+    const requestData = c.req.valid("json");
 
     // Inclure automatiquement le user_id pour le RLS
     const transactionData: TransactionInsert = {
-      budget_id: body.budget_id,
-      amount: body.amount,
-      type: body.type,
-      expense_type: body.expense_type,
-      description: body.description,
-      is_recurring: body.is_recurring || false,
+      ...requestData,
       user_id: user.id, // Ajout automatique du user_id
     };
 
@@ -121,27 +372,27 @@ transactionRoutes.post("/", authMiddleware, async (c) => {
 
     if (error) {
       console.error("Erreur création transaction:", error);
-      return c.json<ErrorResponse>(
+      return c.json(
         {
-          success: false,
+          success: false as const,
           error: "Erreur lors de la création de la transaction",
         },
         400
       );
     }
 
-    return c.json<TransactionResponse>(
+    return c.json(
       {
-        success: true,
+        success: true as const,
         transaction,
       },
       201
     );
   } catch (error) {
     console.error("Erreur création transaction:", error);
-    return c.json<ErrorResponse>(
+    return c.json(
       {
-        success: false,
+        success: false as const,
         error: "Erreur interne du serveur",
       },
       500
@@ -150,11 +401,11 @@ transactionRoutes.post("/", authMiddleware, async (c) => {
 });
 
 // Récupérer une transaction spécifique
-transactionRoutes.get("/:id", authMiddleware, async (c) => {
+transactionRoutes.openapi(getTransactionRoute, async (c) => {
   try {
     const supabase = c.get("supabase");
     const user = c.get("user");
-    const transactionId = c.req.param("id");
+    const { id: transactionId } = c.req.valid("param");
 
     // RLS s'assure automatiquement que seules les transactions de l'utilisateur sont accessibles
     const { data: transaction, error } = await supabase
@@ -190,23 +441,18 @@ transactionRoutes.get("/:id", authMiddleware, async (c) => {
 });
 
 // Mettre à jour une transaction
-transactionRoutes.put("/:id", authMiddleware, async (c) => {
+transactionRoutes.openapi(updateTransactionRoute, async (c) => {
   try {
     const supabase = c.get("supabase");
     const user = c.get("user");
-    const transactionId = c.req.param("id");
-    const body = await c.req.json();
+    const { id: transactionId } = c.req.valid("param");
+    const requestData = c.req.valid("json");
 
     // RLS s'assure que seules les transactions de l'utilisateur peuvent être modifiées
     const { data: transaction, error } = await supabase
       .from("transactions")
       .update({
-        budget_id: body.budget_id,
-        amount: body.amount,
-        type: body.type,
-        expense_type: body.expense_type,
-        description: body.description,
-        is_recurring: body.is_recurring,
+        ...requestData,
         updated_at: new Date().toISOString(),
       })
       .eq("id", transactionId)
@@ -215,24 +461,27 @@ transactionRoutes.put("/:id", authMiddleware, async (c) => {
 
     if (error || !transaction) {
       console.error("Erreur modification transaction:", error);
-      return c.json<ErrorResponse>(
+      return c.json(
         {
-          success: false,
+          success: false as const,
           error: "Transaction introuvable ou modification non autorisée",
         },
         404
       );
     }
 
-    return c.json<TransactionResponse>({
-      success: true,
-      transaction,
-    });
+    return c.json(
+      {
+        success: true as const,
+        transaction,
+      },
+      200
+    );
   } catch (error) {
     console.error("Erreur modification transaction:", error);
-    return c.json<ErrorResponse>(
+    return c.json(
       {
-        success: false,
+        success: false as const,
         error: "Erreur interne du serveur",
       },
       500
@@ -241,11 +490,11 @@ transactionRoutes.put("/:id", authMiddleware, async (c) => {
 });
 
 // Supprimer une transaction
-transactionRoutes.delete("/:id", authMiddleware, async (c) => {
+transactionRoutes.openapi(deleteTransactionRoute, async (c) => {
   try {
     const supabase = c.get("supabase");
     const user = c.get("user");
-    const transactionId = c.req.param("id");
+    const { id: transactionId } = c.req.valid("param");
 
     // RLS s'assure que seules les transactions de l'utilisateur peuvent être supprimées
     const { error } = await supabase
@@ -255,24 +504,27 @@ transactionRoutes.delete("/:id", authMiddleware, async (c) => {
 
     if (error) {
       console.error("Erreur suppression transaction:", error);
-      return c.json<ErrorResponse>(
+      return c.json(
         {
-          success: false,
+          success: false as const,
           error: "Transaction introuvable ou suppression non autorisée",
         },
         404
       );
     }
 
-    return c.json({
-      success: true,
-      message: "Transaction supprimée avec succès",
-    });
+    return c.json(
+      {
+        success: true as const,
+        message: "Transaction supprimée avec succès",
+      },
+      200
+    );
   } catch (error) {
     console.error("Erreur suppression transaction:", error);
-    return c.json<ErrorResponse>(
+    return c.json(
       {
-        success: false,
+        success: false as const,
         error: "Erreur interne du serveur",
       },
       500

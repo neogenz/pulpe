@@ -78,10 +78,10 @@ npm run dev                    # Watch mode compilation
 
 ## Authentication Flow
 
-1. User signs up/in via backend API (`/api/auth/signup`, `/api/auth/signin`)
-2. Backend sets HttpOnly cookies (`sb-access-token`, `sb-refresh-token`)
-3. Frontend auth interceptor automatically includes cookies
-4. Backend middleware validates tokens and provides user context
+1. User signs up/in via frontend using Supabase SDK
+2. Frontend obtains access tokens from Supabase auth
+3. Frontend sends Bearer tokens in Authorization header for API calls
+4. Backend middleware validates Bearer tokens and provides user context
 5. RLS policies in Supabase handle data access control
 
 ## Testing

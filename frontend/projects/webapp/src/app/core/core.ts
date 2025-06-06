@@ -10,11 +10,12 @@ import {
 import {
   provideBrowserGlobalErrorListeners,
   provideZonelessChangeDetection,
+  provideAppInitializer,
 } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideLocale } from './locale';
 import { provideAngularMaterial } from './angular-material';
-import { provideAuth } from './auth/auth.providers';
+import { provideAuth } from './auth/auth-providers';
 
 export interface CoreOptions {
   routes: Routes; // possible to extend options with more props in the future
@@ -42,9 +43,9 @@ export function provideCore({ routes }: CoreOptions) {
       }),
     ),
     // perform initialization, has to be last
-    //provideAppInitializer(() => {
-    // ...
-    //}),
+    provideAppInitializer(() => {
+      // No more auth navigation handler needed
+    }),
     provideLocale(),
     provideAngularMaterial(),
     ...provideAuth(),

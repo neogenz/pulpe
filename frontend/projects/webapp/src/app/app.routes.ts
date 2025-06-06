@@ -3,6 +3,7 @@ import {
   OnboardingCompletedGuard,
   OnboardingRedirectGuard,
 } from '@core/onboarding';
+import { AuthRedirectGuard } from '@core/auth';
 import { MainLayout } from '@layout/main-layout';
 
 export const routes: Routes = [
@@ -13,6 +14,7 @@ export const routes: Routes = [
   },
   {
     path: 'login',
+    canActivate: [AuthRedirectGuard],
     loadComponent: () => import('./feature/auth/login/login'),
   },
   {
