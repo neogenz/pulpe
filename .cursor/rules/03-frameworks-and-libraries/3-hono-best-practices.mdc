@@ -1,0 +1,29 @@
+---
+description: 
+globs: backend/**/*.ts
+alwaysApply: false
+---
+Handler Structure:
+- Write handlers directly after path definitions
+- Avoid Ruby on Rails-like controllers when possible
+- Keep handlers inline for better type inference
+- Use arrow functions for route handlers
+
+Factory Pattern:
+- Use `factory.createHandlers()` when controllers needed
+- Import `createFactory` from `hono/factory`
+- Chain middleware through factory methods
+- Maintain type safety with factory pattern
+
+Application Organization:
+- Use `app.route()` for larger applications
+- Create separate files per resource endpoint
+- Export default Hono app from resource files
+- Mount routes with descriptive path prefixes
+- Keep related endpoints grouped together
+
+Type Safety:
+- Let Hono infer path parameters automatically
+- Avoid explicit Context typing when possible
+- Use inline handlers for parameter inference
+- Leverage TypeScript's type inference capabilities

@@ -1,0 +1,33 @@
+---
+description: APPLY OpenAPI route description standards WHEN defining Hono API routes to ensure comprehensive documentation, proper validation schemas, and consistent API specifications across all endpoints for better developer experience and API maintainability.
+globs: 
+alwaysApply: false
+---
+OpenAPI Route Documentation:
+- Use `describeRoute` wrapper for every endpoint
+- Include descriptive `description` for each route
+- Define complete `responses` object with status codes
+- Specify meaningful `tags` for route grouping
+- Document all `parameters` for path and query variables
+- Include `requestBody` schema for POST/PUT operations
+- Use `resolver` function with Zod schemas
+
+Response Documentation:
+- Document success responses with proper status codes
+- Include error responses with appropriate status codes
+- Provide schema references for all response types
+- Use consistent content type declarations
+- Reference shared error schemas when applicable
+Parameter Documentation:
+- Document path parameters with type information
+- Include required/optional parameter indicators
+- Provide clear parameter descriptions
+- Use proper schema formats for validation
+- Reference UUID format for ID parameters
+
+Schema Integration:
+- Import schemas from shared package
+- Use `resolver` for Zod schema integration
+- Reference request/response type definitions
+- Maintain type safety with schema validation
+- Keep schemas consistent across routes

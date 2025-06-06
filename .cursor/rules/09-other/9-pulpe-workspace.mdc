@@ -10,25 +10,81 @@ alwaysApply: false
 
 ```
 pulpe-workspace/
-├── frontend/    # Angular 20 - Application web
-├── backend/     # Node.js/Hono - API REST
+├── frontend/    # Angular 20 - Application web avec Supabase SDK
+├── backend/     # Node.js/Hono - API REST avec validation Zod
+├── shared/      # Librairie partagée - Schemas Zod et types TypeScript
 ├── mobile/      # Flutter - Application mobile
-└── .vscode/     # Configuration Cursor/VSCode centralisée
+└── .cursor/     # Configuration Cursor/VSCode et règles centralisées
 ```
+
+### Architecture Hybride Supabase
+
+**Authentification** : SDK Supabase côté client (Angular) avec tokens JWT
+**Validation** : Middleware côté serveur (Hono) avec `supabase.auth.getUser()`
+**Sécurité** : Row Level Security (RLS) au niveau base de données
+**Types** : Schemas Zod partagés entre frontend et backend via `@pulpe/shared`
 
 ### Workflow de développement
 
 - Un seul repo Git pour tous les projets
 - Configuration ESLint centralisée dans `frontend/` avec working directories
-- Utiliser le bon gestionnaire de paquets par projet (pnpm pour frontend)
+- Utiliser le bon gestionnaire de paquets par projet (pnpm pour frontend, bun pour backend)
+- La librairie `shared/` doit être compilée après chaque modification : `npm run build`
 
 ### Communication entre projets
 
-- Les APIs doivent être documentées et typées
-- Partager les types TypeScript entre frontend et backend si possible
-- Éviter les dépendances directes entre projets
+#### Librairie Partagée (`shared/`)
+- **Schemas Zod** : Validation et types auto-générés
+- **Types TypeScript** : Interfaces et types partagés
+- **Installation** : `bun add file:../shared` (backend) et `pnpm add file:../shared` (frontend)
+
+#### APIs REST (Backend)
+- **Validation** : Tous les endpoints utilisent les schemas Zod
+- **Authentification** : JWT tokens via header `Authorization: Bearer <token>`
+- **Réponses** : Format standardisé `{ success: boolean, data?: T, error?: string }`
+
+#### Frontend Angular
+- **Service Auth** : Gestion complète des sessions Supabase
+- **Intercepteur HTTP** : Auto-refresh des tokens JWT
+- **Types** : Utilisation des types de `@pulpe/shared`
+
+### Sécurité
+
+#### Row Level Security (RLS)
+- **Activé** sur toutes les tables avec données utilisateur
+- **Politique** : `auth.uid() = user_id` pour isolation par utilisateur
+- **Validation** : Double vérification client + serveur + base de données
+
+#### Authentification JWT
+- **Client** : Supabase SDK gère les tokens automatiquement
+- **Serveur** : Validation avec `supabase.auth.getUser(token)`
+- **Refresh** : Auto-refresh transparent côté client
 
 ### Conventions de commit
 
-- Préfixer par le projet : `frontend:`, `backend:`, `mobile:`
-- Exemple : `frontend: add new layout component`
+- Préfixer par le projet : `frontend:`, `backend:`, `shared:`, `mobile:`
+- Exemples : 
+  - `frontend: add budget list component`
+  - `backend: implement budget validation with Zod`
+  - `shared: update budget schema for new fields`
+
+### Scripts Utiles
+
+#### Shared Library
+```bash
+cd shared && npm run build          # Compiler la librairie
+cd shared && npm run dev            # Watch mode pour développement
+```
+
+#### Backend  
+```bash
+cd backend && bun run dev           # Serveur de développement
+cd backend && bun install           # Installer les dépendances
+```
+
+#### Frontend
+```bash
+cd frontend && pnpm dev             # Serveur de développement Angular
+cd frontend && pnpm build           # Build de production
+cd frontend && pnpm test            # Tests unitaires
+```

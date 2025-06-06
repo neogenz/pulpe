@@ -1,6 +1,6 @@
 ---
-description: APPLY NestJS framework standards WHEN developing with NestJS
-globs: apps/backend/src/**/*.ts,backend/src/**/*.ts
+description: 
+globs: 
 alwaysApply: false
 ---
 

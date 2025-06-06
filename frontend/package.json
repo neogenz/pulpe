@@ -31,6 +31,7 @@
     "@angular/material-date-fns-adapter": "20.0.1",
     "@angular/platform-browser": "^20.0.0",
     "@angular/router": "^20.0.0",
+    "@supabase/supabase-js": "^2.49.10",
     "@tailwindcss/postcss": "^4.1.8",
     "date-fns": "^4.1.0",
     "postcss": "^8.5.4",
