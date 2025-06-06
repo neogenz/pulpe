@@ -200,6 +200,88 @@ export class AuthService {
     }
   }
 
+  async signInWithMagicLink(
+    email: string,
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { data, error } = await this.supabaseClient.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) {
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: "Erreur inattendue lors de l'envoi du lien magique",
+      };
+    }
+  }
+
+  async signInWithOTP(
+    email: string,
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { data, error } = await this.supabaseClient.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: true,
+        },
+      });
+
+      if (error) {
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: "Erreur inattendue lors de l'envoi du code",
+      };
+    }
+  }
+
+  async verifyOTP(
+    email: string,
+    token: string,
+    type: 'email' | 'magiclink' = 'email',
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { data, error } = await this.supabaseClient.auth.verifyOtp({
+        email,
+        token,
+        type,
+      });
+
+      if (error) {
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Erreur inattendue lors de la vérification',
+      };
+    }
+  }
+
   get currentUser(): User | null {
     return this.authStateSubject.value.user;
   }
