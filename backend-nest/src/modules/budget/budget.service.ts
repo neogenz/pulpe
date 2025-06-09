@@ -3,6 +3,7 @@ import {
   type BudgetCreateRequest,
   type BudgetUpdateRequest,
   type BudgetInsert,
+  type BudgetCreateFromOnboardingRequest,
 } from '@pulpe/shared';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
@@ -170,4 +171,47 @@ export class BudgetService {
       throw new InternalServerErrorException('Erreur interne du serveur');
     }
   }
+
+  async createFromOnboarding(
+    onboardingData: BudgetCreateFromOnboardingRequest,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<BudgetResponseDto> {
+    try {
+      // Use your existing RPC function for atomic operation
+      const { data, error } = await supabase.rpc('create_budget_with_transactions', {
+        p_user_id: user.id,
+        p_month: onboardingData.month,
+        p_year: onboardingData.year,
+        p_description: onboardingData.description,
+        p_monthly_income: onboardingData.monthlyIncome,
+        p_housing_costs: onboardingData.housingCosts,
+        p_health_insurance: onboardingData.healthInsurance,
+        p_leasing_credit: onboardingData.leasingCredit,
+        p_phone_plan: onboardingData.phonePlan,
+        p_transport_costs: onboardingData.transportCosts,
+      });
+
+      if (error) {
+        console.error('Erreur création budget avec transactions:', error);
+        throw new BadRequestException('Erreur lors de la création du budget et des transactions');
+      }
+
+      if (!data?.budget) {
+        throw new InternalServerErrorException('Aucun budget retourné par la fonction');
+      }
+
+      return {
+        success: true as const,
+        budget: data.budget,
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof InternalServerErrorException) {
+        throw error;
+      }
+      console.error('Erreur création budget depuis onboarding:', error);
+      throw new InternalServerErrorException('Erreur interne du serveur');
+    }
+  }
+
 }

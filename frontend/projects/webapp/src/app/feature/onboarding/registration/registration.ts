@@ -18,13 +18,14 @@ import {
 } from '@features/onboarding/onboarding-layout';
 import {
   OnboardingApi,
-  OnboardingSubmissionPayload,
+  OnboardingStepData,
 } from '@features/onboarding/onboarding-api';
 import { BudgetApi } from '@core/budget';
 import { AuthApi } from '@core/auth/auth-api';
 import { ROUTES } from '@core/routing/routes-constants';
 import { ONBOARDING_TOTAL_STEPS } from '../onboarding-constants';
-import { BudgetCreateFromOnboardingRequest } from '@pulpe/shared';
+import { BudgetCreateFromOnboardingApiRequest } from '@pulpe/shared';
+import { budgetCreateFromOnboardingApiRequestSchema } from '@pulpe/shared';
 
 @Component({
   selector: 'pulpe-registration',
@@ -180,8 +181,7 @@ export default class Registration {
         return;
       }
 
-      const onboardingPayload =
-        this.onboardingApi.getOnboardingSubmissionPayload();
+      const onboardingPayload = this.onboardingApi.onboardingSteps();
       const budgetRequest = this.#buildBudgetCreationRequest(onboardingPayload);
 
       await firstValueFrom(
@@ -213,17 +213,19 @@ export default class Registration {
   }
 
   #buildBudgetCreationRequest(
-    payload: OnboardingSubmissionPayload,
-  ): BudgetCreateFromOnboardingRequest {
+    payload: OnboardingStepData,
+  ): BudgetCreateFromOnboardingApiRequest {
+    const currentDate = new Date();
     return {
-      monthlyIncome: payload.monthlyIncome,
-      housingCosts: payload.housingCosts,
-      healthInsurance: payload.healthInsurance,
-      leasingCredit: payload.leasingCredit,
-      phonePlan: payload.phonePlan,
-      transportCosts: payload.transportCosts,
-      firstName: payload.firstName,
-      email: payload.email,
+      monthlyIncome: payload.monthlyIncome ?? 0,
+      housingCosts: payload.housingCosts ?? 0,
+      healthInsurance: payload.healthInsurance ?? 0,
+      leasingCredit: payload.leasingCredit ?? 0,
+      phonePlan: payload.phonePlan ?? 0,
+      transportCosts: payload.transportCosts ?? 0,
+      month: currentDate.getMonth() + 1,
+      year: currentDate.getFullYear(),
+      description: `Budget initial de ${payload.firstName} pour ${currentDate.getFullYear()}`,
     };
   }
 }

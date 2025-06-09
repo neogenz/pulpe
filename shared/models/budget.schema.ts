@@ -56,6 +56,12 @@ export const budgetInsertSchema = budgetSchema
   })
   .openapi({ description: "Schéma pour l'insertion d'un nouveau budget" });
 
+export const budgetCreateRequestSchema = budgetInsertSchema
+  .omit({
+    user_id: true,
+  })
+  .openapi({ description: "Schéma pour la création d'un budget depuis l'API" });
+
 export const budgetCreateFromOnboardingRequestSchema = budgetInsertSchema
   .extend({
     monthlyIncome: z.number().min(0).openapi({
@@ -87,6 +93,39 @@ export const budgetCreateFromOnboardingRequestSchema = budgetInsertSchema
     description: "Schéma pour la création d'un budget depuis l'onboarding",
   });
 
+export const budgetCreateFromOnboardingApiRequestSchema =
+  budgetCreateRequestSchema
+    .extend({
+      monthlyIncome: z.number().min(0).optional().default(0).openapi({
+        description: "Revenu mensuel (optionnel, défaut: 0)",
+        example: 1000,
+      }),
+      housingCosts: z.number().min(0).optional().default(0).openapi({
+        description: "Coûts de logement (optionnel, défaut: 0)",
+        example: 1000,
+      }),
+      healthInsurance: z.number().min(0).optional().default(0).openapi({
+        description: "Assurance santé (optionnel, défaut: 0)",
+        example: 100,
+      }),
+      leasingCredit: z.number().min(0).optional().default(0).openapi({
+        description: "Crédit de location (optionnel, défaut: 0)",
+        example: 100,
+      }),
+      phonePlan: z.number().min(0).optional().default(0).openapi({
+        description: "Plan de téléphone (optionnel, défaut: 0)",
+        example: 100,
+      }),
+      transportCosts: z.number().min(0).optional().default(0).openapi({
+        description: "Coûts de transport (optionnel, défaut: 0)",
+        example: 100,
+      }),
+    })
+    .openapi({
+      description:
+        "Schéma pour la création d'un budget depuis l'API onboarding",
+    });
+
 export const budgetUpdateSchema = budgetSchema
   .omit({
     id: true,
@@ -98,12 +137,6 @@ export const budgetUpdateSchema = budgetSchema
     (data) => Object.keys(data).length > 0,
     "Au moins un champ doit être fourni pour la mise à jour"
   );
-
-export const budgetCreateRequestSchema = budgetInsertSchema
-  .omit({
-    user_id: true,
-  })
-  .openapi({ description: "Schéma pour la création d'un budget depuis l'API" });
 
 const budgetUpdateBaseSchema = budgetSchema
   .omit({

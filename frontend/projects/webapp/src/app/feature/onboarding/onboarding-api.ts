@@ -1,23 +1,12 @@
 import { Injectable, signal } from '@angular/core';
 
-interface OnboardingStepData {
+export interface OnboardingStepData {
   monthlyIncome: number | null;
   housingCosts: number | null;
   healthInsurance: number | null;
   leasingCredit: number | null;
   phonePlan: number | null;
   transportCosts: number | null;
-  firstName: string;
-  email: string;
-}
-
-export interface OnboardingSubmissionPayload {
-  monthlyIncome: number;
-  housingCosts: number;
-  healthInsurance: number;
-  leasingCredit: number;
-  phonePlan: number;
-  transportCosts: number;
   firstName: string;
   email: string;
 }
@@ -86,24 +75,6 @@ export class OnboardingApi {
       steps.firstName.trim() &&
       steps.email.trim()
     );
-  }
-
-  getOnboardingSubmissionPayload(): OnboardingSubmissionPayload {
-    if (!this.isOnboardingReadyForSubmission()) {
-      throw new Error('Onboarding data is incomplete');
-    }
-
-    const steps = this.onboardingSteps();
-    return {
-      monthlyIncome: steps.monthlyIncome || 0,
-      housingCosts: steps.housingCosts || 0,
-      healthInsurance: steps.healthInsurance || 0,
-      leasingCredit: steps.leasingCredit || 0,
-      phonePlan: steps.phonePlan || 0,
-      transportCosts: steps.transportCosts || 0,
-      firstName: steps.firstName,
-      email: steps.email,
-    };
   }
 
   submitCompletedOnboarding(): void {

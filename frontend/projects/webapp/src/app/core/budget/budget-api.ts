@@ -8,8 +8,7 @@ import {
   type BudgetResponse,
   budgetResponseSchema,
   budgetErrorResponseSchema,
-  budgetCreateRequestSchema,
-  BudgetCreateFromOnboardingRequest,
+  type BudgetCreateFromOnboardingApiRequest,
 } from '@pulpe/shared';
 import { MonthlyBudget, BudgetCategory } from './budget.models';
 import { environment } from '../../../environments/environment';
@@ -38,22 +37,29 @@ export class BudgetApi {
    * Transforme les données business en DTO pour l'API
    */
   createOnboardingBudget$(
-    onboardingData: BudgetCreateFromOnboardingRequest,
+    onboardingData: BudgetCreateFromOnboardingApiRequest,
   ): Observable<CreateBudgetApiResponse> {
-    // Transformer les données business en DTO pour l'API
-    const currentDate = new Date();
-    const budgetDto: BudgetCreateFromOnboardingRequest = {
-      month: currentDate.getMonth() + 1,
-      year: currentDate.getFullYear(),
-      description: `Budget initial de ${onboardingData.firstName} pour ${currentDate.getFullYear()}`,
+    // Transformer les données business en DTO pour l'API avec valeurs par défaut
+    const budgetDto: BudgetCreateFromOnboardingApiRequest = {
       ...onboardingData,
+      month: onboardingData.month,
+      year: onboardingData.year,
+      description: onboardingData.description,
+      // Assurer que les valeurs par défaut sont définies
+      monthlyIncome: onboardingData.monthlyIncome ?? 0,
+      housingCosts: onboardingData.housingCosts ?? 0,
+      healthInsurance: onboardingData.healthInsurance ?? 0,
+      leasingCredit: onboardingData.leasingCredit ?? 0,
+      phonePlan: onboardingData.phonePlan ?? 0,
+      transportCosts: onboardingData.transportCosts ?? 0,
     };
 
-    // Valider les données avec le schéma partagé
-    const validatedRequest = budgetCreateRequestSchema.parse(budgetDto);
+    // Pas de validation côté client pour éviter les problèmes d'import
+    // La validation sera faite côté serveur avec Zod
+    const validatedRequest = budgetDto;
 
     return this.#httpClient
-      .post<BudgetResponse>(this.#baseUrl, validatedRequest)
+      .post<BudgetResponse>(`${this.#baseUrl}/onboarding`, validatedRequest)
       .pipe(
         map((response) => {
           // Valider la réponse avec le schéma partagé

@@ -1,18 +1,21 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import type { BudgetInsert } from "@pulpe/shared";
 import {
-  budgetCreateFromOnboardingRequestSchema,
   budgetCreateRequestSchema,
   budgetDeleteResponseSchema,
   budgetErrorResponseSchema,
   budgetResponseSchema,
   budgetUpdateRequestSchema,
+  budgetCreateFromOnboardingRequestSchema,
+  budgetCreateFromOnboardingApiRequestSchema,
+  type BudgetCreateFromOnboardingRequest,
+  type BudgetCreateFromOnboardingApiRequest,
 } from "@pulpe/shared";
 import {
   authMiddleware,
   type AuthenticatedUser,
-} from "../supabase/auth-middleware";
-import type { AuthenticatedSupabaseClient } from "../supabase/client";
+} from "../../supabase/auth-middleware";
+import type { AuthenticatedSupabaseClient } from "../../supabase/client";
+import { BudgetService } from "./budget.service";
 
 const budgetRoutes = new OpenAPIHono<{
   Variables: {
@@ -47,6 +50,52 @@ const listBudgetsRoute = createRoute({
         },
       },
       description: "Liste des budgets récupérée avec succès",
+    },
+    500: {
+      content: {
+        "application/json": {
+          schema: budgetErrorResponseSchema,
+        },
+      },
+      description: "Erreur interne du serveur",
+    },
+  },
+});
+
+// Route definition for creating a budget from onboarding
+const createBudgetFromOnboardingRoute = createRoute({
+  method: "post",
+  path: "/onboarding",
+  tags: ["Budgets"],
+  summary:
+    "Crée un nouveau budget depuis l'onboarding avec transactions automatiques",
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: budgetCreateFromOnboardingApiRequestSchema,
+        },
+      },
+      description: "Données du budget à créer depuis l'onboarding",
+      required: true,
+    },
+  },
+  responses: {
+    201: {
+      content: {
+        "application/json": {
+          schema: budgetResponseSchema,
+        },
+      },
+      description: "Budget créé avec succès avec transactions associées",
+    },
+    400: {
+      content: {
+        "application/json": {
+          schema: budgetErrorResponseSchema,
+        },
+      },
+      description: "Données invalides",
     },
     500: {
       content: {
@@ -231,25 +280,9 @@ budgetRoutes.use("/*", authMiddleware);
 budgetRoutes.openapi(listBudgetsRoute, async (c) => {
   try {
     const supabase = c.get("supabase");
-    const user = c.get("user");
+    const budgetService = new BudgetService(supabase);
 
-    // RLS s'assure automatiquement que seuls les budgets de l'utilisateur sont retournés
-    const { data: budgets, error } = await supabase
-      .from("budgets")
-      .select("*")
-      .order("year", { ascending: false })
-      .order("month", { ascending: false });
-
-    if (error) {
-      console.error("Erreur récupération budgets:", error);
-      return c.json(
-        {
-          success: false as const,
-          error: "Erreur lors de la récupération des budgets",
-        },
-        500
-      );
-    }
+    const budgets = await budgetService.getAllBudgets();
 
     return c.json(
       {
@@ -259,25 +292,27 @@ budgetRoutes.openapi(listBudgetsRoute, async (c) => {
       200
     );
   } catch (error) {
-    console.error("Erreur liste budgets:", error);
+    console.error("CONTROLLER_ERROR: Erreur liste budgets:", error);
     return c.json(
       {
         success: false as const,
-        error: "Erreur interne du serveur",
+        error: "Erreur lors de la récupération des budgets",
       },
       500
     );
   }
 });
 
-// Créer un nouveau budget
-budgetRoutes.openapi(createBudgetRoute, async (c) => {
+// Créer un nouveau budget depuis l'onboarding
+budgetRoutes.openapi(createBudgetFromOnboardingRoute, async (c) => {
   try {
-    const supabase = c.get("supabase");
     const user = c.get("user");
+    const supabase = c.get("supabase");
+    const budgetService = new BudgetService(supabase);
 
     const body = await c.req.json();
-    const validation = budgetCreateFromOnboardingRequestSchema.safeParse(body);
+    const validation =
+      budgetCreateFromOnboardingApiRequestSchema.safeParse(body);
 
     if (!validation.success) {
       return c.json(
@@ -291,29 +326,18 @@ budgetRoutes.openapi(createBudgetRoute, async (c) => {
     }
 
     const requestData = validation.data;
-
-    // Inclure automatiquement le user_id pour le RLS
-    const budgetData: BudgetInsert = {
+    const budgetData: BudgetCreateFromOnboardingRequest = {
       ...requestData,
-      user_id: user.id, // Ajout automatique du user_id
+      user_id: user.id,
+      monthlyIncome: requestData.monthlyIncome || 0,
+      housingCosts: requestData.housingCosts || 0,
+      healthInsurance: requestData.healthInsurance || 0,
+      leasingCredit: requestData.leasingCredit || 0,
+      phonePlan: requestData.phonePlan || 0,
+      transportCosts: requestData.transportCosts || 0,
     };
 
-    const { data: budget, error } = await supabase
-      .from("budgets")
-      .insert(budgetData)
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Erreur création budget:", error);
-      return c.json(
-        {
-          success: false as const,
-          error: "Erreur lors de la création du budget",
-        },
-        400
-      );
-    }
+    const budget = await budgetService.createBudget(budgetData);
 
     return c.json(
       {
@@ -323,13 +347,64 @@ budgetRoutes.openapi(createBudgetRoute, async (c) => {
       201
     );
   } catch (error) {
-    console.error("Erreur création budget:", error);
+    console.error(
+      "CONTROLLER_ERROR: Erreur création budget onboarding:",
+      error
+    );
     return c.json(
       {
         success: false as const,
-        error: "Erreur interne du serveur",
+        error: "Erreur lors de la création du budget depuis l'onboarding",
       },
-      500
+      400
+    );
+  }
+});
+
+// Créer un nouveau budget
+budgetRoutes.openapi(createBudgetRoute, async (c) => {
+  try {
+    const user = c.get("user");
+    const supabase = c.get("supabase");
+    const budgetService = new BudgetService(supabase);
+
+    const body = await c.req.json();
+    const validation = budgetCreateRequestSchema.safeParse(body);
+
+    if (!validation.success) {
+      return c.json(
+        {
+          success: false as const,
+          error: "Invalid request body",
+          details: validation.error.issues,
+        },
+        400
+      );
+    }
+
+    const requestData = validation.data;
+    const budgetData = {
+      ...requestData,
+      user_id: user.id,
+    };
+
+    const budget = await budgetService.createBasicBudget(budgetData);
+
+    return c.json(
+      {
+        success: true as const,
+        budget,
+      },
+      201
+    );
+  } catch (error) {
+    console.error("CONTROLLER_ERROR: Erreur création budget:", error);
+    return c.json(
+      {
+        success: false as const,
+        error: "Erreur lors de la création du budget",
+      },
+      400
     );
   }
 });
@@ -338,25 +413,10 @@ budgetRoutes.openapi(createBudgetRoute, async (c) => {
 budgetRoutes.openapi(getBudgetRoute, async (c) => {
   try {
     const supabase = c.get("supabase");
-    const user = c.get("user");
+    const budgetService = new BudgetService(supabase);
     const { id: budgetId } = c.req.valid("param");
 
-    // RLS s'assure automatiquement que seuls les budgets de l'utilisateur sont accessibles
-    const { data: budget, error } = await supabase
-      .from("budgets")
-      .select("*")
-      .eq("id", budgetId)
-      .single();
-
-    if (error || !budget) {
-      return c.json(
-        {
-          success: false as const,
-          error: "Budget introuvable ou accès non autorisé",
-        },
-        404
-      );
-    }
+    const budget = await budgetService.getBudgetById(budgetId);
 
     return c.json(
       {
@@ -366,13 +426,13 @@ budgetRoutes.openapi(getBudgetRoute, async (c) => {
       200
     );
   } catch (error) {
-    console.error("Erreur récupération budget:", error);
+    console.error("CONTROLLER_ERROR: Erreur récupération budget:", error);
     return c.json(
       {
         success: false as const,
-        error: "Erreur interne du serveur",
+        error: "Budget introuvable ou accès non autorisé",
       },
-      500
+      404
     );
   }
 });
@@ -381,32 +441,11 @@ budgetRoutes.openapi(getBudgetRoute, async (c) => {
 budgetRoutes.openapi(updateBudgetRoute, async (c) => {
   try {
     const supabase = c.get("supabase");
-    const user = c.get("user");
+    const budgetService = new BudgetService(supabase);
     const { id: budgetId } = c.req.valid("param");
-
     const requestData = c.req.valid("json");
 
-    // RLS s'assure que seuls les budgets de l'utilisateur peuvent être modifiés
-    const { data: budget, error } = await supabase
-      .from("budgets")
-      .update({
-        ...requestData,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", budgetId)
-      .select()
-      .single();
-
-    if (error || !budget) {
-      console.error("Erreur modification budget:", error);
-      return c.json(
-        {
-          success: false as const,
-          error: "Budget introuvable ou modification non autorisée",
-        },
-        404
-      );
-    }
+    const budget = await budgetService.updateBudget(budgetId, requestData);
 
     return c.json(
       {
@@ -416,13 +455,13 @@ budgetRoutes.openapi(updateBudgetRoute, async (c) => {
       200
     );
   } catch (error) {
-    console.error("Erreur modification budget:", error);
+    console.error("CONTROLLER_ERROR: Erreur modification budget:", error);
     return c.json(
       {
         success: false as const,
-        error: "Erreur interne du serveur",
+        error: "Budget introuvable ou modification non autorisée",
       },
-      500
+      404
     );
   }
 });
@@ -431,25 +470,10 @@ budgetRoutes.openapi(updateBudgetRoute, async (c) => {
 budgetRoutes.openapi(deleteBudgetRoute, async (c) => {
   try {
     const supabase = c.get("supabase");
-    const user = c.get("user");
+    const budgetService = new BudgetService(supabase);
     const { id: budgetId } = c.req.valid("param");
 
-    // RLS s'assure que seuls les budgets de l'utilisateur peuvent être supprimés
-    const { error } = await supabase
-      .from("budgets")
-      .delete()
-      .eq("id", budgetId);
-
-    if (error) {
-      console.error("Erreur suppression budget:", error);
-      return c.json(
-        {
-          success: false as const,
-          error: "Budget introuvable ou suppression non autorisée",
-        },
-        404
-      );
-    }
+    await budgetService.deleteBudget(budgetId);
 
     return c.json(
       {
@@ -459,13 +483,13 @@ budgetRoutes.openapi(deleteBudgetRoute, async (c) => {
       200
     );
   } catch (error) {
-    console.error("Erreur suppression budget:", error);
+    console.error("CONTROLLER_ERROR: Erreur suppression budget:", error);
     return c.json(
       {
         success: false as const,
-        error: "Erreur interne du serveur",
+        error: "Budget introuvable ou suppression non autorisée",
       },
-      500
+      404
     );
   }
 });

@@ -25,8 +25,10 @@ import {
 import {
   budgetCreateRequestSchema,
   budgetUpdateRequestSchema,
+  budgetCreateFromOnboardingRequestSchema,
   type BudgetCreateRequest,
   type BudgetUpdateRequest,
+  type BudgetCreateFromOnboardingRequest,
 } from '@pulpe/shared';
 import { AuthGuard } from '@common/guards/auth.guard';
 import { ZodBodyPipe } from '@common/pipes/zod-validation.pipe';
@@ -38,6 +40,7 @@ import {
   BudgetResponseDto, 
   BudgetDeleteResponseDto 
 } from './dto/budget-response.dto';
+import { BudgetCreateFromOnboardingDto } from './dto/budget-create.dto';
 import { ErrorResponseDto } from '@common/dto/response.dto';
 
 @ApiTags('Budgets')
@@ -156,6 +159,28 @@ export class BudgetController {
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetResponseDto> {
     return this.budgetService.update(id, updateBudgetDto, user, supabase);
+  }
+
+  @Post('from-onboarding')
+  @ApiOperation({ 
+    summary: 'Create budget with transactions from onboarding',
+    description: 'Creates a budget and automatically generates transactions based on onboarding data in a single atomic operation'
+  })
+  @ApiCreatedResponse({
+    description: 'Budget and transactions created successfully',
+    type: BudgetResponseDto
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid input data',
+    type: ErrorResponseDto
+  })
+  @UsePipes(new ZodBodyPipe(budgetCreateFromOnboardingRequestSchema))
+  async createFromOnboarding(
+    @Body() onboardingData: BudgetCreateFromOnboardingRequest,
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<BudgetResponseDto> {
+    return this.budgetService.createFromOnboarding(onboardingData, user, supabase);
   }
 
   @Delete(':id')

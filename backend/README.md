@@ -185,3 +185,61 @@ Pour déployer en production :
 ## 📖 Documentation API complète
 
 Voir le fichier `API.md` pour la documentation détaillée des endpoints.
+
+## Fonctionnalités Budget
+
+### Création Atomique de Budget avec Transactions
+
+Le service `BudgetService.createBudget()` utilise maintenant une approche atomique pour créer un budget et toutes ses transactions associées en une seule opération.
+
+#### Données parsées depuis `budgetCreateFromOnboardingRequestSchema`
+
+Les champs suivants du schéma Zod sont automatiquement convertis en transactions:
+
+- `monthlyIncome` → Transaction "income" avec type "fixed"
+- `housingCosts` → Transaction "expense" avec type "fixed" (Loyer)
+- `healthInsurance` → Transaction "expense" avec type "fixed" (Assurance santé)
+- `leasingCredit` → Transaction "expense" avec type "fixed" (Crédit leasing)
+- `phonePlan` → Transaction "expense" avec type "fixed" (Forfait téléphonique)
+- `transportCosts` → Transaction "expense" avec type "fixed" (Frais de transport)
+
+#### Atomicité
+
+- Si la création du budget échoue, aucune transaction n'est créée
+- Si la création d'une transaction échoue, le budget est automatiquement supprimé (rollback)
+- Toutes les opérations sont synchronisées pour garantir la cohérence des données
+
+#### Gestion des Dates
+
+Le service utilise `date-fns` avec la locale `fr-CH` pour:
+
+- Valider les formats de dates
+- Extraire le numéro de mois (1-12) depuis différents formats
+- Gérer les conversions de dates avec la locale suisse française
+
+#### Technologies
+
+- **Bun**: Runtime JavaScript
+- **Hono**: Framework web
+- **Supabase**: Base de données et authentification
+- **date-fns**: Gestion des dates avec locale fr-CH
+- **Zod**: Validation des schemas avec OpenAPI
+
+#### Exemple d'utilisation
+
+```typescript
+const budgetData: BudgetCreateFromOnboardingRequest = {
+  month: 1,
+  year: 2024,
+  user_id: "user-uuid",
+  monthlyIncome: 5000,
+  housingCosts: 1200,
+  healthInsurance: 300,
+  leasingCredit: 400,
+  phonePlan: 80,
+  transportCosts: 150,
+};
+
+const budget = await budgetService.createBudget(budgetData);
+// Résultat: 1 budget + 6 transactions créées atomiquement
+```

@@ -3,6 +3,8 @@ export {
   budgetSchema,
   budgetInsertSchema,
   budgetUpdateSchema,
+  budgetCreateFromOnboardingRequestSchema,
+  budgetCreateFromOnboardingApiRequestSchema,
   budgetCreateRequestSchema,
   budgetUpdateRequestDocSchema,
   budgetUpdateRequestSchema,
@@ -42,6 +44,7 @@ export type {
   BudgetResponse,
   BudgetErrorResponse,
   BudgetCreateFromOnboardingRequest,
+  BudgetCreateFromOnboardingApiRequest,
 } from "./types/budget.types";
 
 export type {
