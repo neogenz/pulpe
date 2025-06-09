@@ -10,7 +10,7 @@ import {
   OnboardingLayoutData,
 } from '@features/onboarding/onboarding-layout';
 import { OnboardingCurrencyInput } from '@features/onboarding/currency-input';
-import { OnboardingApi } from '@core/onboarding/onboarding-api';
+import { OnboardingApi } from '@features/onboarding/onboarding-api';
 import { ONBOARDING_TOTAL_STEPS } from '../onboarding-constants';
 
 @Component({

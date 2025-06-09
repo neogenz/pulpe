@@ -56,7 +56,7 @@ export class AuthInterceptor implements HttpInterceptor {
     originalReq: HttpRequest<unknown>,
     next: HttpHandler,
   ): Observable<HttpEvent<unknown>> {
-    if (error.status === 401 && this.#authApi.isAuthenticated) {
+    if (error.status === 401 && this.#authApi.isAuthenticated()) {
       // Token expiré, essayer de le rafraîchir
       return from(this.#authApi.refreshSession()).pipe(
         switchMap((refreshSuccess) => {

@@ -19,10 +19,10 @@ import {
 import {
   OnboardingApi,
   OnboardingSubmissionPayload,
-} from '@core/onboarding/onboarding-api';
+} from '@features/onboarding/onboarding-api';
 import { BudgetApi, CreateOnboardingBudgetRequest } from '@core/budget';
 import { AuthApi } from '@core/auth/auth-api';
-import { NAVIGATION_PATHS } from '@core/navigation';
+import { ROUTES } from '@core/routing/routes-constants';
 import { ONBOARDING_TOTAL_STEPS } from '../onboarding-constants';
 
 @Component({
@@ -167,7 +167,6 @@ export default class Registration {
     this.successMessage.set('');
 
     try {
-      // 1. Créer le compte utilisateur avec Supabase
       const authResult = await this.authService.signUpWithEmail(
         this.emailValue(),
         this.passwordValue(),
@@ -180,7 +179,6 @@ export default class Registration {
         return;
       }
 
-      // 2. Créer le budget avec les données d'onboarding
       const onboardingPayload =
         this.onboardingApi.getOnboardingSubmissionPayload();
       const budgetRequest = this.#buildBudgetCreationRequest(onboardingPayload);
@@ -189,17 +187,15 @@ export default class Registration {
         this.budgetApi.createOnboardingBudget$(budgetRequest),
       );
 
-      // 3. Finaliser l'onboarding côté serveur
-      await firstValueFrom(this.onboardingApi.submitCompletedOnboarding());
+      this.onboardingApi.submitCompletedOnboarding();
+      this.onboardingApi.clearOnboardingData();
 
-      // 4. Succès
       this.successMessage.set(
         'Votre compte a été créé avec succès ! Redirection vers votre budget...',
       );
 
-      // 5. Rediriger vers current-month
       setTimeout(() => {
-        this.router.navigate([NAVIGATION_PATHS.CURRENT_MONTH]);
+        this.router.navigate([ROUTES.CURRENT_MONTH]);
       }, 2000);
     } catch (error) {
       console.error("Erreur lors de l'inscription:", error);

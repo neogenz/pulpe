@@ -1,10 +1,19 @@
 import { Routes } from '@angular/router';
-import {
-  OnboardingCompletedGuard,
-  OnboardingRedirectGuard,
-} from '@core/onboarding';
-import { AuthRedirectGuard } from '@core/auth';
+import { publicGuard } from '@core/auth';
+import { authGuard } from '@core/auth/auth-guard';
 import { MainLayout } from '@layout/main-layout';
+
+export const ROUTES = {
+  HOME: '',
+  LOGIN: 'login',
+  ONBOARDING: 'onboarding',
+  APP: 'app',
+  CURRENT_MONTH: '/app/current-month',
+  OTHER_MONTHS: '/app/other-months',
+  BUDGET_TEMPLATES: '/app/budget-templates',
+  ONBOARDING_REGISTRATION: '/onboarding/registration',
+  ONBOARDING_WELCOME: '/onboarding/welcome',
+}
 
 export const routes: Routes = [
   {
@@ -14,17 +23,17 @@ export const routes: Routes = [
   },
   {
     path: 'login',
-    canActivate: [AuthRedirectGuard],
+    canActivate: [publicGuard],
     loadComponent: () => import('./feature/auth/login/login'),
   },
   {
     path: 'onboarding',
-    canActivate: [OnboardingRedirectGuard],
+    canActivate: [publicGuard],
     loadChildren: () => import('./feature/onboarding/onboarding.routes'),
   },
   {
     path: 'app',
-    canActivate: [OnboardingCompletedGuard],
+    canActivate: [authGuard],
     component: MainLayout,
     children: [
       {

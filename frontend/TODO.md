@@ -1,0 +1,1 @@
+- Ajouter des guards sur chaque étape du onboarding

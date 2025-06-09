@@ -1,11 +1,5 @@
-import { Injectable, inject } from '@angular/core';
-import {
-  createClient,
-  type Session,
-  type SupabaseClient,
-  type User,
-} from '@supabase/supabase-js';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { Injectable, inject, signal, computed } from '@angular/core';
+import { createClient, type Session, type User } from '@supabase/supabase-js';
 import { environment } from '../../../environments/environment';
 import { AuthErrorLocalizer } from './auth-error-localizer';
 
@@ -22,56 +16,68 @@ export interface AuthState {
 export class AuthApi {
   readonly #errorLocalizer = inject(AuthErrorLocalizer);
 
-  private readonly supabaseClient: SupabaseClient;
+  readonly #supabaseClient = createClient(
+    environment.supabaseUrl,
+    environment.supabaseAnonKey,
+  );
 
-  private readonly authStateSubject = new BehaviorSubject<AuthState>({
-    user: null,
-    session: null,
-    isLoading: true,
-    isAuthenticated: false,
+  readonly #sessionSignal = signal<Session | null>(null);
+  readonly #isLoadingSignal = signal<boolean>(true);
+  readonly #userSignal = computed(() => {
+    const session = this.#sessionSignal();
+    if (!session) return null;
+    return session.user;
   });
 
-  public readonly authState$: Observable<AuthState> =
-    this.authStateSubject.asObservable();
-
-  constructor() {
-    this.supabaseClient = createClient(
-      environment.supabaseUrl,
-      environment.supabaseAnonKey,
+  // Computed signals pour l'état dérivé
+  readonly session = this.#sessionSignal.asReadonly();
+  readonly isLoading = this.#isLoadingSignal.asReadonly();
+  readonly isAuthenticated = computed(() => {
+    return (
+      !!this.#userSignal() &&
+      !!this.#sessionSignal() &&
+      !this.#isLoadingSignal()
     );
+  });
 
-    this.initializeAuthState();
-  }
+  // État complet pour la compatibilité
+  readonly authState = computed<AuthState>(() => ({
+    user: this.#userSignal(),
+    session: this.#sessionSignal(),
+    isLoading: this.#isLoadingSignal(),
+    isAuthenticated: this.isAuthenticated(),
+  }));
 
-  private async initializeAuthState(): Promise<void> {
+  async initializeAuthState(): Promise<void> {
     try {
       const {
         data: { session },
         error,
-      } = await this.supabaseClient.auth.getSession();
+      } = await this.#supabaseClient.auth.getSession();
 
       if (error) {
         console.error('Erreur lors de la récupération de la session:', error);
-        this.updateAuthState(null, null);
+        this.updateAuthState(null);
         return;
       }
 
-      this.updateAuthState(session?.user || null, session);
+      this.updateAuthState(session);
 
       // Écouter les changements d'authentification
-      this.supabaseClient.auth.onAuthStateChange((event, session) => {
+      this.#supabaseClient.auth.onAuthStateChange((event, session) => {
         console.log('Auth event:', event, session);
 
         switch (event) {
           case 'SIGNED_IN':
           case 'TOKEN_REFRESHED':
-            this.updateAuthState(session?.user || null, session);
+            this.updateAuthState(session);
             break;
           case 'SIGNED_OUT':
-            this.updateAuthState(null, null);
+            this.updateAuthState(null);
+            this.handleSignOut();
             break;
           case 'USER_UPDATED':
-            this.updateAuthState(session?.user || null, session);
+            this.updateAuthState(session);
             break;
         }
       });
@@ -80,17 +86,25 @@ export class AuthApi {
         "Erreur lors de l'initialisation de l'authentification:",
         error,
       );
-      this.updateAuthState(null, null);
+      this.updateAuthState(null);
     }
   }
 
-  private updateAuthState(user: User | null, session: Session | null): void {
-    this.authStateSubject.next({
-      user,
-      session,
-      isLoading: false,
-      isAuthenticated: !!user && !!session,
-    });
+  private updateAuthState(session: Session | null): void {
+    this.#sessionSignal.set(session);
+    this.#isLoadingSignal.set(false);
+  }
+
+  private handleSignOut(): void {
+    // Nettoyer le localStorage et autres états liés à l'utilisateur
+    try {
+      localStorage.removeItem('pulpe-onboarding-completed');
+    } catch (error) {
+      console.warn(
+        'Failed to clear onboarding status from localStorage:',
+        error,
+      );
+    }
   }
 
   async signInWithEmail(
@@ -98,7 +112,7 @@ export class AuthApi {
     password: string,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const { error } = await this.supabaseClient.auth.signInWithPassword({
+      const { error } = await this.#supabaseClient.auth.signInWithPassword({
         email,
         password,
       });
@@ -124,7 +138,7 @@ export class AuthApi {
     password: string,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const { error } = await this.supabaseClient.auth.signUp({
+      const { error } = await this.#supabaseClient.auth.signUp({
         email,
         password,
       });
@@ -147,7 +161,7 @@ export class AuthApi {
 
   async signOut(): Promise<void> {
     try {
-      const { error } = await this.supabaseClient.auth.signOut();
+      const { error } = await this.#supabaseClient.auth.signOut();
       if (error) {
         console.error('Erreur lors de la déconnexion:', error);
       }
@@ -161,7 +175,7 @@ export class AuthApi {
       const {
         data: { session },
         error,
-      } = await this.supabaseClient.auth.getSession();
+      } = await this.#supabaseClient.auth.getSession();
 
       if (error) {
         console.error('Erreur lors de la récupération de la session:', error);
@@ -180,7 +194,7 @@ export class AuthApi {
 
   async refreshSession(): Promise<boolean> {
     try {
-      const { data, error } = await this.supabaseClient.auth.refreshSession();
+      const { data, error } = await this.#supabaseClient.auth.refreshSession();
 
       if (error) {
         console.error('Erreur lors du rafraîchissement de la session:', error);
@@ -198,18 +212,10 @@ export class AuthApi {
   }
 
   get currentUser(): User | null {
-    return this.authStateSubject.value.user;
+    return this.#userSignal();
   }
 
   get currentSession(): Session | null {
-    return this.authStateSubject.value.session;
-  }
-
-  get isAuthenticated(): boolean {
-    return this.authStateSubject.value.isAuthenticated;
-  }
-
-  get isLoading(): boolean {
-    return this.authStateSubject.value.isLoading;
+    return this.#sessionSignal();
   }
 }

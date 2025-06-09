@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { MonthlyBudget } from './budget.models';
+import { MonthlyBudget } from '../../core/budget/budget.models';
 
 @Injectable({
   providedIn: 'root',

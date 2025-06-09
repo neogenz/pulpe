@@ -1,7 +1,7 @@
 import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
-import { NAVIGATION_PATHS } from '@core/navigation';
+import { ROUTES } from '@core/routing/routes-constants';
 import {
   OnboardingLayout,
   OnboardingLayoutData,
@@ -71,6 +71,6 @@ export default class Welcome {
   }
 
   protected navigateToLogin(): void {
-    this.#router.navigate([NAVIGATION_PATHS.LOGIN]);
+    this.#router.navigate([ROUTES.LOGIN]);
   }
 }

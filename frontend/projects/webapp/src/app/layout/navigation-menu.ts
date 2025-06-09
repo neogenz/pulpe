@@ -7,8 +7,30 @@ import {
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { RouterModule } from '@angular/router';
-import { NAVIGATION_CONFIG } from '@core/navigation';
+import { ROUTES } from '@core/routing/routes-constants';
 
+const NAVIGATION_CONFIG = [
+  {
+    title: 'Budget',
+    items: [
+      {
+        label: 'Mois en cours',
+        route: ROUTES.CURRENT_MONTH,
+        icon: 'today',
+      },
+      {
+        label: 'Autres mois',
+        route: ROUTES.OTHER_MONTHS,
+        icon: 'calendar_month',
+      },
+      {
+        label: 'Modèles de budget',
+        route: ROUTES.BUDGET_TEMPLATES,
+        icon: 'description',
+      },
+    ],
+  },
+]
 @Component({
   selector: 'pulpe-navigation-menu',
   imports: [MatIconModule, MatListModule, RouterModule],

@@ -6,7 +6,7 @@ import {
   computed,
   DestroyRef,
 } from '@angular/core';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import {
   ReactiveFormsModule,
   FormBuilder,
@@ -20,6 +20,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { AuthApi } from '@core/auth/auth-api';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ROUTES } from '@core/routing/routes-constants';
 
 @Component({
   selector: 'pulpe-login',
@@ -114,14 +115,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
             </div>
           }
 
-          @if (successMessage()) {
-            <div
-              class="bg-tertiary-container text-on-tertiary-container p-3 rounded-lg"
-            >
-              {{ successMessage() }}
-            </div>
-          }
-
           <button
             mat-flat-button
             color="primary"
@@ -150,7 +143,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
           <p class="text-body-medium text-on-surface-variant">
             Nouveau sur Pulpe ?
             <a
-              routerLink="/onboarding/registration"
+              routerLink="/onboarding/welcome"
               class="text-primary font-medium hover:underline"
             >
               Créer un compte
@@ -165,11 +158,11 @@ export default class Login {
   readonly #authService = inject(AuthApi);
   readonly #formBuilder = inject(FormBuilder);
   readonly #destroyRef = inject(DestroyRef);
+  readonly #router = inject(Router);
 
   protected hidePassword = signal<boolean>(true);
   protected isSubmitting = signal<boolean>(false);
   protected errorMessage = signal<string>('');
-  protected successMessage = signal<string>('');
   protected formValid = signal<boolean>(false);
 
   protected loginForm: FormGroup = this.#formBuilder.group({
@@ -206,7 +199,6 @@ export default class Login {
 
   protected clearMessages(): void {
     this.errorMessage.set('');
-    this.successMessage.set('');
   }
 
   protected get emailControl() {
@@ -235,8 +227,7 @@ export default class Login {
       const result = await this.#authService.signInWithEmail(email, password);
 
       if (result.success) {
-        this.successMessage.set('Connexion réussie ! Redirection...');
-        // La redirection est maintenant gérée automatiquement par l'AuthService
+        this.#router.navigate([ROUTES.CURRENT_MONTH]);
       } else {
         this.errorMessage.set(
           result.error || 'Email ou mot de passe incorrect.',
