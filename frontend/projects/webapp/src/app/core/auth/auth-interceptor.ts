@@ -15,8 +15,6 @@ export const authInterceptor: HttpInterceptorFn = (
 ): Observable<HttpEvent<unknown>> => {
   const authApi = inject(AuthApi);
 
-  alert('intercept');
-
   // Vérifier si la requête va vers notre backend
   if (!shouldInterceptRequest(req.url)) {
     return next(req);

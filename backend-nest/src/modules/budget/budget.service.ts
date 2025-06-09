@@ -1,34 +1,41 @@
-import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import type { AuthenticatedUser } from "@common/decorators/user.decorator";
+import type { AuthenticatedSupabaseClient } from "@modules/supabase/supabase.service";
 import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from "@nestjs/common";
+import {
+  type BudgetCreateFromOnboardingApiRequest,
   type BudgetCreateRequest,
-  type BudgetUpdateRequest,
   type BudgetInsert,
-  type BudgetCreateFromOnboardingRequest,
-} from '@pulpe/shared';
-import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import { 
-  BudgetListResponseDto, 
-  BudgetResponseDto, 
-  BudgetDeleteResponseDto 
-} from './dto/budget-response.dto';
+  type BudgetUpdateRequest,
+} from "@pulpe/shared";
+import {
+  BudgetDeleteResponseDto,
+  BudgetListResponseDto,
+  BudgetResponseDto,
+} from "./dto/budget-response.dto";
 
 @Injectable()
 export class BudgetService {
   async findAll(
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
+    supabase: AuthenticatedSupabaseClient
   ): Promise<BudgetListResponseDto> {
     try {
       const { data: budgets, error } = await supabase
-        .from('budgets')
-        .select('*')
-        .order('year', { ascending: false })
-        .order('month', { ascending: false });
+        .from("budgets")
+        .select("*")
+        .order("year", { ascending: false })
+        .order("month", { ascending: false });
 
       if (error) {
-        console.error('Erreur récupération budgets:', error);
-        throw new InternalServerErrorException('Erreur lors de la récupération des budgets');
+        console.error("Erreur récupération budgets:", error);
+        throw new InternalServerErrorException(
+          "Erreur lors de la récupération des budgets"
+        );
       }
 
       return {
@@ -39,15 +46,15 @@ export class BudgetService {
       if (error instanceof InternalServerErrorException) {
         throw error;
       }
-      console.error('Erreur liste budgets:', error);
-      throw new InternalServerErrorException('Erreur interne du serveur');
+      console.error("Erreur liste budgets:", error);
+      throw new InternalServerErrorException("Erreur interne du serveur");
     }
   }
 
   async create(
     createBudgetDto: BudgetCreateRequest,
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
+    supabase: AuthenticatedSupabaseClient
   ): Promise<BudgetResponseDto> {
     try {
       const budgetData: BudgetInsert = {
@@ -56,14 +63,14 @@ export class BudgetService {
       };
 
       const { data: budget, error } = await supabase
-        .from('budgets')
+        .from("budgets")
         .insert(budgetData)
         .select()
         .single();
 
       if (error) {
-        console.error('Erreur création budget:', error);
-        throw new BadRequestException('Erreur lors de la création du budget');
+        console.error("Erreur création budget:", error);
+        throw new BadRequestException("Erreur lors de la création du budget");
       }
 
       return {
@@ -74,25 +81,25 @@ export class BudgetService {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      console.error('Erreur création budget:', error);
-      throw new InternalServerErrorException('Erreur interne du serveur');
+      console.error("Erreur création budget:", error);
+      throw new InternalServerErrorException("Erreur interne du serveur");
     }
   }
 
   async findOne(
     id: string,
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
+    supabase: AuthenticatedSupabaseClient
   ): Promise<BudgetResponseDto> {
     try {
       const { data: budget, error } = await supabase
-        .from('budgets')
-        .select('*')
-        .eq('id', id)
+        .from("budgets")
+        .select("*")
+        .eq("id", id)
         .single();
 
       if (error || !budget) {
-        throw new NotFoundException('Budget introuvable ou accès non autorisé');
+        throw new NotFoundException("Budget introuvable ou accès non autorisé");
       }
 
       return {
@@ -103,8 +110,8 @@ export class BudgetService {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      console.error('Erreur récupération budget:', error);
-      throw new InternalServerErrorException('Erreur interne du serveur');
+      console.error("Erreur récupération budget:", error);
+      throw new InternalServerErrorException("Erreur interne du serveur");
     }
   }
 
@@ -112,22 +119,24 @@ export class BudgetService {
     id: string,
     updateBudgetDto: BudgetUpdateRequest,
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
+    supabase: AuthenticatedSupabaseClient
   ): Promise<BudgetResponseDto> {
     try {
       const { data: budget, error } = await supabase
-        .from('budgets')
+        .from("budgets")
         .update({
           ...updateBudgetDto,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', id)
+        .eq("id", id)
         .select()
         .single();
 
       if (error || !budget) {
-        console.error('Erreur modification budget:', error);
-        throw new NotFoundException('Budget introuvable ou modification non autorisée');
+        console.error("Erreur modification budget:", error);
+        throw new NotFoundException(
+          "Budget introuvable ou modification non autorisée"
+        );
       }
 
       return {
@@ -138,67 +147,73 @@ export class BudgetService {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      console.error('Erreur modification budget:', error);
-      throw new InternalServerErrorException('Erreur interne du serveur');
+      console.error("Erreur modification budget:", error);
+      throw new InternalServerErrorException("Erreur interne du serveur");
     }
   }
 
   async remove(
     id: string,
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
+    supabase: AuthenticatedSupabaseClient
   ): Promise<BudgetDeleteResponseDto> {
     try {
-      const { error } = await supabase
-        .from('budgets')
-        .delete()
-        .eq('id', id);
+      const { error } = await supabase.from("budgets").delete().eq("id", id);
 
       if (error) {
-        console.error('Erreur suppression budget:', error);
-        throw new NotFoundException('Budget introuvable ou suppression non autorisée');
+        console.error("Erreur suppression budget:", error);
+        throw new NotFoundException(
+          "Budget introuvable ou suppression non autorisée"
+        );
       }
 
       return {
         success: true as const,
-        message: 'Budget supprimé avec succès',
+        message: "Budget supprimé avec succès",
       };
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      console.error('Erreur suppression budget:', error);
-      throw new InternalServerErrorException('Erreur interne du serveur');
+      console.error("Erreur suppression budget:", error);
+      throw new InternalServerErrorException("Erreur interne du serveur");
     }
   }
 
   async createFromOnboarding(
-    onboardingData: BudgetCreateFromOnboardingRequest,
+    onboardingData: BudgetCreateFromOnboardingApiRequest,
     user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
+    supabase: AuthenticatedSupabaseClient
   ): Promise<BudgetResponseDto> {
     try {
       // Use your existing RPC function for atomic operation
-      const { data, error } = await supabase.rpc('create_budget_with_transactions', {
-        p_user_id: user.id,
-        p_month: onboardingData.month,
-        p_year: onboardingData.year,
-        p_description: onboardingData.description,
-        p_monthly_income: onboardingData.monthlyIncome,
-        p_housing_costs: onboardingData.housingCosts,
-        p_health_insurance: onboardingData.healthInsurance,
-        p_leasing_credit: onboardingData.leasingCredit,
-        p_phone_plan: onboardingData.phonePlan,
-        p_transport_costs: onboardingData.transportCosts,
-      });
+      const { data, error } = await supabase.rpc(
+        "create_budget_with_transactions",
+        {
+          p_user_id: user.id,
+          p_month: onboardingData.month,
+          p_year: onboardingData.year,
+          p_description: onboardingData.description,
+          p_monthly_income: onboardingData.monthlyIncome,
+          p_housing_costs: onboardingData.housingCosts,
+          p_health_insurance: onboardingData.healthInsurance,
+          p_leasing_credit: onboardingData.leasingCredit,
+          p_phone_plan: onboardingData.phonePlan,
+          p_transport_costs: onboardingData.transportCosts,
+        }
+      );
 
       if (error) {
-        console.error('Erreur création budget avec transactions:', error);
-        throw new BadRequestException('Erreur lors de la création du budget et des transactions');
+        console.error("Erreur création budget avec transactions:", error);
+        throw new BadRequestException(
+          "Erreur lors de la création du budget et des transactions"
+        );
       }
 
       if (!data?.budget) {
-        throw new InternalServerErrorException('Aucun budget retourné par la fonction');
+        throw new InternalServerErrorException(
+          "Aucun budget retourné par la fonction"
+        );
       }
 
       return {
@@ -206,12 +221,14 @@ export class BudgetService {
         budget: data.budget,
       };
     } catch (error) {
-      if (error instanceof BadRequestException || error instanceof InternalServerErrorException) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof InternalServerErrorException
+      ) {
         throw error;
       }
-      console.error('Erreur création budget depuis onboarding:', error);
-      throw new InternalServerErrorException('Erreur interne du serveur');
+      console.error("Erreur création budget depuis onboarding:", error);
+      throw new InternalServerErrorException("Erreur interne du serveur");
     }
   }
-
 }

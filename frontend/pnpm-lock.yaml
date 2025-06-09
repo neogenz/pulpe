@@ -4560,12 +4560,6 @@ packages:
     resolution: {integrity: sha512-cYVsTjKl8b+FrnidjibDWskAv7UKOfcwaVZdp/it9n1s9fU3IkgDbhdIRKCW4JDsAlECJY0ytoVPT3sK6kideA==}
     engines: {node: '>=18'}
 
-  zod-openapi@4.2.4:
-    resolution: {integrity: sha512-tsrQpbpqFCXqVXUzi3TPwFhuMtLN3oNZobOtYnK6/5VkXsNdnIgyNr4r8no4wmYluaxzN3F7iS+8xCW8BmMQ8g==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.21.4
-
   zod@3.25.51:
     resolution: {integrity: sha512-TQSnBldh+XSGL+opiSIq0575wvDPqu09AqWe1F7JhUMKY+M91/aGlK4MhpVNO7MgYfHcVCB1ffwAUTJzllKJqg==}
 
@@ -5578,7 +5572,6 @@ snapshots:
   '@pulpe/shared@file:../shared':
     dependencies:
       zod: 3.25.51
-      zod-openapi: 4.2.4(zod@3.25.51)
 
   '@rollup/rollup-android-arm-eabi@4.40.2':
     optional: true
@@ -9387,10 +9380,6 @@ snapshots:
   yocto-queue@0.1.0: {}
 
   yoctocolors-cjs@2.1.2: {}
-
-  zod-openapi@4.2.4(zod@3.25.51):
-    dependencies:
-      zod: 3.25.51
 
   zod@3.25.51: {}
 

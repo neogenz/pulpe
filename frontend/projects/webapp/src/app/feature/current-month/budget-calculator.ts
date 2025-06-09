@@ -1,64 +1,38 @@
 import { Injectable } from '@angular/core';
-import { MonthlyBudget } from '../../core/budget/budget.models';
+import { BudgetCategory } from '../../core/budget/budget.models';
+import { Budget, Transaction } from '@pulpe/shared';
 
-@Injectable({
-  providedIn: 'root',
-})
+type CategoryType = BudgetCategory['type'];
+
+@Injectable()
 export class BudgetCalculator {
-  /**
-   * Calcul le total des revenus du budget
-   * @param budget - Le budget à calculer
-   * @returns Le total des revenus
-   */
-  calculateTotalIncome(budget: MonthlyBudget): number {
-    let total = 0;
-    for (const category of budget.categories) {
-      if (category.type === 'income') {
-        total += category.actualAmount;
-      }
-    }
-    return total;
+  calculateTotalIncome(budget: Budget, transactions: Transaction[]): number {
+    return this.#calculateTotalForType(budget, transactions, 'income');
   }
 
-  /**
-   * Calcul le total des dépenses du budget
-   * @param budget - Le budget à calculer
-   * @returns Le total des dépenses
-   */
-  calculateTotalExpenses(budget: MonthlyBudget): number {
-    let total = 0;
-    for (const category of budget.categories) {
-      if (category.type === 'expense') {
-        total += category.actualAmount;
-      }
-    }
-    return total;
+  calculateTotalExpenses(budget: Budget, transactions: Transaction[]): number {
+    return this.#calculateTotalForType(budget, transactions, 'expense');
   }
 
-  /**
-   * Calcul le total des économies du budget
-   * @param budget - Le budget à calculer
-   * @returns Le total des économies
-   */
-  calculateTotalSavings(budget: MonthlyBudget): number {
-    let total = 0;
-    for (const category of budget.categories) {
-      if (category.type === 'savings') {
-        total += category.actualAmount;
-      }
-    }
-    return total;
+  calculateTotalSavings(budget: Budget, transactions: Transaction[]): number {
+    return this.#calculateTotalForType(budget, transactions, 'savings');
   }
 
-  /**
-   * Calcul le budget négatif du budget
-   * @param budget - Le budget à calculer
-   * @returns Le budget négatif
-   */
-  calculateNegativeBudget(budget: MonthlyBudget): number {
+  calculateNegativeBudget(budget: Budget, transactions: Transaction[]): number {
     return Math.min(
       0,
-      this.calculateTotalIncome(budget) - this.calculateTotalExpenses(budget),
+      this.calculateTotalIncome(budget, transactions) -
+        this.calculateTotalExpenses(budget, transactions),
     );
+  }
+
+  #calculateTotalForType(
+    budget: Budget,
+    transactions: Transaction[],
+    type: CategoryType,
+  ): number {
+    return transactions
+      .filter((category) => category.type === type)
+      .reduce((total, category) => total + category.amount, 0);
   }
 }

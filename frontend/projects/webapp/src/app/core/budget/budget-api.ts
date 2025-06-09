@@ -53,7 +53,10 @@ export class BudgetApi {
       budgetCreateFromOnboardingApiRequestSchema.parse(budgetDto);
 
     return this.#httpClient
-      .post<BudgetResponse>(`${this.#baseUrl}/onboarding`, validatedRequest)
+      .post<BudgetResponse>(
+        `${this.#baseUrl}/from-onboarding`,
+        validatedRequest,
+      )
       .pipe(
         map((response) => {
           // Valider la réponse avec le schéma partagé
@@ -124,10 +127,7 @@ export class BudgetApi {
    * Récupère le budget pour un mois et une année donnés
    * Retourne le modèle business frontend avec des catégories par défaut
    */
-  getBudgetForMonth$(
-    month: string,
-    year: string,
-  ): Observable<MonthlyBudget | null> {
+  getBudgetForMonth$(month: string, year: string): Observable<Budget | null> {
     const monthNumber = parseInt(month, 10);
     const yearNumber = parseInt(year, 10);
 
@@ -143,7 +143,7 @@ export class BudgetApi {
         }
 
         // Adapter le DTO vers le modèle business frontend
-        return this.#adaptBudgetDtoToBusinessModel(foundBudget);
+        return foundBudget;
       }),
     );
   }

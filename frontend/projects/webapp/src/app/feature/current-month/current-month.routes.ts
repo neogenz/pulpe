@@ -1,9 +1,16 @@
 import { Routes } from '@angular/router';
+import { BudgetCalculator } from './budget-calculator';
 
 export const currentMonthRoutes: Routes = [
   {
     path: '',
-    loadComponent: () => import('./current-month'),
+    providers: [BudgetCalculator],
+    children: [
+      {
+        path: '',
+        loadComponent: () => import('./current-month'),
+      },
+    ],
   },
 ];
 

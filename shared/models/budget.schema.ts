@@ -27,23 +27,28 @@ export const budgetCreateRequestSchema = budgetInsertSchema.omit({
   user_id: true,
 });
 
-export const budgetCreateFromOnboardingRequestSchema = budgetInsertSchema.extend({
-  monthlyIncome: z.number().min(0),
-  housingCosts: z.number().min(0),
-  healthInsurance: z.number().min(0),
-  leasingCredit: z.number().min(0),
-  phonePlan: z.number().min(0),
-  transportCosts: z.number().min(0),
-});
+export const budgetCreateFromOnboardingRequestSchema =
+  budgetInsertSchema.extend({
+    monthlyIncome: z.number().min(0),
+    housingCosts: z.number().min(0),
+    healthInsurance: z.number().min(0),
+    leasingCredit: z.number().min(0),
+    phonePlan: z.number().min(0),
+    transportCosts: z.number().min(0),
+  });
 
-export const budgetCreateFromOnboardingApiRequestSchema = budgetCreateRequestSchema.extend({
-  monthlyIncome: z.number().min(0).optional().default(0),
-  housingCosts: z.number().min(0).optional().default(0),
-  healthInsurance: z.number().min(0).optional().default(0),
-  leasingCredit: z.number().min(0).optional().default(0),
-  phonePlan: z.number().min(0).optional().default(0),
-  transportCosts: z.number().min(0).optional().default(0),
-});
+export const budgetCreateFromOnboardingApiRequestSchema = budgetInsertSchema
+  .omit({
+    user_id: true,
+  })
+  .extend({
+    monthlyIncome: z.number().min(0).optional().default(0),
+    housingCosts: z.number().min(0).optional().default(0),
+    healthInsurance: z.number().min(0).optional().default(0),
+    leasingCredit: z.number().min(0).optional().default(0),
+    phonePlan: z.number().min(0).optional().default(0),
+    transportCosts: z.number().min(0).optional().default(0),
+  });
 
 export const budgetUpdateSchema = budgetSchema
   .omit({

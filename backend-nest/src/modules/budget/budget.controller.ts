@@ -9,7 +9,7 @@ import {
   UseGuards,
   UsePipes,
   ParseUUIDPipe,
-} from '@nestjs/common';
+} from "@nestjs/common";
 import {
   ApiTags,
   ApiOperation,
@@ -21,7 +21,7 @@ import {
   ApiUnauthorizedResponse,
   ApiInternalServerErrorResponse,
   ApiCreatedResponse,
-} from '@nestjs/swagger';
+} from "@nestjs/swagger";
 import {
   budgetCreateRequestSchema,
   budgetUpdateRequestSchema,
@@ -29,185 +29,197 @@ import {
   type BudgetCreateRequest,
   type BudgetUpdateRequest,
   type BudgetCreateFromOnboardingRequest,
-} from '@pulpe/shared';
-import { AuthGuard } from '@common/guards/auth.guard';
-import { ZodBodyPipe } from '@common/pipes/zod-validation.pipe';
-import { User, SupabaseClient, type AuthenticatedUser } from '@common/decorators/user.decorator';
-import { BudgetService } from './budget.service';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import { 
-  BudgetListResponseDto, 
-  BudgetResponseDto, 
-  BudgetDeleteResponseDto 
-} from './dto/budget-response.dto';
-import { BudgetCreateFromOnboardingDto } from './dto/budget-create.dto';
-import { ErrorResponseDto } from '@common/dto/response.dto';
+  budgetCreateFromOnboardingApiRequestSchema,
+  type BudgetCreateFromOnboardingApiRequest,
+} from "@pulpe/shared";
+import { AuthGuard } from "@common/guards/auth.guard";
+import { ZodBodyPipe } from "@common/pipes/zod-validation.pipe";
+import {
+  User,
+  SupabaseClient,
+  type AuthenticatedUser,
+} from "@common/decorators/user.decorator";
+import { BudgetService } from "./budget.service";
+import type { AuthenticatedSupabaseClient } from "@modules/supabase/supabase.service";
+import {
+  BudgetListResponseDto,
+  BudgetResponseDto,
+  BudgetDeleteResponseDto,
+} from "./dto/budget-response.dto";
+import { BudgetCreateFromOnboardingDto } from "./dto/budget-create.dto";
+import { ErrorResponseDto } from "@common/dto/response.dto";
 
-@ApiTags('Budgets')
+@ApiTags("Budgets")
 @ApiBearerAuth()
-@Controller('budgets')
+@Controller("budgets")
 @UseGuards(AuthGuard)
 @ApiUnauthorizedResponse({
-  description: 'Authentication required',
-  type: ErrorResponseDto
+  description: "Authentication required",
+  type: ErrorResponseDto,
 })
 @ApiInternalServerErrorResponse({
-  description: 'Internal server error',
-  type: ErrorResponseDto
+  description: "Internal server error",
+  type: ErrorResponseDto,
 })
 export class BudgetController {
   constructor(private readonly budgetService: BudgetService) {}
 
   @Get()
-  @ApiOperation({ 
-    summary: 'List all user budgets',
-    description: 'Retrieves all budgets belonging to the authenticated user, ordered by year and month'
+  @ApiOperation({
+    summary: "List all user budgets",
+    description:
+      "Retrieves all budgets belonging to the authenticated user, ordered by year and month",
   })
   @ApiResponse({
     status: 200,
-    description: 'Budget list retrieved successfully',
-    type: BudgetListResponseDto
+    description: "Budget list retrieved successfully",
+    type: BudgetListResponseDto,
   })
   async findAll(
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient
   ): Promise<BudgetListResponseDto> {
     return this.budgetService.findAll(user, supabase);
   }
 
   @Post()
-  @ApiOperation({ 
-    summary: 'Create a new budget',
-    description: 'Creates a new budget for the authenticated user'
+  @ApiOperation({
+    summary: "Create a new budget",
+    description: "Creates a new budget for the authenticated user",
   })
   @ApiCreatedResponse({
-    description: 'Budget created successfully',
-    type: BudgetResponseDto
+    description: "Budget created successfully",
+    type: BudgetResponseDto,
   })
   @ApiBadRequestResponse({
-    description: 'Invalid input data',
-    type: ErrorResponseDto
+    description: "Invalid input data",
+    type: ErrorResponseDto,
   })
   @UsePipes(new ZodBodyPipe(budgetCreateRequestSchema))
   async create(
     @Body() createBudgetDto: BudgetCreateRequest,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient
   ): Promise<BudgetResponseDto> {
     return this.budgetService.create(createBudgetDto, user, supabase);
   }
 
-  @Get(':id')
-  @ApiOperation({ 
-    summary: 'Get budget by ID',
-    description: 'Retrieves a specific budget by its unique identifier'
+  @Get(":id")
+  @ApiOperation({
+    summary: "Get budget by ID",
+    description: "Retrieves a specific budget by its unique identifier",
   })
   @ApiParam({
-    name: 'id',
-    description: 'Unique budget identifier',
-    example: '123e4567-e89b-12d3-a456-426614174000',
-    type: 'string',
-    format: 'uuid'
+    name: "id",
+    description: "Unique budget identifier",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+    type: "string",
+    format: "uuid",
   })
   @ApiResponse({
     status: 200,
-    description: 'Budget retrieved successfully',
-    type: BudgetResponseDto
+    description: "Budget retrieved successfully",
+    type: BudgetResponseDto,
   })
   @ApiNotFoundResponse({
-    description: 'Budget not found',
-    type: ErrorResponseDto
+    description: "Budget not found",
+    type: ErrorResponseDto,
   })
   async findOne(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient
   ): Promise<BudgetResponseDto> {
     return this.budgetService.findOne(id, user, supabase);
   }
 
-  @Put(':id')
-  @ApiOperation({ 
-    summary: 'Update existing budget',
-    description: 'Updates an existing budget with new information'
+  @Put(":id")
+  @ApiOperation({
+    summary: "Update existing budget",
+    description: "Updates an existing budget with new information",
   })
   @ApiParam({
-    name: 'id',
-    description: 'Unique budget identifier',
-    example: '123e4567-e89b-12d3-a456-426614174000',
-    type: 'string',
-    format: 'uuid'
+    name: "id",
+    description: "Unique budget identifier",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+    type: "string",
+    format: "uuid",
   })
   @ApiResponse({
     status: 200,
-    description: 'Budget updated successfully',
-    type: BudgetResponseDto
+    description: "Budget updated successfully",
+    type: BudgetResponseDto,
   })
   @ApiBadRequestResponse({
-    description: 'Invalid input data',
-    type: ErrorResponseDto
+    description: "Invalid input data",
+    type: ErrorResponseDto,
   })
   @ApiNotFoundResponse({
-    description: 'Budget not found',
-    type: ErrorResponseDto
+    description: "Budget not found",
+    type: ErrorResponseDto,
   })
   @UsePipes(new ZodBodyPipe(budgetUpdateRequestSchema))
   async update(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @Body() updateBudgetDto: BudgetUpdateRequest,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient
   ): Promise<BudgetResponseDto> {
     return this.budgetService.update(id, updateBudgetDto, user, supabase);
   }
 
-  @Post('from-onboarding')
-  @ApiOperation({ 
-    summary: 'Create budget with transactions from onboarding',
-    description: 'Creates a budget and automatically generates transactions based on onboarding data in a single atomic operation'
+  @Post("from-onboarding")
+  @ApiOperation({
+    summary: "Create budget with transactions from onboarding",
+    description:
+      "Creates a budget and automatically generates transactions based on onboarding data in a single atomic operation",
   })
   @ApiCreatedResponse({
-    description: 'Budget and transactions created successfully',
-    type: BudgetResponseDto
+    description: "Budget and transactions created successfully",
+    type: BudgetResponseDto,
   })
   @ApiBadRequestResponse({
-    description: 'Invalid input data',
-    type: ErrorResponseDto
+    description: "Invalid input data",
+    type: ErrorResponseDto,
   })
-  @UsePipes(new ZodBodyPipe(budgetCreateFromOnboardingRequestSchema))
+  @UsePipes(new ZodBodyPipe(budgetCreateFromOnboardingApiRequestSchema))
   async createFromOnboarding(
-    @Body() onboardingData: BudgetCreateFromOnboardingRequest,
+    @Body() onboardingData: BudgetCreateFromOnboardingApiRequest,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient
   ): Promise<BudgetResponseDto> {
-    return this.budgetService.createFromOnboarding(onboardingData, user, supabase);
+    return this.budgetService.createFromOnboarding(
+      onboardingData,
+      user,
+      supabase
+    );
   }
 
-  @Delete(':id')
-  @ApiOperation({ 
-    summary: 'Delete existing budget',
-    description: 'Permanently deletes a budget and all associated data'
+  @Delete(":id")
+  @ApiOperation({
+    summary: "Delete existing budget",
+    description: "Permanently deletes a budget and all associated data",
   })
   @ApiParam({
-    name: 'id',
-    description: 'Unique budget identifier',
-    example: '123e4567-e89b-12d3-a456-426614174000',
-    type: 'string',
-    format: 'uuid'
+    name: "id",
+    description: "Unique budget identifier",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+    type: "string",
+    format: "uuid",
   })
   @ApiResponse({
     status: 200,
-    description: 'Budget deleted successfully',
-    type: BudgetDeleteResponseDto
+    description: "Budget deleted successfully",
+    type: BudgetDeleteResponseDto,
   })
   @ApiNotFoundResponse({
-    description: 'Budget not found',
-    type: ErrorResponseDto
+    description: "Budget not found",
+    type: ErrorResponseDto,
   })
   async remove(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient
   ): Promise<BudgetDeleteResponseDto> {
     return this.budgetService.remove(id, user, supabase);
   }
