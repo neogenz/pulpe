@@ -1,16 +1,13 @@
-import type {
-  BudgetErrorResponse,
-  BudgetInsert,
-  BudgetResponse,
-} from "@pulpe/shared";
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
+import type { BudgetInsert } from "@pulpe/shared";
 import {
+  budgetCreateFromOnboardingRequestSchema,
   budgetCreateRequestSchema,
   budgetDeleteResponseSchema,
   budgetErrorResponseSchema,
   budgetResponseSchema,
   budgetUpdateRequestSchema,
 } from "@pulpe/shared";
-import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import {
   authMiddleware,
   type AuthenticatedUser,
@@ -279,7 +276,21 @@ budgetRoutes.openapi(createBudgetRoute, async (c) => {
     const supabase = c.get("supabase");
     const user = c.get("user");
 
-    const requestData = c.req.valid("json");
+    const body = await c.req.json();
+    const validation = budgetCreateFromOnboardingRequestSchema.safeParse(body);
+
+    if (!validation.success) {
+      return c.json(
+        {
+          success: false as const,
+          error: "Invalid request body",
+          details: validation.error.issues,
+        },
+        400
+      );
+    }
+
+    const requestData = validation.data;
 
     // Inclure automatiquement le user_id pour le RLS
     const budgetData: BudgetInsert = {

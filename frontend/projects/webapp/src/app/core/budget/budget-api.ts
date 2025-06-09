@@ -9,21 +9,10 @@ import {
   budgetResponseSchema,
   budgetErrorResponseSchema,
   budgetCreateRequestSchema,
+  BudgetCreateFromOnboardingRequest,
 } from '@pulpe/shared';
 import { MonthlyBudget, BudgetCategory } from './budget.models';
 import { environment } from '../../../environments/environment';
-
-// Business models for frontend domain (different from DTOs)
-export interface OnboardingBudgetData {
-  readonly monthlyIncome: number;
-  readonly housingCosts: number;
-  readonly healthInsurance: number;
-  readonly leasingCredit: number;
-  readonly phonePlan: number;
-  readonly transportCosts: number;
-  readonly firstName: string;
-  readonly email: string;
-}
 
 export interface CreateBudgetApiResponse {
   readonly budget: Budget;
@@ -49,14 +38,15 @@ export class BudgetApi {
    * Transforme les données business en DTO pour l'API
    */
   createOnboardingBudget$(
-    onboardingData: OnboardingBudgetData,
+    onboardingData: BudgetCreateFromOnboardingRequest,
   ): Observable<CreateBudgetApiResponse> {
     // Transformer les données business en DTO pour l'API
     const currentDate = new Date();
-    const budgetDto: BudgetCreateRequest = {
+    const budgetDto: BudgetCreateFromOnboardingRequest = {
       month: currentDate.getMonth() + 1,
       year: currentDate.getFullYear(),
       description: `Budget initial de ${onboardingData.firstName} pour ${currentDate.getFullYear()}`,
+      ...onboardingData,
     };
 
     // Valider les données avec le schéma partagé

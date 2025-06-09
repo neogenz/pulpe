@@ -41,6 +41,7 @@ export type {
   BudgetUpdateRequest,
   BudgetResponse,
   BudgetErrorResponse,
+  BudgetCreateFromOnboardingRequest,
 } from "./types/budget.types";
 
 export type {

@@ -5,6 +5,7 @@ import type {
   budgetUpdateSchema,
   budgetCreateRequestSchema,
   budgetUpdateRequestSchema,
+  budgetCreateFromOnboardingRequestSchema,
 } from "../models/budget.schema";
 
 export type Budget = z.infer<typeof budgetSchema>;
@@ -12,6 +13,9 @@ export type BudgetInsert = z.infer<typeof budgetInsertSchema>;
 export type BudgetUpdate = z.infer<typeof budgetUpdateSchema>;
 export type BudgetCreateRequest = z.infer<typeof budgetCreateRequestSchema>;
 export type BudgetUpdateRequest = z.infer<typeof budgetUpdateRequestSchema>;
+export type BudgetCreateFromOnboardingRequest = z.infer<
+  typeof budgetCreateFromOnboardingRequestSchema
+>;
 
 export interface BudgetResponse {
   readonly success: boolean;

@@ -56,6 +56,37 @@ export const budgetInsertSchema = budgetSchema
   })
   .openapi({ description: "Schéma pour l'insertion d'un nouveau budget" });
 
+export const budgetCreateFromOnboardingRequestSchema = budgetInsertSchema
+  .extend({
+    monthlyIncome: z.number().min(0).openapi({
+      description: "Revenu mensuel",
+      example: 1000,
+    }),
+    housingCosts: z.number().min(0).openapi({
+      description: "Coûts de logement",
+      example: 1000,
+    }),
+    healthInsurance: z.number().min(0).openapi({
+      description: "Assurance santé",
+      example: 100,
+    }),
+    leasingCredit: z.number().min(0).openapi({
+      description: "Crédit de location",
+      example: 100,
+    }),
+    phonePlan: z.number().min(0).openapi({
+      description: "Plan de téléphone",
+      example: 100,
+    }),
+    transportCosts: z.number().min(0).openapi({
+      description: "Coûts de transport",
+      example: 100,
+    }),
+  })
+  .openapi({
+    description: "Schéma pour la création d'un budget depuis l'onboarding",
+  });
+
 export const budgetUpdateSchema = budgetSchema
   .omit({
     id: true,

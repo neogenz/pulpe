@@ -1,0 +1,238 @@
+import {
+  Controller,
+  Get,
+  Put,
+  Body,
+  UseGuards,
+  BadRequestException,
+  InternalServerErrorException,
+  ValidationPipe,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiBadRequestResponse,
+  ApiUnauthorizedResponse,
+  ApiInternalServerErrorResponse,
+} from '@nestjs/swagger';
+import { AuthGuard, OptionalAuthGuard } from '@common/guards/auth.guard';
+import { User, SupabaseClient, type AuthenticatedUser } from '@common/decorators/user.decorator';
+import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
+import { 
+  UpdateProfileDto, 
+  UserProfileResponseDto,
+  PublicInfoResponseDto,
+  OnboardingStatusResponseDto,
+  SuccessMessageResponseDto
+} from './dto/user-profile.dto';
+import { ErrorResponseDto } from '@common/dto/response.dto';
+
+@ApiTags('User')
+@Controller('users')
+@ApiInternalServerErrorResponse({
+  description: 'Internal server error',
+  type: ErrorResponseDto
+})
+export class UserController {
+  @Get('me')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ 
+    summary: 'Get current user profile',
+    description: 'Retrieves the profile information of the authenticated user'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Profile retrieved successfully',
+    type: UserProfileResponseDto
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Authentication required',
+    type: ErrorResponseDto
+  })
+  async getProfile(@User() user: AuthenticatedUser): Promise<UserProfileResponseDto> {
+    return {
+      success: true as const,
+      user: {
+        id: user.id,
+        email: user.email,
+        ...(user.firstName && { firstName: user.firstName }),
+        ...(user.lastName && { lastName: user.lastName }),
+      },
+    };
+  }
+
+  @Put('profile')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ 
+    summary: 'Update user profile',
+    description: 'Updates the first name and last name of the authenticated user'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Profile updated successfully',
+    type: UserProfileResponseDto
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid input data',
+    type: ErrorResponseDto
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Authentication required',
+    type: ErrorResponseDto
+  })
+  async updateProfile(
+    @Body(ValidationPipe) updateData: UpdateProfileDto,
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<UserProfileResponseDto> {
+    const { firstName, lastName } = updateData;
+
+    try {
+      const { data: updatedUser, error } = await supabase.auth.updateUser({
+        data: {
+          firstName,
+          lastName,
+        },
+      });
+
+      if (error || !updatedUser.user) {
+        throw new InternalServerErrorException('Erreur lors de la mise à jour du profil');
+      }
+
+      return {
+        success: true as const,
+        user: {
+          id: updatedUser.user.id,
+          email: updatedUser.user.email!,
+          ...(updatedUser.user.user_metadata?.firstName && {
+            firstName: updatedUser.user.user_metadata.firstName,
+          }),
+          ...(updatedUser.user.user_metadata?.lastName && {
+            lastName: updatedUser.user.user_metadata.lastName,
+          }),
+        },
+      };
+    } catch (error) {
+      console.error('Erreur mise à jour profil:', error);
+      throw new InternalServerErrorException('Erreur lors de la mise à jour du profil');
+    }
+  }
+
+  @Get('public-info')
+  @UseGuards(OptionalAuthGuard)
+  @ApiOperation({ 
+    summary: 'Get public information',
+    description: 'Retrieves public information with optional authentication'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Information retrieved successfully',
+    type: PublicInfoResponseDto
+  })
+  async getPublicInfo(@User() user?: AuthenticatedUser): Promise<PublicInfoResponseDto> {
+    if (user) {
+      return {
+        success: true,
+        message: `Bonjour ${user.firstName || 'utilisateur'} !`,
+        authenticated: true,
+      };
+    }
+
+    return {
+      success: true,
+      message: 'Bonjour visiteur !',
+      authenticated: false,
+    };
+  }
+
+  @Put('onboarding-completed')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ 
+    summary: 'Mark onboarding as completed',
+    description: 'Updates the user metadata to mark onboarding as completed'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Onboarding marked as completed',
+    type: SuccessMessageResponseDto
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Authentication required',
+    type: ErrorResponseDto
+  })
+  async completeOnboarding(
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<SuccessMessageResponseDto> {
+    try {
+      const { data: currentUserData, error: getUserError } = await supabase.auth.getUser();
+
+      if (getUserError || !currentUserData.user) {
+        throw new InternalServerErrorException('Erreur lors de la récupération des données utilisateur');
+      }
+
+      const { data: updatedUser, error } = await supabase.auth.updateUser({
+        data: {
+          ...currentUserData.user.user_metadata,
+          onboardingCompleted: true,
+        },
+      });
+
+      if (error || !updatedUser.user) {
+        throw new InternalServerErrorException('Erreur lors de la mise à jour du statut d\'onboarding');
+      }
+
+      return {
+        success: true as const,
+        message: 'Onboarding marqué comme terminé',
+      };
+    } catch (error) {
+      console.error('Erreur mise à jour onboarding:', error);
+      throw new InternalServerErrorException('Erreur lors de la mise à jour du statut d\'onboarding');
+    }
+  }
+
+  @Get('onboarding-status')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ 
+    summary: 'Get onboarding status',
+    description: 'Retrieves the current onboarding completion status for the user'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Onboarding status retrieved successfully',
+    type: OnboardingStatusResponseDto
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Authentication required',
+    type: ErrorResponseDto
+  })
+  async getOnboardingStatus(
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<OnboardingStatusResponseDto> {
+    try {
+      const { data: currentUserData, error: getUserError } = await supabase.auth.getUser();
+
+      if (getUserError || !currentUserData.user) {
+        throw new InternalServerErrorException('Erreur lors de la récupération des données utilisateur');
+      }
+
+      const isOnboardingCompleted = currentUserData.user.user_metadata?.onboardingCompleted === true;
+
+      return {
+        success: true as const,
+        onboardingCompleted: isOnboardingCompleted,
+      };
+    } catch (error) {
+      console.error('Erreur récupération statut onboarding:', error);
+      throw new InternalServerErrorException('Erreur lors de la récupération du statut d\'onboarding');
+    }
+  }
+}

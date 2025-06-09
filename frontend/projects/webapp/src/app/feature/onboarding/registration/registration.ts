@@ -20,10 +20,11 @@ import {
   OnboardingApi,
   OnboardingSubmissionPayload,
 } from '@features/onboarding/onboarding-api';
-import { BudgetApi, OnboardingBudgetData } from '@core/budget';
+import { BudgetApi } from '@core/budget';
 import { AuthApi } from '@core/auth/auth-api';
 import { ROUTES } from '@core/routing/routes-constants';
 import { ONBOARDING_TOTAL_STEPS } from '../onboarding-constants';
+import { BudgetCreateFromOnboardingRequest } from '@pulpe/shared';
 
 @Component({
   selector: 'pulpe-registration',
@@ -213,7 +214,7 @@ export default class Registration {
 
   #buildBudgetCreationRequest(
     payload: OnboardingSubmissionPayload,
-  ): OnboardingBudgetData {
+  ): BudgetCreateFromOnboardingRequest {
     return {
       monthlyIncome: payload.monthlyIncome,
       housingCosts: payload.housingCosts,
