@@ -1,5 +1,4 @@
 import { z } from "zod";
-import "zod-openapi/extend";
 
 const CURRENT_YEAR = new Date().getFullYear();
 const MIN_YEAR = 2020;
@@ -8,123 +7,43 @@ const MAX_YEAR = CURRENT_YEAR + 10;
 const MONTH_MIN = 1;
 const MONTH_MAX = 12;
 
-export const budgetSchema = z
-  .object({
-    id: z.string().uuid().openapi({
-      description: "Identifiant unique du budget",
-      example: "123e4567-e89b-12d3-a456-426614174000",
-    }),
-    created_at: z.string().datetime().openapi({
-      description: "Date de création du budget",
-      example: "2024-01-01T00:00:00Z",
-    }),
-    updated_at: z.string().datetime().openapi({
-      description: "Date de dernière modification du budget",
-      example: "2024-01-01T00:00:00Z",
-    }),
-    user_id: z.string().uuid().nullable().openapi({
-      description: "Identifiant de l'utilisateur propriétaire",
-      example: "123e4567-e89b-12d3-a456-426614174000",
-    }),
-    month: z
-      .number()
-      .int()
-      .min(MONTH_MIN)
-      .max(MONTH_MAX)
-      .openapi({ description: "Mois du budget (1-12)", example: 1 }),
-    year: z
-      .number()
-      .int()
-      .min(MIN_YEAR)
-      .max(MAX_YEAR)
-      .openapi({
-        description: `Année du budget (${MIN_YEAR}-${MAX_YEAR})`,
-        example: CURRENT_YEAR,
-      }),
-    description: z.string().min(1).max(500).trim().openapi({
-      description: "Description du budget",
-      example: "Budget mensuel janvier 2024",
-    }),
-  })
-  .openapi({ description: "Schéma complet d'un budget" });
+export const budgetSchema = z.object({
+  id: z.string().uuid(),
+  created_at: z.string().datetime(),
+  updated_at: z.string().datetime(),
+  user_id: z.string().uuid().nullable(),
+  month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
+  year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
+  description: z.string().min(1).max(500).trim(),
+});
 
-export const budgetInsertSchema = budgetSchema
-  .omit({
-    id: true,
-    created_at: true,
-    updated_at: true,
-  })
-  .openapi({ description: "Schéma pour l'insertion d'un nouveau budget" });
+export const budgetInsertSchema = budgetSchema.omit({
+  id: true,
+  created_at: true,
+  updated_at: true,
+});
 
-export const budgetCreateRequestSchema = budgetInsertSchema
-  .omit({
-    user_id: true,
-  })
-  .openapi({ description: "Schéma pour la création d'un budget depuis l'API" });
+export const budgetCreateRequestSchema = budgetInsertSchema.omit({
+  user_id: true,
+});
 
-export const budgetCreateFromOnboardingRequestSchema = budgetInsertSchema
-  .extend({
-    monthlyIncome: z.number().min(0).openapi({
-      description: "Revenu mensuel",
-      example: 1000,
-    }),
-    housingCosts: z.number().min(0).openapi({
-      description: "Coûts de logement",
-      example: 1000,
-    }),
-    healthInsurance: z.number().min(0).openapi({
-      description: "Assurance santé",
-      example: 100,
-    }),
-    leasingCredit: z.number().min(0).openapi({
-      description: "Crédit de location",
-      example: 100,
-    }),
-    phonePlan: z.number().min(0).openapi({
-      description: "Plan de téléphone",
-      example: 100,
-    }),
-    transportCosts: z.number().min(0).openapi({
-      description: "Coûts de transport",
-      example: 100,
-    }),
-  })
-  .openapi({
-    description: "Schéma pour la création d'un budget depuis l'onboarding",
-  });
+export const budgetCreateFromOnboardingRequestSchema = budgetInsertSchema.extend({
+  monthlyIncome: z.number().min(0),
+  housingCosts: z.number().min(0),
+  healthInsurance: z.number().min(0),
+  leasingCredit: z.number().min(0),
+  phonePlan: z.number().min(0),
+  transportCosts: z.number().min(0),
+});
 
-export const budgetCreateFromOnboardingApiRequestSchema =
-  budgetCreateRequestSchema
-    .extend({
-      monthlyIncome: z.number().min(0).optional().default(0).openapi({
-        description: "Revenu mensuel (optionnel, défaut: 0)",
-        example: 1000,
-      }),
-      housingCosts: z.number().min(0).optional().default(0).openapi({
-        description: "Coûts de logement (optionnel, défaut: 0)",
-        example: 1000,
-      }),
-      healthInsurance: z.number().min(0).optional().default(0).openapi({
-        description: "Assurance santé (optionnel, défaut: 0)",
-        example: 100,
-      }),
-      leasingCredit: z.number().min(0).optional().default(0).openapi({
-        description: "Crédit de location (optionnel, défaut: 0)",
-        example: 100,
-      }),
-      phonePlan: z.number().min(0).optional().default(0).openapi({
-        description: "Plan de téléphone (optionnel, défaut: 0)",
-        example: 100,
-      }),
-      transportCosts: z.number().min(0).optional().default(0).openapi({
-        description: "Coûts de transport (optionnel, défaut: 0)",
-        example: 100,
-      }),
-    })
-    .openapi({
-      description:
-        "Schéma pour la création d'un budget depuis l'API onboarding",
-    });
+export const budgetCreateFromOnboardingApiRequestSchema = budgetCreateRequestSchema.extend({
+  monthlyIncome: z.number().min(0).optional().default(0),
+  housingCosts: z.number().min(0).optional().default(0),
+  healthInsurance: z.number().min(0).optional().default(0),
+  leasingCredit: z.number().min(0).optional().default(0),
+  phonePlan: z.number().min(0).optional().default(0),
+  transportCosts: z.number().min(0).optional().default(0),
+});
 
 export const budgetUpdateSchema = budgetSchema
   .omit({
@@ -148,9 +67,7 @@ const budgetUpdateBaseSchema = budgetSchema
   .partial();
 
 // Schema for OpenAPI documentation (without refine/transform)
-export const budgetUpdateRequestDocSchema = budgetUpdateBaseSchema.openapi({
-  description: "Schéma pour la mise à jour d'un budget depuis l'API",
-});
+export const budgetUpdateRequestDocSchema = budgetUpdateBaseSchema;
 
 // Schema for validation (with refine/transform)
 export const budgetUpdateRequestSchema = budgetUpdateBaseSchema

@@ -11,9 +11,6 @@ importers:
       zod:
         specifier: ^3.25.51
         version: 3.25.56
-      zod-openapi:
-        specifier: ^4.2.4
-        version: 4.2.4(zod@3.25.56)
     devDependencies:
       typescript:
         specifier: ^5.0.0
@@ -26,21 +23,11 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
 
-  zod-openapi@4.2.4:
-    resolution: {integrity: sha512-tsrQpbpqFCXqVXUzi3TPwFhuMtLN3oNZobOtYnK6/5VkXsNdnIgyNr4r8no4wmYluaxzN3F7iS+8xCW8BmMQ8g==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.21.4
-
   zod@3.25.56:
     resolution: {integrity: sha512-rd6eEF3BTNvQnR2e2wwolfTmUTnp70aUTqr0oaGbHifzC3BKJsoV+Gat8vxUMR1hwOKBs6El+qWehrHbCpW6SQ==}
 
 snapshots:
 
   typescript@5.8.3: {}
-
-  zod-openapi@4.2.4(zod@3.25.56):
-    dependencies:
-      zod: 3.25.56
 
   zod@3.25.56: {}
