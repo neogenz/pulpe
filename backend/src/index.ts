@@ -30,9 +30,9 @@ app.use(
 
 // Routes
 app.route("/api/auth", authRoutes);
-app.route("/api/user", userRoutes);
-app.route("/api/budget", budgetRoutes);
-app.route("/api/transaction", transactionRoutes);
+app.route("/api/users", userRoutes);
+app.route("/api/budgets", budgetRoutes);
+app.route("/api/transactions", transactionRoutes);
 
 // Routes de test/santé (optionnel)
 app.get("/", (c) =>

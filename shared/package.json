@@ -2,8 +2,8 @@
   "name": "@pulpe/shared",
   "version": "1.0.0",
   "description": "Shared models and types for Pulpe application",
-  "main": "index.js",
-  "types": "index.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch"

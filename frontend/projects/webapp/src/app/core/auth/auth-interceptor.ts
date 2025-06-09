@@ -1,8 +1,7 @@
-import { Injectable, inject } from '@angular/core';
+import { inject } from '@angular/core';
 import {
-  HttpInterceptor,
+  HttpInterceptorFn,
   HttpRequest,
-  HttpHandler,
   HttpEvent,
   HttpErrorResponse,
 } from '@angular/common/http';
@@ -10,77 +9,78 @@ import { Observable, throwError, from, switchMap, catchError } from 'rxjs';
 import { AuthApi } from './auth-api';
 import { environment } from '../../../environments/environment';
 
-@Injectable()
-export class AuthInterceptor implements HttpInterceptor {
-  readonly #authApi = inject(AuthApi);
+export const authInterceptor: HttpInterceptorFn = (
+  req: HttpRequest<unknown>,
+  next,
+): Observable<HttpEvent<unknown>> => {
+  const authApi = inject(AuthApi);
 
-  intercept(
-    req: HttpRequest<unknown>,
-    next: HttpHandler,
-  ): Observable<HttpEvent<unknown>> {
-    // Vérifier si la requête va vers notre backend
-    if (!this.shouldInterceptRequest(req.url)) {
-      return next.handle(req);
-    }
+  alert('intercept');
 
-    // Obtenir le token actuel et l'ajouter à la requête
-    return from(this.addAuthToken(req)).pipe(
-      switchMap((authReq) => next.handle(authReq)),
-      catchError((error) => this.handleAuthError(error, req, next)),
+  // Vérifier si la requête va vers notre backend
+  if (!shouldInterceptRequest(req.url)) {
+    return next(req);
+  }
+
+  // Obtenir le token actuel et l'ajouter à la requête
+  return from(addAuthToken(req, authApi)).pipe(
+    switchMap((authReq) => next(authReq)),
+    catchError((error) => handleAuthError(error, req, next, authApi)),
+  );
+};
+
+function shouldInterceptRequest(url: string): boolean {
+  return url.startsWith(environment.backendUrl);
+}
+
+async function addAuthToken(
+  req: HttpRequest<unknown>,
+  authApi: AuthApi,
+): Promise<HttpRequest<unknown>> {
+  const session = await authApi.getCurrentSession();
+
+  if (session?.access_token) {
+    return req.clone({
+      headers: req.headers.set(
+        'Authorization',
+        `Bearer ${session.access_token}`,
+      ),
+    });
+  }
+
+  return req;
+}
+
+function handleAuthError(
+  error: HttpErrorResponse,
+  originalReq: HttpRequest<unknown>,
+  next: (req: HttpRequest<unknown>) => Observable<HttpEvent<unknown>>,
+  authApi: AuthApi,
+): Observable<HttpEvent<unknown>> {
+  if (error.status === 401 && authApi.isAuthenticated()) {
+    // Token expiré, essayer de le rafraîchir
+    return from(authApi.refreshSession()).pipe(
+      switchMap((refreshSuccess) => {
+        if (refreshSuccess) {
+          // Réessayer la requête avec le nouveau token
+          return from(addAuthToken(originalReq, authApi)).pipe(
+            switchMap((authReq) => next(authReq)),
+          );
+        } else {
+          // Impossible de rafraîchir, déconnecter l'utilisateur
+          authApi.signOut();
+          return throwError(
+            () => new Error('Session expirée, veuillez vous reconnecter'),
+          );
+        }
+      }),
+      catchError((refreshError) => {
+        // Erreur lors du rafraîchissement
+        authApi.signOut();
+        return throwError(() => refreshError);
+      }),
     );
   }
 
-  private shouldInterceptRequest(url: string): boolean {
-    return url.startsWith(environment.backendUrl);
-  }
-
-  private async addAuthToken(
-    req: HttpRequest<unknown>,
-  ): Promise<HttpRequest<unknown>> {
-    const session = await this.#authApi.getCurrentSession();
-
-    if (session?.access_token) {
-      return req.clone({
-        headers: req.headers.set(
-          'Authorization',
-          `Bearer ${session.access_token}`,
-        ),
-      });
-    }
-
-    return req;
-  }
-
-  private handleAuthError(
-    error: HttpErrorResponse,
-    originalReq: HttpRequest<unknown>,
-    next: HttpHandler,
-  ): Observable<HttpEvent<unknown>> {
-    if (error.status === 401 && this.#authApi.isAuthenticated()) {
-      // Token expiré, essayer de le rafraîchir
-      return from(this.#authApi.refreshSession()).pipe(
-        switchMap((refreshSuccess) => {
-          if (refreshSuccess) {
-            // Réessayer la requête avec le nouveau token
-            return from(this.addAuthToken(originalReq)).pipe(
-              switchMap((authReq) => next.handle(authReq)),
-            );
-          } else {
-            // Impossible de rafraîchir, déconnecter l'utilisateur
-            this.#authApi.signOut();
-            return throwError(
-              () => new Error('Session expirée, veuillez vous reconnecter'),
-            );
-          }
-        }),
-        catchError((refreshError) => {
-          // Erreur lors du rafraîchissement
-          this.#authApi.signOut();
-          return throwError(() => refreshError);
-        }),
-      );
-    }
-
-    return throwError(() => error);
-  }
+  return throwError(() => error);
 }

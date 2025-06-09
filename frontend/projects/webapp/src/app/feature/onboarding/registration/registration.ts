@@ -20,7 +20,7 @@ import {
   OnboardingApi,
   OnboardingSubmissionPayload,
 } from '@features/onboarding/onboarding-api';
-import { BudgetApi, CreateOnboardingBudgetRequest } from '@core/budget';
+import { BudgetApi, OnboardingBudgetData } from '@core/budget';
 import { AuthApi } from '@core/auth/auth-api';
 import { ROUTES } from '@core/routing/routes-constants';
 import { ONBOARDING_TOTAL_STEPS } from '../onboarding-constants';
@@ -213,7 +213,7 @@ export default class Registration {
 
   #buildBudgetCreationRequest(
     payload: OnboardingSubmissionPayload,
-  ): CreateOnboardingBudgetRequest {
+  ): OnboardingBudgetData {
     return {
       monthlyIncome: payload.monthlyIncome,
       housingCosts: payload.housingCosts,

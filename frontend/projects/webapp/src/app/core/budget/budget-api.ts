@@ -1,18 +1,39 @@
-import { Injectable } from '@angular/core';
-import { format } from 'date-fns';
-import { Observable, of } from 'rxjs';
-import { catchError, delay, map } from 'rxjs/operators';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { Observable, throwError } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import {
-  BudgetCategory,
-  CreateBudgetResponse,
-  CreateOnboardingBudgetRequest,
-  MonthlyBudget,
-} from './budget.models';
+  type Budget,
+  type BudgetCreateRequest,
+  type BudgetResponse,
+  budgetResponseSchema,
+  budgetErrorResponseSchema,
+  budgetCreateRequestSchema,
+} from '@pulpe/shared';
+import { MonthlyBudget, BudgetCategory } from './budget.models';
+import { environment } from '../../../environments/environment';
 
-import {
-  CreateBudgetResponseSchema,
-  MonthlyBudgetSchema,
-} from './budget.models';
+// Business models for frontend domain (different from DTOs)
+export interface OnboardingBudgetData {
+  readonly monthlyIncome: number;
+  readonly housingCosts: number;
+  readonly healthInsurance: number;
+  readonly leasingCredit: number;
+  readonly phonePlan: number;
+  readonly transportCosts: number;
+  readonly firstName: string;
+  readonly email: string;
+}
+
+export interface CreateBudgetApiResponse {
+  readonly budget: Budget;
+  readonly message: string;
+}
+
+export interface BudgetApiError {
+  readonly message: string;
+  readonly details?: readonly string[];
+}
 
 const CURRENT_BUDGET_STORAGE_KEY = 'pulpe-current-budget';
 
@@ -20,140 +41,296 @@ const CURRENT_BUDGET_STORAGE_KEY = 'pulpe-current-budget';
   providedIn: 'root',
 })
 export class BudgetApi {
+  readonly #httpClient = inject(HttpClient);
+  readonly #baseUrl = `${environment.backendUrl}/budgets`;
+
   /**
    * Crée un budget à partir des données d'onboarding
-   * La validation Zod assure que les données du serveur sont conformes
+   * Transforme les données business en DTO pour l'API
    */
   createOnboardingBudget$(
-    onboardingData: CreateOnboardingBudgetRequest,
-  ): Observable<CreateBudgetResponse> {
-    return this.#mockCreateBudgetCall(onboardingData).pipe(
+    onboardingData: OnboardingBudgetData,
+  ): Observable<CreateBudgetApiResponse> {
+    // Transformer les données business en DTO pour l'API
+    const currentDate = new Date();
+    const budgetDto: BudgetCreateRequest = {
+      month: currentDate.getMonth() + 1,
+      year: currentDate.getFullYear(),
+      description: `Budget initial de ${onboardingData.firstName} pour ${currentDate.getFullYear()}`,
+    };
+
+    // Valider les données avec le schéma partagé
+    const validatedRequest = budgetCreateRequestSchema.parse(budgetDto);
+
+    return this.#httpClient
+      .post<BudgetResponse>(this.#baseUrl, validatedRequest)
+      .pipe(
+        map((response) => {
+          // Valider la réponse avec le schéma partagé
+          const validatedResponse = budgetResponseSchema.parse(response);
+
+          if (!validatedResponse.budget) {
+            throw new Error('Réponse invalide: budget manquant');
+          }
+
+          const result: CreateBudgetApiResponse = {
+            budget: validatedResponse.budget,
+            message: 'Budget créé avec succès',
+          };
+
+          this.#saveBudgetToStorage(validatedResponse.budget);
+          return result;
+        }),
+        catchError((error) =>
+          this.#handleApiError(error, 'Erreur lors de la création du budget'),
+        ),
+      );
+  }
+
+  /**
+   * Récupère tous les budgets de l'utilisateur
+   */
+  getAllBudgets$(): Observable<readonly Budget[]> {
+    return this.#httpClient.get<BudgetResponse>(this.#baseUrl).pipe(
       map((response) => {
-        // Validate the response from server with Zod
-        const validatedResponse = CreateBudgetResponseSchema.parse(response);
-        this.#saveCurrentBudgetToStorage(validatedResponse.budget);
-        return validatedResponse;
+        const validatedResponse = budgetResponseSchema.parse(response);
+        return validatedResponse.budgets || [];
       }),
-      catchError((error) => {
-        console.error('Failed to create onboarding budget:', error);
-        throw error;
-      }),
+      catchError((error) =>
+        this.#handleApiError(
+          error,
+          'Erreur lors de la récupération des budgets',
+        ),
+      ),
     );
   }
 
   /**
+   * Récupère un budget spécifique par ID
+   */
+  getBudgetById$(budgetId: string): Observable<Budget> {
+    return this.#httpClient
+      .get<BudgetResponse>(`${this.#baseUrl}/${budgetId}`)
+      .pipe(
+        map((response) => {
+          const validatedResponse = budgetResponseSchema.parse(response);
+
+          if (!validatedResponse.budget) {
+            throw new Error('Budget non trouvé');
+          }
+
+          return validatedResponse.budget;
+        }),
+        catchError((error) =>
+          this.#handleApiError(
+            error,
+            'Erreur lors de la récupération du budget',
+          ),
+        ),
+      );
+  }
+
+  /**
    * Récupère le budget pour un mois et une année donnés
-   * @param month - Le mois (format MM)
-   * @param year - L'année (format yyyy)
-   * @returns Le budget pour le mois et l'année donnés
+   * Retourne le modèle business frontend avec des catégories par défaut
    */
   getBudgetForMonth$(
     month: string,
     year: string,
   ): Observable<MonthlyBudget | null> {
-    console.log('[BudgetApi] mock getBudgetForMonth$', month, year);
-    return of(this.#loadCurrentBudgetFromStorage()).pipe(delay(1500));
+    const monthNumber = parseInt(month, 10);
+    const yearNumber = parseInt(year, 10);
+
+    return this.getAllBudgets$().pipe(
+      map((budgets) => {
+        const foundBudget = budgets.find(
+          (budget) =>
+            budget.month === monthNumber && budget.year === yearNumber,
+        );
+
+        if (!foundBudget) {
+          return null;
+        }
+
+        // Adapter le DTO vers le modèle business frontend
+        return this.#adaptBudgetDtoToBusinessModel(foundBudget);
+      }),
+    );
   }
 
-  #mockCreateBudgetCall(
-    data: CreateOnboardingBudgetRequest,
-  ): Observable<CreateBudgetResponse> {
-    const mockBudget: MonthlyBudget = {
-      id: crypto.randomUUID(),
-      userId: crypto.randomUUID(),
-      month: format(new Date(), 'MM'),
-      year: format(new Date(), 'yyyy'),
-      categories: this.#createDefaultCategories(data),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+  /**
+   * Met à jour un budget existant
+   */
+  updateBudget$(
+    budgetId: string,
+    updateData: Partial<BudgetCreateRequest>,
+  ): Observable<Budget> {
+    return this.#httpClient
+      .put<BudgetResponse>(`${this.#baseUrl}/${budgetId}`, updateData)
+      .pipe(
+        map((response) => {
+          const validatedResponse = budgetResponseSchema.parse(response);
 
-    const response: CreateBudgetResponse = {
-      budget: mockBudget,
-      message: `Budget créé avec succès pour ${data.firstName}`,
-    };
+          if (!validatedResponse.budget) {
+            throw new Error('Réponse invalide: budget manquant');
+          }
 
-    return of(response).pipe(delay(1500));
+          this.#saveBudgetToStorage(validatedResponse.budget);
+          return validatedResponse.budget;
+        }),
+        catchError((error) =>
+          this.#handleApiError(
+            error,
+            'Erreur lors de la mise à jour du budget',
+          ),
+        ),
+      );
   }
 
-  #createDefaultCategories(
-    data: CreateOnboardingBudgetRequest,
-  ): readonly BudgetCategory[] {
-    return [
+  /**
+   * Supprime un budget
+   */
+  deleteBudget$(budgetId: string): Observable<void> {
+    return this.#httpClient.delete(`${this.#baseUrl}/${budgetId}`).pipe(
+      map(() => {
+        this.#removeBudgetFromStorage(budgetId);
+      }),
+      catchError((error) =>
+        this.#handleApiError(error, 'Erreur lors de la suppression du budget'),
+      ),
+    );
+  }
+
+  /**
+   * Récupère le budget actuel depuis le localStorage
+   */
+  getCurrentBudgetFromStorage(): Budget | null {
+    try {
+      const savedBudget = localStorage.getItem(CURRENT_BUDGET_STORAGE_KEY);
+      if (!savedBudget) {
+        return null;
+      }
+
+      const parsedData = JSON.parse(savedBudget);
+      // Utiliser la validation Zod du schéma partagé
+      const result = budgetResponseSchema.shape.budget.safeParse(parsedData);
+
+      if (result.success && result.data) {
+        return result.data;
+      }
+
+      console.warn(
+        'Données de budget invalides dans localStorage, suppression',
+      );
+      localStorage.removeItem(CURRENT_BUDGET_STORAGE_KEY);
+      return null;
+    } catch (error) {
+      console.error(
+        'Erreur lors de la lecture du budget depuis localStorage:',
+        error,
+      );
+      localStorage.removeItem(CURRENT_BUDGET_STORAGE_KEY);
+      return null;
+    }
+  }
+
+  /**
+   * Adapte un Budget DTO vers un MonthlyBudget business model
+   * TODO: À l'avenir, récupérer les vraies catégories depuis l'API
+   */
+  #adaptBudgetDtoToBusinessModel(budgetDto: Budget): MonthlyBudget {
+    // Pour l'instant, on crée des catégories par défaut
+    // Plus tard, ces catégories viendront d'une API dédiée
+    const defaultCategories: readonly BudgetCategory[] = [
       {
         id: 'income-salary',
         name: 'Salaire',
-        plannedAmount: data.monthlyIncome,
-        actualAmount: data.monthlyIncome,
+        plannedAmount: 5000,
+        actualAmount: 5000,
         type: 'income',
       },
       {
         id: 'expense-housing',
         name: 'Logement',
-        plannedAmount: data.housingCosts,
-        actualAmount: data.housingCosts,
+        plannedAmount: 1500,
+        actualAmount: 1500,
         type: 'expense',
       },
       {
-        id: 'expense-health',
-        name: 'Assurance maladie',
-        plannedAmount: data.healthInsurance,
-        actualAmount: data.healthInsurance,
+        id: 'expense-food',
+        name: 'Alimentation',
+        plannedAmount: 600,
+        actualAmount: 450,
         type: 'expense',
       },
       {
-        id: 'expense-leasing',
-        name: 'Leasing/Crédit',
-        plannedAmount: data.leasingCredit,
-        actualAmount: data.leasingCredit,
-        type: 'expense',
-      },
-      {
-        id: 'expense-phone',
-        name: 'Téléphone',
-        plannedAmount: data.phonePlan,
-        actualAmount: data.phonePlan,
-        type: 'expense',
-      },
-      {
-        id: 'expense-transport',
-        name: 'Transport',
-        plannedAmount: data.transportCosts,
-        actualAmount: data.transportCosts,
-        type: 'expense',
+        id: 'savings-emergency',
+        name: "Épargne d'urgence",
+        plannedAmount: 500,
+        actualAmount: 500,
+        type: 'savings',
       },
     ];
+
+    return {
+      id: budgetDto.id,
+      userId: budgetDto.user_id || '',
+      month: budgetDto.month.toString().padStart(2, '0'),
+      year: budgetDto.year.toString(),
+      categories: defaultCategories,
+      createdAt: budgetDto.created_at,
+      updatedAt: budgetDto.updated_at,
+    };
   }
 
-  #saveCurrentBudgetToStorage(budget: MonthlyBudget): void {
+  #saveBudgetToStorage(budget: Budget): void {
     try {
       localStorage.setItem(CURRENT_BUDGET_STORAGE_KEY, JSON.stringify(budget));
     } catch (error) {
-      console.error('Failed to save budget to localStorage:', error);
+      console.error(
+        'Erreur lors de la sauvegarde du budget dans localStorage:',
+        error,
+      );
     }
   }
 
-  #loadCurrentBudgetFromStorage(): MonthlyBudget | null {
+  #removeBudgetFromStorage(budgetId: string): void {
     try {
-      const savedBudget = localStorage.getItem(CURRENT_BUDGET_STORAGE_KEY);
-      if (savedBudget) {
-        const parsedData = JSON.parse(savedBudget);
-        // Use safe parsing to handle potential invalid data in localStorage
-        const result = MonthlyBudgetSchema.safeParse(parsedData);
-        if (result.success) {
-          return result.data;
-        } else {
-          console.warn(
-            'Invalid budget data in localStorage, clearing it:',
-            result.error,
-          );
-          localStorage.removeItem(CURRENT_BUDGET_STORAGE_KEY);
-        }
+      const currentBudget = this.getCurrentBudgetFromStorage();
+      if (currentBudget?.id === budgetId) {
+        localStorage.removeItem(CURRENT_BUDGET_STORAGE_KEY);
       }
     } catch (error) {
-      console.error('Failed to load budget from localStorage:', error);
-      localStorage.removeItem(CURRENT_BUDGET_STORAGE_KEY);
+      console.error(
+        'Erreur lors de la suppression du budget du localStorage:',
+        error,
+      );
     }
-    return null;
+  }
+
+  #handleApiError(error: unknown, defaultMessage: string): Observable<never> {
+    console.error('Erreur API Budget:', error);
+
+    if (error instanceof HttpErrorResponse) {
+      // Utiliser le schéma d'erreur partagé
+      try {
+        const errorResponse = budgetErrorResponseSchema.parse(error.error);
+        const budgetError: BudgetApiError = {
+          message: errorResponse.error,
+          details: errorResponse.details,
+        };
+        return throwError(() => budgetError);
+      } catch {
+        const budgetError: BudgetApiError = {
+          message: error.error?.message || error.message || defaultMessage,
+        };
+        return throwError(() => budgetError);
+      }
+    }
+
+    const budgetError: BudgetApiError = {
+      message: defaultMessage,
+    };
+    return throwError(() => budgetError);
   }
 }
