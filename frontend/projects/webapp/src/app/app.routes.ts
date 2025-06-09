@@ -43,7 +43,8 @@ export const routes: Routes = [
       },
       {
         path: 'current-month',
-        loadComponent: () => import('./feature/current-month/current-month'),
+        loadChildren: () =>
+          import('./feature/current-month/current-month.routes'),
       },
       {
         path: 'other-months',

@@ -3,6 +3,7 @@ description: Règles générales pour comprendre la structure du workspace
 globs:
 alwaysApply: false
 ---
+Règles générales pour comprendre la structure du workspace
 
 ## Structure du Monorepo
 
@@ -10,25 +11,46 @@ alwaysApply: false
 
 ```
 pulpe-workspace/
-├── frontend/    # Angular 20 - Application web avec Supabase SDK
-├── backend/     # Node.js/Hono - API REST avec validation Zod
-├── shared/      # Librairie partagée - Schemas Zod et types TypeScript
-├── mobile/      # Flutter - Application mobile
-└── .cursor/     # Configuration Cursor/VSCode et règles centralisées
+├── frontend/        # Angular 20 - Application web avec Supabase SDK
+├── backend-hono/    # Bun/Hono - API REST avec OpenAPI et validation Zod
+├── backend-nest/    # NestJS - Alternative backend avec décorateurs et pipes
+├── shared/          # Librairie partagée - Schemas Zod et types TypeScript
+├── .cursor/         # Configuration Cursor/VSCode et règles centralisées
+└── .vscode/         # Configuration additionnelle VS Code
 ```
 
 ### Architecture Hybride Supabase
 
 **Authentification** : SDK Supabase côté client (Angular) avec tokens JWT
-**Validation** : Middleware côté serveur (Hono) avec `supabase.auth.getUser()`
+**Validation** : Middleware côté serveur (Hono/NestJS) avec `supabase.auth.getUser()`
 **Sécurité** : Row Level Security (RLS) au niveau base de données
-**Types** : Schemas Zod partagés entre frontend et backend via `@pulpe/shared`
+**Types** : Schemas Zod partagés entre frontend et backends via `@pulpe/shared`
+
+### Backends Multiples
+
+#### Backend Hono (`backend-hono/`)
+- **Runtime** : Bun avec rechargement à chaud
+- **Framework** : Hono avec OpenAPI intégré (`@hono/zod-openapi`)
+- **Documentation** : Swagger UI automatique
+- **Performance** : Ultra-rapide, optimal pour production
+- **Usage** : Backend principal pour les APIs REST
+
+#### Backend NestJS (`backend-nest/`)
+- **Runtime** : Bun avec NestJS
+- **Architecture** : Décorateurs, pipes, guards, interceptors
+- **Validation** : Class-validator + nestjs-zod
+- **Swagger** : Intégration native NestJS
+- **Usage** : Backend alternatif pour logique métier complexe
 
 ### Workflow de développement
 
 - Un seul repo Git pour tous les projets
 - Configuration ESLint centralisée dans `frontend/` avec working directories
-- Utiliser le bon gestionnaire de paquets par projet (pnpm pour frontend, bun pour backend)
+- Utiliser le bon gestionnaire de paquets par projet :
+  - **Frontend** : `pnpm` (Angular + monorepo)
+  - **Backend Hono** : `bun` (performance optimale)
+  - **Backend NestJS** : `bun` (compatibilité NestJS)
+  - **Shared** : `npm` (simplicité pour librairie)
 - La librairie `shared/` doit être compilée après chaque modification : `npm run build`
 
 ### Communication entre projets
@@ -36,17 +58,23 @@ pulpe-workspace/
 #### Librairie Partagée (`shared/`)
 - **Schemas Zod** : Validation et types auto-générés
 - **Types TypeScript** : Interfaces et types partagés
-- **Installation** : `bun add file:../shared` (backend) et `pnpm add file:../shared` (frontend)
+- **Installation** : 
+  - `bun add file:../shared` (backends)
+  - `pnpm add file:../shared` (frontend)
 
-#### APIs REST (Backend)
+#### APIs REST (Backends)
 - **Validation** : Tous les endpoints utilisent les schemas Zod
 - **Authentification** : JWT tokens via header `Authorization: Bearer <token>`
 - **Réponses** : Format standardisé `{ success: boolean, data?: T, error?: string }`
+- **Documentation** : OpenAPI/Swagger automatique sur les deux backends
 
 #### Frontend Angular
+- **Version** : Angular 20 avec les dernières fonctionnalités
 - **Service Auth** : Gestion complète des sessions Supabase
 - **Intercepteur HTTP** : Auto-refresh des tokens JWT
 - **Types** : Utilisation des types de `@pulpe/shared`
+- **UI** : Angular Material 20 + Tailwind CSS v4.1
+- **Tests** : Vitest pour les tests unitaires
 
 ### Sécurité
 
@@ -62,10 +90,11 @@ pulpe-workspace/
 
 ### Conventions de commit
 
-- Préfixer par le projet : `frontend:`, `backend:`, `shared:`, `mobile:`
+- Préfixer par le projet : `frontend:`, `backend-hono:`, `backend-nest:`, `shared:`
 - Exemples : 
-  - `frontend: add budget list component`
-  - `backend: implement budget validation with Zod`
+  - `frontend: add budget list component with Angular Material`
+  - `backend-hono: implement budget validation with OpenAPI schema`
+  - `backend-nest: add budget module with NestJS decorators`
   - `shared: update budget schema for new fields`
 
 ### Scripts Utiles
@@ -76,15 +105,43 @@ cd shared && npm run build          # Compiler la librairie
 cd shared && npm run dev            # Watch mode pour développement
 ```
 
-#### Backend  
+#### Backend Hono
 ```bash
-cd backend && bun run dev           # Serveur de développement
-cd backend && bun install           # Installer les dépendances
+cd backend-hono && bun run dev      # Serveur de développement avec hot reload
+cd backend-hono && bun install     # Installer les dépendances
+cd backend-hono && bun run build   # Build pour production
+```
+
+#### Backend NestJS  
+```bash
+cd backend-nest && bun run start:dev   # Serveur de développement avec watch
+cd backend-nest && bun install         # Installer les dépendances
+cd backend-nest && bun run build       # Build pour production
 ```
 
 #### Frontend
 ```bash
-cd frontend && pnpm dev             # Serveur de développement Angular
+cd frontend && pnpm start           # Serveur de développement Angular (avec --open)
 cd frontend && pnpm build           # Build de production
-cd frontend && pnpm test            # Tests unitaires
+cd frontend && pnpm test:vitest     # Tests unitaires avec Vitest
+cd frontend && pnpm lint            # ESLint avec règles boundaries
 ```
+
+### Outils de Développement
+
+#### Frontend
+- **Bundler** : esbuild via Angular CLI 20
+- **Tests** : Vitest + jsdom pour tests unitaires
+- **Linting** : ESLint 9 avec typescript-eslint et boundaries
+- **Formatting** : Prettier avec configuration centralisée
+- **Analysis** : Bundle analyzer + source map explorer + madge
+
+#### Backends
+- **Runtime** : Bun pour performance optimale
+- **Types** : TypeScript strict avec configuration partagée
+- **Database** : Supabase avec migrations et types générés automatiquement
+
+#### Shared
+- **Build** : Double output ESM + CommonJS
+- **Types** : Types TypeScript exposés automatiquement
+- **Validation** : Schemas Zod pour validation runtime

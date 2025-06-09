@@ -1,18 +1,15 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "CommonJS",
     "lib": ["ES2022"],
     "declaration": true,
-    "outDir": "./dist",
-    "rootDir": "./",
+    "sourceMap": true,
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true
   },
-  "include": ["./**/*"],
+  "include": ["index.ts", "models/**/*.ts", "types/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

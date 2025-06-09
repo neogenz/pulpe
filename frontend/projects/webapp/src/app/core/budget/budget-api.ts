@@ -9,6 +9,7 @@ import {
   budgetResponseSchema,
   budgetErrorResponseSchema,
   type BudgetCreateFromOnboardingApiRequest,
+  budgetCreateFromOnboardingApiRequestSchema,
 } from '@pulpe/shared';
 import { MonthlyBudget, BudgetCategory } from './budget.models';
 import { environment } from '../../../environments/environment';
@@ -39,24 +40,17 @@ export class BudgetApi {
   createOnboardingBudget$(
     onboardingData: BudgetCreateFromOnboardingApiRequest,
   ): Observable<CreateBudgetApiResponse> {
-    // Transformer les données business en DTO pour l'API avec valeurs par défaut
+    // Transformer les données business en DTO pour l'API
     const budgetDto: BudgetCreateFromOnboardingApiRequest = {
       ...onboardingData,
       month: onboardingData.month,
       year: onboardingData.year,
       description: onboardingData.description,
-      // Assurer que les valeurs par défaut sont définies
-      monthlyIncome: onboardingData.monthlyIncome ?? 0,
-      housingCosts: onboardingData.housingCosts ?? 0,
-      healthInsurance: onboardingData.healthInsurance ?? 0,
-      leasingCredit: onboardingData.leasingCredit ?? 0,
-      phonePlan: onboardingData.phonePlan ?? 0,
-      transportCosts: onboardingData.transportCosts ?? 0,
     };
 
-    // Pas de validation côté client pour éviter les problèmes d'import
-    // La validation sera faite côté serveur avec Zod
-    const validatedRequest = budgetDto;
+    // Valider les données avec le schéma partagé
+    const validatedRequest =
+      budgetCreateFromOnboardingApiRequestSchema.parse(budgetDto);
 
     return this.#httpClient
       .post<BudgetResponse>(`${this.#baseUrl}/onboarding`, validatedRequest)

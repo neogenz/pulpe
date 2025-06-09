@@ -29,12 +29,6 @@
     "editor.rulers": [80]
   },
 
-  // Exclusions pour de meilleures performances
-  "files.exclude": {
-    "**/node_modules": true,
-    "**/dist": true,
-    "**/.angular": true
-  },
   "search.exclude": {
     "**/node_modules": true,
     "**/dist": true,

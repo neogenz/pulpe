@@ -1,9 +1,8 @@
 ---
 description: 
-globs: 
+globs: backend-nest/**
 alwaysApply: false
 ---
-
 Architecture:
 - Use modular structure
 
