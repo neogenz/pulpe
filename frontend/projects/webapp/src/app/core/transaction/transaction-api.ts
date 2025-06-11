@@ -1,9 +1,9 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import {
-  type TransactionCreateRequest,
+  type TransactionCreate,
   type TransactionResponse,
-  type TransactionUpdateRequest,
+  type TransactionUpdate,
 } from '@pulpe/shared';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -22,7 +22,7 @@ export class TransactionApi {
   }
 
   create$(
-    transaction: TransactionCreateRequest,
+    transaction: TransactionCreate,
   ): Observable<TransactionResponse> {
     return this.http.post<TransactionResponse>(this.apiUrl, transaction);
   }
@@ -33,7 +33,7 @@ export class TransactionApi {
 
   update$(
     id: string,
-    transaction: TransactionUpdateRequest,
+    transaction: TransactionUpdate,
   ): Observable<TransactionResponse> {
     return this.http.put<TransactionResponse>(
       `${this.apiUrl}/${id}`,

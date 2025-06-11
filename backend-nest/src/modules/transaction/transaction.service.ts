@@ -1,9 +1,8 @@
 import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import {
-  type TransactionCreateRequest,
-  type TransactionUpdateRequest,
+  type TransactionCreate,
+  type TransactionUpdate,
   type TransactionResponse,
-  type TransactionInsert,
 } from '@pulpe/shared';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
@@ -29,7 +28,7 @@ export class TransactionService {
 
       return {
         success: true as const,
-        transactions: transactions || [],
+        data: transactions || [],
       };
     } catch (error) {
       if (error instanceof InternalServerErrorException) {
@@ -41,12 +40,12 @@ export class TransactionService {
   }
 
   async create(
-    createTransactionDto: TransactionCreateRequest,
+    createTransactionDto: TransactionCreate,
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionResponse> {
     try {
-      const transactionData: TransactionInsert = {
+      const transactionData = {
         ...createTransactionDto,
         user_id: user.id,
       };
@@ -64,7 +63,7 @@ export class TransactionService {
 
       return {
         success: true as const,
-        transaction,
+        data: transaction,
       };
     } catch (error) {
       if (error instanceof BadRequestException) {
@@ -93,7 +92,7 @@ export class TransactionService {
 
       return {
         success: true as const,
-        transaction,
+        data: transaction,
       };
     } catch (error) {
       if (error instanceof NotFoundException) {
@@ -106,7 +105,7 @@ export class TransactionService {
 
   async update(
     id: string,
-    updateTransactionDto: TransactionUpdateRequest,
+    updateTransactionDto: TransactionUpdate,
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionResponse> {
@@ -128,7 +127,7 @@ export class TransactionService {
 
       return {
         success: true as const,
-        transaction,
+        data: transaction,
       };
     } catch (error) {
       if (error instanceof NotFoundException) {

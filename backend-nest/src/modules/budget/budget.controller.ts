@@ -23,14 +23,12 @@ import {
   ApiCreatedResponse,
 } from "@nestjs/swagger";
 import {
-  budgetCreateRequestSchema,
-  budgetUpdateRequestSchema,
-  budgetCreateFromOnboardingRequestSchema,
-  type BudgetCreateRequest,
-  type BudgetUpdateRequest,
-  type BudgetCreateFromOnboardingRequest,
-  budgetCreateFromOnboardingApiRequestSchema,
-  type BudgetCreateFromOnboardingApiRequest,
+  budgetCreateSchema,
+  budgetUpdateSchema,
+  budgetCreateFromOnboardingSchema,
+  type BudgetCreate,
+  type BudgetUpdate,
+  type BudgetCreateFromOnboarding,
 } from "@pulpe/shared";
 import { AuthGuard } from "@common/guards/auth.guard";
 import { ZodBodyPipe } from "@common/pipes/zod-validation.pipe";
@@ -95,9 +93,9 @@ export class BudgetController {
     description: "Invalid input data",
     type: ErrorResponseDto,
   })
-  @UsePipes(new ZodBodyPipe(budgetCreateRequestSchema))
+  @UsePipes(new ZodBodyPipe(budgetCreateSchema))
   async create(
-    @Body() createBudgetDto: BudgetCreateRequest,
+    @Body() createBudgetDto: BudgetCreate,
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient
   ): Promise<BudgetResponseDto> {
@@ -158,10 +156,10 @@ export class BudgetController {
     description: "Budget not found",
     type: ErrorResponseDto,
   })
-  @UsePipes(new ZodBodyPipe(budgetUpdateRequestSchema))
+  @UsePipes(new ZodBodyPipe(budgetUpdateSchema))
   async update(
     @Param("id", ParseUUIDPipe) id: string,
-    @Body() updateBudgetDto: BudgetUpdateRequest,
+    @Body() updateBudgetDto: BudgetUpdate,
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient
   ): Promise<BudgetResponseDto> {
@@ -182,9 +180,9 @@ export class BudgetController {
     description: "Invalid input data",
     type: ErrorResponseDto,
   })
-  @UsePipes(new ZodBodyPipe(budgetCreateFromOnboardingApiRequestSchema))
+  @UsePipes(new ZodBodyPipe(budgetCreateFromOnboardingSchema))
   async createFromOnboarding(
-    @Body() onboardingData: BudgetCreateFromOnboardingApiRequest,
+    @Body() onboardingData: BudgetCreateFromOnboarding,
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient
   ): Promise<BudgetResponseDto> {

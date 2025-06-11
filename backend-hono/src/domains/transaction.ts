@@ -1,14 +1,14 @@
 import type {
-  TransactionErrorResponse,
-  TransactionInsert,
+  ErrorResponse,
+  TransactionCreate,
   TransactionResponse,
 } from "@pulpe/shared";
 import {
-  transactionCreateRequestSchema,
-  transactionDeleteResponseSchema,
-  transactionErrorResponseSchema,
-  transactionResponseSchema,
-  transactionUpdateRequestSchema,
+  transactionCreateSchema,
+  deleteResponseSchema,
+  errorResponseSchema,
+  successResponseSchema,
+  transactionUpdateSchema,
 } from "@pulpe/shared";
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import {
@@ -57,7 +57,7 @@ const listTransactionsRoute = createRoute({
     200: {
       content: {
         "application/json": {
-          schema: transactionResponseSchema,
+          schema: successResponseSchema,
         },
       },
       description: "Liste des transactions récupérée avec succès",
@@ -65,7 +65,7 @@ const listTransactionsRoute = createRoute({
     500: {
       content: {
         "application/json": {
-          schema: transactionErrorResponseSchema,
+          schema: errorResponseSchema,
         },
       },
       description: "Erreur interne du serveur",
@@ -85,7 +85,7 @@ const listTransactionsByBudgetRoute = createRoute({
     200: {
       content: {
         "application/json": {
-          schema: transactionResponseSchema,
+          schema: successResponseSchema,
         },
       },
       description: "Liste des transactions du budget récupérée avec succès",
@@ -93,7 +93,7 @@ const listTransactionsByBudgetRoute = createRoute({
     500: {
       content: {
         "application/json": {
-          schema: transactionErrorResponseSchema,
+          schema: errorResponseSchema,
         },
       },
       description: "Erreur interne du serveur",
@@ -110,7 +110,7 @@ const createTransactionRoute = createRoute({
     body: {
       content: {
         "application/json": {
-          schema: transactionCreateRequestSchema,
+          schema: transactionCreateSchema,
         },
       },
       description: "Données de la transaction à créer",
@@ -121,7 +121,7 @@ const createTransactionRoute = createRoute({
     201: {
       content: {
         "application/json": {
-          schema: transactionResponseSchema,
+          schema: successResponseSchema,
         },
       },
       description: "Transaction créée avec succès",
@@ -129,7 +129,7 @@ const createTransactionRoute = createRoute({
     400: {
       content: {
         "application/json": {
-          schema: transactionErrorResponseSchema,
+          schema: errorResponseSchema,
         },
       },
       description: "Données invalides",
@@ -137,7 +137,7 @@ const createTransactionRoute = createRoute({
     500: {
       content: {
         "application/json": {
-          schema: transactionErrorResponseSchema,
+          schema: errorResponseSchema,
         },
       },
       description: "Erreur interne du serveur",
@@ -157,7 +157,7 @@ const getTransactionRoute = createRoute({
     200: {
       content: {
         "application/json": {
-          schema: transactionResponseSchema,
+          schema: successResponseSchema,
         },
       },
       description: "Transaction récupérée avec succès",
@@ -165,7 +165,7 @@ const getTransactionRoute = createRoute({
     404: {
       content: {
         "application/json": {
-          schema: transactionErrorResponseSchema,
+          schema: errorResponseSchema,
         },
       },
       description: "Transaction non trouvée",
@@ -173,7 +173,7 @@ const getTransactionRoute = createRoute({
     500: {
       content: {
         "application/json": {
-          schema: transactionErrorResponseSchema,
+          schema: errorResponseSchema,
         },
       },
       description: "Erreur interne du serveur",
@@ -191,7 +191,7 @@ const updateTransactionRoute = createRoute({
     body: {
       content: {
         "application/json": {
-          schema: transactionUpdateRequestSchema,
+          schema: transactionUpdateSchema,
         },
       },
       description: "Données de la transaction à mettre à jour",
@@ -202,7 +202,7 @@ const updateTransactionRoute = createRoute({
     200: {
       content: {
         "application/json": {
-          schema: transactionResponseSchema,
+          schema: successResponseSchema,
         },
       },
       description: "Transaction mise à jour avec succès",
@@ -210,7 +210,7 @@ const updateTransactionRoute = createRoute({
     404: {
       content: {
         "application/json": {
-          schema: transactionErrorResponseSchema,
+          schema: errorResponseSchema,
         },
       },
       description: "Transaction non trouvée",
@@ -218,7 +218,7 @@ const updateTransactionRoute = createRoute({
     500: {
       content: {
         "application/json": {
-          schema: transactionErrorResponseSchema,
+          schema: errorResponseSchema,
         },
       },
       description: "Erreur interne du serveur",
@@ -238,7 +238,7 @@ const deleteTransactionRoute = createRoute({
     200: {
       content: {
         "application/json": {
-          schema: transactionDeleteResponseSchema,
+          schema: deleteResponseSchema,
         },
       },
       description: "Transaction supprimée avec succès",
@@ -246,7 +246,7 @@ const deleteTransactionRoute = createRoute({
     404: {
       content: {
         "application/json": {
-          schema: transactionErrorResponseSchema,
+          schema: errorResponseSchema,
         },
       },
       description: "Transaction non trouvée",
@@ -254,7 +254,7 @@ const deleteTransactionRoute = createRoute({
     500: {
       content: {
         "application/json": {
-          schema: transactionErrorResponseSchema,
+          schema: errorResponseSchema,
         },
       },
       description: "Erreur interne du serveur",
@@ -359,7 +359,7 @@ transactionRoutes.openapi(createTransactionRoute, async (c) => {
     const requestData = c.req.valid("json");
 
     // Inclure automatiquement le user_id pour le RLS
-    const transactionData: TransactionInsert = {
+    const transactionData: TransactionCreate = {
       ...requestData,
       user_id: user.id, // Ajout automatique du user_id
     };

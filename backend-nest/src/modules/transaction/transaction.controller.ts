@@ -17,10 +17,10 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import {
-  transactionCreateRequestSchema,
-  transactionUpdateRequestSchema,
-  type TransactionCreateRequest,
-  type TransactionUpdateRequest,
+  transactionCreateSchema,
+  transactionUpdateSchema,
+  type TransactionCreate,
+  type TransactionUpdate,
   type TransactionResponse,
 } from '@pulpe/shared';
 import { AuthGuard } from '@common/guards/auth.guard';
@@ -61,9 +61,9 @@ export class TransactionController {
     status: 201,
     description: 'Transaction créée avec succès',
   })
-  @UsePipes(new ZodBodyPipe(transactionCreateRequestSchema))
+  @UsePipes(new ZodBodyPipe(transactionCreateSchema))
   async create(
-    @Body() createTransactionDto: TransactionCreateRequest,
+    @Body() createTransactionDto: TransactionCreate,
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionResponse> {
@@ -100,10 +100,10 @@ export class TransactionController {
     status: 200,
     description: 'Transaction mise à jour avec succès',
   })
-  @UsePipes(new ZodBodyPipe(transactionUpdateRequestSchema))
+  @UsePipes(new ZodBodyPipe(transactionUpdateSchema))
   async update(
     @Param('id') id: string,
-    @Body() updateTransactionDto: TransactionUpdateRequest,
+    @Body() updateTransactionDto: TransactionUpdate,
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionResponse> {

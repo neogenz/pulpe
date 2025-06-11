@@ -1,18 +1,18 @@
-import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { Injectable, inject } from '@angular/core';
 import {
   type Budget,
-  type BudgetCreateRequest,
+  type BudgetCreate,
+  type BudgetCreateFromOnboarding,
   type BudgetResponse,
-  budgetResponseSchema,
-  budgetErrorResponseSchema,
-  type BudgetCreateFromOnboardingApiRequest,
-  budgetCreateFromOnboardingApiRequestSchema,
+  budgetCreateFromOnboardingSchema,
+  budgetSchema,
+  errorResponseSchema,
 } from '@pulpe/shared';
-import { MonthlyBudget, BudgetCategory } from './budget.models';
+import { Observable, throwError } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
+import { BudgetCategory, MonthlyBudget } from './budget.models';
 
 export interface CreateBudgetApiResponse {
   readonly budget: Budget;
@@ -38,10 +38,10 @@ export class BudgetApi {
    * Transforme les données business en DTO pour l'API
    */
   createOnboardingBudget$(
-    onboardingData: BudgetCreateFromOnboardingApiRequest,
+    onboardingData: BudgetCreateFromOnboarding,
   ): Observable<CreateBudgetApiResponse> {
     // Transformer les données business en DTO pour l'API
-    const budgetDto: BudgetCreateFromOnboardingApiRequest = {
+    const budgetDto: BudgetCreateFromOnboarding = {
       ...onboardingData,
       month: onboardingData.month,
       year: onboardingData.year,
@@ -49,8 +49,7 @@ export class BudgetApi {
     };
 
     // Valider les données avec le schéma partagé
-    const validatedRequest =
-      budgetCreateFromOnboardingApiRequestSchema.parse(budgetDto);
+    const validatedRequest = budgetCreateFromOnboardingSchema.parse(budgetDto);
 
     return this.#httpClient
       .post<BudgetResponse>(
@@ -59,19 +58,16 @@ export class BudgetApi {
       )
       .pipe(
         map((response) => {
-          // Valider la réponse avec le schéma partagé
-          const validatedResponse = budgetResponseSchema.parse(response);
-
-          if (!validatedResponse.budget) {
+          if (!response.data || Array.isArray(response.data)) {
             throw new Error('Réponse invalide: budget manquant');
           }
 
           const result: CreateBudgetApiResponse = {
-            budget: validatedResponse.budget,
+            budget: response.data,
             message: 'Budget créé avec succès',
           };
 
-          this.#saveBudgetToStorage(validatedResponse.budget);
+          this.#saveBudgetToStorage(response.data);
           return result;
         }),
         catchError((error) =>
@@ -83,11 +79,10 @@ export class BudgetApi {
   /**
    * Récupère tous les budgets de l'utilisateur
    */
-  getAllBudgets$(): Observable<readonly Budget[]> {
+  getAllBudgets$(): Observable<Budget[]> {
     return this.#httpClient.get<BudgetResponse>(this.#baseUrl).pipe(
       map((response) => {
-        const validatedResponse = budgetResponseSchema.parse(response);
-        return validatedResponse.budgets || [];
+        return Array.isArray(response.data) ? response.data : [];
       }),
       catchError((error) =>
         this.#handleApiError(
@@ -106,13 +101,11 @@ export class BudgetApi {
       .get<BudgetResponse>(`${this.#baseUrl}/${budgetId}`)
       .pipe(
         map((response) => {
-          const validatedResponse = budgetResponseSchema.parse(response);
-
-          if (!validatedResponse.budget) {
+          if (!response.data || Array.isArray(response.data)) {
             throw new Error('Budget non trouvé');
           }
 
-          return validatedResponse.budget;
+          return response.data;
         }),
         catchError((error) =>
           this.#handleApiError(
@@ -153,20 +146,18 @@ export class BudgetApi {
    */
   updateBudget$(
     budgetId: string,
-    updateData: Partial<BudgetCreateRequest>,
+    updateData: Partial<BudgetCreate>,
   ): Observable<Budget> {
     return this.#httpClient
       .put<BudgetResponse>(`${this.#baseUrl}/${budgetId}`, updateData)
       .pipe(
         map((response) => {
-          const validatedResponse = budgetResponseSchema.parse(response);
-
-          if (!validatedResponse.budget) {
+          if (!response.data || Array.isArray(response.data)) {
             throw new Error('Réponse invalide: budget manquant');
           }
 
-          this.#saveBudgetToStorage(validatedResponse.budget);
-          return validatedResponse.budget;
+          this.#saveBudgetToStorage(response.data);
+          return response.data;
         }),
         catchError((error) =>
           this.#handleApiError(
@@ -203,7 +194,7 @@ export class BudgetApi {
 
       const parsedData = JSON.parse(savedBudget);
       // Utiliser la validation Zod du schéma partagé
-      const result = budgetResponseSchema.shape.budget.safeParse(parsedData);
+      const result = budgetSchema.safeParse(parsedData);
 
       if (result.success && result.data) {
         return result.data;
@@ -304,7 +295,7 @@ export class BudgetApi {
     if (error instanceof HttpErrorResponse) {
       // Utiliser le schéma d'erreur partagé
       try {
-        const errorResponse = budgetErrorResponseSchema.parse(error.error);
+        const errorResponse = errorResponseSchema.parse(error.error);
         const budgetError: BudgetApiError = {
           message: errorResponse.error,
           details: errorResponse.details,

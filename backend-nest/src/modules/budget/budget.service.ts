@@ -7,10 +7,9 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import {
-  type BudgetCreateFromOnboardingApiRequest,
-  type BudgetCreateRequest,
-  type BudgetInsert,
-  type BudgetUpdateRequest,
+  type BudgetCreateFromOnboarding,
+  type BudgetCreate,
+  type BudgetUpdate,
 } from "@pulpe/shared";
 import {
   BudgetDeleteResponseDto,
@@ -40,7 +39,7 @@ export class BudgetService {
 
       return {
         success: true as const,
-        budgets: budgets || [],
+        data: budgets || [],
       };
     } catch (error) {
       if (error instanceof InternalServerErrorException) {
@@ -52,12 +51,12 @@ export class BudgetService {
   }
 
   async create(
-    createBudgetDto: BudgetCreateRequest,
+    createBudgetDto: BudgetCreate,
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient
   ): Promise<BudgetResponseDto> {
     try {
-      const budgetData: BudgetInsert = {
+      const budgetData = {
         ...createBudgetDto,
         user_id: user.id,
       };
@@ -75,7 +74,7 @@ export class BudgetService {
 
       return {
         success: true as const,
-        budget,
+        data: budget,
       };
     } catch (error) {
       if (error instanceof BadRequestException) {
@@ -104,7 +103,7 @@ export class BudgetService {
 
       return {
         success: true as const,
-        budget,
+        data: budget,
       };
     } catch (error) {
       if (error instanceof NotFoundException) {
@@ -117,7 +116,7 @@ export class BudgetService {
 
   async update(
     id: string,
-    updateBudgetDto: BudgetUpdateRequest,
+    updateBudgetDto: BudgetUpdate,
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient
   ): Promise<BudgetResponseDto> {
@@ -141,7 +140,7 @@ export class BudgetService {
 
       return {
         success: true as const,
-        budget,
+        data: budget,
       };
     } catch (error) {
       if (error instanceof NotFoundException) {
@@ -181,7 +180,7 @@ export class BudgetService {
   }
 
   async createFromOnboarding(
-    onboardingData: BudgetCreateFromOnboardingApiRequest,
+    onboardingData: BudgetCreateFromOnboarding,
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient
   ): Promise<BudgetResponseDto> {

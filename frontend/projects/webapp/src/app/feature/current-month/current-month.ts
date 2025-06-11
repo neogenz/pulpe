@@ -120,7 +120,7 @@ interface DashboardData {
   styles: [
     `
       .empty-state {
-        @apply flex flex-col items-center justify-center py-16 text-center;
+        @apply flex flex-col items-center justify-center py-8 text-center;
       }
 
       .transaction-item {
@@ -167,7 +167,7 @@ export default class CurrentMonth {
     loader: async ({ params }) => {
       try {
         // Charger le budget
-        const budget = await firstValueFrom(
+        const budget = await firstValueFrom<Budget | null>(
           this.#budgetApi.getBudgetForMonth$(params.month, params.year),
         );
 
@@ -182,7 +182,7 @@ export default class CurrentMonth {
 
         return {
           budget,
-          transactions: transactionResponse.transactions || [],
+          transactions: Array.isArray(transactionResponse.data) ? transactionResponse.data : [],
         };
       } catch (error) {
         // Logger l'erreur pour le monitoring

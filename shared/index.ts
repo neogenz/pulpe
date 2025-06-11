@@ -1,60 +1,32 @@
-// Schemas Zod - Budget
+// Schemas
 export {
   budgetSchema,
-  budgetInsertSchema,
+  budgetCreateSchema,
+  budgetCreateFromOnboardingSchema,
   budgetUpdateSchema,
-  budgetCreateFromOnboardingRequestSchema,
-  budgetCreateFromOnboardingApiRequestSchema,
-  budgetCreateRequestSchema,
-  budgetUpdateRequestDocSchema,
-  budgetUpdateRequestSchema,
-} from "./models/budget.schema";
-
-export {
-  budgetResponseSchema,
-  budgetErrorResponseSchema,
-  budgetDeleteResponseSchema,
-} from "./models/response.schema";
-
-// Schemas Zod - Transaction
-export {
   transactionSchema,
-  transactionInsertSchema,
+  transactionCreateSchema,
   transactionUpdateSchema,
-  transactionCreateRequestSchema,
-  transactionUpdateRequestDocSchema,
-  transactionUpdateRequestSchema,
   expenseTypeSchema,
   transactionTypeSchema,
-} from "./models/transaction.schema";
+  successResponseSchema,
+  errorResponseSchema,
+  deleteResponseSchema,
+} from "./schemas";
 
-export {
-  transactionResponseSchema,
-  transactionErrorResponseSchema,
-  transactionDeleteResponseSchema,
-} from "./models/transaction-response.schema";
-
-// Types TypeScript
+// Types
 export type {
   Budget,
-  BudgetInsert,
+  BudgetCreate,
+  BudgetCreateFromOnboarding,
   BudgetUpdate,
-  BudgetCreateRequest,
-  BudgetUpdateRequest,
-  BudgetResponse,
-  BudgetErrorResponse,
-  BudgetCreateFromOnboardingRequest,
-  BudgetCreateFromOnboardingApiRequest,
-} from "./types/budget.types";
-
-export type {
   Transaction,
-  TransactionInsert,
+  TransactionCreate,
   TransactionUpdate,
-  TransactionCreateRequest,
-  TransactionUpdateRequest,
-  TransactionResponse,
-  TransactionErrorResponse,
   ExpenseType,
   TransactionType,
-} from "./types/transaction.types";
+  BudgetResponse,
+  TransactionResponse,
+  ErrorResponse,
+  DeleteResponse,
+} from "./types";

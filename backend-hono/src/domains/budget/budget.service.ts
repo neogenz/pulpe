@@ -1,7 +1,7 @@
 import type { Budget, BudgetUpdate } from "@pulpe/shared";
 import {
-  BudgetCreateFromOnboardingRequest,
-  type TransactionInsert,
+  type BudgetCreateFromOnboarding,
+  type TransactionCreate,
   type TransactionType,
   type ExpenseType,
 } from "@pulpe/shared";
@@ -85,7 +85,7 @@ export class BudgetService {
   }
 
   async createBudget(
-    budgetData: BudgetCreateFromOnboardingRequest
+    budgetData: BudgetCreateFromOnboarding
   ): Promise<Budget> {
     const {
       monthlyIncome,
@@ -186,7 +186,7 @@ export class BudgetService {
     }
 
     // Create transactions
-    const transactions: TransactionInsert[] = [];
+    const transactions: TransactionCreate[] = [];
     let transactionCount = 0;
 
     if (params.monthlyIncome > 0) {

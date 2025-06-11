@@ -1,5 +1,5 @@
 import type { AuthenticatedSupabaseClient } from "../../supabase/client";
-import type { Budget, BudgetInsert, BudgetUpdate } from "@pulpe/shared";
+import type { Budget, BudgetCreate, BudgetUpdate } from "@pulpe/shared";
 
 export class BudgetRepository {
   constructor(private supabase: AuthenticatedSupabaseClient) {}
@@ -22,7 +22,7 @@ export class BudgetRepository {
     return budgets;
   }
 
-  async createBudget(budgetData: BudgetInsert): Promise<Budget | null> {
+  async createBudget(budgetData: BudgetCreate): Promise<Budget | null> {
     const { data: budget, error } = await this.supabase
       .from("budgets")
       .insert(budgetData)

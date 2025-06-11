@@ -68,7 +68,7 @@ export class BudgetListResponseDto {
     description: 'List of budgets',
     type: [BudgetDto]
   })
-  budgets: BudgetDto[];
+  data: BudgetDto[];
 }
 
 export class BudgetResponseDto {
@@ -82,7 +82,7 @@ export class BudgetResponseDto {
     description: 'Budget data',
     type: BudgetDto
   })
-  budget: BudgetDto;
+  data: BudgetDto;
 }
 
 export class BudgetDeleteResponseDto {

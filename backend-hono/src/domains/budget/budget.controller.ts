@@ -1,12 +1,15 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import {
-  budgetCreateFromOnboardingApiRequestSchema,
-  budgetCreateRequestSchema,
-  budgetDeleteResponseSchema,
-  budgetErrorResponseSchema,
-  budgetResponseSchema,
-  budgetUpdateRequestSchema,
-  type BudgetCreateFromOnboardingRequest,
+  budgetCreateFromOnboardingSchema,
+  budgetCreateSchema,
+  budgetUpdateSchema,
+  errorResponseSchema,
+  successResponseSchema,
+  deleteResponseSchema,
+  type BudgetCreateFromOnboarding,
+  type BudgetResponse,
+  type ErrorResponse,
+  type DeleteResponse,
 } from "@pulpe/shared";
 import {
   authMiddleware,
@@ -44,7 +47,7 @@ const listBudgetsRoute = createRoute({
     200: {
       content: {
         "application/json": {
-          schema: budgetResponseSchema,
+          schema: successResponseSchema,
         },
       },
       description: "Liste des budgets récupérée avec succès",
@@ -52,7 +55,7 @@ const listBudgetsRoute = createRoute({
     500: {
       content: {
         "application/json": {
-          schema: budgetErrorResponseSchema,
+          schema: errorResponseSchema,
         },
       },
       description: "Erreur interne du serveur",
@@ -71,7 +74,7 @@ const createBudgetFromOnboardingRoute = createRoute({
     body: {
       content: {
         "application/json": {
-          schema: budgetCreateFromOnboardingApiRequestSchema,
+          schema: budgetCreateFromOnboardingSchema,
         },
       },
       description: "Données du budget à créer depuis l'onboarding",
@@ -82,7 +85,7 @@ const createBudgetFromOnboardingRoute = createRoute({
     201: {
       content: {
         "application/json": {
-          schema: budgetResponseSchema,
+          schema: successResponseSchema,
         },
       },
       description: "Budget créé avec succès avec transactions associées",
@@ -90,7 +93,7 @@ const createBudgetFromOnboardingRoute = createRoute({
     400: {
       content: {
         "application/json": {
-          schema: budgetErrorResponseSchema,
+          schema: errorResponseSchema,
         },
       },
       description: "Données invalides",
@@ -98,7 +101,7 @@ const createBudgetFromOnboardingRoute = createRoute({
     500: {
       content: {
         "application/json": {
-          schema: budgetErrorResponseSchema,
+          schema: errorResponseSchema,
         },
       },
       description: "Erreur interne du serveur",
@@ -116,7 +119,7 @@ const createBudgetRoute = createRoute({
     body: {
       content: {
         "application/json": {
-          schema: budgetCreateRequestSchema,
+          schema: budgetCreateSchema,
         },
       },
       description: "Données du budget à créer",
@@ -127,7 +130,7 @@ const createBudgetRoute = createRoute({
     201: {
       content: {
         "application/json": {
-          schema: budgetResponseSchema,
+          schema: successResponseSchema,
         },
       },
       description: "Budget créé avec succès",
@@ -135,7 +138,7 @@ const createBudgetRoute = createRoute({
     400: {
       content: {
         "application/json": {
-          schema: budgetErrorResponseSchema,
+          schema: errorResponseSchema,
         },
       },
       description: "Données invalides",
@@ -143,7 +146,7 @@ const createBudgetRoute = createRoute({
     500: {
       content: {
         "application/json": {
-          schema: budgetErrorResponseSchema,
+          schema: errorResponseSchema,
         },
       },
       description: "Erreur interne du serveur",
@@ -164,7 +167,7 @@ const getBudgetRoute = createRoute({
     200: {
       content: {
         "application/json": {
-          schema: budgetResponseSchema,
+          schema: successResponseSchema,
         },
       },
       description: "Budget récupéré avec succès",
@@ -172,7 +175,7 @@ const getBudgetRoute = createRoute({
     404: {
       content: {
         "application/json": {
-          schema: budgetErrorResponseSchema,
+          schema: errorResponseSchema,
         },
       },
       description: "Budget non trouvé",
@@ -180,7 +183,7 @@ const getBudgetRoute = createRoute({
     500: {
       content: {
         "application/json": {
-          schema: budgetErrorResponseSchema,
+          schema: errorResponseSchema,
         },
       },
       description: "Erreur interne du serveur",
@@ -199,7 +202,7 @@ const updateBudgetRoute = createRoute({
     body: {
       content: {
         "application/json": {
-          schema: budgetUpdateRequestSchema,
+          schema: budgetUpdateSchema,
         },
       },
       description: "Données du budget à mettre à jour",
@@ -210,7 +213,7 @@ const updateBudgetRoute = createRoute({
     200: {
       content: {
         "application/json": {
-          schema: budgetResponseSchema,
+          schema: successResponseSchema,
         },
       },
       description: "Budget mis à jour avec succès",
@@ -218,7 +221,7 @@ const updateBudgetRoute = createRoute({
     404: {
       content: {
         "application/json": {
-          schema: budgetErrorResponseSchema,
+          schema: errorResponseSchema,
         },
       },
       description: "Budget non trouvé",
@@ -226,7 +229,7 @@ const updateBudgetRoute = createRoute({
     500: {
       content: {
         "application/json": {
-          schema: budgetErrorResponseSchema,
+          schema: errorResponseSchema,
         },
       },
       description: "Erreur interne du serveur",
@@ -247,7 +250,7 @@ const deleteBudgetRoute = createRoute({
     200: {
       content: {
         "application/json": {
-          schema: budgetDeleteResponseSchema,
+          schema: deleteResponseSchema,
         },
       },
       description: "Budget supprimé avec succès",
@@ -255,7 +258,7 @@ const deleteBudgetRoute = createRoute({
     404: {
       content: {
         "application/json": {
-          schema: budgetErrorResponseSchema,
+          schema: errorResponseSchema,
         },
       },
       description: "Budget non trouvé",
@@ -263,7 +266,7 @@ const deleteBudgetRoute = createRoute({
     500: {
       content: {
         "application/json": {
-          schema: budgetErrorResponseSchema,
+          schema: errorResponseSchema,
         },
       },
       description: "Erreur interne du serveur",
@@ -310,7 +313,7 @@ budgetRoutes.openapi(createBudgetFromOnboardingRoute, async (c) => {
 
     const body = await c.req.json();
     const validation =
-      budgetCreateFromOnboardingApiRequestSchema.safeParse(body);
+      budgetCreateFromOnboardingSchema.safeParse(body);
 
     if (!validation.success) {
       return c.json(
@@ -324,7 +327,7 @@ budgetRoutes.openapi(createBudgetFromOnboardingRoute, async (c) => {
     }
 
     const requestData = validation.data;
-    const budgetData: BudgetCreateFromOnboardingRequest = {
+    const budgetData: BudgetCreateFromOnboarding = {
       ...requestData,
       user_id: user.id,
       monthlyIncome: requestData.monthlyIncome || 0,
@@ -367,7 +370,7 @@ budgetRoutes.openapi(createBudgetRoute, async (c) => {
     const budgetService = new BudgetService(supabase);
 
     const body = await c.req.json();
-    const validation = budgetCreateRequestSchema.safeParse(body);
+    const validation = budgetCreateSchema.safeParse(body);
 
     if (!validation.success) {
       return c.json(
