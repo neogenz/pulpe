@@ -189,7 +189,7 @@ export default class Registration implements OnInit {
         'Votre compte a été créé avec succès ! Redirection vers votre budget...',
       );
 
-      setTimeout(() => this.#router.navigate([ROUTES.CURRENT_MONTH]), 2000);
+      this.#router.navigate([ROUTES.CURRENT_MONTH]);
     } catch (error) {
       console.error("Erreur lors de l'inscription:", error);
       this.errorMessage.set(
