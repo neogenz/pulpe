@@ -13,7 +13,7 @@ export const ROUTES = {
   BUDGET_TEMPLATES: '/app/budget-templates',
   ONBOARDING_REGISTRATION: '/onboarding/registration',
   ONBOARDING_WELCOME: '/onboarding/welcome',
-}
+};
 
 export const routes: Routes = [
   {
