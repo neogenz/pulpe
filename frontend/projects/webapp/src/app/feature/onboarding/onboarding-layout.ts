@@ -4,6 +4,7 @@ import {
   inject,
   signal,
   WritableSignal,
+  Signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
@@ -14,13 +15,7 @@ import {
   RouterOutlet,
 } from '@angular/router';
 import { filter, map, startWith } from 'rxjs';
-
-export interface OnboardingLayoutData {
-  title: string;
-  subtitle?: string;
-  currentStep: number;
-  totalSteps: number;
-}
+import { OnboardingStep, OnboardingLayoutData } from './onboarding-step';
 
 @Component({
   selector: 'pulpe-onboarding-layout',
@@ -116,17 +111,13 @@ export class OnboardingLayout {
     'registration',
   ];
 
-  private activatedComponent: WritableSignal<{
-    onboardingLayoutData?: OnboardingLayoutData;
-    canContinue?: WritableSignal<boolean>;
-    isSubmitting?: () => boolean;
-    registerAndCreateAccount?: () => Promise<void>;
-  } | null> = signal(null);
+  private activatedComponent: WritableSignal<OnboardingStep | null> =
+    signal(null);
 
   protected currentStepData = signal<OnboardingLayoutData | null>(null);
   protected showPreviousButton = signal<boolean>(true);
   protected showProgress = signal<boolean>(true);
-  protected canContinue: WritableSignal<boolean> = signal(true);
+  protected canContinue: Signal<boolean> = signal(true);
   protected nextButtonText = signal<string>('Continuer');
 
   constructor() {
@@ -152,20 +143,11 @@ export class OnboardingLayout {
       });
   }
 
-  onActivate(
-    component: {
-      onboardingLayoutData?: OnboardingLayoutData;
-      canContinue?: WritableSignal<boolean>;
-    } | null,
-  ) {
+  onActivate(component: OnboardingStep) {
     this.activatedComponent.set(component);
 
-    if (component?.onboardingLayoutData) {
-      this.currentStepData.set(component.onboardingLayoutData);
-    }
-    if (component?.canContinue) {
-      this.canContinue = component.canContinue;
-    }
+    this.currentStepData.set(component.onboardingLayoutData);
+    this.canContinue = component.canContinue;
   }
 
   protected get progressSteps(): number[] {
@@ -184,13 +166,13 @@ export class OnboardingLayout {
   protected async onNext(): Promise<void> {
     const currentStepIndex = this.#getCurrentStepIndex();
     const isLastStep = currentStepIndex === this.steps.length - 1;
+    const activeComponent = this.activatedComponent();
 
-    if (isLastStep) {
-      const activeComponent = this.activatedComponent();
-      if (activeComponent && activeComponent.registerAndCreateAccount) {
-        await activeComponent.registerAndCreateAccount();
-      }
-    } else if (currentStepIndex < this.steps.length - 1) {
+    if (activeComponent && activeComponent.onNext) {
+      await activeComponent.onNext();
+    }
+
+    if (!isLastStep) {
       const nextStep = this.steps[currentStepIndex + 1];
       this.#router.navigate([`./${nextStep}`], { relativeTo: this.#route });
     }
@@ -208,10 +190,9 @@ export class OnboardingLayout {
     const isLastStep = index === this.steps.length - 1;
 
     const activeComponent = this.activatedComponent();
-    const isSubmitting =
-      isLastStep && activeComponent?.isSubmitting
-        ? activeComponent.isSubmitting()
-        : false;
+    const isSubmitting = activeComponent?.isSubmitting
+      ? activeComponent.isSubmitting()
+      : false;
 
     this.nextButtonText.set(
       isSubmitting

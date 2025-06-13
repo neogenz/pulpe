@@ -9,7 +9,10 @@ import { FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
-import { OnboardingLayoutData } from '@features/onboarding/onboarding-layout';
+import {
+  OnboardingLayoutData,
+  OnboardingStep,
+} from '@features/onboarding/onboarding-step';
 import { OnboardingApi } from '@features/onboarding/onboarding-api';
 import { ONBOARDING_TOTAL_STEPS } from '../onboarding-constants';
 
@@ -33,7 +36,7 @@ import { ONBOARDING_TOTAL_STEPS } from '../onboarding-constants';
     </div>
   `,
 })
-export default class PersonalInfo {
+export default class PersonalInfo implements OnboardingStep {
   private readonly onboardingApi = inject(OnboardingApi);
 
   public readonly onboardingLayoutData: OnboardingLayoutData = {

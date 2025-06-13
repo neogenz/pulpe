@@ -5,7 +5,10 @@ import {
   inject,
   computed,
 } from '@angular/core';
-import { OnboardingLayoutData } from '@features/onboarding/onboarding-layout';
+import {
+  OnboardingLayoutData,
+  OnboardingStep,
+} from '@features/onboarding/onboarding-step';
 import { OnboardingCurrencyInput } from '@features/onboarding/currency-input';
 import { OnboardingApi } from '@features/onboarding/onboarding-api';
 import { ONBOARDING_TOTAL_STEPS } from '../onboarding-constants';
@@ -25,7 +28,7 @@ import { ONBOARDING_TOTAL_STEPS } from '../onboarding-constants';
     </div>
   `,
 })
-export default class Transport {
+export default class Transport implements OnboardingStep {
   private readonly onboardingApi = inject(OnboardingApi);
 
   public readonly onboardingLayoutData: OnboardingLayoutData = {

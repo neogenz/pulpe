@@ -1,8 +1,16 @@
-import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  inject,
+  computed,
+} from '@angular/core';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { ROUTES } from '@core/routing/routes-constants';
-import { OnboardingLayoutData } from '@features/onboarding/onboarding-layout';
+import {
+  OnboardingLayoutData,
+  OnboardingStep,
+} from '@features/onboarding/onboarding-step';
 
 @Component({
   selector: 'pulpe-welcome',
@@ -46,7 +54,7 @@ import { OnboardingLayoutData } from '@features/onboarding/onboarding-layout';
     </div>
   `,
 })
-export default class Welcome {
+export default class Welcome implements OnboardingStep {
   readonly #router = inject(Router);
 
   public readonly onboardingLayoutData: OnboardingLayoutData = {
@@ -56,6 +64,8 @@ export default class Welcome {
     currentStep: 0,
     totalSteps: 9,
   };
+
+  public readonly canContinue = computed(() => true);
 
   protected navigateToLogin(): void {
     this.#router.navigate([ROUTES.LOGIN]);

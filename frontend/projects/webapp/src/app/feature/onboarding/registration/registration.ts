@@ -12,7 +12,10 @@ import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { firstValueFrom } from 'rxjs';
-import { OnboardingLayoutData } from '@features/onboarding/onboarding-layout';
+import {
+  OnboardingLayoutData,
+  OnboardingStep,
+} from '@features/onboarding/onboarding-step';
 import {
   OnboardingApi,
   OnboardingStepData,
@@ -80,7 +83,7 @@ import { BudgetCreateFromOnboarding } from '@pulpe/shared';
     </div>
   `,
 })
-export default class Registration {
+export default class Registration implements OnboardingStep {
   #router = inject(Router);
   #onboardingApi = inject(OnboardingApi);
   #budgetApi = inject(BudgetApi);
@@ -122,7 +125,7 @@ export default class Registration {
     );
   }
 
-  public async registerAndCreateAccount(): Promise<void> {
+  public async onNext(): Promise<void> {
     if (!this.canContinue() || this.isSubmitting()) return;
 
     this.isSubmitting.set(true);
