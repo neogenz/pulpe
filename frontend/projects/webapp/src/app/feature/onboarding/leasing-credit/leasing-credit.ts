@@ -3,12 +3,9 @@ import {
   ChangeDetectionStrategy,
   signal,
   inject,
+  computed,
 } from '@angular/core';
-import { Router } from '@angular/router';
-import {
-  OnboardingLayout,
-  OnboardingLayoutData,
-} from '@features/onboarding/onboarding-layout';
+import { OnboardingLayoutData } from '@features/onboarding/onboarding-layout';
 import { OnboardingCurrencyInput } from '@features/onboarding/currency-input';
 import { OnboardingApi } from '@features/onboarding/onboarding-api';
 import { ONBOARDING_TOTAL_STEPS } from '../onboarding-constants';
@@ -16,30 +13,22 @@ import { ONBOARDING_TOTAL_STEPS } from '../onboarding-constants';
 @Component({
   selector: 'pulpe-leasing-credit',
   standalone: true,
-  imports: [OnboardingLayout, OnboardingCurrencyInput],
+  imports: [OnboardingCurrencyInput],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <pulpe-onboarding-layout
-      [onboardingLayoutData]="onboardingLayoutData"
-      [canContinue]="canContinue()"
-      (next)="navigateNext()"
-      (previous)="navigatePrevious()"
-    >
-      <div class="space-y-6">
-        <pulpe-onboarding-currency-input
-          label="Montant de leasing ou crédits"
-          [value]="leasingCreditValue()"
-          (valueChange)="onLeasingCreditChange($event)"
-        />
-      </div>
-    </pulpe-onboarding-layout>
+    <div class="space-y-6">
+      <pulpe-onboarding-currency-input
+        label="Montant de leasing ou crédits"
+        [(value)]="leasingCreditValue"
+        (valueChange)="onLeasingCreditChange()"
+      />
+    </div>
   `,
 })
 export default class LeasingCredit {
-  private readonly router = inject(Router);
   private readonly onboardingApi = inject(OnboardingApi);
 
-  protected readonly onboardingLayoutData: OnboardingLayoutData = {
+  public readonly onboardingLayoutData: OnboardingLayoutData = {
     title: 'Leasing ou crédit à la consommation ?',
     subtitle:
       'Combien payes-tu de leasing ou crédit à la consommation chaque mois ?',
@@ -47,7 +36,7 @@ export default class LeasingCredit {
     totalSteps: ONBOARDING_TOTAL_STEPS,
   };
 
-  protected leasingCreditValue = signal<number | null>(null);
+  public leasingCreditValue = signal<number | null>(null);
 
   constructor() {
     const existingLeasingCredit =
@@ -57,22 +46,13 @@ export default class LeasingCredit {
     }
   }
 
-  protected canContinue(): boolean {
+  public canContinue = computed(() => {
     return (
       this.leasingCreditValue() !== null && this.leasingCreditValue()! >= 0
     );
-  }
+  });
 
-  protected onLeasingCreditChange(value: number | null): void {
-    this.leasingCreditValue.set(value);
-  }
-
-  protected navigateNext(): void {
+  protected onLeasingCreditChange(): void {
     this.onboardingApi.updateLeasingCreditStep(this.leasingCreditValue());
-    this.router.navigate(['/onboarding/phone-plan']);
-  }
-
-  protected navigatePrevious(): void {
-    this.router.navigate(['/onboarding/health-insurance']);
   }
 }
