@@ -21,9 +21,7 @@ export class TransactionApi {
     );
   }
 
-  create$(
-    transaction: TransactionCreate,
-  ): Observable<TransactionResponse> {
+  create$(transaction: TransactionCreate): Observable<TransactionResponse> {
     return this.http.post<TransactionResponse>(this.apiUrl, transaction);
   }
 

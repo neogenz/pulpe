@@ -6,7 +6,7 @@ import {
   computed,
   DestroyRef,
 } from '@angular/core';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterLink, RouterModule } from '@angular/router';
 import {
   ReactiveFormsModule,
   FormBuilder,
@@ -32,7 +32,7 @@ import { ROUTES } from '@core/routing/routes-constants';
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    RouterModule,
+    RouterLink,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -142,12 +142,14 @@ import { ROUTES } from '@core/routing/routes-constants';
         <div class="text-center mt-6">
           <p class="text-body-medium text-on-surface-variant">
             Nouveau sur Pulpe ?
-            <a
+            <button
+              mat-button
+              color="primary"
+              class="ml-1"
               routerLink="/onboarding/welcome"
-              class="text-primary font-medium hover:underline"
             >
               Créer un compte
-            </a>
+            </button>
           </p>
         </div>
       </div>

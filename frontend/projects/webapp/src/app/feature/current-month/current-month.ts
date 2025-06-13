@@ -182,7 +182,9 @@ export default class CurrentMonth {
 
         return {
           budget,
-          transactions: Array.isArray(transactionResponse.data) ? transactionResponse.data : [],
+          transactions: Array.isArray(transactionResponse.data)
+            ? transactionResponse.data
+            : [],
         };
       } catch (error) {
         // Logger l'erreur pour le monitoring

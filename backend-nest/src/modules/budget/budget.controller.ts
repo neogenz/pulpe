@@ -93,9 +93,8 @@ export class BudgetController {
     description: "Invalid input data",
     type: ErrorResponseDto,
   })
-  @UsePipes(new ZodBodyPipe(budgetCreateSchema))
   async create(
-    @Body() createBudgetDto: BudgetCreate,
+    @Body(new ZodBodyPipe(budgetCreateSchema)) createBudgetDto: BudgetCreate,
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient
   ): Promise<BudgetResponseDto> {
@@ -156,10 +155,9 @@ export class BudgetController {
     description: "Budget not found",
     type: ErrorResponseDto,
   })
-  @UsePipes(new ZodBodyPipe(budgetUpdateSchema))
   async update(
     @Param("id", ParseUUIDPipe) id: string,
-    @Body() updateBudgetDto: BudgetUpdate,
+    @Body(new ZodBodyPipe(budgetUpdateSchema)) updateBudgetDto: BudgetUpdate,
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient
   ): Promise<BudgetResponseDto> {
@@ -180,9 +178,8 @@ export class BudgetController {
     description: "Invalid input data",
     type: ErrorResponseDto,
   })
-  @UsePipes(new ZodBodyPipe(budgetCreateFromOnboardingSchema))
   async createFromOnboarding(
-    @Body() onboardingData: BudgetCreateFromOnboarding,
+    @Body(new ZodBodyPipe(budgetCreateFromOnboardingSchema)) onboardingData: BudgetCreateFromOnboarding,
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient
   ): Promise<BudgetResponseDto> {

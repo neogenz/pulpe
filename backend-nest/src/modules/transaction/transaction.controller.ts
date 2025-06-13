@@ -61,9 +61,8 @@ export class TransactionController {
     status: 201,
     description: 'Transaction créée avec succès',
   })
-  @UsePipes(new ZodBodyPipe(transactionCreateSchema))
   async create(
-    @Body() createTransactionDto: TransactionCreate,
+    @Body(new ZodBodyPipe(transactionCreateSchema)) createTransactionDto: TransactionCreate,
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionResponse> {
@@ -100,10 +99,9 @@ export class TransactionController {
     status: 200,
     description: 'Transaction mise à jour avec succès',
   })
-  @UsePipes(new ZodBodyPipe(transactionUpdateSchema))
   async update(
     @Param('id') id: string,
-    @Body() updateTransactionDto: TransactionUpdate,
+    @Body(new ZodBodyPipe(transactionUpdateSchema)) updateTransactionDto: TransactionUpdate,
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionResponse> {

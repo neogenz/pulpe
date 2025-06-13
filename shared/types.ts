@@ -11,6 +11,9 @@ import type {
   transactionTypeSchema,
   errorResponseSchema,
   deleteResponseSchema,
+  budgetResponseSchema,
+  budgetListResponseSchema,
+  budgetDeleteResponseSchema,
 } from "./schemas";
 
 // Budget types
@@ -30,10 +33,10 @@ export type TransactionType = z.infer<typeof transactionTypeSchema>;
 export type ErrorResponse = z.infer<typeof errorResponseSchema>;
 export type DeleteResponse = z.infer<typeof deleteResponseSchema>;
 
-export type BudgetResponse = {
-  success: true;
-  data?: Budget | Budget[];
-};
+// Strict response types with Zod validation
+export type BudgetResponse = z.infer<typeof budgetResponseSchema>;
+export type BudgetListResponse = z.infer<typeof budgetListResponseSchema>;
+export type BudgetDeleteResponse = z.infer<typeof budgetDeleteResponseSchema>;
 
 export type TransactionResponse = {
   success: true;

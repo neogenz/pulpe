@@ -30,7 +30,7 @@ const NAVIGATION_CONFIG = [
       },
     ],
   },
-]
+];
 @Component({
   selector: 'pulpe-navigation-menu',
   imports: [MatIconModule, MatListModule, RouterModule],

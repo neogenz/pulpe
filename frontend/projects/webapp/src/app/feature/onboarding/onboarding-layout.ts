@@ -1,23 +1,19 @@
 import {
   Component,
-  input,
-  output,
   ChangeDetectionStrategy,
+  inject,
+  computed,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
-
-export interface OnboardingLayoutData {
-  title: string;
-  subtitle?: string;
-  currentStep: number;
-  totalSteps: number;
-}
+import { RouterLink, RouterOutlet } from '@angular/router';
+import { OnboardingOrchestrator } from './onboarding-orchestrator';
+import { ONBOARDING_TOTAL_STEPS } from './onboarding-constants';
 
 @Component({
   selector: 'pulpe-onboarding-layout',
   standalone: true,
-  imports: [CommonModule, MatButtonModule],
+  imports: [CommonModule, MatButtonModule, RouterOutlet, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
 
   template: `
@@ -28,13 +24,13 @@ export interface OnboardingLayoutData {
         class="w-full max-w-3xl min-h-[600px] md:h-[800px] bg-surface rounded-2xl md:p-16 p-8 flex flex-col"
       >
         <!-- Progress indicators -->
-        @if (showProgress()) {
+        @if (!isFirstStep()) {
           <div class="flex gap-2 mb-16">
             @for (step of progressSteps; track step; let i = $index) {
               <div
                 class="h-2 flex-1 rounded-full transition-colors duration-300"
                 [class]="
-                  i < onboardingLayoutData().currentStep
+                  i < (onboardingOrchestrator.layoutData()?.currentStep ?? 0)
                     ? 'bg-primary'
                     : 'bg-secondary-container'
                 "
@@ -47,27 +43,27 @@ export interface OnboardingLayoutData {
         <div class="space-y-6 flex-1">
           <div class="text-center space-y-2">
             <h1 class="text-headline-large text-on-surface">
-              {{ onboardingLayoutData().title }}
+              {{ onboardingOrchestrator.layoutData()?.title }}
             </h1>
-            @if (onboardingLayoutData().subtitle) {
+            @if (onboardingOrchestrator.layoutData()?.subtitle) {
               <p
                 class="text-body-large text-on-surface-variant leading-relaxed"
               >
-                {{ onboardingLayoutData().subtitle }}
+                {{ onboardingOrchestrator.layoutData()?.subtitle }}
               </p>
             }
           </div>
 
-          <ng-content></ng-content>
+          <router-outlet></router-outlet>
         </div>
 
         <!-- Navigation buttons -->
         <div class="flex md:gap-8 gap-4 mt-8">
-          @if (showPreviousButton()) {
+          @if (!isFirstStep()) {
             <div class="flex-1">
               <button
                 matButton="outlined"
-                (click)="onPrevious()"
+                (click)="onboardingOrchestrator.previousClicked$.next()"
                 class="w-full"
               >
                 Précédent
@@ -77,8 +73,8 @@ export interface OnboardingLayoutData {
           <div class="flex-1">
             <button
               matButton="filled"
-              (click)="onNext()"
-              [disabled]="!canContinue()"
+              (click)="onboardingOrchestrator.nextClicked$.next()"
+              [disabled]="!onboardingOrchestrator.canContinue()"
               class="w-full"
             >
               {{ nextButtonText() }}
@@ -86,31 +82,54 @@ export interface OnboardingLayoutData {
           </div>
         </div>
 
-        <!-- Footer content -->
-        <ng-content select="[slot=footer]"></ng-content>
+        @if (isFirstStep()) {
+          <!-- Lien de connexion -->
+          <div slot="footer" class="text-center mt-6">
+            <p class="text-body-medium text-on-surface-variant">
+              Tu as déjà un compte ?
+              <button
+                mat-button
+                color="primary"
+                class="ml-1"
+                routerLink="/login"
+              >
+                Se connecter
+              </button>
+            </p>
+          </div>
+        }
       </div>
     </div>
   `,
 })
 export class OnboardingLayout {
-  onboardingLayoutData = input.required<OnboardingLayoutData>();
-  showPreviousButton = input<boolean>(true);
-  showProgress = input<boolean>(true);
-  canContinue = input<boolean>(true);
-  nextButtonText = input<string>('Continuer');
-
-  previous = output<void>();
-  next = output<void>();
+  protected readonly onboardingOrchestrator = inject(OnboardingOrchestrator);
 
   protected get progressSteps(): number[] {
-    return Array(this.onboardingLayoutData().totalSteps).fill(0);
+    const totalSteps = ONBOARDING_TOTAL_STEPS;
+    return Array(totalSteps).fill(0);
   }
 
-  protected onPrevious(): void {
-    this.previous.emit();
-  }
+  protected nextButtonText = computed(() => {
+    const isFirstStep = this.isFirstStep();
+    const isLastStep = this.isLastStep();
+    if (isFirstStep) {
+      return 'Commencer';
+    }
+    if (isLastStep) {
+      return 'Terminer';
+    }
+    return 'Continuer';
+  });
 
-  protected onNext(): void {
-    this.next.emit();
-  }
+  protected isFirstStep = computed(() => {
+    return this.onboardingOrchestrator.layoutData()?.currentStep === 0;
+  });
+
+  protected isLastStep = computed(() => {
+    return (
+      this.onboardingOrchestrator.layoutData()?.currentStep ===
+      ONBOARDING_TOTAL_STEPS
+    );
+  });
 }
