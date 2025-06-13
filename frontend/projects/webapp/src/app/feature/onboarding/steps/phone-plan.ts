@@ -9,7 +9,7 @@ import {
   DestroyRef,
 } from '@angular/core';
 import { Router } from '@angular/router';
-import { OnboardingLayoutData } from '../models/onboarding-step';
+import { OnboardingLayoutData } from '../models/onboarding-layout-data';
 import { OnboardingCurrencyInput } from '../ui/currency-input';
 import { OnboardingApi } from '../onboarding-api';
 import { OnboardingOrchestrator } from '../onboarding-orchestrator';

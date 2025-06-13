@@ -1,10 +1,5 @@
 import { Signal } from '@angular/core';
-
-export interface OnboardingLayoutData {
-  title: string;
-  subtitle?: string;
-  currentStep: number;
-}
+import { OnboardingLayoutData } from './onboarding-layout-data';
 
 export interface OnboardingStep {
   readonly onboardingLayoutData: OnboardingLayoutData;

@@ -13,7 +13,7 @@ import { FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
-import { OnboardingLayoutData } from '../models/onboarding-step';
+import { OnboardingLayoutData } from '../models/onboarding-layout-data';
 import { OnboardingApi } from '../onboarding-api';
 import { OnboardingOrchestrator } from '../onboarding-orchestrator';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';

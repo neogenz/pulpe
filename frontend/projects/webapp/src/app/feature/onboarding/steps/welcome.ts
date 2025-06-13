@@ -9,10 +9,9 @@ import {
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
-import { ROUTES } from '@core/routing/routes-constants';
-import { OnboardingLayoutData } from '../models/onboarding-step';
 import { OnboardingOrchestrator } from '../onboarding-orchestrator';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';    
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { OnboardingLayoutData } from '../models/onboarding-layout-data';
 
 @Component({
   selector: 'pulpe-welcome',
@@ -37,21 +36,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
       <p class="text-body-large text-on-surface-variant leading-relaxed px-4">
         Pulpe regroupe tes revenus et dépenses pour te donner une vision nette
         et des conseils adaptés dès aujourd'hui.
-      </p>
-    </div>
-
-    <!-- Lien de connexion -->
-    <div slot="footer" class="text-center mt-6">
-      <p class="text-body-medium text-on-surface-variant">
-        Tu as déjà un compte ?
-        <button
-          mat-button
-          color="primary"
-          class="ml-1"
-          (click)="navigateToLogin()"
-        >
-          Se connecter
-        </button>
       </p>
     </div>
   `,
@@ -81,9 +65,5 @@ export default class Welcome implements OnInit {
     this.#orchestrator.nextClicked$
       .pipe(takeUntilDestroyed(this.#destroyRef))
       .subscribe(() => this.#router.navigate(['/onboarding/personal-info']));
-  }
-
-  protected navigateToLogin(): void {
-    this.#router.navigate([ROUTES.LOGIN]);
   }
 }

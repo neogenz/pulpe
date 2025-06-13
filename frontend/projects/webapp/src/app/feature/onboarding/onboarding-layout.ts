@@ -2,18 +2,18 @@ import {
   Component,
   ChangeDetectionStrategy,
   inject,
-  signal,
+  computed,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
-import { RouterOutlet } from '@angular/router';
+import { RouterLink, RouterOutlet } from '@angular/router';
 import { OnboardingOrchestrator } from './onboarding-orchestrator';
 import { ONBOARDING_TOTAL_STEPS } from './onboarding-constants';
 
 @Component({
   selector: 'pulpe-onboarding-layout',
   standalone: true,
-  imports: [CommonModule, MatButtonModule, RouterOutlet],
+  imports: [CommonModule, MatButtonModule, RouterOutlet, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
 
   template: `
@@ -24,7 +24,7 @@ import { ONBOARDING_TOTAL_STEPS } from './onboarding-constants';
         class="w-full max-w-3xl min-h-[600px] md:h-[800px] bg-surface rounded-2xl md:p-16 p-8 flex flex-col"
       >
         <!-- Progress indicators -->
-        @if (onboardingOrchestrator.layoutData()) {
+        @if (!isFirstStep()) {
           <div class="flex gap-2 mb-16">
             @for (step of progressSteps; track step; let i = $index) {
               <div
@@ -59,7 +59,7 @@ import { ONBOARDING_TOTAL_STEPS } from './onboarding-constants';
 
         <!-- Navigation buttons -->
         <div class="flex md:gap-8 gap-4 mt-8">
-          @if (showPreviousButton()) {
+          @if (!isFirstStep()) {
             <div class="flex-1">
               <button
                 matButton="outlined"
@@ -82,8 +82,22 @@ import { ONBOARDING_TOTAL_STEPS } from './onboarding-constants';
           </div>
         </div>
 
-        <!-- Footer content -->
-        <ng-content select="[slot=footer]"></ng-content>
+        @if (isFirstStep()) {
+          <!-- Lien de connexion -->
+          <div slot="footer" class="text-center mt-6">
+            <p class="text-body-medium text-on-surface-variant">
+              Tu as déjà un compte ?
+              <button
+                mat-button
+                color="primary"
+                class="ml-1"
+                routerLink="/login"
+              >
+                Se connecter
+              </button>
+            </p>
+          </div>
+        }
       </div>
     </div>
   `,
@@ -96,7 +110,26 @@ export class OnboardingLayout {
     return Array(totalSteps).fill(0);
   }
 
-  protected showPreviousButton = signal<boolean>(true); // This could also come from the orchestrator if needed
+  protected nextButtonText = computed(() => {
+    const isFirstStep = this.isFirstStep();
+    const isLastStep = this.isLastStep();
+    if (isFirstStep) {
+      return 'Commencer';
+    }
+    if (isLastStep) {
+      return 'Terminer';
+    }
+    return 'Continuer';
+  });
 
-  protected nextButtonText = signal<string>('Continuer'); // This could also come from the orchestrator
+  protected isFirstStep = computed(() => {
+    return this.onboardingOrchestrator.layoutData()?.currentStep === 0;
+  });
+
+  protected isLastStep = computed(() => {
+    return (
+      this.onboardingOrchestrator.layoutData()?.currentStep ===
+      ONBOARDING_TOTAL_STEPS
+    );
+  });
 }
