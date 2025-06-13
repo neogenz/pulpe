@@ -13,16 +13,7 @@ import {
   Router,
   RouterOutlet,
 } from '@angular/router';
-import {
-  OnboardingApi,
-  OnboardingStepData,
-} from '@features/onboarding/onboarding-api';
-import { BudgetApi } from '@core/budget';
-import { AuthApi } from '@core/auth/auth-api';
-import { ROUTES } from '@core/routing/routes-constants';
-import { BudgetCreateFromOnboarding } from '@pulpe/shared';
-import { firstValueFrom, filter, map, startWith } from 'rxjs';
-import Registration from './registration/registration';
+import { filter, map, startWith } from 'rxjs';
 
 export interface OnboardingLayoutData {
   title: string;
@@ -103,22 +94,6 @@ export interface OnboardingLayoutData {
           </div>
         </div>
 
-        <!-- Error and Success messages -->
-        @if (errorMessage()) {
-          <div
-            class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mt-4"
-          >
-            {{ errorMessage() }}
-          </div>
-        }
-        @if (successMessage()) {
-          <div
-            class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mt-4"
-          >
-            {{ successMessage() }}
-          </div>
-        }
-
         <!-- Footer content -->
         <ng-content select="[slot=footer]"></ng-content>
       </div>
@@ -128,9 +103,6 @@ export interface OnboardingLayoutData {
 export class OnboardingLayout {
   #router = inject(Router);
   #route = inject(ActivatedRoute);
-  #onboardingApi = inject(OnboardingApi);
-  #budgetApi = inject(BudgetApi);
-  #authService = inject(AuthApi);
 
   private readonly steps: string[] = [
     'welcome',
@@ -144,17 +116,18 @@ export class OnboardingLayout {
     'registration',
   ];
 
-  private activatedComponent: WritableSignal<object | null> = signal(null);
+  private activatedComponent: WritableSignal<{
+    onboardingLayoutData?: OnboardingLayoutData;
+    canContinue?: WritableSignal<boolean>;
+    isSubmitting?: () => boolean;
+    registerAndCreateAccount?: () => Promise<void>;
+  } | null> = signal(null);
 
   protected currentStepData = signal<OnboardingLayoutData | null>(null);
   protected showPreviousButton = signal<boolean>(true);
   protected showProgress = signal<boolean>(true);
-  protected canContinue = signal<boolean>(true);
+  protected canContinue: WritableSignal<boolean> = signal(true);
   protected nextButtonText = signal<string>('Continuer');
-
-  protected isSubmitting = signal<boolean>(false);
-  protected errorMessage = signal<string>('');
-  protected successMessage = signal<string>('');
 
   constructor() {
     this.#router.events
@@ -169,8 +142,9 @@ export class OnboardingLayout {
           return { currentStep, stepIndex };
         }),
         startWith({
-          currentStep: this.steps[0],
-          stepIndex: 0,
+          currentStep:
+            this.steps.find((s) => this.#router.url.includes(s)) ?? 'welcome',
+          stepIndex: this.steps.findIndex((s) => this.#router.url.includes(s)),
         }),
       )
       .subscribe(({ currentStep, stepIndex }) => {
@@ -178,16 +152,19 @@ export class OnboardingLayout {
       });
   }
 
-  onActivate(component: object) {
+  onActivate(
+    component: {
+      onboardingLayoutData?: OnboardingLayoutData;
+      canContinue?: WritableSignal<boolean>;
+    } | null,
+  ) {
     this.activatedComponent.set(component);
 
-    if ('onboardingLayoutData' in component && component.onboardingLayoutData) {
-      this.currentStepData.set(
-        component.onboardingLayoutData as OnboardingLayoutData,
-      );
+    if (component?.onboardingLayoutData) {
+      this.currentStepData.set(component.onboardingLayoutData);
     }
-    if ('canContinue' in component && component.canContinue) {
-      this.canContinue = component.canContinue as WritableSignal<boolean>;
+    if (component?.canContinue) {
+      this.canContinue = component.canContinue;
     }
   }
 
@@ -204,87 +181,19 @@ export class OnboardingLayout {
     }
   }
 
-  protected onNext(): void {
+  protected async onNext(): Promise<void> {
     const currentStepIndex = this.#getCurrentStepIndex();
     const isLastStep = currentStepIndex === this.steps.length - 1;
 
     if (isLastStep) {
-      this.registerAndCreateAccount();
+      const activeComponent = this.activatedComponent();
+      if (activeComponent && activeComponent.registerAndCreateAccount) {
+        await activeComponent.registerAndCreateAccount();
+      }
     } else if (currentStepIndex < this.steps.length - 1) {
       const nextStep = this.steps[currentStepIndex + 1];
       this.#router.navigate([`./${nextStep}`], { relativeTo: this.#route });
     }
-  }
-
-  private async registerAndCreateAccount(): Promise<void> {
-    const registrationComponent = this.activatedComponent() as Registration;
-    if (
-      !registrationComponent ||
-      typeof registrationComponent.canContinue !== 'function' ||
-      !registrationComponent.canContinue()
-    ) {
-      return;
-    }
-
-    this.isSubmitting.set(true);
-    this.errorMessage.set('');
-    this.successMessage.set('');
-
-    try {
-      const email = registrationComponent.emailValue();
-      const password = registrationComponent.passwordValue();
-
-      const authResult = await this.#authService.signUpWithEmail(
-        email,
-        password,
-      );
-
-      if (!authResult.success) {
-        this.errorMessage.set(
-          authResult.error || 'Erreur lors de la création du compte',
-        );
-        return;
-      }
-
-      const onboardingPayload = this.#onboardingApi.getStateData();
-      const budgetRequest = this.#buildBudgetCreationRequest(onboardingPayload);
-      await firstValueFrom(
-        this.#budgetApi.createBudgetFromOnboarding$(budgetRequest),
-      );
-
-      this.#onboardingApi.submitCompletedOnboarding();
-      this.#onboardingApi.clearOnboardingData();
-
-      this.successMessage.set(
-        'Votre compte a été créé avec succès ! Redirection vers votre budget...',
-      );
-
-      setTimeout(() => this.#router.navigate([ROUTES.CURRENT_MONTH]), 2000);
-    } catch (error) {
-      console.error("Erreur lors de l'inscription:", error);
-      this.errorMessage.set(
-        "Une erreur inattendue s'est produite. Veuillez réessayer.",
-      );
-    } finally {
-      this.isSubmitting.set(false);
-    }
-  }
-
-  #buildBudgetCreationRequest(
-    payload: OnboardingStepData,
-  ): BudgetCreateFromOnboarding {
-    const currentDate = new Date();
-    return {
-      monthlyIncome: payload.monthlyIncome ?? 0,
-      housingCosts: payload.housingCosts ?? 0,
-      healthInsurance: payload.healthInsurance ?? 0,
-      leasingCredit: payload.leasingCredit ?? 0,
-      phonePlan: payload.phonePlan ?? 0,
-      transportCosts: payload.transportCosts ?? 0,
-      month: currentDate.getMonth() + 1,
-      year: currentDate.getFullYear(),
-      description: `Budget initial de ${payload.firstName} pour ${currentDate.getFullYear()}`,
-    };
   }
 
   #getCurrentStepIndex(): number {
@@ -298,8 +207,14 @@ export class OnboardingLayout {
     this.showPreviousButton.set(index > 0);
     const isLastStep = index === this.steps.length - 1;
 
+    const activeComponent = this.activatedComponent();
+    const isSubmitting =
+      isLastStep && activeComponent?.isSubmitting
+        ? activeComponent.isSubmitting()
+        : false;
+
     this.nextButtonText.set(
-      this.isSubmitting()
+      isSubmitting
         ? 'Création en cours...'
         : isLastStep
           ? "Je m'inscris"
