@@ -7,7 +7,8 @@ import {
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { RouterOutlet } from '@angular/router';
-import { OnboardingOrchestrator } from './onboarding.orchestrator';
+import { OnboardingOrchestrator } from './onboarding-orchestrator';
+import { ONBOARDING_TOTAL_STEPS } from './onboarding-constants';
 
 @Component({
   selector: 'pulpe-onboarding-layout',
@@ -23,7 +24,7 @@ import { OnboardingOrchestrator } from './onboarding.orchestrator';
         class="w-full max-w-3xl min-h-[600px] md:h-[800px] bg-surface rounded-2xl md:p-16 p-8 flex flex-col"
       >
         <!-- Progress indicators -->
-        @if (onboardingOrchestrator.layoutData()?.totalSteps) {
+        @if (onboardingOrchestrator.layoutData()) {
           <div class="flex gap-2 mb-16">
             @for (step of progressSteps; track step; let i = $index) {
               <div
@@ -87,12 +88,11 @@ import { OnboardingOrchestrator } from './onboarding.orchestrator';
     </div>
   `,
 })
-export class OnboardingPage {
+export class OnboardingLayout {
   protected readonly onboardingOrchestrator = inject(OnboardingOrchestrator);
 
   protected get progressSteps(): number[] {
-    const totalSteps =
-      this.onboardingOrchestrator.layoutData()?.totalSteps ?? 0;
+    const totalSteps = ONBOARDING_TOTAL_STEPS;
     return Array(totalSteps).fill(0);
   }
 

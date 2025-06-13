@@ -4,7 +4,6 @@ export interface OnboardingLayoutData {
   title: string;
   subtitle?: string;
   currentStep: number;
-  totalSteps: number;
 }
 
 export interface OnboardingStep {

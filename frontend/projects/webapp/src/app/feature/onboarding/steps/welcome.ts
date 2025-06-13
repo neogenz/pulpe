@@ -10,9 +10,9 @@ import {
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { ROUTES } from '@core/routing/routes-constants';
-import { OnboardingLayoutData } from '../../models/onboarding-step';
-import { OnboardingOrchestrator } from '../../onboarding.orchestrator';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { OnboardingLayoutData } from '../models/onboarding-step';
+import { OnboardingOrchestrator } from '../onboarding-orchestrator';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';    
 
 @Component({
   selector: 'pulpe-welcome',
@@ -62,11 +62,9 @@ export default class Welcome implements OnInit {
   readonly #destroyRef = inject(DestroyRef);
 
   readonly #onboardingLayoutData: OnboardingLayoutData = {
-    title: 'Bienvenue dans Pulpe',
-    subtitle:
-      "Pulpe regroupe tes revenus et dépenses pour te donner une vision nette et des conseils adaptés dès aujourd'hui.",
+    title: '',
+    subtitle: '',
     currentStep: 0,
-    totalSteps: 9,
   };
 
   readonly #canContinue = computed(() => true);

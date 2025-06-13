@@ -9,11 +9,10 @@ import {
   DestroyRef,
 } from '@angular/core';
 import { Router } from '@angular/router';
-import { OnboardingLayoutData } from '../../models/onboarding-step';
-import { OnboardingCurrencyInput } from '../../ui/currency-input';
-import { OnboardingApi } from '../../onboarding-api';
-import { ONBOARDING_TOTAL_STEPS } from '../../onboarding-constants';
-import { OnboardingOrchestrator } from '../../onboarding.orchestrator';
+import { OnboardingLayoutData } from '../models/onboarding-step';
+import { OnboardingCurrencyInput } from '../ui/currency-input';
+import { OnboardingApi } from '../onboarding-api';
+import { OnboardingOrchestrator } from '../onboarding-orchestrator';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
@@ -42,7 +41,6 @@ export default class Income implements OnInit {
     subtitle:
       "Tes revenus mensuels correspondent par exemple à ton salaire, tes rentes, etc. Je vais l'utiliser pour calculer ton budget de base. On pourra le modifier par la suite.",
     currentStep: 2,
-    totalSteps: ONBOARDING_TOTAL_STEPS,
   };
 
   public incomeValue = signal<number | null>(null);

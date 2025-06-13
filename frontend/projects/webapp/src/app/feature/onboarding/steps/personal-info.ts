@@ -13,10 +13,9 @@ import { FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
-import { OnboardingLayoutData } from '../../models/onboarding-step';
-import { OnboardingApi } from '../../onboarding-api';
-import { ONBOARDING_TOTAL_STEPS } from '../../onboarding-constants';
-import { OnboardingOrchestrator } from '../../onboarding.orchestrator';
+import { OnboardingLayoutData } from '../models/onboarding-step';
+import { OnboardingApi } from '../onboarding-api';
+import { OnboardingOrchestrator } from '../onboarding-orchestrator';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
@@ -50,7 +49,6 @@ export default class PersonalInfo implements OnInit {
     subtitle:
       "Ton prénom va m'aider à savoir comment je vais devoir t'appeler tout au long de notre collaboration. Il ne sera en aucun cas communiqué.",
     currentStep: 1,
-    totalSteps: ONBOARDING_TOTAL_STEPS,
   };
 
   public firstNameValue = signal<string>('');

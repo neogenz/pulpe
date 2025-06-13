@@ -1,12 +1,12 @@
 import { Routes } from '@angular/router';
-import { OnboardingPage } from './onboarding-page';
-import { OnboardingOrchestrator } from './onboarding.orchestrator';
+import { OnboardingLayout } from './onboarding-layout';
+import { OnboardingOrchestrator } from './onboarding-orchestrator';
 import { OnboardingApi } from './onboarding-api';
 
 const routes: Routes = [
   {
     path: '',
-    component: OnboardingPage,
+    component: OnboardingLayout,
     providers: [OnboardingOrchestrator, OnboardingApi],
     children: [
       {
@@ -16,40 +16,39 @@ const routes: Routes = [
       },
       {
         path: 'welcome',
-        loadComponent: () => import('./steps/welcome/welcome'),
+        loadComponent: () => import('./steps/welcome'),
       },
       {
         path: 'personal-info',
-        loadComponent: () => import('./steps/personal-info/personal-info'),
+        loadComponent: () => import('./steps/personal-info'),
       },
       {
         path: 'housing',
-        loadComponent: () => import('./steps/housing/housing'),
+        loadComponent: () => import('./steps/housing'),
       },
       {
         path: 'income',
-        loadComponent: () => import('./steps/income/income'),
+        loadComponent: () => import('./steps/income'),
       },
       {
         path: 'health-insurance',
-        loadComponent: () =>
-          import('./steps/health-insurance/health-insurance'),
+        loadComponent: () => import('./steps/health-insurance'),
       },
       {
         path: 'phone-plan',
-        loadComponent: () => import('./steps/phone-plan/phone-plan'),
+        loadComponent: () => import('./steps/phone-plan'),
       },
       {
         path: 'transport',
-        loadComponent: () => import('./steps/transport/transport'),
+        loadComponent: () => import('./steps/transport'),
       },
       {
         path: 'leasing-credit',
-        loadComponent: () => import('./steps/leasing-credit/leasing-credit'),
+        loadComponent: () => import('./steps/leasing-credit'),
       },
       {
         path: 'registration',
-        loadComponent: () => import('./steps/registration/registration'),
+        loadComponent: () => import('./steps/registration'),
       },
     ],
   },
