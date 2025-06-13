@@ -10,19 +10,17 @@ import {
   type BudgetCreateFromOnboarding,
   type BudgetCreate,
   type BudgetUpdate,
+  type BudgetResponse,
+  type BudgetListResponse,
+  type BudgetDeleteResponse,
 } from "@pulpe/shared";
-import {
-  BudgetDeleteResponseDto,
-  BudgetListResponseDto,
-  BudgetResponseDto,
-} from "./dto/budget-response.dto";
 
 @Injectable()
 export class BudgetService {
   async findAll(
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient
-  ): Promise<BudgetListResponseDto> {
+  ): Promise<BudgetListResponse> {
     try {
       const { data: budgets, error } = await supabase
         .from("budgets")
@@ -54,7 +52,7 @@ export class BudgetService {
     createBudgetDto: BudgetCreate,
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient
-  ): Promise<BudgetResponseDto> {
+  ): Promise<BudgetResponse> {
     try {
       const budgetData = {
         ...createBudgetDto,
@@ -89,7 +87,7 @@ export class BudgetService {
     id: string,
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient
-  ): Promise<BudgetResponseDto> {
+  ): Promise<BudgetResponse> {
     try {
       const { data: budget, error } = await supabase
         .from("budgets")
@@ -119,7 +117,7 @@ export class BudgetService {
     updateBudgetDto: BudgetUpdate,
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient
-  ): Promise<BudgetResponseDto> {
+  ): Promise<BudgetResponse> {
     try {
       const { data: budget, error } = await supabase
         .from("budgets")
@@ -155,7 +153,7 @@ export class BudgetService {
     id: string,
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient
-  ): Promise<BudgetDeleteResponseDto> {
+  ): Promise<BudgetDeleteResponse> {
     try {
       const { error } = await supabase.from("budgets").delete().eq("id", id);
 
@@ -183,7 +181,7 @@ export class BudgetService {
     onboardingData: BudgetCreateFromOnboarding,
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient
-  ): Promise<BudgetResponseDto> {
+  ): Promise<BudgetResponse> {
     try {
       // Use your existing RPC function for atomic operation
       const { data, error } = await supabase.rpc(
@@ -217,7 +215,7 @@ export class BudgetService {
 
       return {
         success: true as const,
-        budget: data.budget,
+        data: data.budget,
       };
     } catch (error) {
       if (

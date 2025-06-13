@@ -87,7 +87,11 @@ export const successResponseSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
     success: z.literal(true),
     data: dataSchema.optional(),
     items: z.array(dataSchema).optional(),
-  });
+  }) as z.ZodObject<{
+    success: z.ZodLiteral<true>;
+    data: z.ZodOptional<T>;
+    items: z.ZodOptional<z.ZodArray<T>>;
+  }>;
 
 export const errorResponseSchema = z.object({
   success: z.literal(false),
@@ -99,3 +103,16 @@ export const deleteResponseSchema = z.object({
   success: z.literal(true),
   message: z.string(),
 });
+
+// Specific response schemas for strict validation
+export const budgetResponseSchema = z.object({
+  success: z.literal(true),
+  data: budgetSchema,
+});
+
+export const budgetListResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.array(budgetSchema),
+});
+
+export const budgetDeleteResponseSchema = deleteResponseSchema;
