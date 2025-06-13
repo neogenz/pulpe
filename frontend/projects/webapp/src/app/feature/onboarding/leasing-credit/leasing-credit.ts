@@ -4,14 +4,17 @@ import {
   signal,
   inject,
   computed,
+  OnInit,
+  effect,
+  DestroyRef,
 } from '@angular/core';
-import {
-  OnboardingLayoutData,
-  OnboardingStep,
-} from '@features/onboarding/onboarding-step';
+import { Router } from '@angular/router';
+import { OnboardingLayoutData } from '@features/onboarding/onboarding-step';
 import { OnboardingCurrencyInput } from '@features/onboarding/currency-input';
 import { OnboardingApi } from '@features/onboarding/onboarding-api';
 import { ONBOARDING_TOTAL_STEPS } from '../onboarding-constants';
+import { OnboardingOrchestrator } from '../onboarding.orchestrator';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'pulpe-leasing-credit',
@@ -28,10 +31,13 @@ import { ONBOARDING_TOTAL_STEPS } from '../onboarding-constants';
     </div>
   `,
 })
-export default class LeasingCredit implements OnboardingStep {
-  private readonly onboardingApi = inject(OnboardingApi);
+export default class LeasingCredit implements OnInit {
+  readonly #onboardingApi = inject(OnboardingApi);
+  readonly #router = inject(Router);
+  readonly #orchestrator = inject(OnboardingOrchestrator);
+  readonly #destroyRef = inject(DestroyRef);
 
-  public readonly onboardingLayoutData: OnboardingLayoutData = {
+  readonly #onboardingLayoutData: OnboardingLayoutData = {
     title: 'Leasing ou crédit à la consommation ?',
     subtitle:
       'Combien payes-tu de leasing ou crédit à la consommation chaque mois ?',
@@ -41,21 +47,36 @@ export default class LeasingCredit implements OnboardingStep {
 
   public leasingCreditValue = signal<number | null>(null);
 
-  constructor() {
-    const existingLeasingCredit =
-      this.onboardingApi.getStateData().leasingCredit;
-    if (existingLeasingCredit !== null) {
-      this.leasingCreditValue.set(existingLeasingCredit);
-    }
-  }
-
-  public canContinue = computed(() => {
+  readonly #canContinue = computed(() => {
     return (
       this.leasingCreditValue() !== null && this.leasingCreditValue()! >= 0
     );
   });
 
+  constructor() {
+    effect(() => {
+      this.#orchestrator.canContinue.set(this.#canContinue());
+    });
+    const existingLeasingCredit =
+      this.#onboardingApi.getStateData().leasingCredit;
+    if (existingLeasingCredit !== null) {
+      this.leasingCreditValue.set(existingLeasingCredit);
+    }
+  }
+
+  ngOnInit(): void {
+    this.#orchestrator.layoutData.set(this.#onboardingLayoutData);
+
+    this.#orchestrator.nextClicked$
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe(() => this.#router.navigate(['/onboarding/phone-plan']));
+
+    this.#orchestrator.previousClicked$
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe(() => this.#router.navigate(['/onboarding/health-insurance']));
+  }
+
   protected onLeasingCreditChange(): void {
-    this.onboardingApi.updateLeasingCreditStep(this.leasingCreditValue());
+    this.#onboardingApi.updateLeasingCreditStep(this.leasingCreditValue());
   }
 }

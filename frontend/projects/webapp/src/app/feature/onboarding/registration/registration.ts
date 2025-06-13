@@ -4,6 +4,9 @@ import {
   signal,
   inject,
   computed,
+  OnInit,
+  OnDestroy,
+  effect,
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -11,11 +14,8 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { firstValueFrom } from 'rxjs';
-import {
-  OnboardingLayoutData,
-  OnboardingStep,
-} from '@features/onboarding/onboarding-step';
+import { firstValueFrom, Subject, takeUntil } from 'rxjs';
+import { OnboardingLayoutData } from '@features/onboarding/onboarding-step';
 import {
   OnboardingApi,
   OnboardingStepData,
@@ -25,6 +25,7 @@ import { AuthApi } from '@core/auth/auth-api';
 import { ROUTES } from '@core/routing/routes-constants';
 import { ONBOARDING_TOTAL_STEPS } from '../onboarding-constants';
 import { BudgetCreateFromOnboarding } from '@pulpe/shared';
+import { OnboardingOrchestrator } from '../onboarding.orchestrator';
 
 @Component({
   selector: 'pulpe-registration',
@@ -80,16 +81,34 @@ import { BudgetCreateFromOnboarding } from '@pulpe/shared';
           >Le mot de passe doit contenir au minimum 8 caractères</mat-hint
         >
       </mat-form-field>
+
+      @if (errorMessage()) {
+        <div
+          class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded"
+        >
+          {{ errorMessage() }}
+        </div>
+      }
+      @if (successMessage()) {
+        <div
+          class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded"
+        >
+          {{ successMessage() }}
+        </div>
+      }
     </div>
   `,
 })
-export default class Registration implements OnboardingStep {
+export default class Registration implements OnInit, OnDestroy {
   #router = inject(Router);
   #onboardingApi = inject(OnboardingApi);
   #budgetApi = inject(BudgetApi);
   #authService = inject(AuthApi);
+  #orchestrator = inject(OnboardingOrchestrator);
 
-  public readonly onboardingLayoutData: OnboardingLayoutData = {
+  private readonly destroy$ = new Subject<void>();
+
+  private readonly onboardingLayoutData: OnboardingLayoutData = {
     title: 'Presque fini !',
     subtitle: 'Créez votre compte pour accéder à votre budget personnalisé.',
     currentStep: 8,
@@ -111,10 +130,32 @@ export default class Registration implements OnboardingStep {
   });
 
   constructor() {
+    effect(() => {
+      this.#orchestrator.canContinue.set(this.canContinue());
+      this.#orchestrator.isSubmitting.set(this.isSubmitting());
+    });
+
     const currentEmail = this.#onboardingApi.getStateData().email;
     if (currentEmail) {
       this.emailValue.set(currentEmail);
     }
+  }
+
+  ngOnInit(): void {
+    this.#orchestrator.layoutData.set(this.onboardingLayoutData);
+
+    this.#orchestrator.nextClicked$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.registerAndCreateAccount());
+
+    this.#orchestrator.previousClicked$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.#router.navigate(['/onboarding/transport']));
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   protected updateOnboardingEmail(): void {
@@ -125,7 +166,7 @@ export default class Registration implements OnboardingStep {
     );
   }
 
-  public async onNext(): Promise<void> {
+  private async registerAndCreateAccount(): Promise<void> {
     if (!this.canContinue() || this.isSubmitting()) return;
 
     this.isSubmitting.set(true);

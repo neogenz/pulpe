@@ -3,24 +3,17 @@ import {
   ChangeDetectionStrategy,
   inject,
   signal,
-  WritableSignal,
-  Signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
-import {
-  ActivatedRoute,
-  NavigationEnd,
-  Router,
-  RouterOutlet,
-} from '@angular/router';
-import { filter, map, startWith } from 'rxjs';
-import { OnboardingStep, OnboardingLayoutData } from './onboarding-step';
+import { Router, RouterOutlet } from '@angular/router';
+import { OnboardingOrchestrator } from './onboarding.orchestrator';
 
 @Component({
   selector: 'pulpe-onboarding-layout',
   standalone: true,
   imports: [CommonModule, MatButtonModule, RouterOutlet],
+  providers: [OnboardingOrchestrator],
   changeDetection: ChangeDetectionStrategy.OnPush,
 
   template: `
@@ -31,13 +24,13 @@ import { OnboardingStep, OnboardingLayoutData } from './onboarding-step';
         class="w-full max-w-3xl min-h-[600px] md:h-[800px] bg-surface rounded-2xl md:p-16 p-8 flex flex-col"
       >
         <!-- Progress indicators -->
-        @if (showProgress()) {
+        @if (onboardingOrchestrator.layoutData()?.totalSteps) {
           <div class="flex gap-2 mb-16">
             @for (step of progressSteps; track step; let i = $index) {
               <div
                 class="h-2 flex-1 rounded-full transition-colors duration-300"
                 [class]="
-                  i < (currentStepData()?.currentStep ?? 0)
+                  i < (onboardingOrchestrator.layoutData()?.currentStep ?? 0)
                     ? 'bg-primary'
                     : 'bg-secondary-container'
                 "
@@ -50,18 +43,18 @@ import { OnboardingStep, OnboardingLayoutData } from './onboarding-step';
         <div class="space-y-6 flex-1">
           <div class="text-center space-y-2">
             <h1 class="text-headline-large text-on-surface">
-              {{ currentStepData()?.title }}
+              {{ onboardingOrchestrator.layoutData()?.title }}
             </h1>
-            @if (currentStepData()?.subtitle) {
+            @if (onboardingOrchestrator.layoutData()?.subtitle) {
               <p
                 class="text-body-large text-on-surface-variant leading-relaxed"
               >
-                {{ currentStepData()?.subtitle }}
+                {{ onboardingOrchestrator.layoutData()?.subtitle }}
               </p>
             }
           </div>
 
-          <router-outlet (activate)="onActivate($event)"></router-outlet>
+          <router-outlet></router-outlet>
         </div>
 
         <!-- Navigation buttons -->
@@ -70,7 +63,7 @@ import { OnboardingStep, OnboardingLayoutData } from './onboarding-step';
             <div class="flex-1">
               <button
                 matButton="outlined"
-                (click)="onPrevious()"
+                (click)="onboardingOrchestrator.previousClicked$.next()"
                 class="w-full"
               >
                 Précédent
@@ -80,8 +73,8 @@ import { OnboardingStep, OnboardingLayoutData } from './onboarding-step';
           <div class="flex-1">
             <button
               matButton="filled"
-              (click)="onNext()"
-              [disabled]="!canContinue()"
+              (click)="onboardingOrchestrator.nextClicked$.next()"
+              [disabled]="!onboardingOrchestrator.canContinue()"
               class="w-full"
             >
               {{ nextButtonText() }}
@@ -96,110 +89,16 @@ import { OnboardingStep, OnboardingLayoutData } from './onboarding-step';
   `,
 })
 export class OnboardingLayout {
-  #router = inject(Router);
-  #route = inject(ActivatedRoute);
-
-  private readonly steps: string[] = [
-    'welcome',
-    'personal-info',
-    'housing',
-    'income',
-    'health-insurance',
-    'phone-plan',
-    'transport',
-    'leasing-credit',
-    'registration',
-  ];
-
-  private activatedComponent: WritableSignal<OnboardingStep | null> =
-    signal(null);
-
-  protected currentStepData = signal<OnboardingLayoutData | null>(null);
-  protected showPreviousButton = signal<boolean>(true);
-  protected showProgress = signal<boolean>(true);
-  protected canContinue: Signal<boolean> = signal(true);
-  protected nextButtonText = signal<string>('Continuer');
-
-  constructor() {
-    this.#router.events
-      .pipe(
-        filter(
-          (event): event is NavigationEnd => event instanceof NavigationEnd,
-        ),
-        map((event: NavigationEnd) => {
-          const urlSegments = event.urlAfterRedirects.split('/');
-          const currentStep = urlSegments[urlSegments.length - 1];
-          const stepIndex = this.steps.indexOf(currentStep);
-          return { currentStep, stepIndex };
-        }),
-        startWith({
-          currentStep:
-            this.steps.find((s) => this.#router.url.includes(s)) ?? 'welcome',
-          stepIndex: this.steps.findIndex((s) => this.#router.url.includes(s)),
-        }),
-      )
-      .subscribe(({ currentStep, stepIndex }) => {
-        this.#updateLayoutForStep(currentStep, stepIndex);
-      });
-  }
-
-  onActivate(component: OnboardingStep) {
-    this.activatedComponent.set(component);
-
-    this.currentStepData.set(component.onboardingLayoutData);
-    this.canContinue = component.canContinue;
-  }
+  protected readonly onboardingOrchestrator = inject(OnboardingOrchestrator);
+  private readonly router = inject(Router);
 
   protected get progressSteps(): number[] {
-    const totalSteps = this.currentStepData()?.totalSteps ?? this.steps.length;
+    const totalSteps =
+      this.onboardingOrchestrator.layoutData()?.totalSteps ?? 0;
     return Array(totalSteps).fill(0);
   }
 
-  protected onPrevious(): void {
-    const currentStepIndex = this.#getCurrentStepIndex();
-    if (currentStepIndex > 0) {
-      const previousStep = this.steps[currentStepIndex - 1];
-      this.#router.navigate([`./${previousStep}`], { relativeTo: this.#route });
-    }
-  }
+  protected showPreviousButton = signal<boolean>(true); // This could also come from the orchestrator if needed
 
-  protected async onNext(): Promise<void> {
-    const currentStepIndex = this.#getCurrentStepIndex();
-    const isLastStep = currentStepIndex === this.steps.length - 1;
-    const activeComponent = this.activatedComponent();
-
-    if (activeComponent && activeComponent.onNext) {
-      await activeComponent.onNext();
-    }
-
-    if (!isLastStep) {
-      const nextStep = this.steps[currentStepIndex + 1];
-      this.#router.navigate([`./${nextStep}`], { relativeTo: this.#route });
-    }
-  }
-
-  #getCurrentStepIndex(): number {
-    const url = this.#router.url;
-    const urlSegments = url.split('/');
-    const currentStep = urlSegments[urlSegments.length - 1];
-    return this.steps.indexOf(currentStep);
-  }
-
-  #updateLayoutForStep(step: string, index: number): void {
-    this.showPreviousButton.set(index > 0);
-    const isLastStep = index === this.steps.length - 1;
-
-    const activeComponent = this.activatedComponent();
-    const isSubmitting = activeComponent?.isSubmitting
-      ? activeComponent.isSubmitting()
-      : false;
-
-    this.nextButtonText.set(
-      isSubmitting
-        ? 'Création en cours...'
-        : isLastStep
-          ? "Je m'inscris"
-          : 'Continuer',
-    );
-  }
+  protected nextButtonText = signal<string>('Continuer'); // This could also come from the orchestrator
 }

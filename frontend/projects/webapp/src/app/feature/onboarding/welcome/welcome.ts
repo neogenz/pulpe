@@ -3,14 +3,16 @@ import {
   ChangeDetectionStrategy,
   inject,
   computed,
+  OnInit,
+  OnDestroy,
+  effect,
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { ROUTES } from '@core/routing/routes-constants';
-import {
-  OnboardingLayoutData,
-  OnboardingStep,
-} from '@features/onboarding/onboarding-step';
+import { OnboardingLayoutData } from '@features/onboarding/onboarding-step';
+import { OnboardingOrchestrator } from '../onboarding.orchestrator';
+import { Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'pulpe-welcome',
@@ -54,10 +56,13 @@ import {
     </div>
   `,
 })
-export default class Welcome implements OnboardingStep {
+export default class Welcome implements OnInit, OnDestroy {
   readonly #router = inject(Router);
+  readonly #orchestrator = inject(OnboardingOrchestrator);
 
-  public readonly onboardingLayoutData: OnboardingLayoutData = {
+  private readonly destroy$ = new Subject<void>();
+
+  private readonly onboardingLayoutData: OnboardingLayoutData = {
     title: 'Bienvenue dans Pulpe',
     subtitle:
       "Pulpe regroupe tes revenus et dépenses pour te donner une vision nette et des conseils adaptés dès aujourd'hui.",
@@ -65,7 +70,26 @@ export default class Welcome implements OnboardingStep {
     totalSteps: 9,
   };
 
-  public readonly canContinue = computed(() => true);
+  private readonly canContinue = computed(() => true);
+
+  constructor() {
+    effect(() => {
+      this.#orchestrator.canContinue.set(this.canContinue());
+    });
+  }
+
+  ngOnInit(): void {
+    this.#orchestrator.layoutData.set(this.onboardingLayoutData);
+
+    this.#orchestrator.nextClicked$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.#router.navigate(['/onboarding/personal-info']));
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 
   protected navigateToLogin(): void {
     this.#router.navigate([ROUTES.LOGIN]);

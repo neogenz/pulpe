@@ -4,14 +4,17 @@ import {
   signal,
   inject,
   computed,
+  OnInit,
+  effect,
+  DestroyRef,
 } from '@angular/core';
-import {
-  OnboardingLayoutData,
-  OnboardingStep,
-} from '@features/onboarding/onboarding-step';
+import { Router } from '@angular/router';
+import { OnboardingLayoutData } from '@features/onboarding/onboarding-step';
 import { OnboardingCurrencyInput } from '@features/onboarding/currency-input';
 import { OnboardingApi } from '@features/onboarding/onboarding-api';
 import { ONBOARDING_TOTAL_STEPS } from '../onboarding-constants';
+import { OnboardingOrchestrator } from '../onboarding.orchestrator';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'pulpe-income',
@@ -28,10 +31,13 @@ import { ONBOARDING_TOTAL_STEPS } from '../onboarding-constants';
     </div>
   `,
 })
-export default class Income implements OnboardingStep {
-  private readonly onboardingApi = inject(OnboardingApi);
+export default class Income implements OnInit {
+  readonly #onboardingApi = inject(OnboardingApi);
+  readonly #router = inject(Router);
+  readonly #orchestrator = inject(OnboardingOrchestrator);
+  readonly #destroyRef = inject(DestroyRef);
 
-  public readonly onboardingLayoutData: OnboardingLayoutData = {
+  readonly #onboardingLayoutData: OnboardingLayoutData = {
     title: 'Quel est le montant de tes revenus mensuels ?',
     subtitle:
       "Tes revenus mensuels correspondent par exemple à ton salaire, tes rentes, etc. Je vais l'utiliser pour calculer ton budget de base. On pourra le modifier par la suite.",
@@ -41,18 +47,33 @@ export default class Income implements OnboardingStep {
 
   public incomeValue = signal<number | null>(null);
 
+  readonly #canContinue = computed(() => {
+    return this.incomeValue() !== null && this.incomeValue()! > 0;
+  });
+
   constructor() {
-    const existingIncome = this.onboardingApi.getStateData().monthlyIncome;
+    effect(() => {
+      this.#orchestrator.canContinue.set(this.#canContinue());
+    });
+    const existingIncome = this.#onboardingApi.getStateData().monthlyIncome;
     if (existingIncome !== null) {
       this.incomeValue.set(existingIncome);
     }
   }
 
-  public canContinue = computed(() => {
-    return this.incomeValue() !== null && this.incomeValue()! > 0;
-  });
+  ngOnInit(): void {
+    this.#orchestrator.layoutData.set(this.#onboardingLayoutData);
+
+    this.#orchestrator.nextClicked$
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe(() => this.#router.navigate(['/onboarding/housing']));
+
+    this.#orchestrator.previousClicked$
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe(() => this.#router.navigate(['/onboarding/personal-info']));
+  }
 
   protected onIncomeChange(): void {
-    this.onboardingApi.updateIncomeStep(this.incomeValue());
+    this.#onboardingApi.updateIncomeStep(this.incomeValue());
   }
 }

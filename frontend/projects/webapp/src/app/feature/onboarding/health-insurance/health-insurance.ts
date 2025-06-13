@@ -4,14 +4,17 @@ import {
   signal,
   inject,
   computed,
+  OnInit,
+  effect,
+  DestroyRef,
 } from '@angular/core';
-import {
-  OnboardingLayoutData,
-  OnboardingStep,
-} from '@features/onboarding/onboarding-step';
+import { Router } from '@angular/router';
+import { OnboardingLayoutData } from '@features/onboarding/onboarding-step';
 import { OnboardingCurrencyInput } from '@features/onboarding/currency-input';
 import { OnboardingApi } from '@features/onboarding/onboarding-api';
 import { ONBOARDING_TOTAL_STEPS } from '../onboarding-constants';
+import { OnboardingOrchestrator } from '../onboarding.orchestrator';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'pulpe-health-insurance',
@@ -28,10 +31,13 @@ import { ONBOARDING_TOTAL_STEPS } from '../onboarding-constants';
     </div>
   `,
 })
-export default class HealthInsurance implements OnboardingStep {
-  private readonly onboardingApi = inject(OnboardingApi);
+export default class HealthInsurance implements OnInit {
+  readonly #onboardingApi = inject(OnboardingApi);
+  readonly #router = inject(Router);
+  readonly #orchestrator = inject(OnboardingOrchestrator);
+  readonly #destroyRef = inject(DestroyRef);
 
-  public readonly onboardingLayoutData: OnboardingLayoutData = {
+  readonly #onboardingLayoutData: OnboardingLayoutData = {
     title: 'Assurance maladie ?',
     subtitle: "Combien payes-tu d'assurance maladie chaque mois ?",
     currentStep: 4,
@@ -40,21 +46,37 @@ export default class HealthInsurance implements OnboardingStep {
 
   public healthInsuranceValue = signal<number | null>(null);
 
-  constructor() {
-    const existingHealthInsurance =
-      this.onboardingApi.getStateData().healthInsurance;
-    if (existingHealthInsurance !== null) {
-      this.healthInsuranceValue.set(existingHealthInsurance);
-    }
-  }
-
-  public canContinue = computed(() => {
+  readonly #canContinue = computed(() => {
     return (
       this.healthInsuranceValue() !== null && this.healthInsuranceValue()! >= 0
     );
   });
 
+  constructor() {
+    effect(() => {
+      this.#orchestrator.canContinue.set(this.#canContinue());
+    });
+
+    const existingHealthInsurance =
+      this.#onboardingApi.getStateData().healthInsurance;
+    if (existingHealthInsurance !== null) {
+      this.healthInsuranceValue.set(existingHealthInsurance);
+    }
+  }
+
+  ngOnInit(): void {
+    this.#orchestrator.layoutData.set(this.#onboardingLayoutData);
+
+    this.#orchestrator.nextClicked$
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe(() => this.#router.navigate(['/onboarding/leasing-credit']));
+
+    this.#orchestrator.previousClicked$
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe(() => this.#router.navigate(['/onboarding/housing']));
+  }
+
   protected onHealthInsuranceChange(): void {
-    this.onboardingApi.updateHealthInsuranceStep(this.healthInsuranceValue());
+    this.#onboardingApi.updateHealthInsuranceStep(this.healthInsuranceValue());
   }
 }

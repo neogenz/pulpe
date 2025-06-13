@@ -4,14 +4,17 @@ import {
   signal,
   inject,
   computed,
+  OnInit,
+  effect,
+  DestroyRef,
 } from '@angular/core';
-import {
-  OnboardingLayoutData,
-  OnboardingStep,
-} from '@features/onboarding/onboarding-step';
+import { Router } from '@angular/router';
+import { OnboardingLayoutData } from '@features/onboarding/onboarding-step';
 import { OnboardingCurrencyInput } from '@features/onboarding/currency-input';
 import { OnboardingApi } from '@features/onboarding/onboarding-api';
 import { ONBOARDING_TOTAL_STEPS } from '../onboarding-constants';
+import { OnboardingOrchestrator } from '../onboarding.orchestrator';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'pulpe-phone-plan',
@@ -28,10 +31,13 @@ import { ONBOARDING_TOTAL_STEPS } from '../onboarding-constants';
     </div>
   `,
 })
-export default class PhonePlan implements OnboardingStep {
-  private readonly onboardingApi = inject(OnboardingApi);
+export default class PhonePlan implements OnInit {
+  readonly #onboardingApi = inject(OnboardingApi);
+  readonly #router = inject(Router);
+  readonly #orchestrator = inject(OnboardingOrchestrator);
+  readonly #destroyRef = inject(DestroyRef);
 
-  public readonly onboardingLayoutData: OnboardingLayoutData = {
+  readonly #onboardingLayoutData: OnboardingLayoutData = {
     title: 'Forfait téléphone ?',
     subtitle:
       'Combien payes-tu frais téléphoniques chaque mois ? (Par ex. Swisscom, Sunrise, etc...)',
@@ -41,18 +47,33 @@ export default class PhonePlan implements OnboardingStep {
 
   public phonePlanValue = signal<number | null>(null);
 
+  readonly #canContinue = computed(() => {
+    return this.phonePlanValue() !== null && this.phonePlanValue()! >= 0;
+  });
+
   constructor() {
-    const existingPhonePlan = this.onboardingApi.getStateData().phonePlan;
+    effect(() => {
+      this.#orchestrator.canContinue.set(this.#canContinue());
+    });
+    const existingPhonePlan = this.#onboardingApi.getStateData().phonePlan;
     if (existingPhonePlan !== null) {
       this.phonePlanValue.set(existingPhonePlan);
     }
   }
 
-  public canContinue = computed(() => {
-    return this.phonePlanValue() !== null && this.phonePlanValue()! >= 0;
-  });
+  ngOnInit(): void {
+    this.#orchestrator.layoutData.set(this.#onboardingLayoutData);
+
+    this.#orchestrator.nextClicked$
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe(() => this.#router.navigate(['/onboarding/transport']));
+
+    this.#orchestrator.previousClicked$
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe(() => this.#router.navigate(['/onboarding/leasing-credit']));
+  }
 
   protected onPhonePlanChange(): void {
-    this.onboardingApi.updatePhonePlanStep(this.phonePlanValue());
+    this.#onboardingApi.updatePhonePlanStep(this.phonePlanValue());
   }
 }

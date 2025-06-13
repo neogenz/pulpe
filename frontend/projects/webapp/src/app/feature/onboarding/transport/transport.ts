@@ -4,14 +4,17 @@ import {
   signal,
   inject,
   computed,
+  OnInit,
+  effect,
+  DestroyRef,
 } from '@angular/core';
-import {
-  OnboardingLayoutData,
-  OnboardingStep,
-} from '@features/onboarding/onboarding-step';
+import { Router } from '@angular/router';
+import { OnboardingLayoutData } from '@features/onboarding/onboarding-step';
 import { OnboardingCurrencyInput } from '@features/onboarding/currency-input';
 import { OnboardingApi } from '@features/onboarding/onboarding-api';
 import { ONBOARDING_TOTAL_STEPS } from '../onboarding-constants';
+import { OnboardingOrchestrator } from '../onboarding.orchestrator';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'pulpe-transport',
@@ -28,10 +31,13 @@ import { ONBOARDING_TOTAL_STEPS } from '../onboarding-constants';
     </div>
   `,
 })
-export default class Transport implements OnboardingStep {
-  private readonly onboardingApi = inject(OnboardingApi);
+export default class Transport implements OnInit {
+  readonly #onboardingApi = inject(OnboardingApi);
+  readonly #router = inject(Router);
+  readonly #orchestrator = inject(OnboardingOrchestrator);
+  readonly #destroyRef = inject(DestroyRef);
 
-  public readonly onboardingLayoutData: OnboardingLayoutData = {
+  readonly #onboardingLayoutData: OnboardingLayoutData = {
     title: 'Transport public ?',
     subtitle:
       "Combien payes-tu d'abonnements à des transports publics chaque mois ?",
@@ -41,18 +47,33 @@ export default class Transport implements OnboardingStep {
 
   public transportValue = signal<number | null>(null);
 
+  readonly #canContinue = computed(() => {
+    return this.transportValue() !== null && this.transportValue()! >= 0;
+  });
+
   constructor() {
-    const existingTransport = this.onboardingApi.getStateData().transportCosts;
+    effect(() => {
+      this.#orchestrator.canContinue.set(this.#canContinue());
+    });
+    const existingTransport = this.#onboardingApi.getStateData().transportCosts;
     if (existingTransport !== null) {
       this.transportValue.set(existingTransport);
     }
   }
 
-  public canContinue = computed(() => {
-    return this.transportValue() !== null && this.transportValue()! >= 0;
-  });
+  ngOnInit(): void {
+    this.#orchestrator.layoutData.set(this.#onboardingLayoutData);
+
+    this.#orchestrator.nextClicked$
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe(() => this.#router.navigate(['/onboarding/registration']));
+
+    this.#orchestrator.previousClicked$
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe(() => this.#router.navigate(['/onboarding/phone-plan']));
+  }
 
   protected onTransportChange(): void {
-    this.onboardingApi.updateTransportStep(this.transportValue());
+    this.#onboardingApi.updateTransportStep(this.transportValue());
   }
 }
