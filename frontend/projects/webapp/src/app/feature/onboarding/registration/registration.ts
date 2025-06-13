@@ -5,8 +5,8 @@ import {
   inject,
   computed,
   OnInit,
-  OnDestroy,
   effect,
+  DestroyRef,
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -14,7 +14,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { firstValueFrom, Subject, takeUntil } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import { OnboardingLayoutData } from '@features/onboarding/onboarding-step';
 import {
   OnboardingApi,
@@ -26,6 +26,7 @@ import { ROUTES } from '@core/routing/routes-constants';
 import { ONBOARDING_TOTAL_STEPS } from '../onboarding-constants';
 import { BudgetCreateFromOnboarding } from '@pulpe/shared';
 import { OnboardingOrchestrator } from '../onboarding.orchestrator';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'pulpe-registration',
@@ -99,16 +100,15 @@ import { OnboardingOrchestrator } from '../onboarding.orchestrator';
     </div>
   `,
 })
-export default class Registration implements OnInit, OnDestroy {
+export default class Registration implements OnInit {
   #router = inject(Router);
   #onboardingApi = inject(OnboardingApi);
   #budgetApi = inject(BudgetApi);
   #authService = inject(AuthApi);
   #orchestrator = inject(OnboardingOrchestrator);
+  readonly #destroyRef = inject(DestroyRef);
 
-  private readonly destroy$ = new Subject<void>();
-
-  private readonly onboardingLayoutData: OnboardingLayoutData = {
+  readonly #onboardingLayoutData: OnboardingLayoutData = {
     title: 'Presque fini !',
     subtitle: 'Créez votre compte pour accéder à votre budget personnalisé.',
     currentStep: 8,
@@ -142,20 +142,15 @@ export default class Registration implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.#orchestrator.layoutData.set(this.onboardingLayoutData);
+    this.#orchestrator.layoutData.set(this.#onboardingLayoutData);
 
     this.#orchestrator.nextClicked$
-      .pipe(takeUntil(this.destroy$))
+      .pipe(takeUntilDestroyed(this.#destroyRef))
       .subscribe(() => this.registerAndCreateAccount());
 
     this.#orchestrator.previousClicked$
-      .pipe(takeUntil(this.destroy$))
+      .pipe(takeUntilDestroyed(this.#destroyRef))
       .subscribe(() => this.#router.navigate(['/onboarding/transport']));
-  }
-
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
   }
 
   protected updateOnboardingEmail(): void {

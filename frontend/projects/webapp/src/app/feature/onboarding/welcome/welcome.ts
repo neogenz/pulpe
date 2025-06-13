@@ -4,15 +4,15 @@ import {
   inject,
   computed,
   OnInit,
-  OnDestroy,
   effect,
+  DestroyRef,
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { ROUTES } from '@core/routing/routes-constants';
 import { OnboardingLayoutData } from '@features/onboarding/onboarding-step';
 import { OnboardingOrchestrator } from '../onboarding.orchestrator';
-import { Subject, takeUntil } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'pulpe-welcome',
@@ -56,13 +56,12 @@ import { Subject, takeUntil } from 'rxjs';
     </div>
   `,
 })
-export default class Welcome implements OnInit, OnDestroy {
+export default class Welcome implements OnInit {
   readonly #router = inject(Router);
   readonly #orchestrator = inject(OnboardingOrchestrator);
+  readonly #destroyRef = inject(DestroyRef);
 
-  private readonly destroy$ = new Subject<void>();
-
-  private readonly onboardingLayoutData: OnboardingLayoutData = {
+  readonly #onboardingLayoutData: OnboardingLayoutData = {
     title: 'Bienvenue dans Pulpe',
     subtitle:
       "Pulpe regroupe tes revenus et dépenses pour te donner une vision nette et des conseils adaptés dès aujourd'hui.",
@@ -70,25 +69,20 @@ export default class Welcome implements OnInit, OnDestroy {
     totalSteps: 9,
   };
 
-  private readonly canContinue = computed(() => true);
+  readonly #canContinue = computed(() => true);
 
   constructor() {
     effect(() => {
-      this.#orchestrator.canContinue.set(this.canContinue());
+      this.#orchestrator.canContinue.set(this.#canContinue());
     });
   }
 
   ngOnInit(): void {
-    this.#orchestrator.layoutData.set(this.onboardingLayoutData);
+    this.#orchestrator.layoutData.set(this.#onboardingLayoutData);
 
     this.#orchestrator.nextClicked$
-      .pipe(takeUntil(this.destroy$))
+      .pipe(takeUntilDestroyed(this.#destroyRef))
       .subscribe(() => this.#router.navigate(['/onboarding/personal-info']));
-  }
-
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
   }
 
   protected navigateToLogin(): void {

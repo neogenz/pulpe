@@ -5,8 +5,8 @@ import {
   inject,
   computed,
   OnInit,
-  OnDestroy,
   effect,
+  DestroyRef,
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -17,7 +17,7 @@ import { OnboardingLayoutData } from '@features/onboarding/onboarding-step';
 import { OnboardingApi } from '@features/onboarding/onboarding-api';
 import { ONBOARDING_TOTAL_STEPS } from '../onboarding-constants';
 import { OnboardingOrchestrator } from '../onboarding.orchestrator';
-import { Subject, takeUntil } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'pulpe-personal-info',
@@ -39,14 +39,13 @@ import { Subject, takeUntil } from 'rxjs';
     </div>
   `,
 })
-export default class PersonalInfo implements OnInit, OnDestroy {
-  private readonly onboardingApi = inject(OnboardingApi);
-  private readonly router = inject(Router);
-  private readonly orchestrator = inject(OnboardingOrchestrator);
+export default class PersonalInfo implements OnInit {
+  readonly #onboardingApi = inject(OnboardingApi);
+  readonly #router = inject(Router);
+  readonly #orchestrator = inject(OnboardingOrchestrator);
+  readonly #destroyRef = inject(DestroyRef);
 
-  private readonly destroy$ = new Subject<void>();
-
-  private readonly onboardingLayoutData: OnboardingLayoutData = {
+  readonly #onboardingLayoutData: OnboardingLayoutData = {
     title: "Comment je dois t'appeler ?",
     subtitle:
       "Ton prénom va m'aider à savoir comment je vais devoir t'appeler tout au long de notre collaboration. Il ne sera en aucun cas communiqué.",
@@ -56,40 +55,35 @@ export default class PersonalInfo implements OnInit, OnDestroy {
 
   public firstNameValue = signal<string>('');
 
-  private readonly canContinue = computed(() => {
+  readonly #canContinue = computed(() => {
     return this.firstNameValue().trim().length > 0;
   });
 
   constructor() {
     effect(() => {
-      this.orchestrator.canContinue.set(this.canContinue());
+      this.#orchestrator.canContinue.set(this.#canContinue());
     });
-    const existingFirstName = this.onboardingApi.getStateData().firstName;
+    const existingFirstName = this.#onboardingApi.getStateData().firstName;
     if (existingFirstName) {
       this.firstNameValue.set(existingFirstName);
     }
   }
 
   ngOnInit(): void {
-    this.orchestrator.layoutData.set(this.onboardingLayoutData);
+    this.#orchestrator.layoutData.set(this.#onboardingLayoutData);
 
-    this.orchestrator.nextClicked$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(() => this.router.navigate(['/onboarding/income']));
+    this.#orchestrator.nextClicked$
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe(() => this.#router.navigate(['/onboarding/income']));
 
-    this.orchestrator.previousClicked$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(() => this.router.navigate(['/onboarding/welcome']));
-  }
-
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
+    this.#orchestrator.previousClicked$
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe(() => this.#router.navigate(['/onboarding/welcome']));
   }
 
   protected onFirstNameChange(): void {
-    const currentSteps = this.onboardingApi.getStateData();
-    this.onboardingApi.updatePersonalInfoStep(
+    const currentSteps = this.#onboardingApi.getStateData();
+    this.#onboardingApi.updatePersonalInfoStep(
       this.firstNameValue(),
       currentSteps.email,
     );
