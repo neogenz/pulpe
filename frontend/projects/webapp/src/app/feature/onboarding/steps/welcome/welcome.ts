@@ -10,8 +10,8 @@ import {
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { ROUTES } from '@core/routing/routes-constants';
-import { OnboardingLayoutData } from '@features/onboarding/onboarding-step';
-import { OnboardingOrchestrator } from '../onboarding.orchestrator';
+import { OnboardingLayoutData } from '../../models/onboarding-step';
+import { OnboardingOrchestrator } from '../../onboarding.orchestrator';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({

@@ -1,6 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 import { Subject } from 'rxjs';
-import { OnboardingLayoutData } from './onboarding-step';
+import { OnboardingLayoutData } from './models/onboarding-step';
 
 @Injectable()
 export class OnboardingOrchestrator {

@@ -15,17 +15,14 @@ import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { firstValueFrom } from 'rxjs';
-import { OnboardingLayoutData } from '@features/onboarding/onboarding-step';
-import {
-  OnboardingApi,
-  OnboardingStepData,
-} from '@features/onboarding/onboarding-api';
+import { OnboardingLayoutData } from '../../models/onboarding-step';
+import { OnboardingApi, OnboardingStepData } from '../../onboarding-api';
 import { BudgetApi } from '@core/budget';
 import { AuthApi } from '@core/auth/auth-api';
 import { ROUTES } from '@core/routing/routes-constants';
-import { ONBOARDING_TOTAL_STEPS } from '../onboarding-constants';
+import { ONBOARDING_TOTAL_STEPS } from '../../onboarding-constants';
 import { BudgetCreateFromOnboarding } from '@pulpe/shared';
-import { OnboardingOrchestrator } from '../onboarding.orchestrator';
+import { OnboardingOrchestrator } from '../../onboarding.orchestrator';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({

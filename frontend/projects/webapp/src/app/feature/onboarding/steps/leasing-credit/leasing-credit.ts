@@ -9,11 +9,11 @@ import {
   DestroyRef,
 } from '@angular/core';
 import { Router } from '@angular/router';
-import { OnboardingLayoutData } from '@features/onboarding/onboarding-step';
-import { OnboardingCurrencyInput } from '@features/onboarding/currency-input';
-import { OnboardingApi } from '@features/onboarding/onboarding-api';
-import { ONBOARDING_TOTAL_STEPS } from '../onboarding-constants';
-import { OnboardingOrchestrator } from '../onboarding.orchestrator';
+import { OnboardingLayoutData } from '../../models/onboarding-step';
+import { OnboardingCurrencyInput } from '../../ui/currency-input';
+import { OnboardingApi } from '../../onboarding-api';
+import { ONBOARDING_TOTAL_STEPS } from '../../onboarding-constants';
+import { OnboardingOrchestrator } from '../../onboarding.orchestrator';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({

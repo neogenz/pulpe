@@ -6,14 +6,13 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
-import { Router, RouterOutlet } from '@angular/router';
+import { RouterOutlet } from '@angular/router';
 import { OnboardingOrchestrator } from './onboarding.orchestrator';
 
 @Component({
   selector: 'pulpe-onboarding-layout',
   standalone: true,
   imports: [CommonModule, MatButtonModule, RouterOutlet],
-  providers: [OnboardingOrchestrator],
   changeDetection: ChangeDetectionStrategy.OnPush,
 
   template: `
@@ -88,9 +87,8 @@ import { OnboardingOrchestrator } from './onboarding.orchestrator';
     </div>
   `,
 })
-export class OnboardingLayout {
+export class OnboardingPage {
   protected readonly onboardingOrchestrator = inject(OnboardingOrchestrator);
-  private readonly router = inject(Router);
 
   protected get progressSteps(): number[] {
     const totalSteps =

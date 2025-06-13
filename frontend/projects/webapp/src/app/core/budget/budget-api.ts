@@ -215,55 +215,6 @@ export class BudgetApi {
     }
   }
 
-  /**
-   * Adapte un Budget DTO vers un MonthlyBudget business model
-   * TODO: À l'avenir, récupérer les vraies catégories depuis l'API
-   */
-  #adaptBudgetDtoToBusinessModel(budgetDto: Budget): MonthlyBudget {
-    // Pour l'instant, on crée des catégories par défaut
-    // Plus tard, ces catégories viendront d'une API dédiée
-    const defaultCategories: readonly BudgetCategory[] = [
-      {
-        id: 'income-salary',
-        name: 'Salaire',
-        plannedAmount: 5000,
-        actualAmount: 5000,
-        type: 'income',
-      },
-      {
-        id: 'expense-housing',
-        name: 'Logement',
-        plannedAmount: 1500,
-        actualAmount: 1500,
-        type: 'expense',
-      },
-      {
-        id: 'expense-food',
-        name: 'Alimentation',
-        plannedAmount: 600,
-        actualAmount: 450,
-        type: 'expense',
-      },
-      {
-        id: 'savings-emergency',
-        name: "Épargne d'urgence",
-        plannedAmount: 500,
-        actualAmount: 500,
-        type: 'savings',
-      },
-    ];
-
-    return {
-      id: budgetDto.id,
-      userId: budgetDto.user_id || '',
-      month: budgetDto.month.toString().padStart(2, '0'),
-      year: budgetDto.year.toString(),
-      categories: defaultCategories,
-      createdAt: budgetDto.created_at,
-      updatedAt: budgetDto.updated_at,
-    };
-  }
-
   #saveBudgetToStorage(budget: Budget): void {
     try {
       localStorage.setItem(CURRENT_BUDGET_STORAGE_KEY, JSON.stringify(budget));

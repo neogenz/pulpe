@@ -9,55 +9,55 @@ import {
   DestroyRef,
 } from '@angular/core';
 import { Router } from '@angular/router';
-import { OnboardingLayoutData } from '@features/onboarding/onboarding-step';
-import { OnboardingCurrencyInput } from '@features/onboarding/currency-input';
-import { OnboardingApi } from '@features/onboarding/onboarding-api';
-import { ONBOARDING_TOTAL_STEPS } from '../onboarding-constants';
-import { OnboardingOrchestrator } from '../onboarding.orchestrator';
+import { OnboardingLayoutData } from '../../models/onboarding-step';
+import { OnboardingCurrencyInput } from '../../ui/currency-input';
+import { OnboardingApi } from '../../onboarding-api';
+import { ONBOARDING_TOTAL_STEPS } from '../../onboarding-constants';
+import { OnboardingOrchestrator } from '../../onboarding.orchestrator';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
-  selector: 'pulpe-housing',
+  selector: 'pulpe-transport',
   standalone: true,
   imports: [OnboardingCurrencyInput],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-6">
       <pulpe-onboarding-currency-input
-        label="Montant de ton loyer"
-        [(value)]="housingValue"
-        (valueChange)="onHousingChange()"
+        label="Montant d'abonnements"
+        [(value)]="transportValue"
+        (valueChange)="onTransportChange()"
       />
     </div>
   `,
 })
-export default class Housing implements OnInit {
+export default class Transport implements OnInit {
   readonly #onboardingApi = inject(OnboardingApi);
   readonly #router = inject(Router);
   readonly #orchestrator = inject(OnboardingOrchestrator);
   readonly #destroyRef = inject(DestroyRef);
 
   readonly #onboardingLayoutData: OnboardingLayoutData = {
-    title: 'Logement ?',
+    title: 'Transport public ?',
     subtitle:
-      'Combien payes-tu de loyer ou crédit, pour ton logement chaque mois ?',
-    currentStep: 3,
+      "Combien payes-tu d'abonnements à des transports publics chaque mois ?",
+    currentStep: 7,
     totalSteps: ONBOARDING_TOTAL_STEPS,
   };
 
-  public housingValue = signal<number | null>(null);
+  public transportValue = signal<number | null>(null);
 
   readonly #canContinue = computed(() => {
-    return this.housingValue() !== null && this.housingValue()! > 0;
+    return this.transportValue() !== null && this.transportValue()! >= 0;
   });
 
   constructor() {
     effect(() => {
       this.#orchestrator.canContinue.set(this.#canContinue());
     });
-    const existingHousing = this.#onboardingApi.getStateData().housingCosts;
-    if (existingHousing !== null) {
-      this.housingValue.set(existingHousing);
+    const existingTransport = this.#onboardingApi.getStateData().transportCosts;
+    if (existingTransport !== null) {
+      this.transportValue.set(existingTransport);
     }
   }
 
@@ -66,14 +66,14 @@ export default class Housing implements OnInit {
 
     this.#orchestrator.nextClicked$
       .pipe(takeUntilDestroyed(this.#destroyRef))
-      .subscribe(() => this.#router.navigate(['/onboarding/health-insurance']));
+      .subscribe(() => this.#router.navigate(['/onboarding/registration']));
 
     this.#orchestrator.previousClicked$
       .pipe(takeUntilDestroyed(this.#destroyRef))
-      .subscribe(() => this.#router.navigate(['/onboarding/income']));
+      .subscribe(() => this.#router.navigate(['/onboarding/phone-plan']));
   }
 
-  protected onHousingChange(): void {
-    this.#onboardingApi.updateHousingStep(this.housingValue());
+  protected onTransportChange(): void {
+    this.#onboardingApi.updateTransportStep(this.transportValue());
   }
 }

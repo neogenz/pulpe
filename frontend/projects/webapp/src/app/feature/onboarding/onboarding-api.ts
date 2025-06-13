@@ -14,9 +14,7 @@ export interface OnboardingStepData {
 const ONBOARDING_STORAGE_KEY = 'pulpe-onboarding-steps';
 const ONBOARDING_STATUS_KEY = 'pulpe-onboarding-completed';
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable()
 export class OnboardingApi {
   readonly #onboardingState = signal<OnboardingStepData>({
     monthlyIncome: null,
