@@ -37,7 +37,7 @@ export class BudgetApi {
    * Crée un budget à partir des données d'onboarding
    * Transforme les données business en DTO pour l'API
    */
-  createOnboardingBudget$(
+  createBudgetFromOnboarding$(
     onboardingData: BudgetCreateFromOnboarding,
   ): Observable<CreateBudgetApiResponse> {
     // Transformer les données business en DTO pour l'API

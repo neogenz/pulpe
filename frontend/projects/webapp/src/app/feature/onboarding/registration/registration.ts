@@ -25,14 +25,13 @@ import { AuthApi } from '@core/auth/auth-api';
 import { ROUTES } from '@core/routing/routes-constants';
 import { ONBOARDING_TOTAL_STEPS } from '../onboarding-constants';
 import { BudgetCreateFromOnboarding } from '@pulpe/shared';
-import { budgetCreateFromOnboardingSchema } from '@pulpe/shared';
 
 @Component({
   selector: 'pulpe-registration',
   standalone: true,
   imports: [
     OnboardingLayout,
-    FormsModule,
+    FormsModule, // 1. Ensure FormsModule is imported
     MatFormFieldModule,
     MatInputModule,
     MatIconModule,
@@ -53,11 +52,13 @@ import { budgetCreateFromOnboardingSchema } from '@pulpe/shared';
           <input
             matInput
             type="email"
-            [value]="emailValue()"
-            (input)="onEmailChange($event)"
             placeholder="Email"
+            required
+            [(ngModel)]="emailValue"
+            (ngModelChange)="updateOnboardingEmail()"
             [disabled]="isSubmitting()"
           />
+          <!-- 2. Use ngModel for seamless two-way binding -->
           <mat-icon matPrefix>email</mat-icon>
         </mat-form-field>
 
@@ -66,20 +67,22 @@ import { budgetCreateFromOnboardingSchema } from '@pulpe/shared';
           <input
             matInput
             [type]="hidePassword() ? 'password' : 'text'"
-            [value]="passwordValue()"
-            (input)="onPasswordChange($event)"
             placeholder="Mot de passe"
+            required
+            [(ngModel)]="passwordValue"
             [disabled]="isSubmitting()"
           />
+          <!-- 2. Use ngModel here as well -->
           <mat-icon matPrefix>lock</mat-icon>
           <button
             matIconButton
             matSuffix
             type="button"
-            (click)="togglePasswordVisibility()"
+            (click)="hidePassword.set(!hidePassword())"
             [attr.aria-label]="'Afficher le mot de passe'"
             [attr.aria-pressed]="!hidePassword()"
           >
+            <!-- 3. Simplified toggle -->
             <mat-icon>{{
               hidePassword() ? 'visibility_off' : 'visibility'
             }}</mat-icon>
@@ -89,6 +92,7 @@ import { budgetCreateFromOnboardingSchema } from '@pulpe/shared';
           >
         </mat-form-field>
 
+        <!-- Error and Success messages are unchanged and fine -->
         @if (errorMessage()) {
           <div
             class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded"
@@ -96,7 +100,6 @@ import { budgetCreateFromOnboardingSchema } from '@pulpe/shared';
             {{ errorMessage() }}
           </div>
         }
-
         @if (successMessage()) {
           <div
             class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded"
@@ -109,10 +112,10 @@ import { budgetCreateFromOnboardingSchema } from '@pulpe/shared';
   `,
 })
 export default class Registration {
-  private readonly router = inject(Router);
-  private readonly onboardingApi = inject(OnboardingApi);
-  private readonly budgetApi = inject(BudgetApi);
-  private readonly authService = inject(AuthApi);
+  #router = inject(Router);
+  #onboardingApi = inject(OnboardingApi);
+  #budgetApi = inject(BudgetApi);
+  #authService = inject(AuthApi);
 
   protected readonly onboardingLayoutData: OnboardingLayoutData = {
     title: 'Presque fini !',
@@ -121,6 +124,7 @@ export default class Registration {
     totalSteps: ONBOARDING_TOTAL_STEPS,
   };
 
+  // State signals remain, they are the source of truth
   protected emailValue = signal<string>('');
   protected passwordValue = signal<string>('');
   protected hidePassword = signal<boolean>(true);
@@ -128,48 +132,42 @@ export default class Registration {
   protected errorMessage = signal<string>('');
   protected successMessage = signal<string>('');
 
+  // 4. Validation logic is now a clean, declarative computed signal
+  protected canContinue = computed(() => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const isEmailValid = emailRegex.test(this.emailValue());
+    const isPasswordValid = this.passwordValue().length >= 8;
+    return isEmailValid && isPasswordValid;
+  });
+
   protected nextButtonText = computed(() =>
     this.isSubmitting() ? 'Création en cours...' : "Je m'inscris",
   );
 
   constructor() {
-    const currentEmail = this.onboardingApi.onboardingSteps().email;
+    const currentEmail = this.#onboardingApi.getStateData().email;
     if (currentEmail) {
       this.emailValue.set(currentEmail);
     }
   }
 
-  protected canContinue(): boolean {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const isEmailValid = emailRegex.test(this.emailValue());
-    const isPasswordValid = this.passwordValue().length >= 8;
-    return isEmailValid && isPasswordValid;
-  }
-
-  protected onEmailChange(event: Event): void {
-    const target = event.target as HTMLInputElement;
-    const email = target.value;
-    this.emailValue.set(email);
-    const currentSteps = this.onboardingApi.onboardingSteps();
-    this.onboardingApi.updatePersonalInfoStep(currentSteps.firstName, email);
-  }
-
-  protected onPasswordChange(event: Event): void {
-    const target = event.target as HTMLInputElement;
-    this.passwordValue.set(target.value);
-  }
-
-  protected togglePasswordVisibility(): void {
-    this.hidePassword.set(!this.hidePassword());
+  protected updateOnboardingEmail(): void {
+    const currentSteps = this.#onboardingApi.getStateData();
+    this.#onboardingApi.updatePersonalInfoStep(
+      currentSteps.firstName,
+      this.emailValue(),
+    );
   }
 
   protected async registerAndCreateAccount(): Promise<void> {
+    if (!this.canContinue()) return;
+
     this.isSubmitting.set(true);
     this.errorMessage.set('');
     this.successMessage.set('');
 
     try {
-      const authResult = await this.authService.signUpWithEmail(
+      const authResult = await this.#authService.signUpWithEmail(
         this.emailValue(),
         this.passwordValue(),
       );
@@ -181,23 +179,20 @@ export default class Registration {
         return;
       }
 
-      const onboardingPayload = this.onboardingApi.onboardingSteps();
+      const onboardingPayload = this.#onboardingApi.getStateData();
       const budgetRequest = this.#buildBudgetCreationRequest(onboardingPayload);
-
       await firstValueFrom(
-        this.budgetApi.createOnboardingBudget$(budgetRequest),
+        this.#budgetApi.createBudgetFromOnboarding$(budgetRequest),
       );
 
-      this.onboardingApi.submitCompletedOnboarding();
-      this.onboardingApi.clearOnboardingData();
+      this.#onboardingApi.submitCompletedOnboarding();
+      this.#onboardingApi.clearOnboardingData();
 
       this.successMessage.set(
         'Votre compte a été créé avec succès ! Redirection vers votre budget...',
       );
 
-      setTimeout(() => {
-        this.router.navigate([ROUTES.CURRENT_MONTH]);
-      }, 2000);
+      setTimeout(() => this.#router.navigate([ROUTES.CURRENT_MONTH]), 2000);
     } catch (error) {
       console.error("Erreur lors de l'inscription:", error);
       this.errorMessage.set(
@@ -209,7 +204,7 @@ export default class Registration {
   }
 
   protected navigatePrevious(): void {
-    this.router.navigate(['/onboarding/transport']);
+    this.#router.navigate(['/onboarding/transport']);
   }
 
   #buildBudgetCreationRequest(

@@ -50,7 +50,7 @@ export default class Income {
   protected incomeValue = signal<number | null>(null);
 
   constructor() {
-    const existingIncome = this.onboardingApi.onboardingSteps().monthlyIncome;
+    const existingIncome = this.onboardingApi.getStateData().monthlyIncome;
     if (existingIncome !== null) {
       this.incomeValue.set(existingIncome);
     }

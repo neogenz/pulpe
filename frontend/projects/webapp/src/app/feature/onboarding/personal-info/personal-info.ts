@@ -64,7 +64,7 @@ export default class PersonalInfo {
   protected firstNameValue = signal<string>('');
 
   constructor() {
-    const existingFirstName = this.onboardingApi.onboardingSteps().firstName;
+    const existingFirstName = this.onboardingApi.getStateData().firstName;
     if (existingFirstName) {
       this.firstNameValue.set(existingFirstName);
     }
@@ -80,7 +80,7 @@ export default class PersonalInfo {
   }
 
   protected navigateNext(): void {
-    const currentSteps = this.onboardingApi.onboardingSteps();
+    const currentSteps = this.onboardingApi.getStateData();
     this.onboardingApi.updatePersonalInfoStep(
       this.firstNameValue(),
       currentSteps.email,

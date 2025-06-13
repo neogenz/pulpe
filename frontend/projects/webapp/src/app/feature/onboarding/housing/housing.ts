@@ -50,7 +50,7 @@ export default class Housing {
   protected housingValue = signal<number | null>(null);
 
   constructor() {
-    const existingHousing = this.onboardingApi.onboardingSteps().housingCosts;
+    const existingHousing = this.onboardingApi.getStateData().housingCosts;
     if (existingHousing !== null) {
       this.housingValue.set(existingHousing);
     }

@@ -50,7 +50,7 @@ export default class HealthInsurance {
 
   constructor() {
     const existingHealthInsurance =
-      this.onboardingApi.onboardingSteps().healthInsurance;
+      this.onboardingApi.getStateData().healthInsurance;
     if (existingHealthInsurance !== null) {
       this.healthInsuranceValue.set(existingHealthInsurance);
     }

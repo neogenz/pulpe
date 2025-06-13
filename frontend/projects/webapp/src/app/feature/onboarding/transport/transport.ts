@@ -51,8 +51,7 @@ export default class Transport {
   protected transportValue = signal<number | null>(null);
 
   constructor() {
-    const existingTransport =
-      this.onboardingApi.onboardingSteps().transportCosts;
+    const existingTransport = this.onboardingApi.getStateData().transportCosts;
     if (existingTransport !== null) {
       this.transportValue.set(existingTransport);
     }

@@ -50,7 +50,7 @@ export default class PhonePlan {
   protected phonePlanValue = signal<number | null>(null);
 
   constructor() {
-    const existingPhonePlan = this.onboardingApi.onboardingSteps().phonePlan;
+    const existingPhonePlan = this.onboardingApi.getStateData().phonePlan;
     if (existingPhonePlan !== null) {
       this.phonePlanValue.set(existingPhonePlan);
     }

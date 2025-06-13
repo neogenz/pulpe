@@ -18,7 +18,7 @@ const ONBOARDING_STATUS_KEY = 'pulpe-onboarding-completed';
   providedIn: 'root',
 })
 export class OnboardingApi {
-  private readonly onboardingStepsSignal = signal<OnboardingStepData>({
+  readonly #onboardingState = signal<OnboardingStepData>({
     monthlyIncome: null,
     housingCosts: null,
     healthInsurance: null,
@@ -29,7 +29,7 @@ export class OnboardingApi {
     email: '',
   });
 
-  readonly onboardingSteps = this.onboardingStepsSignal.asReadonly();
+  readonly getStateData = this.#onboardingState.asReadonly();
 
   constructor() {
     this.loadStepsFromLocalStorage();
@@ -60,7 +60,7 @@ export class OnboardingApi {
   }
 
   updatePersonalInfoStep(firstName: string, email: string): void {
-    this.onboardingStepsSignal.update((steps) => ({
+    this.#onboardingState.update((steps) => ({
       ...steps,
       firstName,
       email,
@@ -69,7 +69,7 @@ export class OnboardingApi {
   }
 
   isOnboardingReadyForSubmission(): boolean {
-    const steps = this.onboardingSteps();
+    const steps = this.getStateData();
     return !!(
       steps.monthlyIncome !== null &&
       steps.firstName.trim() &&
@@ -85,7 +85,7 @@ export class OnboardingApi {
   }
 
   clearOnboardingData(): void {
-    this.onboardingStepsSignal.set({
+    this.#onboardingState.set({
       monthlyIncome: null,
       housingCosts: null,
       healthInsurance: null,
@@ -119,7 +119,7 @@ export class OnboardingApi {
     >,
     amount: number | null,
   ): void {
-    this.onboardingStepsSignal.update((steps) => ({
+    this.#onboardingState.update((steps) => ({
       ...steps,
       [field]: amount,
     }));
@@ -128,7 +128,7 @@ export class OnboardingApi {
 
   private saveStepsToLocalStorage(): void {
     try {
-      const stepsData = this.onboardingSteps();
+      const stepsData = this.getStateData();
       localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(stepsData));
     } catch (error) {
       console.error('Failed to save onboarding steps to localStorage:', error);
@@ -140,7 +140,7 @@ export class OnboardingApi {
       const savedSteps = localStorage.getItem(ONBOARDING_STORAGE_KEY);
       if (savedSteps) {
         const parsedSteps = JSON.parse(savedSteps) as OnboardingStepData;
-        this.onboardingStepsSignal.set(parsedSteps);
+        this.#onboardingState.set(parsedSteps);
       }
     } catch (error) {
       console.error(

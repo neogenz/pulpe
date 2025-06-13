@@ -51,7 +51,7 @@ export default class LeasingCredit {
 
   constructor() {
     const existingLeasingCredit =
-      this.onboardingApi.onboardingSteps().leasingCredit;
+      this.onboardingApi.getStateData().leasingCredit;
     if (existingLeasingCredit !== null) {
       this.leasingCreditValue.set(existingLeasingCredit);
     }
