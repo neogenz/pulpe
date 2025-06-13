@@ -1,17 +1,23 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, BadRequestException } from '@nestjs/common';
+import { ValidationPipe, BadRequestException, RequestMethod } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
+import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 import { validateEnvironment } from '@config/environment';
 import { GlobalExceptionFilter } from '@common/filters/global-exception.filter';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { 
+    bufferLogs: true 
+  });
   
   // Get ConfigService and validate environment after app creation
   const configService = app.get(ConfigService);
   const env = validateEnvironment(configService);
+
+  // Use Pino logger for NestJS logs (JSON in production, pretty in dev)
+  app.useLogger(app.get(Logger));
 
   // Global exception filter
   app.useGlobalFilters(new GlobalExceptionFilter());
@@ -48,7 +54,9 @@ async function bootstrap() {
   });
 
   // Global prefix
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix('api', {
+    exclude: [{ path: 'health', method: RequestMethod.GET }]
+  });
 
   // OpenAPI/Swagger configuration
   const config = new DocumentBuilder()
