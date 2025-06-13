@@ -42,17 +42,17 @@
     "zod": "^3.25.51"
   },
   "devDependencies": {
-    "@angular-eslint/builder": "^19.6.0",
+    "@angular-eslint/builder": "20.0.0",
     "@angular/build": "^20.0.0",
     "@angular/cli": "^20.0.0",
     "@angular/compiler-cli": "^20.0.0",
     "@angular/platform-browser-dynamic": "^20.0.0",
     "@eslint/js": "^9.28.0",
     "@vitest/ui": "^3.1.4",
-    "angular-eslint": "19.6.0",
+    "angular-eslint": "20.0.0",
     "esbuild-visualizer": "^0.7.0",
-    "eslint": "^9.27.0",
-    "eslint-import-resolver-typescript": "^4.4.2",
+    "eslint": "^9.28.0",
+    "eslint-import-resolver-typescript": "^4.4.3",
     "eslint-plugin-boundaries": "^5.0.1",
     "http-server": "^14.1.1",
     "jsdom": "^26.1.0",
@@ -61,7 +61,7 @@
     "prettier": "^3.5.3",
     "source-map-explorer": "^2.5.3",
     "typescript": "~5.8.2",
-    "typescript-eslint": "8.32.1",
-    "vitest": "^3.1.4"
+    "typescript-eslint": "8.33.1",
+    "vitest": "^3.2.3"
   }
 }

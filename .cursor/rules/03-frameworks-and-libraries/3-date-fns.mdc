@@ -3,7 +3,7 @@ description:
 globs: 
 alwaysApply: true
 ---
-Imports:
+Imports of date-fns lib:
 - Import specific functions only
 - Use named imports always
 - Import `locale` when formatting
