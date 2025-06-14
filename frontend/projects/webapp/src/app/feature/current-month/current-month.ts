@@ -7,25 +7,51 @@ import {
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
-import { MatProgressSpinner } from '@angular/material/progress-spinner';
-import { FinancialOverview } from './components/financial-overview';
-import { CurrentMonthState } from './services/current-month-state';
+import {
+  MAT_FORM_FIELD_DEFAULT_OPTIONS,
+  MatFormFieldModule,
+} from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { DashboardError } from './components/dashboard-error';
+import { DashboardLoading } from './components/dashboard-loading';
+import { FinancialOverview } from './components/financial-overview';
 import { FixedTransactionsList } from './components/fixed-transactions-list';
+import {
+  QuickAddExpenseForm,
+  TransactionFormData,
+} from './components/quick-add-expense-form';
+import { VariableExpensesList } from './components/variable-expenses-list';
+import { CurrentMonthState } from './services/current-month-state';
 
 @Component({
   selector: 'pulpe-current-month',
+  providers: [
+    {
+      provide: MAT_FORM_FIELD_DEFAULT_OPTIONS,
+      useValue: {
+        appearance: 'outline',
+      },
+    },
+  ],
   imports: [
     FinancialOverview,
-    MatProgressSpinner,
     DatePipe,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
     FixedTransactionsList,
+    DashboardError,
+    DashboardLoading,
+    VariableExpensesList,
+    QuickAddExpenseForm,
   ],
   template: `
-    <div class="space-y-6">
+    <div class="flex flex-col h-full gap-4">
       <header class="flex justify-between items-center">
         <h1 class="text-display-small">Budget du mois courant</h1>
         <button
@@ -43,41 +69,10 @@ import { FixedTransactionsList } from './components/fixed-transactions-list';
           state.dashboardData.status() === 'loading' ||
           state.dashboardData.status() === 'reloading'
         ) {
-          <div class="flex justify-center items-center h-64">
-            <div
-              class="text-center flex flex-col gap-4 justify-center items-center"
-            >
-              <mat-progress-spinner diameter="48" mode="indeterminate" />
-              <p class="text-body-large text-on-surface-variant">
-                Chargement du budget...
-              </p>
-            </div>
-          </div>
+          <pulpe-dashboard-loading />
         }
         @case (state.dashboardData.status() === 'error') {
-          <div class="flex flex-col items-center justify-center">
-            <mat-card appearance="outlined">
-              <mat-card-header>
-                <mat-card-title>
-                  <div class="flex items-center justify-center gap-2">
-                    <mat-icon>error_outline</mat-icon>
-                    Impossible de charger vos données
-                  </div>
-                </mat-card-title>
-              </mat-card-header>
-              <mat-card-content>
-                <p class="pt-4">
-                  Une erreur s'est produite lors du chargement de vos
-                  informations budgétaires. Vos données sont en sécurité.
-                </p>
-              </mat-card-content>
-              <mat-card-actions align="end">
-                <button (click)="state.dashboardData.reload()" matButton>
-                  Réessayer
-                </button>
-              </mat-card-actions>
-            </mat-card>
-          </div>
+          <pulpe-dashboard-error (reload)="state.dashboardData.reload()" />
         }
         @case (state.dashboardData.status() === 'resolved') {
           @if (state.dashboardData.value()?.budget) {
@@ -87,7 +82,18 @@ import { FixedTransactionsList } from './components/fixed-transactions-list';
               [savingsAmount]="state.savingsAmount()"
               [negativeAmount]="state.negativeAmount()"
             />
-            <div class="flex bg-red-300 h-full w-full"></div>
+            <div class="flex bg-gray-300 gap-4">
+              <div class="flex-[6] bg-blue-50">
+                <pulpe-quick-add-expense-form
+                  (addTransaction)="onAddTransaction($event)"
+                />
+                <pulpe-variable-expenses-list />
+              </div>
+              <pulpe-fixed-transactions-list
+                class="flex-[4] bg-amber-300"
+                [transactions]="state.dashboardData.value()?.transactions ?? []"
+              />
+            </div>
           } @else {
             <div class="empty-state">
               <h2 class="text-title-large mt-4">Aucun budget trouvé</h2>
@@ -101,13 +107,12 @@ import { FixedTransactionsList } from './components/fixed-transactions-list';
       }
     </div>
   `,
-  styles: [
-    `
-      :host {
-        display: 'block';
-      }
-    `,
-  ],
+  styles: `
+    :host {
+      display: block;
+      height: 100%;
+    }
+  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class CurrentMonth implements OnInit {
@@ -115,5 +120,9 @@ export default class CurrentMonth implements OnInit {
 
   ngOnInit() {
     this.state.refreshData();
+  }
+
+  onAddTransaction(transaction: TransactionFormData) {
+    console.log(transaction);
   }
 }
