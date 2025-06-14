@@ -25,46 +25,36 @@ export class CurrentMonthState {
   });
 
   today = signal<Date>(new Date());
-  
+
   #currentDate = computed(() => {
-    const now = new Date();
+    const now = this.today();
     return {
       month: format(now, 'MM'),
       year: format(now, 'yyyy'),
     };
   });
-  #budget = computed(() => this.dashboardData.value()?.budget || null);
   #transactions = computed(
     () => this.dashboardData.value()?.transactions || [],
   );
 
   incomeAmount = computed(() => {
-    const budget = this.#budget();
     const transactions = this.#transactions();
-    if (!budget) return 0;
-
-    return this.#budgetCalculator.calculateTotalIncome(budget, transactions);
+    return this.#budgetCalculator.calculateTotalIncome(transactions);
   });
 
   expenseAmount = computed(() => {
-    const budget = this.#budget();
     const transactions = this.#transactions();
-    if (!budget) return 0;
-    return this.#budgetCalculator.calculateTotalExpenses(budget, transactions);
+    return this.#budgetCalculator.calculateTotalExpenses(transactions);
   });
 
   savingsAmount = computed(() => {
-    const budget = this.#budget();
     const transactions = this.#transactions();
-    if (!budget) return 0;
-    return this.#budgetCalculator.calculateTotalSavings(budget, transactions);
+    return this.#budgetCalculator.calculateTotalSavings(transactions);
   });
 
   negativeAmount = computed(() => {
-    const budget = this.#budget();
     const transactions = this.#transactions();
-    if (!budget) return 0;
-    return this.#budgetCalculator.calculateNegativeBudget(budget, transactions);
+    return this.#budgetCalculator.calculateNegativeBudget(transactions);
   });
 
   async #loadDashboardData(params: {

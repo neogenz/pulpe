@@ -2,7 +2,7 @@ import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { FinancialOverview } from './components/financial-overview';
-import { CurrentMonthState } from './current-month-state';
+import { CurrentMonthState } from './services/current-month-state';
 
 @Component({
   selector: 'pulpe-current-month',
