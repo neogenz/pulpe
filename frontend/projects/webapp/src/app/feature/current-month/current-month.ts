@@ -26,22 +26,21 @@ import { MatIconModule } from '@angular/material/icon';
     <div class="space-y-6">
       <header class="flex justify-between items-center">
         <h1 class="text-display-small">Budget du mois courant</h1>
-        @if (
-          !state.dashboardData.isLoading() && state.dashboardData.hasValue()
-        ) {
-          <button
-            (click)="state.dashboardData.reload()"
-            class="btn-secondary"
-            [disabled]="state.dashboardData.isLoading()"
-          >
-            <span class="material-icons">refresh</span>
-            Actualiser
-          </button>
-        }
+        <button
+          matButton
+          (click)="state.dashboardData.reload()"
+          [disabled]="state.dashboardData.isLoading()"
+        >
+          <mat-icon>refresh</mat-icon>
+          Actualiser
+        </button>
       </header>
 
-      @switch (state.dashboardData.status()) {
-        @case ('loading') {
+      @switch (true) {
+        @case (
+          state.dashboardData.status() === 'loading' ||
+          state.dashboardData.status() === 'reloading'
+        ) {
           <div class="flex justify-center items-center h-64">
             <div
               class="text-center flex flex-col gap-4 justify-center items-center"
@@ -53,7 +52,7 @@ import { MatIconModule } from '@angular/material/icon';
             </div>
           </div>
         }
-        @case ('error') {
+        @case (state.dashboardData.status() === 'error') {
           <div class="flex flex-col items-center justify-center">
             <mat-card appearance="outlined">
               <mat-card-header>
@@ -78,7 +77,7 @@ import { MatIconModule } from '@angular/material/icon';
             </mat-card>
           </div>
         }
-        @case ('resolved') {
+        @case (state.dashboardData.status() === 'resolved') {
           @if (state.dashboardData.value()?.budget) {
             <pulpe-financial-overview
               [incomeAmount]="state.incomeAmount()"
