@@ -1,19 +1,32 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  OnInit,
+} from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { FinancialOverview } from './components/financial-overview';
 import { CurrentMonthState } from './services/current-month-state';
 
 @Component({
   selector: 'pulpe-current-month',
-  imports: [FinancialOverview, MatProgressSpinner, DatePipe],
+  imports: [
+    FinancialOverview,
+    MatProgressSpinner,
+    DatePipe,
+    MatCardModule,
+    MatButtonModule,
+  ],
   template: `
     <div class="space-y-6">
       <header class="flex justify-between items-center">
         <h1 class="text-display-small">Budget du mois courant</h1>
         @if (
           !currentMonthState.dashboardData.isLoading() &&
-          currentMonthState.dashboardData.value()
+          currentMonthState.dashboardData.hasValue()
         ) {
           <button
             (click)="currentMonthState.dashboardData.reload()"
@@ -40,20 +53,25 @@ import { CurrentMonthState } from './services/current-month-state';
           </div>
         }
         @case ('error') {
-          <div class="alert alert-error">
-            <span class="material-icons">error</span>
-            <div class="flex-1">
-              <h3 class="text-title-medium">Erreur de chargement</h3>
-              <p class="text-body-medium">
-                {{ getErrorMessage(currentMonthState.dashboardData.error()) }}
-              </p>
-            </div>
-            <button
-              (click)="currentMonthState.dashboardData.reload()"
-              class="btn-text"
-            >
-              Réessayer
-            </button>
+          <div class="flex flex-col items-center justify-center">
+            <mat-card appearance="outlined">
+              <mat-card-header>
+                <mat-card-title>Erreur de chargement</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <p class="pt-4">
+                  {{ currentMonthState.dashboardData.error() }}
+                </p>
+              </mat-card-content>
+              <mat-card-actions>
+                <button
+                  (click)="currentMonthState.dashboardData.reload()"
+                  matButton
+                >
+                  Réessayer
+                </button>
+              </mat-card-actions>
+            </mat-card>
           </div>
         }
         @case ('resolved') {
@@ -98,20 +116,10 @@ import { CurrentMonthState } from './services/current-month-state';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export default class CurrentMonth {
+export default class CurrentMonth implements OnInit {
   currentMonthState = inject(CurrentMonthState);
 
-  getErrorMessage(error: unknown): string {
-    if (error instanceof Error) {
-      return error.message;
-    }
-    if (typeof error === 'object' && error !== null && 'message' in error) {
-      return String(error.message);
-    }
-    return "Une erreur inattendue s'est produite. Veuillez réessayer.";
-  }
-
-  createBudget(): void {
-    console.log('createBudget');
+  ngOnInit() {
+    this.currentMonthState.refreshData();
   }
 }

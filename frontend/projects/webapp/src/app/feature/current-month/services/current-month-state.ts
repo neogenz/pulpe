@@ -16,6 +16,10 @@ export class CurrentMonthState {
   #transactionApi = inject(TransactionApi);
   #budgetCalculator = inject(BudgetCalculator);
 
+  constructor() {
+    console.log('CurrentMonthState constructor');
+  }
+
   dashboardData = resource<DashboardData, { month: string; year: string }>({
     params: () => ({
       month: this.#currentDate().month,
@@ -25,6 +29,12 @@ export class CurrentMonthState {
   });
 
   today = signal<Date>(new Date());
+
+  refreshData(): void {
+    if (this.dashboardData.status() !== 'loading') {
+      this.dashboardData.reload();
+    }
+  }
 
   #currentDate = computed(() => {
     const now = this.today();
@@ -61,6 +71,7 @@ export class CurrentMonthState {
     month: string;
     year: string;
   }): Promise<DashboardData> {
+    console.log('loadDashboardData', params);
     try {
       // Charger le budget
       const budget = await firstValueFrom<Budget | null>(
