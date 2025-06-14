@@ -82,17 +82,20 @@ import { CurrentMonthState } from './services/current-month-state';
               [savingsAmount]="state.savingsAmount()"
               [negativeAmount]="state.negativeAmount()"
             />
-            <div class="flex bg-gray-300 gap-4">
-              <div class="flex-[6] bg-blue-50">
+            <div class="flex gap-4">
+              <div class="flex-[6]">
                 <pulpe-quick-add-expense-form
                   (addTransaction)="onAddTransaction($event)"
                 />
                 <pulpe-variable-expenses-list />
               </div>
-              <pulpe-fixed-transactions-list
-                class="flex-[4] bg-amber-300"
-                [transactions]="state.dashboardData.value()?.transactions ?? []"
-              />
+              <div class="flex-[4]">
+                <pulpe-fixed-transactions-list
+                  [transactions]="
+                    state.dashboardData.value()?.transactions ?? []
+                  "
+                />
+              </div>
             </div>
           } @else {
             <div class="empty-state">
