@@ -1,14 +1,36 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  inject,
   output,
+  signal,
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { RouterModule } from '@angular/router';
-import { Navigation } from '@core/navigation';
+import { ROUTES } from '@core/routing/routes-constants';
 
+const NAVIGATION_CONFIG = [
+  {
+    title: 'Budget',
+    items: [
+      {
+        label: 'Mois en cours',
+        route: ROUTES.CURRENT_MONTH,
+        icon: 'today',
+      },
+      {
+        label: 'Autres mois',
+        route: ROUTES.OTHER_MONTHS,
+        icon: 'calendar_month',
+      },
+      {
+        label: 'Modèles de budget',
+        route: ROUTES.BUDGET_TEMPLATES,
+        icon: 'description',
+      },
+    ],
+  },
+];
 @Component({
   selector: 'pulpe-navigation-menu',
   imports: [MatIconModule, MatListModule, RouterModule],
@@ -20,10 +42,7 @@ import { Navigation } from '@core/navigation';
         </div>
 
         <mat-nav-list>
-          @for (
-            section of navigation.navigationSections();
-            track section.title
-          ) {
+          @for (section of navigationSections(); track section.title) {
             <div mat-subheader>{{ section.title }}</div>
             @for (item of section.items; track item.route) {
               <a
@@ -65,7 +84,7 @@ import { Navigation } from '@core/navigation';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NavigationMenu {
-  readonly navigation = inject(Navigation);
+  readonly navigationSections = signal(NAVIGATION_CONFIG);
   readonly navItemClick = output<Event>();
 
   onNavItemClick(event: Event): void {

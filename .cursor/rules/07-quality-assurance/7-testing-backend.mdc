@@ -1,6 +1,6 @@
 ---
-description: Apply backend testing standards for maintainability and reliability when writing backend tests. Focus on setup/teardown hooks and avoiding repetition.
-globs: apps/backend/**/*.spec.*, apps/backend/**/*.test.*
+description: 
+globs: 
 alwaysApply: false
 ---
 

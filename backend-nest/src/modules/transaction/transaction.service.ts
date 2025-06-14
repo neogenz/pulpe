@@ -1,0 +1,178 @@
+import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import {
+  type TransactionCreate,
+  type TransactionUpdate,
+  type TransactionResponse,
+} from '@pulpe/shared';
+import type { AuthenticatedUser } from '@common/decorators/user.decorator';
+import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
+import { TransactionMapper, type TransactionDbEntity } from './transaction.mapper';
+
+@Injectable()
+export class TransactionService {
+  constructor(private readonly transactionMapper: TransactionMapper) {}
+  async findByBudget(
+    budgetId: string,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<TransactionResponse> {
+    try {
+      const { data: transactionsDb, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('budget_id', budgetId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Erreur récupération transactions:', error);
+        throw new InternalServerErrorException('Erreur lors de la récupération des transactions');
+      }
+
+      const transactions = this.transactionMapper.toApiList(transactionsDb || []);
+
+      return {
+        success: true as const,
+        data: transactions,
+      };
+    } catch (error) {
+      if (error instanceof InternalServerErrorException) {
+        throw error;
+      }
+      console.error('Erreur liste transactions:', error);
+      throw new InternalServerErrorException('Erreur interne du serveur');
+    }
+  }
+
+  async create(
+    createTransactionDto: TransactionCreate,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<TransactionResponse> {
+    try {
+      const transactionData = this.transactionMapper.toDbCreate(createTransactionDto, user.id);
+
+      const { data: transactionDb, error } = await supabase
+        .from('transactions')
+        .insert(transactionData)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Erreur création transaction:', error);
+        throw new BadRequestException('Erreur lors de la création de la transaction');
+      }
+
+      const transaction = this.transactionMapper.toApi(transactionDb as TransactionDbEntity);
+
+      return {
+        success: true as const,
+        data: transaction,
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      console.error('Erreur création transaction:', error);
+      throw new InternalServerErrorException('Erreur interne du serveur');
+    }
+  }
+
+  async findOne(
+    id: string,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<TransactionResponse> {
+    try {
+      const { data: transactionDb, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error || !transactionDb) {
+        throw new NotFoundException('Transaction introuvable ou accès non autorisé');
+      }
+
+      const transaction = this.transactionMapper.toApi(transactionDb as TransactionDbEntity);
+
+      return {
+        success: true as const,
+        data: transaction,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Erreur récupération transaction:', error);
+      throw new InternalServerErrorException('Erreur interne du serveur');
+    }
+  }
+
+  async update(
+    id: string,
+    updateTransactionDto: TransactionUpdate,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<TransactionResponse> {
+    try {
+      const updateData = {
+        ...this.transactionMapper.toDbUpdate(updateTransactionDto),
+        updated_at: new Date().toISOString(),
+      };
+
+      const { data: transactionDb, error } = await supabase
+        .from('transactions')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error || !transactionDb) {
+        console.error('Erreur modification transaction:', error);
+        throw new NotFoundException('Transaction introuvable ou modification non autorisée');
+      }
+
+      const transaction = this.transactionMapper.toApi(transactionDb as TransactionDbEntity);
+
+      return {
+        success: true as const,
+        data: transaction,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Erreur modification transaction:', error);
+      throw new InternalServerErrorException('Erreur interne du serveur');
+    }
+  }
+
+  async remove(
+    id: string,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ) {
+    try {
+      const { error } = await supabase
+        .from('transactions')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Erreur suppression transaction:', error);
+        throw new NotFoundException('Transaction introuvable ou suppression non autorisée');
+      }
+
+      return {
+        success: true as const,
+        message: 'Transaction supprimée avec succès',
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Erreur suppression transaction:', error);
+      throw new InternalServerErrorException('Erreur interne du serveur');
+    }
+  }
+}

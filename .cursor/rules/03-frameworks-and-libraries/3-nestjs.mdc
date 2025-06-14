@@ -1,9 +1,8 @@
 ---
-description: APPLY NestJS framework standards WHEN developing with NestJS
-globs: apps/backend/src/**/*.ts,backend/src/**/*.ts
+description: 
+globs: backend-nest/**
 alwaysApply: false
 ---
-
 Architecture:
 - Use modular structure
 
