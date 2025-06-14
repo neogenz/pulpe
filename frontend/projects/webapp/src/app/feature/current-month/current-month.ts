@@ -11,6 +11,7 @@ import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { FinancialOverview } from './components/financial-overview';
 import { CurrentMonthState } from './services/current-month-state';
 import { MatIconModule } from '@angular/material/icon';
+import { FixedTransactionsList } from './components/fixed-transactions-list';
 
 @Component({
   selector: 'pulpe-current-month',
@@ -21,6 +22,7 @@ import { MatIconModule } from '@angular/material/icon';
     MatCardModule,
     MatButtonModule,
     MatIconModule,
+    FixedTransactionsList,
   ],
   template: `
     <div class="space-y-6">
@@ -85,6 +87,7 @@ import { MatIconModule } from '@angular/material/icon';
               [savingsAmount]="state.savingsAmount()"
               [negativeAmount]="state.negativeAmount()"
             />
+            <div class="flex bg-red-300 h-full w-full"></div>
           } @else {
             <div class="empty-state">
               <h2 class="text-title-large mt-4">Aucun budget trouvé</h2>
