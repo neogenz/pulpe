@@ -25,6 +25,7 @@ export class CurrentMonthState {
   });
 
   today = signal<Date>(new Date());
+  
   #currentDate = computed(() => {
     const now = new Date();
     return {
@@ -32,10 +33,8 @@ export class CurrentMonthState {
       year: format(now, 'yyyy'),
     };
   });
-
-  // Computed values avec gestion null-safe
-  readonly #budget = computed(() => this.dashboardData.value()?.budget || null);
-  readonly #transactions = computed(
+  #budget = computed(() => this.dashboardData.value()?.budget || null);
+  #transactions = computed(
     () => this.dashboardData.value()?.transactions || [],
   );
 

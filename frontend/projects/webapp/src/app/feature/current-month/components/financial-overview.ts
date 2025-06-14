@@ -34,12 +34,12 @@ export class FinancialOverview {
   negativeAmount = input.required<number>();
 
   incomeData = computed<FinancialSummaryData>(() => ({
-      title: 'Revenus',
-      amount: this.incomeAmount(),
-      icon: 'trending_up',
-      type: 'income',
-      isClickable: false,
-    }));
+    title: 'Revenus',
+    amount: this.incomeAmount(),
+    icon: 'trending_up',
+    type: 'income',
+    isClickable: false,
+  }));
 
   expenseData = computed<FinancialSummaryData>(() => ({
     title: 'Dépenses',
@@ -58,7 +58,7 @@ export class FinancialOverview {
   negativeData = computed<FinancialSummaryData>(() => ({
     title: 'Déficit',
     amount: this.negativeAmount(),
-    icon: 'negative',
+    icon: 'money_off',
     type: 'negative',
   }));
 }
