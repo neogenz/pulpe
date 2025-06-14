@@ -1,10 +1,11 @@
 import { Routes } from '@angular/router';
 import { BudgetCalculator } from './budget-calculator';
+import { CurrentMonthState } from './current-month-state';
 
 export const currentMonthRoutes: Routes = [
   {
     path: '',
-    providers: [BudgetCalculator],
+    providers: [BudgetCalculator, CurrentMonthState],
     children: [
       {
         path: '',
