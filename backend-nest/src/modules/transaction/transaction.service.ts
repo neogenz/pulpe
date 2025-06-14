@@ -6,16 +6,18 @@ import {
 } from '@pulpe/shared';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
+import { TransactionMapper, type TransactionDbEntity } from './transaction.mapper';
 
 @Injectable()
 export class TransactionService {
+  constructor(private readonly transactionMapper: TransactionMapper) {}
   async findByBudget(
     budgetId: string,
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionResponse> {
     try {
-      const { data: transactions, error } = await supabase
+      const { data: transactionsDb, error } = await supabase
         .from('transactions')
         .select('*')
         .eq('budget_id', budgetId)
@@ -26,9 +28,11 @@ export class TransactionService {
         throw new InternalServerErrorException('Erreur lors de la récupération des transactions');
       }
 
+      const transactions = this.transactionMapper.toApiList(transactionsDb || []);
+
       return {
         success: true as const,
-        data: transactions || [],
+        data: transactions,
       };
     } catch (error) {
       if (error instanceof InternalServerErrorException) {
@@ -45,12 +49,9 @@ export class TransactionService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionResponse> {
     try {
-      const transactionData = {
-        ...createTransactionDto,
-        user_id: user.id,
-      };
+      const transactionData = this.transactionMapper.toDbCreate(createTransactionDto, user.id);
 
-      const { data: transaction, error } = await supabase
+      const { data: transactionDb, error } = await supabase
         .from('transactions')
         .insert(transactionData)
         .select()
@@ -60,6 +61,8 @@ export class TransactionService {
         console.error('Erreur création transaction:', error);
         throw new BadRequestException('Erreur lors de la création de la transaction');
       }
+
+      const transaction = this.transactionMapper.toApi(transactionDb as TransactionDbEntity);
 
       return {
         success: true as const,
@@ -80,15 +83,17 @@ export class TransactionService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionResponse> {
     try {
-      const { data: transaction, error } = await supabase
+      const { data: transactionDb, error } = await supabase
         .from('transactions')
         .select('*')
         .eq('id', id)
         .single();
 
-      if (error || !transaction) {
+      if (error || !transactionDb) {
         throw new NotFoundException('Transaction introuvable ou accès non autorisé');
       }
+
+      const transaction = this.transactionMapper.toApi(transactionDb as TransactionDbEntity);
 
       return {
         success: true as const,
@@ -110,20 +115,24 @@ export class TransactionService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionResponse> {
     try {
-      const { data: transaction, error } = await supabase
+      const updateData = {
+        ...this.transactionMapper.toDbUpdate(updateTransactionDto),
+        updated_at: new Date().toISOString(),
+      };
+
+      const { data: transactionDb, error } = await supabase
         .from('transactions')
-        .update({
-          ...updateTransactionDto,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('id', id)
         .select()
         .single();
 
-      if (error || !transaction) {
+      if (error || !transactionDb) {
         console.error('Erreur modification transaction:', error);
         throw new NotFoundException('Transaction introuvable ou modification non autorisée');
       }
+
+      const transaction = this.transactionMapper.toApi(transactionDb as TransactionDbEntity);
 
       return {
         success: true as const,

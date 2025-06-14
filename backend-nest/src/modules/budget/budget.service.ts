@@ -14,15 +14,17 @@ import {
   type BudgetListResponse,
   type BudgetDeleteResponse,
 } from "@pulpe/shared";
+import { BudgetMapper, type BudgetDbEntity } from "./budget.mapper";
 
 @Injectable()
 export class BudgetService {
+  constructor(private readonly budgetMapper: BudgetMapper) {}
   async findAll(
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient
   ): Promise<BudgetListResponse> {
     try {
-      const { data: budgets, error } = await supabase
+      const { data: budgetsDb, error } = await supabase
         .from("budgets")
         .select("*")
         .order("year", { ascending: false })
@@ -35,9 +37,11 @@ export class BudgetService {
         );
       }
 
+      const budgets = this.budgetMapper.toApiList(budgetsDb || []);
+
       return {
         success: true as const,
-        data: budgets || [],
+        data: budgets,
       };
     } catch (error) {
       if (error instanceof InternalServerErrorException) {
@@ -54,12 +58,9 @@ export class BudgetService {
     supabase: AuthenticatedSupabaseClient
   ): Promise<BudgetResponse> {
     try {
-      const budgetData = {
-        ...createBudgetDto,
-        user_id: user.id,
-      };
+      const budgetData = this.budgetMapper.toDbCreate(createBudgetDto, user.id);
 
-      const { data: budget, error } = await supabase
+      const { data: budgetDb, error } = await supabase
         .from("budgets")
         .insert(budgetData)
         .select()
@@ -69,6 +70,8 @@ export class BudgetService {
         console.error("Erreur création budget:", error);
         throw new BadRequestException("Erreur lors de la création du budget");
       }
+
+      const budget = this.budgetMapper.toApi(budgetDb as BudgetDbEntity);
 
       return {
         success: true as const,
@@ -89,15 +92,17 @@ export class BudgetService {
     supabase: AuthenticatedSupabaseClient
   ): Promise<BudgetResponse> {
     try {
-      const { data: budget, error } = await supabase
+      const { data: budgetDb, error } = await supabase
         .from("budgets")
         .select("*")
         .eq("id", id)
         .single();
 
-      if (error || !budget) {
+      if (error || !budgetDb) {
         throw new NotFoundException("Budget introuvable ou accès non autorisé");
       }
+
+      const budget = this.budgetMapper.toApi(budgetDb as BudgetDbEntity);
 
       return {
         success: true as const,
@@ -119,22 +124,26 @@ export class BudgetService {
     supabase: AuthenticatedSupabaseClient
   ): Promise<BudgetResponse> {
     try {
-      const { data: budget, error } = await supabase
+      const updateData = {
+        ...this.budgetMapper.toDbUpdate(updateBudgetDto),
+        updated_at: new Date().toISOString(),
+      };
+
+      const { data: budgetDb, error } = await supabase
         .from("budgets")
-        .update({
-          ...updateBudgetDto,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq("id", id)
         .select()
         .single();
 
-      if (error || !budget) {
+      if (error || !budgetDb) {
         console.error("Erreur modification budget:", error);
         throw new NotFoundException(
           "Budget introuvable ou modification non autorisée"
         );
       }
+
+      const budget = this.budgetMapper.toApi(budgetDb as BudgetDbEntity);
 
       return {
         success: true as const,
@@ -213,9 +222,11 @@ export class BudgetService {
         );
       }
 
+      const budget = this.budgetMapper.toApi(data.budget as BudgetDbEntity);
+
       return {
         success: true as const,
-        data: data.budget,
+        data: budget,
       };
     } catch (error) {
       if (

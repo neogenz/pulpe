@@ -14,9 +14,9 @@ export const transactionTypeSchema = z.enum(["expense", "income", "saving"]);
 // Budget schemas
 export const budgetSchema = z.object({
   id: z.string().uuid(),
-  created_at: z.string().datetime(),
-  updated_at: z.string().datetime(),
-  user_id: z.string().uuid().nullable(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  userId: z.string().uuid().nullable(),
   month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
   year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
   description: z.string().min(1).max(500).trim(),
@@ -49,33 +49,33 @@ export const budgetUpdateSchema = z.object({
 // Transaction schemas
 export const transactionSchema = z.object({
   id: z.string().uuid(),
-  created_at: z.string().datetime(),
-  updated_at: z.string().datetime(),
-  user_id: z.string().uuid().nullable(),
-  budget_id: z.string().uuid(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  userId: z.string().uuid().nullable(),
+  budgetId: z.string().uuid(),
   amount: z.number().positive(),
   type: transactionTypeSchema,
-  expense_type: expenseTypeSchema,
+  expenseType: expenseTypeSchema,
   description: z.string().min(1).max(500).trim(),
-  is_recurring: z.boolean().default(false),
+  isRecurring: z.boolean().default(false),
 });
 
 export const transactionCreateSchema = z.object({
-  budget_id: z.string().uuid(),
+  budgetId: z.string().uuid(),
   amount: z.number().positive(),
   type: transactionTypeSchema,
-  expense_type: expenseTypeSchema,
+  expenseType: expenseTypeSchema,
   description: z.string().min(1).max(500).trim(),
-  is_recurring: z.boolean().default(false),
+  isRecurring: z.boolean().default(false),
 });
 
 export const transactionUpdateSchema = z.object({
-  budget_id: z.string().uuid().optional(),
+  budgetId: z.string().uuid().optional(),
   amount: z.number().positive().optional(),
   type: transactionTypeSchema.optional(),
-  expense_type: expenseTypeSchema.optional(),
+  expenseType: expenseTypeSchema.optional(),
   description: z.string().min(1).max(500).trim().optional(),
-  is_recurring: z.boolean().optional(),
+  isRecurring: z.boolean().optional(),
 }).refine(
   (data) => Object.keys(data).length > 0,
   "Au moins un champ doit être fourni pour la mise à jour"
