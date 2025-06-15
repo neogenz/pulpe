@@ -7,13 +7,14 @@ import {
 import { CurrencyPipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatListModule } from '@angular/material/list';
 import { Transaction } from '@pulpe/shared';
 
 @Component({
   selector: 'pulpe-fixed-transactions-list',
-  imports: [CurrencyPipe, MatIconModule, MatDividerModule],
+  imports: [CurrencyPipe, MatIconModule, MatDividerModule, MatListModule],
   template: `
-    <div class="fixed-transactions-block overflow-y-auto">
+    <div class="fixed-transactions-block">
       <div class="pb-0 p-4">
         <h2 class="text-headline-small mb-1">Dépenses fixes</h2>
         <p class="text-body-medium text-(--color-on-surface-variant) m-0">
@@ -41,62 +42,67 @@ import { Transaction } from '@pulpe/shared';
             </p>
           </div>
         } @else {
-          <div class="transactions-list">
+          <mat-list>
             @for (
-              transaction of test();
+              transaction of transactions();
               track transaction.id;
               let isLast = $last;
               let isOdd = $odd
             ) {
-              <div
-                class="flex items-center gap-2 p-5 justify-between"
-                [class.bg-(--mat-sys-surface-container)]="isOdd"
-              >
-                <div class="flex items-center gap-1.5">
-                  <div
-                    class="size-10 bg-surface flex justify-center items-center rounded-full"
-                  >
-                    <mat-icon class="!text-(--pulpe-financial-expense)">
-                      trending_down
-                    </mat-icon>
-                  </div>
-
-                  <div class="transaction-content">
-                    <div class="text-title-medium">
-                      {{ transaction.description }}
-                    </div>
-                    <div class="text-body-small italic">
-                      Transaction fixe mensuelle
-                    </div>
-                  </div>
+              <mat-list-item [class.!bg-surface-container]="isOdd">
+                <div
+                  matListItemAvatar
+                  class="size-10 bg-surface flex justify-center items-center rounded-full"
+                >
+                  <mat-icon class="!text-(--pulpe-financial-expense)">
+                    trending_down
+                  </mat-icon>
                 </div>
-
-                <div class="text-title-medium text-(--pulpe-financial-expense)">
-                  {{
+                <div matListItemTitle>{{ transaction.description }}</div>
+                @if (transaction.description === 'test') {
+                  <div matListItemLine class="text-body-small italic">
+                    Transaction fixe mensuelle
+                  </div>
+                }
+                <div matListItemMeta class="!flex !h-full !items-center">
+                  -{{
                     transaction.amount
                       | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH'
                   }}
                 </div>
-              </div>
-
+              </mat-list-item>
               @if (!isLast) {
-                <mat-divider class="mx-0"></mat-divider>
+                <mat-divider></mat-divider>
               }
             }
-          </div>
+          </mat-list>
         }
       </div>
     </div>
   `,
   styles: `
+    @use '@angular/material' as mat;
     :host {
       display: block;
       width: 100%;
-
       background-color: var(--mat-sys-surface-container-low);
       border-radius: var(--mat-sys-corner-large);
-
       color: var(--mat-sys-on-surface);
+
+      @include mat.list-overrides(
+        (
+          list-item-leading-avatar-color: var(--mat-sys-surface),
+          list-item-leading-avatar-size: 41px,
+          list-item-two-line-container-height: 71px,
+          list-item-one-line-container-height: 71px,
+          list-item-trailing-supporting-text-size: var(
+              --mat-sys-title-medium-size
+            ),
+          list-item-trailing-supporting-text-color: var(
+              --pulpe-financial-expense
+            ),
+        )
+      );
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

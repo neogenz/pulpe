@@ -82,6 +82,11 @@ export class CurrentMonthState {
         this.#transactionApi.findByBudget$(budget.id),
       );
 
+      // @ts-expect-error - test
+      transactionResponse.data[0]!.description = 'test';
+      // @ts-expect-error - test
+      transactionResponse.data[2]!.description = 'test';
+
       return {
         budget,
         transactions: Array.isArray(transactionResponse.data)
