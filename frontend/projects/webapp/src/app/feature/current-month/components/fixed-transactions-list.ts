@@ -14,7 +14,9 @@ import { Transaction } from '@pulpe/shared';
   selector: 'pulpe-fixed-transactions-list',
   imports: [CurrencyPipe, MatIconModule, MatDividerModule, MatListModule],
   template: `
-    <div class="fixed-transactions-block">
+    <div
+      class="flex flex-col h-full rounded-corner-large overflow-hidden bg-surface-container-low"
+    >
       <div class="pb-0 p-4">
         <h2 class="text-headline-small mb-1">Dépenses fixes</h2>
         <p class="text-body-medium text-(--color-on-surface-variant) m-0">
@@ -23,7 +25,7 @@ import { Transaction } from '@pulpe/shared';
         </p>
       </div>
 
-      <div class="content">
+      <div class="overflow-y-auto">
         @if (transactions().length === 0) {
           <div
             class="flex flex-col items-center justify-center py-8 text-center"
@@ -42,14 +44,14 @@ import { Transaction } from '@pulpe/shared';
             </p>
           </div>
         } @else {
-          <mat-list>
+          <mat-list class="!pb-0">
             @for (
               transaction of transactions();
               track transaction.id;
               let isLast = $last;
               let isOdd = $odd
             ) {
-              <mat-list-item [class.!bg-surface-container]="isOdd">
+              <mat-list-item [class.odd-item]="isOdd">
                 <div
                   matListItemAvatar
                   class="size-10 bg-surface flex justify-center items-center rounded-full"
@@ -83,10 +85,6 @@ import { Transaction } from '@pulpe/shared';
   styles: `
     @use '@angular/material' as mat;
     :host {
-      display: block;
-      width: 100%;
-      background-color: var(--mat-sys-surface-container-low);
-      border-radius: var(--mat-sys-corner-large);
       color: var(--mat-sys-on-surface);
 
       @include mat.list-overrides(
@@ -101,6 +99,14 @@ import { Transaction } from '@pulpe/shared';
           list-item-trailing-supporting-text-color: var(
               --pulpe-financial-expense
             ),
+        )
+      );
+    }
+
+    .odd-item {
+      @include mat.list-overrides(
+        (
+          list-item-container-color: var(--mat-sys-surface-container),
         )
       );
     }

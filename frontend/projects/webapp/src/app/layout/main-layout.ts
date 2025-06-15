@@ -56,7 +56,7 @@ import { NavigationMenu } from './navigation-menu';
             <div class="size-8 pulpe-gradient rounded-full toolbar-logo"></div>
           </mat-toolbar>
 
-          <main class="flex-1 p-4">
+          <main class="flex-1 p-4 h-0">
             <router-outlet />
           </main>
         </div>
