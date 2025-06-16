@@ -21,19 +21,12 @@ import { TransactionsList, TransactionsListConfig } from './transactions-list';
 export class FixedTransactionsList {
   transactions = input.required<Transaction[]>();
 
-  config = computed((): TransactionsListConfig => ({
-    title: 'Dépenses fixes',
-    emptyStateIcon: 'trending_down',
-    emptyStateTitle: 'Aucune dépense fixe',
-    emptyStateSubtitle: 'Vos dépenses fixes apparaîtront ici'
-  }));
-
-  test = computed(() => [
-    ...this.transactions(),
-    ...this.transactions(),
-    ...this.transactions(),
-    ...this.transactions(),
-    ...this.transactions(),
-    ...this.transactions(),
-  ]);
+  config = computed(
+    (): TransactionsListConfig => ({
+      title: 'Dépenses fixes',
+      emptyStateIcon: 'trending_down',
+      emptyStateTitle: 'Aucune dépense fixe',
+      emptyStateSubtitle: 'Vos dépenses fixes apparaîtront ici',
+    }),
+  );
 }
