@@ -35,9 +35,9 @@ BEGIN
   -- Insert income transaction if provided
   IF p_monthly_income > 0 THEN
     INSERT INTO transactions (
-      user_id, budget_id, amount, type, expense_type, description, is_recurring
+      user_id, budget_id, amount, type, expense_type, name, description, is_recurring
     ) VALUES (
-      p_user_id, new_budget_id, p_monthly_income, 'income', 'fixed', 'Revenu mensuel', true
+      p_user_id, new_budget_id, p_monthly_income, 'income', 'fixed', 'Revenu mensuel', NULL, true
     );
     transaction_count := transaction_count + 1;
   END IF;
@@ -45,9 +45,9 @@ BEGIN
   -- Insert housing costs transaction if provided
   IF p_housing_costs > 0 THEN
     INSERT INTO transactions (
-      user_id, budget_id, amount, type, expense_type, description, is_recurring
+      user_id, budget_id, amount, type, expense_type, name, description, is_recurring
     ) VALUES (
-      p_user_id, new_budget_id, p_housing_costs, 'expense', 'fixed', 'Loyer', true
+      p_user_id, new_budget_id, p_housing_costs, 'expense', 'fixed', 'Loyer', NULL, true
     );
     transaction_count := transaction_count + 1;
   END IF;
@@ -55,9 +55,9 @@ BEGIN
   -- Insert health insurance transaction if provided
   IF p_health_insurance > 0 THEN
     INSERT INTO transactions (
-      user_id, budget_id, amount, type, expense_type, description, is_recurring
+      user_id, budget_id, amount, type, expense_type, name, description, is_recurring
     ) VALUES (
-      p_user_id, new_budget_id, p_health_insurance, 'expense', 'fixed', 'Assurance santé', true
+      p_user_id, new_budget_id, p_health_insurance, 'expense', 'fixed', 'Assurance santé', NULL, true
     );
     transaction_count := transaction_count + 1;
   END IF;
@@ -65,9 +65,9 @@ BEGIN
   -- Insert leasing credit transaction if provided
   IF p_leasing_credit > 0 THEN
     INSERT INTO transactions (
-      user_id, budget_id, amount, type, expense_type, description, is_recurring
+      user_id, budget_id, amount, type, expense_type, name, description, is_recurring
     ) VALUES (
-      p_user_id, new_budget_id, p_leasing_credit, 'expense', 'fixed', 'Crédit leasing', true
+      p_user_id, new_budget_id, p_leasing_credit, 'expense', 'fixed', 'Crédit leasing', NULL, true
     );
     transaction_count := transaction_count + 1;
   END IF;
@@ -75,9 +75,9 @@ BEGIN
   -- Insert phone plan transaction if provided
   IF p_phone_plan > 0 THEN
     INSERT INTO transactions (
-      user_id, budget_id, amount, type, expense_type, description, is_recurring
+      user_id, budget_id, amount, type, expense_type, name, description, is_recurring
     ) VALUES (
-      p_user_id, new_budget_id, p_phone_plan, 'expense', 'fixed', 'Forfait téléphonique', true
+      p_user_id, new_budget_id, p_phone_plan, 'expense', 'fixed', 'Forfait téléphonique', NULL, true
     );
     transaction_count := transaction_count + 1;
   END IF;
@@ -85,9 +85,9 @@ BEGIN
   -- Insert transport costs transaction if provided
   IF p_transport_costs > 0 THEN
     INSERT INTO transactions (
-      user_id, budget_id, amount, type, expense_type, description, is_recurring
+      user_id, budget_id, amount, type, expense_type, name, description, is_recurring
     ) VALUES (
-      p_user_id, new_budget_id, p_transport_costs, 'expense', 'fixed', 'Frais de transport', true
+      p_user_id, new_budget_id, p_transport_costs, 'expense', 'fixed', 'Frais de transport', NULL, true
     );
     transaction_count := transaction_count + 1;
   END IF;

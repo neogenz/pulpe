@@ -194,7 +194,7 @@ export class BudgetService {
     try {
       // Use your existing RPC function for atomic operation
       const { data, error } = await supabase.rpc(
-        "create_budget_with_transactions",
+        "create_budget_from_onboarding_with_transactions",
         {
           p_user_id: user.id,
           p_month: onboardingData.month,

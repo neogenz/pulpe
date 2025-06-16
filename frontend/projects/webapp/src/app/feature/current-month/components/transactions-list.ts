@@ -1,8 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  input,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
@@ -46,7 +42,10 @@ export interface TransactionsListConfig {
               {{ config().emptyStateTitle || 'Aucune transaction' }}
             </p>
             <p class="text-body-small text-(--color-outline)">
-              {{ config().emptyStateSubtitle || 'Les transactions apparaîtront ici' }}
+              {{
+                config().emptyStateSubtitle ||
+                  'Les transactions apparaîtront ici'
+              }}
             </p>
           </div>
         } @else {
@@ -66,10 +65,10 @@ export interface TransactionsListConfig {
                     trending_down
                   </mat-icon>
                 </div>
-                <div matListItemTitle>{{ transaction.description }}</div>
-                @if (transaction.description === 'test') {
+                <div matListItemTitle>{{ transaction.name }}</div>
+                @if (transaction.description) {
                   <div matListItemLine class="text-body-small italic">
-                    Transaction fixe mensuelle
+                    {{ transaction.description }}
                   </div>
                 }
                 <div matListItemMeta class="!flex !h-full !items-center">

@@ -12,7 +12,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 
 export interface TransactionFormData {
-  description: string;
+  name: string;
   amount: number;
   type: 'expense' | 'income' | 'savings';
 }
@@ -34,12 +34,8 @@ export interface TransactionFormData {
       class="flex items-baseline gap-4"
     >
       <mat-form-field class="flex-1">
-        <mat-label>Description</mat-label>
-        <input
-          matInput
-          formControlName="description"
-          placeholder="Entrez une description"
-        />
+        <mat-label>Nom</mat-label>
+        <input matInput formControlName="name" placeholder="Entrez un nom" />
       </mat-form-field>
 
       <mat-form-field class="flex-1">
@@ -84,7 +80,7 @@ export class QuickAddExpenseForm {
   addTransaction = output<TransactionFormData>();
 
   transactionForm = this.#fb.nonNullable.group({
-    description: ['', Validators.required],
+    name: ['', Validators.required],
     amount: [0, [Validators.required, Validators.min(0)]],
     type: ['expense' as const, Validators.required],
   });
