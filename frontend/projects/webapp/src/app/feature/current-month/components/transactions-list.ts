@@ -106,6 +106,10 @@ export interface TransactionsListConfig {
             ),
         )
       );
+
+      .mat-mdc-list-item:hover {
+        background-color: rgba(0, 0, 0, 0.04);
+      }
     }
 
     .odd-item {
