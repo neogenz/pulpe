@@ -2,6 +2,7 @@ import { DatePipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   inject,
   OnInit,
 } from '@angular/core';
@@ -87,13 +88,16 @@ import { CurrentMonthState } from './services/current-month-state';
                 <pulpe-quick-add-expense-form
                   (addTransaction)="onAddTransaction($event)"
                 />
-                <pulpe-variable-expenses-list />
-              </div>
-              <div class="flex-[4] min-h-0">
-                <pulpe-fixed-transactions-list
+                <pulpe-variable-expenses-list
+                  class="min-h-0"
                   [transactions]="
                     state.dashboardData.value()?.transactions ?? []
                   "
+                />
+              </div>
+              <div class="flex-[4] min-h-0">
+                <pulpe-fixed-transactions-list
+                  [transactions]="transactionsTest()"
                 />
               </div>
             </div>
@@ -120,6 +124,10 @@ import { CurrentMonthState } from './services/current-month-state';
 })
 export default class CurrentMonth implements OnInit {
   state = inject(CurrentMonthState);
+  transactionsTest = computed(() => {
+    const transactions = this.state.dashboardData.value()?.transactions ?? [];
+    return [...transactions, ...transactions];
+  });
 
   ngOnInit() {
     this.state.refreshData();

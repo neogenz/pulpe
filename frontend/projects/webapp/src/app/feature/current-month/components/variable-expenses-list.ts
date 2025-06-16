@@ -1,20 +1,33 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  input,
+} from '@angular/core';
+import { TransactionsList, TransactionsListConfig } from './transactions-list';
+import { Transaction } from '@pulpe/shared';
 
 @Component({
   selector: 'pulpe-variable-expenses-list',
-  imports: [],
+  imports: [TransactionsList],
   template: `
-    <p>
-      variable-expenses-list works!
-    </p>
+    <pulpe-transactions-list
+      [transactions]="transactions()"
+      [config]="config()"
+    />
   `,
-  styles: `
-    :host {
-      display: block;
-    }
-  `,
-  changeDetection: ChangeDetectionStrategy.OnPush
+  styles: ``,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class VariableExpensesList {
+  transactions = input.required<Transaction[]>();
 
+  config = computed(
+    (): TransactionsListConfig => ({
+      title: 'Dépenses variables',
+      emptyStateIcon: 'trending_down',
+      emptyStateTitle: 'Aucune dépense variable',
+      emptyStateSubtitle: 'Vos dépenses variables apparaîtront ici',
+    }),
+  );
 }
