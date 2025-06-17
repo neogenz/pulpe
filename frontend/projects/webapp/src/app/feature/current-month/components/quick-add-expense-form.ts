@@ -13,7 +13,7 @@ import { MatSelectModule } from '@angular/material/select';
 
 export interface TransactionFormData {
   name: string;
-  amount: number;
+  amount: number | null;
   type: 'expense' | 'income' | 'savings';
 }
 
@@ -81,7 +81,7 @@ export class QuickAddExpenseForm {
 
   transactionForm = this.#fb.nonNullable.group({
     name: ['', Validators.required],
-    amount: [0, [Validators.required, Validators.min(0)]],
+    amount: [null, [Validators.required, Validators.min(0)]],
     type: ['expense' as const, Validators.required],
   });
 }

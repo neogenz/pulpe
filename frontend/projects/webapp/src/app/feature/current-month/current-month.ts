@@ -5,6 +5,7 @@ import {
   computed,
   inject,
   OnInit,
+  signal,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -25,6 +26,8 @@ import {
 } from './components/quick-add-expense-form';
 import { VariableExpensesList } from './components/variable-expenses-list';
 import { CurrentMonthState } from './services/current-month-state';
+import { TransactionApi } from '../../core/transaction/transaction-api';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'pulpe-current-month',
@@ -64,6 +67,7 @@ import { CurrentMonthState } from './services/current-month-state';
           Actualiser
         </button>
       </header>
+      {{ state.dashboardData.status() }}
 
       @switch (true) {
         @case (
@@ -75,7 +79,10 @@ import { CurrentMonthState } from './services/current-month-state';
         @case (state.dashboardData.status() === 'error') {
           <pulpe-dashboard-error (reload)="state.dashboardData.reload()" />
         }
-        @case (state.dashboardData.status() === 'resolved') {
+        @case (
+          state.dashboardData.status() === 'resolved' ||
+          state.dashboardData.status() === 'local'
+        ) {
           @if (state.dashboardData.value()?.budget) {
             <pulpe-financial-overview
               [incomeAmount]="state.incomeAmount()"
@@ -90,14 +97,12 @@ import { CurrentMonthState } from './services/current-month-state';
                 />
                 <pulpe-variable-expenses-list
                   class="min-h-0"
-                  [transactions]="
-                    state.dashboardData.value()?.transactions ?? []
-                  "
+                  [transactions]="variableTransactions()"
                 />
               </div>
               <div class="flex-[4] min-h-0">
                 <pulpe-fixed-transactions-list
-                  [transactions]="transactionsTest()"
+                  [transactions]="fixedTransactions()"
                 />
               </div>
             </div>
@@ -123,17 +128,54 @@ import { CurrentMonthState } from './services/current-month-state';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class CurrentMonth implements OnInit {
+  isCreatingTransaction = signal(false);
+  #transactionApi = inject(TransactionApi);
   state = inject(CurrentMonthState);
-  transactionsTest = computed(() => {
+  fixedTransactions = computed(() => {
     const transactions = this.state.dashboardData.value()?.transactions ?? [];
-    return [...transactions, ...transactions];
+    return transactions.filter(
+      (transaction) => transaction.expenseType === 'fixed',
+    );
+  });
+  variableTransactions = computed(() => {
+    const transactions = this.state.dashboardData.value()?.transactions ?? [];
+    return transactions.filter(
+      (transaction) => transaction.expenseType === 'variable',
+    );
   });
 
   ngOnInit() {
     this.state.refreshData();
   }
 
-  onAddTransaction(transaction: TransactionFormData) {
-    console.log(transaction);
+  async onAddTransaction(transaction: TransactionFormData) {
+    try {
+      this.isCreatingTransaction.set(true);
+      const response = await firstValueFrom(
+        this.#transactionApi.create$({
+          isRecurring: false,
+          type: 'expense',
+          budgetId: this.state.dashboardData.value()?.budget?.id ?? '',
+          amount: transaction.amount ?? 0,
+          expenseType: 'variable',
+          name: transaction.name,
+        }),
+      );
+      console.log(response);
+      this.state.dashboardData.update((data) => {
+        if (!data || !response.data || Array.isArray(response.data))
+          return data;
+        const newValue = {
+          ...data,
+          transactions: [response.data, ...data.transactions],
+        };
+        console.log(data, newValue);
+        return newValue;
+      });
+    } catch (error) {
+      console.error(error);
+    } finally {
+      this.isCreatingTransaction.set(false);
+    }
   }
 }
