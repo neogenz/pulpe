@@ -7,7 +7,8 @@
     "build": "bun build src/main.ts --outdir=dist --target=node --minify",
     "start": "bun src/main.ts",
     "start:dev": "bun --watch src/main.ts",
-    "start:prod": "bun dist/main.js"
+    "start:prod": "bun dist/main.js",
+    "dump:db": "bunx supabase db dump --schema public --file schema.sql"
   },
   "keywords": [],
   "author": "",
