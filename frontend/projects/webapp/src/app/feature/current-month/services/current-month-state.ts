@@ -32,6 +32,19 @@ export class CurrentMonthState {
     }
   }
 
+  async refreshDataSilently(): Promise<void> {
+    try {
+      const params = {
+        month: this.#currentDate().month,
+        year: this.#currentDate().year,
+      };
+      const freshData = await this.#loadDashboardData(params);
+      this.dashboardData.set(freshData);
+    } catch (error) {
+      console.error('Erreur lors du refresh silencieux:', error);
+    }
+  }
+
   #currentDate = computed(() => {
     const now = this.today();
     return {

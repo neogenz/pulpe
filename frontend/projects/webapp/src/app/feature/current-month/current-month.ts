@@ -162,16 +162,18 @@ export default class CurrentMonth implements OnInit {
         }),
       );
       console.log(response);
+      // Mise à jour optimiste locale
       this.state.dashboardData.update((data) => {
         if (!data || !response.data || Array.isArray(response.data))
           return data;
-        const newValue = {
+        return {
           ...data,
           transactions: [response.data, ...data.transactions],
         };
-        console.log(data, newValue);
-        return newValue;
       });
+
+      // Refresh silencieux en arrière-plan
+      this.state.refreshDataSilently();
     } catch (error) {
       console.error(error);
     } finally {
