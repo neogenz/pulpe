@@ -32,16 +32,49 @@ export class CurrentMonthState {
     }
   }
 
-  async refreshDataSilently(): Promise<void> {
-    try {
-      const params = {
-        month: this.#currentDate().month,
-        year: this.#currentDate().year,
+  async addTransaction(
+    transaction: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt' | 'userId'>,
+  ): Promise<void> {
+    this.dashboardData.update((data) => {
+      if (!data) return data;
+      const optimisticTransaction = {
+        ...transaction,
+        id: `temp-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        userId: null,
       };
-      const freshData = await this.#loadDashboardData(params);
-      this.dashboardData.set(freshData);
+      return {
+        ...data,
+        transactions: [optimisticTransaction, ...data.transactions],
+      };
+    });
+
+    try {
+      const response = await firstValueFrom(
+        this.#transactionApi.create$(transaction),
+      );
+
+      this.dashboardData.update((data) => {
+        if (!data || !response.data) return data;
+        return {
+          ...data,
+          transactions: data.transactions.map((t) =>
+            t.id.startsWith('temp-') ? response.data : t,
+          ),
+        };
+      });
     } catch (error) {
-      console.error('Erreur lors du refresh silencieux:', error);
+      this.dashboardData.update((data) => {
+        if (!data) return data;
+        return {
+          ...data,
+          transactions: data.transactions.filter(
+            (t) => !t.id.startsWith('temp-'),
+          ),
+        };
+      });
+      throw error;
     }
   }
 

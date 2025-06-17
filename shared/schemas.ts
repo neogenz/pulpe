@@ -123,3 +123,16 @@ export const budgetListResponseSchema = z.object({
 });
 
 export const budgetDeleteResponseSchema = deleteResponseSchema;
+
+// Transaction response schemas for operation-specific types
+export const transactionResponseSchema = z.object({
+  success: z.literal(true),
+  data: transactionSchema,
+});
+
+export const transactionListResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.array(transactionSchema),
+});
+
+export const transactionDeleteResponseSchema = deleteResponseSchema;

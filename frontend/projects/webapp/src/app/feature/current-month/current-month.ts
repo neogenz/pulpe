@@ -26,8 +26,6 @@ import {
 } from './components/quick-add-expense-form';
 import { VariableExpensesList } from './components/variable-expenses-list';
 import { CurrentMonthState } from './services/current-month-state';
-import { TransactionApi } from '../../core/transaction/transaction-api';
-import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'pulpe-current-month',
@@ -129,7 +127,6 @@ import { firstValueFrom } from 'rxjs';
 })
 export default class CurrentMonth implements OnInit {
   isCreatingTransaction = signal(false);
-  #transactionApi = inject(TransactionApi);
   state = inject(CurrentMonthState);
   fixedTransactions = computed(() => {
     const transactions = this.state.dashboardData.value()?.transactions ?? [];
@@ -151,29 +148,15 @@ export default class CurrentMonth implements OnInit {
   async onAddTransaction(transaction: TransactionFormData) {
     try {
       this.isCreatingTransaction.set(true);
-      const response = await firstValueFrom(
-        this.#transactionApi.create$({
-          isRecurring: false,
-          type: 'expense',
-          budgetId: this.state.dashboardData.value()?.budget?.id ?? '',
-          amount: transaction.amount ?? 0,
-          expenseType: 'variable',
-          name: transaction.name,
-        }),
-      );
-      console.log(response);
-      // Mise à jour optimiste locale
-      this.state.dashboardData.update((data) => {
-        if (!data || !response.data || Array.isArray(response.data))
-          return data;
-        return {
-          ...data,
-          transactions: [response.data, ...data.transactions],
-        };
+      await this.state.addTransaction({
+        isRecurring: false,
+        type: 'expense',
+        budgetId: this.state.dashboardData.value()?.budget?.id ?? '',
+        amount: transaction.amount ?? 0,
+        expenseType: 'variable',
+        name: transaction.name,
+        description: null,
       });
-
-      // Refresh silencieux en arrière-plan
-      this.state.refreshDataSilently();
     } catch (error) {
       console.error(error);
     } finally {

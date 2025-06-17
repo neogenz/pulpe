@@ -15,6 +15,9 @@ export {
   budgetResponseSchema,
   budgetListResponseSchema,
   budgetDeleteResponseSchema,
+  transactionResponseSchema,
+  transactionListResponseSchema,
+  transactionDeleteResponseSchema,
 } from "./schemas";
 
 // Types
@@ -31,7 +34,12 @@ export type {
   BudgetResponse,
   BudgetListResponse,
   BudgetDeleteResponse,
-  TransactionResponse,
+  TransactionResponse, // Legacy - prefer specific types below
+  TransactionCreateResponse,
+  TransactionUpdateResponse,
+  TransactionFindOneResponse,
+  TransactionListResponse,
+  TransactionDeleteResponse,
   ErrorResponse,
   DeleteResponse,
 } from "./types";

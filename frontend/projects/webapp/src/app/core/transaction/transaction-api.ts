@@ -4,6 +4,10 @@ import {
   type TransactionCreate,
   type TransactionResponse,
   type TransactionUpdate,
+  type TransactionCreateResponse,
+  type TransactionUpdateResponse,
+  type TransactionFindOneResponse,
+  type TransactionListResponse,
 } from '@pulpe/shared';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -15,25 +19,25 @@ export class TransactionApi {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = `${environment.backendUrl}/transactions`;
 
-  findByBudget$(budgetId: string): Observable<TransactionResponse> {
-    return this.http.get<TransactionResponse>(
+  findByBudget$(budgetId: string): Observable<TransactionListResponse> {
+    return this.http.get<TransactionListResponse>(
       `${this.apiUrl}/budget/${budgetId}`,
     );
   }
 
-  create$(transaction: TransactionCreate): Observable<TransactionResponse> {
-    return this.http.post<TransactionResponse>(this.apiUrl, transaction);
+  create$(transaction: TransactionCreate): Observable<TransactionCreateResponse> {
+    return this.http.post<TransactionCreateResponse>(this.apiUrl, transaction);
   }
 
-  findOne$(id: string): Observable<TransactionResponse> {
-    return this.http.get<TransactionResponse>(`${this.apiUrl}/${id}`);
+  findOne$(id: string): Observable<TransactionFindOneResponse> {
+    return this.http.get<TransactionFindOneResponse>(`${this.apiUrl}/${id}`);
   }
 
   update$(
     id: string,
     transaction: TransactionUpdate,
-  ): Observable<TransactionResponse> {
-    return this.http.put<TransactionResponse>(
+  ): Observable<TransactionUpdateResponse> {
+    return this.http.put<TransactionUpdateResponse>(
       `${this.apiUrl}/${id}`,
       transaction,
     );
