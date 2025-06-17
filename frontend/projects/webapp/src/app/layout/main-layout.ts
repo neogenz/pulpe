@@ -42,7 +42,7 @@ import { NavigationMenu } from './navigation-menu';
 
       <mat-sidenav-content>
         <div class="flex flex-col h-full">
-          <mat-toolbar class="toolbar">
+          <mat-toolbar class="toolbar flex-shrink-0">
             <button
               type="button"
               aria-label="Toggle sidenav"
@@ -56,8 +56,10 @@ import { NavigationMenu } from './navigation-menu';
             <div class="size-8 pulpe-gradient rounded-full toolbar-logo"></div>
           </mat-toolbar>
 
-          <main class="flex-1 p-4 h-0">
-            <router-outlet />
+          <main class="flex-1 overflow-auto min-h-0">
+            <div class="p-4 2xl:h-full">
+              <router-outlet />
+            </div>
           </main>
         </div>
       </mat-sidenav-content>

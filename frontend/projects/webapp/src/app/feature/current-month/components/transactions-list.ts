@@ -17,7 +17,7 @@ export interface TransactionsListConfig {
   imports: [CurrencyPipe, MatIconModule, MatDividerModule, MatListModule],
   template: `
     <div
-      class="flex flex-col h-full rounded-corner-large overflow-hidden bg-surface-container-low"
+      class="flex flex-col rounded-corner-large overflow-hidden bg-surface-container-low max-h-[50vh] 2xl:h-full 2xl:max-h-none"
     >
       <div class="pb-0 p-4">
         <h2 class="text-headline-small mb-1">{{ config().title }}</h2>
@@ -27,7 +27,7 @@ export interface TransactionsListConfig {
         </p>
       </div>
 
-      <div class="overflow-y-auto">
+      <div class="flex-1 overflow-y-auto">
         @if (transactions().length === 0) {
           <div
             class="flex flex-col items-center justify-center py-8 text-center"

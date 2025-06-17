@@ -53,7 +53,7 @@ import { CurrentMonthState } from './services/current-month-state';
     QuickAddExpenseForm,
   ],
   template: `
-    <div class="flex flex-col h-full gap-4">
+    <div class="flex flex-col 2xl:h-full gap-4 2xl:min-h-0">
       <header class="flex justify-between items-center">
         <h1 class="text-display-small">Budget du mois courant</h1>
         <button
@@ -88,18 +88,21 @@ import { CurrentMonthState } from './services/current-month-state';
               [savingsAmount]="state.savingsAmount()"
               [negativeAmount]="state.negativeAmount()"
             />
-            <div class="flex gap-4 min-h-0">
-              <div class="flex-[6] flex flex-col">
+            <div
+              class="flex flex-col 2xl:flex-row gap-4 2xl:min-h-0 2xl:flex-1"
+            >
+              <div class="flex-1 2xl:flex-[6] flex flex-col gap-4">
                 <pulpe-quick-add-expense-form
                   (addTransaction)="onAddTransaction($event)"
                 />
                 <pulpe-variable-expenses-list
-                  class="min-h-0"
+                  class="2xl:min-h-0 2xl:flex-1"
                   [transactions]="variableTransactions()"
                 />
               </div>
-              <div class="flex-[4] min-h-0">
+              <div class="flex-1 2xl:flex-[4] 2xl:min-h-0">
                 <pulpe-fixed-transactions-list
+                  class="2xl:min-h-0 2xl:flex-1"
                   [transactions]="fixedTransactions()"
                 />
               </div>
