@@ -25,6 +25,18 @@ export class VariableExpensesList {
   config = computed(
     (): TransactionsListConfig => ({
       title: 'Transactions variables',
+      totalAmount: this.transactions().reduce((total, transaction) => {
+        switch (transaction.type) {
+          case 'income':
+            return total + transaction.amount;
+          case 'expense':
+            return total - transaction.amount;
+          case 'saving':
+            return total + transaction.amount;
+          default:
+            return total;
+        }
+      }, 0),
       emptyStateIcon: 'swap_vert',
       emptyStateTitle: 'Aucune transaction variable',
       emptyStateSubtitle: 'Vos transactions ponctuelles apparaîtront ici',

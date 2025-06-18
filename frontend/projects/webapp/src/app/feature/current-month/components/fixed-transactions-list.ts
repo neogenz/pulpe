@@ -24,6 +24,18 @@ export class FixedTransactionsList {
   config = computed(
     (): TransactionsListConfig => ({
       title: 'Transactions fixes',
+      totalAmount: this.transactions().reduce((total, transaction) => {
+        switch (transaction.type) {
+          case 'income':
+            return total + transaction.amount;
+          case 'expense':
+            return total - transaction.amount;
+          case 'saving':
+            return total + transaction.amount;
+          default:
+            return total;
+        }
+      }, 0),
       emptyStateIcon: 'event_repeat',
       emptyStateTitle: 'Aucune transaction fixe',
       emptyStateSubtitle: 'Vos transactions récurrentes apparaîtront ici',

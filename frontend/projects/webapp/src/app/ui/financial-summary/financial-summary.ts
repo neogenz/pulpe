@@ -31,7 +31,7 @@ export interface FinancialSummaryData {
             </mat-icon>
           </div>
           <div class="flex-1 min-w-0">
-            <h3 class="font-medium mb-1 financial-title">
+            <h3 class="mb-1 financial-title">
               {{ data().title }}
             </h3>
             <p

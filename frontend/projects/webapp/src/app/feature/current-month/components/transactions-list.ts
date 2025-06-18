@@ -7,6 +7,7 @@ import { Transaction } from '@pulpe/shared';
 
 export interface TransactionsListConfig {
   readonly title: string;
+  readonly totalAmount?: number;
   readonly emptyStateIcon?: string;
   readonly emptyStateTitle?: string;
   readonly emptyStateSubtitle?: string;
@@ -20,7 +21,25 @@ export interface TransactionsListConfig {
       class="flex flex-col rounded-corner-large overflow-hidden bg-surface-container-low max-h-[50vh] 2xl:h-full 2xl:max-h-none"
     >
       <div class="pb-0 p-4">
-        <h2 class="text-headline-small mb-1">{{ config().title }}</h2>
+        <div class="flex justify-between items-start mb-1">
+          <h2 class="text-headline-small">{{ config().title }}</h2>
+          @if (config().totalAmount !== undefined) {
+            <span 
+              class="text-title-medium font-medium"
+              [class.text-pulpe-financial-income]="config().totalAmount! > 0"
+              [class.text-pulpe-financial-expense]="config().totalAmount! < 0"
+              [class.text-on-surface]="config().totalAmount! === 0"
+            >
+              @if (config().totalAmount! > 0) {
+                +{{ config().totalAmount! | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH' }}
+              } @else if (config().totalAmount! < 0) {
+                {{ config().totalAmount! | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH' }}
+              } @else {
+                {{ config().totalAmount! | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH' }}
+              }
+            </span>
+          }
+        </div>
         <p class="text-body-medium text-(--color-on-surface-variant) m-0">
           {{ transactions().length }}
           {{ transactions().length === 1 ? 'transaction' : 'transactions' }}
