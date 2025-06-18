@@ -31,14 +31,14 @@ export interface TransactionFormData {
     <form
       [formGroup]="transactionForm"
       (ngSubmit)="addTransaction.emit(transactionForm.getRawValue())"
-      class="flex flex-col md:flex-row md:items-baseline gap-4"
+      class="flex flex-col 2xl:flex-row 2xl:items-baseline gap-4 min-w-0"
     >
-      <mat-form-field class="flex-1" subscriptSizing="dynamic">
+      <mat-form-field class="flex-1 " subscriptSizing="dynamic">
         <mat-label>Nom</mat-label>
         <input matInput formControlName="name" placeholder="Entrez un nom" />
       </mat-form-field>
 
-      <mat-form-field class="flex-1" subscriptSizing="dynamic">
+      <mat-form-field class="flex-1 2xl:max-w-40" subscriptSizing="dynamic">
         <mat-label>Montant</mat-label>
         <input
           matInput
@@ -49,7 +49,10 @@ export interface TransactionFormData {
         <span matTextSuffix>CHF</span>
       </mat-form-field>
 
-      <mat-form-field class="flex-1" subscriptSizing="dynamic">
+      <mat-form-field
+        class="flex-1 min-w-0 2xl:max-w-36"
+        subscriptSizing="dynamic"
+      >
         <mat-label>Type</mat-label>
         <mat-select formControlName="type">
           <mat-option value="expense">Dépense</mat-option>
@@ -62,7 +65,7 @@ export interface TransactionFormData {
         matButton="filled"
         type="submit"
         [disabled]="transactionForm.invalid"
-        class="w-full sm:w-auto"
+        class="w-full 2xl:w-auto 2xl:shrink-0"
       >
         <mat-icon>add_circle</mat-icon>
         Ajouter
