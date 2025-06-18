@@ -23,10 +23,10 @@ export class FixedTransactionsList {
 
   config = computed(
     (): TransactionsListConfig => ({
-      title: 'Dépenses fixes',
-      emptyStateIcon: 'trending_down',
-      emptyStateTitle: 'Aucune dépense fixe',
-      emptyStateSubtitle: 'Vos dépenses fixes apparaîtront ici',
+      title: 'Transactions fixes',
+      emptyStateIcon: 'event_repeat',
+      emptyStateTitle: 'Aucune transaction fixe',
+      emptyStateSubtitle: 'Vos transactions récurrentes apparaîtront ici',
     }),
   );
 }

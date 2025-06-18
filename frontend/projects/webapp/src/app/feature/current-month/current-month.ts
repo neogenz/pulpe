@@ -153,7 +153,7 @@ export default class CurrentMonth implements OnInit {
       this.isCreatingTransaction.set(true);
       await this.state.addTransaction({
         isRecurring: false,
-        type: 'expense',
+        type: transaction.type,
         budgetId: this.state.dashboardData.value()?.budget?.id ?? '',
         amount: transaction.amount ?? 0,
         expenseType: 'variable',

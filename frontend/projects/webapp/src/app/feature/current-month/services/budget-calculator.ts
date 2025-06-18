@@ -1,8 +1,7 @@
 import { Injectable } from '@angular/core';
-import { Transaction } from '@pulpe/shared';
-import { BudgetCategory } from '../../../core/budget/budget.models';
+import { Transaction, TransactionType } from '@pulpe/shared';
 
-type CategoryType = BudgetCategory['type'];
+type CategoryType = TransactionType;
 
 @Injectable()
 export class BudgetCalculator {
@@ -15,7 +14,7 @@ export class BudgetCalculator {
   }
 
   calculateTotalSavings(transactions: Transaction[]): number {
-    return this.#calculateTotalForType(transactions, 'savings');
+    return this.#calculateTotalForType(transactions, 'saving');
   }
 
   calculateNegativeBudget(transactions: Transaction[]): number {

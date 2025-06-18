@@ -24,10 +24,10 @@ export class VariableExpensesList {
 
   config = computed(
     (): TransactionsListConfig => ({
-      title: 'Dépenses variables',
-      emptyStateIcon: 'trending_down',
-      emptyStateTitle: 'Aucune dépense variable',
-      emptyStateSubtitle: 'Vos dépenses variables apparaîtront ici',
+      title: 'Transactions variables',
+      emptyStateIcon: 'swap_vert',
+      emptyStateTitle: 'Aucune transaction variable',
+      emptyStateSubtitle: 'Vos transactions ponctuelles apparaîtront ici',
     }),
   );
 }

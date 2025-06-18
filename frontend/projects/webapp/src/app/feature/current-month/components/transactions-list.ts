@@ -56,14 +56,33 @@ export interface TransactionsListConfig {
               let isLast = $last;
               let isOdd = $odd
             ) {
-              <mat-list-item [class.odd-item]="isOdd">
+              <mat-list-item 
+                [class.odd-item]="isOdd"
+                [class.income-item]="transaction.type === 'income'"
+                [class.saving-item]="transaction.type === 'saving'"
+                [class.expense-item]="transaction.type === 'expense'"
+              >
                 <div
                   matListItemAvatar
                   class="size-10 bg-surface flex justify-center items-center rounded-full"
                 >
-                  <mat-icon class="!text-(--pulpe-financial-expense)">
-                    trending_down
-                  </mat-icon>
+                  @switch (transaction.type) {
+                    @case ('income') {
+                      <mat-icon class="!text-(--pulpe-financial-income)">
+                        trending_up
+                      </mat-icon>
+                    }
+                    @case ('saving') {
+                      <mat-icon class="!text-(--pulpe-financial-saving)">
+                        savings
+                      </mat-icon>
+                    }
+                    @default {
+                      <mat-icon class="!text-(--pulpe-financial-expense)">
+                        trending_down
+                      </mat-icon>
+                    }
+                  }
                 </div>
                 <div matListItemTitle>{{ transaction.name }}</div>
                 @if (transaction.description) {
@@ -72,10 +91,26 @@ export interface TransactionsListConfig {
                   </div>
                 }
                 <div matListItemMeta class="!flex !h-full !items-center">
-                  -{{
-                    transaction.amount
-                      | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH'
-                  }}
+                  @switch (transaction.type) {
+                    @case ('income') {
+                      +{{
+                        transaction.amount
+                          | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH'
+                      }}
+                    }
+                    @case ('saving') {
+                      {{
+                        transaction.amount
+                          | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH'
+                      }}
+                    }
+                    @default {
+                      -{{
+                        transaction.amount
+                          | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH'
+                      }}
+                    }
+                  }
                 </div>
               </mat-list-item>
               @if (!isLast) {
@@ -116,6 +151,36 @@ export interface TransactionsListConfig {
       @include mat.list-overrides(
         (
           list-item-container-color: var(--mat-sys-surface-container),
+        )
+      );
+    }
+
+    .income-item {
+      @include mat.list-overrides(
+        (
+          list-item-trailing-supporting-text-color: var(
+              --pulpe-financial-income
+            ),
+        )
+      );
+    }
+
+    .saving-item {
+      @include mat.list-overrides(
+        (
+          list-item-trailing-supporting-text-color: var(
+              --pulpe-financial-saving
+            ),
+        )
+      );
+    }
+
+    .expense-item {
+      @include mat.list-overrides(
+        (
+          list-item-trailing-supporting-text-color: var(
+              --pulpe-financial-expense
+            ),
         )
       );
     }

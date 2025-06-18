@@ -14,7 +14,7 @@ import { MatSelectModule } from '@angular/material/select';
 export interface TransactionFormData {
   name: string;
   amount: number | null;
-  type: 'expense' | 'income' | 'savings';
+  type: 'expense' | 'income' | 'saving';
 }
 
 @Component({
@@ -54,7 +54,7 @@ export interface TransactionFormData {
         <mat-select formControlName="type">
           <mat-option value="expense">Dépense</mat-option>
           <mat-option value="income">Revenu</mat-option>
-          <mat-option value="savings">Économie</mat-option>
+          <mat-option value="saving">Épargne</mat-option>
         </mat-select>
       </mat-form-field>
 
