@@ -30,13 +30,7 @@ export interface TransactionsListConfig {
               [class.text-pulpe-financial-expense]="config().totalAmount! < 0"
               [class.text-on-surface]="config().totalAmount! === 0"
             >
-              @if (config().totalAmount! > 0) {
-                +{{ config().totalAmount! | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH' }}
-              } @else if (config().totalAmount! < 0) {
-                {{ config().totalAmount! | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH' }}
-              } @else {
-                {{ config().totalAmount! | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH' }}
-              }
+              {{ config().totalAmount! > 0 ? '+' : '' }}{{ config().totalAmount! | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH' }}
             </span>
           }
         </div>
@@ -110,26 +104,7 @@ export interface TransactionsListConfig {
                   </div>
                 }
                 <div matListItemMeta class="!flex !h-full !items-center">
-                  @switch (transaction.type) {
-                    @case ('income') {
-                      +{{
-                        transaction.amount
-                          | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH'
-                      }}
-                    }
-                    @case ('saving') {
-                      {{
-                        transaction.amount
-                          | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH'
-                      }}
-                    }
-                    @default {
-                      -{{
-                        transaction.amount
-                          | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH'
-                      }}
-                    }
-                  }
+                  {{ transaction.type === 'income' ? '+' : transaction.type === 'expense' ? '-' : '' }}{{ transaction.amount | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH' }}
                 </div>
               </mat-list-item>
               @if (!isLast) {
