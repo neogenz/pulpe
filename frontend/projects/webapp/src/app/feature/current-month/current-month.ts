@@ -26,6 +26,7 @@ import {
 } from './components/quick-add-expense-form';
 import { VariableExpensesList } from './components/variable-expenses-list';
 import { CurrentMonthState } from './services/current-month-state';
+import { TransactionChipFilter } from "./components/transaction-chip-filter";
 
 @Component({
   selector: 'pulpe-current-month',
@@ -51,7 +52,8 @@ import { CurrentMonthState } from './services/current-month-state';
     DashboardLoading,
     VariableExpensesList,
     QuickAddExpenseForm,
-  ],
+    TransactionChipFilter
+],
   template: `
     <div class="flex flex-col 2xl:h-full gap-4 2xl:min-h-0">
       <header class="flex justify-between items-center">
@@ -95,6 +97,7 @@ import { CurrentMonthState } from './services/current-month-state';
                 <pulpe-quick-add-expense-form
                   (addTransaction)="onAddTransaction($event)"
                 />
+                <pulpe-transaction-chip-filter />
                 <pulpe-variable-expenses-list
                   class="2xl:min-h-0 2xl:flex-1"
                   [transactions]="variableTransactions()"

@@ -1,8 +1,15 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatListModule } from '@angular/material/list';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { Transaction } from '@pulpe/shared';
 
 export interface TransactionsListConfig {
@@ -11,11 +18,18 @@ export interface TransactionsListConfig {
   readonly emptyStateIcon?: string;
   readonly emptyStateTitle?: string;
   readonly emptyStateSubtitle?: string;
+  readonly selectable?: boolean;
 }
 
 @Component({
   selector: 'pulpe-transactions-list',
-  imports: [CurrencyPipe, MatIconModule, MatDividerModule, MatListModule],
+  imports: [
+    CurrencyPipe,
+    MatIconModule,
+    MatDividerModule,
+    MatListModule,
+    MatCheckboxModule,
+  ],
   template: `
     <div
       class="flex flex-col rounded-corner-large overflow-hidden bg-surface-container-low max-h-[50vh] 2xl:h-full 2xl:max-h-none"
@@ -24,13 +38,17 @@ export interface TransactionsListConfig {
         <div class="flex justify-between items-start mb-1">
           <h2 class="text-headline-small">{{ config().title }}</h2>
           @if (config().totalAmount !== undefined) {
-            <span 
+            <span
               class="text-title-medium font-medium"
               [class.text-pulpe-financial-income]="config().totalAmount! > 0"
               [class.text-pulpe-financial-expense]="config().totalAmount! < 0"
               [class.text-on-surface]="config().totalAmount! === 0"
             >
-              {{ config().totalAmount! > 0 ? '+' : '' }}{{ config().totalAmount! | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH' }}
+              {{ config().totalAmount! > 0 ? '+' : ''
+              }}{{
+                config().totalAmount!
+                  | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH'
+              }}
             </span>
           }
         </div>
@@ -69,12 +87,19 @@ export interface TransactionsListConfig {
               let isLast = $last;
               let isOdd = $odd
             ) {
-              <mat-list-item 
+              <mat-list-item
                 [class.odd-item]="isOdd"
                 [class.income-item]="transaction.type === 'income'"
                 [class.saving-item]="transaction.type === 'saving'"
                 [class.expense-item]="transaction.type === 'expense'"
               >
+                @if (config().selectable) {
+                  <mat-checkbox
+                    matListItemLeadingCheckbox
+                    [checked]="isSelected(transaction.id)"
+                    (change)="onSelectionChange(transaction.id, $event.checked)"
+                  />
+                }
                 <div
                   matListItemAvatar
                   class="size-10 bg-surface flex justify-center items-center rounded-full"
@@ -104,7 +129,16 @@ export interface TransactionsListConfig {
                   </div>
                 }
                 <div matListItemMeta class="!flex !h-full !items-center">
-                  {{ transaction.type === 'income' ? '+' : transaction.type === 'expense' ? '-' : '' }}{{ transaction.amount | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH' }}
+                  {{
+                    transaction.type === 'income'
+                      ? '+'
+                      : transaction.type === 'expense'
+                        ? '-'
+                        : ''
+                  }}{{
+                    transaction.amount
+                      | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH'
+                  }}
                 </div>
               </mat-list-item>
               @if (!isLast) {
@@ -184,4 +218,23 @@ export interface TransactionsListConfig {
 export class TransactionsList {
   readonly transactions = input.required<Transaction[]>();
   readonly config = input.required<TransactionsListConfig>();
+
+  readonly selectedTransactions = signal<string[]>([]);
+  readonly selectionChange = output<string[]>();
+
+  onSelectionChange(transactionId: string, selected: boolean): void {
+    const currentSelection = this.selectedTransactions();
+    if (selected) {
+      this.selectedTransactions.set([...currentSelection, transactionId]);
+    } else {
+      this.selectedTransactions.set(
+        currentSelection.filter((id) => id !== transactionId),
+      );
+    }
+    this.selectionChange.emit(this.selectedTransactions());
+  }
+
+  isSelected(transactionId: string): boolean {
+    return this.selectedTransactions().includes(transactionId);
+  }
 }
