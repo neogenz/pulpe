@@ -80,7 +80,7 @@ export interface TransactionsListConfig {
             </p>
           </div>
         } @else {
-          <mat-list class="!pb-0">
+          <mat-selection-list class="!pb-0">
             @for (
               transaction of transactions();
               track transaction.id;
@@ -92,14 +92,11 @@ export interface TransactionsListConfig {
                 [class.income-item]="transaction.type === 'income'"
                 [class.saving-item]="transaction.type === 'saving'"
                 [class.expense-item]="transaction.type === 'expense'"
+                [class.cursor-pointer]="config().selectable"
+                (click)="
+                  config().selectable ? toggleSelection(transaction.id) : null
+                "
               >
-                @if (config().selectable) {
-                  <mat-checkbox
-                    matListItemLeadingCheckbox
-                    [checked]="isSelected(transaction.id)"
-                    (change)="onSelectionChange(transaction.id, $event.checked)"
-                  />
-                }
                 <div
                   matListItemAvatar
                   class="size-10 bg-surface flex justify-center items-center rounded-full"
@@ -128,24 +125,35 @@ export interface TransactionsListConfig {
                     {{ transaction.description }}
                   </div>
                 }
-                <div matListItemMeta class="!flex !h-full !items-center">
-                  {{
-                    transaction.type === 'income'
-                      ? '+'
-                      : transaction.type === 'expense'
-                        ? '-'
-                        : ''
-                  }}{{
-                    transaction.amount
-                      | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH'
-                  }}
+                <div matListItemMeta class="!flex !h-full !items-center !gap-3">
+                  <span>
+                    {{
+                      transaction.type === 'income'
+                        ? '+'
+                        : transaction.type === 'expense'
+                          ? '-'
+                          : ''
+                    }}{{
+                      transaction.amount
+                        | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH'
+                    }}
+                  </span>
+                  @if (config().selectable) {
+                    <mat-checkbox
+                      [checked]="isSelected(transaction.id)"
+                      (change)="
+                        onSelectionChange(transaction.id, $event.checked)
+                      "
+                      (click)="$event.stopPropagation()"
+                    />
+                  }
                 </div>
               </mat-list-item>
               @if (!isLast) {
                 <mat-divider></mat-divider>
               }
             }
-          </mat-list>
+          </mat-selection-list>
         }
       </div>
     </div>
@@ -232,6 +240,11 @@ export class TransactionsList {
       );
     }
     this.selectionChange.emit(this.selectedTransactions());
+  }
+
+  toggleSelection(transactionId: string): void {
+    const isCurrentlySelected = this.isSelected(transactionId);
+    this.onSelectionChange(transactionId, !isCurrentlySelected);
   }
 
   isSelected(transactionId: string): boolean {
