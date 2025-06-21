@@ -5,7 +5,7 @@ import { map } from 'rxjs/operators';
 import { format } from 'date-fns';
 import { frCH } from 'date-fns/locale';
 import { type Budget, type BudgetListResponse } from '@pulpe/shared';
-import { environment } from '../../../environments/environment';
+import { environment } from '../../../../environments/environment';
 
 export interface MonthInfo {
   month: number;

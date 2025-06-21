@@ -1,6 +1,6 @@
 import { Injectable, inject, resource } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { OtherMonthsApi, type MonthInfo } from '../other-months-api';
+import { OtherMonthsApi, type MonthInfo } from './other-months-api';
 
 @Injectable()
 export class OtherMonthsState {

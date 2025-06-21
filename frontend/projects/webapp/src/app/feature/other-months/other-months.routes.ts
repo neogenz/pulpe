@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { OtherMonthsApi } from './other-months-api';
+import { OtherMonthsApi } from './services/other-months-api';
 
 export const otherMonthsRoutes: Routes = [
   {

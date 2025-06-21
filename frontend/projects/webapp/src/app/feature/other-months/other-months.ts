@@ -11,6 +11,7 @@ import { MonthCardItem } from './components/month-card-item';
 import { MonthsLoading } from './components/months-loading';
 import { MonthsError } from './components/months-error';
 import { OtherMonthsState } from './services/other-months-state';
+import { MatTabsModule } from '@angular/material/tabs';
 
 @Component({
   selector: 'pulpe-other-months',
@@ -22,6 +23,7 @@ import { OtherMonthsState } from './services/other-months-state';
     MonthCardItem,
     MonthsLoading,
     MonthsError,
+    MatTabsModule,
   ],
   template: `
     <div class="flex flex-col 2xl:h-full gap-4 2xl:min-h-0">
@@ -32,8 +34,8 @@ import { OtherMonthsState } from './services/other-months-state';
           (click)="state.refreshData()"
           [disabled]="state.monthsData.isLoading()"
         >
-          <mat-icon>refresh</mat-icon>
-          Actualiser
+          <mat-icon>add_circle</mat-icon>
+          Ajouter un mois
         </button>
       </header>
 
@@ -51,28 +53,45 @@ import { OtherMonthsState } from './services/other-months-state';
           state.monthsData.status() === 'resolved' ||
           state.monthsData.status() === 'local'
         ) {
-          <div class="flex-1 overflow-auto">
-            @if (state.monthsData.value()?.length === 0) {
-              <div class="text-center py-8 text-gray-500">
-                <mat-icon class="text-6xl mb-4">calendar_month</mat-icon>
-                <p>Aucun mois trouvé</p>
-                <p class="text-sm">Créez votre premier budget mensuel</p>
+          <mat-tab-group mat-stretch-tabs="false" mat-align-tabs="start">
+            <mat-tab label="2025">
+              <div class="pt-4">
+                <div class="flex-1 overflow-auto">
+                  @if (state.monthsData.value()?.length === 0) {
+                    <div class="text-center py-8 text-gray-500">
+                      <mat-icon class="text-6xl mb-4">calendar_month</mat-icon>
+                      <p>Aucun mois trouvé</p>
+                      <p class="text-sm">Créez votre premier budget mensuel</p>
+                    </div>
+                  } @else {
+                    <div
+                      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+                    >
+                      @for (
+                        month of state.monthsData.value();
+                        track month.budgetId
+                      ) {
+                        <pulpe-month-card-item
+                          [displayName]="month.displayName"
+                          [totalAmount]="0"
+                          [id]="month.budgetId"
+                        />
+                      }
+                    </div>
+                  }
+                </div>
               </div>
-            } @else {
-              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                @for (month of state.monthsData.value(); track month.budgetId) {
-                  <pulpe-month-card-item
-                    [displayName]="month.displayName"
-                    [totalAmount]="0"
-                    [id]="month.budgetId"
-                  />
-                }
-              </div>
-            }
-          </div>
+            </mat-tab>
+            <mat-tab label="2026"> 2026 </mat-tab>
+          </mat-tab-group>
         }
       }
     </div>
+  `,
+  styles: `
+    :host {
+      display: block;
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
