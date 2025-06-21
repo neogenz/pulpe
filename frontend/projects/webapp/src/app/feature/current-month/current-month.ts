@@ -26,7 +26,7 @@ import {
 } from './components/quick-add-expense-form';
 import { VariableExpensesList } from './components/variable-expenses-list';
 import { CurrentMonthState } from './services/current-month-state';
-import { TransactionChipFilter } from "./components/transaction-chip-filter";
+import { TransactionChipFilter } from './components/transaction-chip-filter';
 
 @Component({
   selector: 'pulpe-current-month',
@@ -52,8 +52,8 @@ import { TransactionChipFilter } from "./components/transaction-chip-filter";
     DashboardLoading,
     VariableExpensesList,
     QuickAddExpenseForm,
-    TransactionChipFilter
-],
+    TransactionChipFilter,
+  ],
   template: `
     <div class="flex flex-col 2xl:h-full gap-4 2xl:min-h-0">
       <header class="flex justify-between items-center">
@@ -98,9 +98,28 @@ import { TransactionChipFilter } from "./components/transaction-chip-filter";
                   (addTransaction)="onAddTransaction($event)"
                 />
                 <pulpe-transaction-chip-filter />
+                @if (selectedTransactions().length > 0) {
+                  <div class="flex gap-4">
+                    <button
+                      matButton="tonal"
+                      (click)="deleteSelectedTransactions()"
+                    >
+                      <mat-icon>delete_sweep</mat-icon>
+                      Supprimer ({{ selectedTransactions().length }})
+                    </button>
+                    <button
+                      matButton="tonal"
+                      (click)="editSelectedTransactions()"
+                    >
+                      <mat-icon>call_merge</mat-icon>
+                      Fusionner ({{ selectedTransactions().length }})
+                    </button>
+                  </div>
+                }
                 <pulpe-variable-expenses-list
                   class="2xl:min-h-0 2xl:flex-1"
                   [transactions]="variableTransactions()"
+                  [(selectedTransactions)]="selectedTransactions"
                 />
               </div>
               <div class="flex-1 2xl:flex-[4] 2xl:min-h-0">
@@ -127,12 +146,18 @@ import { TransactionChipFilter } from "./components/transaction-chip-filter";
     :host {
       display: block;
       height: 100%;
+
+      --mat-button-tonal-container-height: 32px;
+      --mat-button-tonal-horizontal-padding: 12px;
+      --mat-button-tonal-icon-spacing: 4px;
+      --mat-button-tonal-icon-offset: 0;
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class CurrentMonth implements OnInit {
   isCreatingTransaction = signal(false);
+  selectedTransactions = signal<string[]>([]);
   state = inject(CurrentMonthState);
   fixedTransactions = computed(() => {
     const transactions = this.state.dashboardData.value()?.transactions ?? [];
@@ -168,5 +193,18 @@ export default class CurrentMonth implements OnInit {
     } finally {
       this.isCreatingTransaction.set(false);
     }
+  }
+
+  deleteSelectedTransactions(): void {
+    const selectedIds = this.selectedTransactions();
+    console.log('Supprimer les transactions:', selectedIds);
+    // TODO: Implémenter la suppression des transactions
+    this.selectedTransactions.set([]);
+  }
+
+  editSelectedTransactions(): void {
+    const selectedIds = this.selectedTransactions();
+    console.log('Modifier les transactions:', selectedIds);
+    // TODO: Implémenter la modification des transactions
   }
 }

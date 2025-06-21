@@ -3,6 +3,7 @@ import {
   Component,
   computed,
   input,
+  model,
 } from '@angular/core';
 import { TransactionsList, TransactionsListConfig } from './transactions-list';
 import { Transaction } from '@pulpe/shared';
@@ -14,6 +15,7 @@ import { Transaction } from '@pulpe/shared';
     <pulpe-transactions-list
       [transactions]="transactions()"
       [config]="config()"
+      [(selectedTransactions)]="selectedTransactions"
     />
   `,
   styles: ``,
@@ -21,6 +23,7 @@ import { Transaction } from '@pulpe/shared';
 })
 export class VariableExpensesList {
   transactions = input.required<Transaction[]>();
+  selectedTransactions = model<string[]>([]);
 
   config = computed(
     (): TransactionsListConfig => ({
