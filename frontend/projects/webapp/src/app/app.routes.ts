@@ -48,7 +48,8 @@ export const routes: Routes = [
       },
       {
         path: 'other-months',
-        loadComponent: () => import('./feature/other-months/other-months'),
+        loadChildren: () =>
+          import('./feature/other-months/other-months.routes'),
       },
       {
         path: 'budget-templates',
