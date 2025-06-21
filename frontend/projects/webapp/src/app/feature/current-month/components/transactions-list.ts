@@ -10,6 +10,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatListModule } from '@angular/material/list';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatRippleModule } from '@angular/material/core';
 import { Transaction } from '@pulpe/shared';
 
 export interface TransactionsListConfig {
@@ -29,6 +30,7 @@ export interface TransactionsListConfig {
     MatDividerModule,
     MatListModule,
     MatCheckboxModule,
+    MatRippleModule,
   ],
   template: `
     <div
@@ -80,7 +82,7 @@ export interface TransactionsListConfig {
             </p>
           </div>
         } @else {
-          <mat-selection-list class="!pb-0">
+          <mat-list class="!pb-0">
             @for (
               transaction of transactions();
               track transaction.id;
@@ -88,36 +90,51 @@ export interface TransactionsListConfig {
               let isOdd = $odd
             ) {
               <mat-list-item
+                matRipple
+                [matRippleDisabled]="!config().selectable"
                 [class.odd-item]="isOdd"
                 [class.income-item]="transaction.type === 'income'"
                 [class.saving-item]="transaction.type === 'saving'"
                 [class.expense-item]="transaction.type === 'expense'"
-                [class.cursor-pointer]="config().selectable"
+                [class.!cursor-pointer]="config().selectable"
                 (click)="
                   config().selectable ? toggleSelection(transaction.id) : null
                 "
               >
                 <div
                   matListItemAvatar
-                  class="size-10 bg-surface flex justify-center items-center rounded-full"
+                  class="flex justify-center items-center gap-4"
                 >
-                  @switch (transaction.type) {
-                    @case ('income') {
-                      <mat-icon class="!text-(--pulpe-financial-income)">
-                        trending_up
-                      </mat-icon>
-                    }
-                    @case ('saving') {
-                      <mat-icon class="!text-(--pulpe-financial-savings)">
-                        savings
-                      </mat-icon>
-                    }
-                    @default {
-                      <mat-icon class="!text-(--pulpe-financial-expense)">
-                        trending_down
-                      </mat-icon>
-                    }
+                  @if (config().selectable) {
+                    <mat-checkbox
+                      [checked]="isSelected(transaction.id)"
+                      (change)="
+                        onSelectionChange(transaction.id, $event.checked)
+                      "
+                      (click)="$event.stopPropagation()"
+                    />
                   }
+                  <div
+                    class="flex justify-center items-center size-11 bg-surface rounded-full"
+                  >
+                    @switch (transaction.type) {
+                      @case ('income') {
+                        <mat-icon class="!text-(--pulpe-financial-income)">
+                          trending_up
+                        </mat-icon>
+                      }
+                      @case ('saving') {
+                        <mat-icon class="!text-(--pulpe-financial-savings)">
+                          savings
+                        </mat-icon>
+                      }
+                      @default {
+                        <mat-icon class="!text-(--pulpe-financial-expense)">
+                          trending_down
+                        </mat-icon>
+                      }
+                    }
+                  </div>
                 </div>
                 <div matListItemTitle>{{ transaction.name }}</div>
                 @if (transaction.description) {
@@ -138,22 +155,13 @@ export interface TransactionsListConfig {
                         | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH'
                     }}
                   </span>
-                  @if (config().selectable) {
-                    <mat-checkbox
-                      [checked]="isSelected(transaction.id)"
-                      (change)="
-                        onSelectionChange(transaction.id, $event.checked)
-                      "
-                      (click)="$event.stopPropagation()"
-                    />
-                  }
                 </div>
               </mat-list-item>
               @if (!isLast) {
                 <mat-divider></mat-divider>
               }
             }
-          </mat-selection-list>
+          </mat-list>
         }
       </div>
     </div>
@@ -163,10 +171,14 @@ export interface TransactionsListConfig {
     :host {
       color: var(--mat-sys-on-surface);
 
+      mat-icon {
+        background-color: var(--mat-sys-surface);
+      }
+
       @include mat.list-overrides(
         (
-          list-item-leading-avatar-color: var(--mat-sys-surface),
-          list-item-leading-avatar-size: 41px,
+          list-item-leading-avatar-color: none,
+          list-item-leading-avatar-size: fit-content,
           list-item-two-line-container-height: 71px,
           list-item-one-line-container-height: 71px,
           list-item-trailing-supporting-text-size: var(
