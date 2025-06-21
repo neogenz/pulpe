@@ -14,7 +14,11 @@ export interface TransactionFilters {
   selector: 'pulpe-transaction-chip-filter',
   imports: [MatChipsModule, MatIconModule],
   template: `
-    <mat-chip-set class="filter-chips">
+    <mat-chip-listbox
+      class="filter-chips"
+      [multiple]="true"
+      aria-label="Filtrer par type de transaction"
+    >
       <mat-chip-option
         [selected]="filters().transactionTypes.includes('expense')"
         (selectionChange)="onTransactionTypeToggle('expense', $event)"
@@ -36,22 +40,11 @@ export interface TransactionFilters {
         <mat-icon matChipAvatar>savings</mat-icon>
         Épargne
       </mat-chip-option>
-    </mat-chip-set>
+    </mat-chip-listbox>
   `,
   styles: `
     :host {
       display: block;
-    }
-
-    .filter-chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--mat-sys-spacing-2);
-    }
-
-    mat-chip-option {
-      --mat-chip-container-height: 40px;
-      --mat-chip-label-text-font: var(--mat-sys-label-large);
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
