@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import { 
-  type Transaction, 
-  type TransactionCreate, 
+import { Injectable } from "@nestjs/common";
+import {
+  type Transaction,
+  type TransactionCreate,
   type TransactionUpdate,
   type ExpenseType,
-  type TransactionType 
-} from '@pulpe/shared';
+  type TransactionType,
+} from "@pulpe/shared";
 
 export interface TransactionDbEntity {
   id: string;
@@ -16,7 +16,8 @@ export interface TransactionDbEntity {
   amount: number;
   type: TransactionType;
   expense_type: ExpenseType;
-  description: string;
+  name: string;
+  description: string | null;
   is_recurring: boolean;
 }
 
@@ -35,6 +36,7 @@ export class TransactionMapper {
       amount: transactionDb.amount,
       type: transactionDb.type,
       expenseType: transactionDb.expense_type,
+      name: transactionDb.name,
       description: transactionDb.description,
       isRecurring: transactionDb.is_recurring,
     };
@@ -44,19 +46,23 @@ export class TransactionMapper {
    * Transforme plusieurs entités DB vers modèles API
    */
   toApiList(transactionsDb: TransactionDbEntity[]): Transaction[] {
-    return transactionsDb.map(transaction => this.toApi(transaction));
+    return transactionsDb.map((transaction) => this.toApi(transaction));
   }
 
   /**
    * Transforme un DTO de création (camelCase) vers format DB (snake_case)
    */
-  toDbCreate(createDto: TransactionCreate, userId: string): Omit<TransactionDbEntity, 'id' | 'created_at' | 'updated_at'> {
+  toDbCreate(
+    createDto: TransactionCreate,
+    userId: string
+  ): Omit<TransactionDbEntity, "id" | "created_at" | "updated_at"> {
     return {
       budget_id: createDto.budgetId,
       amount: createDto.amount,
       type: createDto.type,
       expense_type: createDto.expenseType,
-      description: createDto.description,
+      name: createDto.name,
+      description: createDto.description || null,
       is_recurring: createDto.isRecurring,
       user_id: userId,
     };
@@ -65,8 +71,32 @@ export class TransactionMapper {
   /**
    * Transforme un DTO de mise à jour (camelCase) vers format DB (snake_case)
    */
-  toDbUpdate(updateDto: TransactionUpdate): Partial<Pick<TransactionDbEntity, 'budget_id' | 'amount' | 'type' | 'expense_type' | 'description' | 'is_recurring'>> {
-    const updateData: Partial<Pick<TransactionDbEntity, 'budget_id' | 'amount' | 'type' | 'expense_type' | 'description' | 'is_recurring'>> = {};
+  toDbUpdate(
+    updateDto: TransactionUpdate
+  ): Partial<
+    Pick<
+      TransactionDbEntity,
+      | "budget_id"
+      | "amount"
+      | "type"
+      | "expense_type"
+      | "name"
+      | "description"
+      | "is_recurring"
+    >
+  > {
+    const updateData: Partial<
+      Pick<
+        TransactionDbEntity,
+        | "budget_id"
+        | "amount"
+        | "type"
+        | "expense_type"
+        | "name"
+        | "description"
+        | "is_recurring"
+      >
+    > = {};
 
     if (updateDto.budgetId !== undefined) {
       updateData.budget_id = updateDto.budgetId;
@@ -79,6 +109,9 @@ export class TransactionMapper {
     }
     if (updateDto.expenseType !== undefined) {
       updateData.expense_type = updateDto.expenseType;
+    }
+    if (updateDto.name !== undefined) {
+      updateData.name = updateDto.name;
     }
     if (updateDto.description !== undefined) {
       updateData.description = updateDto.description;

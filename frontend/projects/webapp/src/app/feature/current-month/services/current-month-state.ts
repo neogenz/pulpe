@@ -32,6 +32,52 @@ export class CurrentMonthState {
     }
   }
 
+  async addTransaction(
+    transaction: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt' | 'userId'>,
+  ): Promise<void> {
+    this.dashboardData.update((data) => {
+      if (!data) return data;
+      const optimisticTransaction = {
+        ...transaction,
+        id: `temp-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        userId: null,
+      };
+      return {
+        ...data,
+        transactions: [optimisticTransaction, ...data.transactions],
+      };
+    });
+
+    try {
+      const response = await firstValueFrom(
+        this.#transactionApi.create$(transaction),
+      );
+
+      this.dashboardData.update((data) => {
+        if (!data || !response.data) return data;
+        return {
+          ...data,
+          transactions: data.transactions.map((t) =>
+            t.id.startsWith('temp-') ? response.data : t,
+          ),
+        };
+      });
+    } catch (error) {
+      this.dashboardData.update((data) => {
+        if (!data) return data;
+        return {
+          ...data,
+          transactions: data.transactions.filter(
+            (t) => !t.id.startsWith('temp-'),
+          ),
+        };
+      });
+      throw error;
+    }
+  }
+
   #currentDate = computed(() => {
     const now = this.today();
     return {

@@ -41,30 +41,35 @@ import { NavigationMenu } from './navigation-menu';
       </mat-sidenav>
 
       <mat-sidenav-content>
-        <mat-toolbar class="toolbar">
-          <button
-            type="button"
-            aria-label="Toggle sidenav"
-            mat-icon-button
-            (click)="sidenavOpened.set(!sidenavOpened())"
-          >
-            <mat-icon>menu</mat-icon>
-          </button>
+        <div class="flex flex-col h-full">
+          <mat-toolbar class="toolbar flex-shrink-0">
+            <button
+              type="button"
+              aria-label="Toggle sidenav"
+              mat-icon-button
+              (click)="sidenavOpened.set(!sidenavOpened())"
+            >
+              <mat-icon>menu</mat-icon>
+            </button>
 
-          <span class="toolbar-spacer"></span>
-          <div class="w-8 h-8 pulpe-gradient rounded-full toolbar-logo"></div>
-        </mat-toolbar>
+            <span class="flex-1"></span>
+            <div class="size-8 pulpe-gradient rounded-full toolbar-logo"></div>
+          </mat-toolbar>
 
-        <main class="main-content p-4">
-          <router-outlet />
-        </main>
+          <main class="flex-1 overflow-auto min-h-0">
+            <div class="p-4 2xl:h-full">
+              <router-outlet />
+            </div>
+          </main>
+        </div>
       </mat-sidenav-content>
     </mat-sidenav-container>
   `,
   styles: [
     `
-      .toolbar-spacer {
-        flex: 1 1 auto;
+      :host {
+        display: block;
+        height: 100vh;
       }
     `,
   ],

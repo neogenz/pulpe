@@ -61,3 +61,4 @@ Thumbs.db
 frontend/deps/
 
 .cursor/rules/angular-architecture.md
+backend-nest/supabase/.temp/*

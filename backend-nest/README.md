@@ -1,6 +1,6 @@
 # Backend NestJS - Pulpe Budget API
 
-This is a NestJS migration of the original Hono/Bun backend, providing the same API functionality with a different framework approach.
+This is a NestJS backend for the Pulpe Budget application, providing a REST API with authentication and budget management features.
 
 ## Features
 
@@ -10,12 +10,14 @@ This is a NestJS migration of the original Hono/Bun backend, providing the same 
 - **Supabase Integration**: Authentication and database operations
 - **TypeScript**: Full type safety from database to API responses
 - **Shared Models**: Uses `@pulpe/shared` package for consistent types
+- **Logging**: Structured logging with Pino
+- **Global Error Handling**: Centralized exception handling
 
 ## Quick Start
 
 1. **Install dependencies**:
    ```bash
-   pnpm install
+   bun install
    ```
 
 2. **Environment Setup**:
@@ -26,17 +28,17 @@ This is a NestJS migration of the original Hono/Bun backend, providing the same 
 
 3. **Development**:
    ```bash
-   pnpm run start:dev
+   bun run start:dev
    ```
 
 4. **Build**:
    ```bash
-   pnpm run build
+   bun run build
    ```
 
 5. **Production**:
    ```bash
-   pnpm run start:prod
+   bun run start:prod
    ```
 
 ## API Documentation
@@ -50,17 +52,23 @@ This is a NestJS migration of the original Hono/Bun backend, providing the same 
 ### Project Structure
 ```
 src/
-├── config/              # Environment configuration
-├── common/              # Shared utilities
-│   ├── decorators/      # Custom decorators (@User, @SupabaseClient)
+├── config/              # Environment configuration and validation
+├── common/              # Shared utilities and cross-cutting concerns
+│   ├── decorators/      # Custom decorators (@User)
+│   ├── dto/             # Common DTOs (response wrapper)
+│   ├── filters/         # Global exception filters
 │   ├── guards/          # Authentication guards
+│   ├── interceptors/    # Response interceptors
+│   ├── logger/          # Application logger service
+│   ├── middleware/      # Request middleware (request ID)
 │   └── pipes/           # Validation pipes (Zod)
 ├── modules/             # Feature modules
 │   ├── auth/            # Authentication endpoints
 │   ├── budget/          # Budget management
+│   ├── debug/           # Debug endpoints
+│   ├── supabase/        # Supabase service integration
 │   ├── transaction/     # Transaction management
-│   ├── user/            # User profile management
-│   └── supabase/        # Supabase service integration
+│   └── user/            # User profile management
 ├── app.module.ts        # Root application module
 └── main.ts              # Application bootstrap
 ```
@@ -69,20 +77,18 @@ src/
 
 #### Authentication Guard
 ```typescript
-@UseGuards(AuthGuard)  // Requires Bearer token
-@UseGuards(OptionalAuthGuard)  // Optional authentication
+@UseGuards(AuthGuard)  // Requires Bearer token authentication
 ```
 
 #### Zod Validation
 ```typescript
-@UsePipes(new ZodBodyPipe(budgetCreateRequestSchema))
+@UsePipes(new ZodValidationPipe(budgetCreateRequestSchema))
 ```
 
-#### User & Supabase Injection
+#### User Injection
 ```typescript
 async method(
   @User() user: AuthenticatedUser,
-  @SupabaseClient() supabase: AuthenticatedSupabaseClient,
 ) { /* ... */ }
 ```
 
@@ -94,11 +100,7 @@ All endpoints are prefixed with `/api`:
 - `GET /api/auth/validate` - Validate JWT token
 
 ### User Management
-- `GET /api/users/me` - Get user profile
-- `PUT /api/users/profile` - Update user profile
-- `GET /api/users/public-info` - Public info (optional auth)
-- `PUT /api/users/onboarding-completed` - Mark onboarding complete
-- `GET /api/users/onboarding-status` - Get onboarding status
+- `GET /api/users/profile` - Get user profile
 
 ### Budget Management
 - `GET /api/budgets` - List all budgets
@@ -114,35 +116,17 @@ All endpoints are prefixed with `/api`:
 - `PUT /api/transactions/:id` - Update transaction
 - `DELETE /api/transactions/:id` - Delete transaction
 
-## Differences from Original Backend
-
-### Framework Changes
-- **Hono → NestJS**: Different framework with decorators and DI
-- **Bun → Node.js/pnpm**: Different runtime and package manager
-- **OpenAPIHono → @nestjs/swagger**: Different OpenAPI implementation
-
-### Architecture Improvements
-- **Modular Structure**: Clear separation of concerns with modules
-- **Dependency Injection**: Better testability and loose coupling
-- **Decorators**: Type-safe parameter extraction (@User, @SupabaseClient)
-- **Exception Handling**: Built-in HTTP exceptions
-- **Validation**: Integrated Zod validation with pipes
-
-### Maintained Features
-- **Same API contracts**: Identical request/response schemas
-- **Shared models**: Uses same `@pulpe/shared` package
-- **Supabase integration**: Same authentication and RLS patterns
-- **OpenAPI documentation**: Same API documentation features
+### Debug (Development only)
+- `GET /api/debug/health` - Health check endpoint
 
 ## Development
 
 ### Scripts
 ```bash
-pnpm run start:dev     # Development with hot reload
-pnpm run build         # Build for production
-pnpm run start:prod    # Run production build
-pnpm run lint          # Run ESLint
-pnpm run test          # Run tests
+bun run start:dev      # Development with hot reload
+bun run build          # Build for production  
+bun run start:prod     # Run production build
+bun run start          # Start development server
 ```
 
 ### Environment Variables
@@ -150,18 +134,17 @@ pnpm run test          # Run tests
 NODE_ENV=development
 PORT=3000
 FRONTEND_URL=http://localhost:4200
-SUPABASE_URL=your_supabase_url
-SUPABASE_ANON_KEY=your_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_key
+SUPABASE_URL=your_supabase_url_here
+SUPABASE_ANON_KEY=your_supabase_anon_key_here
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_here
 ```
 
-## Migration Notes
+## Technology Stack
 
-This NestJS backend is a complete migration from the original Hono backend. It provides:
-
-1. **Same API surface**: All endpoints work identically
-2. **Shared validation**: Uses same Zod schemas from `@pulpe/shared`
-3. **Compatible responses**: Same response formats
-4. **RLS security**: Same Supabase Row Level Security patterns
-
-The frontend should work without any changes when pointed to this backend.
+- **Runtime**: Bun (JavaScript runtime)
+- **Framework**: NestJS with TypeScript
+- **Database**: Supabase (PostgreSQL)
+- **Validation**: Zod schemas from `@pulpe/shared`
+- **Authentication**: Supabase Auth with Bearer tokens
+- **Documentation**: OpenAPI/Swagger
+- **Logging**: Pino with structured logging

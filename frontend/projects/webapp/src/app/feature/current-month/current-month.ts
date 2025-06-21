@@ -2,28 +2,60 @@ import { DatePipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   inject,
   OnInit,
+  signal,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
-import { MatProgressSpinner } from '@angular/material/progress-spinner';
-import { FinancialOverview } from './components/financial-overview';
-import { CurrentMonthState } from './services/current-month-state';
+import {
+  MAT_FORM_FIELD_DEFAULT_OPTIONS,
+  MatFormFieldModule,
+} from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { DashboardError } from './components/dashboard-error';
+import { DashboardLoading } from './components/dashboard-loading';
+import { FinancialOverview } from './components/financial-overview';
+import { FixedTransactionsList } from './components/fixed-transactions-list';
+import {
+  QuickAddExpenseForm,
+  TransactionFormData,
+} from './components/quick-add-expense-form';
+import { VariableExpensesList } from './components/variable-expenses-list';
+import { CurrentMonthState } from './services/current-month-state';
+import { TransactionChipFilter } from './components/transaction-chip-filter';
 
 @Component({
   selector: 'pulpe-current-month',
+  providers: [
+    {
+      provide: MAT_FORM_FIELD_DEFAULT_OPTIONS,
+      useValue: {
+        appearance: 'outline',
+      },
+    },
+  ],
   imports: [
     FinancialOverview,
-    MatProgressSpinner,
     DatePipe,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    FixedTransactionsList,
+    DashboardError,
+    DashboardLoading,
+    VariableExpensesList,
+    QuickAddExpenseForm,
+    TransactionChipFilter,
   ],
   template: `
-    <div class="space-y-6">
+    <div class="flex flex-col 2xl:h-full gap-4 2xl:min-h-0">
       <header class="flex justify-between items-center">
         <h1 class="text-display-small">Budget du mois courant</h1>
         <button
@@ -35,49 +67,22 @@ import { MatIconModule } from '@angular/material/icon';
           Actualiser
         </button>
       </header>
+      {{ state.dashboardData.status() }}
 
       @switch (true) {
         @case (
           state.dashboardData.status() === 'loading' ||
           state.dashboardData.status() === 'reloading'
         ) {
-          <div class="flex justify-center items-center h-64">
-            <div
-              class="text-center flex flex-col gap-4 justify-center items-center"
-            >
-              <mat-progress-spinner diameter="48" mode="indeterminate" />
-              <p class="text-body-large text-on-surface-variant">
-                Chargement du budget...
-              </p>
-            </div>
-          </div>
+          <pulpe-dashboard-loading />
         }
         @case (state.dashboardData.status() === 'error') {
-          <div class="flex flex-col items-center justify-center">
-            <mat-card appearance="outlined">
-              <mat-card-header>
-                <mat-card-title>
-                  <div class="flex items-center justify-center gap-2">
-                    <mat-icon>error_outline</mat-icon>
-                    Impossible de charger vos données
-                  </div>
-                </mat-card-title>
-              </mat-card-header>
-              <mat-card-content>
-                <p class="pt-4">
-                  Une erreur s'est produite lors du chargement de vos
-                  informations budgétaires. Vos données sont en sécurité.
-                </p>
-              </mat-card-content>
-              <mat-card-actions align="end">
-                <button (click)="state.dashboardData.reload()" matButton>
-                  Réessayer
-                </button>
-              </mat-card-actions>
-            </mat-card>
-          </div>
+          <pulpe-dashboard-error (reload)="state.dashboardData.reload()" />
         }
-        @case (state.dashboardData.status() === 'resolved') {
+        @case (
+          state.dashboardData.status() === 'resolved' ||
+          state.dashboardData.status() === 'local'
+        ) {
           @if (state.dashboardData.value()?.budget) {
             <pulpe-financial-overview
               [incomeAmount]="state.incomeAmount()"
@@ -85,6 +90,45 @@ import { MatIconModule } from '@angular/material/icon';
               [savingsAmount]="state.savingsAmount()"
               [negativeAmount]="state.negativeAmount()"
             />
+            <div
+              class="flex flex-col 2xl:flex-row gap-4 2xl:min-h-0 2xl:flex-1"
+            >
+              <div class="flex-1 2xl:flex-[6] flex flex-col gap-4">
+                <pulpe-quick-add-expense-form
+                  (addTransaction)="onAddTransaction($event)"
+                />
+                <pulpe-transaction-chip-filter />
+                @if (selectedTransactions().length > 0) {
+                  <div class="flex gap-4">
+                    <button
+                      matButton="tonal"
+                      (click)="deleteSelectedTransactions()"
+                    >
+                      <mat-icon>delete_sweep</mat-icon>
+                      Supprimer ({{ selectedTransactions().length }})
+                    </button>
+                    <button
+                      matButton="tonal"
+                      (click)="editSelectedTransactions()"
+                    >
+                      <mat-icon>call_merge</mat-icon>
+                      Fusionner ({{ selectedTransactions().length }})
+                    </button>
+                  </div>
+                }
+                <pulpe-variable-expenses-list
+                  class="2xl:min-h-0 2xl:flex-1"
+                  [transactions]="variableTransactions()"
+                  [(selectedTransactions)]="selectedTransactions"
+                />
+              </div>
+              <div class="flex-1 2xl:flex-[4] 2xl:min-h-0">
+                <pulpe-fixed-transactions-list
+                  class="2xl:min-h-0 2xl:flex-1"
+                  [transactions]="fixedTransactions()"
+                />
+              </div>
+            </div>
           } @else {
             <div class="empty-state">
               <h2 class="text-title-large mt-4">Aucun budget trouvé</h2>
@@ -98,19 +142,69 @@ import { MatIconModule } from '@angular/material/icon';
       }
     </div>
   `,
-  styles: [
-    `
-      :host {
-        display: 'block';
-      }
-    `,
-  ],
+  styles: `
+    :host {
+      display: block;
+      height: 100%;
+
+      --mat-button-tonal-container-height: 32px;
+      --mat-button-tonal-horizontal-padding: 12px;
+      --mat-button-tonal-icon-spacing: 4px;
+      --mat-button-tonal-icon-offset: 0;
+    }
+  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class CurrentMonth implements OnInit {
+  isCreatingTransaction = signal(false);
+  selectedTransactions = signal<string[]>([]);
   state = inject(CurrentMonthState);
+  fixedTransactions = computed(() => {
+    const transactions = this.state.dashboardData.value()?.transactions ?? [];
+    return transactions.filter(
+      (transaction) => transaction.expenseType === 'fixed',
+    );
+  });
+  variableTransactions = computed(() => {
+    const transactions = this.state.dashboardData.value()?.transactions ?? [];
+    return transactions.filter(
+      (transaction) => transaction.expenseType === 'variable',
+    );
+  });
 
   ngOnInit() {
     this.state.refreshData();
+  }
+
+  async onAddTransaction(transaction: TransactionFormData) {
+    try {
+      this.isCreatingTransaction.set(true);
+      await this.state.addTransaction({
+        isRecurring: false,
+        type: transaction.type,
+        budgetId: this.state.dashboardData.value()?.budget?.id ?? '',
+        amount: transaction.amount ?? 0,
+        expenseType: 'variable',
+        name: transaction.name,
+        description: null,
+      });
+    } catch (error) {
+      console.error(error);
+    } finally {
+      this.isCreatingTransaction.set(false);
+    }
+  }
+
+  deleteSelectedTransactions(): void {
+    const selectedIds = this.selectedTransactions();
+    console.log('Supprimer les transactions:', selectedIds);
+    // TODO: Implémenter la suppression des transactions
+    this.selectedTransactions.set([]);
+  }
+
+  editSelectedTransactions(): void {
+    const selectedIds = this.selectedTransactions();
+    console.log('Modifier les transactions:', selectedIds);
+    // TODO: Implémenter la modification des transactions
   }
 }
