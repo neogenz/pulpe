@@ -86,7 +86,7 @@ export interface TransactionsListConfig {
                       </mat-icon>
                     }
                     @case ('saving') {
-                      <mat-icon class="!text-(--pulpe-financial-saving)">
+                      <mat-icon class="!text-(--pulpe-financial-savings)">
                         savings
                       </mat-icon>
                     }
@@ -163,7 +163,7 @@ export interface TransactionsListConfig {
       @include mat.list-overrides(
         (
           list-item-trailing-supporting-text-color: var(
-              --pulpe-financial-saving
+              --pulpe-financial-savings
             ),
         )
       );
