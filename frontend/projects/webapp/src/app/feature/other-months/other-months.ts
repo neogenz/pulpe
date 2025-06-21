@@ -2,70 +2,84 @@ import {
   ChangeDetectionStrategy,
   Component,
   inject,
-  signal,
+  OnInit,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
-import { OtherMonthsApi, type MonthInfo } from './other-months-api';
 import { MonthCardItem } from './components/month-card-item';
+import { MonthsLoading } from './components/months-loading';
+import { MonthsError } from './components/months-error';
+import { OtherMonthsState } from './services/other-months-state';
 
 @Component({
   selector: 'pulpe-other-months',
-  imports: [MatIconModule, MatButtonModule, MatCardModule, MonthCardItem],
+  providers: [OtherMonthsState],
+  imports: [
+    MatIconModule,
+    MatButtonModule,
+    MatCardModule,
+    MonthCardItem,
+    MonthsLoading,
+    MonthsError,
+  ],
   template: `
     <div class="flex flex-col 2xl:h-full gap-4 2xl:min-h-0">
       <header class="flex justify-between items-center">
         <h1 class="text-display-small">Autres mois</h1>
-        <button matButton="filled">
-          <mat-icon>add_circle</mat-icon>
-          Ajouter un mois
+        <button
+          matButton="filled"
+          (click)="state.refreshData()"
+          [disabled]="state.monthsData.isLoading()"
+        >
+          <mat-icon>refresh</mat-icon>
+          Actualiser
         </button>
       </header>
 
-      <div class="flex-1 overflow-auto">
-        @if (months().length === 0) {
-          <div class="text-center py-8 text-gray-500">
-            <mat-icon class="text-6xl mb-4">calendar_month</mat-icon>
-            <p>Aucun mois trouvé</p>
-            <p class="text-sm">Créez votre premier budget mensuel</p>
-          </div>
-        } @else {
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            @for (month of months(); track month.budgetId) {
-              <pulpe-month-card-item
-                [displayName]="month.displayName"
-                [totalAmount]="0"
-                [id]="month.budgetId"
-              />
+      @switch (true) {
+        @case (
+          state.monthsData.status() === 'loading' ||
+          state.monthsData.status() === 'reloading'
+        ) {
+          <pulpe-months-loading />
+        }
+        @case (state.monthsData.status() === 'error') {
+          <pulpe-months-error (reload)="state.refreshData()" />
+        }
+        @case (
+          state.monthsData.status() === 'resolved' ||
+          state.monthsData.status() === 'local'
+        ) {
+          <div class="flex-1 overflow-auto">
+            @if (state.monthsData.value()?.length === 0) {
+              <div class="text-center py-8 text-gray-500">
+                <mat-icon class="text-6xl mb-4">calendar_month</mat-icon>
+                <p>Aucun mois trouvé</p>
+                <p class="text-sm">Créez votre premier budget mensuel</p>
+              </div>
+            } @else {
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                @for (month of state.monthsData.value(); track month.budgetId) {
+                  <pulpe-month-card-item
+                    [displayName]="month.displayName"
+                    [totalAmount]="0"
+                    [id]="month.budgetId"
+                  />
+                }
+              </div>
             }
           </div>
         }
-      </div>
+      }
     </div>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export default class OtherMonths {
-  private readonly otherMonthsApi = inject(OtherMonthsApi);
+export default class OtherMonths implements OnInit {
+  state = inject(OtherMonthsState);
 
-  months = signal<MonthInfo[]>([]);
-
-  constructor() {
-    this.loadMonths();
-  }
-
-  private loadMonths(): void {
-    this.otherMonthsApi
-      .getExistingMonthsBudgets$()
-      .pipe(takeUntilDestroyed())
-      .subscribe({
-        next: (months) => this.months.set(months),
-        error: (error) => {
-          console.error('Erreur lors du chargement des mois:', error);
-          this.months.set([]);
-        },
-      });
+  ngOnInit(): void {
+    this.state.refreshData();
   }
 }
