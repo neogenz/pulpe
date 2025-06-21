@@ -35,7 +35,7 @@ import { MonthCardItem } from './components/month-card-item';
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             @for (month of months(); track month.budgetId) {
               <pulpe-month-card-item
-                [month]="month.month"
+                [displayName]="month.displayName"
                 [totalAmount]="0"
                 [id]="month.budgetId"
               />

@@ -2,10 +2,9 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import {
-  type Budget,
-  type BudgetListResponse,
-} from '@pulpe/shared';
+import { format } from 'date-fns';
+import { frCH } from 'date-fns/locale';
+import { type Budget, type BudgetListResponse } from '@pulpe/shared';
 import { environment } from '../../../environments/environment';
 
 export interface MonthInfo {
@@ -39,22 +38,18 @@ export class OtherMonthsApi {
             displayName: this.#formatMonthYear(budget.month, budget.year),
           }))
           .sort((a, b) => {
-            // Trier par année décroissante puis par mois décroissant
+            // Trier par annï¿½e dï¿½croissante puis par mois dï¿½croissant
             if (a.year !== b.year) {
               return b.year - a.year;
             }
             return b.month - a.month;
           });
-      })
+      }),
     );
   }
 
   #formatMonthYear(month: number, year: number): string {
-    const monthNames = [
-      'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-      'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
-    ];
-    
-    return `${monthNames[month - 1]} ${year}`;
+    const date = new Date(year, month - 1, 1);
+    return format(date, 'MMMM yyyy', { locale: frCH });
   }
 }
