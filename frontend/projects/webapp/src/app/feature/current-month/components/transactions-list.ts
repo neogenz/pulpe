@@ -2,8 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   input,
-  output,
-  signal,
+  model,
 } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
@@ -239,8 +238,7 @@ export class TransactionsList {
   readonly transactions = input.required<Transaction[]>();
   readonly config = input.required<TransactionsListConfig>();
 
-  readonly selectedTransactions = signal<string[]>([]);
-  readonly selectionChange = output<string[]>();
+  readonly selectedTransactions = model<string[]>([]);
 
   onSelectionChange(transactionId: string, selected: boolean): void {
     const currentSelection = this.selectedTransactions();
@@ -251,7 +249,6 @@ export class TransactionsList {
         currentSelection.filter((id) => id !== transactionId),
       );
     }
-    this.selectionChange.emit(this.selectedTransactions());
   }
 
   toggleSelection(transactionId: string): void {
