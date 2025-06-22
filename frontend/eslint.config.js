@@ -260,12 +260,6 @@ module.exports = tseslint.config(
           ],
         },
       ],
-      "boundaries/external": [
-        "error",
-        {
-          default: "allow",
-        },
-      ],
       // Disable class suffix rules in accordance with Angular v20 style guide
       "@angular-eslint/component-class-suffix": "off",
       "@angular-eslint/directive-class-suffix": "off",
