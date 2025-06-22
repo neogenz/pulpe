@@ -34,8 +34,9 @@ import { MatTabsModule } from '@angular/material/tabs';
           (click)="state.refreshData()"
           [disabled]="state.monthsData.isLoading()"
         >
-          <mat-icon>add_circle</mat-icon>
-          Ajouter un mois
+          <mat-icon class="md:inline hidden">add_circle</mat-icon>
+          <span class="md:hidden">Ajouter</span>
+          <span class="hidden md:inline">Ajouter un mois</span>
         </button>
       </header>
 
@@ -53,7 +54,11 @@ import { MatTabsModule } from '@angular/material/tabs';
           state.monthsData.status() === 'resolved' ||
           state.monthsData.status() === 'local'
         ) {
-          <mat-tab-group mat-stretch-tabs="false" mat-align-tabs="start">
+          <mat-tab-group
+            mat-stretch-tabs="false"
+            mat-align-tabs="start"
+            fitInkBarToContent
+          >
             <mat-tab label="2025">
               <div class="pt-4">
                 <div class="flex-1 overflow-auto">
