@@ -19,10 +19,12 @@ module.exports = tseslint.config(
   {
     files: ["**/*.ts"],
     plugins: { boundaries },
-    extends: [boundaries.configs.strict],
     settings: {
       "import/resolver": {
-        typescript: { alwaysTryTypes: true },
+        typescript: {
+          alwaysTryTypes: true,
+          project: ["./tsconfig.json", "./projects/webapp/tsconfig.app.json"],
+        },
       },
       "boundaries/dependency-nodes": ["import", "dynamic-import"],
       "boundaries/elements": [
@@ -232,6 +234,12 @@ module.exports = tseslint.config(
               ],
             },
           ],
+        },
+      ],
+      "boundaries/external": [
+        "error",
+        {
+          default: "allow",
         },
       ],
       // Disable class suffix rules in accordance with Angular v20 style guide
