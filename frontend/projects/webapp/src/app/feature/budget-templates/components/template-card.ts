@@ -9,47 +9,57 @@ import { type BudgetTemplate } from '@pulpe/shared';
   selector: 'pulpe-template-card',
   imports: [MatCardModule, MatButtonModule, MatIconModule, MatChipsModule],
   template: `
-    <mat-card>
+    <mat-card appearance="outlined">
       <mat-card-header>
+        <div mat-card-avatar>
+          <div
+            class="flex justify-center items-center size-11 bg-secondary-container rounded-full"
+          >
+            <mat-icon>description</mat-icon>
+          </div>
+        </div>
         <mat-card-title>{{ template().name }}</mat-card-title>
         @if (template().isDefault) {
-          <mat-chip-set>
-            <mat-chip>Par défaut</mat-chip>
-          </mat-chip-set>
+          <mat-card-subtitle>Template par défaut</mat-card-subtitle>
+        } @else if (template().category) {
+          <mat-card-subtitle>{{ template().category }}</mat-card-subtitle>
         }
       </mat-card-header>
       <mat-card-content>
         @if (template().description) {
-          <p class="text-body-medium mb-3">{{ template().description }}</p>
-        }
-        @if (template().category) {
-          <p class="text-body-small text-on-surface-variant">
-            Catégorie: {{ template().category }}
+          <p class="text-body-medium text-on-surface-variant">
+            {{ template().description }}
           </p>
         }
       </mat-card-content>
       <mat-card-actions align="end">
-        <button
-          mat-button
-          color="primary"
-        >
+        <button mat-button>
           <mat-icon>visibility</mat-icon>
           Utiliser
         </button>
-        <button
-          mat-icon-button
-          color="warn"
-          (click)="deleteTemplate.emit(template().id)"
-          [disabled]="template().isDefault"
-        >
-          <mat-icon>delete</mat-icon>
-        </button>
+        @if (!template().isDefault) {
+          <button
+            mat-icon-button
+            color="warn"
+            (click)="deleteTemplate.emit(template().id)"
+          >
+            <mat-icon>delete</mat-icon>
+          </button>
+        }
       </mat-card-actions>
     </mat-card>
   `,
   styles: `
+    @use '@angular/material' as mat;
+
     :host {
       display: block;
+
+      @include mat.card-overrides(
+        (
+          title-text-size: var(--mat-sys-title-medium-size),
+        )
+      );
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
