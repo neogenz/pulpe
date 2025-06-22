@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
+import { Observable } from 'rxjs';
 import { 
   type BudgetTemplate, 
   type BudgetTemplateCreate,
@@ -18,61 +18,18 @@ export class BudgetTemplatesApi {
   #apiUrl = `${environment.backendUrl}/budget-templates`;
 
   getAll$(): Observable<BudgetTemplateListResponse> {
-    // Simulation de données en attendant l'API backend
-    const mockTemplates: BudgetTemplate[] = [
-      {
-        id: '1',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        userId: null,
-        name: 'Budget Étudiant',
-        description: 'Template pour un budget étudiant avec revenus limités',
-        category: 'Étudiant',
-        isDefault: false
-      },
-      {
-        id: '2',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        userId: null,
-        name: 'Budget Famille',
-        description: 'Template pour une famille avec enfants',
-        category: 'Famille',
-        isDefault: true
-      }
-    ];
-
-    return of({
-      success: true,
-      data: mockTemplates
-    });
+    return this.#http.get<BudgetTemplateListResponse>(this.#apiUrl);
   }
 
   create$(template: BudgetTemplateCreate): Observable<BudgetTemplateResponse> {
-    const newTemplate: BudgetTemplate = {
-      id: Math.random().toString(36).substr(2, 9),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      userId: null,
-      name: template.name,
-      description: template.description ?? null,
-      category: template.category ?? null,
-      isDefault: template.isDefault
-    };
-
-    return of({
-      success: true,
-      data: newTemplate
-    });
+    return this.#http.post<BudgetTemplateResponse>(this.#apiUrl, template);
   }
 
   update$(id: string, updates: Partial<BudgetTemplateCreate>): Observable<BudgetTemplateResponse> {
-    // Simulation - en réalité ferait un appel HTTP
     return this.#http.patch<BudgetTemplateResponse>(`${this.#apiUrl}/${id}`, updates);
   }
 
   delete$(id: string): Observable<BudgetTemplateDeleteResponse> {
-    // Simulation - en réalité ferait un appel HTTP
     return this.#http.delete<BudgetTemplateDeleteResponse>(`${this.#apiUrl}/${id}`);
   }
 }
