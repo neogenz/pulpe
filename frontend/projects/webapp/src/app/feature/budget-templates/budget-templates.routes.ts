@@ -11,6 +11,14 @@ export const budgetTemplatesRoutes: Routes = [
         path: '',
         loadComponent: () => import('./budget-templates'),
       },
+      {
+        path: 'add',
+        loadComponent: () => import('./add-template'),
+      },
+      {
+        path: ':id',
+        loadComponent: () => import('./template-detail'),
+      },
     ],
   },
 ];

@@ -1,4 +1,10 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  input,
+  output,
+} from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -7,7 +13,13 @@ import { type BudgetTemplate } from '@pulpe/shared';
 
 @Component({
   selector: 'pulpe-template-card',
-  imports: [MatCardModule, MatButtonModule, MatIconModule, MatChipsModule],
+  imports: [
+    RouterLink,
+    MatCardModule,
+    MatButtonModule,
+    MatIconModule,
+    MatChipsModule,
+  ],
   template: `
     <mat-card appearance="outlined">
       <mat-card-header>
@@ -33,8 +45,12 @@ import { type BudgetTemplate } from '@pulpe/shared';
         }
       </mat-card-content>
       <mat-card-actions align="end">
-        <button mat-button>
+        <button mat-button [routerLink]="template().id">
           <mat-icon>visibility</mat-icon>
+          Voir détail
+        </button>
+        <button mat-button>
+          <mat-icon>play_arrow</mat-icon>
           Utiliser
         </button>
         @if (!template().isDefault) {
@@ -62,7 +78,7 @@ import { type BudgetTemplate } from '@pulpe/shared';
       );
     }
   `,
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TemplateCard {
   template = input.required<BudgetTemplate>();

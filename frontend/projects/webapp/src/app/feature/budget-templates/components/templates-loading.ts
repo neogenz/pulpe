@@ -1,23 +1,24 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatCardModule } from '@angular/material/card';
 
 @Component({
   selector: 'pulpe-templates-loading',
-  imports: [MatProgressSpinnerModule, MatCardModule],
+  imports: [MatProgressSpinnerModule],
   template: `
-    <mat-card class="flex flex-col items-center justify-center p-8">
-      <mat-spinner diameter="48"></mat-spinner>
-      <p class="text-body-large mt-4">Chargement des modèles...</p>
-    </mat-card>
+    <div class="flex justify-center items-center h-64">
+      <div class="text-center flex flex-col gap-4 justify-center items-center">
+        <mat-progress-spinner diameter="48" mode="indeterminate" />
+        <p class="text-body-large text-on-surface-variant">
+          Chargement des modèles...
+        </p>
+      </div>
+    </div>
   `,
   styles: `
     :host {
       display: block;
     }
   `,
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class TemplatesLoading {
-
-}
+export class TemplatesLoading {}

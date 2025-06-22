@@ -1,11 +1,14 @@
-import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  OnInit,
+} from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatCardModule } from '@angular/material/card';
-import { type BudgetTemplateCreate } from '@pulpe/shared';
 import { BudgetTemplatesState } from './services/budget-templates-state';
 import { TemplateList } from './components/template-list';
-import { AddTemplateForm } from './components/add-template-form';
 import { TemplatesLoading } from './components/templates-loading';
 import { TemplatesError } from './components/templates-error';
 
@@ -13,11 +16,10 @@ import { TemplatesError } from './components/templates-error';
   selector: 'pulpe-budget-templates',
   standalone: true,
   imports: [
+    RouterLink,
     MatButtonModule,
     MatIconModule,
-    MatCardModule,
     TemplateList,
-    AddTemplateForm,
     TemplatesLoading,
     TemplatesError,
   ],
@@ -27,12 +29,13 @@ import { TemplatesError } from './components/templates-error';
         <h1 class="text-display-small">Modèles de budget</h1>
         <div class="flex gap-2">
           <button
-            mat-button
-            (click)="showAddForm.set(!showAddForm())"
+            mat-button="raised"
+            color="primary"
+            routerLink="add"
             [disabled]="state.templatesData.isLoading()"
           >
-            <mat-icon>{{ showAddForm() ? 'close' : 'add' }}</mat-icon>
-            {{ showAddForm() ? 'Annuler' : 'Nouveau modèle' }}
+            <mat-icon>add</mat-icon>
+            Nouveau modèle
           </button>
           <button
             mat-button
@@ -44,14 +47,6 @@ import { TemplatesError } from './components/templates-error';
           </button>
         </div>
       </header>
-
-      @if (showAddForm()) {
-        <pulpe-add-template-form
-          (addTemplate)="onAddTemplate($event)"
-          (cancelForm)="showAddForm.set(false)"
-          [isCreating]="isCreatingTemplate()"
-        />
-      }
 
       @switch (true) {
         @case (
@@ -86,28 +81,14 @@ import { TemplatesError } from './components/templates-error';
 })
 export default class BudgetTemplates implements OnInit {
   state = inject(BudgetTemplatesState);
-  showAddForm = signal(false);
-  isCreatingTemplate = signal(false);
 
   ngOnInit() {
     this.state.refreshData();
   }
 
-  async onAddTemplate(template: BudgetTemplateCreate) {
+  async onDeleteTemplate(templateId: string) {
     try {
-      this.isCreatingTemplate.set(true);
-      await this.state.addTemplate(template);
-      this.showAddForm.set(false);
-    } catch (error) {
-      console.error('Erreur lors de la création du template:', error);
-    } finally {
-      this.isCreatingTemplate.set(false);
-    }
-  }
-
-  async onDeleteTemplate(id: string) {
-    try {
-      await this.state.deleteTemplate(id);
+      await this.state.deleteTemplate(templateId);
     } catch (error) {
       console.error('Erreur lors de la suppression du template:', error);
     }
