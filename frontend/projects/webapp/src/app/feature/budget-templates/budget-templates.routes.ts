@@ -13,10 +13,12 @@ export const budgetTemplatesRoutes: Routes = [
       },
       {
         path: 'add',
+        data: { breadcrumb: 'Ajouter un modèle', icon: 'add' },
         loadComponent: () => import('./add-template'),
       },
       {
         path: ':id',
+        data: { breadcrumb: 'Détail du modèle', icon: 'visibility' },
         loadComponent: () => import('./template-detail'),
       },
     ],

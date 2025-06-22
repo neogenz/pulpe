@@ -43,16 +43,19 @@ export const routes: Routes = [
       },
       {
         path: 'current-month',
+        data: { breadcrumb: 'Mois en cours', icon: 'today' },
         loadChildren: () =>
           import('./feature/current-month/current-month.routes'),
       },
       {
         path: 'other-months',
+        data: { breadcrumb: 'Autres mois', icon: 'date_range' },
         loadChildren: () =>
           import('./feature/other-months/other-months.routes'),
       },
       {
         path: 'budget-templates',
+        data: { breadcrumb: 'Modèles de budget', icon: 'description' },
         loadChildren: () =>
           import('./feature/budget-templates/budget-templates.routes'),
       },

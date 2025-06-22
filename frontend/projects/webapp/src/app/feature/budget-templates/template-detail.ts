@@ -7,7 +7,6 @@ import {
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { BudgetTemplatesState } from './services/budget-templates-state';
 
 @Component({
   selector: 'pulpe-template-detail',
@@ -42,7 +41,6 @@ import { BudgetTemplatesState } from './services/budget-templates-state';
 })
 export default class TemplateDetail {
   #router = inject(Router);
-  #state = inject(BudgetTemplatesState);
 
   templateId = input.required<string>();
 

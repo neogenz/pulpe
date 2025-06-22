@@ -2,7 +2,6 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import {
   type TransactionCreate,
-  type TransactionResponse,
   type TransactionUpdate,
   type TransactionCreateResponse,
   type TransactionUpdateResponse,

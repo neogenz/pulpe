@@ -10,7 +10,10 @@
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build": "pnpm run clean && pnpm run build:esm && pnpm run build:cjs",
-    "dev": "pnpm run build -- --watch"
+    "dev": "pnpm run build && pnpm run watch",
+    "watch": "pnpm run /^watch:/",
+    "watch:esm": "tsc -p tsconfig.esm.json --watch",
+    "watch:cjs": "tsc -p tsconfig.cjs.json --watch"
   },
   "exports": {
     ".": {
@@ -21,7 +24,8 @@
       "require": {
         "types": "./dist/cjs/index.d.ts",
         "default": "./dist/cjs/index.js"
-      }
+      },
+      "default": "./dist/esm/index.js"
     }
   },
   "dependencies": {

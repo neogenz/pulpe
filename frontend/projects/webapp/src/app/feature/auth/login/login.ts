@@ -6,7 +6,7 @@ import {
   computed,
   DestroyRef,
 } from '@angular/core';
-import { Router, RouterLink, RouterModule } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import {
   ReactiveFormsModule,
   FormBuilder,
