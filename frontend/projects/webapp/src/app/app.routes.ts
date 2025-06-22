@@ -53,8 +53,8 @@ export const routes: Routes = [
       },
       {
         path: 'budget-templates',
-        loadComponent: () =>
-          import('./feature/budget-templates/budget-templates'),
+        loadChildren: () =>
+          import('./feature/budget-templates/budget-templates.routes'),
       },
     ],
   },
