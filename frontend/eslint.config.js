@@ -19,6 +19,7 @@ module.exports = tseslint.config(
   {
     files: ["**/*.ts"],
     plugins: { boundaries },
+    extends: [boundaries.configs.strict],
     settings: {
       "import/resolver": {
         typescript: {
@@ -27,64 +28,76 @@ module.exports = tseslint.config(
         },
       },
       "boundaries/dependency-nodes": ["import", "dynamic-import"],
+      "boundaries/root-path": "..",
       "boundaries/elements": [
+        {
+          type: "shared",
+          pattern: "shared/**/*",
+          mode: "file",
+        },
         {
           type: "main",
           mode: "file",
           pattern: "main.ts",
-          basePattern: "projects/**/src",
+          basePattern: "frontend/projects/**/src",
           baseCapture: ["app"],
         },
         {
           type: "app",
           mode: "file",
           pattern: "app/app*.ts",
-          basePattern: "projects/**/src",
+          basePattern: "frontend/projects/**/src",
           baseCapture: ["app"],
         },
         {
           type: "core",
-          pattern: "core",
-          basePattern: "projects/**/src/app",
+          pattern: "core/**/*",
+          mode: "file",
+          basePattern: "frontend/projects/**/src/app",
           baseCapture: ["app"],
         },
         {
           type: "ui",
-          pattern: "ui",
-          basePattern: "projects/**/src/app",
+          pattern: "ui/**/*",
+          mode: "file",
+          basePattern: "frontend/projects/**/src/app",
           baseCapture: ["app"],
         },
         {
           type: "layout",
-          pattern: "layout",
-          basePattern: "projects/**/src/app",
+          pattern: "layout/**/*",
+          mode: "file",
+          basePattern: "frontend/projects/**/src/app",
           baseCapture: ["app"],
         },
         {
           type: "pattern",
-          pattern: "pattern",
-          basePattern: "projects/**/src/app",
+          pattern: "pattern/**/*",
+          mode: "file",
+          basePattern: "frontend/projects/**/src/app",
           baseCapture: ["app"],
         },
         {
           type: "feature-routes",
           mode: "file",
-          pattern: "feature/*/*.routes.ts",
+          pattern: "feature/([^/]+)/*.routes.ts",
           capture: ["feature"],
-          basePattern: "projects/**/src/app",
+          basePattern: "frontend/projects/**/src/app",
           baseCapture: ["app"],
         },
         {
           type: "feature",
-          pattern: "feature/*",
+          pattern: "feature/([^/]+)/**/*",
+          mode: "file",
           capture: ["feature"],
-          basePattern: "projects/**/src/app",
+          basePattern: "frontend/projects/**/src/app",
           baseCapture: ["app"],
         },
         {
           type: "env",
-          pattern: "environments",
-          basePattern: "projects/**/src",
+          pattern: "environments/**/*",
+          mode: "file",
+          basePattern: "frontend/projects/**/src",
           baseCapture: ["app"],
         },
         {
@@ -107,7 +120,7 @@ module.exports = tseslint.config(
           type: "test-spec",
           mode: "file",
           pattern: "**/*.spec.ts",
-          basePattern: "projects/**/src",
+          basePattern: "frontend/projects/**/src",
           baseCapture: ["app"],
         },
       ],
@@ -139,6 +152,7 @@ module.exports = tseslint.config(
             {
               from: "core",
               allow: [
+                ["shared"],
                 ["lib-api"],
                 ["core", { app: "${from.app}" }],
                 ["env", { app: "${from.app}" }],
@@ -147,6 +161,7 @@ module.exports = tseslint.config(
             {
               from: "ui",
               allow: [
+                ["shared"],
                 ["lib-api"],
                 ["ui", { app: "${from.app}" }],
                 ["env", { app: "${from.app}" }],
@@ -155,9 +170,11 @@ module.exports = tseslint.config(
             {
               from: "layout",
               allow: [
+                ["shared"],
                 ["lib-api"],
                 ["core", { app: "${from.app}" }],
                 ["ui", { app: "${from.app}" }],
+                ["layout", { app: "${from.app}" }],
                 ["pattern", { app: "${from.app}" }],
                 ["env", { app: "${from.app}" }],
               ],
@@ -165,6 +182,7 @@ module.exports = tseslint.config(
             {
               from: "app",
               allow: [
+                ["shared"],
                 ["lib-api"],
                 ["app", { app: "${from.app}" }],
                 ["core", { app: "${from.app}" }],
@@ -178,6 +196,7 @@ module.exports = tseslint.config(
             {
               from: ["pattern"],
               allow: [
+                ["shared"],
                 ["lib-api"],
                 ["core", { app: "${from.app}" }],
                 ["ui", { app: "${from.app}" }],
@@ -188,20 +207,24 @@ module.exports = tseslint.config(
             {
               from: ["feature"],
               allow: [
+                ["shared"],
                 ["lib-api"],
                 ["core", { app: "${from.app}" }],
                 ["ui", { app: "${from.app}" }],
                 ["pattern", { app: "${from.app}" }],
+                ["feature", { app: "${from.app}", feature: "${from.feature}" }],
                 ["env", { app: "${from.app}" }],
               ],
             },
             {
               from: ["feature-routes"],
               allow: [
+                ["shared"],
                 ["lib-api"],
                 ["core", { app: "${from.app}" }],
                 ["pattern", { app: "${from.app}", feature: "${from.feature}" }],
                 ["feature", { app: "${from.app}", feature: "${from.feature}" }],
+                ["feature", { app: "${from.app}", feature: "*" }],
                 [
                   "feature-routes",
                   { app: "${from.app}", feature: "!${from.feature}" },
@@ -224,6 +247,7 @@ module.exports = tseslint.config(
             {
               from: ["test-spec"],
               allow: [
+                ["shared"],
                 ["lib-api"],
                 ["core", { app: "${from.app}" }],
                 ["ui", { app: "${from.app}" }],
