@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { type BudgetTemplate } from '@pulpe/shared';
 import { TemplateCard } from './template-card';
@@ -16,10 +16,7 @@ import { TemplateCard } from './template-card';
     } @else {
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         @for (template of templates(); track template.id) {
-          <pulpe-template-card
-            [template]="template"
-            (deleteTemplate)="deleteTemplate.emit($event)"
-          />
+          <pulpe-template-card [template]="template" />
         }
       </div>
     }
@@ -29,9 +26,8 @@ import { TemplateCard } from './template-card';
       display: block;
     }
   `,
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TemplateList {
   templates = input.required<BudgetTemplate[]>();
-  deleteTemplate = output<string>();
 }

@@ -64,7 +64,6 @@ import { TemplatesError } from './components/templates-error';
         ) {
           <pulpe-template-list
             [templates]="state.templatesData.value() ?? []"
-            (deleteTemplate)="onDeleteTemplate($event)"
           />
         }
       }
@@ -84,13 +83,5 @@ export default class BudgetTemplates implements OnInit {
 
   ngOnInit() {
     this.state.refreshData();
-  }
-
-  async onDeleteTemplate(templateId: string) {
-    try {
-      await this.state.deleteTemplate(templateId);
-    } catch (error) {
-      console.error('Erreur lors de la suppression du template:', error);
-    }
   }
 }
