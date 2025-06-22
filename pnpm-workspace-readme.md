@@ -149,8 +149,16 @@ pnpm run dev:frontend-only
 # Watch mode shared seulement
 pnpm run shared:watch
 
-# Build complet
+# Build frontend + shared (recommandé)
 pnpm run build
+
+# Build avec backend inclus (si backend configuré)
+pnpm run build:all
+
+# Build composants individuels
+pnpm run build:shared
+pnpm run build:frontend
+pnpm run build:backend
 ```
 
 ### Workflow quotidien

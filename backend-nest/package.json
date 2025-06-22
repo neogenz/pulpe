@@ -4,7 +4,7 @@
   "description": "NestJS backend for Pulpe Budget API",
   "main": "dist/main.js",
   "scripts": {
-    "build": "bun build src/main.ts --outdir=dist --target=node --minify",
+    "build": "bun build src/main.ts --outdir=dist --target=node --minify --packages=external",
     "start": "bun src/main.ts",
     "start:dev": "bun --watch src/main.ts",
     "start:prod": "bun dist/main.js",
