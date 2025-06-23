@@ -1,5 +1,10 @@
 import { Injectable, inject } from '@angular/core';
-import { NavigationEnd, Router, ActivatedRoute, UrlTree } from '@angular/router';
+import {
+  NavigationEnd,
+  Router,
+  ActivatedRoute,
+  UrlTree,
+} from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, startWith } from 'rxjs';
 
@@ -39,6 +44,10 @@ export class BreadcrumbState {
       // 2. Utiliser `reduce` pour construire le chemin et les éléments du fil d'Ariane en un seul passage.
       const breadcrumbs = routeChain.reduce(
         (acc, route) => {
+          // Vérifier que snapshot existe avant d'accéder à ses propriétés
+          if (!route.snapshot) {
+            return acc;
+          }
           const breadcrumbLabel = route.snapshot.data?.['breadcrumb'];
 
           // 1. Accumuler les segments de chemin pour former le chemin complet jusqu'à cette route
