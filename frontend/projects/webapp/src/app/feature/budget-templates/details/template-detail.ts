@@ -4,8 +4,8 @@ import {
   computed,
   inject,
   input,
+  resource,
 } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -19,8 +19,7 @@ import {
   FinancialEntry,
 } from './components/financial-entries-table';
 import { BudgetTemplatesApi } from '../services/budget-templates-api';
-import { BudgetTemplate, TemplateTransaction } from '@pulpe/shared';
-import { forkJoin, map, catchError, of, startWith } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -36,21 +35,21 @@ import { CommonModule } from '@angular/common';
   ],
   template: `
     <div class="flex flex-col gap-4 h-full">
-      @switch (data()?.status) {
-        @case ('loading') {
+      @switch (true) {
+        @case (data.status() === 'loading' || data.status() === 'reloading') {
           <div class="flex justify-center items-center h-full">
             <mat-spinner />
           </div>
         }
-        @case ('error') {
+        @case (data.status() === 'error') {
           <div class="flex justify-center items-center h-full">
             <p class="text-error">
               Une erreur est survenue lors du chargement des détails du modèle.
             </p>
           </div>
         }
-        @case ('success') {
-          @if (data()?.value; as value) {
+        @case (data.status() === 'resolved' || data.status() === 'local') {
+          @if (data.value(); as value) {
             <header class="flex items-center gap-4">
               <button
                 class="display-none"
@@ -94,42 +93,18 @@ export default class TemplateDetail {
 
   templateId = input.required<string>();
 
-  data = toSignal(
-    forkJoin({
-      template: this.#budgetTemplatesApi.getById$(this.templateId()),
-      transactions: this.#budgetTemplatesApi.getTemplateTransactions$(
-        this.templateId(),
-      ),
-    }).pipe(
-      map(({ template, transactions }) => ({
-        status: 'success' as const,
-        value: {
-          template: template.data,
-          transactions: transactions.data,
-        },
-        error: null,
-      })),
-      catchError((error) =>
-        of({
-          status: 'error' as const,
-          value: null,
-          error,
-        }),
-      ),
-      startWith({
-        status: 'loading' as const,
-        value: null,
-        error: null,
-      }),
-    ),
-  );
+  data = resource({
+    params: () => this.templateId(),
+    loader: async ({ params }) =>
+      firstValueFrom(this.#budgetTemplatesApi.getDetail$(params)),
+  });
 
   entries = computed<FinancialEntry[]>(() => {
-    const data = this.data();
-    if (!data || data.status !== 'success' || !data.value) {
+    const value = this.data.value();
+    if (!value) {
       return [];
     }
-    return data.value.transactions.map((transaction) => {
+    return value.transactions.map((transaction) => {
       const spent =
         (transaction.type as string) === 'EXPENSE' ? transaction.amount : 0;
       const earned =

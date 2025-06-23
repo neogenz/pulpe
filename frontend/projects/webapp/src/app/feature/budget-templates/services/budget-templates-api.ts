@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, forkJoin, map } from 'rxjs';
 import {
   type BudgetTemplateCreate,
   type BudgetTemplateListResponse,
@@ -52,4 +52,23 @@ export class BudgetTemplatesApi {
       `${this.#apiUrl}/${id}`,
     );
   }
+
+  /**
+   * Fetches a template and its associated transactions in a single call for
+   * the frontend. It first retrieves the template by its identifier and then
+   * its transactions, finally mapping the responses to a strict view-model.
+   */
+  getDetail$(id: string): Observable<BudgetTemplateDetailViewModel> {
+    return forkJoin({
+      template: this.getById$(id).pipe(map((r) => r.data)),
+      transactions: this.getTemplateTransactions$(id).pipe(map((r) => r.data)),
+    });
+  }
+}
+
+// View-model returned to the frontend when requesting a template with its
+// associated transactions.
+export interface BudgetTemplateDetailViewModel {
+  template: BudgetTemplateResponse['data'];
+  transactions: TemplateTransactionListResponse['data'];
 }
