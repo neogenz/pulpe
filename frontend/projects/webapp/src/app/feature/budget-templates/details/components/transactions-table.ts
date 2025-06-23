@@ -73,7 +73,9 @@ export interface FinancialEntry {
           Gagné
         </th>
         <td mat-cell *matCellDef="let row" class="text-right px-4 py-2">
-          {{ row.earned }}
+          @if (row.earned !== 0) {
+            {{ row.earned }}
+          }
         </td>
       </ng-container>
 
@@ -87,7 +89,9 @@ export interface FinancialEntry {
           Économisé
         </th>
         <td mat-cell *matCellDef="let row" class="text-right px-4 py-2">
-          {{ row.saved }}
+          @if (row.saved !== 0) {
+            {{ row.saved }}
+          }
         </td>
       </ng-container>
 
