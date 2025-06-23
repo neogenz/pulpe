@@ -60,7 +60,7 @@ import { BreadcrumbState } from '@core/routing/breadcrumb-state';
           </mat-toolbar>
 
           <pulpe-breadcrumb
-            class="px-4 py-3 border-b border-outline-variant"
+            class="px-4 py-3"
             [items]="breadcrumbState.breadcrumbs()"
           />
 
