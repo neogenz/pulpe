@@ -117,7 +117,7 @@ export interface FinancialEntry {
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class FinancialEntriesTable {
+export class TransactionsTable {
   /** Immutable list of entries to display. */
   entries = input.required<readonly FinancialEntry[]>();
 

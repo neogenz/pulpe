@@ -15,9 +15,9 @@ import {
   FinancialSummary,
 } from '@ui/financial-summary/financial-summary';
 import {
-  FinancialEntriesTable,
+  TransactionsTable,
   FinancialEntry,
-} from './components/financial-entries-table';
+} from './components/transactions-table';
 import { BudgetTemplatesApi } from '../services/budget-templates-api';
 import { firstValueFrom } from 'rxjs';
 import { CommonModule } from '@angular/common';
@@ -31,7 +31,7 @@ import { CommonModule } from '@angular/common';
     MatIconModule,
     MatProgressSpinnerModule,
     FinancialSummary,
-    FinancialEntriesTable,
+    TransactionsTable,
   ],
   template: `
     <div class="flex flex-col gap-4 h-full">
