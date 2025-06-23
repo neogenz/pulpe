@@ -24,7 +24,7 @@ export interface FinancialEntry {
  * – Tailwind utility classes are applied for spacing and responsive layout.
  */
 @Component({
-  selector: 'pulpe-financial-entries-table',
+  selector: 'pulpe-transactions-table',
   standalone: true,
   imports: [MatTableModule],
   template: `
@@ -57,7 +57,9 @@ export interface FinancialEntry {
           Dépensé
         </th>
         <td mat-cell *matCellDef="let row" class="text-right px-4 py-2">
-          {{ row.spent }}
+          @if (row.spent !== 0) {
+            {{ row.spent }}
+          }
         </td>
       </ng-container>
 
@@ -105,7 +107,11 @@ export interface FinancialEntry {
 
       <!-- Header & data rows -->
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: displayedColumns; let isOdd = odd"
+        [class.odd-row]="isOdd"
+      ></tr>
     </table>
   `,
   styles: `
@@ -113,6 +119,11 @@ export interface FinancialEntry {
       display: block;
       height: 100%;
       overflow: auto;
+    }
+
+    .odd-row {
+      background-color: var(--mat-sys-surface-container-low);
+      color: var(--mat-sys-on-surface);
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -72,7 +72,7 @@ import { CommonModule } from '@angular/common';
             </div>
 
             <div class="flex-1 overflow-auto">
-              <pulpe-financial-entries-table [entries]="entries()" />
+              <pulpe-transactions-table [entries]="entries()" />
             </div>
           }
         }
