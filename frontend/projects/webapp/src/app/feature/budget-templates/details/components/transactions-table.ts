@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { CurrencyPipe } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
 
 /**
@@ -26,7 +27,7 @@ export interface FinancialEntry {
 @Component({
   selector: 'pulpe-transactions-table',
   standalone: true,
-  imports: [MatTableModule],
+  imports: [MatTableModule, CurrencyPipe],
   template: `
     <table
       mat-table
@@ -38,7 +39,7 @@ export interface FinancialEntry {
         <th
           mat-header-cell
           *matHeaderCellDef
-          class="text-left font-medium px-4 py-2"
+          class="text-left font-medium px-4 py-2 text-title-medium"
         >
           Description
         </th>
@@ -52,13 +53,13 @@ export interface FinancialEntry {
         <th
           mat-header-cell
           *matHeaderCellDef
-          class="text-right font-medium px-4 py-2"
+          class="text-right font-medium px-4 py-2 text-title-medium"
         >
           Dépensé
         </th>
         <td mat-cell *matCellDef="let row" class="text-right px-4 py-2">
           @if (row.spent !== 0) {
-            {{ row.spent }}
+            {{ row.spent | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH' }}
           }
         </td>
       </ng-container>
@@ -68,13 +69,13 @@ export interface FinancialEntry {
         <th
           mat-header-cell
           *matHeaderCellDef
-          class="text-right font-medium px-4 py-2"
+          class="text-right font-medium px-4 py-2 text-title-medium"
         >
           Gagné
         </th>
         <td mat-cell *matCellDef="let row" class="text-right px-4 py-2">
           @if (row.earned !== 0) {
-            {{ row.earned }}
+            {{ row.earned | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH' }}
           }
         </td>
       </ng-container>
@@ -84,13 +85,13 @@ export interface FinancialEntry {
         <th
           mat-header-cell
           *matHeaderCellDef
-          class="text-right font-medium px-4 py-2"
+          class="text-right font-medium px-4 py-2 text-title-medium"
         >
           Économisé
         </th>
         <td mat-cell *matCellDef="let row" class="text-right px-4 py-2">
           @if (row.saved !== 0) {
-            {{ row.saved }}
+            {{ row.saved | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH' }}
           }
         </td>
       </ng-container>
@@ -100,12 +101,12 @@ export interface FinancialEntry {
         <th
           mat-header-cell
           *matHeaderCellDef
-          class="text-right font-medium px-4 py-2"
+          class="text-right font-medium px-4 py-2 text-title-medium"
         >
           Total
         </th>
         <td mat-cell *matCellDef="let row" class="text-right px-4 py-2">
-          {{ row.total }}
+          {{ row.total | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH' }}
         </td>
       </ng-container>
 
