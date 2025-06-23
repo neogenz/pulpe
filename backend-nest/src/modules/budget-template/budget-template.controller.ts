@@ -22,11 +22,20 @@ import {
   ApiInternalServerErrorResponse,
   ApiCreatedResponse,
 } from "@nestjs/swagger";
+import { createZodDto } from "nestjs-zod";
 import {
   budgetTemplateCreateSchema,
   budgetTemplateUpdateSchema,
+  budgetTemplateListResponseSchema,
+  budgetTemplateResponseSchema,
+  budgetTemplateDeleteResponseSchema,
+  templateTransactionListResponseSchema,
   type BudgetTemplateCreate,
   type BudgetTemplateUpdate,
+  type BudgetTemplateListResponse,
+  type BudgetTemplateResponse,
+  type BudgetTemplateDeleteResponse,
+  type TemplateTransactionListResponse,
 } from "@pulpe/shared";
 import { AuthGuard } from "@common/guards/auth.guard";
 import { ZodBodyPipe } from "@common/pipes/zod-validation.pipe";
@@ -37,13 +46,21 @@ import {
 } from "@common/decorators/user.decorator";
 import { BudgetTemplateService } from "./budget-template.service";
 import type { AuthenticatedSupabaseClient } from "@modules/supabase/supabase.service";
-import {
-  BudgetTemplateListResponseDto,
-  BudgetTemplateResponseDto,
-  BudgetTemplateDeleteResponseDto,
-  TemplateTransactionListResponseDto,
-} from "./dto/budget-template-response.dto";
 import { ErrorResponseDto } from "@common/dto/response.dto";
+
+// Créer les DTOs automatiquement depuis les schémas Zod
+class BudgetTemplateListResponseDto extends createZodDto(
+  budgetTemplateListResponseSchema
+) {}
+class BudgetTemplateResponseDto extends createZodDto(
+  budgetTemplateResponseSchema
+) {}
+class BudgetTemplateDeleteResponseDto extends createZodDto(
+  budgetTemplateDeleteResponseSchema
+) {}
+class TemplateTransactionListResponseDto extends createZodDto(
+  templateTransactionListResponseSchema
+) {}
 
 @ApiTags("Budget Templates")
 @ApiBearerAuth()
@@ -74,7 +91,7 @@ export class BudgetTemplateController {
   async findAll(
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient
-  ): Promise<BudgetTemplateListResponseDto> {
+  ): Promise<BudgetTemplateListResponse> {
     return this.budgetTemplateService.findAll(user, supabase);
   }
 
@@ -96,7 +113,7 @@ export class BudgetTemplateController {
     createTemplateDto: BudgetTemplateCreate,
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient
-  ): Promise<BudgetTemplateResponseDto> {
+  ): Promise<BudgetTemplateResponse> {
     return this.budgetTemplateService.create(createTemplateDto, user, supabase);
   }
 
@@ -126,7 +143,7 @@ export class BudgetTemplateController {
     @Param("id", ParseUUIDPipe) id: string,
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient
-  ): Promise<BudgetTemplateResponseDto> {
+  ): Promise<BudgetTemplateResponse> {
     return this.budgetTemplateService.findOne(id, user, supabase);
   }
 
@@ -161,7 +178,7 @@ export class BudgetTemplateController {
     updateTemplateDto: BudgetTemplateUpdate,
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient
-  ): Promise<BudgetTemplateResponseDto> {
+  ): Promise<BudgetTemplateResponse> {
     return this.budgetTemplateService.update(
       id,
       updateTemplateDto,
@@ -196,7 +213,7 @@ export class BudgetTemplateController {
     @Param("id", ParseUUIDPipe) id: string,
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient
-  ): Promise<TemplateTransactionListResponseDto> {
+  ): Promise<TemplateTransactionListResponse> {
     return this.budgetTemplateService.findTemplateTransactions(
       id,
       user,
@@ -230,7 +247,7 @@ export class BudgetTemplateController {
     @Param("id", ParseUUIDPipe) id: string,
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient
-  ): Promise<BudgetTemplateDeleteResponseDto> {
+  ): Promise<BudgetTemplateDeleteResponse> {
     return this.budgetTemplateService.remove(id, user, supabase);
   }
 }
