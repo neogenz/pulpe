@@ -50,7 +50,7 @@ import { CommonModule } from '@angular/common';
         }
         @case (data.status() === 'resolved' || data.status() === 'local') {
           @if (data.value(); as value) {
-            <header class="flex items-center gap-4">
+            <header class="flex items-center gap-4 flex-shrink-0">
               <button
                 class="display-none"
                 mat-icon-button
@@ -64,15 +64,23 @@ import { CommonModule } from '@angular/common';
               </h1>
             </header>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-4 gap-4">
+            <div
+              class="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-4 gap-4 md:my-8 flex-shrink-0"
+            >
               <pulpe-financial-summary [data]="incomeData()" />
               <pulpe-financial-summary [data]="expenseData()" />
               <pulpe-financial-summary [data]="savingsData()" />
               <pulpe-financial-summary [data]="netBalanceData()" />
             </div>
 
-            <div class="flex-1 overflow-auto">
-              <pulpe-transactions-table [entries]="entries()" />
+            <div class="flex flex-col gap-4 flex-1 min-h-0">
+              <h2 class="text-headline-small flex-shrink-0">
+                Transactions fixes
+              </h2>
+              <pulpe-transactions-table
+                class="flex-1 min-h-0"
+                [entries]="entries()"
+              />
             </div>
           }
         }
