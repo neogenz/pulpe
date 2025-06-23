@@ -12,11 +12,17 @@ import {
   FinancialSummaryData,
   FinancialSummary,
 } from '@ui/financial-summary/financial-summary';
+import { FinancialEntriesTable } from './components/financial-entries-table';
 
 @Component({
   selector: 'pulpe-template-detail',
   standalone: true,
-  imports: [MatButtonModule, MatIconModule, FinancialSummary],
+  imports: [
+    MatButtonModule,
+    MatIconModule,
+    FinancialSummary,
+    FinancialEntriesTable,
+  ],
   template: `
     <div class="flex flex-col gap-4 h-full">
       <header class="flex items-center gap-4">
@@ -39,7 +45,7 @@ import {
       </div>
 
       <div class="flex-1 overflow-auto">
-        
+        <pulpe-financial-entries-table [entries]="[]" />
       </div>
     </div>
   `,

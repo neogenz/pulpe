@@ -19,7 +19,7 @@ export const budgetTemplatesRoutes: Routes = [
       {
         path: ':id',
         data: { breadcrumb: 'Détail du modèle', icon: 'visibility' },
-        loadComponent: () => import('./template-detail'),
+        loadComponent: () => import('./details/template-detail'),
       },
     ],
   },
