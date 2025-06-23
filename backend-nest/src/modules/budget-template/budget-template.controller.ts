@@ -41,6 +41,7 @@ import {
   BudgetTemplateListResponseDto,
   BudgetTemplateResponseDto,
   BudgetTemplateDeleteResponseDto,
+  TemplateTransactionListResponseDto,
 } from "./dto/budget-template-response.dto";
 import { ErrorResponseDto } from "@common/dto/response.dto";
 
@@ -91,7 +92,8 @@ export class BudgetTemplateController {
     type: ErrorResponseDto,
   })
   async create(
-    @Body(new ZodBodyPipe(budgetTemplateCreateSchema)) createTemplateDto: BudgetTemplateCreate,
+    @Body(new ZodBodyPipe(budgetTemplateCreateSchema))
+    createTemplateDto: BudgetTemplateCreate,
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient
   ): Promise<BudgetTemplateResponseDto> {
@@ -101,7 +103,8 @@ export class BudgetTemplateController {
   @Get(":id")
   @ApiOperation({
     summary: "Get budget template by ID",
-    description: "Retrieves a specific budget template by its unique identifier",
+    description:
+      "Retrieves a specific budget template by its unique identifier",
   })
   @ApiParam({
     name: "id",
@@ -154,17 +157,58 @@ export class BudgetTemplateController {
   })
   async update(
     @Param("id", ParseUUIDPipe) id: string,
-    @Body(new ZodBodyPipe(budgetTemplateUpdateSchema)) updateTemplateDto: BudgetTemplateUpdate,
+    @Body(new ZodBodyPipe(budgetTemplateUpdateSchema))
+    updateTemplateDto: BudgetTemplateUpdate,
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient
   ): Promise<BudgetTemplateResponseDto> {
-    return this.budgetTemplateService.update(id, updateTemplateDto, user, supabase);
+    return this.budgetTemplateService.update(
+      id,
+      updateTemplateDto,
+      user,
+      supabase
+    );
+  }
+
+  @Get(":id/transactions")
+  @ApiOperation({
+    summary: "Get template transactions",
+    description:
+      "Retrieves all transactions associated with a specific budget template",
+  })
+  @ApiParam({
+    name: "id",
+    description: "Unique budget template identifier",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+    type: "string",
+    format: "uuid",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Template transactions retrieved successfully",
+    type: TemplateTransactionListResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: "Budget template not found",
+    type: ErrorResponseDto,
+  })
+  async findTemplateTransactions(
+    @Param("id", ParseUUIDPipe) id: string,
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient
+  ): Promise<TemplateTransactionListResponseDto> {
+    return this.budgetTemplateService.findTemplateTransactions(
+      id,
+      user,
+      supabase
+    );
   }
 
   @Delete(":id")
   @ApiOperation({
     summary: "Delete existing budget template",
-    description: "Permanently deletes a budget template and all associated data",
+    description:
+      "Permanently deletes a budget template and all associated data",
   })
   @ApiParam({
     name: "id",
