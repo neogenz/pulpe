@@ -59,10 +59,9 @@ interface EditTransactionsDialogData {
               {{ transactionsDataSource().length }} transaction(s)
             </p>
             <button
-              mat-raised-button
-              color="primary"
+              matButton="tonal"
               (click)="addNewTransaction()"
-              class="flex gap-2 items-center"
+              class="items-center"
             >
               <mat-icon>add</mat-icon>
               Ajouter une transaction
@@ -85,7 +84,11 @@ interface EditTransactionsDialogData {
                 *matCellDef="let formGroup; let i = index"
                 class="!p-4"
               >
-                <mat-form-field appearance="outline" class="w-full">
+                <mat-form-field
+                  appearance="outline"
+                  class="w-full"
+                  subscriptSizing="dynamic"
+                >
                   <input
                     matInput
                     [formControl]="getFormControl(formGroup, 'description')"
@@ -117,7 +120,11 @@ interface EditTransactionsDialogData {
                 *matCellDef="let formGroup; let i = index"
                 class="!p-4"
               >
-                <mat-form-field appearance="outline" class="w-full">
+                <mat-form-field
+                  appearance="outline"
+                  class="w-full"
+                  subscriptSizing="dynamic"
+                >
                   <input
                     matInput
                     type="number"
@@ -153,7 +160,11 @@ interface EditTransactionsDialogData {
                 *matCellDef="let formGroup; let i = index"
                 class="!p-4"
               >
-                <mat-form-field appearance="outline" class="w-full">
+                <mat-form-field
+                  appearance="outline"
+                  class="w-full"
+                  subscriptSizing="dynamic"
+                >
                   <mat-select [formControl]="getFormControl(formGroup, 'type')">
                     @for (type of transactionTypes; track type.value) {
                       <mat-option [value]="type.value">
@@ -173,10 +184,10 @@ interface EditTransactionsDialogData {
               <td
                 mat-cell
                 *matCellDef="let formGroup; let i = index"
-                class="!p-4 text-center"
+                class="!p-4"
               >
                 <button
-                  mat-icon-button
+                  matIconButton
                   color="warn"
                   (click)="removeTransaction(i)"
                   [disabled]="transactionsDataSource().length <= 1"
@@ -201,13 +212,8 @@ interface EditTransactionsDialogData {
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
-      <button mat-button (click)="cancel()">Annuler</button>
-      <button
-        mat-raised-button
-        color="primary"
-        (click)="save()"
-        [disabled]="!isFormValid()"
-      >
+      <button matButton (click)="cancel()">Annuler</button>
+      <button matButton="filled" (click)="save()" [disabled]="!isFormValid()">
         Enregistrer
       </button>
     </mat-dialog-actions>
@@ -215,6 +221,9 @@ interface EditTransactionsDialogData {
   styles: `
     :host {
       --mat-table-background-color: var(--mat-sys-surface-container-high);
+      .mat-mdc-dialog-content {
+        max-height: unset;
+      }
     }
     /* Clean Mat-Table styling - let Material handle sticky headers */
     .mat-column-description {
