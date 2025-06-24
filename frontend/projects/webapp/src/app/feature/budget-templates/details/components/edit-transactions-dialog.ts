@@ -156,8 +156,8 @@ interface EditTransactionsDialogData {
             </cdk-cell>
           </ng-container>
 
-          <cdk-header-row *cdkHeaderRowDef="displayedColumns" class="flex"></cdk-header-row>
-          <cdk-row *cdkRowDef="let row; columns: displayedColumns;" class="flex border-b border-outline-variant"></cdk-row>
+          <cdk-header-row *cdkHeaderRowDef="displayedColumns"></cdk-header-row>
+          <cdk-row *cdkRowDef="let row; columns: displayedColumns;"></cdk-row>
         </cdk-table>
       </div>
     </mat-dialog-content>
@@ -174,7 +174,26 @@ interface EditTransactionsDialogData {
       </button>
     </mat-dialog-actions>
   `,
-  styles: ``,
+  styles: `
+    cdk-table {
+      display: table;
+      width: 100%;
+    }
+    
+    cdk-header-row, cdk-row {
+      display: table-row;
+    }
+    
+    cdk-header-cell, cdk-cell {
+      display: table-cell;
+      vertical-align: middle;
+    }
+    
+    cdk-header-cell:nth-child(1), cdk-cell:nth-child(1) { width: 40%; }
+    cdk-header-cell:nth-child(2), cdk-cell:nth-child(2) { width: 25%; }
+    cdk-header-cell:nth-child(3), cdk-cell:nth-child(3) { width: 25%; }
+    cdk-header-cell:nth-child(4), cdk-cell:nth-child(4) { width: 10%; }
+  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class EditTransactionsDialog {
