@@ -10,6 +10,7 @@ import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatMenuModule } from '@angular/material/menu';
 import {
   FinancialSummaryData,
   FinancialSummary,
@@ -30,6 +31,7 @@ import { CommonModule } from '@angular/common';
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    MatMenuModule,
     FinancialSummary,
     TransactionsTable,
   ],
@@ -50,7 +52,7 @@ import { CommonModule } from '@angular/common';
         }
         @case (data.status() === 'resolved' || data.status() === 'local') {
           @if (data.value(); as value) {
-            <header class="flex items-center gap-4 flex-shrink-0">
+            <header class="flex flex-shrink-0 gap-4 items-center">
               <button
                 class="display-none"
                 mat-icon-button
@@ -65,7 +67,7 @@ import { CommonModule } from '@angular/common';
             </header>
 
             <div
-              class="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-4 gap-4 md:my-8 flex-shrink-0"
+              class="grid flex-shrink-0 grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-4 md:my-8"
             >
               <pulpe-financial-summary [data]="incomeData()" />
               <pulpe-financial-summary [data]="expenseData()" />
@@ -73,10 +75,26 @@ import { CommonModule } from '@angular/common';
               <pulpe-financial-summary [data]="netBalanceData()" />
             </div>
 
-            <div class="flex flex-col gap-4 flex-1 min-h-0">
-              <h2 class="text-headline-small flex-shrink-0">
-                Transactions fixes
-              </h2>
+            <div class="flex flex-col flex-1 gap-4 min-h-0">
+              <div class="flex gap-4 justify-between items-center">
+                <h2 class="flex-shrink-0 text-headline-small">
+                  Transactions fixes
+                </h2>
+                <button
+                  mat-icon-button
+                  [matMenuTriggerFor]="transactionsMenu"
+                  aria-label="Options des transactions"
+                >
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+
+                <mat-menu #transactionsMenu="matMenu">
+                  <button mat-menu-item (click)="editTemplate()">
+                    <mat-icon>edit</mat-icon>
+                    <span>Éditer</span>
+                  </button>
+                </mat-menu>
+              </div>
               <pulpe-transactions-table
                 class="flex-1 min-h-0"
                 [entries]="entries()"
@@ -165,5 +183,10 @@ export default class TemplateDetail {
 
   navigateBack() {
     this.#router.navigate(['..']);
+  }
+
+  editTemplate() {
+    console.log('Edition du modèle de budget');
+    // TODO: Implémenter la navigation vers la page d'édition
   }
 }
