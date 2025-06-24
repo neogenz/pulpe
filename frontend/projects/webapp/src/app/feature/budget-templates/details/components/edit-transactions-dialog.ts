@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   inject,
   signal,
 } from '@angular/core';
@@ -41,20 +42,15 @@ interface EditTransactionsDialogData {
       <span>Éditer les transactions - {{ data.templateName }}</span>
     </h2>
 
-    <mat-dialog-content>
-      <div
-        class="sticky top-0 z-10 pb-4 mb-4 border-b bg-surface border-outline-variant"
-      >
+    <mat-dialog-content class="!p-0 flex flex-col h-[60vh]">
+      <div class="sticky top-0 bg-surface z-50 p-4 border-b border-outline-variant">
         <div class="flex justify-between items-center">
-          <p class="text-body-large">
-            {{ transactionsDataSource().length }} transaction(s)
-          </p>
+          <p class="text-body-large">{{ transactionsDataSource().length }} transaction(s)</p>
           <button
             mat-raised-button
             color="primary"
             (click)="addNewTransaction()"
             class="flex gap-2 items-center"
-            aria-label="Ajouter une nouvelle transaction"
           >
             <mat-icon>add</mat-icon>
             Ajouter une transaction
@@ -62,10 +58,28 @@ interface EditTransactionsDialogData {
         </div>
       </div>
 
-      <div class="space-y-4 overflow-auto max-h-[60vh]">
+      <!-- Table Header -->
+      <div class="sticky top-[73px] bg-surface-container z-40 px-4 py-2 border-b border-outline-variant">
+        <div class="grid grid-cols-12 gap-4 items-center">
+          <div class="col-span-5">
+            <span class="text-label-large font-medium text-on-surface">Description</span>
+          </div>
+          <div class="col-span-3">
+            <span class="text-label-large font-medium text-on-surface">Montant</span>
+          </div>
+          <div class="col-span-3">
+            <span class="text-label-large font-medium text-on-surface">Type</span>
+          </div>
+          <div class="col-span-1 flex justify-center">
+            <span class="text-label-large font-medium text-on-surface">Actions</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-4 space-y-4">
         @for (
           formGroup of transactionsDataSource();
-          track trackByIndex($index, formGroup);
+          track trackByIndex($index);
           let i = $index
         ) {
           <pulpe-transaction-form-row
@@ -90,18 +104,7 @@ interface EditTransactionsDialogData {
       </button>
     </mat-dialog-actions>
   `,
-  styles: `
-    .sticky {
-      position: sticky;
-      top: 0;
-      background-color: var(--mat-sys-surface);
-      z-index: 10;
-    }
-
-    .border-outline-variant {
-      border-color: var(--mat-sys-outline-variant);
-    }
-  `,
+  styles: ``,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class EditTransactionsDialog {
@@ -110,46 +113,37 @@ export default class EditTransactionsDialog {
   readonly data = inject<EditTransactionsDialogData>(MAT_DIALOG_DATA);
 
   readonly transactionsForm: FormArray<FormGroup<TransactionFormControls>>;
+  readonly #updateTrigger = signal(0);
 
-  readonly transactionsDataSource = signal<
-    FormGroup<TransactionFormControls>[]
-  >([]);
+  readonly transactionsDataSource = computed(() => {
+    this.#updateTrigger(); // Subscribe to trigger
+    return [...this.transactionsForm.controls];
+  });
 
   constructor() {
     this.transactionsForm =
       this.#transactionFormService.createTransactionsFormArray(
         this.data.transactions,
       );
-    this.#updateDataSource();
-  }
-
-  #updateDataSource(): void {
-    this.transactionsDataSource.set([...this.transactionsForm.controls]);
   }
 
   removeTransaction(index: number): void {
-    const success = this.#transactionFormService.removeTransactionFromFormArray(
+    this.#transactionFormService.removeTransactionFromFormArray(
       this.transactionsForm,
       index,
     );
-
-    if (success) {
-      this.#updateDataSource();
-    }
+    this.#updateTrigger.update(v => v + 1);
   }
 
   addNewTransaction(): void {
     this.#transactionFormService.addTransactionToFormArray(
       this.transactionsForm,
     );
-    this.#updateDataSource();
+    this.#updateTrigger.update(v => v + 1);
   }
 
-  trackByIndex(
-    index: number,
-    item: FormGroup<TransactionFormControls>,
-  ): FormGroup<TransactionFormControls> {
-    return item;
+  trackByIndex(index: number): number {
+    return index;
   }
 
   save(): void {
@@ -165,9 +159,9 @@ export default class EditTransactionsDialog {
     this.#dialogRef.close({ saved: false });
   }
 
-  isFormValid(): boolean {
-    return this.#transactionFormService.validateTransactionsForm(
+  readonly isFormValid = computed(() =>
+    this.#transactionFormService.validateTransactionsForm(
       this.transactionsForm,
-    );
-  }
+    ),
+  );
 }
