@@ -14,7 +14,7 @@ import {
 } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { CommonModule } from '@angular/common';
-import { CdkTableModule } from '@angular/cdk/table';
+import { MatTableModule } from '@angular/material/table';
 import {
   TransactionFormService,
   TransactionFormData,
@@ -25,7 +25,6 @@ import { FormControl } from '@angular/forms';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import TransactionFormRow from './transaction-form-row';
 
 interface EditTransactionsDialogData {
   transactions: TransactionFormData[];
@@ -40,7 +39,7 @@ interface EditTransactionsDialogData {
     MatDialogModule,
     MatButtonModule,
     MatIconModule,
-    CdkTableModule,
+    MatTableModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
@@ -52,113 +51,152 @@ interface EditTransactionsDialogData {
     </h2>
 
     <mat-dialog-content class="!p-0">
-      <div class="sticky top-0 bg-surface z-50 p-4 border-b border-outline-variant">
-        <div class="flex justify-between items-center">
-          <p class="text-body-large">{{ transactionsDataSource().length }} transaction(s)</p>
-          <button
-            mat-raised-button
-            color="primary"
-            (click)="addNewTransaction()"
-            class="flex gap-2 items-center"
-          >
-            <mat-icon>add</mat-icon>
-            Ajouter une transaction
-          </button>
+      <div class="flex flex-col h-full">
+        <!-- Fixed header -->
+        <div class="flex-shrink-0 p-4 border-b border-outline-variant">
+          <div class="flex justify-between items-center">
+            <p class="text-body-large">
+              {{ transactionsDataSource().length }} transaction(s)
+            </p>
+            <button
+              mat-raised-button
+              color="primary"
+              (click)="addNewTransaction()"
+              class="flex gap-2 items-center"
+            >
+              <mat-icon>add</mat-icon>
+              Ajouter une transaction
+            </button>
+          </div>
         </div>
-      </div>
 
-      <div class="max-h-[50vh] overflow-auto">
-        <cdk-table [dataSource]="transactionsDataSource()" class="w-full">
-          <!-- Description Column -->
-          <ng-container cdkColumnDef="description">
-            <cdk-header-cell *cdkHeaderCellDef class="sticky top-0 z-40 bg-surface border-b border-outline-variant p-4 font-medium">
-              Description
-            </cdk-header-cell>
-            <cdk-cell *cdkCellDef="let formGroup; let i = index" class="p-4 border-b border-outline-variant">
-              <mat-form-field appearance="outline" class="w-full">
-                <input
-                  matInput
-                  [formControl]="getFormControl(formGroup, 'description')"
-                  placeholder="Description de la transaction"
-                />
-                @if (getFormControl(formGroup, 'description').hasError('required')) {
-                  <mat-error>La description est requise</mat-error>
-                }
-                @if (getFormControl(formGroup, 'description').hasError('maxlength')) {
-                  <mat-error>Maximum 100 caractères</mat-error>
-                }
-              </mat-form-field>
-            </cdk-cell>
-          </ng-container>
-
-          <!-- Amount Column -->
-          <ng-container cdkColumnDef="amount">
-            <cdk-header-cell *cdkHeaderCellDef class="sticky top-0 z-40 bg-surface border-b border-outline-variant p-4 font-medium">
-              Montant
-            </cdk-header-cell>
-            <cdk-cell *cdkCellDef="let formGroup; let i = index" class="p-4 border-b border-outline-variant">
-              <mat-form-field appearance="outline" class="w-full">
-                <input
-                  matInput
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max="999999"
-                  [formControl]="getFormControl(formGroup, 'amount')"
-                  placeholder="0.00"
-                />
-                <span matTextSuffix>CHF</span>
-                @if (getFormControl(formGroup, 'amount').hasError('required')) {
-                  <mat-error>Le montant est requis</mat-error>
-                }
-                @if (getFormControl(formGroup, 'amount').hasError('min')) {
-                  <mat-error>Le montant doit être positif</mat-error>
-                }
-                @if (getFormControl(formGroup, 'amount').hasError('max')) {
-                  <mat-error>Le montant ne peut pas dépasser 999'999 CHF</mat-error>
-                }
-              </mat-form-field>
-            </cdk-cell>
-          </ng-container>
-
-          <!-- Type Column -->
-          <ng-container cdkColumnDef="type">
-            <cdk-header-cell *cdkHeaderCellDef class="sticky top-0 z-40 bg-surface border-b border-outline-variant p-4 font-medium">
-              Type
-            </cdk-header-cell>
-            <cdk-cell *cdkCellDef="let formGroup; let i = index" class="p-4 border-b border-outline-variant">
-              <mat-form-field appearance="outline" class="w-full">
-                <mat-select [formControl]="getFormControl(formGroup, 'type')">
-                  @for (type of transactionTypes; track type.value) {
-                    <mat-option [value]="type.value">
-                      {{ type.label }}
-                    </mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
-            </cdk-cell>
-          </ng-container>
-
-          <!-- Actions Column -->
-          <ng-container cdkColumnDef="actions">
-            <cdk-header-cell *cdkHeaderCellDef class="sticky top-0 z-40 bg-surface border-b border-outline-variant p-4 font-medium text-center">
-              Actions
-            </cdk-header-cell>
-            <cdk-cell *cdkCellDef="let formGroup; let i = index" class="p-4 border-b border-outline-variant text-center">
-              <button
-                mat-icon-button
-                color="warn"
-                (click)="removeTransaction(i)"
-                [disabled]="transactionsDataSource().length <= 1"
+        <!-- Table container with fixed height -->
+        <div class="overflow-auto flex-1">
+          <table
+            mat-table
+            [dataSource]="transactionsDataSource()"
+            class="w-full"
+          >
+            <!-- Description Column -->
+            <ng-container matColumnDef="description">
+              <th mat-header-cell *matHeaderCellDef>Description</th>
+              <td
+                mat-cell
+                *matCellDef="let formGroup; let i = index"
+                class="!p-4"
               >
-                <mat-icon>delete</mat-icon>
-              </button>
-            </cdk-cell>
-          </ng-container>
+                <mat-form-field appearance="outline" class="w-full">
+                  <input
+                    matInput
+                    [formControl]="getFormControl(formGroup, 'description')"
+                    placeholder="Description de la transaction"
+                  />
+                  @if (
+                    getFormControl(formGroup, 'description').hasError(
+                      'required'
+                    )
+                  ) {
+                    <mat-error>La description est requise</mat-error>
+                  }
+                  @if (
+                    getFormControl(formGroup, 'description').hasError(
+                      'maxlength'
+                    )
+                  ) {
+                    <mat-error>Maximum 100 caractères</mat-error>
+                  }
+                </mat-form-field>
+              </td>
+            </ng-container>
 
-          <cdk-header-row *cdkHeaderRowDef="displayedColumns"></cdk-header-row>
-          <cdk-row *cdkRowDef="let row; columns: displayedColumns;"></cdk-row>
-        </cdk-table>
+            <!-- Amount Column -->
+            <ng-container matColumnDef="amount">
+              <th mat-header-cell *matHeaderCellDef>Montant</th>
+              <td
+                mat-cell
+                *matCellDef="let formGroup; let i = index"
+                class="!p-4"
+              >
+                <mat-form-field appearance="outline" class="w-full">
+                  <input
+                    matInput
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="999999"
+                    [formControl]="getFormControl(formGroup, 'amount')"
+                    placeholder="0.00"
+                  />
+                  <span matTextSuffix>CHF</span>
+                  @if (
+                    getFormControl(formGroup, 'amount').hasError('required')
+                  ) {
+                    <mat-error>Le montant est requis</mat-error>
+                  }
+                  @if (getFormControl(formGroup, 'amount').hasError('min')) {
+                    <mat-error>Le montant doit être positif</mat-error>
+                  }
+                  @if (getFormControl(formGroup, 'amount').hasError('max')) {
+                    <mat-error
+                      >Le montant ne peut pas dépasser 999'999 CHF</mat-error
+                    >
+                  }
+                </mat-form-field>
+              </td>
+            </ng-container>
+
+            <!-- Type Column -->
+            <ng-container matColumnDef="type">
+              <th mat-header-cell *matHeaderCellDef>Type</th>
+              <td
+                mat-cell
+                *matCellDef="let formGroup; let i = index"
+                class="!p-4"
+              >
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-select [formControl]="getFormControl(formGroup, 'type')">
+                    @for (type of transactionTypes; track type.value) {
+                      <mat-option [value]="type.value">
+                        {{ type.label }}
+                      </mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </td>
+            </ng-container>
+
+            <!-- Actions Column -->
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef class="text-center">
+                Actions
+              </th>
+              <td
+                mat-cell
+                *matCellDef="let formGroup; let i = index"
+                class="!p-4 text-center"
+              >
+                <button
+                  mat-icon-button
+                  color="warn"
+                  (click)="removeTransaction(i)"
+                  [disabled]="transactionsDataSource().length <= 1"
+                >
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </td>
+            </ng-container>
+
+            <tr
+              mat-header-row
+              *matHeaderRowDef="displayedColumns; sticky: true"
+            ></tr>
+            <tr
+              mat-row
+              *matRowDef="let row; columns: displayedColumns; let odd = odd"
+              [class.!bg-surface-container-highest]="odd"
+            ></tr>
+          </table>
+        </div>
       </div>
     </mat-dialog-content>
 
@@ -175,24 +213,22 @@ interface EditTransactionsDialogData {
     </mat-dialog-actions>
   `,
   styles: `
-    cdk-table {
-      display: table;
+    :host {
+      --mat-table-background-color: var(--mat-sys-surface-container-high);
+    }
+    /* Clean Mat-Table styling - let Material handle sticky headers */
+    .mat-column-description {
       width: 100%;
     }
-    
-    cdk-header-row, cdk-row {
-      display: table-row;
+    .mat-column-amount {
+      width: min-content;
     }
-    
-    cdk-header-cell, cdk-cell {
-      display: table-cell;
-      vertical-align: middle;
+    .mat-column-type {
+      width: min-content;
     }
-    
-    cdk-header-cell:nth-child(1), cdk-cell:nth-child(1) { width: 40%; }
-    cdk-header-cell:nth-child(2), cdk-cell:nth-child(2) { width: 25%; }
-    cdk-header-cell:nth-child(3), cdk-cell:nth-child(3) { width: 25%; }
-    cdk-header-cell:nth-child(4), cdk-cell:nth-child(4) { width: 10%; }
+    .mat-column-actions {
+      width: min-content;
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -209,7 +245,12 @@ export default class EditTransactionsDialog {
     return [...this.transactionsForm.controls];
   });
 
-  protected readonly displayedColumns = ['description', 'amount', 'type', 'actions'];
+  protected readonly displayedColumns = [
+    'description',
+    'amount',
+    'type',
+    'actions',
+  ];
   protected readonly transactionTypes = TRANSACTION_TYPES;
 
   constructor() {
@@ -224,14 +265,14 @@ export default class EditTransactionsDialog {
       this.transactionsForm,
       index,
     );
-    this.#updateTrigger.update(v => v + 1);
+    this.#updateTrigger.update((v) => v + 1);
   }
 
   addNewTransaction(): void {
     this.#transactionFormService.addTransactionToFormArray(
       this.transactionsForm,
     );
-    this.#updateTrigger.update(v => v + 1);
+    this.#updateTrigger.update((v) => v + 1);
   }
 
   trackByIndex(index: number): number {
@@ -257,7 +298,10 @@ export default class EditTransactionsDialog {
     ),
   );
 
-  protected getFormControl(formGroup: FormGroup<TransactionFormControls>, field: keyof TransactionFormControls): FormControl {
+  protected getFormControl(
+    formGroup: FormGroup<TransactionFormControls>,
+    field: keyof TransactionFormControls,
+  ): FormControl {
     return formGroup.get(field) as FormControl;
   }
 }
