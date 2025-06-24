@@ -11,6 +11,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatDialog } from '@angular/material/dialog';
 import {
   FinancialSummaryData,
   FinancialSummary,
@@ -18,7 +19,8 @@ import {
 import {
   TransactionsTable,
   FinancialEntry,
-} from './components/transactions-table';
+  EditTransactionsDialog,
+} from './components';
 import { BudgetTemplatesApi } from '../services/budget-templates-api';
 import { firstValueFrom } from 'rxjs';
 import { CommonModule } from '@angular/common';
@@ -116,6 +118,7 @@ import { CommonModule } from '@angular/common';
 export default class TemplateDetail {
   #router = inject(Router);
   #budgetTemplatesApi = inject(BudgetTemplatesApi);
+  #dialog = inject(MatDialog);
 
   templateId = input.required<string>();
 
@@ -186,7 +189,36 @@ export default class TemplateDetail {
   }
 
   editTemplate() {
-    console.log('Edition du modèle de budget');
-    // TODO: Implémenter la navigation vers la page d'édition
+    const templateData = this.data.value();
+    if (!templateData) {
+      return;
+    }
+
+    const transactions = templateData.transactions.map((transaction) => ({
+      description: transaction.name,
+      amount: transaction.amount,
+      type: transaction.type as 'INCOME' | 'EXPENSE' | 'SAVING',
+    }));
+
+    const dialogRef = this.#dialog.open(EditTransactionsDialog, {
+      data: {
+        transactions,
+        templateName: templateData.template.name,
+      },
+      width: '90vw',
+      maxWidth: '1200px',
+      height: '65vh',
+      disableClose: true,
+      autoFocus: true,
+      restoreFocus: true,
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result?.saved) {
+        console.log('Transactions mises à jour:', result.transactions);
+        // TODO: Appeler l'API pour sauvegarder les modifications
+        // this.#budgetTemplatesApi.updateTransactions(this.templateId(), result.transactions);
+      }
+    });
   }
 }
