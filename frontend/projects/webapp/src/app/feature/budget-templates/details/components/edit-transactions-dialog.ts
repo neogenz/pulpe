@@ -3,8 +3,10 @@ import {
   Component,
   computed,
   inject,
+  Signal,
   signal,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormArray, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import {
@@ -176,6 +178,24 @@ interface EditTransactionsDialogData {
               </td>
             </ng-container>
 
+            <!-- Total Column -->
+            <ng-container matColumnDef="total">
+              <th mat-header-cell *matHeaderCellDef>Total</th>
+              <td
+                mat-cell
+                *matCellDef="let formGroup; let i = index"
+                class="!p-4 text-right"
+              >
+                <span
+                  [class.text-green-600]="runningTotals()[i] >= 0"
+                  [class.text-red-600]="runningTotals()[i] < 0"
+                  class="font-medium"
+                >
+                  {{ runningTotals()[i] | currency: 'CHF':'symbol':'1.2-2':'fr-CH' }}
+                </span>
+              </td>
+            </ng-container>
+
             <!-- Actions Column -->
             <ng-container matColumnDef="actions">
               <th mat-header-cell *matHeaderCellDef class="text-center">
@@ -235,6 +255,10 @@ interface EditTransactionsDialogData {
     .mat-column-type {
       width: min-content;
     }
+    .mat-column-total {
+      width: min-content;
+      text-align: right;
+    }
     .mat-column-actions {
       width: min-content;
     }
@@ -248,6 +272,7 @@ export default class EditTransactionsDialog {
 
   readonly transactionsForm: FormArray<FormGroup<TransactionFormControls>>;
   readonly #updateTrigger = signal(0);
+  readonly #formValuesSignal: Signal<Partial<TransactionFormData>[]>;
 
   readonly transactionsDataSource = computed(() => {
     this.#updateTrigger(); // Subscribe to trigger
@@ -258,6 +283,7 @@ export default class EditTransactionsDialog {
     'description',
     'amount',
     'type',
+    'total',
     'actions',
   ];
   protected readonly transactionTypes = TRANSACTION_TYPES;
@@ -267,6 +293,10 @@ export default class EditTransactionsDialog {
       this.#transactionFormService.createTransactionsFormArray(
         this.data.transactions,
       );
+    
+    this.#formValuesSignal = toSignal(this.transactionsForm.valueChanges, {
+      initialValue: this.transactionsForm.value,
+    });
   }
 
   removeTransaction(index: number): void {
@@ -306,6 +336,29 @@ export default class EditTransactionsDialog {
       this.transactionsForm,
     ),
   );
+
+  protected readonly runningTotals = computed(() => {
+    this.#formValuesSignal(); // Subscribe to form changes
+    const formGroups = this.transactionsDataSource();
+    let runningTotal = 0;
+    
+    return formGroups.map(formGroup => {
+      const amount = formGroup.get('amount')?.value ?? 0;
+      const type = formGroup.get('type')?.value ?? 'EXPENSE';
+      
+      switch (type) {
+        case 'INCOME':
+        case 'SAVING':
+          runningTotal += amount;
+          break;
+        case 'EXPENSE':
+          runningTotal -= amount;
+          break;
+      }
+      
+      return runningTotal;
+    });
+  });
 
   protected getFormControl(
     formGroup: FormGroup<TransactionFormControls>,
