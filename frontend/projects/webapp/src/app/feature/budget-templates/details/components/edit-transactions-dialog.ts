@@ -14,11 +14,17 @@ import {
 } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { CommonModule } from '@angular/common';
+import { CdkTableModule } from '@angular/cdk/table';
 import {
   TransactionFormService,
   TransactionFormData,
   TransactionFormControls,
+  TRANSACTION_TYPES,
 } from '../../services/transaction-form';
+import { FormControl } from '@angular/forms';
+import { MatSelectModule } from '@angular/material/select';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import TransactionFormRow from './transaction-form-row';
 
 interface EditTransactionsDialogData {
@@ -34,7 +40,10 @@ interface EditTransactionsDialogData {
     MatDialogModule,
     MatButtonModule,
     MatIconModule,
-    TransactionFormRow,
+    CdkTableModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
   ],
   template: `
     <h2 mat-dialog-title class="flex gap-2 items-center">
@@ -42,7 +51,7 @@ interface EditTransactionsDialogData {
       <span>Éditer les transactions - {{ data.templateName }}</span>
     </h2>
 
-    <mat-dialog-content class="!p-0 flex flex-col h-[60vh]">
+    <mat-dialog-content class="!p-0">
       <div class="sticky top-0 bg-surface z-50 p-4 border-b border-outline-variant">
         <div class="flex justify-between items-center">
           <p class="text-body-large">{{ transactionsDataSource().length }} transaction(s)</p>
@@ -58,37 +67,98 @@ interface EditTransactionsDialogData {
         </div>
       </div>
 
-      <!-- Table Header -->
-      <div class="sticky top-[73px] bg-surface-container z-40 px-4 py-2 border-b border-outline-variant">
-        <div class="grid grid-cols-12 gap-4 items-center">
-          <div class="col-span-5">
-            <span class="text-label-large font-medium text-on-surface">Description</span>
-          </div>
-          <div class="col-span-3">
-            <span class="text-label-large font-medium text-on-surface">Montant</span>
-          </div>
-          <div class="col-span-3">
-            <span class="text-label-large font-medium text-on-surface">Type</span>
-          </div>
-          <div class="col-span-1 flex justify-center">
-            <span class="text-label-large font-medium text-on-surface">Actions</span>
-          </div>
-        </div>
-      </div>
+      <div class="max-h-[50vh] overflow-auto">
+        <cdk-table [dataSource]="transactionsDataSource()" class="w-full">
+          <!-- Description Column -->
+          <ng-container cdkColumnDef="description">
+            <cdk-header-cell *cdkHeaderCellDef class="sticky top-0 z-40 bg-surface border-b border-outline-variant p-4 font-medium">
+              Description
+            </cdk-header-cell>
+            <cdk-cell *cdkCellDef="let formGroup; let i = index" class="p-4 border-b border-outline-variant">
+              <mat-form-field appearance="outline" class="w-full">
+                <input
+                  matInput
+                  [formControl]="getFormControl(formGroup, 'description')"
+                  placeholder="Description de la transaction"
+                />
+                @if (getFormControl(formGroup, 'description').hasError('required')) {
+                  <mat-error>La description est requise</mat-error>
+                }
+                @if (getFormControl(formGroup, 'description').hasError('maxlength')) {
+                  <mat-error>Maximum 100 caractères</mat-error>
+                }
+              </mat-form-field>
+            </cdk-cell>
+          </ng-container>
 
-      <div class="flex-1 overflow-y-auto p-4 space-y-4">
-        @for (
-          formGroup of transactionsDataSource();
-          track trackByIndex($index);
-          let i = $index
-        ) {
-          <pulpe-transaction-form-row
-            [formGroup]="formGroup"
-            [rowIndex]="i"
-            [canRemove]="transactionsDataSource().length > 1"
-            (removeClicked)="removeTransaction(i)"
-          />
-        }
+          <!-- Amount Column -->
+          <ng-container cdkColumnDef="amount">
+            <cdk-header-cell *cdkHeaderCellDef class="sticky top-0 z-40 bg-surface border-b border-outline-variant p-4 font-medium">
+              Montant
+            </cdk-header-cell>
+            <cdk-cell *cdkCellDef="let formGroup; let i = index" class="p-4 border-b border-outline-variant">
+              <mat-form-field appearance="outline" class="w-full">
+                <input
+                  matInput
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="999999"
+                  [formControl]="getFormControl(formGroup, 'amount')"
+                  placeholder="0.00"
+                />
+                <span matTextSuffix>CHF</span>
+                @if (getFormControl(formGroup, 'amount').hasError('required')) {
+                  <mat-error>Le montant est requis</mat-error>
+                }
+                @if (getFormControl(formGroup, 'amount').hasError('min')) {
+                  <mat-error>Le montant doit être positif</mat-error>
+                }
+                @if (getFormControl(formGroup, 'amount').hasError('max')) {
+                  <mat-error>Le montant ne peut pas dépasser 999'999 CHF</mat-error>
+                }
+              </mat-form-field>
+            </cdk-cell>
+          </ng-container>
+
+          <!-- Type Column -->
+          <ng-container cdkColumnDef="type">
+            <cdk-header-cell *cdkHeaderCellDef class="sticky top-0 z-40 bg-surface border-b border-outline-variant p-4 font-medium">
+              Type
+            </cdk-header-cell>
+            <cdk-cell *cdkCellDef="let formGroup; let i = index" class="p-4 border-b border-outline-variant">
+              <mat-form-field appearance="outline" class="w-full">
+                <mat-select [formControl]="getFormControl(formGroup, 'type')">
+                  @for (type of transactionTypes; track type.value) {
+                    <mat-option [value]="type.value">
+                      {{ type.label }}
+                    </mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </cdk-cell>
+          </ng-container>
+
+          <!-- Actions Column -->
+          <ng-container cdkColumnDef="actions">
+            <cdk-header-cell *cdkHeaderCellDef class="sticky top-0 z-40 bg-surface border-b border-outline-variant p-4 font-medium text-center">
+              Actions
+            </cdk-header-cell>
+            <cdk-cell *cdkCellDef="let formGroup; let i = index" class="p-4 border-b border-outline-variant text-center">
+              <button
+                mat-icon-button
+                color="warn"
+                (click)="removeTransaction(i)"
+                [disabled]="transactionsDataSource().length <= 1"
+              >
+                <mat-icon>delete</mat-icon>
+              </button>
+            </cdk-cell>
+          </ng-container>
+
+          <cdk-header-row *cdkHeaderRowDef="displayedColumns" class="flex"></cdk-header-row>
+          <cdk-row *cdkRowDef="let row; columns: displayedColumns;" class="flex border-b border-outline-variant"></cdk-row>
+        </cdk-table>
       </div>
     </mat-dialog-content>
 
@@ -119,6 +189,9 @@ export default class EditTransactionsDialog {
     this.#updateTrigger(); // Subscribe to trigger
     return [...this.transactionsForm.controls];
   });
+
+  protected readonly displayedColumns = ['description', 'amount', 'type', 'actions'];
+  protected readonly transactionTypes = TRANSACTION_TYPES;
 
   constructor() {
     this.transactionsForm =
@@ -164,4 +237,8 @@ export default class EditTransactionsDialog {
       this.transactionsForm,
     ),
   );
+
+  protected getFormControl(formGroup: FormGroup<TransactionFormControls>, field: keyof TransactionFormControls): FormControl {
+    return formGroup.get(field) as FormControl;
+  }
 }
