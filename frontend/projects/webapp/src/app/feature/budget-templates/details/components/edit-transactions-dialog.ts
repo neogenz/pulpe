@@ -23,7 +23,6 @@ import {
   TransactionFormControls,
   TRANSACTION_TYPES,
 } from '../../services/transaction-form';
-import { FormControl } from '@angular/forms';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -93,21 +92,13 @@ interface EditTransactionsDialogData {
                 >
                   <input
                     matInput
-                    [formControl]="getFormControl(formGroup, 'description')"
+                    [formControl]="formGroup.controls.description"
                     placeholder="Description de la transaction"
                   />
-                  @if (
-                    getFormControl(formGroup, 'description').hasError(
-                      'required'
-                    )
-                  ) {
+                  @if (formGroup.controls.description.hasError('required')) {
                     <mat-error>La description est requise</mat-error>
                   }
-                  @if (
-                    getFormControl(formGroup, 'description').hasError(
-                      'maxlength'
-                    )
-                  ) {
+                  @if (formGroup.controls.description.hasError('maxlength')) {
                     <mat-error>Maximum 100 caractères</mat-error>
                   }
                 </mat-form-field>
@@ -133,19 +124,17 @@ interface EditTransactionsDialogData {
                     step="0.01"
                     min="0"
                     max="999999"
-                    [formControl]="getFormControl(formGroup, 'amount')"
+                    [formControl]="formGroup.controls.amount"
                     placeholder="0.00"
                   />
                   <span matTextSuffix>CHF</span>
-                  @if (
-                    getFormControl(formGroup, 'amount').hasError('required')
-                  ) {
+                  @if (formGroup.controls.amount.hasError('required')) {
                     <mat-error>Le montant est requis</mat-error>
                   }
-                  @if (getFormControl(formGroup, 'amount').hasError('min')) {
+                  @if (formGroup.controls.amount.hasError('min')) {
                     <mat-error>Le montant doit être positif</mat-error>
                   }
-                  @if (getFormControl(formGroup, 'amount').hasError('max')) {
+                  @if (formGroup.controls.amount.hasError('max')) {
                     <mat-error
                       >Le montant ne peut pas dépasser 999'999 CHF</mat-error
                     >
@@ -167,7 +156,7 @@ interface EditTransactionsDialogData {
                   class="w-full"
                   subscriptSizing="dynamic"
                 >
-                  <mat-select [formControl]="getFormControl(formGroup, 'type')">
+                  <mat-select [formControl]="formGroup.controls.type">
                     @for (type of transactionTypes; track type.value) {
                       <mat-option [value]="type.value">
                         {{ type.label }}
@@ -187,11 +176,14 @@ interface EditTransactionsDialogData {
                 class="!p-4 text-right"
               >
                 <span
-                  [class.text-green-600]="runningTotals()[i] >= 0"
-                  [class.text-red-600]="runningTotals()[i] < 0"
+                  [class.text-financial-income]="runningTotals()[i] >= 0"
+                  [class.text-financial-negative]="runningTotals()[i] < 0"
                   class="font-medium"
                 >
-                  {{ runningTotals()[i] | currency: 'CHF':'symbol':'1.2-2':'fr-CH' }}
+                  {{
+                    runningTotals()[i]
+                      | currency: 'CHF' : 'symbol' : '1.2-2' : 'fr-CH'
+                  }}
                 </span>
               </td>
             </ng-container>
@@ -233,7 +225,12 @@ interface EditTransactionsDialogData {
 
     <mat-dialog-actions align="end">
       <button matButton (click)="cancel()">Annuler</button>
-      <button matButton="filled" (click)="save()" [disabled]="!isFormValid()">
+      <button
+        matButton="filled"
+        color="primary"
+        (click)="save()"
+        [disabled]="!isFormValid()"
+      >
         Enregistrer
       </button>
     </mat-dialog-actions>
@@ -279,7 +276,7 @@ export default class EditTransactionsDialog {
     return [...this.transactionsForm.controls];
   });
 
-  protected readonly displayedColumns = [
+  protected readonly displayedColumns: readonly string[] = [
     'description',
     'amount',
     'type',
@@ -293,7 +290,7 @@ export default class EditTransactionsDialog {
       this.#transactionFormService.createTransactionsFormArray(
         this.data.transactions,
       );
-    
+
     this.#formValuesSignal = toSignal(this.transactionsForm.valueChanges, {
       initialValue: this.transactionsForm.value,
     });
@@ -312,10 +309,6 @@ export default class EditTransactionsDialog {
       this.transactionsForm,
     );
     this.#updateTrigger.update((v) => v + 1);
-  }
-
-  trackByIndex(index: number): number {
-    return index;
   }
 
   save(): void {
@@ -341,11 +334,11 @@ export default class EditTransactionsDialog {
     this.#formValuesSignal(); // Subscribe to form changes
     const formGroups = this.transactionsDataSource();
     let runningTotal = 0;
-    
-    return formGroups.map(formGroup => {
+
+    return formGroups.map((formGroup) => {
       const amount = formGroup.get('amount')?.value ?? 0;
       const type = formGroup.get('type')?.value ?? 'EXPENSE';
-      
+
       switch (type) {
         case 'INCOME':
         case 'SAVING':
@@ -355,15 +348,8 @@ export default class EditTransactionsDialog {
           runningTotal -= amount;
           break;
       }
-      
+
       return runningTotal;
     });
   });
-
-  protected getFormControl(
-    formGroup: FormGroup<TransactionFormControls>,
-    field: keyof TransactionFormControls,
-  ): FormControl {
-    return formGroup.get(field) as FormControl;
-  }
 }

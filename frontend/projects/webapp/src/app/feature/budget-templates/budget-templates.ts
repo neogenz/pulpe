@@ -29,7 +29,7 @@ import { TemplatesError } from './components/templates-error';
         <h1 class="text-display-small">Modèles de budget</h1>
         <div class="flex gap-2">
           <button
-            mat-button="raised"
+            matButton="filled"
             color="primary"
             routerLink="add"
             [disabled]="state.templatesData.isLoading()"
@@ -38,7 +38,7 @@ import { TemplatesError } from './components/templates-error';
             Nouveau modèle
           </button>
           <button
-            mat-button
+            matButton
             (click)="state.refreshData()"
             [disabled]="state.templatesData.isLoading()"
           >

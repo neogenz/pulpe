@@ -1,4 +1,9 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  input,
+  output,
+} from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -26,20 +31,27 @@ import { type BudgetTemplateCreate } from '@pulpe/shared';
         <mat-card-content class="space-y-4">
           <mat-form-field appearance="outline" class="w-full">
             <mat-label>Nom du modèle</mat-label>
-            <input matInput formControlName="name" required>
-            @if (templateForm.get('name')?.invalid && templateForm.get('name')?.touched) {
+            <input matInput formControlName="name" required />
+            @if (
+              templateForm.get('name')?.invalid &&
+              templateForm.get('name')?.touched
+            ) {
               <mat-error>Le nom est requis</mat-error>
             }
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="w-full">
             <mat-label>Description</mat-label>
-            <textarea matInput formControlName="description" rows="3"></textarea>
+            <textarea
+              matInput
+              formControlName="description"
+              rows="3"
+            ></textarea>
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="w-full">
             <mat-label>Catégorie</mat-label>
-            <input matInput formControlName="category">
+            <input matInput formControlName="category" />
           </mat-form-field>
 
           <mat-checkbox formControlName="isDefault">
@@ -49,16 +61,14 @@ import { type BudgetTemplateCreate } from '@pulpe/shared';
 
         <mat-card-actions align="end">
           <button
-            mat-button
-            type="button"
+            matButton
             (click)="cancelForm.emit()"
             [disabled]="isCreating()"
           >
             Annuler
           </button>
           <button
-            mat-button="raised"
-            color="primary"
+            matButton="filled"
             type="submit"
             [disabled]="templateForm.invalid || isCreating()"
           >
@@ -73,11 +83,11 @@ import { type BudgetTemplateCreate } from '@pulpe/shared';
       display: block;
     }
   `,
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AddTemplateForm {
   #fb = new FormBuilder();
-  
+
   isCreating = input(false);
   addTemplate = output<BudgetTemplateCreate>();
   cancelForm = output<void>();
@@ -86,7 +96,7 @@ export class AddTemplateForm {
     name: ['', [Validators.required, Validators.minLength(1)]],
     description: [''],
     category: [''],
-    isDefault: [false]
+    isDefault: [false],
   });
 
   onSubmit() {
@@ -96,7 +106,7 @@ export class AddTemplateForm {
         name: formValue.name!,
         description: formValue.description || null,
         category: formValue.category || null,
-        isDefault: formValue.isDefault || false
+        isDefault: formValue.isDefault || false,
       };
       this.addTemplate.emit(template);
       this.templateForm.reset();

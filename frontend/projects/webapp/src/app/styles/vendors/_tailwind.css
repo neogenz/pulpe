@@ -158,6 +158,14 @@
   font-family: var(--text-label-small--font-family);
 }
 
+@utility text-financial-income {
+  color: var(--pulpe-financial-income);
+}
+
+@utility text-financial-negative {
+  color: var(--pulpe-financial-negative);
+}
+
 /* `.dark-theme` is the class name to enable dark mode in our application */
 @custom-variant dark (&:where(.dark-theme, .dark-theme *));
 
