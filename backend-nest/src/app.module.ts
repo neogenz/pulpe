@@ -6,6 +6,7 @@ import { LoggerModule } from 'nestjs-pino';
 import { SupabaseModule } from '@modules/supabase/supabase.module';
 import { AuthModule } from '@modules/auth/auth.module';
 import { BudgetModule } from '@modules/budget/budget.module';
+import { BudgetTemplateModule } from '@modules/budget-template/budget-template.module';
 import { TransactionModule } from '@modules/transaction/transaction.module';
 import { UserModule } from '@modules/user/user.module';
 import { DebugModule } from '@modules/debug/debug.module';
@@ -44,6 +45,7 @@ import { RequestIdMiddleware } from '@common/middleware/request-id.middleware';
     SupabaseModule,
     AuthModule,
     BudgetModule,
+    BudgetTemplateModule,
     TransactionModule,
     UserModule,
     DebugModule,

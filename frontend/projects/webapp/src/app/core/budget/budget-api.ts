@@ -12,7 +12,6 @@ import {
 import { Observable, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
-import { BudgetCategory, MonthlyBudget } from './budget.models';
 
 export interface CreateBudgetApiResponse {
   readonly budget: Budget;

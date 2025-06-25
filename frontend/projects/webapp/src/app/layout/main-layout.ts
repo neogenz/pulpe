@@ -15,6 +15,8 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { RouterModule } from '@angular/router';
 import { map } from 'rxjs';
 import { NavigationMenu } from './navigation-menu';
+import { PulpeBreadcrumb } from '@ui/breadcrumb/breadcrumb';
+import { BreadcrumbState } from '@core/routing/breadcrumb-state';
 
 @Component({
   selector: 'pulpe-main-layout',
@@ -25,6 +27,7 @@ import { NavigationMenu } from './navigation-menu';
     MatIconModule,
     RouterModule,
     NavigationMenu,
+    PulpeBreadcrumb,
   ],
   template: `
     <mat-sidenav-container class="h-full">
@@ -56,6 +59,11 @@ import { NavigationMenu } from './navigation-menu';
             <div class="size-8 pulpe-gradient rounded-full toolbar-logo"></div>
           </mat-toolbar>
 
+          <pulpe-breadcrumb
+            class="px-4 py-3"
+            [items]="breadcrumbState.breadcrumbs()"
+          />
+
           <main class="flex-1 overflow-auto min-h-0">
             <div class="p-4 2xl:h-full">
               <router-outlet />
@@ -77,6 +85,7 @@ import { NavigationMenu } from './navigation-menu';
 })
 export class MainLayout {
   readonly #breakpointObserver = inject(BreakpointObserver);
+  readonly breadcrumbState = inject(BreadcrumbState);
 
   // Clean signal for breakpoint state
   readonly #isHandset = toSignal(

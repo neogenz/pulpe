@@ -55,6 +55,10 @@
             "browser": "projects/webapp/src/main.ts",
             "tsConfig": "projects/webapp/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
+            "allowedCommonJsDependencies": [
+              "ws",
+              "zod"
+            ],
             "assets": [
               {
                 "glob": "**/*",
@@ -71,7 +75,7 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "500kB",
+                  "maximumWarning": "760kB",
                   "maximumError": "1MB"
                 },
                 {

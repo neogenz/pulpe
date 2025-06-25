@@ -10,8 +10,14 @@ import { Logger } from "nestjs-pino";
 import { AppModule } from "./app.module";
 import { validateEnvironment } from "@config/environment";
 import { GlobalExceptionFilter } from "@common/filters/global-exception.filter";
+import { ResponseInterceptor } from "@common/interceptors/response.interceptor";
+import { AppLoggerService } from "@common/logger/app-logger.service";
+import { patchNestJsSwagger } from "nestjs-zod";
 
 async function bootstrap() {
+  // Patch NestJS Swagger pour supporter Zod
+  patchNestJsSwagger();
+
   const app = await NestFactory.create(AppModule, {
     bufferLogs: true,
   });
@@ -51,10 +57,10 @@ async function bootstrap() {
 
   // CORS configuration
   app.enableCors({
-    origin: "*",
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    origin: ["http://localhost:4200", "http://localhost:3000"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
   });
 
   // Global prefix
@@ -67,12 +73,15 @@ async function bootstrap() {
     .setTitle("Pulpe Budget API")
     .setDescription("API pour la gestion des budgets personnels Pulpe")
     .setVersion("1.0.0")
-    .addBearerAuth({
-      type: "http",
-      scheme: "bearer",
-      bearerFormat: "JWT",
-      description: "Token JWT d'authentification",
-    })
+    .addBearerAuth(
+      {
+        type: "http",
+        scheme: "bearer",
+        bearerFormat: "JWT",
+        description: "Token JWT d'authentification",
+      },
+      "bearer"
+    )
     .addServer("http://localhost:3000", "Serveur de développement")
     .addTag("Auth", "Authentification et validation des tokens")
     .addTag("User", "Gestion des profils utilisateurs")
@@ -81,7 +90,11 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup("api/docs", app, document);
+  SwaggerModule.setup("docs", app, document, {
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
+  });
 
   // Health check endpoints
   app.getHttpAdapter().get("/", (req, res) => {
@@ -102,9 +115,7 @@ async function bootstrap() {
 
   await app.listen(env.PORT);
   console.log(`🚀 Application is running on: http://localhost:${env.PORT}`);
-  console.log(
-    `📚 Swagger documentation: http://localhost:${env.PORT}/api/docs`
-  );
+  console.log(`📚 Swagger documentation: http://localhost:${env.PORT}/docs`);
   console.log(`📋 OpenAPI JSON: http://localhost:${env.PORT}/api/openapi`);
 }
 
