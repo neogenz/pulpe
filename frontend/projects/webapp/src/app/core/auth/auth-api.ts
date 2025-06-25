@@ -49,6 +49,17 @@ export class AuthApi {
   }));
 
   async initializeAuthState(): Promise<void> {
+    // Vérifier si on est en mode test E2E et utiliser les mocks
+    if ((window as any).__E2E_AUTH_BYPASS__) {
+      const mockState = (window as any).__E2E_MOCK_AUTH_STATE__;
+      if (mockState) {
+        console.log('🎭 Mode test E2E détecté, utilisation des mocks auth');
+        this.#sessionSignal.set(mockState.session);
+        this.#isLoadingSignal.set(false);
+        return;
+      }
+    }
+
     try {
       const {
         data: { session },

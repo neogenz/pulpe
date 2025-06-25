@@ -1,0 +1,15 @@
+# Playwright Test Results
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Screenshots and videos from failed tests
+test-results/
+screenshots/
+videos/
+
+# Traces
+traces/
+
+# Browser downloads
+browsers/ playwright/.auth
