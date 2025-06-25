@@ -1,5 +1,3 @@
----
-
 ## 🚀 Démarrage rapide
 
 ### 1. Cloner le repo
@@ -32,16 +30,14 @@ ng serve
 # ou npm run start
 ```
 
----
-
 ## 🛠️ Fonctionnalités principales
 
 ### Backend (NestJS)
 
 - Authentification JWT via Supabase
 - Gestion des budgets, transactions, utilisateurs
-- Validation Zod, logging structuré, gestion d’erreurs globale
-- Documentation Swagger : [http://localhost:3000/api/docs](http://localhost:3000/api/docs)
+- Validation Zod, logging structuré, gestion d'erreurs globale
+- Documentation Swagger : [http://localhost:3000/api/docs](http://localhost:3000/api/docs)
 
 ### Frontend (Angular 20+)
 
@@ -54,40 +50,30 @@ ng serve
 
 - Types TypeScript et schémas Zod partagés entre backend et frontend
 
----
-
 ## 🧪 Tests
 
-- **Unitaires** :
-  - Backend : `bun test` ou `npm run test` dans `backend-nest`
-  - Frontend : `pnpm test:vitest` dans `frontend`
-- **End-to-end** :
-  - Frontend : `pnpm test:e2e` (Playwright)
-
----
+- **Unitaires** :
+  - Backend : `bun test` ou `npm run test` dans `backend-nest`
+  - Frontend : `pnpm test:vitest` dans `frontend`
+- **End-to-end** :
+  - Frontend : `pnpm test:e2e` (Playwright)
 
 ## 📁 Environnements & secrets
 
 - Les variables sensibles (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, etc.) sont à placer dans des fichiers `.env` (voir `.gitignore`).
 - **Ne jamais versionner de clé secrète ou de token admin.**
 
----
-
 ## 📚 Documentation
 
-- **Backend** : voir `backend-nest/README.md`
-- **Frontend** : voir `frontend/README.md`
-- **Types partagés** : voir `shared/`
-
----
+- **Backend** : voir `backend-nest/README.md`
+- **Frontend** : voir `frontend/README.md`
+- **Types partagés** : voir `shared/`
 
 ## 📝 Stack technique
 
-- **Backend** : NestJS, TypeScript, Supabase, Zod, Pino, Bun
-- **Frontend** : Angular 20+, Angular Material, Tailwind CSS, Signals, Playwright, Vitest
-- **Partagé** : TypeScript, Zod
-
----
+- **Backend** : NestJS, TypeScript, Supabase, Zod, Pino, Bun
+- **Frontend** : Angular 20+, Angular Material, Tailwind CSS, Signals, Playwright, Vitest
+- **Partagé** : TypeScript, Zod
 
 ## 🤝 Contribuer
 
@@ -96,8 +82,6 @@ ng serve
 3. Commit tes changements (`git commit -am 'feat: nouvelle feature'`)
 4. Push la branche (`git push origin feature/ma-feature`)
 5. Ouvre une Pull Request
-
----
 
 ## 📄 Licence
 
