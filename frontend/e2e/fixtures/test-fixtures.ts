@@ -3,21 +3,52 @@ import { LoginPage } from '../pages/login.page';
 import { OnboardingPage } from '../pages/onboarding.page';
 import { CurrentMonthPage } from '../pages/current-month.page';
 import { BudgetTemplatesPage } from '../pages/budget-templates.page';
+import { AuthMockHelper, TestDataFactory } from './test-helpers';
 
-// Types pour nos fixtures
-type AppFixtures = {
+// Types pour nos fixtures améliorées
+interface AppFixtures {
   loginPage: LoginPage;
   onboardingPage: OnboardingPage;
   currentMonthPage: CurrentMonthPage;
   budgetTemplatesPage: BudgetTemplatesPage;
   authenticatedPage: Page;
-};
+  authFailurePage: Page;
+  serverErrorPage: Page;
+  testCredentials: {
+    valid: { email: string; password: string };
+    invalid: { email: string; password: string };
+  };
+}
 
-// Étendre le test de base avec nos fixtures personnalisées
-export const test = base.extend<AppFixtures>({
-  // Page Object pour Login
-  loginPage: async ({ page }, use) => {
-    await use(new LoginPage(page));
+// Base test avec beforeEach/afterEach pour l'isolation
+const baseTest = base.extend<AppFixtures>({
+  // Factory pour les credentials de test
+  testCredentials: async ({}, use) => {
+    await use({
+      valid: TestDataFactory.createValidLoginCredentials(),
+      invalid: TestDataFactory.createInvalidLoginCredentials(),
+    });
+  },
+
+  // Page Object pour Login avec navigation automatique
+  loginPage: async ({ page }, use, testInfo) => {
+    const loginPage = new LoginPage(page);
+
+    // Automatiquement aller à la page de login avant chaque test
+    await loginPage.goto();
+
+    // Vérifier les éléments de login seulement si on est sur la page de login
+    if (page.url().includes('/login')) {
+      await loginPage.expectLoginFormVisible();
+    }
+
+    await use(loginPage);
+
+    // Cleanup après le test si nécessaire
+    await testInfo.attach('page-state', {
+      body: `Test completed on page: ${page.url()}`,
+      contentType: 'text/plain',
+    });
   },
 
   // Page Object pour Onboarding
@@ -35,42 +66,11 @@ export const test = base.extend<AppFixtures>({
     await use(new BudgetTemplatesPage(page));
   },
 
-  // Page avec authentification mockée - SIMPLE et EFFICACE
+  // Page avec authentification mockée - utilise AuthMockHelper
   authenticatedPage: async ({ page }, use) => {
-    // Mock auth avant toute navigation
-    await page.addInitScript(() => {
-      window.__E2E_AUTH_BYPASS__ = true;
-      window.__E2E_MOCK_AUTH_STATE__ = {
-        user: {
-          id: 'test-user',
-          email: 'test@example.com',
-          aud: 'authenticated',
-        },
-        session: {
-          access_token: 'mock-token',
-          refresh_token: 'mock-refresh',
-          expires_in: 3600,
-          token_type: 'bearer',
-          user: { id: 'test-user', email: 'test@example.com' },
-        },
-        isLoading: false,
-        isAuthenticated: true,
-      };
-    });
+    await AuthMockHelper.setupAuthScenario(page, 'SUCCESS');
 
-    // Mock toutes les API calls d'auth
-    await page.route('**/auth/**', (route) =>
-      route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          access_token: 'mock-token',
-          user: { id: 'test-user' },
-        }),
-      }),
-    );
-
-    // Mock les API backend
+    // Mock les API backend pour éviter les erreurs
     await page.route('**/api/**', (route) =>
       route.fulfill({
         status: 200,
@@ -80,6 +80,56 @@ export const test = base.extend<AppFixtures>({
     );
 
     await use(page);
+  },
+
+  // Page avec échec d'authentification mocké
+  authFailurePage: async ({ page }, use) => {
+    await AuthMockHelper.setupAuthScenario(page, 'FAILURE');
+    await use(page);
+  },
+
+  // Page avec erreur serveur mockée
+  serverErrorPage: async ({ page }, use) => {
+    await AuthMockHelper.setupAuthScenario(page, 'SERVER_ERROR');
+    await use(page);
+  },
+});
+
+// Test étendu avec gestion d'isolation automatique
+export const test = baseTest.extend({
+  page: async ({ page }, use, testInfo) => {
+    // BeforeEach automatique : isoler le test
+    await page.goto('/'); // Page neutre
+    await page.evaluate(() => {
+      // Nettoyer le localStorage et sessionStorage
+      localStorage.clear();
+      sessionStorage.clear();
+      // Supprimer les cookies
+      document.cookie.split(';').forEach((cookie) => {
+        const eqPos = cookie.indexOf('=');
+        const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+      });
+    });
+
+    await use(page);
+
+    // AfterEach automatique : capturer l'état en cas d'échec
+    if (testInfo.status === 'failed') {
+      await testInfo.attach('screenshot', {
+        body: await page.screenshot({ fullPage: true }),
+        contentType: 'image/png',
+      });
+
+      await testInfo.attach('console-logs', {
+        body: JSON.stringify(
+          page.context().serviceWorkers().length > 0
+            ? 'Service workers active'
+            : 'No service workers',
+        ),
+        contentType: 'application/json',
+      });
+    }
   },
 });
 

@@ -264,6 +264,20 @@ module.exports = tseslint.config(
       "@angular-eslint/component-class-suffix": "off",
       "@angular-eslint/directive-class-suffix": "off",
       "@angular-eslint/pipe-class-suffix": "off",
+      // Prevent floating promises to catch unhandled async operations
+      "@typescript-eslint/no-floating-promises": "error",
+    },
+  },
+  // Configuration spécifique pour les fichiers de test E2E
+  {
+    files: ["e2e/**/*.ts"],
+    rules: {
+      // Renforcer la règle no-floating-promises pour les tests E2E
+      "@typescript-eslint/no-floating-promises": "error",
+      // Permettre l'usage de any dans les tests pour les mocks
+      "@typescript-eslint/no-explicit-any": "warn",
+      // Les tests peuvent avoir des fonctions longues
+      "max-lines-per-function": "off",
     },
   },
 );

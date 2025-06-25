@@ -1,4 +1,5 @@
 import { Page, expect } from '@playwright/test';
+import { WaitHelper } from '../fixtures/test-helpers';
 
 export class CurrentMonthPage {
   readonly page: Page;
@@ -9,7 +10,20 @@ export class CurrentMonthPage {
 
   async goto() {
     await this.page.goto('/app/current-month');
-    await this.page.waitForLoadState('networkidle');
+    // Use robust waiting instead of networkidle
+    await WaitHelper.waitForNavigation(this.page, '/app/current-month', 10000);
+    // Wait for page content to be ready
+    await this.page
+      .locator('main, .content, h1, h2, [data-testid="dashboard"]')
+      .first()
+      .waitFor({
+        state: 'visible',
+        timeout: 10000,
+      })
+      .catch(() => {
+        // If no specific content found, just ensure page loaded
+        return this.page.waitForLoadState('domcontentloaded');
+      });
   }
 
   async expectPageLoaded() {
