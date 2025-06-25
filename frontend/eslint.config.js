@@ -264,8 +264,8 @@ module.exports = tseslint.config(
       "@angular-eslint/component-class-suffix": "off",
       "@angular-eslint/directive-class-suffix": "off",
       "@angular-eslint/pipe-class-suffix": "off",
-      // Prevent floating promises to catch unhandled async operations
-      "@typescript-eslint/no-floating-promises": "error",
+      // Disable floating promises rule until type-aware linting is properly configured
+      "@typescript-eslint/no-floating-promises": "off",
     },
   },
   // Configuration spécifique pour les fichiers de test E2E

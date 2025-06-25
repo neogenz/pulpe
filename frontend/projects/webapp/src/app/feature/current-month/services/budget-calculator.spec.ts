@@ -12,7 +12,7 @@ describe('BudgetCalculator', () => {
   const createTransaction = (
     type: TransactionType,
     amount: number,
-    name: string = 'Test Transaction',
+    name = 'Test Transaction',
   ): Transaction => ({
     id: `${type}-${amount}`,
     amount,
