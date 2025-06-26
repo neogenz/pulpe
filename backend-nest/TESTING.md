@@ -5,6 +5,7 @@ Ce document explique l'organisation et l'exécution des tests pour le backend Ne
 ## Configuration des Tests
 
 ### Runtime et Framework
+
 - **Runtime**: Bun v1.2.17+
 - **Framework de test**: Bun test (intégré)
 - **Framework d'intégration**: Supertest pour les tests HTTP
@@ -36,11 +37,13 @@ backend-nest/
 ## Types de Tests Implémentés
 
 ### 1. Tests Unitaires
+
 - **BudgetService**: Tests complets avec mocking de Supabase
 - **TransactionService**: Tests CRUD avec gestion d'erreurs
 - **AuthGuard**: Tests d'authentification et autorisation
 
 ### 2. Tests d'Intégration
+
 - **BudgetController**: Tests HTTP end-to-end avec Supertest
 - Validation des endpoints REST
 - Tests de validation des données d'entrée
@@ -49,7 +52,9 @@ backend-nest/
 ### 3. Couverture des Tests
 
 #### Services testés:
+
 - ✅ **BudgetService**
+
   - `findAll()` - Récupération des budgets
   - `create()` - Création de budget
   - `findOne()` - Récupération d'un budget spécifique
@@ -58,6 +63,7 @@ backend-nest/
   - `createFromOnboarding()` - Création depuis onboarding
 
 - ✅ **TransactionService**
+
   - `findByBudget()` - Transactions par budget
   - `create()` - Création de transaction
   - `findOne()` - Récupération d'une transaction
@@ -70,6 +76,7 @@ backend-nest/
   - OptionalAuthGuard pour endpoints publics
 
 #### Controllers testés:
+
 - ✅ **BudgetController**
   - GET `/budgets` - Liste des budgets
   - POST `/budgets` - Création de budget
@@ -100,6 +107,9 @@ bun test src/modules/budget/
 
 # Mode verbose pour plus de détails
 bun test --verbose
+
+# Tests avec métriques de performance
+DEBUG_PERFORMANCE=true bun test
 ```
 
 ### Variables d'Environnement pour les Tests
@@ -107,7 +117,47 @@ bun test --verbose
 ```bash
 # Définies automatiquement par bunfig.toml
 NODE_ENV=test
+
+# Debug avancé
+DEBUG_TESTS=true
+DEBUG_PERFORMANCE=true
 ```
+
+## Améliorations Récentes 🚀
+
+### Assertions Structurées
+
+Ajout d'helpers de validation pour s'assurer de la cohérence des données :
+
+```typescript
+// Validation de structure de budget
+expectBudgetStructure(budget);
+
+// Validation de liste avec callback
+expectListResponse(response, expectBudgetStructure);
+
+// Tests de performance
+await expectPerformance(
+  () => service.findAll(user, client),
+  100 // max 100ms
+);
+```
+
+### Tests d'Intégration Complets
+
+Tests HTTP end-to-end avec validation :
+
+- Codes de statut HTTP corrects
+- Structure des réponses JSON
+- Validation des données d'entrée
+- Tests d'authentification
+
+### Mock System Amélioré
+
+- MockSupabaseClient avec API fluide
+- Configuration facile des réponses
+- Simulation d'erreurs réseau/DB
+- Reset automatique entre tests
 
 ## Organisation du Code de Test
 
@@ -123,20 +173,22 @@ NODE_ENV=test
 
 ```typescript
 // Constantes partagées
-MOCK_USER_ID, MOCK_BUDGET_ID, MOCK_TRANSACTION_ID
+MOCK_USER_ID, MOCK_BUDGET_ID, MOCK_TRANSACTION_ID;
 
 // Factories pour les données de test
-createMockAuthenticatedUser()
-createMockBudgetDbEntity()
-createMockTransactionDbEntity()
+createMockAuthenticatedUser();
+createMockBudgetDbEntity();
+createMockTransactionDbEntity();
 
 // Mocks des services
-createMockSupabaseClient()
-createTestingModuleBuilder()
+createMockSupabaseClient();
+createTestingModuleBuilder();
 
-// Helpers d'assertion
-expectSuccessResponse()
-expectErrorThrown()
+// Helpers d'assertion avancés
+expectBudgetStructure();
+expectTransactionStructure();
+expectListResponse();
+expectPerformance();
 ```
 
 ### Pattern de Mock Supabase
@@ -151,19 +203,21 @@ mocks.single.mockResolvedValue({ data: mockData, error: null });
 mocks.order.mockResolvedValue({ data: [], error: null });
 
 // Vérification des appels
-expect(mocks.from).toHaveBeenCalledWith('budgets');
-expect(mocks.select).toHaveBeenCalledWith('*');
+expect(mocks.from).toHaveBeenCalledWith("budgets");
+expect(mocks.select).toHaveBeenCalledWith("*");
 ```
 
 ## Bonnes Pratiques Appliquées
 
 ### 1. Tests Unitaires
+
 - ✅ Mock de toutes les dépendances externes
 - ✅ Tests des cas de succès et d'erreur
 - ✅ Vérification des interactions avec les mocks
 - ✅ Tests des cas limites (null, undefined, vide)
 
 ### 2. Tests d'Intégration
+
 - ✅ Tests des endpoints HTTP complets
 - ✅ Validation des codes de statut
 - ✅ Tests des en-têtes de réponse
@@ -171,29 +225,47 @@ expect(mocks.select).toHaveBeenCalledWith('*');
 - ✅ Tests de validation des entrées
 
 ### 3. Gestion des Erreurs
+
 - ✅ Tests des exceptions métier
 - ✅ Tests des erreurs de base de données
 - ✅ Tests des erreurs d'authentification
 - ✅ Tests des erreurs de validation
 
 ### 4. Performance
+
 - ✅ Tests rapides (< 1ms par test unitaire)
 - ✅ Pas d'I/O réelles dans les tests unitaires
 - ✅ Isolation des tests d'intégration
+- ✅ Métriques de performance pour opérations critiques
 
 ## Métriques de Qualité
 
 ### Couverture de Code Cible
+
 - **Statements**: > 90%
 - **Branches**: > 85%
 - **Functions**: > 95%
 - **Lines**: > 90%
 
 ### Standards de Qualité
+
 - ✅ Aucun test ignoré ou désactivé
 - ✅ Tous les tests passent sur CI/CD
 - ✅ Temps d'exécution < 30 secondes
 - ✅ Pas de console.log dans les tests
+
+### Métriques Actuelles
+
+```bash
+# Vérifier la couverture
+bun run test:coverage
+
+# Résultats attendus:
+# ✅ Services: > 95% coverage
+# ✅ Controllers: > 90% coverage
+# ✅ Guards: > 95% coverage
+# ⚠️  Mappers: Non testés (logique simple)
+```
 
 ## Ajout de Nouveaux Tests
 
@@ -214,28 +286,28 @@ expect(mocks.select).toHaveBeenCalledWith('*');
 ### Template de Test
 
 ```typescript
-import { describe, it, expect, beforeEach } from 'bun:test';
-import { Test, type TestingModule } from '@nestjs/testing';
+import { describe, it, expect, beforeEach } from "bun:test";
+import { Test, type TestingModule } from "@nestjs/testing";
 
-describe('ServiceName', () => {
+describe("ServiceName", () => {
   let service: ServiceName;
-  
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [ServiceName],
     }).compile();
-    
+
     service = module.get<ServiceName>(ServiceName);
   });
 
-  describe('methodName', () => {
-    it('should handle success case', async () => {
+  describe("methodName", () => {
+    it("should handle success case", async () => {
       // Arrange
       // Act
       // Assert
     });
 
-    it('should handle error case', async () => {
+    it("should handle error case", async () => {
       // Arrange
       // Act & Assert
     });
@@ -243,9 +315,44 @@ describe('ServiceName', () => {
 });
 ```
 
+## Recommandations d'Amélioration Future
+
+### 1. Tests End-to-End
+
+```bash
+# À implémenter : Tests E2E avec vraie DB
+bun run test:e2e
+```
+
+### 2. Tests de Charge
+
+```typescript
+// Tests de performance sous charge
+describe("Performance under load", () => {
+  it("should handle 1000 concurrent requests", async () => {
+    // Test de montée en charge
+  });
+});
+```
+
+### 3. Tests de Régression
+
+```bash
+# Tests automatisés contre les régressions
+bun run test:regression
+```
+
+### 4. Mutation Testing
+
+```bash
+# Vérifier la qualité des tests
+bun run test:mutation
+```
+
 ## Débogage des Tests
 
 ### Logs de Debug
+
 ```bash
 # Activer les logs détaillés
 DEBUG=* bun test

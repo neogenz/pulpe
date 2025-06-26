@@ -1,17 +1,19 @@
-import { type TestingModule } from '@nestjs/testing';
-import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
+import { type TestingModule } from "@nestjs/testing";
+import type { AuthenticatedUser } from "@common/decorators/user.decorator";
+import type { AuthenticatedSupabaseClient } from "@modules/supabase/supabase.service";
 
-export const MOCK_USER_ID = 'test-user-id-123';
-export const MOCK_BUDGET_ID = 'test-budget-id-456';
-export const MOCK_TRANSACTION_ID = 'test-transaction-id-789';
-export const MOCK_TEMPLATE_ID = 'test-template-id-101';
+export const MOCK_USER_ID = "test-user-id-123";
+export const MOCK_BUDGET_ID = "test-budget-id-456";
+export const MOCK_TRANSACTION_ID = "test-transaction-id-789";
+export const MOCK_TEMPLATE_ID = "test-template-id-101";
 
-export const createMockAuthenticatedUser = (overrides?: Partial<AuthenticatedUser>): AuthenticatedUser => ({
+export const createMockAuthenticatedUser = (
+  overrides?: Partial<AuthenticatedUser>
+): AuthenticatedUser => ({
   id: MOCK_USER_ID,
-  email: 'test@example.com',
-  firstName: 'John',
-  lastName: 'Doe',
+  email: "test@example.com",
+  firstName: "John",
+  lastName: "Doe",
   ...overrides,
 });
 
@@ -20,10 +22,10 @@ export const createMockBudgetDbEntity = (overrides?: any) => ({
   user_id: MOCK_USER_ID,
   month: 11,
   year: 2024,
-  description: 'Test Budget',
+  description: "Test Budget",
   monthly_income: 5000,
-  created_at: '2024-01-01T00:00:00.000Z',
-  updated_at: '2024-01-01T00:00:00.000Z',
+  created_at: "2024-01-01T00:00:00.000Z",
+  updated_at: "2024-01-01T00:00:00.000Z",
   ...overrides,
 });
 
@@ -31,22 +33,22 @@ export const createMockTransactionDbEntity = (overrides?: any) => ({
   id: MOCK_TRANSACTION_ID,
   user_id: MOCK_USER_ID,
   budget_id: MOCK_BUDGET_ID,
-  title: 'Test Transaction',
+  title: "Test Transaction",
   amount: 100,
-  expense_type: 'FIXED',
-  transaction_type: 'EXPENSE',
-  created_at: '2024-01-01T00:00:00.000Z',
-  updated_at: '2024-01-01T00:00:00.000Z',
+  expense_type: "FIXED",
+  transaction_type: "EXPENSE",
+  created_at: "2024-01-01T00:00:00.000Z",
+  updated_at: "2024-01-01T00:00:00.000Z",
   ...overrides,
 });
 
 export const createMockBudgetTemplateDbEntity = (overrides?: any) => ({
   id: MOCK_TEMPLATE_ID,
   user_id: MOCK_USER_ID,
-  name: 'Test Template',
-  description: 'Test Description',
-  created_at: '2024-01-01T00:00:00.000Z',
-  updated_at: '2024-01-01T00:00:00.000Z',
+  name: "Test Template",
+  description: "Test Description",
+  created_at: "2024-01-01T00:00:00.000Z",
+  updated_at: "2024-01-01T00:00:00.000Z",
   ...overrides,
 });
 
@@ -63,24 +65,30 @@ export class MockSupabaseClient {
       select: (columns: string) => chainMethods,
       order: (column: string, options?: any) => chainMethods,
       eq: (column: string, value: any) => chainMethods,
-      single: () => Promise.resolve({ data: this.mockData, error: this.mockError }),
+      single: () =>
+        Promise.resolve({ data: this.mockData, error: this.mockError }),
       insert: (data: any) => ({
         select: () => ({
-          single: () => Promise.resolve({ data: this.mockData, error: this.mockError }),
+          single: () =>
+            Promise.resolve({ data: this.mockData, error: this.mockError }),
         }),
       }),
       update: (data: any) => ({
         eq: (column: string, value: any) => ({
           select: () => ({
-            single: () => Promise.resolve({ data: this.mockData, error: this.mockError }),
+            single: () =>
+              Promise.resolve({ data: this.mockData, error: this.mockError }),
           }),
         }),
       }),
       delete: () => ({
-        eq: (column: string, value: any) => Promise.resolve({ error: this.mockError }),
+        eq: (column: string, value: any) =>
+          Promise.resolve({ error: this.mockError }),
       }),
       then: (callback: any) => {
-        return Promise.resolve().then(() => callback({ data: this.mockData, error: this.mockError }));
+        return Promise.resolve().then(() =>
+          callback({ data: this.mockData, error: this.mockError })
+        );
       },
     };
 
@@ -88,11 +96,15 @@ export class MockSupabaseClient {
   }
 
   rpc(functionName: string, params: any) {
-    return Promise.resolve({ data: this.mockRpcData, error: this.mockRpcError });
+    return Promise.resolve({
+      data: this.mockRpcData,
+      error: this.mockRpcError,
+    });
   }
 
   auth = {
-    getUser: () => Promise.resolve({ data: { user: this.mockData }, error: this.mockError }),
+    getUser: () =>
+      Promise.resolve({ data: { user: this.mockData }, error: this.mockError }),
   };
 
   // Helper methods to configure the mock
@@ -137,12 +149,12 @@ export const createTestingModuleBuilder = () => {
   const mockConfigService = {
     get: (key: string) => {
       switch (key) {
-        case 'SUPABASE_URL':
-          return 'https://test-supabase-url.supabase.co';
-        case 'SUPABASE_ANON_KEY':
-          return 'test-anon-key';
-        case 'SUPABASE_SERVICE_ROLE_KEY':
-          return 'test-service-role-key';
+        case "SUPABASE_URL":
+          return "https://test-supabase-url.supabase.co";
+        case "SUPABASE_ANON_KEY":
+          return "test-anon-key";
+        case "SUPABASE_SERVICE_ROLE_KEY":
+          return "test-service-role-key";
         default:
           return undefined;
       }
@@ -162,20 +174,65 @@ export const createTestingModuleBuilder = () => {
 };
 
 export const expectSuccessResponse = (response: any, expectedData?: any) => {
-  expect(response).toHaveProperty('success', true);
+  expect(response).toHaveProperty("success", true);
   if (expectedData) {
     expect(response.data).toEqual(expectedData);
   }
 };
 
+export const expectBudgetStructure = (budget: any) => {
+  expect(budget).toMatchObject({
+    id: expect.any(String),
+    month: expect.any(Number),
+    year: expect.any(Number),
+    description: expect.any(String),
+    monthlyIncome: expect.any(Number),
+    createdAt: expect.any(String),
+    updatedAt: expect.any(String),
+  });
+};
+
+export const expectTransactionStructure = (transaction: any) => {
+  expect(transaction).toMatchObject({
+    id: expect.any(String),
+    budgetId: expect.any(String),
+    title: expect.any(String),
+    amount: expect.any(Number),
+    expenseType: expect.stringMatching(/^(FIXED|VARIABLE)$/),
+    transactionType: expect.stringMatching(/^(INCOME|EXPENSE)$/),
+    createdAt: expect.any(String),
+    updatedAt: expect.any(String),
+  });
+};
+
+export const expectListResponse = <T>(
+  response: any,
+  validator: (item: T) => void
+) => {
+  expectSuccessResponse(response);
+  expect(Array.isArray(response.data)).toBe(true);
+  response.data.forEach(validator);
+};
+
+export const expectPerformance = async (
+  operation: () => Promise<any>,
+  maxExecutionTimeMs: number = 100
+) => {
+  const startTime = Date.now();
+  await operation();
+  const executionTime = Date.now() - startTime;
+
+  expect(executionTime).toBeLessThan(maxExecutionTimeMs);
+};
+
 export const expectErrorThrown = async (
   promiseFunction: () => Promise<any>,
   expectedErrorType: any,
-  expectedMessage?: string,
+  expectedMessage?: string
 ) => {
   try {
     await promiseFunction();
-    throw new Error('Expected function to throw an error');
+    throw new Error("Expected function to throw an error");
   } catch (error) {
     expect(error).toBeInstanceOf(expectedErrorType);
     if (expectedMessage) {
