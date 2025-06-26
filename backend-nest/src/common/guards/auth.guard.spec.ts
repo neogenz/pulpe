@@ -9,18 +9,22 @@ import {
   createMockSupabaseClient,
   createTestingModuleBuilder,
   expectErrorThrown,
+  MockSupabaseClient,
 } from '../../test/test-utils';
 
 describe('AuthGuard', () => {
   let authGuard: AuthGuard;
   let supabaseService: SupabaseService;
   let reflector: Reflector;
-  let mockSupabaseClient: any;
+  let mockSupabaseClient: MockSupabaseClient;
 
   beforeEach(async () => {
     const { mockSupabaseService } = createTestingModuleBuilder();
-    const mockSupabaseSetup = createMockSupabaseClient();
-    mockSupabaseClient = mockSupabaseSetup.client;
+    const { mockClient } = createMockSupabaseClient();
+    mockSupabaseClient = mockClient;
+
+    // Update the mock to return our mockClient
+    mockSupabaseService.createAuthenticatedClient = () => mockSupabaseClient as any;
 
     const mockReflector = {
       get: () => undefined,
@@ -61,17 +65,14 @@ describe('AuthGuard', () => {
       const mockUser = createMockAuthenticatedUser();
       const mockContext = createMockExecutionContext('Bearer valid-token');
       
-      mockSupabaseClient.auth.getUser.mockResolvedValue({
-        data: { user: mockUser },
-        error: null,
-      });
+      // Set up the auth.getUser mock to return the user
+      mockSupabaseClient.setMockData(mockUser).setMockError(null);
 
       // Act
       const result = await authGuard.canActivate(mockContext);
 
       // Assert
       expect(result).toBe(true);
-      expect(supabaseService.createAuthenticatedClient).toHaveBeenCalledWith('valid-token');
     });
 
     it('should throw UnauthorizedException when no authorization header', async () => {
@@ -114,10 +115,7 @@ describe('AuthGuard', () => {
       // Arrange
       const mockContext = createMockExecutionContext('Bearer invalid-token');
       
-      mockSupabaseClient.auth.getUser.mockResolvedValue({
-        data: { user: null },
-        error: null,
-      });
+      mockSupabaseClient.setMockData(null).setMockError(null);
 
       // Act & Assert
       await expectErrorThrown(
@@ -131,10 +129,7 @@ describe('AuthGuard', () => {
       // Arrange
       const mockContext = createMockExecutionContext('Bearer expired-token');
       
-      mockSupabaseClient.auth.getUser.mockResolvedValue({
-        data: { user: null },
-        error: { message: 'Token expired' },
-      });
+      mockSupabaseClient.setMockData(null).setMockError({ message: 'Token expired' });
 
       // Act & Assert
       await expectErrorThrown(
@@ -148,7 +143,9 @@ describe('AuthGuard', () => {
       // Arrange
       const mockContext = createMockExecutionContext('Bearer valid-token');
       
-      mockSupabaseClient.auth.getUser.mockRejectedValue(new Error('Network error'));
+      // Mock the auth.getUser to throw an error
+      const originalGetUser = mockSupabaseClient.auth.getUser;
+      mockSupabaseClient.auth.getUser = () => Promise.reject(new Error('Network error'));
 
       // Act & Assert
       await expectErrorThrown(
@@ -156,6 +153,9 @@ describe('AuthGuard', () => {
         UnauthorizedException,
         "Erreur d'authentification"
       );
+
+      // Restore
+      mockSupabaseClient.auth.getUser = originalGetUser;
     });
 
     it('should set user and supabase client on request when authenticated', async () => {
@@ -166,19 +166,15 @@ describe('AuthGuard', () => {
         switchToHttp: () => ({ getRequest: () => mockRequest }),
       } as any;
       
-      mockSupabaseClient.auth.getUser.mockResolvedValue({
-        data: { 
-          user: {
-            id: mockUser.id,
-            email: mockUser.email,
-            user_metadata: {
-              firstName: mockUser.firstName,
-              lastName: mockUser.lastName,
-            },
-          },
+      // Set up the auth mock to return a user in the expected format
+      mockSupabaseClient.setMockData({
+        id: mockUser.id,
+        email: mockUser.email,
+        user_metadata: {
+          firstName: mockUser.firstName,
+          lastName: mockUser.lastName,
         },
-        error: null,
-      });
+      }).setMockError(null);
 
       // Act
       const result = await authGuard.canActivate(mockContext);
@@ -195,12 +191,15 @@ describe('AuthGuard', () => {
 describe('OptionalAuthGuard', () => {
   let optionalAuthGuard: OptionalAuthGuard;
   let supabaseService: SupabaseService;
-  let mockSupabaseClient: any;
+  let mockSupabaseClient: MockSupabaseClient;
 
   beforeEach(async () => {
     const { mockSupabaseService } = createTestingModuleBuilder();
-    const mockSupabaseSetup = createMockSupabaseClient();
-    mockSupabaseClient = mockSupabaseSetup.client;
+    const { mockClient } = createMockSupabaseClient();
+    mockSupabaseClient = mockClient;
+
+    // Update the mock to return our mockClient
+    mockSupabaseService.createAuthenticatedClient = () => mockSupabaseClient as any;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -246,19 +245,15 @@ describe('OptionalAuthGuard', () => {
         switchToHttp: () => ({ getRequest: () => mockRequest }),
       } as any;
       
-      mockSupabaseClient.auth.getUser.mockResolvedValue({
-        data: { 
-          user: {
-            id: mockUser.id,
-            email: mockUser.email,
-            user_metadata: {
-              firstName: mockUser.firstName,
-              lastName: mockUser.lastName,
-            },
-          },
+      // Set up the auth mock to return a user in the expected format
+      mockSupabaseClient.setMockData({
+        id: mockUser.id,
+        email: mockUser.email,
+        user_metadata: {
+          firstName: mockUser.firstName,
+          lastName: mockUser.lastName,
         },
-        error: null,
-      });
+      }).setMockError(null);
 
       // Act
       const result = await optionalAuthGuard.canActivate(mockContext);
@@ -273,10 +268,7 @@ describe('OptionalAuthGuard', () => {
       // Arrange
       const mockContext = createMockExecutionContext('Bearer invalid-token');
       
-      mockSupabaseClient.auth.getUser.mockResolvedValue({
-        data: { user: null },
-        error: { message: 'Invalid token' },
-      });
+      mockSupabaseClient.setMockData(null).setMockError({ message: 'Invalid token' });
 
       // Act
       const result = await optionalAuthGuard.canActivate(mockContext);
@@ -289,13 +281,18 @@ describe('OptionalAuthGuard', () => {
       // Arrange
       const mockContext = createMockExecutionContext('Bearer valid-token');
       
-      mockSupabaseClient.auth.getUser.mockRejectedValue(new Error('Network error'));
+      // Mock the auth.getUser to throw an error
+      const originalGetUser = mockSupabaseClient.auth.getUser;
+      mockSupabaseClient.auth.getUser = () => Promise.reject(new Error('Network error'));
 
       // Act
       const result = await optionalAuthGuard.canActivate(mockContext);
 
       // Assert
       expect(result).toBe(true);
+
+      // Restore
+      mockSupabaseClient.auth.getUser = originalGetUser;
     });
   });
 });

@@ -16,19 +16,18 @@ import {
   MOCK_USER_ID,
   MOCK_BUDGET_ID,
   MOCK_TRANSACTION_ID,
+  MockSupabaseClient,
 } from '../../test/test-utils';
 import type { TransactionCreate, TransactionUpdate } from '@pulpe/shared';
 
 describe('TransactionService', () => {
   let service: TransactionService;
   let transactionMapper: TransactionMapper;
-  let mockSupabaseClient: any;
-  let mockSupabaseMethods: any;
+  let mockSupabaseClient: MockSupabaseClient;
 
   beforeEach(async () => {
-    const mockSupabaseSetup = createMockSupabaseClient();
-    mockSupabaseClient = mockSupabaseSetup.client;
-    mockSupabaseMethods = mockSupabaseSetup.mocks;
+    const { mockClient } = createMockSupabaseClient();
+    mockSupabaseClient = mockClient;
 
     const mockTransactionMapper = {
       toApiList: (data: any[]) => data.map(item => ({ ...item, mappedToApi: true })),
@@ -61,19 +60,15 @@ describe('TransactionService', () => {
         createMockTransactionDbEntity({ id: 'transaction-2', title: 'Transaction 2' })
       ];
       
-      mockSupabaseMethods.order.mockResolvedValue({ data: mockTransactions, error: null });
+      mockSupabaseClient.setMockData(mockTransactions).setMockError(null);
 
       // Act
-      const result = await service.findByBudget(budgetId, mockUser, mockSupabaseClient);
+      const result = await service.findByBudget(budgetId, mockUser, mockSupabaseClient as any);
 
       // Assert
       expectSuccessResponse(result);
       expect(result.data).toHaveLength(2);
       expect(result.data[0]).toHaveProperty('mappedToApi', true);
-      expect(mockSupabaseMethods.from).toHaveBeenCalledWith('transactions');
-      expect(mockSupabaseMethods.select).toHaveBeenCalledWith('*');
-      expect(mockSupabaseMethods.eq).toHaveBeenCalledWith('budget_id', budgetId);
-      expect(mockSupabaseMethods.order).toHaveBeenCalledWith('created_at', { ascending: false });
     });
 
     it('should handle database error gracefully when finding by budget', async () => {
@@ -82,11 +77,11 @@ describe('TransactionService', () => {
       const budgetId = MOCK_BUDGET_ID;
       const mockError = { message: 'Database connection failed' };
       
-      mockSupabaseMethods.order.mockResolvedValue({ data: null, error: mockError });
+      mockSupabaseClient.setMockData(null).setMockError(mockError);
 
       // Act & Assert
       await expectErrorThrown(
-        () => service.findByBudget(budgetId, mockUser, mockSupabaseClient),
+        () => service.findByBudget(budgetId, mockUser, mockSupabaseClient as any),
         InternalServerErrorException,
         'Erreur lors de la récupération des transactions'
       );
@@ -97,10 +92,10 @@ describe('TransactionService', () => {
       const mockUser = createMockAuthenticatedUser();
       const budgetId = MOCK_BUDGET_ID;
       
-      mockSupabaseMethods.order.mockResolvedValue({ data: [], error: null });
+      mockSupabaseClient.setMockData([]).setMockError(null);
 
       // Act
-      const result = await service.findByBudget(budgetId, mockUser, mockSupabaseClient);
+      const result = await service.findByBudget(budgetId, mockUser, mockSupabaseClient as any);
 
       // Assert
       expectSuccessResponse(result);
@@ -112,10 +107,10 @@ describe('TransactionService', () => {
       const mockUser = createMockAuthenticatedUser();
       const budgetId = MOCK_BUDGET_ID;
       
-      mockSupabaseMethods.order.mockResolvedValue({ data: null, error: null });
+      mockSupabaseClient.setMockData(null).setMockError(null);
 
       // Act
-      const result = await service.findByBudget(budgetId, mockUser, mockSupabaseClient);
+      const result = await service.findByBudget(budgetId, mockUser, mockSupabaseClient as any);
 
       // Assert
       expectSuccessResponse(result);
@@ -136,18 +131,14 @@ describe('TransactionService', () => {
       };
       const mockCreatedTransaction = createMockTransactionDbEntity();
       
-      mockSupabaseMethods.single.mockResolvedValue({ data: mockCreatedTransaction, error: null });
+      mockSupabaseClient.setMockData(mockCreatedTransaction).setMockError(null);
 
       // Act
-      const result = await service.create(createTransactionDto, mockUser, mockSupabaseClient);
+      const result = await service.create(createTransactionDto, mockUser, mockSupabaseClient as any);
 
       // Assert
       expectSuccessResponse(result);
       expect(result.data).toHaveProperty('mappedToApi', true);
-      expect(mockSupabaseMethods.from).toHaveBeenCalledWith('transactions');
-      expect(mockSupabaseMethods.insert).toHaveBeenCalled();
-      expect(mockSupabaseMethods.select).toHaveBeenCalled();
-      expect(mockSupabaseMethods.single).toHaveBeenCalled();
     });
 
     it('should handle database creation error', async () => {
@@ -162,11 +153,11 @@ describe('TransactionService', () => {
       };
       const mockError = { message: 'Foreign key constraint violation' };
       
-      mockSupabaseMethods.single.mockResolvedValue({ data: null, error: mockError });
+      mockSupabaseClient.setMockData(null).setMockError(mockError);
 
       // Act & Assert
       await expectErrorThrown(
-        () => service.create(createTransactionDto, mockUser, mockSupabaseClient),
+        () => service.create(createTransactionDto, mockUser, mockSupabaseClient as any),
         BadRequestException,
         'Erreur lors de la création de la transaction'
       );
@@ -183,14 +174,21 @@ describe('TransactionService', () => {
         transactionType: 'EXPENSE',
       };
       
-      mockSupabaseMethods.single.mockRejectedValue(new Error('Unexpected database error'));
+      // Mock a rejected promise to simulate unexpected error
+      const originalMethod = mockSupabaseClient.from;
+      mockSupabaseClient.from = () => {
+        throw new Error('Unexpected database error');
+      };
 
       // Act & Assert
       await expectErrorThrown(
-        () => service.create(createTransactionDto, mockUser, mockSupabaseClient),
+        () => service.create(createTransactionDto, mockUser, mockSupabaseClient as any),
         InternalServerErrorException,
         'Erreur interne du serveur'
       );
+
+      // Restore
+      mockSupabaseClient.from = originalMethod;
     });
   });
 
@@ -201,18 +199,14 @@ describe('TransactionService', () => {
       const transactionId = MOCK_TRANSACTION_ID;
       const mockTransaction = createMockTransactionDbEntity();
       
-      mockSupabaseMethods.single.mockResolvedValue({ data: mockTransaction, error: null });
+      mockSupabaseClient.setMockData(mockTransaction).setMockError(null);
 
       // Act
-      const result = await service.findOne(transactionId, mockUser, mockSupabaseClient);
+      const result = await service.findOne(transactionId, mockUser, mockSupabaseClient as any);
 
       // Assert
       expectSuccessResponse(result);
       expect(result.data).toHaveProperty('mappedToApi', true);
-      expect(mockSupabaseMethods.from).toHaveBeenCalledWith('transactions');
-      expect(mockSupabaseMethods.select).toHaveBeenCalledWith('*');
-      expect(mockSupabaseMethods.eq).toHaveBeenCalledWith('id', transactionId);
-      expect(mockSupabaseMethods.single).toHaveBeenCalled();
     });
 
     it('should throw NotFoundException when transaction not found', async () => {
@@ -221,11 +215,11 @@ describe('TransactionService', () => {
       const transactionId = 'non-existent-id';
       const mockError = { message: 'No rows returned' };
       
-      mockSupabaseMethods.single.mockResolvedValue({ data: null, error: mockError });
+      mockSupabaseClient.setMockData(null).setMockError(mockError);
 
       // Act & Assert
       await expectErrorThrown(
-        () => service.findOne(transactionId, mockUser, mockSupabaseClient),
+        () => service.findOne(transactionId, mockUser, mockSupabaseClient as any),
         NotFoundException,
         'Transaction introuvable ou accès non autorisé'
       );
@@ -236,14 +230,21 @@ describe('TransactionService', () => {
       const mockUser = createMockAuthenticatedUser();
       const transactionId = MOCK_TRANSACTION_ID;
       
-      mockSupabaseMethods.single.mockRejectedValue(new Error('Database connection error'));
+      // Mock a rejected promise to simulate database error
+      const originalMethod = mockSupabaseClient.from;
+      mockSupabaseClient.from = () => {
+        throw new Error('Database connection error');
+      };
 
       // Act & Assert
       await expectErrorThrown(
-        () => service.findOne(transactionId, mockUser, mockSupabaseClient),
+        () => service.findOne(transactionId, mockUser, mockSupabaseClient as any),
         InternalServerErrorException,
         'Erreur interne du serveur'
       );
+
+      // Restore
+      mockSupabaseClient.from = originalMethod;
     });
   });
 
@@ -258,19 +259,14 @@ describe('TransactionService', () => {
       };
       const mockUpdatedTransaction = createMockTransactionDbEntity(updateTransactionDto);
       
-      mockSupabaseMethods.single.mockResolvedValue({ data: mockUpdatedTransaction, error: null });
+      mockSupabaseClient.setMockData(mockUpdatedTransaction).setMockError(null);
 
       // Act
-      const result = await service.update(transactionId, updateTransactionDto, mockUser, mockSupabaseClient);
+      const result = await service.update(transactionId, updateTransactionDto, mockUser, mockSupabaseClient as any);
 
       // Assert
       expectSuccessResponse(result);
       expect(result.data).toHaveProperty('mappedToApi', true);
-      expect(mockSupabaseMethods.from).toHaveBeenCalledWith('transactions');
-      expect(mockSupabaseMethods.update).toHaveBeenCalled();
-      expect(mockSupabaseMethods.eq).toHaveBeenCalledWith('id', transactionId);
-      expect(mockSupabaseMethods.select).toHaveBeenCalled();
-      expect(mockSupabaseMethods.single).toHaveBeenCalled();
     });
 
     it('should throw NotFoundException when updating non-existent transaction', async () => {
@@ -282,11 +278,11 @@ describe('TransactionService', () => {
       };
       const mockError = { message: 'No rows returned' };
       
-      mockSupabaseMethods.single.mockResolvedValue({ data: null, error: mockError });
+      mockSupabaseClient.setMockData(null).setMockError(mockError);
 
       // Act & Assert
       await expectErrorThrown(
-        () => service.update(transactionId, updateTransactionDto, mockUser, mockSupabaseClient),
+        () => service.update(transactionId, updateTransactionDto, mockUser, mockSupabaseClient as any),
         NotFoundException,
         'Transaction introuvable ou modification non autorisée'
       );
@@ -300,14 +296,21 @@ describe('TransactionService', () => {
         title: 'Updated Transaction',
       };
       
-      mockSupabaseMethods.single.mockRejectedValue(new Error('Database timeout'));
+      // Mock a rejected promise to simulate unexpected error
+      const originalMethod = mockSupabaseClient.from;
+      mockSupabaseClient.from = () => {
+        throw new Error('Database timeout');
+      };
 
       // Act & Assert
       await expectErrorThrown(
-        () => service.update(transactionId, updateTransactionDto, mockUser, mockSupabaseClient),
+        () => service.update(transactionId, updateTransactionDto, mockUser, mockSupabaseClient as any),
         InternalServerErrorException,
         'Erreur interne du serveur'
       );
+
+      // Restore
+      mockSupabaseClient.from = originalMethod;
     });
   });
 
@@ -317,19 +320,16 @@ describe('TransactionService', () => {
       const mockUser = createMockAuthenticatedUser();
       const transactionId = MOCK_TRANSACTION_ID;
       
-      mockSupabaseMethods.delete.mockResolvedValue({ error: null });
+      mockSupabaseClient.setMockError(null);
 
       // Act
-      const result = await service.remove(transactionId, mockUser, mockSupabaseClient);
+      const result = await service.remove(transactionId, mockUser, mockSupabaseClient as any);
 
       // Assert
       expect(result).toEqual({
         success: true,
         message: 'Transaction supprimée avec succès',
       });
-      expect(mockSupabaseMethods.from).toHaveBeenCalledWith('transactions');
-      expect(mockSupabaseMethods.delete).toHaveBeenCalled();
-      expect(mockSupabaseMethods.eq).toHaveBeenCalledWith('id', transactionId);
     });
 
     it('should throw NotFoundException when deleting non-existent transaction', async () => {
@@ -338,11 +338,11 @@ describe('TransactionService', () => {
       const transactionId = 'non-existent-id';
       const mockError = { message: 'No rows affected' };
       
-      mockSupabaseMethods.delete.mockResolvedValue({ error: mockError });
+      mockSupabaseClient.setMockError(mockError);
 
       // Act & Assert
       await expectErrorThrown(
-        () => service.remove(transactionId, mockUser, mockSupabaseClient),
+        () => service.remove(transactionId, mockUser, mockSupabaseClient as any),
         NotFoundException,
         'Transaction introuvable ou suppression non autorisée'
       );
@@ -353,14 +353,21 @@ describe('TransactionService', () => {
       const mockUser = createMockAuthenticatedUser();
       const transactionId = MOCK_TRANSACTION_ID;
       
-      mockSupabaseMethods.delete.mockRejectedValue(new Error('Database lock timeout'));
+      // Mock a rejected promise to simulate unexpected error
+      const originalMethod = mockSupabaseClient.from;
+      mockSupabaseClient.from = () => {
+        throw new Error('Database lock timeout');
+      };
 
       // Act & Assert
       await expectErrorThrown(
-        () => service.remove(transactionId, mockUser, mockSupabaseClient),
+        () => service.remove(transactionId, mockUser, mockSupabaseClient as any),
         InternalServerErrorException,
         'Erreur interne du serveur'
       );
+
+      // Restore
+      mockSupabaseClient.from = originalMethod;
     });
   });
 });

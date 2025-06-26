@@ -15,85 +15,6 @@ export const createMockAuthenticatedUser = (overrides?: Partial<AuthenticatedUse
   ...overrides,
 });
 
-// Simple mock function creator for Bun
-export const createMockFunction = (implementation?: any) => {
-  const mockFn = implementation || (() => {});
-  mockFn.mockReturnValue = (value: any) => {
-    Object.assign(mockFn, () => value);
-    return mockFn;
-  };
-  mockFn.mockReturnThis = () => mockFn;
-  mockFn.mockResolvedValue = (value: any) => {
-    Object.assign(mockFn, () => Promise.resolve(value));
-    return mockFn;
-  };
-  mockFn.mockRejectedValue = (error: any) => {
-    Object.assign(mockFn, () => Promise.reject(error));
-    return mockFn;
-  };
-  mockFn.mockImplementation = (impl: any) => {
-    Object.assign(mockFn, impl);
-    return mockFn;
-  };
-  return mockFn;
-};
-
-export const createMockSupabaseClient = () => {
-  const mockFrom = createMockFunction().mockReturnThis();
-  const mockSelect = createMockFunction().mockReturnThis();
-  const mockInsert = createMockFunction().mockReturnThis();
-  const mockUpdate = createMockFunction().mockReturnThis();
-  const mockDelete = createMockFunction().mockReturnThis();
-  const mockEq = createMockFunction().mockReturnThis();
-  const mockOrder = createMockFunction().mockReturnThis();
-  const mockSingle = createMockFunction();
-  const mockRpc = createMockFunction();
-
-  const mockQuery = {
-    from: mockFrom,
-    select: mockSelect,
-    insert: mockInsert,
-    update: mockUpdate,
-    delete: mockDelete,
-    eq: mockEq,
-    order: mockOrder,
-    single: mockSingle,
-    rpc: mockRpc,
-  };
-
-  const mockSupabaseClient = {
-    from: mockFrom,
-    rpc: mockRpc,
-    auth: {
-      getUser: createMockFunction(),
-    },
-  };
-
-  // Chain methods
-  mockFrom.mockReturnValue(mockQuery);
-  mockSelect.mockReturnValue(mockQuery);
-  mockInsert.mockReturnValue(mockQuery);
-  mockUpdate.mockReturnValue(mockQuery);
-  mockDelete.mockReturnValue(mockQuery);
-  mockEq.mockReturnValue(mockQuery);
-  mockOrder.mockReturnValue(mockQuery);
-
-  return {
-    client: mockSupabaseClient as unknown as AuthenticatedSupabaseClient,
-    mocks: {
-      from: mockFrom,
-      select: mockSelect,
-      insert: mockInsert,
-      update: mockUpdate,
-      delete: mockDelete,
-      eq: mockEq,
-      order: mockOrder,
-      single: mockSingle,
-      rpc: mockRpc,
-    },
-  };
-};
-
 export const createMockBudgetDbEntity = (overrides?: any) => ({
   id: MOCK_BUDGET_ID,
   user_id: MOCK_USER_ID,
@@ -129,9 +50,92 @@ export const createMockBudgetTemplateDbEntity = (overrides?: any) => ({
   ...overrides,
 });
 
+// Simplified mock system that works with Bun
+export class MockSupabaseClient {
+  private mockData: any = null;
+  private mockError: any = null;
+  private mockRpcData: any = null;
+  private mockRpcError: any = null;
+
+  // Mock the chain: from().select().order().eq().single()
+  from(table: string) {
+    const chainMethods = {
+      select: (columns: string) => chainMethods,
+      order: (column: string, options?: any) => chainMethods,
+      eq: (column: string, value: any) => chainMethods,
+      single: () => Promise.resolve({ data: this.mockData, error: this.mockError }),
+      insert: (data: any) => ({
+        select: () => ({
+          single: () => Promise.resolve({ data: this.mockData, error: this.mockError }),
+        }),
+      }),
+      update: (data: any) => ({
+        eq: (column: string, value: any) => ({
+          select: () => ({
+            single: () => Promise.resolve({ data: this.mockData, error: this.mockError }),
+          }),
+        }),
+      }),
+      delete: () => ({
+        eq: (column: string, value: any) => Promise.resolve({ error: this.mockError }),
+      }),
+      then: (callback: any) => {
+        return Promise.resolve().then(() => callback({ data: this.mockData, error: this.mockError }));
+      },
+    };
+
+    return chainMethods;
+  }
+
+  rpc(functionName: string, params: any) {
+    return Promise.resolve({ data: this.mockRpcData, error: this.mockRpcError });
+  }
+
+  auth = {
+    getUser: () => Promise.resolve({ data: { user: this.mockData }, error: this.mockError }),
+  };
+
+  // Helper methods to configure the mock
+  setMockData(data: any) {
+    this.mockData = data;
+    return this;
+  }
+
+  setMockError(error: any) {
+    this.mockError = error;
+    return this;
+  }
+
+  setMockRpcData(data: any) {
+    this.mockRpcData = data;
+    return this;
+  }
+
+  setMockRpcError(error: any) {
+    this.mockRpcError = error;
+    return this;
+  }
+
+  reset() {
+    this.mockData = null;
+    this.mockError = null;
+    this.mockRpcData = null;
+    this.mockRpcError = null;
+    return this;
+  }
+}
+
+export const createMockSupabaseClient = () => {
+  const mockClient = new MockSupabaseClient();
+  return {
+    client: mockClient as unknown as AuthenticatedSupabaseClient,
+    mockClient,
+  };
+};
+
 export const createTestingModuleBuilder = () => {
   const mockConfigService = {
-    get: createMockFunction((key: string) => {
+    get: (key: string) => {
       switch (key) {
         case 'SUPABASE_URL':
           return 'https://test-supabase-url.supabase.co';
@@ -142,13 +146,13 @@ export const createTestingModuleBuilder = () => {
         default:
           return undefined;
       }
-    }),
+    },
   };
 
   const mockSupabaseService = {
-    createAuthenticatedClient: createMockFunction().mockReturnValue(createMockSupabaseClient().client),
-    getClient: createMockFunction().mockReturnValue(createMockSupabaseClient().client),
-    getServiceRoleClient: createMockFunction().mockReturnValue(createMockSupabaseClient().client),
+    createAuthenticatedClient: () => createMockSupabaseClient().client,
+    getClient: () => createMockSupabaseClient().client,
+    getServiceRoleClient: () => createMockSupabaseClient().client,
   };
 
   return {
@@ -169,8 +173,13 @@ export const expectErrorThrown = async (
   expectedErrorType: any,
   expectedMessage?: string,
 ) => {
-  await expect(promiseFunction()).rejects.toThrow(expectedErrorType);
-  if (expectedMessage) {
-    await expect(promiseFunction()).rejects.toThrow(expectedMessage);
+  try {
+    await promiseFunction();
+    throw new Error('Expected function to throw an error');
+  } catch (error) {
+    expect(error).toBeInstanceOf(expectedErrorType);
+    if (expectedMessage) {
+      expect(error.message).toContain(expectedMessage);
+    }
   }
 };
