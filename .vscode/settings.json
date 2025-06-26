@@ -34,5 +34,17 @@
     "**/dist": true,
     "**/.angular": true,
     "**/pnpm-lock.yaml": true
+  },
+
+  // Configuration anti-formatage pour les fichiers Lottie
+  "prettier.ignorePath": "frontend/.prettierignore",
+  "prettier.documentSelectors": [
+    "!**/lottie/**/*.json",
+    "!frontend/projects/webapp/public/lottie/**/*.json"
+  ],
+
+  // Configuration spécifique pour les fichiers JSON Lottie
+  "files.associations": {
+    "**/lottie/**/*.json": "json"
   }
 }

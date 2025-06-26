@@ -6,9 +6,12 @@ import {
   OnInit,
   effect,
   DestroyRef,
+  signal,
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
+import { LottieComponent } from 'ngx-lottie';
+import { AnimationOptions } from 'ngx-lottie';
 import { OnboardingOrchestrator } from '../onboarding-orchestrator';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { OnboardingLayoutData } from '../models/onboarding-layout-data';
@@ -16,16 +19,39 @@ import { OnboardingLayoutData } from '../models/onboarding-layout-data';
 @Component({
   selector: 'pulpe-welcome',
   standalone: true,
-  imports: [MatButtonModule],
+  imports: [MatButtonModule, LottieComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 
   template: `
-    <!-- Logo Pulpe -->
-    <div class="flex justify-center mb-6">
+    <!-- Logo Pulpe avec animation Lottie différée -->
+
+    @defer (on viewport; prefetch on idle) {
+      <div class="flex justify-center mb-6">
+        <ng-lottie
+          [options]="lottieOptions()"
+          class="md:w-80 md:h-80 mt-[-86px] md:mt-[-100px]"
+          style="background: transparent !important;"
+        />
+      </div>
+    } @placeholder {
       <div
-        class="w-24 h-24 sm:w-32 sm:h-32 md:w-48 md:h-48 pulpe-gradient rounded-full"
-      ></div>
-    </div>
+        class="flex justify-center mb-6 md:w-80 md:h-80 mt-[-86px] md:mt-[-100px] items-center"
+      >
+        <div class="w-24 h-24 bg-primary/10 rounded-full animate-pulse"></div>
+      </div>
+    } @loading {
+      <div
+        class="flex justify-center mb-6 md:w-80 md:h-80 mt-[-86px] md:mt-[-100px] items-center"
+      >
+        <div class="w-24 h-24 bg-primary/20 rounded-full animate-pulse"></div>
+      </div>
+    } @error {
+      <div
+        class="flex justify-center mb-6 md:w-80 md:h-80 mt-[-86px] md:mt-[-100px] items-center"
+      >
+        <span class="text-on-surface-variant text-4xl">🎨</span>
+      </div>
+    }
 
     <!-- Contenu -->
     <div class="text-center space-y-4">
@@ -52,6 +78,19 @@ export default class Welcome implements OnInit {
   };
 
   readonly #canContinue = computed(() => true);
+
+  readonly lottieOptions = signal<AnimationOptions>({
+    path: '/lottie/welcome-animation.json',
+    loop: true,
+    autoplay: true,
+    renderer: 'svg',
+    rendererSettings: {
+      preserveAspectRatio: 'xMidYMid meet',
+      progressiveLoad: true,
+      hideOnTransparent: true,
+    },
+    assetsPath: '/lottie/',
+  });
 
   constructor() {
     effect(() => {

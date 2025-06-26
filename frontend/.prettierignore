@@ -1,0 +1,11 @@
+# Lottie animations - keep minified for performance
+projects/webapp/public/lottie/**/*.json
+**/lottie/**/*.json
+
+# Other files that should not be formatted
+dist/
+node_modules/
+.angular/
+coverage/
+*.min.js
+*.min.css 

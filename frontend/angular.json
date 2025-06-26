@@ -55,10 +55,7 @@
             "browser": "projects/webapp/src/main.ts",
             "tsConfig": "projects/webapp/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
-            "allowedCommonJsDependencies": [
-              "ws",
-              "zod"
-            ],
+            "allowedCommonJsDependencies": ["ws", "zod", "lottie-web"],
             "assets": [
               {
                 "glob": "**/*",
