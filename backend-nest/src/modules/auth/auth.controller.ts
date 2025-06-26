@@ -1,40 +1,49 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
-import { 
-  ApiTags, 
-  ApiOperation, 
-  ApiResponse, 
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
   ApiBearerAuth,
   ApiUnauthorizedResponse,
-  ApiInternalServerErrorResponse
+  ApiInternalServerErrorResponse,
 } from '@nestjs/swagger';
 import { AuthGuard } from '@common/guards/auth.guard';
-import { User, type AuthenticatedUser } from '@common/decorators/user.decorator';
-import { AuthValidationResponseDto, AuthErrorResponseDto } from './dto/auth-response.dto';
+import {
+  User,
+  type AuthenticatedUser,
+} from '@common/decorators/user.decorator';
+import {
+  AuthValidationResponseDto,
+  AuthErrorResponseDto,
+} from './dto/auth-response.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
 @ApiInternalServerErrorResponse({
   description: 'Internal server error',
-  type: AuthErrorResponseDto
+  type: AuthErrorResponseDto,
 })
 export class AuthController {
   @Get('validate')
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Validate JWT token and retrieve user information',
-    description: 'Validates the provided Bearer token and returns authenticated user details'
+    description:
+      'Validates the provided Bearer token and returns authenticated user details',
   })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Token validated successfully',
-    type: AuthValidationResponseDto
+    type: AuthValidationResponseDto,
   })
-  @ApiUnauthorizedResponse({ 
+  @ApiUnauthorizedResponse({
     description: 'Invalid or expired token',
-    type: AuthErrorResponseDto
+    type: AuthErrorResponseDto,
   })
-  async validateToken(@User() user: AuthenticatedUser): Promise<AuthValidationResponseDto> {
+  async validateToken(
+    @User() user: AuthenticatedUser,
+  ): Promise<AuthValidationResponseDto> {
     return {
       success: true as const,
       user: {

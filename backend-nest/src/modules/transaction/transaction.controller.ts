@@ -7,7 +7,6 @@ import {
   Body,
   Param,
   UseGuards,
-  UsePipes,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -25,7 +24,11 @@ import {
 } from '@pulpe/shared';
 import { AuthGuard } from '@common/guards/auth.guard';
 import { ZodBodyPipe } from '@common/pipes/zod-validation.pipe';
-import { User, SupabaseClient, type AuthenticatedUser } from '@common/decorators/user.decorator';
+import {
+  User,
+  SupabaseClient,
+  type AuthenticatedUser,
+} from '@common/decorators/user.decorator';
 import { TransactionService } from './transaction.service';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 
@@ -37,7 +40,7 @@ export class TransactionController {
   constructor(private readonly transactionService: TransactionService) {}
 
   @Get('budget/:budgetId')
-  @ApiOperation({ summary: 'Liste toutes les transactions d\'un budget' })
+  @ApiOperation({ summary: "Liste toutes les transactions d'un budget" })
   @ApiParam({
     name: 'budgetId',
     description: 'Identifiant unique du budget',
@@ -62,7 +65,8 @@ export class TransactionController {
     description: 'Transaction créée avec succès',
   })
   async create(
-    @Body(new ZodBodyPipe(transactionCreateSchema)) createTransactionDto: TransactionCreate,
+    @Body(new ZodBodyPipe(transactionCreateSchema))
+    createTransactionDto: TransactionCreate,
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionResponse> {
@@ -101,11 +105,17 @@ export class TransactionController {
   })
   async update(
     @Param('id') id: string,
-    @Body(new ZodBodyPipe(transactionUpdateSchema)) updateTransactionDto: TransactionUpdate,
+    @Body(new ZodBodyPipe(transactionUpdateSchema))
+    updateTransactionDto: TransactionUpdate,
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionResponse> {
-    return this.transactionService.update(id, updateTransactionDto, user, supabase);
+    return this.transactionService.update(
+      id,
+      updateTransactionDto,
+      user,
+      supabase,
+    );
   }
 
   @Delete(':id')

@@ -1,52 +1,52 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-export class SuccessResponseDto<T = any> {
-  @ApiProperty({ 
+export class SuccessResponseDto<T = unknown> {
+  @ApiProperty({
     description: 'Indicates if the request was successful',
-    example: true 
+    example: true,
   })
   success: true;
 
-  @ApiProperty({ 
-    description: 'Response data' 
+  @ApiProperty({
+    description: 'Response data',
   })
   data?: T;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Success message',
-    required: false 
+    required: false,
   })
   message?: string;
 }
 
 export class ErrorResponseDto {
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Indicates the request failed',
-    example: false 
+    example: false,
   })
   success: false;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Error message',
-    example: 'An error occurred' 
+    example: 'An error occurred',
   })
   error: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'HTTP status code',
-    example: 400 
+    example: 400,
   })
   statusCode: number;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Request timestamp',
-    example: '2024-01-15T10:30:00Z' 
+    example: '2024-01-15T10:30:00Z',
   })
   timestamp: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Request path',
-    example: '/api/budgets' 
+    example: '/api/budgets',
   })
   path: string;
 }

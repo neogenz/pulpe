@@ -17,12 +17,12 @@
     "strict": false,
     "strictNullChecks": true,
     "noImplicitAny": true,
-    "strictBindCallApply": false,
-    "strictFunctionTypes": false,
+    "strictBindCallApply": true,
+    "strictFunctionTypes": true,
     "strictPropertyInitialization": false,
-    "noImplicitThis": false,
+    "noImplicitThis": true,
     "noImplicitReturns": true,
-    "noImplicitOverride": false,
+    "noImplicitOverride": true,
     "exactOptionalPropertyTypes": false,
 
     // === ADDITIONAL CHECKS ===

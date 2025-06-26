@@ -3,13 +3,13 @@ import { ApiProperty } from '@nestjs/swagger';
 export class UserInfoDto {
   @ApiProperty({
     description: 'Unique user identifier',
-    example: '123e4567-e89b-12d3-a456-426614174000'
+    example: '123e4567-e89b-12d3-a456-426614174000',
   })
   id: string;
 
   @ApiProperty({
     description: 'User email address',
-    example: 'user@example.com'
+    example: 'user@example.com',
   })
   email: string;
 }
@@ -17,13 +17,13 @@ export class UserInfoDto {
 export class AuthValidationResponseDto {
   @ApiProperty({
     description: 'Indicates if the token validation was successful',
-    example: true
+    example: true,
   })
   success: true;
 
   @ApiProperty({
     description: 'Authenticated user information',
-    type: UserInfoDto
+    type: UserInfoDto,
   })
   user: UserInfoDto;
 }
@@ -31,13 +31,13 @@ export class AuthValidationResponseDto {
 export class AuthErrorResponseDto {
   @ApiProperty({
     description: 'Indicates the request failed',
-    example: false
+    example: false,
   })
   success: false;
 
   @ApiProperty({
     description: 'Error message',
-    example: 'Token invalide'
+    example: 'Token invalide',
   })
   error: string;
 }

@@ -1,11 +1,11 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable } from '@nestjs/common';
 import {
   type Transaction,
   type TransactionCreate,
   type TransactionUpdate,
   type ExpenseType,
   type TransactionType,
-} from "@pulpe/shared";
+} from '@pulpe/shared';
 
 export interface TransactionDbEntity {
   id: string;
@@ -54,8 +54,8 @@ export class TransactionMapper {
    */
   toDbCreate(
     createDto: TransactionCreate,
-    userId: string
-  ): Omit<TransactionDbEntity, "id" | "created_at" | "updated_at"> {
+    userId: string,
+  ): Omit<TransactionDbEntity, 'id' | 'created_at' | 'updated_at'> {
     return {
       budget_id: createDto.budgetId,
       amount: createDto.amount,
@@ -72,54 +72,40 @@ export class TransactionMapper {
    * Transforme un DTO de mise à jour (camelCase) vers format DB (snake_case)
    */
   toDbUpdate(
-    updateDto: TransactionUpdate
+    updateDto: TransactionUpdate,
   ): Partial<
     Pick<
       TransactionDbEntity,
-      | "budget_id"
-      | "amount"
-      | "type"
-      | "expense_type"
-      | "name"
-      | "description"
-      | "is_recurring"
+      | 'budget_id'
+      | 'amount'
+      | 'type'
+      | 'expense_type'
+      | 'name'
+      | 'description'
+      | 'is_recurring'
     >
   > {
-    const updateData: Partial<
-      Pick<
-        TransactionDbEntity,
-        | "budget_id"
-        | "amount"
-        | "type"
-        | "expense_type"
-        | "name"
-        | "description"
-        | "is_recurring"
-      >
-    > = {};
+    const fieldMappings = this.getUpdateFieldMappings();
+    const updateData: Record<string, unknown> = {};
 
-    if (updateDto.budgetId !== undefined) {
-      updateData.budget_id = updateDto.budgetId;
-    }
-    if (updateDto.amount !== undefined) {
-      updateData.amount = updateDto.amount;
-    }
-    if (updateDto.type !== undefined) {
-      updateData.type = updateDto.type;
-    }
-    if (updateDto.expenseType !== undefined) {
-      updateData.expense_type = updateDto.expenseType;
-    }
-    if (updateDto.name !== undefined) {
-      updateData.name = updateDto.name;
-    }
-    if (updateDto.description !== undefined) {
-      updateData.description = updateDto.description;
-    }
-    if (updateDto.isRecurring !== undefined) {
-      updateData.is_recurring = updateDto.isRecurring;
+    for (const [dtoField, dbField] of Object.entries(fieldMappings)) {
+      if (updateDto[dtoField as keyof TransactionUpdate] !== undefined) {
+        updateData[dbField] = updateDto[dtoField as keyof TransactionUpdate];
+      }
     }
 
     return updateData;
+  }
+
+  private getUpdateFieldMappings(): Record<string, string> {
+    return {
+      budgetId: 'budget_id',
+      amount: 'amount',
+      type: 'type',
+      expenseType: 'expense_type',
+      name: 'name',
+      description: 'description',
+      isRecurring: 'is_recurring',
+    };
   }
 }

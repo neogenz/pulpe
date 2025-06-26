@@ -1,28 +1,43 @@
 // @ts-check
 const eslint = require('@eslint/js');
 const tseslint = require('typescript-eslint');
+const nestjsTyped = require('@darraghor/eslint-plugin-nestjs-typed');
+const prettier = require('eslint-plugin-prettier');
+const prettierConfig = require('eslint-config-prettier');
 
 module.exports = tseslint.config(
   {
-    files: ['**/*.ts'],
-    ignores: ['dist/**', 'node_modules/**', '*.js'],
-    extends: [eslint.configs.recommended, ...tseslint.configs.recommended],
-    languageOptions: {
-      parserOptions: {
-        project: true,
-        tsconfigRootDir: __dirname,
-      },
+    ignores: ['dist/**', 'node_modules/**', '**/*.js', '**/*.d.ts'],
+  },
+  eslint.configs.recommended,
+  ...tseslint.configs.recommended,
+  prettierConfig,
+  {
+    files: ['src/**/*.ts'],
+    plugins: {
+      prettier: prettier,
     },
     rules: {
+      // === PRETTIER INTEGRATION ===
+      'prettier/prettier': 'error',
+
+      // === NESTJS SPECIFIC RULES ===
+      // NestJS-typed plugin rules will be added later once we verify available rules
+
       // === TYPESCRIPT BASIC RULES ===
       '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-unused-vars': 'error',
-      '@typescript-eslint/prefer-nullish-coalescing': 'warn',
-      '@typescript-eslint/prefer-optional-chain': 'warn',
-      '@typescript-eslint/no-non-null-assertion': 'warn',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          destructuredArrayIgnorePattern: '^_',
+        },
+      ],
       '@typescript-eslint/ban-ts-comment': 'warn',
+      '@typescript-eslint/prefer-as-const': 'error',
 
-      // === NAMING CONVENTIONS (basiques) ===
+      // === BASIC NAMING CONVENTIONS ===
       '@typescript-eslint/naming-convention': [
         'error',
         {
@@ -31,6 +46,10 @@ module.exports = tseslint.config(
         },
         {
           selector: 'interface',
+          format: ['PascalCase'],
+        },
+        {
+          selector: 'typeAlias',
           format: ['PascalCase'],
         },
         {
@@ -43,11 +62,17 @@ module.exports = tseslint.config(
         },
         {
           selector: 'variable',
-          format: ['camelCase', 'UPPER_CASE'],
+          format: ['camelCase', 'UPPER_CASE', 'PascalCase'],
+          leadingUnderscore: 'allow',
+        },
+        {
+          selector: 'parameter',
+          format: ['camelCase'],
+          leadingUnderscore: 'allow',
         },
       ],
 
-      // === CODE QUALITY RULES (progressives) ===
+      // === CODE QUALITY RULES ===
       complexity: ['warn', 15],
       'max-lines-per-function': ['warn', 50],
       'max-params': ['warn', 7],
@@ -55,16 +80,21 @@ module.exports = tseslint.config(
       'no-debugger': 'error',
       'prefer-const': 'error',
       'no-var': 'error',
+      'no-duplicate-imports': 'error',
+      'prefer-template': 'error',
+      'object-shorthand': 'error',
+      'no-unused-private-class-members': 'off',
 
-      // === NESTJS BASIC RULES ===
-      '@typescript-eslint/explicit-function-return-type': 'off', // Trop strict pour commencer
-      '@typescript-eslint/no-floating-promises': 'warn',
+      // === NESTJS ARCHITECTURAL RULES ===
+      '@typescript-eslint/explicit-function-return-type': 'off', // Trop strict pour les contrôleurs NestJS
+      '@typescript-eslint/explicit-module-boundary-types': 'off', // Trop strict pour NestJS
+      '@typescript-eslint/no-extraneous-class': 'off', // Modules NestJS ont souvent des classes vides
     },
   },
 
   // === TEST FILES SPECIFIC RULES ===
   {
-    files: ['**/*.spec.ts'],
+    files: ['src/**/*.spec.ts', 'src/**/*.test.ts', 'src/test/**/*.ts'],
     rules: {
       // Tests plus permissifs
       'max-lines-per-function': 'off',
@@ -72,6 +102,8 @@ module.exports = tseslint.config(
       'max-params': 'off',
       'no-console': 'off',
       complexity: 'off',
+      '@typescript-eslint/no-floating-promises': 'off',
+      '@typescript-eslint/require-await': 'off',
     },
-  }
+  },
 );

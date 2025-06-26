@@ -9,10 +9,6 @@
   "typescript.suggest.includeCompletionsForModuleExports": true,
   "files.insertFinalNewline": true,
   "files.trimTrailingWhitespace": true,
-  "eslint.validate": [
-    "typescript"
-  ],
-  "eslint.workingDirectories": [
-    "./backend-nest"
-  ]
-} 
+  "eslint.validate": ["typescript"],
+  "eslint.workingDirectories": ["./backend-nest"]
+}

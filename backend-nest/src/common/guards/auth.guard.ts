@@ -2,6 +2,7 @@ import {
   CanActivate,
   ExecutionContext,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
@@ -10,6 +11,8 @@ import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
+  private readonly logger = new Logger(AuthGuard.name);
+
   constructor(
     private readonly supabaseService: SupabaseService,
     private readonly reflector: Reflector,
@@ -20,19 +23,20 @@ export class AuthGuard implements CanActivate {
     const accessToken = this.extractTokenFromHeader(request);
 
     if (!accessToken) {
-      throw new UnauthorizedException('Token d\'accès requis');
+      throw new UnauthorizedException("Token d'accès requis");
     }
 
     try {
-      const supabase = this.supabaseService.createAuthenticatedClient(accessToken);
-      
+      const supabase =
+        this.supabaseService.createAuthenticatedClient(accessToken);
+
       const {
         data: { user },
         error: userError,
       } = await supabase.auth.getUser();
 
       if (userError || !user) {
-        throw new UnauthorizedException('Token d\'accès invalide ou expiré');
+        throw new UnauthorizedException("Token d'accès invalide ou expiré");
       }
 
       const authenticatedUser: AuthenticatedUser = {
@@ -50,15 +54,17 @@ export class AuthGuard implements CanActivate {
       if (error instanceof UnauthorizedException) {
         throw error;
       }
-      console.error('Erreur middleware auth:', error);
-      throw new UnauthorizedException('Erreur d\'authentification');
+      this.logger.error('Erreur middleware auth:', error);
+      throw new UnauthorizedException("Erreur d'authentification");
     }
   }
 
-  private extractTokenFromHeader(request: any): string | undefined {
+  private extractTokenFromHeader(request: {
+    headers?: { authorization?: string };
+  }): string | undefined {
     const authHeader = request.headers?.authorization;
     if (!authHeader) return undefined;
-    
+
     const [type, token] = authHeader.split(' ') ?? [];
     return type === 'Bearer' ? token : undefined;
   }
@@ -66,6 +72,8 @@ export class AuthGuard implements CanActivate {
 
 @Injectable()
 export class OptionalAuthGuard implements CanActivate {
+  private readonly logger = new Logger(OptionalAuthGuard.name);
+
   constructor(private readonly supabaseService: SupabaseService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -77,8 +85,9 @@ export class OptionalAuthGuard implements CanActivate {
     }
 
     try {
-      const supabase = this.supabaseService.createAuthenticatedClient(accessToken);
-      
+      const supabase =
+        this.supabaseService.createAuthenticatedClient(accessToken);
+
       const {
         data: { user },
         error: userError,
@@ -98,15 +107,17 @@ export class OptionalAuthGuard implements CanActivate {
 
       return true;
     } catch (error) {
-      console.error('Erreur middleware auth optionnel:', error);
+      this.logger.error('Erreur middleware auth optionnel:', error);
       return true;
     }
   }
 
-  private extractTokenFromHeader(request: any): string | undefined {
+  private extractTokenFromHeader(request: {
+    headers?: { authorization?: string };
+  }): string | undefined {
     const authHeader = request.headers?.authorization;
     if (!authHeader) return undefined;
-    
+
     const [type, token] = authHeader.split(' ') ?? [];
     return type === 'Bearer' ? token : undefined;
   }

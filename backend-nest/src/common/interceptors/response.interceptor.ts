@@ -18,17 +18,20 @@ export interface Response<T> {
 
 @Injectable()
 export class ResponseInterceptor<T> implements NestInterceptor<T, Response<T>> {
-  intercept(context: ExecutionContext, next: CallHandler): Observable<Response<T>> {
+  intercept(
+    context: ExecutionContext,
+    next: CallHandler,
+  ): Observable<Response<T>> {
     const request = context.switchToHttp().getRequest();
     const response = context.switchToHttp().getResponse();
-    
+
     return next.handle().pipe(
       map((data) => {
         // If the response already has a success field, return as is
         if (data && typeof data === 'object' && 'success' in data) {
           return data;
         }
-        
+
         return {
           success: true,
           data,

@@ -1,19 +1,18 @@
-import { type TestingModule } from "@nestjs/testing";
-import type { AuthenticatedUser } from "@common/decorators/user.decorator";
-import type { AuthenticatedSupabaseClient } from "@modules/supabase/supabase.service";
+import type { AuthenticatedUser } from '@common/decorators/user.decorator';
+import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 
-export const MOCK_USER_ID = "test-user-id-123";
-export const MOCK_BUDGET_ID = "test-budget-id-456";
-export const MOCK_TRANSACTION_ID = "test-transaction-id-789";
-export const MOCK_TEMPLATE_ID = "test-template-id-101";
+export const MOCK_USER_ID = 'test-user-id-123';
+export const MOCK_BUDGET_ID = 'test-budget-id-456';
+export const MOCK_TRANSACTION_ID = 'test-transaction-id-789';
+export const MOCK_TEMPLATE_ID = 'test-template-id-101';
 
 export const createMockAuthenticatedUser = (
-  overrides?: Partial<AuthenticatedUser>
+  overrides?: Partial<AuthenticatedUser>,
 ): AuthenticatedUser => ({
   id: MOCK_USER_ID,
-  email: "test@example.com",
-  firstName: "John",
-  lastName: "Doe",
+  email: 'test@example.com',
+  firstName: 'John',
+  lastName: 'Doe',
   ...overrides,
 });
 
@@ -22,10 +21,10 @@ export const createMockBudgetDbEntity = (overrides?: any) => ({
   user_id: MOCK_USER_ID,
   month: 11,
   year: 2024,
-  description: "Test Budget",
+  description: 'Test Budget',
   monthly_income: 5000,
-  created_at: "2024-01-01T00:00:00.000Z",
-  updated_at: "2024-01-01T00:00:00.000Z",
+  created_at: '2024-01-01T00:00:00.000Z',
+  updated_at: '2024-01-01T00:00:00.000Z',
   ...overrides,
 });
 
@@ -33,45 +32,64 @@ export const createMockTransactionDbEntity = (overrides?: any) => ({
   id: MOCK_TRANSACTION_ID,
   user_id: MOCK_USER_ID,
   budget_id: MOCK_BUDGET_ID,
-  title: "Test Transaction",
+  title: 'Test Transaction',
   amount: 100,
-  expense_type: "FIXED",
-  transaction_type: "EXPENSE",
-  created_at: "2024-01-01T00:00:00.000Z",
-  updated_at: "2024-01-01T00:00:00.000Z",
+  expense_type: 'FIXED',
+  transaction_type: 'EXPENSE',
+  created_at: '2024-01-01T00:00:00.000Z',
+  updated_at: '2024-01-01T00:00:00.000Z',
   ...overrides,
 });
 
 export const createMockBudgetTemplateDbEntity = (overrides?: any) => ({
   id: MOCK_TEMPLATE_ID,
   user_id: MOCK_USER_ID,
-  name: "Test Template",
-  description: "Test Description",
-  created_at: "2024-01-01T00:00:00.000Z",
-  updated_at: "2024-01-01T00:00:00.000Z",
+  name: 'Test Template',
+  description: 'Test Description',
+  created_at: '2024-01-01T00:00:00.000Z',
+  updated_at: '2024-01-01T00:00:00.000Z',
   ...overrides,
 });
 
 // Enhanced error silencing system
 export class TestErrorSilencer {
   #originalConsoleError: typeof console.error;
+  #originalConsoleWarn: typeof console.warn;
+  #originalConsoleLog: typeof console.log;
   #isActive: boolean = false;
 
   constructor() {
     this.#originalConsoleError = console.error;
+    this.#originalConsoleWarn = console.warn;
+    this.#originalConsoleLog = console.log;
   }
 
   silenceExpectedErrors(): void {
     if (this.#isActive) return;
 
     this.#isActive = true;
-    console.error = () => {}; // Silence all console.error during test
+    // Silence all console methods and capture process.stdout/stderr
+    console.error = () => {};
+    console.warn = () => {};
+    console.log = (message: any, ...args: any[]) => {
+      // Only allow specific test messages through
+      const messageStr = String(message);
+      if (
+        messageStr.includes('🧪 Test environment') ||
+        messageStr.includes('🚀 Starting load test')
+      ) {
+        this.#originalConsoleLog(message, ...args);
+      }
+      // Silence NestJS logs and other noise
+    };
   }
 
   restoreErrorLogging(): void {
     if (!this.#isActive) return;
 
     console.error = this.#originalConsoleError;
+    console.warn = this.#originalConsoleWarn;
+    console.log = this.#originalConsoleLog;
     this.#isActive = false;
   }
 
@@ -95,21 +113,21 @@ export class MockSupabaseClient {
   #mockRpcError: any = null;
 
   // Mock the chain: from().select().order().eq().single()
-  from(table: string) {
+  from(_table: string) {
     const chainMethods = {
-      select: (columns: string) => chainMethods,
-      order: (column: string, options?: any) => chainMethods,
-      eq: (column: string, value: any) => chainMethods,
+      select: (_columns: string) => chainMethods,
+      order: (_column: string, _options?: any) => chainMethods,
+      eq: (_column: string, _value: any) => chainMethods,
       single: () =>
         Promise.resolve({ data: this.#mockData, error: this.#mockError }),
-      insert: (data: any) => ({
+      insert: (_data: any) => ({
         select: () => ({
           single: () =>
             Promise.resolve({ data: this.#mockData, error: this.#mockError }),
         }),
       }),
-      update: (data: any) => ({
-        eq: (column: string, value: any) => ({
+      update: (_data: any) => ({
+        eq: (_column: string, _value: any) => ({
           select: () => ({
             single: () =>
               Promise.resolve({ data: this.#mockData, error: this.#mockError }),
@@ -117,12 +135,12 @@ export class MockSupabaseClient {
         }),
       }),
       delete: () => ({
-        eq: (column: string, value: any) =>
+        eq: (_column: string, _value: any) =>
           Promise.resolve({ error: this.#mockError }),
       }),
-      then: (callback: any) => {
+      then: (_callback: any) => {
         return Promise.resolve().then(() =>
-          callback({ data: this.#mockData, error: this.#mockError })
+          _callback({ data: this.#mockData, error: this.#mockError }),
         );
       },
     };
@@ -130,7 +148,7 @@ export class MockSupabaseClient {
     return chainMethods;
   }
 
-  rpc(functionName: string, params: any) {
+  rpc(_functionName: string, _params: any) {
     return Promise.resolve({
       data: this.#mockRpcData,
       error: this.#mockRpcError,
@@ -187,12 +205,12 @@ export const createTestingModuleBuilder = () => {
   const mockConfigService = {
     get: (key: string) => {
       switch (key) {
-        case "SUPABASE_URL":
-          return "https://test-supabase-url.supabase.co";
-        case "SUPABASE_ANON_KEY":
-          return "test-anon-key";
-        case "SUPABASE_SERVICE_ROLE_KEY":
-          return "test-service-role-key";
+        case 'SUPABASE_URL':
+          return 'https://test-supabase-url.supabase.co';
+        case 'SUPABASE_ANON_KEY':
+          return 'test-anon-key';
+        case 'SUPABASE_SERVICE_ROLE_KEY':
+          return 'test-service-role-key';
         default:
           return undefined;
       }
@@ -213,9 +231,9 @@ export const createTestingModuleBuilder = () => {
 
 export const expectSuccessResponse = (
   response: any,
-  expectedData?: any
+  expectedData?: any,
 ): void => {
-  expect(response).toHaveProperty("success", true);
+  expect(response).toHaveProperty('success', true);
   if (expectedData) {
     expect(response.data).toEqual(expectedData);
   }
@@ -281,7 +299,7 @@ export const expectTransactionStructure = (transaction: any): void => {
 export const expectListResponse = <T>(
   response: any,
   validator: (item: T) => void,
-  expectedMinLength: number = 0
+  expectedMinLength: number = 0,
 ): void => {
   expectSuccessResponse(response);
   expect(Array.isArray(response.data)).toBe(true);
@@ -292,7 +310,7 @@ export const expectListResponse = <T>(
 export const expectPerformance = async (
   operation: () => Promise<any>,
   maxExecutionTimeMs: number = 100,
-  operationName: string = "operation"
+  operationName: string = 'operation',
 ): Promise<void> => {
   const startTime = Date.now();
   await operation();
@@ -300,9 +318,9 @@ export const expectPerformance = async (
 
   expect(executionTime).toBeLessThan(maxExecutionTimeMs);
 
-  if (process.env.DEBUG_PERFORMANCE === "true") {
+  if (process.env.DEBUG_PERFORMANCE === 'true') {
     console.log(
-      `⚡ ${operationName} executed in ${executionTime}ms (limit: ${maxExecutionTimeMs}ms)`
+      `⚡ ${operationName} executed in ${executionTime}ms (limit: ${maxExecutionTimeMs}ms)`,
     );
   }
 };
@@ -314,7 +332,7 @@ export const expectApiResponseStructure = (response: any): void => {
   });
 
   if (response.success === false) {
-    expect(response).toHaveProperty("error");
+    expect(response).toHaveProperty('error');
     expect(response.error).toBeTruthy();
   }
 };
@@ -322,7 +340,7 @@ export const expectApiResponseStructure = (response: any): void => {
 export const expectDatabaseError = (error: any): void => {
   expect(error).toBeInstanceOf(Error);
   expect(error.message).toBeTruthy();
-  expect(typeof error.message).toBe("string");
+  expect(typeof error.message).toBe('string');
 };
 
 export const expectValidTimestamp = (timestamp: string): void => {
@@ -333,19 +351,19 @@ export const expectValidTimestamp = (timestamp: string): void => {
 
 export const expectValidUuid = (id: string): void => {
   expect(id).toMatch(
-    /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i
+    /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i,
   );
 };
 
 export const expectErrorThrown = async (
   promiseFunction: () => Promise<any>,
   expectedErrorType: any,
-  expectedMessage?: string
+  expectedMessage?: string,
 ): Promise<void> => {
   await testErrorSilencer.withSilencedErrors(async () => {
     try {
       await promiseFunction();
-      throw new Error("Expected function to throw an error");
+      throw new Error('Expected function to throw an error');
     } catch (error) {
       expect(error).toBeInstanceOf(expectedErrorType);
       if (expectedMessage) {
@@ -359,16 +377,16 @@ export const expectErrorThrown = async (
 // Load testing utilities
 export class LoadTestRunner {
   #concurrentRequests: number;
-  #testDuration: number;
+  #_testDuration: number;
 
   constructor(concurrentRequests: number = 10, testDurationMs: number = 5000) {
     this.#concurrentRequests = concurrentRequests;
-    this.#testDuration = testDurationMs;
+    this.#_testDuration = testDurationMs;
   }
 
   async runConcurrentTest<T>(
     operation: () => Promise<T>,
-    operationName: string = "operation"
+    operationName: string = 'operation',
   ): Promise<LoadTestResult> {
     const startTime = Date.now();
     const results: Array<{
@@ -380,12 +398,12 @@ export class LoadTestRunner {
     console.log(
       `🚀 Starting load test: ${
         this.#concurrentRequests
-      } concurrent ${operationName}`
+      } concurrent ${operationName}`,
     );
 
     const promises = Array.from(
       { length: this.#concurrentRequests },
-      async (_, index) => {
+      async (_, _index) => {
         const operationStart = Date.now();
         try {
           await operation();
@@ -395,7 +413,7 @@ export class LoadTestRunner {
           const duration = Date.now() - operationStart;
           results.push({ success: false, duration, error: error as Error });
         }
-      }
+      },
     );
 
     await Promise.allSettled(promises);
@@ -414,7 +432,7 @@ export class LoadTestRunner {
       requestsPerSecond: (this.#concurrentRequests / totalDuration) * 1000,
     };
 
-    if (process.env.DEBUG_PERFORMANCE === "true") {
+    if (process.env.DEBUG_PERFORMANCE === 'true') {
       console.log(`📊 Load test results for ${operationName}:`, loadTestResult);
     }
 
@@ -437,7 +455,7 @@ export const expectLoadTestPerformance = (
     minSuccessRate?: number;
     maxAverageResponseTime?: number;
     minRequestsPerSecond?: number;
-  }
+  },
 ): void => {
   const successRate = (result.successfulRequests / result.totalRequests) * 100;
 
@@ -447,13 +465,13 @@ export const expectLoadTestPerformance = (
 
   if (expectations.maxAverageResponseTime !== undefined) {
     expect(result.averageResponseTime).toBeLessThanOrEqual(
-      expectations.maxAverageResponseTime
+      expectations.maxAverageResponseTime,
     );
   }
 
   if (expectations.minRequestsPerSecond !== undefined) {
     expect(result.requestsPerSecond).toBeGreaterThanOrEqual(
-      expectations.minRequestsPerSecond
+      expectations.minRequestsPerSecond,
     );
   }
 };

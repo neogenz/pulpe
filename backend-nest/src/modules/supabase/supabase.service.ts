@@ -13,13 +13,16 @@ export class SupabaseService {
 
   constructor(private readonly configService: ConfigService) {
     this.#supabaseUrl = this.configService.get<string>('SUPABASE_URL')!;
-    this.#supabaseAnonKey = this.configService.get<string>('SUPABASE_ANON_KEY')!;
-    this.#supabaseServiceKey = this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY');
-    
+    this.#supabaseAnonKey =
+      this.configService.get<string>('SUPABASE_ANON_KEY')!;
+    this.#supabaseServiceKey = this.configService.get<string>(
+      'SUPABASE_SERVICE_ROLE_KEY',
+    );
+
     if (!this.#supabaseUrl || !this.#supabaseAnonKey) {
       throw new Error('SUPABASE_URL and SUPABASE_ANON_KEY must be defined');
     }
-    
+
     this.#baseClient = createClient(this.#supabaseUrl, this.#supabaseAnonKey);
   }
 
@@ -50,7 +53,7 @@ export class SupabaseService {
     if (!this.#supabaseServiceKey) {
       throw new Error('Service role key not configured');
     }
-    
+
     return createClient(this.#supabaseUrl, this.#supabaseServiceKey);
   }
 }

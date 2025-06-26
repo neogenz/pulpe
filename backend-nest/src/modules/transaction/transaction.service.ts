@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import {
   type TransactionCreate,
   type TransactionUpdate,
@@ -6,10 +12,15 @@ import {
 } from '@pulpe/shared';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import { TransactionMapper, type TransactionDbEntity } from './transaction.mapper';
+import {
+  TransactionMapper,
+  type TransactionDbEntity,
+} from './transaction.mapper';
 
 @Injectable()
 export class TransactionService {
+  private readonly logger = new Logger(TransactionService.name);
+
   constructor(private readonly transactionMapper: TransactionMapper) {}
   async findByBudget(
     budgetId: string,
@@ -24,11 +35,15 @@ export class TransactionService {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Erreur récupération transactions:', error);
-        throw new InternalServerErrorException('Erreur lors de la récupération des transactions');
+        this.logger.error('Erreur récupération transactions:', error);
+        throw new InternalServerErrorException(
+          'Erreur lors de la récupération des transactions',
+        );
       }
 
-      const transactions = this.transactionMapper.toApiList(transactionsDb || []);
+      const transactions = this.transactionMapper.toApiList(
+        transactionsDb || [],
+      );
 
       return {
         success: true as const,
@@ -38,7 +53,7 @@ export class TransactionService {
       if (error instanceof InternalServerErrorException) {
         throw error;
       }
-      console.error('Erreur liste transactions:', error);
+      this.logger.error('Erreur liste transactions:', error);
       throw new InternalServerErrorException('Erreur interne du serveur');
     }
   }
@@ -49,7 +64,10 @@ export class TransactionService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionResponse> {
     try {
-      const transactionData = this.transactionMapper.toDbCreate(createTransactionDto, user.id);
+      const transactionData = this.transactionMapper.toDbCreate(
+        createTransactionDto,
+        user.id,
+      );
 
       const { data: transactionDb, error } = await supabase
         .from('transactions')
@@ -58,11 +76,15 @@ export class TransactionService {
         .single();
 
       if (error) {
-        console.error('Erreur création transaction:', error);
-        throw new BadRequestException('Erreur lors de la création de la transaction');
+        this.logger.error('Erreur création transaction:', error);
+        throw new BadRequestException(
+          'Erreur lors de la création de la transaction',
+        );
       }
 
-      const transaction = this.transactionMapper.toApi(transactionDb as TransactionDbEntity);
+      const transaction = this.transactionMapper.toApi(
+        transactionDb as TransactionDbEntity,
+      );
 
       return {
         success: true as const,
@@ -72,7 +94,7 @@ export class TransactionService {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      console.error('Erreur création transaction:', error);
+      this.logger.error('Erreur création transaction:', error);
       throw new InternalServerErrorException('Erreur interne du serveur');
     }
   }
@@ -90,10 +112,14 @@ export class TransactionService {
         .single();
 
       if (error || !transactionDb) {
-        throw new NotFoundException('Transaction introuvable ou accès non autorisé');
+        throw new NotFoundException(
+          'Transaction introuvable ou accès non autorisé',
+        );
       }
 
-      const transaction = this.transactionMapper.toApi(transactionDb as TransactionDbEntity);
+      const transaction = this.transactionMapper.toApi(
+        transactionDb as TransactionDbEntity,
+      );
 
       return {
         success: true as const,
@@ -103,7 +129,7 @@ export class TransactionService {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      console.error('Erreur récupération transaction:', error);
+      this.logger.error('Erreur récupération transaction:', error);
       throw new InternalServerErrorException('Erreur interne du serveur');
     }
   }
@@ -128,11 +154,15 @@ export class TransactionService {
         .single();
 
       if (error || !transactionDb) {
-        console.error('Erreur modification transaction:', error);
-        throw new NotFoundException('Transaction introuvable ou modification non autorisée');
+        this.logger.error('Erreur modification transaction:', error);
+        throw new NotFoundException(
+          'Transaction introuvable ou modification non autorisée',
+        );
       }
 
-      const transaction = this.transactionMapper.toApi(transactionDb as TransactionDbEntity);
+      const transaction = this.transactionMapper.toApi(
+        transactionDb as TransactionDbEntity,
+      );
 
       return {
         success: true as const,
@@ -142,7 +172,7 @@ export class TransactionService {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      console.error('Erreur modification transaction:', error);
+      this.logger.error('Erreur modification transaction:', error);
       throw new InternalServerErrorException('Erreur interne du serveur');
     }
   }
@@ -159,8 +189,10 @@ export class TransactionService {
         .eq('id', id);
 
       if (error) {
-        console.error('Erreur suppression transaction:', error);
-        throw new NotFoundException('Transaction introuvable ou suppression non autorisée');
+        this.logger.error('Erreur suppression transaction:', error);
+        throw new NotFoundException(
+          'Transaction introuvable ou suppression non autorisée',
+        );
       }
 
       return {
@@ -171,7 +203,7 @@ export class TransactionService {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      console.error('Erreur suppression transaction:', error);
+      this.logger.error('Erreur suppression transaction:', error);
       throw new InternalServerErrorException('Erreur interne du serveur');
     }
   }

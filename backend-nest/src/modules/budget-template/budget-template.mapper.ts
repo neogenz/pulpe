@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { type BudgetTemplate, type BudgetTemplateCreate, type BudgetTemplateUpdate } from '@pulpe/shared';
+import {
+  type BudgetTemplate,
+  type BudgetTemplateCreate,
+  type BudgetTemplateUpdate,
+} from '@pulpe/shared';
 
 export interface BudgetTemplateDbEntity {
   id: string;
@@ -34,13 +38,16 @@ export class BudgetTemplateMapper {
    * Transforme plusieurs entités DB vers modèles API
    */
   toApiList(templatesDb: BudgetTemplateDbEntity[]): BudgetTemplate[] {
-    return templatesDb.map(template => this.toApi(template));
+    return templatesDb.map((template) => this.toApi(template));
   }
 
   /**
    * Transforme un DTO de création (camelCase) vers format DB (snake_case)
    */
-  toDbCreate(createDto: BudgetTemplateCreate, userId: string): Omit<BudgetTemplateDbEntity, 'id' | 'created_at' | 'updated_at'> {
+  toDbCreate(
+    createDto: BudgetTemplateCreate,
+    userId: string,
+  ): Omit<BudgetTemplateDbEntity, 'id' | 'created_at' | 'updated_at'> {
     return {
       name: createDto.name,
       description: createDto.description ?? null,
@@ -53,8 +60,20 @@ export class BudgetTemplateMapper {
   /**
    * Transforme un DTO de mise à jour (camelCase) vers format DB (snake_case)
    */
-  toDbUpdate(updateDto: BudgetTemplateUpdate): Partial<Pick<BudgetTemplateDbEntity, 'name' | 'description' | 'category' | 'is_default'>> {
-    const updateData: Partial<Pick<BudgetTemplateDbEntity, 'name' | 'description' | 'category' | 'is_default'>> = {};
+  toDbUpdate(
+    updateDto: BudgetTemplateUpdate,
+  ): Partial<
+    Pick<
+      BudgetTemplateDbEntity,
+      'name' | 'description' | 'category' | 'is_default'
+    >
+  > {
+    const updateData: Partial<
+      Pick<
+        BudgetTemplateDbEntity,
+        'name' | 'description' | 'category' | 'is_default'
+      >
+    > = {};
 
     if (updateDto.name !== undefined) {
       updateData.name = updateDto.name;

@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach } from "bun:test";
-import { Test, type TestingModule } from "@nestjs/testing";
-import { BudgetService } from "./budget.service";
-import { BudgetMapper } from "./budget.mapper";
+import { describe, it, expect, beforeEach } from 'bun:test';
+import { Test, type TestingModule } from '@nestjs/testing';
+import { BudgetService } from './budget.service';
+import { BudgetMapper } from './budget.mapper';
 import {
   createMockAuthenticatedUser,
   createMockSupabaseClient,
@@ -11,12 +11,12 @@ import {
   expectLoadTestPerformance,
   testErrorSilencer,
   MockSupabaseClient,
-} from "../../test/test-utils";
-import type { BudgetCreate } from "@pulpe/shared";
+} from '../../test/test-utils';
+import type { BudgetCreate } from '@pulpe/shared';
 
-describe("BudgetService (Performance)", () => {
+describe('BudgetService (Performance)', () => {
   let service: BudgetService;
-  let budgetMapper: BudgetMapper;
+  let _budgetMapper: BudgetMapper;
   let mockSupabaseClient: MockSupabaseClient;
   let loadTestRunner: LoadTestRunner;
 
@@ -47,17 +47,17 @@ describe("BudgetService (Performance)", () => {
     }).compile();
 
     service = module.get<BudgetService>(BudgetService);
-    budgetMapper = module.get<BudgetMapper>(BudgetMapper);
+    _budgetMapper = module.get<BudgetMapper>(BudgetMapper);
 
     loadTestRunner = new LoadTestRunner(50, 10000); // 50 concurrent requests, 10s timeout
   });
 
-  describe("Single Operation Performance", () => {
-    it("should perform findAll within performance limits", async () => {
+  describe('Single Operation Performance', () => {
+    it('should perform findAll within performance limits', async () => {
       // Arrange
       const mockUser = createMockAuthenticatedUser();
       const mockBudgets = Array.from({ length: 100 }, (_, i) =>
-        createMockBudgetDbEntity({ id: `budget-${i}` })
+        createMockBudgetDbEntity({ id: `budget-${i}` }),
       );
 
       mockSupabaseClient.setMockData(mockBudgets).setMockError(null);
@@ -67,23 +67,23 @@ describe("BudgetService (Performance)", () => {
         async () => {
           const result = await service.findAll(
             mockUser,
-            mockSupabaseClient as any
+            mockSupabaseClient as any,
           );
           expect(result.success).toBe(true);
           expect(result.data).toHaveLength(100);
         },
         50,
-        "BudgetService.findAll with 100 items"
+        'BudgetService.findAll with 100 items',
       );
     });
 
-    it("should perform create operation within performance limits", async () => {
+    it('should perform create operation within performance limits', async () => {
       // Arrange
       const mockUser = createMockAuthenticatedUser();
       const createBudgetDto: BudgetCreate = {
         month: 11,
         year: 2024,
-        description: "Performance Test Budget",
+        description: 'Performance Test Budget',
         monthlyIncome: 5000,
       };
       const mockCreatedBudget = createMockBudgetDbEntity();
@@ -96,19 +96,19 @@ describe("BudgetService (Performance)", () => {
           const result = await service.create(
             createBudgetDto,
             mockUser,
-            mockSupabaseClient as any
+            mockSupabaseClient as any,
           );
           expect(result.success).toBe(true);
         },
         30,
-        "BudgetService.create"
+        'BudgetService.create',
       );
     });
 
-    it("should perform findOne operation within performance limits", async () => {
+    it('should perform findOne operation within performance limits', async () => {
       // Arrange
       const mockUser = createMockAuthenticatedUser();
-      const budgetId = "test-budget-id";
+      const budgetId = 'test-budget-id';
       const mockBudget = createMockBudgetDbEntity({ id: budgetId });
 
       mockSupabaseClient.setMockData(mockBudget).setMockError(null);
@@ -119,17 +119,17 @@ describe("BudgetService (Performance)", () => {
           const result = await service.findOne(
             budgetId,
             mockUser,
-            mockSupabaseClient as any
+            mockSupabaseClient as any,
           );
           expect(result.success).toBe(true);
           expect(result.data.id).toBe(budgetId);
         },
         25,
-        "BudgetService.findOne"
+        'BudgetService.findOne',
       );
     });
 
-    it("should handle large dataset operations efficiently", async () => {
+    it('should handle large dataset operations efficiently', async () => {
       // Arrange
       const mockUser = createMockAuthenticatedUser();
       const largeBudgetList = Array.from({ length: 1000 }, (_, i) =>
@@ -137,7 +137,7 @@ describe("BudgetService (Performance)", () => {
           id: `budget-${i}`,
           description: `Budget ${i}`,
           monthly_income: 5000 + i * 100,
-        })
+        }),
       );
 
       mockSupabaseClient.setMockData(largeBudgetList).setMockError(null);
@@ -147,28 +147,28 @@ describe("BudgetService (Performance)", () => {
         async () => {
           const result = await service.findAll(
             mockUser,
-            mockSupabaseClient as any
+            mockSupabaseClient as any,
           );
           expect(result.success).toBe(true);
           expect(result.data).toHaveLength(1000);
 
           // Verify that all items are properly mapped
-          result.data.forEach((budget, index) => {
-            expect(budget).toHaveProperty("mappedToApi", true);
+          result.data.forEach((budget, _index) => {
+            expect(budget).toHaveProperty('mappedToApi', true);
           });
         },
         200,
-        "BudgetService.findAll with 1000 items"
+        'BudgetService.findAll with 1000 items',
       );
     });
   });
 
-  describe("Load Testing", () => {
-    it("should handle concurrent findAll requests", async () => {
+  describe('Load Testing', () => {
+    it('should handle concurrent findAll requests', async () => {
       // Arrange
       const mockUser = createMockAuthenticatedUser();
       const mockBudgets = Array.from({ length: 10 }, (_, i) =>
-        createMockBudgetDbEntity({ id: `budget-${i}` })
+        createMockBudgetDbEntity({ id: `budget-${i}` }),
       );
 
       mockSupabaseClient.setMockData(mockBudgets).setMockError(null);
@@ -176,7 +176,7 @@ describe("BudgetService (Performance)", () => {
       // Act
       const result = await loadTestRunner.runConcurrentTest(async () => {
         return await service.findAll(mockUser, mockSupabaseClient as any);
-      }, "BudgetService.findAll");
+      }, 'BudgetService.findAll');
 
       // Assert
       expectLoadTestPerformance(result, {
@@ -189,13 +189,13 @@ describe("BudgetService (Performance)", () => {
       expect(result.failedRequests).toBeLessThanOrEqual(2); // Max 2 failures allowed
     });
 
-    it("should handle concurrent create requests", async () => {
+    it('should handle concurrent create requests', async () => {
       // Arrange
       const mockUser = createMockAuthenticatedUser();
       const createBudgetDto: BudgetCreate = {
         month: 11,
         year: 2024,
-        description: "Load Test Budget",
+        description: 'Load Test Budget',
         monthlyIncome: 5000,
       };
       const mockCreatedBudget = createMockBudgetDbEntity();
@@ -207,9 +207,9 @@ describe("BudgetService (Performance)", () => {
         return await service.create(
           createBudgetDto,
           mockUser,
-          mockSupabaseClient as any
+          mockSupabaseClient as any,
         );
-      }, "BudgetService.create");
+      }, 'BudgetService.create');
 
       // Assert
       expectLoadTestPerformance(result, {
@@ -219,14 +219,14 @@ describe("BudgetService (Performance)", () => {
       });
     });
 
-    it("should handle mixed operation load testing", async () => {
+    it('should handle mixed operation load testing', async () => {
       // Arrange
       const mockUser = createMockAuthenticatedUser();
       const mockBudgets = [createMockBudgetDbEntity()];
       const createBudgetDto: BudgetCreate = {
         month: 11,
         year: 2024,
-        description: "Mixed Load Test Budget",
+        description: 'Mixed Load Test Budget',
         monthlyIncome: 5000,
       };
 
@@ -236,39 +236,39 @@ describe("BudgetService (Performance)", () => {
       const mixedLoadTestRunner = new LoadTestRunner(25, 5000);
 
       // Act
-      const operations = ["findAll", "create", "findOne", "update"];
+      const operations = ['findAll', 'create', 'findOne', 'update'];
       const results = await Promise.all(
-        operations.map(async (operation, index) => {
+        operations.map(async (operation, _index) => {
           let testOperation: () => Promise<any>;
 
           switch (operation) {
-            case "findAll":
+            case 'findAll':
               testOperation = () =>
                 service.findAll(mockUser, mockSupabaseClient as any);
               break;
-            case "create":
+            case 'create':
               testOperation = () =>
                 service.create(
                   createBudgetDto,
                   mockUser,
-                  mockSupabaseClient as any
+                  mockSupabaseClient as any,
                 );
               break;
-            case "findOne":
+            case 'findOne':
               testOperation = () =>
                 service.findOne(
-                  "test-budget-id",
+                  'test-budget-id',
                   mockUser,
-                  mockSupabaseClient as any
+                  mockSupabaseClient as any,
                 );
               break;
-            case "update":
+            case 'update':
               testOperation = () =>
                 service.update(
-                  "test-budget-id",
-                  { description: "Updated" },
+                  'test-budget-id',
+                  { description: 'Updated' },
                   mockUser,
-                  mockSupabaseClient as any
+                  mockSupabaseClient as any,
                 );
               break;
             default:
@@ -279,10 +279,10 @@ describe("BudgetService (Performance)", () => {
             operation,
             result: await mixedLoadTestRunner.runConcurrentTest(
               testOperation,
-              `BudgetService.${operation}`
+              `BudgetService.${operation}`,
             ),
           };
-        })
+        }),
       );
 
       // Assert
@@ -291,7 +291,7 @@ describe("BudgetService (Performance)", () => {
         expect(result.successfulRequests).toBeGreaterThanOrEqual(20); // At least 80% success
         expect(result.averageResponseTime).toBeLessThan(200); // Max 200ms average
 
-        if (process.env.DEBUG_PERFORMANCE === "true") {
+        if (process.env.DEBUG_PERFORMANCE === 'true') {
           console.log(`📊 ${operation} load test:`, {
             successRate: `${(
               (result.successfulRequests / result.totalRequests) *
@@ -305,12 +305,12 @@ describe("BudgetService (Performance)", () => {
     });
   });
 
-  describe("Memory and Resource Usage", () => {
-    it("should not leak memory during repeated operations", async () => {
+  describe('Memory and Resource Usage', () => {
+    it('should not leak memory during repeated operations', async () => {
       // Arrange
       const mockUser = createMockAuthenticatedUser();
       const mockBudgets = Array.from({ length: 50 }, (_, i) =>
-        createMockBudgetDbEntity({ id: `budget-${i}` })
+        createMockBudgetDbEntity({ id: `budget-${i}` }),
       );
 
       mockSupabaseClient.setMockData(mockBudgets).setMockError(null);
@@ -336,21 +336,21 @@ describe("BudgetService (Performance)", () => {
       // Assert - Memory increase should be reasonable (less than 10MB)
       expect(memoryIncrease).toBeLessThan(10 * 1024 * 1024);
 
-      if (process.env.DEBUG_PERFORMANCE === "true") {
+      if (process.env.DEBUG_PERFORMANCE === 'true') {
         console.log(
           `💾 Memory usage: ${(memoryIncrease / 1024 / 1024).toFixed(
-            2
-          )}MB increase after 100 operations`
+            2,
+          )}MB increase after 100 operations`,
         );
       }
     });
 
-    it("should handle error scenarios under load without degradation", async () => {
+    it('should handle error scenarios under load without degradation', async () => {
       // Arrange
       const mockUser = createMockAuthenticatedUser();
       mockSupabaseClient
         .setMockData(null)
-        .setMockError({ message: "Simulated database error" });
+        .setMockError({ message: 'Simulated database error' });
 
       // Act
       const errorLoadTestRunner = new LoadTestRunner(20, 3000);
@@ -359,13 +359,13 @@ describe("BudgetService (Performance)", () => {
         return await errorLoadTestRunner.runConcurrentTest(async () => {
           try {
             await service.findAll(mockUser, mockSupabaseClient as any);
-            throw new Error("Expected error was not thrown");
+            throw new Error('Expected error was not thrown');
           } catch (error) {
             // Expected to throw InternalServerErrorException
             expect(error).toBeDefined();
             return { handled: true };
           }
-        }, "BudgetService.findAll error handling");
+        }, 'BudgetService.findAll error handling');
       });
 
       // Assert
@@ -375,8 +375,8 @@ describe("BudgetService (Performance)", () => {
     });
   });
 
-  describe("Edge Case Performance", () => {
-    it("should handle empty result sets efficiently", async () => {
+  describe('Edge Case Performance', () => {
+    it('should handle empty result sets efficiently', async () => {
       // Arrange
       const mockUser = createMockAuthenticatedUser();
       mockSupabaseClient.setMockData([]).setMockError(null);
@@ -386,17 +386,17 @@ describe("BudgetService (Performance)", () => {
         async () => {
           const result = await service.findAll(
             mockUser,
-            mockSupabaseClient as any
+            mockSupabaseClient as any,
           );
           expect(result.success).toBe(true);
           expect(result.data).toHaveLength(0);
         },
         20,
-        "BudgetService.findAll with empty result"
+        'BudgetService.findAll with empty result',
       );
     });
 
-    it("should handle null data efficiently", async () => {
+    it('should handle null data efficiently', async () => {
       // Arrange
       const mockUser = createMockAuthenticatedUser();
       mockSupabaseClient.setMockData(null).setMockError(null);
@@ -406,23 +406,23 @@ describe("BudgetService (Performance)", () => {
         async () => {
           const result = await service.findAll(
             mockUser,
-            mockSupabaseClient as any
+            mockSupabaseClient as any,
           );
           expect(result.success).toBe(true);
           expect(result.data).toHaveLength(0);
         },
         15,
-        "BudgetService.findAll with null data"
+        'BudgetService.findAll with null data',
       );
     });
 
-    it("should perform complex onboarding operations within limits", async () => {
+    it('should perform complex onboarding operations within limits', async () => {
       // Arrange
       const mockUser = createMockAuthenticatedUser();
       const onboardingData = {
         month: 11,
         year: 2024,
-        description: "Performance Test Onboarding",
+        description: 'Performance Test Onboarding',
         monthlyIncome: 5000,
         housingCosts: 1500,
         healthInsurance: 400,
@@ -442,12 +442,12 @@ describe("BudgetService (Performance)", () => {
           const result = await service.createFromOnboarding(
             onboardingData,
             mockUser,
-            mockSupabaseClient as any
+            mockSupabaseClient as any,
           );
           expect(result.success).toBe(true);
         },
         100,
-        "BudgetService.createFromOnboarding"
+        'BudgetService.createFromOnboarding',
       );
     });
   });

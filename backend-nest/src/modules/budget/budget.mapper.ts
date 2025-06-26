@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { type Budget, type BudgetCreate, type BudgetUpdate } from '@pulpe/shared';
+import {
+  type Budget,
+  type BudgetCreate,
+  type BudgetUpdate,
+} from '@pulpe/shared';
 
 export interface BudgetDbEntity {
   id: string;
@@ -32,13 +36,16 @@ export class BudgetMapper {
    * Transforme plusieurs entités DB vers modèles API
    */
   toApiList(budgetsDb: BudgetDbEntity[]): Budget[] {
-    return budgetsDb.map(budget => this.toApi(budget));
+    return budgetsDb.map((budget) => this.toApi(budget));
   }
 
   /**
    * Transforme un DTO de création (camelCase) vers format DB (snake_case)
    */
-  toDbCreate(createDto: BudgetCreate, userId: string): Omit<BudgetDbEntity, 'id' | 'created_at' | 'updated_at'> {
+  toDbCreate(
+    createDto: BudgetCreate,
+    userId: string,
+  ): Omit<BudgetDbEntity, 'id' | 'created_at' | 'updated_at'> {
     return {
       month: createDto.month,
       year: createDto.year,
@@ -50,8 +57,12 @@ export class BudgetMapper {
   /**
    * Transforme un DTO de mise à jour (camelCase) vers format DB (snake_case)
    */
-  toDbUpdate(updateDto: BudgetUpdate): Partial<Pick<BudgetDbEntity, 'month' | 'year' | 'description'>> {
-    const updateData: Partial<Pick<BudgetDbEntity, 'month' | 'year' | 'description'>> = {};
+  toDbUpdate(
+    updateDto: BudgetUpdate,
+  ): Partial<Pick<BudgetDbEntity, 'month' | 'year' | 'description'>> {
+    const updateData: Partial<
+      Pick<BudgetDbEntity, 'month' | 'year' | 'description'>
+    > = {};
 
     if (updateDto.month !== undefined) {
       updateData.month = updateDto.month;

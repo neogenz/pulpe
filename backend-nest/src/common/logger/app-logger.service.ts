@@ -7,7 +7,7 @@ interface ErrorLogContext {
   url?: string;
   userAgent?: string;
   ip?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 @Injectable()
@@ -15,7 +15,7 @@ export class AppLoggerService extends Logger {
   logError(
     error: Error | unknown,
     context?: string,
-    additionalContext?: ErrorLogContext
+    additionalContext?: ErrorLogContext,
   ): void {
     let errorMessage: string;
     let stackTrace: string | undefined;
@@ -35,7 +35,7 @@ export class AppLoggerService extends Logger {
           .join(' | ')
       : '';
 
-    const fullMessage = contextInfo 
+    const fullMessage = contextInfo
       ? `${errorMessage} | ${contextInfo}`
       : errorMessage;
 
@@ -45,7 +45,7 @@ export class AppLoggerService extends Logger {
   logInfo(
     message: string,
     context?: string,
-    additionalContext?: Record<string, any>
+    additionalContext?: Record<string, unknown>,
   ): void {
     const contextInfo = additionalContext
       ? Object.entries(additionalContext)
@@ -54,9 +54,7 @@ export class AppLoggerService extends Logger {
           .join(' | ')
       : '';
 
-    const fullMessage = contextInfo 
-      ? `${message} | ${contextInfo}`
-      : message;
+    const fullMessage = contextInfo ? `${message} | ${contextInfo}` : message;
 
     super.log(fullMessage, context);
   }
@@ -64,7 +62,7 @@ export class AppLoggerService extends Logger {
   logWarning(
     message: string,
     context?: string,
-    additionalContext?: Record<string, any>
+    additionalContext?: Record<string, unknown>,
   ): void {
     const contextInfo = additionalContext
       ? Object.entries(additionalContext)
@@ -73,9 +71,7 @@ export class AppLoggerService extends Logger {
           .join(' | ')
       : '';
 
-    const fullMessage = contextInfo 
-      ? `${message} | ${contextInfo}`
-      : message;
+    const fullMessage = contextInfo ? `${message} | ${contextInfo}` : message;
 
     super.warn(fullMessage, context);
   }
@@ -83,7 +79,7 @@ export class AppLoggerService extends Logger {
   logDebug(
     message: string,
     context?: string,
-    additionalContext?: Record<string, any>
+    additionalContext?: Record<string, unknown>,
   ): void {
     if (process.env.NODE_ENV === 'development') {
       const contextInfo = additionalContext
@@ -93,9 +89,7 @@ export class AppLoggerService extends Logger {
             .join(' | ')
         : '';
 
-      const fullMessage = contextInfo 
-        ? `${message} | ${contextInfo}`
-        : message;
+      const fullMessage = contextInfo ? `${message} | ${contextInfo}` : message;
 
       super.debug(fullMessage, context);
     }
