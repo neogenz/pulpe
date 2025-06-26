@@ -170,10 +170,6 @@ export interface TransactionsListConfig {
     :host {
       color: var(--mat-sys-on-surface);
 
-      mat-icon {
-        background-color: var(--mat-sys-surface);
-      }
-
       @include mat.list-overrides(
         (
           list-item-leading-avatar-color: none,
