@@ -169,6 +169,12 @@ importers:
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
+      lottie-web:
+        specifier: ^5.13.0
+        version: 5.13.0
+      ngx-lottie:
+        specifier: ^20.0.0
+        version: 20.0.0(@angular/core@20.0.4(@angular/compiler@20.0.4)(rxjs@7.8.2))(lottie-web@5.13.0)
       postcss:
         specifier: ^8.5.4
         version: 8.5.6
@@ -4004,6 +4010,9 @@ packages:
     resolution: {integrity: sha512-9ie8ItPR6tjY5uYJh8K/Zrv/RMZ5VOlOWvtZdEHYSTFKZfIBPQa9tOAEeAWhd+AnIneLJ22w5fjOYtoutpWq5w==}
     engines: {node: '>=18'}
 
+  lottie-web@5.13.0:
+    resolution: {integrity: sha512-+gfBXl6sxXMPe8tKQm7qzLnUy5DUPJPKIyRHwtpCpyUEYjHYRJC/5gjUvdkuO2c3JllrPtHXH5UJJK8LRYl5yQ==}
+
   loupe@3.1.4:
     resolution: {integrity: sha512-wJzkKwJrheKtknCOKNEtDK4iqg/MxmZheEMtSTYvnzRdEYaZzmgH976nenp8WdJRdx5Vc1X/9MO0Oszl6ezeXg==}
 
@@ -4265,6 +4274,12 @@ packages:
         optional: true
       '@nestjs/swagger':
         optional: true
+
+  ngx-lottie@20.0.0:
+    resolution: {integrity: sha512-8BRgwXH98bjvRqm1RPgk1+3cWcwDmoHjM08/9klK2Bunq0bfyhpz38tub5RH5CK8yBtYjQna/7BB8z6d0kClFQ==}
+    peerDependencies:
+      '@angular/core': '>=20'
+      lottie-web: '>=5.9.2'
 
   nice-try@1.0.5:
     resolution: {integrity: sha512-1nh45deeb5olNY7eX82BkPO7SSxR5SSYJiPTrTdFUVYwAl8CKMA5N9PjTYkHiRjisVcxcQ1HXdLhx2qxxJzLNQ==}
@@ -9779,6 +9794,8 @@ snapshots:
       strip-ansi: 7.1.0
       wrap-ansi: 9.0.0
 
+  lottie-web@5.13.0: {}
+
   loupe@3.1.4: {}
 
   lru-cache@10.4.3: {}
@@ -10020,6 +10037,13 @@ snapshots:
       '@nestjs/common': 11.1.3(class-transformer@0.5.1)(class-validator@0.14.2)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@nestjs/core': 11.1.3(@nestjs/common@11.1.3(class-transformer@0.5.1)(class-validator@0.14.2)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/platform-express@11.1.3)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@nestjs/swagger': 11.2.0(@nestjs/common@11.1.3(class-transformer@0.5.1)(class-validator@0.14.2)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.3)(class-transformer@0.5.1)(class-validator@0.14.2)(reflect-metadata@0.2.2)
+
+  ngx-lottie@20.0.0(@angular/core@20.0.4(@angular/compiler@20.0.4)(rxjs@7.8.2))(lottie-web@5.13.0):
+    dependencies:
+      '@angular/core': 20.0.4(@angular/compiler@20.0.4)(rxjs@7.8.2)
+      '@scarf/scarf': 1.4.0
+      lottie-web: 5.13.0
+      tslib: 2.8.1
 
   nice-try@1.0.5: {}
 
