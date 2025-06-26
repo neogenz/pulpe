@@ -1,0 +1,8 @@
+dist/
+node_modules/
+*.log
+*.md
+package-lock.json
+pnpm-lock.yaml
+schema.sql
+bunfig.toml 
