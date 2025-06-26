@@ -52,12 +52,47 @@ export const createMockBudgetTemplateDbEntity = (overrides?: any) => ({
   ...overrides,
 });
 
-// Simplified mock system that works with Bun
+// Enhanced error silencing system
+export class TestErrorSilencer {
+  #originalConsoleError: typeof console.error;
+  #isActive: boolean = false;
+
+  constructor() {
+    this.#originalConsoleError = console.error;
+  }
+
+  silenceExpectedErrors(): void {
+    if (this.#isActive) return;
+
+    this.#isActive = true;
+    console.error = () => {}; // Silence all console.error during test
+  }
+
+  restoreErrorLogging(): void {
+    if (!this.#isActive) return;
+
+    console.error = this.#originalConsoleError;
+    this.#isActive = false;
+  }
+
+  async withSilencedErrors<T>(testFunction: () => Promise<T>): Promise<T> {
+    this.silenceExpectedErrors();
+    try {
+      return await testFunction();
+    } finally {
+      this.restoreErrorLogging();
+    }
+  }
+}
+
+export const testErrorSilencer = new TestErrorSilencer();
+
+// Enhanced MockSupabaseClient with private fields
 export class MockSupabaseClient {
-  private mockData: any = null;
-  private mockError: any = null;
-  private mockRpcData: any = null;
-  private mockRpcError: any = null;
+  #mockData: any = null;
+  #mockError: any = null;
+  #mockRpcData: any = null;
+  #mockRpcError: any = null;
 
   // Mock the chain: from().select().order().eq().single()
   from(table: string) {
@@ -66,28 +101,28 @@ export class MockSupabaseClient {
       order: (column: string, options?: any) => chainMethods,
       eq: (column: string, value: any) => chainMethods,
       single: () =>
-        Promise.resolve({ data: this.mockData, error: this.mockError }),
+        Promise.resolve({ data: this.#mockData, error: this.#mockError }),
       insert: (data: any) => ({
         select: () => ({
           single: () =>
-            Promise.resolve({ data: this.mockData, error: this.mockError }),
+            Promise.resolve({ data: this.#mockData, error: this.#mockError }),
         }),
       }),
       update: (data: any) => ({
         eq: (column: string, value: any) => ({
           select: () => ({
             single: () =>
-              Promise.resolve({ data: this.mockData, error: this.mockError }),
+              Promise.resolve({ data: this.#mockData, error: this.#mockError }),
           }),
         }),
       }),
       delete: () => ({
         eq: (column: string, value: any) =>
-          Promise.resolve({ error: this.mockError }),
+          Promise.resolve({ error: this.#mockError }),
       }),
       then: (callback: any) => {
         return Promise.resolve().then(() =>
-          callback({ data: this.mockData, error: this.mockError })
+          callback({ data: this.#mockData, error: this.#mockError })
         );
       },
     };
@@ -97,42 +132,45 @@ export class MockSupabaseClient {
 
   rpc(functionName: string, params: any) {
     return Promise.resolve({
-      data: this.mockRpcData,
-      error: this.mockRpcError,
+      data: this.#mockRpcData,
+      error: this.#mockRpcError,
     });
   }
 
   auth = {
     getUser: () =>
-      Promise.resolve({ data: { user: this.mockData }, error: this.mockError }),
+      Promise.resolve({
+        data: { user: this.#mockData },
+        error: this.#mockError,
+      }),
   };
 
   // Helper methods to configure the mock
-  setMockData(data: any) {
-    this.mockData = data;
+  setMockData(data: any): this {
+    this.#mockData = data;
     return this;
   }
 
-  setMockError(error: any) {
-    this.mockError = error;
+  setMockError(error: any): this {
+    this.#mockError = error;
     return this;
   }
 
-  setMockRpcData(data: any) {
-    this.mockRpcData = data;
+  setMockRpcData(data: any): this {
+    this.#mockRpcData = data;
     return this;
   }
 
-  setMockRpcError(error: any) {
-    this.mockRpcError = error;
+  setMockRpcError(error: any): this {
+    this.#mockRpcError = error;
     return this;
   }
 
-  reset() {
-    this.mockData = null;
-    this.mockError = null;
-    this.mockRpcData = null;
-    this.mockRpcError = null;
+  reset(): this {
+    this.#mockData = null;
+    this.#mockError = null;
+    this.#mockRpcData = null;
+    this.#mockRpcError = null;
     return this;
   }
 }
@@ -173,14 +211,17 @@ export const createTestingModuleBuilder = () => {
   };
 };
 
-export const expectSuccessResponse = (response: any, expectedData?: any) => {
+export const expectSuccessResponse = (
+  response: any,
+  expectedData?: any
+): void => {
   expect(response).toHaveProperty("success", true);
   if (expectedData) {
     expect(response.data).toEqual(expectedData);
   }
 };
 
-export const expectBudgetStructure = (budget: any) => {
+export const expectBudgetStructure = (budget: any): void => {
   expect(budget).toMatchObject({
     id: expect.any(String),
     month: expect.any(Number),
@@ -190,9 +231,36 @@ export const expectBudgetStructure = (budget: any) => {
     createdAt: expect.any(String),
     updatedAt: expect.any(String),
   });
+
+  // Validate business rules
+  expect(budget.month).toBeGreaterThanOrEqual(1);
+  expect(budget.month).toBeLessThanOrEqual(12);
+  expect(budget.year).toBeGreaterThan(2000);
+  expect(budget.monthlyIncome).toBeGreaterThanOrEqual(0);
+  expect(budget.description).toBeTruthy();
 };
 
-export const expectTransactionStructure = (transaction: any) => {
+export const expectBudgetDbEntityStructure = (budget: any): void => {
+  expect(budget).toMatchObject({
+    id: expect.any(String),
+    month: expect.any(Number),
+    year: expect.any(Number),
+    description: expect.any(String),
+    monthly_income: expect.any(Number),
+    created_at: expect.any(String),
+    updated_at: expect.any(String),
+    user_id: expect.any(String),
+  });
+
+  // Validate business rules
+  expect(budget.month).toBeGreaterThanOrEqual(1);
+  expect(budget.month).toBeLessThanOrEqual(12);
+  expect(budget.year).toBeGreaterThan(2000);
+  expect(budget.monthly_income).toBeGreaterThanOrEqual(0);
+  expect(budget.description).toBeTruthy();
+};
+
+export const expectTransactionStructure = (transaction: any): void => {
   expect(transaction).toMatchObject({
     id: expect.any(String),
     budgetId: expect.any(String),
@@ -203,40 +271,189 @@ export const expectTransactionStructure = (transaction: any) => {
     createdAt: expect.any(String),
     updatedAt: expect.any(String),
   });
+
+  // Validate business rules
+  expect(transaction.amount).toBeGreaterThan(0);
+  expect(transaction.title).toBeTruthy();
+  expect(transaction.budgetId).toBeTruthy();
 };
 
 export const expectListResponse = <T>(
   response: any,
-  validator: (item: T) => void
-) => {
+  validator: (item: T) => void,
+  expectedMinLength: number = 0
+): void => {
   expectSuccessResponse(response);
   expect(Array.isArray(response.data)).toBe(true);
+  expect(response.data.length).toBeGreaterThanOrEqual(expectedMinLength);
   response.data.forEach(validator);
 };
 
 export const expectPerformance = async (
   operation: () => Promise<any>,
-  maxExecutionTimeMs: number = 100
-) => {
+  maxExecutionTimeMs: number = 100,
+  operationName: string = "operation"
+): Promise<void> => {
   const startTime = Date.now();
   await operation();
   const executionTime = Date.now() - startTime;
 
   expect(executionTime).toBeLessThan(maxExecutionTimeMs);
+
+  if (process.env.DEBUG_PERFORMANCE === "true") {
+    console.log(
+      `⚡ ${operationName} executed in ${executionTime}ms (limit: ${maxExecutionTimeMs}ms)`
+    );
+  }
+};
+
+export const expectApiResponseStructure = (response: any): void => {
+  expect(response).toMatchObject({
+    success: expect.any(Boolean),
+    data: expect.anything(),
+  });
+
+  if (response.success === false) {
+    expect(response).toHaveProperty("error");
+    expect(response.error).toBeTruthy();
+  }
+};
+
+export const expectDatabaseError = (error: any): void => {
+  expect(error).toBeInstanceOf(Error);
+  expect(error.message).toBeTruthy();
+  expect(typeof error.message).toBe("string");
+};
+
+export const expectValidTimestamp = (timestamp: string): void => {
+  expect(timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+  const date = new Date(timestamp);
+  expect(date.getTime()).not.toBeNaN();
+};
+
+export const expectValidUuid = (id: string): void => {
+  expect(id).toMatch(
+    /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i
+  );
 };
 
 export const expectErrorThrown = async (
   promiseFunction: () => Promise<any>,
   expectedErrorType: any,
   expectedMessage?: string
-) => {
-  try {
-    await promiseFunction();
-    throw new Error("Expected function to throw an error");
-  } catch (error) {
-    expect(error).toBeInstanceOf(expectedErrorType);
-    if (expectedMessage) {
-      expect(error.message).toContain(expectedMessage);
+): Promise<void> => {
+  await testErrorSilencer.withSilencedErrors(async () => {
+    try {
+      await promiseFunction();
+      throw new Error("Expected function to throw an error");
+    } catch (error) {
+      expect(error).toBeInstanceOf(expectedErrorType);
+      if (expectedMessage) {
+        expect((error as Error).message).toContain(expectedMessage);
+      }
+      expectDatabaseError(error as Error);
     }
+  });
+};
+
+// Load testing utilities
+export class LoadTestRunner {
+  #concurrentRequests: number;
+  #testDuration: number;
+
+  constructor(concurrentRequests: number = 10, testDurationMs: number = 5000) {
+    this.#concurrentRequests = concurrentRequests;
+    this.#testDuration = testDurationMs;
+  }
+
+  async runConcurrentTest<T>(
+    operation: () => Promise<T>,
+    operationName: string = "operation"
+  ): Promise<LoadTestResult> {
+    const startTime = Date.now();
+    const results: Array<{
+      success: boolean;
+      duration: number;
+      error?: Error;
+    }> = [];
+
+    console.log(
+      `🚀 Starting load test: ${
+        this.#concurrentRequests
+      } concurrent ${operationName}`
+    );
+
+    const promises = Array.from(
+      { length: this.#concurrentRequests },
+      async (_, index) => {
+        const operationStart = Date.now();
+        try {
+          await operation();
+          const duration = Date.now() - operationStart;
+          results.push({ success: true, duration });
+        } catch (error) {
+          const duration = Date.now() - operationStart;
+          results.push({ success: false, duration, error: error as Error });
+        }
+      }
+    );
+
+    await Promise.allSettled(promises);
+    const totalDuration = Date.now() - startTime;
+
+    const successCount = results.filter((r) => r.success).length;
+    const averageDuration =
+      results.reduce((sum, r) => sum + r.duration, 0) / results.length;
+
+    const loadTestResult: LoadTestResult = {
+      totalRequests: this.#concurrentRequests,
+      successfulRequests: successCount,
+      failedRequests: results.length - successCount,
+      averageResponseTime: averageDuration,
+      totalDuration,
+      requestsPerSecond: (this.#concurrentRequests / totalDuration) * 1000,
+    };
+
+    if (process.env.DEBUG_PERFORMANCE === "true") {
+      console.log(`📊 Load test results for ${operationName}:`, loadTestResult);
+    }
+
+    return loadTestResult;
+  }
+}
+
+export interface LoadTestResult {
+  totalRequests: number;
+  successfulRequests: number;
+  failedRequests: number;
+  averageResponseTime: number;
+  totalDuration: number;
+  requestsPerSecond: number;
+}
+
+export const expectLoadTestPerformance = (
+  result: LoadTestResult,
+  expectations: {
+    minSuccessRate?: number;
+    maxAverageResponseTime?: number;
+    minRequestsPerSecond?: number;
+  }
+): void => {
+  const successRate = (result.successfulRequests / result.totalRequests) * 100;
+
+  if (expectations.minSuccessRate !== undefined) {
+    expect(successRate).toBeGreaterThanOrEqual(expectations.minSuccessRate);
+  }
+
+  if (expectations.maxAverageResponseTime !== undefined) {
+    expect(result.averageResponseTime).toBeLessThanOrEqual(
+      expectations.maxAverageResponseTime
+    );
+  }
+
+  if (expectations.minRequestsPerSecond !== undefined) {
+    expect(result.requestsPerSecond).toBeGreaterThanOrEqual(
+      expectations.minRequestsPerSecond
+    );
   }
 };

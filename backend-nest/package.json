@@ -11,7 +11,14 @@
     "dump:db": "bunx supabase db dump --schema public --file schema.sql",
     "test": "bun test",
     "test:watch": "bun test --watch",
-    "test:coverage": "bun test --coverage"
+    "test:coverage": "bun test --coverage",
+    "test:unit": "bun test --pattern='*.service.spec.ts' --pattern='*.guard.spec.ts'",
+    "test:integration": "bun test --pattern='*.integration.spec.ts'",
+    "test:performance": "DEBUG_PERFORMANCE=true bun test --pattern='*.performance.spec.ts'",
+    "test:load": "DEBUG_PERFORMANCE=true bun test --pattern='*.performance.spec.ts' --timeout=30000",
+    "test:all": "bun run test:unit && bun run test:integration && bun run test:performance",
+    "test:ci": "bun test --coverage --reporter=json > test-results.json",
+    "test:silent": "bun test --silent"
   },
   "keywords": [],
   "author": "",
