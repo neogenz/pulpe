@@ -1,0 +1,8 @@
+[test]
+preload = ["./src/test/setup.ts"]
+
+[install]
+scopes = {}
+
+[run]
+bun = true

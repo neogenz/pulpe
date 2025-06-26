@@ -1,4 +1,4 @@
-import type { TestingModule } from '@nestjs/testing';
+import { type TestingModule } from '@nestjs/testing';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 
@@ -15,16 +15,39 @@ export const createMockAuthenticatedUser = (overrides?: Partial<AuthenticatedUse
   ...overrides,
 });
 
+// Simple mock function creator for Bun
+export const createMockFunction = (implementation?: any) => {
+  const mockFn = implementation || (() => {});
+  mockFn.mockReturnValue = (value: any) => {
+    Object.assign(mockFn, () => value);
+    return mockFn;
+  };
+  mockFn.mockReturnThis = () => mockFn;
+  mockFn.mockResolvedValue = (value: any) => {
+    Object.assign(mockFn, () => Promise.resolve(value));
+    return mockFn;
+  };
+  mockFn.mockRejectedValue = (error: any) => {
+    Object.assign(mockFn, () => Promise.reject(error));
+    return mockFn;
+  };
+  mockFn.mockImplementation = (impl: any) => {
+    Object.assign(mockFn, impl);
+    return mockFn;
+  };
+  return mockFn;
+};
+
 export const createMockSupabaseClient = () => {
-  const mockFrom = jest.fn().mockReturnThis();
-  const mockSelect = jest.fn().mockReturnThis();
-  const mockInsert = jest.fn().mockReturnThis();
-  const mockUpdate = jest.fn().mockReturnThis();
-  const mockDelete = jest.fn().mockReturnThis();
-  const mockEq = jest.fn().mockReturnThis();
-  const mockOrder = jest.fn().mockReturnThis();
-  const mockSingle = jest.fn();
-  const mockRpc = jest.fn();
+  const mockFrom = createMockFunction().mockReturnThis();
+  const mockSelect = createMockFunction().mockReturnThis();
+  const mockInsert = createMockFunction().mockReturnThis();
+  const mockUpdate = createMockFunction().mockReturnThis();
+  const mockDelete = createMockFunction().mockReturnThis();
+  const mockEq = createMockFunction().mockReturnThis();
+  const mockOrder = createMockFunction().mockReturnThis();
+  const mockSingle = createMockFunction();
+  const mockRpc = createMockFunction();
 
   const mockQuery = {
     from: mockFrom,
@@ -42,7 +65,7 @@ export const createMockSupabaseClient = () => {
     from: mockFrom,
     rpc: mockRpc,
     auth: {
-      getUser: jest.fn(),
+      getUser: createMockFunction(),
     },
   };
 
@@ -108,7 +131,7 @@ export const createMockBudgetTemplateDbEntity = (overrides?: any) => ({
 
 export const createTestingModuleBuilder = () => {
   const mockConfigService = {
-    get: jest.fn((key: string) => {
+    get: createMockFunction((key: string) => {
       switch (key) {
         case 'SUPABASE_URL':
           return 'https://test-supabase-url.supabase.co';
@@ -123,9 +146,9 @@ export const createTestingModuleBuilder = () => {
   };
 
   const mockSupabaseService = {
-    createAuthenticatedClient: jest.fn().mockReturnValue(createMockSupabaseClient().client),
-    getClient: jest.fn().mockReturnValue(createMockSupabaseClient().client),
-    getServiceRoleClient: jest.fn().mockReturnValue(createMockSupabaseClient().client),
+    createAuthenticatedClient: createMockFunction().mockReturnValue(createMockSupabaseClient().client),
+    getClient: createMockFunction().mockReturnValue(createMockSupabaseClient().client),
+    getServiceRoleClient: createMockFunction().mockReturnValue(createMockSupabaseClient().client),
   };
 
   return {
