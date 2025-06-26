@@ -196,7 +196,6 @@ export class BudgetService {
       const { data, error } = await supabase.rpc(
         "create_budget_from_onboarding_with_transactions",
         {
-          p_user_id: user.id,
           p_month: onboardingData.month,
           p_year: onboardingData.year,
           p_description: onboardingData.description,
