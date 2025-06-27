@@ -475,7 +475,7 @@ export class TransactionService {
 
   private formatAmount(transaction: TransactionRow): string {
     const sign = transaction.type === 'expense' ? '-' : '+';
-    return `${sign}CHF ${transaction.amount.toFixed(2)}`;
+    return `${sign}${TRANSACTION_CONSTANTS.CURRENCY} ${transaction.amount.toFixed(2)}`;
   }
 
   private getCategoryDisplay(transaction: TransactionRow): string {

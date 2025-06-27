@@ -17,4 +17,5 @@ export const TRANSACTION_CONSTANTS = {
   MAX_AMOUNT: 1000000,
   NAME_MAX_LENGTH: 100,
   DESCRIPTION_MAX_LENGTH: 500,
+  CURRENCY: 'CHF', // Configuration locale (fr-CH)
 } as const;
