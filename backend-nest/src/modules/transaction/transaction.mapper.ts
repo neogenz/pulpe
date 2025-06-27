@@ -72,9 +72,12 @@ export class TransactionMapper {
     if (createDto.isRecurring === undefined || createDto.isRecurring === null) {
       throw new BadRequestException('isRecurring field is required');
     }
+    if (!createDto.budgetId?.trim()) {
+      throw new BadRequestException('Budget ID is required');
+    }
 
     return {
-      budget_id: createDto.budgetId ?? '', // Optional field - can have default
+      budget_id: createDto.budgetId,
       amount: createDto.amount,
       type: createDto.type,
       expense_type: createDto.expenseType,
