@@ -7,7 +7,7 @@ export class BudgetCreateFromOnboardingDto {
     minimum: 1,
     maximum: 12,
   })
-  month: number;
+  month!: number;
 
   @ApiProperty({
     description: 'Année du budget',
@@ -15,7 +15,7 @@ export class BudgetCreateFromOnboardingDto {
     minimum: 2020,
     maximum: 2034,
   })
-  year: number;
+  year!: number;
 
   @ApiProperty({
     description: 'Description du budget',
@@ -23,47 +23,47 @@ export class BudgetCreateFromOnboardingDto {
     minLength: 1,
     maxLength: 500,
   })
-  description: string;
+  description!: string;
 
   @ApiProperty({
     description: 'Revenu mensuel',
     example: 3000,
     minimum: 0,
   })
-  monthlyIncome: number;
+  monthlyIncome!: number;
 
   @ApiProperty({
     description: 'Coûts de logement',
     example: 1000,
     minimum: 0,
   })
-  housingCosts: number;
+  housingCosts!: number;
 
   @ApiProperty({
     description: 'Assurance santé',
     example: 150,
     minimum: 0,
   })
-  healthInsurance: number;
+  healthInsurance!: number;
 
   @ApiProperty({
     description: 'Crédit/Leasing véhicule',
     example: 300,
     minimum: 0,
   })
-  leasingCredit: number;
+  leasingCredit!: number;
 
   @ApiProperty({
     description: 'Forfait téléphone',
     example: 50,
     minimum: 0,
   })
-  phonePlan: number;
+  phonePlan!: number;
 
   @ApiProperty({
     description: 'Coûts de transport',
     example: 100,
     minimum: 0,
   })
-  transportCosts: number;
+  transportCosts!: number;
 }

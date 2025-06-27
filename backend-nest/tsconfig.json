@@ -15,16 +15,8 @@
     "assumeChangesOnlyAffectDirectDependencies": true,
 
     // === PROGRESSIVE STRICT TYPE CHECKING ===
-    "strict": false,
-    "strictNullChecks": true,
-    "noImplicitAny": true,
-    "strictBindCallApply": true,
-    "strictFunctionTypes": true,
-    "strictPropertyInitialization": false,
-    "noImplicitThis": true,
-    "noImplicitReturns": true,
+    "strict": true,
     "noImplicitOverride": true,
-    "exactOptionalPropertyTypes": false,
 
     // === ADDITIONAL CHECKS ===
     "noUnusedLocals": false,

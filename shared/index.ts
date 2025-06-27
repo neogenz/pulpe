@@ -26,7 +26,6 @@ export {
   templateTransactionUpdateSchema,
 
   // Response schemas
-  successResponseSchema,
   errorResponseSchema,
   deleteResponseSchema,
   budgetResponseSchema,

@@ -18,7 +18,7 @@ describe('BudgetCalculator', () => {
     amount,
     type,
     name,
-    description: null,
+    description: undefined,
     budgetId: 'test-budget-id',
     expenseType: 'variable',
     isRecurring: false,

@@ -7,13 +7,13 @@ export class UserProfileDto {
     description: 'Unique user identifier',
     example: '123e4567-e89b-12d3-a456-426614174000',
   })
-  id: string;
+  id!: string;
 
   @ApiProperty({
     description: 'User email address',
     example: 'user@example.com',
   })
-  email: string;
+  email!: string;
 
   @ApiPropertyOptional({
     description: 'User first name',
@@ -40,7 +40,7 @@ export class UpdateProfileDto {
   @MinLength(1)
   @MaxLength(50)
   @Transform(({ value }) => value?.trim())
-  firstName: string;
+  firstName!: string;
 
   @ApiProperty({
     description: 'User last name',
@@ -53,7 +53,7 @@ export class UpdateProfileDto {
   @MinLength(1)
   @MaxLength(50)
   @Transform(({ value }) => value?.trim())
-  lastName: string;
+  lastName!: string;
 }
 
 export class UserProfileResponseDto {
@@ -61,13 +61,13 @@ export class UserProfileResponseDto {
     description: 'Indicates if the request was successful',
     example: true,
   })
-  success: true;
+  success!: true;
 
   @ApiProperty({
     description: 'User profile information',
     type: UserProfileDto,
   })
-  user: UserProfileDto;
+  user!: UserProfileDto;
 }
 
 export class PublicInfoResponseDto {
@@ -75,19 +75,19 @@ export class PublicInfoResponseDto {
     description: 'Indicates if the request was successful',
     example: true,
   })
-  success: true;
+  success!: true;
 
   @ApiProperty({
     description: 'Welcome message',
     example: 'Bonjour John !',
   })
-  message: string;
+  message!: string;
 
   @ApiProperty({
     description: 'Whether the user is authenticated',
     example: true,
   })
-  authenticated: boolean;
+  authenticated!: boolean;
 }
 
 export class OnboardingStatusResponseDto {
@@ -95,13 +95,13 @@ export class OnboardingStatusResponseDto {
     description: 'Indicates if the request was successful',
     example: true,
   })
-  success: true;
+  success!: true;
 
   @ApiProperty({
     description: 'Whether onboarding has been completed',
     example: false,
   })
-  onboardingCompleted: boolean;
+  onboardingCompleted!: boolean;
 }
 
 export class SuccessMessageResponseDto {
@@ -109,11 +109,11 @@ export class SuccessMessageResponseDto {
     description: 'Indicates if the request was successful',
     example: true,
   })
-  success: true;
+  success!: true;
 
   @ApiProperty({
     description: 'Success message',
     example: 'Onboarding marqué comme terminé',
   })
-  message: string;
+  message!: string;
 }

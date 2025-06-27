@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import {
   type Transaction,
   type TransactionCreate,
@@ -56,14 +56,31 @@ export class TransactionMapper {
     createDto: TransactionCreate,
     userId: string,
   ): Omit<TransactionDbEntity, 'id' | 'created_at' | 'updated_at'> {
+    // Validate required fields exist - fail fast on missing data
+    if (createDto.amount === undefined || createDto.amount === null) {
+      throw new BadRequestException('Amount is required');
+    }
+    if (!createDto.type) {
+      throw new BadRequestException('Transaction type is required');
+    }
+    if (!createDto.name?.trim()) {
+      throw new BadRequestException('Transaction name is required');
+    }
+    if (!createDto.expenseType) {
+      throw new BadRequestException('Expense type is required');
+    }
+    if (createDto.isRecurring === undefined || createDto.isRecurring === null) {
+      throw new BadRequestException('isRecurring field is required');
+    }
+
     return {
-      budget_id: createDto.budgetId ?? '',
-      amount: createDto.amount ?? 0,
-      type: createDto.type ?? 'expense',
-      expense_type: createDto.expenseType ?? 'variable',
-      name: createDto.name ?? '',
-      description: createDto.description ?? null,
-      is_recurring: createDto.isRecurring ?? false,
+      budget_id: createDto.budgetId ?? '', // Optional field - can have default
+      amount: createDto.amount,
+      type: createDto.type,
+      expense_type: createDto.expenseType,
+      name: createDto.name,
+      description: createDto.description ?? null, // Optional field - can have default
+      is_recurring: createDto.isRecurring,
       user_id: userId,
     };
   }

@@ -5,13 +5,13 @@ export class UserInfoDto {
     description: 'Unique user identifier',
     example: '123e4567-e89b-12d3-a456-426614174000',
   })
-  id: string;
+  id!: string;
 
   @ApiProperty({
     description: 'User email address',
     example: 'user@example.com',
   })
-  email: string;
+  email!: string;
 }
 
 export class AuthValidationResponseDto {
@@ -19,13 +19,13 @@ export class AuthValidationResponseDto {
     description: 'Indicates if the token validation was successful',
     example: true,
   })
-  success: true;
+  success!: true;
 
   @ApiProperty({
     description: 'Authenticated user information',
     type: UserInfoDto,
   })
-  user: UserInfoDto;
+  user!: UserInfoDto;
 }
 
 export class AuthErrorResponseDto {
@@ -33,11 +33,11 @@ export class AuthErrorResponseDto {
     description: 'Indicates the request failed',
     example: false,
   })
-  success: false;
+  success!: false;
 
   @ApiProperty({
     description: 'Error message',
     example: 'Token invalide',
   })
-  error: string;
+  error!: string;
 }

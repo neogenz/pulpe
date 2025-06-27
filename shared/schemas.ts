@@ -25,20 +25,30 @@ export const budgetSchema = z.object({
 export const budgetCreateSchema = z.object({
   month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
   year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
-  description: z.string().min(1).max(500),
+  description: z.string().min(1).max(500).trim(),
+});
+
+// Schema for transactions during onboarding (without budgetId since budget doesn't exist yet)
+export const onboardingTransactionSchema = z.object({
+  amount: z.number().positive(),
+  type: transactionTypeSchema,
+  name: z.string().min(1).max(100).trim(),
+  description: z.string().max(500).trim().optional(),
+  expenseType: expenseTypeSchema,
+  isRecurring: z.boolean(),
 });
 
 export const budgetCreateFromOnboardingSchema = z.object({
-  month: z.number(),
-  year: z.number(),
-  description: z.string(),
-  transactions: z.array(z.any()),
-  monthlyIncome: z.number().optional(),
-  housingCosts: z.number().optional(),
-  healthInsurance: z.number().optional(),
-  leasingCredit: z.number().optional(),
-  phonePlan: z.number().optional(),
-  transportCosts: z.number().optional(),
+  month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
+  year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
+  description: z.string().min(1).max(500).trim(),
+  transactions: z.array(onboardingTransactionSchema),
+  monthlyIncome: z.number().min(0).default(0).optional(),
+  housingCosts: z.number().min(0).default(0).optional(),
+  healthInsurance: z.number().min(0).default(0).optional(),
+  leasingCredit: z.number().min(0).default(0).optional(),
+  phonePlan: z.number().min(0).default(0).optional(),
+  transportCosts: z.number().min(0).default(0).optional(),
 });
 
 export const budgetUpdateSchema = z.object({
@@ -137,13 +147,7 @@ export const templateTransactionUpdateSchema = z.object({
   description: z.string().max(500).trim().optional(),
 });
 
-// Generic response schemas - SIMPLIFIED to avoid TypeScript memory issues
-export const successResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.any().optional(),
-  items: z.array(z.any()).optional(),
-});
-
+// Response schemas with proper typing
 export const errorResponseSchema = z.object({
   success: z.literal(false),
   error: z.string(),
