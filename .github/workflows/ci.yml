@@ -96,7 +96,13 @@ jobs:
     needs: [changes]
     strategy:
       matrix:
-        test-type: [unit, integration]
+        include:
+          - test-type: "unit"
+            package: "backend"
+          - test-type: "integration"
+            package: "backend"
+          - test-type: "vitest"
+            package: "frontend"
     steps:
       - name: 📦 Checkout
         uses: actions/checkout@v4
@@ -123,14 +129,23 @@ jobs:
       - name: 🔨 Build shared packages
         run: pnpm run build:shared
 
-      - name: 🧪 Run ${{ matrix.test-type }} tests
-        run: pnpm run test:${{ matrix.test-type }}
+      - name: 🧪 Run backend tests
+        if: matrix.package == 'backend'
+        run: |
+          cd backend-nest
+          bun run test:${{ matrix.test-type }}
+
+      - name: 🧪 Run frontend tests
+        if: matrix.package == 'frontend'
+        run: |
+          cd frontend
+          pnpm run test:vitest:run
 
       - name: 📊 Archive coverage reports
-        if: matrix.test-type == 'unit'
+        if: matrix.test-type == 'unit' || matrix.package == 'frontend'
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-reports
+          name: coverage-reports-${{ matrix.package }}-${{ matrix.test-type }}
           path: |
             ./frontend/coverage/
             ./backend-nest/coverage/
@@ -166,7 +181,9 @@ jobs:
         run: pnpm run build
 
       - name: 🎭 Run E2E tests
-        run: pnpm run test:e2e
+        run: |
+          cd frontend
+          pnpm run test:e2e
 
       - name: 📊 Upload Playwright report
         uses: actions/upload-artifact@v4
@@ -254,7 +271,9 @@ jobs:
         run: pnpm run build:shared
 
       - name: ⚡ Run performance tests
-        run: pnpm run test:performance
+        run: |
+          cd backend-nest
+          bun run test:performance
 
   security:
     name: 🔒 Security Scan
