@@ -2,10 +2,10 @@ import { expect } from 'bun:test';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 
-export const MOCK_USER_ID = 'test-user-id-123';
-export const MOCK_BUDGET_ID = 'test-budget-id-456';
-export const MOCK_TRANSACTION_ID = 'test-transaction-id-789';
-export const MOCK_TEMPLATE_ID = 'test-template-id-101';
+export const MOCK_USER_ID = '550e8400-e29b-41d4-a716-446655440001';
+export const MOCK_BUDGET_ID = '550e8400-e29b-41d4-a716-446655440002';
+export const MOCK_TRANSACTION_ID = '550e8400-e29b-41d4-a716-446655440003';
+export const MOCK_TEMPLATE_ID = '550e8400-e29b-41d4-a716-446655440004';
 
 export const createMockAuthenticatedUser = (
   overrides?: Partial<AuthenticatedUser>,
@@ -17,26 +17,33 @@ export const createMockAuthenticatedUser = (
   ...overrides,
 });
 
-export const createMockBudgetDbEntity = (overrides?: any) => ({
-  id: MOCK_BUDGET_ID,
-  user_id: MOCK_USER_ID,
-  month: 11,
-  year: 2024,
-  description: 'Test Budget',
-  monthly_income: 5000,
-  created_at: '2024-01-01T00:00:00.000Z',
-  updated_at: '2024-01-01T00:00:00.000Z',
-  ...overrides,
-});
+export const createMockBudgetDbEntity = (overrides?: any) => {
+  // Generate a simple UUID-like ID if not provided
+  const defaultId = overrides?.id || MOCK_BUDGET_ID;
+
+  return {
+    id: defaultId,
+    user_id: MOCK_USER_ID,
+    month: 11,
+    year: 2024,
+    description: 'Test Budget',
+    template_id: null,
+    created_at: '2024-01-01T00:00:00.000Z',
+    updated_at: '2024-01-01T00:00:00.000Z',
+    ...overrides,
+  };
+};
 
 export const createMockTransactionDbEntity = (overrides?: any) => ({
   id: MOCK_TRANSACTION_ID,
   user_id: MOCK_USER_ID,
   budget_id: MOCK_BUDGET_ID,
-  title: 'Test Transaction',
+  name: 'Test Transaction',
   amount: 100,
-  expense_type: 'FIXED',
-  transaction_type: 'EXPENSE',
+  expense_type: 'fixed',
+  type: 'expense',
+  description: null,
+  is_recurring: false,
   created_at: '2024-01-01T00:00:00.000Z',
   updated_at: '2024-01-01T00:00:00.000Z',
   ...overrides,
@@ -115,38 +122,45 @@ export class MockSupabaseClient {
 
   // Mock the chain: from().select().order().eq().single()
   from(_table: string) {
-    const chainMethods = {
-      select: (_columns: string) => chainMethods,
-      order: (_column: string, _options?: any) => chainMethods,
-      eq: (_column: string, _value: any) => chainMethods,
-      single: () =>
-        Promise.resolve({ data: this.#mockData, error: this.#mockError }),
-      insert: (_data: any) => ({
-        select: () => ({
-          single: () =>
-            Promise.resolve({ data: this.#mockData, error: this.#mockError }),
-        }),
-      }),
-      update: (_data: any) => ({
-        eq: (_column: string, _value: any) => ({
+    const createChainMethods = () => {
+      const chainMethods = {
+        select: (_columns: string) => chainMethods,
+        order: (_column: string, _options?: any) => chainMethods,
+        eq: (_column: string, _value: any) => chainMethods,
+        neq: (_column: string, _value: any) => chainMethods,
+        single: () =>
+          Promise.resolve({ data: this.#mockData, error: this.#mockError }),
+        insert: (_data: any) => ({
           select: () => ({
             single: () =>
               Promise.resolve({ data: this.#mockData, error: this.#mockError }),
           }),
         }),
-      }),
-      delete: () => ({
-        eq: (_column: string, _value: any) =>
-          Promise.resolve({ error: this.#mockError }),
-      }),
-      then: (_callback: any) => {
-        return Promise.resolve().then(() =>
-          _callback({ data: this.#mockData, error: this.#mockError }),
-        );
-      },
+        update: (_data: any) => ({
+          eq: (_column: string, _value: any) => ({
+            select: () => ({
+              single: () =>
+                Promise.resolve({
+                  data: this.#mockData,
+                  error: this.#mockError,
+                }),
+            }),
+          }),
+        }),
+        delete: () => ({
+          eq: (_column: string, _value: any) =>
+            Promise.resolve({ error: this.#mockError }),
+        }),
+        then: (_callback: any) => {
+          return Promise.resolve().then(() =>
+            _callback({ data: this.#mockData, error: this.#mockError }),
+          );
+        },
+      };
+      return chainMethods;
     };
 
-    return chainMethods;
+    return createChainMethods();
   }
 
   rpc(_functionName: string, _params: any) {
@@ -246,7 +260,6 @@ export const expectBudgetStructure = (budget: any): void => {
     month: expect.any(Number),
     year: expect.any(Number),
     description: expect.any(String),
-    monthlyIncome: expect.any(Number),
     createdAt: expect.any(String),
     updatedAt: expect.any(String),
   });
@@ -255,7 +268,6 @@ export const expectBudgetStructure = (budget: any): void => {
   expect(budget.month).toBeGreaterThanOrEqual(1);
   expect(budget.month).toBeLessThanOrEqual(12);
   expect(budget.year).toBeGreaterThan(2000);
-  expect(budget.monthlyIncome).toBeGreaterThanOrEqual(0);
   expect(budget.description).toBeTruthy();
 };
 
@@ -265,7 +277,7 @@ export const expectBudgetDbEntityStructure = (budget: any): void => {
     month: expect.any(Number),
     year: expect.any(Number),
     description: expect.any(String),
-    monthly_income: expect.any(Number),
+    template_id: expect.anything(), // Can be string or null
     created_at: expect.any(String),
     updated_at: expect.any(String),
     user_id: expect.any(String),
@@ -275,7 +287,6 @@ export const expectBudgetDbEntityStructure = (budget: any): void => {
   expect(budget.month).toBeGreaterThanOrEqual(1);
   expect(budget.month).toBeLessThanOrEqual(12);
   expect(budget.year).toBeGreaterThan(2000);
-  expect(budget.monthly_income).toBeGreaterThanOrEqual(0);
   expect(budget.description).toBeTruthy();
 };
 
@@ -283,17 +294,18 @@ export const expectTransactionStructure = (transaction: any): void => {
   expect(transaction).toMatchObject({
     id: expect.any(String),
     budgetId: expect.any(String),
-    title: expect.any(String),
+    name: expect.any(String),
     amount: expect.any(Number),
-    expenseType: expect.stringMatching(/^(FIXED|VARIABLE)$/),
-    transactionType: expect.stringMatching(/^(INCOME|EXPENSE)$/),
+    expenseType: expect.stringMatching(/^(fixed|variable)$/),
+    type: expect.stringMatching(/^(income|expense|saving)$/),
+    isRecurring: expect.any(Boolean),
     createdAt: expect.any(String),
     updatedAt: expect.any(String),
   });
 
   // Validate business rules
   expect(transaction.amount).toBeGreaterThan(0);
-  expect(transaction.title).toBeTruthy();
+  expect(transaction.name).toBeTruthy();
   expect(transaction.budgetId).toBeTruthy();
 };
 

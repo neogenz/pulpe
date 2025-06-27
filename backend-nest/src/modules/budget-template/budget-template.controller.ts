@@ -74,7 +74,7 @@ export class BudgetTemplateController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<_BudgetTemplateListResponse> {
-    return this.budgetTemplateService.findAll(user, supabase);
+    return this.budgetTemplateService.findAll(supabase);
   }
 
   @Post()

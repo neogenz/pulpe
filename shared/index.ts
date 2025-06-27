@@ -40,6 +40,19 @@ export {
   templateTransactionResponseSchema,
   templateTransactionListResponseSchema,
   templateTransactionDeleteResponseSchema,
+
+  // User schemas
+  userProfileSchema,
+  updateProfileSchema,
+  userProfileResponseSchema,
+  publicInfoResponseSchema,
+  onboardingStatusResponseSchema,
+  successMessageResponseSchema,
+
+  // Auth schemas
+  userInfoSchema,
+  authValidationResponseSchema,
+  authErrorResponseSchema,
 } from "./schemas";
 
 // Export all types from types.ts
@@ -89,4 +102,17 @@ export type {
   TemplateTransactionListResponse,
   TemplateTransactionDeleteResponse,
   TransactionResponse,
+
+  // User types
+  UserProfile,
+  UpdateProfile,
+  UserProfileResponse,
+  PublicInfoResponse,
+  OnboardingStatusResponse,
+  SuccessMessageResponse,
+
+  // Auth types
+  UserInfo,
+  AuthValidationResponse,
+  AuthErrorResponse,
 } from "./types";

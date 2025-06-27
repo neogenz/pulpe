@@ -6,6 +6,5 @@ import { BudgetTemplateMapper } from './budget-template.mapper';
 @Module({
   controllers: [BudgetTemplateController],
   providers: [BudgetTemplateService, BudgetTemplateMapper],
-  exports: [BudgetTemplateService],
 })
 export class BudgetTemplateModule {}

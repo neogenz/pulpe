@@ -7,6 +7,7 @@
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
     "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",
@@ -24,7 +25,7 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": false,
     "forceConsistentCasingInFileNames": true,
-    "types": ["reflect-metadata"],
+    "types": ["reflect-metadata", "bun-types", "@types/node"],
 
     "paths": {
       "@/*": ["src/*"],

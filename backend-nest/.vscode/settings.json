@@ -9,6 +9,27 @@
   "typescript.suggest.includeCompletionsForModuleExports": true,
   "files.insertFinalNewline": true,
   "files.trimTrailingWhitespace": true,
-  "eslint.validate": ["typescript"],
-  "eslint.workingDirectories": ["./backend-nest"]
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact"
+  ],
+  "eslint.workingDirectories": ["./backend-nest"],
+  "typescript.preferences.includePackageJsonAutoImports": "auto",
+  "typescript.suggest.autoImports": true,
+  "typescript.format.enable": true,
+  "typescript.validate.enable": true,
+  "typescript.preferences.quoteStyle": "single",
+  "files.associations": {
+    "*.spec.ts": "typescript",
+    "*.test.ts": "typescript"
+  },
+  "typescript.preferences.preferTypeOnlyAutoImports": true,
+  "eslint.format.enable": true,
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "typescript.tsc.autoDetect": "on"
 }
