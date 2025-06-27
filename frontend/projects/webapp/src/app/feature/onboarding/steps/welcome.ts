@@ -18,7 +18,6 @@ import { OnboardingLayoutData } from '../models/onboarding-layout-data';
 
 @Component({
   selector: 'pulpe-welcome',
-  standalone: true,
   imports: [MatButtonModule, LottieComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 
