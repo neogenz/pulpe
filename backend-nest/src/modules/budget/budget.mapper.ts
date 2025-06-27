@@ -62,40 +62,44 @@ export class BudgetMapper {
     return updateData;
   }
 
+  private readonly monthNames = [
+    'Janvier',
+    'Février',
+    'Mars',
+    'Avril',
+    'Mai',
+    'Juin',
+    'Juillet',
+    'Août',
+    'Septembre',
+    'Octobre',
+    'Novembre',
+    'Décembre',
+  ] as const;
+
   private formatBudgetPeriod(budget: Budget | BudgetRow): string {
-    const monthNames = [
-      'Janvier',
-      'Février',
-      'Mars',
-      'Avril',
-      'Mai',
-      'Juin',
-      'Juillet',
-      'Août',
-      'Septembre',
-      'Octobre',
-      'Novembre',
-      'Décembre',
-    ];
-    return `${monthNames[budget.month - 1]} ${budget.year}`;
+    return `${this.monthNames[budget.month - 1]} ${budget.year}`;
   }
 
-  private isBudgetCurrentMonth(budget: Budget | BudgetRow): boolean {
-    const now = new Date();
+  private isBudgetCurrentMonth(
+    budget: Budget | BudgetRow,
+    now = new Date(),
+  ): boolean {
     return (
       budget.year === now.getFullYear() && budget.month === now.getMonth() + 1
     );
   }
 
-  private isBudgetFuture(budget: Budget | BudgetRow): boolean {
-    const now = new Date();
+  private isBudgetFuture(
+    budget: Budget | BudgetRow,
+    now = new Date(),
+  ): boolean {
     const budgetDate = new Date(budget.year, budget.month - 1);
     const currentDate = new Date(now.getFullYear(), now.getMonth());
     return budgetDate > currentDate;
   }
 
-  private isBudgetPast(budget: Budget | BudgetRow): boolean {
-    const now = new Date();
+  private isBudgetPast(budget: Budget | BudgetRow, now = new Date()): boolean {
     const budgetDate = new Date(budget.year, budget.month - 1);
     const currentDate = new Date(now.getFullYear(), now.getMonth());
     return budgetDate < currentDate;
