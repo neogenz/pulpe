@@ -2,7 +2,7 @@ name: ✅ CI/CD Pipeline
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, ci-workflow]
   pull_request:
     branches: [main, develop]
 
@@ -33,31 +33,20 @@ jobs:
       - name: 📦 Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: 🔨 Build shared
-        run: pnpm run build:shared
-
-      - name: 🧹 Frontend lint
-        run: |
-          cd frontend
-          pnpm run lint
-
-      - name: 🧹 Backend lint
-        run: |
-          cd backend-nest
-          pnpm run lint
-
-      - name: 🧪 Frontend tests
-        run: |
-          cd frontend
-          pnpm run test:vitest:run
-
-      - name: 🧪 Backend tests
-        run: |
-          cd backend-nest
-          bun run test:unit
+      - name: 🏗️ Build all projects
+        run: pnpm build
 
       - name: 🎨 Format check
-        run: pnpm run format:check
+        run: pnpm format:check
+
+      - name: 🧹 Lint all projects
+        run: pnpm lint
+
+      - name: 🧪 Unit tests
+        run: pnpm test:unit
+
+      - name: 🔬 Quality check
+        run: pnpm quality
 
       - name: ✅ All checks passed
-        run: echo "🎉 All CI checks completed successfully!"
+        run: echo "🎉 All CI checks completed successfully with turbo optimization!"
