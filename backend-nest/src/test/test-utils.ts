@@ -17,7 +17,7 @@ export const createMockAuthenticatedUser = (
   ...overrides,
 });
 
-export const createMockBudgetDbEntity = (overrides?: any) => {
+export const createMockBudgetEntity = (overrides?: any) => {
   // Generate a simple UUID-like ID if not provided
   const defaultId = overrides?.id || MOCK_BUDGET_ID;
 
@@ -34,7 +34,7 @@ export const createMockBudgetDbEntity = (overrides?: any) => {
   };
 };
 
-export const createMockTransactionDbEntity = (overrides?: any) => ({
+export const createMockTransactionEntity = (overrides?: any) => ({
   id: MOCK_TRANSACTION_ID,
   user_id: MOCK_USER_ID,
   budget_id: MOCK_BUDGET_ID,
@@ -271,7 +271,7 @@ export const expectBudgetStructure = (budget: any): void => {
   expect(budget.description).toBeTruthy();
 };
 
-export const expectBudgetDbEntityStructure = (budget: any): void => {
+export const expectBudgetEntityStructure = (budget: any): void => {
   expect(budget).toMatchObject({
     id: expect.any(String),
     month: expect.any(Number),

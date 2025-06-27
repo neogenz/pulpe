@@ -1,63 +1,46 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import {
   type BudgetTemplate,
   type BudgetTemplateCreate,
   type BudgetTemplateUpdate,
 } from '@pulpe/shared';
-import {
-  budgetTemplateDbEntitySchema,
-  type BudgetTemplateDbEntity,
-} from './schemas/budget-template.db.schema';
+import type {
+  BudgetTemplateRow,
+  BudgetTemplateInsert,
+} from './entities/budget-template.entity';
 
 @Injectable()
 export class BudgetTemplateMapper {
   /**
-   * Valide les données venant de la DB avec Zod
+   * Transform database row (snake_case) to API entity (camelCase)
    */
-  private parseBudgetTemplateRow(dbEntity: unknown): BudgetTemplateDbEntity {
-    const validationResult = budgetTemplateDbEntitySchema.safeParse(dbEntity);
-    if (!validationResult.success) {
-      const firstError = validationResult.error.errors[0];
-      throw new InternalServerErrorException(
-        `Invalid DB data: ${firstError.path.join('.')} - ${firstError.message}`,
-      );
-    }
-    return validationResult.data;
-  }
-
-  /**
-   * Transforme une entité de la base de données (snake_case) vers le modèle API (camelCase)
-   */
-  toApi(templateDb: unknown): BudgetTemplate {
-    // Validate DB data first - fail fast on corrupted data
-    const validatedDb = this.parseBudgetTemplateRow(templateDb);
-
+  toApi(templateDb: BudgetTemplateRow): BudgetTemplate {
     return {
-      id: validatedDb.id,
-      createdAt: validatedDb.created_at,
-      updatedAt: validatedDb.updated_at,
-      userId: validatedDb.user_id ?? undefined,
-      name: validatedDb.name,
-      description: validatedDb.description ?? undefined,
-      category: validatedDb.category ?? undefined,
-      isDefault: validatedDb.is_default ?? false,
+      id: templateDb.id,
+      name: templateDb.name,
+      description: templateDb.description ?? undefined,
+      category: templateDb.category ?? undefined,
+      isDefault: templateDb.is_default,
+      userId: templateDb.user_id ?? undefined,
+      createdAt: templateDb.created_at,
+      updatedAt: templateDb.updated_at,
     };
   }
 
   /**
-   * Transforme plusieurs entités DB vers modèles API
+   * Transform multiple database rows to API entities
    */
-  toApiList(templatesDb: unknown[]): BudgetTemplate[] {
+  toApiList(templatesDb: BudgetTemplateRow[]): BudgetTemplate[] {
     return templatesDb.map((template) => this.toApi(template));
   }
 
   /**
-   * Transforme un DTO de création (camelCase) vers format DB (snake_case)
+   * Transform create DTO (camelCase) to database insert (snake_case)
    */
-  toDbCreate(
+  toInsert(
     createDto: BudgetTemplateCreate,
     userId: string,
-  ): Omit<BudgetTemplateDbEntity, 'id' | 'created_at' | 'updated_at'> {
+  ): BudgetTemplateInsert {
     return {
       name: createDto.name,
       description: createDto.description ?? null,
@@ -68,31 +51,19 @@ export class BudgetTemplateMapper {
   }
 
   /**
-   * Transforme un DTO de mise à jour (camelCase) vers format DB (snake_case)
+   * Transform update DTO (camelCase) to database update (snake_case)
    */
-  toDbUpdate(
-    updateDto: BudgetTemplateUpdate,
-  ): Partial<
-    Pick<
-      BudgetTemplateDbEntity,
-      'name' | 'description' | 'category' | 'is_default'
-    >
-  > {
-    const updateData: Partial<
-      Pick<
-        BudgetTemplateDbEntity,
-        'name' | 'description' | 'category' | 'is_default'
-      >
-    > = {};
+  toUpdate(updateDto: BudgetTemplateUpdate): Partial<BudgetTemplateInsert> {
+    const updateData: Partial<BudgetTemplateInsert> = {};
 
     if (updateDto.name !== undefined) {
       updateData.name = updateDto.name;
     }
     if (updateDto.description !== undefined) {
-      updateData.description = updateDto.description;
+      updateData.description = updateDto.description ?? null;
     }
     if (updateDto.category !== undefined) {
-      updateData.category = updateDto.category;
+      updateData.category = updateDto.category ?? null;
     }
     if (updateDto.isDefault !== undefined) {
       updateData.is_default = updateDto.isDefault;

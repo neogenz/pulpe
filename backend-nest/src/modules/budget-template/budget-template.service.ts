@@ -384,18 +384,36 @@ export class BudgetTemplateService {
   private validateAndEnrichTemplate(
     rawTemplate: unknown,
   ): EnrichedBudgetTemplate | null {
-    // Validation simple : Supabase garantit la structure
-    if (!rawTemplate || typeof rawTemplate !== 'object') {
+    if (!this.isValidBudgetTemplateRow(rawTemplate)) {
       this.logger.warn('Template invalide ignoré:', rawTemplate);
       return null;
     }
 
-    const templateDb = rawTemplate as BudgetTemplateRow;
     return {
-      ...templateDb,
-      displayCategory: this.formatCategory(templateDb),
-      isUserDefault: templateDb.is_default,
+      ...rawTemplate,
+      displayCategory: this.formatCategory(rawTemplate),
+      isUserDefault: rawTemplate.is_default,
     };
+  }
+
+  private isValidBudgetTemplateRow(data: unknown): data is BudgetTemplateRow {
+    if (!data || typeof data !== 'object') {
+      return false;
+    }
+
+    const template = data as Record<string, unknown>;
+
+    return (
+      typeof template.id === 'string' &&
+      typeof template.name === 'string' &&
+      typeof template.is_default === 'boolean' &&
+      typeof template.created_at === 'string' &&
+      typeof template.updated_at === 'string' &&
+      (template.description === null ||
+        typeof template.description === 'string') &&
+      (template.category === null || typeof template.category === 'string') &&
+      (template.user_id === null || typeof template.user_id === 'string')
+    );
   }
 
   private async ensureOnlyOneDefault(

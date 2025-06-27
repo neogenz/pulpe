@@ -1,65 +1,51 @@
-import {
-  Injectable,
-  BadRequestException,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import {
   type Transaction,
   type TransactionCreate,
   type TransactionUpdate,
   transactionCreateSchema,
 } from '@pulpe/shared';
-import { type TransactionDbEntity } from './schemas/transaction.db.schema';
+import {
+  type TransactionRow,
+  type TransactionInsert,
+} from './entities/transaction.entity';
 
 @Injectable()
 export class TransactionMapper {
   /**
-   * Valide les données venant de la DB avec Zod
+   * Transform database row (snake_case) to API entity (camelCase)
    */
-  private parseTransactionRow(dbEntity: unknown): TransactionDbEntity {
-    if (!dbEntity || typeof dbEntity !== 'object') {
-      throw new InternalServerErrorException('Invalid DB data structure');
-    }
-    return dbEntity as TransactionDbEntity;
-  }
-
-  /**
-   * Transforme une entité de la base de données (snake_case) vers le modèle API (camelCase)
-   */
-  toApi(transactionDb: unknown): Transaction {
-    // Validate DB data first - fail fast on corrupted data
-    const validatedDb = this.parseTransactionRow(transactionDb);
-
+  toApi(transactionDb: TransactionRow): Transaction {
     return {
-      id: validatedDb.id,
-      createdAt: validatedDb.created_at,
-      updatedAt: validatedDb.updated_at,
-      userId: validatedDb.user_id ?? undefined,
-      budgetId: validatedDb.budget_id,
-      amount: validatedDb.amount,
-      type: validatedDb.type,
-      expenseType: validatedDb.expense_type,
-      name: validatedDb.name,
-      description: validatedDb.description ?? undefined,
-      isRecurring: validatedDb.is_recurring,
+      id: transactionDb.id,
+      createdAt: transactionDb.created_at,
+      updatedAt: transactionDb.updated_at,
+      userId: transactionDb.user_id ?? undefined,
+      budgetId: transactionDb.budget_id,
+      amount: transactionDb.amount,
+      type: transactionDb.type,
+      expenseType: transactionDb.expense_type,
+      name: transactionDb.name,
+      description: transactionDb.description ?? undefined,
+      isRecurring: transactionDb.is_recurring,
     };
   }
 
   /**
-   * Transforme plusieurs entités DB vers modèles API
+   * Transform multiple database rows to API entities
    */
-  toApiList(transactionsDb: unknown[]): Transaction[] {
+  toApiList(transactionsDb: TransactionRow[]): Transaction[] {
     return transactionsDb.map((transaction) => this.toApi(transaction));
   }
 
   /**
-   * Transforme un DTO de création (camelCase) vers format DB (snake_case)
+   * Transform create DTO (camelCase) to database insert (snake_case)
    */
-  toDbCreate(
+  toInsert(
     createDto: TransactionCreate,
     userId: string,
     budgetId?: string,
-  ): Omit<TransactionDbEntity, 'id' | 'created_at' | 'updated_at'> {
+  ): TransactionInsert {
     // Validate with Zod schema - fail fast on invalid data
     const validationResult = transactionCreateSchema.safeParse(createDto);
     if (!validationResult.success) {
@@ -87,50 +73,37 @@ export class TransactionMapper {
       type: createDto.type,
       expense_type: createDto.expenseType,
       name: createDto.name,
-      description: createDto.description ?? null, // Optional field - can have default
+      description: createDto.description ?? null,
       is_recurring: createDto.isRecurring,
       user_id: userId,
     };
   }
 
   /**
-   * Transforme un DTO de mise à jour (camelCase) vers format DB (snake_case)
+   * Transform update DTO (camelCase) to database update (snake_case)
    */
-  toDbUpdate(
-    updateDto: TransactionUpdate,
-  ): Partial<
-    Pick<
-      TransactionDbEntity,
-      | 'budget_id'
-      | 'amount'
-      | 'type'
-      | 'expense_type'
-      | 'name'
-      | 'description'
-      | 'is_recurring'
-    >
-  > {
-    const fieldMappings = this.getUpdateFieldMappings();
-    const updateData: Record<string, unknown> = {};
+  toUpdate(updateDto: TransactionUpdate): Partial<TransactionInsert> {
+    const updateData: Partial<TransactionInsert> = {};
 
-    for (const [dtoField, dbField] of Object.entries(fieldMappings)) {
-      if (updateDto[dtoField as keyof TransactionUpdate] !== undefined) {
-        updateData[dbField] = updateDto[dtoField as keyof TransactionUpdate];
-      }
+    if (updateDto.amount !== undefined) {
+      updateData.amount = updateDto.amount;
+    }
+    if (updateDto.type !== undefined) {
+      updateData.type = updateDto.type;
+    }
+    if (updateDto.expenseType !== undefined) {
+      updateData.expense_type = updateDto.expenseType;
+    }
+    if (updateDto.name !== undefined) {
+      updateData.name = updateDto.name;
+    }
+    if (updateDto.description !== undefined) {
+      updateData.description = updateDto.description ?? null;
+    }
+    if (updateDto.isRecurring !== undefined) {
+      updateData.is_recurring = updateDto.isRecurring;
     }
 
     return updateData;
-  }
-
-  private getUpdateFieldMappings(): Record<string, string> {
-    return {
-      budgetId: 'budget_id',
-      amount: 'amount',
-      type: 'type',
-      expenseType: 'expense_type',
-      name: 'name',
-      description: 'description',
-      isRecurring: 'is_recurring',
-    };
   }
 }
