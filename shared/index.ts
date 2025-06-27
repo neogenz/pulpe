@@ -53,7 +53,7 @@ export {
   userInfoSchema,
   authValidationResponseSchema,
   authErrorResponseSchema,
-} from "./schemas";
+} from './schemas';
 
 // Export all types from types.ts
 export type {
@@ -115,4 +115,4 @@ export type {
   UserInfo,
   AuthValidationResponse,
   AuthErrorResponse,
-} from "./types";
+} from './types';

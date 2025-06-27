@@ -1,4 +1,4 @@
-import type { z } from "zod";
+import type { z } from 'zod';
 import type {
   budgetSchema,
   budgetCreateSchema,
@@ -40,7 +40,7 @@ import type {
   userInfoSchema,
   authValidationResponseSchema,
   authErrorResponseSchema,
-} from "./schemas";
+} from './schemas';
 
 // Budget types
 export type Budget = z.infer<typeof budgetSchema>;

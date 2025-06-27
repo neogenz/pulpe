@@ -4,6 +4,7 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve --open",
+    "dev": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
@@ -16,8 +17,8 @@
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:report": "playwright show-report",
     "test:e2e:codegen": "playwright codegen http://localhost:4200",
-    "format:test": "prettier --list-different \"./projects/**/*.{ts,html,scss,json}\"",
-    "format:write": "prettier --write \"./projects/**/*.{ts,html,scss,json}\"",
+    "format": "prettier --write \"./projects/**/*.{ts,html,scss,json}\"",
+    "format:check": "prettier --list-different \"./projects/**/*.{ts,html,scss,json}\"",
     "lint": "ng lint",
     "analyze": "ng build --stats-json --output-hashing none --named-chunks && esbuild-visualizer --template treemap --metadata dist/webapp/stats.json --filename dist/webapp/analyse/index.html && http-server -o -c-1 ./dist/webapp/analyse/",
     "analyze:sme": "ng build --source-map --output-hashing none --named-chunks && source-map-explorer dist/webapp/browser/*.js --html dist/webapp/sme/index.html && http-server -o -c-1 ./dist/webapp/sme/",

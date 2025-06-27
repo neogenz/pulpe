@@ -1,4 +1,4 @@
 packages:
   - 'frontend'
   - 'shared'
-  # backend-nest utilise bun, donc on l'exclut du workspace pnpm
+  - 'backend-nest'

@@ -1,5 +1,5 @@
 ---
-description: APPLY OpenAPI route description standards WHEN defining Hono API routes to ensure comprehensive documentation, proper validation schemas, and consistent API specifications across all endpoints for better developer experience and API maintainability.
+description: 
 globs: 
 alwaysApply: false
 ---

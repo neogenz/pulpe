@@ -1,6 +1,6 @@
 ---
 description: 
-globs: backend/**/*.ts
+globs: 
 alwaysApply: false
 ---
 Handler Structure:

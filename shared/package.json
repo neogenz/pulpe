@@ -11,7 +11,9 @@
     "build": "pnpm run clean && pnpm run build:esm",
     "build:esm": "tsc -p tsconfig.esm.json",
     "dev": "pnpm run build && pnpm run watch",
-    "watch": "tsc -p tsconfig.esm.json --watch"
+    "watch": "tsc -p tsconfig.esm.json --watch",
+    "format": "prettier --write \"**/*.{ts,json}\"",
+    "format:check": "prettier --check \"**/*.{ts,json}\""
   },
   "exports": {
     ".": {
@@ -23,6 +25,7 @@
     "zod": "^3.25.67"
   },
   "devDependencies": {
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "prettier": "^3.5.3"
   }
 }

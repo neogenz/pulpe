@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 // Constants
 const CURRENT_YEAR = new Date().getFullYear();
@@ -8,8 +8,8 @@ const MONTH_MIN = 1;
 const MONTH_MAX = 12;
 
 // Enums
-export const expenseTypeSchema = z.enum(["fixed", "variable"]);
-export const transactionTypeSchema = z.enum(["expense", "income", "saving"]);
+export const expenseTypeSchema = z.enum(['fixed', 'variable']);
+export const transactionTypeSchema = z.enum(['expense', 'income', 'saving']);
 
 // Budget schemas
 export const budgetSchema = z.object({

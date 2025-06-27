@@ -60,5 +60,9 @@ Thumbs.db
 *.log
 frontend/deps/
 
+# Turborepo
+.turbo/
+**/.turbo/
+
 .cursor/rules/angular-architecture.md
 backend-nest/supabase/.temp/*
