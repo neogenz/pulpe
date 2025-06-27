@@ -298,14 +298,14 @@ test.describe('User Authentication Flows', () => {
           // Attendre la redirection avec WaitHelper
           const redirected = await WaitHelper.waitForNavigation(
             page,
-            '/login',
+            '/onboarding',
             5000,
           );
 
           await expect
             .soft(
-              redirected || page.url().includes('/login'),
-              `Route ${route} should redirect to login`,
+              redirected || page.url().includes('/onboarding'),
+              `Route ${route} should redirect to onboarding`,
             )
             .toBeTruthy();
         });

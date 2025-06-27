@@ -20,6 +20,12 @@ export const authGuard: CanActivateFn = () => {
     return true;
   }
 
+  // If immediately known to be unauthenticated, redirect to onboarding
+  const currentState = authApi.authState();
+  if (!currentState.isLoading && !currentState.isAuthenticated) {
+    return router.createUrlTree([ROUTES.ONBOARDING]);
+  }
+
   // Handle case where auth state is still loading
   return toObservable(authApi.authState).pipe(
     filter((state) => !state.isLoading),

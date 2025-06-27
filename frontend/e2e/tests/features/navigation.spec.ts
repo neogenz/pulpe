@@ -46,11 +46,11 @@ test.describe('Core Application Navigation (Unauthenticated)', () => {
     await test.step('Attempt to access protected route', async () => {
       await page.goto('/app/current-month');
       // Wait for redirect to complete
-      await WaitHelper.waitForNavigation(page, '/login', 5000);
+      await WaitHelper.waitForNavigation(page, '/onboarding', 5000);
     });
 
-    await test.step('Verify redirect to login', async () => {
-      await expect(page).toHaveURL(/.*login.*/);
+    await test.step('Verify redirect to onboarding', async () => {
+      await expect(page).toHaveURL(/.*onboarding.*/);
     });
   });
 });
