@@ -33,19 +33,8 @@ jobs:
       - name: 📦 Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: 📦 Install backend dependencies
-        run: |
-          cd backend-nest
-          bun install
-
-      - name: 🏗️ Build shared package first
-        run: pnpm build:shared
-
-      - name: 🏗️ Build frontend
-        run: pnpm build:frontend
-
-      - name: 🏗️ Build backend
-        run: pnpm build:backend
+      - name: 🏗️ Build all projects
+        run: pnpm build
 
       - name: 🎨 Format check
         run: pnpm format:check
