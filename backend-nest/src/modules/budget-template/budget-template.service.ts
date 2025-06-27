@@ -9,14 +9,28 @@ import {
 } from '@nestjs/common';
 import {
   type BudgetTemplateCreate,
-  type BudgetTemplateUpdate,
-  type BudgetTemplateResponse,
-  type BudgetTemplateListResponse,
   type BudgetTemplateDeleteResponse,
+  type BudgetTemplateListResponse,
+  type BudgetTemplateResponse,
+  type BudgetTemplateUpdate,
   type TemplateTransactionListResponse,
+  budgetTemplateCreateSchema as createBudgetTemplateSchema,
+  budgetTemplateUpdateSchema as updateBudgetTemplateSchema,
 } from '@pulpe/shared';
+import { type BudgetTemplateRow } from './entities';
 import { BudgetTemplateMapper } from './budget-template.mapper';
-import type { BudgetTemplateDbEntity } from './schemas/budget-template.db.schema';
+
+interface TemplateTransactionDb {
+  id: string;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+  type: 'expense' | 'income' | 'saving';
+  amount: number;
+  name: string;
+  expense_type: 'fixed' | 'variable';
+  template_id: string;
+}
 
 @Injectable()
 export class BudgetTemplateService {
@@ -25,16 +39,12 @@ export class BudgetTemplateService {
   constructor(private readonly budgetTemplateMapper: BudgetTemplateMapper) {}
 
   async findAll(
-    user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetTemplateListResponse> {
     try {
-      // Récupère les templates publics (user_id = NULL) + templates de l'utilisateur
-      // RLS policy s'occupera automatiquement du filtrage
       const { data: templatesDb, error } = await supabase
         .from('budget_templates')
         .select('*')
-        .order('is_default', { ascending: false })
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -44,12 +54,13 @@ export class BudgetTemplateService {
         );
       }
 
-      const templates = this.budgetTemplateMapper.toApiList(templatesDb || []);
+      const templates = this.validateAndEnrichTemplates(templatesDb || []);
+      const apiData = this.budgetTemplateMapper.toApiList(templates);
 
       return {
         success: true as const,
-        data: templates,
-      };
+        data: apiData,
+      } as BudgetTemplateListResponse;
     } catch (error) {
       if (error instanceof InternalServerErrorException) {
         throw error;
@@ -59,35 +70,78 @@ export class BudgetTemplateService {
     }
   }
 
+  private validateCreateTemplateDto(
+    createTemplateDto: BudgetTemplateCreate,
+  ): void {
+    const validationResult =
+      createBudgetTemplateSchema.safeParse(createTemplateDto);
+    if (!validationResult.success) {
+      throw new BadRequestException(
+        `Données invalides: ${validationResult.error.message}`,
+      );
+    }
+  }
+
+  private prepareTemplateData(
+    createTemplateDto: BudgetTemplateCreate,
+    userId: string,
+  ) {
+    return {
+      name: createTemplateDto.name,
+      description: createTemplateDto.description || null,
+      category: createTemplateDto.category || null,
+      is_default: createTemplateDto.isDefault || false,
+      user_id: userId,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+  }
+
+  private async insertTemplate(
+    templateData: ReturnType<typeof this.prepareTemplateData>,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<unknown> {
+    const { data: templateDb, error } = await supabase
+      .from('budget_templates')
+      .insert(templateData)
+      .select()
+      .single();
+
+    if (error) {
+      this.logger.error('Erreur création template:', error);
+      throw new BadRequestException('Erreur lors de la création du template');
+    }
+
+    return templateDb;
+  }
+
   async create(
     createTemplateDto: BudgetTemplateCreate,
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetTemplateResponse> {
     try {
-      const templateData = this.budgetTemplateMapper.toDbCreate(
-        createTemplateDto,
-        user.id,
-      );
+      this.validateCreateTemplateDto(createTemplateDto);
 
-      const { data: templateDb, error } = await supabase
-        .from('budget_templates')
-        .insert(templateData)
-        .select()
-        .single();
-
-      if (error) {
-        this.logger.error('Erreur création template:', error);
-        throw new BadRequestException('Erreur lors de la création du template');
+      if (createTemplateDto.isDefault) {
+        await this.ensureOnlyOneDefault(supabase, user.id);
       }
 
-      const template = this.budgetTemplateMapper.toApi(
-        templateDb as BudgetTemplateDbEntity,
-      );
+      const templateData = this.prepareTemplateData(createTemplateDto, user.id);
+      const templateDb = await this.insertTemplate(templateData, supabase);
+
+      const template = this.validateAndEnrichTemplate(templateDb);
+      if (!template) {
+        throw new InternalServerErrorException(
+          'Erreur lors de la validation du template créé',
+        );
+      }
+
+      const apiData = this.budgetTemplateMapper.toApi(template);
 
       return {
-        success: true as const,
-        data: template,
+        success: true,
+        data: apiData,
       };
     } catch (error) {
       if (error instanceof BadRequestException) {
@@ -116,13 +170,18 @@ export class BudgetTemplateService {
         );
       }
 
-      const template = this.budgetTemplateMapper.toApi(
-        templateDb as BudgetTemplateDbEntity,
-      );
+      const template = this.validateAndEnrichTemplate(templateDb);
+      if (!template) {
+        throw new NotFoundException(
+          'Template introuvable ou données invalides',
+        );
+      }
+
+      const apiData = this.budgetTemplateMapper.toApi(template);
 
       return {
-        success: true as const,
-        data: template,
+        success: true,
+        data: apiData,
       };
     } catch (error) {
       if (error instanceof NotFoundException) {
@@ -133,6 +192,56 @@ export class BudgetTemplateService {
     }
   }
 
+  private validateUpdateTemplateDto(
+    updateTemplateDto: BudgetTemplateUpdate,
+  ): void {
+    const validationResult =
+      updateBudgetTemplateSchema.safeParse(updateTemplateDto);
+    if (!validationResult.success) {
+      throw new BadRequestException(
+        `Données invalides: ${validationResult.error.message}`,
+      );
+    }
+  }
+
+  private prepareUpdateData(updateTemplateDto: BudgetTemplateUpdate) {
+    return {
+      ...(updateTemplateDto.name && { name: updateTemplateDto.name }),
+      ...(updateTemplateDto.description !== undefined && {
+        description: updateTemplateDto.description,
+      }),
+      ...(updateTemplateDto.category !== undefined && {
+        category: updateTemplateDto.category,
+      }),
+      ...(updateTemplateDto.isDefault !== undefined && {
+        is_default: updateTemplateDto.isDefault,
+      }),
+      updated_at: new Date().toISOString(),
+    };
+  }
+
+  private async updateTemplateInDb(
+    id: string,
+    updateData: ReturnType<typeof this.prepareUpdateData>,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<unknown> {
+    const { data: templateDb, error } = await supabase
+      .from('budget_templates')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error || !templateDb) {
+      this.logger.error('Erreur modification template:', error);
+      throw new NotFoundException(
+        'Template introuvable ou modification non autorisée',
+      );
+    }
+
+    return templateDb;
+  }
+
   async update(
     id: string,
     updateTemplateDto: BudgetTemplateUpdate,
@@ -140,35 +249,37 @@ export class BudgetTemplateService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetTemplateResponse> {
     try {
-      const updateData = {
-        ...this.budgetTemplateMapper.toDbUpdate(updateTemplateDto),
-        updated_at: new Date().toISOString(),
-      };
+      this.validateUpdateTemplateDto(updateTemplateDto);
 
-      const { data: templateDb, error } = await supabase
-        .from('budget_templates')
-        .update(updateData)
-        .eq('id', id)
-        .select()
-        .single();
+      if (updateTemplateDto.isDefault) {
+        await this.ensureOnlyOneDefault(supabase, user.id, id);
+      }
 
-      if (error || !templateDb) {
-        this.logger.error('Erreur modification template:', error);
-        throw new NotFoundException(
-          'Template introuvable ou modification non autorisée',
+      const updateData = this.prepareUpdateData(updateTemplateDto);
+      const templateDb = await this.updateTemplateInDb(
+        id,
+        updateData,
+        supabase,
+      );
+
+      const template = this.validateAndEnrichTemplate(templateDb);
+      if (!template) {
+        throw new InternalServerErrorException(
+          'Erreur lors de la validation du template modifié',
         );
       }
 
-      const template = this.budgetTemplateMapper.toApi(
-        templateDb as BudgetTemplateDbEntity,
-      );
+      const apiData = this.budgetTemplateMapper.toApi(template);
 
       return {
-        success: true as const,
-        data: template,
+        success: true,
+        data: apiData,
       };
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
       this.logger.error('Erreur modification template:', error);
@@ -195,7 +306,7 @@ export class BudgetTemplateService {
       }
 
       return {
-        success: true as const,
+        success: true,
         message: 'Template supprimé avec succès',
       };
     } catch (error) {
@@ -208,101 +319,126 @@ export class BudgetTemplateService {
   }
 
   async findTemplateTransactions(
-    templateId: string,
+    id: string,
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateTransactionListResponse> {
     try {
-      await this.validateTemplateAccess(templateId, supabase);
-      const transactionsDb = await this.fetchTemplateTransactions(
-        templateId,
-        supabase,
+      const { data: templateTransactionsDb, error } = await supabase
+        .from('template_transactions')
+        .select('*')
+        .eq('template_id', id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        this.logger.error('Erreur récupération transactions template:', error);
+        throw new InternalServerErrorException(
+          'Erreur lors de la récupération des transactions du template',
+        );
+      }
+
+      const mappedTransactions = (templateTransactionsDb || []).map(
+        (transaction: TemplateTransactionDb) => ({
+          id: transaction.id,
+          description: transaction.description || '',
+          createdAt: transaction.created_at,
+          updatedAt: transaction.updated_at,
+          type: transaction.type,
+          amount: transaction.amount,
+          name: transaction.name,
+          expenseType: transaction.expense_type,
+          templateId: transaction.template_id,
+        }),
       );
-      const transactions = this.transformTemplateTransactions(transactionsDb);
 
       return {
         success: true as const,
-        data: transactions,
-      };
+        data: mappedTransactions,
+      } as TemplateTransactionListResponse;
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (error instanceof InternalServerErrorException) {
         throw error;
       }
-      this.logger.error('Erreur récupération transactions template:', error);
+      this.logger.error('Erreur liste transactions template:', error);
       throw new InternalServerErrorException('Erreur interne du serveur');
     }
   }
 
-  private async validateTemplateAccess(
-    templateId: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<void> {
-    const { data: template, error: templateError } = await supabase
-      .from('budget_templates')
-      .select('id')
-      .eq('id', templateId)
-      .single();
-
-    if (templateError || !template) {
-      throw new NotFoundException('Template introuvable ou accès non autorisé');
-    }
+  private validateAndEnrichTemplates(
+    rawTemplates: unknown[],
+  ): EnrichedBudgetTemplate[] {
+    return rawTemplates
+      .map(this.validateAndEnrichTemplate.bind(this))
+      .filter(
+        (template): template is EnrichedBudgetTemplate => template !== null,
+      )
+      .sort((a, b) => {
+        if (a.is_default && !b.is_default) return -1;
+        if (!a.is_default && b.is_default) return 1;
+        return (
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+      });
   }
 
-  private async fetchTemplateTransactions(
-    templateId: string,
+  private validateAndEnrichTemplate(
+    rawTemplate: unknown,
+  ): EnrichedBudgetTemplate | null {
+    // Validation simple : Supabase garantit la structure
+    if (!rawTemplate || typeof rawTemplate !== 'object') {
+      this.logger.warn('Template invalide ignoré:', rawTemplate);
+      return null;
+    }
+
+    const templateDb = rawTemplate as BudgetTemplateRow;
+    return {
+      ...templateDb,
+      displayCategory: this.formatCategory(templateDb),
+      isUserDefault: templateDb.is_default,
+    };
+  }
+
+  private async ensureOnlyOneDefault(
     supabase: AuthenticatedSupabaseClient,
-  ): Promise<unknown[]> {
-    const { data: transactionsDb, error } = await supabase
-      .from('template_transactions')
-      .select('*')
-      .eq('template_id', templateId)
-      .order('created_at', { ascending: false });
+    userId: string,
+    excludeId?: string,
+  ): Promise<void> {
+    const { error } = await supabase
+      .from('budget_templates')
+      .update({ is_default: false })
+      .eq('user_id', userId)
+      .eq('is_default', true)
+      .neq('id', excludeId || '');
 
     if (error) {
-      this.logger.error('Erreur récupération transactions template:', error);
+      this.logger.error('Erreur désactivation templates par défaut:', error);
       throw new InternalServerErrorException(
-        'Erreur lors de la récupération des transactions du template',
+        'Erreur lors de la gestion des templates par défaut',
       );
     }
-
-    return transactionsDb || [];
   }
 
-  private transformTemplateTransactions(transactionsDb: unknown[]): Array<{
-    id: string;
-    createdAt: string;
-    updatedAt: string;
-    templateId: string;
-    amount: number;
-    type: 'expense' | 'income' | 'saving';
-    expenseType: 'fixed' | 'variable';
-    name: string;
-    description: string;
-  }> {
+  private formatCategory(template: BudgetTemplateRow): string {
+    if (!template.category) return 'Sans catégorie';
+
+    const categories = {
+      personal: 'Personnel',
+      family: 'Famille',
+      business: 'Professionnel',
+      student: 'Étudiant',
+      retirement: 'Retraite',
+      emergency: 'Urgence',
+      custom: 'Personnalisé',
+    };
+
     return (
-      transactionsDb as Array<{
-        id: string;
-        created_at: string;
-        updated_at: string;
-        template_id: unknown;
-        amount: unknown;
-        type: unknown;
-        expense_type: unknown;
-        name: unknown;
-        description: unknown;
-        [key: string]: unknown;
-      }>
-    ).map((transaction) => ({
-      id: transaction.id,
-      createdAt: transaction.created_at,
-      updatedAt: transaction.updated_at,
-      templateId: String(transaction.template_id ?? ''),
-      amount: Number(transaction.amount ?? 0),
-      type: (transaction.type as 'expense' | 'income' | 'saving') ?? 'expense',
-      expenseType:
-        (transaction.expense_type as 'fixed' | 'variable') ?? 'fixed',
-      name: String(transaction.name ?? ''),
-      description: String(transaction.description ?? ''),
-    }));
+      categories[template.category as keyof typeof categories] ||
+      template.category
+    );
   }
 }
+
+type EnrichedBudgetTemplate = BudgetTemplateRow & {
+  displayCategory: string;
+  isUserDefault: boolean;
+};

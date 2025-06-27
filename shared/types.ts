@@ -29,6 +29,17 @@ import type {
   templateTransactionResponseSchema,
   templateTransactionListResponseSchema,
   templateTransactionDeleteResponseSchema,
+  // User schemas
+  userProfileSchema,
+  updateProfileSchema,
+  userProfileResponseSchema,
+  publicInfoResponseSchema,
+  onboardingStatusResponseSchema,
+  successMessageResponseSchema,
+  // Auth schemas
+  userInfoSchema,
+  authValidationResponseSchema,
+  authErrorResponseSchema,
 } from "./schemas";
 
 // Budget types
@@ -119,3 +130,22 @@ export type TransactionResponse = {
   success: true;
   data?: Transaction | Transaction[];
 };
+
+// User types
+export type UserProfile = z.infer<typeof userProfileSchema>;
+export type UpdateProfile = z.infer<typeof updateProfileSchema>;
+export type UserProfileResponse = z.infer<typeof userProfileResponseSchema>;
+export type PublicInfoResponse = z.infer<typeof publicInfoResponseSchema>;
+export type OnboardingStatusResponse = z.infer<
+  typeof onboardingStatusResponseSchema
+>;
+export type SuccessMessageResponse = z.infer<
+  typeof successMessageResponseSchema
+>;
+
+// Auth types
+export type UserInfo = z.infer<typeof userInfoSchema>;
+export type AuthValidationResponse = z.infer<
+  typeof authValidationResponseSchema
+>;
+export type AuthErrorResponse = z.infer<typeof authErrorResponseSchema>;

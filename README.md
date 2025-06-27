@@ -1,88 +1,67 @@
-## 🚀 Démarrage rapide
+# Pulpe Workspace
 
-### 1. Cloner le repo
+Pulpe est une application full-stack de gestion de budgets. Ce monorepo est géré avec `pnpm` et contient :
 
-```bash
-git clone https://github.com/<ton-utilisateur>/<ton-repo>.git
-cd pulpe-workspace
-```
+-   `backend-nest/`: Une API robuste avec NestJS.
+-   `frontend/`: Une application moderne avec Angular 20.
+-   `shared/`: Un package de types et schémas partagés (Zod).
 
-### 2. Installer les dépendances
+## Stack Technique
 
-```bash
-pnpm install
-# ou npm install / bun install selon ton gestionnaire
-```
+-   **Monorepo**: `pnpm`
+-   **Backend**: NestJS, Bun, Supabase, Zod
+-   **Frontend**: Angular 20+, Signals, Standalone Components, Tailwind CSS, Angular Material, Vitest, Playwright
+-   **Partagé**: TypeScript, Zod
 
-### 3. Lancer le backend
+## Prérequis
 
-```bash
-cd backend-nest
-bun run start:dev
-# ou npm run start:dev
-```
+-   Node.js (LTS)
+-   `pnpm`
+-   `bun`
 
-### 4. Lancer le frontend
+## Mise en Route
 
-```bash
-cd frontend
-ng serve
-# ou npm run start
-```
+1.  **Cloner le dépôt**
+    ```bash
+    git clone <votre-url-de-repo>
+    cd pulpe-workspace
+    ```
 
-## 🛠️ Fonctionnalités principales
+2.  **Installer les dépendances**
+    Depuis la racine du projet :
+    ```bash
+    pnpm install
+    ```
 
-### Backend (NestJS)
+3.  **Configurer l'environnement**
+    Copiez `backend-nest/.env.example` vers `backend-nest/.env` et renseignez les variables d'environnement sensibles (par exemple, les clés d'API privées).
 
-- Authentification JWT via Supabase
-- Gestion des budgets, transactions, utilisateurs
-- Validation Zod, logging structuré, gestion d'erreurs globale
-- Documentation Swagger : [http://localhost:3000/api/docs](http://localhost:3000/api/docs)
+4.  **Lancer les applications**
 
-### Frontend (Angular 20+)
+    ```bash
+    # Lancer le backend (API NestJS)
+    pnpm --filter backend-nest dev
 
-- Architecture feature-based, composants standalone, Angular Signals
-- UI Material & Tailwind, responsive, dark mode
-- Auth, onboarding, gestion des budgets mensuels, templates de budget
-- Tests unitaires (Vitest) & e2e (Playwright)
+    # Lancer le frontend (App Angular)
+    pnpm --filter frontend start
+    ```
 
-### Shared
+## Commandes Utiles
 
-- Types TypeScript et schémas Zod partagés entre backend et frontend
+Les commandes suivantes sont à lancer depuis la racine du projet.
 
-## 🧪 Tests
+| Commande                       | Description                                          |
+| ------------------------------ | ---------------------------------------------------- |
+| `pnpm --filter backend-nest dev`   | Démarre le serveur de développement du backend.      |
+| `pnpm --filter backend-nest build` | Build le backend pour la production.               |
+| `pnpm --filter backend-nest test`  | Lance les tests unitaires du backend.              |
+| `pnpm --filter frontend start`     | Démarre le serveur de développement du frontend.     |
+| `pnpm --filter frontend build`     | Build le frontend pour la production.              |
+| `pnpm --filter frontend test`      | Lance les tests unitaires du frontend (Vitest).      |
+| `pnpm --filter frontend test:e2e`  | Lance les tests end-to-end du frontend (Playwright). |
+| `pnpm --filter frontend lint`      | Analyse le code du frontend avec ESLint.             |
 
-- **Unitaires** :
-  - Backend : `bun test` ou `npm run test` dans `backend-nest`
-  - Frontend : `pnpm test:vitest` dans `frontend`
-- **End-to-end** :
-  - Frontend : `pnpm test:e2e` (Playwright)
 
-## 📁 Environnements & secrets
-
-- Les variables sensibles (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, etc.) sont à placer dans des fichiers `.env` (voir `.gitignore`).
-- **Ne jamais versionner de clé secrète ou de token admin.**
-
-## 📚 Documentation
-
-- **Backend** : voir `backend-nest/README.md`
-- **Frontend** : voir `frontend/README.md`
-- **Types partagés** : voir `shared/`
-
-## 📝 Stack technique
-
-- **Backend** : NestJS, TypeScript, Supabase, Zod, Pino, Bun
-- **Frontend** : Angular 20+, Angular Material, Tailwind CSS, Signals, Playwright, Vitest
-- **Partagé** : TypeScript, Zod
-
-## 🤝 Contribuer
-
-1. Fork le repo
-2. Crée une branche (`git checkout -b feature/ma-feature`)
-3. Commit tes changements (`git commit -am 'feat: nouvelle feature'`)
-4. Push la branche (`git push origin feature/ma-feature`)
-5. Ouvre une Pull Request
-
-## 📄 Licence
+## Licence
 
 MIT

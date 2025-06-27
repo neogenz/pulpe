@@ -211,3 +211,53 @@ export const templateTransactionListResponseSchema = z.object({
 });
 
 export const templateTransactionDeleteResponseSchema = deleteResponseSchema;
+
+// User schemas
+export const userProfileSchema = z.object({
+  id: z.string().uuid(),
+  email: z.string().email(),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+});
+
+export const updateProfileSchema = z.object({
+  firstName: z.string().min(1).max(50).trim(),
+  lastName: z.string().min(1).max(50).trim(),
+});
+
+export const userProfileResponseSchema = z.object({
+  success: z.literal(true),
+  user: userProfileSchema,
+});
+
+export const publicInfoResponseSchema = z.object({
+  success: z.literal(true),
+  message: z.string(),
+  authenticated: z.boolean(),
+});
+
+export const onboardingStatusResponseSchema = z.object({
+  success: z.literal(true),
+  onboardingCompleted: z.boolean(),
+});
+
+export const successMessageResponseSchema = z.object({
+  success: z.literal(true),
+  message: z.string(),
+});
+
+// Auth schemas
+export const userInfoSchema = z.object({
+  id: z.string().uuid(),
+  email: z.string().email(),
+});
+
+export const authValidationResponseSchema = z.object({
+  success: z.literal(true),
+  user: userInfoSchema,
+});
+
+export const authErrorResponseSchema = z.object({
+  success: z.literal(false),
+  error: z.string(),
+});
