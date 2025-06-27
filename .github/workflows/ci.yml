@@ -1,0 +1,265 @@
+name: 🚀 CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# No external dependencies needed
+
+jobs:
+  changes:
+    name: 🔍 Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.changes.outputs.frontend }}
+      backend: ${{ steps.changes.outputs.backend }}
+      shared: ${{ steps.changes.outputs.shared }}
+    steps:
+      - name: 📦 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🔍 Detect changes
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+            backend:
+              - 'backend-nest/**'
+            shared:
+              - 'shared/**'
+            root:
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'turbo.json'
+
+  quality:
+    name: 🧹 Code Quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📦 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.12.1
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🔨 Build shared packages
+        run: pnpm run build:shared
+
+      - name: 🧹 Lint
+        run: pnpm run lint
+
+      - name: 🎨 Format check
+        run: pnpm run format:check
+
+      - name: 📝 Type check
+        run: pnpm run type-check
+
+  test:
+    name: 🧪 Tests
+    runs-on: ubuntu-latest
+    needs: [changes]
+    strategy:
+      matrix:
+        test-type: [unit, integration]
+    steps:
+      - name: 📦 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.12.1
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🔨 Build shared packages
+        run: pnpm run build:shared
+
+      - name: 🧪 Run ${{ matrix.test-type }} tests
+        run: pnpm run test:${{ matrix.test-type }}
+
+      - name: 📊 Archive coverage reports
+        if: matrix.test-type == 'unit'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: |
+            ./frontend/coverage/
+            ./backend-nest/coverage/
+          retention-days: 7
+
+  e2e:
+    name: 🎭 E2E Tests
+    runs-on: ubuntu-latest
+    needs: [changes, quality]
+    if: needs.changes.outputs.frontend == 'true'
+    steps:
+      - name: 📦 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.12.1
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 📦 Install Playwright browsers
+        run: cd frontend && npx playwright install --with-deps
+
+      - name: 🔨 Build packages
+        run: pnpm run build
+
+      - name: 🎭 Run E2E tests
+        run: pnpm run test:e2e
+
+      - name: 📊 Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 30
+
+  build:
+    name: 🔨 Build
+    runs-on: ubuntu-latest
+    needs: [changes, quality]
+    steps:
+      - name: 📦 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.12.1
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🔨 Build all packages
+        run: pnpm run build
+
+      - name: 📦 Upload frontend build artifacts
+        if: needs.changes.outputs.frontend == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+          retention-days: 7
+
+      - name: 📦 Upload backend build artifacts
+        if: needs.changes.outputs.backend == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-dist
+          path: backend-nest/dist/
+          retention-days: 7
+
+  performance:
+    name: ⚡ Performance Tests
+    runs-on: ubuntu-latest
+    needs: [changes, build]
+    if: needs.changes.outputs.backend == 'true'
+    steps:
+      - name: 📦 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.12.1
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🔨 Build shared packages
+        run: pnpm run build:shared
+
+      - name: ⚡ Run performance tests
+        run: pnpm run test:performance
+
+  security:
+    name: 🔒 Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📦 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🔍 Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          format: "sarif"
+          output: "trivy-results.sarif"
+
+      - name: 📊 Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: "trivy-results.sarif"
