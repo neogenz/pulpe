@@ -4,7 +4,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**", "!.next/cache/**"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**", "build/**"],
       "env": ["NODE_ENV"]
     },
     "dev": {
@@ -29,42 +29,52 @@
     },
     "lint": {
       "dependsOn": ["^build"],
-      "outputs": []
+      "inputs": [
+        "src/**/*.{ts,tsx,js,jsx}",
+        "**/*.{ts,tsx,js,jsx}",
+        "eslint.config.{js,ts}"
+      ]
     },
     "lint:fix": {
       "dependsOn": ["^build"],
-      "outputs": []
+      "cache": false,
+      "inputs": [
+        "src/**/*.{ts,tsx,js,jsx}",
+        "**/*.{ts,tsx,js,jsx}",
+        "eslint.config.{js,ts}"
+      ]
     },
     "test": {
       "dependsOn": ["^build"],
-      "outputs": ["coverage/**", "test-results.json"]
+      "outputs": ["coverage/**", "test-results.json", "test-results/**"]
     },
     "test:unit": {
       "dependsOn": ["^build"],
-      "outputs": []
+      "outputs": ["coverage/**"]
     },
     "test:integration": {
       "dependsOn": ["^build"],
-      "outputs": []
+      "outputs": ["coverage/**"]
     },
     "test:performance": {
       "dependsOn": ["^build"],
-      "outputs": []
+      "outputs": ["performance-results/**"]
     },
     "test:e2e": {
       "dependsOn": ["^build"],
-      "outputs": ["playwright-report/**", "test-results/**"]
+      "outputs": ["playwright-report/**", "test-results/**", "e2e-results/**"]
     },
     "test:vitest": {
       "dependsOn": ["^build"],
-      "outputs": ["coverage/**"]
+      "outputs": ["coverage/**", "vitest-results/**"]
     },
     "format": {
-      "cache": false,
-      "outputs": []
+      "outputs": [],
+      "inputs": ["**/*.{ts,tsx,js,jsx,json,md,yml,yaml}"]
     },
     "format:check": {
-      "outputs": []
+      "outputs": [],
+      "inputs": ["**/*.{ts,tsx,js,jsx,json,md,yml,yaml}"]
     },
     "format:write": {
       "cache": false,
@@ -75,19 +85,20 @@
     },
     "type-check": {
       "dependsOn": ["^build"],
-      "outputs": []
+      "outputs": ["*.tsbuildinfo"],
+      "inputs": ["**/*.{ts,tsx}", "tsconfig*.json"]
     },
     "type-check:full": {
       "dependsOn": ["^build"],
-      "outputs": []
+      "outputs": ["*.tsbuildinfo"],
+      "inputs": ["**/*.{ts,tsx}", "tsconfig*.json"]
     },
     "quality": {
-      "dependsOn": ["^build"],
-      "outputs": []
+      "dependsOn": ["^build", "type-check", "lint", "format:check"]
     },
     "quality:fix": {
-      "dependsOn": ["^build"],
-      "outputs": []
+      "dependsOn": ["^build", "type-check", "lint:fix", "format"],
+      "cache": false
     },
     "clean": {
       "cache": false,
