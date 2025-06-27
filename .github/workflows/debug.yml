@@ -1,0 +1,167 @@
+name: 🔧 Debug Workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      debug_level:
+        description: "Debug level"
+        required: true
+        default: "basic"
+        type: choice
+        options:
+          - basic
+          - detailed
+          - full
+      target_package:
+        description: "Target package to debug"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - frontend
+          - backend
+          - shared
+
+env:
+  ACTIONS_STEP_DEBUG: true
+  ACTIONS_RUNNER_DEBUG: true
+
+jobs:
+  debug:
+    name: 🔧 Debug Environment
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📦 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.12.1
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: 🔍 System Information
+        run: |
+          echo "=== SYSTEM INFORMATION ==="
+          echo "Operating System: $(uname -a)"
+          echo "Node version: $(node --version)"
+          echo "pnpm version: $(pnpm --version)"
+          echo "bun version: $(bun --version)"
+          echo "npm version: $(npm --version)"
+          echo "Available disk space:"
+          df -h
+          echo "Available memory:"
+          free -h || echo "free command not available"
+          echo "CPU information:"
+          lscpu | head -10 || echo "lscpu not available"
+
+      - name: 🔍 Workspace Structure
+        run: |
+          echo "=== WORKSPACE STRUCTURE ==="
+          echo "Current directory: $(pwd)"
+          echo "Root directory contents:"
+          ls -la
+          echo ""
+          echo "Package.json files found:"
+          find . -name "package.json" -not -path "./node_modules/*" | head -10
+          echo ""
+          echo "Turbo.json:"
+          cat turbo.json 2>/dev/null || echo "turbo.json not found"
+
+      - name: 📦 Dependencies Analysis
+        run: |
+          echo "=== DEPENDENCIES ANALYSIS ==="
+          echo "Installing dependencies..."
+          pnpm install --frozen-lockfile
+          echo "Installation completed"
+          echo ""
+          echo "Workspace info:"
+          pnpm list --depth=0
+          echo ""
+          echo "Root package.json scripts:"
+          cat package.json | jq '.scripts' 2>/dev/null || echo "Could not parse package.json scripts"
+
+      - name: 🔍 Frontend Debug
+        if: inputs.target_package == 'all' || inputs.target_package == 'frontend'
+        run: |
+          echo "=== FRONTEND DEBUG ==="
+          cd frontend || exit 1
+          echo "Frontend directory contents:"
+          ls -la
+          echo ""
+          echo "Frontend package.json scripts:"
+          cat package.json | jq '.scripts' 2>/dev/null || echo "Could not parse scripts"
+          echo ""
+          echo "Angular CLI version:"
+          npx ng version 2>/dev/null || echo "Angular CLI not available"
+          echo ""
+          echo "Testing lint command:"
+          pnpm run lint --help 2>/dev/null || echo "Lint command failed"
+
+      - name: 🔍 Backend Debug
+        if: inputs.target_package == 'all' || inputs.target_package == 'backend'
+        run: |
+          echo "=== BACKEND DEBUG ==="
+          cd backend-nest || exit 1
+          echo "Backend directory contents:"
+          ls -la
+          echo ""
+          echo "Backend package.json scripts:"
+          cat package.json | jq '.scripts' 2>/dev/null || echo "Could not parse scripts"
+          echo ""
+          echo "Bun test capabilities:"
+          bun test --help | head -10 2>/dev/null || echo "Bun test not available"
+          echo ""
+          echo "Testing lint command:"
+          pnpm run lint --help 2>/dev/null || echo "Lint command failed"
+
+      - name: 🔍 Shared Debug
+        if: inputs.target_package == 'all' || inputs.target_package == 'shared'
+        run: |
+          echo "=== SHARED DEBUG ==="
+          cd shared || exit 1
+          echo "Shared directory contents:"
+          ls -la
+          echo ""
+          echo "Shared package.json scripts:"
+          cat package.json | jq '.scripts' 2>/dev/null || echo "Could not parse scripts"
+          echo ""
+          echo "Testing build:"
+          pnpm run build 2>/dev/null || echo "Build failed"
+
+      - name: 🔍 Detailed Analysis
+        if: inputs.debug_level == 'detailed' || inputs.debug_level == 'full'
+        run: |
+          echo "=== DETAILED ANALYSIS ==="
+          echo "Environment variables:"
+          env | grep -E "(NODE|PNPM|BUN|CI|GITHUB)" | sort
+          echo ""
+          echo "Process list:"
+          ps aux | head -10
+          echo ""
+          echo "Network configuration:"
+          ip addr show 2>/dev/null || ifconfig 2>/dev/null || echo "Network info not available"
+
+      - name: 🔍 Full Debug
+        if: inputs.debug_level == 'full'
+        run: |
+          echo "=== FULL DEBUG ==="
+          echo "All environment variables:"
+          env | sort
+          echo ""
+          echo "Full process tree:"
+          ps auxf | head -20
+          echo ""
+          echo "Mount points:"
+          mount | head -10
