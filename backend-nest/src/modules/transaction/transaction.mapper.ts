@@ -1,51 +1,61 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import {
   type Transaction,
   type TransactionCreate,
   type TransactionUpdate,
-  type ExpenseType,
-  type TransactionType,
+  transactionCreateSchema,
 } from '@pulpe/shared';
-
-export interface TransactionDbEntity {
-  id: string;
-  created_at: string;
-  updated_at: string;
-  user_id: string | null;
-  budget_id: string;
-  amount: number;
-  type: TransactionType;
-  expense_type: ExpenseType;
-  name: string;
-  description: string | null;
-  is_recurring: boolean;
-}
+import {
+  transactionDbEntitySchema,
+  type TransactionDbEntity,
+} from './schemas/transaction.db.schema';
 
 @Injectable()
 export class TransactionMapper {
   /**
+   * Valide les données venant de la DB avec Zod
+   */
+  private validateDbEntity(dbEntity: unknown): TransactionDbEntity {
+    const validationResult = transactionDbEntitySchema.safeParse(dbEntity);
+    if (!validationResult.success) {
+      const firstError = validationResult.error.errors[0];
+      throw new InternalServerErrorException(
+        `Invalid DB data: ${firstError.path.join('.')} - ${firstError.message}`,
+      );
+    }
+    return validationResult.data;
+  }
+
+  /**
    * Transforme une entité de la base de données (snake_case) vers le modèle API (camelCase)
    */
-  toApi(transactionDb: TransactionDbEntity): Transaction {
+  toApi(transactionDb: unknown): Transaction {
+    // Validate DB data first - fail fast on corrupted data
+    const validatedDb = this.validateDbEntity(transactionDb);
+
     return {
-      id: transactionDb.id,
-      createdAt: transactionDb.created_at,
-      updatedAt: transactionDb.updated_at,
-      userId: transactionDb.user_id ?? undefined,
-      budgetId: transactionDb.budget_id,
-      amount: transactionDb.amount,
-      type: transactionDb.type,
-      expenseType: transactionDb.expense_type,
-      name: transactionDb.name,
-      description: transactionDb.description ?? undefined,
-      isRecurring: transactionDb.is_recurring,
+      id: validatedDb.id,
+      createdAt: validatedDb.created_at,
+      updatedAt: validatedDb.updated_at,
+      userId: validatedDb.user_id ?? undefined,
+      budgetId: validatedDb.budget_id,
+      amount: validatedDb.amount,
+      type: validatedDb.type,
+      expenseType: validatedDb.expense_type,
+      name: validatedDb.name,
+      description: validatedDb.description ?? undefined,
+      isRecurring: validatedDb.is_recurring,
     };
   }
 
   /**
    * Transforme plusieurs entités DB vers modèles API
    */
-  toApiList(transactionsDb: TransactionDbEntity[]): Transaction[] {
+  toApiList(transactionsDb: unknown[]): Transaction[] {
     return transactionsDb.map((transaction) => this.toApi(transaction));
   }
 
@@ -55,29 +65,31 @@ export class TransactionMapper {
   toDbCreate(
     createDto: TransactionCreate,
     userId: string,
+    budgetId?: string,
   ): Omit<TransactionDbEntity, 'id' | 'created_at' | 'updated_at'> {
-    // Validate required fields exist - fail fast on missing data
-    if (createDto.amount === undefined || createDto.amount === null) {
-      throw new BadRequestException('Amount is required');
+    // Validate with Zod schema - fail fast on invalid data
+    const validationResult = transactionCreateSchema.safeParse(createDto);
+    if (!validationResult.success) {
+      const firstError = validationResult.error.errors[0];
+      throw new BadRequestException(
+        `Validation failed: ${firstError.path.join('.')} - ${firstError.message}`,
+      );
     }
-    if (!createDto.type) {
-      throw new BadRequestException('Transaction type is required');
-    }
-    if (!createDto.name?.trim()) {
-      throw new BadRequestException('Transaction name is required');
-    }
-    if (!createDto.expenseType) {
-      throw new BadRequestException('Expense type is required');
-    }
-    if (createDto.isRecurring === undefined || createDto.isRecurring === null) {
-      throw new BadRequestException('isRecurring field is required');
-    }
-    if (!createDto.budgetId?.trim()) {
-      throw new BadRequestException('Budget ID is required');
+
+    const validatedData = validationResult.data;
+
+    // Determine budget ID from multiple sources
+    const finalBudgetId = budgetId ?? validatedData.budgetId;
+
+    // Validate that we have a budget ID (required for DB constraint)
+    if (!finalBudgetId?.trim()) {
+      throw new BadRequestException(
+        'Budget ID is required - must be provided either in the DTO or as parameter',
+      );
     }
 
     return {
-      budget_id: createDto.budgetId,
+      budget_id: finalBudgetId,
       amount: createDto.amount,
       type: createDto.type,
       expense_type: createDto.expenseType,

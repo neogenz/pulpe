@@ -1,41 +1,52 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import {
   type Budget,
   type BudgetCreate,
   type BudgetUpdate,
 } from '@pulpe/shared';
-
-export interface BudgetDbEntity {
-  id: string;
-  created_at: string;
-  updated_at: string;
-  user_id: string | null;
-  month: number;
-  year: number;
-  description: string;
-}
+import {
+  budgetDbEntitySchema,
+  type BudgetDbEntity,
+} from './schemas/budget.db.schema';
 
 @Injectable()
 export class BudgetMapper {
   /**
+   * Valide les données venant de la DB avec Zod
+   */
+  private validateDbEntity(dbEntity: unknown): BudgetDbEntity {
+    const validationResult = budgetDbEntitySchema.safeParse(dbEntity);
+    if (!validationResult.success) {
+      const firstError = validationResult.error.errors[0];
+      throw new InternalServerErrorException(
+        `Invalid DB data: ${firstError.path.join('.')} - ${firstError.message}`,
+      );
+    }
+    return validationResult.data;
+  }
+
+  /**
    * Transforme une entité de la base de données (snake_case) vers le modèle API (camelCase)
    */
-  toApi(budgetDb: BudgetDbEntity): Budget {
+  toApi(budgetDb: unknown): Budget {
+    // Validate DB data first - fail fast on corrupted data
+    const validatedDb = this.validateDbEntity(budgetDb);
+
     return {
-      id: budgetDb.id,
-      createdAt: budgetDb.created_at,
-      updatedAt: budgetDb.updated_at,
-      userId: budgetDb.user_id ?? undefined,
-      month: budgetDb.month,
-      year: budgetDb.year,
-      description: budgetDb.description,
+      id: validatedDb.id,
+      createdAt: validatedDb.created_at,
+      updatedAt: validatedDb.updated_at,
+      userId: validatedDb.user_id ?? undefined,
+      month: validatedDb.month,
+      year: validatedDb.year,
+      description: validatedDb.description,
     };
   }
 
   /**
    * Transforme plusieurs entités DB vers modèles API
    */
-  toApiList(budgetsDb: BudgetDbEntity[]): Budget[] {
+  toApiList(budgetsDb: unknown[]): Budget[] {
     return budgetsDb.map((budget) => this.toApi(budget));
   }
 
