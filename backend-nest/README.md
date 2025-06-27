@@ -1,150 +1,278 @@
-# Backend NestJS - Pulpe Budget API
+# Backend NestJS - Pulpe Budget API 🚀
 
-This is a NestJS backend for the Pulpe Budget application, providing a REST API with authentication and budget management features.
+API backend moderne pour l'application Pulpe Budget, construite avec NestJS, Bun et Supabase.
 
-## Features
+## ✨ **Features**
 
-- **NestJS Framework**: Modern TypeScript framework with decorators and dependency injection
-- **OpenAPI/Swagger**: Auto-generated API documentation at `/api/docs`
-- **Zod Validation**: Request/response validation using shared Zod schemas
-- **Supabase Integration**: Authentication and database operations
-- **TypeScript**: Full type safety from database to API responses
-- **Shared Models**: Uses `@pulpe/shared` package for consistent types
-- **Logging**: Structured logging with Pino
-- **Global Error Handling**: Centralized exception handling
+- **🏗️ NestJS Framework** : Architecture moderne avec decorators et dependency injection
+- **📚 OpenAPI/Swagger** : Documentation API auto-générée accessible à `/api/docs`
+- **✅ Validation Zod** : Validation robuste via schemas partagés `@pulpe/shared`
+- **🔐 Supabase Auth** : Authentification JWT + Row Level Security (RLS)
+- **🔒 TypeScript Strict** : Type safety complète de la DB aux réponses API
+- **📡 DTOs Partagés** : Types cohérents entre frontend et backend
+- **🪵 Logging Structuré** : Logs Pino avec correlation IDs
+- **⚡ Bun Runtime** : Performance optimisée avec Bun
 
-## Quick Start
+> 📖 **Pour comprendre l'architecture en détail** : Consultez [ARCHITECTURE.md](./ARCHITECTURE.md)  
+> 🗄️ **Pour maîtriser la base de données** : Consultez [DATABASE.md](./DATABASE.md)
 
-1. **Install dependencies**:
-   ```bash
-   bun install
-   ```
+## 🚀 **Quick Start**
 
-2. **Environment Setup**:
-   ```bash
-   cp .env.example .env
-   # Edit .env with your Supabase credentials
-   ```
+### Prérequis
 
-3. **Development**:
-   ```bash
-   bun run start:dev
-   ```
+- **Node.js** (LTS) + **Bun** v1.2.17+
+- **Supabase** projet configuré
 
-4. **Build**:
-   ```bash
-   bun run build
-   ```
+### Installation
 
-5. **Production**:
-   ```bash
-   bun run start:prod
-   ```
+```bash
+# Installer les dépendances
+bun install
 
-## API Documentation
+# Configurer l'environnement
+cp .env.example .env
+# ✏️ Éditer .env avec vos clés Supabase
+```
 
-- **Swagger UI**: http://localhost:3000/api/docs
-- **OpenAPI JSON**: http://localhost:3000/api/openapi
-- **Health Check**: http://localhost:3000/health
+> 🔧 **Configuration avancée** : Variables d'environnement et setup détaillés dans [DATABASE.md](./DATABASE.md)
 
-## Architecture
+### Développement
 
-### Project Structure
+```bash
+# Démarrer en mode développement
+bun run start:dev
+
+# L'API sera disponible sur http://localhost:3000
+# Documentation Swagger : http://localhost:3000/api/docs
+```
+
+### Production
+
+```bash
+# Build pour production
+bun run build
+
+# Démarrer en production
+bun run start:prod
+```
+
+## 📋 **Scripts Disponibles**
+
+### **Développement**
+
+```bash
+bun run start:dev      # Mode développement avec hot reload
+bun run start          # Démarrage simple
+bun run build          # Build production
+bun run start:prod     # Exécution production
+```
+
+### **Base de données**
+
+```bash
+bun run dump:db        # Export schema SQL
+bun run generate-types # Générer types TypeScript depuis Supabase
+```
+
+> 🗄️ **Guide complet base de données** : Schema, RLS, types et sécurité dans [DATABASE.md](./DATABASE.md)
+
+### **Tests**
+
+```bash
+bun run test           # Tous les tests
+bun run test:unit      # Tests unitaires (services, guards)
+bun run test:integration # Tests d'intégration HTTP
+bun run test:performance # Tests de performance avec métriques
+bun run test:all       # Suite complète (unit + integration + perf)
+bun run test:watch     # Mode watch
+bun run test:coverage  # Couverture de code
+```
+
+> 🧪 **Stratégie de tests détaillée** : Patterns, mocks et bonnes pratiques dans [ARCHITECTURE.md](./ARCHITECTURE.md)
+
+### **Qualité de Code**
+
+```bash
+bun run lint           # Analyse ESLint
+bun run lint:fix       # Correction automatique ESLint
+bun run format         # Formatage Prettier
+bun run format:check   # Vérification formatage
+bun run quality        # Type-check + Lint + Format check
+bun run quality:fix    # Type-check + Lint:fix + Format
+```
+
+## 🌐 **Endpoints API**
+
+Tous les endpoints sont préfixés par `/api` :
+
+### **Authentification**
+
+- `GET /api/auth/validate` - Validation token JWT
+
+### **Utilisateurs**
+
+- `GET /api/users/me` - Profil utilisateur
+- `PUT /api/users/profile` - Mise à jour profil
+- `GET /api/users/public-info` - Informations publiques
+- `PUT /api/users/onboarding-completed` - Marquer onboarding terminé
+
+### **Budgets**
+
+- `GET /api/budgets` - Liste des budgets
+- `POST /api/budgets` - Créer budget
+- `GET /api/budgets/:id` - Budget par ID
+- `PUT /api/budgets/:id` - Modifier budget
+- `DELETE /api/budgets/:id` - Supprimer budget
+- `POST /api/budgets/from-onboarding` - Créer budget depuis onboarding
+
+### **Transactions**
+
+- `GET /api/transactions/budget/:budgetId` - Transactions par budget
+- `POST /api/transactions` - Créer transaction
+- `GET /api/transactions/:id` - Transaction par ID
+- `PUT /api/transactions/:id` - Modifier transaction
+- `DELETE /api/transactions/:id` - Supprimer transaction
+
+### **Templates de Budget**
+
+- `GET /api/budget-templates` - Liste des templates
+- `POST /api/budget-templates` - Créer template
+- `GET /api/budget-templates/:id` - Template par ID
+- `PUT /api/budget-templates/:id` - Modifier template
+- `DELETE /api/budget-templates/:id` - Supprimer template
+- `GET /api/budget-templates/:id/transactions` - Transactions du template
+
+### **Debug** (Développement uniquement)
+
+- `GET /api/debug/health` - Health check
+
+> 📚 **Documentation Swagger** : Interface interactive disponible à `/api/docs`  
+> 🏗️ **Architecture des controllers** : Patterns et bonnes pratiques dans [ARCHITECTURE.md](./ARCHITECTURE.md)
+
+## 🏗️ **Architecture Overview**
+
 ```
 src/
-├── config/              # Environment configuration and validation
-├── common/              # Shared utilities and cross-cutting concerns
-│   ├── decorators/      # Custom decorators (@User)
-│   ├── dto/             # Common DTOs (response wrapper)
-│   ├── filters/         # Global exception filters
-│   ├── guards/          # Authentication guards
-│   ├── interceptors/    # Response interceptors
-│   ├── logger/          # Application logger service
-│   ├── middleware/      # Request middleware (request ID)
-│   └── pipes/           # Validation pipes (Zod)
-├── modules/             # Feature modules
-│   ├── auth/            # Authentication endpoints
-│   ├── budget/          # Budget management
-│   ├── debug/           # Debug endpoints
-│   ├── supabase/        # Supabase service integration
-│   ├── transaction/     # Transaction management
-│   └── user/            # User profile management
-├── app.module.ts        # Root application module
-└── main.ts              # Application bootstrap
+├── modules/           # Modules métier
+│   ├── auth/         # Authentification
+│   ├── budget/       # Gestion budgets
+│   ├── transaction/  # Gestion transactions
+│   ├── budget-template/ # Templates de budgets
+│   ├── user/         # Gestion utilisateurs
+│   └── supabase/     # Service Supabase
+├── common/           # Composants transversaux
+│   ├── guards/       # Guards d'authentification
+│   ├── decorators/   # Decorators personnalisés (@User)
+│   ├── interceptors/ # Intercepteurs de réponse
+│   ├── filters/      # Filtres d'exceptions globales
+│   └── dto/          # DTOs de réponse communs
+├── types/            # Types Supabase
+└── config/           # Configuration environnement
 ```
 
-### Key Components
+> 🎯 **Architecture détaillée** : Patterns NestJS, modules, services et DTOs dans [ARCHITECTURE.md](./ARCHITECTURE.md)
 
-#### Authentication Guard
-```typescript
-@UseGuards(AuthGuard)  // Requires Bearer token authentication
-```
+## 🔧 **Configuration**
 
-#### Zod Validation
-```typescript
-@UsePipes(new ZodValidationPipe(budgetCreateRequestSchema))
-```
+### Variables d'Environnement
 
-#### User Injection
-```typescript
-async method(
-  @User() user: AuthenticatedUser,
-) { /* ... */ }
-```
-
-## API Endpoints
-
-All endpoints are prefixed with `/api`:
-
-### Authentication
-- `GET /api/auth/validate` - Validate JWT token
-
-### User Management
-- `GET /api/users/profile` - Get user profile
-
-### Budget Management
-- `GET /api/budgets` - List all budgets
-- `POST /api/budgets` - Create new budget
-- `GET /api/budgets/:id` - Get budget by ID
-- `PUT /api/budgets/:id` - Update budget
-- `DELETE /api/budgets/:id` - Delete budget
-
-### Transaction Management
-- `GET /api/transactions/budget/:budgetId` - List transactions for budget
-- `POST /api/transactions` - Create new transaction
-- `GET /api/transactions/:id` - Get transaction by ID
-- `PUT /api/transactions/:id` - Update transaction
-- `DELETE /api/transactions/:id` - Delete transaction
-
-### Debug (Development only)
-- `GET /api/debug/health` - Health check endpoint
-
-## Development
-
-### Scripts
-```bash
-bun run start:dev      # Development with hot reload
-bun run build          # Build for production  
-bun run start:prod     # Run production build
-bun run start          # Start development server
-```
-
-### Environment Variables
 ```env
 NODE_ENV=development
 PORT=3000
 FRONTEND_URL=http://localhost:4200
-SUPABASE_URL=your_supabase_url_here
-SUPABASE_ANON_KEY=your_supabase_anon_key_here
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_here
+SUPABASE_URL=votre_url_supabase
+SUPABASE_ANON_KEY=votre_clé_anon_supabase
+SUPABASE_SERVICE_ROLE_KEY=votre_clé_service_supabase
 ```
 
-## Technology Stack
+### Endpoints Utiles
 
-- **Runtime**: Bun (JavaScript runtime)
-- **Framework**: NestJS with TypeScript
-- **Database**: Supabase (PostgreSQL)
-- **Validation**: Zod schemas from `@pulpe/shared`
-- **Authentication**: Supabase Auth with Bearer tokens
-- **Documentation**: OpenAPI/Swagger
-- **Logging**: Pino with structured logging
+- **API** : http://localhost:3000/api
+- **Swagger** : http://localhost:3000/api/docs
+- **OpenAPI JSON** : http://localhost:3000/api/openapi
+- **Health** : http://localhost:3000/health
+
+> 🔐 **Configuration sécurisée** : Setup Supabase et RLS dans [DATABASE.md](./DATABASE.md)
+
+## 🛠️ **Stack Technique**
+
+- **Runtime** : Bun (JavaScript/TypeScript)
+- **Framework** : NestJS 11+ avec TypeScript strict
+- **Base de données** : Supabase (PostgreSQL + Auth + RLS)
+- **Validation** : Zod schemas depuis `@pulpe/shared`
+- **Documentation** : OpenAPI/Swagger auto-générée
+- **Logging** : Pino avec structured logging
+- **Tests** : Bun test intégré + Supertest
+- **Qualité** : ESLint + Prettier + TypeScript strict
+
+## 🔍 **Outils Qualité Intégrés**
+
+### **Linting & Formatting**
+
+- **ESLint** : Règles NestJS + TypeScript best practices
+- **Prettier** : Formatage automatique du code
+- **Configuration VSCode** : Auto-fix et format on save
+
+### **Type Safety**
+
+- **TypeScript Strict** : Mode strict activé progressivement
+- **Types Supabase** : Auto-générés depuis la DB
+- **Validation Runtime** : Zod pour garantir la cohérence
+
+### **Tests & Performance**
+
+- **Suite de tests complète** : Unitaires, intégration, performance
+- **Couverture** : Services 95%+, Controllers 90%+
+- **Tests de charge** : Métriques de performance automatiques
+
+> 🎯 **Bonnes pratiques détaillées** : Patterns de code et conventions dans [ARCHITECTURE.md](./ARCHITECTURE.md)
+
+## 🔐 **Sécurité**
+
+### **Authentification & Autorisation**
+
+- **JWT Bearer tokens** : Validation avec Supabase Auth
+- **Row Level Security (RLS)** : Isolation des données par utilisateur
+- **Guards NestJS** : Protection des endpoints
+- **Type safety** : Validation complète des données
+
+### **Validation Multi-Couches**
+
+- **Frontend** : Validation UX avec `@pulpe/shared`
+- **Backend** : Validation métier avec Zod
+- **Database** : Contraintes SQL et politiques RLS
+
+> 🛡️ **Sécurité approfondie** : RLS, policies et validation dans [DATABASE.md](./DATABASE.md)
+
+## 📚 **Documentation Détaillée**
+
+| Document                                 | Objectif                  | Contenu                                           |
+| ---------------------------------------- | ------------------------- | ------------------------------------------------- |
+| **[ARCHITECTURE.md](./ARCHITECTURE.md)** | Deep dive architecture    | Patterns NestJS, DTOs, auth, validation, tests    |
+| **[DATABASE.md](./DATABASE.md)**         | Deep dive base de données | Supabase, RLS, sécurité, contraintes, performance |
+
+## 🤝 **Contribution**
+
+### **Workflow de développement**
+
+1. **Avant commit** : `bun run quality:fix && bun run test:all`
+2. **Architecture** : Suivre les patterns décrits dans [ARCHITECTURE.md](./ARCHITECTURE.md)
+3. **Database** : Respecter les règles RLS de [DATABASE.md](./DATABASE.md)
+4. **Types** : Utiliser `@pulpe/shared` pour les DTOs REST
+
+### **Standards de code**
+
+- **Controllers** : HTTP uniquement, déléguer aux services
+- **Services** : Logique métier, pas d'accès DB direct
+- **DTOs** : Utiliser `createZodDto` avec schemas partagés
+- **Types** : Supabase types isolés dans backend
+
+> 🏗️ **Patterns détaillés** : Controllers, Services, DTOs et tests dans [ARCHITECTURE.md](./ARCHITECTURE.md)
+
+---
+
+🎯 **Ready to code!**
+
+- **🚀 Démarrage rapide** : Suivez le Quick Start ci-dessus
+- **🏗️ Comprendre l'architecture** : Consultez [ARCHITECTURE.md](./ARCHITECTURE.md)
+- **🗄️ Maîtriser la base de données** : Consultez [DATABASE.md](./DATABASE.md)

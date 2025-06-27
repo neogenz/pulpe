@@ -73,7 +73,7 @@ export class TransactionController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionListResponse> {
-    return this.transactionService.findByBudget(budgetId, user, supabase);
+    return this.transactionService.findByBudgetId(budgetId, supabase);
   }
 
   @Post()

@@ -74,7 +74,7 @@ export class BudgetController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetListResponse> {
-    return this.budgetService.findAll(user, supabase);
+    return this.budgetService.findAll(supabase);
   }
 
   @Post()

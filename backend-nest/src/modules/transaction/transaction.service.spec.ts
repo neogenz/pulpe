@@ -55,25 +55,24 @@ describe('TransactionService', () => {
     _transactionMapper = module.get<TransactionMapper>(TransactionMapper);
   });
 
-  describe('findByBudget', () => {
+  describe('findByBudgetId', () => {
     it('should return all transactions for specific budget successfully', async () => {
       // Arrange
-      const mockUser = createMockAuthenticatedUser();
+      const _mockUser = createMockAuthenticatedUser();
       const budgetId = MOCK_BUDGET_ID;
       const mockTransactions = [
         createMockTransactionDbEntity(),
         createMockTransactionDbEntity({
-          id: 'transaction-2',
-          title: 'Transaction 2',
+          id: '550e8400-e29b-41d4-a716-446655440005',
+          name: 'Transaction 2',
         }),
       ];
 
       mockSupabaseClient.setMockData(mockTransactions).setMockError(null);
 
       // Act
-      const result = await service.findByBudget(
+      const result = await service.findByBudgetId(
         budgetId,
-        mockUser,
         mockSupabaseClient as any,
       );
 
@@ -85,7 +84,7 @@ describe('TransactionService', () => {
 
     it('should handle database error gracefully when finding by budget', async () => {
       // Arrange
-      const mockUser = createMockAuthenticatedUser();
+      const _mockUser = createMockAuthenticatedUser();
       const budgetId = MOCK_BUDGET_ID;
       const mockError = { message: 'Database connection failed' };
 
@@ -93,8 +92,7 @@ describe('TransactionService', () => {
 
       // Act & Assert
       await expectErrorThrown(
-        () =>
-          service.findByBudget(budgetId, mockUser, mockSupabaseClient as any),
+        () => service.findByBudgetId(budgetId, mockSupabaseClient as any),
         InternalServerErrorException,
         'Erreur lors de la récupération des transactions',
       );
@@ -102,15 +100,14 @@ describe('TransactionService', () => {
 
     it('should handle empty transaction list for budget', async () => {
       // Arrange
-      const mockUser = createMockAuthenticatedUser();
+      const _mockUser = createMockAuthenticatedUser();
       const budgetId = MOCK_BUDGET_ID;
 
       mockSupabaseClient.setMockData([]).setMockError(null);
 
       // Act
-      const result = await service.findByBudget(
+      const result = await service.findByBudgetId(
         budgetId,
-        mockUser,
         mockSupabaseClient as any,
       );
 
@@ -121,15 +118,14 @@ describe('TransactionService', () => {
 
     it('should handle null data from database for budget transactions', async () => {
       // Arrange
-      const mockUser = createMockAuthenticatedUser();
+      const _mockUser = createMockAuthenticatedUser();
       const budgetId = MOCK_BUDGET_ID;
 
       mockSupabaseClient.setMockData(null).setMockError(null);
 
       // Act
-      const result = await service.findByBudget(
+      const result = await service.findByBudgetId(
         budgetId,
-        mockUser,
         mockSupabaseClient as any,
       );
 
