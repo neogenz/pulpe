@@ -203,7 +203,9 @@ export class BudgetService {
       );
 
       this.validateOnboardingResponse(data, error);
-      const budget = this.budgetMapper.toApi(data.budget as BudgetDbEntity);
+
+      // Après validation, TypeScript sait que data.budget existe
+      const budget = this.budgetMapper.toApi(data.budget);
 
       return {
         success: true,
@@ -228,7 +230,10 @@ export class BudgetService {
     };
   }
 
-  private validateOnboardingResponse(data: unknown, error: unknown): void {
+  private validateOnboardingResponse(
+    data: unknown,
+    error: unknown,
+  ): asserts data is { budget: unknown } {
     if (error) {
       this.logger.error('Erreur création budget avec transactions:', error);
       throw new BadRequestException(
@@ -236,7 +241,7 @@ export class BudgetService {
       );
     }
 
-    if (!(data as { budget?: unknown })?.budget) {
+    if (!data || typeof data !== 'object' || !('budget' in data)) {
       throw new InternalServerErrorException(
         'Aucun budget retourné par la fonction',
       );

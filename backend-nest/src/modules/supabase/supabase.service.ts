@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
+import type { Database } from '../../types/database.types';
+import type { SupabaseClient } from '../../types/supabase-helpers';
 
 export type AuthenticatedSupabaseClient = SupabaseClient;
 
@@ -23,14 +25,17 @@ export class SupabaseService {
       throw new Error('SUPABASE_URL and SUPABASE_ANON_KEY must be defined');
     }
 
-    this.#baseClient = createClient(this.#supabaseUrl, this.#supabaseAnonKey);
+    this.#baseClient = createClient<Database>(
+      this.#supabaseUrl,
+      this.#supabaseAnonKey,
+    );
   }
 
   /**
    * Create an authenticated Supabase client with a user's access token
    */
   createAuthenticatedClient(accessToken: string): AuthenticatedSupabaseClient {
-    return createClient(this.#supabaseUrl, this.#supabaseAnonKey, {
+    return createClient<Database>(this.#supabaseUrl, this.#supabaseAnonKey, {
       global: {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -54,6 +59,6 @@ export class SupabaseService {
       throw new Error('Service role key not configured');
     }
 
-    return createClient(this.#supabaseUrl, this.#supabaseServiceKey);
+    return createClient<Database>(this.#supabaseUrl, this.#supabaseServiceKey);
   }
 }
