@@ -11,7 +11,7 @@ export class BudgetMapper {
   /**
    * Valide les données venant de la DB (Supabase garantit la structure)
    */
-  private validateDbEntity(dbEntity: unknown): BudgetRow {
+  private parseBudgetRow(dbEntity: unknown): BudgetRow {
     if (!dbEntity || typeof dbEntity !== 'object') {
       throw new InternalServerErrorException('Invalid DB data structure');
     }
@@ -23,7 +23,7 @@ export class BudgetMapper {
    */
   toApi(budgetDb: BudgetRow): Budget {
     // Validate incoming DB data
-    const validatedDb = this.validateDbEntity(budgetDb);
+    const validatedDb = this.parseBudgetRow(budgetDb);
 
     // Map from DB entity (snake_case) to API model (camelCase) selon ARCHITECTURE.md
     const budget: Budget = {
