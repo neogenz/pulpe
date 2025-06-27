@@ -9,25 +9,18 @@ import {
   type TransactionUpdate,
   transactionCreateSchema,
 } from '@pulpe/shared';
-import {
-  transactionDbEntitySchema,
-  type TransactionDbEntity,
-} from './schemas/transaction.db.schema';
+import { type TransactionDbEntity } from './schemas/transaction.db.schema';
 
 @Injectable()
 export class TransactionMapper {
   /**
    * Valide les données venant de la DB avec Zod
    */
-  private validateDbEntity(dbEntity: unknown): TransactionDbEntity {
-    const validationResult = transactionDbEntitySchema.safeParse(dbEntity);
-    if (!validationResult.success) {
-      const firstError = validationResult.error.errors[0];
-      throw new InternalServerErrorException(
-        `Invalid DB data: ${firstError.path.join('.')} - ${firstError.message}`,
-      );
+  private parseTransactionRow(dbEntity: unknown): TransactionDbEntity {
+    if (!dbEntity || typeof dbEntity !== 'object') {
+      throw new InternalServerErrorException('Invalid DB data structure');
     }
-    return validationResult.data;
+    return dbEntity as TransactionDbEntity;
   }
 
   /**
@@ -35,7 +28,7 @@ export class TransactionMapper {
    */
   toApi(transactionDb: unknown): Transaction {
     // Validate DB data first - fail fast on corrupted data
-    const validatedDb = this.validateDbEntity(transactionDb);
+    const validatedDb = this.parseTransactionRow(transactionDb);
 
     return {
       id: validatedDb.id,
