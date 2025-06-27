@@ -1,7 +1,12 @@
-import type { Tables, Enums } from '../../../types/database.types';
+import type {
+  Tables,
+  TablesInsert,
+  Enums,
+} from '../../../types/database.types';
 
-// Source unique de vérité : Types Supabase
-export type Transaction = Tables<'transactions'>;
+// Types Supabase (snake_case) - backend uniquement
+export type TransactionRow = Tables<'transactions'>;
+export type TransactionInsert = TablesInsert<'transactions'>;
 
 // Types des enums
 export type ExpenseType = Enums<'expense_type'>;

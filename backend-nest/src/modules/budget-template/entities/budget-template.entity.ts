@@ -1,7 +1,8 @@
-import type { Tables } from '../../../types/database.types';
+import type { Tables, TablesInsert } from '../../../types/database.types';
 
-// Source unique de vérité : Types Supabase (snake_case)
+// Types Supabase (snake_case) - backend uniquement
 export type BudgetTemplateRow = Tables<'budget_templates'>;
+export type BudgetTemplateInsert = TablesInsert<'budget_templates'>;
 
 // Constantes de validation
 export const BUDGET_TEMPLATE_CONSTANTS = {

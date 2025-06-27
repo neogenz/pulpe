@@ -14,7 +14,7 @@ import {
   type TransactionResponse,
   type TransactionUpdate,
 } from '@pulpe/shared';
-import { type Transaction, TRANSACTION_CONSTANTS } from './entities';
+import { type TransactionRow, TRANSACTION_CONSTANTS } from './entities';
 import { TransactionMapper } from './transaction.mapper';
 
 @Injectable()
@@ -435,49 +435,60 @@ export class TransactionService {
   private validateAndEnrichTransaction(
     rawTransaction: unknown,
   ): EnrichedTransaction | null {
-    // Validation simplifiée : Supabase garantit la structure des données
-    if (!rawTransaction || typeof rawTransaction !== 'object') {
-      this.logger.warn('Transaction data is not an object:', rawTransaction);
-      return null;
-    }
-
-    const transaction = rawTransaction as Transaction;
-
-    // Validation minimale des champs requis
-    if (
-      !transaction.id ||
-      !transaction.budget_id ||
-      !transaction.amount ||
-      !transaction.name
-    ) {
-      this.logger.warn('Transaction missing required fields:', transaction);
+    // Validation avec type guard
+    if (!this.isValidTransactionRow(rawTransaction)) {
+      this.logger.warn('Invalid transaction data:', rawTransaction);
       return null;
     }
 
     return {
-      ...transaction,
-      displayAmount: this.formatAmount(transaction),
-      isRecurring: transaction.is_recurring,
-      categoryDisplay: this.getCategoryDisplay(transaction),
+      ...rawTransaction,
+      displayAmount: this.formatAmount(rawTransaction),
+      isRecurring: rawTransaction.is_recurring,
+      categoryDisplay: this.getCategoryDisplay(rawTransaction),
     };
   }
 
-  private formatAmount(transaction: Transaction): string {
+  private isValidTransactionRow(data: unknown): data is TransactionRow {
+    if (!data || typeof data !== 'object') {
+      return false;
+    }
+
+    const transaction = data as Record<string, unknown>;
+
+    return (
+      typeof transaction.id === 'string' &&
+      typeof transaction.budget_id === 'string' &&
+      typeof transaction.amount === 'number' &&
+      typeof transaction.name === 'string' &&
+      typeof transaction.type === 'string' &&
+      typeof transaction.expense_type === 'string' &&
+      typeof transaction.created_at === 'string' &&
+      typeof transaction.updated_at === 'string' &&
+      typeof transaction.is_recurring === 'boolean' &&
+      (transaction.user_id === null ||
+        typeof transaction.user_id === 'string') &&
+      (transaction.description === null ||
+        typeof transaction.description === 'string')
+    );
+  }
+
+  private formatAmount(transaction: TransactionRow): string {
     const sign = transaction.type === 'expense' ? '-' : '+';
     return `${sign}CHF ${transaction.amount.toFixed(2)}`;
   }
 
-  private getCategoryDisplay(transaction: Transaction): string {
+  private getCategoryDisplay(transaction: TransactionRow): string {
     const typeLabels = {
       expense: 'Dépense',
       income: 'Revenu',
       saving: 'Épargne',
-    };
+    } as const;
 
     const expenseLabels = {
       fixed: 'Fixe',
       variable: 'Variable',
-    };
+    } as const;
 
     const baseLabel = typeLabels[transaction.type];
     if (transaction.type === 'expense') {
@@ -488,7 +499,7 @@ export class TransactionService {
   }
 }
 
-type EnrichedTransaction = Transaction & {
+type EnrichedTransaction = TransactionRow & {
   displayAmount: string;
   isRecurring: boolean;
   categoryDisplay: string;

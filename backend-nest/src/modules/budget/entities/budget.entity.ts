@@ -1,10 +1,10 @@
 import type { Tables, TablesInsert } from '../../../types/database.types';
 
-// Source unique de vérité : Types Supabase (snake_case)
+// Types Supabase (snake_case) - backend uniquement
 export type BudgetRow = Tables<'budgets'>;
 export type BudgetInsert = TablesInsert<'budgets'>;
 
-// Constantes de validation (si nécessaires)
+// Constantes de validation
 export const BUDGET_CONSTANTS = {
   CURRENT_YEAR: new Date().getFullYear(),
   MIN_YEAR: 2020,

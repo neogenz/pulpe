@@ -28,7 +28,7 @@ export class BudgetService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetListResponse> {
     try {
-      const { data: budgetsDb, error } = await supabase
+      const { data: budgets, error } = await supabase
         .from('budgets')
         .select('*')
         .order('year', { ascending: false })
@@ -41,7 +41,7 @@ export class BudgetService {
         );
       }
 
-      const validBudgets = this.filterValidBudgets(budgetsDb || []);
+      const validBudgets = this.filterValidBudgets(budgets || []);
       const apiData = this.budgetMapper.toApiList(validBudgets);
 
       return {
@@ -405,21 +405,31 @@ export class BudgetService {
   }
 
   private validateBudgetData(rawBudget: unknown): BudgetRow {
-    // Validation simple : Supabase garantit la structure des données
-    if (!rawBudget || typeof rawBudget !== 'object') {
-      this.logger.error('Budget data is not an object:', rawBudget);
+    if (!this.isValidBudgetRow(rawBudget)) {
+      this.logger.error('Invalid budget data:', rawBudget);
       throw new InternalServerErrorException('Données budget invalides');
     }
 
-    const budget = rawBudget as BudgetRow;
+    return rawBudget;
+  }
 
-    // Validation minimale des champs requis
-    if (!budget.id || !budget.month || !budget.year || !budget.description) {
-      this.logger.error('Budget missing required fields:', budget);
-      throw new InternalServerErrorException('Budget avec champs manquants');
+  private isValidBudgetRow(data: unknown): data is BudgetRow {
+    if (!data || typeof data !== 'object') {
+      return false;
     }
 
-    return budget;
+    const budget = data as Record<string, unknown>;
+
+    return (
+      typeof budget.id === 'string' &&
+      typeof budget.month === 'number' &&
+      typeof budget.year === 'number' &&
+      typeof budget.description === 'string' &&
+      typeof budget.created_at === 'string' &&
+      typeof budget.updated_at === 'string' &&
+      (budget.user_id === null || typeof budget.user_id === 'string') &&
+      (budget.template_id === null || typeof budget.template_id === 'string')
+    );
   }
 
   private async validateNoDuplicatePeriod(

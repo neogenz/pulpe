@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import {
   type Budget,
   type BudgetCreate,
@@ -9,34 +9,18 @@ import { type BudgetRow, type BudgetInsert } from './entities';
 @Injectable()
 export class BudgetMapper {
   /**
-   * Valide les données venant de la DB (Supabase garantit la structure)
-   */
-  private parseBudgetRow(dbEntity: unknown): BudgetRow {
-    if (!dbEntity || typeof dbEntity !== 'object') {
-      throw new InternalServerErrorException('Invalid DB data structure');
-    }
-    return dbEntity as BudgetRow;
-  }
-
-  /**
-   * Transforme une entité de la base de données (snake_case) vers le modèle API (camelCase)
+   * Transform database row (snake_case) to API entity (camelCase)
    */
   toApi(budgetDb: BudgetRow): Budget {
-    // Validate incoming DB data
-    const validatedDb = this.parseBudgetRow(budgetDb);
-
-    // Map from DB entity (snake_case) to API model (camelCase) selon ARCHITECTURE.md
-    const budget: Budget = {
-      id: validatedDb.id,
-      createdAt: validatedDb.created_at,
-      updatedAt: validatedDb.updated_at,
-      userId: validatedDb.user_id || undefined,
-      month: validatedDb.month,
-      year: validatedDb.year,
-      description: validatedDb.description,
+    return {
+      id: budgetDb.id,
+      createdAt: budgetDb.created_at,
+      updatedAt: budgetDb.updated_at,
+      userId: budgetDb.user_id ?? undefined,
+      month: budgetDb.month,
+      year: budgetDb.year,
+      description: budgetDb.description,
     };
-
-    return budget;
   }
 
   /**
@@ -47,30 +31,23 @@ export class BudgetMapper {
   }
 
   /**
-   * Transforme un DTO de création (camelCase) vers format DB (snake_case)
+   * Transform create DTO (camelCase) to database insert (snake_case)
    */
-  toDbCreate(
-    createDto: BudgetCreate,
-    userId: string,
-  ): Omit<BudgetInsert, 'id' | 'created_at' | 'updated_at'> {
+  toInsert(createDto: BudgetCreate, userId: string): BudgetInsert {
     return {
       month: createDto.month,
       year: createDto.year,
       description: createDto.description,
       user_id: userId,
-      template_id: null, // Selon les types Supabase
+      template_id: null,
     };
   }
 
   /**
-   * Transforme un DTO de mise à jour (camelCase) vers format DB (snake_case)
+   * Transform update DTO (camelCase) to database update (snake_case)
    */
-  toDbUpdate(
-    updateDto: BudgetUpdate,
-  ): Partial<Pick<BudgetRow, 'month' | 'year' | 'description'>> {
-    const updateData: Partial<
-      Pick<BudgetRow, 'month' | 'year' | 'description'>
-    > = {};
+  toUpdate(updateDto: BudgetUpdate): Partial<BudgetInsert> {
+    const updateData: Partial<BudgetInsert> = {};
 
     if (updateDto.month !== undefined) {
       updateData.month = updateDto.month;
