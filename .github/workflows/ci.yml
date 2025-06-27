@@ -45,6 +45,9 @@ jobs:
       - name: 🧪 Unit tests
         run: pnpm test:unit
 
+      - name: 🚀 E2E tests (frontend)
+        run: pnpm test:e2e
+
       - name: 🔬 Quality check
         run: pnpm quality
 
