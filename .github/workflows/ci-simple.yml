@@ -1,0 +1,60 @@
+name: ✅ CI Simple
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  simple-checks:
+    name: 🚀 Simple Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📦 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.12.1
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: 📦 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🔨 Build shared
+        run: pnpm run build:shared
+
+      - name: 🧹 Frontend lint
+        run: |
+          cd frontend
+          pnpm run lint
+
+      - name: 🧹 Backend lint
+        run: |
+          cd backend-nest
+          pnpm run lint
+
+      - name: 🧪 Frontend tests
+        run: |
+          cd frontend
+          pnpm run test:vitest:run
+
+      - name: 🧪 Backend tests
+        run: |
+          cd backend-nest
+          bun run test:unit
+
+      - name: ✅ Success
+        run: echo "All basic checks passed! 🎉"
