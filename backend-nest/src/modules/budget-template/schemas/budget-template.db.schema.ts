@@ -8,7 +8,7 @@ export const budgetTemplateDbEntitySchema = z.object({
   name: z.string().min(1).max(100),
   description: z.string().max(500).nullable(),
   category: z.string().min(1).max(50).nullable(),
-  is_default: z.boolean().nullable(),
+  is_default: z.boolean(),
 });
 
 export type BudgetTemplateDbEntity = z.infer<

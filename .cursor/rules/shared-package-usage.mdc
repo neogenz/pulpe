@@ -1,0 +1,135 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Shared Package (@pulpe/shared)
+
+## Purpose
+The [@pulpe/shared](mdc:shared) package serves as the **contract layer** between frontend and backend, ensuring type safety and consistency across the entire application.
+
+## Package Structure
+```
+shared/
+├── schemas.ts      # Zod validation schemas
+├── types.ts        # TypeScript type definitions
+├── index.ts        # Package exports
+└── package.json    # Package configuration
+```
+
+## Core Files
+
+### Schemas ([schemas.ts](mdc:shared/schemas.ts))
+**Zod schemas for data validation and transformation:**
+- `transactionCreateSchema`, `transactionUpdateSchema`
+- `budgetCreateSchema`, `budgetUpdateSchema`
+- `budgetTemplateCreateSchema`, `budgetTemplateUpdateSchema`
+- Response schemas for API contracts
+- Enum schemas: `expenseTypeSchema`, `transactionTypeSchema`
+
+### Types ([types.ts](mdc:shared/types.ts))
+**TypeScript types inferred from Zod schemas:**
+- `Transaction`, `TransactionCreate`, `TransactionUpdate`
+- `Budget`, `BudgetCreate`, `BudgetUpdate`
+- `BudgetTemplate`, `BudgetTemplateCreate`, `BudgetTemplateUpdate`
+- Response types: `TransactionResponse`, `BudgetListResponse`, etc.
+
+### Exports ([index.ts](mdc:shared/index.ts))
+Centralized exports for both schemas and types, making them easily importable across the monorepo.
+
+## Design Principles
+
+### Database Agnostic
+- **NO database-specific types or schemas**
+- **NO knowledge of internal backend implementation**
+- **ONLY API contracts and frontend-backend communication**
+
+### Single Source of Truth
+- All communication types defined once
+- Frontend and backend import the same definitions
+- Zod schemas provide both validation and type inference
+
+### Validation at Boundaries
+- **Frontend**: Validate forms and API responses
+- **Backend**: Validate incoming DTOs and outgoing responses
+
+## Usage Patterns
+
+### In Backend (NestJS)
+```typescript
+// Import shared schemas for DTO validation
+import { transactionCreateSchema, type TransactionCreate } from '@pulpe/shared';
+
+// Use in mappers for validation
+toDbCreate(createDto: TransactionCreate, userId: string) {
+  const validationResult = transactionCreateSchema.safeParse(createDto);
+  if (!validationResult.success) {
+    throw new BadRequestException('Invalid data');
+  }
+  // ... transform to DB format
+}
+```
+
+### In Frontend (Angular)
+```typescript
+// Import shared types for type safety
+import { Transaction, BudgetCreate } from '@pulpe/shared';
+
+// Use in services and components
+private createBudget(budget: BudgetCreate): Observable<Budget> {
+  return this.http.post<Budget>('/api/budgets', budget);
+}
+```
+
+### In Swagger DTOs
+```typescript
+// Use shared schemas for API documentation
+import { createZodDto } from 'nestjs-zod';
+import { transactionCreateSchema } from '@pulpe/shared';
+
+export class TransactionCreateDto extends createZodDto(transactionCreateSchema) {}
+```
+
+## Key Benefits
+
+### Type Safety Across Stack
+- **Compile-time errors** when API contracts change
+- **Auto-completion** in IDEs for all shared types
+- **Refactoring safety** - changes propagate automatically
+
+### Consistent Validation
+- **Same rules** applied on frontend and backend
+- **DRY principle** - write validation logic once
+- **Synchronization** - frontend knows exact backend expectations
+
+### API Contract Enforcement
+- **Breaking changes** are caught at compile time
+- **Documentation** is always up to date via types
+- **Testing** can use shared types for mocking
+
+## Best Practices
+
+### What Belongs in Shared
+✅ **API request/response types**
+✅ **Form validation schemas**
+✅ **Enum definitions**
+✅ **Business domain types**
+
+### What Does NOT Belong
+❌ Database entity types
+❌ Backend-specific implementation details
+❌ Frontend-specific UI types
+❌ Internal service types
+
+### Development Workflow
+1. **Define schemas** in shared package first
+2. **Generate types** from schemas automatically
+3. **Import in frontend/backend** as needed
+4. **Update shared** when API contracts change
+5. **Fix compilation errors** to ensure consistency
+
+## Monorepo Integration
+- **Workspace dependency** in both frontend and backend
+- **Local package** - changes are immediately available
+- **Version control** - shared package is part of the main repository
+- **Build process** - compiled and distributed to dependent packages

@@ -16,21 +16,25 @@ import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import { TransactionMapper } from './transaction.mapper';
 import type { TransactionDbEntity } from './schemas/transaction.db.schema';
+// Import des types Supabase pour une meilleure type safety (utilisé en commentaire pour documentation)
+// import type { TransactionRow } from '../../types/supabase-helpers';
 
 @Injectable()
 export class TransactionService {
   private readonly logger = new Logger(TransactionService.name);
 
   constructor(private readonly transactionMapper: TransactionMapper) {}
+
   async findByBudget(
     budgetId: string,
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionListResponse> {
     try {
+      // ✅ Type safety au compile-time via Supabase types
       const { data: transactionsDb, error } = await supabase
-        .from('transactions')
-        .select('*')
+        .from('transactions') // ← Typé automatiquement
+        .select('*') // ← TypeScript sait que c'est TransactionRow[]
         .eq('budget_id', budgetId)
         .order('created_at', { ascending: false });
 
@@ -41,6 +45,9 @@ export class TransactionService {
         );
       }
 
+      // ✅ Validation runtime via Zod + transformation
+      // transactionsDb est typé comme TransactionRow[] | null
+      // Le mapper valide chaque item avec Zod et transforme vers Transaction[]
       const transactions = this.transactionMapper.toApiList(
         transactionsDb || [],
       );
