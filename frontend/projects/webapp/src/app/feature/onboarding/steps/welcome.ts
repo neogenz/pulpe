@@ -25,7 +25,7 @@ import { OnboardingLayoutData } from '../models/onboarding-layout-data';
   template: `
     <!-- Logo Pulpe avec animation Lottie différée -->
 
-    @defer (on viewport; prefetch on idle) {
+    @defer (on idle) {
       <div class="flex justify-center mb-6">
         <ng-lottie
           [options]="lottieOptions()"
