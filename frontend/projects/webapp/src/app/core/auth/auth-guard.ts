@@ -9,31 +9,22 @@ import { AuthApi } from './auth-api';
  * Protects routes from unauthenticated access.
  *
  * This guard is intended for private pages that require a logged-in user.
- * If the user is not authenticated, it redirects them to the login page.
+ * If the user is not authenticated, it redirects them to the onboarding page.
  * It reactively waits for the authentication state to be resolved before making a decision.
  */
 export const authGuard: CanActivateFn = () => {
   const authApi = inject(AuthApi);
   const router = inject(Router);
 
-  if (authApi.isAuthenticated()) {
-    return true;
-  }
-
-  // If immediately known to be unauthenticated, redirect to onboarding
-  const currentState = authApi.authState();
-  if (!currentState.isLoading && !currentState.isAuthenticated) {
-    return router.createUrlTree([ROUTES.ONBOARDING]);
-  }
-
-  // Handle case where auth state is still loading
+  // Reactive approach: wait for auth state to be determined
   return toObservable(authApi.authState).pipe(
-    filter((state) => !state.isLoading),
-    take(1),
+    filter((state) => !state.isLoading), // Wait until loading is complete
+    take(1), // Take only the first non-loading state
     map((state) => {
       if (state.isAuthenticated) {
-        return true;
+        return true; // Allow navigation
       }
+      // Redirect to onboarding for unauthenticated users
       return router.createUrlTree([ROUTES.ONBOARDING]);
     }),
   );
