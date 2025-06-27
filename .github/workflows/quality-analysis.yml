@@ -5,8 +5,6 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
-  schedule:
-    - cron: "0 8 * * 1" # Every Monday at 8 AM
 
 jobs:
   bundle-analysis:
@@ -31,10 +29,13 @@ jobs:
       - name: 📦 Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: 🔨 Build with stats
+      - name: 🔨 Build shared packages
+        run: pnpm run build:shared
+
+      - name: 🔨 Build frontend with stats
         run: |
           cd frontend
-          npm run build -- --stats-json --output-hashing none --named-chunks
+          pnpm run ng build -- --stats-json --output-hashing=none --named-chunks
 
       - name: 📊 Archive bundle stats
         uses: actions/upload-artifact@v4
@@ -64,10 +65,13 @@ jobs:
       - name: 📦 Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: 🔍 Check for circular dependencies
+      - name: 🔍 Create deps directory
+        run: mkdir -p frontend/deps/webapp
+
+      - name: 🔍 Analyze dependencies
         run: |
           cd frontend
-          npm run analyze:deps:all
+          npx madge projects/webapp/src/main.ts --ts-config projects/webapp/tsconfig.app.json --image ./deps/webapp/dependencies.png --circular
 
       - name: 📊 Upload dependency graph
         uses: actions/upload-artifact@v4
@@ -76,54 +80,17 @@ jobs:
           path: frontend/deps/
           retention-days: 7
 
-  lighthouse:
-    name: 🔍 Lighthouse Performance
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    steps:
-      - name: 📦 Checkout
-        uses: actions/checkout@v4
-
-      - name: 📦 Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.12.1
-
-      - name: 📦 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "pnpm"
-
-      - name: 📦 Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: 🔨 Build packages
-        run: pnpm run build
-
-      - name: 🔍 Run basic Lighthouse audit
-        run: |
-          cd frontend
-          npm install -g lighthouse
-          npm run start &
-          sleep 30
-          lighthouse http://localhost:4200 --output=html --output-path=./lighthouse-report.html --chrome-flags="--headless --no-sandbox"
-          kill %1
-
-      - name: 📊 Archive Lighthouse report
-        uses: actions/upload-artifact@v4
-        with:
-          name: lighthouse-report
-          path: frontend/lighthouse-report.html
-          retention-days: 7
-
   coverage-report:
     name: 📊 Coverage Report
     runs-on: ubuntu-latest
-    if: github.event_name != 'schedule'
     steps:
       - name: 📦 Checkout
         uses: actions/checkout@v4
+
+      - name: 📦 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
       - name: 📦 Setup pnpm
         uses: pnpm/action-setup@v4
@@ -142,65 +109,21 @@ jobs:
       - name: 🔨 Build shared packages
         run: pnpm run build:shared
 
-      - name: 🧪 Run tests with coverage
-        run: pnpm run test:unit
+      - name: 🧪 Run frontend tests
+        run: |
+          cd frontend
+          pnpm run test:vitest:run
+
+      - name: 🧪 Run backend tests with coverage
+        run: |
+          cd backend-nest
+          bun run test:coverage
 
       - name: 📊 Archive coverage reports
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-full-report
+          name: coverage-reports
           path: |
             ./frontend/coverage/
             ./backend-nest/coverage/
           retention-days: 14
-
-  weekly-quality-report:
-    name: 📋 Weekly Quality Report
-    runs-on: ubuntu-latest
-    if: github.event_name == 'schedule'
-    steps:
-      - name: 📦 Checkout
-        uses: actions/checkout@v4
-
-      - name: 📦 Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.12.1
-
-      - name: 📦 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "pnpm"
-
-      - name: 📦 Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: 🔨 Build packages
-        run: pnpm run build
-
-      - name: 📊 Generate quality report
-        run: |
-          echo "# 📊 Weekly Quality Report" > quality-report.md
-          echo "Generated on: $(date)" >> quality-report.md
-          echo "" >> quality-report.md
-
-          echo "## 📦 Bundle Sizes" >> quality-report.md
-          if [ -d "frontend/dist" ]; then
-            du -sh frontend/dist/* >> quality-report.md
-          fi
-
-          echo "" >> quality-report.md
-          echo "## 🧪 Test Coverage" >> quality-report.md
-          pnpm run test:unit --coverage --reporter=text-summary >> quality-report.md || true
-
-          echo "" >> quality-report.md
-          echo "## 🔍 Lint Issues" >> quality-report.md
-          pnpm run lint 2>&1 | head -20 >> quality-report.md || true
-
-      - name: 📊 Upload quality report
-        uses: actions/upload-artifact@v4
-        with:
-          name: weekly-quality-report
-          path: quality-report.md
-          retention-days: 30

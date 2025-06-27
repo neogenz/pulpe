@@ -69,8 +69,20 @@ jobs:
       - name: 🔨 Build shared packages
         run: pnpm run build:shared
 
-      - name: 🧹 Lint
-        run: pnpm run lint
+      - name: 🧹 Lint frontend
+        run: |
+          cd frontend
+          pnpm run lint
+
+      - name: 🧹 Lint backend
+        run: |
+          cd backend-nest
+          pnpm run lint
+
+      - name: 🧹 Lint shared
+        run: |
+          cd shared
+          echo "No linting needed for shared package"
 
       - name: 🎨 Format check
         run: pnpm run format:check
