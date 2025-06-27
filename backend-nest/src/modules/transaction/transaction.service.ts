@@ -14,10 +14,8 @@ import {
 } from '@pulpe/shared';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import {
-  TransactionMapper,
-  type TransactionDbEntity,
-} from './transaction.mapper';
+import { TransactionMapper } from './transaction.mapper';
+import type { TransactionDbEntity } from './schemas/transaction.db.schema';
 
 @Injectable()
 export class TransactionService {

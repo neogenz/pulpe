@@ -15,7 +15,8 @@ import {
   type BudgetListResponse,
   type BudgetDeleteResponse,
 } from '@pulpe/shared';
-import { BudgetMapper, type BudgetDbEntity } from './budget.mapper';
+import { BudgetMapper } from './budget.mapper';
+import type { BudgetDbEntity } from './schemas/budget.db.schema';
 
 @Injectable()
 export class BudgetService {
