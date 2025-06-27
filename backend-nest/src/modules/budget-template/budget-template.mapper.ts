@@ -1,43 +1,53 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import {
   type BudgetTemplate,
   type BudgetTemplateCreate,
   type BudgetTemplateUpdate,
 } from '@pulpe/shared';
-
-export interface BudgetTemplateDbEntity {
-  id: string;
-  created_at: string;
-  updated_at: string;
-  user_id: string | null;
-  name: string;
-  description: string | null;
-  category: string | null;
-  is_default: boolean;
-}
+import {
+  budgetTemplateDbEntitySchema,
+  type BudgetTemplateDbEntity,
+} from './schemas/budget-template.db.schema';
 
 @Injectable()
 export class BudgetTemplateMapper {
   /**
+   * Valide les données venant de la DB avec Zod
+   */
+  private validateDbEntity(dbEntity: unknown): BudgetTemplateDbEntity {
+    const validationResult = budgetTemplateDbEntitySchema.safeParse(dbEntity);
+    if (!validationResult.success) {
+      const firstError = validationResult.error.errors[0];
+      throw new InternalServerErrorException(
+        `Invalid DB data: ${firstError.path.join('.')} - ${firstError.message}`,
+      );
+    }
+    return validationResult.data;
+  }
+
+  /**
    * Transforme une entité de la base de données (snake_case) vers le modèle API (camelCase)
    */
-  toApi(templateDb: BudgetTemplateDbEntity): BudgetTemplate {
+  toApi(templateDb: unknown): BudgetTemplate {
+    // Validate DB data first - fail fast on corrupted data
+    const validatedDb = this.validateDbEntity(templateDb);
+
     return {
-      id: templateDb.id,
-      createdAt: templateDb.created_at,
-      updatedAt: templateDb.updated_at,
-      userId: templateDb.user_id ?? undefined,
-      name: templateDb.name,
-      description: templateDb.description ?? undefined,
-      category: templateDb.category ?? undefined,
-      isDefault: templateDb.is_default ?? false,
+      id: validatedDb.id,
+      createdAt: validatedDb.created_at,
+      updatedAt: validatedDb.updated_at,
+      userId: validatedDb.user_id ?? undefined,
+      name: validatedDb.name,
+      description: validatedDb.description ?? undefined,
+      category: validatedDb.category ?? undefined,
+      isDefault: validatedDb.is_default ?? false,
     };
   }
 
   /**
    * Transforme plusieurs entités DB vers modèles API
    */
-  toApiList(templatesDb: BudgetTemplateDbEntity[]): BudgetTemplate[] {
+  toApiList(templatesDb: unknown[]): BudgetTemplate[] {
     return templatesDb.map((template) => this.toApi(template));
   }
 

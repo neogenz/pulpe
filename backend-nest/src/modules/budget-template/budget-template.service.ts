@@ -15,10 +15,8 @@ import {
   type BudgetTemplateDeleteResponse,
   type TemplateTransactionListResponse,
 } from '@pulpe/shared';
-import {
-  BudgetTemplateMapper,
-  type BudgetTemplateDbEntity,
-} from './budget-template.mapper';
+import { BudgetTemplateMapper } from './budget-template.mapper';
+import type { BudgetTemplateDbEntity } from './schemas/budget-template.db.schema';
 
 @Injectable()
 export class BudgetTemplateService {
