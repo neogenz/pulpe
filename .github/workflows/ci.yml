@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [main, develop]
 
+env:
+  # Enable debug logging for GitHub Actions
+  ACTIONS_STEP_DEBUG: true
+  ACTIONS_RUNNER_DEBUG: true
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -63,38 +68,86 @@ jobs:
           node-version: "22"
           cache: "pnpm"
 
+      - name: 🔍 Health Check - Environment
+        run: |
+          echo "Node version: $(node --version)"
+          echo "pnpm version: $(pnpm --version)"
+          echo "bun version: $(bun --version)"
+          echo "Current directory: $(pwd)"
+          echo "Available disk space: $(df -h)"
+
       - name: 📦 Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: |
+          echo "Installing dependencies..."
+          pnpm install --frozen-lockfile
+          echo "Dependencies installed successfully"
+
+      - name: 🔍 Health Check - Dependencies
+        run: |
+          echo "Checking workspace structure..."
+          ls -la
+          echo "Checking shared package..."
+          ls -la shared/ || echo "Shared directory not found"
+          echo "Checking frontend..."
+          ls -la frontend/ || echo "Frontend directory not found"  
+          echo "Checking backend..."
+          ls -la backend-nest/ || echo "Backend directory not found"
 
       - name: 🔨 Build shared packages
-        run: pnpm run build:shared
+        run: |
+          echo "Building shared packages..."
+          pnpm run build:shared
+          echo "Shared packages built successfully"
 
       - name: 🧹 Lint frontend
+        continue-on-error: false
         run: |
+          echo "Linting frontend..."
           cd frontend
-          pnpm run lint
+          pwd
+          ls -la
+          echo "Running lint..."
+          pnpm run lint || (echo "Frontend lint failed" && exit 1)
+          echo "Frontend lint completed successfully"
 
       - name: 🧹 Lint backend
+        continue-on-error: false
         run: |
+          echo "Linting backend..."
           cd backend-nest
-          pnpm run lint
+          pwd
+          ls -la
+          echo "Running lint..."
+          pnpm run lint || (echo "Backend lint failed" && exit 1)
+          echo "Backend lint completed successfully"
 
       - name: 🧹 Lint shared
+        continue-on-error: true
         run: |
+          echo "Checking shared package lint..."
           cd shared
-          echo "No linting needed for shared package"
+          echo "No linting needed for shared package (TypeScript compilation sufficient)"
 
       - name: 🎨 Format check
-        run: pnpm run format:check
+        continue-on-error: false
+        run: |
+          echo "Checking code formatting..."
+          pnpm run format:check || (echo "Format check failed - run 'pnpm run format' to fix" && exit 1)
+          echo "Format check completed successfully"
 
       - name: 📝 Type check
-        run: pnpm run type-check
+        continue-on-error: false
+        run: |
+          echo "Running type check..."
+          pnpm run type-check || (echo "Type check failed" && exit 1)
+          echo "Type check completed successfully"
 
   test:
     name: 🧪 Tests
     runs-on: ubuntu-latest
     needs: [changes]
     strategy:
+      fail-fast: false # Continue running other tests even if one fails
       matrix:
         include:
           - test-type: "unit"
@@ -124,22 +177,76 @@ jobs:
           cache: "pnpm"
 
       - name: 📦 Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: |
+          echo "Installing dependencies for tests..."
+          pnpm install --frozen-lockfile
 
       - name: 🔨 Build shared packages
-        run: pnpm run build:shared
+        run: |
+          echo "Building shared packages for tests..."
+          pnpm run build:shared
+
+      - name: 🔍 Pre-test Health Check
+        run: |
+          echo "=== Test Environment Check ==="
+          echo "Matrix: package=${{ matrix.package }}, test-type=${{ matrix.test-type }}"
+          echo "Current directory: $(pwd)"
+          echo "Available memory: $(free -h || echo 'free command not available')"
+
+          if [ "${{ matrix.package }}" = "backend" ]; then
+            echo "Checking backend test environment..."
+            cd backend-nest
+            echo "Backend directory contents:"
+            ls -la
+            echo "Checking if bun is available:"
+            which bun && bun --version
+            echo "Checking test script exists:"
+            grep "test:${{ matrix.test-type }}" package.json || echo "Script test:${{ matrix.test-type }} not found"
+          fi
+
+          if [ "${{ matrix.package }}" = "frontend" ]; then
+            echo "Checking frontend test environment..."
+            cd frontend
+            echo "Frontend directory contents:"
+            ls -la
+            echo "Checking vitest availability:"
+            npx vitest --version || echo "Vitest not available"
+            echo "Checking test script exists:"
+            grep "test:vitest:run" package.json || echo "Script test:vitest:run not found"
+          fi
 
       - name: 🧪 Run backend tests
         if: matrix.package == 'backend'
         run: |
+          echo "=== Running Backend Tests ==="
+          echo "Test type: ${{ matrix.test-type }}"
           cd backend-nest
-          bun run test:${{ matrix.test-type }}
+          pwd
+
+          echo "Running: bun run test:${{ matrix.test-type }}"
+          bun run test:${{ matrix.test-type }} || (
+            echo "❌ Backend ${{ matrix.test-type }} tests failed"
+            echo "Showing available test scripts:"
+            grep -A 10 '"scripts"' package.json
+            exit 1
+          )
+          echo "✅ Backend ${{ matrix.test-type }} tests completed successfully"
 
       - name: 🧪 Run frontend tests
         if: matrix.package == 'frontend'
         run: |
+          echo "=== Running Frontend Tests ==="
           cd frontend
-          pnpm run test:vitest:run
+          pwd
+
+          echo "Running: pnpm run test:vitest:run"
+          pnpm run test:vitest:run || (
+            echo "❌ Frontend vitest tests failed"
+            echo "Showing available test scripts:"
+            grep -A 10 '"scripts"' package.json
+            exit 1
+          )
+          echo "✅ Frontend tests completed successfully"
 
       - name: 📊 Archive coverage reports
         if: matrix.test-type == 'unit' || matrix.package == 'frontend'
