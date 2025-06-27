@@ -10,7 +10,7 @@ import { TransactionMapper } from './transaction.mapper';
 import {
   createMockAuthenticatedUser,
   createMockSupabaseClient,
-  createMockTransactionDbEntity,
+  createMockTransactionEntity,
   expectSuccessResponse,
   expectErrorThrown,
   MOCK_USER_ID as _MOCK_USER_ID,
@@ -29,16 +29,16 @@ describe('TransactionService', () => {
     const { mockClient } = createMockSupabaseClient();
     mockSupabaseClient = mockClient;
 
-    const mockTransactionMapper = {
+    const simpleTransactionMapper = {
       toApiList: (data: any[]) =>
         data.map((item) => ({ ...item, mappedToApi: true })),
       toApi: (data: any) => ({ ...data, mappedToApi: true }),
-      toDbCreate: (data: any, userId: string) => ({
+      toInsert: (data: any, userId: string) => ({
         ...data,
         user_id: userId,
-        dbCreated: true,
+        created: true,
       }),
-      toDbUpdate: (data: any) => ({ ...data, dbUpdated: true }),
+      toUpdate: (data: any) => ({ ...data, updated: true }),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -46,7 +46,7 @@ describe('TransactionService', () => {
         TransactionService,
         {
           provide: TransactionMapper,
-          useValue: mockTransactionMapper,
+          useValue: simpleTransactionMapper,
         },
       ],
     }).compile();
@@ -61,10 +61,11 @@ describe('TransactionService', () => {
       const _mockUser = createMockAuthenticatedUser();
       const budgetId = MOCK_BUDGET_ID;
       const mockTransactions = [
-        createMockTransactionDbEntity(),
-        createMockTransactionDbEntity({
-          id: '550e8400-e29b-41d4-a716-446655440005',
+        createMockTransactionEntity(),
+        createMockTransactionEntity({
+          id: '550e8400-e29b-41d4-a716-446655440006',
           name: 'Transaction 2',
+          amount: 200,
         }),
       ];
 
@@ -147,7 +148,7 @@ describe('TransactionService', () => {
         type: 'expense',
         isRecurring: false,
       };
-      const mockCreatedTransaction = createMockTransactionDbEntity();
+      const mockCreatedTransaction = createMockTransactionEntity();
 
       mockSupabaseClient.setMockData(mockCreatedTransaction).setMockError(null);
 
@@ -231,7 +232,7 @@ describe('TransactionService', () => {
       // Arrange
       const mockUser = createMockAuthenticatedUser();
       const transactionId = MOCK_TRANSACTION_ID;
-      const mockTransaction = createMockTransactionDbEntity();
+      const mockTransaction = createMockTransactionEntity();
 
       mockSupabaseClient.setMockData(mockTransaction).setMockError(null);
 
@@ -298,7 +299,7 @@ describe('TransactionService', () => {
         amount: 200,
       };
       const mockUpdatedTransaction =
-        createMockTransactionDbEntity(updateTransactionDto);
+        createMockTransactionEntity(updateTransactionDto);
 
       mockSupabaseClient.setMockData(mockUpdatedTransaction).setMockError(null);
 

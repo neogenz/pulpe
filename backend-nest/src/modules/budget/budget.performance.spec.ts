@@ -6,7 +6,7 @@ import { BudgetMapper } from './budget.mapper';
 import {
   createMockAuthenticatedUser,
   createMockSupabaseClient,
-  createMockBudgetDbEntity,
+  createMockBudgetEntity,
   expectPerformance,
   LoadTestRunner,
   expectLoadTestPerformance,
@@ -23,8 +23,8 @@ describe('BudgetService (Performance)', () => {
     toApiList: (data: any[]) =>
       data.map((item) => ({ ...item, mappedToApi: true })),
     toApi: (data: any) => ({ ...data, mappedToApi: true }),
-    toDbCreate: (data: any, userId: string) => ({ ...data, user_id: userId }),
-    toDbUpdate: (data: any) => ({ ...data }),
+    toInsert: (data: any, userId: string) => ({ ...data, user_id: userId }),
+    toUpdate: (data: any) => ({ ...data }),
   };
 
   beforeEach(async () => {
@@ -45,7 +45,7 @@ describe('BudgetService (Performance)', () => {
   describe('Basic Performance Tests', () => {
     it('should perform findAll within performance limits', async () => {
       const mockBudgets = Array.from({ length: 100 }, () =>
-        createMockBudgetDbEntity({ id: uuid() }),
+        createMockBudgetEntity({ id: uuid() }),
       );
 
       mockSupabaseClient.setMockData(mockBudgets).setMockError(null);
@@ -63,7 +63,7 @@ describe('BudgetService (Performance)', () => {
 
     it('should perform findOne within performance limits', async () => {
       const budgetId = uuid();
-      const mockBudget = createMockBudgetDbEntity({ id: budgetId });
+      const mockBudget = createMockBudgetEntity({ id: budgetId });
       const mockUser = createMockAuthenticatedUser();
 
       mockSupabaseClient.setMockData(mockBudget).setMockError(null);
@@ -85,7 +85,7 @@ describe('BudgetService (Performance)', () => {
 
     it('should handle large datasets efficiently', async () => {
       const largeBudgetList = Array.from({ length: 1000 }, (_, index) =>
-        createMockBudgetDbEntity({
+        createMockBudgetEntity({
           id: uuid(),
           description: `Budget ${index}`,
           month: (index % 12) + 1,
@@ -110,7 +110,7 @@ describe('BudgetService (Performance)', () => {
   describe('Load Testing', () => {
     it('should handle concurrent findAll requests', async () => {
       const mockBudgets = Array.from({ length: 10 }, () =>
-        createMockBudgetDbEntity({ id: uuid() }),
+        createMockBudgetEntity({ id: uuid() }),
       );
 
       mockSupabaseClient.setMockData(mockBudgets).setMockError(null);
@@ -137,7 +137,7 @@ describe('BudgetService (Performance)', () => {
         year: 2025,
         description: 'Load Test Budget',
       };
-      const mockCreatedBudget = createMockBudgetDbEntity({
+      const mockCreatedBudget = createMockBudgetEntity({
         month: 2,
         year: 2025,
       });

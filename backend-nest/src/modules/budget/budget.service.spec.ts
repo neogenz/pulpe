@@ -27,7 +27,7 @@ describe('BudgetService', () => {
   let service: BudgetService;
   let mockSupabaseClient: MockSupabaseClient;
 
-  const createValidBudgetDbEntity = (overrides: any = {}): any => ({
+  const createValidBudgetEntity = (overrides: any = {}): any => ({
     id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
     created_at: '2024-01-15T10:30:00.000Z',
     updated_at: '2024-01-15T10:30:00.000Z',
@@ -61,16 +61,16 @@ describe('BudgetService', () => {
 
   describe('findAll', () => {
     it('should return all budgets with proper data transformation', async () => {
-      const mockBudgetsDb = [
-        createValidBudgetDbEntity(),
-        createValidBudgetDbEntity({
+      const mockBudgets = [
+        createValidBudgetEntity(),
+        createValidBudgetEntity({
           id: '550e8400-e29b-41d4-a716-446655440006',
           month: 2,
           description: 'Budget Février 2024',
         }),
       ];
 
-      mockSupabaseClient.setMockData(mockBudgetsDb).setMockError(null);
+      mockSupabaseClient.setMockData(mockBudgets).setMockError(null);
 
       await expectPerformance(
         async () => {
@@ -110,15 +110,16 @@ describe('BudgetService', () => {
     });
 
     it('should filter out invalid budget data', async () => {
-      const mixedBudgetsDb = [
-        createValidBudgetDbEntity(),
-        { id: 'invalid', month: 'not-a-number' }, // Invalid data
-        createValidBudgetDbEntity({
+      const mixedBudgets = [
+        createValidBudgetEntity(),
+        null, // Invalid data
+        createValidBudgetEntity({
           id: '550e8400-e29b-41d4-a716-446655440006',
         }),
+        undefined, // Invalid data
       ];
 
-      mockSupabaseClient.setMockData(mixedBudgetsDb).setMockError(null);
+      mockSupabaseClient.setMockData(mixedBudgets).setMockError(null);
 
       const result = await service.findAll(mockSupabaseClient as any);
 
@@ -131,7 +132,8 @@ describe('BudgetService', () => {
     it('should create budget with proper validation and transformation', async () => {
       const mockUser = createMockAuthenticatedUser();
       const createBudgetDto = createValidBudgetCreateDto();
-      const mockCreatedBudget = createValidBudgetDbEntity({
+      const mockCreatedBudget = createValidBudgetEntity({
+        id: 'new-budget-id',
         month: createBudgetDto.month,
         year: createBudgetDto.year,
         description: createBudgetDto.description,
@@ -222,7 +224,7 @@ describe('BudgetService', () => {
       const mockUser = createMockAuthenticatedUser();
       const budgetId = MOCK_BUDGET_ID;
       const currentDate = new Date();
-      const mockBudget = createValidBudgetDbEntity({
+      const mockBudget = createValidBudgetEntity({
         id: budgetId,
         month: currentDate.getMonth() + 1, // Current month
         year: currentDate.getFullYear(),
@@ -274,11 +276,12 @@ describe('BudgetService', () => {
         description: 'Budget Modifié',
         month: 3,
       };
-      const mockUpdatedBudget = createValidBudgetDbEntity({
+      const mockUpdatedBudget = createValidBudgetEntity({
         id: budgetId,
-        description: updateBudgetDto.description,
         month: updateBudgetDto.month,
-        updated_at: new Date().toISOString(),
+        year: 2024, // Provide a valid year
+        description: updateBudgetDto.description,
+        user_id: mockUser.id,
       });
 
       mockSupabaseClient.setMockData(mockUpdatedBudget).setMockError(null);
@@ -333,7 +336,7 @@ describe('BudgetService', () => {
         phonePlan: 50,
         transportCosts: 200,
       };
-      const mockBudget = createValidBudgetDbEntity({
+      const mockBudget = createValidBudgetEntity({
         month: onboardingData.month,
         year: onboardingData.year,
         description: onboardingData.description,

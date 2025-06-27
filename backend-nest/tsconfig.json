@@ -26,6 +26,7 @@
     "noUncheckedIndexedAccess": false,
     "forceConsistentCasingInFileNames": true,
     "types": ["reflect-metadata", "bun-types", "@types/node"],
+    "moduleResolution": "node",
 
     "paths": {
       "@/*": ["src/*"],
@@ -35,14 +36,5 @@
     }
   },
   "include": ["src/**/*"],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "**/*.spec.ts",
-    "**/*.test.ts",
-    "test/**/*",
-    "coverage",
-    "*.config.js",
-    "*.config.ts"
-  ]
+  "exclude": ["node_modules", "dist", "coverage", "*.config.js", "*.config.ts"]
 }
