@@ -14,7 +14,7 @@ export class BudgetTemplateMapper {
   /**
    * Valide les données venant de la DB avec Zod
    */
-  private validateDbEntity(dbEntity: unknown): BudgetTemplateDbEntity {
+  private parseBudgetTemplateRow(dbEntity: unknown): BudgetTemplateDbEntity {
     const validationResult = budgetTemplateDbEntitySchema.safeParse(dbEntity);
     if (!validationResult.success) {
       const firstError = validationResult.error.errors[0];
@@ -30,7 +30,7 @@ export class BudgetTemplateMapper {
    */
   toApi(templateDb: unknown): BudgetTemplate {
     // Validate DB data first - fail fast on corrupted data
-    const validatedDb = this.validateDbEntity(templateDb);
+    const validatedDb = this.parseBudgetTemplateRow(templateDb);
 
     return {
       id: validatedDb.id,
