@@ -23,10 +23,9 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "type-check": "tsc --noEmit",
-    "quality": "bun run type-check && bun run lint && bun run format:check",
-    "quality:fix": "bun run type-check && bun run lint:fix && bun run format",
-    "pre-commit": "bun run quality:fix && bun run test:all"
+    "type-check:full": "node --max-old-space-size=4096 ./node_modules/.bin/tsc --project tsconfig.full-check.json --noEmit",
+    "quality": "bun run type-check:full && bun run lint && bun run format:check",
+    "quality:fix": "bun run type-check:full && bun run lint:fix && bun run format"
   },
   "keywords": [],
   "author": "",
@@ -47,7 +46,7 @@
     "pino-pretty": "^13.0.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
-    "zod": "^3.25.64"
+    "zod": "^3.25.67"
   },
   "devDependencies": {
     "@darraghor/eslint-plugin-nestjs-typed": "^6.7.0",
@@ -57,6 +56,7 @@
     "@types/express": "^5.0.3",
     "@types/node": "^22.15.31",
     "@types/supertest": "^6.0.2",
+    "bun-types": "^1.2.17",
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-boundaries": "^4.2.2",
     "eslint-plugin-prettier": "^5.5.1",

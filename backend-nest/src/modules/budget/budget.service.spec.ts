@@ -147,7 +147,6 @@ describe('BudgetService', () => {
         month: 11,
         year: 2024,
         description: 'Test Budget',
-        monthlyIncome: 5000,
       };
       const mockCreatedBudget = createMockBudgetDbEntity();
 
@@ -172,7 +171,6 @@ describe('BudgetService', () => {
         month: 11,
         year: 2024,
         description: 'Test Budget',
-        monthlyIncome: 5000,
       };
       const mockError = { message: 'Constraint violation' };
 
@@ -194,7 +192,6 @@ describe('BudgetService', () => {
         month: 11,
         year: 2024,
         description: 'Test Budget',
-        monthlyIncome: 5000,
       };
 
       // Mock a rejected promise to simulate unexpected error
@@ -283,7 +280,6 @@ describe('BudgetService', () => {
       const budgetId = MOCK_BUDGET_ID;
       const updateBudgetDto: BudgetUpdate = {
         description: 'Updated Budget',
-        monthlyIncome: 6000,
       };
       const mockUpdatedBudget = createMockBudgetDbEntity(updateBudgetDto);
 
@@ -428,6 +424,7 @@ describe('BudgetService', () => {
         month: 11,
         year: 2024,
         description: 'Onboarding Budget',
+        transactions: [],
         monthlyIncome: 5000,
         housingCosts: 1500,
         healthInsurance: 400,
@@ -460,6 +457,7 @@ describe('BudgetService', () => {
         month: 11,
         year: 2024,
         description: 'Onboarding Budget',
+        transactions: [],
         monthlyIncome: 5000,
         housingCosts: 1500,
         healthInsurance: 400,
@@ -491,6 +489,7 @@ describe('BudgetService', () => {
         month: 11,
         year: 2024,
         description: 'Onboarding Budget',
+        transactions: [],
         monthlyIncome: 5000,
         housingCosts: 1500,
         healthInsurance: 400,
@@ -521,6 +520,7 @@ describe('BudgetService', () => {
         month: 11,
         year: 2024,
         description: 'Onboarding Budget',
+        transactions: [],
         monthlyIncome: 5000,
         housingCosts: 1500,
         healthInsurance: 400,

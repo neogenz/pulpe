@@ -1,3 +1,4 @@
+import { expect } from 'bun:test';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 

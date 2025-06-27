@@ -145,10 +145,11 @@ describe('TransactionService', () => {
       const mockUser = createMockAuthenticatedUser();
       const createTransactionDto: TransactionCreate = {
         budgetId: MOCK_BUDGET_ID,
-        title: 'Test Transaction',
+        name: 'Test Transaction',
         amount: 150,
-        expenseType: 'FIXED',
-        transactionType: 'EXPENSE',
+        expenseType: 'fixed',
+        type: 'expense',
+        isRecurring: false,
       };
       const mockCreatedTransaction = createMockTransactionDbEntity();
 
@@ -171,10 +172,11 @@ describe('TransactionService', () => {
       const mockUser = createMockAuthenticatedUser();
       const createTransactionDto: TransactionCreate = {
         budgetId: MOCK_BUDGET_ID,
-        title: 'Test Transaction',
+        name: 'Test Transaction',
         amount: 150,
-        expenseType: 'FIXED',
-        transactionType: 'EXPENSE',
+        expenseType: 'fixed',
+        type: 'expense',
+        isRecurring: false,
       };
       const mockError = { message: 'Foreign key constraint violation' };
 
@@ -198,10 +200,11 @@ describe('TransactionService', () => {
       const mockUser = createMockAuthenticatedUser();
       const createTransactionDto: TransactionCreate = {
         budgetId: MOCK_BUDGET_ID,
-        title: 'Test Transaction',
+        name: 'Test Transaction',
         amount: 150,
-        expenseType: 'FIXED',
-        transactionType: 'EXPENSE',
+        expenseType: 'fixed',
+        type: 'expense',
+        isRecurring: false,
       };
 
       // Mock a rejected promise to simulate unexpected error
@@ -295,7 +298,7 @@ describe('TransactionService', () => {
       const mockUser = createMockAuthenticatedUser();
       const transactionId = MOCK_TRANSACTION_ID;
       const updateTransactionDto: TransactionUpdate = {
-        title: 'Updated Transaction',
+        name: 'Updated Transaction',
         amount: 200,
       };
       const mockUpdatedTransaction =
@@ -321,7 +324,7 @@ describe('TransactionService', () => {
       const mockUser = createMockAuthenticatedUser();
       const transactionId = 'non-existent-id';
       const updateTransactionDto: TransactionUpdate = {
-        title: 'Updated Transaction',
+        name: 'Updated Transaction',
       };
       const mockError = { message: 'No rows returned' };
 
@@ -346,7 +349,7 @@ describe('TransactionService', () => {
       const mockUser = createMockAuthenticatedUser();
       const transactionId = MOCK_TRANSACTION_ID;
       const updateTransactionDto: TransactionUpdate = {
-        title: 'Updated Transaction',
+        name: 'Updated Transaction',
       };
 
       // Mock a rejected promise to simulate unexpected error

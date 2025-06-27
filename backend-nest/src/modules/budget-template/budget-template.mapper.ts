@@ -26,11 +26,11 @@ export class BudgetTemplateMapper {
       id: templateDb.id,
       createdAt: templateDb.created_at,
       updatedAt: templateDb.updated_at,
-      userId: templateDb.user_id,
+      userId: templateDb.user_id ?? undefined,
       name: templateDb.name,
-      description: templateDb.description,
-      category: templateDb.category,
-      isDefault: templateDb.is_default,
+      description: templateDb.description ?? undefined,
+      category: templateDb.category ?? undefined,
+      isDefault: templateDb.is_default ?? false,
     };
   }
 
@@ -52,7 +52,7 @@ export class BudgetTemplateMapper {
       name: createDto.name,
       description: createDto.description ?? null,
       category: createDto.category ?? null,
-      is_default: createDto.isDefault,
+      is_default: createDto.isDefault ?? false,
       user_id: userId,
     };
   }

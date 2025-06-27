@@ -1,6 +1,6 @@
-// Export all schemas
+// Export all schemas from schemas.ts
 export {
-  // Enums
+  // Base enums
   expenseTypeSchema,
   transactionTypeSchema,
 
@@ -43,8 +43,12 @@ export {
   templateTransactionDeleteResponseSchema,
 } from "./schemas";
 
-// Export all types
+// Export all types from types.ts
 export type {
+  // Base types
+  ExpenseType,
+  TransactionType,
+
   // Budget types
   Budget,
   BudgetCreate,
@@ -55,8 +59,6 @@ export type {
   Transaction,
   TransactionCreate,
   TransactionUpdate,
-  ExpenseType,
-  TransactionType,
 
   // Budget template types
   BudgetTemplate,
@@ -74,7 +76,6 @@ export type {
   BudgetResponse,
   BudgetListResponse,
   BudgetDeleteResponse,
-  TransactionResponse,
   TransactionCreateResponse,
   TransactionUpdateResponse,
   TransactionFindOneResponse,
@@ -88,4 +89,5 @@ export type {
   TemplateTransactionFindOneResponse,
   TemplateTransactionListResponse,
   TemplateTransactionDeleteResponse,
+  TransactionResponse,
 } from "./types";

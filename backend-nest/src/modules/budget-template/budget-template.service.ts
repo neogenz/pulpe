@@ -270,25 +270,41 @@ export class BudgetTemplateService {
     return transactionsDb || [];
   }
 
-  private transformTemplateTransactions(transactionsDb: unknown[]): unknown[] {
-    return transactionsDb.map(
-      (transaction: {
+  private transformTemplateTransactions(transactionsDb: unknown[]): Array<{
+    id: string;
+    createdAt: string;
+    updatedAt: string;
+    templateId: string;
+    amount: number;
+    type: 'expense' | 'income' | 'saving';
+    expenseType: 'fixed' | 'variable';
+    name: string;
+    description: string;
+  }> {
+    return (
+      transactionsDb as Array<{
         id: string;
         created_at: string;
         updated_at: string;
+        template_id: unknown;
+        amount: unknown;
+        type: unknown;
+        expense_type: unknown;
+        name: unknown;
+        description: unknown;
         [key: string]: unknown;
-      }) => ({
-        id: transaction.id,
-        createdAt: transaction.created_at,
-        updatedAt: transaction.updated_at,
-        templateId: transaction.template_id,
-        amount: transaction.amount,
-        type: transaction.type,
-        expenseType: transaction.expense_type,
-        name: transaction.name,
-        description: transaction.description,
-        isRecurring: transaction.is_recurring,
-      }),
-    );
+      }>
+    ).map((transaction) => ({
+      id: transaction.id,
+      createdAt: transaction.created_at,
+      updatedAt: transaction.updated_at,
+      templateId: String(transaction.template_id ?? ''),
+      amount: Number(transaction.amount ?? 0),
+      type: (transaction.type as 'expense' | 'income' | 'saving') ?? 'expense',
+      expenseType:
+        (transaction.expense_type as 'fixed' | 'variable') ?? 'fixed',
+      name: String(transaction.name ?? ''),
+      description: String(transaction.description ?? ''),
+    }));
   }
 }

@@ -9,6 +9,8 @@ import {
   type TransactionCreate,
   type TransactionUpdate,
   type TransactionResponse,
+  type TransactionListResponse,
+  type TransactionDeleteResponse,
 } from '@pulpe/shared';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
@@ -26,7 +28,7 @@ export class TransactionService {
     budgetId: string,
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
-  ): Promise<TransactionResponse> {
+  ): Promise<TransactionListResponse> {
     try {
       const { data: transactionsDb, error } = await supabase
         .from('transactions')
@@ -46,7 +48,7 @@ export class TransactionService {
       );
 
       return {
-        success: true as const,
+        success: true,
         data: transactions,
       };
     } catch (error) {
@@ -87,7 +89,7 @@ export class TransactionService {
       );
 
       return {
-        success: true as const,
+        success: true,
         data: transaction,
       };
     } catch (error) {
@@ -122,7 +124,7 @@ export class TransactionService {
       );
 
       return {
-        success: true as const,
+        success: true,
         data: transaction,
       };
     } catch (error) {
@@ -165,7 +167,7 @@ export class TransactionService {
       );
 
       return {
-        success: true as const,
+        success: true,
         data: transaction,
       };
     } catch (error) {
@@ -181,7 +183,7 @@ export class TransactionService {
     id: string,
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
-  ) {
+  ): Promise<TransactionDeleteResponse> {
     try {
       const { error } = await supabase
         .from('transactions')
@@ -196,7 +198,7 @@ export class TransactionService {
       }
 
       return {
-        success: true as const,
+        success: true,
         message: 'Transaction supprimée avec succès',
       };
     } catch (error) {

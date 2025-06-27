@@ -131,7 +131,7 @@ export class UserController {
   private buildProfileResponse(updatedUser: {
     user: {
       id: string;
-      email: string;
+      email?: string;
       user_metadata?: { firstName?: string; lastName?: string };
     };
   }): UserProfileResponseDto {
@@ -139,7 +139,7 @@ export class UserController {
       success: true as const,
       user: {
         id: updatedUser.user.id,
-        email: updatedUser.user.email!,
+        email: updatedUser.user.email ?? '',
         ...(updatedUser.user.user_metadata?.firstName && {
           firstName: updatedUser.user.user_metadata.firstName,
         }),

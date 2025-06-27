@@ -14,16 +14,17 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
+  ApiBadRequestResponse,
+  ApiNotFoundResponse,
+  ApiUnauthorizedResponse,
+  ApiInternalServerErrorResponse,
 } from '@nestjs/swagger';
 import {
-  transactionCreateSchema,
-  transactionUpdateSchema,
-  type TransactionCreate,
-  type TransactionUpdate,
   type TransactionResponse,
+  type TransactionListResponse,
+  type TransactionDeleteResponse,
 } from '@pulpe/shared';
 import { AuthGuard } from '@common/guards/auth.guard';
-import { ZodBodyPipe } from '@common/pipes/zod-validation.pipe';
 import {
   User,
   SupabaseClient,
@@ -31,11 +32,27 @@ import {
 } from '@common/decorators/user.decorator';
 import { TransactionService } from './transaction.service';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
+import {
+  TransactionCreateDto,
+  TransactionUpdateDto,
+  TransactionResponseDto,
+  TransactionListResponseDto,
+  TransactionDeleteResponseDto,
+} from './dto/transaction-swagger.dto';
+import { ErrorResponseDto } from '@common/dto/response.dto';
 
 @ApiTags('Transactions')
 @ApiBearerAuth()
 @Controller('transactions')
 @UseGuards(AuthGuard)
+@ApiUnauthorizedResponse({
+  description: 'Authentication required',
+  type: ErrorResponseDto,
+})
+@ApiInternalServerErrorResponse({
+  description: 'Internal server error',
+  type: ErrorResponseDto,
+})
 export class TransactionController {
   constructor(private readonly transactionService: TransactionService) {}
 
@@ -49,12 +66,13 @@ export class TransactionController {
   @ApiResponse({
     status: 200,
     description: 'Liste des transactions récupérée avec succès',
+    type: TransactionListResponseDto,
   })
   async findByBudget(
     @Param('budgetId') budgetId: string,
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
-  ): Promise<TransactionResponse> {
+  ): Promise<TransactionListResponse> {
     return this.transactionService.findByBudget(budgetId, user, supabase);
   }
 
@@ -63,10 +81,10 @@ export class TransactionController {
   @ApiResponse({
     status: 201,
     description: 'Transaction créée avec succès',
+    type: TransactionResponseDto,
   })
   async create(
-    @Body(new ZodBodyPipe(transactionCreateSchema))
-    createTransactionDto: TransactionCreate,
+    @Body() createTransactionDto: TransactionCreateDto,
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionResponse> {
@@ -83,6 +101,7 @@ export class TransactionController {
   @ApiResponse({
     status: 200,
     description: 'Transaction récupérée avec succès',
+    type: TransactionResponseDto,
   })
   async findOne(
     @Param('id') id: string,
@@ -102,11 +121,19 @@ export class TransactionController {
   @ApiResponse({
     status: 200,
     description: 'Transaction mise à jour avec succès',
+    type: TransactionResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid input data',
+    type: ErrorResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Transaction not found',
+    type: ErrorResponseDto,
   })
   async update(
     @Param('id') id: string,
-    @Body(new ZodBodyPipe(transactionUpdateSchema))
-    updateTransactionDto: TransactionUpdate,
+    @Body() updateTransactionDto: TransactionUpdateDto,
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionResponse> {
@@ -128,12 +155,17 @@ export class TransactionController {
   @ApiResponse({
     status: 200,
     description: 'Transaction supprimée avec succès',
+    type: TransactionDeleteResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Transaction not found',
+    type: ErrorResponseDto,
   })
   async remove(
     @Param('id') id: string,
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
-  ) {
+  ): Promise<TransactionDeleteResponse> {
     return this.transactionService.remove(id, user, supabase);
   }
 }

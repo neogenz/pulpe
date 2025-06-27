@@ -2,34 +2,25 @@
   "name": "@pulpe/shared",
   "version": "1.0.0",
   "description": "Shared models and types for Pulpe application",
-  "main": "./dist/cjs/index.js",
+  "type": "module",
+  "main": "./dist/esm/index.js",
   "module": "./dist/esm/index.js",
   "types": "./dist/esm/index.d.ts",
   "scripts": {
     "clean": "rm -rf dist",
+    "build": "pnpm run clean && pnpm run build:esm",
     "build:esm": "tsc -p tsconfig.esm.json",
-    "build:cjs": "tsc -p tsconfig.cjs.json",
-    "build": "pnpm run clean && pnpm run build:esm && pnpm run build:cjs",
     "dev": "pnpm run build && pnpm run watch",
-    "watch": "pnpm run /^watch:/",
-    "watch:esm": "tsc -p tsconfig.esm.json --watch",
-    "watch:cjs": "tsc -p tsconfig.cjs.json --watch"
+    "watch": "tsc -p tsconfig.esm.json --watch"
   },
   "exports": {
     ".": {
-      "import": {
-        "types": "./dist/esm/index.d.ts",
-        "default": "./dist/esm/index.js"
-      },
-      "require": {
-        "types": "./dist/cjs/index.d.ts",
-        "default": "./dist/cjs/index.js"
-      },
+      "types": "./dist/esm/index.d.ts",
       "default": "./dist/esm/index.js"
     }
   },
   "dependencies": {
-    "zod": "^3.25.51"
+    "zod": "^3.25.67"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

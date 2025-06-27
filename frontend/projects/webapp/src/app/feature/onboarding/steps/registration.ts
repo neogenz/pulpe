@@ -216,6 +216,7 @@ export default class Registration implements OnInit {
       description: `Budget initial de ${
         payload.firstName
       } pour ${currentDate.getFullYear()}`,
+      transactions: [],
     };
   }
 }

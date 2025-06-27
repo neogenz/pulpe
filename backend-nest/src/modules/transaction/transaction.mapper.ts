@@ -31,13 +31,13 @@ export class TransactionMapper {
       id: transactionDb.id,
       createdAt: transactionDb.created_at,
       updatedAt: transactionDb.updated_at,
-      userId: transactionDb.user_id,
+      userId: transactionDb.user_id ?? undefined,
       budgetId: transactionDb.budget_id,
       amount: transactionDb.amount,
       type: transactionDb.type,
       expenseType: transactionDb.expense_type,
       name: transactionDb.name,
-      description: transactionDb.description,
+      description: transactionDb.description ?? undefined,
       isRecurring: transactionDb.is_recurring,
     };
   }
@@ -57,13 +57,13 @@ export class TransactionMapper {
     userId: string,
   ): Omit<TransactionDbEntity, 'id' | 'created_at' | 'updated_at'> {
     return {
-      budget_id: createDto.budgetId,
-      amount: createDto.amount,
-      type: createDto.type,
-      expense_type: createDto.expenseType,
-      name: createDto.name,
-      description: createDto.description || null,
-      is_recurring: createDto.isRecurring,
+      budget_id: createDto.budgetId ?? '',
+      amount: createDto.amount ?? 0,
+      type: createDto.type ?? 'expense',
+      expense_type: createDto.expenseType ?? 'variable',
+      name: createDto.name ?? '',
+      description: createDto.description ?? null,
+      is_recurring: createDto.isRecurring ?? false,
       user_id: userId,
     };
   }

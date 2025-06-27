@@ -69,7 +69,7 @@ importers:
         specifier: ^2.3.0
         version: 2.8.1
       zod:
-        specifier: ^3.25.51
+        specifier: ^3.25.67
         version: 3.25.67
     devDependencies:
       '@angular-eslint/builder':
@@ -145,11 +145,11 @@ importers:
   shared:
     dependencies:
       zod:
-        specifier: ^3.25.51
+        specifier: ^3.25.67
         version: 3.25.67
     devDependencies:
       typescript:
-        specifier: ^5.0.0
+        specifier: ^5.8.3
         version: 5.8.3
 
 packages:

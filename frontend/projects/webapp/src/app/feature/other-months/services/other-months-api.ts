@@ -37,7 +37,7 @@ export class OtherMonthsApi {
             description: budget.description,
             displayName: this.#formatMonthYear(budget.month, budget.year),
           }))
-          .sort((a, b) => {
+          .sort((a: MonthInfo, b: MonthInfo) => {
             // Trier par ann�e d�croissante puis par mois d�croissant
             if (a.year !== b.year) {
               return b.year - a.year;

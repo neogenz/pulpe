@@ -22,15 +22,11 @@ import {
   ApiCreatedResponse,
 } from '@nestjs/swagger';
 import {
-  budgetCreateSchema,
-  budgetUpdateSchema,
-  budgetCreateFromOnboardingSchema,
-  type BudgetCreate,
-  type BudgetUpdate,
-  type BudgetCreateFromOnboarding,
+  type BudgetListResponse,
+  type BudgetResponse,
+  type BudgetDeleteResponse,
 } from '@pulpe/shared';
 import { AuthGuard } from '@common/guards/auth.guard';
-import { ZodBodyPipe } from '@common/pipes/zod-validation.pipe';
 import {
   User,
   SupabaseClient,
@@ -39,10 +35,13 @@ import {
 import { BudgetService } from './budget.service';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import {
+  BudgetCreateDto,
+  BudgetUpdateDto,
+  BudgetCreateFromOnboardingDto,
   BudgetListResponseDto,
   BudgetResponseDto,
   BudgetDeleteResponseDto,
-} from './dto/budget-response.dto';
+} from './dto/budget-swagger.dto';
 import { ErrorResponseDto } from '@common/dto/response.dto';
 
 @ApiTags('Budgets')
@@ -74,7 +73,7 @@ export class BudgetController {
   async findAll(
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetListResponseDto> {
+  ): Promise<BudgetListResponse> {
     return this.budgetService.findAll(user, supabase);
   }
 
@@ -92,10 +91,10 @@ export class BudgetController {
     type: ErrorResponseDto,
   })
   async create(
-    @Body(new ZodBodyPipe(budgetCreateSchema)) createBudgetDto: BudgetCreate,
+    @Body() createBudgetDto: BudgetCreateDto,
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetResponseDto> {
+  ): Promise<BudgetResponse> {
     return this.budgetService.create(createBudgetDto, user, supabase);
   }
 
@@ -124,7 +123,7 @@ export class BudgetController {
     @Param('id', ParseUUIDPipe) id: string,
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetResponseDto> {
+  ): Promise<BudgetResponse> {
     return this.budgetService.findOne(id, user, supabase);
   }
 
@@ -155,10 +154,10 @@ export class BudgetController {
   })
   async update(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body(new ZodBodyPipe(budgetUpdateSchema)) updateBudgetDto: BudgetUpdate,
+    @Body() updateBudgetDto: BudgetUpdateDto,
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetResponseDto> {
+  ): Promise<BudgetResponse> {
     return this.budgetService.update(id, updateBudgetDto, user, supabase);
   }
 
@@ -177,11 +176,10 @@ export class BudgetController {
     type: ErrorResponseDto,
   })
   async createFromOnboarding(
-    @Body(new ZodBodyPipe(budgetCreateFromOnboardingSchema))
-    onboardingData: BudgetCreateFromOnboarding,
+    @Body() onboardingData: BudgetCreateFromOnboardingDto,
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetResponseDto> {
+  ): Promise<BudgetResponse> {
     return this.budgetService.createFromOnboarding(
       onboardingData,
       user,
@@ -214,7 +212,7 @@ export class BudgetController {
     @Param('id', ParseUUIDPipe) id: string,
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetDeleteResponseDto> {
+  ): Promise<BudgetDeleteResponse> {
     return this.budgetService.remove(id, user, supabase);
   }
 }

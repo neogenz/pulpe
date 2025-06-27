@@ -1,6 +1,8 @@
 import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
+import { APP_PIPE } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
+import { ZodValidationPipe } from 'nestjs-zod';
 
 // Modules
 import { SupabaseModule } from '@modules/supabase/supabase.module';
@@ -50,6 +52,12 @@ import { RequestIdMiddleware } from '@common/middleware/request-id.middleware';
     TransactionModule,
     UserModule,
     DebugModule,
+  ],
+  providers: [
+    {
+      provide: APP_PIPE,
+      useClass: ZodValidationPipe,
+    },
   ],
 })
 export class AppModule implements NestModule {

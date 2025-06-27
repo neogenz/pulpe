@@ -186,7 +186,7 @@ export default class CurrentMonth implements OnInit {
         amount: transaction.amount ?? 0,
         expenseType: 'variable',
         name: transaction.name,
-        description: null,
+        description: '',
       });
     } catch (error) {
       console.error(error);

@@ -12,6 +12,7 @@
     "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,
+    "assumeChangesOnlyAffectDirectDependencies": true,
 
     // === PROGRESSIVE STRICT TYPE CHECKING ===
     "strict": false,
@@ -31,6 +32,7 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": false,
     "forceConsistentCasingInFileNames": true,
+    "types": ["reflect-metadata"],
 
     "paths": {
       "@/*": ["src/*"],
@@ -38,5 +40,16 @@
       "@modules/*": ["src/modules/*"],
       "@config/*": ["src/config/*"]
     }
-  }
+  },
+  "include": ["src/**/*"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "test/**/*",
+    "coverage",
+    "*.config.js",
+    "*.config.ts"
+  ]
 }

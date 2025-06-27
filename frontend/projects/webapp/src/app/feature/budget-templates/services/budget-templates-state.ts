@@ -24,11 +24,11 @@ export class BudgetTemplatesState {
         id: `temp-${Date.now()}`,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        userId: null,
+        userId: undefined,
         name: template.name,
-        description: template.description ?? null,
-        category: template.category ?? null,
-        isDefault: template.isDefault
+        description: template.description ?? undefined,
+        category: template.category ?? undefined,
+        isDefault: template.isDefault ?? false,
       };
       return [...data, optimisticTemplate];
     });
@@ -40,9 +40,7 @@ export class BudgetTemplatesState {
 
       this.templatesData.update((data) => {
         if (!data || !response.data) return data;
-        return data.map((t) =>
-          t.id.startsWith('temp-') ? response.data : t,
-        );
+        return data.map((t) => (t.id.startsWith('temp-') ? response.data : t));
       });
     } catch (error) {
       this.templatesData.update((data) => {
@@ -55,7 +53,7 @@ export class BudgetTemplatesState {
 
   async deleteTemplate(id: string): Promise<void> {
     const originalData = this.templatesData.value();
-    
+
     // Optimistic update
     this.templatesData.update((data) => {
       if (!data) return data;
@@ -75,9 +73,7 @@ export class BudgetTemplatesState {
 
   async #loadTemplatesData(): Promise<BudgetTemplate[]> {
     try {
-      const response = await firstValueFrom(
-        this.#budgetTemplatesApi.getAll$(),
-      );
+      const response = await firstValueFrom(this.#budgetTemplatesApi.getAll$());
       return Array.isArray(response.data) ? response.data : [];
     } catch (error) {
       console.error('Erreur lors du chargement des templates:', error);

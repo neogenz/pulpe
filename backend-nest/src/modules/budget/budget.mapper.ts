@@ -25,7 +25,7 @@ export class BudgetMapper {
       id: budgetDb.id,
       createdAt: budgetDb.created_at,
       updatedAt: budgetDb.updated_at,
-      userId: budgetDb.user_id,
+      userId: budgetDb.user_id ?? undefined,
       month: budgetDb.month,
       year: budgetDb.year,
       description: budgetDb.description,
@@ -47,9 +47,9 @@ export class BudgetMapper {
     userId: string,
   ): Omit<BudgetDbEntity, 'id' | 'created_at' | 'updated_at'> {
     return {
-      month: createDto.month,
-      year: createDto.year,
-      description: createDto.description,
+      month: createDto.month ?? 1,
+      year: createDto.year ?? new Date().getFullYear(),
+      description: createDto.description ?? '',
       user_id: userId,
     };
   }

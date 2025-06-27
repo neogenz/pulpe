@@ -24,6 +24,7 @@ import {
 import { BudgetTemplatesApi } from '../services/budget-templates-api';
 import { firstValueFrom } from 'rxjs';
 import { CommonModule } from '@angular/common';
+import { TemplateTransaction } from '@pulpe/shared';
 
 @Component({
   selector: 'pulpe-template-detail',
@@ -133,7 +134,7 @@ export default class TemplateDetail {
     if (!value) {
       return [];
     }
-    return value.transactions.map((transaction) => {
+    return value.transactions.map((transaction: TemplateTransaction) => {
       const spent =
         (transaction.type as string) === 'EXPENSE' ? transaction.amount : 0;
       const earned =
@@ -194,11 +195,13 @@ export default class TemplateDetail {
       return;
     }
 
-    const transactions = templateData.transactions.map((transaction) => ({
-      description: transaction.name,
-      amount: transaction.amount,
-      type: transaction.type as 'INCOME' | 'EXPENSE' | 'SAVING',
-    }));
+    const transactions = templateData.transactions.map(
+      (transaction: TemplateTransaction) => ({
+        description: transaction.name,
+        amount: transaction.amount,
+        type: transaction.type as 'INCOME' | 'EXPENSE' | 'SAVING',
+      }),
+    );
 
     const dialogRef = this.#dialog.open(EditTransactionsDialog, {
       data: {

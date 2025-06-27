@@ -24,7 +24,7 @@ import { MatIconModule } from '@angular/material/icon';
       display: block;
     }
   `,
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TemplatesError {
   reload = output<void>();

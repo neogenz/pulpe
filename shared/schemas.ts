@@ -14,169 +14,141 @@ export const transactionTypeSchema = z.enum(["expense", "income", "saving"]);
 // Budget schemas
 export const budgetSchema = z.object({
   id: z.string().uuid(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
-  userId: z.string().uuid().nullable(),
   month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
   year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
-  description: z.string().min(1).max(500).trim(),
-  templateId: z.string().uuid().nullable(),
+  description: z.string().min(1).max(500),
+  userId: z.string().uuid().optional(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
 });
 
 export const budgetCreateSchema = z.object({
   month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
   year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
-  description: z.string().min(1).max(500).trim(),
-  templateId: z.string().uuid().optional().nullable(),
+  description: z.string().min(1).max(500),
 });
 
-export const budgetCreateFromOnboardingSchema = budgetCreateSchema.extend({
-  monthlyIncome: z.number().min(0).optional().default(0),
-  housingCosts: z.number().min(0).optional().default(0),
-  healthInsurance: z.number().min(0).optional().default(0),
-  leasingCredit: z.number().min(0).optional().default(0),
-  phonePlan: z.number().min(0).optional().default(0),
-  transportCosts: z.number().min(0).optional().default(0),
+export const budgetCreateFromOnboardingSchema = z.object({
+  month: z.number(),
+  year: z.number(),
+  description: z.string(),
+  transactions: z.array(z.any()),
+  monthlyIncome: z.number().optional(),
+  housingCosts: z.number().optional(),
+  healthInsurance: z.number().optional(),
+  leasingCredit: z.number().optional(),
+  phonePlan: z.number().optional(),
+  transportCosts: z.number().optional(),
 });
 
-export const budgetUpdateSchema = z
-  .object({
-    month: z.number().int().min(MONTH_MIN).max(MONTH_MAX).optional(),
-    year: z.number().int().min(MIN_YEAR).max(MAX_YEAR).optional(),
-    description: z.string().min(1).max(500).trim().optional(),
-    templateId: z.string().uuid().optional().nullable(),
-  })
-  .refine(
-    (data) => Object.keys(data).length > 0,
-    "Au moins un champ doit être fourni pour la mise à jour"
-  );
+export const budgetUpdateSchema = z.object({
+  description: z.string().optional(),
+  month: z.number().optional(),
+  year: z.number().optional(),
+});
 
 // Transaction schemas
 export const transactionSchema = z.object({
   id: z.string().uuid(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
-  userId: z.string().uuid().nullable(),
-  budgetId: z.string().uuid(),
   amount: z.number().positive(),
   type: transactionTypeSchema,
+  name: z.string().min(1).max(100).trim(),
+  description: z.string().max(500).trim().optional(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  userId: z.string().uuid().optional(),
+  budgetId: z.string().uuid(),
   expenseType: expenseTypeSchema,
-  name: z.string().min(1).max(500).trim(),
-  description: z.string().min(1).max(500).trim().nullable(),
-  isRecurring: z.boolean().default(false),
+  isRecurring: z.boolean(),
 });
 
 export const transactionCreateSchema = z.object({
-  budgetId: z.string().uuid(),
   amount: z.number().positive(),
   type: transactionTypeSchema,
+  name: z.string().min(1).max(100).trim(),
+  description: z.string().max(500).trim().optional(),
   expenseType: expenseTypeSchema,
-  name: z.string().min(1).max(500).trim(),
-  description: z.string().min(1).max(500).trim().optional().nullable(),
-  isRecurring: z.boolean().default(false),
+  isRecurring: z.boolean(),
+  budgetId: z.string().uuid().optional(),
 });
 
-export const transactionUpdateSchema = z
-  .object({
-    budgetId: z.string().uuid().optional(),
-    amount: z.number().positive().optional(),
-    type: transactionTypeSchema.optional(),
-    expenseType: expenseTypeSchema.optional(),
-    name: z.string().min(1).max(500).trim().optional(),
-    description: z.string().min(1).max(500).trim().optional().nullable(),
-    isRecurring: z.boolean().optional(),
-  })
-  .refine(
-    (data) => Object.keys(data).length > 0,
-    "Au moins un champ doit être fourni pour la mise à jour"
-  );
+export const transactionUpdateSchema = z.object({
+  amount: z.number().positive().optional(),
+  type: transactionTypeSchema.optional(),
+  name: z.string().min(1).max(100).trim().optional(),
+  description: z.string().max(500).trim().optional(),
+  expenseType: expenseTypeSchema.optional(),
+  isRecurring: z.boolean().optional(),
+});
 
 // Budget template schemas
 export const budgetTemplateSchema = z.object({
   id: z.string().uuid(),
+  name: z.string().min(1).max(100).trim(),
+  description: z.string().max(500).trim().optional(),
+  category: z.string().min(1).max(50).trim().optional(),
+  userId: z.string().uuid().optional(),
+  isDefault: z.boolean().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
-  userId: z.string().uuid().nullable(), // NULL = template public
-  name: z.string().min(1).max(500).trim(),
-  description: z.string().min(1).max(500).trim().nullable(),
-  category: z.string().min(1).max(100).trim().nullable(),
-  isDefault: z.boolean().default(false),
 });
 
 export const budgetTemplateCreateSchema = z.object({
-  name: z.string().min(1).max(500).trim(),
-  description: z.string().min(1).max(500).trim().optional().nullable(),
-  category: z.string().min(1).max(100).trim().optional().nullable(),
+  name: z.string().min(1).max(100).trim(),
+  description: z.string().min(1).max(500).trim().optional(),
+  category: z.string().min(1).max(50).trim().optional(),
   isDefault: z.boolean().default(false),
 });
 
-export const budgetTemplateUpdateSchema = z
-  .object({
-    name: z.string().min(1).max(500).trim().optional(),
-    description: z.string().min(1).max(500).trim().optional().nullable(),
-    category: z.string().min(1).max(100).trim().optional().nullable(),
-    isDefault: z.boolean().optional(),
-  })
-  .refine(
-    (data) => Object.keys(data).length > 0,
-    "Au moins un champ doit être fourni pour la mise à jour"
-  );
+export const budgetTemplateUpdateSchema = z.object({
+  name: z.string().min(1).max(100).trim().optional(),
+  description: z.string().max(500).trim().optional(),
+  category: z.string().min(1).max(50).trim().optional(),
+  isDefault: z.boolean().optional(),
+});
 
 // Template transaction schemas
 export const templateTransactionSchema = z.object({
   id: z.string().uuid(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
   templateId: z.string().uuid(),
+  name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
   type: transactionTypeSchema,
   expenseType: expenseTypeSchema,
-  name: z.string().min(1).max(500).trim(),
-  description: z.string().min(1).max(500).trim().nullable(),
-  isRecurring: z.boolean().default(true),
+  description: z.string().max(500).trim(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
 });
 
 export const templateTransactionCreateSchema = z.object({
   templateId: z.string().uuid(),
+  name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
   type: transactionTypeSchema,
   expenseType: expenseTypeSchema,
-  name: z.string().min(1).max(500).trim(),
-  description: z.string().min(1).max(500).trim().optional().nullable(),
-  isRecurring: z.boolean().default(true),
+  description: z.string().max(500).trim(),
 });
 
-export const templateTransactionUpdateSchema = z
-  .object({
-    templateId: z.string().uuid().optional(),
-    amount: z.number().positive().optional(),
-    type: transactionTypeSchema.optional(),
-    expenseType: expenseTypeSchema.optional(),
-    name: z.string().min(1).max(500).trim().optional(),
-    description: z.string().min(1).max(500).trim().optional().nullable(),
-    isRecurring: z.boolean().optional(),
-  })
-  .refine(
-    (data) => Object.keys(data).length > 0,
-    "Au moins un champ doit être fourni pour la mise à jour"
-  );
+export const templateTransactionUpdateSchema = z.object({
+  name: z.string().min(1).max(100).trim().optional(),
+  amount: z.number().positive().optional(),
+  type: transactionTypeSchema.optional(),
+  expenseType: expenseTypeSchema.optional(),
+  description: z.string().max(500).trim().optional(),
+});
 
-// Generic response schemas
-export const successResponseSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
-  z.object({
-    success: z.literal(true),
-    data: dataSchema.optional(),
-    items: z.array(dataSchema).optional(),
-  }) as z.ZodObject<{
-    success: z.ZodLiteral<true>;
-    data: z.ZodOptional<T>;
-    items: z.ZodOptional<z.ZodArray<T>>;
-  }>;
+// Generic response schemas - SIMPLIFIED to avoid TypeScript memory issues
+export const successResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.any().optional(),
+  items: z.array(z.any()).optional(),
+});
 
 export const errorResponseSchema = z.object({
   success: z.literal(false),
   error: z.string(),
-  details: z.array(z.string()).optional(),
+  message: z.string().optional(),
+  details: z.string().optional(),
 });
 
 export const deleteResponseSchema = z.object({

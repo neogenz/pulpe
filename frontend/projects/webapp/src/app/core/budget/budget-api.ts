@@ -242,26 +242,25 @@ export class BudgetApi {
   #handleApiError(error: unknown, defaultMessage: string): Observable<never> {
     console.error('Erreur API Budget:', error);
 
+    let budgetError: BudgetApiError = { message: defaultMessage };
+
     if (error instanceof HttpErrorResponse) {
-      // Utiliser le schéma d'erreur partagé
-      try {
-        const errorResponse = errorResponseSchema.parse(error.error);
-        const budgetError: BudgetApiError = {
-          message: errorResponse.error,
-          details: errorResponse.details,
+      const parsedError = errorResponseSchema.safeParse(error.error);
+
+      if (parsedError.success) {
+        budgetError = {
+          message: parsedError.data.error,
+          details: parsedError.data.details
+            ? [parsedError.data.details]
+            : undefined,
         };
-        return throwError(() => budgetError);
-      } catch {
-        const budgetError: BudgetApiError = {
+      } else {
+        budgetError = {
           message: error.error?.message || error.message || defaultMessage,
         };
-        return throwError(() => budgetError);
       }
     }
 
-    const budgetError: BudgetApiError = {
-      message: defaultMessage,
-    };
     return throwError(() => budgetError);
   }
 }

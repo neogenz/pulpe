@@ -12,7 +12,7 @@ import {
   testErrorSilencer,
   MockSupabaseClient,
 } from '../../test/test-utils';
-import type { BudgetCreate } from '@pulpe/shared';
+import type { BudgetCreateFromOnboarding } from '@pulpe/shared';
 
 describe('BudgetService (Performance)', () => {
   let service: BudgetService;
@@ -80,11 +80,12 @@ describe('BudgetService (Performance)', () => {
     it('should perform create operation within performance limits', async () => {
       // Arrange
       const mockUser = createMockAuthenticatedUser();
-      const createBudgetDto: BudgetCreate = {
+      const createBudgetDto: BudgetCreateFromOnboarding = {
         month: 11,
         year: 2024,
         description: 'Performance Test Budget',
         monthlyIncome: 5000,
+        transactions: [], // Add this as it's required by BudgetCreateFromOnboarding
       };
       const mockCreatedBudget = createMockBudgetDbEntity();
 
@@ -192,11 +193,12 @@ describe('BudgetService (Performance)', () => {
     it('should handle concurrent create requests', async () => {
       // Arrange
       const mockUser = createMockAuthenticatedUser();
-      const createBudgetDto: BudgetCreate = {
+      const createBudgetDto: BudgetCreateFromOnboarding = {
         month: 11,
         year: 2024,
         description: 'Load Test Budget',
         monthlyIncome: 5000,
+        transactions: [],
       };
       const mockCreatedBudget = createMockBudgetDbEntity();
 
@@ -223,11 +225,12 @@ describe('BudgetService (Performance)', () => {
       // Arrange
       const mockUser = createMockAuthenticatedUser();
       const mockBudgets = [createMockBudgetDbEntity()];
-      const createBudgetDto: BudgetCreate = {
+      const createBudgetDto: BudgetCreateFromOnboarding = {
         month: 11,
         year: 2024,
         description: 'Mixed Load Test Budget',
         monthlyIncome: 5000,
+        transactions: [],
       };
 
       mockSupabaseClient.setMockData(mockBudgets).setMockError(null);
@@ -423,6 +426,7 @@ describe('BudgetService (Performance)', () => {
         month: 11,
         year: 2024,
         description: 'Performance Test Onboarding',
+        transactions: [],
         monthlyIncome: 5000,
         housingCosts: 1500,
         healthInsurance: 400,

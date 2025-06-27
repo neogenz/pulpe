@@ -124,8 +124,8 @@ class TestLogSilencer {
       if (this.isDebugMode || !this.shouldSilenceMessage(String(chunk))) {
         return this.originalMethods.stderrWrite.call(
           process.stderr,
-          chunk,
-          ...args,
+          String(chunk),
+          ...(args as any[]),
         );
       }
 

@@ -42,7 +42,7 @@ export class CurrentMonthState {
         id: `temp-${Date.now()}`,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        userId: null,
+        userId: undefined,
       };
       return {
         ...data,

@@ -45,7 +45,7 @@ export class BudgetService {
       return {
         success: true as const,
         data: budgets,
-      };
+      } as BudgetListResponse;
     } catch (error) {
       if (error instanceof InternalServerErrorException) {
         throw error;
@@ -77,7 +77,7 @@ export class BudgetService {
       const budget = this.budgetMapper.toApi(budgetDb as BudgetDbEntity);
 
       return {
-        success: true as const,
+        success: true,
         data: budget,
       };
     } catch (error) {
@@ -108,7 +108,7 @@ export class BudgetService {
       const budget = this.budgetMapper.toApi(budgetDb as BudgetDbEntity);
 
       return {
-        success: true as const,
+        success: true,
         data: budget,
       };
     } catch (error) {
@@ -149,7 +149,7 @@ export class BudgetService {
       const budget = this.budgetMapper.toApi(budgetDb as BudgetDbEntity);
 
       return {
-        success: true as const,
+        success: true,
         data: budget,
       };
     } catch (error) {
@@ -177,7 +177,7 @@ export class BudgetService {
       }
 
       return {
-        success: true as const,
+        success: true,
         message: 'Budget supprimé avec succès',
       };
     } catch (error) {
@@ -205,7 +205,7 @@ export class BudgetService {
       const budget = this.budgetMapper.toApi(data.budget as BudgetDbEntity);
 
       return {
-        success: true as const,
+        success: true,
         data: budget,
       };
     } catch (error) {
@@ -235,7 +235,7 @@ export class BudgetService {
       );
     }
 
-    if (!data?.budget) {
+    if (!(data as { budget?: unknown })?.budget) {
       throw new InternalServerErrorException(
         'Aucun budget retourné par la fonction',
       );
