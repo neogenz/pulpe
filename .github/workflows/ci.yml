@@ -28,13 +28,24 @@ jobs:
       - name: 📦 Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: "1.2.17"
 
       - name: 📦 Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: 🏗️ Build all projects
-        run: pnpm build
+      - name: 📦 Install backend dependencies
+        run: |
+          cd backend-nest
+          bun install
+
+      - name: 🏗️ Build shared package first
+        run: pnpm build:shared
+
+      - name: 🏗️ Build frontend
+        run: pnpm build:frontend
+
+      - name: 🏗️ Build backend
+        run: pnpm build:backend
 
       - name: 🎨 Format check
         run: pnpm format:check
