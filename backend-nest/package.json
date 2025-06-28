@@ -13,9 +13,9 @@
     "test": "bun test",
     "test:watch": "bun test --watch",
     "test:coverage": "bun test --coverage",
-    "test:unit": "bun test --pattern='*.service.spec.ts' --pattern='*.guard.spec.ts'",
-    "test:integration": "bun test --pattern='*.integration.spec.ts'",
-    "test:performance": "DEBUG_PERFORMANCE=true bun test --pattern='*.performance.spec.ts'",
+    "test:unit": "bun test src/modules/budget/budget.service.spec.ts src/modules/transaction/transaction.service.spec.ts src/common/guards/auth.guard.spec.ts",
+    "test:integration": "echo 'No integration tests yet'",
+    "test:performance": "DEBUG_PERFORMANCE=true bun test src/modules/budget/budget.performance.spec.ts",
     "test:load": "DEBUG_PERFORMANCE=true bun test --pattern='*.performance.spec.ts' --timeout=30000",
     "test:all": "bun run test:unit && bun run test:integration && bun run test:performance",
     "test:ci": "bun test --coverage --reporter=json > test-results.json",
@@ -66,7 +66,7 @@
     "ts-node": "^10.9.2",
     "uuid": "^11.1.0",
     "eslint": "^9.0.0",
-    "@typescript-eslint/eslint-plugin": "^7.0.0",
-    "@typescript-eslint/parser": "^7.0.0"
+    "@typescript-eslint/eslint-plugin": "^8.15.0",
+    "@typescript-eslint/parser": "^8.15.0"
   }
 }

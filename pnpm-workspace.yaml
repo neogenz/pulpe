@@ -1,4 +1,16 @@
 packages:
-  - 'frontend'
-  - 'shared'
-  - 'backend-nest'
+  - frontend
+  - shared
+  - backend-nest
+
+onlyBuiltDependencies:
+  - '@nestjs/core'
+  - '@parcel/watcher'
+  - '@scarf/scarf'
+  - '@tailwindcss/oxide'
+  - esbuild
+  - lmdb
+  - msgpackr-extract
+  - nestjs-pino
+  - supabase
+  - unrs-resolver

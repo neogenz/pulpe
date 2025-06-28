@@ -48,25 +48,14 @@
       "dependsOn": ["^build"],
       "outputs": ["coverage/**", "test-results.json", "test-results/**"]
     },
-    "test:unit": {
-      "dependsOn": ["^build"],
-      "outputs": ["coverage/**"]
-    },
-    "test:integration": {
-      "dependsOn": ["^build"],
-      "outputs": ["coverage/**"]
-    },
-    "test:performance": {
-      "dependsOn": ["^build"],
-      "outputs": ["performance-results/**"]
+    "test:watch": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["^build"]
     },
     "test:e2e": {
       "dependsOn": ["^build"],
-      "outputs": ["playwright-report/**", "test-results/**", "e2e-results/**"]
-    },
-    "test:vitest": {
-      "dependsOn": ["^build"],
-      "outputs": ["coverage/**", "vitest-results/**"]
+      "outputs": ["playwright-report/**", "test-results/**"]
     },
     "format": {
       "outputs": [],
