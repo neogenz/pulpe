@@ -6,6 +6,7 @@ import {
   input,
   resource,
   effect,
+  Injector,
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -123,6 +124,7 @@ export default class TemplateDetail {
   #budgetTemplatesApi = inject(BudgetTemplatesApi);
   #title = inject(Title);
   #dialog = inject(MatDialog);
+  #injector = inject(Injector);
 
   templateId = input.required<string>();
 
@@ -228,6 +230,7 @@ export default class TemplateDetail {
       disableClose: true,
       autoFocus: true,
       restoreFocus: true,
+      injector: this.#injector,
     });
 
     dialogRef.afterClosed().subscribe((result) => {
