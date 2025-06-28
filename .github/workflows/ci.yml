@@ -210,7 +210,7 @@ jobs:
     name: 🔍 Quality Checks
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: install
+    needs: build
     strategy:
       matrix:
         check: [lint, format:check, quality, deps:check]
