@@ -236,4 +236,4 @@ pnpm run build
 
 - **[Run Tests Guide](./run-tests.md)** : Guide complet des tests
 - **[TODOs](./TODO.md)** : Améliorations prévues
-- **[Workspace Config](../pnpm-workspace-readme.md)** : Configuration monorepo
+- **[Turborepo Guide](../MONOREPO.md)** : Guide Turborepo + PNPM workspace

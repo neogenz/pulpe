@@ -3,7 +3,7 @@
 Pulpe est une application full-stack de gestion de budgets personnels développée en Suisse. Ce monorepo est géré avec `pnpm`, `turbo` et contient :
 
 - **`backend-nest/`** : API robuste avec NestJS, Bun et Supabase
-- **`frontend/`** : Application moderne avec Angular 20+, Signals et Tailwind CSS  
+- **`frontend/`** : Application moderne avec Angular 20+, Signals et Tailwind CSS
 - **`shared/`** : Package de types et schémas partagés (Zod)
 
 ## 🚀 Stack Technique
@@ -12,7 +12,6 @@ Pulpe est une application full-stack de gestion de budgets personnels développ�
 - **Backend** : NestJS 11+, Bun runtime, Supabase (PostgreSQL + Auth), Zod validation
 - **Frontend** : Angular 20+, Standalone Components, Signals, Tailwind CSS v4.1, Angular Material, Vitest, Playwright
 - **Partagé** : TypeScript strict, Zod schemas, ESM-first
-- **Locale** : fr-CH, devise CHF (.-)
 
 ## 📋 Prérequis
 
@@ -24,12 +23,14 @@ Pulpe est une application full-stack de gestion de budgets personnels développ�
 ## 🛠️ Installation
 
 1. **Cloner le dépôt**
+
    ```bash
    git clone <votre-url-de-repo>
    cd pulpe-workspace
    ```
 
 2. **Installer les dépendances**
+
    ```bash
    pnpm install
    ```
@@ -52,37 +53,25 @@ pnpm dev
 # Frontend + shared seulement
 pnpm dev:frontend-only
 
-# Backend + shared seulement  
+# Backend + shared seulement
 pnpm dev:backend-only
 ```
 
-### Scripts disponibles
+### Commandes essentielles
 
-| Commande | Description |
-|----------|-------------|
-| **Développement** |
-| `pnpm dev` | Lance tous les services en parallèle |
-| `pnpm dev:frontend` | Frontend Angular (http://localhost:4200) |
-| `pnpm dev:backend` | Backend NestJS (http://localhost:3000) |
-| `pnpm dev:shared` | Watch mode pour le package partagé |
-| **Build** |
-| `pnpm build` | Build tous les projets |
-| `pnpm build:frontend` | Build frontend pour production |
-| `pnpm build:backend` | Build backend pour production |
-| `pnpm build:shared` | Build package partagé |
-| **Tests** |
-| `pnpm test` | Tous les tests |
-| `pnpm test:unit` | Tests unitaires |
-| `pnpm test:integration` | Tests d'intégration |
-| `pnpm test:e2e` | Tests end-to-end (Playwright) |
-| `pnpm test:vitest` | Tests frontend (Vitest) |
-| **Qualité** |
-| `pnpm lint` | Analyse ESLint |
-| `pnpm lint:fix` | Correction automatique |
-| `pnpm format` | Formatage Prettier |
-| `pnpm format:check` | Vérification formatage |
-| `pnpm quality` | Analyse complète |
-| `pnpm quality:fix` | Correction automatique complète |
+```bash
+# Développement
+pnpm dev              # Lance tous les services
+pnpm dev:frontend     # Frontend seul (http://localhost:4200)
+pnpm dev:backend      # Backend seul (http://localhost:3000)
+
+# Build & Tests
+pnpm build            # Build tous les projets
+pnpm test             # Tous les tests
+pnpm lint:fix         # Corrections automatiques
+```
+
+> 📚 **Commandes complètes** : Voir `package.json` de chaque projet pour la liste exhaustive
 
 ## 🏗️ Architecture
 
@@ -107,7 +96,7 @@ pulpe-workspace/
 ### Règles d'architecture appliquées
 
 - **Feature-based** : Organisation par domaines métier
-- **Standalone Components** : Angular 20+ sans NgModules  
+- **Standalone Components** : Angular 20+ sans NgModules
 - **Signals** : State management réactif
 - **Boundary Rules** : Isolation stricte entre features
 - **Shared DTOs** : Types cohérents frontend/backend
@@ -117,23 +106,25 @@ pulpe-workspace/
 - **Frontend** : http://localhost:4200
 - **Backend API** : http://localhost:3000/api
 - **Swagger** : http://localhost:3000/api/docs
-- **Storybook** : *(si configuré)*
+- **Storybook** : _(si configuré)_
 
 ## 📚 Documentation détaillée
 
 - **[Backend Architecture](./backend-nest/ARCHITECTURE.md)** : Patterns NestJS, DTOs, validation
 - **[Database Guide](./backend-nest/DATABASE.md)** : Supabase, RLS, sécurité
 - **[Frontend Tests](./frontend/run-tests.md)** : Stratégie de tests E2E
-- **[Workspace Config](./pnpm-workspace-readme.md)** : Configuration monorepo
+- **[Turborepo Guide](./MONOREPO.md)** : Guide Turborepo + PNPM workspace
 
 ## 🧪 Tests
 
 ### Frontend
+
 - **Vitest** : Tests unitaires ultra-rapides
 - **Playwright** : Tests E2E cross-browser
 - **Coverage** : Rapport de couverture intégré
 
-### Backend  
+### Backend
+
 - **Bun Test** : Tests intégrés avec TypeScript
 - **Supertest** : Tests d'intégration HTTP
 - **Performance** : Tests de charge avec métriques
