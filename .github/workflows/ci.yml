@@ -1,4 +1,4 @@
-name: ✅ CI/CD Pipeline
+name: 🚀 CI Pipeline
 
 on:
   push:
@@ -6,53 +6,286 @@ on:
   pull_request:
     branches: [main, develop]
 
+# Sécurité : permissions minimales
+permissions:
+  contents: read
+  checks: write
+  pull-requests: read
+
+# Variables globales
+env:
+  NODE_VERSION: "22"
+  PNPM_VERSION: "10.12.1"
+  BUN_VERSION: "1.2.17"
+
 jobs:
-  ci-checks:
-    name: 🚀 CI Checks
+  # 📦 INSTALL & CACHE
+  install:
+    name: 📦 Install Dependencies
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      pnpm-cache-hit: ${{ steps.pnpm-cache.outputs.cache-hit }}
     steps:
-      - name: 📦 Checkout
+      - name: 📥 Checkout
         uses: actions/checkout@v4
 
       - name: 📦 Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: "10.12.1"
+          version: ${{ env.PNPM_VERSION }}
 
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
-          cache: "pnpm"
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm" # 🚀 Cache automatique intégré
+          cache-dependency-path: "**/pnpm-lock.yaml"
 
       - name: 📦 Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: "1.2.17"
+          bun-version: ${{ env.BUN_VERSION }}
 
-      - name: 📦 Install dependencies
+      - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: 🎭 Install Playwright browsers
-        run: cd frontend && pnpm exec playwright install --with-deps
+  # 🏗️ BUILD
+  build:
+    name: 🏗️ Build Projects
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: install
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+          cache-dependency-path: "**/pnpm-lock.yaml"
+
+      - name: 📦 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: 🏗️ Build all projects
         run: pnpm build
 
-      - name: 🎨 Format check
-        run: pnpm format:check
+      - name: 📤 Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            shared/dist/
+            frontend/dist/
+            backend-nest/dist/
+          retention-days: 1
 
-      - name: 🧹 Lint all projects
-        run: pnpm lint
+  # 🧪 TESTS UNITAIRES
+  test-unit:
+    name: 🧪 Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: build
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
 
-      - name: 🧪 Unit tests
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+          cache-dependency-path: "**/pnpm-lock.yaml"
+
+      - name: 📦 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 📥 Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+
+      - name: 🧪 Run unit tests
         run: pnpm test:unit
 
-      - name: 🚀 E2E tests (frontend)
-        run: pnpm test:e2e
+  # 🎭 E2E TESTS avec cache Playwright optimisé
+  test-e2e:
+    name: 🎭 E2E Tests (${{ matrix.browser }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
 
-      - name: 🔬 Quality check
-        run: pnpm quality
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
 
-      - name: ✅ All checks passed
-        run: echo "🎉 All CI checks completed successfully with turbo optimization!"
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+          cache-dependency-path: "**/pnpm-lock.yaml"
+
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 📥 Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+
+      # 🚀 Cache Playwright optimisé (bonne pratique officielle)
+      - name: 🎭 Get Playwright version
+        id: playwright-version
+        run: echo "version=$(cd frontend && pnpm list @playwright/test --depth=0 --json | jq -r '.dependencies["@playwright/test"].version')" >> $GITHUB_OUTPUT
+
+      - name: 🎭 Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}
+
+      - name: 🎭 Install Playwright browsers & deps
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: cd frontend && pnpm exec playwright install --with-deps
+
+      - name: 🎭 Install Playwright deps only (cache hit)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: cd frontend && pnpm exec playwright install-deps
+
+      - name: 🎭 Run E2E tests
+        run: cd frontend && pnpm test:e2e --project=${{ matrix.browser }}
+        env:
+          PLAYWRIGHT_BROWSER: ${{ matrix.browser }}
+
+      - name: 📤 Upload E2E artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.browser }}
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/
+          retention-days: 7
+
+  # 🔍 QUALITY CHECKS en parallèle
+  quality:
+    name: 🔍 Quality Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: install
+    strategy:
+      matrix:
+        check: [lint, format:check, quality]
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+          cache-dependency-path: "**/pnpm-lock.yaml"
+
+      - name: 📦 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🔍 Run ${{ matrix.check }}
+        run: pnpm ${{ matrix.check }}
+
+  # 🧪 TESTS PERFORMANCE (backend uniquement)
+  test-performance:
+    name: 🚀 Performance Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: build
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 📦 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 📥 Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+
+      - name: 🚀 Run performance tests
+        run: pnpm test:performance
+
+  # ✅ SUCCESS JOB pour status checks
+  ci-success:
+    name: ✅ CI Success
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    needs: [build, test-unit, test-e2e, quality, test-performance]
+    if: always()
+    steps:
+      - name: ✅ Check all jobs
+        if: needs.build.result == 'success' && needs.test-unit.result == 'success' && needs.test-e2e.result == 'success' && needs.quality.result == 'success' && needs.test-performance.result == 'success'
+        run: echo "🎉 All CI checks passed!"
+
+      - name: ❌ Check failures
+        if: needs.build.result != 'success' || needs.test-unit.result != 'success' || needs.test-e2e.result != 'success' || needs.quality.result != 'success' || needs.test-performance.result != 'success'
+        run: |
+          echo "❌ Some CI checks failed"
+          echo "Build: ${{ needs.build.result }}"
+          echo "Unit Tests: ${{ needs.test-unit.result }}"
+          echo "E2E Tests: ${{ needs.test-e2e.result }}"
+          echo "Quality: ${{ needs.quality.result }}"
+          echo "Performance: ${{ needs.test-performance.result }}"
+          exit 1
