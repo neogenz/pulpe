@@ -37,10 +37,12 @@ import { BreadcrumbState } from '@core/routing/breadcrumb-state';
         [mode]="sidenavMode()"
         [(opened)]="sidenavOpened"
       >
-        <pulpe-navigation-menu
-          class="md:pt-4 md:pb-4 md:pl-4 h-full"
-          (navItemClick)="onNavItemClick()"
-        />
+        @defer {
+          <pulpe-navigation-menu
+            class="md:pt-4 md:pb-4 md:pl-4 h-full"
+            (navItemClick)="onNavItemClick()"
+          />
+        }
       </mat-sidenav>
 
       <mat-sidenav-content>

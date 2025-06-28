@@ -17,6 +17,10 @@ import {
   inject,
 } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import {
+  provideLottieOptions,
+  provideCacheableAnimationLoader,
+} from 'ngx-lottie';
 import { provideLocale } from './locale';
 import { provideAngularMaterial } from './angular-material';
 import { provideAuth } from './auth/auth-providers';
@@ -25,6 +29,15 @@ import { PulpeTitleStrategy } from './routing/title-strategy';
 
 export interface CoreOptions {
   routes: Routes; // possible to extend options with more props in the future
+}
+
+function provideLottie() {
+  return [
+    provideLottieOptions({
+      player: () => import('lottie-web'),
+    }),
+    provideCacheableAnimationLoader(),
+  ];
 }
 
 export function provideCore({ routes }: CoreOptions) {
@@ -61,6 +74,7 @@ export function provideCore({ routes }: CoreOptions) {
 
     ...provideLocale(),
     ...provideAngularMaterial(),
+    ...provideLottie(),
 
     ...provideAuth(),
   ];
