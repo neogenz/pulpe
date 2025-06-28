@@ -5,7 +5,7 @@ Application frontend moderne de gestion de budgets personnels construite avec An
 ## 🚀 Technologies
 
 - **Angular 20+** : Standalone Components, Signals, Control Flow moderne
-- **UI/UX** : Angular Material + Tailwind CSS v4.1  
+- **UI/UX** : Angular Material + Tailwind CSS v4.1
 - **State** : Angular Signals pour la réactivité
 - **Routing** : Lazy loading avec `withComponentInputBinding`
 - **Forms** : Reactive Forms avec types stricts
@@ -48,6 +48,7 @@ src/app/
 ## 🛠️ Développement
 
 ### Prérequis
+
 ```bash
 # Depuis la racine du workspace
 pnpm install
@@ -74,7 +75,7 @@ pnpm run build               # ng build
 pnpm run test:vitest         # Vitest UI
 pnpm run test:vitest:run     # Run tests
 
-# Tests E2E (Playwright)  
+# Tests E2E (Playwright)
 pnpm run test:e2e            # Tests E2E
 pnpm run test:e2e:ui         # Mode interactif
 pnpm run test:e2e:headed     # Mode visible
@@ -95,6 +96,7 @@ pnpm run format:check        # Vérification
 # Analyse des dépendances
 pnpm run analyze:deps        # Graphiques de dépendances
 pnpm run analyze             # Bundle analyzer
+pnpm run deps:circular       # Vérifie les dépendances circulaires avec Madge (échoue si cycles)
 ```
 
 ## 🧪 Tests
@@ -132,34 +134,39 @@ e2e/
 
 ```scss
 // Variables Sass custom
-$income-color: #4caf50;      // Vert pour revenus
-$expense-color: #f44336;     // Rouge pour dépenses  
-$savings-color: #2196f3;     // Bleu pour épargne
+$income-color: #4caf50; // Vert pour revenus
+$expense-color: #f44336; // Rouge pour dépenses
+$savings-color: #2196f3; // Bleu pour épargne
 ```
 
 ## 📱 Features
 
 ### 🔐 Authentification
+
 - Login/Logout sécurisé avec Supabase
 - Guards pour protection des routes
 - Gestion des tokens JWT
 
-### 🏠 Onboarding  
+### 🏠 Onboarding
+
 - Processus guidé pour nouveaux utilisateurs
 - Collecte d'informations financières de base
 - Création du premier budget
 
 ### 💰 Budget du mois en cours
+
 - Vue d'ensemble financière
 - Suivi revenus/dépenses en temps réel
 - Ajout rapide de dépenses
 
 ### 📋 Templates de budget
+
 - Création et gestion de modèles
 - Duplication pour nouveaux mois
 - Gestion des transactions récurrentes
 
 ### 📊 Autres mois
+
 - Historique des budgets précédents
 - Comparaison entre périodes
 - Analyse des tendances
@@ -172,8 +179,8 @@ $savings-color: #2196f3;     // Bleu pour épargne
 // environment.ts
 export const environment = {
   production: false,
-  supabaseUrl: 'your-supabase-url',
-  supabaseAnonKey: 'your-anon-key'
+  supabaseUrl: "your-supabase-url",
+  supabaseAnonKey: "your-anon-key",
 };
 ```
 
@@ -187,11 +194,13 @@ export const environment = {
 ## 🌐 Intégrations
 
 ### Supabase
+
 - **Auth** : Authentification JWT
 - **Database** : PostgreSQL avec RLS
 - **Real-time** : Synchronisation en temps réel
 
 ### Shared Package
+
 - **Types** : `@pulpe/shared` pour cohérence
 - **Validation** : Schemas Zod partagés
 - **DTOs** : Interfaces communes frontend/backend

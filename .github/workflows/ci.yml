@@ -213,7 +213,7 @@ jobs:
     needs: install
     strategy:
       matrix:
-        check: [lint, format:check, quality]
+        check: [lint, format:check, quality, deps:check]
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@v4
