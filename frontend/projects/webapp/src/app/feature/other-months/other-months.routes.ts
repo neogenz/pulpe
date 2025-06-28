@@ -9,7 +9,7 @@ export const otherMonthsRoutes: Routes = [
     children: [
       {
         path: '',
-        title: PAGE_TITLES.BUDGET_HISTORY,
+        title: PAGE_TITLES.OTHER_MONTHS,
         loadComponent: () => import('./other-months'),
       },
     ],

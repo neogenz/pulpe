@@ -27,9 +27,9 @@ export const PAGE_TITLES = {
   TRANSPORT: 'Transport',
   LEASING_CREDIT: 'Leasing et crédits',
   REGISTRATION: 'Création de compte',
-  DASHBOARD_MONTH: 'Dashboard du mois',
+  DASHBOARD_MONTH: 'Mois en cours',
   BUDGET_TEMPLATES_LIST: 'Mes modèles de budget',
   NEW_TEMPLATE: 'Nouveau modèle',
   TEMPLATE_DETAIL: 'Détail du modèle',
-  BUDGET_HISTORY: 'Historique des budgets',
+  TEMPLATE_DETAIL_DYNAMIC: 'Modèle {{templateId}}',
 } as const;

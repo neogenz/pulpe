@@ -12,6 +12,7 @@ import { MonthsLoading } from './components/months-loading';
 import { MonthsError } from './components/months-error';
 import { OtherMonthsState } from './services/other-months-state';
 import { MatTabsModule } from '@angular/material/tabs';
+import { Title } from '@core/routing';
 
 @Component({
   selector: 'pulpe-other-months',
@@ -28,7 +29,9 @@ import { MatTabsModule } from '@angular/material/tabs';
   template: `
     <div class="flex flex-col 2xl:h-full gap-4 2xl:min-h-0">
       <header class="flex justify-between items-center">
-        <h1 class="text-display-small">Autres mois</h1>
+        <h1 class="text-display-small">
+          {{ title.currentTitle() }}
+        </h1>
         <button
           matButton="filled"
           (click)="state.refreshData()"
@@ -101,7 +104,8 @@ import { MatTabsModule } from '@angular/material/tabs';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class OtherMonths implements OnInit {
-  state = inject(OtherMonthsState);
+  protected readonly state = inject(OtherMonthsState);
+  protected readonly title = inject(Title);
 
   ngOnInit(): void {
     this.state.refreshData();
