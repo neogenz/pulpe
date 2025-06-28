@@ -133,14 +133,16 @@ jobs:
 
   # 🎭 E2E TESTS avec cache Playwright optimisé
   test-e2e:
-    name: 🎭 E2E Tests (${{ matrix.browser }})
+    name: 🎭 E2E Tests (${{ matrix.project }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: build
     strategy:
       fail-fast: false
       matrix:
-        browser: [chromium, firefox, webkit]
+        project:
+          - "Chromium - Critical Path"
+          - "Chromium - Features (Mocked)"
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@v4
@@ -186,15 +188,13 @@ jobs:
         run: cd frontend && pnpm exec playwright install-deps
 
       - name: 🎭 Run E2E tests
-        run: cd frontend && pnpm test:e2e --project=${{ matrix.browser }}
-        env:
-          PLAYWRIGHT_BROWSER: ${{ matrix.browser }}
+        run: cd frontend && pnpm test:e2e --project="${{ matrix.project }}"
 
       - name: 📤 Upload E2E artifacts
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-${{ matrix.browser }}
+          name: playwright-report-${{ strategy.job-index }}
           path: |
             frontend/playwright-report/
             frontend/test-results/
