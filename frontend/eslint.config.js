@@ -117,6 +117,16 @@ module.exports = tseslint.config(
           pattern: "vitest.config.ts",
         },
         {
+          type: "e2e-config",
+          mode: "file",
+          pattern: "playwright.config.ts",
+        },
+        {
+          type: "e2e",
+          mode: "file",
+          pattern: "e2e/**/*.ts",
+        },
+        {
           type: "test-spec",
           mode: "file",
           pattern: "**/*.spec.ts",
@@ -245,6 +255,14 @@ module.exports = tseslint.config(
               allow: [["lib-api"]],
             },
             {
+              from: ["e2e-config"],
+              allow: [["lib-api"]],
+            },
+            {
+              from: ["e2e"],
+              allow: [["e2e"], ["lib-api"]],
+            },
+            {
               from: ["test-spec"],
               allow: [
                 ["shared"],
@@ -271,6 +289,11 @@ module.exports = tseslint.config(
   // Configuration spécifique pour les fichiers de test E2E
   {
     files: ["e2e/**/*.ts"],
+    languageOptions: {
+      parserOptions: {
+        project: "./e2e/tsconfig.json",
+      },
+    },
     rules: {
       // Renforcer la règle no-floating-promises pour les tests E2E
       "@typescript-eslint/no-floating-promises": "error",
