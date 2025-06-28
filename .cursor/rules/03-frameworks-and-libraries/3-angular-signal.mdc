@@ -1,0 +1,53 @@
+---
+description: "Enforces modern best practices for Angular Signals, covering state creation, updates, derived values (computed), and side effects (effects) for performant, glitch-free reactive programming."
+globs: **/*.ts
+alwaysApply: false
+---
+
+### 1. Core Principles of Signals
+- A signal is a wrapper around a value that can notify consumers when its value changes.
+- Reading a signal's value is side-effect-free and synchronous.
+- Signals provide fine-grained reactivity, enabling future Zoneless change detection.
+- Signal graphs are "glitch-free," preventing the "diamond dependency problem" seen in some reactive libraries.
+### 2. Writable Signals: Creation & Updates
+- Always provide a required initial value when creating a signal using `signal()`.
+- Read a signal's value by invoking it as a function (e.g., `myValue()`).
+- Use `.set()` to completely replace a signal's value. This is ideal for primitive types or new object references.
+- Use `.update()` to derive the new value from the current one (e.g., `counter.update(v => v + 1)`).
+- When updating objects or arrays, use `.update()` with immutable patterns (e.g., spread syntax `[...v, newItem]`) to create a new reference.
+- The `mutate()` method has been removed. DO NOT use it.
+- To protect a signal from being changed, expose it publicly as the read-only `Signal<T>` type, while keeping the `WritableSignal<T>` private.
+- For performance, provide a custom `equal` function for signals holding objects to prevent unnecessary notifications when objects are semantically identical.
+  - `const userSignal = signal({ id: 1 }, { equal: (a, b) => a.id === b.id });`
+
+### 3. Computed Signals: Derived & Lazy State
+- Use `computed()` to derive a new, read-only signal from one or more existing signals.
+- Computation functions inside `computed()` MUST be pure; they should only access values of dependent signals and not have other side effects.
+- NEVER write to another signal from within a `computed()` function. This will cause a runtime error.
+- `computed()` signals are lazy. Their computation function only runs when the signal is read for the first time *and* at least one of its dependencies has changed.
+- `computed()` signals automatically track their dependencies and handle their own cleanup, preventing memory leaks.
+
+### 4. Effects: Handling Side Effects
+- Use `effect()` to run side effects in response to changes in one or more signals.
+- `effect()` is for tasks like logging, network requests, or manual DOM manipulation that need to react to state changes.
+- Place `effect()` calls within a component's `constructor` or use `inject()` to tie them to the component's lifecycle.
+- Effects automatically track their signal dependencies, just like `computed()`.
+- Rely on the framework for automatic cleanup of effects when the component is destroyed.
+
+### 5. Interoperability with RxJS
+- To migrate from RxJS to Signals incrementally, use the `@angular/core/rxjs-interop` package.
+- Use `toSignal()` to convert an Observable into a Signal. This is the primary bridge from an RxJS-based service to a Signal-based component.
+- `toSignal()` requires an `initialValue` when the source observable might not emit synchronously.
+- Use `toObservable()` to convert a Signal into an Observable. This is useful for interoperating with existing RxJS-based APIs.
+
+### 6. Modern Signal-based Component APIs
+- Prefer Signal Inputs over the traditional `@Input()` decorator.
+  - `const name = input<string>(); // Optional input`
+  - `const id = input.required<string>(); // Required input`
+- Use Signal Inputs' `transform` option for simple data transformations.
+  - `const disabled = input(false, { transform: booleanAttribute });`
+- Use `model()` for two-way data binding, which creates a writable signal that can be updated from inside or outside the component.
+  - `const name = model(''); // Two-way binding, replaces [(ngModel)]`
+- Use the `output()` function instead of `@Output()` with `EventEmitter`.
+  - `const valueChange = output<string>();`
+  - `this.valueChange.emit(newValue);`
