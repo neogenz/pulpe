@@ -53,6 +53,10 @@
       "persistent": true,
       "dependsOn": ["^build"]
     },
+    "test:performance": {
+      "dependsOn": ["^build"],
+      "outputs": ["test-results.json", "test-results/**"]
+    },
     "test:e2e": {
       "dependsOn": ["^build"],
       "outputs": ["playwright-report/**", "test-results/**"]

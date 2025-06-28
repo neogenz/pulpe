@@ -18,6 +18,7 @@
     "test:watch": "turbo test:watch",
     "test:unit": "turbo test",
     "test:e2e": "turbo test:e2e",
+    "test:performance": "turbo test:performance",
     "lint": "turbo lint",
     "lint:fix": "turbo lint:fix",
     "format": "turbo format",
