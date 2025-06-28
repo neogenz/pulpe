@@ -6,7 +6,7 @@ import {
   withInMemoryScrolling,
   withRouterConfig,
   withPreloading,
-  PreloadAllModules,
+  NoPreloading,
   TitleStrategy,
 } from '@angular/router';
 
@@ -26,7 +26,6 @@ import { PulpeTitleStrategy } from './routing/title-strategy';
 export interface CoreOptions {
   routes: Routes; // possible to extend options with more props in the future
 }
-
 
 export function provideCore({ routes }: CoreOptions) {
   return [
@@ -48,7 +47,7 @@ export function provideCore({ routes }: CoreOptions) {
         anchorScrolling: 'enabled',
         scrollPositionRestoration: 'enabled',
       }),
-      withPreloading(PreloadAllModules),
+      withPreloading(NoPreloading),
     ),
 
     // Custom title strategy - APRÈS le router

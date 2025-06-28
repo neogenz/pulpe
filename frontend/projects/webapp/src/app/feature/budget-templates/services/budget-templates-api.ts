@@ -10,9 +10,7 @@ import {
 } from '@pulpe/shared';
 import { environment } from '../../../../environments/environment';
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable()
 export class BudgetTemplatesApi {
   #http = inject(HttpClient);
   #apiUrl = `${environment.backendUrl}/budget-templates`;
