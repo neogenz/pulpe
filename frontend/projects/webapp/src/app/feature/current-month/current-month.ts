@@ -27,6 +27,7 @@ import {
 import { VariableExpensesList } from './components/variable-expenses-list';
 import { CurrentMonthState } from './services/current-month-state';
 import { TransactionChipFilter } from './components/transaction-chip-filter';
+import { Title } from '@core/routing';
 
 @Component({
   selector: 'pulpe-current-month',
@@ -57,7 +58,9 @@ import { TransactionChipFilter } from './components/transaction-chip-filter';
   template: `
     <div class="flex flex-col 2xl:h-full gap-4 2xl:min-h-0">
       <header class="flex justify-between items-center">
-        <h1 class="text-display-small">Budget du mois courant</h1>
+        <h1 class="text-display-small">
+          {{ title.currentTitle() }}
+        </h1>
         <button
           matButton
           (click)="state.dashboardData.reload()"
@@ -158,7 +161,8 @@ import { TransactionChipFilter } from './components/transaction-chip-filter';
 export default class CurrentMonth implements OnInit {
   isCreatingTransaction = signal(false);
   selectedTransactions = signal<string[]>([]);
-  state = inject(CurrentMonthState);
+  protected readonly state = inject(CurrentMonthState);
+  protected readonly title = inject(Title);
   fixedTransactions = computed(() => {
     const transactions = this.state.dashboardData.value()?.transactions ?? [];
     return transactions.filter(

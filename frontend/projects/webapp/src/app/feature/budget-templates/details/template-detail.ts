@@ -5,6 +5,7 @@ import {
   inject,
   input,
   resource,
+  effect,
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -25,6 +26,7 @@ import { BudgetTemplatesApi } from '../services/budget-templates-api';
 import { firstValueFrom } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { TemplateTransaction } from '@pulpe/shared';
+import { Title } from '@core/routing';
 
 @Component({
   selector: 'pulpe-template-detail',
@@ -119,6 +121,7 @@ import { TemplateTransaction } from '@pulpe/shared';
 export default class TemplateDetail {
   #router = inject(Router);
   #budgetTemplatesApi = inject(BudgetTemplatesApi);
+  #title = inject(Title);
   #dialog = inject(MatDialog);
 
   templateId = input.required<string>();
@@ -184,6 +187,16 @@ export default class TemplateDetail {
       type: total >= 0 ? 'income' : 'negative',
     };
   });
+
+  constructor() {
+    // Mettre à jour le titre de la page avec le nom du modèle
+    effect(() => {
+      const value = this.data.value();
+      if (value && value.template.name) {
+        this.#title.setTitle(value.template.name);
+      }
+    });
+  }
 
   navigateBack() {
     this.#router.navigate(['..']);

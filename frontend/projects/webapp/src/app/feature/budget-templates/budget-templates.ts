@@ -11,6 +11,7 @@ import { BudgetTemplatesState } from './services/budget-templates-state';
 import { TemplateList } from './components/template-list';
 import { TemplatesLoading } from './components/templates-loading';
 import { TemplatesError } from './components/templates-error';
+import { Title } from '@core/routing';
 
 @Component({
   selector: 'pulpe-budget-templates',
@@ -26,7 +27,9 @@ import { TemplatesError } from './components/templates-error';
   template: `
     <div class="flex flex-col gap-4 h-full">
       <header class="flex justify-between items-center">
-        <h1 class="text-display-small">Modèles de budget</h1>
+        <h1 class="text-display-small">
+          {{ title.currentTitle() }}
+        </h1>
         <div class="flex gap-2">
           <button
             matButton="filled"
@@ -79,7 +82,8 @@ import { TemplatesError } from './components/templates-error';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class BudgetTemplates implements OnInit {
-  state = inject(BudgetTemplatesState);
+  protected readonly state = inject(BudgetTemplatesState);
+  protected readonly title = inject(Title);
 
   ngOnInit() {
     this.state.refreshData();
