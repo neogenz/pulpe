@@ -1,5 +1,9 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
-import { createClient, type Session, type User } from '@supabase/supabase-js';
+import {
+  type Session,
+  type User,
+  type AuthChangeEvent,
+} from '@supabase/supabase-js';
 import { environment } from '../../../environments/environment';
 import { AuthErrorLocalizer } from './auth-error-localizer';
 
@@ -16,10 +20,7 @@ export interface AuthState {
 export class AuthApi {
   readonly #errorLocalizer = inject(AuthErrorLocalizer);
 
-  readonly #supabaseClient = createClient(
-    environment.supabaseUrl,
-    environment.supabaseAnonKey,
-  );
+  #supabaseClient: any = null;
 
   readonly #sessionSignal = signal<Session | null>(null);
   readonly #isLoadingSignal = signal<boolean>(true);
@@ -48,6 +49,17 @@ export class AuthApi {
     isAuthenticated: this.isAuthenticated(),
   }));
 
+  async #ensureSupabaseClient(): Promise<any> {
+    if (!this.#supabaseClient) {
+      const { createClient } = await import('@supabase/supabase-js');
+      this.#supabaseClient = createClient(
+        environment.supabaseUrl,
+        environment.supabaseAnonKey,
+      );
+    }
+    return this.#supabaseClient;
+  }
+
   async initializeAuthState(): Promise<void> {
     // Vérifier si on est en mode test E2E et utiliser les mocks
     if (
@@ -66,10 +78,11 @@ export class AuthApi {
     }
 
     try {
+      const client = await this.#ensureSupabaseClient();
       const {
         data: { session },
         error,
-      } = await this.#supabaseClient.auth.getSession();
+      } = await client.auth.getSession();
 
       if (error) {
         console.error('Erreur lors de la récupération de la session:', error);
@@ -80,23 +93,25 @@ export class AuthApi {
       this.updateAuthState(session);
 
       // Écouter les changements d'authentification
-      this.#supabaseClient.auth.onAuthStateChange((event, session) => {
-        console.log('Auth event:', event, session);
+      client.auth.onAuthStateChange(
+        (event: AuthChangeEvent, session: Session | null) => {
+          console.log('Auth event:', event, session);
 
-        switch (event) {
-          case 'SIGNED_IN':
-          case 'TOKEN_REFRESHED':
-            this.updateAuthState(session);
-            break;
-          case 'SIGNED_OUT':
-            this.updateAuthState(null);
-            this.handleSignOut();
-            break;
-          case 'USER_UPDATED':
-            this.updateAuthState(session);
-            break;
-        }
-      });
+          switch (event) {
+            case 'SIGNED_IN':
+            case 'TOKEN_REFRESHED':
+              this.updateAuthState(session);
+              break;
+            case 'SIGNED_OUT':
+              this.updateAuthState(null);
+              this.handleSignOut();
+              break;
+            case 'USER_UPDATED':
+              this.updateAuthState(session);
+              break;
+          }
+        },
+      );
     } catch (error) {
       console.error(
         "Erreur lors de l'initialisation de l'authentification:",
@@ -128,7 +143,8 @@ export class AuthApi {
     password: string,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const { error } = await this.#supabaseClient.auth.signInWithPassword({
+      const client = await this.#ensureSupabaseClient();
+      const { error } = await client.auth.signInWithPassword({
         email,
         password,
       });
@@ -154,7 +170,8 @@ export class AuthApi {
     password: string,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const { error } = await this.#supabaseClient.auth.signUp({
+      const client = await this.#ensureSupabaseClient();
+      const { error } = await client.auth.signUp({
         email,
         password,
       });
@@ -177,7 +194,8 @@ export class AuthApi {
 
   async signOut(): Promise<void> {
     try {
-      const { error } = await this.#supabaseClient.auth.signOut();
+      const client = await this.#ensureSupabaseClient();
+      const { error } = await client.auth.signOut();
       if (error) {
         console.error('Erreur lors de la déconnexion:', error);
       }
@@ -188,10 +206,11 @@ export class AuthApi {
 
   async getCurrentSession(): Promise<Session | null> {
     try {
+      const client = await this.#ensureSupabaseClient();
       const {
         data: { session },
         error,
-      } = await this.#supabaseClient.auth.getSession();
+      } = await client.auth.getSession();
 
       if (error) {
         console.error('Erreur lors de la récupération de la session:', error);
@@ -210,7 +229,8 @@ export class AuthApi {
 
   async refreshSession(): Promise<boolean> {
     try {
-      const { data, error } = await this.#supabaseClient.auth.refreshSession();
+      const client = await this.#ensureSupabaseClient();
+      const { data, error } = await client.auth.refreshSession();
 
       if (error) {
         console.error('Erreur lors du rafraîchissement de la session:', error);

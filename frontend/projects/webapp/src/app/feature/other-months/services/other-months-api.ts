@@ -15,9 +15,7 @@ export interface MonthInfo {
   displayName: string;
 }
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable()
 export class OtherMonthsApi {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = `${environment.backendUrl}/budgets`;

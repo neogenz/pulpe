@@ -27,9 +27,7 @@ export const TRANSACTION_TYPES = [
   { value: 'SAVING' as const, label: 'Économie' },
 ] as const;
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable()
 export class TransactionFormService {
   createTransactionFormGroup(
     transaction?: TransactionFormData,
