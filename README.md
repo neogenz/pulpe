@@ -129,15 +129,6 @@ pulpe-workspace/
 - **Supertest** : Tests d'intégration HTTP
 - **Performance** : Tests de charge avec métriques
 
-## 📝 Conventions
-
-- **Locale** : fr-CH (français Suisse)
-- **Devise** : CHF (.-)
-- **Types** : TypeScript strict, pas d'`any`
-- **Fonctions** : Max 30 lignes, 5 paramètres
-- **Files** : Max 300 lignes
-- **Naming** : camelCase, PascalCase selon contexte
-
 ## 🚀 Mise en production
 
 ```bash
