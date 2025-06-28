@@ -1,20 +1,24 @@
-# Configuration Workspace PNPM + ESM TypeScript
+# Configuration Workspace PNPM + Turborepo + ESM TypeScript
 
-Ce document explique la configuration moderne du monorepo avec PNPM workspace, TypeScript ESM, et optimisations Angular.
+Ce document explique la configuration moderne du monorepo avec PNPM workspace, **Turborepo pour l'orchestration**, TypeScript ESM, et optimisations Angular.
 
 ## 📋 Résumé des modifications
 
-### 1. Workspace PNPM
+### 1. Workspace PNPM + Turborepo
+
 - ✅ Créé `pnpm-workspace.yaml` pour gérer le monorepo
+- ✅ **Ajouté `turbo.json` pour l'orchestration des tâches**
 - ✅ Migré de `"file:../shared"` vers `"workspace:*"` dans `frontend/package.json`
-- ✅ Ajouté scripts orchestrés dans `package.json` racine
+- ✅ **Scripts orchestrés via Turborepo dans `package.json` racine**
 
 ### 2. Package Shared ESM-first
+
 - ✅ Configuration dual ESM/CommonJS avec priorité ESM
 - ✅ TypeScript `moduleResolution: "bundler"` pour imports sans extensions
-- ✅ Scripts de watch mode pour développement en temps réel
+- ✅ **Watch mode géré par Turborepo avec cache intelligent**
 
 ### 3. Angular Build Optimisé
+
 - ✅ Budget ajusté de 500KB → 760KB (plus réaliste)
 - ✅ Retiré `@pulpe/shared` des `allowedCommonJsDependencies`
 - ✅ Gardé seulement `ws` et `zod` en CommonJS
@@ -25,7 +29,8 @@ Ce document explique la configuration moderne du monorepo avec PNPM workspace, T
 ```
 pulpe-workspace/
 ├── pnpm-workspace.yaml          # Configuration workspace
-├── package.json                 # Scripts orchestrés
+├── turbo.json                   # 🚀 Configuration Turborepo
+├── package.json                 # Scripts Turborepo
 ├── shared/                      # Package ESM-first
 │   ├── package.json            # Dual ESM/CJS exports
 │   ├── tsconfig.esm.json       # moduleResolution: bundler
@@ -34,25 +39,51 @@ pulpe-workspace/
 │   ├── package.json            # workspace:* dependency
 │   ├── angular.json            # Budget 760KB + CommonJS minimal
 │   └── tsconfig.json           # moduleResolution: bundler
-└── backend-nest/               # Backend Bun (exclu du workspace)
+└── backend-nest/               # Backend Bun (inclus dans workspace)
 ```
 
 ## ⚙️ Configuration détaillée
 
 ### pnpm-workspace.yaml
+
 ```yaml
 packages:
-  - 'frontend'
-  - 'shared'
-  # backend-nest utilise bun, donc exclu du workspace pnpm
+  - "frontend"
+  - "shared"
+  - "backend-nest" # Maintenant inclus dans le workspace
+```
+
+### turbo.json - 🚀 **NOUVEAU : Orchestration Turborepo**
+
+```json
+{
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "tui",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", "build/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["^build"]
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**", "test-results/**"]
+    }
+  }
+}
 ```
 
 ### shared/package.json
+
 ```json
 {
   "name": "@pulpe/shared",
   "main": "./dist/cjs/index.js",
-  "module": "./dist/esm/index.js", 
+  "module": "./dist/esm/index.js",
   "types": "./dist/esm/index.d.ts",
   "exports": {
     ".": {
@@ -61,7 +92,7 @@ packages:
         "default": "./dist/esm/index.js"
       },
       "require": {
-        "types": "./dist/cjs/index.d.ts", 
+        "types": "./dist/cjs/index.d.ts",
         "default": "./dist/cjs/index.js"
       },
       "default": "./dist/esm/index.js"
@@ -71,6 +102,7 @@ packages:
 ```
 
 ### shared/tsconfig.esm.json
+
 ```json
 {
   "extends": "./tsconfig.json",
@@ -83,6 +115,7 @@ packages:
 ```
 
 ### frontend/package.json
+
 ```json
 {
   "dependencies": {
@@ -92,22 +125,22 @@ packages:
 ```
 
 ### frontend/angular.json
+
 ```json
 {
   "build": {
     "options": {
-      "allowedCommonJsDependencies": [
-        "ws",
-        "zod"
-      ]
+      "allowedCommonJsDependencies": ["ws", "zod"]
     },
     "configurations": {
       "production": {
-        "budgets": [{
-          "type": "initial", 
-          "maximumWarning": "760kB",
-          "maximumError": "1MB"
-        }]
+        "budgets": [
+          {
+            "type": "initial",
+            "maximumWarning": "760kB",
+            "maximumError": "1MB"
+          }
+        ]
       }
     }
   }
@@ -115,6 +148,7 @@ packages:
 ```
 
 ### frontend/tsconfig.json
+
 ```json
 {
   "compilerOptions": {
@@ -126,6 +160,7 @@ packages:
 ```
 
 ### frontend/projects/webapp/tsconfig.app.json
+
 ```json
 {
   "compilerOptions": {
@@ -136,79 +171,117 @@ packages:
 }
 ```
 
-## 🚀 Workflow de développement
+## 🚀 Workflow de développement avec Turborepo
 
 ### Scripts disponibles
+
 ```bash
-# Développement complet (shared + frontend + backend)
-pnpm run dev
+# 🚀 Développement complet (shared + frontend + backend)
+pnpm dev
 
-# Développement frontend + shared seulement
-pnpm run dev:frontend-only
+# 🎯 Développement ciblé avec filtres Turborepo
+pnpm dev:frontend        # Frontend seulement
+pnpm dev:backend         # Backend seulement
+pnpm dev:shared          # Shared en watch mode
 
-# Watch mode shared seulement
-pnpm run shared:watch
+# 📦 Build avec cache intelligent Turborepo
+pnpm build               # Build tous les projets
+pnpm build:shared        # Build shared seulement
+pnpm build:frontend      # Build frontend seulement
+pnpm build:backend       # Build backend seulement
 
-# Build frontend + shared (recommandé)
-pnpm run build
+# 🧪 Tests orchestrés
+pnpm test                # Tous les tests
+pnpm test:unit           # Tests unitaires
+pnpm test:integration    # Tests d'intégration
+pnpm test:e2e           # Tests end-to-end
 
-# Build avec backend inclus (si backend configuré)
-pnpm run build:all
-
-# Build composants individuels
-pnpm run build:shared
-pnpm run build:frontend
-pnpm run build:backend
+# 🔍 Qualité de code
+pnpm lint               # ESLint sur tous les projets
+pnpm lint:fix           # Correction automatique
+pnpm format             # Prettier sur tous les projets
+pnpm quality            # Analyse complète (lint + format + type-check)
 ```
 
 ### Workflow quotidien
 
-1. **Démarrer le développement :**
+1. **Démarrer le développement complet :**
+
    ```bash
-   pnpm run dev:frontend-only
+   pnpm dev  # Lance frontend + backend + shared en parallèle
    ```
 
-2. **Éditer un type dans `shared/` :**
-   - ✅ TypeScript voit immédiatement les changements (alias vers sources)
-   - ✅ Watch mode compile ESM + CJS en arrière-plan
-   - ✅ Frontend hot-reload automatiquement
-   - ✅ Aucune action manuelle requise
+2. **Développement frontend seulement :**
 
-## 🎯 Avantages de cette configuration
+   ```bash
+   pnpm dev:frontend  # Turborepo build shared puis lance frontend
+   ```
+
+3. **Éditer un type dans `shared/` :**
+   - ✅ TypeScript voit immédiatement les changements (alias vers sources)
+   - ✅ **Turborepo détecte les changements et rebuild automatiquement**
+   - ✅ Frontend hot-reload automatiquement
+   - ✅ **Cache intelligent : rebuild seulement si nécessaire**
+
+## 🎯 Avantages de Turborepo
 
 ### Performance
-- **ESM-first** : Optimisations modernes activées
-- **Bundler moduleResolution** : Résolution optimisée pour les bundlers
-- **Lazy loading** : Budget-templates seulement 7.33KB
-- **Budget réaliste** : 760KB pour Angular + Supabase + Material
+
+- **Cache intelligent** : Turborepo cache les résultats des tâches
+- **Exécution parallèle** : Tâches indépendantes en parallèle
+- **Filtres granulaires** : `--filter=@pulpe/shared` pour cibler
+- **Dépendances automatiques** : `dependsOn: ["^build"]` respecté
 
 ### Développement
-- **Imports TypeScript normaux** : Pas d'extensions `.js` dans le code
-- **Hot reload instantané** : Changements propagés en temps réel
-- **Intellisense optimal** : Alias TypeScript vers sources
-- **Workspace protocol** : Gestion robuste des dépendances internes
 
-### Compatibilité
-- **Dual format** : ESM pour les bundlers modernes, CommonJS en fallback
-- **Node.js spec compliant** : Exports conditions selon les standards
-- **Angular optimisé** : Bundle warnings éliminés
+- **Hot reload optimisé** : Rebuild seulement les projets impactés
+- **UI moderne** : Interface TUI pour suivre les tâches
+- **Logs structurés** : Sortie claire par projet
+- **Watch mode intelligent** : Détection fine des changements
+
+### Monorepo
+
+- **Orchestration centralisée** : Une seule config `turbo.json`
+- **Scalabilité** : Ajout facile de nouveaux projets
+- **CI optimisé** : Cache partagé entre développeurs
+- **Reproductibilité** : Builds déterministes
 
 ## 🔍 Résolution des problèmes
 
 ### Si les types ne se mettent pas à jour :
+
 ```bash
-# Rebuild manuel du shared
-pnpm run shared:build
+# Force rebuild du shared
+turbo build --filter=@pulpe/shared --force
 
 # Restart du TypeScript server dans l'IDE
 Cmd+Shift+P > "TypeScript: Restart TS Server"
 ```
 
+### Si le cache Turborepo pose problème :
+
+```bash
+# Nettoyer le cache Turborepo
+turbo clean
+
+# Rebuild complet sans cache
+turbo build --force
+```
+
 ### Si les imports ne fonctionnent pas :
+
 - Vérifier que le symlink existe : `ls -la frontend/node_modules/@pulpe/`
 - Vérifier l'alias TypeScript dans `tsconfig.app.json`
-- Redémarrer le serveur de développement
+- **Vérifier que Turborepo a bien build shared** : `turbo build --filter=@pulpe/shared`
 
 ### Si le build échoue :
-- S'assurer que `shared/dist/` existe : `pnpm run shared:build`
+
+- S'assurer que les dépendances sont respectées dans `turbo.json`
 - Vérifier les exports dans `shared/package.json`
+- **Utiliser `--force` pour ignorer le cache temporairement**
+
+## 📚 Ressources Turborepo
+
+- **[Documentation officielle](https://turbo.build/repo/docs)**
+- **[Guide des filtres](https://turbo.build/repo/docs/core-concepts/monorepos/filtering)**
+- **[Configuration des tâches](https://turbo.build/repo/docs/core-concepts/monorepos/task-dependencies)**
