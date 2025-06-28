@@ -6,7 +6,7 @@
   "scripts": {
     "build": "bun build src/main.ts --outdir=dist --target=node --minify --packages=external",
     "start": "bun src/main.ts",
-    "start:dev": "bun --watch src/main.ts",
+    "dev": "bun --watch src/main.ts",
     "start:prod": "bun dist/main.js",
     "dump:db": "bunx supabase db dump --schema public --file schema.sql",
     "generate-types": "bun x supabase gen types typescript --project-id xvrbcvltpkqwiiexvfxh --schema public > src/types/database.types.ts",

@@ -10,7 +10,6 @@
     "clean": "rm -rf dist",
     "build": "pnpm run clean && pnpm run build:esm",
     "build:esm": "tsc -p tsconfig.esm.json",
-    "dev": "pnpm run build && pnpm run watch",
     "watch": "tsc -p tsconfig.esm.json --watch",
     "format": "prettier --write \"**/*.{ts,json}\"",
     "format:check": "prettier --check \"**/*.{ts,json}\""
