@@ -5,6 +5,8 @@ import {
   withEnabledBlockingInitialNavigation,
   withInMemoryScrolling,
   withRouterConfig,
+  withPreloading,
+  PreloadAllModules,
 } from '@angular/router';
 
 import {
@@ -56,6 +58,7 @@ export function provideCore({ routes }: CoreOptions) {
         anchorScrolling: 'enabled',
         scrollPositionRestoration: 'enabled',
       }),
+      withPreloading(PreloadAllModules),
     ),
     // perform initialization, has to be last
     provideAppInitializer(() => {
