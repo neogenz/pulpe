@@ -7,6 +7,7 @@ import {
   withRouterConfig,
   withPreloading,
   PreloadAllModules,
+  TitleStrategy,
 } from '@angular/router';
 
 import {
@@ -24,6 +25,7 @@ import { provideLocale } from './locale';
 import { provideAngularMaterial } from './angular-material';
 import { provideAuth } from './auth/auth-providers';
 import { AuthApi } from './auth/auth-api';
+import { PulpeTitleStrategy } from './routing/title-strategy';
 
 export interface CoreOptions {
   routes: Routes; // possible to extend options with more props in the future
@@ -60,6 +62,10 @@ export function provideCore({ routes }: CoreOptions) {
       }),
       withPreloading(PreloadAllModules),
     ),
+
+    // Custom title strategy - APRÈS le router
+    { provide: TitleStrategy, useClass: PulpeTitleStrategy },
+
     // perform initialization, has to be last
     provideAppInitializer(() => {
       const authService = inject(AuthApi);
