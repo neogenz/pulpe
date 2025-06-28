@@ -25,7 +25,8 @@
     "analyze:sme": "ng build --source-map --output-hashing none --named-chunks && source-map-explorer dist/webapp/browser/*.js --html dist/webapp/sme/index.html && http-server -o -c-1 ./dist/webapp/sme/",
     "analyze:deps": "npm-run-all analyze:deps:*",
     "analyze:deps:all": "madge projects/webapp/src/main.ts --ts-config projects/webapp/tsconfig.app.json --image ./deps/webapp/_all.jpg",
-    "analyze:deps:ui": "madge --extensions ts --ts-config projects/webapp/tsconfig.app.json --image ./deps/webapp/ui.png projects/webapp/src/app/ui/"
+    "analyze:deps:ui": "madge --extensions ts --ts-config projects/webapp/tsconfig.app.json --image ./deps/webapp/ui.png projects/webapp/src/app/ui/",
+    "deps:circular": "madge --circular projects/webapp/src/app --extensions ts --ts-config projects/webapp/tsconfig.app.json"
   },
   "private": true,
   "dependencies": {

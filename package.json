@@ -27,6 +27,7 @@
     "type-check": "turbo type-check",
     "quality": "turbo quality",
     "quality:fix": "turbo quality:fix",
+    "deps:check": "pnpm --filter pulpe-frontend run deps:circular",
     "shared:watch": "turbo watch --filter=@pulpe/shared",
     "shared:build": "turbo build --filter=@pulpe/shared",
     "dev:frontend-only": "turbo dev --filter=pulpe-frontend",
