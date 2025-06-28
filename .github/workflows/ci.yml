@@ -2,9 +2,14 @@ name: 🚀 CI Pipeline
 
 on:
   push:
-    branches: [main, develop, ci-workflow]
+    branches: [main, develop] # Seulement sur les branches principales
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop] # Tests sur toutes les PRs vers ces branches
+
+# Éviter les runs multiples pour la même ref
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 # Sécurité : permissions minimales
 permissions:
