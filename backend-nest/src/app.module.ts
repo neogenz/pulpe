@@ -1,8 +1,10 @@
-import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { APP_PIPE } from '@nestjs/core';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
 import { ZodValidationPipe } from 'nestjs-zod';
+import { randomUUID } from 'crypto';
+import type { IncomingMessage, ServerResponse } from 'http';
 
 // Modules
 import { SupabaseModule } from '@modules/supabase/supabase.module';
@@ -13,11 +15,71 @@ import { TransactionModule } from '@modules/transaction/transaction.module';
 import { UserModule } from '@modules/user/user.module';
 import { DebugModule } from '@modules/debug/debug.module';
 
-// Middleware
-import { RequestIdMiddleware } from '@common/middleware/request-id.middleware';
-
 // Filters
 import { FiltersModule } from '@common/filters/filters.module';
+
+// Logger configuration helpers
+function createRequestIdGenerator() {
+  return (
+    req: IncomingMessage & {
+      headers: Record<string, string | string[] | undefined>;
+    },
+    res: ServerResponse,
+  ) => {
+    const existingId =
+      (req as typeof req & { id?: string }).id ?? req.headers['x-request-id'];
+    if (existingId) return existingId;
+    const id = randomUUID();
+    res.setHeader('X-Request-Id', id);
+    return id;
+  };
+}
+
+function createLoggerTransport(isProduction: boolean) {
+  if (!isProduction) {
+    return {
+      target: 'pino-pretty',
+      options: {
+        colorize: true,
+        singleLine: true,
+        translateTime: 'HH:MM:ss.l',
+        ignore: 'pid,hostname',
+        messageFormat: '{req.method} {req.url} {res.statusCode} - {msg}',
+      },
+    };
+  }
+
+  // En production : logs JSON sur stdout pour collecte par l'infrastructure
+  return undefined;
+}
+
+function createPinoLoggerConfig(configService: ConfigService) {
+  const isProduction = configService.get<string>('NODE_ENV') === 'production';
+
+  return {
+    pinoHttp: {
+      level: isProduction ? 'info' : 'debug',
+      genReqId: createRequestIdGenerator(),
+      redact: {
+        paths: [
+          'req.headers.authorization',
+          'req.headers.cookie',
+          'req.body.password',
+          'req.body.token',
+          'res.headers["set-cookie"]',
+        ],
+        censor: '[REDACTED]',
+      },
+      transport: createLoggerTransport(isProduction),
+      autoLogging: {
+        ignore: (req: IncomingMessage & { url?: string }) =>
+          req.url?.includes('/health') ?? false,
+      },
+    },
+    renameContext: 'module',
+    useExisting: true as const,
+  };
+}
 
 @Module({
   imports: [
@@ -26,27 +88,10 @@ import { FiltersModule } from '@common/filters/filters.module';
       envFilePath: ['.env.local', '.env'],
       cache: true,
     }),
-    LoggerModule.forRoot({
-      pinoHttp:
-        process.env.NODE_ENV === 'development'
-          ? {
-              level: 'debug',
-              transport: {
-                target: 'pino-pretty',
-                options: {
-                  colorize: true,
-                  singleLine: true,
-                  translateTime: 'HH:MM:ss',
-                  ignore: 'pid,hostname',
-                },
-              },
-            }
-          : {
-              level: 'info',
-              // No transport = standard JSON logging for production
-            },
-      // Use Pino for all NestJS logs (startup, routes, etc.)
-      renameContext: 'module',
+    LoggerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: createPinoLoggerConfig,
     }),
     SupabaseModule,
     AuthModule,
@@ -64,8 +109,4 @@ import { FiltersModule } from '@common/filters/filters.module';
     },
   ],
 })
-export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer.apply(RequestIdMiddleware).forRoutes('{*path}');
-  }
-}
+export class AppModule {}

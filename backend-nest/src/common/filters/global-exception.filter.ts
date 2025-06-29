@@ -4,11 +4,11 @@ import {
   ArgumentsHost,
   HttpException,
   HttpStatus,
-  Logger,
   Injectable,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { ZodValidationException } from 'nestjs-zod';
+import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
 
 const ERROR_CODES = {
   ZOD_VALIDATION_FAILED: 'ZOD_VALIDATION_FAILED',
@@ -34,6 +34,7 @@ interface ErrorData {
   readonly message: string | object;
   readonly error: string;
   readonly code: string;
+  readonly originalError?: Error;
   readonly stack?: string;
 }
 
@@ -57,7 +58,10 @@ interface ErrorResponse {
 @Injectable()
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
-  private readonly logger = new Logger(GlobalExceptionFilter.name);
+  constructor(
+    @InjectPinoLogger(GlobalExceptionFilter.name)
+    private readonly logger: PinoLogger,
+  ) {}
 
   /**
    * Catches all exceptions and returns standardized error responses
@@ -159,6 +163,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       message: exception.getResponse(),
       error: 'ZodValidationException',
       code: ERROR_CODES.ZOD_VALIDATION_FAILED,
+      originalError: exception,
       stack: GlobalExceptionFilter.getStackInDevelopment(exception),
     };
   }
@@ -170,6 +175,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       message: GlobalExceptionFilter.extractHttpMessage(response),
       error: GlobalExceptionFilter.extractHttpError(response, exception),
       code: `HTTP_${exception.getStatus()}`,
+      originalError: exception,
       stack: GlobalExceptionFilter.getStackInDevelopment(exception),
     };
   }
@@ -180,6 +186,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       message: GlobalExceptionFilter.getErrorMessage(exception),
       error: exception.name || 'InternalServerErrorException',
       code: ERROR_CODES.INTERNAL_SERVER_ERROR,
+      originalError: exception,
       stack: GlobalExceptionFilter.getStackInDevelopment(exception),
     };
   }
@@ -196,9 +203,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   private static extractHttpMessage(
     response: string | object,
   ): string | object {
-    if (typeof response === 'string') {
-      return response;
-    }
     return response;
   }
 
@@ -213,9 +217,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   }
 
   private static getErrorMessage(exception: Error): string {
-    return GlobalExceptionFilter.isDevelopment()
-      ? exception.message
-      : ERROR_MESSAGES.INTERNAL_SERVER_ERROR;
+    return exception.message || ERROR_MESSAGES.INTERNAL_SERVER_ERROR;
   }
 
   private static getStackInDevelopment(exception: Error): string | undefined {
@@ -226,57 +228,88 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     return process.env.NODE_ENV === 'development';
   }
 
+  /**
+   * Sanitizes request body for logging by removing sensitive fields
+   */
+  private static sanitizeRequestBody(body: unknown): unknown {
+    if (!body || typeof body !== 'object') {
+      return body;
+    }
+
+    const sensitiveFields = [
+      'password',
+      'token',
+      'secret',
+      'authorization',
+      'auth',
+    ];
+    const sanitized = { ...body } as Record<string, unknown>;
+
+    for (const field of sensitiveFields) {
+      if (field in sanitized) {
+        sanitized[field] = '[REDACTED]';
+      }
+    }
+
+    return sanitized;
+  }
+
   private logException(
     errorData: ErrorData,
     request: Request,
     context: ErrorContext,
   ): void {
-    const baseLogData = {
-      code: errorData.code,
-      method: request.method,
-      path: request.url,
+    const logContext = {
       requestId: context.requestId,
       userId: context.userId,
+      method: request.method,
+      url: request.url,
       statusCode: errorData.status,
+      errorCode: errorData.code,
+      userAgent: GlobalExceptionFilter.isDevelopment()
+        ? context.userAgent
+        : undefined,
+      ip: GlobalExceptionFilter.isDevelopment() ? context.ip : undefined,
+      requestBody: GlobalExceptionFilter.sanitizeRequestBody(request.body),
     };
 
-    try {
-      if (errorData.status >= 500) {
-        this.logServerError(errorData, request, baseLogData);
-      } else if (errorData.status >= 400) {
-        this.logClientError(errorData, baseLogData);
-      }
-    } catch {
-      // Silently ignore logging errors to prevent breaking exception handling
-    }
-  }
+    // Extract readable message from errorData.message
+    const errorMessage = this.extractReadableMessage(errorData.message);
 
-  private logServerError(
-    errorData: ErrorData,
-    request: Request,
-    baseLogData: object,
-  ): void {
-    const serverLogData = {
-      ...baseLogData,
-      error: errorData.message,
-      stack: errorData.stack,
-    };
-
-    if (errorData.code === ERROR_CODES.ZOD_VALIDATION_FAILED) {
-      this.logger.error(ERROR_MESSAGES.ZOD_VALIDATION_FAILED, {
-        ...serverLogData,
-        requestBody: request.body,
-        validationErrors: errorData.message,
-      });
+    if (errorData.status >= 500) {
+      // Server errors: log with structured context including error object
+      this.logger.error(
+        {
+          ...logContext,
+          err: errorData.originalError || new Error(errorMessage),
+        },
+        `SERVER ERROR: ${errorMessage}`,
+      );
     } else {
-      this.logger.error('Server error occurred', serverLogData);
+      // Client errors: log as warning with structured context
+      this.logger.warn(logContext, `CLIENT ERROR: ${errorMessage}`);
     }
   }
 
-  private logClientError(errorData: ErrorData, baseLogData: object): void {
-    this.logger.warn('Client error occurred', {
-      ...baseLogData,
-      error: errorData.message,
-    });
+  private extractReadableMessage(message: string | object): string {
+    if (typeof message === 'string') {
+      return message;
+    }
+
+    if (message && typeof message === 'object') {
+      const msgObj = message as unknown as {
+        message?: string;
+        error?: string;
+        detail?: string;
+      };
+      return (
+        msgObj.message ||
+        msgObj.error ||
+        msgObj.detail ||
+        JSON.stringify(msgObj)
+      );
+    }
+
+    return 'Unknown error';
   }
 }

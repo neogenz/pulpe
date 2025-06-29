@@ -4,9 +4,9 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
-  Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
 import {
   type BudgetTemplateCreate,
   type BudgetTemplateDeleteResponse,
@@ -34,9 +34,11 @@ interface TemplateTransactionDb {
 
 @Injectable()
 export class BudgetTemplateService {
-  private readonly logger = new Logger(BudgetTemplateService.name);
-
-  constructor(private readonly budgetTemplateMapper: BudgetTemplateMapper) {}
+  constructor(
+    @InjectPinoLogger(BudgetTemplateService.name)
+    private readonly logger: PinoLogger,
+    private readonly budgetTemplateMapper: BudgetTemplateMapper,
+  ) {}
 
   async findAll(
     supabase: AuthenticatedSupabaseClient,
@@ -48,7 +50,7 @@ export class BudgetTemplateService {
         .order('created_at', { ascending: false });
 
       if (error) {
-        this.logger.error('Erreur récupération templates:', error);
+        this.logger.error({ err: error }, 'Failed to fetch budget templates');
         throw new InternalServerErrorException(
           'Erreur lors de la récupération des templates',
         );
@@ -65,7 +67,7 @@ export class BudgetTemplateService {
       if (error instanceof InternalServerErrorException) {
         throw error;
       }
-      this.logger.error('Erreur liste templates:', error);
+      this.logger.error({ err: error }, 'Failed to list budget templates');
       throw new InternalServerErrorException('Erreur interne du serveur');
     }
   }
@@ -108,7 +110,7 @@ export class BudgetTemplateService {
       .single();
 
     if (error) {
-      this.logger.error('Erreur création template:', error);
+      this.logger.error({ err: error }, 'Failed to create budget template');
       throw new BadRequestException('Erreur lors de la création du template');
     }
 
@@ -147,7 +149,7 @@ export class BudgetTemplateService {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      this.logger.error('Erreur création template:', error);
+      this.logger.error({ err: error }, 'Failed to create budget template');
       throw new InternalServerErrorException('Erreur interne du serveur');
     }
   }
@@ -187,7 +189,7 @@ export class BudgetTemplateService {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      this.logger.error('Erreur récupération template:', error);
+      this.logger.error({ err: error }, 'Failed to fetch budget template');
       throw new InternalServerErrorException('Erreur interne du serveur');
     }
   }
@@ -233,7 +235,7 @@ export class BudgetTemplateService {
       .single();
 
     if (error || !templateDb) {
-      this.logger.error('Erreur modification template:', error);
+      this.logger.error({ err: error }, 'Failed to update budget template');
       throw new NotFoundException(
         'Template introuvable ou modification non autorisée',
       );
@@ -282,7 +284,7 @@ export class BudgetTemplateService {
       ) {
         throw error;
       }
-      this.logger.error('Erreur modification template:', error);
+      this.logger.error({ err: error }, 'Failed to update budget template');
       throw new InternalServerErrorException('Erreur interne du serveur');
     }
   }
@@ -299,7 +301,7 @@ export class BudgetTemplateService {
         .eq('id', id);
 
       if (error) {
-        this.logger.error('Erreur suppression template:', error);
+        this.logger.error({ err: error }, 'Failed to delete budget template');
         throw new NotFoundException(
           'Template introuvable ou suppression non autorisée',
         );
@@ -313,7 +315,7 @@ export class BudgetTemplateService {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      this.logger.error('Erreur suppression template:', error);
+      this.logger.error({ err: error }, 'Failed to delete budget template');
       throw new InternalServerErrorException('Erreur interne du serveur');
     }
   }
@@ -331,7 +333,10 @@ export class BudgetTemplateService {
         .order('created_at', { ascending: false });
 
       if (error) {
-        this.logger.error('Erreur récupération transactions template:', error);
+        this.logger.error(
+          { err: error },
+          'Failed to fetch template transactions',
+        );
         throw new InternalServerErrorException(
           'Erreur lors de la récupération des transactions du template',
         );
@@ -359,7 +364,7 @@ export class BudgetTemplateService {
       if (error instanceof InternalServerErrorException) {
         throw error;
       }
-      this.logger.error('Erreur liste transactions template:', error);
+      this.logger.error({ err: error }, 'Failed to list template transactions');
       throw new InternalServerErrorException('Erreur interne du serveur');
     }
   }
@@ -385,7 +390,10 @@ export class BudgetTemplateService {
     rawTemplate: unknown,
   ): EnrichedBudgetTemplate | null {
     if (!this.isValidBudgetTemplateRow(rawTemplate)) {
-      this.logger.warn('Template invalide ignoré:', rawTemplate);
+      this.logger.warn(
+        { data: rawTemplate },
+        'Invalid budget template ignored',
+      );
       return null;
     }
 
@@ -429,7 +437,10 @@ export class BudgetTemplateService {
       .neq('id', excludeId || '');
 
     if (error) {
-      this.logger.error('Erreur désactivation templates par défaut:', error);
+      this.logger.error(
+        { err: error },
+        'Failed to deactivate default templates',
+      );
       throw new InternalServerErrorException(
         'Erreur lors de la gestion des templates par défaut',
       );

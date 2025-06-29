@@ -72,7 +72,7 @@ pnpm run build               # ng build
 
 ```bash
 # Tests unitaires (Vitest)
-pnpm run test:vitest         # Vitest UI
+pnpm run test:vitest:ui         # Vitest UI
 pnpm run test:vitest:run     # Run tests
 
 # Tests E2E (Playwright)

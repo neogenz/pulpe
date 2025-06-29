@@ -52,8 +52,24 @@ describe('BudgetService', () => {
     const { mockClient } = createMockSupabaseClient();
     mockSupabaseClient = mockClient;
 
+    const mockPinoLogger = {
+      error: () => {},
+      warn: () => {},
+      info: () => {},
+      debug: () => {},
+      trace: () => {},
+      fatal: () => {},
+    };
+
     const module: TestingModule = await Test.createTestingModule({
-      providers: [BudgetService, BudgetMapper],
+      providers: [
+        BudgetService,
+        BudgetMapper,
+        {
+          provide: `PinoLogger:${BudgetService.name}`,
+          useValue: mockPinoLogger,
+        },
+      ],
     }).compile();
 
     service = module.get<BudgetService>(BudgetService);

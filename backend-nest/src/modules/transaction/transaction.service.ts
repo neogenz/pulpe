@@ -4,9 +4,9 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
-  Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
 import {
   type TransactionCreate,
   type TransactionDeleteResponse,
@@ -19,9 +19,11 @@ import { TransactionMapper } from './transaction.mapper';
 
 @Injectable()
 export class TransactionService {
-  private readonly logger = new Logger(TransactionService.name);
-
-  constructor(private readonly transactionMapper: TransactionMapper) {}
+  constructor(
+    @InjectPinoLogger(TransactionService.name)
+    private readonly logger: PinoLogger,
+    private readonly transactionMapper: TransactionMapper,
+  ) {}
 
   async findAll(
     supabase: AuthenticatedSupabaseClient,
@@ -33,7 +35,7 @@ export class TransactionService {
         .order('created_at', { ascending: false });
 
       if (error) {
-        this.logger.error('Erreur récupération transactions:', error);
+        this.logger.error({ err: error }, 'Failed to fetch transactions');
         throw new InternalServerErrorException(
           'Erreur lors de la récupération des transactions',
         );
@@ -52,7 +54,7 @@ export class TransactionService {
       if (error instanceof InternalServerErrorException) {
         throw error;
       }
-      this.logger.error('Erreur liste transactions:', error);
+      this.logger.error({ err: error }, 'Failed to list transactions');
       throw new InternalServerErrorException('Erreur interne du serveur');
     }
   }
@@ -61,7 +63,7 @@ export class TransactionService {
     createTransactionDto: TransactionCreate,
   ): void {
     // Validation métier basique (Supabase gère les contraintes de DB)
-    /* if (!createTransactionDto.budgetId) {
+    if (!createTransactionDto.budgetId) {
       throw new BadRequestException('Budget ID est requis');
     }
 
@@ -98,7 +100,7 @@ export class TransactionService {
       throw new BadRequestException(
         'Les revenus ne peuvent pas avoir de type de dépense',
       );
-    } */
+    }
   }
 
   private prepareTransactionData(
@@ -134,7 +136,7 @@ export class TransactionService {
       .single();
 
     if (error) {
-      this.logger.error('Erreur création transaction:', error);
+      this.logger.error({ err: error }, 'Failed to create transaction');
       throw new BadRequestException(
         'Erreur lors de la création de la transaction',
       );
@@ -149,7 +151,7 @@ export class TransactionService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionResponse> {
     try {
-      // this.validateCreateTransactionDto(createTransactionDto);
+      this.validateCreateTransactionDto(createTransactionDto);
 
       const transactionData = this.prepareTransactionData(
         createTransactionDto,
@@ -177,7 +179,7 @@ export class TransactionService {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      this.logger.error('Erreur création transaction:', error);
+      this.logger.error({ err: error }, 'Failed to create transaction');
       throw new InternalServerErrorException('Erreur interne du serveur');
     }
   }
@@ -217,7 +219,7 @@ export class TransactionService {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      this.logger.error('Erreur récupération transaction:', error);
+      this.logger.error({ err: error }, 'Failed to fetch single transaction');
       throw new InternalServerErrorException('Erreur interne du serveur');
     }
   }
@@ -296,7 +298,7 @@ export class TransactionService {
       .single();
 
     if (error || !transactionDb) {
-      this.logger.error('Erreur modification transaction:', error);
+      this.logger.error({ err: error }, 'Failed to update transaction');
       throw new NotFoundException(
         'Transaction introuvable ou modification non autorisée',
       );
@@ -342,7 +344,7 @@ export class TransactionService {
       ) {
         throw error;
       }
-      this.logger.error('Erreur modification transaction:', error);
+      this.logger.error({ err: error }, 'Failed to update transaction');
       throw new InternalServerErrorException('Erreur interne du serveur');
     }
   }
@@ -359,7 +361,7 @@ export class TransactionService {
         .eq('id', id);
 
       if (error) {
-        this.logger.error('Erreur suppression transaction:', error);
+        this.logger.error({ err: error }, 'Failed to delete transaction');
         throw new NotFoundException(
           'Transaction introuvable ou suppression non autorisée',
         );
@@ -373,7 +375,7 @@ export class TransactionService {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      this.logger.error('Erreur suppression transaction:', error);
+      this.logger.error({ err: error }, 'Failed to delete transaction');
       throw new InternalServerErrorException('Erreur interne du serveur');
     }
   }
@@ -391,8 +393,8 @@ export class TransactionService {
 
       if (error) {
         this.logger.error(
-          'Erreur récupération transactions par budget:',
-          error,
+          { err: error },
+          'Failed to fetch transactions by budget',
         );
         throw new InternalServerErrorException(
           'Erreur lors de la récupération des transactions',
@@ -412,7 +414,10 @@ export class TransactionService {
       if (error instanceof InternalServerErrorException) {
         throw error;
       }
-      this.logger.error('Erreur liste transactions par budget:', error);
+      this.logger.error(
+        { err: error },
+        'Failed to list transactions by budget',
+      );
       throw new InternalServerErrorException('Erreur interne du serveur');
     }
   }
@@ -437,7 +442,7 @@ export class TransactionService {
   ): EnrichedTransaction | null {
     // Validation avec type guard
     if (!this.isValidTransactionRow(rawTransaction)) {
-      this.logger.warn('Invalid transaction data:', rawTransaction);
+      this.logger.warn({ data: rawTransaction }, 'Invalid transaction data');
       return null;
     }
 

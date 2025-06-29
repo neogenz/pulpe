@@ -4,9 +4,9 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
-  Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
 import {
   type BudgetCreate,
   type BudgetCreateFromOnboarding,
@@ -20,9 +20,11 @@ import { BudgetMapper } from './budget.mapper';
 
 @Injectable()
 export class BudgetService {
-  private readonly logger = new Logger(BudgetService.name);
-
-  constructor(private readonly budgetMapper: BudgetMapper) {}
+  constructor(
+    @InjectPinoLogger(BudgetService.name)
+    private readonly logger: PinoLogger,
+    private readonly budgetMapper: BudgetMapper,
+  ) {}
 
   async findAll(
     supabase: AuthenticatedSupabaseClient,
@@ -35,7 +37,7 @@ export class BudgetService {
         .order('month', { ascending: false });
 
       if (error) {
-        this.logger.error('Erreur récupération budgets:', error);
+        this.logger.error({ err: error }, 'Failed to fetch budgets');
         throw new InternalServerErrorException(
           'Erreur lors de la récupération des budgets',
         );
@@ -52,7 +54,7 @@ export class BudgetService {
       if (error instanceof InternalServerErrorException) {
         throw error;
       }
-      this.logger.error('Erreur liste budgets:', error);
+      this.logger.error({ err: error }, 'Failed to list budgets');
       throw new InternalServerErrorException('Erreur interne du serveur');
     }
   }
@@ -126,7 +128,7 @@ export class BudgetService {
       .single();
 
     if (error) {
-      this.logger.error('Erreur création budget:', error);
+      this.logger.error({ err: error }, 'Failed to create budget');
       throw new BadRequestException('Erreur lors de la création du budget');
     }
 
@@ -161,7 +163,7 @@ export class BudgetService {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      this.logger.error('Erreur création budget:', error);
+      this.logger.error({ err: error }, 'Failed to create budget');
       throw new InternalServerErrorException('Erreur interne du serveur');
     }
   }
@@ -193,7 +195,7 @@ export class BudgetService {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      this.logger.error('Erreur récupération budget:', error);
+      this.logger.error({ err: error }, 'Failed to fetch budget');
       throw new InternalServerErrorException('Erreur interne du serveur');
     }
   }
@@ -239,7 +241,7 @@ export class BudgetService {
       .single();
 
     if (error || !budgetDb) {
-      this.logger.error('Erreur modification budget:', error);
+      this.logger.error({ err: error }, 'Failed to update budget');
       throw new NotFoundException(
         'Budget introuvable ou modification non autorisée',
       );
@@ -283,7 +285,7 @@ export class BudgetService {
       ) {
         throw error;
       }
-      this.logger.error('Erreur modification budget:', error);
+      this.logger.error({ err: error }, 'Failed to update budget');
       throw new InternalServerErrorException('Erreur interne du serveur');
     }
   }
@@ -297,7 +299,7 @@ export class BudgetService {
       const { error } = await supabase.from('budgets').delete().eq('id', id);
 
       if (error) {
-        this.logger.error('Erreur suppression budget:', error);
+        this.logger.error({ err: error }, 'Failed to delete budget');
         throw new NotFoundException(
           'Budget introuvable ou suppression non autorisée',
         );
@@ -311,7 +313,7 @@ export class BudgetService {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      this.logger.error('Erreur suppression budget:', error);
+      this.logger.error({ err: error }, 'Failed to delete budget');
       throw new InternalServerErrorException('Erreur interne du serveur');
     }
   }
@@ -342,7 +344,10 @@ export class BudgetService {
     );
 
     if (error) {
-      this.logger.error('Erreur création budget avec transactions:', error);
+      this.logger.error(
+        { err: error },
+        'Failed to create budget from onboarding',
+      );
       throw new BadRequestException(
         'Erreur lors de la création du budget et des transactions',
       );
@@ -382,7 +387,10 @@ export class BudgetService {
       ) {
         throw error;
       }
-      this.logger.error('Erreur création budget depuis onboarding:', error);
+      this.logger.error(
+        { err: error },
+        'Failed to create budget from onboarding',
+      );
       throw new InternalServerErrorException('Erreur interne du serveur');
     }
   }
@@ -393,7 +401,10 @@ export class BudgetService {
         try {
           return this.validateBudgetData(rawBudget);
         } catch {
-          this.logger.warn('Invalid budget data filtered out:', rawBudget);
+          this.logger.warn(
+            { data: rawBudget },
+            'Invalid budget data filtered out',
+          );
           return null;
         }
       })
@@ -406,7 +417,7 @@ export class BudgetService {
 
   private validateBudgetData(rawBudget: unknown): BudgetRow {
     if (!this.isValidBudgetRow(rawBudget)) {
-      this.logger.error('Invalid budget data:', rawBudget);
+      this.logger.error({ data: rawBudget }, 'Invalid budget data');
       throw new InternalServerErrorException('Données budget invalides');
     }
 
