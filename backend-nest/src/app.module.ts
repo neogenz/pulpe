@@ -62,6 +62,6 @@ import { RequestIdMiddleware } from '@common/middleware/request-id.middleware';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(RequestIdMiddleware).forRoutes('{*path}'); // Use new named parameter syntax
+    consumer.apply(RequestIdMiddleware).forRoutes('{*path}');
   }
 }
