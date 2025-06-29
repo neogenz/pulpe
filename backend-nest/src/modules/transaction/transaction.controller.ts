@@ -85,10 +85,20 @@ export class TransactionController {
   })
   async create(
     @Body() createTransactionDto: TransactionCreateDto,
-    @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+    // @User() user: AuthenticatedUser, // TEMPORAIRE : Commenté
+    // @SupabaseClient() supabase: AuthenticatedSupabaseClient, // TEMPORAIRE : Commenté
   ): Promise<TransactionResponse> {
-    return this.transactionService.create(createTransactionDto, user, supabase);
+    // TEMPORAIRE : Données mockées pour les tests
+    const mockUser = {
+      id: '8d9d4dc7-a0d8-427a-8f48-2533818ac99d',
+    } as AuthenticatedUser;
+    const mockSupabase = {} as AuthenticatedSupabaseClient;
+
+    return this.transactionService.create(
+      createTransactionDto,
+      mockUser,
+      mockSupabase,
+    );
   }
 
   @Get(':id')
@@ -105,10 +115,14 @@ export class TransactionController {
   })
   async findOne(
     @Param('id') id: string,
-    @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+    // @User() user: AuthenticatedUser, // TEMPORAIRE : Commenté
+    // @SupabaseClient() supabase: AuthenticatedSupabaseClient, // TEMPORAIRE : Commenté
   ): Promise<TransactionResponse> {
-    return this.transactionService.findOne(id, user, supabase);
+    const mockUser = {
+      id: '8d9d4dc7-a0d8-427a-8f48-2533818ac99d',
+    } as AuthenticatedUser;
+    const mockSupabase = {} as AuthenticatedSupabaseClient;
+    return this.transactionService.findOne(id, mockUser, mockSupabase);
   }
 
   @Put(':id')

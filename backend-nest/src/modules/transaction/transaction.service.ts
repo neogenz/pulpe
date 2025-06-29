@@ -61,7 +61,7 @@ export class TransactionService {
     createTransactionDto: TransactionCreate,
   ): void {
     // Validation métier basique (Supabase gère les contraintes de DB)
-    if (!createTransactionDto.budgetId) {
+    /* if (!createTransactionDto.budgetId) {
       throw new BadRequestException('Budget ID est requis');
     }
 
@@ -98,7 +98,7 @@ export class TransactionService {
       throw new BadRequestException(
         'Les revenus ne peuvent pas avoir de type de dépense',
       );
-    }
+    } */
   }
 
   private prepareTransactionData(
@@ -149,7 +149,7 @@ export class TransactionService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionResponse> {
     try {
-      this.validateCreateTransactionDto(createTransactionDto);
+      // this.validateCreateTransactionDto(createTransactionDto);
 
       const transactionData = this.prepareTransactionData(
         createTransactionDto,

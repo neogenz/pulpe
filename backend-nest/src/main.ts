@@ -5,7 +5,6 @@ import { ConfigService } from '@nestjs/config';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 import { validateEnvironment } from '@config/environment';
-import { GlobalExceptionFilter } from '@common/filters/global-exception.filter';
 import { patchNestJsSwagger } from 'nestjs-zod';
 
 // ValidationPipe removed - using ZodValidationPipe from app.module.ts instead
@@ -83,7 +82,6 @@ async function bootstrap() {
   const env = validateEnvironment(configService);
 
   app.useLogger(app.get(Logger));
-  app.useGlobalFilters(new GlobalExceptionFilter());
 
   setupCors(app);
 
