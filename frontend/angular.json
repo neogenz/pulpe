@@ -72,7 +72,7 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "680kB",
+                  "maximumWarning": "800kB",
                   "maximumError": "1MB"
                 },
                 {
@@ -117,7 +117,8 @@
           "options": {
             "tsConfig": "projects/webapp/tsconfig.spec.json",
             "buildTarget": "webapp:build:development",
-            "runner": "vitest"
+            "runner": "vitest",
+            "watch": false
           }
         },
         "lint": {

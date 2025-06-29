@@ -5,9 +5,9 @@ import {
   Body,
   UseGuards,
   InternalServerErrorException,
-  Logger,
   ValidationPipe,
 } from '@nestjs/common';
+import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
 import {
   ApiTags,
   ApiOperation,
@@ -17,7 +17,7 @@ import {
   ApiUnauthorizedResponse,
   ApiInternalServerErrorResponse,
 } from '@nestjs/swagger';
-import { AuthGuard, OptionalAuthGuard } from '@common/guards/auth.guard';
+import { AuthGuard } from '@common/guards/auth.guard';
 import {
   User,
   SupabaseClient,
@@ -27,7 +27,6 @@ import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.ser
 import {
   UpdateProfileDto,
   UserProfileResponseDto,
-  PublicInfoResponseDto,
   OnboardingStatusResponseDto,
   SuccessMessageResponseDto,
 } from './dto/user-profile.dto';
@@ -40,7 +39,10 @@ import { ErrorResponseDto } from '@common/dto/response.dto';
   type: ErrorResponseDto,
 })
 export class UserController {
-  private readonly logger = new Logger(UserController.name);
+  constructor(
+    @InjectPinoLogger(UserController.name)
+    private readonly logger: PinoLogger,
+  ) {}
   @Get('me')
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
@@ -101,7 +103,7 @@ export class UserController {
       const updatedUser = await this.performProfileUpdate(updateData, supabase);
       return this.buildProfileResponse(updatedUser);
     } catch (error) {
-      this.logger.error('Erreur mise à jour profil:', error);
+      this.logger.error({ err: error }, 'Failed to update user profile');
       throw new InternalServerErrorException(
         'Erreur lors de la mise à jour du profil',
       );
@@ -150,35 +152,6 @@ export class UserController {
     };
   }
 
-  @Get('public-info')
-  @UseGuards(OptionalAuthGuard)
-  @ApiOperation({
-    summary: 'Get public information',
-    description: 'Retrieves public information with optional authentication',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Information retrieved successfully',
-    type: PublicInfoResponseDto,
-  })
-  async getPublicInfo(
-    @User() user?: AuthenticatedUser,
-  ): Promise<PublicInfoResponseDto> {
-    if (user) {
-      return {
-        success: true,
-        message: `Bonjour ${user.firstName || 'utilisateur'} !`,
-        authenticated: true,
-      };
-    }
-
-    return {
-      success: true,
-      message: 'Bonjour visiteur !',
-      authenticated: false,
-    };
-  }
-
   @Put('onboarding-completed')
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
@@ -206,7 +179,7 @@ export class UserController {
         message: 'Onboarding marqué comme terminé',
       };
     } catch (error) {
-      this.logger.error('Erreur mise à jour onboarding:', error);
+      this.logger.error({ err: error }, 'Failed to update onboarding status');
       throw new InternalServerErrorException(
         "Erreur lors de la mise à jour du statut d'onboarding",
       );
@@ -284,7 +257,7 @@ export class UserController {
         onboardingCompleted: isOnboardingCompleted,
       };
     } catch (error) {
-      this.logger.error('Erreur récupération statut onboarding:', error);
+      this.logger.error({ err: error }, 'Failed to fetch onboarding status');
       throw new InternalServerErrorException(
         "Erreur lors de la récupération du statut d'onboarding",
       );

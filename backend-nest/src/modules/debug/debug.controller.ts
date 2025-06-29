@@ -1,11 +1,14 @@
 import { Controller, Get, Post, Param, Query, Body } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
-import { AppLoggerService } from '@common/logger/app-logger.service';
+import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
 
 @ApiTags('Debug')
 @Controller('debug')
 export class DebugController {
-  constructor(private readonly logger: AppLoggerService) {}
+  constructor(
+    @InjectPinoLogger(DebugController.name)
+    private readonly logger: PinoLogger,
+  ) {}
 
   @Get('test-error/:type')
   @ApiOperation({
@@ -75,10 +78,14 @@ export class DebugController {
       await this.simulateServiceCall(data.shouldFail, data.message);
       return { success: true, message: 'Service call completed successfully' };
     } catch (error) {
-      this.logger.logError(error, 'DebugController', {
-        method: 'testServiceError',
-        requestData: JSON.stringify(data),
-      });
+      this.logger.error(
+        {
+          err: error,
+          method: 'testServiceError',
+          requestData: JSON.stringify(data),
+        },
+        'Service error test failed',
+      );
       throw error;
     }
   }
@@ -115,20 +122,29 @@ export class DebugController {
     description: 'Generate logs at different levels for testing',
   })
   testLogLevels() {
-    this.logger.logDebug('This is a debug message', 'DebugController', {
-      feature: 'logging-test',
-      level: 'debug',
-    });
+    this.logger.debug(
+      {
+        feature: 'logging-test',
+        level: 'debug',
+      },
+      'This is a debug message',
+    );
 
-    this.logger.logInfo('This is an info message', 'DebugController', {
-      feature: 'logging-test',
-      level: 'info',
-    });
+    this.logger.info(
+      {
+        feature: 'logging-test',
+        level: 'info',
+      },
+      'This is an info message',
+    );
 
-    this.logger.logWarning('This is a warning message', 'DebugController', {
-      feature: 'logging-test',
-      level: 'warning',
-    });
+    this.logger.warn(
+      {
+        feature: 'logging-test',
+        level: 'warning',
+      },
+      'This is a warning message',
+    );
 
     return { message: 'Log levels tested - check console output' };
   }

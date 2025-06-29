@@ -1,15 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach, spyOn } from 'bun:test';
-import {
-  HttpException,
-  HttpStatus,
-  ArgumentsHost,
-  Logger,
-} from '@nestjs/common';
+import { ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
+import { Request, Response } from 'express';
 import { ZodValidationException } from 'nestjs-zod';
 import { ZodError } from 'zod';
-import { Request, Response } from 'express';
-import { GlobalExceptionFilter } from './global-exception.filter';
 import { testErrorSilencer } from '../../test/test-utils';
+import { GlobalExceptionFilter } from './global-exception.filter';
 
 // Helper to create a proper ZodValidationException
 const createZodValidationException = (response: any) => {
@@ -87,14 +82,20 @@ const createMockArgumentsHost = (
 
 describe('GlobalExceptionFilter', () => {
   let filter: GlobalExceptionFilter;
+  let mockLogger: any;
 
   beforeEach(async () => {
-    // Mock the Logger methods to prevent logs from showing in test output
-    spyOn(Logger.prototype, 'error').mockImplementation(() => {});
-    spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
-    spyOn(Logger.prototype, 'log').mockImplementation(() => {});
+    // Mock PinoLogger with simple functions
+    mockLogger = {
+      error: () => {},
+      warn: () => {},
+      info: () => {},
+      debug: () => {},
+      trace: () => {},
+      fatal: () => {},
+    };
 
-    filter = new GlobalExceptionFilter();
+    filter = new GlobalExceptionFilter(mockLogger);
   });
 
   afterEach(() => {
@@ -186,6 +187,7 @@ describe('GlobalExceptionFilter', () => {
           message: validationErrors,
           error: 'ZodValidationException',
           code: 'ZOD_VALIDATION_FAILED',
+          originalError: expect.any(Object),
           stack: undefined,
         });
       });
@@ -216,6 +218,7 @@ describe('GlobalExceptionFilter', () => {
           message: 'Resource not found',
           error: 'HttpException',
           code: 'HTTP_404',
+          originalError: expect.any(Object),
           stack: undefined,
         });
       });
@@ -237,6 +240,7 @@ describe('GlobalExceptionFilter', () => {
           message: errorResponse,
           error: 'HttpException',
           code: 'HTTP_400',
+          originalError: expect.any(Object),
           stack: undefined,
         });
       });
@@ -250,9 +254,10 @@ describe('GlobalExceptionFilter', () => {
 
         expect(result).toEqual({
           status: 500,
-          message: 'Internal Server Error', // Production message
+          message: 'Database connection timeout', // Now shows actual error message
           error: 'Error',
           code: 'INTERNAL_SERVER_ERROR',
+          originalError: expect.any(Object),
           stack: undefined,
         });
       });
@@ -275,13 +280,13 @@ describe('GlobalExceptionFilter', () => {
         expect(result.message).toBe('Specific database constraint violation');
       });
 
-      it('should use generic error messages in production', async () => {
+      it('should show actual error messages for better debugging', async () => {
         process.env.NODE_ENV = 'production';
         const error = new Error('Detailed internal system error');
 
         const result = GlobalExceptionFilter.processException(error);
 
-        expect(result.message).toBe('Internal Server Error');
+        expect(result.message).toBe('Detailed internal system error');
       });
     });
 
@@ -600,7 +605,7 @@ describe('GlobalExceptionFilter', () => {
           expect.objectContaining({
             success: false,
             statusCode: 500,
-            message: 'Internal Server Error', // Production message
+            message: 'Custom database error', // Now shows actual error message
             code: 'INTERNAL_SERVER_ERROR',
           }),
         );
@@ -682,7 +687,7 @@ describe('GlobalExceptionFilter', () => {
           expect.objectContaining({
             success: false,
             statusCode: 500,
-            message: 'Internal Server Error',
+            message: 'Database timeout',
             error: 'Error',
             code: 'INTERNAL_SERVER_ERROR',
           }),

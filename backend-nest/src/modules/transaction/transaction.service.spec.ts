@@ -41,12 +41,25 @@ describe('TransactionService', () => {
       toUpdate: (data: any) => ({ ...data, updated: true }),
     };
 
+    const mockPinoLogger = {
+      error: () => {},
+      warn: () => {},
+      info: () => {},
+      debug: () => {},
+      trace: () => {},
+      fatal: () => {},
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TransactionService,
         {
           provide: TransactionMapper,
           useValue: simpleTransactionMapper,
+        },
+        {
+          provide: `PinoLogger:${TransactionService.name}`,
+          useValue: mockPinoLogger,
         },
       ],
     }).compile();

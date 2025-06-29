@@ -35,7 +35,7 @@ backend-nest/src/
 │   ├── supabase/        # Service Supabase
 │   └── debug/           # Endpoints de debug
 ├── common/              # 🛠️ Composants transversaux
-│   ├── guards/          # AuthGuard, OptionalAuthGuard
+│   ├── guards/          # AuthGuard
 │   ├── decorators/      # @User(), @SupabaseClient()
 │   ├── interceptors/    # Response formatting
 │   ├── filters/         # Exception handling global
