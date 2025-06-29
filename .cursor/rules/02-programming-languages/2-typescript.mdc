@@ -1,9 +1,8 @@
 ---
-description: APPLY TypeScript best practices WHEN writing TS code
-globs: **/*.ts
-alwaysApply: false
+description: 
+globs: 
+alwaysApply: true
 ---
-
 Strict Types:
 - Type everything explicitly
 - Never use `any` or `unknown`

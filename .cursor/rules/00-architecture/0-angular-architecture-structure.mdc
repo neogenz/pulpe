@@ -1,6 +1,6 @@
 ---
 description: APPLY Angular feature-based architecture structure WHEN organizing Angular applications to ensure proper separation of concerns, domain-driven design, and maintainable code organization across core, UI, layout, feature, and pattern folders
-globs: frontend/projects/webapp/**
+globs: frontend/**
 alwaysApply: false
 ---
 Fundamental Principles:

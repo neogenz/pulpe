@@ -1,0 +1,180 @@
+---
+description: 
+globs: backend-nest/**/*.ts
+alwaysApply: false
+---
+# NestJS Pino Logging Standards
+
+## Overview
+Standardizes logging practices using `nestjs-pino` with structured JSON logs, automatic request correlation, and environment-specific configuration.
+
+## Architecture Rules
+
+### Central Configuration
+- **MUST** configure logging in [app.module.ts](mdc:backend-nest/src/app.module.ts) using `LoggerModule.forRootAsync`
+- **MUST** use factory pattern with `createPinoLoggerConfig` function
+- **NEVER** create multiple logger configurations across modules
+
+### Environment-Specific Behavior
+- **Development**: Pretty-printed logs via `pino-pretty` with colorization
+- **Production**: JSON logs to stdout for infrastructure collection
+- **MUST** set log level to `debug` in development, `info` in production
+
+## Service Integration Rules
+
+### Logger Injection Pattern
+```typescript
+import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
+
+@Injectable()
+export class MyService {
+  constructor(
+    @InjectPinoLogger(MyService.name)
+    private readonly logger: PinoLogger,
+  ) {}
+}
+```
+
+### Required Injection Rules
+- **MUST** use `@InjectPinoLogger(ClassName.name)` for service-specific loggers
+- **MUST** use `private readonly logger: PinoLogger` property declaration
+- **NEVER** inject generic `Logger` from `@nestjs/common`
+
+## Logging Structure Standards
+
+### Required Log Context
+```typescript
+// Template for all business operations
+logger.[level]({
+  operation: 'operation_name',        // REQUIRED: descriptive operation name
+  userId: user?.id,                   // WHEN AVAILABLE: user context
+  entityId: entity.id,                // WHEN APPLICABLE: entity identifier
+  entityType: 'transaction',          // WHEN APPLICABLE: entity type
+  duration: Date.now() - startTime,   // FOR PERFORMANCE: execution time
+  err: error,                        // FOR ERRORS: Error object (Pino format)
+}, 'English message describing what happened');
+```
+
+### Log Level Usage
+- **`error`**: Server errors (5xx), critical exceptions
+- **`warn`**: Client errors (4xx), abnormal situations  
+- **`info`**: Important business operations, audit trails, metrics
+- **`debug`**: Technical information, validation details
+
+### Message Standards
+- **MUST** write all log messages in English
+- **MUST** use descriptive, action-oriented messages
+- **AVOID** technical jargon in user-facing error contexts
+
+## Error Handling Rules
+
+### Error Object Logging
+```typescript
+// ✅ CORRECT: Let Pino handle Error objects
+logger.error({ err: error }, 'Operation failed');
+
+// ❌ WRONG: Manual error extraction
+logger.error({ error: error.message }, 'Operation failed');
+```
+
+### Exception Filter Integration
+- **MUST** use structured logging in [global-exception.filter.ts](mdc:backend-nest/src/common/filters/global-exception.filter.ts)
+- **MUST** include request context (requestId, userId, method, url)
+- **MUST** differentiate server errors (error level) from client errors (warn level)
+
+## Security Rules
+
+### Automatic Redaction
+Configuration automatically redacts:
+- `req.headers.authorization`
+- `req.headers.cookie` 
+- `req.body.password`
+- `req.body.token`
+- `res.headers["set-cookie"]`
+
+### Custom Data Protection
+- **NEVER** log sensitive user data directly
+- **MUST** sanitize request bodies in production
+- **MUST** limit personal data in log context
+
+## HTTP Request Logging
+
+### Auto-Logging Configuration
+- **MUST** enable automatic HTTP request/response logging
+- **MUST** generate correlation IDs via `X-Request-Id` header
+- **MUST** exclude health check endpoints from auto-logging
+
+### Request Correlation
+- **MUST** propagate request IDs through all operation logs
+- **MUST** include request context in business operation logs
+- **SHOULD** use UUID format for generated request IDs
+
+## Testing Standards
+
+### Mock Configuration
+```typescript
+const mockPinoLogger = {
+  error: jest.fn(),
+  warn: jest.fn(), 
+  info: jest.fn(),
+  debug: jest.fn(),
+  trace: jest.fn(),
+  fatal: jest.fn(),
+};
+
+// In TestingModule providers
+{
+  provide: `PinoLogger:${ServiceName.name}`,
+  useValue: mockPinoLogger,
+}
+```
+
+### Test Verification Rules
+- **MUST** verify log calls with structured context matching
+- **MUST** test error scenarios include proper error logging
+- **SHOULD** verify performance metrics are logged
+
+## Performance Considerations
+
+### Async Logging
+- **RELY ON** Pino's built-in async workers for performance
+- **NEVER** implement custom async logging wrappers
+- **TRUST** Pino's JSON serialization optimization
+
+### Production Optimization  
+- **MUST** emit raw JSON to stdout in production
+- **NEVER** use file-based logging in application code
+- **DELEGATE** log collection to infrastructure (Docker, PM2, etc.)
+
+## Integration Examples
+
+### Business Service Pattern
+Reference [budget.service.ts](mdc:backend-nest/src/modules/budget/budget.service.ts) for:
+- Operation timing with `startTime` tracking
+- Success logging with business context
+- Error logging with full context preservation
+
+### Authentication Guard Pattern  
+Reference [auth.guard.ts](mdc:backend-nest/src/common/guards/auth.guard.ts) for:
+- Security event logging
+- Request context extraction
+- Authentication failure tracking
+
+### Debug Controller Pattern
+Reference [debug.controller.ts](mdc:backend-nest/src/modules/debug/debug.controller.ts) for:
+- Log level testing
+- Feature-based log organization
+- Development debugging support
+
+## Dependencies
+
+### Required Packages
+- `nestjs-pino`: ^4.4.0
+- `pino`: ^9.7.0  
+- `pino-http`: ^10.5.0
+- `pino-pretty`: ^13.0.0 (dev dependency)
+
+### Configuration References
+- Main config: [app.module.ts](mdc:backend-nest/src/app.module.ts)
+- Documentation: [LOGGING.md](mdc:backend-nest/LOGGING.md)
+- Test setup: [setup.ts](mdc:backend-nest/src/test/setup.ts)
