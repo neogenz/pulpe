@@ -92,11 +92,30 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   static extractRequestContext(request: Request): ErrorContext {
     const headers = request?.headers || {};
     return {
-      requestId: headers['x-request-id'] as string,
+      requestId: GlobalExceptionFilter.extractHeaderValue(
+        headers['x-request-id'],
+      ),
       userId: (request as Request & { user?: { id: string } })?.user?.id,
-      userAgent: headers['user-agent'],
+      userAgent: GlobalExceptionFilter.extractHeaderValue(
+        headers['user-agent'],
+      ),
       ip: request?.ip || request?.connection?.remoteAddress,
     };
+  }
+
+  /**
+   * Safely extracts a single string value from a header that can be string or string[]
+   */
+  private static extractHeaderValue(
+    headerValue: string | string[] | undefined,
+  ): string | undefined {
+    if (!headerValue) {
+      return undefined;
+    }
+    if (Array.isArray(headerValue)) {
+      return headerValue[0] || undefined;
+    }
+    return headerValue;
   }
 
   /**

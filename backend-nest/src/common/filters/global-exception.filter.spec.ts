@@ -166,6 +166,48 @@ describe('GlobalExceptionFilter', () => {
 
       expect(context.userId).toBeUndefined();
     });
+
+    it('should handle array headers by taking first value', async () => {
+      const mockRequest = createMockRequest({
+        headers: {
+          'x-request-id': ['req-first', 'req-second'],
+          'user-agent': ['Browser/1.0', 'Browser/2.0'],
+        },
+      });
+
+      const context = GlobalExceptionFilter.extractRequestContext(mockRequest);
+
+      expect(context.requestId).toBe('req-first');
+      expect(context.userAgent).toBe('Browser/1.0');
+    });
+
+    it('should handle empty array headers', async () => {
+      const mockRequest = createMockRequest({
+        headers: {
+          'x-request-id': [],
+          'user-agent': [],
+        },
+      });
+
+      const context = GlobalExceptionFilter.extractRequestContext(mockRequest);
+
+      expect(context.requestId).toBeUndefined();
+      expect(context.userAgent).toBeUndefined();
+    });
+
+    it('should handle mixed string and array headers', async () => {
+      const mockRequest = createMockRequest({
+        headers: {
+          'x-request-id': 'single-request-id',
+          'user-agent': ['Array Browser/1.0', 'Array Browser/2.0'],
+        },
+      });
+
+      const context = GlobalExceptionFilter.extractRequestContext(mockRequest);
+
+      expect(context.requestId).toBe('single-request-id');
+      expect(context.userAgent).toBe('Array Browser/1.0');
+    });
   });
 
   describe('Exception processing', () => {

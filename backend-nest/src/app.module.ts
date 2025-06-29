@@ -26,9 +26,17 @@ function createRequestIdGenerator() {
     },
     res: ServerResponse,
   ) => {
-    const existingId =
-      (req as typeof req & { id?: string }).id ?? req.headers['x-request-id'];
-    if (existingId) return existingId;
+    const reqId = (req as typeof req & { id?: string }).id;
+    if (reqId) return reqId;
+
+    const headerValue = req.headers['x-request-id'];
+    if (headerValue) {
+      const existingId = Array.isArray(headerValue)
+        ? headerValue[0]
+        : headerValue;
+      if (existingId) return existingId;
+    }
+
     const id = randomUUID();
     res.setHeader('X-Request-Id', id);
     return id;
