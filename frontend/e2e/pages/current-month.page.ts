@@ -14,7 +14,7 @@ export class CurrentMonthPage {
     await WaitHelper.waitForNavigation(this.page, '/app/current-month', 10000);
     // Wait for page content to be ready
     await this.page
-      .locator('main, .content, h1, h2, [data-testid="dashboard"]')
+      .locator('[data-testid="current-month-page"], main, .content, h1, h2')
       .first()
       .waitFor({
         state: 'visible',
@@ -27,54 +27,61 @@ export class CurrentMonthPage {
   }
 
   async expectPageLoaded() {
+    // Use page-title data-testid instead of hardcoded text
+    await expect(this.page.locator('[data-testid="page-title"]')).toBeVisible();
+
+    // Ensure the page container is present
     await expect(
-      this.page.locator('h1:has-text("Budget du mois courant")'),
+      this.page.locator('[data-testid="current-month-page"]'),
     ).toBeVisible();
   }
 
   async expectFinancialOverviewVisible() {
     const hasOverview =
-      (await this.page
-        .locator(
-          '[data-testid="financial-overview"], .financial-summary, app-financial-summary',
-        )
-        .count()) > 0;
-    const hasNoData =
-      (await this.page.locator('h2:has-text("Aucun budget trouvé")').count()) >
+      (await this.page.locator('[data-testid="financial-overview"]').count()) >
       0;
+    const hasNoData =
+      (await this.page.locator('[data-testid="empty-state"]').count()) > 0;
 
     expect(hasOverview || hasNoData).toBeTruthy();
   }
 
   async expectExpenseFormVisible() {
-    // Check for any interactive elements that indicate the page is functional
-    const hasInteraction =
+    // Check for the quick add expense form specifically
+    const hasForm =
       (await this.page
-        .locator('button, input, form, a, [role="button"]')
+        .locator('[data-testid="quick-add-expense-form"]')
         .count()) > 0;
     const hasContent =
-      (await this.page.locator('main, .content, .dashboard').count()) > 0;
+      (await this.page.locator('[data-testid="dashboard-content"]').count()) >
+      0;
+    const hasEmptyState =
+      (await this.page.locator('[data-testid="empty-state"]').count()) > 0;
 
-    expect(hasInteraction || hasContent).toBeTruthy();
+    expect(hasForm || hasContent || hasEmptyState).toBeTruthy();
   }
 
   async expectTransactionsVisible() {
-    const hasTransactions =
+    const hasVariableTransactions =
       (await this.page
-        .locator(
-          '[data-testid="transactions-list"], .transactions, app-transactions-list, table, mat-table',
-        )
+        .locator('[data-testid="variable-expenses-list"]')
         .count()) > 0;
-    const hasNoTransactions =
+    const hasFixedTransactions =
       (await this.page
-        .locator(
-          '[data-testid="no-transactions"], .no-transactions, .empty-state',
-        )
+        .locator('[data-testid="fixed-transactions-list"]')
         .count()) > 0;
+    const hasEmptyState =
+      (await this.page.locator('[data-testid="empty-state"]').count()) > 0;
     const hasContent =
-      (await this.page.locator('main, .content, .dashboard').count()) > 0;
+      (await this.page.locator('[data-testid="dashboard-content"]').count()) >
+      0;
 
-    expect(hasTransactions || hasNoTransactions || hasContent).toBeTruthy();
+    expect(
+      hasVariableTransactions ||
+        hasFixedTransactions ||
+        hasEmptyState ||
+        hasContent,
+    ).toBeTruthy();
   }
 
   async fillExpenseForm(amount: string, description: string) {

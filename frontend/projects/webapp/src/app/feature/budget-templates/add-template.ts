@@ -16,12 +16,19 @@ import { AddTemplateForm } from './components/add-template-form';
   standalone: true,
   imports: [MatButtonModule, MatIconModule, AddTemplateForm],
   template: `
-    <div class="flex flex-col gap-4 h-full">
-      <header class="flex items-center gap-4">
-        <button mat-icon-button (click)="navigateBack()" aria-label="Retour">
+    <div class="flex flex-col gap-4 h-full" data-testid="add-template-page">
+      <header class="flex items-center gap-4" data-testid="page-header">
+        <button
+          mat-icon-button
+          (click)="navigateBack()"
+          aria-label="Retour"
+          data-testid="back-button"
+        >
           <mat-icon>arrow_back</mat-icon>
         </button>
-        <h1 class="text-display-small">Nouveau modèle de budget</h1>
+        <h1 class="text-display-small" data-testid="page-title">
+          Nouveau modèle de budget
+        </h1>
       </header>
 
       <div class="flex-1 overflow-auto">
@@ -29,6 +36,7 @@ import { AddTemplateForm } from './components/add-template-form';
           (addTemplate)="onAddTemplate($event)"
           (cancelForm)="navigateBack()"
           [isCreating]="isCreatingTemplate()"
+          data-testid="add-template-form"
         />
       </div>
     </div>

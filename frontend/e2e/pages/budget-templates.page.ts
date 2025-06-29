@@ -13,32 +13,16 @@ export class BudgetTemplatesPage {
   constructor(page: Page) {
     this.page = page;
 
-    // Définition des locators avec priorité aux data-testid, plus tolérants
-    this.createTemplateButton = page
-      .locator('[data-testid="create-template-btn"]')
-      .or(page.locator('button:has-text("Créer")'))
-      .or(page.locator('button:has-text("Ajouter")'))
-      .or(page.locator('a:has-text("Créer")'))
-      .or(page.locator('a:has-text("Ajouter")'));
-
-    this.templatesList = page
-      .locator('[data-testid="templates-list"]')
-      .or(page.locator('.templates-container'))
-      .or(page.locator('main'));
-
-    this.templateForm = page
-      .locator('[data-testid="template-form"]')
-      .or(page.locator('form'));
-
-    this.templateNameInput = page
-      .locator('[data-testid="template-name"]')
-      .or(page.locator('input[formControlName="name"]'))
-      .or(page.locator('input[placeholder*="nom"]'));
-
-    this.submitButton = page
-      .locator('[data-testid="submit-btn"]')
-      .or(page.locator('button[type="submit"]'))
-      .or(page.locator('button:has-text("Enregistrer")'));
+    // Définition des locators avec priorité aux data-testid
+    this.createTemplateButton = page.locator(
+      '[data-testid="create-template-button"]',
+    );
+    this.templatesList = page.locator('[data-testid="templates-list"]');
+    this.templateForm = page.locator('[data-testid="template-form"]');
+    this.templateNameInput = page.locator(
+      '[data-testid="template-name-input"]',
+    );
+    this.submitButton = page.locator('[data-testid="submit-button"]');
   }
 
   async goto() {
@@ -70,7 +54,13 @@ export class BudgetTemplatesPage {
   }
 
   async expectPageLoaded() {
-    await expect(this.page.locator('body')).toBeVisible();
+    // Use data-testid for page title instead of hardcoded text
+    await expect(this.page.locator('[data-testid="page-title"]')).toBeVisible();
+
+    // Ensure the page container is present
+    await expect(
+      this.page.locator('[data-testid="budget-templates-page"]'),
+    ).toBeVisible();
 
     // Vérifier qu'on n'est pas sur une page d'erreur
     const isErrorPage =
@@ -78,64 +68,34 @@ export class BudgetTemplatesPage {
         .locator('h1:has-text("Error"), h1:has-text("Erreur"), .error-page')
         .count()) > 0;
     expect(isErrorPage).toBeFalsy();
-
-    // Vérifier qu'on a bien du contenu
-    const hasContent =
-      (await this.page.locator('main, .content, h1, h2').count()) > 0;
-    expect(hasContent).toBeTruthy();
   }
 
   async expectTemplatesListVisible() {
-    await this.templatesList.waitFor({ state: 'visible', timeout: 5000 });
-
-    // Approche plus tolérante - vérifier qu'on a du contenu sur la page
-    const hasTemplates =
-      (await this.page
-        .locator('[data-testid="template-card"], .template-item, mat-card')
-        .count()) > 0;
+    // Check for templates list or empty state
+    const hasTemplatesList =
+      (await this.page.locator('[data-testid="templates-list"]').count()) > 0;
     const hasEmptyState =
+      (await this.page.locator('[data-testid="empty-state"]').count()) > 0;
+    const hasCreateButton =
       (await this.page
-        .locator('[data-testid="empty-state"], .empty-state, .no-templates')
+        .locator('[data-testid="create-template-button"]')
         .count()) > 0;
-    const hasCreateButton = (await this.page.locator('button, a').count()) > 0; // Plus tolérant
-    const hasPageContent =
-      (await this.page.locator('main, .content').count()) > 0;
 
-    expect(
-      hasTemplates || hasEmptyState || hasCreateButton || hasPageContent,
-    ).toBeTruthy();
+    expect(hasTemplatesList || hasEmptyState || hasCreateButton).toBeTruthy();
   }
 
   async clickCreateTemplate() {
-    // Approche plus flexible - chercher n'importe quel bouton/lien de création
-    const buttons = await this.page.locator('button, a').all();
-    let createButton = null;
-
-    for (const button of buttons) {
-      const text = await button.textContent();
-      if (
-        text &&
-        (text.includes('Créer') ||
-          text.includes('Ajouter') ||
-          text.includes('Nouveau'))
-      ) {
-        createButton = button;
-        break;
-      }
-    }
-
-    if (createButton) {
-      await createButton.click();
-      // Attendre la navigation ou un changement d'état
-      await this.page.waitForTimeout(1000);
-    } else {
-      // Si pas de bouton trouvé, aller directement à la page de création
-      await this.gotoAddTemplate();
-    }
+    // Use the data-testid selector for create button
+    await this.createTemplateButton.waitFor({ state: 'visible' });
+    await this.createTemplateButton.click();
+    // Attendre la navigation
+    await this.page.waitForTimeout(1000);
   }
 
   async expectFormVisible() {
-    await this.templateForm.waitFor({ state: 'visible', timeout: 5000 });
+    await expect(
+      this.page.locator('[data-testid="add-template-form"]'),
+    ).toBeVisible();
     await expect(this.templateNameInput).toBeVisible();
   }
 
@@ -162,22 +122,16 @@ export class BudgetTemplatesPage {
     // Vérifier la présence d'erreurs de validation
     const hasFieldErrors =
       (await this.page
-        .locator('.error, .mat-error, [data-testid="error"]')
+        .locator('[data-testid="name-error"], .error, .mat-error')
         .count()) > 0;
     const isSubmitDisabled = !(await this.submitButton.isEnabled());
-    const hasFormErrors =
-      (await this.page
-        .locator('[data-testid="form-errors"], .form-errors')
-        .count()) > 0;
 
-    expect(hasFieldErrors || isSubmitDisabled || hasFormErrors).toBeTruthy();
+    expect(hasFieldErrors || isSubmitDisabled).toBeTruthy();
   }
 
   async expectTemplateDetailsVisible() {
-    // Corriger la violation strict mode en utilisant first()
-    await expect(
-      this.page.locator('h1, h2, .page-title').first(),
-    ).toBeVisible();
+    // Use data-testid for page title
+    await expect(this.page.locator('[data-testid="page-title"]')).toBeVisible();
 
     const hasTemplateInfo =
       (await this.page
@@ -246,7 +200,7 @@ export class BudgetTemplatesPage {
 
   async expectErrorMessage() {
     const errorMessage = this.page
-      .locator('[data-testid="error"]')
+      .locator('[data-testid="error"], [data-testid="templates-error"]')
       .or(this.page.locator('.error'))
       .or(this.page.locator('.alert-error'))
       .or(this.page.locator('.mat-error'));
@@ -264,12 +218,7 @@ export class BudgetTemplatesPage {
   }
 
   async expectEmptyState() {
-    const emptyState = this.page
-      .locator('[data-testid="empty-state"]')
-      .or(this.page.locator('.empty-state'))
-      .or(this.page.locator('.no-templates'))
-      .or(this.page.locator('text="Aucun template"'));
-
+    const emptyState = this.page.locator('[data-testid="empty-state"]');
     await expect(emptyState).toBeVisible();
   }
 }

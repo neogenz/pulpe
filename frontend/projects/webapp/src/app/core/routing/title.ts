@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Title as BrowserTitle } from '@angular/platform-browser';
-import { Router, NavigationEnd, ActivatedRoute } from '@angular/router';
-import { filter, map } from 'rxjs/operators';
+import { Router, NavigationEnd } from '@angular/router';
+import { filter, map, startWith } from 'rxjs/operators';
 import { toSignal } from '@angular/core/rxjs-interop';
 
 @Injectable({
@@ -10,7 +10,6 @@ import { toSignal } from '@angular/core/rxjs-interop';
 export class Title {
   readonly #title = inject(BrowserTitle);
   readonly #router = inject(Router);
-  readonly #activatedRoute = inject(ActivatedRoute);
 
   private readonly APP_NAME = 'Pulpe';
   private readonly SEPARATOR = ' • ';
@@ -18,43 +17,30 @@ export class Title {
   readonly currentTitle = toSignal(
     this.#router.events.pipe(
       filter((event) => event instanceof NavigationEnd),
-      map(() => this.extractCurrentRouteTitle()),
+      map(() => this.extractTitleFromBrowser()),
+      startWith(this.extractTitleFromBrowser()),
     ),
-    { initialValue: '' },
+    { initialValue: this.APP_NAME },
   );
 
   setTitle(title: string): void {
     this.#title.setTitle(`${title}${this.SEPARATOR}${this.APP_NAME}`);
   }
 
-  private extractCurrentRouteTitle(): string {
-    let currentRoute: ActivatedRoute | null = this.#activatedRoute.root;
-    let title = '';
-    let titleRoute: ActivatedRoute | null = null;
+  private extractTitleFromBrowser(): string {
+    const fullTitle = this.#title.getTitle();
 
-    while (currentRoute) {
-      if (currentRoute.snapshot.data?.['title']) {
-        title = currentRoute.snapshot.data['title'];
-        titleRoute = currentRoute;
-      }
-      if (currentRoute.snapshot.title) {
-        title = currentRoute.snapshot.title;
-        titleRoute = currentRoute;
-      }
-
-      currentRoute = currentRoute.firstChild;
+    // If the title contains our separator, extract just the page title part
+    if (fullTitle.includes(this.SEPARATOR)) {
+      return fullTitle.split(this.SEPARATOR)[0];
     }
 
-    const parameters = titleRoute?.snapshot.params || {};
-    return this.resolveParameters(title, parameters);
-  }
+    // If it's just the app name, return empty string for page title
+    if (fullTitle === this.APP_NAME) {
+      return '';
+    }
 
-  private resolveParameters(
-    title: string,
-    parameters: Record<string, string>,
-  ): string {
-    return title.replace(/\{\{(\w+)\}\}/g, (match, parameterName) => {
-      return parameters[parameterName] || match;
-    });
+    // Otherwise return the full title
+    return fullTitle;
   }
 }

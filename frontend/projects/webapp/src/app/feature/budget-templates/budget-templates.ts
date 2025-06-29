@@ -25,9 +25,12 @@ import { Title } from '@core/routing';
     TemplatesError,
   ],
   template: `
-    <div class="flex flex-col gap-4 h-full">
-      <header class="flex justify-between items-center">
-        <h1 class="text-display-small">
+    <div class="flex flex-col gap-4 h-full" data-testid="budget-templates-page">
+      <header
+        class="flex justify-between items-center"
+        data-testid="page-header"
+      >
+        <h1 class="text-display-small" data-testid="page-title">
           {{ title.currentTitle() }}
         </h1>
         <div class="flex gap-2">
@@ -36,6 +39,7 @@ import { Title } from '@core/routing';
             color="primary"
             routerLink="add"
             [disabled]="state.templatesData.isLoading()"
+            data-testid="create-template-button"
           >
             <mat-icon>add</mat-icon>
             Nouveau modèle
@@ -44,6 +48,7 @@ import { Title } from '@core/routing';
             matButton
             (click)="state.refreshData()"
             [disabled]="state.templatesData.isLoading()"
+            data-testid="refresh-button"
           >
             <mat-icon>refresh</mat-icon>
             Actualiser
@@ -56,10 +61,13 @@ import { Title } from '@core/routing';
           state.templatesData.status() === 'loading' ||
           state.templatesData.status() === 'reloading'
         ) {
-          <pulpe-templates-loading />
+          <pulpe-templates-loading data-testid="templates-loading" />
         }
         @case (state.templatesData.status() === 'error') {
-          <pulpe-templates-error (reload)="state.refreshData()" />
+          <pulpe-templates-error
+            (reload)="state.refreshData()"
+            data-testid="templates-error"
+          />
         }
         @case (
           state.templatesData.status() === 'resolved' ||
@@ -67,6 +75,7 @@ import { Title } from '@core/routing';
         ) {
           <pulpe-template-list
             [templates]="state.templatesData.value() ?? []"
+            data-testid="templates-list"
           />
         }
       }

@@ -23,20 +23,31 @@ import { type BudgetTemplateCreate } from '@pulpe/shared';
     MatCheckboxModule,
   ],
   template: `
-    <mat-card>
+    <mat-card data-testid="template-form-card">
       <mat-card-header>
-        <mat-card-title>Nouveau modèle de budget</mat-card-title>
+        <mat-card-title data-testid="form-title"
+          >Nouveau modèle de budget</mat-card-title
+        >
       </mat-card-header>
-      <form [formGroup]="templateForm" (ngSubmit)="onSubmit()">
+      <form
+        [formGroup]="templateForm"
+        (ngSubmit)="onSubmit()"
+        data-testid="template-form"
+      >
         <mat-card-content class="space-y-4">
           <mat-form-field appearance="outline" class="w-full">
             <mat-label>Nom du modèle</mat-label>
-            <input matInput formControlName="name" required />
+            <input
+              matInput
+              formControlName="name"
+              required
+              data-testid="template-name-input"
+            />
             @if (
               templateForm.get('name')?.invalid &&
               templateForm.get('name')?.touched
             ) {
-              <mat-error>Le nom est requis</mat-error>
+              <mat-error data-testid="name-error">Le nom est requis</mat-error>
             }
           </mat-form-field>
 
@@ -46,15 +57,23 @@ import { type BudgetTemplateCreate } from '@pulpe/shared';
               matInput
               formControlName="description"
               rows="3"
+              data-testid="template-description-input"
             ></textarea>
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="w-full">
             <mat-label>Catégorie</mat-label>
-            <input matInput formControlName="category" />
+            <input
+              matInput
+              formControlName="category"
+              data-testid="template-category-input"
+            />
           </mat-form-field>
 
-          <mat-checkbox formControlName="isDefault">
+          <mat-checkbox
+            formControlName="isDefault"
+            data-testid="template-default-checkbox"
+          >
             Modèle par défaut
           </mat-checkbox>
         </mat-card-content>
@@ -64,6 +83,7 @@ import { type BudgetTemplateCreate } from '@pulpe/shared';
             matButton
             (click)="cancelForm.emit()"
             [disabled]="isCreating()"
+            data-testid="cancel-button"
           >
             Annuler
           </button>
@@ -71,6 +91,7 @@ import { type BudgetTemplateCreate } from '@pulpe/shared';
             matButton="filled"
             type="submit"
             [disabled]="templateForm.invalid || isCreating()"
+            data-testid="submit-button"
           >
             {{ isCreating() ? 'Création...' : 'Créer' }}
           </button>

@@ -8,15 +8,23 @@ import { TemplateCard } from './template-card';
   imports: [TemplateCard, MatIconModule],
   template: `
     @if (templates().length === 0) {
-      <div class="text-center py-8 text-gray-500">
+      <div class="text-center py-8 text-gray-500" data-testid="empty-state">
         <mat-icon class="text-6xl mb-4">description</mat-icon>
-        <p>Aucun modèle de budget trouvé</p>
-        <p class="text-sm">Créez votre premier template de budget</p>
+        <p data-testid="empty-state-title">Aucun modèle de budget trouvé</p>
+        <p class="text-sm" data-testid="empty-state-subtitle">
+          Créez votre premier template de budget
+        </p>
       </div>
     } @else {
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div
+        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+        data-testid="templates-grid"
+      >
         @for (template of templates(); track template.id) {
-          <pulpe-template-card [template]="template" />
+          <pulpe-template-card
+            [template]="template"
+            data-testid="template-card"
+          />
         }
       </div>
     }

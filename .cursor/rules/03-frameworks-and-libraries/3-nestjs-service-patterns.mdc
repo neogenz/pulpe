@@ -1,0 +1,301 @@
+---
+description: 
+globs: backend-nest/**/*.ts
+alwaysApply: false
+---
+# NestJS Service Patterns & Dependency Injection
+
+## Overview
+Standardizes service implementation patterns, dependency injection, and business logic organization in NestJS applications.
+
+## Service Architecture Rules
+
+### Service Responsibility
+- **MUST** implement single responsibility principle per service
+- **MUST** encapsulate business logic within services
+- **NEVER** include HTTP concerns in services (use controllers for HTTP layer)
+- **SHOULD** delegate database operations to repositories/mappers
+
+### Service Structure Pattern
+```typescript
+@Injectable()
+export class MyService {
+  constructor(
+    @InjectPinoLogger(MyService.name)
+    private readonly logger: PinoLogger,
+    private readonly myMapper: MyMapper,
+  ) {}
+
+  async businessOperation(user: AuthenticatedUser, data: InputData): Promise<OutputData> {
+    const startTime = Date.now();
+    
+    try {
+      // Business logic implementation
+      const result = await this.performOperation(user, data);
+      
+      // Success logging
+      this.logger.info({
+        operation: 'business_operation',
+        userId: user.id,
+        duration: Date.now() - startTime,
+      }, 'Operation completed successfully');
+      
+      return result;
+    } catch (error) {
+      // Error logging  
+      this.logger.error({
+        operation: 'business_operation',
+        userId: user.id,
+        err: error,
+        duration: Date.now() - startTime,
+      }, 'Operation failed');
+      
+      throw error;
+    }
+  }
+}
+```
+
+## Dependency Injection Rules
+
+### Constructor Injection Pattern
+- **MUST** use constructor injection for all dependencies
+- **MUST** declare dependencies as `private readonly`
+- **MUST** inject logger using `@InjectPinoLogger(ServiceName.name)`
+- **SHOULD** order dependencies: logger first, then business dependencies
+
+### Service Registration
+- **MUST** use `@Injectable()` decorator on all services
+- **MUST** register services in appropriate module providers
+- **NEVER** use `providedIn: 'root'` for business services (use module-scoped)
+
+### Type Safety
+```typescript
+// ✅ CORRECT: Strongly typed dependencies
+constructor(
+  @InjectPinoLogger(BudgetService.name)
+  private readonly logger: PinoLogger,
+  private readonly budgetMapper: BudgetMapper,
+) {}
+
+// ❌ WRONG: Untyped or any dependencies
+constructor(private readonly logger: any) {}
+```
+
+## Business Logic Patterns
+
+### Operation Structure
+- **MUST** validate inputs at service entry points
+- **MUST** implement proper error handling with logging
+- **MUST** measure operation performance with timing
+- **SHOULD** return strongly typed results
+
+### Database Integration
+```typescript
+// Pattern for database operations
+async findUserBudgets(
+  user: AuthenticatedUser, 
+  supabaseClient: AuthenticatedSupabaseClient
+): Promise<BudgetListResponse> {
+  try {
+    const { data, error } = await supabaseClient
+      .from('budgets')
+      .select('*')
+      .eq('user_id', user.id);
+
+    if (error) {
+      throw new InternalServerErrorException(
+        `Database query failed: ${error.message}`
+      );
+    }
+
+    return this.budgetMapper.toApiList(data || []);
+  } catch (error) {
+    this.logger.error({
+      operation: 'find_user_budgets',
+      userId: user.id,
+      err: error,
+    }, 'Failed to fetch user budgets');
+    
+    throw error;
+  }
+}
+```
+
+## Error Handling Patterns
+
+### Exception Throwing Rules
+- **MUST** use appropriate NestJS HTTP exceptions
+- **MUST** provide descriptive error messages
+- **MUST** log errors before throwing
+- **SHOULD** include relevant context in exception messages
+
+### Common Exception Patterns
+```typescript
+// Not Found
+if (!entity) {
+  throw new NotFoundException(`Entity with ID ${id} not found`);
+}
+
+// Bad Request  
+if (!isValid(input)) {
+  throw new BadRequestException('Invalid input parameters');
+}
+
+// Internal Server Error
+if (databaseError) {
+  throw new InternalServerErrorException('Database operation failed');
+}
+```
+
+## Mapper Integration Rules
+
+### Mapper Usage
+- **MUST** inject mappers as dependencies
+- **MUST** use mappers for data transformation between layers
+- **NEVER** perform direct data transformation in services
+- **SHOULD** validate mapper outputs when critical
+
+### Data Flow Pattern
+```typescript
+// Input: DTO -> Entity (via mapper)
+const entityData = this.mapper.toInsert(createDto, user.id);
+
+// Database operation
+const { data, error } = await supabaseClient
+  .from('table')
+  .insert(entityData);
+
+// Output: Entity -> API Response (via mapper)  
+return this.mapper.toApi(data[0]);
+```
+
+## Authentication Integration
+
+### User Context Pattern
+- **MUST** accept `AuthenticatedUser` as first parameter for user-scoped operations
+- **MUST** include user ID in all operation logs
+- **MUST** validate user permissions within business logic
+- **SHOULD** pass user context to all downstream operations
+
+### Supabase Client Usage
+```typescript
+// Pattern for authenticated operations
+async createTransaction(
+  user: AuthenticatedUser,
+  supabaseClient: AuthenticatedSupabaseClient,
+  createDto: TransactionCreate
+): Promise<TransactionResponse> {
+  // Service implementation with authenticated context
+}
+```
+
+## Performance Monitoring
+
+### Operation Timing
+- **MUST** measure execution time for all business operations
+- **MUST** log performance metrics with operation context
+- **SHOULD** set performance thresholds for monitoring
+
+### Logging Performance Data
+```typescript
+const startTime = Date.now();
+// ... operation logic ...
+const duration = Date.now() - startTime;
+
+this.logger.info({
+  operation: 'operation_name',
+  userId: user.id,
+  duration,
+  // ... other context
+}, 'Operation completed');
+```
+
+## Testing Patterns
+
+### Service Testing Setup
+```typescript
+describe('MyService', () => {
+  let service: MyService;
+  let mockMapper: jest.Mocked<MyMapper>;
+  let mockLogger: jest.Mocked<PinoLogger>;
+
+  beforeEach(async () => {
+    const mockPinoLogger = {
+      error: jest.fn(),
+      warn: jest.fn(),
+      info: jest.fn(),
+      debug: jest.fn(),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        MyService,
+        { provide: MyMapper, useValue: mockMapper },
+        { provide: `PinoLogger:${MyService.name}`, useValue: mockPinoLogger },
+      ],
+    }).compile();
+
+    service = module.get<MyService>(MyService);
+  });
+});
+```
+
+### Test Coverage Requirements
+- **MUST** test happy path scenarios
+- **MUST** test error conditions and exception handling
+- **MUST** verify logging calls with proper context
+- **SHOULD** test performance characteristics for critical operations
+
+## Module Organization
+
+### Service Registration
+```typescript
+@Module({
+  providers: [
+    MyService,
+    MyMapper,
+    // Other providers
+  ],
+  exports: [MyService], // Export if used by other modules
+})
+export class MyModule {}
+```
+
+### Cross-Module Dependencies
+- **MUST** import required modules for cross-module dependencies
+- **MUST** export services that are used by other modules
+- **SHOULD** minimize cross-module dependencies
+
+## Integration Examples
+
+### Budget Service Pattern
+Reference [budget.service.ts](mdc:backend-nest/src/modules/budget/budget.service.ts) for:
+- Complete CRUD operation implementation
+- Error handling with proper logging
+- Performance monitoring integration
+- Mapper usage patterns
+
+### Transaction Service Pattern
+Reference [transaction.service.ts](mdc:backend-nest/src/modules/transaction/transaction.service.ts) for:
+- Business validation logic
+- User context propagation
+- Database error handling
+
+### User Service Pattern  
+Reference [user.controller.ts](mdc:backend-nest/src/modules/user/user.controller.ts) for:
+- Authentication integration
+- Profile management operations
+- Supabase client usage
+
+## Dependencies
+
+### Required Packages
+- `@nestjs/common`: ^11.1.3
+- `nestjs-pino`: ^4.4.0
+- `@pulpe/shared`: workspace:* (for types)
+
+### Common Patterns
+- Service interfaces: Define in shared package when needed
+- DTO validation: Use Zod schemas from shared package  
+- Error types: Leverage NestJS built-in HTTP exceptions

@@ -56,15 +56,22 @@ import { Title } from '@core/routing';
     TransactionChipFilter,
   ],
   template: `
-    <div class="flex flex-col 2xl:h-full gap-4 2xl:min-h-0">
-      <header class="flex justify-between items-center">
-        <h1 class="text-display-small">
+    <div
+      class="flex flex-col 2xl:h-full gap-4 2xl:min-h-0"
+      data-testid="current-month-page"
+    >
+      <header
+        class="flex justify-between items-center"
+        data-testid="page-header"
+      >
+        <h1 class="text-display-small" data-testid="page-title">
           {{ title.currentTitle() }}
         </h1>
         <button
           matButton
           (click)="state.dashboardData.reload()"
           [disabled]="state.dashboardData.isLoading()"
+          data-testid="refresh-button"
         >
           <mat-icon>refresh</mat-icon>
           Actualiser
@@ -77,10 +84,13 @@ import { Title } from '@core/routing';
           state.dashboardData.status() === 'loading' ||
           state.dashboardData.status() === 'reloading'
         ) {
-          <pulpe-dashboard-loading />
+          <pulpe-dashboard-loading data-testid="dashboard-loading" />
         }
         @case (state.dashboardData.status() === 'error') {
-          <pulpe-dashboard-error (reload)="state.dashboardData.reload()" />
+          <pulpe-dashboard-error
+            (reload)="state.dashboardData.reload()"
+            data-testid="dashboard-error"
+          />
         }
         @case (
           state.dashboardData.status() === 'resolved' ||
@@ -92,20 +102,26 @@ import { Title } from '@core/routing';
               [expenseAmount]="state.expenseAmount()"
               [savingsAmount]="state.savingsAmount()"
               [negativeAmount]="state.negativeAmount()"
+              data-testid="financial-overview"
             />
             <div
               class="flex flex-col 2xl:flex-row gap-4 2xl:min-h-0 2xl:flex-1"
+              data-testid="dashboard-content"
             >
               <div class="flex-1 2xl:flex-[6] flex flex-col gap-4">
                 <pulpe-quick-add-expense-form
                   (addTransaction)="onAddTransaction($event)"
+                  data-testid="quick-add-expense-form"
                 />
-                <pulpe-transaction-chip-filter />
+                <pulpe-transaction-chip-filter
+                  data-testid="transaction-chip-filter"
+                />
                 @if (selectedTransactions().length > 0) {
-                  <div class="flex gap-4">
+                  <div class="flex gap-4" data-testid="bulk-actions">
                     <button
                       matButton="tonal"
                       (click)="deleteSelectedTransactions()"
+                      data-testid="delete-selected-button"
                     >
                       <mat-icon>delete_sweep</mat-icon>
                       Supprimer ({{ selectedTransactions().length }})
@@ -113,6 +129,7 @@ import { Title } from '@core/routing';
                     <button
                       matButton="tonal"
                       (click)="editSelectedTransactions()"
+                      data-testid="merge-selected-button"
                     >
                       <mat-icon>call_merge</mat-icon>
                       Fusionner ({{ selectedTransactions().length }})
@@ -123,19 +140,26 @@ import { Title } from '@core/routing';
                   class="2xl:min-h-0 2xl:flex-1"
                   [transactions]="variableTransactions()"
                   [(selectedTransactions)]="selectedTransactions"
+                  data-testid="variable-expenses-list"
                 />
               </div>
               <div class="flex-1 2xl:flex-[4] 2xl:min-h-0">
                 <pulpe-fixed-transactions-list
                   class="2xl:min-h-0 2xl:flex-1"
                   [transactions]="fixedTransactions()"
+                  data-testid="fixed-transactions-list"
                 />
               </div>
             </div>
           } @else {
-            <div class="empty-state">
-              <h2 class="text-title-large mt-4">Aucun budget trouvé</h2>
-              <p class="text-body-large text-on-surface-variant mt-2">
+            <div class="empty-state" data-testid="empty-state">
+              <h2 class="text-title-large mt-4" data-testid="empty-state-title">
+                Aucun budget trouvé
+              </h2>
+              <p
+                class="text-body-large text-on-surface-variant mt-2"
+                data-testid="empty-state-description"
+              >
                 Aucun budget n'a été créé pour
                 {{ state.today() | date: 'MMMM yyyy' }}.
               </p>

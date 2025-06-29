@@ -1,0 +1,223 @@
+---
+description: 
+globs: backend-nest/**/*.ts
+alwaysApply: false
+---
+# NestJS Error Handling & Validation Standards
+
+## Overview
+Standardizes error handling using Zod validation, structured logging, and consistent API responses across the NestJS application.
+
+## Global Exception Filter Rules
+
+### Filter Configuration
+- **MUST** use [global-exception.filter.ts](mdc:backend-nest/src/common/filters/global-exception.filter.ts) as single point of error handling
+- **MUST** register filter globally in [filters.module.ts](mdc:backend-nest/src/common/filters/filters.module.ts)
+- **NEVER** create additional global exception filters
+
+### Error Classification
+```typescript
+// Standard error codes
+const ERROR_CODES = {
+  ZOD_VALIDATION_FAILED: 'ZOD_VALIDATION_FAILED',
+  INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR', 
+  UNKNOWN_EXCEPTION: 'UNKNOWN_EXCEPTION',
+} as const;
+```
+
+### Response Structure
+- **MUST** return consistent error response format
+- **MUST** include error code, message, and status
+- **SHOULD** include request correlation ID when available
+
+## Zod Integration Rules
+
+### Validation Pipe Configuration
+- **MUST** use `ZodValidationPipe` from `nestjs-zod` globally via `APP_PIPE`
+- **MUST** configure in [app.module.ts](mdc:backend-nest/src/app.module.ts) providers
+- **NEVER** use class-validator alongside Zod for same validation
+
+### Zod Exception Handling
+```typescript
+// Automatic handling of ZodValidationException
+if (exception instanceof ZodValidationException) {
+  // Transform to standardized format
+  return this.handleZodValidationException(exception, host);
+}
+```
+
+### Schema Definition Standards
+- **MUST** define schemas in shared package when used across frontend/backend
+- **MUST** use Zod schemas for DTO validation
+- **SHOULD** reference [shared/schemas.ts](mdc:shared/schemas.ts) for common patterns
+
+## Logging Integration Rules
+
+### Error Context Extraction
+```typescript
+// Required context for all errors
+interface ErrorContext {
+  readonly requestId?: string;
+  readonly userId?: string;
+  readonly userAgent?: string;
+  readonly ip?: string;
+}
+```
+
+### Structured Error Logging
+- **MUST** log server errors (5xx) at `error` level with full context
+- **MUST** log client errors (4xx) at `warn` level 
+- **MUST** include request correlation ID in all error logs
+- **MUST** sanitize sensitive data before logging
+
+### Error Log Format
+```typescript
+// Server errors (5xx)
+this.logger.error({
+  requestId: context.requestId,
+  userId: context.userId,
+  method: request.method,
+  url: request.url,
+  statusCode: errorData.status,
+  errorCode: errorData.code,
+  err: errorData.originalError, // Pino Error object
+}, 'SERVER ERROR: descriptive message');
+
+// Client errors (4xx)  
+this.logger.warn({
+  requestId: context.requestId,
+  method: request.method,
+  url: request.url,
+  statusCode: errorData.status,
+  errorCode: errorData.code,
+}, 'CLIENT ERROR: descriptive message');
+```
+
+## Environment-Specific Rules
+
+### Development Environment
+- **MUST** include detailed error information
+- **MAY** include stack traces in responses
+- **MAY** include user agent and IP in logs
+
+### Production Environment
+- **MUST** sanitize error details in responses
+- **MUST** limit context information in logs
+- **NEVER** expose internal error details to clients
+- **MUST** redact sensitive request body data
+
+## HTTP Exception Standards
+
+### Standard HTTP Exceptions
+- **MUST** use NestJS built-in HTTP exceptions (`BadRequestException`, `NotFoundException`, etc.)
+- **MUST** provide meaningful error messages
+- **SHOULD** include relevant context in exception constructor
+
+### Custom Exception Handling
+```typescript
+// Transform any exception to standardized format
+private transformToErrorData(exception: unknown): ErrorData {
+  if (exception instanceof HttpException) {
+    return this.handleHttpException(exception);
+  }
+  
+  if (exception instanceof ZodValidationException) {
+    return this.handleZodValidationException(exception);
+  }
+  
+  // Fallback for unknown exceptions
+  return this.handleUnknownException(exception);
+}
+```
+
+## Request Context Rules
+
+### Context Extraction
+- **MUST** extract request context for error correlation
+- **MUST** handle missing or malformed request objects gracefully
+- **SHOULD** include user context when available from authentication
+
+### Context Sanitization
+```typescript
+// Production sanitization
+static sanitizeContext(context: ErrorContext): ErrorContext {
+  if (isDevelopment()) return context;
+  
+  return {
+    requestId: context.requestId,
+    userId: context.userId,
+    // Remove PII in production
+  };
+}
+```
+
+## Response Formatting Rules
+
+### Error Response DTO
+- **MUST** use [response.dto.ts](mdc:backend-nest/src/common/dto/response.dto.ts) for consistent structure
+- **MUST** include timestamp, error code, and message
+- **SHOULD** include correlation ID for debugging
+
+### Message Localization
+- **MUST** provide user-friendly error messages
+- **MUST** translate technical errors to business language
+- **SHOULD** support locale-specific error messages (fr-CH)
+
+## Testing Standards
+
+### Mock Configuration
+```typescript
+// Exception filter testing
+const mockLogger = {
+  error: jest.fn(),
+  warn: jest.fn(),
+  info: jest.fn(),
+  debug: jest.fn(),
+};
+
+const filter = new GlobalExceptionFilter(mockLogger);
+```
+
+### Test Coverage Requirements
+- **MUST** test all exception types (Zod, HTTP, Unknown)
+- **MUST** verify proper logging calls with expected context
+- **MUST** test environment-specific behavior
+- **SHOULD** test request context extraction edge cases
+
+## Security Considerations
+
+### Data Sanitization
+- **MUST** sanitize request bodies before logging
+- **MUST** redact authentication headers and cookies
+- **NEVER** log passwords, tokens, or sensitive user data
+
+### Information Disclosure
+- **MUST** prevent stack trace leakage in production responses
+- **MUST** use generic error messages for security-sensitive operations
+- **SHOULD** implement rate limiting for error-prone endpoints
+
+## Integration Examples
+
+### Service Error Handling
+Reference service implementations for:
+- Proper exception throwing with context
+- Business logic error handling
+- Database operation error management
+
+### Controller Error Patterns
+Reference controller implementations for:
+- Input validation error handling
+- Authentication/authorization errors
+- Resource not found scenarios
+
+## Dependencies
+
+### Required Packages
+- `nestjs-zod`: ^4.3.1
+- `zod`: ^3.25.67
+- `@nestjs/common`: ^11.1.3 (for HTTP exceptions)
+
+### Configuration Files
+- Filter module: [filters.module.ts](mdc:backend-nest/src/common/filters/filters.module.ts)
+- Main filter: [global-exception.filter.ts](mdc:backend-nest/src/common/filters/global-exception.filter.ts)
+- Response DTOs: [response.dto.ts](mdc:backend-nest/src/common/dto/response.dto.ts)
