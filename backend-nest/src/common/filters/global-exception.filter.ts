@@ -320,7 +320,23 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         message?: string;
         error?: string;
         detail?: string;
+        errors?: Array<{
+          code: string;
+          message: string;
+          path: (string | number)[];
+        }>;
       };
+
+      // Handle Zod validation errors with detailed information
+      if (msgObj.errors && Array.isArray(msgObj.errors)) {
+        const validationDetails = msgObj.errors
+          .map((error) => `${error.path.join('.')}: ${error.message}`)
+          .join(', ');
+
+        const baseMessage = msgObj.message || 'Validation failed';
+        return `${baseMessage} - ${validationDetails}`;
+      }
+
       return (
         msgObj.message ||
         msgObj.error ||
