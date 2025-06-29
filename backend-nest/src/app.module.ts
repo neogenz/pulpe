@@ -16,6 +16,9 @@ import { DebugModule } from '@modules/debug/debug.module';
 // Middleware
 import { RequestIdMiddleware } from '@common/middleware/request-id.middleware';
 
+// Filters
+import { FiltersModule } from '@common/filters/filters.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -52,6 +55,7 @@ import { RequestIdMiddleware } from '@common/middleware/request-id.middleware';
     TransactionModule,
     UserModule,
     DebugModule,
+    FiltersModule,
   ],
   providers: [
     {

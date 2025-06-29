@@ -5,6 +5,7 @@ import {
   HttpException,
   HttpStatus,
   Logger,
+  Injectable,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { ZodValidationException } from 'nestjs-zod';
@@ -17,210 +18,191 @@ const ERROR_CODES = {
 
 const ERROR_MESSAGES = {
   ZOD_VALIDATION_FAILED: 'Validation failed',
-  INTERNAL_SERVER_ERROR: 'Internal server error',
-  UNKNOWN_EXCEPTION: 'Unknown exception occurred',
+  INTERNAL_SERVER_ERROR: 'Internal Server Error',
+  UNKNOWN_EXCEPTION: 'An unexpected error occurred',
 } as const;
 
 interface ErrorContext {
-  requestId?: string;
-  userId?: string;
-  userAgent?: string;
-  ip?: string;
+  readonly requestId?: string;
+  readonly userId?: string;
+  readonly userAgent?: string;
+  readonly ip?: string;
 }
 
-interface ProcessedError {
-  status: number;
-  message: string | object;
-  error: string;
-  code: string;
+interface ErrorData {
+  readonly status: number;
+  readonly message: string | object;
+  readonly error: string;
+  readonly code: string;
+  readonly stack?: string;
+}
+
+interface ErrorResponse {
+  readonly success: false;
+  readonly statusCode: number;
+  readonly timestamp: string;
+  readonly path: string;
+  readonly method: string;
+  readonly message: string | object;
+  readonly error: string;
+  readonly code: string;
+  readonly context?: ErrorContext;
   stack?: string;
 }
 
-interface StandardizedError {
-  success: false;
-  statusCode: number;
-  timestamp: string;
-  path: string;
-  method: string;
-  error: string;
-  code: string;
-  message: string | object;
-  context?: ErrorContext;
-  stack?: string;
-}
-
+/**
+ * Global exception filter that standardizes error responses and logging
+ * Handles Zod validation, HTTP exceptions, and unexpected errors
+ */
+@Injectable()
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(GlobalExceptionFilter.name);
 
+  /**
+   * Catches all exceptions and returns standardized error responses
+   */
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
-    const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
+    const response = ctx.getResponse<Response>();
 
-    const context = this.extractContext(request);
-    const errorDetails = this.processException(exception, request, context);
-    const errorResponse = this.buildResponse(errorDetails, request, context);
+    const context = GlobalExceptionFilter.extractRequestContext(request);
+    const errorData = GlobalExceptionFilter.processException(exception);
 
-    response.status(errorDetails.status).json(errorResponse);
+    this.logException(errorData, request, context);
+
+    const sanitizedContext = GlobalExceptionFilter.sanitizeContext(context);
+    const errorResponse = GlobalExceptionFilter.buildErrorResponse(
+      errorData,
+      request,
+      sanitizedContext,
+    );
+
+    response.status(errorData.status).json(errorResponse);
   }
 
-  private extractContext(request: Request): ErrorContext {
+  /**
+   * Extracts context information from HTTP request
+   */
+  static extractRequestContext(request: Request): ErrorContext {
+    const headers = request?.headers || {};
     return {
-      requestId: request.headers['x-request-id'] as string,
-      userId: (request as Request & { user?: { id: string } }).user?.id,
-      userAgent: request.headers['user-agent'],
-      ip: request.ip || request.connection?.remoteAddress,
+      requestId: headers['x-request-id'] as string,
+      userId: (request as Request & { user?: { id: string } })?.user?.id,
+      userAgent: headers['user-agent'],
+      ip: request?.ip || request?.connection?.remoteAddress,
     };
   }
 
-  private processException(
-    exception: unknown,
-    request: Request,
-    context: ErrorContext,
-  ): ProcessedError {
+  /**
+   * Processes any exception and returns structured error data
+   */
+  static processException(exception: unknown): ErrorData {
     if (exception instanceof ZodValidationException) {
-      return this.handleZodException(exception, request, context);
+      return GlobalExceptionFilter.handleZodValidation(exception);
     }
     if (exception instanceof HttpException) {
-      return this.handleHttpException(exception, request, context);
+      return GlobalExceptionFilter.handleHttpException(exception);
     }
     if (exception instanceof Error) {
-      return this.handleErrorException(exception, request, context);
+      return GlobalExceptionFilter.handleErrorException(exception);
     }
-    return this.handleUnknownException(exception, request, context);
+    return GlobalExceptionFilter.handleUnknownException();
   }
 
-  private handleZodException(
-    exception: ZodValidationException,
-    request: Request,
-    context: ErrorContext,
-  ): ProcessedError {
-    const status = exception.getStatus();
-    const validationErrors = exception.getResponse();
-
-    this.logger.error(ERROR_MESSAGES.ZOD_VALIDATION_FAILED, {
-      code: ERROR_CODES.ZOD_VALIDATION_FAILED,
-      method: request.method,
-      path: request.url,
+  /**
+   * Sanitizes context for production environment
+   */
+  static sanitizeContext(context: ErrorContext): ErrorContext {
+    if (GlobalExceptionFilter.isDevelopment()) {
+      return context;
+    }
+    return {
       requestId: context.requestId,
       userId: context.userId,
-      requestBody: request.body,
-      validationErrors,
-    });
+    };
+  }
 
+  /**
+   * Builds standardized error response
+   */
+  static buildErrorResponse(
+    errorData: ErrorData,
+    request: Request,
+    context: ErrorContext,
+  ): ErrorResponse {
+    const response: ErrorResponse = {
+      success: false,
+      statusCode: errorData.status,
+      timestamp: new Date().toISOString(),
+      path: request.url,
+      method: request.method,
+      message: errorData.message,
+      error: errorData.error,
+      code: errorData.code,
+      context,
+    };
+
+    if (errorData.stack) {
+      response.stack = errorData.stack;
+    }
+
+    return response;
+  }
+
+  private static handleZodValidation(
+    exception: ZodValidationException,
+  ): ErrorData {
     return {
-      status,
-      message: validationErrors,
+      status: exception.getStatus(),
+      message: exception.getResponse(),
       error: 'ZodValidationException',
       code: ERROR_CODES.ZOD_VALIDATION_FAILED,
-      stack: this.getStackInDevelopment(exception),
+      stack: GlobalExceptionFilter.getStackInDevelopment(exception),
     };
   }
 
-  private handleHttpException(
-    exception: HttpException,
-    request: Request,
-    context: ErrorContext,
-  ): ProcessedError {
-    const status = exception.getStatus();
+  private static handleHttpException(exception: HttpException): ErrorData {
     const response = exception.getResponse();
-
-    this.logHttpException(status, exception, request, context);
-
     return {
-      status,
-      message: this.extractMessage(response),
-      error: this.extractError(response, exception),
-      code: `HTTP_${status}`,
-      stack: this.getStackInDevelopment(exception),
+      status: exception.getStatus(),
+      message: GlobalExceptionFilter.extractHttpMessage(response),
+      error: GlobalExceptionFilter.extractHttpError(response, exception),
+      code: `HTTP_${exception.getStatus()}`,
+      stack: GlobalExceptionFilter.getStackInDevelopment(exception),
     };
   }
 
-  private handleErrorException(
-    exception: Error,
-    request: Request,
-    context: ErrorContext,
-  ): ProcessedError {
-    const status = HttpStatus.INTERNAL_SERVER_ERROR;
-
-    this.logger.error(ERROR_MESSAGES.INTERNAL_SERVER_ERROR, {
-      code: ERROR_CODES.INTERNAL_SERVER_ERROR,
-      method: request.method,
-      path: request.url,
-      requestId: context.requestId,
-      userId: context.userId,
-      error: exception.message,
-      stack: exception.stack,
-    });
-
+  private static handleErrorException(exception: Error): ErrorData {
     return {
-      status,
-      message: this.getErrorMessage(exception),
+      status: HttpStatus.INTERNAL_SERVER_ERROR,
+      message: GlobalExceptionFilter.getErrorMessage(exception),
       error: exception.name || 'InternalServerErrorException',
       code: ERROR_CODES.INTERNAL_SERVER_ERROR,
-      stack: this.getStackInDevelopment(exception),
+      stack: GlobalExceptionFilter.getStackInDevelopment(exception),
     };
   }
 
-  private handleUnknownException(
-    exception: unknown,
-    request: Request,
-    context: ErrorContext,
-  ): ProcessedError {
-    const status = HttpStatus.INTERNAL_SERVER_ERROR;
-
-    this.logger.error(ERROR_MESSAGES.UNKNOWN_EXCEPTION, {
-      code: ERROR_CODES.UNKNOWN_EXCEPTION,
-      method: request.method,
-      path: request.url,
-      requestId: context.requestId,
-      userId: context.userId,
-      exception: String(exception),
-    });
-
+  private static handleUnknownException(): ErrorData {
     return {
-      status,
-      message: ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
+      status: HttpStatus.INTERNAL_SERVER_ERROR,
+      message: ERROR_MESSAGES.UNKNOWN_EXCEPTION,
       error: 'UnknownException',
       code: ERROR_CODES.UNKNOWN_EXCEPTION,
     };
   }
 
-  private logHttpException(
-    status: number,
-    exception: Error,
-    request: Request,
-    context: ErrorContext,
-  ): void {
-    const logData = {
-      code: `HTTP_${status}`,
-      method: request.method,
-      path: request.url,
-      requestId: context.requestId,
-      userId: context.userId,
-      statusCode: status,
-      error: exception.message,
-    };
-
-    if (status >= 500) {
-      this.logger.error('HTTP server error', {
-        ...logData,
-        stack: exception.stack,
-      });
-    } else if (status >= 400) {
-      this.logger.warn('HTTP client error', logData);
-    }
-  }
-
-  private extractMessage(response: string | object): string | object {
+  private static extractHttpMessage(
+    response: string | object,
+  ): string | object {
     if (typeof response === 'string') {
       return response;
     }
-    return (response as { message?: string }).message || response;
+    return response;
   }
 
-  private extractError(
+  private static extractHttpError(
     response: string | object,
     exception: HttpException,
   ): string {
@@ -230,47 +212,71 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     return (response as { error?: string }).error || exception.name;
   }
 
-  private getErrorMessage(exception: Error): string {
-    return process.env.NODE_ENV === 'development'
+  private static getErrorMessage(exception: Error): string {
+    return GlobalExceptionFilter.isDevelopment()
       ? exception.message
       : ERROR_MESSAGES.INTERNAL_SERVER_ERROR;
   }
 
-  private getStackInDevelopment(exception: Error): string | undefined {
-    return process.env.NODE_ENV === 'development' ? exception.stack : undefined;
+  private static getStackInDevelopment(exception: Error): string | undefined {
+    return GlobalExceptionFilter.isDevelopment() ? exception.stack : undefined;
   }
 
-  private buildResponse(
-    errorDetails: ProcessedError,
+  private static isDevelopment(): boolean {
+    return process.env.NODE_ENV === 'development';
+  }
+
+  private logException(
+    errorData: ErrorData,
     request: Request,
     context: ErrorContext,
-  ): StandardizedError {
-    const errorResponse: StandardizedError = {
-      success: false,
-      statusCode: errorDetails.status,
-      timestamp: new Date().toISOString(),
-      path: request.url,
+  ): void {
+    const baseLogData = {
+      code: errorData.code,
       method: request.method,
-      error: errorDetails.error,
-      code: errorDetails.code,
-      message: errorDetails.message,
-      context: this.sanitizeContext(context),
+      path: request.url,
+      requestId: context.requestId,
+      userId: context.userId,
+      statusCode: errorData.status,
     };
 
-    if (errorDetails.stack) {
-      errorResponse.stack = errorDetails.stack;
+    try {
+      if (errorData.status >= 500) {
+        this.logServerError(errorData, request, baseLogData);
+      } else if (errorData.status >= 400) {
+        this.logClientError(errorData, baseLogData);
+      }
+    } catch {
+      // Silently ignore logging errors to prevent breaking exception handling
     }
-
-    return errorResponse;
   }
 
-  private sanitizeContext(context: ErrorContext): ErrorContext {
-    if (process.env.NODE_ENV === 'production') {
-      return {
-        requestId: context.requestId,
-        userId: context.userId,
-      };
+  private logServerError(
+    errorData: ErrorData,
+    request: Request,
+    baseLogData: object,
+  ): void {
+    const serverLogData = {
+      ...baseLogData,
+      error: errorData.message,
+      stack: errorData.stack,
+    };
+
+    if (errorData.code === ERROR_CODES.ZOD_VALIDATION_FAILED) {
+      this.logger.error(ERROR_MESSAGES.ZOD_VALIDATION_FAILED, {
+        ...serverLogData,
+        requestBody: request.body,
+        validationErrors: errorData.message,
+      });
+    } else {
+      this.logger.error('Server error occurred', serverLogData);
     }
-    return context;
+  }
+
+  private logClientError(errorData: ErrorData, baseLogData: object): void {
+    this.logger.warn('Client error occurred', {
+      ...baseLogData,
+      error: errorData.message,
+    });
   }
 }

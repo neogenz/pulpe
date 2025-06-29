@@ -64,19 +64,29 @@ export class TestErrorSilencer {
   #originalConsoleError: typeof console.error;
   #originalConsoleWarn: typeof console.warn;
   #originalConsoleLog: typeof console.log;
+  #originalProcessStdoutWrite: typeof process.stdout.write;
+  #originalProcessStderrWrite: typeof process.stderr.write;
   #isActive: boolean = false;
+  #suppressingNestLog: boolean = false;
 
   constructor() {
     this.#originalConsoleError = console.error;
     this.#originalConsoleWarn = console.warn;
     this.#originalConsoleLog = console.log;
+    this.#originalProcessStdoutWrite = process.stdout.write.bind(
+      process.stdout,
+    );
+    this.#originalProcessStderrWrite = process.stderr.write.bind(
+      process.stderr,
+    );
   }
 
   silenceExpectedErrors(): void {
     if (this.#isActive) return;
 
     this.#isActive = true;
-    // Silence all console methods and capture process.stdout/stderr
+
+    // Silence console methods
     console.error = () => {};
     console.warn = () => {};
     console.log = (message: any, ...args: any[]) => {
@@ -90,6 +100,66 @@ export class TestErrorSilencer {
       }
       // Silence NestJS logs and other noise
     };
+
+    // Intercept process.stdout.write to catch NestJS Logger output
+    process.stdout.write = ((chunk: any, encoding?: any, callback?: any) => {
+      const chunkStr = String(chunk);
+
+      // Allow test-related messages through
+      if (
+        chunkStr.includes('🧪 Test environment') ||
+        chunkStr.includes('🚀 Starting load test') ||
+        chunkStr.includes('pass') ||
+        chunkStr.includes('fail') ||
+        chunkStr.includes('expect()')
+      ) {
+        this.#suppressingNestLog = false;
+        return this.#originalProcessStdoutWrite(chunk, encoding, callback);
+      }
+
+      // Detect start of NestJS log
+      if (chunkStr.includes('[Nest]')) {
+        this.#suppressingNestLog = true;
+        if (typeof callback === 'function') {
+          callback();
+        }
+        return true;
+      }
+
+      // Continue suppressing if we're in a NestJS log
+      if (this.#suppressingNestLog) {
+        // End suppression when we see a newline at the end
+        if (chunkStr.endsWith('\n')) {
+          this.#suppressingNestLog = false;
+        }
+        if (typeof callback === 'function') {
+          callback();
+        }
+        return true;
+      }
+
+      // Allow other output through (for non-NestJS logs)
+      return this.#originalProcessStdoutWrite(chunk, encoding, callback);
+    }) as any;
+
+    // Intercept process.stderr.write to catch NestJS Logger errors
+    process.stderr.write = ((chunk: any, encoding?: any, callback?: any) => {
+      const chunkStr = String(chunk);
+
+      // Silence NestJS Logger errors and GlobalExceptionFilter logs
+      if (
+        chunkStr.includes('[Nest]') ||
+        chunkStr.includes('GlobalExceptionFilter')
+      ) {
+        if (typeof callback === 'function') {
+          callback();
+        }
+        return true;
+      }
+
+      // Allow other errors through (for non-NestJS errors)
+      return this.#originalProcessStderrWrite(chunk, encoding, callback);
+    }) as any;
   }
 
   restoreErrorLogging(): void {
@@ -98,7 +168,10 @@ export class TestErrorSilencer {
     console.error = this.#originalConsoleError;
     console.warn = this.#originalConsoleWarn;
     console.log = this.#originalConsoleLog;
+    process.stdout.write = this.#originalProcessStdoutWrite;
+    process.stderr.write = this.#originalProcessStderrWrite;
     this.#isActive = false;
+    this.#suppressingNestLog = false;
   }
 
   async withSilencedErrors<T>(testFunction: () => Promise<T>): Promise<T> {
