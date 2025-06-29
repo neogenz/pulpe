@@ -4,7 +4,7 @@
 pre-commit:
   commands:
     quality:
-      run: turbo quality
+      run: pnpm run quality
       skip:
         - merge
         - rebase
