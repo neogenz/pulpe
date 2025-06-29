@@ -30,19 +30,23 @@ export class Title {
   private extractCurrentRouteTitle(): string {
     let currentRoute: ActivatedRoute | null = this.#activatedRoute.root;
     let title = '';
+    let titleRoute: ActivatedRoute | null = null;
 
     while (currentRoute) {
       if (currentRoute.snapshot.data?.['title']) {
         title = currentRoute.snapshot.data['title'];
+        titleRoute = currentRoute;
       }
       if (currentRoute.snapshot.title) {
         title = currentRoute.snapshot.title;
+        titleRoute = currentRoute;
       }
 
       currentRoute = currentRoute.firstChild;
     }
 
-    return this.resolveParameters(title, this.#activatedRoute.snapshot.params);
+    const parameters = titleRoute?.snapshot.params || {};
+    return this.resolveParameters(title, parameters);
   }
 
   private resolveParameters(

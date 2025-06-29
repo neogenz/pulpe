@@ -71,10 +71,6 @@ pnpm run build               # ng build
 ### Tests
 
 ```bash
-# Tests unitaires (Vitest)
-pnpm run test:vitest:ui         # Vitest UI
-pnpm run test:vitest:run     # Run tests
-
 # Tests E2E (Playwright)
 pnpm run test:e2e            # Tests E2E
 pnpm run test:e2e:ui         # Mode interactif
