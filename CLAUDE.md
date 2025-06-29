@@ -189,6 +189,15 @@ pnpm run shared:build              # Build shared package (turbo)
 - **Linting**: ESLint with NestJS, Angular, and TypeScript rules
 - **Validation**: Zod for runtime validation, comprehensive error handling
 
+## Git Hooks
+
+The project uses [Lefthook](https://lefthook.dev/) for managing git hooks:
+
+- **Pre-commit**: Runs `turbo quality` (type-check + lint + format:check) on all changed workspaces
+- **Installation**: Automatically installed via `postinstall` script when running `pnpm install`
+- **Skip hooks**: Use `git commit --no-verify` to bypass pre-commit checks when needed
+- **Configuration**: See `lefthook.yml` for hook definitions
+
 ## Database
 
 - **Database**: Supabase PostgreSQL with Row Level Security (RLS)

@@ -1,0 +1,12 @@
+# Lefthook configuration for Pulpe monorepo
+# https://github.com/evilmartians/lefthook
+
+pre-commit:
+  commands:
+    quality:
+      run: turbo quality
+      skip:
+        - merge
+        - rebase
+      env:
+        LEFTHOOK: 1

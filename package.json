@@ -5,6 +5,7 @@
   "description": "Pulpe monorepo workspace",
   "packageManager": "pnpm@10.12.1",
   "scripts": {
+    "postinstall": "lefthook install",
     "dev": "turbo dev",
     "dev:shared": "turbo dev --filter=@pulpe/shared",
     "dev:frontend": "turbo start --filter=pulpe-frontend",
@@ -33,6 +34,7 @@
     "dev:backend-only": "turbo build --filter=@pulpe/shared && cd backend-nest && bun run dev"
   },
   "devDependencies": {
+    "lefthook": "^1.9.2",
     "prettier": "^3.5.3",
     "typescript": "^5.8.3",
     "@types/node": "^24.0.4"
