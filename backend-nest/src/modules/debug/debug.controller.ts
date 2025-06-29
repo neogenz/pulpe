@@ -1,6 +1,8 @@
 import { Controller, Get, Post, Param, Query, Body } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
+import { ZodValidationException } from 'nestjs-zod';
+import { ZodError } from 'zod';
 
 @ApiTags('Debug')
 @Controller('debug')
@@ -22,6 +24,8 @@ export class DebugController {
     switch (type) {
       case 'validation':
         throw this.createValidationError(errorMessage);
+      case 'zod':
+        throw this.createZodValidationError();
       case 'not-found':
         throw this.createNotFoundError(errorMessage);
       case 'database':
@@ -64,6 +68,30 @@ export class DebugController {
     customError.name = 'CustomBusinessError';
     customError.stack = `CustomBusinessError: ${message}\n    at DebugController.testError (/app/debug.controller.ts:42:25)\n    at /app/node_modules/express/lib/router/route.js:144:13`;
     return customError;
+  }
+
+  private createZodValidationError(): ZodValidationException {
+    const zodErrors = [
+      {
+        code: 'too_small' as const,
+        minimum: 0,
+        type: 'number' as const,
+        inclusive: false,
+        exact: false,
+        message: 'Number must be greater than 0',
+        path: ['amount'],
+      },
+      {
+        code: 'invalid_type' as const,
+        expected: 'string' as const,
+        received: 'number' as const,
+        message: 'Expected string, received number',
+        path: ['name'],
+      },
+    ];
+
+    const zodError = new ZodError(zodErrors);
+    return new ZodValidationException(zodError);
   }
 
   @Post('test-service-error')

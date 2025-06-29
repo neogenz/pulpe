@@ -244,6 +244,45 @@ describe('GlobalExceptionFilter', () => {
 
         expect(result.stack).toBe('ZodValidationException stack trace');
       });
+
+      it('should extract detailed validation errors for logging', async () => {
+        const validationErrors = {
+          message: 'Validation failed',
+          errors: [
+            {
+              code: 'too_small',
+              path: ['amount'],
+              message: 'Number must be greater than 0',
+            },
+            {
+              code: 'invalid_type',
+              path: ['name'],
+              message: 'Expected string, received number',
+            },
+          ],
+        };
+        const zodException = createZodValidationException(validationErrors);
+
+        const mockRequest = createMockRequest();
+        const mockResponse = createMockResponse();
+        const mockHost = createMockArgumentsHost(mockRequest, mockResponse);
+
+        // Spy on logger to capture the log message
+        const loggerWarnSpy = { calls: [] as any[] };
+        const testFilter = new GlobalExceptionFilter({
+          ...mockLogger,
+          warn: (context: any, message: string) => {
+            loggerWarnSpy.calls.push({ context, message });
+          },
+        });
+
+        testFilter.catch(zodException, mockHost);
+
+        expect(loggerWarnSpy.calls).toHaveLength(1);
+        expect(loggerWarnSpy.calls[0].message).toBe(
+          'CLIENT ERROR: Validation failed - amount: Number must be greater than 0, name: Expected string, received number',
+        );
+      });
     });
 
     describe('HttpException handling', () => {
