@@ -1,9 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import {
-  ValidationPipe,
-  BadRequestException,
-  RequestMethod,
-} from '@nestjs/common';
+import { RequestMethod } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from 'nestjs-pino';
@@ -12,31 +8,7 @@ import { validateEnvironment } from '@config/environment';
 import { GlobalExceptionFilter } from '@common/filters/global-exception.filter';
 import { patchNestJsSwagger } from 'nestjs-zod';
 
-function setupValidationPipe(
-  app: import('@nestjs/common').INestApplication,
-): void {
-  app.useGlobalPipes(
-    new ValidationPipe({
-      transform: true,
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transformOptions: {
-        enableImplicitConversion: true,
-      },
-      exceptionFactory: (errors) => {
-        const result = errors.map((error) => ({
-          property: error.property,
-          value: error.value,
-          constraints: error.constraints,
-        }));
-        return new BadRequestException({
-          message: 'Validation failed',
-          errors: result,
-        });
-      },
-    }),
-  );
-}
+// ValidationPipe removed - using ZodValidationPipe from app.module.ts instead
 
 function setupCors(app: import('@nestjs/common').INestApplication): void {
   app.enableCors({
@@ -113,7 +85,6 @@ async function bootstrap() {
   app.useLogger(app.get(Logger));
   app.useGlobalFilters(new GlobalExceptionFilter());
 
-  setupValidationPipe(app);
   setupCors(app);
 
   app.setGlobalPrefix('api', {
