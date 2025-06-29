@@ -87,12 +87,12 @@ test.describe('Budget Template Management', () => {
           (await authenticatedPage.locator('form').count()) > 0;
         expect(stillOnAddPage).toBeTruthy();
       } catch (error) {
-        // Fallback: vérifier juste que la page est accessible
-        await budgetTemplatesPage.expectPageLoaded();
+        // Fallback: vérifier que la page d'ajout est accessible
+        await budgetTemplatesPage.expectAddPageLoaded();
       }
     } else {
-      // Si pas de formulaire, juste vérifier que la page charge
-      await budgetTemplatesPage.expectPageLoaded();
+      // Si pas de formulaire, vérifier que la page d'ajout est chargée
+      await budgetTemplatesPage.expectAddPageLoaded();
     }
   });
 

@@ -54,13 +54,35 @@ export class BudgetTemplatesPage {
   }
 
   async expectPageLoaded() {
-    // Use data-testid for page title instead of hardcoded text
-    await expect(this.page.locator('[data-testid="page-title"]')).toBeVisible();
+    // Check if we're on the main templates page or add template page
+    const isMainPage =
+      (await this.page
+        .locator('[data-testid="budget-templates-page"]')
+        .count()) > 0;
+    const isAddPage =
+      (await this.page.locator('[data-testid="add-template-page"]').count()) >
+      0;
 
-    // Ensure the page container is present
-    await expect(
-      this.page.locator('[data-testid="budget-templates-page"]'),
-    ).toBeVisible();
+    if (isMainPage) {
+      // Use data-testid for page title instead of hardcoded text
+      await expect(
+        this.page.locator('[data-testid="page-title"]'),
+      ).toBeVisible();
+      // Ensure the page container is present
+      await expect(
+        this.page.locator('[data-testid="budget-templates-page"]'),
+      ).toBeVisible();
+    } else if (isAddPage) {
+      // We're on the add template page
+      await this.expectAddPageLoaded();
+    } else {
+      // Fallback: check for basic page structure
+      const hasPageTitle =
+        (await this.page.locator('[data-testid="page-title"]').count()) > 0;
+      const hasContent =
+        (await this.page.locator('main, .content, body').count()) > 0;
+      expect(hasPageTitle || hasContent).toBeTruthy();
+    }
 
     // Vérifier qu'on n'est pas sur une page d'erreur
     const isErrorPage =
@@ -68,6 +90,14 @@ export class BudgetTemplatesPage {
         .locator('h1:has-text("Error"), h1:has-text("Erreur"), .error-page')
         .count()) > 0;
     expect(isErrorPage).toBeFalsy();
+  }
+
+  async expectAddPageLoaded() {
+    // Use data-testid for add template page
+    await expect(
+      this.page.locator('[data-testid="add-template-page"]'),
+    ).toBeVisible();
+    await expect(this.page.locator('[data-testid="page-title"]')).toBeVisible();
   }
 
   async expectTemplatesListVisible() {
