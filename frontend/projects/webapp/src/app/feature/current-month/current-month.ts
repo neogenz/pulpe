@@ -18,7 +18,6 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { DashboardError } from './components/dashboard-error';
 import { DashboardLoading } from './components/dashboard-loading';
-import { FinancialOverview } from './components/financial-overview';
 import { FixedTransactionsList } from './components/fixed-transactions-list';
 import {
   QuickAddExpenseForm,
@@ -28,6 +27,7 @@ import { VariableExpensesList } from './components/variable-expenses-list';
 import { CurrentMonthState } from './services/current-month-state';
 import { TransactionChipFilter } from './components/transaction-chip-filter';
 import { Title } from '@core/routing';
+import { BudgetProgressBar } from './components/budget-progress-bar';
 
 @Component({
   selector: 'pulpe-current-month',
@@ -40,7 +40,7 @@ import { Title } from '@core/routing';
     },
   ],
   imports: [
-    FinancialOverview,
+    BudgetProgressBar,
     DatePipe,
     MatCardModule,
     MatButtonModule,
@@ -97,12 +97,9 @@ import { Title } from '@core/routing';
           state.dashboardData.status() === 'local'
         ) {
           @if (state.dashboardData.value()?.budget) {
-            <pulpe-financial-overview
-              [incomeAmount]="state.incomeAmount()"
-              [expenseAmount]="state.expenseAmount()"
-              [savingsAmount]="state.savingsAmount()"
-              [negativeAmount]="state.negativeAmount()"
-              data-testid="financial-overview"
+            <pulpe-budget-progress-bar
+              [totalBudget]="state.incomeAmount()"
+              [remainingAmount]="state.expenseAmount()"
             />
             <div
               class="flex flex-col 2xl:flex-row gap-4 2xl:min-h-0 2xl:flex-1"
