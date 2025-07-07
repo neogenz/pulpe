@@ -10,6 +10,10 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import {
+  MatBottomSheet,
+  MatBottomSheetModule,
+} from '@angular/material/bottom-sheet';
+import {
   MAT_FORM_FIELD_DEFAULT_OPTIONS,
   MatFormFieldModule,
 } from '@angular/material/form-field';
@@ -19,15 +23,15 @@ import { MatSelectModule } from '@angular/material/select';
 import { DashboardError } from './components/dashboard-error';
 import { DashboardLoading } from './components/dashboard-loading';
 import { FixedTransactionsList } from './components/fixed-transactions-list';
-import {
-  QuickAddExpenseForm,
-  TransactionFormData,
-} from './components/quick-add-expense-form';
 import { VariableExpensesList } from './components/variable-expenses-list';
 import { CurrentMonthState } from './services/current-month-state';
 import { TransactionChipFilter } from './components/transaction-chip-filter';
 import { Title } from '@core/routing';
 import { BudgetProgressBar } from './components/budget-progress-bar';
+import {
+  AddTransactionBottomSheet,
+  TransactionFormData,
+} from './components/add-transaction-bottom-sheet';
 
 @Component({
   selector: 'pulpe-current-month',
@@ -44,6 +48,7 @@ import { BudgetProgressBar } from './components/budget-progress-bar';
     DatePipe,
     MatCardModule,
     MatButtonModule,
+    MatBottomSheetModule,
     MatIconModule,
     MatFormFieldModule,
     MatInputModule,
@@ -52,7 +57,6 @@ import { BudgetProgressBar } from './components/budget-progress-bar';
     DashboardError,
     DashboardLoading,
     VariableExpensesList,
-    QuickAddExpenseForm,
     TransactionChipFilter,
   ],
   template: `
@@ -99,10 +103,6 @@ import { BudgetProgressBar } from './components/budget-progress-bar';
               [remainingAmount]="state.expenseAmount()"
             />
             <div class="flex flex-col gap-4" data-testid="dashboard-content">
-              <pulpe-quick-add-expense-form
-                (addTransaction)="onAddTransaction($event)"
-                data-testid="quick-add-expense-form"
-              />
               <pulpe-transaction-chip-filter
                 data-testid="transaction-chip-filter"
               />
@@ -153,15 +153,43 @@ import { BudgetProgressBar } from './components/budget-progress-bar';
         }
       }
     </div>
+
+    <!-- FAB pour ajouter une transaction -->
+    <button
+      matFab
+      (click)="openAddTransactionBottomSheet()"
+      class="fab-button"
+      aria-label="Ajouter une transaction"
+      data-testid="add-transaction-fab"
+    >
+      <mat-icon>add</mat-icon>
+    </button>
   `,
   styles: `
     :host {
       display: block;
+      position: relative;
+      min-height: 100vh;
 
       --mat-button-tonal-container-height: 32px;
       --mat-button-tonal-horizontal-padding: 12px;
       --mat-button-tonal-icon-spacing: 4px;
       --mat-button-tonal-icon-offset: 0;
+    }
+
+    .fab-button {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 1000;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.24);
+    }
+
+    :host ::ng-deep .add-transaction-bottom-sheet {
+      .mat-mdc-bottom-sheet-container {
+        border-radius: 16px 16px 0 0;
+        max-height: 80vh;
+      }
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -171,6 +199,7 @@ export default class CurrentMonth implements OnInit {
   selectedTransactions = signal<string[]>([]);
   protected readonly state = inject(CurrentMonthState);
   protected readonly title = inject(Title);
+  private readonly bottomSheet = inject(MatBottomSheet);
   fixedTransactions = computed(() => {
     const transactions = this.state.dashboardData.value()?.transactions ?? [];
     return transactions.filter(
@@ -186,6 +215,26 @@ export default class CurrentMonth implements OnInit {
 
   ngOnInit() {
     this.state.refreshData();
+
+    // Ouverture automatique de la bottom sheet pour une UX sans friction
+    setTimeout(() => {
+      this.openAddTransactionBottomSheet();
+    }, 300); // Petit délai pour laisser la page se charger
+  }
+
+  openAddTransactionBottomSheet(): void {
+    const bottomSheetRef = this.bottomSheet.open(AddTransactionBottomSheet, {
+      disableClose: false,
+      panelClass: 'add-transaction-bottom-sheet',
+    });
+
+    bottomSheetRef
+      .afterDismissed()
+      .subscribe((transaction: TransactionFormData | undefined) => {
+        if (transaction) {
+          this.onAddTransaction(transaction);
+        }
+      });
   }
 
   async onAddTransaction(transaction: TransactionFormData) {
