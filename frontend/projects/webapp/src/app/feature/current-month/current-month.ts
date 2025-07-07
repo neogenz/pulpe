@@ -56,10 +56,7 @@ import { BudgetProgressBar } from './components/budget-progress-bar';
     TransactionChipFilter,
   ],
   template: `
-    <div
-      class="flex flex-col 2xl:h-full gap-4 2xl:min-h-0"
-      data-testid="current-month-page"
-    >
+    <div class="flex flex-col gap-4" data-testid="current-month-page">
       <header
         class="flex justify-between items-center"
         data-testid="page-header"
@@ -101,52 +98,43 @@ import { BudgetProgressBar } from './components/budget-progress-bar';
               [totalBudget]="state.incomeAmount()"
               [remainingAmount]="state.expenseAmount()"
             />
-            <div
-              class="flex flex-col 2xl:flex-row gap-4 2xl:min-h-0 2xl:flex-1"
-              data-testid="dashboard-content"
-            >
-              <div class="flex-1 2xl:flex-[6] flex flex-col gap-4">
-                <pulpe-quick-add-expense-form
-                  (addTransaction)="onAddTransaction($event)"
-                  data-testid="quick-add-expense-form"
-                />
-                <pulpe-transaction-chip-filter
-                  data-testid="transaction-chip-filter"
-                />
-                @if (selectedTransactions().length > 0) {
-                  <div class="flex gap-4" data-testid="bulk-actions">
-                    <button
-                      matButton="tonal"
-                      (click)="deleteSelectedTransactions()"
-                      data-testid="delete-selected-button"
-                    >
-                      <mat-icon>delete_sweep</mat-icon>
-                      Supprimer ({{ selectedTransactions().length }})
-                    </button>
-                    <button
-                      matButton="tonal"
-                      (click)="editSelectedTransactions()"
-                      data-testid="merge-selected-button"
-                    >
-                      <mat-icon>call_merge</mat-icon>
-                      Fusionner ({{ selectedTransactions().length }})
-                    </button>
-                  </div>
-                }
-                <pulpe-variable-expenses-list
-                  class="2xl:min-h-0 2xl:flex-1"
-                  [transactions]="variableTransactions()"
-                  [(selectedTransactions)]="selectedTransactions"
-                  data-testid="variable-expenses-list"
-                />
-              </div>
-              <div class="flex-1 2xl:flex-[4] 2xl:min-h-0">
-                <pulpe-fixed-transactions-list
-                  class="2xl:min-h-0 2xl:flex-1"
-                  [transactions]="fixedTransactions()"
-                  data-testid="fixed-transactions-list"
-                />
-              </div>
+            <div class="flex flex-col gap-4" data-testid="dashboard-content">
+              <pulpe-quick-add-expense-form
+                (addTransaction)="onAddTransaction($event)"
+                data-testid="quick-add-expense-form"
+              />
+              <pulpe-transaction-chip-filter
+                data-testid="transaction-chip-filter"
+              />
+              @if (selectedTransactions().length > 0) {
+                <div class="flex gap-4" data-testid="bulk-actions">
+                  <button
+                    matButton="tonal"
+                    (click)="deleteSelectedTransactions()"
+                    data-testid="delete-selected-button"
+                  >
+                    <mat-icon>delete_sweep</mat-icon>
+                    Supprimer ({{ selectedTransactions().length }})
+                  </button>
+                  <button
+                    matButton="tonal"
+                    (click)="editSelectedTransactions()"
+                    data-testid="merge-selected-button"
+                  >
+                    <mat-icon>call_merge</mat-icon>
+                    Fusionner ({{ selectedTransactions().length }})
+                  </button>
+                </div>
+              }
+              <pulpe-fixed-transactions-list
+                [transactions]="fixedTransactions()"
+                data-testid="fixed-transactions-list"
+              />
+              <pulpe-variable-expenses-list
+                [transactions]="variableTransactions()"
+                [(selectedTransactions)]="selectedTransactions"
+                data-testid="variable-expenses-list"
+              />
             </div>
           } @else {
             <div class="empty-state" data-testid="empty-state">
@@ -169,7 +157,6 @@ import { BudgetProgressBar } from './components/budget-progress-bar';
   styles: `
     :host {
       display: block;
-      height: 100%;
 
       --mat-button-tonal-container-height: 32px;
       --mat-button-tonal-horizontal-padding: 12px;

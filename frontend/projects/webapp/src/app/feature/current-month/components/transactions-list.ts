@@ -1,8 +1,10 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   input,
   model,
+  signal,
 } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
@@ -10,6 +12,8 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatListModule } from '@angular/material/list';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatRippleModule } from '@angular/material/core';
+import { MatButtonModule } from '@angular/material/button';
+import { MatChipsModule } from '@angular/material/chips';
 import { Transaction } from '@pulpe/shared';
 
 export interface TransactionsListConfig {
@@ -19,6 +23,7 @@ export interface TransactionsListConfig {
   readonly emptyStateTitle?: string;
   readonly emptyStateSubtitle?: string;
   readonly selectable?: boolean;
+  readonly defaultExpanded?: boolean;
 }
 
 @Component({
@@ -30,139 +35,177 @@ export interface TransactionsListConfig {
     MatListModule,
     MatCheckboxModule,
     MatRippleModule,
+    MatButtonModule,
+    MatChipsModule,
   ],
   template: `
     <div
-      class="flex flex-col rounded-corner-large overflow-hidden bg-surface-container-low max-h-[50vh] 2xl:h-full 2xl:max-h-none"
+      class="flex flex-col rounded-corner-large overflow-hidden bg-surface-container-low"
     >
-      <div class="pb-0 p-4">
-        <div class="flex justify-between items-start mb-1">
-          <h2 class="text-headline-small">{{ config().title }}</h2>
-          @if (config().totalAmount !== undefined) {
-            <span
-              class="text-title-medium font-medium"
-              [class.text-pulpe-financial-income]="config().totalAmount! > 0"
-              [class.text-pulpe-financial-expense]="config().totalAmount! < 0"
-              [class.text-on-surface]="config().totalAmount! === 0"
-            >
-              {{ config().totalAmount! > 0 ? '+' : ''
-              }}{{
-                config().totalAmount!
-                  | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH'
-              }}
-            </span>
-          }
+      <div
+        class="pb-0 p-4 cursor-pointer"
+        role="button"
+        tabindex="0"
+        (click)="toggleExpanded()"
+        (keyup.enter)="toggleExpanded()"
+        (keyup.space)="toggleExpanded()"
+      >
+        <div class="flex justify-between items-center">
+          <div class="flex items-center gap-3">
+            <h2 class="text-headline-small">{{ config().title }}</h2>
+            @if (config().totalAmount !== undefined) {
+              <span
+                class="text-title-medium font-medium"
+                [class.text-pulpe-financial-income]="config().totalAmount! > 0"
+                [class.text-pulpe-financial-expense]="config().totalAmount! < 0"
+                [class.text-on-surface]="config().totalAmount! === 0"
+              >
+                {{ config().totalAmount! > 0 ? '+' : ''
+                }}{{
+                  config().totalAmount!
+                    | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH'
+                }}
+              </span>
+            }
+            <mat-chip-set>
+              <mat-chip>
+                {{ transactions().length }}
+                {{
+                  transactions().length === 1 ? 'transaction' : 'transactions'
+                }}
+              </mat-chip>
+            </mat-chip-set>
+          </div>
+          <mat-icon
+            class="transition-transform duration-200"
+            [class.rotate-180]="!isExpanded()"
+          >
+            expand_less
+          </mat-icon>
         </div>
-        <p class="text-body-medium text-(--color-on-surface-variant) m-0">
-          {{ transactions().length }}
-          {{ transactions().length === 1 ? 'transaction' : 'transactions' }}
-        </p>
       </div>
 
-      <div class="flex-1 overflow-y-auto">
-        @if (transactions().length === 0) {
-          <div
-            class="flex flex-col items-center justify-center py-8 text-center"
-          >
-            <mat-icon
-              class="text-(--color-outline) mb-3"
-              style="font-size: 48px; width: 48px; height: 48px;"
+      @if (isExpanded()) {
+        <div>
+          @if (transactions().length === 0) {
+            <div
+              class="flex flex-col items-center justify-center py-8 text-center"
             >
-              {{ config().emptyStateIcon || 'inbox' }}
-            </mat-icon>
-            <p class="text-body-large text-(--color-on-surface-variant) mb-1">
-              {{ config().emptyStateTitle || 'Aucune transaction' }}
-            </p>
-            <p class="text-body-small text-(--color-outline)">
-              {{
-                config().emptyStateSubtitle ||
-                  'Les transactions apparaîtront ici'
-              }}
-            </p>
-          </div>
-        } @else {
-          <mat-list class="!pb-0">
-            @for (
-              transaction of transactions();
-              track transaction.id;
-              let isLast = $last;
-              let isOdd = $odd
-            ) {
-              <mat-list-item
-                matRipple
-                [matRippleDisabled]="!config().selectable"
-                [class.odd-item]="isOdd"
-                [class.income-item]="transaction.type === 'income'"
-                [class.saving-item]="transaction.type === 'saving'"
-                [class.expense-item]="transaction.type === 'expense'"
-                [class.!cursor-pointer]="config().selectable"
-                (click)="
-                  config().selectable ? toggleSelection(transaction.id) : null
-                "
+              <mat-icon
+                class="text-(--color-outline) mb-3"
+                style="font-size: 48px; width: 48px; height: 48px;"
               >
-                <div
-                  matListItemAvatar
-                  class="flex justify-center items-center gap-4"
+                {{ config().emptyStateIcon || 'inbox' }}
+              </mat-icon>
+              <p class="text-body-large text-(--color-on-surface-variant) mb-1">
+                {{ config().emptyStateTitle || 'Aucune transaction' }}
+              </p>
+              <p class="text-body-small text-(--color-outline)">
+                {{
+                  config().emptyStateSubtitle ||
+                    'Les transactions apparaîtront ici'
+                }}
+              </p>
+            </div>
+          } @else {
+            <mat-list class="!pb-0">
+              @for (
+                transaction of displayedTransactions();
+                track transaction.id;
+                let isLast = $last;
+                let isOdd = $odd
+              ) {
+                <mat-list-item
+                  matRipple
+                  [matRippleDisabled]="!config().selectable"
+                  [class.odd-item]="isOdd"
+                  [class.income-item]="transaction.type === 'income'"
+                  [class.saving-item]="transaction.type === 'saving'"
+                  [class.expense-item]="transaction.type === 'expense'"
+                  [class.!cursor-pointer]="config().selectable"
+                  (click)="
+                    config().selectable ? toggleSelection(transaction.id) : null
+                  "
                 >
-                  @if (config().selectable) {
-                    <mat-checkbox
-                      [checked]="isSelected(transaction.id)"
-                      (change)="
-                        onSelectionChange(transaction.id, $event.checked)
-                      "
-                      (click)="$event.stopPropagation()"
-                    />
+                  <div
+                    matListItemAvatar
+                    class="flex justify-center items-center gap-4"
+                  >
+                    @if (config().selectable) {
+                      <mat-checkbox
+                        [checked]="isSelected(transaction.id)"
+                        (change)="
+                          onSelectionChange(transaction.id, $event.checked)
+                        "
+                        (click)="$event.stopPropagation()"
+                      />
+                    }
+                    <div
+                      class="flex justify-center items-center size-11 bg-surface rounded-full"
+                    >
+                      @switch (transaction.type) {
+                        @case ('income') {
+                          <mat-icon class="!text-(--pulpe-financial-income)">
+                            trending_up
+                          </mat-icon>
+                        }
+                        @case ('saving') {
+                          <mat-icon class="!text-(--pulpe-financial-savings)">
+                            savings
+                          </mat-icon>
+                        }
+                        @default {
+                          <mat-icon class="!text-(--pulpe-financial-expense)">
+                            trending_down
+                          </mat-icon>
+                        }
+                      }
+                    </div>
+                  </div>
+                  <div matListItemTitle>{{ transaction.name }}</div>
+                  @if (transaction.description) {
+                    <div matListItemLine class="text-body-small italic">
+                      {{ transaction.description }}
+                    </div>
                   }
                   <div
-                    class="flex justify-center items-center size-11 bg-surface rounded-full"
+                    matListItemMeta
+                    class="!flex !h-full !items-center !gap-3"
                   >
-                    @switch (transaction.type) {
-                      @case ('income') {
-                        <mat-icon class="!text-(--pulpe-financial-income)">
-                          trending_up
-                        </mat-icon>
-                      }
-                      @case ('saving') {
-                        <mat-icon class="!text-(--pulpe-financial-savings)">
-                          savings
-                        </mat-icon>
-                      }
-                      @default {
-                        <mat-icon class="!text-(--pulpe-financial-expense)">
-                          trending_down
-                        </mat-icon>
-                      }
-                    }
+                    <span>
+                      {{
+                        transaction.type === 'income'
+                          ? '+'
+                          : transaction.type === 'expense'
+                            ? '-'
+                            : ''
+                      }}{{
+                        transaction.amount
+                          | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH'
+                      }}
+                    </span>
                   </div>
-                </div>
-                <div matListItemTitle>{{ transaction.name }}</div>
-                @if (transaction.description) {
-                  <div matListItemLine class="text-body-small italic">
-                    {{ transaction.description }}
-                  </div>
+                </mat-list-item>
+                @if (!isLast) {
+                  <mat-divider></mat-divider>
                 }
-                <div matListItemMeta class="!flex !h-full !items-center !gap-3">
-                  <span>
-                    {{
-                      transaction.type === 'income'
-                        ? '+'
-                        : transaction.type === 'expense'
-                          ? '-'
-                          : ''
-                    }}{{
-                      transaction.amount
-                        | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH'
-                    }}
-                  </span>
-                </div>
-              </mat-list-item>
-              @if (!isLast) {
-                <mat-divider></mat-divider>
               }
+            </mat-list>
+
+            @if (hasMoreTransactions()) {
+              <div class="flex justify-center p-4">
+                <button
+                  matButton
+                  (click)="showAllTransactions()"
+                  class="text-primary"
+                >
+                  Voir plus ({{ remainingTransactionsCount() }})
+                </button>
+              </div>
             }
-          </mat-list>
-        }
-      </div>
+          }
+        </div>
+      }
     </div>
   `,
   styles: `
@@ -233,8 +276,52 @@ export interface TransactionsListConfig {
 export class TransactionsList {
   readonly transactions = input.required<Transaction[]>();
   readonly config = input.required<TransactionsListConfig>();
-
   readonly selectedTransactions = model<string[]>([]);
+
+  private readonly expandedState = signal<boolean | null>(null);
+  protected readonly showAllItems = signal(false);
+  private readonly maxItemsToShow = 5;
+
+  protected readonly isExpanded = computed(() => {
+    const explicitState = this.expandedState();
+    if (explicitState !== null) {
+      return explicitState;
+    }
+    return this.config().defaultExpanded ?? true;
+  });
+
+  protected readonly displayedTransactions = computed(() => {
+    const allTransactions = this.transactions();
+    if (!this.isExpanded()) {
+      return [];
+    }
+    if (this.showAllItems() || allTransactions.length <= this.maxItemsToShow) {
+      return allTransactions;
+    }
+    return allTransactions.slice(0, this.maxItemsToShow);
+  });
+
+  protected readonly hasMoreTransactions = computed(() => {
+    return (
+      this.transactions().length > this.maxItemsToShow && !this.showAllItems()
+    );
+  });
+
+  protected readonly remainingTransactionsCount = computed(() => {
+    return Math.max(0, this.transactions().length - this.maxItemsToShow);
+  });
+
+  protected toggleExpanded(): void {
+    const currentExpanded = this.isExpanded();
+    this.expandedState.set(!currentExpanded);
+    if (!this.isExpanded()) {
+      this.showAllItems.set(false);
+    }
+  }
+
+  protected showAllTransactions(): void {
+    this.showAllItems.set(true);
+  }
 
   onSelectionChange(transactionId: string, selected: boolean): void {
     const currentSelection = this.selectedTransactions();

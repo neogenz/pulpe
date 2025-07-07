@@ -44,6 +44,7 @@ export class VariableExpensesList {
       emptyStateTitle: 'Aucune transaction variable',
       emptyStateSubtitle: 'Vos transactions ponctuelles apparaîtront ici',
       selectable: true,
+      defaultExpanded: true,
     }),
   );
 }
