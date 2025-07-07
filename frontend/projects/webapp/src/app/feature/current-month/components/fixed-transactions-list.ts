@@ -39,6 +39,7 @@ export class FixedTransactionsList {
       emptyStateIcon: 'event_repeat',
       emptyStateTitle: 'Aucune transaction fixe',
       emptyStateSubtitle: 'Vos transactions récurrentes apparaîtront ici',
+      defaultExpanded: false,
     }),
   );
 }
