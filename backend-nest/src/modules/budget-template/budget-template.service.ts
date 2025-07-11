@@ -45,7 +45,7 @@ export class BudgetTemplateService {
   ): Promise<BudgetTemplateListResponse> {
     try {
       const { data: templatesDb, error } = await supabase
-        .from('budget_templates')
+        .from('template')
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -104,7 +104,7 @@ export class BudgetTemplateService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<unknown> {
     const { data: templateDb, error } = await supabase
-      .from('budget_templates')
+      .from('template')
       .insert(templateData)
       .select()
       .single();
@@ -161,7 +161,7 @@ export class BudgetTemplateService {
   ): Promise<BudgetTemplateResponse> {
     try {
       const { data: templateDb, error } = await supabase
-        .from('budget_templates')
+        .from('template')
         .select('*')
         .eq('id', id)
         .single();
@@ -228,7 +228,7 @@ export class BudgetTemplateService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<unknown> {
     const { data: templateDb, error } = await supabase
-      .from('budget_templates')
+      .from('template')
       .update(updateData)
       .eq('id', id)
       .select()
@@ -295,10 +295,7 @@ export class BudgetTemplateService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetTemplateDeleteResponse> {
     try {
-      const { error } = await supabase
-        .from('budget_templates')
-        .delete()
-        .eq('id', id);
+      const { error } = await supabase.from('template').delete().eq('id', id);
 
       if (error) {
         this.logger.error({ err: error }, 'Failed to delete budget template');
@@ -327,7 +324,7 @@ export class BudgetTemplateService {
   ): Promise<TemplateTransactionListResponse> {
     try {
       const { data: templateTransactionsDb, error } = await supabase
-        .from('template_transactions')
+        .from('template_line')
         .select('*')
         .eq('template_id', id)
         .order('created_at', { ascending: false });
@@ -430,7 +427,7 @@ export class BudgetTemplateService {
     excludeId?: string,
   ): Promise<void> {
     const { error } = await supabase
-      .from('budget_templates')
+      .from('template')
       .update({ is_default: false })
       .eq('user_id', userId)
       .eq('is_default', true)

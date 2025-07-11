@@ -1,7 +1,7 @@
 import type { Database } from './database.types';
 
 // Types helper pour simplifier l'utilisation
-export type Tables<T extends keyof Database['public']['Tables']> =
+export type TableRows<T extends keyof Database['public']['Tables']> =
   Database['public']['Tables'][T]['Row'];
 
 export type InsertDto<T extends keyof Database['public']['Tables']> =
@@ -11,21 +11,21 @@ export type UpdateDto<T extends keyof Database['public']['Tables']> =
   Database['public']['Tables'][T]['Update'];
 
 // Types spécifiques pour vos entités avec noms explicites
-export type TransactionRow = Tables<'transactions'>;
-export type TransactionInsert = InsertDto<'transactions'>;
-export type TransactionUpdate = UpdateDto<'transactions'>;
+export type TransactionRow = TableRows<'transaction'>;
+export type TransactionInsert = InsertDto<'transaction'>;
+export type TransactionUpdate = UpdateDto<'transaction'>;
 
-export type BudgetRow = Tables<'budgets'>;
-export type BudgetInsert = InsertDto<'budgets'>;
-export type BudgetUpdate = UpdateDto<'budgets'>;
+export type BudgetRow = TableRows<'monthly_budget'>;
+export type BudgetInsert = InsertDto<'monthly_budget'>;
+export type BudgetUpdate = UpdateDto<'monthly_budget'>;
 
-export type BudgetTemplateRow = Tables<'budget_templates'>;
-export type BudgetTemplateInsert = InsertDto<'budget_templates'>;
-export type BudgetTemplateUpdate = UpdateDto<'budget_templates'>;
+export type BudgetTemplateRow = TableRows<'template'>;
+export type BudgetTemplateInsert = InsertDto<'template'>;
+export type BudgetTemplateUpdate = UpdateDto<'template'>;
 
-export type TemplateTransactionRow = Tables<'template_transactions'>;
-export type TemplateTransactionInsert = InsertDto<'template_transactions'>;
-export type TemplateTransactionUpdate = UpdateDto<'template_transactions'>;
+export type TemplateTransactionRow = TableRows<'template_line'>;
+export type TemplateTransactionInsert = InsertDto<'template_line'>;
+export type TemplateTransactionUpdate = UpdateDto<'template_line'>;
 
 // Types d'énumérations
 export type ExpenseType = Database['public']['Enums']['expense_type'];

@@ -64,7 +64,7 @@ CREATE OR REPLACE FUNCTION "public"."create_budget_from_onboarding_with_transact
   transaction_count integer := 0;
 BEGIN
   -- Insert budget
-  INSERT INTO public.budgets (user_id, month, year, description)
+  INSERT INTO public.monthly_budget (user_id, month, year, description)
   VALUES (p_user_id, p_month, p_year, p_description)
   RETURNING id INTO new_budget_id;
 
@@ -132,7 +132,7 @@ BEGIN
   RETURN jsonb_build_object(
     'budget', (
       SELECT to_jsonb(b.*) 
-      FROM public.budgets b 
+      FROM public.monthly_budget b 
       WHERE b.id = new_budget_id
     ),
     'transactions_created', transaction_count
@@ -161,7 +161,7 @@ SET default_tablespace = '';
 SET default_table_access_method = "heap";
 
 
-CREATE TABLE IF NOT EXISTS "public"."budget_templates" (
+CREATE TABLE IF NOT EXISTS "public"."template" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "user_id" "uuid",
     "name" "text" NOT NULL,
@@ -173,10 +173,10 @@ CREATE TABLE IF NOT EXISTS "public"."budget_templates" (
 );
 
 
-ALTER TABLE "public"."budget_templates" OWNER TO "postgres";
+ALTER TABLE "public"."template" OWNER TO "postgres";
 
 
-CREATE TABLE IF NOT EXISTS "public"."budgets" (
+CREATE TABLE IF NOT EXISTS "public"."monthly_budget" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "month" integer NOT NULL,
     "year" integer NOT NULL,
@@ -185,15 +185,15 @@ CREATE TABLE IF NOT EXISTS "public"."budgets" (
     "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "user_id" "uuid",
     "template_id" "uuid",
-    CONSTRAINT "budgets_month_check" CHECK ((("month" >= 1) AND ("month" <= 12))),
-    CONSTRAINT "budgets_year_check" CHECK (("year" >= 1900))
+    CONSTRAINT "monthly_budget_month_check" CHECK ((("month" >= 1) AND ("month" <= 12))),
+    CONSTRAINT "monthly_budget_year_check" CHECK (("year" >= 1900))
 );
 
 
-ALTER TABLE "public"."budgets" OWNER TO "postgres";
+ALTER TABLE "public"."monthly_budget" OWNER TO "postgres";
 
 
-CREATE TABLE IF NOT EXISTS "public"."template_transactions" (
+CREATE TABLE IF NOT EXISTS "public"."template_line" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "template_id" "uuid" NOT NULL,
     "amount" numeric(12,2) NOT NULL,
@@ -204,11 +204,11 @@ CREATE TABLE IF NOT EXISTS "public"."template_transactions" (
     "is_recurring" boolean DEFAULT true NOT NULL,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    CONSTRAINT "template_transactions_amount_check" CHECK (("amount" > (0)::numeric))
+    CONSTRAINT "template_line_amount_check" CHECK (("amount" > (0)::numeric))
 );
 
 
-ALTER TABLE "public"."template_transactions" OWNER TO "postgres";
+ALTER TABLE "public"."template_line" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."transactions" (
@@ -230,18 +230,18 @@ CREATE TABLE IF NOT EXISTS "public"."transactions" (
 ALTER TABLE "public"."transactions" OWNER TO "postgres";
 
 
-ALTER TABLE ONLY "public"."budget_templates"
-    ADD CONSTRAINT "budget_templates_pkey" PRIMARY KEY ("id");
+ALTER TABLE ONLY "public"."template"
+    ADD CONSTRAINT "template_pkey" PRIMARY KEY ("id");
 
 
 
-ALTER TABLE ONLY "public"."budgets"
-    ADD CONSTRAINT "budgets_pkey" PRIMARY KEY ("id");
+ALTER TABLE ONLY "public"."monthly_budget"
+    ADD CONSTRAINT "monthly_budget_pkey" PRIMARY KEY ("id");
 
 
 
-ALTER TABLE ONLY "public"."template_transactions"
-    ADD CONSTRAINT "template_transactions_pkey" PRIMARY KEY ("id");
+ALTER TABLE ONLY "public"."template_line"
+    ADD CONSTRAINT "template_line_pkey" PRIMARY KEY ("id");
 
 
 
@@ -250,36 +250,36 @@ ALTER TABLE ONLY "public"."transactions"
 
 
 
-ALTER TABLE ONLY "public"."budgets"
+ALTER TABLE ONLY "public"."monthly_budget"
     ADD CONSTRAINT "unique_month_year_per_user" UNIQUE ("month", "year", "user_id");
 
 
 
-CREATE INDEX "budgets_user_id_idx" ON "public"."budgets" USING "btree" ("user_id");
+CREATE INDEX "monthly_budget_user_id_idx" ON "public"."monthly_budget" USING "btree" ("user_id");
 
 
 
-CREATE INDEX "idx_budget_templates_category" ON "public"."budget_templates" USING "btree" ("category");
+CREATE INDEX "idx_template_category" ON "public"."template" USING "btree" ("category");
 
 
 
-CREATE INDEX "idx_budget_templates_user_id" ON "public"."budget_templates" USING "btree" ("user_id");
+CREATE INDEX "idx_template_user_id" ON "public"."template" USING "btree" ("user_id");
 
 
 
-CREATE INDEX "idx_budgets_created_at" ON "public"."budgets" USING "btree" ("created_at");
+CREATE INDEX "idx_monthly_budget_created_at" ON "public"."monthly_budget" USING "btree" ("created_at");
 
 
 
-CREATE INDEX "idx_budgets_month_year" ON "public"."budgets" USING "btree" ("year", "month");
+CREATE INDEX "idx_monthly_budget_month_year" ON "public"."monthly_budget" USING "btree" ("year", "month");
 
 
 
-CREATE INDEX "idx_budgets_template_id" ON "public"."budgets" USING "btree" ("template_id");
+CREATE INDEX "idx_monthly_budget_template_id" ON "public"."monthly_budget" USING "btree" ("template_id");
 
 
 
-CREATE INDEX "idx_template_transactions_template_id" ON "public"."template_transactions" USING "btree" ("template_id");
+CREATE INDEX "idx_template_line_template_id" ON "public"."template_line" USING "btree" ("template_id");
 
 
 
@@ -307,15 +307,15 @@ CREATE INDEX "transactions_user_id_idx" ON "public"."transactions" USING "btree"
 
 
 
-CREATE OR REPLACE TRIGGER "update_budget_templates_updated_at" BEFORE UPDATE ON "public"."budget_templates" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
+CREATE OR REPLACE TRIGGER "update_template_updated_at" BEFORE UPDATE ON "public"."template" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
 
 
 
-CREATE OR REPLACE TRIGGER "update_budgets_updated_at" BEFORE UPDATE ON "public"."budgets" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
+CREATE OR REPLACE TRIGGER "update_monthly_budget_updated_at" BEFORE UPDATE ON "public"."monthly_budget" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
 
 
 
-CREATE OR REPLACE TRIGGER "update_template_transactions_updated_at" BEFORE UPDATE ON "public"."template_transactions" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
+CREATE OR REPLACE TRIGGER "update_template_line_updated_at" BEFORE UPDATE ON "public"."template_line" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
 
 
 
@@ -323,28 +323,28 @@ CREATE OR REPLACE TRIGGER "update_transactions_updated_at" BEFORE UPDATE ON "pub
 
 
 
-ALTER TABLE ONLY "public"."budget_templates"
-    ADD CONSTRAINT "budget_templates_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+ALTER TABLE ONLY "public"."template"
+    ADD CONSTRAINT "template_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
 
 
 
-ALTER TABLE ONLY "public"."budgets"
-    ADD CONSTRAINT "budgets_template_id_fkey" FOREIGN KEY ("template_id") REFERENCES "public"."budget_templates"("id");
+ALTER TABLE ONLY "public"."monthly_budget"
+    ADD CONSTRAINT "monthly_budget_template_id_fkey" FOREIGN KEY ("template_id") REFERENCES "public"."template"("id");
 
 
 
-ALTER TABLE ONLY "public"."budgets"
-    ADD CONSTRAINT "budgets_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+ALTER TABLE ONLY "public"."monthly_budget"
+    ADD CONSTRAINT "monthly_budget_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
 
 
 
-ALTER TABLE ONLY "public"."template_transactions"
-    ADD CONSTRAINT "template_transactions_template_id_fkey" FOREIGN KEY ("template_id") REFERENCES "public"."budget_templates"("id") ON DELETE CASCADE;
+ALTER TABLE ONLY "public"."template_line"
+    ADD CONSTRAINT "template_line_template_id_fkey" FOREIGN KEY ("template_id") REFERENCES "public"."template"("id") ON DELETE CASCADE;
 
 
 
 ALTER TABLE ONLY "public"."transactions"
-    ADD CONSTRAINT "transactions_budget_id_fkey" FOREIGN KEY ("budget_id") REFERENCES "public"."budgets"("id") ON DELETE CASCADE;
+    ADD CONSTRAINT "transactions_budget_id_fkey" FOREIGN KEY ("budget_id") REFERENCES "public"."monthly_budget"("id") ON DELETE CASCADE;
 
 
 
@@ -353,47 +353,47 @@ ALTER TABLE ONLY "public"."transactions"
 
 
 
-CREATE POLICY "Users can delete own templates" ON "public"."budget_templates" FOR DELETE USING (("auth"."uid"() = "user_id"));
+CREATE POLICY "Users can delete own templates" ON "public"."template" FOR DELETE USING (("auth"."uid"() = "user_id"));
 
 
 
-CREATE POLICY "Users can delete template transactions for own templates" ON "public"."template_transactions" FOR DELETE USING ((EXISTS ( SELECT 1
-   FROM "public"."budget_templates"
-  WHERE (("budget_templates"."id" = "template_transactions"."template_id") AND ("auth"."uid"() = "budget_templates"."user_id")))));
+CREATE POLICY "Users can delete template line for own templates" ON "public"."template_line" FOR DELETE USING ((EXISTS ( SELECT 1
+   FROM "public"."template"
+  WHERE (("template"."id" = "template_line"."template_id") AND ("auth"."uid"() = "template"."user_id")))));
 
 
 
-CREATE POLICY "Users can insert own templates" ON "public"."budget_templates" FOR INSERT WITH CHECK (("auth"."uid"() = "user_id"));
+CREATE POLICY "Users can insert own templates" ON "public"."template" FOR INSERT WITH CHECK (("auth"."uid"() = "user_id"));
 
 
 
-CREATE POLICY "Users can insert template transactions for own templates" ON "public"."template_transactions" FOR INSERT WITH CHECK ((EXISTS ( SELECT 1
-   FROM "public"."budget_templates"
-  WHERE (("budget_templates"."id" = "template_transactions"."template_id") AND ("auth"."uid"() = "budget_templates"."user_id")))));
+CREATE POLICY "Users can insert template line for own templates" ON "public"."template_line" FOR INSERT WITH CHECK ((EXISTS ( SELECT 1
+   FROM "public"."template"
+  WHERE (("template"."id" = "template_line"."template_id") AND ("auth"."uid"() = "template"."user_id")))));
 
 
 
-CREATE POLICY "Users can update own templates" ON "public"."budget_templates" FOR UPDATE USING (("auth"."uid"() = "user_id"));
+CREATE POLICY "Users can update own templates" ON "public"."template" FOR UPDATE USING (("auth"."uid"() = "user_id"));
 
 
 
-CREATE POLICY "Users can update template transactions for own templates" ON "public"."template_transactions" FOR UPDATE USING ((EXISTS ( SELECT 1
-   FROM "public"."budget_templates"
-  WHERE (("budget_templates"."id" = "template_transactions"."template_id") AND ("auth"."uid"() = "budget_templates"."user_id")))));
+CREATE POLICY "Users can update template line for own templates" ON "public"."template_line" FOR UPDATE USING ((EXISTS ( SELECT 1
+   FROM "public"."template"
+  WHERE (("template"."id" = "template_line"."template_id") AND ("auth"."uid"() = "template"."user_id")))));
 
 
 
-CREATE POLICY "Users can view own templates and public templates" ON "public"."budget_templates" FOR SELECT USING ((("auth"."uid"() = "user_id") OR ("user_id" IS NULL)));
+CREATE POLICY "Users can view own templates and public templates" ON "public"."template" FOR SELECT USING ((("auth"."uid"() = "user_id") OR ("user_id" IS NULL)));
 
 
 
-CREATE POLICY "Users can view template transactions based on template access" ON "public"."template_transactions" FOR SELECT USING ((EXISTS ( SELECT 1
-   FROM "public"."budget_templates"
-  WHERE (("budget_templates"."id" = "template_transactions"."template_id") AND (("auth"."uid"() = "budget_templates"."user_id") OR ("budget_templates"."user_id" IS NULL))))));
+CREATE POLICY "Users can view template line based on template access" ON "public"."template_line" FOR SELECT USING ((EXISTS ( SELECT 1
+   FROM "public"."template"
+  WHERE (("template"."id" = "template_line"."template_id") AND (("auth"."uid"() = "template"."user_id") OR ("template"."user_id" IS NULL))))));
 
 
 
-CREATE POLICY "Utilisateurs peuvent créer leurs budgets" ON "public"."budgets" FOR INSERT WITH CHECK ((( SELECT "auth"."uid"() AS "uid") = "user_id"));
+CREATE POLICY "Utilisateurs peuvent créer leurs budgets" ON "public"."monthly_budget" FOR INSERT WITH CHECK ((( SELECT "auth"."uid"() AS "uid") = "user_id"));
 
 
 
@@ -401,7 +401,7 @@ CREATE POLICY "Utilisateurs peuvent créer leurs transactions" ON "public"."tran
 
 
 
-CREATE POLICY "Utilisateurs peuvent modifier leurs budgets" ON "public"."budgets" FOR UPDATE USING ((( SELECT "auth"."uid"() AS "uid") = "user_id")) WITH CHECK ((( SELECT "auth"."uid"() AS "uid") = "user_id"));
+CREATE POLICY "Utilisateurs peuvent modifier leurs budgets" ON "public"."monthly_budget" FOR UPDATE USING ((( SELECT "auth"."uid"() AS "uid") = "user_id")) WITH CHECK ((( SELECT "auth"."uid"() AS "uid") = "user_id"));
 
 
 
@@ -409,7 +409,7 @@ CREATE POLICY "Utilisateurs peuvent modifier leurs transactions" ON "public"."tr
 
 
 
-CREATE POLICY "Utilisateurs peuvent supprimer leurs budgets" ON "public"."budgets" FOR DELETE USING ((( SELECT "auth"."uid"() AS "uid") = "user_id"));
+CREATE POLICY "Utilisateurs peuvent supprimer leurs budgets" ON "public"."monthly_budget" FOR DELETE USING ((( SELECT "auth"."uid"() AS "uid") = "user_id"));
 
 
 
@@ -417,7 +417,7 @@ CREATE POLICY "Utilisateurs peuvent supprimer leurs transactions" ON "public"."t
 
 
 
-CREATE POLICY "Utilisateurs peuvent voir leurs budgets" ON "public"."budgets" FOR SELECT USING ((( SELECT "auth"."uid"() AS "uid") = "user_id"));
+CREATE POLICY "Utilisateurs peuvent voir leurs budgets" ON "public"."monthly_budget" FOR SELECT USING ((( SELECT "auth"."uid"() AS "uid") = "user_id"));
 
 
 
@@ -425,13 +425,13 @@ CREATE POLICY "Utilisateurs peuvent voir leurs transactions" ON "public"."transa
 
 
 
-ALTER TABLE "public"."budget_templates" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."template" ENABLE ROW LEVEL SECURITY;
 
 
-ALTER TABLE "public"."budgets" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."monthly_budget" ENABLE ROW LEVEL SECURITY;
 
 
-ALTER TABLE "public"."template_transactions" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."template_line" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."transactions" ENABLE ROW LEVEL SECURITY;
@@ -462,21 +462,21 @@ GRANT ALL ON FUNCTION "public"."update_updated_at_column"() TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."budget_templates" TO "anon";
-GRANT ALL ON TABLE "public"."budget_templates" TO "authenticated";
-GRANT ALL ON TABLE "public"."budget_templates" TO "service_role";
+GRANT ALL ON TABLE "public"."template" TO "anon";
+GRANT ALL ON TABLE "public"."template" TO "authenticated";
+GRANT ALL ON TABLE "public"."template" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."budgets" TO "anon";
-GRANT ALL ON TABLE "public"."budgets" TO "authenticated";
-GRANT ALL ON TABLE "public"."budgets" TO "service_role";
+GRANT ALL ON TABLE "public"."monthly_budget" TO "anon";
+GRANT ALL ON TABLE "public"."monthly_budget" TO "authenticated";
+GRANT ALL ON TABLE "public"."monthly_budget" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."template_transactions" TO "anon";
-GRANT ALL ON TABLE "public"."template_transactions" TO "authenticated";
-GRANT ALL ON TABLE "public"."template_transactions" TO "service_role";
+GRANT ALL ON TABLE "public"."template_line" TO "anon";
+GRANT ALL ON TABLE "public"."template_line" TO "authenticated";
+GRANT ALL ON TABLE "public"."template_line" TO "service_role";
 
 
 
