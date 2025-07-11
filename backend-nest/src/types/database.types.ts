@@ -20,7 +20,7 @@ export type Database = {
           description: string;
           id: string;
           month: number;
-          template_id: string | null;
+          template_id: string;
           updated_at: string;
           user_id: string | null;
           year: number;
@@ -30,7 +30,7 @@ export type Database = {
           description: string;
           id?: string;
           month: number;
-          template_id?: string | null;
+          template_id: string;
           updated_at?: string;
           user_id?: string | null;
           year: number;
@@ -40,7 +40,7 @@ export type Database = {
           description?: string;
           id?: string;
           month?: number;
-          template_id?: string | null;
+          template_id?: string;
           updated_at?: string;
           user_id?: string | null;
           year?: number;
@@ -57,34 +57,31 @@ export type Database = {
       };
       template: {
         Row: {
-          category: string | null;
           created_at: string;
           description: string | null;
           id: string;
           is_default: boolean;
           name: string;
           updated_at: string;
-          user_id: string | null;
+          user_id: string;
         };
         Insert: {
-          category?: string | null;
           created_at?: string;
           description?: string | null;
           id?: string;
           is_default?: boolean;
           name: string;
           updated_at?: string;
-          user_id?: string | null;
+          user_id: string;
         };
         Update: {
-          category?: string | null;
           created_at?: string;
           description?: string | null;
           id?: string;
           is_default?: boolean;
           name?: string;
           updated_at?: string;
-          user_id?: string | null;
+          user_id?: string;
         };
         Relationships: [];
       };
@@ -93,36 +90,33 @@ export type Database = {
           amount: number;
           created_at: string;
           description: string | null;
-          expense_type: Database['public']['Enums']['expense_type'];
           id: string;
-          is_recurring: boolean;
+          kind: Database['public']['Enums']['transaction_kind'];
           name: string;
+          recurrence: Database['public']['Enums']['transaction_recurrence'];
           template_id: string;
-          type: Database['public']['Enums']['transaction_type'];
           updated_at: string;
         };
         Insert: {
           amount: number;
           created_at?: string;
           description?: string | null;
-          expense_type: Database['public']['Enums']['expense_type'];
           id?: string;
-          is_recurring?: boolean;
+          kind: Database['public']['Enums']['transaction_kind'];
           name: string;
+          recurrence: Database['public']['Enums']['transaction_recurrence'];
           template_id: string;
-          type: Database['public']['Enums']['transaction_type'];
           updated_at?: string;
         };
         Update: {
           amount?: number;
           created_at?: string;
           description?: string | null;
-          expense_type?: Database['public']['Enums']['expense_type'];
           id?: string;
-          is_recurring?: boolean;
+          kind?: Database['public']['Enums']['transaction_kind'];
           name?: string;
+          recurrence?: Database['public']['Enums']['transaction_recurrence'];
           template_id?: string;
-          type?: Database['public']['Enums']['transaction_type'];
           updated_at?: string;
         };
         Relationships: [
@@ -141,11 +135,11 @@ export type Database = {
           budget_id: string;
           created_at: string;
           description: string | null;
-          expense_type: Database['public']['Enums']['expense_type'];
+          expense_type: Database['public']['Enums']['transaction_recurrence'];
           id: string;
           is_recurring: boolean;
           name: string;
-          type: Database['public']['Enums']['transaction_type'];
+          type: Database['public']['Enums']['transaction_kind'];
           updated_at: string;
           user_id: string | null;
         };
@@ -154,11 +148,11 @@ export type Database = {
           budget_id: string;
           created_at?: string;
           description?: string | null;
-          expense_type: Database['public']['Enums']['expense_type'];
+          expense_type: Database['public']['Enums']['transaction_recurrence'];
           id?: string;
           is_recurring?: boolean;
           name: string;
-          type: Database['public']['Enums']['transaction_type'];
+          type: Database['public']['Enums']['transaction_kind'];
           updated_at?: string;
           user_id?: string | null;
         };
@@ -167,11 +161,11 @@ export type Database = {
           budget_id?: string;
           created_at?: string;
           description?: string | null;
-          expense_type?: Database['public']['Enums']['expense_type'];
+          expense_type?: Database['public']['Enums']['transaction_recurrence'];
           id?: string;
           is_recurring?: boolean;
           name?: string;
-          type?: Database['public']['Enums']['transaction_type'];
+          type?: Database['public']['Enums']['transaction_kind'];
           updated_at?: string;
           user_id?: string | null;
         };
@@ -219,8 +213,8 @@ export type Database = {
       };
     };
     Enums: {
-      expense_type: 'fixed' | 'variable';
-      transaction_type: 'expense' | 'income' | 'saving';
+      transaction_kind: 'expense' | 'income' | 'saving' | 'exceptional_income';
+      transaction_recurrence: 'fixed' | 'variable' | 'one_off';
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -351,8 +345,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      expense_type: ['fixed', 'variable'],
-      transaction_type: ['expense', 'income', 'saving'],
+      transaction_kind: ['expense', 'income', 'saving', 'exceptional_income'],
+      transaction_recurrence: ['fixed', 'variable', 'one_off'],
     },
   },
 } as const;

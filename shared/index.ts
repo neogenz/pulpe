@@ -1,14 +1,15 @@
 // Export all schemas from schemas.ts
 export {
-  // Base enums
-  expenseTypeSchema,
-  transactionTypeSchema,
+  // Enums
+  transactionRecurrenceSchema,
+  transactionKindSchema,
 
   // Budget schemas
   budgetSchema,
   budgetCreateSchema,
   budgetCreateFromOnboardingSchema,
   budgetUpdateSchema,
+  onboardingTransactionSchema,
 
   // Transaction schemas
   transactionSchema,
@@ -20,9 +21,9 @@ export {
   budgetTemplateCreateSchema,
   budgetTemplateUpdateSchema,
 
-  // Template transaction schemas
-  templateTransactionSchema,
-  templateTransactionCreateSchema,
+  // Template line schemas
+  templateLineSchema,
+  templateLineCreateSchema,
   templateTransactionUpdateSchema,
 
   // Response schemas
@@ -37,9 +38,7 @@ export {
   budgetTemplateResponseSchema,
   budgetTemplateListResponseSchema,
   budgetTemplateDeleteResponseSchema,
-  templateTransactionResponseSchema,
-  templateTransactionListResponseSchema,
-  templateTransactionDeleteResponseSchema,
+  templateLineListResponseSchema,
 
   // User schemas
   userProfileSchema,
@@ -53,13 +52,13 @@ export {
   userInfoSchema,
   authValidationResponseSchema,
   authErrorResponseSchema,
-} from './schemas';
+} from './schemas.js';
 
 // Export all types from types.ts
 export type {
-  // Base types
-  ExpenseType,
-  TransactionType,
+  // Enum Types
+  TransactionRecurrence,
+  TransactionKind,
 
   // Budget types
   Budget,
@@ -77,10 +76,8 @@ export type {
   BudgetTemplateCreate,
   BudgetTemplateUpdate,
 
-  // Template transaction types
-  TemplateTransaction,
-  TemplateTransactionCreate,
-  TemplateTransactionUpdate,
+  // Template line types
+  TemplateLine,
 
   // Response types
   ErrorResponse,
@@ -96,11 +93,7 @@ export type {
   BudgetTemplateResponse,
   BudgetTemplateListResponse,
   BudgetTemplateDeleteResponse,
-  TemplateTransactionCreateResponse,
-  TemplateTransactionUpdateResponse,
-  TemplateTransactionFindOneResponse,
-  TemplateTransactionListResponse,
-  TemplateTransactionDeleteResponse,
+  TemplateLineListResponse,
   TransactionResponse,
 
   // User types
@@ -115,4 +108,4 @@ export type {
   UserInfo,
   AuthValidationResponse,
   AuthErrorResponse,
-} from './types';
+} from './schemas.js';

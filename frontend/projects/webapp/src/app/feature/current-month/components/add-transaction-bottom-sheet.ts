@@ -20,7 +20,7 @@ import { CommonModule } from '@angular/common';
 export interface TransactionFormData {
   amount: number;
   name: string;
-  type: 'income' | 'expense';
+  type: 'income' | 'expense' | 'saving';
   category?: string;
 }
 

@@ -8,8 +8,19 @@ const MONTH_MIN = 1;
 const MONTH_MAX = 12;
 
 // Enums
-export const expenseTypeSchema = z.enum(['fixed', 'variable']);
-export const transactionTypeSchema = z.enum(['expense', 'income', 'saving']);
+export const transactionRecurrenceSchema = z.enum([
+  'fixed',
+  'variable',
+  'one_off',
+]);
+export type TransactionRecurrence = z.infer<typeof transactionRecurrenceSchema>;
+export const transactionKindSchema = z.enum([
+  'expense',
+  'income',
+  'saving',
+  'exceptional_income',
+]);
+export type TransactionKind = z.infer<typeof transactionKindSchema>;
 
 // Budget schemas
 export const budgetSchema = z.object({
@@ -21,20 +32,22 @@ export const budgetSchema = z.object({
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
+export type Budget = z.infer<typeof budgetSchema>;
 
 export const budgetCreateSchema = z.object({
   month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
   year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
   description: z.string().min(1).max(500).trim(),
 });
+export type BudgetCreate = z.infer<typeof budgetCreateSchema>;
 
 // Schema for transactions during onboarding (without budgetId since budget doesn't exist yet)
 export const onboardingTransactionSchema = z.object({
   amount: z.number().positive(),
-  type: transactionTypeSchema,
+  type: transactionKindSchema,
   name: z.string().min(1).max(100).trim(),
   description: z.string().max(500).trim().optional(),
-  expenseType: expenseTypeSchema,
+  expenseType: transactionRecurrenceSchema,
   isRecurring: z.boolean(),
 });
 
@@ -50,100 +63,108 @@ export const budgetCreateFromOnboardingSchema = z.object({
   phonePlan: z.number().min(0).default(0).optional(),
   transportCosts: z.number().min(0).default(0).optional(),
 });
+export type BudgetCreateFromOnboarding = z.infer<
+  typeof budgetCreateFromOnboardingSchema
+>;
 
 export const budgetUpdateSchema = z.object({
   description: z.string().optional(),
   month: z.number().optional(),
   year: z.number().optional(),
 });
+export type BudgetUpdate = z.infer<typeof budgetUpdateSchema>;
 
 // Transaction schemas
 export const transactionSchema = z.object({
   id: z.string().uuid(),
   amount: z.number().positive(),
-  type: transactionTypeSchema,
+  type: transactionKindSchema,
   name: z.string().min(1).max(100).trim(),
   description: z.string().max(500).trim().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
   userId: z.string().uuid().optional(),
   budgetId: z.string().uuid(),
-  expenseType: expenseTypeSchema,
+  expenseType: transactionRecurrenceSchema,
   isRecurring: z.boolean(),
 });
+export type Transaction = z.infer<typeof transactionSchema>;
 
 export const transactionCreateSchema = z.object({
   amount: z.number().positive(),
-  type: transactionTypeSchema,
+  type: transactionKindSchema,
   name: z.string().min(1).max(100).trim(),
   description: z.string().max(500).trim().optional(),
-  expenseType: expenseTypeSchema,
+  expenseType: transactionRecurrenceSchema,
   isRecurring: z.boolean(),
   budgetId: z.string().uuid().optional(),
 });
+export type TransactionCreate = z.infer<typeof transactionCreateSchema>;
 
 export const transactionUpdateSchema = z.object({
   amount: z.number().positive().optional(),
-  type: transactionTypeSchema.optional(),
+  type: transactionKindSchema.optional(),
   name: z.string().min(1).max(100).trim().optional(),
   description: z.string().max(500).trim().optional(),
-  expenseType: expenseTypeSchema.optional(),
+  expenseType: transactionRecurrenceSchema.optional(),
   isRecurring: z.boolean().optional(),
 });
+export type TransactionUpdate = z.infer<typeof transactionUpdateSchema>;
 
 // Budget template schemas
 export const budgetTemplateSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1).max(100).trim(),
   description: z.string().max(500).trim().optional(),
-  category: z.string().min(1).max(50).trim().optional(),
   userId: z.string().uuid().optional(),
   isDefault: z.boolean().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
+export type BudgetTemplate = z.infer<typeof budgetTemplateSchema>;
 
 export const budgetTemplateCreateSchema = z.object({
   name: z.string().min(1).max(100).trim(),
   description: z.string().min(1).max(500).trim().optional(),
-  category: z.string().min(1).max(50).trim().optional(),
   isDefault: z.boolean().default(false),
 });
+export type BudgetTemplateCreate = z.infer<typeof budgetTemplateCreateSchema>;
 
 export const budgetTemplateUpdateSchema = z.object({
   name: z.string().min(1).max(100).trim().optional(),
   description: z.string().max(500).trim().optional(),
-  category: z.string().min(1).max(50).trim().optional(),
   isDefault: z.boolean().optional(),
 });
+export type BudgetTemplateUpdate = z.infer<typeof budgetTemplateUpdateSchema>;
 
-// Template transaction schemas
-export const templateTransactionSchema = z.object({
+// Template line schemas
+export const templateLineSchema = z.object({
   id: z.string().uuid(),
   templateId: z.string().uuid(),
   name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
-  type: transactionTypeSchema,
-  expenseType: expenseTypeSchema,
+  kind: transactionKindSchema,
+  recurrence: transactionRecurrenceSchema,
   description: z.string().max(500).trim(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
+export type TemplateLine = z.infer<typeof templateLineSchema>;
 
-export const templateTransactionCreateSchema = z.object({
+export const templateLineCreateSchema = z.object({
   templateId: z.string().uuid(),
   name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
-  type: transactionTypeSchema,
-  expenseType: expenseTypeSchema,
+  kind: transactionKindSchema,
+  recurrence: transactionRecurrenceSchema,
   description: z.string().max(500).trim(),
 });
 
 export const templateTransactionUpdateSchema = z.object({
   name: z.string().min(1).max(100).trim().optional(),
   amount: z.number().positive().optional(),
-  type: transactionTypeSchema.optional(),
-  expenseType: expenseTypeSchema.optional(),
+  type: transactionKindSchema.optional(),
+  expenseType: transactionRecurrenceSchema.optional(),
   description: z.string().max(500).trim().optional(),
 });
 
@@ -154,63 +175,94 @@ export const errorResponseSchema = z.object({
   message: z.string().optional(),
   details: z.string().optional(),
 });
+export type ErrorResponse = z.infer<typeof errorResponseSchema>;
 
 export const deleteResponseSchema = z.object({
   success: z.literal(true),
   message: z.string(),
 });
+export type DeleteResponse = z.infer<typeof deleteResponseSchema>;
 
 // Specific response schemas for strict validation
 export const budgetResponseSchema = z.object({
   success: z.literal(true),
   data: budgetSchema,
 });
+export type BudgetResponse = z.infer<typeof budgetResponseSchema>;
 
 export const budgetListResponseSchema = z.object({
   success: z.literal(true),
   data: z.array(budgetSchema),
 });
+export type BudgetListResponse = z.infer<typeof budgetListResponseSchema>;
 
 export const budgetDeleteResponseSchema = deleteResponseSchema;
+export type BudgetDeleteResponse = z.infer<typeof budgetDeleteResponseSchema>;
 
 // Transaction response schemas for operation-specific types
 export const transactionResponseSchema = z.object({
   success: z.literal(true),
   data: transactionSchema,
 });
+export type TransactionCreateResponse = z.infer<
+  typeof transactionResponseSchema
+>;
+export type TransactionUpdateResponse = z.infer<
+  typeof transactionResponseSchema
+>;
+export type TransactionFindOneResponse = z.infer<
+  typeof transactionResponseSchema
+>;
 
 export const transactionListResponseSchema = z.object({
   success: z.literal(true),
   data: z.array(transactionSchema),
 });
+export type TransactionListResponse = z.infer<
+  typeof transactionListResponseSchema
+>;
 
 export const transactionDeleteResponseSchema = deleteResponseSchema;
+export type TransactionDeleteResponse = z.infer<
+  typeof transactionDeleteResponseSchema
+>;
 
 // Budget template response schemas
 export const budgetTemplateResponseSchema = z.object({
   success: z.literal(true),
   data: budgetTemplateSchema,
 });
+export type BudgetTemplateResponse = z.infer<
+  typeof budgetTemplateResponseSchema
+>;
 
 export const budgetTemplateListResponseSchema = z.object({
   success: z.literal(true),
   data: z.array(budgetTemplateSchema),
 });
+export type BudgetTemplateListResponse = z.infer<
+  typeof budgetTemplateListResponseSchema
+>;
 
 export const budgetTemplateDeleteResponseSchema = deleteResponseSchema;
+export type BudgetTemplateDeleteResponse = z.infer<
+  typeof budgetTemplateDeleteResponseSchema
+>;
 
-// Template transaction response schemas
-export const templateTransactionResponseSchema = z.object({
+// Template line response schemas
+export const templateLineListResponseSchema = z.object({
   success: z.literal(true),
-  data: templateTransactionSchema,
+  data: z.array(templateLineSchema),
 });
+export type TemplateLineListResponse = z.infer<
+  typeof templateLineListResponseSchema
+>;
 
-export const templateTransactionListResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.array(templateTransactionSchema),
-});
-
-export const templateTransactionDeleteResponseSchema = deleteResponseSchema;
+// Legacy generic type - prefer operation-specific types above
+export type TransactionResponse = {
+  success: true;
+  data?: Transaction | Transaction[];
+};
 
 // User schemas
 export const userProfileSchema = z.object({
@@ -219,45 +271,60 @@ export const userProfileSchema = z.object({
   firstName: z.string().optional(),
   lastName: z.string().optional(),
 });
+export type UserProfile = z.infer<typeof userProfileSchema>;
 
 export const updateProfileSchema = z.object({
   firstName: z.string().min(1).max(50).trim(),
   lastName: z.string().min(1).max(50).trim(),
 });
+export type UpdateProfile = z.infer<typeof updateProfileSchema>;
 
 export const userProfileResponseSchema = z.object({
   success: z.literal(true),
   user: userProfileSchema,
 });
+export type UserProfileResponse = z.infer<typeof userProfileResponseSchema>;
 
 export const publicInfoResponseSchema = z.object({
   success: z.literal(true),
   message: z.string(),
   authenticated: z.boolean(),
 });
+export type PublicInfoResponse = z.infer<typeof publicInfoResponseSchema>;
 
 export const onboardingStatusResponseSchema = z.object({
   success: z.literal(true),
   onboardingCompleted: z.boolean(),
 });
+export type OnboardingStatusResponse = z.infer<
+  typeof onboardingStatusResponseSchema
+>;
 
 export const successMessageResponseSchema = z.object({
   success: z.literal(true),
   message: z.string(),
 });
+export type SuccessMessageResponse = z.infer<
+  typeof successMessageResponseSchema
+>;
 
 // Auth schemas
 export const userInfoSchema = z.object({
   id: z.string().uuid(),
   email: z.string().email(),
 });
+export type UserInfo = z.infer<typeof userInfoSchema>;
 
 export const authValidationResponseSchema = z.object({
   success: z.literal(true),
   user: userInfoSchema,
 });
+export type AuthValidationResponse = z.infer<
+  typeof authValidationResponseSchema
+>;
 
 export const authErrorResponseSchema = z.object({
   success: z.literal(false),
   error: z.string(),
 });
+export type AuthErrorResponse = z.infer<typeof authErrorResponseSchema>;

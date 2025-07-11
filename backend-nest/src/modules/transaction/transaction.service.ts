@@ -187,7 +187,7 @@ export class TransactionService {
 
   async findOne(
     id: string,
-    user: AuthenticatedUser,
+    _user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionResponse> {
     try {
@@ -311,7 +311,7 @@ export class TransactionService {
   async update(
     id: string,
     updateTransactionDto: TransactionUpdate,
-    user: AuthenticatedUser,
+    _user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionResponse> {
     try {
@@ -352,7 +352,7 @@ export class TransactionService {
 
   async remove(
     id: string,
-    user: AuthenticatedUser,
+    _user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionDeleteResponse> {
     try {
@@ -489,16 +489,18 @@ export class TransactionService {
       expense: 'Dépense',
       income: 'Revenu',
       saving: 'Épargne',
+      exceptional_income: 'Revenu exceptionnel',
     } as const;
 
-    const expenseLabels = {
+    const recurrenceLabels = {
       fixed: 'Fixe',
       variable: 'Variable',
+      one_off: 'Ponctuel',
     } as const;
 
     const baseLabel = typeLabels[transaction.type];
     if (transaction.type === 'expense') {
-      return `${baseLabel} ${expenseLabels[transaction.expense_type]}`;
+      return `${baseLabel} ${recurrenceLabels[transaction.expense_type]}`;
     }
 
     return baseLabel;

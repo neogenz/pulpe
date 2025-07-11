@@ -77,7 +77,7 @@ describe('BudgetService (Performance)', () => {
     it('should perform findOne within performance limits', async () => {
       const budgetId = uuid();
       const mockBudget = createMockBudgetEntity({ id: budgetId });
-      const mockUser = createMockAuthenticatedUser();
+      // const mockUser = createMockAuthenticatedUser(); // No longer needed
 
       mockSupabaseClient.setMockData(mockBudget).setMockError(null);
 
@@ -85,7 +85,6 @@ describe('BudgetService (Performance)', () => {
         async () => {
           const result = await service.findOne(
             budgetId,
-            mockUser,
             mockSupabaseClient as any,
           );
           expect(result.success).toBe(true);
@@ -144,7 +143,7 @@ describe('BudgetService (Performance)', () => {
     });
 
     it('should handle concurrent create requests', async () => {
-      const mockUser = createMockAuthenticatedUser();
+      const mockUser = createMockAuthenticatedUser(); // Still needed for create method
       const createBudgetDto: BudgetCreate = {
         month: 2,
         year: 2025,

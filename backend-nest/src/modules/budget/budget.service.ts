@@ -112,6 +112,7 @@ export class BudgetService {
     return {
       ...createBudgetDto,
       user_id: userId,
+      template_id: '', // Template ID requis par le type mais peut être vide
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -170,7 +171,6 @@ export class BudgetService {
 
   async findOne(
     id: string,
-    user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetResponse> {
     try {
@@ -253,7 +253,6 @@ export class BudgetService {
   async update(
     id: string,
     updateBudgetDto: BudgetUpdate,
-    user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetResponse> {
     try {
@@ -292,7 +291,6 @@ export class BudgetService {
 
   async remove(
     id: string,
-    user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetDeleteResponse> {
     try {
@@ -367,7 +365,6 @@ export class BudgetService {
 
   async createFromOnboarding(
     onboardingData: BudgetCreateFromOnboarding,
-    user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetResponse> {
     try {
