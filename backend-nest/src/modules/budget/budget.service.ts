@@ -31,7 +31,7 @@ export class BudgetService {
   ): Promise<BudgetListResponse> {
     try {
       const { data: budgets, error } = await supabase
-        .from('budgets')
+        .from('monthly_budget')
         .select('*')
         .order('year', { ascending: false })
         .order('month', { ascending: false });
@@ -122,7 +122,7 @@ export class BudgetService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<unknown> {
     const { data: budgetDb, error } = await supabase
-      .from('budgets')
+      .from('monthly_budget')
       .insert(budgetData)
       .select()
       .single();
@@ -175,7 +175,7 @@ export class BudgetService {
   ): Promise<BudgetResponse> {
     try {
       const { data: budgetDb, error } = await supabase
-        .from('budgets')
+        .from('monthly_budget')
         .select('*')
         .eq('id', id)
         .single();
@@ -234,7 +234,7 @@ export class BudgetService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<unknown> {
     const { data: budgetDb, error } = await supabase
-      .from('budgets')
+      .from('monthly_budget')
       .update(updateData)
       .eq('id', id)
       .select()
@@ -296,7 +296,10 @@ export class BudgetService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetDeleteResponse> {
     try {
-      const { error } = await supabase.from('budgets').delete().eq('id', id);
+      const { error } = await supabase
+        .from('monthly_budget')
+        .delete()
+        .eq('id', id);
 
       if (error) {
         this.logger.error({ err: error }, 'Failed to delete budget');
@@ -450,7 +453,7 @@ export class BudgetService {
     excludeId?: string,
   ): Promise<void> {
     const { data: existingBudget } = await supabase
-      .from('budgets')
+      .from('monthly_budget')
       .select('id')
       .eq('month', month)
       .eq('year', year)
