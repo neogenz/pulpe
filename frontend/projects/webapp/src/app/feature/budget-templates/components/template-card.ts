@@ -21,8 +21,8 @@ import { type BudgetTemplate } from '@pulpe/shared';
         <mat-card-title>{{ template().name }}</mat-card-title>
         @if (template().isDefault) {
           <mat-card-subtitle>Template par défaut</mat-card-subtitle>
-        } @else if (template().category) {
-          <mat-card-subtitle>{{ template().category }}</mat-card-subtitle>
+        } @else {
+          <mat-card-subtitle>Template</mat-card-subtitle>
         }
       </mat-card-header>
       <mat-card-content>

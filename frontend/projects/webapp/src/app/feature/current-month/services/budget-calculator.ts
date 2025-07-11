@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
-import { Transaction, TransactionType } from '@pulpe/shared';
+import { Transaction, TransactionKind } from '@pulpe/shared';
 
-type CategoryType = TransactionType;
+type CategoryType = TransactionKind;
 
 @Injectable()
 export class BudgetCalculator {

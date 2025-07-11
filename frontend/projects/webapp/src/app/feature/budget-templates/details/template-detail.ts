@@ -26,7 +26,7 @@ import {
 import { BudgetTemplatesApi } from '../services/budget-templates-api';
 import { firstValueFrom } from 'rxjs';
 import { CommonModule } from '@angular/common';
-import { TemplateTransaction } from '@pulpe/shared';
+import { TemplateLine } from '@pulpe/shared';
 import { Title } from '@core/routing';
 
 @Component({
@@ -139,13 +139,13 @@ export default class TemplateDetail {
     if (!value) {
       return [];
     }
-    return value.transactions.map((transaction: TemplateTransaction) => {
+    return value.transactions.map((transaction: TemplateLine) => {
       const spent =
-        (transaction.type as string) === 'EXPENSE' ? transaction.amount : 0;
+        (transaction.kind as string) === 'expense' ? transaction.amount : 0;
       const earned =
-        (transaction.type as string) === 'INCOME' ? transaction.amount : 0;
+        (transaction.kind as string) === 'income' ? transaction.amount : 0;
       const saved =
-        (transaction.type as string) === 'SAVING' ? transaction.amount : 0;
+        (transaction.kind as string) === 'saving' ? transaction.amount : 0;
       return {
         description: transaction.name,
         spent,
@@ -211,10 +211,10 @@ export default class TemplateDetail {
     }
 
     const transactions = templateData.transactions.map(
-      (transaction: TemplateTransaction) => ({
+      (transaction: TemplateLine) => ({
         description: transaction.name,
         amount: transaction.amount,
-        type: transaction.type as 'INCOME' | 'EXPENSE' | 'SAVING',
+        type: transaction.kind as 'income' | 'expense' | 'saving',
       }),
     );
 

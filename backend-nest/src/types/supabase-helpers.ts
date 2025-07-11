@@ -28,8 +28,9 @@ export type TemplateTransactionInsert = InsertDto<'template_line'>;
 export type TemplateTransactionUpdate = UpdateDto<'template_line'>;
 
 // Types d'énumérations
-export type ExpenseType = Database['public']['Enums']['expense_type'];
-export type TransactionType = Database['public']['Enums']['transaction_type'];
+export type TransactionKind = Database['public']['Enums']['transaction_kind'];
+export type TransactionRecurrence =
+  Database['public']['Enums']['transaction_recurrence'];
 
 // Type pour le client Supabase typé
 export type SupabaseClient =

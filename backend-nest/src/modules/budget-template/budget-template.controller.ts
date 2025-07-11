@@ -25,7 +25,7 @@ import {
   type BudgetTemplateListResponse as _BudgetTemplateListResponse,
   type BudgetTemplateResponse as _BudgetTemplateResponse,
   type BudgetTemplateDeleteResponse as _BudgetTemplateDeleteResponse,
-  type TemplateTransactionListResponse,
+  type TemplateLineListResponse,
 } from '@pulpe/shared';
 import { AuthGuard } from '@common/guards/auth.guard';
 import {
@@ -41,6 +41,7 @@ import {
   BudgetTemplateListResponseDto,
   BudgetTemplateResponseDto,
   BudgetTemplateDeleteResponseDto,
+  TemplateLineListResponseDto,
 } from './dto/budget-template-swagger.dto';
 import { ErrorResponseDto } from '@common/dto/response.dto';
 
@@ -167,9 +168,9 @@ export class BudgetTemplateController {
     );
   }
 
-  @Get(':id/transactions')
+  @Get(':id/lines')
   @ApiOperation({
-    summary: 'Get template transactions',
+    summary: 'Get template lines',
     description:
       'Retrieves all transactions associated with a specific budget template',
   })
@@ -182,23 +183,19 @@ export class BudgetTemplateController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Template transactions retrieved successfully',
-    type: Object, // TODO: Créer TemplateTransactionListResponseDto
+    description: 'Template lines retrieved successfully',
+    type: TemplateLineListResponseDto,
   })
   @ApiNotFoundResponse({
     description: 'Budget template not found',
     type: ErrorResponseDto,
   })
-  async findTemplateTransactions(
+  async findTemplateLines(
     @Param('id', ParseUUIDPipe) id: string,
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
-  ): Promise<TemplateTransactionListResponse> {
-    return this.budgetTemplateService.findTemplateTransactions(
-      id,
-      user,
-      supabase,
-    );
+  ): Promise<TemplateLineListResponse> {
+    return this.budgetTemplateService.findTemplateLines(id, supabase);
   }
 
   @Delete(':id')

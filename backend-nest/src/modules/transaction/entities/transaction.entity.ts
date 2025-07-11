@@ -6,8 +6,8 @@ export type TransactionInsert =
   Database['public']['Tables']['transaction']['Insert'];
 
 // Types des enums
-export type ExpenseType = Enums<'expense_type'>;
-export type TransactionType = Enums<'transaction_type'>;
+export type TransactionKind = Enums<'transaction_kind'>;
+export type TransactionRecurrence = Enums<'transaction_recurrence'>;
 
 // Constantes de validation
 export const TRANSACTION_CONSTANTS = {

@@ -6,7 +6,7 @@ import {
   type BudgetTemplateListResponse,
   type BudgetTemplateResponse,
   type BudgetTemplateDeleteResponse,
-  type TemplateTransactionListResponse,
+  type TemplateLineListResponse,
 } from '@pulpe/shared';
 import { environment } from '../../../../environments/environment';
 
@@ -39,8 +39,8 @@ export class BudgetTemplatesApi {
 
   getTemplateTransactions$(
     templateId: string,
-  ): Observable<TemplateTransactionListResponse> {
-    return this.#http.get<TemplateTransactionListResponse>(
+  ): Observable<TemplateLineListResponse> {
+    return this.#http.get<TemplateLineListResponse>(
       `${this.#apiUrl}/${templateId}/transactions`,
     );
   }
@@ -68,5 +68,5 @@ export class BudgetTemplatesApi {
 // associated transactions.
 export interface BudgetTemplateDetailViewModel {
   template: BudgetTemplateResponse['data'];
-  transactions: TemplateTransactionListResponse['data'];
+  transactions: TemplateLineListResponse['data'];
 }

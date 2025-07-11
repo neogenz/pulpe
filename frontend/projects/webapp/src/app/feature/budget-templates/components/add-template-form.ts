@@ -126,7 +126,7 @@ export class AddTemplateForm {
       const template: BudgetTemplateCreate = {
         name: formValue.name!,
         description: formValue.description ?? undefined,
-        category: formValue.category ?? undefined,
+        // category: formValue.category ?? undefined, // Removed: category field doesn't exist in schema
         isDefault: formValue.isDefault ?? false,
       };
       this.addTemplate.emit(template);
