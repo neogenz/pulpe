@@ -2,8 +2,6 @@ import { createZodDto } from 'nestjs-zod';
 import {
   budgetCreateSchema,
   budgetUpdateSchema,
-  budgetCreateFromOnboardingSchema,
-  budgetCreateFromTemplateSchema,
   budgetResponseSchema,
   budgetListResponseSchema,
   budgetDeleteResponseSchema,
@@ -12,12 +10,6 @@ import {
 // DTOs pour la documentation Swagger basés sur les schémas Zod partagés
 export class BudgetCreateDto extends createZodDto(budgetCreateSchema) {}
 export class BudgetUpdateDto extends createZodDto(budgetUpdateSchema) {}
-export class BudgetCreateFromOnboardingDto extends createZodDto(
-  budgetCreateFromOnboardingSchema,
-) {}
-export class BudgetCreateFromTemplateDto extends createZodDto(
-  budgetCreateFromTemplateSchema,
-) {}
 export class BudgetResponseDto extends createZodDto(budgetResponseSchema) {}
 export class BudgetListResponseDto extends createZodDto(
   budgetListResponseSchema,

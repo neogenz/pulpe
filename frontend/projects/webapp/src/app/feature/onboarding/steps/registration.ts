@@ -19,7 +19,7 @@ import { AuthApi } from '@core/auth/auth-api';
 import { BudgetApi } from '@core/budget';
 import { ROUTES } from '@core/routing/routes-constants';
 import {
-  BudgetCreateFromTemplate,
+  BudgetCreate,
   BudgetTemplateCreateFromOnboarding,
 } from '@pulpe/shared';
 import { firstValueFrom } from 'rxjs';
@@ -193,9 +193,7 @@ export default class Registration implements OnInit {
         onboardingPayload,
         templateResponse.data.template.id,
       );
-      await firstValueFrom(
-        this.#budgetApi.createBudgetFromTemplate$(budgetRequest),
-      );
+      await firstValueFrom(this.#budgetApi.createBudget$(budgetRequest));
 
       this.#onboardingApi.submitCompletedOnboarding();
       this.#onboardingApi.clearOnboardingData();
@@ -235,7 +233,7 @@ export default class Registration implements OnInit {
   #buildBudgetFromTemplateRequest(
     payload: OnboardingStepData,
     templateId: string,
-  ): BudgetCreateFromTemplate {
+  ): BudgetCreate {
     const currentDate = new Date();
     return {
       templateId,

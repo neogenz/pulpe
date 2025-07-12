@@ -139,16 +139,8 @@ export class OnboardingLayout {
       return;
     }
 
-    // Éviter la propagation si l'événement vient d'un élément de formulaire
-    const target = event.target as HTMLElement;
-    if (
-      target &&
-      (target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.tagName === 'SELECT')
-    ) {
-      return;
-    }
+    // Empêcher le comportement par défaut pour éviter la soumission de formulaire
+    event.preventDefault();
 
     // Déclencher la navigation vers l'étape suivante
     this.onboardingOrchestrator.nextClicked$.next();

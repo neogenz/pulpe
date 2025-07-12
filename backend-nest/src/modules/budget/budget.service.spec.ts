@@ -17,11 +17,7 @@ import {
   MOCK_BUDGET_ID,
   MockSupabaseClient,
 } from '../../test/test-utils';
-import type {
-  BudgetCreate,
-  BudgetUpdate,
-  BudgetCreateFromOnboarding,
-} from '@pulpe/shared';
+import type { BudgetCreate, BudgetUpdate } from '@pulpe/shared';
 
 describe('BudgetService', () => {
   let service: BudgetService;
@@ -327,75 +323,6 @@ describe('BudgetService', () => {
           service.update(budgetId, invalidUpdate, mockSupabaseClient as any),
         BadRequestException,
         'Mois invalide',
-      );
-    });
-  });
-
-  describe('createFromOnboarding', () => {
-    it('should create budget with transactions from onboarding data', async () => {
-      const mockUser = createMockAuthenticatedUser(); // No longer needed
-      const onboardingData: BudgetCreateFromOnboarding = {
-        month: 1,
-        year: 2024,
-        description: 'Budget Onboarding',
-        transactions: [],
-        monthlyIncome: 5000,
-        housingCosts: 1500,
-        healthInsurance: 400,
-        leasingCredit: 800,
-        phonePlan: 50,
-        transportCosts: 200,
-      };
-      const mockBudget = createValidBudgetEntity({
-        month: onboardingData.month,
-        year: onboardingData.year,
-        description: onboardingData.description,
-      });
-
-      mockSupabaseClient
-        .setMockRpcData({ budget: mockBudget })
-        .setMockRpcError(null);
-
-      const result = await service.createFromOnboarding(
-        onboardingData,
-        mockUser,
-        mockSupabaseClient as any,
-      );
-
-      expectSuccessResponse(result);
-      expect(result.data.month).toBe(onboardingData.month);
-      expect(result.data.year).toBe(onboardingData.year);
-      expect(result.data.description).toBe(onboardingData.description);
-    });
-
-    it('should handle RPC execution errors', async () => {
-      const mockUser = createMockAuthenticatedUser(); // No longer needed
-      const onboardingData: BudgetCreateFromOnboarding = {
-        month: 1,
-        year: 2024,
-        description: 'Test',
-        transactions: [],
-        monthlyIncome: 5000,
-        housingCosts: 1500,
-        healthInsurance: 400,
-        leasingCredit: 800,
-        phonePlan: 50,
-        transportCosts: 200,
-      };
-
-      mockSupabaseClient
-        .setMockRpcData(null)
-        .setMockRpcError({ message: 'RPC failed' });
-
-      await expectErrorThrown(
-        () =>
-          service.createFromOnboarding(
-            onboardingData,
-            mockUser,
-            mockSupabaseClient as any,
-          ),
-        BadRequestException,
-        'Erreur lors de la création du budget et des transactions',
       );
     });
   });
