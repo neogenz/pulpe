@@ -3,8 +3,8 @@ import {
   ChangeDetectionStrategy,
   inject,
   computed,
+  HostListener,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { OnboardingOrchestrator } from './onboarding-orchestrator';
@@ -12,8 +12,7 @@ import { ONBOARDING_TOTAL_STEPS } from './onboarding-constants';
 
 @Component({
   selector: 'pulpe-onboarding-layout',
-  standalone: true,
-  imports: [CommonModule, MatButtonModule, RouterOutlet, RouterLink],
+  imports: [MatButtonModule, RouterOutlet, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
 
   template: `
@@ -26,7 +25,7 @@ import { ONBOARDING_TOTAL_STEPS } from './onboarding-constants';
         <!-- Progress indicators -->
         @if (!isFirstStep()) {
           <div class="flex gap-2 mb-16">
-            @for (step of progressSteps; track step; let i = $index) {
+            @for (step of progressSteps(); track $index; let i = $index) {
               <div
                 class="h-2 flex-1 rounded-full transition-colors duration-300"
                 [class]="
@@ -105,10 +104,10 @@ import { ONBOARDING_TOTAL_STEPS } from './onboarding-constants';
 export class OnboardingLayout {
   protected readonly onboardingOrchestrator = inject(OnboardingOrchestrator);
 
-  protected get progressSteps(): number[] {
+  protected progressSteps = computed(() => {
     const totalSteps = ONBOARDING_TOTAL_STEPS;
     return Array(totalSteps).fill(0);
-  }
+  });
 
   protected nextButtonText = computed(() => {
     const isFirstStep = this.isFirstStep();
@@ -132,4 +131,26 @@ export class OnboardingLayout {
       ONBOARDING_TOTAL_STEPS
     );
   });
+
+  @HostListener('keydown.enter', ['$event'])
+  protected onEnterPressed(event: Event): void {
+    // Ne pas déclencher si l'utilisateur ne peut pas continuer
+    if (!this.onboardingOrchestrator.canContinue()) {
+      return;
+    }
+
+    // Éviter la propagation si l'événement vient d'un élément de formulaire
+    const target = event.target as HTMLElement;
+    if (
+      target &&
+      (target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT')
+    ) {
+      return;
+    }
+
+    // Déclencher la navigation vers l'étape suivante
+    this.onboardingOrchestrator.nextClicked$.next();
+  }
 }
