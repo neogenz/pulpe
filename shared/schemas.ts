@@ -123,20 +123,6 @@ export const budgetTemplateSchema = z.object({
 });
 export type BudgetTemplate = z.infer<typeof budgetTemplateSchema>;
 
-export const budgetTemplateCreateSchema = z.object({
-  name: z.string().min(1).max(100).trim(),
-  description: z.string().min(1).max(500).trim().optional(),
-  isDefault: z.boolean().default(false),
-});
-export type BudgetTemplateCreate = z.infer<typeof budgetTemplateCreateSchema>;
-
-export const budgetTemplateUpdateSchema = z.object({
-  name: z.string().min(1).max(100).trim().optional(),
-  description: z.string().max(500).trim().optional(),
-  isDefault: z.boolean().optional(),
-});
-export type BudgetTemplateUpdate = z.infer<typeof budgetTemplateUpdateSchema>;
-
 // Template line schemas
 export const templateLineSchema = z.object({
   id: z.string().uuid(),
@@ -160,6 +146,45 @@ export const templateLineCreateSchema = z.object({
   description: z.string().max(500).trim(),
 });
 
+// Template line create without templateId (for batch creation)
+export const templateLineCreateWithoutTemplateIdSchema = z.object({
+  name: z.string().min(1).max(100).trim(),
+  amount: z.number().positive(),
+  kind: transactionKindSchema,
+  recurrence: transactionRecurrenceSchema,
+  description: z.string().max(500).trim(),
+});
+export type TemplateLineCreateWithoutTemplateId = z.infer<
+  typeof templateLineCreateWithoutTemplateIdSchema
+>;
+
+// Budget template schemas (after template line schemas)
+export const budgetTemplateCreateSchema = z.object({
+  name: z.string().min(1).max(100).trim(),
+  description: z.string().min(1).max(500).trim().optional(),
+  isDefault: z.boolean().default(false),
+  lines: z.array(templateLineCreateWithoutTemplateIdSchema).default([]),
+});
+export type BudgetTemplateCreate = z.infer<typeof budgetTemplateCreateSchema>;
+
+export const budgetTemplateUpdateSchema = z.object({
+  name: z.string().min(1).max(100).trim().optional(),
+  description: z.string().max(500).trim().optional(),
+  isDefault: z.boolean().optional(),
+});
+export type BudgetTemplateUpdate = z.infer<typeof budgetTemplateUpdateSchema>;
+
+// Template line update schema
+export const templateLineUpdateSchema = z.object({
+  name: z.string().min(1).max(100).trim().optional(),
+  amount: z.number().positive().optional(),
+  kind: transactionKindSchema.optional(),
+  recurrence: transactionRecurrenceSchema.optional(),
+  description: z.string().max(500).trim().optional(),
+});
+export type TemplateLineUpdate = z.infer<typeof templateLineUpdateSchema>;
+
+// Legacy schema for backward compatibility
 export const templateTransactionUpdateSchema = z.object({
   name: z.string().min(1).max(100).trim().optional(),
   amount: z.number().positive().optional(),
@@ -249,13 +274,36 @@ export type BudgetTemplateDeleteResponse = z.infer<
   typeof budgetTemplateDeleteResponseSchema
 >;
 
+// Response schema for template creation that includes created lines
+export const budgetTemplateCreateResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    template: budgetTemplateSchema,
+    lines: z.array(templateLineSchema),
+  }),
+});
+export type BudgetTemplateCreateResponse = z.infer<
+  typeof budgetTemplateCreateResponseSchema
+>;
+
 // Template line response schemas
+export const templateLineResponseSchema = z.object({
+  success: z.literal(true),
+  data: templateLineSchema,
+});
+export type TemplateLineResponse = z.infer<typeof templateLineResponseSchema>;
+
 export const templateLineListResponseSchema = z.object({
   success: z.literal(true),
   data: z.array(templateLineSchema),
 });
 export type TemplateLineListResponse = z.infer<
   typeof templateLineListResponseSchema
+>;
+
+export const templateLineDeleteResponseSchema = deleteResponseSchema;
+export type TemplateLineDeleteResponse = z.infer<
+  typeof templateLineDeleteResponseSchema
 >;
 
 // Legacy generic type - prefer operation-specific types above
@@ -314,6 +362,20 @@ export const userInfoSchema = z.object({
   email: z.string().email(),
 });
 export type UserInfo = z.infer<typeof userInfoSchema>;
+
+export const authLoginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+});
+export type AuthLogin = z.infer<typeof authLoginSchema>;
+
+export const authLoginResponseSchema = z.object({
+  success: z.literal(true),
+  user: userInfoSchema,
+  accessToken: z.string(),
+  refreshToken: z.string(),
+});
+export type AuthLoginResponse = z.infer<typeof authLoginResponseSchema>;
 
 export const authValidationResponseSchema = z.object({
   success: z.literal(true),

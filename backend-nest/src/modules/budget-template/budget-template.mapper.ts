@@ -4,6 +4,8 @@ import {
   type BudgetTemplate,
   type BudgetTemplateCreate,
   type BudgetTemplateUpdate,
+  type TemplateLineCreateWithoutTemplateId,
+  type TemplateLineUpdate,
 } from '@pulpe/shared';
 import { Tables, TablesInsert } from '@/types/database.types';
 
@@ -74,6 +76,50 @@ export class BudgetTemplateMapper {
     }
     if (updateDto.isDefault !== undefined) {
       updateData.is_default = updateDto.isDefault;
+    }
+
+    return updateData;
+  }
+
+  /**
+   * Transform template line create DTO (camelCase) to database insert (snake_case)
+   */
+  toInsertLine(
+    createDto: TemplateLineCreateWithoutTemplateId,
+    templateId: string,
+  ): TablesInsert<'template_line'> {
+    return {
+      template_id: templateId,
+      name: createDto.name,
+      amount: createDto.amount,
+      kind: createDto.kind,
+      recurrence: createDto.recurrence,
+      description: createDto.description,
+    };
+  }
+
+  /**
+   * Transform template line update DTO (camelCase) to database update (snake_case)
+   */
+  toUpdateLine(
+    updateDto: TemplateLineUpdate,
+  ): Partial<TablesInsert<'template_line'>> {
+    const updateData: Partial<TablesInsert<'template_line'>> = {};
+
+    if (updateDto.name !== undefined) {
+      updateData.name = updateDto.name;
+    }
+    if (updateDto.amount !== undefined) {
+      updateData.amount = updateDto.amount;
+    }
+    if (updateDto.kind !== undefined) {
+      updateData.kind = updateDto.kind;
+    }
+    if (updateDto.recurrence !== undefined) {
+      updateData.recurrence = updateDto.recurrence;
+    }
+    if (updateDto.description !== undefined) {
+      updateData.description = updateDto.description;
     }
 
     return updateData;
