@@ -146,7 +146,7 @@ describe('BudgetService', () => {
 
   describe('create', () => {
     it('should create budget with proper validation and transformation', async () => {
-      const mockUser = createMockAuthenticatedUser();
+      const mockUser = createMockAuthenticatedUser(); // Still needed for create method
       const createBudgetDto = createValidBudgetCreateDto();
       const mockCreatedBudget = createValidBudgetEntity({
         id: 'new-budget-id',
@@ -172,7 +172,7 @@ describe('BudgetService', () => {
     });
 
     it('should validate against Zod schema constraints', async () => {
-      const mockUser = createMockAuthenticatedUser();
+      const mockUser = createMockAuthenticatedUser(); // Still needed for create method
 
       // Test invalid month
       const invalidMonthDto: BudgetCreate = {
@@ -218,7 +218,7 @@ describe('BudgetService', () => {
     });
 
     it('should prevent duplicate period creation', async () => {
-      const mockUser = createMockAuthenticatedUser();
+      const mockUser = createMockAuthenticatedUser(); // Still needed for create method
       const createBudgetDto = createValidBudgetCreateDto();
 
       // Mock: budget already exists for this period
@@ -237,7 +237,7 @@ describe('BudgetService', () => {
 
   describe('findOne', () => {
     it('should return budget with enriched data', async () => {
-      const mockUser = createMockAuthenticatedUser();
+      // const mockUser = createMockAuthenticatedUser(); // No longer needed
       const budgetId = MOCK_BUDGET_ID;
       const currentDate = new Date();
       const mockBudget = createValidBudgetEntity({
@@ -248,11 +248,7 @@ describe('BudgetService', () => {
 
       mockSupabaseClient.setMockData(mockBudget).setMockError(null);
 
-      const result = await service.findOne(
-        budgetId,
-        mockUser,
-        mockSupabaseClient as any,
-      );
+      const result = await service.findOne(budgetId, mockSupabaseClient as any);
 
       expectSuccessResponse(result);
       expect(result.data.id).toBe(budgetId);
@@ -270,14 +266,14 @@ describe('BudgetService', () => {
     });
 
     it('should throw NotFoundException when budget not found', async () => {
-      const mockUser = createMockAuthenticatedUser();
+      // const mockUser = createMockAuthenticatedUser(); // No longer needed
       const budgetId = 'non-existent-id';
       const mockError = { message: 'No rows returned' };
 
       mockSupabaseClient.setMockData(null).setMockError(mockError);
 
       await expectErrorThrown(
-        () => service.findOne(budgetId, mockUser, mockSupabaseClient as any),
+        () => service.findOne(budgetId, mockSupabaseClient as any),
         NotFoundException,
         'Budget introuvable ou accès non autorisé',
       );
@@ -286,7 +282,7 @@ describe('BudgetService', () => {
 
   describe('update', () => {
     it('should update budget with validation', async () => {
-      const mockUser = createMockAuthenticatedUser();
+      // const mockUser = createMockAuthenticatedUser(); // No longer needed
       const budgetId = MOCK_BUDGET_ID;
       const updateBudgetDto: BudgetUpdate = {
         description: 'Budget Modifié',
@@ -297,7 +293,7 @@ describe('BudgetService', () => {
         month: updateBudgetDto.month,
         year: 2024, // Provide a valid year
         description: updateBudgetDto.description,
-        user_id: mockUser.id,
+        user_id: 'test-user-id',
       });
 
       mockSupabaseClient.setMockData(mockUpdatedBudget).setMockError(null);
@@ -305,7 +301,6 @@ describe('BudgetService', () => {
       const result = await service.update(
         budgetId,
         updateBudgetDto,
-        mockUser,
         mockSupabaseClient as any,
       );
 
@@ -315,7 +310,7 @@ describe('BudgetService', () => {
     });
 
     it('should validate update data against Zod schema', async () => {
-      const mockUser = createMockAuthenticatedUser();
+      // const mockUser = createMockAuthenticatedUser(); // No longer needed
       const budgetId = MOCK_BUDGET_ID;
 
       // Test invalid update data
@@ -325,12 +320,7 @@ describe('BudgetService', () => {
 
       await expectErrorThrown(
         () =>
-          service.update(
-            budgetId,
-            invalidUpdate,
-            mockUser,
-            mockSupabaseClient as any,
-          ),
+          service.update(budgetId, invalidUpdate, mockSupabaseClient as any),
         BadRequestException,
         'Mois invalide',
       );
@@ -339,7 +329,7 @@ describe('BudgetService', () => {
 
   describe('createFromOnboarding', () => {
     it('should create budget with transactions from onboarding data', async () => {
-      const mockUser = createMockAuthenticatedUser();
+      const mockUser = createMockAuthenticatedUser(); // No longer needed
       const onboardingData: BudgetCreateFromOnboarding = {
         month: 1,
         year: 2024,
@@ -375,7 +365,7 @@ describe('BudgetService', () => {
     });
 
     it('should handle RPC execution errors', async () => {
-      const mockUser = createMockAuthenticatedUser();
+      const mockUser = createMockAuthenticatedUser(); // No longer needed
       const onboardingData: BudgetCreateFromOnboarding = {
         month: 1,
         year: 2024,

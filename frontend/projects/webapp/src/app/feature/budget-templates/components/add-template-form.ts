@@ -126,8 +126,8 @@ export class AddTemplateForm {
       const template: BudgetTemplateCreate = {
         name: formValue.name!,
         description: formValue.description ?? undefined,
-        category: formValue.category ?? undefined,
         isDefault: formValue.isDefault ?? false,
+        lines: [],
       };
       this.addTemplate.emit(template);
       this.templateForm.reset();

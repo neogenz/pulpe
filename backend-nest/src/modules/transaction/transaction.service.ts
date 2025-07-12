@@ -16,6 +16,7 @@ import {
 } from '@pulpe/shared';
 import { type TransactionRow, TRANSACTION_CONSTANTS } from './entities';
 import { TransactionMapper } from './transaction.mapper';
+import type { Database } from '../../types/database.types';
 
 @Injectable()
 export class TransactionService {
@@ -30,7 +31,7 @@ export class TransactionService {
   ): Promise<TransactionListResponse> {
     try {
       const { data: transactionsDb, error } = await supabase
-        .from('transactions')
+        .from('transaction')
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -130,7 +131,7 @@ export class TransactionService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<unknown> {
     const { data: transactionDb, error } = await supabase
-      .from('transactions')
+      .from('transaction')
       .insert(transactionData)
       .select()
       .single();
@@ -186,12 +187,12 @@ export class TransactionService {
 
   async findOne(
     id: string,
-    user: AuthenticatedUser,
+    _user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionResponse> {
     try {
       const { data: transactionDb, error } = await supabase
-        .from('transactions')
+        .from('transaction')
         .select('*')
         .eq('id', id)
         .single();
@@ -291,7 +292,7 @@ export class TransactionService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<unknown> {
     const { data: transactionDb, error } = await supabase
-      .from('transactions')
+      .from('transaction')
       .update(updateData)
       .eq('id', id)
       .select()
@@ -310,7 +311,7 @@ export class TransactionService {
   async update(
     id: string,
     updateTransactionDto: TransactionUpdate,
-    user: AuthenticatedUser,
+    _user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionResponse> {
     try {
@@ -351,12 +352,12 @@ export class TransactionService {
 
   async remove(
     id: string,
-    user: AuthenticatedUser,
+    _user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionDeleteResponse> {
     try {
       const { error } = await supabase
-        .from('transactions')
+        .from('transaction')
         .delete()
         .eq('id', id);
 
@@ -386,7 +387,7 @@ export class TransactionService {
   ): Promise<TransactionListResponse> {
     try {
       const { data: transactionsDb, error } = await supabase
-        .from('transactions')
+        .from('transaction')
         .select('*')
         .eq('budget_id', budgetId)
         .order('created_at', { ascending: false });
@@ -488,24 +489,27 @@ export class TransactionService {
       expense: 'Dépense',
       income: 'Revenu',
       saving: 'Épargne',
+      exceptional_income: 'Revenu exceptionnel',
     } as const;
 
-    const expenseLabels = {
+    const recurrenceLabels = {
       fixed: 'Fixe',
       variable: 'Variable',
+      one_off: 'Ponctuel',
     } as const;
 
     const baseLabel = typeLabels[transaction.type];
     if (transaction.type === 'expense') {
-      return `${baseLabel} ${expenseLabels[transaction.expense_type]}`;
+      return `${baseLabel} ${recurrenceLabels[transaction.expense_type]}`;
     }
 
     return baseLabel;
   }
 }
 
-type EnrichedTransaction = TransactionRow & {
-  displayAmount: string;
-  isRecurring: boolean;
-  categoryDisplay: string;
-};
+type EnrichedTransaction =
+  Database['public']['Tables']['transaction']['Row'] & {
+    displayAmount: string;
+    isRecurring: boolean;
+    categoryDisplay: string;
+  };

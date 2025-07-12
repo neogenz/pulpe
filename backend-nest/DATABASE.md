@@ -34,7 +34,7 @@ auth.users
 └── ...
 
 -- Budgets (données métier)
-public.budgets
+public.monthly_budget
 ├── id (uuid, primary key)
 ├── user_id (uuid, foreign key → auth.users.id)
 ├── month (integer, 1-12)
@@ -45,10 +45,10 @@ public.budgets
 └── updated_at (timestamptz)
 
 -- Transactions
-public.transactions
+public.transaction
 ├── id (uuid, primary key)
 ├── user_id (uuid, foreign key → auth.users.id)
-├── budget_id (uuid, foreign key → budgets.id)
+├── budget_id (uuid, foreign key → monthly_budget.id)
 ├── amount (numeric(12,2), > 0)
 ├── type (transaction_type: expense|income|saving)
 ├── expense_type (expense_type: fixed|variable)
@@ -59,7 +59,7 @@ public.transactions
 └── updated_at (timestamptz)
 
 -- Templates de budgets
-public.budget_templates
+public.template
 ├── id (uuid, primary key)
 ├── user_id (uuid, nullable) -- NULL = template public
 ├── name (text)
@@ -70,9 +70,9 @@ public.budget_templates
 └── updated_at (timestamptz)
 
 -- Transactions de templates
-public.template_transactions
+public.template_line
 ├── id (uuid, primary key)
-├── template_id (uuid, foreign key → budget_templates.id)
+├── template_id (uuid, foreign key → template.id)
 ├── amount (numeric(12,2))
 ├── type (transaction_type)
 ├── expense_type (expense_type)
@@ -86,7 +86,7 @@ public.template_transactions
 ### **Types Énumérés**
 
 ```sql
--- Types de transactions
+-- Types de transaction
 CREATE TYPE transaction_type AS ENUM ('expense', 'income', 'saving');
 
 -- Types de dépenses
@@ -101,45 +101,45 @@ RLS applique automatiquement des filtres sur chaque requête SQL basés sur l'ut
 
 ```sql
 -- Chaque requête est automatiquement transformée :
-SELECT * FROM budgets;
+SELECT * FROM monthly_budget;
 -- Devient :
-SELECT * FROM budgets WHERE user_id = auth.uid();
+SELECT * FROM monthly_budget WHERE user_id = auth.uid();
 ```
 
 ### **Activation RLS**
 
 ```sql
 -- Activation sur toutes les tables
-ALTER TABLE "public"."budgets" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "public"."transactions" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "public"."budget_templates" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "public"."template_transactions" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."monthly_budget" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."transaction" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."template" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."template_line" ENABLE ROW LEVEL SECURITY;
 ```
 
 ### **Politiques RLS par Table**
 
-#### **Budgets - Isolation Utilisateur**
+#### **Monthly Budget - Isolation Utilisateur**
 
 ```sql
 -- SELECT : Voir seulement ses budgets
 CREATE POLICY "Utilisateurs peuvent voir leurs budgets"
-ON "public"."budgets" FOR SELECT
+ON "public"."monthly_budget" FOR SELECT
 USING (auth.uid() = user_id);
 
 -- INSERT : Créer seulement pour soi
 CREATE POLICY "Utilisateurs peuvent créer leurs budgets"
-ON "public"."budgets" FOR INSERT
+ON "public"."monthly_budget" FOR INSERT
 WITH CHECK (auth.uid() = user_id);
 
 -- UPDATE : Modifier seulement ses budgets
 CREATE POLICY "Utilisateurs peuvent modifier leurs budgets"
-ON "public"."budgets" FOR UPDATE
+ON "public"."monthly_budget" FOR UPDATE
 USING (auth.uid() = user_id)
 WITH CHECK (auth.uid() = user_id);
 
 -- DELETE : Supprimer seulement ses budgets
 CREATE POLICY "Utilisateurs peuvent supprimer leurs budgets"
-ON "public"."budgets" FOR DELETE
+ON "public"."monthly_budget" FOR DELETE
 USING (auth.uid() = user_id);
 ```
 
@@ -148,43 +148,43 @@ USING (auth.uid() = user_id);
 ```sql
 -- SELECT : Templates publics (user_id IS NULL) + templates privés
 CREATE POLICY "Users can view own templates and public templates"
-ON "public"."budget_templates" FOR SELECT
+ON "public"."template" FOR SELECT
 USING ((auth.uid() = user_id) OR (user_id IS NULL));
 
 -- INSERT : Créer seulement ses templates
 CREATE POLICY "Users can insert own templates"
-ON "public"."budget_templates" FOR INSERT
+ON "public"."template" FOR INSERT
 WITH CHECK (auth.uid() = user_id);
 
 -- UPDATE/DELETE : Seulement ses templates
 CREATE POLICY "Users can update own templates"
-ON "public"."budget_templates" FOR UPDATE
+ON "public"."template" FOR UPDATE
 USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can delete own templates"
-ON "public"."budget_templates" FOR DELETE
+ON "public"."template" FOR DELETE
 USING (auth.uid() = user_id);
 ```
 
-#### **Template Transactions - Sécurité par Relation**
+#### **Template Line - Sécurité par Relation**
 
 ```sql
 -- Accès basé sur l'accès au template parent
-CREATE POLICY "Users can view template transactions based on template access"
-ON "public"."template_transactions" FOR SELECT
+CREATE POLICY "Users can view template line based on template access"
+ON "public"."template_line" FOR SELECT
 USING (EXISTS (
-  SELECT 1 FROM "public"."budget_templates"
-  WHERE ("budget_templates"."id" = "template_transactions"."template_id")
-  AND ((auth.uid() = "budget_templates"."user_id") OR ("budget_templates"."user_id" IS NULL))
+  SELECT 1 FROM "public"."template"
+  WHERE ("template"."id" = "template_line"."template_id")
+  AND ((auth.uid() = "template"."user_id") OR ("template"."user_id" IS NULL))
 ));
 
 -- Modification seulement si propriétaire du template
-CREATE POLICY "Users can insert template transactions for own templates"
-ON "public"."template_transactions" FOR INSERT
+CREATE POLICY "Users can insert template line for own templates"
+ON "public"."template_line" FOR INSERT
 WITH CHECK (EXISTS (
-  SELECT 1 FROM "public"."budget_templates"
-  WHERE ("budget_templates"."id" = "template_transactions"."template_id")
-  AND (auth.uid() = "budget_templates"."user_id")
+  SELECT 1 FROM "public"."template"
+  WHERE ("template"."id" = "template_line"."template_id")
+  AND (auth.uid() = "template"."user_id")
 ));
 ```
 
@@ -200,7 +200,7 @@ bun run generate-types
 export type Database = {
   public: {
     Tables: {
-      budgets: {
+      monthly_budget: {
         Row: { id: string; month: number; year: number; ... };
         Insert: { month: number; year: number; user_id?: string; ... };
         Update: { month?: number; year?: number; ... };
@@ -221,9 +221,9 @@ export type InsertDto<T extends keyof Database['public']['Tables']> =
   Database['public']['Tables'][T]['Insert'];
 
 // Types spécifiques
-export type BudgetRow = Tables<'budgets'>;
-export type BudgetInsert = InsertDto<'budgets'>;
-export type TransactionRow = Tables<'transactions'>;
+export type BudgetRow = Tables<'monthly_budget'>;
+export type BudgetInsert = InsertDto<'monthly_budget'>;
+export type TransactionRow = Tables<'transaction'>;
 ```
 
 ### **Utilisation dans les Services**
@@ -244,7 +244,7 @@ export class BudgetService {
     };
 
     const { data, error } = await supabase
-      .from('budgets')
+      .from('monthly_budget')
       .insert(insertData)
       .select()
       .single();
@@ -334,8 +334,8 @@ export class BudgetMapper {
 ### **Fonctions avec SECURITY DEFINER**
 
 ```sql
--- Fonction pour créer budget + transactions atomiquement
-CREATE OR REPLACE FUNCTION create_budget_from_onboarding_with_transactions(
+-- Fonction pour créer budget + transaction atomiquement
+CREATE OR REPLACE FUNCTION create_budget_from_onboarding_with_transaction(
   p_user_id uuid,
   p_month integer,
   p_year integer,
@@ -352,13 +352,13 @@ DECLARE
   transaction_count integer := 0;
 BEGIN
   -- 1. Créer le budget
-  INSERT INTO public.budgets (user_id, month, year, description)
+  INSERT INTO public.monthly_budget (user_id, month, year, description)
   VALUES (p_user_id, p_month, p_year, p_description)
   RETURNING id INTO new_budget_id;
 
-  -- 2. Créer les transactions liées
+  -- 2. Créer les transaction liées
   IF p_monthly_income > 0 THEN
-    INSERT INTO public.transactions (
+    INSERT INTO public.transaction (
       user_id, budget_id, amount, type, expense_type, name, is_recurring
     ) VALUES (
       p_user_id, new_budget_id, p_monthly_income, 'income', 'fixed', 'Revenu mensuel', true
@@ -366,16 +366,16 @@ BEGIN
     transaction_count := transaction_count + 1;
   END IF;
 
-  -- ... autres transactions
+  -- ... autres transaction
 
   -- 3. Retourner le résultat
   RETURN jsonb_build_object(
     'budget', (
       SELECT to_jsonb(b.*)
-      FROM public.budgets b
+      FROM public.monthly_budget b
       WHERE b.id = new_budget_id
     ),
-    'transactions_created', transaction_count
+    'transaction_created', transaction_count
   );
 END;
 $$;
@@ -390,7 +390,7 @@ async createFromOnboarding(
   supabase: AuthenticatedSupabaseClient,
 ): Promise<BudgetResponse> {
   const { data, error } = await supabase.rpc(
-    'create_budget_from_onboarding_with_transactions',
+    'create_budget_from_onboarding_with_transaction',
     {
       p_user_id: user.id,
       p_month: onboardingData.month,
@@ -414,26 +414,26 @@ async createFromOnboarding(
 
 ```sql
 -- Foreign keys avec suppression en cascade
-ALTER TABLE "public"."budgets"
-ADD CONSTRAINT "budgets_user_id_fkey"
+ALTER TABLE "public"."monthly_budget"
+ADD CONSTRAINT "monthly_budget_user_id_fkey"
 FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
 
 -- Contraintes uniques métier
-ALTER TABLE "public"."budgets"
+ALTER TABLE "public"."monthly_budget"
 ADD CONSTRAINT "unique_month_year_per_user"
 UNIQUE ("month", "year", "user_id");
 
 -- Contraintes de validation
-ALTER TABLE "public"."budgets"
-ADD CONSTRAINT "budgets_month_check"
+ALTER TABLE "public"."monthly_budget"
+ADD CONSTRAINT "monthly_budget_month_check"
 CHECK ((month >= 1) AND (month <= 12));
 
-ALTER TABLE "public"."budgets"
-ADD CONSTRAINT "budgets_year_check"
+ALTER TABLE "public"."monthly_budget"
+ADD CONSTRAINT "monthly_budget_year_check"
 CHECK (year >= 1900);
 
-ALTER TABLE "public"."transactions"
-ADD CONSTRAINT "transactions_amount_check"
+ALTER TABLE "public"."transaction"
+ADD CONSTRAINT "transaction_amount_check"
 CHECK (amount > 0);
 ```
 
@@ -441,13 +441,13 @@ CHECK (amount > 0);
 
 ```sql
 -- Index pour les politiques RLS (critiques pour performance)
-CREATE INDEX "budgets_user_id_idx" ON "public"."budgets" USING btree ("user_id");
-CREATE INDEX "transactions_user_id_idx" ON "public"."transactions" USING btree ("user_id");
+CREATE INDEX "monthly_budget_user_id_idx" ON "public"."monthly_budget" USING btree ("user_id");
+CREATE INDEX "transaction_user_id_idx" ON "public"."transaction" USING btree ("user_id");
 
 -- Index pour les requêtes métier
-CREATE INDEX "idx_budgets_month_year" ON "public"."budgets" USING btree ("year", "month");
-CREATE INDEX "idx_transactions_budget_id" ON "public"."transactions" USING btree ("budget_id");
-CREATE INDEX "idx_transactions_type" ON "public"."transactions" USING btree ("type");
+CREATE INDEX "idx_monthly_budget_month_year" ON "public"."monthly_budget" USING btree ("year", "month");
+CREATE INDEX "idx_transaction_budget_id" ON "public"."transaction" USING btree ("budget_id");
+CREATE INDEX "idx_transaction_type" ON "public"."transaction" USING btree ("type");
 ```
 
 ## 🔧 **Configuration Backend**
@@ -522,7 +522,7 @@ WHERE schemaname = 'public';
 -- Tester une politique manuellement
 SET ROLE authenticated;
 SET request.jwt.claims.sub = 'user-uuid-here';
-SELECT * FROM budgets;  -- Doit retourner seulement les budgets de l'utilisateur
+SELECT * FROM monthly_budget;  -- Doit retourner seulement les budgets de l'utilisateur
 ```
 
 ### **Debug Backend**
@@ -531,7 +531,7 @@ SELECT * FROM budgets;  -- Doit retourner seulement les budgets de l'utilisateur
 // Logger les requêtes Supabase en développement
 if (process.env.NODE_ENV === 'development') {
   this.logger.debug('Supabase query:', {
-    table: 'budgets',
+    table: 'monthly_budget',
     operation: 'select',
     userId: user.id,
   });

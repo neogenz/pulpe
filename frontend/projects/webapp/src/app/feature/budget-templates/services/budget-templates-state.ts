@@ -27,7 +27,7 @@ export class BudgetTemplatesState {
         userId: undefined,
         name: template.name,
         description: template.description ?? undefined,
-        category: template.category ?? undefined,
+        // category: template.category ?? undefined, // Removed: category field doesn't exist in schema
         isDefault: template.isDefault ?? false,
       };
       return [...data, optimisticTemplate];

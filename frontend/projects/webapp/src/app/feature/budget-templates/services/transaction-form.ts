@@ -1,18 +1,17 @@
 import { Injectable } from '@angular/core';
 import { FormArray, FormControl, FormGroup, Validators } from '@angular/forms';
-
-export type TransactionType = 'INCOME' | 'EXPENSE' | 'SAVING';
+import type { TransactionKind } from '@pulpe/shared';
 
 export interface TransactionFormData {
   description: string;
   amount: number;
-  type: TransactionType;
+  type: TransactionKind;
 }
 
 export interface TransactionFormControls {
   description: FormControl<string>;
   amount: FormControl<number>;
-  type: FormControl<TransactionType>;
+  type: FormControl<TransactionKind>;
 }
 
 export const TRANSACTION_VALIDATORS = {
@@ -22,9 +21,10 @@ export const TRANSACTION_VALIDATORS = {
 };
 
 export const TRANSACTION_TYPES = [
-  { value: 'INCOME' as const, label: 'Revenu' },
-  { value: 'EXPENSE' as const, label: 'Dépense' },
-  { value: 'SAVING' as const, label: 'Économie' },
+  { value: 'income' as const, label: 'Revenu' },
+  { value: 'expense' as const, label: 'Dépense' },
+  { value: 'saving' as const, label: 'Économie' },
+  { value: 'exceptional_income' as const, label: 'Revenu exceptionnel' },
 ] as const;
 
 @Injectable()
@@ -41,7 +41,7 @@ export class TransactionFormService {
         nonNullable: true,
         validators: TRANSACTION_VALIDATORS.amount,
       }),
-      type: new FormControl(transaction?.type ?? 'EXPENSE', {
+      type: new FormControl(transaction?.type ?? 'expense', {
         nonNullable: true,
         validators: TRANSACTION_VALIDATORS.type,
       }),

@@ -4,10 +4,10 @@ import {
   MatChipsModule,
 } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
-import type { TransactionType } from '@pulpe/shared';
+import type { TransactionKind } from '@pulpe/shared';
 
 export interface TransactionFilters {
-  transactionTypes: TransactionType[];
+  transactionTypes: TransactionKind[];
 }
 
 @Component({
@@ -55,7 +55,7 @@ export class TransactionChipFilter {
   });
 
   onTransactionTypeToggle(
-    type: TransactionType,
+    type: TransactionKind,
     event: MatChipSelectionChange,
   ): void {
     if (!event.isUserInput) {
@@ -66,7 +66,7 @@ export class TransactionChipFilter {
     const transactionTypes = event.selected
       ? [...currentFilters.transactionTypes, type]
       : currentFilters.transactionTypes.filter(
-          (t: TransactionType) => t !== type,
+          (t: TransactionKind) => t !== type,
         );
 
     this.filters.set({ transactionTypes });

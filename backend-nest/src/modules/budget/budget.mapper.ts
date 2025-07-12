@@ -39,7 +39,7 @@ export class BudgetMapper {
       year: createDto.year,
       description: createDto.description,
       user_id: userId,
-      template_id: null,
+      template_id: '', // Template ID requis par le type mais peut être vide
     };
   }
 

@@ -5,6 +5,7 @@ Package TypeScript contenant les types, schémas et DTOs partagés entre le fron
 ## 🎯 Objectif
 
 Assurer la cohérence des types et la validation des données entre :
+
 - **Frontend Angular** : Validation côté client et typage
 - **Backend NestJS** : Validation côté serveur et DTOs
 - **Database** : Schémas de validation Supabase
@@ -13,11 +14,8 @@ Assurer la cohérence des types et la validation des données entre :
 
 ```
 shared/
-├── index.ts              # Point d'entrée principal
-├── schemas.ts            # Schémas Zod de validation
-├── types.ts              # Types TypeScript dérivés
-└── types/                # Types spécialisés
-    └── (futurs sous-types)
+├── index.ts              # Point d'entrée principal (exporte tout)
+└── schemas.ts            # Schémas Zod ET types TypeScript dérivés
 ```
 
 ## 🚀 Technologies
@@ -30,11 +28,12 @@ shared/
 ## 📋 Types disponibles
 
 ### Authentification
+
 ```typescript
 // Schémas de validation
 export const LoginSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(8)
+  password: z.string().min(8),
 });
 
 // Types TypeScript inférés
@@ -42,6 +41,7 @@ export type Login = z.infer<typeof LoginSchema>;
 ```
 
 ### Budget & Transactions
+
 ```typescript
 // Schémas métier
 export const BudgetSchema = z.object({
@@ -49,7 +49,7 @@ export const BudgetSchema = z.object({
   name: z.string().min(1),
   month: z.string().regex(/^\d{4}-\d{2}$/),
   totalIncome: z.number().positive(),
-  totalExpenses: z.number().positive()
+  totalExpenses: z.number().positive(),
 });
 
 export const TransactionSchema = z.object({
@@ -58,7 +58,7 @@ export const TransactionSchema = z.object({
   amount: z.number(),
   description: z.string().min(1),
   category: z.enum(['income', 'expense', 'savings']),
-  date: z.date()
+  date: z.date(),
 });
 
 // Types inférés
@@ -67,18 +67,19 @@ export type Transaction = z.infer<typeof TransactionSchema>;
 ```
 
 ### Onboarding
+
 ```typescript
 // Étapes d'onboarding
 export const PersonalInfoSchema = z.object({
   firstName: z.string().min(1),
   lastName: z.string().min(1),
   birthDate: z.date(),
-  locality: z.string().min(1)
+  locality: z.string().min(1),
 });
 
 export const IncomeSchema = z.object({
   salary: z.number().positive(),
-  otherIncome: z.number().optional()
+  otherIncome: z.number().optional(),
 });
 
 // Types pour le processus complet
@@ -151,8 +152,8 @@ pnpm run format:check
 
 ### Workflow de développement
 
-1. **Modifier les schémas** dans `schemas.ts`
-2. **Exporter les types** dans `index.ts`
+1. **Modifier les schémas et types** dans `schemas.ts`
+2. **Exporter** depuis `index.ts` si ce n'est pas déjà fait
 3. **Watch mode** compile automatiquement
 4. **Frontend/Backend** voient les changements instantanément
 
@@ -202,13 +203,13 @@ export interface UserProfile {
 
 ### Organisation des fichiers
 
-- **`schemas.ts`** : Tous les schémas Zod
-- **`types.ts`** : Types utilitaires et dérivés
-- **`index.ts`** : Exports publics seulement
+- **`schemas.ts`** : Contient à la fois les schémas Zod et les types TypeScript inférés.
+- **`index.ts`** : Point d'entrée unique qui exporte tous les schémas et types depuis `schemas.ts`.
 
 ## 🧪 Validation
 
 ### Côté Frontend
+
 ```typescript
 // Validation avant envoi API
 const result = BudgetSchema.safeParse(formData);
@@ -220,6 +221,7 @@ if (result.success) {
 ```
 
 ### Côté Backend
+
 ```typescript
 // Validation automatique via NestJS
 @Post()
@@ -266,7 +268,7 @@ async create(@Body() dto: CreateBudgetDto) {
 ### ❌ À éviter
 
 - Types TypeScript manuels (duplication)
-- Imports directs depuis `schemas.ts`
+- Imports directs depuis `schemas.ts` (toujours passer par `@pulpe/shared`)
 - Schémas sans validation
 - Breaking changes sans version bump
 - Dependencies runtime supplémentaires
@@ -282,11 +284,12 @@ async create(@Body() dto: CreateBudgetDto) {
 ### Migration
 
 Lors de modifications majeures :
+
 1. Créer nouveaux schémas avec suffixe de version
-2. Maintenir anciens schémas temporairement  
+2. Maintenir anciens schémas temporairement
 3. Migrer frontend et backend
 4. Supprimer anciennes versions
 
 ---
 
-🎯 **Ce package garantit la cohérence des données entre frontend et backend tout en centralisant la validation métier.** 
+🎯 **Ce package garantit la cohérence des données entre frontend et backend tout en centralisant la validation métier.**

@@ -77,10 +77,10 @@ export type BudgetResponse = z.infer<typeof budgetResponseDto>;
 ```
 src/
 ├── modules/
-│   ├── budgets/
-│   │   ├── budgets.controller.ts   # Routes HTTP
-│   │   ├── budgets.service.ts      # Logique métier
-│   │   ├── budgets.module.ts       # Configuration module
+│   ├── monthly-budgets/
+│   │   ├── monthly-budgets.controller.ts   # Routes HTTP
+│   │   ├── monthly-budgets.service.ts      # Logique métier
+│   │   ├── monthly-budgets.module.ts       # Configuration module
 │   │   └── dto/                    # DTOs NestJS seulement
 │   │       ├── create-budget.dto.ts
 │   │       └── index.ts
@@ -453,8 +453,8 @@ export class SupabaseService {
 #### 🎮 **Utilisation dans les Controllers**
 
 ```typescript
-// modules/budgets/budgets.controller.ts
-@Controller("budgets")
+// modules/monthly-budgets/monthly-budgets.controller.ts
+@Controller("monthly-budgets")
 @UseGuards(AuthGuard)
 @ApiBearerAuth()
 export class BudgetsController {
@@ -463,7 +463,7 @@ export class BudgetsController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient
   ): Promise<BudgetListResponse> {
-    return this.budgetService.findAll(supabase);
+    return this.monthlyBudgetService.findAll(supabase);
   }
 
   @Post()
@@ -472,7 +472,7 @@ export class BudgetsController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient
   ): Promise<BudgetResponse> {
-    return this.budgetService.create(createBudgetDto, user, supabase);
+    return this.monthlyBudgetService.create(createBudgetDto, user, supabase);
   }
 }
 ```
@@ -485,10 +485,10 @@ export class BudgetsController {
 
 ```sql
 -- Activation RLS sur toutes les tables
-ALTER TABLE "public"."budgets" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "public"."transactions" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "public"."budget_templates" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "public"."template_transactions" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."monthly_budget" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."transaction" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."template" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."template_line" ENABLE ROW LEVEL SECURITY;
 ```
 
 #### 🔐 **Politiques par opération**
@@ -496,23 +496,23 @@ ALTER TABLE "public"."template_transactions" ENABLE ROW LEVEL SECURITY;
 ```sql
 -- SELECT : Utilisateurs voient seulement leurs données
 CREATE POLICY "Utilisateurs peuvent voir leurs budgets"
-ON "public"."budgets" FOR SELECT
+ON "public"."monthly_budget" FOR SELECT
 USING (auth.uid() = user_id);
 
 -- INSERT : Utilisateurs créent seulement pour eux
 CREATE POLICY "Utilisateurs peuvent créer leurs budgets"
-ON "public"."budgets" FOR INSERT
+ON "public"."monthly_budget" FOR INSERT
 WITH CHECK (auth.uid() = user_id);
 
 -- UPDATE : Utilisateurs modifient seulement leurs données
 CREATE POLICY "Utilisateurs peuvent modifier leurs budgets"
-ON "public"."budgets" FOR UPDATE
+ON "public"."monthly_budget" FOR UPDATE
 USING (auth.uid() = user_id)
 WITH CHECK (auth.uid() = user_id);
 
 -- DELETE : Utilisateurs suppriment seulement leurs données
 CREATE POLICY "Utilisateurs peuvent supprimer leurs budgets"
-ON "public"."budgets" FOR DELETE
+ON "public"."monthly_budget" FOR DELETE
 USING (auth.uid() = user_id);
 ```
 
@@ -521,23 +521,23 @@ USING (auth.uid() = user_id);
 ```sql
 -- Templates publics ET privés
 CREATE POLICY "Users can view own templates and public templates"
-ON "public"."budget_templates" FOR SELECT
+ON "public"."template" FOR SELECT
 USING ((auth.uid() = user_id) OR (user_id IS NULL));
 
 -- Transactions de templates basées sur l'accès au template
 CREATE POLICY "Users can view template transactions based on template access"
-ON "public"."template_transactions" FOR SELECT
+ON "public"."template_line" FOR SELECT
 USING (EXISTS (
-  SELECT 1 FROM "public"."budget_templates"
-  WHERE ("budget_templates"."id" = "template_transactions"."template_id")
-  AND ((auth.uid() = "budget_templates"."user_id") OR ("budget_templates"."user_id" IS NULL))
+  SELECT 1 FROM "public"."template"
+  WHERE ("template"."id" = "template_line"."template_id")
+  AND ((auth.uid() = "template"."user_id") OR ("template"."user_id" IS NULL))
 ));
 ```
 
 #### 🔑 **Fonctions sécurisées**
 
 ```sql
--- Fonction pour créer budget + transactions atomiquement
+-- Fonction pour créer budget + transaction atomiquement
 CREATE OR REPLACE FUNCTION create_budget_from_onboarding_with_transactions(
   p_user_id uuid,
   p_month integer,
@@ -550,17 +550,17 @@ SET search_path TO 'public'        -- ✅ Sécurisation du search_path
 AS $$
 BEGIN
   -- Insertion budget avec user_id contrôlé
-  INSERT INTO public.budgets (user_id, month, year, description)
+  INSERT INTO public.monthly_budget (user_id, month, year, description)
   VALUES (p_user_id, p_month, p_year, p_description)
-  RETURNING id INTO new_budget_id;
+  RETURNING id INTO new_monthly_budget_id;
 
-  -- Insertions transactions liées avec user_id contrôlé
+  -- Insertions transaction liées avec user_id contrôlé
   IF p_monthly_income > 0 THEN
-    INSERT INTO public.transactions (user_id, budget_id, ...)
-    VALUES (p_user_id, new_budget_id, ...);
+    INSERT INTO public.transaction (user_id, monthly_budget_id, ...)
+    VALUES (p_user_id, new_monthly_budget_id, ...);
   END IF;
 
-  RETURN jsonb_build_object('budget', ...);
+  RETURN jsonb_build_object('monthly_budget', ...);
 END;
 $$;
 ```
@@ -569,16 +569,16 @@ $$;
 
 ```sql
 -- Foreign keys vers auth.users avec suppression en cascade
-ALTER TABLE "public"."budgets"
-ADD CONSTRAINT "budgets_user_id_fkey"
+ALTER TABLE "public"."monthly_budget"
+ADD CONSTRAINT "monthly_budget_user_id_fkey"
 FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
 
 -- Index pour les performances des politiques RLS
-CREATE INDEX "budgets_user_id_idx" ON "public"."budgets" USING btree ("user_id");
-CREATE INDEX "transactions_user_id_idx" ON "public"."transactions" USING btree ("user_id");
+CREATE INDEX "monthly_budget_user_id_idx" ON "public"."monthly_budget" USING btree ("user_id");
+CREATE INDEX "transaction_user_id_idx" ON "public"."transaction" USING btree ("user_id");
 
 -- Contrainte unique par utilisateur
-ALTER TABLE "public"."budgets"
+ALTER TABLE "public"."monthly_budget"
 ADD CONSTRAINT "unique_month_year_per_user"
 UNIQUE ("month", "year", "user_id");
 ```
