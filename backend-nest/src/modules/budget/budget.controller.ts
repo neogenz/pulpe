@@ -37,8 +37,6 @@ import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.ser
 import {
   BudgetCreateDto,
   BudgetUpdateDto,
-  BudgetCreateFromOnboardingDto,
-  BudgetCreateFromTemplateDto,
   BudgetListResponseDto,
   BudgetResponseDto,
   BudgetDeleteResponseDto,
@@ -158,54 +156,6 @@ export class BudgetController {
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetResponse> {
     return this.budgetService.update(id, updateBudgetDto, supabase);
-  }
-
-  @Post('from-template')
-  @ApiOperation({
-    summary: 'Create budget from template',
-    description:
-      'Creates a budget based on an existing template, automatically generating transactions from template lines',
-  })
-  @ApiCreatedResponse({
-    description: 'Budget created successfully from template',
-    type: BudgetResponseDto,
-  })
-  @ApiBadRequestResponse({
-    description: 'Invalid input data or template not found',
-    type: ErrorResponseDto,
-  })
-  async createFromTemplate(
-    @Body() templateData: BudgetCreateFromTemplateDto,
-    @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetResponse> {
-    return this.budgetService.createFromTemplate(templateData, user, supabase);
-  }
-
-  @Post('from-onboarding')
-  @ApiOperation({
-    summary: 'Create budget with transactions from onboarding',
-    description:
-      'Creates a budget and automatically generates transactions based on onboarding data in a single atomic operation',
-  })
-  @ApiCreatedResponse({
-    description: 'Budget and transactions created successfully',
-    type: BudgetResponseDto,
-  })
-  @ApiBadRequestResponse({
-    description: 'Invalid input data',
-    type: ErrorResponseDto,
-  })
-  async createFromOnboarding(
-    @Body() onboardingData: BudgetCreateFromOnboardingDto,
-    @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetResponse> {
-    return this.budgetService.createFromOnboarding(
-      onboardingData,
-      user,
-      supabase,
-    );
   }
 
   @Delete(':id')

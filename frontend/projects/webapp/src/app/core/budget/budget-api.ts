@@ -3,9 +3,8 @@ import { Injectable, inject } from '@angular/core';
 import {
   type Budget,
   type BudgetCreate,
-  type BudgetCreateFromTemplate,
+  budgetCreateSchema,
   type BudgetResponse,
-  budgetCreateFromTemplateSchema,
   budgetSchema,
   errorResponseSchema,
 } from '@pulpe/shared';
@@ -35,14 +34,14 @@ export class BudgetApi {
   /**
    * Crée un budget à partir d'un template
    */
-  createBudgetFromTemplate$(
-    templateData: BudgetCreateFromTemplate,
+  createBudget$(
+    templateData: BudgetCreate,
   ): Observable<CreateBudgetApiResponse> {
     // Valider les données avec le schéma partagé
-    const validatedRequest = budgetCreateFromTemplateSchema.parse(templateData);
+    const validatedRequest = budgetCreateSchema.parse(templateData);
 
     return this.#httpClient
-      .post<BudgetResponse>(`${this.#baseUrl}/from-template`, validatedRequest)
+      .post<BudgetResponse>(`${this.#baseUrl}`, validatedRequest)
       .pipe(
         map((response) => {
           if (!response.data || Array.isArray(response.data)) {

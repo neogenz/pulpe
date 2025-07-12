@@ -69,34 +69,6 @@ export type BudgetTemplateCreateFromOnboarding = z.infer<
   typeof budgetTemplateCreateFromOnboardingSchema
 >;
 
-// Schema for creating budget from template
-export const budgetCreateFromTemplateSchema = z.object({
-  month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
-  year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
-  description: z.string().min(1).max(500).trim(),
-  templateId: z.string().uuid(),
-});
-export type BudgetCreateFromTemplate = z.infer<
-  typeof budgetCreateFromTemplateSchema
->;
-
-// Legacy schema - kept for backward compatibility
-export const budgetCreateFromOnboardingSchema = z.object({
-  month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
-  year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
-  description: z.string().min(1).max(500).trim(),
-  transactions: z.array(onboardingTransactionSchema),
-  monthlyIncome: z.number().min(0).default(0).optional(),
-  housingCosts: z.number().min(0).default(0).optional(),
-  healthInsurance: z.number().min(0).default(0).optional(),
-  leasingCredit: z.number().min(0).default(0).optional(),
-  phonePlan: z.number().min(0).default(0).optional(),
-  transportCosts: z.number().min(0).default(0).optional(),
-});
-export type BudgetCreateFromOnboarding = z.infer<
-  typeof budgetCreateFromOnboardingSchema
->;
-
 export const budgetUpdateSchema = z.object({
   description: z.string().optional(),
   month: z.number().optional(),
