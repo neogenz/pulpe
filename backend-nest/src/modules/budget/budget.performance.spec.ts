@@ -148,6 +148,7 @@ describe('BudgetService (Performance)', () => {
         month: 2,
         year: 2025,
         description: 'Load Test Budget',
+        templateId: 'template-id',
       };
       const mockCreatedBudget = createMockBudgetEntity({
         month: 2,

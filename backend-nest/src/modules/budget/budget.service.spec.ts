@@ -45,6 +45,7 @@ describe('BudgetService', () => {
     month: 1,
     year: 2024,
     description: 'Test Budget',
+    templateId: 'template-id',
     ...overrides,
   });
 
@@ -179,6 +180,7 @@ describe('BudgetService', () => {
         month: 13, // Invalid: must be 1-12
         year: 2024,
         description: 'Test',
+        templateId: 'template-id',
       };
 
       await expectErrorThrown(
@@ -193,6 +195,7 @@ describe('BudgetService', () => {
         month: 1,
         year: new Date().getFullYear() + 5, // Too far in future
         description: 'Test',
+        templateId: 'template-id',
       };
 
       await expectErrorThrown(
@@ -207,6 +210,7 @@ describe('BudgetService', () => {
         month: 1,
         year: 2024,
         description: Array(502).join('x'), // Too long: max 500 chars
+        templateId: 'template-id',
       };
 
       await expectErrorThrown(

@@ -15,9 +15,9 @@ import {
   type BudgetResponse,
   type BudgetUpdate,
 } from '@pulpe/shared';
-import { type BudgetRow, BUDGET_CONSTANTS } from './entities';
 import { BudgetMapper } from './budget.mapper';
-import type { Database } from '../../types/database.types';
+import type { Database, Tables } from '../../types/database.types';
+import { BUDGET_CONSTANTS } from './budget.constants';
 
 @Injectable()
 export class BudgetService {
@@ -44,8 +44,7 @@ export class BudgetService {
         );
       }
 
-      const validBudgets = this.filterValidBudgets(budgets || []);
-      const apiData = this.budgetMapper.toApiList(validBudgets);
+      const apiData = this.budgetMapper.toApiList(budgets || []);
 
       return {
         success: true as const,
@@ -113,7 +112,7 @@ export class BudgetService {
     return {
       ...createBudgetDto,
       user_id: userId,
-      template_id: '', // Template ID requis par le type mais peut être vide
+      template_id: createBudgetDto.templateId,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -154,8 +153,9 @@ export class BudgetService {
       const budgetData = this.prepareBudgetData(createBudgetDto, user.id);
       const budgetDb = await this.insertBudget(budgetData, supabase);
 
-      const budget = this.validateBudgetData(budgetDb);
-      const apiData = this.budgetMapper.toApi(budget);
+      const apiData = this.budgetMapper.toApi(
+        budgetDb as Tables<'monthly_budget'>,
+      );
 
       return {
         success: true,
@@ -185,8 +185,9 @@ export class BudgetService {
         throw new NotFoundException('Budget introuvable ou accès non autorisé');
       }
 
-      const budget = this.validateBudgetData(budgetDb);
-      const apiData = this.budgetMapper.toApi(budget);
+      const apiData = this.budgetMapper.toApi(
+        budgetDb as Tables<'monthly_budget'>,
+      );
 
       return {
         success: true,
@@ -271,8 +272,9 @@ export class BudgetService {
       const updateData = this.prepareBudgetUpdateData(updateBudgetDto);
       const budgetDb = await this.updateBudgetInDb(id, updateData, supabase);
 
-      const budget = this.validateBudgetData(budgetDb);
-      const apiData = this.budgetMapper.toApi(budget);
+      const apiData = this.budgetMapper.toApi(
+        budgetDb as Tables<'monthly_budget'>,
+      );
 
       return {
         success: true,
@@ -378,10 +380,7 @@ export class BudgetService {
       );
       const data = await this.executeOnboardingRpc(rpcParams, supabase);
 
-      const budget = this.validateBudgetData(
-        (data as { budget: unknown }).budget,
-      );
-      const apiData = this.budgetMapper.toApi(budget);
+      const apiData = this.budgetMapper.toApi(data as Tables<'monthly_budget'>);
 
       return {
         success: true,
@@ -400,54 +399,6 @@ export class BudgetService {
       );
       throw new InternalServerErrorException('Erreur interne du serveur');
     }
-  }
-
-  private filterValidBudgets(rawBudgets: unknown[]): BudgetRow[] {
-    return rawBudgets
-      .map((rawBudget) => {
-        try {
-          return this.validateBudgetData(rawBudget);
-        } catch {
-          this.logger.warn(
-            { data: rawBudget },
-            'Invalid budget data filtered out',
-          );
-          return null;
-        }
-      })
-      .filter((budget): budget is BudgetRow => budget !== null)
-      .sort((a, b) => {
-        if (a.year !== b.year) return b.year - a.year;
-        return b.month - a.month;
-      });
-  }
-
-  private validateBudgetData(rawBudget: unknown): BudgetRow {
-    if (!this.isValidBudgetRow(rawBudget)) {
-      this.logger.error({ data: rawBudget }, 'Invalid budget data');
-      throw new InternalServerErrorException('Données budget invalides');
-    }
-
-    return rawBudget;
-  }
-
-  private isValidBudgetRow(data: unknown): data is BudgetRow {
-    if (!data || typeof data !== 'object') {
-      return false;
-    }
-
-    const budget = data as Record<string, unknown>;
-
-    return (
-      typeof budget.id === 'string' &&
-      typeof budget.month === 'number' &&
-      typeof budget.year === 'number' &&
-      typeof budget.description === 'string' &&
-      typeof budget.created_at === 'string' &&
-      typeof budget.updated_at === 'string' &&
-      (budget.user_id === null || typeof budget.user_id === 'string') &&
-      (budget.template_id === null || typeof budget.template_id === 'string')
-    );
   }
 
   private async validateNoDuplicatePeriod(

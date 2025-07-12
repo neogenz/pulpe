@@ -4,14 +4,14 @@ import {
   type BudgetCreate,
   type BudgetUpdate,
 } from '@pulpe/shared';
-import { type BudgetRow, type BudgetInsert } from './entities';
+import { Tables, TablesInsert } from '@/types/database.types';
 
 @Injectable()
 export class BudgetMapper {
   /**
    * Transform database row (snake_case) to API entity (camelCase)
    */
-  toApi(budgetDb: BudgetRow): Budget {
+  toApi(budgetDb: Tables<'monthly_budget'>): Budget {
     return {
       id: budgetDb.id,
       createdAt: budgetDb.created_at,
@@ -26,28 +26,31 @@ export class BudgetMapper {
   /**
    * Transforme plusieurs entités DB vers modèles API
    */
-  toApiList(budgetsDb: BudgetRow[]): Budget[] {
+  toApiList(budgetsDb: Tables<'monthly_budget'>[]): Budget[] {
     return budgetsDb.map((budgetDb) => this.toApi(budgetDb));
   }
 
   /**
    * Transform create DTO (camelCase) to database insert (snake_case)
    */
-  toInsert(createDto: BudgetCreate, userId: string): BudgetInsert {
+  toInsert(
+    createDto: BudgetCreate,
+    userId: string,
+  ): TablesInsert<'monthly_budget'> {
     return {
       month: createDto.month,
       year: createDto.year,
       description: createDto.description,
       user_id: userId,
-      template_id: '', // Template ID requis par le type mais peut être vide
+      template_id: createDto.templateId,
     };
   }
 
   /**
    * Transform update DTO (camelCase) to database update (snake_case)
    */
-  toUpdate(updateDto: BudgetUpdate): Partial<BudgetInsert> {
-    const updateData: Partial<BudgetInsert> = {};
+  toUpdate(updateDto: BudgetUpdate): Partial<TablesInsert<'monthly_budget'>> {
+    const updateData: Partial<TablesInsert<'monthly_budget'>> = {};
 
     if (updateDto.month !== undefined) {
       updateData.month = updateDto.month;
@@ -60,48 +63,5 @@ export class BudgetMapper {
     }
 
     return updateData;
-  }
-
-  private readonly monthNames = [
-    'Janvier',
-    'Février',
-    'Mars',
-    'Avril',
-    'Mai',
-    'Juin',
-    'Juillet',
-    'Août',
-    'Septembre',
-    'Octobre',
-    'Novembre',
-    'Décembre',
-  ] as const;
-
-  private formatBudgetPeriod(budget: Budget | BudgetRow): string {
-    return `${this.monthNames[budget.month - 1]} ${budget.year}`;
-  }
-
-  private isBudgetCurrentMonth(
-    budget: Budget | BudgetRow,
-    now = new Date(),
-  ): boolean {
-    return (
-      budget.year === now.getFullYear() && budget.month === now.getMonth() + 1
-    );
-  }
-
-  private isBudgetFuture(
-    budget: Budget | BudgetRow,
-    now = new Date(),
-  ): boolean {
-    const budgetDate = new Date(budget.year, budget.month - 1);
-    const currentDate = new Date(now.getFullYear(), now.getMonth());
-    return budgetDate > currentDate;
-  }
-
-  private isBudgetPast(budget: Budget | BudgetRow, now = new Date()): boolean {
-    const budgetDate = new Date(budget.year, budget.month - 1);
-    const currentDate = new Date(now.getFullYear(), now.getMonth());
-    return budgetDate < currentDate;
   }
 }
