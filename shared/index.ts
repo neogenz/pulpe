@@ -24,6 +24,8 @@ export {
   // Template line schemas
   templateLineSchema,
   templateLineCreateSchema,
+  templateLineCreateWithoutTemplateIdSchema,
+  templateLineUpdateSchema,
   templateTransactionUpdateSchema,
 
   // Response schemas
@@ -38,7 +40,10 @@ export {
   budgetTemplateResponseSchema,
   budgetTemplateListResponseSchema,
   budgetTemplateDeleteResponseSchema,
+  budgetTemplateCreateResponseSchema,
+  templateLineResponseSchema,
   templateLineListResponseSchema,
+  templateLineDeleteResponseSchema,
 
   // User schemas
   userProfileSchema,
@@ -50,6 +55,8 @@ export {
 
   // Auth schemas
   userInfoSchema,
+  authLoginSchema,
+  authLoginResponseSchema,
   authValidationResponseSchema,
   authErrorResponseSchema,
 } from './schemas.js';
@@ -78,6 +85,8 @@ export type {
 
   // Template line types
   TemplateLine,
+  TemplateLineCreateWithoutTemplateId,
+  TemplateLineUpdate,
 
   // Response types
   ErrorResponse,
@@ -93,7 +102,10 @@ export type {
   BudgetTemplateResponse,
   BudgetTemplateListResponse,
   BudgetTemplateDeleteResponse,
+  BudgetTemplateCreateResponse,
+  TemplateLineResponse,
   TemplateLineListResponse,
+  TemplateLineDeleteResponse,
   TransactionResponse,
 
   // User types
@@ -106,6 +118,8 @@ export type {
 
   // Auth types
   UserInfo,
+  AuthLogin,
+  AuthLoginResponse,
   AuthValidationResponse,
   AuthErrorResponse,
 } from './schemas.js';
