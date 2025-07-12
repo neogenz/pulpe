@@ -3,9 +3,9 @@ import { Injectable, inject } from '@angular/core';
 import {
   type Budget,
   type BudgetCreate,
-  type BudgetCreateFromOnboarding,
+  type BudgetCreateFromTemplate,
   type BudgetResponse,
-  budgetCreateFromOnboardingSchema,
+  budgetCreateFromTemplateSchema,
   budgetSchema,
   errorResponseSchema,
 } from '@pulpe/shared';
@@ -33,28 +33,16 @@ export class BudgetApi {
   readonly #baseUrl = `${environment.backendUrl}/budgets`;
 
   /**
-   * Crée un budget à partir des données d'onboarding
-   * Transforme les données business en DTO pour l'API
+   * Crée un budget à partir d'un template
    */
-  createBudgetFromOnboarding$(
-    onboardingData: BudgetCreateFromOnboarding,
+  createBudgetFromTemplate$(
+    templateData: BudgetCreateFromTemplate,
   ): Observable<CreateBudgetApiResponse> {
-    // Transformer les données business en DTO pour l'API
-    const budgetDto: BudgetCreateFromOnboarding = {
-      ...onboardingData,
-      month: onboardingData.month,
-      year: onboardingData.year,
-      description: onboardingData.description,
-    };
-
     // Valider les données avec le schéma partagé
-    const validatedRequest = budgetCreateFromOnboardingSchema.parse(budgetDto);
+    const validatedRequest = budgetCreateFromTemplateSchema.parse(templateData);
 
     return this.#httpClient
-      .post<BudgetResponse>(
-        `${this.#baseUrl}/from-onboarding`,
-        validatedRequest,
-      )
+      .post<BudgetResponse>(`${this.#baseUrl}/from-template`, validatedRequest)
       .pipe(
         map((response) => {
           if (!response.data || Array.isArray(response.data)) {
@@ -63,14 +51,17 @@ export class BudgetApi {
 
           const result: CreateBudgetApiResponse = {
             budget: response.data,
-            message: 'Budget créé avec succès',
+            message: 'Budget créé avec succès à partir du template',
           };
 
           this.#saveBudgetToStorage(response.data);
           return result;
         }),
         catchError((error) =>
-          this.#handleApiError(error, 'Erreur lors de la création du budget'),
+          this.#handleApiError(
+            error,
+            'Erreur lors de la création du budget à partir du template',
+          ),
         ),
       );
   }

@@ -10,13 +10,16 @@ import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
 import {
   type BudgetCreate,
   type BudgetCreateFromOnboarding,
+  type BudgetCreateFromTemplate,
   type BudgetDeleteResponse,
   type BudgetListResponse,
   type BudgetResponse,
   type BudgetUpdate,
 } from '@pulpe/shared';
 import { BudgetMapper } from './budget.mapper';
-import type { Database, Tables } from '../../types/database.types';
+import { type Database, type Tables } from '../../types/database.types';
+import { BudgetRow } from '../../types/supabase-helpers';
+import { ErrorDictionary } from '../../common/constants/error-codes';
 import { BUDGET_CONSTANTS } from './budget.constants';
 
 @Injectable()
@@ -226,7 +229,6 @@ export class BudgetService {
   private prepareBudgetUpdateData(updateBudgetDto: BudgetUpdate) {
     return {
       ...updateBudgetDto,
-      updated_at: new Date().toISOString(),
     };
   }
 
@@ -401,6 +403,207 @@ export class BudgetService {
       );
       throw new InternalServerErrorException('Erreur interne du serveur');
     }
+  }
+
+  private async validateTemplateExists(
+    templateId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    const { data: template, error } = await supabase
+      .from('template')
+      .select('id')
+      .eq('id', templateId)
+      .single();
+
+    if (error || !template) {
+      throw new NotFoundException(ErrorDictionary.TEMPLATE_NOT_FOUND);
+    }
+  }
+
+  private async getTemplateLines(
+    templateId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<Tables<'template_line'>[]> {
+    const { data: templateLines, error } = await supabase
+      .from('template_line')
+      .select('*')
+      .eq('template_id', templateId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      this.logger.error({ err: error }, 'Failed to fetch template lines');
+      throw new InternalServerErrorException(
+        ErrorDictionary.TEMPLATE_LINES_FETCH_FAILED,
+      );
+    }
+
+    return templateLines || [];
+  }
+
+  private prepareBudgetFromTemplateData(
+    templateData: BudgetCreateFromTemplate,
+    userId: string,
+  ) {
+    const now = new Date().toISOString();
+    return {
+      month: templateData.month,
+      year: templateData.year,
+      description: templateData.description,
+      user_id: userId,
+      template_id: templateData.templateId,
+      created_at: now,
+      updated_at: now,
+      templateId: templateData.templateId,
+    };
+  }
+
+  private async createTransactionsFromTemplateLines(
+    budgetId: string,
+    templateLines: Tables<'template_line'>[],
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    if (templateLines.length === 0) {
+      return;
+    }
+
+    const transactions = templateLines.map((line) => ({
+      amount: line.amount,
+      type: line.kind,
+      name: line.name,
+      description: line.description || '',
+      expense_type: line.recurrence,
+      is_recurring: line.recurrence === 'fixed',
+      budget_id: budgetId,
+    }));
+
+    const { error } = await supabase.from('transaction').insert(transactions);
+
+    if (error) {
+      this.logger.error(
+        { err: error },
+        'Failed to create transactions from template lines',
+      );
+      await supabase.from('monthly_budget').delete().eq('id', budgetId);
+      throw new BadRequestException(
+        ErrorDictionary.TEMPLATE_TRANSACTIONS_CREATE_FAILED,
+      );
+    }
+  }
+
+  private async performTemplateValidations(
+    templateData: BudgetCreateFromTemplate,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    await this.validateTemplateExists(templateData.templateId, supabase);
+    await this.validateNoDuplicatePeriod(
+      supabase,
+      templateData.month,
+      templateData.year,
+    );
+  }
+
+  private async createBudgetFromValidatedTemplate(
+    templateData: BudgetCreateFromTemplate,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<BudgetResponse> {
+    const templateLines = await this.getTemplateLines(
+      templateData.templateId,
+      supabase,
+    );
+
+    const budgetData = this.prepareBudgetFromTemplateData(
+      templateData,
+      user.id,
+    );
+    const budgetDb = await this.insertBudget(budgetData, supabase);
+    const budget = this.validateBudgetData(budgetDb);
+
+    await this.createTransactionsFromTemplateLines(
+      budget.id,
+      templateLines,
+      supabase,
+    );
+
+    const apiData = this.budgetMapper.toApi(budget);
+    return { success: true, data: apiData };
+  }
+
+  async createFromTemplate(
+    templateData: BudgetCreateFromTemplate,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<BudgetResponse> {
+    try {
+      await this.performTemplateValidations(templateData, supabase);
+      return await this.createBudgetFromValidatedTemplate(
+        templateData,
+        user,
+        supabase,
+      );
+    } catch (error) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
+      ) {
+        throw error;
+      }
+      this.logger.error(
+        { err: error },
+        'Failed to create budget from template',
+      );
+      throw new InternalServerErrorException(
+        ErrorDictionary.TEMPLATE_CREATE_FAILED.message,
+      );
+    }
+  }
+
+  private filterValidBudgets(rawBudgets: unknown[]): BudgetRow[] {
+    return rawBudgets
+      .map((rawBudget) => {
+        try {
+          return this.validateBudgetData(rawBudget);
+        } catch {
+          this.logger.warn(
+            { data: rawBudget },
+            'Invalid budget data filtered out',
+          );
+          return null;
+        }
+      })
+      .filter((budget): budget is BudgetRow => budget !== null)
+      .sort((a, b) => {
+        if (a.year !== b.year) return b.year - a.year;
+        return b.month - a.month;
+      });
+  }
+
+  private validateBudgetData(rawBudget: unknown): BudgetRow {
+    if (!this.isValidBudgetRow(rawBudget)) {
+      this.logger.error({ data: rawBudget }, 'Invalid budget data');
+      throw new InternalServerErrorException('Données budget invalides');
+    }
+
+    return rawBudget;
+  }
+
+  private isValidBudgetRow(data: unknown): data is BudgetRow {
+    if (!data || typeof data !== 'object') {
+      return false;
+    }
+
+    const budget = data as Record<string, unknown>;
+
+    return (
+      typeof budget.id === 'string' &&
+      typeof budget.month === 'number' &&
+      typeof budget.year === 'number' &&
+      typeof budget.description === 'string' &&
+      typeof budget.created_at === 'string' &&
+      typeof budget.updated_at === 'string' &&
+      (budget.user_id === null || typeof budget.user_id === 'string') &&
+      (budget.template_id === null || typeof budget.template_id === 'string')
+    );
   }
 
   private async validateNoDuplicatePeriod(

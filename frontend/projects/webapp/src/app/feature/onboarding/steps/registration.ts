@@ -1,28 +1,32 @@
 import {
-  Component,
   ChangeDetectionStrategy,
-  signal,
-  inject,
+  Component,
   computed,
-  OnInit,
-  effect,
   DestroyRef,
+  effect,
+  inject,
+  OnInit,
+  signal,
 } from '@angular/core';
-import { Router } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+import { Router } from '@angular/router';
+import { AuthApi } from '@core/auth/auth-api';
+import { BudgetApi } from '@core/budget';
+import { ROUTES } from '@core/routing/routes-constants';
+import {
+  BudgetCreateFromTemplate,
+  BudgetTemplateCreateFromOnboarding,
+} from '@pulpe/shared';
 import { firstValueFrom } from 'rxjs';
+import { TemplateApi } from '@core/template';
 import { OnboardingLayoutData } from '../models/onboarding-layout-data';
 import { OnboardingApi, OnboardingStepData } from '../onboarding-api';
-import { BudgetApi } from '@core/budget';
-import { AuthApi } from '@core/auth/auth-api';
-import { ROUTES } from '@core/routing/routes-constants';
-import { BudgetCreateFromOnboarding } from '@pulpe/shared';
 import { OnboardingOrchestrator } from '../onboarding-orchestrator';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'pulpe-registration',
@@ -100,6 +104,7 @@ export default class Registration implements OnInit {
   #router = inject(Router);
   #onboardingApi = inject(OnboardingApi);
   #budgetApi = inject(BudgetApi);
+  #templateApi = inject(TemplateApi);
   #authService = inject(AuthApi);
   #orchestrator = inject(OnboardingOrchestrator);
   readonly #destroyRef = inject(DestroyRef);
@@ -177,9 +182,19 @@ export default class Registration implements OnInit {
       }
 
       const onboardingPayload = this.#onboardingApi.getStateData();
-      const budgetRequest = this.#buildBudgetCreationRequest(onboardingPayload);
+
+      const templateRequest =
+        this.#buildTemplateCreationRequest(onboardingPayload);
+      const templateResponse = await firstValueFrom(
+        this.#templateApi.createFromOnboarding$(templateRequest),
+      );
+
+      const budgetRequest = this.#buildBudgetFromTemplateRequest(
+        onboardingPayload,
+        templateResponse.data.template.id,
+      );
       await firstValueFrom(
-        this.#budgetApi.createBudgetFromOnboarding$(budgetRequest),
+        this.#budgetApi.createBudgetFromTemplate$(budgetRequest),
       );
 
       this.#onboardingApi.submitCompletedOnboarding();
@@ -200,23 +215,35 @@ export default class Registration implements OnInit {
     }
   }
 
-  #buildBudgetCreationRequest(
+  #buildTemplateCreationRequest(
     payload: OnboardingStepData,
-  ): BudgetCreateFromOnboarding {
-    const currentDate = new Date();
+  ): BudgetTemplateCreateFromOnboarding {
     return {
+      name: 'Mois Standard',
+      description: `Template personnel de ${payload.firstName}`,
+      isDefault: true,
       monthlyIncome: payload.monthlyIncome ?? 0,
       housingCosts: payload.housingCosts ?? 0,
       healthInsurance: payload.healthInsurance ?? 0,
       leasingCredit: payload.leasingCredit ?? 0,
       phonePlan: payload.phonePlan ?? 0,
       transportCosts: payload.transportCosts ?? 0,
+      customTransactions: [],
+    };
+  }
+
+  #buildBudgetFromTemplateRequest(
+    payload: OnboardingStepData,
+    templateId: string,
+  ): BudgetCreateFromTemplate {
+    const currentDate = new Date();
+    return {
+      templateId,
       month: currentDate.getMonth() + 1,
       year: currentDate.getFullYear(),
       description: `Budget initial de ${
         payload.firstName
       } pour ${currentDate.getFullYear()}`,
-      transactions: [],
     };
   }
 }

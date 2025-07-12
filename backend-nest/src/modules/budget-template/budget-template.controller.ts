@@ -40,6 +40,7 @@ import { BudgetTemplateService } from './budget-template.service';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import {
   BudgetTemplateCreateDto,
+  BudgetTemplateCreateFromOnboardingDto,
   BudgetTemplateUpdateDto,
   BudgetTemplateListResponseDto,
   BudgetTemplateResponseDto,
@@ -105,6 +106,32 @@ export class BudgetTemplateController {
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<_BudgetTemplateCreateResponse> {
     return this.budgetTemplateService.create(createTemplateDto, user, supabase);
+  }
+
+  @Post('from-onboarding')
+  @ApiOperation({
+    summary: 'Create budget template from onboarding data',
+    description:
+      'Creates a new budget template based on user onboarding data including income and fixed expenses',
+  })
+  @ApiCreatedResponse({
+    description: 'Budget template created successfully from onboarding data',
+    type: BudgetTemplateCreateResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid onboarding data',
+    type: ErrorResponseDto,
+  })
+  async createFromOnboarding(
+    @Body() onboardingData: BudgetTemplateCreateFromOnboardingDto,
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<_BudgetTemplateCreateResponse> {
+    return this.budgetTemplateService.createFromOnboarding(
+      onboardingData,
+      user,
+      supabase,
+    );
   }
 
   @Get(':id')
