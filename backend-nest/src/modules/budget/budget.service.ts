@@ -380,7 +380,9 @@ export class BudgetService {
       );
       const data = await this.executeOnboardingRpc(rpcParams, supabase);
 
-      const apiData = this.budgetMapper.toApi(data as Tables<'monthly_budget'>);
+      const apiData = this.budgetMapper.toApi(
+        (data as { budget: Tables<'monthly_budget'> }).budget,
+      );
 
       return {
         success: true,
