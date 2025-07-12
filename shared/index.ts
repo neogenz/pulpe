@@ -8,6 +8,7 @@ export {
   budgetSchema,
   budgetCreateSchema,
   budgetCreateFromOnboardingSchema,
+  budgetCreateFromTemplateSchema,
   budgetUpdateSchema,
   onboardingTransactionSchema,
 
@@ -19,6 +20,7 @@ export {
   // Budget template schemas
   budgetTemplateSchema,
   budgetTemplateCreateSchema,
+  budgetTemplateCreateFromOnboardingSchema,
   budgetTemplateUpdateSchema,
 
   // Template line schemas
@@ -71,6 +73,7 @@ export type {
   Budget,
   BudgetCreate,
   BudgetCreateFromOnboarding,
+  BudgetCreateFromTemplate,
   BudgetUpdate,
 
   // Transaction types
@@ -81,6 +84,7 @@ export type {
   // Budget template types
   BudgetTemplate,
   BudgetTemplateCreate,
+  BudgetTemplateCreateFromOnboarding,
   BudgetTemplateUpdate,
 
   // Template line types

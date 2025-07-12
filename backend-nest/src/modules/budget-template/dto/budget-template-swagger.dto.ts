@@ -1,6 +1,7 @@
 import { createZodDto } from 'nestjs-zod';
 import {
   budgetTemplateCreateSchema,
+  budgetTemplateCreateFromOnboardingSchema,
   budgetTemplateUpdateSchema,
   budgetTemplateResponseSchema,
   budgetTemplateListResponseSchema,
@@ -18,6 +19,9 @@ import {
 // Budget Template DTOs
 export class BudgetTemplateCreateDto extends createZodDto(
   budgetTemplateCreateSchema,
+) {}
+export class BudgetTemplateCreateFromOnboardingDto extends createZodDto(
+  budgetTemplateCreateFromOnboardingSchema,
 ) {}
 export class BudgetTemplateUpdateDto extends createZodDto(
   budgetTemplateUpdateSchema,

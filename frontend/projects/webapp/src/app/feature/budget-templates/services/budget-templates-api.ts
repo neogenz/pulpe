@@ -3,6 +3,8 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, forkJoin, map } from 'rxjs';
 import {
   type BudgetTemplateCreate,
+  type BudgetTemplateCreateFromOnboarding,
+  type BudgetTemplateCreateResponse,
   type BudgetTemplateListResponse,
   type BudgetTemplateResponse,
   type BudgetTemplateDeleteResponse,
@@ -25,6 +27,15 @@ export class BudgetTemplatesApi {
 
   create$(template: BudgetTemplateCreate): Observable<BudgetTemplateResponse> {
     return this.#http.post<BudgetTemplateResponse>(this.#apiUrl, template);
+  }
+
+  createFromOnboarding$(
+    onboardingData: BudgetTemplateCreateFromOnboarding,
+  ): Observable<BudgetTemplateCreateResponse> {
+    return this.#http.post<BudgetTemplateCreateResponse>(
+      `${this.#apiUrl}/from-onboarding`,
+      onboardingData,
+    );
   }
 
   update$(

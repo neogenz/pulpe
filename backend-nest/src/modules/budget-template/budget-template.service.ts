@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import {
   type BudgetTemplateCreate,
+  type BudgetTemplateCreateFromOnboarding,
   type BudgetTemplateCreateResponse,
   type BudgetTemplateDeleteResponse,
   type BudgetTemplateListResponse,
@@ -20,6 +21,7 @@ import {
   type TemplateLineResponse,
   type TemplateLineUpdate,
   budgetTemplateCreateSchema as createBudgetTemplateSchema,
+  budgetTemplateCreateFromOnboardingSchema,
   budgetTemplateUpdateSchema as updateBudgetTemplateSchema,
   templateLineCreateSchema,
   templateLineUpdateSchema,
@@ -645,6 +647,140 @@ export class BudgetTemplateService {
       throw new InternalServerErrorException(
         'Erreur lors de la gestion des templates par défaut',
       );
+    }
+  }
+
+  private readonly onboardingFieldMappings = [
+    {
+      field: 'monthlyIncome' as const,
+      name: 'Monthly Income',
+      kind: 'income' as const,
+      description: 'Regular monthly income',
+    },
+    {
+      field: 'housingCosts' as const,
+      name: 'Housing Costs',
+      kind: 'expense' as const,
+      description: 'Rent, utilities, home insurance',
+    },
+    {
+      field: 'healthInsurance' as const,
+      name: 'Health Insurance',
+      kind: 'expense' as const,
+      description: 'Monthly health insurance premium',
+    },
+    {
+      field: 'phonePlan' as const,
+      name: 'Phone Plan',
+      kind: 'expense' as const,
+      description: 'Monthly mobile plan',
+    },
+    {
+      field: 'transportCosts' as const,
+      name: 'Transport Costs',
+      kind: 'expense' as const,
+      description: 'Public transport or vehicle expenses',
+    },
+    {
+      field: 'leasingCredit' as const,
+      name: 'Leasing/Credit',
+      kind: 'expense' as const,
+      description: 'Monthly credit or leasing payments',
+    },
+  ];
+
+  private createLineFromOnboardingField(
+    amount: number,
+    name: string,
+    kind: 'income' | 'expense',
+    description: string,
+  ): TemplateLineCreateWithoutTemplateId {
+    return {
+      name,
+      amount,
+      kind,
+      recurrence: 'fixed',
+      description,
+    };
+  }
+
+  private createLinesFromCustomTransactions(
+    customTransactions: BudgetTemplateCreateFromOnboarding['customTransactions'],
+  ): TemplateLineCreateWithoutTemplateId[] {
+    return (
+      customTransactions?.map((transaction) => ({
+        name: transaction.name,
+        amount: transaction.amount,
+        kind: transaction.type,
+        recurrence: transaction.expenseType,
+        description: transaction.description || '',
+      })) || []
+    );
+  }
+
+  private createOnboardingTemplateLines(
+    onboardingData: BudgetTemplateCreateFromOnboarding,
+  ): TemplateLineCreateWithoutTemplateId[] {
+    const lines: TemplateLineCreateWithoutTemplateId[] = [];
+
+    for (const mapping of this.onboardingFieldMappings) {
+      const amount = onboardingData[mapping.field];
+      if (amount && amount > 0) {
+        lines.push(
+          this.createLineFromOnboardingField(
+            amount,
+            mapping.name,
+            mapping.kind,
+            mapping.description,
+          ),
+        );
+      }
+    }
+
+    lines.push(
+      ...this.createLinesFromCustomTransactions(
+        onboardingData.customTransactions,
+      ),
+    );
+    return lines;
+  }
+
+  async createFromOnboarding(
+    onboardingData: BudgetTemplateCreateFromOnboarding,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<BudgetTemplateCreateResponse> {
+    try {
+      const validationResult =
+        budgetTemplateCreateFromOnboardingSchema.safeParse(onboardingData);
+      if (!validationResult.success) {
+        throw new BadRequestException(
+          `Invalid onboarding data: ${validationResult.error.message}`,
+        );
+      }
+
+      const lines = this.createOnboardingTemplateLines(onboardingData);
+
+      if (onboardingData.isDefault) {
+        await this.ensureOnlyOneDefault(supabase, user.id);
+      }
+      const templateCreateDto: BudgetTemplateCreate = {
+        name: onboardingData.name || 'Mois Standard',
+        description: onboardingData.description,
+        isDefault: onboardingData.isDefault,
+        lines,
+      };
+
+      return this.create(templateCreateDto, user, supabase);
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      this.logger.error(
+        { err: error },
+        'Failed to create template from onboarding',
+      );
+      throw new InternalServerErrorException('Erreur interne du serveur');
     }
   }
 }

@@ -38,6 +38,7 @@ import {
   BudgetCreateDto,
   BudgetUpdateDto,
   BudgetCreateFromOnboardingDto,
+  BudgetCreateFromTemplateDto,
   BudgetListResponseDto,
   BudgetResponseDto,
   BudgetDeleteResponseDto,
@@ -157,6 +158,28 @@ export class BudgetController {
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetResponse> {
     return this.budgetService.update(id, updateBudgetDto, supabase);
+  }
+
+  @Post('from-template')
+  @ApiOperation({
+    summary: 'Create budget from template',
+    description:
+      'Creates a budget based on an existing template, automatically generating transactions from template lines',
+  })
+  @ApiCreatedResponse({
+    description: 'Budget created successfully from template',
+    type: BudgetResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid input data or template not found',
+    type: ErrorResponseDto,
+  })
+  async createFromTemplate(
+    @Body() templateData: BudgetCreateFromTemplateDto,
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<BudgetResponse> {
+    return this.budgetService.createFromTemplate(templateData, user, supabase);
   }
 
   @Post('from-onboarding')

@@ -3,6 +3,7 @@ import {
   budgetCreateSchema,
   budgetUpdateSchema,
   budgetCreateFromOnboardingSchema,
+  budgetCreateFromTemplateSchema,
   budgetResponseSchema,
   budgetListResponseSchema,
   budgetDeleteResponseSchema,
@@ -13,6 +14,9 @@ export class BudgetCreateDto extends createZodDto(budgetCreateSchema) {}
 export class BudgetUpdateDto extends createZodDto(budgetUpdateSchema) {}
 export class BudgetCreateFromOnboardingDto extends createZodDto(
   budgetCreateFromOnboardingSchema,
+) {}
+export class BudgetCreateFromTemplateDto extends createZodDto(
+  budgetCreateFromTemplateSchema,
 ) {}
 export class BudgetResponseDto extends createZodDto(budgetResponseSchema) {}
 export class BudgetListResponseDto extends createZodDto(
