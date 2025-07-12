@@ -94,10 +94,14 @@ async function bootstrap() {
 
   const logger = app.get(Logger);
 
+  logger.log('Starting Pulpe Budget API server...');
+
   await app.listen(env.PORT);
+
   logger.log(`🚀 Application is running on: http://localhost:${env.PORT}`);
   logger.log(`📚 Swagger documentation: http://localhost:${env.PORT}/docs`);
   logger.log(`📋 OpenAPI JSON: http://localhost:${env.PORT}/api/openapi`);
+  logger.log('HTTP request logging is active with Pino');
 }
 
 bootstrap();
