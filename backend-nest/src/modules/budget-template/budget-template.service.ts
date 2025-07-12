@@ -177,6 +177,13 @@ export class BudgetTemplateService {
     return templateData;
   }
 
+  /**
+   * Fetches template lines for a given template ID and maps them to API format.
+   * Throws an error if fetching fails to maintain data consistency.
+   * @param templateId - The ID of the template to fetch lines for
+   * @param supabase - Authenticated Supabase client
+   * @throws InternalServerErrorException if fetching template lines fails
+   */
   private async fetchAndMapTemplateLines(
     templateId: string,
     supabase: AuthenticatedSupabaseClient,
@@ -189,10 +196,12 @@ export class BudgetTemplateService {
 
     if (linesError) {
       this.logger.error(
-        { err: linesError },
-        'Failed to fetch created template lines',
+        { err: linesError, templateId },
+        'Failed to fetch created template lines after successful creation',
       );
-      // Don't throw here since the template was created successfully
+      throw new InternalServerErrorException(
+        'Template créé avec succès mais impossible de récupérer les lignes',
+      );
     }
 
     return (templateLinesDb || []).map(this.budgetTemplateMapper.toApiLine);
