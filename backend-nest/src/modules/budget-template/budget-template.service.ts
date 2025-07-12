@@ -1,4 +1,4 @@
-import { Tables } from '@/types/database.types';
+import { type Database, Tables } from '@/types/database.types';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import {
@@ -68,122 +68,100 @@ export class BudgetTemplateService {
     }
   }
 
-  private validateCreateTemplateDto(
-    createTemplateDto: BudgetTemplateCreate,
-  ): void {
-    const validationResult =
-      createBudgetTemplateSchema.safeParse(createTemplateDto);
-    if (!validationResult.success) {
-      throw new BadRequestException(
-        `Données invalides: ${validationResult.error.message}`,
-      );
-    }
-  }
-
-  private prepareTemplateData(
-    templateData: Omit<BudgetTemplateCreate, 'lines'>,
-    userId: string,
-  ) {
-    return {
-      name: templateData.name,
-      description: templateData.description || null,
-      is_default: templateData.isDefault || false,
-      user_id: userId,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-  }
-
-  private async insertTemplate(
-    templateData: ReturnType<typeof this.prepareTemplateData>,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<Tables<'template'>> {
-    const { data: templateDb, error } = await supabase
-      .from('template')
-      .insert(templateData)
-      .select()
-      .single();
-
-    if (error) {
-      this.logger.error({ err: error }, 'Failed to create budget template');
-      throw new BadRequestException('Erreur lors de la création du template');
-    }
-
-    return templateDb;
-  }
-
-  private async createTemplateLines(
-    lines: BudgetTemplateCreate['lines'],
-    templateId: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<Tables<'template_line'>[]> {
-    const createdLines: Tables<'template_line'>[] = [];
-
-    if (!lines || lines.length === 0) {
-      return createdLines;
-    }
-
-    for (const line of lines) {
-      const lineData = this.budgetTemplateMapper.toInsertLine(line, templateId);
-      const { data: lineDb, error } = await supabase
-        .from('template_line')
-        .insert(lineData)
-        .select()
-        .single();
-
-      if (error || !lineDb) {
-        await supabase.from('template').delete().eq('id', templateId);
-        this.logger.error(
-          { err: error },
-          'Failed to create template line, rolling back template creation',
-        );
-        throw new BadRequestException(
-          "Erreur lors de la création d'une ligne du template",
-        );
-      }
-
-      createdLines.push(lineDb);
-    }
-
-    return createdLines;
-  }
-
   async create(
     createTemplateDto: BudgetTemplateCreate,
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetTemplateCreateResponse> {
     try {
-      this.validateCreateTemplateDto(createTemplateDto);
-
-      const { lines, ...templateData } = createTemplateDto;
-
-      if (templateData.isDefault) {
-        await this.ensureOnlyOneDefault(supabase, user.id);
+      // Validate input
+      const validationResult =
+        createBudgetTemplateSchema.safeParse(createTemplateDto);
+      if (!validationResult.success) {
+        throw new BadRequestException(
+          `Données invalides: ${validationResult.error.message}`,
+        );
       }
 
-      const templateDbData = this.prepareTemplateData(templateData, user.id);
-      const templateDb = await this.insertTemplate(templateDbData, supabase);
+      // Transform lines for RPC function
+      const rpcLines = createTemplateDto.lines.map((line) => ({
+        name: line.name,
+        amount: line.amount,
+        kind: line.kind as Database['public']['Enums']['transaction_kind'],
+        recurrence:
+          line.recurrence as Database['public']['Enums']['transaction_recurrence'],
+        description: line.description || '',
+      }));
 
-      const createdLines = await this.createTemplateLines(
-        lines,
-        templateDb.id,
-        supabase,
+      // Call RPC function - will return template record directly or throw error
+      const { data: templateRecord, error } = await supabase.rpc(
+        'create_template_with_lines',
+        {
+          p_user_id: user.id,
+          p_name: createTemplateDto.name,
+          p_description: createTemplateDto.description,
+          p_is_default: createTemplateDto.isDefault || false,
+          p_lines: rpcLines,
+        },
       );
 
-      const apiData = this.budgetTemplateMapper.toApi(templateDb);
-      if (!apiData) {
+      if (error) {
+        this.logger.error({ err: error }, 'RPC function failed');
+        throw new InternalServerErrorException(
+          'Erreur lors de la création du template',
+        );
+      }
+
+      if (
+        !templateRecord ||
+        typeof templateRecord !== 'object' ||
+        !('id' in templateRecord)
+      ) {
+        this.logger.error(
+          { templateRecord },
+          'Invalid template record returned',
+        );
+        throw new InternalServerErrorException(
+          'Template record invalide retourné par la fonction',
+        );
+      }
+
+      // Map the RPC result to our API format - cast to proper type
+      const templateDataForMapper: Tables<'template'> =
+        templateRecord as Tables<'template'>;
+
+      const templateData = this.budgetTemplateMapper.toApi(
+        templateDataForMapper,
+      );
+      if (!templateData) {
         throw new InternalServerErrorException(
           'Erreur lors de la validation du template créé',
         );
       }
 
-      const mappedLines = createdLines.map(this.budgetTemplateMapper.toApiLine);
+      // Fetch the created lines to return them in the response
+      const { data: templateLinesDb, error: linesError } = await supabase
+        .from('template_line')
+        .select('*')
+        .eq('template_id', templateDataForMapper.id)
+        .order('created_at', { ascending: false });
+
+      if (linesError) {
+        this.logger.error(
+          { err: linesError },
+          'Failed to fetch created template lines',
+        );
+        // Don't throw here since the template was created successfully
+      }
+
+      const mappedLines = (templateLinesDb || []).map(
+        this.budgetTemplateMapper.toApiLine,
+      );
 
       return {
         success: true,
         data: {
-          template: apiData,
+          template: templateData,
           lines: mappedLines,
         },
       };
@@ -761,9 +739,6 @@ export class BudgetTemplateService {
 
       const lines = this.createOnboardingTemplateLines(onboardingData);
 
-      if (onboardingData.isDefault) {
-        await this.ensureOnlyOneDefault(supabase, user.id);
-      }
       const templateCreateDto: BudgetTemplateCreate = {
         name: onboardingData.name || 'Mois Standard',
         description: onboardingData.description,

@@ -20,6 +20,7 @@ export {
   // Budget template schemas
   budgetTemplateSchema,
   budgetTemplateCreateSchema,
+  budgetTemplateCreateTransactionalSchema,
   budgetTemplateCreateFromOnboardingSchema,
   budgetTemplateUpdateSchema,
 
@@ -43,6 +44,7 @@ export {
   budgetTemplateListResponseSchema,
   budgetTemplateDeleteResponseSchema,
   budgetTemplateCreateResponseSchema,
+  budgetTemplateCreateTransactionalResponseSchema,
   templateLineResponseSchema,
   templateLineListResponseSchema,
   templateLineDeleteResponseSchema,
@@ -84,6 +86,7 @@ export type {
   // Budget template types
   BudgetTemplate,
   BudgetTemplateCreate,
+  BudgetTemplateCreateTransactional,
   BudgetTemplateCreateFromOnboarding,
   BudgetTemplateUpdate,
 
@@ -107,6 +110,7 @@ export type {
   BudgetTemplateListResponse,
   BudgetTemplateDeleteResponse,
   BudgetTemplateCreateResponse,
+  BudgetTemplateCreateTransactionalResponse,
   TemplateLineResponse,
   TemplateLineListResponse,
   TemplateLineDeleteResponse,
