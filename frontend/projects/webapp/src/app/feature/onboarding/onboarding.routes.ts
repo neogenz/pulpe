@@ -2,13 +2,14 @@ import { Routes } from '@angular/router';
 import { OnboardingLayout } from './onboarding-layout';
 import { OnboardingOrchestrator } from './onboarding-orchestrator';
 import { OnboardingApi } from './onboarding-api';
+import { RegistrationState } from './steps/registration-state';
 import { PAGE_TITLES } from '@core/routing';
 
 const routes: Routes = [
   {
     path: '',
     component: OnboardingLayout,
-    providers: [OnboardingOrchestrator, OnboardingApi],
+    providers: [OnboardingOrchestrator, OnboardingApi, RegistrationState],
     children: [
       {
         path: '',

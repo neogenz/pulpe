@@ -15,7 +15,7 @@ import {
   type BudgetUpdate,
 } from '@pulpe/shared';
 import { BudgetMapper } from './budget.mapper';
-import { type Tables } from '../../types/database.types';
+import { TablesInsert, type Tables } from '../../types/database.types';
 import { BUDGET_CONSTANTS } from './budget.constants';
 
 @Injectable()
@@ -107,13 +107,17 @@ export class BudgetService {
     return createBudgetDto;
   }
 
-  private prepareBudgetData(createBudgetDto: BudgetCreate, userId: string) {
+  private prepareBudgetData(
+    createBudgetDto: BudgetCreate,
+    userId: string,
+  ): TablesInsert<'monthly_budget'> {
+    const { templateId, ...budgetData } = createBudgetDto;
     return {
-      ...createBudgetDto,
+      description: budgetData.description,
+      month: budgetData.month,
+      year: budgetData.year,
       user_id: userId,
-      template_id: createBudgetDto.templateId,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      template_id: templateId,
     };
   }
 
