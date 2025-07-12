@@ -110,6 +110,42 @@ export class BudgetTemplateService {
     return templateDb;
   }
 
+  private async createTemplateLines(
+    lines: BudgetTemplateCreate['lines'],
+    templateId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<Tables<'template_line'>[]> {
+    const createdLines: Tables<'template_line'>[] = [];
+
+    if (!lines || lines.length === 0) {
+      return createdLines;
+    }
+
+    for (const line of lines) {
+      const lineData = this.budgetTemplateMapper.toInsertLine(line, templateId);
+      const { data: lineDb, error } = await supabase
+        .from('template_line')
+        .insert(lineData)
+        .select()
+        .single();
+
+      if (error || !lineDb) {
+        await supabase.from('template').delete().eq('id', templateId);
+        this.logger.error(
+          { err: error },
+          'Failed to create template line, rolling back template creation',
+        );
+        throw new BadRequestException(
+          "Erreur lors de la création d'une ligne du template",
+        );
+      }
+
+      createdLines.push(lineDb);
+    }
+
+    return createdLines;
+  }
+
   async create(
     createTemplateDto: BudgetTemplateCreate,
     user: AuthenticatedUser,
@@ -127,35 +163,11 @@ export class BudgetTemplateService {
       const templateDbData = this.prepareTemplateData(templateData, user.id);
       const templateDb = await this.insertTemplate(templateDbData, supabase);
 
-      // Create template lines if provided
-      const createdLines: Tables<'template_line'>[] = [];
-      if (lines && lines.length > 0) {
-        for (const line of lines) {
-          const lineData = this.budgetTemplateMapper.toInsertLine(
-            line,
-            templateDb.id,
-          );
-          const { data: lineDb, error } = await supabase
-            .from('template_line')
-            .insert(lineData)
-            .select()
-            .single();
-
-          if (error || !lineDb) {
-            // If any line creation fails, delete the template and rollback
-            await supabase.from('template').delete().eq('id', templateDb.id);
-            this.logger.error(
-              { err: error },
-              'Failed to create template line, rolling back template creation',
-            );
-            throw new BadRequestException(
-              "Erreur lors de la création d'une ligne du template",
-            );
-          }
-
-          createdLines.push(lineDb);
-        }
-      }
+      const createdLines = await this.createTemplateLines(
+        lines,
+        templateDb.id,
+        supabase,
+      );
 
       const apiData = this.budgetTemplateMapper.toApi(templateDb);
       if (!apiData) {
@@ -374,38 +386,46 @@ export class BudgetTemplateService {
   }
 
   // Template Line CRUD operations
+  private validateTemplateLineInput(
+    createLineDto: TemplateLineCreateWithoutTemplateId,
+    templateId: string,
+  ): void {
+    const validationResult = templateLineCreateSchema.safeParse({
+      ...createLineDto,
+      templateId,
+    });
+    if (!validationResult.success) {
+      throw new BadRequestException(
+        `Données invalides: ${validationResult.error.message}`,
+      );
+    }
+  }
+
+  private async verifyTemplateExists(
+    templateId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    const { data: templateDb, error: templateError } = await supabase
+      .from('template')
+      .select('id')
+      .eq('id', templateId)
+      .single();
+
+    if (templateError || !templateDb) {
+      throw new NotFoundException('Template introuvable ou accès non autorisé');
+    }
+  }
+
   async createTemplateLine(
     templateId: string,
     createLineDto: TemplateLineCreateWithoutTemplateId,
-    user: AuthenticatedUser,
+    _user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateLineResponse> {
     try {
-      // Validate input
-      const validationResult = templateLineCreateSchema.safeParse({
-        ...createLineDto,
-        templateId,
-      });
-      if (!validationResult.success) {
-        throw new BadRequestException(
-          `Données invalides: ${validationResult.error.message}`,
-        );
-      }
+      this.validateTemplateLineInput(createLineDto, templateId);
+      await this.verifyTemplateExists(templateId, supabase);
 
-      // Check if template exists and belongs to user
-      const { data: templateDb, error: templateError } = await supabase
-        .from('template')
-        .select('id')
-        .eq('id', templateId)
-        .single();
-
-      if (templateError || !templateDb) {
-        throw new NotFoundException(
-          'Template introuvable ou accès non autorisé',
-        );
-      }
-
-      // Create template line
       const lineData = this.budgetTemplateMapper.toInsertLine(
         createLineDto,
         templateId,
@@ -444,7 +464,7 @@ export class BudgetTemplateService {
   async findTemplateLine(
     templateId: string,
     lineId: string,
-    user: AuthenticatedUser,
+    _user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateLineResponse> {
     try {
@@ -488,52 +508,57 @@ export class BudgetTemplateService {
     }
   }
 
+  private validateTemplateLineUpdate(updateLineDto: TemplateLineUpdate): void {
+    const validationResult = templateLineUpdateSchema.safeParse(updateLineDto);
+    if (!validationResult.success) {
+      throw new BadRequestException(
+        `Données invalides: ${validationResult.error.message}`,
+      );
+    }
+  }
+
+  private async updateTemplateLineInDb(
+    templateId: string,
+    lineId: string,
+    updateLineDto: TemplateLineUpdate,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<Tables<'template_line'>> {
+    const updateData = this.budgetTemplateMapper.toUpdateLine(updateLineDto);
+    const { data: lineDb, error } = await supabase
+      .from('template_line')
+      .update(updateData)
+      .eq('id', lineId)
+      .eq('template_id', templateId)
+      .select()
+      .single();
+
+    if (error || !lineDb) {
+      this.logger.error({ err: error }, 'Failed to update template line');
+      throw new NotFoundException(
+        'Ligne du template introuvable ou modification non autorisée',
+      );
+    }
+
+    return lineDb;
+  }
+
   async updateTemplateLine(
     templateId: string,
     lineId: string,
     updateLineDto: TemplateLineUpdate,
-    user: AuthenticatedUser,
+    _user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateLineResponse> {
     try {
-      // Validate input
-      const validationResult =
-        templateLineUpdateSchema.safeParse(updateLineDto);
-      if (!validationResult.success) {
-        throw new BadRequestException(
-          `Données invalides: ${validationResult.error.message}`,
-        );
-      }
+      this.validateTemplateLineUpdate(updateLineDto);
+      await this.verifyTemplateExists(templateId, supabase);
 
-      // Check if template exists and belongs to user
-      const { data: templateDb, error: templateError } = await supabase
-        .from('template')
-        .select('id')
-        .eq('id', templateId)
-        .single();
-
-      if (templateError || !templateDb) {
-        throw new NotFoundException(
-          'Template introuvable ou accès non autorisé',
-        );
-      }
-
-      // Update template line
-      const updateData = this.budgetTemplateMapper.toUpdateLine(updateLineDto);
-      const { data: lineDb, error } = await supabase
-        .from('template_line')
-        .update(updateData)
-        .eq('id', lineId)
-        .eq('template_id', templateId)
-        .select()
-        .single();
-
-      if (error || !lineDb) {
-        this.logger.error({ err: error }, 'Failed to update template line');
-        throw new NotFoundException(
-          'Ligne du template introuvable ou modification non autorisée',
-        );
-      }
+      const lineDb = await this.updateTemplateLineInDb(
+        templateId,
+        lineId,
+        updateLineDto,
+        supabase,
+      );
 
       const apiData = this.budgetTemplateMapper.toApiLine(lineDb);
 
@@ -556,7 +581,7 @@ export class BudgetTemplateService {
   async deleteTemplateLine(
     templateId: string,
     lineId: string,
-    user: AuthenticatedUser,
+    _user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateLineDeleteResponse> {
     try {

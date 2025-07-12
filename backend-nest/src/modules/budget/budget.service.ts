@@ -17,6 +17,7 @@ import {
 } from '@pulpe/shared';
 import { type BudgetRow, BUDGET_CONSTANTS } from './entities';
 import { BudgetMapper } from './budget.mapper';
+import type { Database } from '../../types/database.types';
 
 @Injectable()
 export class BudgetService {
@@ -321,8 +322,10 @@ export class BudgetService {
 
   private prepareOnboardingRpcParams(
     onboardingData: BudgetCreateFromOnboarding,
-  ) {
+    userId: string,
+  ): Database['public']['Functions']['create_budget_from_onboarding_with_transactions']['Args'] {
     return {
+      p_user_id: userId,
       p_month: onboardingData.month,
       p_year: onboardingData.year,
       p_description: onboardingData.description,
@@ -365,10 +368,14 @@ export class BudgetService {
 
   async createFromOnboarding(
     onboardingData: BudgetCreateFromOnboarding,
+    user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetResponse> {
     try {
-      const rpcParams = this.prepareOnboardingRpcParams(onboardingData);
+      const rpcParams = this.prepareOnboardingRpcParams(
+        onboardingData,
+        user.id,
+      );
       const data = await this.executeOnboardingRpc(rpcParams, supabase);
 
       const budget = this.validateBudgetData(
