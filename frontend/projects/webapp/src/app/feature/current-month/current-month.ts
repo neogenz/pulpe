@@ -213,15 +213,25 @@ export default class CurrentMonth implements OnInit {
     );
   });
 
+  /**
+   * [FEATURE MÉTIER TEMPORAIRE]
+   * Ouvre automatiquement le bottom sheet "Ajouter une transaction" à chaque chargement de la page du mois courant,
+   * après un délai de 300ms. Ce comportement est volontaire pour le moment: il s'agit d'une exigence métier temporaire
+   * visant à encourager l'utilisateur à saisir sa première transaction dès l'arrivée sur la page.
+   *
+   * À retirer ou à conditionner dès que l'on implémente une UX plus évoluée (ex: onboarding, flag utilisateur, etc.).
+   */
   ngOnInit() {
     this.state.refreshData();
 
-    // Ouverture automatique de la bottom sheet pour une UX sans friction
     setTimeout(() => {
       this.openAddTransactionBottomSheet();
-    }, 300); // Petit délai pour laisser la page se charger
+    }, 300);
   }
 
+  /**
+   *
+   */
   openAddTransactionBottomSheet(): void {
     const bottomSheetRef = this.bottomSheet.open(AddTransactionBottomSheet, {
       disableClose: false,
