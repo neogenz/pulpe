@@ -74,88 +74,18 @@ export class BudgetTemplateService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetTemplateCreateResponse> {
     try {
-      // Validate input
-      const validationResult =
-        createBudgetTemplateSchema.safeParse(createTemplateDto);
-      if (!validationResult.success) {
-        throw new BadRequestException(
-          `Données invalides: ${validationResult.error.message}`,
-        );
-      }
-
-      // Transform lines for RPC function
-      const rpcLines = createTemplateDto.lines.map((line) => ({
-        name: line.name,
-        amount: line.amount,
-        kind: line.kind as Database['public']['Enums']['transaction_kind'],
-        recurrence:
-          line.recurrence as Database['public']['Enums']['transaction_recurrence'],
-        description: line.description || '',
-      }));
-
-      // Call RPC function - will return template record directly or throw error
-      const { data: templateRecord, error } = await supabase.rpc(
-        'create_template_with_lines',
-        {
-          p_user_id: user.id,
-          p_name: createTemplateDto.name,
-          p_description: createTemplateDto.description,
-          p_is_default: createTemplateDto.isDefault || false,
-          p_lines: rpcLines,
-        },
+      this.validateCreateTemplateInput(createTemplateDto);
+      const rpcLines = this.transformLinesToRpcFormat(createTemplateDto.lines);
+      const templateRecord = await this.createTemplateWithLines(
+        createTemplateDto,
+        user,
+        rpcLines,
+        supabase,
       );
-
-      if (error) {
-        this.logger.error({ err: error }, 'RPC function failed');
-        throw new InternalServerErrorException(
-          'Erreur lors de la création du template',
-        );
-      }
-
-      if (
-        !templateRecord ||
-        typeof templateRecord !== 'object' ||
-        !('id' in templateRecord)
-      ) {
-        this.logger.error(
-          { templateRecord },
-          'Invalid template record returned',
-        );
-        throw new InternalServerErrorException(
-          'Template record invalide retourné par la fonction',
-        );
-      }
-
-      // Map the RPC result to our API format - cast to proper type
-      const templateDataForMapper: Tables<'template'> =
-        templateRecord as Tables<'template'>;
-
-      const templateData = this.budgetTemplateMapper.toApi(
-        templateDataForMapper,
-      );
-      if (!templateData) {
-        throw new InternalServerErrorException(
-          'Erreur lors de la validation du template créé',
-        );
-      }
-
-      // Fetch the created lines to return them in the response
-      const { data: templateLinesDb, error: linesError } = await supabase
-        .from('template_line')
-        .select('*')
-        .eq('template_id', templateDataForMapper.id)
-        .order('created_at', { ascending: false });
-
-      if (linesError) {
-        this.logger.error(
-          { err: linesError },
-          'Failed to fetch created template lines',
-        );
-        // Don't throw here since the template was created successfully
-      }
-
-      const mappedLines = (templateLinesDb || []).map(
-        this.budgetTemplateMapper.toApiLine,
+      const templateData = this.validateAndMapTemplateRecord(templateRecord);
+      const mappedLines = await this.fetchAndMapTemplateLines(
+        templateRecord.id,
+        supabase,
       );
 
       return {
@@ -172,6 +102,100 @@ export class BudgetTemplateService {
       this.logger.error({ err: error }, 'Failed to create budget template');
       throw new InternalServerErrorException('Erreur interne du serveur');
     }
+  }
+
+  private validateCreateTemplateInput(
+    createTemplateDto: BudgetTemplateCreate,
+  ): void {
+    const validationResult =
+      createBudgetTemplateSchema.safeParse(createTemplateDto);
+    if (!validationResult.success) {
+      throw new BadRequestException(
+        `Données invalides: ${validationResult.error.message}`,
+      );
+    }
+  }
+
+  private transformLinesToRpcFormat(
+    lines: TemplateLineCreateWithoutTemplateId[],
+  ) {
+    return lines.map((line) => ({
+      name: line.name,
+      amount: line.amount,
+      kind: line.kind as Database['public']['Enums']['transaction_kind'],
+      recurrence:
+        line.recurrence as Database['public']['Enums']['transaction_recurrence'],
+      description: line.description || '',
+    }));
+  }
+
+  private async createTemplateWithLines(
+    createTemplateDto: BudgetTemplateCreate,
+    user: AuthenticatedUser,
+    rpcLines: ReturnType<typeof this.transformLinesToRpcFormat>,
+    supabase: AuthenticatedSupabaseClient,
+  ) {
+    const { data: templateRecord, error } = await supabase.rpc(
+      'create_template_with_lines',
+      {
+        p_user_id: user.id,
+        p_name: createTemplateDto.name,
+        p_description: createTemplateDto.description,
+        p_is_default: createTemplateDto.isDefault || false,
+        p_lines: rpcLines,
+      },
+    );
+
+    if (error) {
+      this.logger.error({ err: error }, 'RPC function failed');
+      throw new InternalServerErrorException(
+        'Erreur lors de la création du template',
+      );
+    }
+
+    if (
+      !templateRecord ||
+      typeof templateRecord !== 'object' ||
+      !('id' in templateRecord)
+    ) {
+      this.logger.error({ templateRecord }, 'Invalid template record returned');
+      throw new InternalServerErrorException(
+        'Template record invalide retourné par la fonction',
+      );
+    }
+
+    return templateRecord as Tables<'template'>;
+  }
+
+  private validateAndMapTemplateRecord(templateRecord: Tables<'template'>) {
+    const templateData = this.budgetTemplateMapper.toApi(templateRecord);
+    if (!templateData) {
+      throw new InternalServerErrorException(
+        'Erreur lors de la validation du template créé',
+      );
+    }
+    return templateData;
+  }
+
+  private async fetchAndMapTemplateLines(
+    templateId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ) {
+    const { data: templateLinesDb, error: linesError } = await supabase
+      .from('template_line')
+      .select('*')
+      .eq('template_id', templateId)
+      .order('created_at', { ascending: false });
+
+    if (linesError) {
+      this.logger.error(
+        { err: linesError },
+        'Failed to fetch created template lines',
+      );
+      // Don't throw here since the template was created successfully
+    }
+
+    return (templateLinesDb || []).map(this.budgetTemplateMapper.toApiLine);
   }
 
   async findOne(

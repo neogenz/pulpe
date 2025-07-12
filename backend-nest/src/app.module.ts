@@ -1,22 +1,52 @@
-import { Module } from '@nestjs/common';
-import { APP_PIPE } from '@nestjs/core';
+import {
+  Injectable,
+  Logger,
+  MiddlewareConsumer,
+  Module,
+  NestMiddleware,
+  NestModule,
+} from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { LoggerModule } from 'nestjs-pino';
-import { ZodValidationPipe } from 'nestjs-zod';
+import { APP_PIPE } from '@nestjs/core';
 import { randomUUID } from 'crypto';
 import type { IncomingMessage, ServerResponse } from 'http';
+import { LoggerModule } from 'nestjs-pino';
+import { ZodValidationPipe } from 'nestjs-zod';
 
 // Modules
-import { SupabaseModule } from '@modules/supabase/supabase.module';
 import { AuthModule } from '@modules/auth/auth.module';
-import { BudgetModule } from '@modules/budget/budget.module';
 import { BudgetTemplateModule } from '@modules/budget-template/budget-template.module';
+import { BudgetModule } from '@modules/budget/budget.module';
+import { DebugModule } from '@modules/debug/debug.module';
+import { SupabaseModule } from '@modules/supabase/supabase.module';
 import { TransactionModule } from '@modules/transaction/transaction.module';
 import { UserModule } from '@modules/user/user.module';
-import { DebugModule } from '@modules/debug/debug.module';
 
 // Filters
 import { FiltersModule } from '@common/filters/filters.module';
+
+// HTTP Logging Middleware
+import { NextFunction, Request, Response } from 'express';
+
+@Injectable()
+class HttpLoggerMiddleware implements NestMiddleware {
+  private logger = new Logger('HTTP');
+
+  use(req: Request, res: Response, next: NextFunction) {
+    const { method, originalUrl } = req;
+    const start = Date.now();
+
+    res.on('finish', () => {
+      const { statusCode } = res;
+      const responseTime = Date.now() - start;
+      this.logger.log(
+        `${method} ${originalUrl} ${statusCode} ${responseTime}ms`,
+      );
+    });
+
+    next();
+  }
+}
 
 // Logger configuration helpers
 function createRequestIdGenerator() {
@@ -52,7 +82,8 @@ function createLoggerTransport(isProduction: boolean) {
         singleLine: true,
         translateTime: 'HH:MM:ss.l',
         ignore: 'pid,hostname',
-        messageFormat: '{req.method} {req.url} {res.statusCode} - {msg}',
+        sync: true, // Sync mode for Bun compatibility
+        append: false,
       },
     };
   }
@@ -117,4 +148,8 @@ function createPinoLoggerConfig(configService: ConfigService) {
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(HttpLoggerMiddleware).forRoutes('*');
+  }
+}
