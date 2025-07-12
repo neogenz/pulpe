@@ -197,6 +197,17 @@ export const budgetTemplateCreateSchema = z.object({
 });
 export type BudgetTemplateCreate = z.infer<typeof budgetTemplateCreateSchema>;
 
+// Schema for transactional template creation using RPC
+export const budgetTemplateCreateTransactionalSchema = z.object({
+  name: z.string().min(1).max(100).trim(),
+  description: z.string().max(500).trim().optional(),
+  isDefault: z.boolean().default(false),
+  lines: z.array(templateLineCreateWithoutTemplateIdSchema).default([]),
+});
+export type BudgetTemplateCreateTransactional = z.infer<
+  typeof budgetTemplateCreateTransactionalSchema
+>;
+
 export const budgetTemplateUpdateSchema = z.object({
   name: z.string().min(1).max(100).trim().optional(),
   description: z.string().max(500).trim().optional(),
@@ -314,6 +325,16 @@ export const budgetTemplateCreateResponseSchema = z.object({
 });
 export type BudgetTemplateCreateResponse = z.infer<
   typeof budgetTemplateCreateResponseSchema
+>;
+
+// Response schema for transactional RPC function
+export const budgetTemplateCreateTransactionalResponseSchema = z.object({
+  success: z.literal(true),
+  template: budgetTemplateSchema,
+  lines_created: z.number(),
+});
+export type BudgetTemplateCreateTransactionalResponse = z.infer<
+  typeof budgetTemplateCreateTransactionalResponseSchema
 >;
 
 // Template line response schemas

@@ -211,6 +211,16 @@ export type Database = {
             };
         Returns: Json;
       };
+      create_template_with_lines: {
+        Args: {
+          p_user_id: string;
+          p_name: string;
+          p_description?: string;
+          p_is_default?: boolean;
+          p_lines?: Json;
+        };
+        Returns: Json;
+      };
     };
     Enums: {
       transaction_kind: 'expense' | 'income' | 'saving' | 'exceptional_income';
