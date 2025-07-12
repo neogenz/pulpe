@@ -112,8 +112,13 @@ export class OnboardingLayout {
   protected nextButtonText = computed(() => {
     const isFirstStep = this.isFirstStep();
     const isLastStep = this.isLastStep();
+    const customText = this.onboardingOrchestrator.nextButtonText();
+
     if (isFirstStep) {
       return 'Commencer';
+    }
+    if (isLastStep && customText !== 'Continuer') {
+      return customText;
     }
     if (isLastStep) {
       return 'Terminer';

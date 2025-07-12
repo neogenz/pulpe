@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, computed } from '@angular/core';
 
 export interface OnboardingStepData {
   monthlyIncome: number | null;
@@ -14,6 +14,11 @@ export interface OnboardingStepData {
 const ONBOARDING_STORAGE_KEY = 'pulpe-onboarding-steps';
 const ONBOARDING_STATUS_KEY = 'pulpe-onboarding-completed';
 
+export interface OnboardingSubmissionResult {
+  success: boolean;
+  error?: string;
+}
+
 @Injectable()
 export class OnboardingApi {
   readonly #onboardingState = signal<OnboardingStepData>({
@@ -27,7 +32,21 @@ export class OnboardingApi {
     email: '',
   });
 
+  readonly #isSubmitting = signal<boolean>(false);
+  readonly #submissionError = signal<string>('');
+  readonly #submissionSuccess = signal<string>('');
+
   readonly getStateData = this.#onboardingState.asReadonly();
+  readonly isSubmitting = this.#isSubmitting.asReadonly();
+  readonly submissionError = this.#submissionError.asReadonly();
+  readonly submissionSuccess = this.#submissionSuccess.asReadonly();
+
+  // Registration-specific validation
+  readonly isEmailValid = computed(() => {
+    const email = this.getStateData().email;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  });
 
   constructor() {
     this.loadStepsFromLocalStorage();
@@ -154,5 +173,34 @@ export class OnboardingApi {
     } catch {
       throw new Error('Failed to mark onboarding as completed');
     }
+  }
+
+  // Headless business logic methods
+
+  /**
+   * Valide un mot de passe selon les critères requis
+   */
+  validatePassword(password: string): boolean {
+    return password.length >= 8;
+  }
+
+  /**
+   * Vérifie si les données de registration sont valides
+   */
+  canSubmitRegistration(password: string): boolean {
+    const data = this.getStateData();
+    return (
+      data.firstName.trim().length > 0 &&
+      this.isEmailValid() &&
+      this.validatePassword(password)
+    );
+  }
+
+  /**
+   * Réinitialise les états de soumission
+   */
+  resetSubmissionState(): void {
+    this.#submissionError.set('');
+    this.#submissionSuccess.set('');
   }
 }

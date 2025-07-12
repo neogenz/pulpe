@@ -3,6 +3,9 @@ import {
   input,
   output,
   ChangeDetectionStrategy,
+  afterNextRender,
+  ElementRef,
+  inject,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -40,11 +43,19 @@ import { MatInputModule } from '@angular/material/input';
   ],
 })
 export class OnboardingCurrencyInput {
+  #elementRef = inject(ElementRef);
+
   label = input.required<string>();
   value = input<number | null>(null);
   placeholder = input<string>('0.00');
 
   valueChange = output<number | null>();
+
+  constructor() {
+    afterNextRender(() => {
+      this.#elementRef.nativeElement.querySelector('input')?.focus();
+    });
+  }
 
   protected onInput(event: Event): void {
     const target = event.target as HTMLInputElement;
