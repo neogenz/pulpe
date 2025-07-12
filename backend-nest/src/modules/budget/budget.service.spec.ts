@@ -329,7 +329,7 @@ describe('BudgetService', () => {
 
   describe('createFromOnboarding', () => {
     it('should create budget with transactions from onboarding data', async () => {
-      // const mockUser = createMockAuthenticatedUser(); // No longer needed
+      const mockUser = createMockAuthenticatedUser(); // No longer needed
       const onboardingData: BudgetCreateFromOnboarding = {
         month: 1,
         year: 2024,
@@ -354,6 +354,7 @@ describe('BudgetService', () => {
 
       const result = await service.createFromOnboarding(
         onboardingData,
+        mockUser,
         mockSupabaseClient as any,
       );
 
@@ -364,7 +365,7 @@ describe('BudgetService', () => {
     });
 
     it('should handle RPC execution errors', async () => {
-      // const mockUser = createMockAuthenticatedUser(); // No longer needed
+      const mockUser = createMockAuthenticatedUser(); // No longer needed
       const onboardingData: BudgetCreateFromOnboarding = {
         month: 1,
         year: 2024,
@@ -386,6 +387,7 @@ describe('BudgetService', () => {
         () =>
           service.createFromOnboarding(
             onboardingData,
+            mockUser,
             mockSupabaseClient as any,
           ),
         BadRequestException,

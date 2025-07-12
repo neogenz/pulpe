@@ -175,9 +175,14 @@ export class BudgetController {
   })
   async createFromOnboarding(
     @Body() onboardingData: BudgetCreateFromOnboardingDto,
+    @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetResponse> {
-    return this.budgetService.createFromOnboarding(onboardingData, supabase);
+    return this.budgetService.createFromOnboarding(
+      onboardingData,
+      user,
+      supabase,
+    );
   }
 
   @Delete(':id')
