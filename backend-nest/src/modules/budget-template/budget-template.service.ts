@@ -3,6 +3,7 @@ import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -36,6 +37,107 @@ export class BudgetTemplateService {
     private readonly logger: PinoLogger,
     private readonly budgetTemplateMapper: BudgetTemplateMapper,
   ) {}
+
+  /**
+   * Validates template access for the authenticated user
+   * @param templateId - The template ID to validate
+   * @param user - The authenticated user
+   * @param supabase - The authenticated Supabase client
+   * @param requireOwnership - If true, requires ownership; if false, allows public access
+   */
+  private async validateTemplateAccess(
+    templateId: string,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+    requireOwnership = false,
+  ): Promise<void> {
+    const { data, error } = await supabase
+      .from('template')
+      .select('user_id, name')
+      .eq('id', templateId)
+      .single();
+
+    if (error || !data) {
+      this.logger.warn(
+        { templateId, userId: user.id, error },
+        'Template access validation failed - template not found',
+      );
+      throw new NotFoundException('Template not found');
+    }
+
+    const isOwner = data.user_id === user.id;
+    const isPublic = data.user_id === null;
+
+    const hasAccess = requireOwnership ? isOwner : isOwner || isPublic;
+
+    if (!hasAccess) {
+      this.logger.warn(
+        {
+          templateId,
+          userId: user.id,
+          templateOwnerId: data.user_id,
+          requireOwnership,
+          templateName: data.name,
+        },
+        'Template access validation failed - insufficient permissions',
+      );
+      throw new ForbiddenException(
+        requireOwnership
+          ? 'You can only modify your own templates'
+          : 'Access denied to this template',
+      );
+    }
+
+    this.logger.debug(
+      { templateId, userId: user.id, isOwner, isPublic, requireOwnership },
+      'Template access validated successfully',
+    );
+  }
+
+  /**
+   * Validates template line access by first validating template access
+   * @param templateId - The template ID
+   * @param lineId - The template line ID
+   * @param user - The authenticated user
+   * @param supabase - The authenticated Supabase client
+   * @param requireOwnership - If true, requires template ownership
+   */
+  private async validateTemplateLineAccess(
+    templateId: string,
+    lineId: string,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+    requireOwnership = true,
+  ): Promise<void> {
+    // First validate template access
+    await this.validateTemplateAccess(
+      templateId,
+      user,
+      supabase,
+      requireOwnership,
+    );
+
+    // Then check if the line exists and belongs to the template
+    const { data, error } = await supabase
+      .from('template_line')
+      .select('id')
+      .eq('id', lineId)
+      .eq('template_id', templateId)
+      .single();
+
+    if (error || !data) {
+      this.logger.warn(
+        { templateId, lineId, userId: user.id, error },
+        'Template line access validation failed - line not found',
+      );
+      throw new NotFoundException('Template line not found');
+    }
+
+    this.logger.debug(
+      { templateId, lineId, userId: user.id },
+      'Template line access validated successfully',
+    );
+  }
 
   async findAll(
     supabase: AuthenticatedSupabaseClient,
@@ -209,10 +311,13 @@ export class BudgetTemplateService {
 
   async findOne(
     id: string,
-    _user: AuthenticatedUser,
+    user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetTemplateResponse> {
     try {
+      // Explicit authorization check before RLS
+      await this.validateTemplateAccess(id, user, supabase, false);
+
       const { data: templateDb, error } = await supabase
         .from('template')
         .select('*')
@@ -299,6 +404,9 @@ export class BudgetTemplateService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetTemplateResponse> {
     try {
+      // Explicit authorization check - require ownership for updates
+      await this.validateTemplateAccess(id, user, supabase, true);
+
       this.validateUpdateTemplateDto(updateTemplateDto);
 
       if (updateTemplateDto.isDefault) {
@@ -337,10 +445,13 @@ export class BudgetTemplateService {
 
   async remove(
     id: string,
-    _user: AuthenticatedUser,
+    user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetTemplateDeleteResponse> {
     try {
+      // Explicit authorization check - require ownership for deletion
+      await this.validateTemplateAccess(id, user, supabase, true);
+
       const { error } = await supabase.from('template').delete().eq('id', id);
 
       if (error) {
@@ -365,9 +476,13 @@ export class BudgetTemplateService {
 
   async findTemplateLines(
     templateId: string,
+    user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateLineListResponse> {
     try {
+      // Explicit authorization check - allow read access for own or public templates
+      await this.validateTemplateAccess(templateId, user, supabase, false);
+
       const { data: templateLinesDb, error } = await supabase
         .from('template_line')
         .select('*')
@@ -432,12 +547,14 @@ export class BudgetTemplateService {
   async createTemplateLine(
     templateId: string,
     createLineDto: TemplateLineCreateWithoutTemplateId,
-    _user: AuthenticatedUser,
+    user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateLineResponse> {
     try {
+      // Explicit authorization check - require ownership to create lines
+      await this.validateTemplateAccess(templateId, user, supabase, true);
+
       this.validateTemplateLineInput(createLineDto, templateId);
-      await this.verifyTemplateExists(templateId, supabase);
 
       const lineData = this.budgetTemplateMapper.toInsertLine(
         createLineDto,
@@ -477,22 +594,18 @@ export class BudgetTemplateService {
   async findTemplateLine(
     templateId: string,
     lineId: string,
-    _user: AuthenticatedUser,
+    user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateLineResponse> {
     try {
-      // Check if template exists and belongs to user
-      const { data: templateDb, error: templateError } = await supabase
-        .from('template')
-        .select('id')
-        .eq('id', templateId)
-        .single();
-
-      if (templateError || !templateDb) {
-        throw new NotFoundException(
-          'Template introuvable ou accès non autorisé',
-        );
-      }
+      // Explicit authorization check for template line access
+      await this.validateTemplateLineAccess(
+        templateId,
+        lineId,
+        user,
+        supabase,
+        false,
+      );
 
       // Find template line
       const { data: lineDb, error } = await supabase
@@ -559,12 +672,20 @@ export class BudgetTemplateService {
     templateId: string,
     lineId: string,
     updateLineDto: TemplateLineUpdate,
-    _user: AuthenticatedUser,
+    user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateLineResponse> {
     try {
+      // Explicit authorization check - require ownership to update lines
+      await this.validateTemplateLineAccess(
+        templateId,
+        lineId,
+        user,
+        supabase,
+        true,
+      );
+
       this.validateTemplateLineUpdate(updateLineDto);
-      await this.verifyTemplateExists(templateId, supabase);
 
       const lineDb = await this.updateTemplateLineInDb(
         templateId,
@@ -594,22 +715,18 @@ export class BudgetTemplateService {
   async deleteTemplateLine(
     templateId: string,
     lineId: string,
-    _user: AuthenticatedUser,
+    user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateLineDeleteResponse> {
     try {
-      // Check if template exists and belongs to user
-      const { data: templateDb, error: templateError } = await supabase
-        .from('template')
-        .select('id')
-        .eq('id', templateId)
-        .single();
-
-      if (templateError || !templateDb) {
-        throw new NotFoundException(
-          'Template introuvable ou accès non autorisé',
-        );
-      }
+      // Explicit authorization check - require ownership to delete lines
+      await this.validateTemplateLineAccess(
+        templateId,
+        lineId,
+        user,
+        supabase,
+        true,
+      );
 
       // Delete template line
       const { error } = await supabase
@@ -756,15 +873,77 @@ export class BudgetTemplateService {
     return lines;
   }
 
+  /**
+   * Rate limiting for onboarding template creation to prevent abuse
+   * Allows maximum 3 template creations in the last 10 minutes
+   */
+  private async checkOnboardingRateLimit(
+    userId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+
+    const { data: recentTemplates, error } = await supabase
+      .from('template')
+      .select('id, created_at')
+      .eq('user_id', userId)
+      .gte('created_at', tenMinutesAgo)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      this.logger.warn(
+        { userId, error },
+        'Failed to check rate limit for template creation',
+      );
+      // Don't block on rate limit check failure
+      return;
+    }
+
+    const recentCount = recentTemplates?.length || 0;
+    if (recentCount >= 3) {
+      this.logger.warn(
+        { userId, recentCount, timeWindow: '10 minutes' },
+        'Rate limit exceeded for template creation',
+      );
+      throw new BadRequestException(
+        'Too many template creations. Please wait before creating another template.',
+      );
+    }
+
+    this.logger.debug(
+      { userId, recentCount, maxAllowed: 3 },
+      'Rate limit check passed for template creation',
+    );
+  }
+
   async createFromOnboarding(
     onboardingData: BudgetTemplateCreateFromOnboarding,
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetTemplateCreateResponse> {
     try {
+      // Enhanced logging for onboarding template creation
+      this.logger.info(
+        {
+          userId: user.id,
+          templateName: onboardingData.name,
+          isDefault: onboardingData.isDefault,
+          hasCustomTransactions:
+            (onboardingData.customTransactions?.length || 0) > 0,
+        },
+        'Creating template from onboarding data',
+      );
+
+      // Rate limiting check - prevent abuse by checking recent template creation
+      await this.checkOnboardingRateLimit(user.id, supabase);
+
       const validationResult =
         budgetTemplateCreateFromOnboardingSchema.safeParse(onboardingData);
       if (!validationResult.success) {
+        this.logger.warn(
+          { userId: user.id, validationErrors: validationResult.error.message },
+          'Onboarding data validation failed',
+        );
         throw new BadRequestException(
           `Invalid onboarding data: ${validationResult.error.message}`,
         );
