@@ -37,13 +37,13 @@ describe('BudgetService', () => {
 
   const createValidBudgetCreateDto = (
     overrides: Partial<BudgetCreate> = {},
-  ): BudgetCreate => ({
-    month: 1,
-    year: 2024,
-    description: 'Test Budget',
-    templateId: 'template-id',
-    ...overrides,
-  });
+  ): BudgetCreate =>
+    ({
+      month: 1,
+      year: 2024,
+      description: 'Test Budget',
+      ...overrides,
+    }) as BudgetCreate;
 
   beforeEach(async () => {
     const { mockClient } = createMockSupabaseClient();
@@ -172,12 +172,11 @@ describe('BudgetService', () => {
       const mockUser = createMockAuthenticatedUser(); // Still needed for create method
 
       // Test invalid month
-      const invalidMonthDto: BudgetCreate = {
+      const invalidMonthDto = {
         month: 13, // Invalid: must be 1-12
         year: 2024,
         description: 'Test',
-        templateId: 'template-id',
-      };
+      } as BudgetCreate;
 
       await expectErrorThrown(
         () =>
@@ -187,12 +186,11 @@ describe('BudgetService', () => {
       );
 
       // Test invalid year (too far in future)
-      const invalidYearDto: BudgetCreate = {
+      const invalidYearDto = {
         month: 1,
         year: new Date().getFullYear() + 5, // Too far in future
         description: 'Test',
-        templateId: 'template-id',
-      };
+      } as BudgetCreate;
 
       await expectErrorThrown(
         () =>
@@ -202,12 +200,11 @@ describe('BudgetService', () => {
       );
 
       // Test description too long
-      const invalidDescDto: BudgetCreate = {
+      const invalidDescDto = {
         month: 1,
         year: 2024,
         description: Array(502).join('x'), // Too long: max 500 chars
-        templateId: 'template-id',
-      };
+      } as BudgetCreate;
 
       await expectErrorThrown(
         () =>

@@ -211,6 +211,16 @@ export type Database = {
             };
         Returns: Json;
       };
+      create_budget_from_template: {
+        Args: {
+          p_user_id: string;
+          p_template_id: string;
+          p_month: number;
+          p_year: number;
+          p_description: string;
+        };
+        Returns: Json;
+      };
       create_template_with_lines: {
         Args: {
           p_user_id: string;
