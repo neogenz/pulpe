@@ -230,7 +230,7 @@ export class BudgetTemplateController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateLineListResponse> {
-    return this.budgetTemplateService.findTemplateLines(id, supabase);
+    return this.budgetTemplateService.findTemplateLines(id, user, supabase);
   }
 
   @Post(':id/lines')
