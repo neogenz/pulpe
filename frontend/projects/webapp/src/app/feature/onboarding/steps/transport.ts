@@ -23,6 +23,7 @@ import {
         label="Montant d'abonnements"
         [(value)]="transportValue"
         (valueChange)="onTransportChange()"
+        placeholder="0 (optionnel)"
       />
     </div>
   `,
@@ -41,7 +42,7 @@ export default class Transport {
 
   readonly canContinue = computed(() => {
     const value = this.transportValue();
-    return value !== null && value >= 0; // Can be 0 if no transport costs
+    return value === null || value >= 0; // Can be empty (fallback to 0) or >= 0
   });
 
   constructor() {
@@ -57,6 +58,8 @@ export default class Transport {
   }
 
   protected onTransportChange(): void {
-    this.#onboardingStore.updateField('transportCosts', this.transportValue());
+    const value = this.transportValue();
+    // Fallback to 0 if null for optional field
+    this.#onboardingStore.updateField('transportCosts', value ?? 0);
   }
 }

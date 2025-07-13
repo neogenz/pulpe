@@ -23,6 +23,7 @@ import {
         label="Frais d'assurances maladie"
         [(value)]="healthInsuranceValue"
         (valueChange)="onHealthInsuranceChange()"
+        placeholder="0 (optionnel)"
       />
     </div>
   `,
@@ -40,7 +41,7 @@ export default class HealthInsurance {
 
   readonly canContinue = computed(() => {
     const value = this.healthInsuranceValue();
-    return value !== null && value >= 0; // Can be 0 if covered
+    return value === null || value >= 0; // Can be empty (fallback to 0) or >= 0
   });
 
   constructor() {
@@ -57,9 +58,8 @@ export default class HealthInsurance {
   }
 
   protected onHealthInsuranceChange(): void {
-    this.#onboardingStore.updateField(
-      'healthInsurance',
-      this.healthInsuranceValue(),
-    );
+    const value = this.healthInsuranceValue();
+    // Fallback to 0 if null for optional field
+    this.#onboardingStore.updateField('healthInsurance', value ?? 0);
   }
 }
