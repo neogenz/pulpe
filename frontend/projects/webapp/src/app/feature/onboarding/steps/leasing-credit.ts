@@ -1,65 +1,96 @@
 import {
   Component,
   ChangeDetectionStrategy,
-  signal,
+  model,
   inject,
-  computed,
+  afterNextRender,
+  HostListener,
   effect,
 } from '@angular/core';
-import { MatButtonModule } from '@angular/material/button';
+import { Router } from '@angular/router';
 import { OnboardingCurrencyInput } from '../ui/currency-input';
-import {
-  OnboardingStore,
-  type OnboardingLayoutData,
-} from '../onboarding-store';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { OnboardingStore } from '../onboarding-store';
 
 @Component({
   selector: 'pulpe-leasing-credit',
-  imports: [OnboardingCurrencyInput, MatButtonModule],
+  imports: [OnboardingCurrencyInput, MatButtonModule, MatIconModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="space-y-6">
+    <div class="gap-6 h-full flex flex-col">
+      <div class="text-center space-y-2 mb-6">
+        <h1 class="text-headline-large text-on-surface">
+          Quels sont tes frais de leasing ou crédits ?
+        </h1>
+        <p class="text-body-large text-on-surface-variant leading-relaxed">
+          Indique le montant de tes leasings ou crédits mensuels.
+        </p>
+      </div>
+
       <pulpe-onboarding-currency-input
         label="Montant de leasing ou crédits"
         [(value)]="leasingCreditValue"
-        (valueChange)="onLeasingCreditChange()"
         placeholder="0 (optionnel)"
+        [required]="false"
       />
+
+      <div class="flex gap-4 p-4 md:p-0 w-full mt-auto">
+        <button
+          matButton="outlined"
+          class="flex-1"
+          data-testid="previous-button"
+          (click)="onPrevious()"
+        >
+          Précédent
+        </button>
+        <button
+          matButton="filled"
+          color="primary"
+          class="flex-1"
+          data-testid="next-button"
+          (click)="onNext()"
+        >
+          Suivant
+        </button>
+      </div>
     </div>
   `,
 })
 export default class LeasingCredit {
-  readonly #onboardingStore = inject(OnboardingStore);
+  readonly #store = inject(OnboardingStore);
+  readonly #router = inject(Router);
 
-  readonly #onboardingLayoutData: OnboardingLayoutData = {
-    title: 'Leasing ou crédit à la consommation ?',
-    subtitle:
-      'Combien payes-tu de leasing ou crédit à la consommation chaque mois ?',
-    currentStep: 7,
-  };
-
-  protected leasingCreditValue = signal<number | null>(null);
-
-  readonly canContinue = computed(() => {
-    const value = this.leasingCreditValue();
-    return value === null || value >= 0; // Can be empty (fallback to 0) or >= 0
-  });
+  protected readonly leasingCreditValue = model<number | null>(null);
 
   constructor() {
     effect(() => {
-      this.#onboardingStore.setCanContinue(this.canContinue());
-      this.#onboardingStore.setLayoutData(this.#onboardingLayoutData);
+      this.leasingCreditValue.set(this.#store.data().leasingCredit);
     });
 
-    const existingLeasingCredit = this.#onboardingStore.data().leasingCredit;
-    if (existingLeasingCredit !== null) {
-      this.leasingCreditValue.set(existingLeasingCredit);
-    }
+    afterNextRender(() => {
+      const input = document.querySelector(
+        'input[type="number"]',
+      ) as HTMLInputElement;
+      input?.focus();
+    });
   }
 
-  protected onLeasingCreditChange(): void {
-    const value = this.leasingCreditValue();
-    // Fallback to 0 if null for optional field
-    this.#onboardingStore.updateField('leasingCredit', value ?? 0);
+  @HostListener('keydown.enter')
+  onEnter(): void {
+    this.#handleNext();
+  }
+
+  onNext(): void {
+    this.#handleNext();
+  }
+
+  onPrevious(): void {
+    this.#router.navigate(['/onboarding/transport']);
+  }
+
+  #handleNext(): void {
+    this.#store.updateField('leasingCredit', this.leasingCreditValue() ?? 0);
+    this.#router.navigate(['/onboarding/registration']);
   }
 }

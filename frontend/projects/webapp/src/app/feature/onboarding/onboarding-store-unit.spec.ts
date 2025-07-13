@@ -1,26 +1,54 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { OnboardingStore, RegistrationProcessStep } from './onboarding-store';
+import { OnboardingStore } from './onboarding-store';
 import { AuthApi } from '../../core/auth/auth-api';
 import { BudgetApi } from '../../core/budget/budget-api';
 import { TemplateApi } from '../../core/template/template-api';
+import { Router } from '@angular/router';
 
 describe('OnboardingStore - Unit Tests', () => {
   let store: OnboardingStore;
+  let mockAuthApi: {
+    signUpWithEmail: ReturnType<typeof vi.fn>;
+  };
+  let mockBudgetApi: {
+    createBudget$: ReturnType<typeof vi.fn>;
+  };
+  let mockTemplateApi: {
+    createFromOnboarding$: ReturnType<typeof vi.fn>;
+  };
+  let mockRouter: {
+    navigate: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(() => {
     // Clear localStorage before each test
     localStorage.clear();
+
+    // Create mocks
+    mockAuthApi = {
+      signUpWithEmail: vi.fn(),
+    };
+    mockBudgetApi = {
+      createBudget$: vi.fn(),
+    };
+    mockTemplateApi = {
+      createFromOnboarding$: vi.fn(),
+    };
+    mockRouter = {
+      navigate: vi.fn(),
+    };
 
     // Configure TestBed with mock services and zoneless change detection
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
         OnboardingStore,
-        { provide: AuthApi, useValue: {} },
-        { provide: BudgetApi, useValue: {} },
-        { provide: TemplateApi, useValue: {} },
+        { provide: AuthApi, useValue: mockAuthApi },
+        { provide: BudgetApi, useValue: mockBudgetApi },
+        { provide: TemplateApi, useValue: mockTemplateApi },
+        { provide: Router, useValue: mockRouter },
       ],
     });
 
@@ -28,46 +56,22 @@ describe('OnboardingStore - Unit Tests', () => {
     store = TestBed.inject(OnboardingStore);
   });
 
-  describe('Email Validation', () => {
-    it('should validate correct email formats', () => {
-      store.updateField('email', 'test@example.com');
-      expect(store.isEmailValid()).toBe(true);
-
-      store.updateField('email', 'user.name@domain.co.uk');
-      expect(store.isEmailValid()).toBe(true);
-
-      store.updateField('email', 'user+tag@example.com');
-      expect(store.isEmailValid()).toBe(true);
+  describe('Initial State', () => {
+    it('should initialize with empty data', () => {
+      const data = store.data();
+      expect(data.firstName).toBe('');
+      expect(data.email).toBe('');
+      expect(data.monthlyIncome).toBeNull();
+      expect(data.housingCosts).toBeNull();
+      expect(data.healthInsurance).toBeNull();
+      expect(data.leasingCredit).toBeNull();
+      expect(data.phonePlan).toBeNull();
+      expect(data.transportCosts).toBeNull();
     });
 
-    it('should invalidate incorrect email formats', () => {
-      store.updateField('email', 'notanemail');
-      expect(store.isEmailValid()).toBe(false);
-
-      store.updateField('email', 'missing@domain');
-      expect(store.isEmailValid()).toBe(false);
-
-      store.updateField('email', '@example.com');
-      expect(store.isEmailValid()).toBe(false);
-
-      store.updateField('email', '');
-      expect(store.isEmailValid()).toBe(false);
-    });
-  });
-
-  describe('Password Validation', () => {
-    it('should validate passwords with 8 or more characters', () => {
-      expect(store.validatePassword('12345678')).toBe(true);
-      expect(store.validatePassword('longpassword')).toBe(true);
-      expect(store.validatePassword('very long password with spaces')).toBe(
-        true,
-      );
-    });
-
-    it('should invalidate passwords with less than 8 characters', () => {
-      expect(store.validatePassword('')).toBe(false);
-      expect(store.validatePassword('short')).toBe(false);
-      expect(store.validatePassword('1234567')).toBe(false);
+    it('should initialize with no submission state', () => {
+      expect(store.isSubmitting()).toBe(false);
+      expect(store.error()).toBe('');
     });
   });
 
@@ -95,194 +99,88 @@ describe('OnboardingStore - Unit Tests', () => {
       store.updateField('monthlyIncome', null);
       expect(store.data().monthlyIncome).toBeNull();
     });
-  });
 
-  describe('Layout Management', () => {
-    it('should set layout data', () => {
-      const layoutData = {
-        title: 'Test Title',
-        subtitle: 'Test Subtitle',
-        currentStep: 3,
-      };
+    it('should persist data to localStorage', () => {
+      store.updateField('firstName', 'John');
+      store.updateField('monthlyIncome', 5000);
 
-      store.setLayoutData(layoutData);
-      expect(store.layoutData()).toEqual(layoutData);
-    });
+      const saved = localStorage.getItem('pulpe-onboarding-data');
+      expect(saved).toBeTruthy();
 
-    it('should set canContinue state', () => {
-      expect(store.canContinue()).toBe(false);
-
-      store.setCanContinue(true);
-      expect(store.canContinue()).toBe(true);
-
-      store.setCanContinue(false);
-      expect(store.canContinue()).toBe(false);
-    });
-
-    it('should set next button text', () => {
-      expect(store.nextButtonText()).toBe('Suivant');
+      const parsed = JSON.parse(saved!);
+      expect(parsed.firstName).toBe('John');
+      expect(parsed.monthlyIncome).toBe(5000);
     });
   });
 
-  describe('Submission Readiness', () => {
-    it('should not be ready when data is incomplete', () => {
-      expect(store.isReadyForSubmission()).toBe(false);
+  describe('Error Management', () => {
+    it('should clear error', async () => {
+      // Simulate an error by calling submitRegistration with invalid data
+      store.updateField('firstName', ''); // Invalid data
+      await store.submitRegistration('invalid@email', 'password');
+
+      // Check that error was set
+      expect(store.error()).toBe('Données obligatoires manquantes');
+
+      // Clear error
+      store.clearError();
+      expect(store.error()).toBe('');
+    });
+  });
+
+  describe('Submission Registration', () => {
+    it('should reject submission with invalid data', async () => {
+      const result = await store.submitRegistration(
+        'test@example.com',
+        'password123',
+      );
+      expect(result).toBe(false);
+      expect(store.error()).toBe('Données obligatoires manquantes');
     });
 
-    it('should not be ready with only income', () => {
+    it('should reject submission with no firstName', async () => {
       store.updateField('monthlyIncome', 5000);
-      expect(store.isReadyForSubmission()).toBe(false);
+      const result = await store.submitRegistration(
+        'test@example.com',
+        'password123',
+      );
+      expect(result).toBe(false);
+      expect(store.error()).toBe('Données obligatoires manquantes');
     });
 
-    it('should not be ready with only personal info', () => {
-      store.updatePersonalInfo('John', 'john@example.com');
-      expect(store.isReadyForSubmission()).toBe(false);
+    it('should reject submission with no income', async () => {
+      store.updateField('firstName', 'John');
+      const result = await store.submitRegistration(
+        'test@example.com',
+        'password123',
+      );
+      expect(result).toBe(false);
+      expect(store.error()).toBe('Données obligatoires manquantes');
     });
 
-    it('should be ready with complete required data', () => {
-      store.updateField('monthlyIncome', 5000);
-      store.updatePersonalInfo('John', 'john@example.com');
-      expect(store.isReadyForSubmission()).toBe(true);
-    });
-
-    it('should be ready even with zero income if other requirements are met', () => {
+    it('should reject submission with zero or negative income', async () => {
+      store.updateField('firstName', 'John');
       store.updateField('monthlyIncome', 0);
-      store.updatePersonalInfo('John', 'john@example.com');
-      expect(store.isReadyForSubmission()).toBe(true); // Zero is still a valid income
-    });
-  });
-
-  describe('Registration Validation', () => {
-    it('should validate registration requirements', () => {
-      // Initially false
-      expect(store.canSubmitRegistration('password123')).toBe(false);
-
-      // With only email
-      store.updateField('email', 'john@example.com');
-      expect(store.canSubmitRegistration('password123')).toBe(false);
-
-      // With email and firstName
-      store.updatePersonalInfo('John', 'john@example.com');
-      expect(store.canSubmitRegistration('password123')).toBe(true);
-
-      // With short password
-      expect(store.canSubmitRegistration('short')).toBe(false);
-
-      // With invalid email
-      store.updateField('email', 'invalid-email');
-      expect(store.canSubmitRegistration('password123')).toBe(false);
-    });
-  });
-
-  describe('Process State Management', () => {
-    it('should update current step', () => {
-      expect(store.processState().currentStep).toBe(
-        RegistrationProcessStep.AUTHENTICATION,
+      const result = await store.submitRegistration(
+        'test@example.com',
+        'password123',
       );
-
-      store.updateCurrentStep(RegistrationProcessStep.TEMPLATE_CREATION);
-      expect(store.processState().currentStep).toBe(
-        RegistrationProcessStep.TEMPLATE_CREATION,
-      );
-    });
-
-    it('should mark steps as completed', () => {
-      expect(store.processState().completedSteps).toEqual([]);
-
-      store.markStepCompleted(RegistrationProcessStep.AUTHENTICATION);
-      expect(store.processState().completedSteps).toContain(
-        RegistrationProcessStep.AUTHENTICATION,
-      );
-      expect(store.isAuthenticationCompleted()).toBe(true);
-    });
-
-    it('should not duplicate completed steps', () => {
-      store.markStepCompleted(RegistrationProcessStep.AUTHENTICATION);
-      store.markStepCompleted(RegistrationProcessStep.AUTHENTICATION);
-
-      const completedSteps = store.processState().completedSteps;
-      const authSteps = completedSteps.filter(
-        (s) => s === RegistrationProcessStep.AUTHENTICATION,
-      );
-      expect(authSteps.length).toBe(1);
-    });
-
-    it('should store template ID when marking template creation complete', () => {
-      store.markStepCompleted(
-        RegistrationProcessStep.TEMPLATE_CREATION,
-        'template-123',
-      );
-      expect(store.processState().templateId).toBe('template-123');
-    });
-  });
-
-  describe('Retry Button Text', () => {
-    it('should show "Terminer" for initial state', () => {
-      expect(store.retryButtonText()).toBe('Terminer');
-    });
-
-    it('should show specific text for each retry step', () => {
-      store.markStepCompleted(RegistrationProcessStep.AUTHENTICATION);
-
-      store.updateCurrentStep(RegistrationProcessStep.TEMPLATE_CREATION);
-      expect(store.retryButtonText()).toBe('Créer le template');
-
-      store.updateCurrentStep(RegistrationProcessStep.BUDGET_CREATION);
-      expect(store.retryButtonText()).toBe('Créer le budget');
-
-      store.updateCurrentStep(RegistrationProcessStep.COMPLETION);
-      expect(store.retryButtonText()).toBe('Finaliser');
-    });
-  });
-
-  describe('Clear Data', () => {
-    it('should reset all data and state', () => {
-      // Set some data
-      store.updateField('monthlyIncome', 5000);
-      store.updatePersonalInfo('John', 'john@example.com');
-      store.markStepCompleted(RegistrationProcessStep.AUTHENTICATION);
-      store.updateCurrentStep(RegistrationProcessStep.TEMPLATE_CREATION);
-
-      // Clear all
-      store.clearAllData();
-
-      // Verify reset
-      const data = store.data();
-      expect(data.monthlyIncome).toBeNull();
-      expect(data.firstName).toBe('');
-      expect(data.email).toBe('');
-      expect(store.processState().completedSteps).toEqual([]);
-      expect(store.processState().currentStep).toBe(
-        RegistrationProcessStep.AUTHENTICATION,
-      );
-    });
-
-    it('should reset submission states', () => {
-      // Since we can't access private fields, just verify the method exists and initial state
-      store.resetSubmissionState();
-
-      expect(store.submissionError()).toBe('');
-      expect(store.submissionSuccess()).toBe('');
+      expect(result).toBe(false);
+      expect(store.error()).toBe('Données obligatoires manquantes');
     });
   });
 
   describe('LocalStorage Integration', () => {
     it('should load data from localStorage on init', () => {
       const testData = {
-        onboardingData: {
-          monthlyIncome: 5000,
-          housingCosts: 1200,
-          healthInsurance: 200,
-          leasingCredit: 0,
-          phonePlan: 50,
-          transportCosts: 100,
-          firstName: 'John',
-          email: 'john@example.com',
-        },
-        processState: {
-          currentStep: RegistrationProcessStep.TEMPLATE_CREATION,
-          completedSteps: [RegistrationProcessStep.AUTHENTICATION],
-        },
+        firstName: 'John',
+        email: 'john@example.com',
+        monthlyIncome: 5000,
+        housingCosts: 1200,
+        healthInsurance: 200,
+        leasingCredit: 0,
+        phonePlan: 50,
+        transportCosts: 100,
       };
 
       localStorage.setItem('pulpe-onboarding-data', JSON.stringify(testData));
@@ -293,21 +191,35 @@ describe('OnboardingStore - Unit Tests', () => {
         providers: [
           provideZonelessChangeDetection(),
           OnboardingStore,
-          { provide: AuthApi, useValue: {} },
-          { provide: BudgetApi, useValue: {} },
-          { provide: TemplateApi, useValue: {} },
+          { provide: AuthApi, useValue: mockAuthApi },
+          { provide: BudgetApi, useValue: mockBudgetApi },
+          { provide: TemplateApi, useValue: mockTemplateApi },
+          { provide: Router, useValue: mockRouter },
         ],
       });
 
       const newStore = TestBed.inject(OnboardingStore);
+      expect(newStore.data()).toEqual(testData);
+    });
 
-      expect(newStore.data()).toEqual(testData.onboardingData);
-      expect(newStore.processState().currentStep).toBe(
-        RegistrationProcessStep.TEMPLATE_CREATION,
-      );
-      expect(newStore.processState().completedSteps).toEqual([
-        RegistrationProcessStep.AUTHENTICATION,
-      ]);
+    it('should handle invalid localStorage data gracefully', () => {
+      localStorage.setItem('pulpe-onboarding-data', 'invalid json');
+
+      // Should not throw and should initialize with defaults
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          provideZonelessChangeDetection(),
+          OnboardingStore,
+          { provide: AuthApi, useValue: mockAuthApi },
+          { provide: BudgetApi, useValue: mockBudgetApi },
+          { provide: TemplateApi, useValue: mockTemplateApi },
+          { provide: Router, useValue: mockRouter },
+        ],
+      });
+
+      const newStore = TestBed.inject(OnboardingStore);
+      expect(newStore.data().firstName).toBe('');
     });
   });
 });

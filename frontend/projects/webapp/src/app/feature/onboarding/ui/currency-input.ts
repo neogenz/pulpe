@@ -1,11 +1,11 @@
 import {
   Component,
   input,
-  output,
   ChangeDetectionStrategy,
   afterNextRender,
   ElementRef,
   inject,
+  model,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -22,14 +22,15 @@ import { MatInputModule } from '@angular/material/input';
       <input
         matInput
         type="number"
-        [value]="value()"
+        [(ngModel)]="value"
         (input)="onInput($event)"
         [placeholder]="placeholder()"
         [attr.aria-describedby]="ariaDescribedBy()"
         [attr.aria-label]="label() + ' in Swiss Francs'"
         [required]="required()"
-        min="0"
+        [attr.min]="required() ? '0' : null"
         step="0.01"
+        [attr.data-testid]="testId()"
       />
       <span matTextSuffix class="text-gray-600 font-medium">CHF</span>
       @if (ariaDescribedBy()) {
@@ -44,12 +45,11 @@ export class OnboardingCurrencyInput {
   #elementRef = inject(ElementRef);
 
   label = input.required<string>();
-  value = input<number | null>(null);
+  value = model<number | null>(null);
   placeholder = input<string>('0.00');
   ariaDescribedBy = input<string>();
   required = input<boolean>(false);
-
-  valueChange = output<number | null>();
+  testId = input<string>('currency-input');
 
   constructor() {
     afterNextRender(() => {
@@ -60,6 +60,6 @@ export class OnboardingCurrencyInput {
   protected onInput(event: Event): void {
     const target = event.target as HTMLInputElement;
     const numericValue = target.value ? parseFloat(target.value) : null;
-    this.valueChange.emit(numericValue);
+    this.value.set(numericValue);
   }
 }

@@ -3,44 +3,31 @@ import { ActivatedRouteSnapshot, CanActivateFn, Router } from '@angular/router';
 import { OnboardingStore } from './onboarding-store';
 
 /**
- * Guard to prevent users from skipping onboarding steps.
- * Ensures that required previous steps are completed before allowing access to the next step.
+ * Guard simplifié pour l'onboarding.
+ * Vérifie seulement que les étapes obligatoires (prénom et revenus) sont complétées
+ * avant d'accéder à l'étape d'inscription.
  */
 export const onboardingStepGuard: CanActivateFn = (
   route: ActivatedRouteSnapshot,
 ) => {
-  const onboardingStore = inject(OnboardingStore);
+  const store = inject(OnboardingStore);
   const router = inject(Router);
 
   const currentStepPath = route.routeConfig?.path;
-  if (!currentStepPath) {
-    return true; // Allow navigation if path is not defined
-  }
 
-  // Get the current step index based on the route path
-  const stepIndex = onboardingStore.stepOrder.indexOf(currentStepPath);
+  // Si c'est l'étape d'inscription, vérifier que les données obligatoires sont remplies
+  if (currentStepPath === 'registration') {
+    const data = store.data();
 
-  if (stepIndex === -1) {
-    return true; // Allow navigation if step is not in the order (like welcome)
-  }
-
-  // Welcome step is always accessible
-  if (stepIndex === 0) {
-    return true;
-  }
-
-  // Check if all required previous steps are completed
-  const canAccess = onboardingStore.canAccessStep(stepIndex);
-
-  if (!canAccess) {
-    // Find the first incomplete required step
-    const firstIncompleteStep =
-      onboardingStore.getFirstIncompleteRequiredStep();
-    const redirectPath = firstIncompleteStep
-      ? `/onboarding/${firstIncompleteStep}`
-      : '/onboarding/welcome';
-
-    return router.createUrlTree([redirectPath]);
+    if (!data.firstName || !data.monthlyIncome || data.monthlyIncome <= 0) {
+      // Rediriger vers la première étape incomplète
+      if (!data.firstName) {
+        return router.createUrlTree(['/onboarding/personal-info']);
+      }
+      if (!data.monthlyIncome || data.monthlyIncome <= 0) {
+        return router.createUrlTree(['/onboarding/income']);
+      }
+    }
   }
 
   return true;

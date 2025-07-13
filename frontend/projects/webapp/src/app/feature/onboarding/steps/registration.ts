@@ -1,31 +1,27 @@
 import {
+  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   computed,
-  effect,
+  HostListener,
   inject,
+  OnDestroy,
   signal,
-  afterNextRender,
-  ElementRef,
 } from '@angular/core';
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { toSignal } from '@angular/core/rxjs-interop';
 import {
-  ReactiveFormsModule,
   FormControl,
-  Validators,
   FormGroup,
+  ReactiveFormsModule,
+  Validators,
 } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { Router } from '@angular/router';
-import { ROUTES } from '../../../core/routing/routes-constants';
-import {
-  OnboardingStore,
-  type OnboardingLayoutData,
-} from '../onboarding-store';
-import { map, startWith } from 'rxjs';
+import { OnboardingStore } from '../onboarding-store';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 @Component({
   selector: 'pulpe-registration',
@@ -35,17 +31,21 @@ import { map, startWith } from 'rxjs';
     MatInputModule,
     MatIconModule,
     MatButtonModule,
+    MatProgressSpinnerModule,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  // Le template est suffisamment grand pour justifier un fichier séparé
-  // mais pour la revue, le garder inline est acceptable.
   template: `
-    <!-- Utiliser un formGroup est une bonne pratique pour regrouper les contrôles -->
-    <form
-      [formGroup]="registrationForm"
-      (ngSubmit)="registerAndCreateAccount()"
-    >
-      <div class="space-y-6">
+    <div class="gap-6 h-full flex flex-col">
+      <div class="text-center space-y-2 mb-6">
+        <h1 class="text-headline-large text-on-surface">
+          Création de ton compte
+        </h1>
+        <p class="text-body-large text-on-surface-variant leading-relaxed">
+          Crée ton compte pour commencer à utiliser Pulpe.
+        </p>
+      </div>
+
+      <form [formGroup]="registrationForm" (ngSubmit)="onSubmit()">
         <mat-form-field class="w-full" appearance="fill">
           <mat-label>Email</mat-label>
           <input
@@ -53,7 +53,9 @@ import { map, startWith } from 'rxjs';
             type="email"
             placeholder="Email"
             formControlName="email"
-            [disabled]="isFormDisabled()"
+            [disabled]="store.isSubmitting()"
+            data-testid="email-input"
+            #emailInput
           />
           <mat-icon matPrefix>email</mat-icon>
         </mat-form-field>
@@ -65,7 +67,8 @@ import { map, startWith } from 'rxjs';
             [type]="hidePassword() ? 'password' : 'text'"
             placeholder="Mot de passe"
             formControlName="password"
-            [disabled]="isFormDisabled()"
+            [disabled]="store.isSubmitting()"
+            data-testid="password-input"
           />
           <mat-icon matPrefix>lock</mat-icon>
           <button
@@ -74,8 +77,8 @@ import { map, startWith } from 'rxjs';
             type="button"
             (click)="hidePassword.set(!hidePassword())"
             [attr.aria-label]="'Afficher le mot de passe'"
-            [attr.aria-pressed]="!hidePassword()"
-            [disabled]="onboardingStore.isAuthenticationCompleted()"
+            [disabled]="store.isSubmitting()"
+            data-testid="password-visibility-toggle"
           >
             <mat-icon>{{
               hidePassword() ? 'visibility_off' : 'visibility'
@@ -85,41 +88,42 @@ import { map, startWith } from 'rxjs';
             >Le mot de passe doit contenir au minimum 8 caractères</mat-hint
           >
         </mat-form-field>
+      </form>
 
-        @if (onboardingStore.isAuthenticationCompleted()) {
-          <div
-            class="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded"
-          >
-            ✅ Compte créé avec succès. Finalisation en cours...
+      <div class="flex gap-4 p-4 md:p-0 w-full mt-auto">
+        <button
+          matButton="outlined"
+          class="flex-1"
+          data-testid="previous-button"
+          (click)="onPrevious()"
+        >
+          Précédent
+        </button>
+        <button
+          matButton="filled"
+          color="primary"
+          class="flex-1 flex items-center justify-center"
+          data-testid="submit-button"
+          [disabled]="!isValid() || store.isSubmitting()"
+          (click)="onSubmit()"
+        >
+          <div class="flex items-center justify-center gap-2">
+            @if (store.isSubmitting()) {
+              <mat-spinner diameter="20" />
+            }
+            Créer le compte
           </div>
-        }
-
-        @if (onboardingStore.submissionError(); as error) {
-          <div
-            class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded"
-          >
-            {{ error }}
-          </div>
-        }
-        @if (onboardingStore.submissionSuccess(); as successMessage) {
-          <div
-            class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded"
-          >
-            {{ successMessage }}
-          </div>
-        }
+        </button>
       </div>
-    </form>
+    </div>
   `,
 })
-export default class Registration {
-  #router = inject(Router);
-  #elementRef = inject(ElementRef);
-  protected readonly onboardingStore = inject(OnboardingStore);
+export default class Registration implements OnDestroy {
+  readonly #router = inject(Router);
+  protected readonly store = inject(OnboardingStore);
 
-  // Utiliser un FormGroup pour une meilleure organisation et validation groupée
   protected readonly registrationForm = new FormGroup({
-    email: new FormControl('', {
+    email: new FormControl(this.store.data().email, {
       validators: [Validators.required, Validators.email],
       nonNullable: true,
     }),
@@ -129,77 +133,56 @@ export default class Registration {
     }),
   });
 
-  protected hidePassword = signal(true);
+  protected readonly hidePassword = signal(true);
 
-  #isFormValid = toSignal(
-    this.registrationForm.statusChanges.pipe(
-      startWith(this.registrationForm.status),
-      map((status) => status === 'VALID'),
-    ),
-    { initialValue: false },
-  );
-
-  // Signal calculé pour la désactivation, plus propre et réutilisable.
-  protected isFormDisabled = computed(
-    () =>
-      this.onboardingStore.isSubmitting() ||
-      this.onboardingStore.isAuthenticationCompleted(),
-  );
+  protected readonly formStatus = toSignal(this.registrationForm.statusChanges);
+  protected readonly isValid = computed(() => this.formStatus() === 'VALID');
 
   constructor() {
-    const isRetry =
-      this.onboardingStore.processState().completedSteps.length > 0;
-    const layoutData: OnboardingLayoutData = {
-      title: isRetry ? 'Reprise du processus' : 'Presque fini !',
-      subtitle: isRetry
-        ? 'Finalisons la création de votre compte.'
-        : 'Créez votre compte pour accéder à votre budget personnalisé.',
-      currentStep: 8,
-    };
-    this.onboardingStore.setLayoutData(layoutData);
-
-    effect(() => {
-      const canContinue =
-        this.#isFormValid() || this.onboardingStore.isAuthenticationCompleted();
-      this.onboardingStore.setCanContinue(canContinue);
-    });
-
-    this.onboardingStore.nextClicked$
-      .pipe(takeUntilDestroyed())
-      .subscribe(() => this.registerAndCreateAccount());
-
     afterNextRender(() => {
-      this.#elementRef.nativeElement
-        .querySelector('input[type="email"]')
-        ?.focus();
+      const emailInput = document.querySelector(
+        'input[type="email"]',
+      ) as HTMLInputElement;
+      emailInput?.focus();
     });
+  }
 
-    const existingEmail = this.onboardingStore.data().email;
-    if (existingEmail) {
-      this.registrationForm.controls.email.setValue(existingEmail);
+  ngOnDestroy(): void {
+    this.store.clearError();
+  }
+
+  @HostListener('keydown.enter')
+  onEnter(): void {
+    if (this.isValid() && !this.store.isSubmitting()) {
+      this.onSubmit();
     }
   }
 
-  protected async registerAndCreateAccount(): Promise<void> {
-    if (!this.registrationForm.valid || this.isFormDisabled()) {
+  onNext(): void {
+    this.onSubmit();
+  }
+
+  onPrevious(): void {
+    this.#router.navigate(['/onboarding/leasing-credit']);
+  }
+
+  async onSubmit(): Promise<void> {
+    if (!this.isValid() || this.store.isSubmitting()) {
       this.registrationForm.markAllAsTouched();
       return;
     }
 
     const { email, password } = this.registrationForm.getRawValue();
 
-    this.onboardingStore.updatePersonalInfo(
-      this.onboardingStore.data().firstName,
-      email,
-    );
+    // Mettre à jour l'email dans le store
+    this.store.updatePersonalInfo(this.store.data().firstName, email);
 
-    const result = await this.onboardingStore.processCompleteRegistration(
-      email,
-      password,
-    );
+    // Soumettre l'inscription
+    const success = await this.store.submitRegistration(email, password);
 
-    if (result.success) {
-      this.#router.navigate([ROUTES.CURRENT_MONTH]);
+    // La redirection est déjà gérée dans le store
+    if (!success) {
+      // En cas d'erreur, le message est déjà affiché via store.error()
     }
   }
 }
