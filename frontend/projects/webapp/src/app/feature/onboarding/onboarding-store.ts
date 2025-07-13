@@ -133,6 +133,13 @@ export class OnboardingStore {
     'registration',
   ];
 
+  // Required steps that must be completed before proceeding
+  readonly requiredSteps = [0, 1, 2]; // welcome, personal-info, income
+
+  // Step completion tracking
+  readonly #completedSteps = signal<number[]>([]);
+  readonly completedSteps = this.#completedSteps.asReadonly();
+
   readonly nextButtonText = computed(() => {
     const layoutData = this.#layoutData();
     if (!layoutData) return 'Suivant';
@@ -182,6 +189,67 @@ export class OnboardingStore {
 
   setCanContinue(canContinue: boolean): void {
     this.#canContinue.set(canContinue);
+  }
+
+  // Step validation methods
+  isStepCompleted(stepIndex: number): boolean {
+    const data = this.#onboardingData();
+
+    switch (stepIndex) {
+      case 0: // welcome
+        return true; // Welcome step is always considered completed
+      case 1: // personal-info
+        return data.firstName.trim().length > 0;
+      case 2: // income (required)
+        return data.monthlyIncome !== null && data.monthlyIncome > 0;
+      case 3: // housing (optional)
+        return true; // Optional steps are always considered "completed"
+      case 4: // health-insurance (optional)
+        return true;
+      case 5: // phone-plan (optional)
+        return true;
+      case 6: // transport (optional)
+        return true;
+      case 7: // leasing-credit (optional)
+        return true;
+      case 8: // registration
+        return this.isReadyForSubmission();
+      default:
+        return false;
+    }
+  }
+
+  canAccessStep(stepIndex: number): boolean {
+    // Welcome step is always accessible
+    if (stepIndex === 0) {
+      return true;
+    }
+
+    // Check if all required previous steps are completed
+    for (let i = 0; i < stepIndex; i++) {
+      if (this.requiredSteps.includes(i) && !this.isStepCompleted(i)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  getFirstIncompleteRequiredStep(): string | null {
+    for (const stepIndex of this.requiredSteps) {
+      if (!this.isStepCompleted(stepIndex)) {
+        return this.stepOrder[stepIndex];
+      }
+    }
+    return null;
+  }
+
+  markOnboardingStepCompleted(stepIndex: number): void {
+    const currentCompleted = this.#completedSteps();
+    if (!currentCompleted.includes(stepIndex)) {
+      this.#completedSteps.update((steps) => [...steps, stepIndex]);
+      this.#saveToLocalStorage();
+    }
   }
 
   // Validation methods
@@ -305,6 +373,8 @@ export class OnboardingStore {
       currentStep: RegistrationProcessStep.AUTHENTICATION,
       completedSteps: [],
     });
+
+    this.#completedSteps.set([]);
 
     this.#clearLocalStorage();
   }
@@ -468,6 +538,7 @@ export class OnboardingStore {
       const state = {
         onboardingData: this.#onboardingData(),
         processState: this.#processState(),
+        completedSteps: this.#completedSteps(),
       };
       localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(state));
     } catch (error) {
@@ -485,6 +556,9 @@ export class OnboardingStore {
         }
         if (parsedState.processState) {
           this.#processState.set(parsedState.processState);
+        }
+        if (parsedState.completedSteps) {
+          this.#completedSteps.set(parsedState.completedSteps);
         }
       }
     } catch (error) {

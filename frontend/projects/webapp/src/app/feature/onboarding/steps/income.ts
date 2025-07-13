@@ -48,8 +48,14 @@ export default class Income {
 
   constructor() {
     effect(() => {
-      this.#onboardingStore.setCanContinue(this.canContinue());
+      const canContinue = this.canContinue();
+      this.#onboardingStore.setCanContinue(canContinue);
       this.#onboardingStore.setLayoutData(this.#onboardingLayoutData);
+
+      // Mark step as completed when income is valid
+      if (canContinue) {
+        this.#onboardingStore.markOnboardingStepCompleted(2); // income step index
+      }
     });
 
     const existingIncome = this.#onboardingStore.data().monthlyIncome;
