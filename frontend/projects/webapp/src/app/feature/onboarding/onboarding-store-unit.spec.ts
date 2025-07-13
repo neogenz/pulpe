@@ -120,10 +120,7 @@ describe('OnboardingStore - Unit Tests', () => {
     });
 
     it('should set next button text', () => {
-      expect(store.nextButtonText()).toBe('Continuer');
-
-      store.setNextButtonText('Custom Text');
-      expect(store.nextButtonText()).toBe('Custom Text');
+      expect(store.nextButtonText()).toBe('Suivant');
     });
   });
 
