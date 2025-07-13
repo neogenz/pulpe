@@ -3,10 +3,11 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 # important-instruction-reminders
+
 Do what has been asked; nothing more, nothing less.
 NEVER create files unless they're absolutely necessary for achieving your goal.
 ALWAYS prefer editing an existing file to creating a new one.
-NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
+NEVER proactively create documentation files (\*.md) or README files. Only create documentation files if explicitly requested by the User.
 
 ## Quick Start Commands
 
@@ -194,7 +195,7 @@ pnpm run shared:build              # Build shared package (turbo)
 ### Frontend Testing
 
 - **Unit tests**: Vitest for component and service testing
-- **E2E tests**: Playwright with page object model pattern
+- **E2E tests**: Playwright with page object model pattern. Use attr.data-testid
 - **Test organization**: Tests in `e2e/` directory with fixtures and utilities
 - **Commands**: `pnpm run test:watch` for interactive unit testing, `pnpm run test:e2e:ui` for E2E testing
 
@@ -274,3 +275,67 @@ The application includes a multi-step onboarding process for new users:
 2. **Quality checks**: Always run `pnpm quality:fix` before committing
 3. **Testing**: Use `pnpm test:watch` for continuous testing during development
 4. **Type generation**: Run `bun run generate-types` in backend after database changes
+
+## Frontend architecture
+
+### Fundamental Principles:
+
+- Prioritize isolation over DRY (Don't Repeat Yourself) for business logic.
+- Only consider abstraction for business logic after at least 3 occurrences.
+- Maintain a strict, acyclic (no cycles) one-way dependency graph.
+- All features must be lazy-loaded to ensure fast initial load times.
+- Use `eslint-plugin-boundaries` to automatically enforce all architectural rules.
+- Design the application to be composed of standalone components; avoid `NgModules`.
+
+Architectural Type Deep Dive:
+
+- ### Core Type (`core/`)
+- **Purpose**: Central hub for all shared, headless, application-wide logic.
+- **Content**: Injector-based logic only. This includes services (`@Injectable`), route guards, HTTP interceptors, state management setup (e.g., NgRx `provideStore`), and infrastructure configuration.
+- **Loading**: Eager-loaded. Its content is part of the initial JavaScript bundle.
+- **Constraints**: MUST NOT contain any components, directives, or pipes (i.e., nothing with a template). It is the foundation that other types build upon. Can be sub-structured by domain (e.g., `core/orders/`, `core/auth/`).
+
+- ### Layout Type (`layout/`)
+- **Purpose**: Defines the main application shell(s) or "chrome".
+- **Content**: Standalone components that structure the main view, such as headers, footers, side navigation, and the primary `<router-outlet>`.
+- **Loading**: Eager-loaded. It is the first thing the user sees.
+- **Constraints**: Consumes services from `core` to display stateful information (e.g., current user). Consumes presentational components from `ui`.
+
+- ### UI Type (`ui/`)
+- **Purpose**: A library of generic, reusable, and purely presentational ("dumb") standalone components.
+- **Content**: Standalone components, directives, and pipes that are completely decoupled from application business logic.
+- **Loading**: Can be consumed by both eager (`layout`) and lazy (`feature`, `pattern`) parts of the app. Bundling is optimized via cherry-picking.
+- **Constraints**: MUST be stateless. MUST NOT inject services from `core`. MUST communicate exclusively via `@Input()` and `@Output()`. This ensures maximum reusability.
+
+- ### Feature Type (`feature/`)
+- **Purpose**: Implements a specific business domain or user flow. This is where the majority of the application's unique value resides.
+- **Content**: A self-contained combination of standalone components (smart/container components), services, and routing specific to that domain.
+- **Loading**: **Always lazy-loaded** via routing's `loadChildren`.
+- **Constraints**: A `feature` is a "black box." It MUST be completely isolated from other sibling features. All sharing must happen through the "extract one level up" rule (to `core`, `ui`, or `pattern`).
+
+- ### Pattern Type (`pattern/`)
+- **Purpose**: A reusable, state-aware, cross-cutting piece of functionality. It's more complex than a `ui` component but smaller than a full `feature`.
+- **Content**: A pre-packaged combination of standalone components and injectables. Unlike `ui` components, a `pattern` can inject services from `core` to manage its own state.
+- **Loading**: Not loaded via routing. It is "dropped in" to a `feature`'s template.
+- **Example**: A self-contained document manager, approval widget, or audit log that can be used across different `features`.
+
+Dependency Rules & Isolation:
+
+- A `feature` MUST NOT import from a sibling `feature`.
+- `core` MUST NOT import from `feature`, `layout`, or `pattern`.
+- `ui` MUST NOT import from `core`, `feature`, `layout`, or `pattern`.
+- A `feature` can import from `core`, `ui`, `pattern`, and its own sub-modules.
+- A `layout` can import from `core`, `ui`, and `pattern`.
+- A `pattern` can import from `core` and `ui`.
+
+Shared Logic & Reusability:
+
+- To share logic, always "extract one level up" into the appropriate shared type.
+- Logic shared between top-level `features` must be extracted to `core` (headless) or `pattern` (stateful UI).
+- UI components shared between `features` must be extracted to `ui`.
+- Logic shared only between sub-features of the _same_ parent `feature` is extracted to that parent `feature`'s folder.
+  Implementation Best Practices:
+- Components should be "logic-free," delegating all business operations to injected services.
+- Use `loadChildren` pointing to a `.routes.ts` file for all feature loading. Avoid `loadComponent`.
+- Use `@defer` only for very large, non-critical components within a feature (e.g., charts, rich text editors).
+- DO NOT create custom wrappers or abstractions around Angular or third-party library APIs. Use them directly.

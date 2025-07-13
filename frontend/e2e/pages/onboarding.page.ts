@@ -37,26 +37,26 @@ export class OnboardingPage {
   constructor(page: Page) {
     this.page = page;
     
-    // Initialize locators
-    this.startButton = page.locator('button:has-text("Commencer")');
-    this.nextButton = page.locator('button:has-text("Suivant")');
-    this.previousButton = page.locator('button:has-text("Précédent")');
+    // Initialize locators using data-testid attributes
+    this.startButton = page.getByTestId('welcome-start-button');
+    this.nextButton = page.getByTestId('next-button');
+    this.previousButton = page.getByTestId('previous-button');
     this.finishButton = page.locator('button:has-text("Terminer"), button:has-text("Créer le template"), button:has-text("Créer le budget"), button:has-text("Finaliser")');
     
     // Form inputs
-    this.firstNameInput = page.locator('input[matInput]').first();
-    this.emailInput = page.locator('input[type="email"]');
-    this.passwordInput = page.locator('input[type="password"]');
-    this.passwordVisibilityToggle = page.locator('button[matIconButton]:has(mat-icon)');
-    this.monthlyIncomeInput = page.locator('input[type="number"]').first();
-    this.housingCostsInput = page.locator('input[type="number"]').first();
-    this.healthInsuranceInput = page.locator('input[type="number"]').first();
-    this.phonePlanInput = page.locator('input[type="number"]').first();
-    this.transportCostsInput = page.locator('input[type="number"]').first();
-    this.leasingCreditInput = page.locator('input[type="number"]').first();
+    this.firstNameInput = page.getByTestId('first-name-input');
+    this.emailInput = page.getByTestId('email-input');
+    this.passwordInput = page.getByTestId('password-input');
+    this.passwordVisibilityToggle = page.getByTestId('password-visibility-toggle');
+    this.monthlyIncomeInput = page.getByTestId('monthly-income-input');
+    this.housingCostsInput = page.getByTestId('currency-input');
+    this.healthInsuranceInput = page.getByTestId('currency-input');
+    this.phonePlanInput = page.getByTestId('currency-input');
+    this.transportCostsInput = page.getByTestId('currency-input');
+    this.leasingCreditInput = page.getByTestId('currency-input');
     
     // Messages and indicators
-    this.errorMessage = page.locator('.bg-red-50, .mat-error, [data-testid="error"]');
+    this.errorMessage = page.getByTestId('error-message');
     this.successMessage = page.locator('.bg-green-50, .bg-blue-50, [data-testid="success"]');
     this.loadingIndicator = page.locator('.loading, .spinner, mat-spinner');
   }
@@ -274,7 +274,7 @@ export class OnboardingPage {
   }
 
   async expectWelcomePageVisible() {
-    await expect(this.page.locator('h2:has-text("Bienvenue")')).toBeVisible();
+    await expect(this.page.locator('h1:has-text("Bienvenue dans Pulpe")')).toBeVisible();
     await expect(this.startButton).toBeVisible();
   }
 

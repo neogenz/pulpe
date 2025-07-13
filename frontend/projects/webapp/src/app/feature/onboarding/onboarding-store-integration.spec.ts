@@ -1,17 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { OnboardingStore, RegistrationProcessStep } from './onboarding-store';
+import { OnboardingStore } from './onboarding-store';
 import { AuthApi } from '../../core/auth/auth-api';
 import { BudgetApi } from '../../core/budget/budget-api';
 import { TemplateApi } from '../../core/template/template-api';
+import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
-import {
-  type BudgetCreate,
-  type BudgetTemplateCreateFromOnboarding,
-} from '@pulpe/shared';
 
-// Mocker les dépendances API
+// Mock des dépendances API
 const mockAuthApi = {
   signUpWithEmail: vi.fn(),
 };
@@ -22,6 +19,10 @@ const mockTemplateApi = {
 
 const mockBudgetApi = {
   createBudget$: vi.fn(),
+};
+
+const mockRouter = {
+  navigate: vi.fn(),
 };
 
 describe('OnboardingStore - Integration Tests', () => {
@@ -37,6 +38,7 @@ describe('OnboardingStore - Integration Tests', () => {
         { provide: AuthApi, useValue: mockAuthApi },
         { provide: TemplateApi, useValue: mockTemplateApi },
         { provide: BudgetApi, useValue: mockBudgetApi },
+        { provide: Router, useValue: mockRouter },
       ],
     });
 
@@ -62,10 +64,9 @@ describe('OnboardingStore - Integration Tests', () => {
     // Réinitialiser les mocks et le localStorage après chaque test
     vi.clearAllMocks();
     localStorageMock = {};
-    store.clearAllData();
   });
 
-  describe('processCompleteRegistration', () => {
+  describe('submitRegistration', () => {
     it('should complete full registration flow successfully', async () => {
       // Mock successful responses
       mockAuthApi.signUpWithEmail.mockResolvedValue({ success: true });
@@ -74,22 +75,19 @@ describe('OnboardingStore - Integration Tests', () => {
       );
       mockBudgetApi.createBudget$.mockReturnValue(of({ success: true }));
 
-      const result = await store.processCompleteRegistration(
+      const result = await store.submitRegistration(
         'john@example.com',
         'password123',
       );
 
-      expect(result.success).toBe(true);
+      expect(result).toBe(true);
       expect(mockAuthApi.signUpWithEmail).toHaveBeenCalledWith(
         'john@example.com',
         'password123',
       );
       expect(mockTemplateApi.createFromOnboarding$).toHaveBeenCalled();
       expect(mockBudgetApi.createBudget$).toHaveBeenCalled();
-
-      // Verify state was cleared after completion
-      expect(store.data().firstName).toBe('');
-      expect(store.data().email).toBe('');
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/current-month']);
     });
 
     it('should handle authentication failure', async () => {
@@ -98,13 +96,13 @@ describe('OnboardingStore - Integration Tests', () => {
         error: 'Email already exists',
       });
 
-      const result = await store.processCompleteRegistration(
+      const result = await store.submitRegistration(
         'john@example.com',
         'password123',
       );
 
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Email already exists');
+      expect(result).toBe(false);
+      expect(store.error()).toBe('Email already exists');
       expect(mockTemplateApi.createFromOnboarding$).not.toHaveBeenCalled();
       expect(mockBudgetApi.createBudget$).not.toHaveBeenCalled();
     });
@@ -115,15 +113,13 @@ describe('OnboardingStore - Integration Tests', () => {
         throwError(() => new Error('Template creation failed')),
       );
 
-      const result = await store.processCompleteRegistration(
+      const result = await store.submitRegistration(
         'john@example.com',
         'password123',
       );
 
-      expect(result.success).toBe(false);
-      expect(result.error).toBe(
-        'Erreur lors de la création de votre template budgétaire.',
-      );
+      expect(result).toBe(false);
+      expect(store.error()).toBe("Une erreur inattendue s'est produite");
       expect(mockBudgetApi.createBudget$).not.toHaveBeenCalled();
     });
 
@@ -136,106 +132,98 @@ describe('OnboardingStore - Integration Tests', () => {
         throwError(() => new Error('Budget creation failed')),
       );
 
-      const result = await store.processCompleteRegistration(
+      const result = await store.submitRegistration(
         'john@example.com',
         'password123',
       );
 
-      expect(result.success).toBe(false);
-      expect(result.error).toBe(
-        'Erreur lors de la création de votre budget initial.',
-      );
-    });
-
-    it('should skip completed steps on retry', async () => {
-      // Mark authentication as already completed
-      store.markStepCompleted(RegistrationProcessStep.AUTHENTICATION);
-      store.updateCurrentStep(RegistrationProcessStep.TEMPLATE_CREATION);
-
-      mockTemplateApi.createFromOnboarding$.mockReturnValue(
-        of({ data: { template: { id: 'template-123' } } }),
-      );
-      mockBudgetApi.createBudget$.mockReturnValue(of({ success: true }));
-
-      const result = await store.processCompleteRegistration(
-        'john@example.com',
-        'password123',
-      );
-
-      expect(result.success).toBe(true);
-      expect(mockAuthApi.signUpWithEmail).not.toHaveBeenCalled();
-      expect(mockTemplateApi.createFromOnboarding$).toHaveBeenCalled();
-    });
-
-    it('should handle missing template ID during budget creation', async () => {
-      // Manually set state to budget creation step without template ID
-      store.updateCurrentStep(RegistrationProcessStep.BUDGET_CREATION);
-      store.markStepCompleted(RegistrationProcessStep.AUTHENTICATION);
-      store.markStepCompleted(RegistrationProcessStep.TEMPLATE_CREATION);
-      // Note: not setting templateId
-
-      const result = await store.processCompleteRegistration(
-        'john@example.com',
-        'password123',
-      );
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe(
-        'ID du template manquant pour créer le budget.',
-      );
+      expect(result).toBe(false);
+      expect(store.error()).toBe("Une erreur inattendue s'est produite");
     });
 
     it('should validate registration data before processing', async () => {
-      store.updatePersonalInfo('', 'invalid-email');
+      // Clear localStorage to avoid interference
+      localStorageMock = {};
 
-      const result = await store.processCompleteRegistration(
-        'invalid-email',
-        'short',
+      // Test with missing firstName - clear existing data first
+      store.updatePersonalInfo('', ''); // Clear firstName
+      store.updateField('monthlyIncome', 5000); // Set valid income
+
+      const result1 = await store.submitRegistration(
+        'john@example.com',
+        'password123',
       );
 
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Données invalides pour la registration');
-      expect(mockAuthApi.signUpWithEmail).not.toHaveBeenCalled();
+      expect(result1).toBe(false);
+      expect(store.error()).toBe('Données obligatoires manquantes');
+
+      // Clear error for next test
+      store.clearError();
+
+      // Test with missing income
+      store.updateField('firstName', 'John');
+      store.updateField('monthlyIncome', null);
+
+      const result2 = await store.submitRegistration(
+        'john@example.com',
+        'password123',
+      );
+
+      expect(result2).toBe(false);
+      expect(store.error()).toBe('Données obligatoires manquantes');
+
+      // Clear error for next test
+      store.clearError();
+
+      // Test with zero income
+      store.updateField('firstName', 'John');
+      store.updateField('monthlyIncome', 0);
+
+      const result3 = await store.submitRegistration(
+        'john@example.com',
+        'password123',
+      );
+
+      expect(result3).toBe(false);
+      expect(store.error()).toBe('Données obligatoires manquantes');
     });
 
     it('should handle unexpected errors gracefully', async () => {
       mockAuthApi.signUpWithEmail.mockRejectedValue(new Error('Network error'));
 
-      const result = await store.processCompleteRegistration(
+      const result = await store.submitRegistration(
         'john@example.com',
         'password123',
       );
 
-      expect(result.success).toBe(false);
-      expect(result.error).toBe(
-        "Une erreur inattendue s'est produite. Veuillez réessayer.",
-      );
-      expect(store.submissionError()).toBe(
-        "Une erreur inattendue s'est produite. Veuillez réessayer.",
-      );
+      expect(result).toBe(false);
+      expect(store.error()).toBe("Une erreur inattendue s'est produite");
     });
 
     it('should set isSubmitting during process', async () => {
+      // Mock slow response
       mockAuthApi.signUpWithEmail.mockImplementation(
         () =>
-          new Promise((resolve) => {
-            // Check that isSubmitting is true during the process
-            expect(store.isSubmitting()).toBe(true);
-            resolve({ success: true });
-          }),
+          new Promise((resolve) =>
+            setTimeout(() => resolve({ success: true }), 100),
+          ),
       );
-
       mockTemplateApi.createFromOnboarding$.mockReturnValue(
         of({ data: { template: { id: 'template-123' } } }),
       );
       mockBudgetApi.createBudget$.mockReturnValue(of({ success: true }));
 
-      await store.processCompleteRegistration(
+      const submitPromise = store.submitRegistration(
         'john@example.com',
         'password123',
       );
 
-      // Should be false after completion
+      // Should be submitting immediately
+      expect(store.isSubmitting()).toBe(true);
+
+      await submitPromise;
+
+      // Should not be submitting after completion
       expect(store.isSubmitting()).toBe(false);
     });
   });
@@ -244,149 +232,106 @@ describe('OnboardingStore - Integration Tests', () => {
     it('should build correct template creation request', async () => {
       store.updateField('housingCosts', 1200);
       store.updateField('healthInsurance', 200);
-      store.updateField('leasingCredit', 300);
       store.updateField('phonePlan', 50);
-      store.updateField('transportCosts', 100);
 
       mockAuthApi.signUpWithEmail.mockResolvedValue({ success: true });
-
-      let capturedTemplateRequest:
-        | BudgetTemplateCreateFromOnboarding
-        | undefined;
-      mockTemplateApi.createFromOnboarding$.mockImplementation(
-        (request: BudgetTemplateCreateFromOnboarding) => {
-          capturedTemplateRequest = request;
-          return of({ data: { template: { id: 'template-123' } } });
-        },
+      mockTemplateApi.createFromOnboarding$.mockReturnValue(
+        of({ data: { template: { id: 'template-123' } } }),
       );
-
       mockBudgetApi.createBudget$.mockReturnValue(of({ success: true }));
 
-      await store.processCompleteRegistration(
-        'john@example.com',
-        'password123',
-      );
+      await store.submitRegistration('john@example.com', 'password123');
 
-      expect(capturedTemplateRequest).toEqual({
+      expect(mockTemplateApi.createFromOnboarding$).toHaveBeenCalledWith({
         name: 'Mois Standard',
         description: 'Template personnel de John',
         isDefault: true,
         monthlyIncome: 5000,
         housingCosts: 1200,
         healthInsurance: 200,
-        leasingCredit: 300,
+        leasingCredit: 0,
         phonePlan: 50,
-        transportCosts: 100,
+        transportCosts: 0,
         customTransactions: [],
       });
     });
 
     it('should build correct budget creation request', async () => {
-      const mockDate = new Date('2024-03-15');
-      vi.setSystemTime(mockDate);
-
       mockAuthApi.signUpWithEmail.mockResolvedValue({ success: true });
       mockTemplateApi.createFromOnboarding$.mockReturnValue(
-        of({ data: { template: { id: 'template-456' } } }),
+        of({ data: { template: { id: 'template-123' } } }),
       );
+      mockBudgetApi.createBudget$.mockReturnValue(of({ success: true }));
 
-      let capturedBudgetRequest: BudgetCreate | undefined;
-      mockBudgetApi.createBudget$.mockImplementation(
-        (request: BudgetCreate) => {
-          capturedBudgetRequest = request;
-          return of({ success: true });
-        },
-      );
+      await store.submitRegistration('john@example.com', 'password123');
 
-      await store.processCompleteRegistration(
-        'john@example.com',
-        'password123',
-      );
-
-      expect(capturedBudgetRequest).toEqual({
-        templateId: 'template-456',
-        month: 3,
-        year: 2024,
-        description: 'Budget initial de John pour 2024',
+      const currentDate = new Date();
+      expect(mockBudgetApi.createBudget$).toHaveBeenCalledWith({
+        templateId: 'template-123',
+        month: currentDate.getMonth() + 1,
+        year: currentDate.getFullYear(),
+        description: `Budget initial de John pour ${currentDate.getFullYear()}`,
       });
-
-      vi.useRealTimers();
     });
 
     it('should handle null values in template creation', async () => {
-      // Set some fields to null
-      store.updateField('housingCosts', null);
-      store.updateField('healthInsurance', null);
-
+      // Don't set optional fields, they should default to 0
       mockAuthApi.signUpWithEmail.mockResolvedValue({ success: true });
-
-      let capturedTemplateRequest:
-        | BudgetTemplateCreateFromOnboarding
-        | undefined;
-      mockTemplateApi.createFromOnboarding$.mockImplementation(
-        (request: BudgetTemplateCreateFromOnboarding) => {
-          capturedTemplateRequest = request;
-          return of({ data: { template: { id: 'template-123' } } });
-        },
+      mockTemplateApi.createFromOnboarding$.mockReturnValue(
+        of({ data: { template: { id: 'template-123' } } }),
       );
-
       mockBudgetApi.createBudget$.mockReturnValue(of({ success: true }));
 
-      await store.processCompleteRegistration(
-        'john@example.com',
-        'password123',
-      );
+      await store.submitRegistration('john@example.com', 'password123');
 
-      expect(capturedTemplateRequest.housingCosts).toBe(0);
-      expect(capturedTemplateRequest.healthInsurance).toBe(0);
+      expect(mockTemplateApi.createFromOnboarding$).toHaveBeenCalledWith({
+        name: 'Mois Standard',
+        description: 'Template personnel de John',
+        isDefault: true,
+        monthlyIncome: 5000,
+        housingCosts: 0,
+        healthInsurance: 0,
+        leasingCredit: 0,
+        phonePlan: 0,
+        transportCosts: 0,
+        customTransactions: [],
+      });
     });
   });
 
   describe('LocalStorage persistence', () => {
     it('should save state updates to localStorage', () => {
-      store.updateField('monthlyIncome', 6000);
+      store.updateField('monthlyIncome', 3000);
+      store.updatePersonalInfo('Jane', 'jane@example.com');
 
-      const savedData = JSON.parse(
-        localStorage.getItem('pulpe-onboarding-data') || '{}',
-      );
-      expect(savedData.onboardingData.monthlyIncome).toBe(6000);
+      const saved = localStorageMock['pulpe-onboarding-data'];
+      expect(saved).toBeDefined();
+
+      const parsed = JSON.parse(saved);
+      expect(parsed.monthlyIncome).toBe(3000);
+      expect(parsed.firstName).toBe('Jane');
+      expect(parsed.email).toBe('jane@example.com');
     });
 
     it('should handle localStorage errors gracefully during save', () => {
-      const consoleErrorSpy = vi
-        .spyOn(console, 'error')
-        .mockImplementation(() => {
-          // Intentionally empty - suppressing console errors for test
-        });
-
-      // Mock localStorage.setItem to throw an error
-      const originalSetItem = Storage.prototype.setItem;
-      Storage.prototype.setItem = vi.fn(() => {
-        throw new Error('Storage full');
+      // Mock localStorage.setItem to throw
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+        throw new Error('Storage quota exceeded');
       });
 
       // Should not throw
-      expect(() => store.updateField('monthlyIncome', 7000)).not.toThrow();
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Failed to save onboarding state to localStorage:',
-        expect.any(Error),
-      );
-
-      Storage.prototype.setItem = originalSetItem;
-      consoleErrorSpy.mockRestore();
+      expect(() => {
+        store.updateField('monthlyIncome', 3000);
+      }).not.toThrow();
     });
 
     it('should handle localStorage errors gracefully during load', () => {
-      const consoleErrorSpy = vi
-        .spyOn(console, 'error')
-        .mockImplementation(() => {
-          // Intentionally empty - suppressing console errors for test
-        });
+      // Mock localStorage.getItem to throw
+      vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+        throw new Error('Storage access denied');
+      });
 
-      // Set invalid JSON in localStorage mock
-      localStorageMock['pulpe-onboarding-data'] = 'invalid-json';
-
-      // Create new TestBed instance to test loading behavior
+      // Should not throw and should use default values
       TestBed.resetTestingModule();
       TestBed.configureTestingModule({
         providers: [
@@ -395,55 +340,50 @@ describe('OnboardingStore - Integration Tests', () => {
           { provide: AuthApi, useValue: mockAuthApi },
           { provide: TemplateApi, useValue: mockTemplateApi },
           { provide: BudgetApi, useValue: mockBudgetApi },
+          { provide: Router, useValue: mockRouter },
         ],
       });
 
-      const newStore = TestBed.inject(OnboardingStore);
-
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Failed to load onboarding state from localStorage:',
-        expect.any(Error),
-      );
-
-      // Should have default values
-      expect(newStore.data().monthlyIncome).toBeNull();
-
-      consoleErrorSpy.mockRestore();
+      expect(() => {
+        const newStore = TestBed.inject(OnboardingStore);
+        expect(newStore.data().firstName).toBe('');
+      }).not.toThrow();
     });
 
-    it('should clear localStorage when clearing all data', () => {
-      localStorage.setItem(
-        'pulpe-onboarding-data',
-        JSON.stringify({ test: 'data' }),
+    it('should clear localStorage after successful registration', async () => {
+      // Set some data first
+      store.updateField('monthlyIncome', 5000);
+      expect(localStorageMock['pulpe-onboarding-data']).toBeDefined();
+
+      // Mock successful registration
+      mockAuthApi.signUpWithEmail.mockResolvedValue({ success: true });
+      mockTemplateApi.createFromOnboarding$.mockReturnValue(
+        of({ data: { template: { id: 'template-123' } } }),
       );
+      mockBudgetApi.createBudget$.mockReturnValue(of({ success: true }));
 
-      store.clearAllData();
+      await store.submitRegistration('john@example.com', 'password123');
 
-      expect(localStorage.getItem('pulpe-onboarding-data')).toBeNull();
+      // localStorage should be cleared
+      expect(localStorageMock['pulpe-onboarding-data']).toBeUndefined();
     });
 
-    it('should handle localStorage errors during clear', () => {
-      const consoleErrorSpy = vi
-        .spyOn(console, 'error')
-        .mockImplementation(() => {
-          // Intentionally empty - suppressing console errors for test
-        });
-
-      // Mock localStorage.removeItem to throw an error
-      const originalRemoveItem = Storage.prototype.removeItem;
-      Storage.prototype.removeItem = vi.fn(() => {
-        throw new Error('Clear failed');
+    it('should handle localStorage errors during clear', async () => {
+      // Mock removeItem to throw
+      vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
+        throw new Error('Storage access denied');
       });
 
-      // Should not throw
-      expect(() => store.clearAllData()).not.toThrow();
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Failed to clear onboarding state from localStorage:',
-        expect.any(Error),
+      mockAuthApi.signUpWithEmail.mockResolvedValue({ success: true });
+      mockTemplateApi.createFromOnboarding$.mockReturnValue(
+        of({ data: { template: { id: 'template-123' } } }),
       );
+      mockBudgetApi.createBudget$.mockReturnValue(of({ success: true }));
 
-      Storage.prototype.removeItem = originalRemoveItem;
-      consoleErrorSpy.mockRestore();
+      // Should not throw
+      await expect(
+        store.submitRegistration('john@example.com', 'password123'),
+      ).resolves.toBe(true);
     });
   });
 });

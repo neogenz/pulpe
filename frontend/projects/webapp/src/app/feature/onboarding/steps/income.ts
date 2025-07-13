@@ -1,70 +1,108 @@
 import {
   Component,
   ChangeDetectionStrategy,
-  signal,
+  model,
   inject,
   computed,
+  afterNextRender,
+  HostListener,
   effect,
 } from '@angular/core';
-import { MatButtonModule } from '@angular/material/button';
+import { Router } from '@angular/router';
 import { OnboardingCurrencyInput } from '../ui/currency-input';
-import {
-  OnboardingStore,
-  type OnboardingLayoutData,
-} from '../onboarding-store';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { OnboardingStore } from '../onboarding-store';
 
 @Component({
   selector: 'pulpe-income',
-  imports: [OnboardingCurrencyInput, MatButtonModule],
+  imports: [OnboardingCurrencyInput, MatButtonModule, MatIconModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="space-y-6">
+    <div class="gap-6 h-full flex flex-col">
+      <div class="text-center space-y-2 mb-6">
+        <h1 class="text-headline-large text-on-surface">
+          Quels sont tes revenus mensuels ?
+        </h1>
+        <p class="text-body-large text-on-surface-variant leading-relaxed">
+          Indique tes revenus nets mensuels pour calculer ton budget.
+        </p>
+      </div>
+
       <pulpe-onboarding-currency-input
         label="Revenus mensuels"
         [(value)]="incomeValue"
-        (valueChange)="onIncomeChange()"
         [required]="true"
+        testId="monthly-income-input"
         ariaDescribedBy="income-hint"
       />
+
+      <div class="flex gap-4 p-4 md:p-0 w-full mt-auto">
+        <button
+          mat-stroked-button
+          class="flex-1"
+          data-testid="previous-button"
+          (click)="onPrevious()"
+        >
+          Précédent
+        </button>
+        <button
+          mat-flat-button
+          color="primary"
+          class="flex-1"
+          [disabled]="!isValid()"
+          data-testid="next-button"
+          (click)="onNext()"
+        >
+          Suivant
+        </button>
+      </div>
     </div>
   `,
 })
 export default class Income {
-  readonly #onboardingStore = inject(OnboardingStore);
+  readonly #store = inject(OnboardingStore);
+  readonly #router = inject(Router);
 
-  readonly #onboardingLayoutData: OnboardingLayoutData = {
-    title: 'Quel est le montant de tes revenus mensuels ?',
-    subtitle:
-      "Tes revenus mensuels correspondent par exemple à ton salaire, tes rentes, etc. Je vais l'utiliser pour calculer ton budget de base. On pourra le modifier par la suite.",
-    currentStep: 2,
-  };
+  protected readonly incomeValue = model<number | null>(null);
 
-  protected incomeValue = signal<number | null>(null);
-
-  readonly canContinue = computed(() => {
+  protected readonly isValid = computed(() => {
     const value = this.incomeValue();
-    return value !== null && value > 0; // Income must be positive
+    return value !== null && value > 0;
   });
 
   constructor() {
     effect(() => {
-      const canContinue = this.canContinue();
-      this.#onboardingStore.setCanContinue(canContinue);
-      this.#onboardingStore.setLayoutData(this.#onboardingLayoutData);
-
-      // Mark step as completed when income is valid
-      if (canContinue) {
-        this.#onboardingStore.markOnboardingStepCompleted(2); // income step index
-      }
+      this.incomeValue.set(this.#store.data().monthlyIncome);
     });
 
-    const existingIncome = this.#onboardingStore.data().monthlyIncome;
-    if (existingIncome !== null) {
-      this.incomeValue.set(existingIncome);
-    }
+    afterNextRender(() => {
+      const input = document.querySelector(
+        'input[type="number"]',
+      ) as HTMLInputElement;
+      input?.focus();
+    });
   }
 
-  protected onIncomeChange(): void {
-    this.#onboardingStore.updateField('monthlyIncome', this.incomeValue());
+  @HostListener('keydown.enter')
+  onEnter(): void {
+    this.#handleNext();
+  }
+
+  onNext(): void {
+    this.#handleNext();
+  }
+
+  onPrevious(): void {
+    this.#router.navigate(['/onboarding/personal-info']);
+  }
+
+  #handleNext(): void {
+    if (!this.isValid()) {
+      return;
+    }
+
+    this.#store.updateField('monthlyIncome', this.incomeValue());
+    this.#router.navigate(['/onboarding/housing']);
   }
 }

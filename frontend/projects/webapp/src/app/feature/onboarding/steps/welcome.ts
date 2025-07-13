@@ -1,80 +1,83 @@
 import {
   Component,
   ChangeDetectionStrategy,
-  inject,
-  computed,
-  effect,
   signal,
+  HostListener,
+  inject,
 } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
-import { LottieComponent } from 'ngx-lottie';
-import { AnimationOptions } from 'ngx-lottie';
-import {
-  OnboardingStore,
-  type OnboardingLayoutData,
-} from '../onboarding-store';
+import { LottieComponent, AnimationOptions } from 'ngx-lottie';
 
 @Component({
   selector: 'pulpe-welcome',
-  imports: [MatButtonModule, LottieComponent],
+  imports: [MatButtonModule, LottieComponent, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
-
   template: `
-    <!-- Logo Pulpe avec animation Lottie différée -->
+    <div class="flex flex-col items-center justify-center h-full gap-10">
+      <div class="text-center">
+        <h1 class="text-headline-large text-on-surface">
+          Bienvenue dans Pulpe
+        </h1>
 
-    @defer (on idle) {
-      <div class="flex justify-center mb-6">
-        <ng-lottie
-          [options]="lottieOptions()"
-          class="md:w-80 md:h-80 mt-[-86px] md:mt-[-100px]"
-          style="background: transparent !important;"
-        />
-      </div>
-    } @placeholder {
-      <div
-        class="flex justify-center mb-6 md:w-80 md:h-80 mt-[-86px] md:mt-[-100px] items-center"
-      >
-        <div class="w-24 h-24 bg-primary/10 rounded-full animate-pulse"></div>
-      </div>
-    } @loading {
-      <div
-        class="flex justify-center mb-6 md:w-80 md:h-80 mt-[-86px] md:mt-[-100px] items-center"
-      >
-        <div class="w-24 h-24 bg-primary/20 rounded-full animate-pulse"></div>
-      </div>
-    } @error {
-      <div
-        class="flex justify-center mb-6 md:w-80 md:h-80 mt-[-86px] md:mt-[-100px] items-center"
-      >
-        <span class="text-on-surface-variant text-4xl">🎨</span>
-      </div>
-    }
+        @defer (on idle) {
+          <div class="flex justify-center mb-6">
+            <ng-lottie
+              [options]="lottieOptions()"
+              class="md:w-80 md:h-80 mt-[-86px] md:mt-[-100px]"
+              style="background: transparent !important;"
+            />
+          </div>
+        } @placeholder {
+          <div
+            class="flex justify-center mb-6 md:w-80 md:h-80 mt-[-86px] md:mt-[-100px] items-center"
+          >
+            <div
+              class="w-24 h-24 bg-primary/10 rounded-full animate-pulse"
+            ></div>
+          </div>
+        } @loading {
+          <div
+            class="flex justify-center mb-6 md:w-80 md:h-80 mt-[-86px] md:mt-[-100px] items-center"
+          >
+            <div
+              class="w-24 h-24 bg-primary/20 rounded-full animate-pulse"
+            ></div>
+          </div>
+        } @error {
+          <div
+            class="flex justify-center mb-6 md:w-80 md:h-80 mt-[-86px] md:mt-[-100px] items-center"
+          >
+            <span class="text-on-surface-variant text-4xl">🎨</span>
+          </div>
+        }
 
-    <!-- Contenu -->
-    <div class="text-center space-y-4">
-      <h2 class="text-display-small text-on-surface">
-        Bienvenue dans Pulpe,<br />
-        commençons
-      </h2>
-      <p class="text-body-large text-on-surface-variant leading-relaxed px-4">
-        Pulpe regroupe tes revenus et dépenses pour te donner une vision nette
-        et des conseils adaptés dès aujourd'hui.
-      </p>
+        <p class="text-body-large text-on-surface-variant leading-relaxed px-4">
+          Pulpe regroupe tes revenus et dépenses pour te donner une vision nette
+          et des conseils adaptés dès aujourd'hui.
+        </p>
+      </div>
+      <div class="flex gap-4 flex-col items-center justify-center w-full">
+        <button
+          mat-flat-button
+          color="primary"
+          class="w-full max-w-sm"
+          data-testid="welcome-start-button"
+          (click)="onContinue()"
+        >
+          Commencer
+        </button>
+        <button matButton [routerLink]="['/login']" class="w-full max-w-sm">
+          Se connecter
+        </button>
+      </div>
     </div>
   `,
 })
 export default class Welcome {
-  readonly #onboardingStore = inject(OnboardingStore);
+  readonly #router = inject(Router);
 
-  readonly #onboardingLayoutData: OnboardingLayoutData = {
-    title: '',
-    subtitle: '',
-    currentStep: 0,
-  };
-
-  readonly canContinue = computed(() => true);
-
-  readonly lottieOptions = signal<AnimationOptions>({
+  protected readonly lottieOptions = signal<AnimationOptions>({
     path: '/lottie/welcome-animation.json',
     loop: true,
     autoplay: true,
@@ -87,13 +90,16 @@ export default class Welcome {
     assetsPath: '/lottie/',
   });
 
-  constructor() {
-    effect(() => {
-      this.#onboardingStore.setCanContinue(this.canContinue());
-      this.#onboardingStore.setLayoutData(this.#onboardingLayoutData);
+  @HostListener('keydown.enter')
+  onEnter(): void {
+    this.#continueToNext();
+  }
 
-      // Welcome step is always completed when accessed
-      this.#onboardingStore.markOnboardingStepCompleted(0); // welcome step index
-    });
+  onContinue(): void {
+    this.#continueToNext();
+  }
+
+  #continueToNext(): void {
+    this.#router.navigate(['/onboarding/personal-info']);
   }
 }

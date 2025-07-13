@@ -1,3 +1,4 @@
+// Interface simplifiée pour les données d'onboarding
 export interface OnboardingStepData {
   monthlyIncome: number | null;
   housingCosts: number | null;
@@ -9,6 +10,7 @@ export interface OnboardingStepData {
   email: string;
 }
 
+// Interface pour le résultat de soumission
 export interface OnboardingSubmissionResult {
   success: boolean;
   error?: string;

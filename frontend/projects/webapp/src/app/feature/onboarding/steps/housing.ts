@@ -1,64 +1,97 @@
 import {
   Component,
   ChangeDetectionStrategy,
-  signal,
+  model,
   inject,
-  computed,
+  afterNextRender,
+  HostListener,
   effect,
 } from '@angular/core';
-import { MatButtonModule } from '@angular/material/button';
+import { Router } from '@angular/router';
 import { OnboardingCurrencyInput } from '../ui/currency-input';
-import {
-  OnboardingStore,
-  type OnboardingLayoutData,
-} from '../onboarding-store';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { OnboardingStore } from '../onboarding-store';
 
 @Component({
   selector: 'pulpe-housing',
-  imports: [OnboardingCurrencyInput, MatButtonModule],
+  imports: [OnboardingCurrencyInput, MatButtonModule, MatIconModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="space-y-6">
+    <div class="gap-6 h-full flex flex-col">
+      <div class="text-center space-y-2 mb-6">
+        <h1 class="text-headline-large text-on-surface">
+          Quel est le montant de ton loyer ?
+        </h1>
+        <p class="text-body-large text-on-surface-variant leading-relaxed">
+          Indique le montant de ton loyer mensuel (optionnel).
+        </p>
+      </div>
+
       <pulpe-onboarding-currency-input
         label="Montant de ton loyer"
         [(value)]="housingValue"
-        (valueChange)="onHousingChange()"
         placeholder="0 (optionnel)"
+        [required]="false"
         ariaDescribedBy="housing-hint"
       />
+
+      <div class="flex gap-4 p-4 md:p-0 w-full mt-auto">
+        <button
+          mat-stroked-button
+          class="flex-1"
+          data-testid="previous-button"
+          (click)="onPrevious()"
+        >
+          Précédent
+        </button>
+        <button
+          mat-flat-button
+          color="primary"
+          class="flex-1"
+          data-testid="next-button"
+          (click)="onNext()"
+        >
+          Suivant
+        </button>
+      </div>
     </div>
   `,
 })
 export default class Housing {
-  readonly #onboardingStore = inject(OnboardingStore);
+  readonly #store = inject(OnboardingStore);
+  readonly #router = inject(Router);
 
-  readonly #onboardingLayoutData: OnboardingLayoutData = {
-    title: 'Logement ?',
-    subtitle:
-      'Combien payes-tu de loyer ou crédit, pour ton logement chaque mois ?',
-    currentStep: 3,
-  };
-
-  protected housingValue = signal<number | null>(null);
-
-  readonly canContinue = computed(() => {
-    const value = this.housingValue();
-    return value === null || value >= 0; // Housing costs can be 0 (owner, staying with family, etc.)
-  });
+  protected readonly housingValue = model<number | null>(null);
 
   constructor() {
     effect(() => {
-      this.#onboardingStore.setCanContinue(this.canContinue());
-      this.#onboardingStore.setLayoutData(this.#onboardingLayoutData);
+      this.housingValue.set(this.#store.data().housingCosts);
     });
 
-    const existingHousing = this.#onboardingStore.data().housingCosts;
-    if (existingHousing !== null) {
-      this.housingValue.set(existingHousing);
-    }
+    afterNextRender(() => {
+      const input = document.querySelector(
+        'input[type="number"]',
+      ) as HTMLInputElement;
+      input?.focus();
+    });
   }
 
-  protected onHousingChange(): void {
-    this.#onboardingStore.updateField('housingCosts', this.housingValue());
+  @HostListener('keydown.enter')
+  onEnter(): void {
+    this.#handleNext();
+  }
+
+  onNext(): void {
+    this.#handleNext();
+  }
+
+  onPrevious(): void {
+    this.#router.navigate(['/onboarding/income']);
+  }
+
+  #handleNext(): void {
+    this.#store.updateField('housingCosts', this.housingValue() ?? 0);
+    this.#router.navigate(['/onboarding/health-insurance']);
   }
 }
