@@ -6,7 +6,6 @@ import {
   effect,
   signal,
 } from '@angular/core';
-import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { LottieComponent } from 'ngx-lottie';
 import { AnimationOptions } from 'ngx-lottie';
@@ -61,22 +60,11 @@ import {
         Pulpe regroupe tes revenus et dépenses pour te donner une vision nette
         et des conseils adaptés dès aujourd'hui.
       </p>
-
-      <div class="flex justify-center mt-8">
-        <button
-          type="button"
-          class="px-6 py-3 text-white bg-blue-600 rounded-lg hover:bg-blue-700 text-lg font-medium"
-          (click)="goToNext()"
-        >
-          Commencer
-        </button>
-      </div>
     </div>
   `,
 })
 export default class Welcome {
   readonly #onboardingStore = inject(OnboardingStore);
-  readonly #router = inject(Router);
 
   readonly #onboardingLayoutData: OnboardingLayoutData = {
     title: '',
@@ -104,9 +92,5 @@ export default class Welcome {
       this.#onboardingStore.setCanContinue(this.canContinue());
       this.#onboardingStore.setLayoutData(this.#onboardingLayoutData);
     });
-  }
-
-  protected goToNext(): void {
-    this.#router.navigate(['/onboarding/personal-info']);
   }
 }

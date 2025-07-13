@@ -6,7 +6,7 @@ import {
   computed,
   effect,
 } from '@angular/core';
-import { Router } from '@angular/router';
+import { MatButtonModule } from '@angular/material/button';
 import { OnboardingCurrencyInput } from '../ui/currency-input';
 import {
   OnboardingStore,
@@ -15,7 +15,7 @@ import {
 
 @Component({
   selector: 'pulpe-phone-plan',
-  imports: [OnboardingCurrencyInput],
+  imports: [OnboardingCurrencyInput, MatButtonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-6">
@@ -24,30 +24,11 @@ import {
         [(value)]="phonePlanValue"
         (valueChange)="onPhonePlanChange()"
       />
-
-      <div class="flex justify-between">
-        <button
-          type="button"
-          class="px-4 py-2 text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
-          (click)="goToPrevious()"
-        >
-          Précédent
-        </button>
-        <button
-          type="button"
-          class="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          [disabled]="!canContinue()"
-          (click)="goToNext()"
-        >
-          Suivant
-        </button>
-      </div>
     </div>
   `,
 })
 export default class PhonePlan {
   readonly #onboardingStore = inject(OnboardingStore);
-  readonly #router = inject(Router);
 
   readonly #onboardingLayoutData: OnboardingLayoutData = {
     title: 'Forfait téléphone ?',
@@ -59,7 +40,8 @@ export default class PhonePlan {
   protected phonePlanValue = signal<number | null>(null);
 
   readonly canContinue = computed(() => {
-    return this.phonePlanValue() !== null && this.phonePlanValue()! >= 0;
+    const value = this.phonePlanValue();
+    return value !== null && value >= 0; // Can be 0 if covered
   });
 
   constructor() {
@@ -76,15 +58,5 @@ export default class PhonePlan {
 
   protected onPhonePlanChange(): void {
     this.#onboardingStore.updateField('phonePlan', this.phonePlanValue());
-  }
-
-  protected goToNext(): void {
-    if (this.canContinue()) {
-      this.#router.navigate(['/onboarding/transport']);
-    }
-  }
-
-  protected goToPrevious(): void {
-    this.#router.navigate(['/onboarding/leasing-credit']);
   }
 }

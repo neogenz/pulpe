@@ -101,26 +101,6 @@ import {
           {{ onboardingStore.submissionSuccess() }}
         </div>
       }
-
-      <div class="flex justify-between">
-        <button
-          mat-raised-button
-          type="button"
-          (click)="goToPrevious()"
-          [disabled]="onboardingStore.isSubmitting()"
-        >
-          Précédent
-        </button>
-        <button
-          mat-raised-button
-          color="primary"
-          type="button"
-          (click)="registerAndCreateAccount()"
-          [disabled]="!canContinue() || onboardingStore.isSubmitting()"
-        >
-          {{ onboardingStore.retryButtonText() }}
-        </button>
-      </div>
     </div>
   `,
 })
@@ -168,9 +148,6 @@ export default class Registration {
     effect(() => {
       this.onboardingStore.setCanContinue(this.canContinue());
       this.onboardingStore.setLayoutData(this.#onboardingLayoutData());
-      this.onboardingStore.setNextButtonText(
-        this.onboardingStore.retryButtonText(),
-      );
     });
 
     // Initialize form with existing data
@@ -190,15 +167,18 @@ export default class Registration {
         );
       });
 
+    // Listen for next button click from layout
+    this.onboardingStore.nextClicked$
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => {
+        this.registerAndCreateAccount();
+      });
+
     afterNextRender(() => {
       this.#elementRef.nativeElement
         .querySelector('input[type="email"]')
         ?.focus();
     });
-  }
-
-  protected goToPrevious(): void {
-    this.#router.navigate(['/onboarding/transport']);
   }
 
   protected async registerAndCreateAccount(): Promise<void> {

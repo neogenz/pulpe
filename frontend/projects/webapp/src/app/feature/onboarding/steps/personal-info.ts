@@ -4,13 +4,16 @@ import {
   inject,
   computed,
   effect,
+  afterNextRender,
+  viewChild,
+  ElementRef,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Router } from '@angular/router';
 import { ReactiveFormsModule, FormControl, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
 import {
   OnboardingStore,
   type OnboardingLayoutData,
@@ -23,6 +26,7 @@ import {
     MatFormFieldModule,
     MatInputModule,
     MatIconModule,
+    MatButtonModule,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -33,33 +37,18 @@ import {
           matInput
           [formControl]="firstNameControl"
           placeholder="Quel est ton prénom ?"
+          #firstNameInput
         />
         <mat-icon matPrefix>person</mat-icon>
       </mat-form-field>
-
-      <div class="flex justify-between">
-        <button
-          type="button"
-          class="px-4 py-2 text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
-          (click)="goToPrevious()"
-        >
-          Précédent
-        </button>
-        <button
-          type="button"
-          class="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          [disabled]="!canContinue()"
-          (click)="goToNext()"
-        >
-          Suivant
-        </button>
-      </div>
     </div>
   `,
 })
 export default class PersonalInfo {
   readonly #onboardingStore = inject(OnboardingStore);
-  readonly #router = inject(Router);
+
+  readonly firstNameInput =
+    viewChild<ElementRef<HTMLInputElement>>('firstNameInput');
 
   readonly #onboardingLayoutData: OnboardingLayoutData = {
     title: "Comment je dois t'appeler ?",
@@ -97,15 +86,10 @@ export default class PersonalInfo {
       .subscribe((value) => {
         this.#onboardingStore.updateField('firstName', value || '');
       });
-  }
 
-  protected goToNext(): void {
-    if (this.canContinue()) {
-      this.#router.navigate(['/onboarding/income']);
-    }
-  }
-
-  protected goToPrevious(): void {
-    this.#router.navigate(['/onboarding/welcome']);
+    // Set autofocus
+    afterNextRender(() => {
+      this.firstNameInput()?.nativeElement.focus();
+    });
   }
 }

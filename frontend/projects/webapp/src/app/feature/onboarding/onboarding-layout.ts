@@ -15,7 +15,11 @@ import { ONBOARDING_TOTAL_STEPS } from './onboarding-constants';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
+      role="main"
       class="min-h-screen md:h-screen pulpe-gradient flex items-center justify-center p-4"
+      (keydown.enter)="onboardingStore.onEnterPressed()"
+      tabindex="0"
+      aria-label="Onboarding process"
     >
       <div
         class="w-full max-w-3xl min-h-[600px] md:h-[800px] bg-surface rounded-2xl md:p-16 p-8 flex flex-col"
@@ -54,6 +58,36 @@ import { ONBOARDING_TOTAL_STEPS } from './onboarding-constants';
           <router-outlet></router-outlet>
         </div>
 
+        <!-- Navigation buttons -->
+        <div class="flex md:gap-8 gap-4 mt-8">
+          @if (!isFirstStep()) {
+            <div class="flex-1">
+              <button
+                matButton="outlined"
+                (click)="onboardingStore.navigateToPrevious()"
+                class="w-full"
+                aria-label="Go to previous step"
+              >
+                Précédent
+              </button>
+            </div>
+          }
+          <div class="flex-1">
+            <button
+              matButton="filled"
+              (click)="handleNextClick()"
+              [disabled]="!onboardingStore.canContinue()"
+              class="w-full"
+              [attr.aria-label]="
+                'Continue to ' +
+                (isFirstStep() ? 'start onboarding' : 'next step')
+              "
+            >
+              {{ onboardingStore.nextButtonText() }}
+            </button>
+          </div>
+        </div>
+
         @if (isFirstStep()) {
           <!-- Lien de connexion -->
           <div slot="footer" class="text-center mt-6">
@@ -83,6 +117,24 @@ export class OnboardingLayout {
   });
 
   protected isFirstStep = computed(() => {
-    return this.onboardingStore.layoutData()?.currentStep === 0;
+    return this.onboardingStore.isFirstStep();
   });
+
+  protected handleNextClick(): void {
+    if (this.isFirstStep()) {
+      this.onboardingStore.navigateToNext();
+      return;
+    }
+
+    const layoutData = this.onboardingStore.layoutData();
+    if (!layoutData) return;
+
+    // Special handling for registration step
+    if (layoutData.currentStep === this.onboardingStore.stepOrder.length - 1) {
+      // Trigger the registration process - the component will handle this
+      this.onboardingStore.nextClicked$.next();
+    } else {
+      this.onboardingStore.navigateToNext();
+    }
+  }
 }
