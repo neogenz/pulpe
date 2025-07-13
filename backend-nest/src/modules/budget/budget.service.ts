@@ -15,7 +15,7 @@ import {
   type BudgetUpdate,
 } from '@pulpe/shared';
 import { BudgetMapper } from './budget.mapper';
-import { TablesInsert, type Tables } from '../../types/database.types';
+import { type Tables } from '../../types/database.types';
 import { BUDGET_CONSTANTS } from './budget.constants';
 
 @Injectable()
@@ -63,7 +63,8 @@ export class BudgetService {
     if (
       !createBudgetDto.month ||
       !createBudgetDto.year ||
-      !createBudgetDto.description
+      !createBudgetDto.description ||
+      !createBudgetDto.templateId
     ) {
       throw new BadRequestException('Données requises manquantes');
     }
@@ -107,38 +108,6 @@ export class BudgetService {
     return createBudgetDto;
   }
 
-  private prepareBudgetData(
-    createBudgetDto: BudgetCreate,
-    userId: string,
-  ): TablesInsert<'monthly_budget'> {
-    const { templateId, ...budgetData } = createBudgetDto;
-    return {
-      description: budgetData.description,
-      month: budgetData.month,
-      year: budgetData.year,
-      user_id: userId,
-      template_id: templateId,
-    };
-  }
-
-  private async insertBudget(
-    budgetData: ReturnType<typeof this.prepareBudgetData>,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<unknown> {
-    const { data: budgetDb, error } = await supabase
-      .from('monthly_budget')
-      .insert(budgetData)
-      .select()
-      .single();
-
-    if (error) {
-      this.logger.error({ err: error }, 'Failed to create budget');
-      throw new BadRequestException('Erreur lors de la création du budget');
-    }
-
-    return budgetDb;
-  }
-
   async create(
     createBudgetDto: BudgetCreate,
     user: AuthenticatedUser,
@@ -153,65 +122,26 @@ export class BudgetService {
         validatedDto.year,
       );
 
-      // If templateId is provided, use atomic template instantiation
-      if (createBudgetDto.templateId) {
-        return this.createFromTemplate(createBudgetDto, user, supabase);
-      }
-
-      // Otherwise, create empty budget
-      const budgetData = this.prepareBudgetData(createBudgetDto, user.id);
-      const budgetDb = await this.insertBudget(budgetData, supabase);
-
-      const apiData = this.budgetMapper.toApi(
-        budgetDb as Tables<'monthly_budget'>,
-      );
-
-      return {
-        success: true,
-        data: apiData,
-      };
-    } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-      this.logger.error({ err: error }, 'Failed to create budget');
-      throw new InternalServerErrorException('Erreur interne du serveur');
-    }
-  }
-
-  /**
-   * Creates a budget from a template using atomic transaction
-   * Implements RG-006: Règle d'Instanciation Atomique (Template → Budget)
-   */
-  async createFromTemplate(
-    createBudgetDto: BudgetCreate,
-    user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetResponse> {
-    try {
-      if (!createBudgetDto.templateId) {
-        throw new BadRequestException('Template ID is required');
-      }
-
       this.logger.info(
         {
           userId: user.id,
-          templateId: createBudgetDto.templateId,
-          month: createBudgetDto.month,
-          year: createBudgetDto.year,
+          templateId: validatedDto.templateId,
+          month: validatedDto.month,
+          year: validatedDto.year,
         },
         'Starting atomic budget creation from template',
       );
 
       // Use atomic database function to create budget with transactions
+      // templateId is guaranteed to exist due to Zod schema validation and business validation
       const { data: result, error } = await supabase.rpc(
         'create_budget_from_template',
         {
           p_user_id: user.id,
-          p_template_id: createBudgetDto.templateId,
-          p_month: createBudgetDto.month,
-          p_year: createBudgetDto.year,
-          p_description: createBudgetDto.description,
+          p_template_id: validatedDto.templateId!,
+          p_month: validatedDto.month,
+          p_year: validatedDto.year,
+          p_description: validatedDto.description,
         },
       );
 
@@ -220,18 +150,24 @@ export class BudgetService {
           {
             err: error,
             userId: user.id,
-            templateId: createBudgetDto.templateId,
+            templateId: validatedDto.templateId,
           },
           'Atomic budget creation from template failed',
         );
 
-        // Handle specific database errors
-        if (error.message?.includes('Template not found')) {
+        // Handle specific database errors with better error codes
+        if (
+          error.code === 'P0001' ||
+          error.message?.includes('Template not found')
+        ) {
           throw new NotFoundException(
             'Template introuvable ou accès non autorisé',
           );
         }
-        if (error.message?.includes('Budget already exists')) {
+        if (
+          error.code === 'P0002' ||
+          error.message?.includes('Budget already exists')
+        ) {
           throw new BadRequestException(
             'Un budget existe déjà pour cette période',
           );
@@ -244,7 +180,7 @@ export class BudgetService {
 
       if (!result || typeof result !== 'object' || !('budget' in result)) {
         this.logger.error(
-          { result, userId: user.id, templateId: createBudgetDto.templateId },
+          { result, userId: user.id, templateId: validatedDto.templateId },
           'Invalid result returned from create_budget_from_template',
         );
         throw new InternalServerErrorException(
@@ -260,7 +196,7 @@ export class BudgetService {
         {
           userId: user.id,
           budgetId: budgetData.id,
-          templateId: createBudgetDto.templateId,
+          templateId: validatedDto.templateId,
           templateName,
           transactionsCreated,
         },
@@ -280,10 +216,7 @@ export class BudgetService {
       ) {
         throw error;
       }
-      this.logger.error(
-        { err: error, userId: user.id, templateId: createBudgetDto.templateId },
-        'Failed to create budget from template',
-      );
+      this.logger.error({ err: error }, 'Failed to create budget');
       throw new InternalServerErrorException('Erreur interne du serveur');
     }
   }

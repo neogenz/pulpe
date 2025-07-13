@@ -80,7 +80,7 @@ export class BudgetController {
   @ApiOperation({
     summary: 'Create a new budget',
     description:
-      'Creates a new budget for the authenticated user. If templateId is provided, creates budget from template with atomic transaction logic.',
+      "Creates a new budget from an existing template using atomic transaction logic. Implements RG-006: Règle d'Instanciation Atomique (Template → Budget).",
   })
   @ApiCreatedResponse({
     description: 'Budget created successfully',
@@ -96,45 +96,6 @@ export class BudgetController {
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetResponse> {
     return this.budgetService.create(createBudgetDto, user, supabase);
-  }
-
-  @Post('from-template/:templateId')
-  @ApiOperation({
-    summary: 'Create budget from template',
-    description:
-      "Creates a new budget from an existing template using atomic transaction logic. Implements RG-006: Règle d'Instanciation Atomique (Template → Budget).",
-  })
-  @ApiParam({
-    name: 'templateId',
-    description: 'Unique template identifier',
-    example: '123e4567-e89b-12d3-a456-426614174000',
-    type: 'string',
-    format: 'uuid',
-  })
-  @ApiCreatedResponse({
-    description: 'Budget created successfully from template',
-    type: BudgetResponseDto,
-  })
-  @ApiBadRequestResponse({
-    description: 'Invalid input data or template not found',
-    type: ErrorResponseDto,
-  })
-  @ApiNotFoundResponse({
-    description: 'Template not found or access denied',
-    type: ErrorResponseDto,
-  })
-  async createFromTemplate(
-    @Param('templateId', ParseUUIDPipe) templateId: string,
-    @Body() createBudgetDto: Omit<BudgetCreateDto, 'templateId'>,
-    @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetResponse> {
-    const budgetWithTemplate = { ...createBudgetDto, templateId };
-    return this.budgetService.createFromTemplate(
-      budgetWithTemplate,
-      user,
-      supabase,
-    );
   }
 
   @Get(':id')
