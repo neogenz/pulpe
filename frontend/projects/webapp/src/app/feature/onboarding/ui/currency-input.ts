@@ -35,7 +35,7 @@ import { MatInputModule } from '@angular/material/input';
       >
       @if (ariaDescribedBy()) {
         <mat-hint [id]="ariaDescribedBy()!"
-          >Enter amount in Swiss Francs (CHF)</mat-hint
+          >Entre le montant en francs suisses (CHF)</mat-hint
         >
       }
     </mat-form-field>

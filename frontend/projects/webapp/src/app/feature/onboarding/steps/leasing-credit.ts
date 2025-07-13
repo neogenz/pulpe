@@ -23,6 +23,7 @@ import {
         label="Montant de leasing ou crédits"
         [(value)]="leasingCreditValue"
         (valueChange)="onLeasingCreditChange()"
+        placeholder="0 (optionnel)"
       />
     </div>
   `,
@@ -41,7 +42,7 @@ export default class LeasingCredit {
 
   readonly canContinue = computed(() => {
     const value = this.leasingCreditValue();
-    return value !== null && value >= 0; // Can be 0 if no leasing/credit
+    return value === null || value >= 0; // Can be empty (fallback to 0) or >= 0
   });
 
   constructor() {
@@ -57,9 +58,8 @@ export default class LeasingCredit {
   }
 
   protected onLeasingCreditChange(): void {
-    this.#onboardingStore.updateField(
-      'leasingCredit',
-      this.leasingCreditValue(),
-    );
+    const value = this.leasingCreditValue();
+    // Fallback to 0 if null for optional field
+    this.#onboardingStore.updateField('leasingCredit', value ?? 0);
   }
 }

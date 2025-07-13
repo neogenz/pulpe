@@ -23,6 +23,7 @@ import {
         label="Montant de tes frais téléphoniques"
         [(value)]="phonePlanValue"
         (valueChange)="onPhonePlanChange()"
+        placeholder="0 (optionnel)"
       />
     </div>
   `,
@@ -41,7 +42,7 @@ export default class PhonePlan {
 
   readonly canContinue = computed(() => {
     const value = this.phonePlanValue();
-    return value !== null && value >= 0; // Can be 0 if covered
+    return value === null || value >= 0; // Can be empty (fallback to 0) or >= 0
   });
 
   constructor() {
@@ -57,6 +58,8 @@ export default class PhonePlan {
   }
 
   protected onPhonePlanChange(): void {
-    this.#onboardingStore.updateField('phonePlan', this.phonePlanValue());
+    const value = this.phonePlanValue();
+    // Fallback to 0 if null for optional field
+    this.#onboardingStore.updateField('phonePlan', value ?? 0);
   }
 }
