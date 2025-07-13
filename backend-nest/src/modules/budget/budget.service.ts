@@ -153,6 +153,12 @@ export class BudgetService {
         validatedDto.year,
       );
 
+      // If templateId is provided, use atomic template instantiation
+      if (createBudgetDto.templateId) {
+        return this.createFromTemplate(createBudgetDto, user, supabase);
+      }
+
+      // Otherwise, create empty budget
       const budgetData = this.prepareBudgetData(createBudgetDto, user.id);
       const budgetDb = await this.insertBudget(budgetData, supabase);
 
@@ -169,6 +175,115 @@ export class BudgetService {
         throw error;
       }
       this.logger.error({ err: error }, 'Failed to create budget');
+      throw new InternalServerErrorException('Erreur interne du serveur');
+    }
+  }
+
+  /**
+   * Creates a budget from a template using atomic transaction
+   * Implements RG-006: Règle d'Instanciation Atomique (Template → Budget)
+   */
+  async createFromTemplate(
+    createBudgetDto: BudgetCreate,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<BudgetResponse> {
+    try {
+      if (!createBudgetDto.templateId) {
+        throw new BadRequestException('Template ID is required');
+      }
+
+      this.logger.info(
+        {
+          userId: user.id,
+          templateId: createBudgetDto.templateId,
+          month: createBudgetDto.month,
+          year: createBudgetDto.year,
+        },
+        'Starting atomic budget creation from template',
+      );
+
+      // Use atomic database function to create budget with transactions
+      const { data: result, error } = await supabase.rpc(
+        'create_budget_from_template',
+        {
+          p_user_id: user.id,
+          p_template_id: createBudgetDto.templateId,
+          p_month: createBudgetDto.month,
+          p_year: createBudgetDto.year,
+          p_description: createBudgetDto.description,
+        },
+      );
+
+      if (error) {
+        this.logger.error(
+          {
+            err: error,
+            userId: user.id,
+            templateId: createBudgetDto.templateId,
+          },
+          'Atomic budget creation from template failed',
+        );
+
+        // Handle specific database errors
+        if (error.message?.includes('Template not found')) {
+          throw new NotFoundException(
+            'Template introuvable ou accès non autorisé',
+          );
+        }
+        if (error.message?.includes('Budget already exists')) {
+          throw new BadRequestException(
+            'Un budget existe déjà pour cette période',
+          );
+        }
+
+        throw new InternalServerErrorException(
+          'Erreur lors de la création du budget à partir du template',
+        );
+      }
+
+      if (!result || typeof result !== 'object' || !('budget' in result)) {
+        this.logger.error(
+          { result, userId: user.id, templateId: createBudgetDto.templateId },
+          'Invalid result returned from create_budget_from_template',
+        );
+        throw new InternalServerErrorException(
+          'Résultat invalide retourné par la fonction de création',
+        );
+      }
+
+      const budgetData = result.budget as Tables<'monthly_budget'>;
+      const transactionsCreated = result.transactions_created as number;
+      const templateName = result.template_name as string;
+
+      this.logger.info(
+        {
+          userId: user.id,
+          budgetId: budgetData.id,
+          templateId: createBudgetDto.templateId,
+          templateName,
+          transactionsCreated,
+        },
+        'Successfully created budget from template with atomic transaction',
+      );
+
+      const apiData = this.budgetMapper.toApi(budgetData);
+
+      return {
+        success: true,
+        data: apiData,
+      };
+    } catch (error) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
+      ) {
+        throw error;
+      }
+      this.logger.error(
+        { err: error, userId: user.id, templateId: createBudgetDto.templateId },
+        'Failed to create budget from template',
+      );
       throw new InternalServerErrorException('Erreur interne du serveur');
     }
   }

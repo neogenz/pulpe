@@ -38,7 +38,7 @@ export const budgetCreateSchema = z.object({
   month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
   year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
   description: z.string().min(1).max(500).trim(),
-  templateId: z.string().uuid(),
+  templateId: z.string().uuid().optional(),
 });
 export type BudgetCreate = z.infer<typeof budgetCreateSchema>;
 
