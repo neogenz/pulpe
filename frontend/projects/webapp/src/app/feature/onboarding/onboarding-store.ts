@@ -1,38 +1,85 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
-import { AuthApi } from '@core/auth/auth-api';
-import { BudgetApi } from '@core/budget';
-import { TemplateApi } from '@core/template';
+import { firstValueFrom } from 'rxjs';
+import { AuthApi } from '../../core/auth/auth-api';
+import { BudgetApi } from '../../core/budget';
+import { TemplateApi } from '../../core/template';
 import {
   type BudgetCreate,
   type BudgetTemplateCreateFromOnboarding,
 } from '@pulpe/shared';
-import { firstValueFrom } from 'rxjs';
 import {
-  OnboardingApi,
-  type OnboardingSubmissionResult,
   type OnboardingStepData,
-} from '../onboarding-api';
-import {
-  RegistrationProcessStep,
-  type ProcessState,
-} from '../onboarding-orchestrator';
+  type OnboardingSubmissionResult,
+} from './onboarding.types';
+
+export enum RegistrationProcessStep {
+  AUTHENTICATION = 'authentication',
+  TEMPLATE_CREATION = 'template_creation',
+  BUDGET_CREATION = 'budget_creation',
+  COMPLETION = 'completion',
+}
+
+export interface ProcessState {
+  currentStep: RegistrationProcessStep;
+  templateId?: string;
+  completedSteps: RegistrationProcessStep[];
+}
+
+export interface OnboardingLayoutData {
+  title: string;
+  subtitle: string;
+  currentStep: number;
+}
+
+const ONBOARDING_STORAGE_KEY = 'pulpe-onboarding-data';
 
 @Injectable()
-export class RegistrationState {
+export class OnboardingStore {
   readonly #authApi = inject(AuthApi);
   readonly #budgetApi = inject(BudgetApi);
   readonly #templateApi = inject(TemplateApi);
-  readonly #onboardingApi = inject(OnboardingApi);
+
+  // Consolidated state
+  readonly #onboardingData = signal<OnboardingStepData>({
+    monthlyIncome: null,
+    housingCosts: null,
+    healthInsurance: null,
+    leasingCredit: null,
+    phonePlan: null,
+    transportCosts: null,
+    firstName: '',
+    email: '',
+  });
 
   readonly #processState = signal<ProcessState>({
     currentStep: RegistrationProcessStep.AUTHENTICATION,
     completedSteps: [],
   });
 
+  readonly #layoutData = signal<OnboardingLayoutData | null>(null);
+  readonly #canContinue = signal<boolean>(false);
+  readonly #isSubmitting = signal<boolean>(false);
+  readonly #nextButtonText = signal<string>('Continuer');
+  readonly #submissionError = signal<string>('');
+  readonly #submissionSuccess = signal<string>('');
+
   // Read-only access
+  readonly data = this.#onboardingData.asReadonly();
   readonly processState = this.#processState.asReadonly();
+  readonly layoutData = this.#layoutData.asReadonly();
+  readonly canContinue = this.#canContinue.asReadonly();
+  readonly isSubmitting = this.#isSubmitting.asReadonly();
+  readonly nextButtonText = this.#nextButtonText.asReadonly();
+  readonly submissionError = this.#submissionError.asReadonly();
+  readonly submissionSuccess = this.#submissionSuccess.asReadonly();
 
   // Computed values
+  readonly isEmailValid = computed(() => {
+    const email = this.#onboardingData().email;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  });
+
   readonly isAuthenticationCompleted = computed(() =>
     this.#processState().completedSteps.includes(
       RegistrationProcessStep.AUTHENTICATION,
@@ -70,17 +117,69 @@ export class RegistrationState {
   });
 
   constructor() {
-    this.loadProcessStateFromLocalStorage();
+    this.#loadFromLocalStorage();
   }
 
-  /**
-   * Handles the complete registration process with retry logic
-   */
+  // Data management methods
+  updateField(field: keyof OnboardingStepData, value: unknown): void {
+    this.#onboardingData.update((data) => ({
+      ...data,
+      [field]: value,
+    }));
+    this.#saveToLocalStorage();
+  }
+
+  updatePersonalInfo(firstName: string, email: string): void {
+    this.#onboardingData.update((data) => ({
+      ...data,
+      firstName,
+      email,
+    }));
+    this.#saveToLocalStorage();
+  }
+
+  // Layout management
+  setLayoutData(layoutData: OnboardingLayoutData): void {
+    this.#layoutData.set(layoutData);
+  }
+
+  setCanContinue(canContinue: boolean): void {
+    this.#canContinue.set(canContinue);
+  }
+
+  setNextButtonText(text: string): void {
+    this.#nextButtonText.set(text);
+  }
+
+  // Validation methods
+  validatePassword(password: string): boolean {
+    return password.length >= 8;
+  }
+
+  canSubmitRegistration(password: string): boolean {
+    const data = this.#onboardingData();
+    return (
+      data.firstName.trim().length > 0 &&
+      this.isEmailValid() &&
+      this.validatePassword(password)
+    );
+  }
+
+  isReadyForSubmission(): boolean {
+    const data = this.#onboardingData();
+    return !!(
+      data.monthlyIncome !== null &&
+      data.firstName.trim() &&
+      data.email.trim()
+    );
+  }
+
+  // Registration process methods
   async processCompleteRegistration(
     email: string,
     password: string,
   ): Promise<OnboardingSubmissionResult> {
-    if (!this.#onboardingApi.canSubmitRegistration(password)) {
+    if (!this.canSubmitRegistration(password)) {
       return {
         success: false,
         error: 'Données invalides pour la registration',
@@ -88,7 +187,9 @@ export class RegistrationState {
     }
 
     try {
-      // Process steps sequentially from current step to completion
+      this.#isSubmitting.set(true);
+      this.#submissionError.set('');
+
       let currentStep = this.currentStepToRetry();
 
       // Step 1: Authentication
@@ -122,24 +223,14 @@ export class RegistrationState {
       console.error("Erreur lors de l'inscription:", error);
       const errorMessage =
         "Une erreur inattendue s'est produite. Veuillez réessayer.";
+      this.#submissionError.set(errorMessage);
       return { success: false, error: errorMessage };
+    } finally {
+      this.#isSubmitting.set(false);
     }
   }
 
-  /**
-   * Resets the process state
-   */
-  resetProcessState(): void {
-    this.#processState.set({
-      currentStep: RegistrationProcessStep.AUTHENTICATION,
-      completedSteps: [],
-    });
-    this.clearProcessStateFromLocalStorage();
-  }
-
-  /**
-   * Marks a process step as completed
-   */
+  // Process state management
   markStepCompleted(step: RegistrationProcessStep, templateId?: string): void {
     const currentState = this.#processState();
     if (!currentState.completedSteps.includes(step)) {
@@ -148,26 +239,48 @@ export class RegistrationState {
         completedSteps: [...state.completedSteps, step],
         templateId: templateId || state.templateId,
       }));
-      this.saveProcessStateToLocalStorage();
+      this.#saveToLocalStorage();
     }
   }
 
-  /**
-   * Updates the current step being processed
-   */
   updateCurrentStep(step: RegistrationProcessStep): void {
     this.#processState.update((state) => ({
       ...state,
       currentStep: step,
     }));
-    this.saveProcessStateToLocalStorage();
+    this.#saveToLocalStorage();
   }
 
+  resetSubmissionState(): void {
+    this.#submissionError.set('');
+    this.#submissionSuccess.set('');
+  }
+
+  clearAllData(): void {
+    this.#onboardingData.set({
+      monthlyIncome: null,
+      housingCosts: null,
+      healthInsurance: null,
+      leasingCredit: null,
+      phonePlan: null,
+      transportCosts: null,
+      firstName: '',
+      email: '',
+    });
+
+    this.#processState.set({
+      currentStep: RegistrationProcessStep.AUTHENTICATION,
+      completedSteps: [],
+    });
+
+    this.#clearLocalStorage();
+  }
+
+  // Private methods
   async #processAuthentication(
     email: string,
     password: string,
   ): Promise<OnboardingSubmissionResult> {
-    // Skip if already completed
     if (this.isAuthenticationCompleted()) {
       return { success: true };
     }
@@ -179,10 +292,7 @@ export class RegistrationState {
     if (!authResult.success) {
       const errorMessage =
         authResult.error || 'Erreur lors de la création du compte';
-      return {
-        success: false,
-        error: errorMessage,
-      };
+      return { success: false, error: errorMessage };
     }
 
     this.markStepCompleted(RegistrationProcessStep.AUTHENTICATION);
@@ -191,7 +301,6 @@ export class RegistrationState {
   }
 
   async #processTemplateCreation(): Promise<OnboardingSubmissionResult> {
-    // Skip if already completed
     if (this.isTemplateCreationCompleted()) {
       return { success: true };
     }
@@ -199,7 +308,7 @@ export class RegistrationState {
     this.updateCurrentStep(RegistrationProcessStep.TEMPLATE_CREATION);
 
     try {
-      const onboardingData = this.#onboardingApi.getStateData();
+      const onboardingData = this.#onboardingData();
       const templateRequest =
         this.#buildTemplateCreationRequest(onboardingData);
       const templateResponse = await firstValueFrom(
@@ -224,7 +333,7 @@ export class RegistrationState {
     this.updateCurrentStep(RegistrationProcessStep.BUDGET_CREATION);
 
     try {
-      const onboardingData = this.#onboardingApi.getStateData();
+      const onboardingData = this.#onboardingData();
       const processState = this.#processState();
 
       if (!processState.templateId) {
@@ -251,10 +360,8 @@ export class RegistrationState {
 
   async #processCompletion(): Promise<void> {
     this.updateCurrentStep(RegistrationProcessStep.COMPLETION);
-    this.#onboardingApi.submitCompletedOnboarding();
-    this.#onboardingApi.clearOnboardingData();
-    this.resetProcessState();
     this.markStepCompleted(RegistrationProcessStep.COMPLETION);
+    this.clearAllData();
   }
 
   #buildTemplateCreationRequest(
@@ -289,37 +396,46 @@ export class RegistrationState {
     };
   }
 
-  private saveProcessStateToLocalStorage(): void {
+  #saveToLocalStorage(): void {
     try {
-      const processState = this.#processState();
-      localStorage.setItem(
-        'pulpe-registration-process-state',
-        JSON.stringify(processState),
-      );
+      const state = {
+        onboardingData: this.#onboardingData(),
+        processState: this.#processState(),
+      };
+      localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(state));
     } catch (error) {
-      console.error('Failed to save process state to localStorage:', error);
+      console.error('Failed to save onboarding state to localStorage:', error);
     }
   }
 
-  private loadProcessStateFromLocalStorage(): void {
+  #loadFromLocalStorage(): void {
     try {
-      const savedState = localStorage.getItem(
-        'pulpe-registration-process-state',
-      );
+      const savedState = localStorage.getItem(ONBOARDING_STORAGE_KEY);
       if (savedState) {
-        const parsedState = JSON.parse(savedState) as ProcessState;
-        this.#processState.set(parsedState);
+        const parsedState = JSON.parse(savedState);
+        if (parsedState.onboardingData) {
+          this.#onboardingData.set(parsedState.onboardingData);
+        }
+        if (parsedState.processState) {
+          this.#processState.set(parsedState.processState);
+        }
       }
     } catch (error) {
-      console.error('Failed to load process state from localStorage:', error);
+      console.error(
+        'Failed to load onboarding state from localStorage:',
+        error,
+      );
     }
   }
 
-  private clearProcessStateFromLocalStorage(): void {
+  #clearLocalStorage(): void {
     try {
-      localStorage.removeItem('pulpe-registration-process-state');
+      localStorage.removeItem(ONBOARDING_STORAGE_KEY);
     } catch (error) {
-      console.error('Failed to clear process state from localStorage:', error);
+      console.error(
+        'Failed to clear onboarding state from localStorage:',
+        error,
+      );
     }
   }
 }

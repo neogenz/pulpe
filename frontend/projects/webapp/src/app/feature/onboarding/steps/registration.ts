@@ -2,27 +2,24 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  DestroyRef,
-  effect,
   inject,
   linkedSignal,
-  OnInit,
   signal,
   afterNextRender,
   ElementRef,
+  effect,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { Router } from '@angular/router';
-import { ROUTES } from '@core/routing/routes-constants';
-import { OnboardingLayoutData } from '../models/onboarding-layout-data';
-import { OnboardingApi } from '../onboarding-api';
-import { OnboardingOrchestrator } from '../onboarding-orchestrator';
-import { RegistrationState } from './registration-state';
+import { ROUTES } from '../../../core/routing/routes-constants';
+import {
+  OnboardingStore,
+  type OnboardingLayoutData,
+} from '../onboarding-store';
 
 @Component({
   selector: 'pulpe-registration',
@@ -47,7 +44,8 @@ import { RegistrationState } from './registration-state';
           [(ngModel)]="emailValue"
           (ngModelChange)="updateOnboardingEmail()"
           [disabled]="
-            onboardingApi.isSubmitting() || isAuthenticationCompleted()
+            onboardingStore.isSubmitting() ||
+            onboardingStore.isAuthenticationCompleted()
           "
         />
         <mat-icon matPrefix>email</mat-icon>
@@ -62,7 +60,8 @@ import { RegistrationState } from './registration-state';
           required
           [(ngModel)]="passwordValue"
           [disabled]="
-            onboardingApi.isSubmitting() || isAuthenticationCompleted()
+            onboardingStore.isSubmitting() ||
+            onboardingStore.isAuthenticationCompleted()
           "
         />
         <mat-icon matPrefix>lock</mat-icon>
@@ -73,7 +72,7 @@ import { RegistrationState } from './registration-state';
           (click)="hidePassword.set(!hidePassword())"
           [attr.aria-label]="'Afficher le mot de passe'"
           [attr.aria-pressed]="!hidePassword()"
-          [disabled]="isAuthenticationCompleted()"
+          [disabled]="onboardingStore.isAuthenticationCompleted()"
         >
           <mat-icon>{{
             hidePassword() ? 'visibility_off' : 'visibility'
@@ -84,7 +83,7 @@ import { RegistrationState } from './registration-state';
         >
       </mat-form-field>
 
-      @if (isAuthenticationCompleted()) {
+      @if (onboardingStore.isAuthenticationCompleted()) {
         <div
           class="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded"
         >
@@ -92,34 +91,51 @@ import { RegistrationState } from './registration-state';
         </div>
       }
 
-      @if (onboardingApi.submissionError()) {
+      @if (onboardingStore.submissionError()) {
         <div
           class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded"
         >
-          {{ onboardingApi.submissionError() }}
+          {{ onboardingStore.submissionError() }}
         </div>
       }
-      @if (onboardingApi.submissionSuccess()) {
+      @if (onboardingStore.submissionSuccess()) {
         <div
           class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded"
         >
-          {{ onboardingApi.submissionSuccess() }}
+          {{ onboardingStore.submissionSuccess() }}
         </div>
       }
+
+      <div class="flex justify-between">
+        <button
+          mat-raised-button
+          type="button"
+          (click)="goToPrevious()"
+          [disabled]="onboardingStore.isSubmitting()"
+        >
+          Précédent
+        </button>
+        <button
+          mat-raised-button
+          color="primary"
+          type="button"
+          (click)="registerAndCreateAccount()"
+          [disabled]="!canContinue() || onboardingStore.isSubmitting()"
+        >
+          {{ onboardingStore.retryButtonText() }}
+        </button>
+      </div>
     </div>
   `,
 })
-export default class Registration implements OnInit {
+export default class Registration {
   #router = inject(Router);
   #elementRef = inject(ElementRef);
-  protected readonly onboardingApi = inject(OnboardingApi);
-  #orchestrator = inject(OnboardingOrchestrator);
-  readonly #destroyRef = inject(DestroyRef);
-  readonly #registrationState = inject(RegistrationState);
+  protected readonly onboardingStore = inject(OnboardingStore);
 
   readonly #onboardingLayoutData = computed<OnboardingLayoutData>(() => {
     const isRetry =
-      this.#registrationState.processState().completedSteps.length > 0;
+      this.onboardingStore.processState().completedSteps.length > 0;
     return {
       title: isRetry ? 'Reprise du processus' : 'Presque fini !',
       subtitle: isRetry
@@ -130,33 +146,26 @@ export default class Registration implements OnInit {
   });
 
   public emailValue = linkedSignal<string>(
-    () => this.onboardingApi.getStateData().email,
+    () => this.onboardingStore.data().email,
   );
   public passwordValue = signal<string>('');
   protected hidePassword = signal<boolean>(true);
 
-  // Use the onboarding API's validation logic
   public canContinue = computed(() => {
-    // If authentication is already completed, we can continue without password validation
-    if (this.#registrationState.isAuthenticationCompleted()) {
+    if (this.onboardingStore.isAuthenticationCompleted()) {
       return true;
     }
 
     const password = this.passwordValue();
-    return this.onboardingApi.canSubmitRegistration(password);
+    return this.onboardingStore.canSubmitRegistration(password);
   });
-
-  // Template-accessible getters
-  protected isAuthenticationCompleted =
-    this.#registrationState.isAuthenticationCompleted;
 
   constructor() {
     effect(() => {
-      this.#orchestrator.canContinue.set(this.canContinue());
-      this.#orchestrator.isSubmitting.set(this.onboardingApi.isSubmitting());
-      this.#orchestrator.layoutData.set(this.#onboardingLayoutData());
-      this.#orchestrator.nextButtonText.set(
-        this.#registrationState.retryButtonText(),
+      this.onboardingStore.setCanContinue(this.canContinue());
+      this.onboardingStore.setLayoutData(this.#onboardingLayoutData());
+      this.onboardingStore.setNextButtonText(
+        this.onboardingStore.retryButtonText(),
       );
     });
 
@@ -167,34 +176,26 @@ export default class Registration implements OnInit {
     });
   }
 
-  ngOnInit(): void {
-    this.#orchestrator.nextClicked$
-      .pipe(takeUntilDestroyed(this.#destroyRef))
-      .subscribe(() => this.registerAndCreateAccount());
-
-    this.#orchestrator.previousClicked$
-      .pipe(takeUntilDestroyed(this.#destroyRef))
-      .subscribe(() => this.#router.navigate(['/onboarding/transport']));
-  }
-
   protected updateOnboardingEmail(): void {
-    const currentSteps = this.onboardingApi.getStateData();
-    this.onboardingApi.updatePersonalInfoStep(
-      currentSteps.firstName,
+    const currentData = this.onboardingStore.data();
+    this.onboardingStore.updatePersonalInfo(
+      currentData.firstName,
       this.emailValue(),
     );
   }
 
-  private async registerAndCreateAccount(): Promise<void> {
-    if (!this.canContinue() || this.onboardingApi.isSubmitting()) return;
+  protected goToPrevious(): void {
+    this.#router.navigate(['/onboarding/transport']);
+  }
 
-    // Delegate the business logic to the service
-    const result = await this.#registrationState.processCompleteRegistration(
+  protected async registerAndCreateAccount(): Promise<void> {
+    if (!this.canContinue() || this.onboardingStore.isSubmitting()) return;
+
+    const result = await this.onboardingStore.processCompleteRegistration(
       this.emailValue(),
       this.passwordValue(),
     );
 
-    // Component handles navigation based on result
     if (result.success) {
       this.#router.navigate([ROUTES.CURRENT_MONTH]);
     }

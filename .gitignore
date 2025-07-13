@@ -66,3 +66,7 @@ frontend/deps/
 
 .cursor/rules/angular-architecture.md
 backend-nest/supabase/.temp/*
+
+coverage/
+claude-rules/
+coverage-report.json

@@ -3,18 +3,17 @@ import {
   ChangeDetectionStrategy,
   inject,
   computed,
-  OnInit,
   effect,
-  DestroyRef,
   signal,
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { LottieComponent } from 'ngx-lottie';
 import { AnimationOptions } from 'ngx-lottie';
-import { OnboardingOrchestrator } from '../onboarding-orchestrator';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { OnboardingLayoutData } from '../models/onboarding-layout-data';
+import {
+  OnboardingStore,
+  type OnboardingLayoutData,
+} from '../onboarding-store';
 
 @Component({
   selector: 'pulpe-welcome',
@@ -62,13 +61,22 @@ import { OnboardingLayoutData } from '../models/onboarding-layout-data';
         Pulpe regroupe tes revenus et dépenses pour te donner une vision nette
         et des conseils adaptés dès aujourd'hui.
       </p>
+
+      <div class="flex justify-center mt-8">
+        <button
+          type="button"
+          class="px-6 py-3 text-white bg-blue-600 rounded-lg hover:bg-blue-700 text-lg font-medium"
+          (click)="goToNext()"
+        >
+          Commencer
+        </button>
+      </div>
     </div>
   `,
 })
-export default class Welcome implements OnInit {
+export default class Welcome {
+  readonly #onboardingStore = inject(OnboardingStore);
   readonly #router = inject(Router);
-  readonly #orchestrator = inject(OnboardingOrchestrator);
-  readonly #destroyRef = inject(DestroyRef);
 
   readonly #onboardingLayoutData: OnboardingLayoutData = {
     title: '',
@@ -76,7 +84,7 @@ export default class Welcome implements OnInit {
     currentStep: 0,
   };
 
-  readonly #canContinue = computed(() => true);
+  readonly canContinue = computed(() => true);
 
   readonly lottieOptions = signal<AnimationOptions>({
     path: '/lottie/welcome-animation.json',
@@ -93,15 +101,12 @@ export default class Welcome implements OnInit {
 
   constructor() {
     effect(() => {
-      this.#orchestrator.canContinue.set(this.#canContinue());
+      this.#onboardingStore.setCanContinue(this.canContinue());
+      this.#onboardingStore.setLayoutData(this.#onboardingLayoutData);
     });
   }
 
-  ngOnInit(): void {
-    this.#orchestrator.layoutData.set(this.#onboardingLayoutData);
-
-    this.#orchestrator.nextClicked$
-      .pipe(takeUntilDestroyed(this.#destroyRef))
-      .subscribe(() => this.#router.navigate(['/onboarding/personal-info']));
+  protected goToNext(): void {
+    this.#router.navigate(['/onboarding/personal-info']);
   }
 }
