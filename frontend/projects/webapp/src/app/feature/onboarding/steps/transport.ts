@@ -15,7 +15,6 @@ import {
 
 @Component({
   selector: 'pulpe-transport',
-  standalone: true,
   imports: [OnboardingCurrencyInput],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -57,7 +56,7 @@ export default class Transport {
     currentStep: 7,
   };
 
-  public transportValue = signal<number | null>(null);
+  protected transportValue = signal<number | null>(null);
 
   readonly canContinue = computed(() => {
     return this.transportValue() !== null && this.transportValue()! >= 0;

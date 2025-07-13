@@ -1,13 +1,13 @@
 import {
   Component,
   ChangeDetectionStrategy,
-  signal,
   inject,
   computed,
   effect,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
-import { FormsModule } from '@angular/forms';
+import { ReactiveFormsModule, FormControl, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
@@ -18,8 +18,12 @@ import {
 
 @Component({
   selector: 'pulpe-personal-info',
-  standalone: true,
-  imports: [FormsModule, MatFormFieldModule, MatInputModule, MatIconModule],
+  imports: [
+    ReactiveFormsModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatIconModule,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-6">
@@ -27,8 +31,7 @@ import {
         <mat-label>Prénom</mat-label>
         <input
           matInput
-          [(ngModel)]="firstNameValue"
-          (ngModelChange)="onFirstNameChange()"
+          [formControl]="firstNameControl"
           placeholder="Quel est ton prénom ?"
         />
         <mat-icon matPrefix>person</mat-icon>
@@ -65,10 +68,16 @@ export default class PersonalInfo {
     currentStep: 1,
   };
 
-  public firstNameValue = signal<string>('');
+  protected readonly firstNameControl = new FormControl<string>('', {
+    validators: [Validators.required, Validators.minLength(1)],
+    nonNullable: true,
+  });
 
   readonly canContinue = computed(() => {
-    return this.firstNameValue().trim().length > 0;
+    return (
+      this.firstNameControl.valid &&
+      this.firstNameControl.value.trim().length > 0
+    );
   });
 
   constructor() {
@@ -79,12 +88,15 @@ export default class PersonalInfo {
 
     const existingFirstName = this.#onboardingStore.data().firstName;
     if (existingFirstName) {
-      this.firstNameValue.set(existingFirstName);
+      this.firstNameControl.setValue(existingFirstName);
     }
-  }
 
-  protected onFirstNameChange(): void {
-    this.#onboardingStore.updateField('firstName', this.firstNameValue());
+    // Subscribe to form changes
+    this.firstNameControl.valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe((value) => {
+        this.#onboardingStore.updateField('firstName', value || '');
+      });
   }
 
   protected goToNext(): void {

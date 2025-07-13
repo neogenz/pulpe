@@ -3,13 +3,13 @@ import {
   Component,
   computed,
   inject,
-  linkedSignal,
   signal,
   afterNextRender,
   ElementRef,
   effect,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ReactiveFormsModule, FormControl, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -23,9 +23,8 @@ import {
 
 @Component({
   selector: 'pulpe-registration',
-  standalone: true,
   imports: [
-    FormsModule,
+    ReactiveFormsModule,
     MatFormFieldModule,
     MatInputModule,
     MatIconModule,
@@ -40,9 +39,7 @@ import {
           matInput
           type="email"
           placeholder="Email"
-          required
-          [(ngModel)]="emailValue"
-          (ngModelChange)="updateOnboardingEmail()"
+          [formControl]="emailControl"
           [disabled]="
             onboardingStore.isSubmitting() ||
             onboardingStore.isAuthenticationCompleted()
@@ -57,8 +54,7 @@ import {
           matInput
           [type]="hidePassword() ? 'password' : 'text'"
           placeholder="Mot de passe"
-          required
-          [(ngModel)]="passwordValue"
+          [formControl]="passwordControl"
           [disabled]="
             onboardingStore.isSubmitting() ||
             onboardingStore.isAuthenticationCompleted()
@@ -145,19 +141,27 @@ export default class Registration {
     };
   });
 
-  public emailValue = linkedSignal<string>(
-    () => this.onboardingStore.data().email,
-  );
-  public passwordValue = signal<string>('');
+  protected readonly emailControl = new FormControl<string>('', {
+    validators: [Validators.required, Validators.email],
+    nonNullable: true,
+  });
+  protected readonly passwordControl = new FormControl<string>('', {
+    validators: [Validators.required, Validators.minLength(8)],
+    nonNullable: true,
+  });
   protected hidePassword = signal<boolean>(true);
 
-  public canContinue = computed(() => {
+  protected canContinue = computed(() => {
     if (this.onboardingStore.isAuthenticationCompleted()) {
       return true;
     }
 
-    const password = this.passwordValue();
-    return this.onboardingStore.canSubmitRegistration(password);
+    const password = this.passwordControl.value;
+    return (
+      this.onboardingStore.canSubmitRegistration(password) &&
+      this.emailControl.valid &&
+      this.passwordControl.valid
+    );
   });
 
   constructor() {
@@ -169,19 +173,28 @@ export default class Registration {
       );
     });
 
+    // Initialize form with existing data
+    const existingEmail = this.onboardingStore.data().email;
+    if (existingEmail) {
+      this.emailControl.setValue(existingEmail);
+    }
+
+    // Subscribe to form changes
+    this.emailControl.valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe((email) => {
+        const currentData = this.onboardingStore.data();
+        this.onboardingStore.updatePersonalInfo(
+          currentData.firstName,
+          email || '',
+        );
+      });
+
     afterNextRender(() => {
       this.#elementRef.nativeElement
         .querySelector('input[type="email"]')
         ?.focus();
     });
-  }
-
-  protected updateOnboardingEmail(): void {
-    const currentData = this.onboardingStore.data();
-    this.onboardingStore.updatePersonalInfo(
-      currentData.firstName,
-      this.emailValue(),
-    );
   }
 
   protected goToPrevious(): void {
@@ -192,8 +205,8 @@ export default class Registration {
     if (!this.canContinue() || this.onboardingStore.isSubmitting()) return;
 
     const result = await this.onboardingStore.processCompleteRegistration(
-      this.emailValue(),
-      this.passwordValue(),
+      this.emailControl.value,
+      this.passwordControl.value,
     );
 
     if (result.success) {
