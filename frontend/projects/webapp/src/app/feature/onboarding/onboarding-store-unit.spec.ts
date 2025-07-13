@@ -5,7 +5,8 @@ import { OnboardingStore } from './onboarding-store';
 import { AuthApi } from '../../core/auth/auth-api';
 import { BudgetApi } from '../../core/budget/budget-api';
 import { TemplateApi } from '../../core/template/template-api';
-import { Router } from '@angular/router';
+import { NavigationEnd, Router } from '@angular/router';
+import { Subject } from 'rxjs'; // Import Subject
 
 describe('OnboardingStore - Unit Tests', () => {
   let store: OnboardingStore;
@@ -20,6 +21,7 @@ describe('OnboardingStore - Unit Tests', () => {
   };
   let mockRouter: {
     navigate: ReturnType<typeof vi.fn>;
+    events: Subject<NavigationEnd>; // Add events property
   };
 
   beforeEach(() => {
@@ -38,6 +40,7 @@ describe('OnboardingStore - Unit Tests', () => {
     };
     mockRouter = {
       navigate: vi.fn(),
+      events: new Subject<NavigationEnd>(), // Initialize events as a Subject
     };
 
     // Configure TestBed with mock services and zoneless change detection

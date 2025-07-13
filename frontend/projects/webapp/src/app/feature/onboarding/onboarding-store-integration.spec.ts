@@ -5,8 +5,8 @@ import { OnboardingStore } from './onboarding-store';
 import { AuthApi } from '../../core/auth/auth-api';
 import { BudgetApi } from '../../core/budget/budget-api';
 import { TemplateApi } from '../../core/template/template-api';
-import { Router } from '@angular/router';
-import { of, throwError } from 'rxjs';
+import { NavigationEnd, Router } from '@angular/router'; // Import NavigationEnd
+import { of, Subject, throwError } from 'rxjs'; // Import Subject
 
 // Mock des dépendances API
 const mockAuthApi = {
@@ -23,6 +23,7 @@ const mockBudgetApi = {
 
 const mockRouter = {
   navigate: vi.fn(),
+  events: new Subject<NavigationEnd>(), // Initialize events as a Subject
 };
 
 describe('OnboardingStore - Integration Tests', () => {
