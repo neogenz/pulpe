@@ -91,6 +91,9 @@ export default class Welcome {
     effect(() => {
       this.#onboardingStore.setCanContinue(this.canContinue());
       this.#onboardingStore.setLayoutData(this.#onboardingLayoutData);
+
+      // Welcome step is always completed when accessed
+      this.#onboardingStore.markOnboardingStepCompleted(0); // welcome step index
     });
   }
 }

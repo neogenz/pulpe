@@ -73,8 +73,14 @@ export default class PersonalInfo {
 
   constructor() {
     effect(() => {
-      this.#onboardingStore.setCanContinue(this.canContinue());
+      const canContinue = this.canContinue();
+      this.#onboardingStore.setCanContinue(canContinue);
       this.#onboardingStore.setLayoutData(this.#onboardingLayoutData);
+
+      // Mark step as completed when firstName is valid
+      if (canContinue) {
+        this.#onboardingStore.markOnboardingStepCompleted(1); // personal-info step index
+      }
     });
 
     const existingFirstName = this.#onboardingStore.data().firstName;
