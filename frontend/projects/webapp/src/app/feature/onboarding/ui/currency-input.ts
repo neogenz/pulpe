@@ -27,12 +27,11 @@ import { MatInputModule } from '@angular/material/input';
         [placeholder]="placeholder()"
         [attr.aria-describedby]="ariaDescribedBy()"
         [attr.aria-label]="label() + ' in Swiss Francs'"
+        [required]="required()"
         min="0"
         step="0.01"
       />
-      <span matSuffix class="text-gray-600 font-medium" aria-hidden="true"
-        >CHF</span
-      >
+      <span matTextSuffix class="text-gray-600 font-medium">CHF</span>
       @if (ariaDescribedBy()) {
         <mat-hint [id]="ariaDescribedBy()!"
           >Entre le montant en francs suisses (CHF)</mat-hint
@@ -40,16 +39,6 @@ import { MatInputModule } from '@angular/material/input';
       }
     </mat-form-field>
   `,
-  styles: [
-    `
-      :host
-        ::ng-deep
-        .mat-mdc-form-field-has-icon-suffix
-        .mat-mdc-text-field-wrapper {
-        padding-right: 16px !important;
-      }
-    `,
-  ],
 })
 export class OnboardingCurrencyInput {
   #elementRef = inject(ElementRef);
@@ -58,6 +47,7 @@ export class OnboardingCurrencyInput {
   value = input<number | null>(null);
   placeholder = input<string>('0.00');
   ariaDescribedBy = input<string>();
+  required = input<boolean>(false);
 
   valueChange = output<number | null>();
 

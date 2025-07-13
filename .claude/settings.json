@@ -13,11 +13,12 @@
       "WebFetch(domain:angular.dev)",
       "WebFetch(domain:zod.dev)",
       "mcp__context7",
-      "mcp__supabase"
+      "mcp__supabase",
+      "mcp__playwright"
     ],
     "deny": [],
     "defaultModel": "acceptEdits"
   },
-  "enabledMcpjsonServers": ["context7", "supabase"],
+  "enabledMcpjsonServers": ["context7", "supabase", "playwright"],
   "enableAllProjectMcpServers": true
 }

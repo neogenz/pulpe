@@ -23,6 +23,7 @@ import {
         label="Revenus mensuels"
         [(value)]="incomeValue"
         (valueChange)="onIncomeChange()"
+        [required]="true"
         ariaDescribedBy="income-hint"
       />
     </div>

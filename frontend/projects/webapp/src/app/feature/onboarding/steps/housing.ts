@@ -23,6 +23,7 @@ import {
         label="Montant de ton loyer"
         [(value)]="housingValue"
         (valueChange)="onHousingChange()"
+        placeholder="0 (optionnel)"
         ariaDescribedBy="housing-hint"
       />
     </div>
