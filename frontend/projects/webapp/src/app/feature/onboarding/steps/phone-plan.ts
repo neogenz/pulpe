@@ -15,7 +15,6 @@ import {
 
 @Component({
   selector: 'pulpe-phone-plan',
-  standalone: true,
   imports: [OnboardingCurrencyInput],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -57,7 +56,7 @@ export default class PhonePlan {
     currentStep: 6,
   };
 
-  public phonePlanValue = signal<number | null>(null);
+  protected phonePlanValue = signal<number | null>(null);
 
   readonly canContinue = computed(() => {
     return this.phonePlanValue() !== null && this.phonePlanValue()! >= 0;

@@ -15,7 +15,6 @@ import {
 
 @Component({
   selector: 'pulpe-leasing-credit',
-  standalone: true,
   imports: [OnboardingCurrencyInput],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -57,7 +56,7 @@ export default class LeasingCredit {
     currentStep: 5,
   };
 
-  public leasingCreditValue = signal<number | null>(null);
+  protected leasingCreditValue = signal<number | null>(null);
 
   readonly canContinue = computed(() => {
     return (

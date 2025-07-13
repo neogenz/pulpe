@@ -15,7 +15,6 @@ import {
 
 @Component({
   selector: 'pulpe-housing',
-  standalone: true,
   imports: [OnboardingCurrencyInput],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -57,7 +56,7 @@ export default class Housing {
     currentStep: 3,
   };
 
-  public housingValue = signal<number | null>(null);
+  protected housingValue = signal<number | null>(null);
 
   readonly canContinue = computed(() => {
     return this.housingValue() !== null && this.housingValue()! > 0;

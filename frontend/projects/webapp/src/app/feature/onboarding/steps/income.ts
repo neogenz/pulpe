@@ -15,7 +15,6 @@ import {
 
 @Component({
   selector: 'pulpe-income',
-  standalone: true,
   imports: [OnboardingCurrencyInput],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -57,7 +56,7 @@ export default class Income {
     currentStep: 2,
   };
 
-  public incomeValue = signal<number | null>(null);
+  protected incomeValue = signal<number | null>(null);
 
   readonly canContinue = computed(() => {
     return this.incomeValue() !== null && this.incomeValue()! > 0;

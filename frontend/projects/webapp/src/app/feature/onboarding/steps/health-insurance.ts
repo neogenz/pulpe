@@ -15,7 +15,6 @@ import {
 
 @Component({
   selector: 'pulpe-health-insurance',
-  standalone: true,
   imports: [OnboardingCurrencyInput],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -56,7 +55,7 @@ export default class HealthInsurance {
     currentStep: 4,
   };
 
-  public healthInsuranceValue = signal<number | null>(null);
+  protected healthInsuranceValue = signal<number | null>(null);
 
   readonly canContinue = computed(() => {
     return (
