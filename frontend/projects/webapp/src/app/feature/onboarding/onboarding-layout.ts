@@ -5,13 +5,19 @@ import {
   computed,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { OnboardingStore } from './onboarding-store';
 import { ONBOARDING_TOTAL_STEPS } from './onboarding-constants';
 
 @Component({
   selector: 'pulpe-onboarding-layout',
-  imports: [MatButtonModule, RouterOutlet, RouterLink],
+  imports: [
+    MatButtonModule,
+    RouterOutlet,
+    RouterLink,
+    MatProgressSpinnerModule,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
@@ -65,6 +71,7 @@ import { ONBOARDING_TOTAL_STEPS } from './onboarding-constants';
               <button
                 matButton="outlined"
                 (click)="onboardingStore.navigateToPrevious()"
+                [disabled]="onboardingStore.isSubmitting()"
                 class="w-full"
                 aria-label="Go to previous step"
               >
@@ -76,14 +83,26 @@ import { ONBOARDING_TOTAL_STEPS } from './onboarding-constants';
             <button
               matButton="filled"
               (click)="handleNextClick()"
-              [disabled]="!onboardingStore.canContinue()"
+              [disabled]="
+                !onboardingStore.canContinue() || onboardingStore.isSubmitting()
+              "
               class="w-full"
               [attr.aria-label]="
                 'Continue to ' +
                 (isFirstStep() ? 'start onboarding' : 'next step')
               "
             >
-              {{ onboardingStore.nextButtonText() }}
+              @if (onboardingStore.isSubmitting()) {
+                <div class="flex items-center justify-center">
+                  <mat-progress-spinner
+                    diameter="24"
+                    mode="indeterminate"
+                  ></mat-progress-spinner>
+                  <span class="ml-2">En cours...</span>
+                </div>
+              } @else {
+                {{ onboardingStore.nextButtonText() }}
+              }
             </button>
           </div>
         </div>
