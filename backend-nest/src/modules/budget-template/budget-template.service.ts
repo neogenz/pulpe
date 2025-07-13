@@ -40,16 +40,15 @@ export class BudgetTemplateService {
 
   /**
    * Validates template access for the authenticated user
+   * All templates are user-owned, no public templates exist
    * @param templateId - The template ID to validate
    * @param user - The authenticated user
    * @param supabase - The authenticated Supabase client
-   * @param requireOwnership - If true, requires ownership; if false, allows public access
    */
   private async validateTemplateAccess(
     templateId: string,
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
-    requireOwnership = false,
   ): Promise<void> {
     const { data, error } = await supabase
       .from('template')
@@ -66,30 +65,22 @@ export class BudgetTemplateService {
     }
 
     const isOwner = data.user_id === user.id;
-    const isPublic = data.user_id === null;
 
-    const hasAccess = requireOwnership ? isOwner : isOwner || isPublic;
-
-    if (!hasAccess) {
+    if (!isOwner) {
       this.logger.warn(
         {
           templateId,
           userId: user.id,
           templateOwnerId: data.user_id,
-          requireOwnership,
           templateName: data.name,
         },
-        'Template access validation failed - insufficient permissions',
+        'Template access validation failed - not the owner',
       );
-      throw new ForbiddenException(
-        requireOwnership
-          ? 'You can only modify your own templates'
-          : 'Access denied to this template',
-      );
+      throw new ForbiddenException('You can only access your own templates');
     }
 
     this.logger.debug(
-      { templateId, userId: user.id, isOwner, isPublic, requireOwnership },
+      { templateId, userId: user.id },
       'Template access validated successfully',
     );
   }
@@ -100,22 +91,16 @@ export class BudgetTemplateService {
    * @param lineId - The template line ID
    * @param user - The authenticated user
    * @param supabase - The authenticated Supabase client
-   * @param requireOwnership - If true, requires template ownership
+   * Ownership is always required for template line operations
    */
   private async validateTemplateLineAccess(
     templateId: string,
     lineId: string,
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
-    requireOwnership = true,
   ): Promise<void> {
     // First validate template access
-    await this.validateTemplateAccess(
-      templateId,
-      user,
-      supabase,
-      requireOwnership,
-    );
+    await this.validateTemplateAccess(templateId, user, supabase);
 
     // Then check if the line exists and belongs to the template
     const { data, error } = await supabase
@@ -140,12 +125,14 @@ export class BudgetTemplateService {
   }
 
   async findAll(
+    user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetTemplateListResponse> {
     try {
       const { data: templatesDb, error } = await supabase
         .from('template')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -316,7 +303,7 @@ export class BudgetTemplateService {
   ): Promise<BudgetTemplateResponse> {
     try {
       // Explicit authorization check before RLS
-      await this.validateTemplateAccess(id, user, supabase, false);
+      await this.validateTemplateAccess(id, user, supabase);
 
       const { data: templateDb, error } = await supabase
         .from('template')
@@ -405,7 +392,7 @@ export class BudgetTemplateService {
   ): Promise<BudgetTemplateResponse> {
     try {
       // Explicit authorization check - require ownership for updates
-      await this.validateTemplateAccess(id, user, supabase, true);
+      await this.validateTemplateAccess(id, user, supabase);
 
       this.validateUpdateTemplateDto(updateTemplateDto);
 
@@ -450,7 +437,7 @@ export class BudgetTemplateService {
   ): Promise<BudgetTemplateDeleteResponse> {
     try {
       // Explicit authorization check - require ownership for deletion
-      await this.validateTemplateAccess(id, user, supabase, true);
+      await this.validateTemplateAccess(id, user, supabase);
 
       const { error } = await supabase.from('template').delete().eq('id', id);
 
@@ -481,7 +468,7 @@ export class BudgetTemplateService {
   ): Promise<TemplateLineListResponse> {
     try {
       // Explicit authorization check - allow read access for own or public templates
-      await this.validateTemplateAccess(templateId, user, supabase, false);
+      await this.validateTemplateAccess(templateId, user, supabase);
 
       const { data: templateLinesDb, error } = await supabase
         .from('template_line')
@@ -529,21 +516,6 @@ export class BudgetTemplateService {
     }
   }
 
-  private async verifyTemplateExists(
-    templateId: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<void> {
-    const { data: templateDb, error: templateError } = await supabase
-      .from('template')
-      .select('id')
-      .eq('id', templateId)
-      .single();
-
-    if (templateError || !templateDb) {
-      throw new NotFoundException('Template introuvable ou accès non autorisé');
-    }
-  }
-
   async createTemplateLine(
     templateId: string,
     createLineDto: TemplateLineCreateWithoutTemplateId,
@@ -552,7 +524,7 @@ export class BudgetTemplateService {
   ): Promise<TemplateLineResponse> {
     try {
       // Explicit authorization check - require ownership to create lines
-      await this.validateTemplateAccess(templateId, user, supabase, true);
+      await this.validateTemplateAccess(templateId, user, supabase);
 
       this.validateTemplateLineInput(createLineDto, templateId);
 
@@ -599,13 +571,7 @@ export class BudgetTemplateService {
   ): Promise<TemplateLineResponse> {
     try {
       // Explicit authorization check for template line access
-      await this.validateTemplateLineAccess(
-        templateId,
-        lineId,
-        user,
-        supabase,
-        false,
-      );
+      await this.validateTemplateLineAccess(templateId, lineId, user, supabase);
 
       // Find template line
       const { data: lineDb, error } = await supabase
@@ -677,13 +643,7 @@ export class BudgetTemplateService {
   ): Promise<TemplateLineResponse> {
     try {
       // Explicit authorization check - require ownership to update lines
-      await this.validateTemplateLineAccess(
-        templateId,
-        lineId,
-        user,
-        supabase,
-        true,
-      );
+      await this.validateTemplateLineAccess(templateId, lineId, user, supabase);
 
       this.validateTemplateLineUpdate(updateLineDto);
 
@@ -720,13 +680,7 @@ export class BudgetTemplateService {
   ): Promise<TemplateLineDeleteResponse> {
     try {
       // Explicit authorization check - require ownership to delete lines
-      await this.validateTemplateLineAccess(
-        templateId,
-        lineId,
-        user,
-        supabase,
-        true,
-      );
+      await this.validateTemplateLineAccess(templateId, lineId, user, supabase);
 
       // Delete template line
       const { error } = await supabase
