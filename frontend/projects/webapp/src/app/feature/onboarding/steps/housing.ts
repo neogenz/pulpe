@@ -42,7 +42,7 @@ export default class Housing {
 
   readonly canContinue = computed(() => {
     const value = this.housingValue();
-    return value !== null && value > 0; // Housing costs must be positive
+    return value === null || value >= 0; // Housing costs can be 0 (owner, staying with family, etc.)
   });
 
   constructor() {

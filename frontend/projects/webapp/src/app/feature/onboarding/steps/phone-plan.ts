@@ -35,7 +35,7 @@ export default class PhonePlan {
     title: 'Forfait téléphone ?',
     subtitle:
       'Combien payes-tu frais téléphoniques chaque mois ? (Par ex. Swisscom, Sunrise, etc...)',
-    currentStep: 6,
+    currentStep: 5,
   };
 
   protected phonePlanValue = signal<number | null>(null);

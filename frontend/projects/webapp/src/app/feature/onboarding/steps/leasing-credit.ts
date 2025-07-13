@@ -35,7 +35,7 @@ export default class LeasingCredit {
     title: 'Leasing ou crédit à la consommation ?',
     subtitle:
       'Combien payes-tu de leasing ou crédit à la consommation chaque mois ?',
-    currentStep: 5,
+    currentStep: 7,
   };
 
   protected leasingCreditValue = signal<number | null>(null);

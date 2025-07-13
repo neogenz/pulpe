@@ -8,7 +8,7 @@ import {
   viewChild,
   ElementRef,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ReactiveFormsModule, FormControl, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -62,11 +62,13 @@ export default class PersonalInfo {
     nonNullable: true,
   });
 
+  readonly #firstNameValue = toSignal(this.firstNameControl.valueChanges, {
+    initialValue: '',
+  });
+
   readonly canContinue = computed(() => {
-    return (
-      this.firstNameControl.valid &&
-      this.firstNameControl.value.trim().length > 0
-    );
+    const value = this.#firstNameValue();
+    return value?.trim().length > 0;
   });
 
   constructor() {
