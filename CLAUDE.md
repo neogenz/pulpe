@@ -8,6 +8,23 @@ NEVER create files unless they're absolutely necessary for achieving your goal.
 ALWAYS prefer editing an existing file to creating a new one.
 NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
 
+## Quick Start Commands
+
+The most commonly used commands for development:
+
+```bash
+# Start full development environment
+pnpm dev
+
+# Quality checks and fixes
+pnpm quality:fix                   # Auto-fix all quality issues
+pnpm quality                       # Check all quality issues
+
+# Testing
+pnpm test                          # Run all tests across packages
+pnpm test:watch                    # Run tests in watch mode
+```
+
 ## Project Structure
 
 This is a monorepo with three main packages:
@@ -239,3 +256,21 @@ frontend/projects/webapp/src/app/feature/[feature]/
 - `shared/index.ts` - Exported schemas and types
 - `shared/schemas.ts` - Zod validation schemas
 - `pnpm-workspace.yaml` - Monorepo workspace configuration
+- `turbo.json` - Turborepo pipeline configuration
+
+## Onboarding Feature
+
+The application includes a multi-step onboarding process for new users:
+
+- **Location**: `frontend/projects/webapp/src/app/feature/onboarding/`
+- **State Management**: Uses custom store with signals (`onboarding-store.ts`)
+- **Steps**: Personal info, income, housing, transport, health insurance, phone plan, leasing credit
+- **Layout**: Dedicated onboarding layout with step navigation
+- **Integration**: Connected to user registration and template creation
+
+## Development Workflow
+
+1. **Start development**: `pnpm dev` starts all services with hot reload
+2. **Quality checks**: Always run `pnpm quality:fix` before committing
+3. **Testing**: Use `pnpm test:watch` for continuous testing during development
+4. **Type generation**: Run `bun run generate-types` in backend after database changes
