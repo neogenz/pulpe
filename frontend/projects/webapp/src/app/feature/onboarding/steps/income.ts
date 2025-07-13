@@ -6,7 +6,7 @@ import {
   computed,
   effect,
 } from '@angular/core';
-import { Router } from '@angular/router';
+import { MatButtonModule } from '@angular/material/button';
 import { OnboardingCurrencyInput } from '../ui/currency-input';
 import {
   OnboardingStore,
@@ -15,7 +15,7 @@ import {
 
 @Component({
   selector: 'pulpe-income',
-  imports: [OnboardingCurrencyInput],
+  imports: [OnboardingCurrencyInput, MatButtonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-6">
@@ -23,31 +23,13 @@ import {
         label="Revenus mensuels"
         [(value)]="incomeValue"
         (valueChange)="onIncomeChange()"
+        ariaDescribedBy="income-hint"
       />
-
-      <div class="flex justify-between">
-        <button
-          type="button"
-          class="px-4 py-2 text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
-          (click)="goToPrevious()"
-        >
-          Précédent
-        </button>
-        <button
-          type="button"
-          class="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          [disabled]="!canContinue()"
-          (click)="goToNext()"
-        >
-          Suivant
-        </button>
-      </div>
     </div>
   `,
 })
 export default class Income {
   readonly #onboardingStore = inject(OnboardingStore);
-  readonly #router = inject(Router);
 
   readonly #onboardingLayoutData: OnboardingLayoutData = {
     title: 'Quel est le montant de tes revenus mensuels ?',
@@ -59,7 +41,8 @@ export default class Income {
   protected incomeValue = signal<number | null>(null);
 
   readonly canContinue = computed(() => {
-    return this.incomeValue() !== null && this.incomeValue()! > 0;
+    const value = this.incomeValue();
+    return value !== null && value > 0; // Income must be positive
   });
 
   constructor() {
@@ -76,15 +59,5 @@ export default class Income {
 
   protected onIncomeChange(): void {
     this.#onboardingStore.updateField('monthlyIncome', this.incomeValue());
-  }
-
-  protected goToNext(): void {
-    if (this.canContinue()) {
-      this.#router.navigate(['/onboarding/housing']);
-    }
-  }
-
-  protected goToPrevious(): void {
-    this.#router.navigate(['/onboarding/personal-info']);
   }
 }

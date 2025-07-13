@@ -1,5 +1,6 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Subject } from 'rxjs';
+import { Router } from '@angular/router';
 import { AuthApi } from '../../core/auth/auth-api';
 import { BudgetApi } from '../../core/budget';
 import { TemplateApi } from '../../core/template';
@@ -38,6 +39,11 @@ export class OnboardingStore {
   readonly #authApi = inject(AuthApi);
   readonly #budgetApi = inject(BudgetApi);
   readonly #templateApi = inject(TemplateApi);
+  readonly #router = inject(Router);
+
+  // Navigation events
+  readonly previousClicked$ = new Subject<void>();
+  readonly nextClicked$ = new Subject<void>();
 
   // Consolidated state
   readonly #onboardingData = signal<OnboardingStepData>({
@@ -59,7 +65,6 @@ export class OnboardingStore {
   readonly #layoutData = signal<OnboardingLayoutData | null>(null);
   readonly #canContinue = signal<boolean>(false);
   readonly #isSubmitting = signal<boolean>(false);
-  readonly #nextButtonText = signal<string>('Continuer');
   readonly #submissionError = signal<string>('');
   readonly #submissionSuccess = signal<string>('');
 
@@ -69,7 +74,6 @@ export class OnboardingStore {
   readonly layoutData = this.#layoutData.asReadonly();
   readonly canContinue = this.#canContinue.asReadonly();
   readonly isSubmitting = this.#isSubmitting.asReadonly();
-  readonly nextButtonText = this.#nextButtonText.asReadonly();
   readonly submissionError = this.#submissionError.asReadonly();
   readonly submissionSuccess = this.#submissionSuccess.asReadonly();
 
@@ -116,6 +120,39 @@ export class OnboardingStore {
     }
   });
 
+  // Step order for navigation
+  readonly stepOrder = [
+    'welcome',
+    'personal-info',
+    'income',
+    'housing',
+    'health-insurance',
+    'leasing-credit',
+    'phone-plan',
+    'transport',
+    'registration',
+  ];
+
+  readonly nextButtonText = computed(() => {
+    const layoutData = this.#layoutData();
+    if (!layoutData) return 'Suivant';
+
+    const currentStep = layoutData.currentStep;
+    if (currentStep === 0) return 'Commencer';
+    if (currentStep === this.stepOrder.length - 1)
+      return this.retryButtonText();
+    return 'Suivant';
+  });
+
+  readonly isFirstStep = computed(() => {
+    return this.#layoutData()?.currentStep === 0;
+  });
+
+  readonly isLastStep = computed(() => {
+    const layoutData = this.#layoutData();
+    return layoutData?.currentStep === this.stepOrder.length - 1;
+  });
+
   constructor() {
     this.#loadFromLocalStorage();
   }
@@ -145,10 +182,6 @@ export class OnboardingStore {
 
   setCanContinue(canContinue: boolean): void {
     this.#canContinue.set(canContinue);
-  }
-
-  setNextButtonText(text: string): void {
-    this.#nextButtonText.set(text);
   }
 
   // Validation methods
@@ -274,6 +307,40 @@ export class OnboardingStore {
     });
 
     this.#clearLocalStorage();
+  }
+
+  // Navigation methods
+  navigateToPrevious(): void {
+    const layoutData = this.#layoutData();
+    if (!layoutData || layoutData.currentStep <= 0) return;
+
+    const currentStepIndex = layoutData.currentStep;
+    const previousStepRoute = this.stepOrder[currentStepIndex - 1];
+    this.#router.navigate([`/onboarding/${previousStepRoute}`]);
+  }
+
+  navigateToNext(): void {
+    const layoutData = this.#layoutData();
+    if (!layoutData) return;
+
+    const currentStepIndex = layoutData.currentStep;
+
+    // Special handling for registration step
+    if (currentStepIndex === this.stepOrder.length - 1) {
+      // This will be handled by the registration component
+      return;
+    }
+
+    if (currentStepIndex < this.stepOrder.length - 1) {
+      const nextStepRoute = this.stepOrder[currentStepIndex + 1];
+      this.#router.navigate([`/onboarding/${nextStepRoute}`]);
+    }
+  }
+
+  onEnterPressed(): void {
+    if (this.canContinue()) {
+      this.navigateToNext();
+    }
   }
 
   // Private methods

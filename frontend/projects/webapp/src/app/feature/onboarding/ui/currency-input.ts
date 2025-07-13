@@ -25,10 +25,19 @@ import { MatInputModule } from '@angular/material/input';
         [value]="value()"
         (input)="onInput($event)"
         [placeholder]="placeholder()"
+        [attr.aria-describedby]="ariaDescribedBy()"
+        [attr.aria-label]="label() + ' in Swiss Francs'"
         min="0"
         step="0.01"
       />
-      <span matSuffix class="text-gray-600 font-medium">CHF</span>
+      <span matSuffix class="text-gray-600 font-medium" aria-hidden="true"
+        >CHF</span
+      >
+      @if (ariaDescribedBy()) {
+        <mat-hint [id]="ariaDescribedBy()!"
+          >Enter amount in Swiss Francs (CHF)</mat-hint
+        >
+      }
     </mat-form-field>
   `,
   styles: [
@@ -48,6 +57,7 @@ export class OnboardingCurrencyInput {
   label = input.required<string>();
   value = input<number | null>(null);
   placeholder = input<string>('0.00');
+  ariaDescribedBy = input<string>();
 
   valueChange = output<number | null>();
 
