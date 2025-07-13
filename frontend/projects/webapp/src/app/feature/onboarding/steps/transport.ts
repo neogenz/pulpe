@@ -35,7 +35,7 @@ export default class Transport {
     title: 'Transport public ?',
     subtitle:
       "Combien payes-tu d'abonnements à des transports publics chaque mois ?",
-    currentStep: 7,
+    currentStep: 6,
   };
 
   protected transportValue = signal<number | null>(null);

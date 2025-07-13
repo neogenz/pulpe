@@ -104,6 +104,9 @@ export class OnboardingPage {
     await this.page.waitForLoadState('networkidle');
     await this.page.waitForTimeout(500);
     
+    // Initially, the Next button should be disabled
+    await this.expectNextButtonDisabled();
+    
     // Fill the input field to ensure data is captured for the onboarding store
     await this.firstNameInput.click();
     await this.firstNameInput.clear();
@@ -112,79 +115,124 @@ export class OnboardingPage {
     // Verify the input contains the expected value
     await expect(this.firstNameInput).toHaveValue(firstName);
     
-    // Due to Angular FormControl validation issues in E2E testing environment,
-    // we'll navigate programmatically to continue the test flow
-    // This ensures we can test the complete business workflow
-    await this.page.goto('/onboarding/income');
-    await this.waitForNavigation();
+    // Wait for Angular to process the input and enable the button
+    await this.page.waitForTimeout(500);
+    
+    // Now the Next button should be enabled
+    await this.expectNextButtonEnabled();
+    
+    // Click the Next button to navigate (real user interaction)
+    await this.clickNext();
   }
 
   async fillIncomeStep(monthlyIncome: number) {
     await this.expectCurrentStep('income');
     
+    // Initially, the Next button should be disabled
+    await this.expectNextButtonDisabled();
+    
     // Fill the currency input
     await this.monthlyIncomeInput.fill(monthlyIncome.toString());
     await this.page.waitForTimeout(500);
     
-    // Verify input value and navigate to next step
+    // Verify input value
     await expect(this.monthlyIncomeInput).toHaveValue(monthlyIncome.toString());
-    await this.page.goto('/onboarding/housing');
-    await this.waitForNavigation();
+    
+    // Now the Next button should be enabled
+    await this.expectNextButtonEnabled();
+    
+    // Click the Next button to navigate
+    await this.clickNext();
   }
 
   async fillHousingStep(housingCosts: number) {
     await this.expectCurrentStep('housing');
     
+    // For optional fields, the Next button should be enabled by default (null/0 are valid)
+    await this.expectNextButtonEnabled();
+    
     await this.housingCostsInput.fill(housingCosts.toString());
     await this.page.waitForTimeout(500);
     
     await expect(this.housingCostsInput).toHaveValue(housingCosts.toString());
-    await this.page.goto('/onboarding/health-insurance');
-    await this.waitForNavigation();
+    
+    // Button should remain enabled
+    await this.expectNextButtonEnabled();
+    
+    // Click the Next button to navigate
+    await this.clickNext();
   }
 
   async fillHealthInsuranceStep(healthInsurance: number) {
     await this.expectCurrentStep('health-insurance');
     
+    // For optional fields, the Next button should be enabled by default (null/0 are valid)
+    await this.expectNextButtonEnabled();
+    
     await this.healthInsuranceInput.fill(healthInsurance.toString());
     await this.page.waitForTimeout(500);
     
     await expect(this.healthInsuranceInput).toHaveValue(healthInsurance.toString());
-    await this.page.goto('/onboarding/phone-plan');
-    await this.waitForNavigation();
+    
+    // Button should remain enabled
+    await this.expectNextButtonEnabled();
+    
+    // Click the Next button to navigate
+    await this.clickNext();
   }
 
   async fillPhonePlanStep(phonePlan: number) {
     await this.expectCurrentStep('phone-plan');
     
+    // For optional fields, the Next button should be enabled by default (null/0 are valid)
+    await this.expectNextButtonEnabled();
+    
     await this.phonePlanInput.fill(phonePlan.toString());
     await this.page.waitForTimeout(500);
     
     await expect(this.phonePlanInput).toHaveValue(phonePlan.toString());
-    await this.page.goto('/onboarding/transport');
-    await this.waitForNavigation();
+    
+    // Button should remain enabled
+    await this.expectNextButtonEnabled();
+    
+    // Click the Next button to navigate
+    await this.clickNext();
   }
 
   async fillTransportStep(transportCosts: number) {
     await this.expectCurrentStep('transport');
     
+    // For optional fields, the Next button should be enabled by default (null/0 are valid)
+    await this.expectNextButtonEnabled();
+    
     await this.transportCostsInput.fill(transportCosts.toString());
     await this.page.waitForTimeout(500);
     
     await expect(this.transportCostsInput).toHaveValue(transportCosts.toString());
-    await this.page.goto('/onboarding/leasing-credit');
-    await this.waitForNavigation();
+    
+    // Button should remain enabled
+    await this.expectNextButtonEnabled();
+    
+    // Click the Next button to navigate
+    await this.clickNext();
   }
 
   async fillLeasingCreditStep(leasingCredit: number) {
     await this.expectCurrentStep('leasing-credit');
     
+    // For optional fields, the Next button should be enabled by default (null/0 are valid)
+    await this.expectNextButtonEnabled();
+    
     await this.leasingCreditInput.fill(leasingCredit.toString());
     await this.page.waitForTimeout(500);
     
     await expect(this.leasingCreditInput).toHaveValue(leasingCredit.toString());
-    await this.page.goto('/onboarding/registration');
-    await this.waitForNavigation();
+    
+    // Button should remain enabled
+    await this.expectNextButtonEnabled();
+    
+    // Click the Next button to navigate
+    await this.clickNext();
   }
 
   async fillRegistrationStep(email: string, password: string) {
@@ -357,8 +405,8 @@ export class OnboardingPage {
 
   // API mocking helpers for registration process
   async mockSuccessfulRegistration() {
-    void this.page.route('**/auth/signup', (route) => {
-      route.fulfill({
+    await this.page.route('**/auth/signup', (route) => {
+      void route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({ success: true, user: { id: '123', email: 'test@test.com' } })
@@ -367,8 +415,8 @@ export class OnboardingPage {
   }
 
   async mockFailedRegistration(errorMessage = 'Email already exists') {
-    void this.page.route('**/auth/signup', (route) => {
-      route.fulfill({
+    await this.page.route('**/auth/signup', (route) => {
+      void route.fulfill({
         status: 400,
         contentType: 'application/json',
         body: JSON.stringify({ success: false, error: errorMessage })
@@ -377,8 +425,8 @@ export class OnboardingPage {
   }
 
   async mockTemplateCreation() {
-    void this.page.route('**/templates/from-onboarding', (route) => {
-      route.fulfill({
+    await this.page.route('**/templates/from-onboarding', (route) => {
+      void route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({ 
@@ -395,8 +443,8 @@ export class OnboardingPage {
   }
 
   async mockBudgetCreation() {
-    void this.page.route('**/budgets', (route) => {
-      route.fulfill({
+    await this.page.route('**/budgets', (route) => {
+      void route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({ 
@@ -414,8 +462,8 @@ export class OnboardingPage {
   }
 
   async mockNetworkError() {
-    void this.page.route('**/auth/signup', (route) => {
-      route.abort('failed');
+    await this.page.route('**/auth/signup', (route) => {
+      void route.abort('failed');
     });
   }
 }

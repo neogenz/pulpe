@@ -127,9 +127,9 @@ export class OnboardingStore {
     'income',
     'housing',
     'health-insurance',
-    'leasing-credit',
     'phone-plan',
     'transport',
+    'leasing-credit',
     'registration',
   ];
 
