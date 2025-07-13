@@ -37,13 +37,13 @@ describe('BudgetService', () => {
 
   const createValidBudgetCreateDto = (
     overrides: Partial<BudgetCreate> = {},
-  ): BudgetCreate =>
-    ({
-      month: 1,
-      year: 2024,
-      description: 'Test Budget',
-      ...overrides,
-    }) as BudgetCreate;
+  ): BudgetCreate => ({
+    month: 1,
+    year: 2024,
+    description: 'Test Budget',
+    templateId: 'test-template-id',
+    ...overrides,
+  });
 
   beforeEach(async () => {
     const { mockClient } = createMockSupabaseClient();
@@ -143,7 +143,7 @@ describe('BudgetService', () => {
 
   describe('create', () => {
     it('should create budget with proper validation and transformation', async () => {
-      const mockUser = createMockAuthenticatedUser(); // Still needed for create method
+      const mockUser = createMockAuthenticatedUser();
       const createBudgetDto = createValidBudgetCreateDto();
       const mockCreatedBudget = createValidBudgetEntity({
         id: 'new-budget-id',
@@ -153,7 +153,19 @@ describe('BudgetService', () => {
         user_id: mockUser.id,
       });
 
-      setupCreateMocks(mockSupabaseClient, mockCreatedBudget);
+      // Mock RPC call for template-based creation
+      const mockRpcResult = {
+        budget: mockCreatedBudget,
+        transactions_created: 5,
+        template_name: 'Test Template',
+      };
+
+      mockSupabaseClient.setMockData(null).setMockError(null);
+      mockSupabaseClient.rpc = () =>
+        Promise.resolve({
+          data: mockRpcResult,
+          error: null,
+        });
 
       const result = await service.create(
         createBudgetDto,
@@ -172,11 +184,12 @@ describe('BudgetService', () => {
       const mockUser = createMockAuthenticatedUser(); // Still needed for create method
 
       // Test invalid month
-      const invalidMonthDto = {
+      const invalidMonthDto: BudgetCreate = {
         month: 13, // Invalid: must be 1-12
         year: 2024,
         description: 'Test',
-      } as BudgetCreate;
+        templateId: 'test-template-id',
+      };
 
       await expectErrorThrown(
         () =>
@@ -186,11 +199,12 @@ describe('BudgetService', () => {
       );
 
       // Test invalid year (too far in future)
-      const invalidYearDto = {
+      const invalidYearDto: BudgetCreate = {
         month: 1,
         year: new Date().getFullYear() + 5, // Too far in future
         description: 'Test',
-      } as BudgetCreate;
+        templateId: 'test-template-id',
+      };
 
       await expectErrorThrown(
         () =>
@@ -200,11 +214,12 @@ describe('BudgetService', () => {
       );
 
       // Test description too long
-      const invalidDescDto = {
+      const invalidDescDto: BudgetCreate = {
         month: 1,
         year: 2024,
         description: Array(502).join('x'), // Too long: max 500 chars
-      } as BudgetCreate;
+        templateId: 'test-template-id',
+      };
 
       await expectErrorThrown(
         () =>
@@ -324,35 +339,3 @@ describe('BudgetService', () => {
     });
   });
 });
-
-// Helper function to setup create operation mocks
-function setupCreateMocks(
-  mockClient: MockSupabaseClient,
-  mockCreatedBudget: any,
-): void {
-  let callCount = 0;
-  const originalFrom = mockClient.from;
-
-  mockClient.from = (table: string) => {
-    callCount++;
-    const chainMethods = originalFrom.call(mockClient, table);
-
-    chainMethods.single = () => {
-      if (callCount === 1) {
-        // First call: validation check (no duplicate)
-        return Promise.resolve({ data: null, error: null });
-      } else {
-        // Second call: return created budget
-        return Promise.resolve({ data: mockCreatedBudget, error: null });
-      }
-    };
-
-    chainMethods.insert = () => ({
-      select: () => ({
-        single: () => Promise.resolve({ data: mockCreatedBudget, error: null }),
-      }),
-    });
-
-    return chainMethods;
-  };
-}
