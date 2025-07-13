@@ -5,6 +5,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
+    setupFiles: ['projects/webapp/src/test-setup.ts'],
 
     include: [
       'projects/webapp/src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
@@ -19,6 +20,16 @@ export default defineConfig({
         'projects/webapp/src/main.ts',
         'projects/webapp/src/environments/**',
       ],
+    },
+
+    // Suppress all stderr output during tests
+    onConsoleLog(log, type) {
+      // Suppress all stderr logs (console.error, etc.)
+      if (type === 'stderr') {
+        return false;
+      }
+
+      return true; // Allow stdout logs through (console.log, etc.)
     },
   },
 });

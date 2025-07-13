@@ -114,7 +114,7 @@ module.exports = tseslint.config(
         {
           type: "test-config",
           mode: "file",
-          pattern: "vitest.config.ts",
+          pattern: ["vitest.config.ts", "projects/**/test-setup.ts"],
         },
         {
           type: "e2e-config",

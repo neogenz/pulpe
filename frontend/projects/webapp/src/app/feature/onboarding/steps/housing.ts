@@ -4,16 +4,14 @@ import {
   signal,
   inject,
   computed,
-  OnInit,
   effect,
-  DestroyRef,
 } from '@angular/core';
 import { Router } from '@angular/router';
-import { OnboardingLayoutData } from '../models/onboarding-layout-data';
 import { OnboardingCurrencyInput } from '../ui/currency-input';
-import { OnboardingApi } from '../onboarding-api';
-import { OnboardingOrchestrator } from '../onboarding-orchestrator';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import {
+  OnboardingStore,
+  type OnboardingLayoutData,
+} from '../onboarding-store';
 
 @Component({
   selector: 'pulpe-housing',
@@ -27,14 +25,30 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
         [(value)]="housingValue"
         (valueChange)="onHousingChange()"
       />
+
+      <div class="flex justify-between">
+        <button
+          type="button"
+          class="px-4 py-2 text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
+          (click)="goToPrevious()"
+        >
+          Précédent
+        </button>
+        <button
+          type="button"
+          class="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          [disabled]="!canContinue()"
+          (click)="goToNext()"
+        >
+          Suivant
+        </button>
+      </div>
     </div>
   `,
 })
-export default class Housing implements OnInit {
-  readonly #onboardingApi = inject(OnboardingApi);
+export default class Housing {
+  readonly #onboardingStore = inject(OnboardingStore);
   readonly #router = inject(Router);
-  readonly #orchestrator = inject(OnboardingOrchestrator);
-  readonly #destroyRef = inject(DestroyRef);
 
   readonly #onboardingLayoutData: OnboardingLayoutData = {
     title: 'Logement ?',
@@ -45,33 +59,33 @@ export default class Housing implements OnInit {
 
   public housingValue = signal<number | null>(null);
 
-  readonly #canContinue = computed(() => {
+  readonly canContinue = computed(() => {
     return this.housingValue() !== null && this.housingValue()! > 0;
   });
 
   constructor() {
     effect(() => {
-      this.#orchestrator.canContinue.set(this.#canContinue());
+      this.#onboardingStore.setCanContinue(this.canContinue());
+      this.#onboardingStore.setLayoutData(this.#onboardingLayoutData);
     });
-    const existingHousing = this.#onboardingApi.getStateData().housingCosts;
+
+    const existingHousing = this.#onboardingStore.data().housingCosts;
     if (existingHousing !== null) {
       this.housingValue.set(existingHousing);
     }
   }
 
-  ngOnInit(): void {
-    this.#orchestrator.layoutData.set(this.#onboardingLayoutData);
-
-    this.#orchestrator.nextClicked$
-      .pipe(takeUntilDestroyed(this.#destroyRef))
-      .subscribe(() => this.#router.navigate(['/onboarding/health-insurance']));
-
-    this.#orchestrator.previousClicked$
-      .pipe(takeUntilDestroyed(this.#destroyRef))
-      .subscribe(() => this.#router.navigate(['/onboarding/income']));
+  protected onHousingChange(): void {
+    this.#onboardingStore.updateField('housingCosts', this.housingValue());
   }
 
-  protected onHousingChange(): void {
-    this.#onboardingApi.updateHousingStep(this.housingValue());
+  protected goToNext(): void {
+    if (this.canContinue()) {
+      this.#router.navigate(['/onboarding/health-insurance']);
+    }
+  }
+
+  protected goToPrevious(): void {
+    this.#router.navigate(['/onboarding/income']);
   }
 }

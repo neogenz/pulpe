@@ -4,19 +4,17 @@ import {
   signal,
   inject,
   computed,
-  OnInit,
   effect,
-  DestroyRef,
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
-import { OnboardingLayoutData } from '../models/onboarding-layout-data';
-import { OnboardingApi } from '../onboarding-api';
-import { OnboardingOrchestrator } from '../onboarding-orchestrator';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import {
+  OnboardingStore,
+  type OnboardingLayoutData,
+} from '../onboarding-store';
 
 @Component({
   selector: 'pulpe-personal-info',
@@ -35,14 +33,30 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
         />
         <mat-icon matPrefix>person</mat-icon>
       </mat-form-field>
+
+      <div class="flex justify-between">
+        <button
+          type="button"
+          class="px-4 py-2 text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
+          (click)="goToPrevious()"
+        >
+          Précédent
+        </button>
+        <button
+          type="button"
+          class="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          [disabled]="!canContinue()"
+          (click)="goToNext()"
+        >
+          Suivant
+        </button>
+      </div>
     </div>
   `,
 })
-export default class PersonalInfo implements OnInit {
-  readonly #onboardingApi = inject(OnboardingApi);
+export default class PersonalInfo {
+  readonly #onboardingStore = inject(OnboardingStore);
   readonly #router = inject(Router);
-  readonly #orchestrator = inject(OnboardingOrchestrator);
-  readonly #destroyRef = inject(DestroyRef);
 
   readonly #onboardingLayoutData: OnboardingLayoutData = {
     title: "Comment je dois t'appeler ?",
@@ -53,37 +67,33 @@ export default class PersonalInfo implements OnInit {
 
   public firstNameValue = signal<string>('');
 
-  readonly #canContinue = computed(() => {
+  readonly canContinue = computed(() => {
     return this.firstNameValue().trim().length > 0;
   });
 
   constructor() {
     effect(() => {
-      this.#orchestrator.canContinue.set(this.#canContinue());
+      this.#onboardingStore.setCanContinue(this.canContinue());
+      this.#onboardingStore.setLayoutData(this.#onboardingLayoutData);
     });
-    const existingFirstName = this.#onboardingApi.getStateData().firstName;
+
+    const existingFirstName = this.#onboardingStore.data().firstName;
     if (existingFirstName) {
       this.firstNameValue.set(existingFirstName);
     }
   }
 
-  ngOnInit(): void {
-    this.#orchestrator.layoutData.set(this.#onboardingLayoutData);
-
-    this.#orchestrator.nextClicked$
-      .pipe(takeUntilDestroyed(this.#destroyRef))
-      .subscribe(() => this.#router.navigate(['/onboarding/income']));
-
-    this.#orchestrator.previousClicked$
-      .pipe(takeUntilDestroyed(this.#destroyRef))
-      .subscribe(() => this.#router.navigate(['/onboarding/welcome']));
+  protected onFirstNameChange(): void {
+    this.#onboardingStore.updateField('firstName', this.firstNameValue());
   }
 
-  protected onFirstNameChange(): void {
-    const currentSteps = this.#onboardingApi.getStateData();
-    this.#onboardingApi.updatePersonalInfoStep(
-      this.firstNameValue(),
-      currentSteps.email,
-    );
+  protected goToNext(): void {
+    if (this.canContinue()) {
+      this.#router.navigate(['/onboarding/income']);
+    }
+  }
+
+  protected goToPrevious(): void {
+    this.#router.navigate(['/onboarding/welcome']);
   }
 }

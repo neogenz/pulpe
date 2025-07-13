@@ -4,16 +4,14 @@ import {
   signal,
   inject,
   computed,
-  OnInit,
   effect,
-  DestroyRef,
 } from '@angular/core';
 import { Router } from '@angular/router';
-import { OnboardingLayoutData } from '../models/onboarding-layout-data';
 import { OnboardingCurrencyInput } from '../ui/currency-input';
-import { OnboardingApi } from '../onboarding-api';
-import { OnboardingOrchestrator } from '../onboarding-orchestrator';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import {
+  OnboardingStore,
+  type OnboardingLayoutData,
+} from '../onboarding-store';
 
 @Component({
   selector: 'pulpe-phone-plan',
@@ -27,14 +25,30 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
         [(value)]="phonePlanValue"
         (valueChange)="onPhonePlanChange()"
       />
+
+      <div class="flex justify-between">
+        <button
+          type="button"
+          class="px-4 py-2 text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
+          (click)="goToPrevious()"
+        >
+          Précédent
+        </button>
+        <button
+          type="button"
+          class="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          [disabled]="!canContinue()"
+          (click)="goToNext()"
+        >
+          Suivant
+        </button>
+      </div>
     </div>
   `,
 })
-export default class PhonePlan implements OnInit {
-  readonly #onboardingApi = inject(OnboardingApi);
+export default class PhonePlan {
+  readonly #onboardingStore = inject(OnboardingStore);
   readonly #router = inject(Router);
-  readonly #orchestrator = inject(OnboardingOrchestrator);
-  readonly #destroyRef = inject(DestroyRef);
 
   readonly #onboardingLayoutData: OnboardingLayoutData = {
     title: 'Forfait téléphone ?',
@@ -45,33 +59,33 @@ export default class PhonePlan implements OnInit {
 
   public phonePlanValue = signal<number | null>(null);
 
-  readonly #canContinue = computed(() => {
+  readonly canContinue = computed(() => {
     return this.phonePlanValue() !== null && this.phonePlanValue()! >= 0;
   });
 
   constructor() {
     effect(() => {
-      this.#orchestrator.canContinue.set(this.#canContinue());
+      this.#onboardingStore.setCanContinue(this.canContinue());
+      this.#onboardingStore.setLayoutData(this.#onboardingLayoutData);
     });
-    const existingPhonePlan = this.#onboardingApi.getStateData().phonePlan;
+
+    const existingPhonePlan = this.#onboardingStore.data().phonePlan;
     if (existingPhonePlan !== null) {
       this.phonePlanValue.set(existingPhonePlan);
     }
   }
 
-  ngOnInit(): void {
-    this.#orchestrator.layoutData.set(this.#onboardingLayoutData);
-
-    this.#orchestrator.nextClicked$
-      .pipe(takeUntilDestroyed(this.#destroyRef))
-      .subscribe(() => this.#router.navigate(['/onboarding/transport']));
-
-    this.#orchestrator.previousClicked$
-      .pipe(takeUntilDestroyed(this.#destroyRef))
-      .subscribe(() => this.#router.navigate(['/onboarding/leasing-credit']));
+  protected onPhonePlanChange(): void {
+    this.#onboardingStore.updateField('phonePlan', this.phonePlanValue());
   }
 
-  protected onPhonePlanChange(): void {
-    this.#onboardingApi.updatePhonePlanStep(this.phonePlanValue());
+  protected goToNext(): void {
+    if (this.canContinue()) {
+      this.#router.navigate(['/onboarding/transport']);
+    }
+  }
+
+  protected goToPrevious(): void {
+    this.#router.navigate(['/onboarding/leasing-credit']);
   }
 }
