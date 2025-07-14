@@ -51,8 +51,8 @@ import { MatCardModule } from '@angular/material/card';
         </div>
 
         <!-- Affichage des erreurs globales -->
-        <div class="mt-8">
-          @if (store.error(); as error) {
+        @if (store.error(); as error) {
+          <div class="mt-8">
             <mat-card
               appearance="outlined"
               class="text-on-error-container pb-4"
@@ -62,8 +62,8 @@ import { MatCardModule } from '@angular/material/card';
                 <mat-card-subtitle>{{ error }}</mat-card-subtitle>
               </mat-card-header>
             </mat-card>
-          }
-        </div>
+          </div>
+        }
       </div>
     </div>
   `,
