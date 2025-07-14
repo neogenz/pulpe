@@ -37,6 +37,8 @@ export const STEP_ORDER = [
   'registration',
 ] as const;
 
+export type OnboardingStep = (typeof STEP_ORDER)[number];
+
 @Injectable()
 export class OnboardingStore {
   readonly #authApi = inject(AuthApi);
