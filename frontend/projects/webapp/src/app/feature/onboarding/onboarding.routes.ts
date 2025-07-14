@@ -27,15 +27,15 @@ const routes: Routes = [
         canActivate: [onboardingStepGuard],
       },
       {
-        path: 'housing',
-        title: PAGE_TITLES.HOUSING,
-        loadComponent: () => import('./steps/housing'),
-        canActivate: [onboardingStepGuard],
-      },
-      {
         path: 'income',
         title: PAGE_TITLES.INCOME,
         loadComponent: () => import('./steps/income'),
+        canActivate: [onboardingStepGuard],
+      },
+      {
+        path: 'housing',
+        title: PAGE_TITLES.HOUSING,
+        loadComponent: () => import('./steps/housing'),
         canActivate: [onboardingStepGuard],
       },
       {

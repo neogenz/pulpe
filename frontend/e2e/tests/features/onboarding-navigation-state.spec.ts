@@ -73,8 +73,15 @@ test.describe('Onboarding Navigation and State Management', () => {
     });
 
     test('should handle deep linking to registration step', async () => {
-      // Test direct navigation to registration
+      // Test deep linking with guard protection
+      // First try direct navigation - should be redirected due to missing required data
       await onboardingPage.gotoStep('registration');
+      
+      // Should be redirected to personal-info due to missing firstName
+      await onboardingPage.expectCurrentStep('personal-info');
+      
+      // Now set up minimal data and try again
+      await onboardingPage.navigateToRegistrationWithMinimalData();
       await onboardingPage.expectCurrentStep('registration');
       
       // Verify registration form is visible

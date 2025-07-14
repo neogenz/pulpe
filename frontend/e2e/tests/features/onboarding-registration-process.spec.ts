@@ -21,7 +21,8 @@ test.describe('Onboarding Registration Process', () => {
     });
 
     test('should display proper registration form elements', async () => {
-      await onboardingPage.gotoStep('registration');
+      // Need to complete minimal required steps to access registration
+      await onboardingPage.navigateToRegistrationWithMinimalData();
       
       // Verify all form elements are present
       await expect(onboardingPage.emailInput).toBeVisible();
@@ -38,7 +39,8 @@ test.describe('Onboarding Registration Process', () => {
 
   test.describe('Registration Data Handling', () => {
     test('should handle email input correctly', async () => {
-      await onboardingPage.gotoStep('registration');
+      // Need to complete minimal required steps to access registration
+      await onboardingPage.navigateToRegistrationWithMinimalData();
       
       const testEmail = 'user@test.com';
       await onboardingPage.emailInput.fill(testEmail);
@@ -46,7 +48,8 @@ test.describe('Onboarding Registration Process', () => {
     });
 
     test('should handle password input correctly', async () => {
-      await onboardingPage.gotoStep('registration');
+      // Need to complete minimal required steps to access registration
+      await onboardingPage.navigateToRegistrationWithMinimalData();
       
       const testPassword = 'SecurePassword123!';
       await onboardingPage.passwordInput.fill(testPassword);
@@ -54,7 +57,8 @@ test.describe('Onboarding Registration Process', () => {
     });
 
     test('should handle password visibility toggle', async () => {
-      await onboardingPage.gotoStep('registration');
+      // Need to complete minimal required steps to access registration
+      await onboardingPage.navigateToRegistrationWithMinimalData();
       
       // Fill password
       await onboardingPage.passwordInput.fill('testPassword');
@@ -93,7 +97,8 @@ test.describe('Onboarding Registration Process', () => {
 
   test.describe('API Integration Ready', () => {
     test('should be ready for authentication API call', async () => {
-      await onboardingPage.gotoStep('registration');
+      // Need to complete minimal required steps to access registration
+      await onboardingPage.navigateToRegistrationWithMinimalData();
       
       // Mock successful registration for testing
       await onboardingPage.mockSuccessfulRegistration();

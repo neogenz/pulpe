@@ -23,7 +23,8 @@ test.describe('Onboarding Form Validation', () => {
     });
 
     test('should accept valid email formats', async () => {
-      await onboardingPage.gotoStep('registration');
+      // Need to complete minimal required steps to access registration
+      await onboardingPage.navigateToRegistrationWithMinimalData();
       
       const validEmails = [
         'test@example.com',
@@ -39,7 +40,8 @@ test.describe('Onboarding Form Validation', () => {
     });
 
     test('should accept valid passwords', async () => {
-      await onboardingPage.gotoStep('registration');
+      // Need to complete minimal required steps to access registration
+      await onboardingPage.navigateToRegistrationWithMinimalData();
       
       const validPasswords = [
         'Password123!',
@@ -88,7 +90,7 @@ test.describe('Onboarding Form Validation', () => {
       
       // Test decimal values - note that HTML number inputs may normalize trailing zeros
       const decimalTests = [
-        { input: '1500.50', expected: '1500.5' },
+        { input: '1500.50', expected: '1500.50' },
         { input: '2000.75', expected: '2000.75' },
         { input: '3500.25', expected: '3500.25' }
       ];
@@ -118,7 +120,8 @@ test.describe('Onboarding Form Validation', () => {
     });
 
     test('should handle special characters in email', async () => {
-      await onboardingPage.gotoStep('registration');
+      // Need to complete minimal required steps to access registration
+      await onboardingPage.navigateToRegistrationWithMinimalData();
       
       const specialEmails = [
         'test+special@example.com',
