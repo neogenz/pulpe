@@ -8,16 +8,11 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { RouterOutlet } from '@angular/router';
 import { OnboardingStore } from './onboarding-store';
-import { MatCardModule } from '@angular/material/card';
+import { ErrorCard } from '../../ui';
 
 @Component({
   selector: 'pulpe-onboarding-layout',
-  imports: [
-    MatButtonModule,
-    RouterOutlet,
-    MatProgressSpinnerModule,
-    MatCardModule,
-  ],
+  imports: [MatButtonModule, RouterOutlet, MatProgressSpinnerModule, ErrorCard],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
@@ -52,37 +47,12 @@ import { MatCardModule } from '@angular/material/card';
 
         <!-- Affichage des erreurs globales -->
         @if (store.error(); as error) {
-          <div class="mt-8">
-            <mat-card
-              appearance="outlined"
-              class="text-on-error-container pb-4"
-            >
-              <mat-card-header>
-                <mat-card-title>Erreur</mat-card-title>
-                <mat-card-subtitle>{{ error }}</mat-card-subtitle>
-              </mat-card-header>
-            </mat-card>
-          </div>
+          <pulpe-error-card [error]="error" />
         }
       </div>
     </div>
   `,
-  styles: [
-    `
-      @use '@angular/material' as mat;
-
-      // Customize the entire app. Change :root to your selector if you want to scope the styles.
-      :host {
-        @include mat.card-overrides(
-          (
-            outlined-container-color: var(--mat-sys-error-container),
-            outlined-outline-color: var(--mat-sys-error),
-            subtitle-text-color: var(--mat-sys-on-error-container),
-          )
-        );
-      }
-    `,
-  ],
+  styles: ``,
 })
 export class OnboardingLayout {
   protected readonly store = inject(OnboardingStore);
