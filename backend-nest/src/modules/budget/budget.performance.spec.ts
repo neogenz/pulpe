@@ -144,16 +144,36 @@ describe('BudgetService (Performance)', () => {
 
     it('should handle concurrent create requests', async () => {
       const mockUser = createMockAuthenticatedUser(); // Still needed for create method
-      const createBudgetDto: BudgetCreate = {
-        month: 2,
-        year: 2025,
-        description: 'Load Test Budget',
-        templateId: 'template-id',
+
+      // Generate unique DTOs for each request to avoid duplicate period validation
+      let requestCounter = 0;
+      const createBudgetDtoGenerator = () => {
+        requestCounter++;
+        // Keep year within allowed range (current year + 1 to stay within 2 years limit)
+        const currentYear = new Date().getFullYear();
+        return {
+          month: (requestCounter % 12) + 1, // Cycle through months 1-12
+          year: currentYear + (requestCounter % 2), // Alternate between current and next year
+          description: `Load Test Budget ${requestCounter}`,
+          templateId: `template-id-${requestCounter}`,
+        } as BudgetCreate;
       };
+
       const mockCreatedBudget = createMockBudgetEntity({
-        month: 2,
+        month: 1,
         year: 2025,
       });
+
+      // Mock RPC function to always succeed
+      mockSupabaseClient.rpc = () =>
+        Promise.resolve({
+          data: {
+            budget: mockCreatedBudget,
+            transactions_created: 5,
+            template_name: 'Test Template',
+          },
+          error: null,
+        });
 
       // Setup simple mocks for concurrent operations
       const originalFrom = mockSupabaseClient.from;
@@ -165,22 +185,13 @@ describe('BudgetService (Performance)', () => {
         chainMethods.single = () =>
           Promise.resolve({ data: null, error: null });
 
-        // Always return created budget for insert
-        chainMethods.insert = () => ({
-          select: () => ({
-            single: () =>
-              Promise.resolve({ data: mockCreatedBudget, error: null }),
-          }),
-        });
-
         return chainMethods;
       };
 
-      const result = await loadTestRunner.runConcurrentTest(
-        async () =>
-          service.create(createBudgetDto, mockUser, mockSupabaseClient as any),
-        'BudgetService.create',
-      );
+      const result = await loadTestRunner.runConcurrentTest(async () => {
+        const dto = createBudgetDtoGenerator();
+        return service.create(dto, mockUser, mockSupabaseClient as any);
+      }, 'BudgetService.create');
 
       expectLoadTestPerformance(result, {
         minSuccessRate: 90,
