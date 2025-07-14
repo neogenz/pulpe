@@ -49,6 +49,11 @@ export const test = base.extend<OnboardingFixtures>({
     await page.goto('/onboarding/welcome');
     await onboardingPage.clearLocalStorageData();
 
+    // Validate and sanitize data before injection
+    const sanitizedFirstName = typeof validOnboardingData.firstName === 'string' 
+      ? validOnboardingData.firstName.slice(0, 100) 
+      : 'Test User';
+
     // Set up minimal state with personal info completed
     await page.evaluate((firstName) => {
       localStorage.setItem(
@@ -65,7 +70,7 @@ export const test = base.extend<OnboardingFixtures>({
           isUserCreated: false,
         }),
       );
-    }, validOnboardingData.firstName);
+    }, sanitizedFirstName);
 
     await use(onboardingPage);
   },
@@ -80,6 +85,16 @@ export const test = base.extend<OnboardingFixtures>({
     // Navigate first to ensure localStorage is accessible
     await page.goto('/onboarding/welcome');
     await onboardingPage.clearLocalStorageData();
+
+    // Validate and sanitize data before injection
+    const sanitizedData = {
+      firstName: typeof validOnboardingData.firstName === 'string' 
+        ? validOnboardingData.firstName.slice(0, 100) 
+        : 'Test User',
+      monthlyIncome: typeof validOnboardingData.monthlyIncome === 'number' && validOnboardingData.monthlyIncome >= 0
+        ? validOnboardingData.monthlyIncome
+        : 5000
+    };
 
     // Set up state with personal info and income completed
     await page.evaluate(
@@ -99,10 +114,7 @@ export const test = base.extend<OnboardingFixtures>({
           }),
         );
       },
-      {
-        firstName: validOnboardingData.firstName,
-        monthlyIncome: validOnboardingData.monthlyIncome,
-      },
+      sanitizedData,
     );
 
     await use(onboardingPage);
@@ -118,6 +130,31 @@ export const test = base.extend<OnboardingFixtures>({
     // Navigate first to ensure localStorage is accessible
     await page.goto('/onboarding/welcome');
     await onboardingPage.clearLocalStorageData();
+
+    // Validate and sanitize all onboarding data before injection
+    const sanitizedData = {
+      firstName: typeof validOnboardingData.firstName === 'string' 
+        ? validOnboardingData.firstName.slice(0, 100) 
+        : 'Test User',
+      monthlyIncome: typeof validOnboardingData.monthlyIncome === 'number' && validOnboardingData.monthlyIncome >= 0
+        ? validOnboardingData.monthlyIncome
+        : 5000,
+      housingCosts: typeof validOnboardingData.housingCosts === 'number' && validOnboardingData.housingCosts >= 0
+        ? validOnboardingData.housingCosts
+        : 0,
+      healthInsurance: typeof validOnboardingData.healthInsurance === 'number' && validOnboardingData.healthInsurance >= 0
+        ? validOnboardingData.healthInsurance
+        : 0,
+      phonePlan: typeof validOnboardingData.phonePlan === 'number' && validOnboardingData.phonePlan >= 0
+        ? validOnboardingData.phonePlan
+        : 0,
+      transportCosts: typeof validOnboardingData.transportCosts === 'number' && validOnboardingData.transportCosts >= 0
+        ? validOnboardingData.transportCosts
+        : 0,
+      leasingCredit: typeof validOnboardingData.leasingCredit === 'number' && validOnboardingData.leasingCredit >= 0
+        ? validOnboardingData.leasingCredit
+        : 0,
+    };
 
     // Set up complete onboarding data
     await page.evaluate((data) => {
@@ -135,7 +172,7 @@ export const test = base.extend<OnboardingFixtures>({
           isUserCreated: false,
         }),
       );
-    }, validOnboardingData);
+    }, sanitizedData);
 
     await use(onboardingPage);
   },
@@ -148,13 +185,19 @@ export { expect } from '@playwright/test';
  * Useful for tests that need basic prerequisites without full fixtures
  */
 export async function setupMinimalOnboardingState(
-  page: any,
+  page: import('@playwright/test').Page,
   data: { firstName?: string; monthlyIncome?: number } = {}
 ) {
+  // Validate input data to prevent injection
+  const sanitizedData = {
+    firstName: typeof data.firstName === 'string' ? data.firstName.slice(0, 100) : 'Test User',
+    monthlyIncome: typeof data.monthlyIncome === 'number' && data.monthlyIncome >= 0 ? data.monthlyIncome : null
+  };
+
   await page.evaluate((stateData) => {
     localStorage.setItem('pulpe-onboarding-data', JSON.stringify({
-      firstName: stateData.firstName || 'Test User',
-      monthlyIncome: stateData.monthlyIncome || null,
+      firstName: stateData.firstName,
+      monthlyIncome: stateData.monthlyIncome,
       email: '',
       housingCosts: null,
       healthInsurance: null,
@@ -163,5 +206,5 @@ export async function setupMinimalOnboardingState(
       leasingCredit: null,
       isUserCreated: false
     }));
-  }, data);
+  }, sanitizedData);
 }

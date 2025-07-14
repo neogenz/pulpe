@@ -10,6 +10,8 @@ test.describe('Onboarding Form Validation', () => {
       const validNames = ['Jean', 'Marie-Claire', 'Jean-Baptiste', 'Anne'];
       
       for (const validName of validNames) {
+        // Clear field before each test to ensure clean state
+        await onboardingPage.firstNameInput.clear();
         await onboardingPage.firstNameInput.fill(validName);
         await expect(onboardingPage.firstNameInput).toHaveValue(validName);
       }
@@ -25,6 +27,8 @@ test.describe('Onboarding Form Validation', () => {
       ];
       
       for (const email of validEmails) {
+        // Clear field before each test to ensure clean state
+        await onboardingReadyForRegistration.emailInput.clear();
         await onboardingReadyForRegistration.emailInput.fill(email);
         await expect(onboardingReadyForRegistration.emailInput).toHaveValue(email);
       }
@@ -40,6 +44,8 @@ test.describe('Onboarding Form Validation', () => {
       ];
       
       for (const password of validPasswords) {
+        // Clear field before each test to ensure clean state
+        await onboardingReadyForRegistration.passwordInput.clear();
         await onboardingReadyForRegistration.passwordInput.fill(password);
         await expect(onboardingReadyForRegistration.passwordInput).toHaveValue(password);
       }
@@ -53,6 +59,8 @@ test.describe('Onboarding Form Validation', () => {
       const validIncomes = ['1500', '5000', '10000'];
       
       for (const income of validIncomes) {
+        // Clear field before each test to ensure clean state
+        await onboardingWithPersonalInfo.monthlyIncomeInput.clear();
         await onboardingWithPersonalInfo.monthlyIncomeInput.fill(income);
         await expect(onboardingWithPersonalInfo.monthlyIncomeInput).toHaveValue(income);
       }
@@ -62,7 +70,9 @@ test.describe('Onboarding Form Validation', () => {
       const steps = [
         { step: 'housing', input: () => onboardingWithIncomeData.housingCostsInput },
         { step: 'health-insurance', input: () => onboardingWithIncomeData.healthInsuranceInput },
-        { step: 'transport', input: () => onboardingWithIncomeData.transportCostsInput }
+        { step: 'phone-plan', input: () => onboardingWithIncomeData.phonePlanInput },
+        { step: 'transport', input: () => onboardingWithIncomeData.transportCostsInput },
+        { step: 'leasing-credit', input: () => onboardingWithIncomeData.leasingCreditInput }
       ];
       
       for (const stepInfo of steps) {
