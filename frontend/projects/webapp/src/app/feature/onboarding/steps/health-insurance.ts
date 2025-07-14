@@ -33,6 +33,7 @@ import { OnboardingStore } from '../onboarding-store';
         [(value)]="healthInsuranceValue"
         placeholder="0 (optionnel)"
         [required]="false"
+        testId="health-insurance-input"
       />
 
       <div class="flex gap-4 p-4 md:p-0 w-full mt-auto">

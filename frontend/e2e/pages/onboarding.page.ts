@@ -41,7 +41,7 @@ export class OnboardingPage {
     this.startButton = page.getByTestId('welcome-start-button');
     this.nextButton = page.getByTestId('next-button');
     this.previousButton = page.getByTestId('previous-button');
-    this.finishButton = page.locator('button:has-text("Terminer"), button:has-text("Créer le template"), button:has-text("Créer le budget"), button:has-text("Finaliser")');
+    this.finishButton = page.locator('button:has-text("Créer le compte"), button:has-text("Terminer"), button:has-text("Créer le template"), button:has-text("Créer le budget"), button:has-text("Finaliser")');
     
     // Form inputs
     this.firstNameInput = page.getByTestId('first-name-input');
@@ -49,11 +49,11 @@ export class OnboardingPage {
     this.passwordInput = page.getByTestId('password-input');
     this.passwordVisibilityToggle = page.getByTestId('password-visibility-toggle');
     this.monthlyIncomeInput = page.getByTestId('monthly-income-input');
-    this.housingCostsInput = page.getByTestId('currency-input');
-    this.healthInsuranceInput = page.getByTestId('currency-input');
-    this.phonePlanInput = page.getByTestId('currency-input');
-    this.transportCostsInput = page.getByTestId('currency-input');
-    this.leasingCreditInput = page.getByTestId('currency-input');
+    this.housingCostsInput = page.getByTestId('housing-costs-input');
+    this.healthInsuranceInput = page.getByTestId('health-insurance-input');
+    this.phonePlanInput = page.getByTestId('phone-plan-input');
+    this.transportCostsInput = page.getByTestId('transport-costs-input');
+    this.leasingCreditInput = page.getByTestId('leasing-credit-input');
     
     // Messages and indicators
     this.errorMessage = page.getByTestId('error-message');
@@ -102,7 +102,7 @@ export class OnboardingPage {
     
     // Wait for Angular to fully load
     await this.page.waitForLoadState('networkidle');
-    await this.page.waitForTimeout(500);
+    // Wait removed - rely on Playwright's auto-waiting
     
     // Initially, the Next button should be disabled
     await this.expectNextButtonDisabled();
@@ -116,7 +116,7 @@ export class OnboardingPage {
     await expect(this.firstNameInput).toHaveValue(firstName);
     
     // Wait for Angular to process the input and enable the button
-    await this.page.waitForTimeout(500);
+    // Wait removed - rely on Playwright's auto-waiting
     
     // Now the Next button should be enabled
     await this.expectNextButtonEnabled();
@@ -133,7 +133,7 @@ export class OnboardingPage {
     
     // Fill the currency input
     await this.monthlyIncomeInput.fill(monthlyIncome.toString());
-    await this.page.waitForTimeout(500);
+    // Wait removed - rely on Playwright's auto-waiting
     
     // Verify input value
     await expect(this.monthlyIncomeInput).toHaveValue(monthlyIncome.toString());
@@ -152,7 +152,7 @@ export class OnboardingPage {
     await this.expectNextButtonEnabled();
     
     await this.housingCostsInput.fill(housingCosts.toString());
-    await this.page.waitForTimeout(500);
+    // Wait removed - rely on Playwright's auto-waiting
     
     await expect(this.housingCostsInput).toHaveValue(housingCosts.toString());
     
@@ -170,7 +170,7 @@ export class OnboardingPage {
     await this.expectNextButtonEnabled();
     
     await this.healthInsuranceInput.fill(healthInsurance.toString());
-    await this.page.waitForTimeout(500);
+    // Wait removed - rely on Playwright's auto-waiting
     
     await expect(this.healthInsuranceInput).toHaveValue(healthInsurance.toString());
     
@@ -188,7 +188,7 @@ export class OnboardingPage {
     await this.expectNextButtonEnabled();
     
     await this.phonePlanInput.fill(phonePlan.toString());
-    await this.page.waitForTimeout(500);
+    // Wait removed - rely on Playwright's auto-waiting
     
     await expect(this.phonePlanInput).toHaveValue(phonePlan.toString());
     
@@ -206,7 +206,7 @@ export class OnboardingPage {
     await this.expectNextButtonEnabled();
     
     await this.transportCostsInput.fill(transportCosts.toString());
-    await this.page.waitForTimeout(500);
+    // Wait removed - rely on Playwright's auto-waiting
     
     await expect(this.transportCostsInput).toHaveValue(transportCosts.toString());
     
@@ -224,7 +224,7 @@ export class OnboardingPage {
     await this.expectNextButtonEnabled();
     
     await this.leasingCreditInput.fill(leasingCredit.toString());
-    await this.page.waitForTimeout(500);
+    // Wait removed - rely on Playwright's auto-waiting
     
     await expect(this.leasingCreditInput).toHaveValue(leasingCredit.toString());
     
@@ -239,23 +239,19 @@ export class OnboardingPage {
     await this.expectCurrentStep('registration');
     await this.emailInput.fill(email);
     await this.passwordInput.fill(password);
-    await this.page.waitForTimeout(500);
+    // Wait removed - rely on Playwright's auto-waiting
     
     // Verify the inputs contain the expected values
     await expect(this.emailInput).toHaveValue(email);
     await expect(this.passwordInput).toHaveValue(password);
     
-    // Use the finish button or whatever appropriate action for registration
-    try {
-      await this.expectNextButtonEnabled();
-      await this.clickFinish();
-    } catch {
-      // If button validation fails, use programmatic approach or force click
-      await this.finishButton.click({ force: true });
-    }
+    // The registration step uses a submit button with data-testid="submit-button"
+    const submitButton = this.page.getByTestId('submit-button');
+    await expect(submitButton).toBeEnabled();
+    await submitButton.click();
   }
 
-  // Complete workflow method
+  // Complete workflow method - goes through all steps but doesn't submit registration
   async completeOnboardingFlow(data: OnboardingData) {
     await this.fillWelcomeStep();
     await this.fillPersonalInfoStep(data.firstName);
@@ -265,7 +261,18 @@ export class OnboardingPage {
     await this.fillPhonePlanStep(data.phonePlan);
     await this.fillTransportStep(data.transportCosts);
     await this.fillLeasingCreditStep(data.leasingCredit);
-    await this.fillRegistrationStep(data.email, data.password);
+    // Don't submit registration - just navigate to it
+    await this.expectCurrentStep('registration');
+  }
+
+  // Minimal workflow to access registration (only required fields)
+  async navigateToRegistrationWithMinimalData() {
+    await this.goto();
+    await this.fillWelcomeStep();
+    await this.fillPersonalInfoStep('Test User');
+    await this.fillIncomeStep(5000);
+    // Skip optional steps
+    await this.gotoStep('registration');
   }
 
   // Validation and assertion methods

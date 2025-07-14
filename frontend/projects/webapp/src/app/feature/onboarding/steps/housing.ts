@@ -34,6 +34,7 @@ import { OnboardingStore } from '../onboarding-store';
         placeholder="0 (optionnel)"
         [required]="false"
         ariaDescribedBy="housing-hint"
+        testId="housing-costs-input"
       />
 
       <div class="flex gap-4 p-4 md:p-0 w-full mt-auto">

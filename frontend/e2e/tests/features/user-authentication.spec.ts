@@ -271,7 +271,8 @@ test.describe('User Authentication Flows', () => {
 
     const publicRoutes = [
       '/onboarding/welcome',
-      '/onboarding/registration',
+      '/onboarding/personal-info',
+      '/onboarding/income',
     ] as const;
 
     test('should protect routes from unauthenticated access', async ({

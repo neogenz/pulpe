@@ -84,13 +84,15 @@ test.describe('Onboarding Main Flow', () => {
 
   test.describe('Form Input Validation', () => {
     test('should accept valid email format', async () => {
-      await onboardingPage.gotoStep('registration');
+      // Need to complete minimal required steps to access registration
+      await onboardingPage.navigateToRegistrationWithMinimalData();
       await onboardingPage.emailInput.fill('test@example.com');
       await expect(onboardingPage.emailInput).toHaveValue('test@example.com');
     });
 
     test('should accept valid password', async () => {
-      await onboardingPage.gotoStep('registration');
+      // Need to complete minimal required steps to access registration
+      await onboardingPage.navigateToRegistrationWithMinimalData();
       await onboardingPage.passwordInput.fill('validPassword123');
       await expect(onboardingPage.passwordInput).toHaveValue('validPassword123');
     });
@@ -114,7 +116,8 @@ test.describe('Onboarding Main Flow', () => {
     });
 
     test('should handle special characters in email', async () => {
-      await onboardingPage.gotoStep('registration');
+      // Need to complete minimal required steps to access registration
+      await onboardingPage.navigateToRegistrationWithMinimalData();
       
       const specialEmail = 'test+special@example.co.uk';
       await onboardingPage.emailInput.fill(specialEmail);
@@ -132,7 +135,8 @@ test.describe('Onboarding Main Flow', () => {
 
   test.describe('Registration Process Setup', () => {
     test('should display registration form with proper fields', async () => {
-      await onboardingPage.gotoStep('registration');
+      // Need to complete minimal required steps to access registration
+      await onboardingPage.navigateToRegistrationWithMinimalData();
       await onboardingPage.expectRegistrationFormVisible();
       
       // Verify form fields are present
