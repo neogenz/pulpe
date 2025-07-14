@@ -14,8 +14,8 @@ import {
   type TransactionResponse,
   type TransactionUpdate,
 } from '@pulpe/shared';
-import { type TransactionRow, TRANSACTION_CONSTANTS } from './entities';
 import { TransactionMapper } from './transaction.mapper';
+import { TRANSACTION_CONSTANTS } from './entities';
 import type { Database } from '../../types/database.types';
 
 @Injectable()
@@ -42,10 +42,7 @@ export class TransactionService {
         );
       }
 
-      const transactions = this.validateAndEnrichTransactions(
-        transactionsDb || [],
-      );
-      const apiData = this.transactionMapper.toApiList(transactions);
+      const apiData = this.transactionMapper.toApiList(transactionsDb || []);
 
       return {
         success: true as const,
@@ -129,7 +126,7 @@ export class TransactionService {
   private async insertTransaction(
     transactionData: ReturnType<typeof this.prepareTransactionData>,
     supabase: AuthenticatedSupabaseClient,
-  ): Promise<unknown> {
+  ): Promise<Database['public']['Tables']['transaction']['Row']> {
     const { data: transactionDb, error } = await supabase
       .from('transaction')
       .insert(transactionData)
@@ -163,14 +160,7 @@ export class TransactionService {
         supabase,
       );
 
-      const transaction = this.validateAndEnrichTransaction(transactionDb);
-      if (!transaction) {
-        throw new InternalServerErrorException(
-          'Erreur lors de la validation de la transaction créée',
-        );
-      }
-
-      const apiData = this.transactionMapper.toApi(transaction);
+      const apiData = this.transactionMapper.toApi(transactionDb);
 
       return {
         success: true,
@@ -203,14 +193,7 @@ export class TransactionService {
         );
       }
 
-      const transaction = this.validateAndEnrichTransaction(transactionDb);
-      if (!transaction) {
-        throw new NotFoundException(
-          'Transaction introuvable ou données invalides',
-        );
-      }
-
-      const apiData = this.transactionMapper.toApi(transaction);
+      const apiData = this.transactionMapper.toApi(transactionDb);
 
       return {
         success: true,
@@ -290,7 +273,7 @@ export class TransactionService {
     id: string,
     updateData: Record<string, unknown>,
     supabase: AuthenticatedSupabaseClient,
-  ): Promise<unknown> {
+  ): Promise<Database['public']['Tables']['transaction']['Row']> {
     const { data: transactionDb, error } = await supabase
       .from('transaction')
       .update(updateData)
@@ -325,14 +308,7 @@ export class TransactionService {
         supabase,
       );
 
-      const transaction = this.validateAndEnrichTransaction(transactionDb);
-      if (!transaction) {
-        throw new InternalServerErrorException(
-          'Erreur lors de la validation de la transaction modifiée',
-        );
-      }
-
-      const apiData = this.transactionMapper.toApi(transaction);
+      const apiData = this.transactionMapper.toApi(transactionDb);
 
       return {
         success: true,
@@ -402,10 +378,7 @@ export class TransactionService {
         );
       }
 
-      const transactions = this.validateAndEnrichTransactions(
-        transactionsDb || [],
-      );
-      const apiData = this.transactionMapper.toApiList(transactions);
+      const apiData = this.transactionMapper.toApiList(transactionsDb || []);
 
       return {
         success: true as const,
@@ -422,94 +395,4 @@ export class TransactionService {
       throw new InternalServerErrorException('Erreur interne du serveur');
     }
   }
-
-  private validateAndEnrichTransactions(
-    rawTransactions: unknown[],
-  ): EnrichedTransaction[] {
-    return rawTransactions
-      .map(this.validateAndEnrichTransaction.bind(this))
-      .filter(
-        (transaction): transaction is EnrichedTransaction =>
-          transaction !== null,
-      )
-      .sort(
-        (a, b) =>
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-      );
-  }
-
-  private validateAndEnrichTransaction(
-    rawTransaction: unknown,
-  ): EnrichedTransaction | null {
-    // Validation avec type guard
-    if (!this.isValidTransactionRow(rawTransaction)) {
-      this.logger.warn({ data: rawTransaction }, 'Invalid transaction data');
-      return null;
-    }
-
-    return {
-      ...rawTransaction,
-      displayAmount: this.formatAmount(rawTransaction),
-      isRecurring: rawTransaction.is_recurring,
-      categoryDisplay: this.getCategoryDisplay(rawTransaction),
-    };
-  }
-
-  private isValidTransactionRow(data: unknown): data is TransactionRow {
-    if (!data || typeof data !== 'object') {
-      return false;
-    }
-
-    const transaction = data as Record<string, unknown>;
-
-    return (
-      typeof transaction.id === 'string' &&
-      typeof transaction.budget_id === 'string' &&
-      typeof transaction.amount === 'number' &&
-      typeof transaction.name === 'string' &&
-      typeof transaction.type === 'string' &&
-      typeof transaction.expense_type === 'string' &&
-      typeof transaction.created_at === 'string' &&
-      typeof transaction.updated_at === 'string' &&
-      typeof transaction.is_recurring === 'boolean' &&
-      (transaction.user_id === null ||
-        typeof transaction.user_id === 'string') &&
-      (transaction.description === null ||
-        typeof transaction.description === 'string')
-    );
-  }
-
-  private formatAmount(transaction: TransactionRow): string {
-    const sign = transaction.type === 'expense' ? '-' : '+';
-    return `${sign}${TRANSACTION_CONSTANTS.CURRENCY} ${transaction.amount.toFixed(2)}`;
-  }
-
-  private getCategoryDisplay(transaction: TransactionRow): string {
-    const typeLabels = {
-      expense: 'Dépense',
-      income: 'Revenu',
-      saving: 'Épargne',
-      exceptional_income: 'Revenu exceptionnel',
-    } as const;
-
-    const recurrenceLabels = {
-      fixed: 'Fixe',
-      variable: 'Variable',
-      one_off: 'Ponctuel',
-    } as const;
-
-    const baseLabel = typeLabels[transaction.type];
-    if (transaction.type === 'expense') {
-      return `${baseLabel} ${recurrenceLabels[transaction.expense_type]}`;
-    }
-
-    return baseLabel;
-  }
 }
-
-type EnrichedTransaction =
-  Database['public']['Tables']['transaction']['Row'] & {
-    displayAmount: string;
-    isRecurring: boolean;
-    categoryDisplay: string;
-  };
