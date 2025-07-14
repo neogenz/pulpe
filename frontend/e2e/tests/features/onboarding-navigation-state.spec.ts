@@ -63,6 +63,21 @@ test.describe('Onboarding Navigation and State Management', () => {
 
   test.describe('Direct Navigation', () => {
     test('should handle direct navigation to specific steps', async () => {
+      // Set up required data for navigation to income step (needs firstName)
+      await onboardingPage.page.evaluate((firstName) => {
+        localStorage.setItem('pulpe-onboarding-data', JSON.stringify({
+          firstName: firstName,
+          monthlyIncome: null,
+          email: '',
+          housingCosts: null,
+          healthInsurance: null,
+          phonePlan: null,
+          transportCosts: null,
+          leasingCredit: null,
+          isUserCreated: false
+        }));
+      }, validOnboardingData.firstName);
+      
       // Test direct navigation to income step
       await onboardingPage.gotoStep('income');
       await onboardingPage.expectCurrentStep('income');

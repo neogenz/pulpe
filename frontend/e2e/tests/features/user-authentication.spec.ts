@@ -318,6 +318,23 @@ test.describe('User Authentication Flows', () => {
     }) => {
       for (const route of publicRoutes) {
         await test.step(`Testing public route: ${route}`, async () => {
+          // Set up required data for onboarding steps that need prerequisites
+          if (route === '/onboarding/income') {
+            await page.evaluate(() => {
+              localStorage.setItem('pulpe-onboarding-data', JSON.stringify({
+                firstName: 'Test User',
+                monthlyIncome: null,
+                email: '',
+                housingCosts: null,
+                healthInsurance: null,
+                phonePlan: null,
+                transportCosts: null,
+                leasingCredit: null,
+                isUserCreated: false
+              }));
+            });
+          }
+          
           await page.goto(route);
 
           // Utiliser une regex escaped pour le test d'URL

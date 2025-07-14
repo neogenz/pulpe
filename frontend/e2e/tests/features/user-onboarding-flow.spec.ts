@@ -98,6 +98,21 @@ test.describe('Onboarding Main Flow', () => {
     });
 
     test('should handle numeric value inputs correctly', async () => {
+      // Set up required data to access income step
+      await onboardingPage.page.evaluate(() => {
+        localStorage.setItem('pulpe-onboarding-data', JSON.stringify({
+          firstName: 'Test User',
+          monthlyIncome: null,
+          email: '',
+          housingCosts: null,
+          healthInsurance: null,
+          phonePlan: null,
+          transportCosts: null,
+          leasingCredit: null,
+          isUserCreated: false
+        }));
+      });
+      
       await onboardingPage.gotoStep('income');
       
       const testValue = '5000';
@@ -108,6 +123,21 @@ test.describe('Onboarding Main Flow', () => {
 
   test.describe('Edge Cases', () => {
     test('should handle large numeric values', async () => {
+      // Set up required data to access income step
+      await onboardingPage.page.evaluate(() => {
+        localStorage.setItem('pulpe-onboarding-data', JSON.stringify({
+          firstName: 'Test User',
+          monthlyIncome: null,
+          email: '',
+          housingCosts: null,
+          healthInsurance: null,
+          phonePlan: null,
+          transportCosts: null,
+          leasingCredit: null,
+          isUserCreated: false
+        }));
+      });
+      
       await onboardingPage.gotoStep('income');
       
       const largeValue = '999999';
