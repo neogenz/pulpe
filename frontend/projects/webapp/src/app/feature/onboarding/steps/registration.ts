@@ -174,15 +174,12 @@ export default class Registration implements OnDestroy {
 
     const { email, password } = this.registrationForm.getRawValue();
 
-    // Mettre à jour l'email dans le store
-    this.store.updatePersonalInfo(this.store.data().firstName, email);
+    this.store.updateEmail(email);
 
-    // Soumettre l'inscription
     const success = await this.store.submitRegistration(email, password);
 
-    // La redirection est déjà gérée dans le store
-    if (!success) {
-      // En cas d'erreur, le message est déjà affiché via store.error()
+    if (success) {
+      this.#router.navigate(['/current-month']);
     }
   }
 }

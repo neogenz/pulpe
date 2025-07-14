@@ -8,10 +8,16 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { RouterOutlet } from '@angular/router';
 import { OnboardingStore } from './onboarding-store';
+import { MatCardModule } from '@angular/material/card';
 
 @Component({
   selector: 'pulpe-onboarding-layout',
-  imports: [MatButtonModule, RouterOutlet, MatProgressSpinnerModule],
+  imports: [
+    MatButtonModule,
+    RouterOutlet,
+    MatProgressSpinnerModule,
+    MatCardModule,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
@@ -45,21 +51,38 @@ import { OnboardingStore } from './onboarding-store';
         </div>
 
         <!-- Affichage des erreurs globales -->
-        @if (store.error()) {
-          <div class="mt-8">
-            <div
-              class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4"
+        <div class="mt-8">
+          @if (store.error(); as error) {
+            <mat-card
+              appearance="outlined"
+              class="text-on-error-container pb-4"
             >
-              {{ store.error() }}
-            </div>
-            <button matButton (click)="store.clearError()" class="w-full">
-              Réessayer
-            </button>
-          </div>
-        }
+              <mat-card-header>
+                <mat-card-title>Erreur</mat-card-title>
+                <mat-card-subtitle>{{ error }}</mat-card-subtitle>
+              </mat-card-header>
+            </mat-card>
+          }
+        </div>
       </div>
     </div>
   `,
+  styles: [
+    `
+      @use '@angular/material' as mat;
+
+      // Customize the entire app. Change :root to your selector if you want to scope the styles.
+      :host {
+        @include mat.card-overrides(
+          (
+            outlined-container-color: var(--mat-sys-error-container),
+            outlined-outline-color: var(--mat-sys-error),
+            subtitle-text-color: var(--mat-sys-on-error-container),
+          )
+        );
+      }
+    `,
+  ],
 })
 export class OnboardingLayout {
   protected readonly store = inject(OnboardingStore);

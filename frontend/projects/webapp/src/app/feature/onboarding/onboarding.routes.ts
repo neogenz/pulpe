@@ -1,8 +1,8 @@
 import { Routes } from '@angular/router';
 import { OnboardingLayout } from './onboarding-layout';
-import { OnboardingStore } from './onboarding-store';
-import { onboardingStepGuard } from './onboarding-step-guard';
+import { OnboardingStore, STEP_ORDER } from './onboarding-store';
 import { PAGE_TITLES } from '../../core/routing';
+import { onboardingStepGuard } from './onboarding-step-guard';
 
 const routes: Routes = [
   {
@@ -16,54 +16,54 @@ const routes: Routes = [
         redirectTo: 'welcome',
       },
       {
-        path: 'welcome',
+        path: STEP_ORDER[0],
         title: PAGE_TITLES.WELCOME,
         loadComponent: () => import('./steps/welcome'),
       },
       {
-        path: 'personal-info',
+        path: STEP_ORDER[1],
         title: PAGE_TITLES.PERSONAL_INFO,
         loadComponent: () => import('./steps/personal-info'),
         canActivate: [onboardingStepGuard],
       },
       {
-        path: 'income',
+        path: STEP_ORDER[2],
         title: PAGE_TITLES.INCOME,
         loadComponent: () => import('./steps/income'),
         canActivate: [onboardingStepGuard],
       },
       {
-        path: 'housing',
+        path: STEP_ORDER[3],
         title: PAGE_TITLES.HOUSING,
         loadComponent: () => import('./steps/housing'),
         canActivate: [onboardingStepGuard],
       },
       {
-        path: 'health-insurance',
+        path: STEP_ORDER[4],
         title: PAGE_TITLES.HEALTH_INSURANCE,
         loadComponent: () => import('./steps/health-insurance'),
         canActivate: [onboardingStepGuard],
       },
       {
-        path: 'phone-plan',
+        path: STEP_ORDER[5],
         title: PAGE_TITLES.PHONE_PLAN,
         loadComponent: () => import('./steps/phone-plan'),
         canActivate: [onboardingStepGuard],
       },
       {
-        path: 'transport',
+        path: STEP_ORDER[6],
         title: PAGE_TITLES.TRANSPORT,
         loadComponent: () => import('./steps/transport'),
         canActivate: [onboardingStepGuard],
       },
       {
-        path: 'leasing-credit',
+        path: STEP_ORDER[7],
         title: PAGE_TITLES.LEASING_CREDIT,
         loadComponent: () => import('./steps/leasing-credit'),
         canActivate: [onboardingStepGuard],
       },
       {
-        path: 'registration',
+        path: STEP_ORDER[8],
         title: PAGE_TITLES.REGISTRATION,
         loadComponent: () => import('./steps/registration'),
         canActivate: [onboardingStepGuard],

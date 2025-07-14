@@ -20,11 +20,12 @@ export interface OnboardingData {
   leasingCredit: number | null;
   phonePlan: number | null;
   transportCosts: number | null;
+  isUserCreated: boolean;
 }
 
 const STORAGE_KEY = 'pulpe-onboarding-data';
 
-const STEP_ORDER = [
+export const STEP_ORDER = [
   'welcome',
   'personal-info',
   'income',
@@ -52,6 +53,7 @@ export class OnboardingStore {
     leasingCredit: null,
     phonePlan: null,
     transportCosts: null,
+    isUserCreated: false,
   });
 
   readonly #isSubmitting = signal(false);
@@ -92,13 +94,17 @@ export class OnboardingStore {
     this.#saveToStorage();
   }
 
-  updatePersonalInfo(firstName: string, email: string): void {
-    this.#data.update((data) => ({ ...data, firstName, email }));
+  updateEmail(email: string): void {
+    this.#data.update((data) => ({ ...data, email }));
     this.#saveToStorage();
   }
 
   clearError(): void {
     this.#error.set('');
+  }
+
+  resetUserCreationState(): void {
+    this.#data.update((data) => ({ ...data, isUserCreated: false }));
   }
 
   async submitRegistration(email: string, password: string): Promise<boolean> {
@@ -113,13 +119,17 @@ export class OnboardingStore {
     this.#error.set('');
 
     try {
-      // 1. Créer le compte
-      const authResult = await this.#authApi.signUpWithEmail(email, password);
-      if (!authResult.success) {
-        this.#error.set(
-          authResult.error || 'Erreur lors de la création du compte',
-        );
-        return false;
+      // 1. Créer le compte seulement s'il n'a pas déjà été créé
+      if (!data.isUserCreated) {
+        const authResult = await this.#authApi.signUpWithEmail(email, password);
+        if (!authResult.success) {
+          this.#error.set(
+            authResult.error || 'Erreur lors de la création du compte',
+          );
+          return false;
+        }
+        // Marquer que l'utilisateur a été créé avec succès
+        this.#data.update((data) => ({ ...data, isUserCreated: true }));
       }
 
       // 2. Créer le template
@@ -153,8 +163,6 @@ export class OnboardingStore {
 
       // 4. Nettoyer et rediriger
       this.#clearStorage();
-      this.#router.navigate(['/current-month']);
-
       return true;
     } catch (error) {
       console.error("Erreur lors de l'inscription:", error);

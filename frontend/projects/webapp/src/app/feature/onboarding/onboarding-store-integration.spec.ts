@@ -57,7 +57,8 @@ describe('OnboardingStore - Integration Tests', () => {
     store = TestBed.inject(OnboardingStore);
 
     // Setup initial data for tests
-    store.updatePersonalInfo('John', 'john@example.com');
+    store.updateField('firstName', 'John');
+    store.updateEmail('john@example.com');
     store.updateField('monthlyIncome', 5000);
   });
 
@@ -88,7 +89,7 @@ describe('OnboardingStore - Integration Tests', () => {
       );
       expect(mockTemplateApi.createFromOnboarding$).toHaveBeenCalled();
       expect(mockBudgetApi.createBudget$).toHaveBeenCalled();
-      expect(mockRouter.navigate).toHaveBeenCalledWith(['/current-month']);
+      // Router navigation is now handled by the registration component, not the store
     });
 
     it('should handle authentication failure', async () => {
@@ -147,7 +148,7 @@ describe('OnboardingStore - Integration Tests', () => {
       localStorageMock = {};
 
       // Test with missing firstName - clear existing data first
-      store.updatePersonalInfo('', ''); // Clear firstName
+      store.updateField('firstName', ''); // Clear firstName
       store.updateField('monthlyIncome', 5000); // Set valid income
 
       const result1 = await store.submitRegistration(
@@ -303,7 +304,8 @@ describe('OnboardingStore - Integration Tests', () => {
   describe('LocalStorage persistence', () => {
     it('should save state updates to localStorage', () => {
       store.updateField('monthlyIncome', 3000);
-      store.updatePersonalInfo('Jane', 'jane@example.com');
+      store.updateField('firstName', 'Jane');
+      store.updateEmail('jane@example.com');
 
       const saved = localStorageMock['pulpe-onboarding-data'];
       expect(saved).toBeDefined();
