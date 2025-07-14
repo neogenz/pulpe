@@ -111,7 +111,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
             @if (store.isSubmitting()) {
               <mat-spinner diameter="20" />
             }
-            Créer le compte
+            Créer
           </div>
         </button>
       </div>
