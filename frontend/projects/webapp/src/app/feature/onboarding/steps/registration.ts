@@ -41,7 +41,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
           Création de ton compte
         </h1>
         <p class="text-body-large text-on-surface-variant leading-relaxed">
-          Crée ton compte pour commencer à utiliser Pulpe.
+          Créer ton compte pour commencer à utiliser Pulpe.
         </p>
       </div>
 
