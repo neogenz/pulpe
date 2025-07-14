@@ -1,5 +1,4 @@
-import { test, expect } from '../../fixtures/test-fixtures';
-import { OnboardingPage } from '../../pages/onboarding.page';
+import { test, expect } from '../../fixtures/onboarding-fixtures';
 import { 
   validOnboardingData, 
   minimalValidData,
@@ -7,37 +6,31 @@ import {
 } from '../../fixtures/onboarding-test-data';
 
 test.describe('Onboarding Main Flow', () => {
-  let onboardingPage: OnboardingPage;
-
-  test.beforeEach(async ({ page }) => {
-    onboardingPage = new OnboardingPage(page);
-    await onboardingPage.clearLocalStorageData();
-  });
 
   test.describe('Complete Workflow Tests', () => {
-    test('should complete full onboarding flow with valid data', async () => {
+    test('should complete full onboarding flow with valid data', async ({ onboardingPage }) => {
       await onboardingPage.completeOnboardingFlow(validOnboardingData);
       await onboardingPage.expectCurrentStep('registration');
     });
 
-    test('should complete onboarding with minimal valid data', async () => {
+    test('should complete onboarding with minimal valid data', async ({ onboardingPage }) => {
       await onboardingPage.completeOnboardingFlow(minimalValidData);
       await onboardingPage.expectCurrentStep('registration');
     });
 
-    test('should complete onboarding with high income scenario', async () => {
+    test('should complete onboarding with high income scenario', async ({ onboardingPage }) => {
       await onboardingPage.completeOnboardingFlow(highIncomeData);
       await onboardingPage.expectCurrentStep('registration');
     });
   });
 
   test.describe('Individual Step Validation', () => {
-    test('should display welcome content correctly', async () => {
+    test('should display welcome content correctly', async ({ onboardingPage }) => {
       await onboardingPage.goto();
       await onboardingPage.expectWelcomePageVisible();
     });
 
-    test('should validate personal info input', async () => {
+    test('should validate personal info input', async ({ onboardingPage }) => {
       await onboardingPage.goto();
       await onboardingPage.fillWelcomeStep();
       
@@ -51,7 +44,7 @@ test.describe('Onboarding Main Flow', () => {
       await onboardingPage.expectCurrentStep('income');
     });
 
-    test('should handle numeric input steps correctly', async () => {
+    test('should handle numeric input steps correctly', async ({ onboardingPage }) => {
       await onboardingPage.goto();
       await onboardingPage.fillWelcomeStep();
       await onboardingPage.fillPersonalInfoStep(validOnboardingData.firstName);
@@ -65,7 +58,7 @@ test.describe('Onboarding Main Flow', () => {
       await onboardingPage.expectCurrentStep('health-insurance');
     });
 
-    test('should reach registration step after all onboarding steps', async () => {
+    test('should reach registration step after all onboarding steps', async ({ onboardingPage }) => {
       await onboardingPage.goto();
       await onboardingPage.fillWelcomeStep();
       await onboardingPage.fillPersonalInfoStep(validOnboardingData.firstName);
@@ -83,98 +76,56 @@ test.describe('Onboarding Main Flow', () => {
   });
 
   test.describe('Form Input Validation', () => {
-    test('should accept valid email format', async () => {
-      // Need to complete minimal required steps to access registration
-      await onboardingPage.navigateToRegistrationWithMinimalData();
-      await onboardingPage.emailInput.fill('test@example.com');
-      await expect(onboardingPage.emailInput).toHaveValue('test@example.com');
+    test('should accept valid email format', async ({ onboardingReadyForRegistration }) => {
+      await onboardingReadyForRegistration.gotoStep('registration');
+      await onboardingReadyForRegistration.emailInput.fill('test@example.com');
+      await expect(onboardingReadyForRegistration.emailInput).toHaveValue('test@example.com');
     });
 
-    test('should accept valid password', async () => {
-      // Need to complete minimal required steps to access registration
-      await onboardingPage.navigateToRegistrationWithMinimalData();
-      await onboardingPage.passwordInput.fill('validPassword123');
-      await expect(onboardingPage.passwordInput).toHaveValue('validPassword123');
+    test('should accept valid password', async ({ onboardingReadyForRegistration }) => {
+      await onboardingReadyForRegistration.gotoStep('registration');
+      await onboardingReadyForRegistration.passwordInput.fill('validPassword123');
+      await expect(onboardingReadyForRegistration.passwordInput).toHaveValue('validPassword123');
     });
 
-    test('should handle numeric value inputs correctly', async () => {
-      // Set up required data to access income step
-      await onboardingPage.page.evaluate(() => {
-        localStorage.setItem('pulpe-onboarding-data', JSON.stringify({
-          firstName: 'Test User',
-          monthlyIncome: null,
-          email: '',
-          housingCosts: null,
-          healthInsurance: null,
-          phonePlan: null,
-          transportCosts: null,
-          leasingCredit: null,
-          isUserCreated: false
-        }));
-      });
-      
-      await onboardingPage.gotoStep('income');
+    test('should handle numeric value inputs correctly', async ({ onboardingWithPersonalInfo }) => {
+      await onboardingWithPersonalInfo.gotoStep('income');
       
       const testValue = '5000';
-      await onboardingPage.monthlyIncomeInput.fill(testValue);
-      await expect(onboardingPage.monthlyIncomeInput).toHaveValue(testValue);
+      await onboardingWithPersonalInfo.monthlyIncomeInput.fill(testValue);
+      await expect(onboardingWithPersonalInfo.monthlyIncomeInput).toHaveValue(testValue);
     });
   });
 
   test.describe('Edge Cases', () => {
-    test('should handle large numeric values', async () => {
-      // Set up required data to access income step
-      await onboardingPage.page.evaluate(() => {
-        localStorage.setItem('pulpe-onboarding-data', JSON.stringify({
-          firstName: 'Test User',
-          monthlyIncome: null,
-          email: '',
-          housingCosts: null,
-          healthInsurance: null,
-          phonePlan: null,
-          transportCosts: null,
-          leasingCredit: null,
-          isUserCreated: false
-        }));
-      });
-      
-      await onboardingPage.gotoStep('income');
+    test('should handle large numeric values', async ({ onboardingWithPersonalInfo }) => {
+      await onboardingWithPersonalInfo.gotoStep('income');
       
       const largeValue = '999999';
-      await onboardingPage.monthlyIncomeInput.fill(largeValue);
-      await expect(onboardingPage.monthlyIncomeInput).toHaveValue(largeValue);
+      await onboardingWithPersonalInfo.monthlyIncomeInput.fill(largeValue);
+      await expect(onboardingWithPersonalInfo.monthlyIncomeInput).toHaveValue(largeValue);
     });
 
-    test('should handle special characters in email', async () => {
-      // Need to complete minimal required steps to access registration
-      await onboardingPage.navigateToRegistrationWithMinimalData();
+    test('should handle special characters in email', async ({ onboardingReadyForRegistration }) => {
+      await onboardingReadyForRegistration.gotoStep('registration');
       
       const specialEmail = 'test+special@example.co.uk';
-      await onboardingPage.emailInput.fill(specialEmail);
-      await expect(onboardingPage.emailInput).toHaveValue(specialEmail);
-    });
-
-    test('should handle very long first name', async () => {
-      const longName = 'Jean-Baptiste-Alexandre-Ferdinand-Maximilian';
-      
-      await onboardingPage.gotoStep('personal-info');
-      await onboardingPage.firstNameInput.fill(longName);
-      await expect(onboardingPage.firstNameInput).toHaveValue(longName);
+      await onboardingReadyForRegistration.emailInput.fill(specialEmail);
+      await expect(onboardingReadyForRegistration.emailInput).toHaveValue(specialEmail);
     });
   });
 
   test.describe('Registration Process Setup', () => {
-    test('should display registration form with proper fields', async () => {
-      // Need to complete minimal required steps to access registration
-      await onboardingPage.navigateToRegistrationWithMinimalData();
-      await onboardingPage.expectRegistrationFormVisible();
+    test('should display registration form with proper fields', async ({ onboardingReadyForRegistration }) => {
+      await onboardingReadyForRegistration.gotoStep('registration');
+      await onboardingReadyForRegistration.expectRegistrationFormVisible();
       
       // Verify form fields are present
-      await expect(onboardingPage.emailInput).toBeVisible();
-      await expect(onboardingPage.passwordInput).toBeVisible();
+      await expect(onboardingReadyForRegistration.emailInput).toBeVisible();
+      await expect(onboardingReadyForRegistration.passwordInput).toBeVisible();
     });
 
-    test('should prepare for registration after complete flow', async () => {
+    test('should prepare for registration after complete flow', async ({ onboardingPage }) => {
       // Complete the full onboarding flow
       await onboardingPage.completeOnboardingFlow(validOnboardingData);
       

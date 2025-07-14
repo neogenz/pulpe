@@ -1,17 +1,10 @@
-import { test, expect } from '../../fixtures/test-fixtures';
-import { OnboardingPage } from '../../pages/onboarding.page';
+import { test, expect } from '../../fixtures/onboarding-fixtures';
 import { validOnboardingData } from '../../fixtures/onboarding-test-data';
 
 test.describe('Onboarding Navigation and State Management', () => {
-  let onboardingPage: OnboardingPage;
-
-  test.beforeEach(async ({ page }) => {
-    onboardingPage = new OnboardingPage(page);
-    await onboardingPage.clearLocalStorageData();
-  });
 
   test.describe('Complete Flow Navigation', () => {
-    test('should navigate through all steps in correct order', async () => {
+    test('should navigate through all steps in correct order', async ({ onboardingPage }) => {
       // Test the complete onboarding flow using the working approach
       await onboardingPage.goto();
       await onboardingPage.fillWelcomeStep();
@@ -29,7 +22,7 @@ test.describe('Onboarding Navigation and State Management', () => {
   });
 
   test.describe('State Persistence', () => {
-    test('should persist form data during navigation', async () => {
+    test('should persist form data during navigation', async ({ onboardingPage }) => {
       await onboardingPage.goto();
       await onboardingPage.fillWelcomeStep();
       
@@ -46,7 +39,7 @@ test.describe('Onboarding Navigation and State Management', () => {
       expect(storedData).toBeTruthy();
     });
 
-    test('should handle browser refresh gracefully', async () => {
+    test('should handle browser refresh gracefully', async ({ onboardingPage }) => {
       await onboardingPage.goto();
       await onboardingPage.fillWelcomeStep();
       await onboardingPage.fillPersonalInfoStep(validOnboardingData.firstName);
@@ -62,32 +55,17 @@ test.describe('Onboarding Navigation and State Management', () => {
   });
 
   test.describe('Direct Navigation', () => {
-    test('should handle direct navigation to specific steps', async () => {
-      // Set up required data for navigation to income step (needs firstName)
-      await onboardingPage.page.evaluate((firstName) => {
-        localStorage.setItem('pulpe-onboarding-data', JSON.stringify({
-          firstName: firstName,
-          monthlyIncome: null,
-          email: '',
-          housingCosts: null,
-          healthInsurance: null,
-          phonePlan: null,
-          transportCosts: null,
-          leasingCredit: null,
-          isUserCreated: false
-        }));
-      }, validOnboardingData.firstName);
-      
+    test('should handle direct navigation to specific steps', async ({ onboardingWithPersonalInfo }) => {
       // Test direct navigation to income step
-      await onboardingPage.gotoStep('income');
-      await onboardingPage.expectCurrentStep('income');
+      await onboardingWithPersonalInfo.gotoStep('income');
+      await onboardingWithPersonalInfo.expectCurrentStep('income');
       
       // Fill income and navigate
-      await onboardingPage.fillIncomeStep(validOnboardingData.monthlyIncome);
-      await onboardingPage.expectCurrentStep('housing');
+      await onboardingWithPersonalInfo.fillIncomeStep(validOnboardingData.monthlyIncome);
+      await onboardingWithPersonalInfo.expectCurrentStep('housing');
     });
 
-    test('should handle deep linking to registration step', async () => {
+    test('should handle deep linking to registration step', async ({ onboardingPage }) => {
       // Test deep linking with guard protection
       // First try direct navigation - should be redirected due to missing required data
       await onboardingPage.gotoStep('registration');
@@ -105,14 +83,15 @@ test.describe('Onboarding Navigation and State Management', () => {
   });
 
   test.describe('Data Management', () => {
-    test('should clear data on completion', async () => {
-      // Set some data first
-      await onboardingPage.page.evaluate(() => {
-        localStorage.setItem('pulpe-onboarding-data', JSON.stringify({
-          firstName: 'Test',
-          monthlyIncome: 5000
-        }));
-      });
+    test('should clear data on completion', async ({ onboardingPage }) => {
+      // Set some data first through normal flow
+      await onboardingPage.goto();
+      await onboardingPage.fillWelcomeStep();
+      await onboardingPage.fillPersonalInfoStep('TestUser');
+      
+      // Verify data exists
+      const dataBeforeClear = await onboardingPage.getLocalStorageData();
+      expect(dataBeforeClear).toBeTruthy();
 
       // Clear it
       await onboardingPage.clearLocalStorageData();
@@ -122,7 +101,7 @@ test.describe('Onboarding Navigation and State Management', () => {
       expect(data).toBeNull();
     });
 
-    test('should handle localStorage data properly', async () => {
+    test('should handle localStorage data properly', async ({ onboardingPage }) => {
       await onboardingPage.goto();
       await onboardingPage.fillWelcomeStep();
       await onboardingPage.fillPersonalInfoStep('TestUser');
