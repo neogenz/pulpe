@@ -6,7 +6,7 @@ import { AuthApi } from '../../core/auth/auth-api';
 import { BudgetApi } from '../../core/budget/budget-api';
 import { TemplateApi } from '../../core/template/template-api';
 import { NavigationEnd, Router } from '@angular/router';
-import { Subject } from 'rxjs'; // Import Subject
+import { Subject, of, throwError } from 'rxjs'; // Import Subject and observables
 
 describe('OnboardingStore - Unit Tests', () => {
   let store: OnboardingStore;
@@ -91,7 +91,8 @@ describe('OnboardingStore - Unit Tests', () => {
     });
 
     it('should update personal info', () => {
-      store.updatePersonalInfo('John Doe', 'john@example.com');
+      store.updateField('firstName', 'John Doe');
+      store.updateEmail('john@example.com');
 
       const data = store.data();
       expect(data.firstName).toBe('John Doe');
@@ -278,6 +279,90 @@ describe('OnboardingStore - Unit Tests', () => {
         new NavigationEnd(1, '/unknown/path', '/unknown/path'),
       );
       expect(store.currentStep()).toBe(-1);
+    });
+  });
+
+  describe('Registration Retry Logic', () => {
+    beforeEach(() => {
+      // Set up valid onboarding data
+      store.updateField('firstName', 'John Doe');
+      store.updateEmail('john@example.com');
+      store.updateField('monthlyIncome', 5000);
+    });
+
+    it('should not retry signup if user was already created successfully', async () => {
+      // First attempt - signup succeeds, template creation fails
+      mockAuthApi.signUpWithEmail.mockResolvedValueOnce({ success: true });
+      mockTemplateApi.createFromOnboarding$.mockReturnValueOnce(
+        throwError(() => new Error('Template creation failed')),
+      );
+
+      const firstResult = await store.submitRegistration(
+        'john@example.com',
+        'password123',
+      );
+      expect(firstResult).toBe(false);
+      expect(mockAuthApi.signUpWithEmail).toHaveBeenCalledTimes(1);
+
+      // Verify that isUserCreated is now true in the data
+      expect(store.data().isUserCreated).toBe(true);
+
+      // Second attempt - should skip signup and retry template creation
+      mockTemplateApi.createFromOnboarding$.mockReturnValueOnce(
+        of({ data: { template: { id: 'template-123' } } }),
+      );
+      mockBudgetApi.createBudget$.mockReturnValueOnce(of({ success: true }));
+
+      const secondResult = await store.submitRegistration(
+        'john@example.com',
+        'password123',
+      );
+      expect(secondResult).toBe(true);
+
+      // Signup should not have been called again
+      expect(mockAuthApi.signUpWithEmail).toHaveBeenCalledTimes(1);
+
+      // Template and budget creation should have been retried
+      expect(mockTemplateApi.createFromOnboarding$).toHaveBeenCalledTimes(2);
+      expect(mockBudgetApi.createBudget$).toHaveBeenCalledTimes(1);
+    });
+
+    it('should reset user creation state when clearing storage', () => {
+      // First create a user
+      mockAuthApi.signUpWithEmail.mockResolvedValueOnce({ success: true });
+      mockTemplateApi.createFromOnboarding$.mockReturnValueOnce(
+        throwError(() => new Error('Template creation failed')),
+      );
+
+      return store
+        .submitRegistration('john@example.com', 'password123')
+        .then(() => {
+          expect(mockAuthApi.signUpWithEmail).toHaveBeenCalledTimes(1);
+
+          // Verify that isUserCreated is true after first attempt
+          expect(store.data().isUserCreated).toBe(true);
+
+          // Reset the state manually (simulating starting a new onboarding)
+          store.resetUserCreationState();
+
+          // Verify that isUserCreated is now false after reset
+          expect(store.data().isUserCreated).toBe(false);
+
+          // Now signup should be called again
+          mockAuthApi.signUpWithEmail.mockResolvedValueOnce({ success: true });
+          mockTemplateApi.createFromOnboarding$.mockReturnValueOnce(
+            of({ data: { template: { id: 'template-456' } } }),
+          );
+          mockBudgetApi.createBudget$.mockReturnValueOnce(
+            of({ success: true }),
+          );
+
+          return store
+            .submitRegistration('john@example.com', 'password123')
+            .then(() => {
+              expect(mockAuthApi.signUpWithEmail).toHaveBeenCalledTimes(2);
+            });
+        });
     });
   });
 });
