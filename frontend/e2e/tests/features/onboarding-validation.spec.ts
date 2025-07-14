@@ -59,6 +59,21 @@ test.describe('Onboarding Form Validation', () => {
 
   test.describe('Numeric Input Validation', () => {
     test('should accept valid income values', async () => {
+      // Set up required data to access income step
+      await onboardingPage.page.evaluate(() => {
+        localStorage.setItem('pulpe-onboarding-data', JSON.stringify({
+          firstName: 'Test User',
+          monthlyIncome: null,
+          email: '',
+          housingCosts: null,
+          healthInsurance: null,
+          phonePlan: null,
+          transportCosts: null,
+          leasingCredit: null,
+          isUserCreated: false
+        }));
+      });
+      
       await onboardingPage.gotoStep('income');
       
       const validIncomes = ['1500', '5000', '10000', '15000'];
@@ -70,6 +85,21 @@ test.describe('Onboarding Form Validation', () => {
     });
 
     test('should accept zero values for optional expenses', async () => {
+      // Set up required data for accessing steps after income
+      await onboardingPage.page.evaluate(() => {
+        localStorage.setItem('pulpe-onboarding-data', JSON.stringify({
+          firstName: 'Test User',
+          monthlyIncome: 5000, // Required for steps after income
+          email: '',
+          housingCosts: null,
+          healthInsurance: null,
+          phonePlan: null,
+          transportCosts: null,
+          leasingCredit: null,
+          isUserCreated: false
+        }));
+      });
+      
       const steps = [
         { step: 'housing', input: () => onboardingPage.housingCostsInput },
         { step: 'health-insurance', input: () => onboardingPage.healthInsuranceInput },
@@ -86,6 +116,21 @@ test.describe('Onboarding Form Validation', () => {
     });
 
     test('should accept decimal values', async () => {
+      // Set up required data to access income step
+      await onboardingPage.page.evaluate(() => {
+        localStorage.setItem('pulpe-onboarding-data', JSON.stringify({
+          firstName: 'Test User',
+          monthlyIncome: null,
+          email: '',
+          housingCosts: null,
+          healthInsurance: null,
+          phonePlan: null,
+          transportCosts: null,
+          leasingCredit: null,
+          isUserCreated: false
+        }));
+      });
+      
       await onboardingPage.gotoStep('income');
       
       // Test decimal values - note that HTML number inputs may normalize trailing zeros
@@ -112,6 +157,21 @@ test.describe('Onboarding Form Validation', () => {
     });
 
     test('should handle large numeric values', async () => {
+      // Set up required data to access income step
+      await onboardingPage.page.evaluate(() => {
+        localStorage.setItem('pulpe-onboarding-data', JSON.stringify({
+          firstName: 'Test User',
+          monthlyIncome: null,
+          email: '',
+          housingCosts: null,
+          healthInsurance: null,
+          phonePlan: null,
+          transportCosts: null,
+          leasingCredit: null,
+          isUserCreated: false
+        }));
+      });
+      
       await onboardingPage.gotoStep('income');
       
       const largeValue = '999999';
@@ -174,6 +234,21 @@ test.describe('Onboarding Form Validation', () => {
     });
 
     test('should handle clearing and refilling fields', async () => {
+      // Set up required data to access income step
+      await onboardingPage.page.evaluate(() => {
+        localStorage.setItem('pulpe-onboarding-data', JSON.stringify({
+          firstName: 'Test User',
+          monthlyIncome: null,
+          email: '',
+          housingCosts: null,
+          healthInsurance: null,
+          phonePlan: null,
+          transportCosts: null,
+          leasingCredit: null,
+          isUserCreated: false
+        }));
+      });
+      
       await onboardingPage.gotoStep('income');
       
       // Fill initial value
