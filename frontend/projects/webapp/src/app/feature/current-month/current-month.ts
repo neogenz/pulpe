@@ -32,6 +32,7 @@ import {
   AddTransactionBottomSheet,
   TransactionFormData,
 } from './components/add-transaction-bottom-sheet';
+import { BudgetLineMapper } from './services/budget-line-mapper';
 
 @Component({
   selector: 'pulpe-current-month',
@@ -42,6 +43,7 @@ import {
         appearance: 'outline',
       },
     },
+    BudgetLineMapper,
   ],
   imports: [
     BudgetProgressBar,
@@ -200,10 +202,18 @@ export default class CurrentMonth implements OnInit {
   protected readonly state = inject(CurrentMonthState);
   protected readonly title = inject(Title);
   private readonly bottomSheet = inject(MatBottomSheet);
+  private readonly budgetLineMapper = inject(BudgetLineMapper);
+
   fixedTransactions = computed(() => {
-    // TODO: Transactions don't have expenseType. This should be budget lines
-    // For now, return empty array to avoid displaying transactions in wrong context
-    return [];
+    const budgetLines = this.state.budgetLines();
+    const budgetId = this.state.dashboardData.value()?.budget?.id;
+
+    if (!budgetId) return [];
+
+    // Filter budget lines with 'fixed' recurrence and map them to Transaction-like objects
+    return budgetLines
+      .filter((line) => line.recurrence === 'fixed')
+      .map((line) => this.budgetLineMapper.toTransaction(line, budgetId));
   });
   variableTransactions = computed(() => {
     // For now, show all transactions as variable expenses
