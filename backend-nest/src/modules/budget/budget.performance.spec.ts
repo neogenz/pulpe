@@ -3,6 +3,8 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { v4 as uuid } from 'uuid';
 import { BudgetService } from './budget.service';
 import { BudgetMapper } from './budget.mapper';
+import { TransactionMapper } from '../transaction/transaction.mapper';
+import { BudgetLineMapper } from '../budget-line/budget-line.mapper';
 import {
   createMockAuthenticatedUser,
   createMockSupabaseClient,
@@ -27,6 +29,18 @@ describe('BudgetService (Performance)', () => {
     toUpdate: (data: any) => ({ ...data }),
   };
 
+  const simpleTransactionMapper = {
+    toApiList: (data: any[]) =>
+      data.map((item) => ({ ...item, mappedToApi: true })),
+    toApi: (data: any) => ({ ...data, mappedToApi: true }),
+  };
+
+  const simpleBudgetLineMapper = {
+    toApiList: (data: any[]) =>
+      data.map((item) => ({ ...item, mappedToApi: true })),
+    toApi: (data: any) => ({ ...data, mappedToApi: true }),
+  };
+
   beforeEach(async () => {
     const { mockClient } = createMockSupabaseClient();
     mockSupabaseClient = mockClient;
@@ -44,6 +58,8 @@ describe('BudgetService (Performance)', () => {
       providers: [
         BudgetService,
         { provide: BudgetMapper, useValue: simpleBudgetMapper },
+        { provide: TransactionMapper, useValue: simpleTransactionMapper },
+        { provide: BudgetLineMapper, useValue: simpleBudgetLineMapper },
         {
           provide: `PinoLogger:${BudgetService.name}`,
           useValue: mockPinoLogger,
