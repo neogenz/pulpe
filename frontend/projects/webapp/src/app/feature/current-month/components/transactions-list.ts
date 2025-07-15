@@ -119,9 +119,11 @@ export interface TransactionsListConfig {
                   matRipple
                   [matRippleDisabled]="!config().selectable"
                   [class.odd-item]="isOdd"
-                  [class.income-item]="transaction.type === 'income'"
-                  [class.saving-item]="transaction.type === 'saving'"
-                  [class.expense-item]="transaction.type === 'expense'"
+                  [class.income-item]="transaction.kind === 'INCOME'"
+                  [class.saving-item]="
+                    transaction.kind === 'SAVINGS_CONTRIBUTION'
+                  "
+                  [class.expense-item]="transaction.kind === 'FIXED_EXPENSE'"
                   [class.!cursor-pointer]="config().selectable"
                   (click)="
                     config().selectable ? toggleSelection(transaction.id) : null
@@ -143,15 +145,20 @@ export interface TransactionsListConfig {
                     <div
                       class="flex justify-center items-center size-11 bg-surface rounded-full"
                     >
-                      @switch (transaction.type) {
-                        @case ('income') {
+                      @switch (transaction.kind) {
+                        @case ('INCOME') {
                           <mat-icon class="!text-(--pulpe-financial-income)">
                             trending_up
                           </mat-icon>
                         }
-                        @case ('saving') {
+                        @case ('SAVINGS_CONTRIBUTION') {
                           <mat-icon class="!text-(--pulpe-financial-savings)">
                             savings
+                          </mat-icon>
+                        }
+                        @case ('FIXED_EXPENSE') {
+                          <mat-icon class="!text-(--pulpe-financial-expense)">
+                            trending_down
                           </mat-icon>
                         }
                         @default {
@@ -163,9 +170,9 @@ export interface TransactionsListConfig {
                     </div>
                   </div>
                   <div matListItemTitle>{{ transaction.name }}</div>
-                  @if (transaction.description) {
+                  @if (transaction.category) {
                     <div matListItemLine class="text-body-small italic">
-                      {{ transaction.description }}
+                      {{ transaction.category }}
                     </div>
                   }
                   <div
@@ -173,12 +180,7 @@ export interface TransactionsListConfig {
                     class="!flex !h-full !items-center !gap-3"
                   >
                     <span>
-                      {{
-                        transaction.type === 'income'
-                          ? '+'
-                          : transaction.type === 'expense'
-                            ? '-'
-                            : ''
+                      {{ transaction.kind === 'INCOME' ? '+' : '-'
                       }}{{
                         transaction.amount
                           | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH'

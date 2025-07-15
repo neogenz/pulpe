@@ -25,6 +25,7 @@ import {
   type BudgetListResponse,
   type BudgetResponse,
   type BudgetDeleteResponse,
+  type BudgetDetailsResponse,
 } from '@pulpe/shared';
 import { AuthGuard } from '@common/guards/auth.guard';
 import {
@@ -40,6 +41,7 @@ import {
   BudgetListResponseDto,
   BudgetResponseDto,
   BudgetDeleteResponseDto,
+  BudgetDetailsResponseDto,
 } from './dto/budget-swagger.dto';
 import { ErrorResponseDto } from '@common/dto/response.dto';
 
@@ -124,6 +126,35 @@ export class BudgetController {
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetResponse> {
     return this.budgetService.findOne(id, supabase);
+  }
+
+  @Get(':id/details')
+  @ApiOperation({
+    summary: 'Get budget with all related data',
+    description:
+      'Retrieves a budget with its associated transactions and budget lines. This endpoint aggregates all related data in a single response for better performance.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Unique budget identifier',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Budget with details retrieved successfully',
+    type: BudgetDetailsResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Budget not found',
+    type: ErrorResponseDto,
+  })
+  async findOneWithDetails(
+    @Param('id', ParseUUIDPipe) id: string,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<BudgetDetailsResponse> {
+    return this.budgetService.findOneWithDetails(id, supabase);
   }
 
   @Put(':id')

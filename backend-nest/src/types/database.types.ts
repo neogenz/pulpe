@@ -14,6 +14,70 @@ export type Database = {
   };
   public: {
     Tables: {
+      budget_line: {
+        Row: {
+          amount: number;
+          budget_id: string;
+          created_at: string;
+          id: string;
+          is_manually_adjusted: boolean;
+          kind: Database['public']['Enums']['transaction_kind'];
+          name: string;
+          recurrence: Database['public']['Enums']['transaction_recurrence'];
+          savings_goal_id: string | null;
+          template_line_id: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          amount: number;
+          budget_id: string;
+          created_at?: string;
+          id?: string;
+          is_manually_adjusted?: boolean;
+          kind: Database['public']['Enums']['transaction_kind'];
+          name: string;
+          recurrence: Database['public']['Enums']['transaction_recurrence'];
+          savings_goal_id?: string | null;
+          template_line_id?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          amount?: number;
+          budget_id?: string;
+          created_at?: string;
+          id?: string;
+          is_manually_adjusted?: boolean;
+          kind?: Database['public']['Enums']['transaction_kind'];
+          name?: string;
+          recurrence?: Database['public']['Enums']['transaction_recurrence'];
+          savings_goal_id?: string | null;
+          template_line_id?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'budget_line_budget_id_fkey';
+            columns: ['budget_id'];
+            isOneToOne: false;
+            referencedRelation: 'monthly_budget';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'budget_line_savings_goal_id_fkey';
+            columns: ['savings_goal_id'];
+            isOneToOne: false;
+            referencedRelation: 'savings_goal';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'budget_line_template_line_id_fkey';
+            columns: ['template_line_id'];
+            isOneToOne: false;
+            referencedRelation: 'template_line';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       monthly_budget: {
         Row: {
           created_at: string;
@@ -54,6 +118,42 @@ export type Database = {
             referencedColumns: ['id'];
           },
         ];
+      };
+      savings_goal: {
+        Row: {
+          created_at: string;
+          id: string;
+          name: string;
+          priority: Database['public']['Enums']['priority_level'];
+          status: Database['public']['Enums']['savings_goal_status'];
+          target_amount: number;
+          target_date: string;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          name: string;
+          priority: Database['public']['Enums']['priority_level'];
+          status?: Database['public']['Enums']['savings_goal_status'];
+          target_amount: number;
+          target_date: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          name?: string;
+          priority?: Database['public']['Enums']['priority_level'];
+          status?: Database['public']['Enums']['savings_goal_status'];
+          target_amount?: number;
+          target_date?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
       };
       template: {
         Row: {
@@ -133,45 +233,42 @@ export type Database = {
         Row: {
           amount: number;
           budget_id: string;
+          category: string | null;
           created_at: string;
-          description: string | null;
-          expense_type: Database['public']['Enums']['transaction_recurrence'];
           id: string;
-          is_recurring: boolean;
+          is_out_of_budget: boolean;
+          kind: Database['public']['Enums']['transaction_kind'];
           name: string;
-          type: Database['public']['Enums']['transaction_kind'];
+          transaction_date: string;
           updated_at: string;
-          user_id: string | null;
         };
         Insert: {
           amount: number;
           budget_id: string;
+          category?: string | null;
           created_at?: string;
-          description?: string | null;
-          expense_type: Database['public']['Enums']['transaction_recurrence'];
           id?: string;
-          is_recurring?: boolean;
+          is_out_of_budget?: boolean;
+          kind?: Database['public']['Enums']['transaction_kind'];
           name: string;
-          type: Database['public']['Enums']['transaction_kind'];
+          transaction_date?: string;
           updated_at?: string;
-          user_id?: string | null;
         };
         Update: {
           amount?: number;
           budget_id?: string;
+          category?: string | null;
           created_at?: string;
-          description?: string | null;
-          expense_type?: Database['public']['Enums']['transaction_recurrence'];
           id?: string;
-          is_recurring?: boolean;
+          is_out_of_budget?: boolean;
+          kind?: Database['public']['Enums']['transaction_kind'];
           name?: string;
-          type?: Database['public']['Enums']['transaction_kind'];
+          transaction_date?: string;
           updated_at?: string;
-          user_id?: string | null;
         };
         Relationships: [
           {
-            foreignKeyName: 'transactions_budget_id_fkey';
+            foreignKeyName: 'transaction_budget_id_fkey';
             columns: ['budget_id'];
             isOneToOne: false;
             referencedRelation: 'monthly_budget';
@@ -184,33 +281,6 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      create_budget_from_onboarding_with_transactions: {
-        Args:
-          | {
-              p_month: number;
-              p_year: number;
-              p_description: string;
-              p_monthly_income?: number;
-              p_housing_costs?: number;
-              p_health_insurance?: number;
-              p_leasing_credit?: number;
-              p_phone_plan?: number;
-              p_transport_costs?: number;
-            }
-          | {
-              p_user_id: string;
-              p_month: number;
-              p_year: number;
-              p_description: string;
-              p_monthly_income?: number;
-              p_housing_costs?: number;
-              p_health_insurance?: number;
-              p_leasing_credit?: number;
-              p_phone_plan?: number;
-              p_transport_costs?: number;
-            };
-        Returns: Json;
-      };
       create_budget_from_template: {
         Args: {
           p_user_id: string;
@@ -233,7 +303,9 @@ export type Database = {
       };
     };
     Enums: {
-      transaction_kind: 'expense' | 'income' | 'saving' | 'exceptional_income';
+      priority_level: 'HIGH' | 'MEDIUM' | 'LOW';
+      savings_goal_status: 'ACTIVE' | 'COMPLETED' | 'PAUSED';
+      transaction_kind: 'INCOME' | 'FIXED_EXPENSE' | 'SAVINGS_CONTRIBUTION';
       transaction_recurrence: 'fixed' | 'variable' | 'one_off';
     };
     CompositeTypes: {
@@ -365,7 +437,9 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      transaction_kind: ['expense', 'income', 'saving', 'exceptional_income'],
+      priority_level: ['HIGH', 'MEDIUM', 'LOW'],
+      savings_goal_status: ['ACTIVE', 'COMPLETED', 'PAUSED'],
+      transaction_kind: ['INCOME', 'FIXED_EXPENSE', 'SAVINGS_CONTRIBUTION'],
       transaction_recurrence: ['fixed', 'variable', 'one_off'],
     },
   },

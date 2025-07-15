@@ -236,9 +236,25 @@ export class BudgetTemplateService {
     );
 
     if (error) {
-      this.logger.error({ err: error }, 'RPC function failed');
+      this.logger.error(
+        {
+          err: error,
+          errorCode: error.code,
+          errorDetails: error.details,
+          errorHint: error.hint,
+          errorMessage: error.message,
+          rpcParams: {
+            p_user_id: user.id,
+            p_name: createTemplateDto.name,
+            p_description: createTemplateDto.description || null,
+            p_is_default: createTemplateDto.isDefault || false,
+            p_lines: rpcLines,
+          },
+        },
+        'RPC function create_template_with_lines failed',
+      );
       throw new InternalServerErrorException(
-        'Erreur lors de la création du template',
+        `Erreur lors de la création du template: ${error.message || 'Unknown RPC error'}`,
       );
     }
 
@@ -736,37 +752,37 @@ export class BudgetTemplateService {
     {
       field: 'monthlyIncome' as const,
       name: 'Monthly Income',
-      kind: 'income' as const,
+      kind: 'INCOME' as const,
       description: 'Regular monthly income',
     },
     {
       field: 'housingCosts' as const,
       name: 'Housing Costs',
-      kind: 'expense' as const,
+      kind: 'FIXED_EXPENSE' as const,
       description: 'Rent, utilities, home insurance',
     },
     {
       field: 'healthInsurance' as const,
       name: 'Health Insurance',
-      kind: 'expense' as const,
+      kind: 'FIXED_EXPENSE' as const,
       description: 'Monthly health insurance premium',
     },
     {
       field: 'phonePlan' as const,
       name: 'Phone Plan',
-      kind: 'expense' as const,
+      kind: 'FIXED_EXPENSE' as const,
       description: 'Monthly mobile plan',
     },
     {
       field: 'transportCosts' as const,
       name: 'Transport Costs',
-      kind: 'expense' as const,
+      kind: 'FIXED_EXPENSE' as const,
       description: 'Public transport or vehicle expenses',
     },
     {
       field: 'leasingCredit' as const,
       name: 'Leasing/Credit',
-      kind: 'expense' as const,
+      kind: 'FIXED_EXPENSE' as const,
       description: 'Monthly credit or leasing payments',
     },
   ];
@@ -774,7 +790,7 @@ export class BudgetTemplateService {
   private createLineFromOnboardingField(
     amount: number,
     name: string,
-    kind: 'income' | 'expense',
+    kind: 'INCOME' | 'FIXED_EXPENSE',
     description: string,
   ): TemplateLineCreateWithoutTemplateId {
     return {
@@ -904,6 +920,20 @@ export class BudgetTemplateService {
       }
 
       const lines = this.createOnboardingTemplateLines(onboardingData);
+
+      // Debug: Log the lines being created
+      this.logger.info(
+        {
+          userId: user.id,
+          linesCount: lines.length,
+          lines: lines.map((l) => ({
+            name: l.name,
+            kind: l.kind,
+            recurrence: l.recurrence,
+          })),
+        },
+        'Template lines created from onboarding',
+      );
 
       const templateCreateDto: BudgetTemplateCreate = {
         name: onboardingData.name || 'Mois Standard',

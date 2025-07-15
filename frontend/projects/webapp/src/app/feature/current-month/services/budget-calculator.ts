@@ -1,36 +1,35 @@
 import { Injectable } from '@angular/core';
 import { Transaction, TransactionKind } from '@pulpe/shared';
 
-type CategoryType = TransactionKind;
-
 @Injectable()
 export class BudgetCalculator {
   calculateTotalIncome(transactions: Transaction[]): number {
-    return this.#calculateTotalForType(transactions, 'income');
+    return this.#calculateTotalForType(transactions, 'INCOME');
   }
 
   calculateTotalExpenses(transactions: Transaction[]): number {
-    return this.#calculateTotalForType(transactions, 'expense');
+    return this.#calculateTotalForType(transactions, 'FIXED_EXPENSE');
   }
 
   calculateTotalSavings(transactions: Transaction[]): number {
-    return this.#calculateTotalForType(transactions, 'saving');
+    return this.#calculateTotalForType(transactions, 'SAVINGS_CONTRIBUTION');
   }
 
   calculateNegativeBudget(transactions: Transaction[]): number {
     return Math.min(
       0,
       this.calculateTotalIncome(transactions) -
-        this.calculateTotalExpenses(transactions),
+        this.calculateTotalExpenses(transactions) -
+        this.calculateTotalSavings(transactions),
     );
   }
 
   #calculateTotalForType(
     transactions: Transaction[],
-    type: CategoryType,
+    kind: TransactionKind,
   ): number {
     return transactions
-      .filter((category) => category.type === type)
-      .reduce((total, category) => total + category.amount, 0);
+      .filter((transaction) => transaction.kind === kind)
+      .reduce((total, transaction) => total + transaction.amount, 0);
   }
 }

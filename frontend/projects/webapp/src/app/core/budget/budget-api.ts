@@ -5,6 +5,7 @@ import {
   type BudgetCreate,
   budgetCreateSchema,
   type BudgetResponse,
+  type BudgetDetailsResponse,
   budgetSchema,
   errorResponseSchema,
 } from '@pulpe/shared';
@@ -100,6 +101,32 @@ export class BudgetApi {
           this.#handleApiError(
             error,
             'Erreur lors de la récupération du budget',
+          ),
+        ),
+      );
+  }
+
+  /**
+   * Récupère un budget avec toutes ses données associées (transactions et lignes budgétaires)
+   */
+  getBudgetWithDetails$(budgetId: string): Observable<BudgetDetailsResponse> {
+    return this.#httpClient
+      .get<BudgetDetailsResponse>(`${this.#baseUrl}/${budgetId}/details`)
+      .pipe(
+        map((response) => {
+          if (!response.data) {
+            throw new Error('Données du budget non trouvées');
+          }
+
+          // Sauvegarder le budget principal dans le localStorage
+          this.#saveBudgetToStorage(response.data.budget);
+
+          return response;
+        }),
+        catchError((error) =>
+          this.#handleApiError(
+            error,
+            'Erreur lors de la récupération des détails du budget',
           ),
         ),
       );

@@ -13,10 +13,13 @@ import {
   type BudgetListResponse,
   type BudgetResponse,
   type BudgetUpdate,
+  type BudgetDetailsResponse,
 } from '@pulpe/shared';
 import { BudgetMapper } from './budget.mapper';
 import { type Tables } from '../../types/database.types';
 import { BUDGET_CONSTANTS } from './budget.constants';
+import { TransactionMapper } from '../transaction/transaction.mapper';
+import { BudgetLineMapper } from '../budget-line/budget-line.mapper';
 
 @Injectable()
 export class BudgetService {
@@ -24,6 +27,8 @@ export class BudgetService {
     @InjectPinoLogger(BudgetService.name)
     private readonly logger: PinoLogger,
     private readonly budgetMapper: BudgetMapper,
+    private readonly transactionMapper: TransactionMapper,
+    private readonly budgetLineMapper: BudgetLineMapper,
   ) {}
 
   async findAll(
@@ -189,7 +194,7 @@ export class BudgetService {
       }
 
       const budgetData = result.budget as Tables<'monthly_budget'>;
-      const transactionsCreated = result.transactions_created as number;
+      const budgetLinesCreated = result.budget_lines_created as number;
       const templateName = result.template_name as string;
 
       this.logger.info(
@@ -198,7 +203,7 @@ export class BudgetService {
           budgetId: budgetData.id,
           templateId: validatedDto.templateId,
           templateName,
-          transactionsCreated,
+          budgetLinesCreated,
         },
         'Successfully created budget from template with atomic transaction',
       );
@@ -249,6 +254,92 @@ export class BudgetService {
         throw error;
       }
       this.logger.error({ err: error }, 'Failed to fetch budget');
+      throw new InternalServerErrorException('Erreur interne du serveur');
+    }
+  }
+
+  async findOneWithDetails(
+    id: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<BudgetDetailsResponse> {
+    try {
+      // Fetch budget, transactions, and budget lines in parallel for better performance
+      const [budgetResult, transactionsResult, budgetLinesResult] =
+        await Promise.all([
+          supabase.from('monthly_budget').select('*').eq('id', id).single(),
+          supabase
+            .from('transaction')
+            .select('*')
+            .eq('budget_id', id)
+            .order('transaction_date', { ascending: false }),
+          supabase
+            .from('budget_line')
+            .select('*')
+            .eq('budget_id', id)
+            .order('created_at', { ascending: false }),
+        ]);
+
+      // Check if budget exists and user has access
+      if (budgetResult.error || !budgetResult.data) {
+        this.logger.warn(
+          { budgetId: id, error: budgetResult.error },
+          'Budget not found or access denied',
+        );
+        throw new NotFoundException('Budget introuvable ou accès non autorisé');
+      }
+
+      // Log any errors for transactions or budget lines (but don't fail the request)
+      if (transactionsResult.error) {
+        this.logger.error(
+          { err: transactionsResult.error, budgetId: id },
+          'Failed to fetch transactions for budget',
+        );
+      }
+
+      if (budgetLinesResult.error) {
+        this.logger.error(
+          { err: budgetLinesResult.error, budgetId: id },
+          'Failed to fetch budget lines for budget',
+        );
+      }
+
+      // Map the data to API format
+      const budget = this.budgetMapper.toApi(
+        budgetResult.data as Tables<'monthly_budget'>,
+      );
+
+      const transactions = this.transactionMapper.toApiList(
+        transactionsResult.data || [],
+      );
+      const budgetLines = this.budgetLineMapper.toApiList(
+        budgetLinesResult.data || [],
+      );
+
+      this.logger.info(
+        {
+          budgetId: id,
+          transactionCount: transactions.length,
+          budgetLineCount: budgetLines.length,
+        },
+        'Successfully fetched budget with details',
+      );
+
+      return {
+        success: true,
+        data: {
+          budget,
+          transactions,
+          budgetLines,
+        },
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error(
+        { err: error, budgetId: id },
+        'Failed to fetch budget with details',
+      );
       throw new InternalServerErrorException('Erreur interne du serveur');
     }
   }
