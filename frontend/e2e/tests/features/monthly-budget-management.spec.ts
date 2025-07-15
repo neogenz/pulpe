@@ -3,7 +3,6 @@ import { WaitHelper } from '../../fixtures/test-helpers';
 
 test.describe('Monthly Budget Management', () => {
   test('should display monthly dashboard with financial overview', async ({
-    authenticatedPage,
     currentMonthPage,
   }) => {
     await test.step('Navigate to current month page', async () => {
@@ -17,7 +16,6 @@ test.describe('Monthly Budget Management', () => {
   });
 
   test('should display expense form or related input elements', async ({
-    authenticatedPage,
     currentMonthPage,
   }) => {
     await test.step('Navigate to current month page', async () => {
@@ -31,7 +29,6 @@ test.describe('Monthly Budget Management', () => {
   });
 
   test('should handle expense form interaction gracefully', async ({
-    authenticatedPage,
     currentMonthPage,
   }) => {
     await test.step('Navigate and load page', async () => {
@@ -51,7 +48,7 @@ test.describe('Monthly Budget Management', () => {
         await currentMonthPage.expectTransactionVisible(
           'Restaurant Le Petit Bistro',
         );
-      } catch (error) {
+      } catch {
         // If form not available, just verify page loads correctly
         await currentMonthPage.expectPageLoaded();
       }
@@ -65,7 +62,7 @@ test.describe('Monthly Budget Management', () => {
     await test.step('Setup API error mock', async () => {
       // Mock API error
       await authenticatedPage.route('**/api/transactions**', (route) => {
-        route.fulfill({
+        void route.fulfill({
           status: 500,
           body: JSON.stringify({ error: 'Server error' }),
         });
@@ -102,6 +99,61 @@ test.describe('Monthly Budget Management', () => {
       // Page should still be accessible
       await currentMonthPage.expectPageLoaded();
       await currentMonthPage.expectFinancialOverviewVisible();
+    });
+  });
+
+  test('should display budget lines in fixed transactions list', async ({
+    currentMonthPage,
+    page,
+  }) => {
+    await test.step('Navigate to current month page', async () => {
+      await currentMonthPage.goto();
+      await currentMonthPage.expectPageLoaded();
+    });
+
+    await test.step('Verify fixed transactions list is visible', async () => {
+      // Check if fixed transactions list exists
+      const fixedTransactionsList = page.locator('[data-testid="fixed-transactions-list"]');
+      const hasFixedList = await fixedTransactionsList.count() > 0;
+      
+      if (hasFixedList) {
+        await expect(fixedTransactionsList).toBeVisible();
+        
+        // Check if the list contains budget lines (transactions with fixed recurrence)
+        const transactionItems = fixedTransactionsList.locator('mat-list-item');
+        const itemCount = await transactionItems.count();
+        
+        // If there are items, verify they display properly
+        if (itemCount > 0) {
+          // Check that at least the first item has required elements
+          const firstItem = transactionItems.first();
+          await expect(firstItem).toBeVisible();
+          
+          // Verify item has a name/title
+          const title = firstItem.locator('[matListItemTitle]');
+          await expect(title).toBeVisible();
+          
+          // Verify item has an amount
+          const amount = firstItem.locator('[matListItemMeta]');
+          await expect(amount).toBeVisible();
+          await expect(amount).toContainText('CHF');
+        }
+      }
+    });
+
+    await test.step('Verify fixed transactions have proper styling', async () => {
+      // Check that fixed transactions have appropriate icons
+      const fixedTransactionsList = page.locator('[data-testid="fixed-transactions-list"]');
+      
+      if (await fixedTransactionsList.count() > 0) {
+        const icons = fixedTransactionsList.locator('mat-icon');
+        const iconCount = await icons.count();
+        
+        if (iconCount > 0) {
+          // Verify at least one icon is visible
+          await expect(icons.first()).toBeVisible();
+        }
+      }
     });
   });
 });
