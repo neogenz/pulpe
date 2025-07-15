@@ -20,14 +20,13 @@ export class TransactionMapper {
       id: transactionDb.id,
       createdAt: transactionDb.created_at,
       updatedAt: transactionDb.updated_at,
-      userId: transactionDb.user_id ?? undefined,
       budgetId: transactionDb.budget_id,
       amount: transactionDb.amount,
-      type: transactionDb.type,
-      expenseType: transactionDb.expense_type,
       name: transactionDb.name,
-      description: transactionDb.description ?? undefined,
-      isRecurring: transactionDb.is_recurring,
+      kind: transactionDb.kind,
+      transactionDate: transactionDb.transaction_date,
+      isOutOfBudget: transactionDb.is_out_of_budget,
+      category: transactionDb.category,
     };
   }
 
@@ -41,11 +40,7 @@ export class TransactionMapper {
   /**
    * Transform create DTO (camelCase) to database insert (snake_case)
    */
-  toInsert(
-    createDto: TransactionCreate,
-    userId: string,
-    budgetId?: string,
-  ): TransactionInsert {
+  toInsert(createDto: TransactionCreate, budgetId?: string): TransactionInsert {
     // Validate with Zod schema - fail fast on invalid data
     const validationResult = transactionCreateSchema.safeParse(createDto);
     if (!validationResult.success) {
@@ -70,12 +65,11 @@ export class TransactionMapper {
     return {
       budget_id: finalBudgetId,
       amount: createDto.amount,
-      type: createDto.type,
-      expense_type: createDto.expenseType,
       name: createDto.name,
-      description: createDto.description ?? null,
-      is_recurring: createDto.isRecurring,
-      user_id: userId,
+      kind: createDto.kind,
+      transaction_date: createDto.transactionDate || new Date().toISOString(),
+      is_out_of_budget: createDto.isOutOfBudget || false,
+      category: createDto.category ?? null,
     };
   }
 
@@ -88,20 +82,20 @@ export class TransactionMapper {
     if (updateDto.amount !== undefined) {
       updateData.amount = updateDto.amount;
     }
-    if (updateDto.type !== undefined) {
-      updateData.type = updateDto.type;
-    }
-    if (updateDto.expenseType !== undefined) {
-      updateData.expense_type = updateDto.expenseType;
-    }
     if (updateDto.name !== undefined) {
       updateData.name = updateDto.name;
     }
-    if (updateDto.description !== undefined) {
-      updateData.description = updateDto.description ?? null;
+    if (updateDto.kind !== undefined) {
+      updateData.kind = updateDto.kind;
     }
-    if (updateDto.isRecurring !== undefined) {
-      updateData.is_recurring = updateDto.isRecurring;
+    if (updateDto.transactionDate !== undefined) {
+      updateData.transaction_date = updateDto.transactionDate;
+    }
+    if (updateDto.isOutOfBudget !== undefined) {
+      updateData.is_out_of_budget = updateDto.isOutOfBudget;
+    }
+    if (updateDto.category !== undefined) {
+      updateData.category = updateDto.category;
     }
 
     return updateData;

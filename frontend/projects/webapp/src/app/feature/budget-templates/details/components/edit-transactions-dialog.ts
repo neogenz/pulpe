@@ -337,14 +337,14 @@ export default class EditTransactionsDialog {
 
     return formGroups.map((formGroup) => {
       const amount = formGroup.get('amount')?.value ?? 0;
-      const type = formGroup.get('type')?.value ?? 'expense';
+      const type = formGroup.get('type')?.value ?? 'FIXED_EXPENSE';
 
       switch (type) {
-        case 'income':
-        case 'saving':
+        case 'INCOME':
+        case 'SAVINGS_CONTRIBUTION':
           runningTotal += amount;
           break;
-        case 'expense':
+        case 'FIXED_EXPENSE':
           runningTotal -= amount;
           break;
       }

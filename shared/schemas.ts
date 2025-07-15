@@ -15,12 +15,21 @@ export const transactionRecurrenceSchema = z.enum([
 ]);
 export type TransactionRecurrence = z.infer<typeof transactionRecurrenceSchema>;
 export const transactionKindSchema = z.enum([
-  'expense',
-  'income',
-  'saving',
-  'exceptional_income',
+  'INCOME',
+  'FIXED_EXPENSE',
+  'SAVINGS_CONTRIBUTION',
 ]);
 export type TransactionKind = z.infer<typeof transactionKindSchema>;
+
+export const priorityLevelSchema = z.enum(['HIGH', 'MEDIUM', 'LOW']);
+export type PriorityLevel = z.infer<typeof priorityLevelSchema>;
+
+export const savingsGoalStatusSchema = z.enum([
+  'ACTIVE',
+  'COMPLETED',
+  'PAUSED',
+]);
+export type SavingsGoalStatus = z.infer<typeof savingsGoalStatusSchema>;
 
 // Budget schemas
 export const budgetSchema = z.object({
@@ -29,6 +38,7 @@ export const budgetSchema = z.object({
   year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
   description: z.string().min(1).max(500),
   userId: z.string().uuid().optional(),
+  templateId: z.string().uuid(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
@@ -76,40 +86,101 @@ export const budgetUpdateSchema = z.object({
 });
 export type BudgetUpdate = z.infer<typeof budgetUpdateSchema>;
 
-// Transaction schemas
-export const transactionSchema = z.object({
+// Savings Goal schemas
+export const savingsGoalSchema = z.object({
   id: z.string().uuid(),
-  amount: z.number().positive(),
-  type: transactionKindSchema,
+  userId: z.string().uuid(),
   name: z.string().min(1).max(100).trim(),
-  description: z.string().max(500).trim().optional(),
+  targetAmount: z.number().positive(),
+  targetDate: z.string(), // Date in ISO format
+  priority: priorityLevelSchema,
+  status: savingsGoalStatusSchema,
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
-  userId: z.string().uuid().optional(),
+});
+export type SavingsGoal = z.infer<typeof savingsGoalSchema>;
+
+export const savingsGoalCreateSchema = z.object({
+  name: z.string().min(1).max(100).trim(),
+  targetAmount: z.number().positive(),
+  targetDate: z.string(), // Date in ISO format
+  priority: priorityLevelSchema,
+  status: savingsGoalStatusSchema.default('ACTIVE'),
+});
+export type SavingsGoalCreate = z.infer<typeof savingsGoalCreateSchema>;
+
+export const savingsGoalUpdateSchema = savingsGoalCreateSchema.partial();
+export type SavingsGoalUpdate = z.infer<typeof savingsGoalUpdateSchema>;
+
+// Budget Line schemas
+export const budgetLineSchema = z.object({
+  id: z.string().uuid(),
   budgetId: z.string().uuid(),
-  expenseType: transactionRecurrenceSchema,
-  isRecurring: z.boolean(),
+  templateLineId: z.string().uuid().nullable(),
+  savingsGoalId: z.string().uuid().nullable(),
+  name: z.string().min(1).max(100).trim(),
+  amount: z.number().positive(),
+  kind: transactionKindSchema,
+  recurrence: transactionRecurrenceSchema,
+  isManuallyAdjusted: z.boolean(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+export type BudgetLine = z.infer<typeof budgetLineSchema>;
+
+export const budgetLineCreateSchema = z.object({
+  budgetId: z.string().uuid(),
+  templateLineId: z.string().uuid().nullable().optional(),
+  savingsGoalId: z.string().uuid().nullable().optional(),
+  name: z.string().min(1).max(100).trim(),
+  amount: z.number().positive(),
+  kind: transactionKindSchema,
+  recurrence: transactionRecurrenceSchema,
+  isManuallyAdjusted: z.boolean().default(false),
+});
+export type BudgetLineCreate = z.infer<typeof budgetLineCreateSchema>;
+
+export const budgetLineUpdateSchema = budgetLineCreateSchema
+  .omit({ budgetId: true })
+  .partial();
+export type BudgetLineUpdate = z.infer<typeof budgetLineUpdateSchema>;
+
+// Kept for backward compatibility - use transactionKindSchema instead
+export type TransactionKindEnum = TransactionKind;
+
+// Transaction schemas (nouvelle structure pour les dépenses du quotidien)
+export const transactionSchema = z.object({
+  id: z.string().uuid(),
+  budgetId: z.string().uuid(),
+  name: z.string().min(1).max(100).trim(),
+  amount: z.number().positive(),
+  kind: transactionKindSchema,
+  transactionDate: z.string().datetime(),
+  isOutOfBudget: z.boolean(),
+  category: z.string().max(100).trim().nullable(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
 });
 export type Transaction = z.infer<typeof transactionSchema>;
 
 export const transactionCreateSchema = z.object({
-  amount: z.number().positive(),
-  type: transactionKindSchema,
+  budgetId: z.string().uuid(),
   name: z.string().min(1).max(100).trim(),
-  description: z.string().max(500).trim().optional(),
-  expenseType: transactionRecurrenceSchema,
-  isRecurring: z.boolean(),
-  budgetId: z.string().uuid().optional(),
+  amount: z.number().positive(),
+  kind: transactionKindSchema,
+  transactionDate: z.string().datetime().optional(),
+  isOutOfBudget: z.boolean().default(false),
+  category: z.string().max(100).trim().nullable().optional(),
 });
 export type TransactionCreate = z.infer<typeof transactionCreateSchema>;
 
 export const transactionUpdateSchema = z.object({
-  amount: z.number().positive().optional(),
-  type: transactionKindSchema.optional(),
   name: z.string().min(1).max(100).trim().optional(),
-  description: z.string().max(500).trim().optional(),
-  expenseType: transactionRecurrenceSchema.optional(),
-  isRecurring: z.boolean().optional(),
+  amount: z.number().positive().optional(),
+  kind: transactionKindSchema.optional(),
+  transactionDate: z.string().datetime().optional(),
+  isOutOfBudget: z.boolean().optional(),
+  category: z.string().max(100).trim().nullable().optional(),
 });
 export type TransactionUpdate = z.infer<typeof transactionUpdateSchema>;
 
@@ -236,6 +307,17 @@ export type BudgetListResponse = z.infer<typeof budgetListResponseSchema>;
 
 export const budgetDeleteResponseSchema = deleteResponseSchema;
 export type BudgetDeleteResponse = z.infer<typeof budgetDeleteResponseSchema>;
+
+// Budget details response schema - aggregates budget with its transactions and budget lines
+export const budgetDetailsResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    budget: budgetSchema,
+    transactions: z.array(transactionSchema),
+    budgetLines: z.array(budgetLineSchema),
+  }),
+});
+export type BudgetDetailsResponse = z.infer<typeof budgetDetailsResponseSchema>;
 
 // Transaction response schemas for operation-specific types
 export const transactionResponseSchema = z.object({
@@ -377,6 +459,46 @@ export const successMessageResponseSchema = z.object({
 });
 export type SuccessMessageResponse = z.infer<
   typeof successMessageResponseSchema
+>;
+
+// Savings Goal response schemas
+export const savingsGoalResponseSchema = z.object({
+  success: z.literal(true),
+  data: savingsGoalSchema,
+});
+export type SavingsGoalResponse = z.infer<typeof savingsGoalResponseSchema>;
+
+export const savingsGoalListResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.array(savingsGoalSchema),
+});
+export type SavingsGoalListResponse = z.infer<
+  typeof savingsGoalListResponseSchema
+>;
+
+export const savingsGoalDeleteResponseSchema = deleteResponseSchema;
+export type SavingsGoalDeleteResponse = z.infer<
+  typeof savingsGoalDeleteResponseSchema
+>;
+
+// Budget Line response schemas
+export const budgetLineResponseSchema = z.object({
+  success: z.literal(true),
+  data: budgetLineSchema,
+});
+export type BudgetLineResponse = z.infer<typeof budgetLineResponseSchema>;
+
+export const budgetLineListResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.array(budgetLineSchema),
+});
+export type BudgetLineListResponse = z.infer<
+  typeof budgetLineListResponseSchema
+>;
+
+export const budgetLineDeleteResponseSchema = deleteResponseSchema;
+export type BudgetLineDeleteResponse = z.infer<
+  typeof budgetLineDeleteResponseSchema
 >;
 
 // Auth schemas

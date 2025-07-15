@@ -3,6 +3,8 @@ export {
   // Enums
   transactionRecurrenceSchema,
   transactionKindSchema,
+  priorityLevelSchema,
+  savingsGoalStatusSchema,
 
   // Budget schemas
   budgetSchema,
@@ -35,6 +37,7 @@ export {
   budgetResponseSchema,
   budgetListResponseSchema,
   budgetDeleteResponseSchema,
+  budgetDetailsResponseSchema,
   transactionResponseSchema,
   transactionListResponseSchema,
   transactionDeleteResponseSchema,
@@ -46,6 +49,22 @@ export {
   templateLineResponseSchema,
   templateLineListResponseSchema,
   templateLineDeleteResponseSchema,
+
+  // Savings Goal schemas
+  savingsGoalSchema,
+  savingsGoalCreateSchema,
+  savingsGoalUpdateSchema,
+  savingsGoalResponseSchema,
+  savingsGoalListResponseSchema,
+  savingsGoalDeleteResponseSchema,
+
+  // Budget Line schemas
+  budgetLineSchema,
+  budgetLineCreateSchema,
+  budgetLineUpdateSchema,
+  budgetLineResponseSchema,
+  budgetLineListResponseSchema,
+  budgetLineDeleteResponseSchema,
 
   // User schemas
   userProfileSchema,
@@ -68,6 +87,9 @@ export type {
   // Enum Types
   TransactionRecurrence,
   TransactionKind,
+  TransactionKindEnum,
+  PriorityLevel,
+  SavingsGoalStatus,
 
   // Budget types
   Budget,
@@ -97,6 +119,7 @@ export type {
   BudgetResponse,
   BudgetListResponse,
   BudgetDeleteResponse,
+  BudgetDetailsResponse,
   TransactionCreateResponse,
   TransactionUpdateResponse,
   TransactionFindOneResponse,
@@ -111,6 +134,22 @@ export type {
   TemplateLineListResponse,
   TemplateLineDeleteResponse,
   TransactionResponse,
+
+  // Savings Goal types
+  SavingsGoal,
+  SavingsGoalCreate,
+  SavingsGoalUpdate,
+  SavingsGoalResponse,
+  SavingsGoalListResponse,
+  SavingsGoalDeleteResponse,
+
+  // Budget Line types
+  BudgetLine,
+  BudgetLineCreate,
+  BudgetLineUpdate,
+  BudgetLineResponse,
+  BudgetLineListResponse,
+  BudgetLineDeleteResponse,
 
   // User types
   UserProfile,

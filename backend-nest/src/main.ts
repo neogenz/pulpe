@@ -30,7 +30,7 @@ function setupSwagger(
         type: 'http',
         scheme: 'bearer',
         bearerFormat: 'JWT',
-        description: "Token JWT d'authentification",
+        description: 'JWT authentication token',
       },
       'bearer',
     )

@@ -201,16 +201,14 @@ export default class CurrentMonth implements OnInit {
   protected readonly title = inject(Title);
   private readonly bottomSheet = inject(MatBottomSheet);
   fixedTransactions = computed(() => {
-    const transactions = this.state.dashboardData.value()?.transactions ?? [];
-    return transactions.filter(
-      (transaction) => transaction.expenseType === 'fixed',
-    );
+    // TODO: Transactions don't have expenseType. This should be budget lines
+    // For now, return empty array to avoid displaying transactions in wrong context
+    return [];
   });
   variableTransactions = computed(() => {
+    // For now, show all transactions as variable expenses
     const transactions = this.state.dashboardData.value()?.transactions ?? [];
-    return transactions.filter(
-      (transaction) => transaction.expenseType === 'variable',
-    );
+    return transactions;
   });
 
   /**
@@ -251,13 +249,18 @@ export default class CurrentMonth implements OnInit {
     try {
       this.isCreatingTransaction.set(true);
       await this.state.addTransaction({
-        isRecurring: false,
-        type: transaction.type,
         budgetId: this.state.dashboardData.value()?.budget?.id ?? '',
         amount: transaction.amount ?? 0,
-        expenseType: 'variable',
         name: transaction.name,
-        description: '',
+        kind:
+          transaction.type === 'income'
+            ? 'INCOME'
+            : transaction.type === 'saving'
+              ? 'SAVINGS_CONTRIBUTION'
+              : 'FIXED_EXPENSE',
+        transactionDate: new Date().toISOString(),
+        isOutOfBudget: false,
+        category: transaction.category ?? null,
       });
     } catch (error) {
       console.error(error);

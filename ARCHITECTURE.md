@@ -537,30 +537,53 @@ USING (EXISTS (
 #### 🔑 **Fonctions sécurisées**
 
 ```sql
--- Fonction pour créer budget + transaction atomiquement
-CREATE OR REPLACE FUNCTION create_budget_from_onboarding_with_transactions(
+-- Fonction pour créer budget à partir d'un template
+CREATE OR REPLACE FUNCTION create_budget_from_template(
   p_user_id uuid,
+  p_template_id uuid,
   p_month integer,
   p_year integer,
-  p_description text,
-  -- ... autres paramètres
+  p_description text
 ) RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER  -- ✅ Exécution avec privilèges fonction
 SET search_path TO 'public'        -- ✅ Sécurisation du search_path
 AS $$
+DECLARE
+  new_budget_id uuid;
+  template_lines jsonb;
 BEGIN
-  -- Insertion budget avec user_id contrôlé
-  INSERT INTO public.monthly_budget (user_id, month, year, description)
-  VALUES (p_user_id, p_month, p_year, p_description)
-  RETURNING id INTO new_monthly_budget_id;
-
-  -- Insertions transaction liées avec user_id contrôlé
-  IF p_monthly_income > 0 THEN
-    INSERT INTO public.transaction (user_id, monthly_budget_id, ...)
-    VALUES (p_user_id, new_monthly_budget_id, ...);
+  -- Vérifier que le template appartient à l'utilisateur ou est global
+  IF NOT EXISTS (
+    SELECT 1 FROM template 
+    WHERE id = p_template_id 
+    AND (user_id = p_user_id OR user_id IS NULL)
+  ) THEN
+    RAISE EXCEPTION 'Template not found or access denied';
   END IF;
 
-  RETURN jsonb_build_object('monthly_budget', ...);
+  -- Créer le budget
+  INSERT INTO monthly_budget (user_id, month, year, description)
+  VALUES (p_user_id, p_month, p_year, p_description)
+  RETURNING id INTO new_budget_id;
+
+  -- Copier les lignes du template vers le budget
+  INSERT INTO transaction (
+    user_id, monthly_budget_id, name, amount, type, 
+    is_income, category, day_of_month
+  )
+  SELECT 
+    p_user_id, new_budget_id, name, amount, type,
+    is_income, category, day_of_month
+  FROM template_line
+  WHERE template_id = p_template_id;
+
+  RETURN jsonb_build_object(
+    'budget', jsonb_build_object('id', new_budget_id),
+    'transactionCount', (
+      SELECT COUNT(*) FROM transaction 
+      WHERE monthly_budget_id = new_budget_id
+    )
+  );
 END;
 $$;
 ```

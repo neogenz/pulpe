@@ -157,9 +157,8 @@ describe('TransactionService', () => {
         budgetId: MOCK_BUDGET_ID,
         name: 'Test Transaction',
         amount: 150,
-        expenseType: 'fixed',
-        type: 'expense',
-        isRecurring: false,
+        kind: 'FIXED_EXPENSE',
+        isOutOfBudget: false,
       };
       const mockCreatedTransaction = createMockTransactionEntity();
 
@@ -184,9 +183,8 @@ describe('TransactionService', () => {
         budgetId: MOCK_BUDGET_ID,
         name: 'Test Transaction',
         amount: 150,
-        expenseType: 'fixed',
-        type: 'expense',
-        isRecurring: false,
+        kind: 'FIXED_EXPENSE',
+        isOutOfBudget: false,
       };
       const mockError = { message: 'Foreign key constraint violation' };
 
@@ -212,9 +210,8 @@ describe('TransactionService', () => {
         budgetId: MOCK_BUDGET_ID,
         name: 'Test Transaction',
         amount: 150,
-        expenseType: 'fixed',
-        type: 'expense',
-        isRecurring: false,
+        kind: 'FIXED_EXPENSE',
+        isOutOfBudget: false,
       };
 
       // Mock a rejected promise to simulate unexpected error

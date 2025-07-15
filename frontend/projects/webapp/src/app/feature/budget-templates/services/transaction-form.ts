@@ -41,7 +41,7 @@ export class TransactionFormService {
         nonNullable: true,
         validators: TRANSACTION_VALIDATORS.amount,
       }),
-      type: new FormControl(transaction?.type ?? 'expense', {
+      type: new FormControl(transaction?.type ?? 'FIXED_EXPENSE', {
         nonNullable: true,
         validators: TRANSACTION_VALIDATORS.type,
       }),

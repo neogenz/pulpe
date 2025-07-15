@@ -7,6 +7,8 @@ import {
 } from '@nestjs/common';
 import { BudgetService } from './budget.service';
 import { BudgetMapper } from './budget.mapper';
+import { TransactionMapper } from '../transaction/transaction.mapper';
+import { BudgetLineMapper } from '../budget-line/budget-line.mapper';
 import {
   createMockAuthenticatedUser,
   createMockSupabaseClient,
@@ -62,6 +64,8 @@ describe('BudgetService', () => {
       providers: [
         BudgetService,
         BudgetMapper,
+        TransactionMapper,
+        BudgetLineMapper,
         {
           provide: `PinoLogger:${BudgetService.name}`,
           useValue: mockPinoLogger,
@@ -336,6 +340,194 @@ describe('BudgetService', () => {
         BadRequestException,
         'Mois invalide',
       );
+    });
+  });
+
+  describe('findOneWithDetails', () => {
+    it('should return budget with transactions and budget lines', async () => {
+      const budgetId = MOCK_BUDGET_ID;
+      const mockBudget = createValidBudgetEntity({ id: budgetId });
+      const mockTransactions = [
+        {
+          id: 'trans-1',
+          budget_id: budgetId,
+          name: 'Transaction 1',
+          amount: 100,
+          kind: 'EXPENSE',
+          transaction_date: '2024-01-15T10:00:00.000Z',
+          is_out_of_budget: false,
+          category: 'Food',
+          created_at: '2024-01-15T10:00:00.000Z',
+          updated_at: '2024-01-15T10:00:00.000Z',
+        },
+        {
+          id: 'trans-2',
+          budget_id: budgetId,
+          name: 'Transaction 2',
+          amount: 200,
+          kind: 'INCOME',
+          transaction_date: '2024-01-10T10:00:00.000Z',
+          is_out_of_budget: false,
+          category: null,
+          created_at: '2024-01-10T10:00:00.000Z',
+          updated_at: '2024-01-10T10:00:00.000Z',
+        },
+      ];
+      const mockBudgetLines = [
+        {
+          id: 'line-1',
+          budget_id: budgetId,
+          template_line_id: null,
+          savings_goal_id: null,
+          name: 'Salaire',
+          amount: 3000,
+          kind: 'income',
+          recurrence: 'fixed',
+          is_manually_adjusted: false,
+          created_at: '2024-01-01T10:00:00.000Z',
+          updated_at: '2024-01-01T10:00:00.000Z',
+        },
+        {
+          id: 'line-2',
+          budget_id: budgetId,
+          template_line_id: null,
+          savings_goal_id: null,
+          name: 'Loyer',
+          amount: 1000,
+          kind: 'expense',
+          recurrence: 'fixed',
+          is_manually_adjusted: false,
+          created_at: '2024-01-01T10:00:00.000Z',
+          updated_at: '2024-01-01T10:00:00.000Z',
+        },
+      ];
+
+      // Override the from method to handle multiple calls
+      let callCount = 0;
+      const originalFrom = mockSupabaseClient.from;
+      mockSupabaseClient.from = (table: string) => {
+        const result = originalFrom.call(mockSupabaseClient, table);
+        if (callCount === 0) {
+          // Budget query
+          mockSupabaseClient.setMockData(mockBudget).setMockError(null);
+        } else if (callCount === 1) {
+          // Transactions query
+          mockSupabaseClient.setMockData(mockTransactions).setMockError(null);
+        } else if (callCount === 2) {
+          // Budget lines query
+          mockSupabaseClient.setMockData(mockBudgetLines).setMockError(null);
+        }
+        callCount++;
+        return result;
+      };
+
+      const result = await service.findOneWithDetails(
+        budgetId,
+        mockSupabaseClient as any,
+      );
+
+      expectSuccessResponse(result);
+      expect(result.data).toHaveProperty('budget');
+      expect(result.data).toHaveProperty('transactions');
+      expect(result.data).toHaveProperty('budgetLines');
+
+      // Verify budget data
+      expect(result.data.budget.id).toBe(budgetId);
+      expect(result.data.budget).toHaveProperty('createdAt');
+      expect(result.data.budget).not.toHaveProperty('created_at');
+
+      // Verify transactions
+      expect(result.data.transactions).toHaveLength(2);
+      expect(result.data.transactions[0].name).toBe('Transaction 1');
+      expect(result.data.transactions[0]).toHaveProperty('transactionDate');
+      expect(result.data.transactions[0]).not.toHaveProperty(
+        'transaction_date',
+      );
+
+      // Verify budget lines
+      expect(result.data.budgetLines).toHaveLength(2);
+      expect(result.data.budgetLines[0].name).toBe('Salaire');
+      expect(result.data.budgetLines[0]).toHaveProperty('budgetId');
+      expect(result.data.budgetLines[0]).not.toHaveProperty('budget_id');
+    });
+
+    it('should return budget with empty arrays when no transactions or budget lines', async () => {
+      const budgetId = MOCK_BUDGET_ID;
+      const mockBudget = createValidBudgetEntity({ id: budgetId });
+
+      // Mock budget found but no transactions or budget lines
+      let callCount = 0;
+      const originalFrom = mockSupabaseClient.from;
+      mockSupabaseClient.from = (table: string) => {
+        const result = originalFrom.call(mockSupabaseClient, table);
+        if (callCount === 0) {
+          // Budget query
+          mockSupabaseClient.setMockData(mockBudget).setMockError(null);
+        } else {
+          // Transactions and budget lines queries
+          mockSupabaseClient.setMockData([]).setMockError(null);
+        }
+        callCount++;
+        return result;
+      };
+
+      const result = await service.findOneWithDetails(
+        budgetId,
+        mockSupabaseClient as any,
+      );
+
+      expectSuccessResponse(result);
+      expect(result.data.budget.id).toBe(budgetId);
+      expect(result.data.transactions).toEqual([]);
+      expect(result.data.budgetLines).toEqual([]);
+    });
+
+    it('should throw NotFoundException when budget not found', async () => {
+      const budgetId = 'non-existent-id';
+
+      mockSupabaseClient
+        .setMockData(null)
+        .setMockError({ message: 'No rows returned' });
+
+      await expectErrorThrown(
+        () => service.findOneWithDetails(budgetId, mockSupabaseClient as any),
+        NotFoundException,
+        'Budget introuvable ou accès non autorisé',
+      );
+    });
+
+    it('should still return budget even if transactions or budget lines queries fail', async () => {
+      const budgetId = MOCK_BUDGET_ID;
+      const mockBudget = createValidBudgetEntity({ id: budgetId });
+
+      // Mock budget found but errors on other queries
+      let callCount = 0;
+      const originalFrom = mockSupabaseClient.from;
+      mockSupabaseClient.from = (table: string) => {
+        const result = originalFrom.call(mockSupabaseClient, table);
+        if (callCount === 0) {
+          // Budget query succeeds
+          mockSupabaseClient.setMockData(mockBudget).setMockError(null);
+        } else {
+          // Transactions and budget lines queries fail
+          mockSupabaseClient
+            .setMockData(null)
+            .setMockError({ message: 'Permission denied' });
+        }
+        callCount++;
+        return result;
+      };
+
+      const result = await service.findOneWithDetails(
+        budgetId,
+        mockSupabaseClient as any,
+      );
+
+      // Should not throw, but return empty arrays for failed queries
+      expectSuccessResponse(result);
+      expect(result.data.budget.id).toBe(budgetId);
+      expect(result.data.transactions).toEqual([]);
+      expect(result.data.budgetLines).toEqual([]);
     });
   });
 });

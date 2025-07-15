@@ -20,22 +20,24 @@ export interface TransactionFilters {
       aria-label="Filtrer par type de transaction"
     >
       <mat-chip-option
-        [selected]="filters().transactionTypes.includes('expense')"
-        (selectionChange)="onTransactionTypeToggle('expense', $event)"
+        [selected]="filters().transactionTypes.includes('FIXED_EXPENSE')"
+        (selectionChange)="onTransactionTypeToggle('FIXED_EXPENSE', $event)"
       >
         <mat-icon matChipAvatar>payments</mat-icon>
         Dépenses
       </mat-chip-option>
       <mat-chip-option
-        [selected]="filters().transactionTypes.includes('income')"
-        (selectionChange)="onTransactionTypeToggle('income', $event)"
+        [selected]="filters().transactionTypes.includes('INCOME')"
+        (selectionChange)="onTransactionTypeToggle('INCOME', $event)"
       >
         <mat-icon matChipAvatar>trending_up</mat-icon>
         Revenus
       </mat-chip-option>
       <mat-chip-option
-        [selected]="filters().transactionTypes.includes('saving')"
-        (selectionChange)="onTransactionTypeToggle('saving', $event)"
+        [selected]="filters().transactionTypes.includes('SAVINGS_CONTRIBUTION')"
+        (selectionChange)="
+          onTransactionTypeToggle('SAVINGS_CONTRIBUTION', $event)
+        "
       >
         <mat-icon matChipAvatar>savings</mat-icon>
         Épargne

@@ -48,7 +48,7 @@ export const TEST_BUDGET_DATA = {
 } as const;
 
 export const TEST_TRANSACTIONS = {
-  EXPENSE: {
+  FIXED_EXPENSE: {
     amount: 45.5,
     description: 'Supermarché Migros',
     category: 'Alimentation',

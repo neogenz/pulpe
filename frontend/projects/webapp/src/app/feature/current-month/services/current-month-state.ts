@@ -1,13 +1,14 @@
 import { computed, inject, Injectable, resource, signal } from '@angular/core';
 import { BudgetApi, BudgetCalculator } from '@core/budget';
 import { TransactionApi } from '@core/transaction';
-import { type Budget, type Transaction } from '@pulpe/shared';
+import { type Budget, type Transaction, type BudgetLine } from '@pulpe/shared';
 import { format } from 'date-fns';
 import { firstValueFrom } from 'rxjs';
 
 interface DashboardData {
   budget: Budget | null;
   transactions: Transaction[];
+  budgetLines: BudgetLine[];
 }
 
 @Injectable()
@@ -89,6 +90,8 @@ export class CurrentMonthState {
     () => this.dashboardData.value()?.transactions || [],
   );
 
+  budgetLines = computed(() => this.dashboardData.value()?.budgetLines || []);
+
   incomeAmount = computed(() => {
     const transactions = this.#transactions();
     return this.#budgetCalculator.calculateTotalIncome(transactions);
@@ -114,25 +117,24 @@ export class CurrentMonthState {
     year: string;
   }): Promise<DashboardData> {
     try {
-      // Charger le budget
+      // Charger d'abord le budget pour obtenir son ID
       const budget = await firstValueFrom<Budget | null>(
         this.#budgetApi.getBudgetForMonth$(params.month, params.year),
       );
 
       if (!budget) {
-        return { budget: null, transactions: [] };
+        return { budget: null, transactions: [], budgetLines: [] };
       }
 
-      // Charger les transactions si un budget existe
-      const transactionResponse = await firstValueFrom(
-        this.#transactionApi.findByBudget$(budget.id),
+      // Utiliser le nouvel endpoint pour récupérer tout en une seule requête
+      const detailsResponse = await firstValueFrom(
+        this.#budgetApi.getBudgetWithDetails$(budget.id),
       );
 
       return {
-        budget,
-        transactions: Array.isArray(transactionResponse.data)
-          ? transactionResponse.data
-          : [],
+        budget: detailsResponse.data.budget,
+        transactions: detailsResponse.data.transactions,
+        budgetLines: detailsResponse.data.budgetLines,
       };
     } catch (error) {
       // Logger l'erreur pour le monitoring

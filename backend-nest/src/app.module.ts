@@ -17,6 +17,7 @@ import { ZodValidationPipe } from 'nestjs-zod';
 import { AuthModule } from '@modules/auth/auth.module';
 import { BudgetTemplateModule } from '@modules/budget-template/budget-template.module';
 import { BudgetModule } from '@modules/budget/budget.module';
+import { BudgetLineModule } from '@modules/budget-line/budget-line.module';
 import { DebugModule } from '@modules/debug/debug.module';
 import { SupabaseModule } from '@modules/supabase/supabase.module';
 import { TransactionModule } from '@modules/transaction/transaction.module';
@@ -135,6 +136,7 @@ function createPinoLoggerConfig(configService: ConfigService) {
     SupabaseModule,
     AuthModule,
     BudgetModule,
+    BudgetLineModule,
     BudgetTemplateModule,
     TransactionModule,
     UserModule,

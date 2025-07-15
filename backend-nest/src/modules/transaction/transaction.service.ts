@@ -33,7 +33,7 @@ export class TransactionService {
       const { data: transactionsDb, error } = await supabase
         .from('transaction')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('transaction_date', { ascending: false });
 
       if (error) {
         this.logger.error({ err: error }, 'Failed to fetch transactions');
@@ -89,22 +89,9 @@ export class TransactionService {
         `Nom ne peut pas dépasser ${TRANSACTION_CONSTANTS.NAME_MAX_LENGTH} caractères`,
       );
     }
-
-    // Validation métier : income ne peut pas avoir expense_type
-    if (
-      createTransactionDto.type === 'income' &&
-      createTransactionDto.expenseType
-    ) {
-      throw new BadRequestException(
-        'Les revenus ne peuvent pas avoir de type de dépense',
-      );
-    }
   }
 
-  private prepareTransactionData(
-    createTransactionDto: TransactionCreate,
-    userId: string,
-  ) {
+  private prepareTransactionData(createTransactionDto: TransactionCreate) {
     if (!createTransactionDto.budgetId) {
       throw new BadRequestException('Budget ID est requis');
     }
@@ -112,12 +99,11 @@ export class TransactionService {
     return {
       budget_id: createTransactionDto.budgetId,
       amount: createTransactionDto.amount,
-      type: createTransactionDto.type,
-      expense_type: createTransactionDto.expenseType,
       name: createTransactionDto.name,
-      description: createTransactionDto.description || null,
-      is_recurring: createTransactionDto.isRecurring || false,
-      user_id: userId,
+      transaction_date:
+        createTransactionDto.transactionDate || new Date().toISOString(),
+      is_out_of_budget: createTransactionDto.isOutOfBudget || false,
+      category: createTransactionDto.category || null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -151,10 +137,7 @@ export class TransactionService {
     try {
       this.validateCreateTransactionDto(createTransactionDto);
 
-      const transactionData = this.prepareTransactionData(
-        createTransactionDto,
-        user.id,
-      );
+      const transactionData = this.prepareTransactionData(createTransactionDto);
       const transactionDb = await this.insertTransaction(
         transactionData,
         supabase,
@@ -235,16 +218,6 @@ export class TransactionService {
         );
       }
     }
-
-    // Validation métier : income ne peut pas avoir expense_type
-    if (
-      updateTransactionDto.type === 'income' &&
-      updateTransactionDto.expenseType
-    ) {
-      throw new BadRequestException(
-        'Les revenus ne peuvent pas avoir de type de dépense',
-      );
-    }
   }
 
   private prepareTransactionUpdateData(
@@ -254,16 +227,15 @@ export class TransactionService {
       ...(updateTransactionDto.amount && {
         amount: updateTransactionDto.amount,
       }),
-      ...(updateTransactionDto.type && { type: updateTransactionDto.type }),
-      ...(updateTransactionDto.expenseType && {
-        expense_type: updateTransactionDto.expenseType,
-      }),
       ...(updateTransactionDto.name && { name: updateTransactionDto.name }),
-      ...(updateTransactionDto.description !== undefined && {
-        description: updateTransactionDto.description,
+      ...(updateTransactionDto.transactionDate !== undefined && {
+        transaction_date: updateTransactionDto.transactionDate,
       }),
-      ...(updateTransactionDto.isRecurring !== undefined && {
-        is_recurring: updateTransactionDto.isRecurring,
+      ...(updateTransactionDto.isOutOfBudget !== undefined && {
+        is_out_of_budget: updateTransactionDto.isOutOfBudget,
+      }),
+      ...(updateTransactionDto.category !== undefined && {
+        category: updateTransactionDto.category,
       }),
       updated_at: new Date().toISOString(),
     };
@@ -366,7 +338,7 @@ export class TransactionService {
         .from('transaction')
         .select('*')
         .eq('budget_id', budgetId)
-        .order('created_at', { ascending: false });
+        .order('transaction_date', { ascending: false });
 
       if (error) {
         this.logger.error(

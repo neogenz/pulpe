@@ -17,6 +17,7 @@ export class BudgetMapper {
       createdAt: budgetDb.created_at,
       updatedAt: budgetDb.updated_at,
       userId: budgetDb.user_id ?? undefined,
+      templateId: budgetDb.template_id,
       month: budgetDb.month,
       year: budgetDb.year,
       description: budgetDb.description,

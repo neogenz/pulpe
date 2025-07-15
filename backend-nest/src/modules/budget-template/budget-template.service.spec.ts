@@ -25,7 +25,7 @@ describe('BudgetTemplateService', () => {
       {
         name: 'Test Line',
         amount: 100,
-        kind: 'expense',
+        kind: 'FIXED_EXPENSE',
         recurrence: 'fixed',
         description: 'Test line description',
       },
@@ -115,7 +115,7 @@ describe('BudgetTemplateService', () => {
             template_id: 'template-123',
             name: 'Test Line',
             amount: '100',
-            kind: 'expense',
+            kind: 'FIXED_EXPENSE',
             recurrence: 'fixed',
             description: 'Test line description',
             created_at: new Date().toISOString(),
