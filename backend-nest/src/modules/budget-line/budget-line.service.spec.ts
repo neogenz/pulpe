@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach, jest } from 'bun:test';
 import { Test, TestingModule } from '@nestjs/testing';
 import {
   BadRequestException,
@@ -9,14 +10,13 @@ import { BudgetLineMapper } from './budget-line.mapper';
 import { PinoLogger } from 'nestjs-pino';
 import type { BudgetLineCreate, BudgetLineUpdate } from '@pulpe/shared';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import type { BudgetLineRow } from './entities/budget-line.entity';
 
 describe('BudgetLineService', () => {
   let service: BudgetLineService;
   let mapper: BudgetLineMapper;
   let logger: PinoLogger;
-  let mockSupabase: jest.Mocked<AuthenticatedSupabaseClient>;
+  let mockSupabase: any;
   let mockUser: AuthenticatedUser;
 
   const mockBudgetLineDb: BudgetLineRow = {
@@ -26,8 +26,8 @@ describe('BudgetLineService', () => {
     savings_goal_id: null,
     name: 'Salaire',
     amount: 2500,
-    kind: 'INCOME',
-    recurrence: 'fixed',
+    kind: 'INCOME' as const,
+    recurrence: 'fixed' as const,
     is_manually_adjusted: false,
     created_at: '2024-01-01T00:00:00.000Z',
     updated_at: '2024-01-01T00:00:00.000Z',
@@ -40,8 +40,8 @@ describe('BudgetLineService', () => {
     savingsGoalId: null,
     name: 'Salaire',
     amount: 2500,
-    kind: 'INCOME',
-    recurrence: 'fixed',
+    kind: 'INCOME' as const,
+    recurrence: 'fixed' as const,
     isManuallyAdjusted: false,
     createdAt: '2024-01-01T00:00:00.000Z',
     updatedAt: '2024-01-01T00:00:00.000Z',
@@ -71,17 +71,8 @@ describe('BudgetLineService', () => {
     mockUser = {
       id: 'user123',
       email: 'test@example.com',
-      aud: 'authenticated',
-      role: 'authenticated',
-      email_confirmed_at: '2024-01-01T00:00:00.000Z',
-      phone_confirmed_at: null,
-      confirmed_at: '2024-01-01T00:00:00.000Z',
-      last_sign_in_at: '2024-01-01T00:00:00.000Z',
-      app_metadata: {},
-      user_metadata: {},
-      identities: [],
-      created_at: '2024-01-01T00:00:00.000Z',
-      updated_at: '2024-01-01T00:00:00.000Z',
+      firstName: 'Test',
+      lastName: 'User',
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -91,11 +82,13 @@ describe('BudgetLineService', () => {
           provide: BudgetLineMapper,
           useValue: {
             toApi: jest.fn().mockReturnValue(mockBudgetLineApi),
-            toApiList: jest.fn().mockReturnValue([mockBudgetLineApi]),
+            toApiList: jest
+              .fn()
+              .mockImplementation((data) => data.map(() => mockBudgetLineApi)),
           },
         },
         {
-          provide: PinoLogger,
+          provide: `PinoLogger:${BudgetLineService.name}`,
           useValue: mockLoggerInstance,
         },
       ],
@@ -103,7 +96,7 @@ describe('BudgetLineService', () => {
 
     service = module.get<BudgetLineService>(BudgetLineService);
     mapper = module.get<BudgetLineMapper>(BudgetLineMapper);
-    logger = module.get<PinoLogger>(PinoLogger);
+    logger = module.get<PinoLogger>(`PinoLogger:${BudgetLineService.name}`);
   });
 
   describe('findByBudgetId', () => {

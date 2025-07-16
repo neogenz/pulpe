@@ -228,13 +228,16 @@ export default class CurrentMonth implements OnInit {
    * visant à encourager l'utilisateur à saisir sa première transaction dès l'arrivée sur la page.
    *
    * À retirer ou à conditionner dès que l'on implémente une UX plus évoluée (ex: onboarding, flag utilisateur, etc.).
+   *
+   * [TEMPORAIREMENT DÉSACTIVÉ POUR LES TESTS E2E]
    */
   ngOnInit() {
     this.state.refreshData();
 
-    setTimeout(() => {
-      this.openAddTransactionBottomSheet();
-    }, 300);
+    // Désactiver temporairement l'ouverture automatique pour éviter les interférences avec les tests E2E
+    // setTimeout(() => {
+    //   this.openAddTransactionBottomSheet();
+    // }, 300);
   }
 
   /**

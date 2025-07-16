@@ -402,23 +402,27 @@ describe('BudgetService', () => {
         },
       ];
 
-      // Override the from method to handle multiple calls
-      let callCount = 0;
+      // Create separate mock clients for each table to avoid data collision
+      const mockBudgetClient = new MockSupabaseClient();
+      const mockTransactionClient = new MockSupabaseClient();
+      const mockBudgetLineClient = new MockSupabaseClient();
+
+      // Configure each client with its specific data
+      mockBudgetClient.setMockData(mockBudget).setMockError(null);
+      mockTransactionClient.setMockData(mockTransactions).setMockError(null);
+      mockBudgetLineClient.setMockData(mockBudgetLines).setMockError(null);
+
+      // Override the from method to return the appropriate client
       const originalFrom = mockSupabaseClient.from;
       mockSupabaseClient.from = (table: string) => {
-        const result = originalFrom.call(mockSupabaseClient, table);
-        if (callCount === 0) {
-          // Budget query
-          mockSupabaseClient.setMockData(mockBudget).setMockError(null);
-        } else if (callCount === 1) {
-          // Transactions query
-          mockSupabaseClient.setMockData(mockTransactions).setMockError(null);
-        } else if (callCount === 2) {
-          // Budget lines query
-          mockSupabaseClient.setMockData(mockBudgetLines).setMockError(null);
+        if (table === 'monthly_budget') {
+          return mockBudgetClient.from(table);
+        } else if (table === 'transaction') {
+          return mockTransactionClient.from(table);
+        } else if (table === 'budget_line') {
+          return mockBudgetLineClient.from(table);
         }
-        callCount++;
-        return result;
+        return originalFrom.call(mockSupabaseClient, table);
       };
 
       const result = await service.findOneWithDetails(
