@@ -1,10 +1,13 @@
 import { test, expect } from '../../fixtures/test-fixtures';
 import { WaitHelper } from '../../fixtures/test-helpers';
+import { CurrentMonthPage } from '../../pages/current-month.page';
 
 test.describe('Monthly Budget Management', () => {
   test('should display monthly dashboard with financial overview', async ({
-    currentMonthPage,
+    authenticatedPage,
   }) => {
+    const currentMonthPage = new CurrentMonthPage(authenticatedPage);
+    
     await test.step('Navigate to current month page', async () => {
       await currentMonthPage.goto();
     });
@@ -16,8 +19,10 @@ test.describe('Monthly Budget Management', () => {
   });
 
   test('should display expense form or related input elements', async ({
-    currentMonthPage,
+    authenticatedPage,
   }) => {
+    const currentMonthPage = new CurrentMonthPage(authenticatedPage);
+    
     await test.step('Navigate to current month page', async () => {
       await currentMonthPage.goto();
     });
@@ -29,8 +34,10 @@ test.describe('Monthly Budget Management', () => {
   });
 
   test('should handle expense form interaction gracefully', async ({
-    currentMonthPage,
+    authenticatedPage,
   }) => {
+    const currentMonthPage = new CurrentMonthPage(authenticatedPage);
+    
     await test.step('Navigate and load page', async () => {
       await currentMonthPage.goto();
       await currentMonthPage.expectPageLoaded();
@@ -57,8 +64,8 @@ test.describe('Monthly Budget Management', () => {
 
   test('should handle budget data loading errors gracefully', async ({
     authenticatedPage,
-    currentMonthPage,
   }) => {
+    const currentMonthPage = new CurrentMonthPage(authenticatedPage);
     await test.step('Setup API error mock', async () => {
       // Mock API error
       await authenticatedPage.route('**/api/transactions**', (route) => {
@@ -77,8 +84,8 @@ test.describe('Monthly Budget Management', () => {
 
   test('should maintain page state after browser refresh', async ({
     authenticatedPage,
-    currentMonthPage,
   }) => {
+    const currentMonthPage = new CurrentMonthPage(authenticatedPage);
     await test.step('Initial page load', async () => {
       await currentMonthPage.goto();
       await currentMonthPage.expectPageLoaded();
@@ -103,9 +110,9 @@ test.describe('Monthly Budget Management', () => {
   });
 
   test('should display budget lines in fixed transactions list', async ({
-    currentMonthPage,
-    page,
+    authenticatedPage,
   }) => {
+    const currentMonthPage = new CurrentMonthPage(authenticatedPage);
     await test.step('Navigate to current month page', async () => {
       await currentMonthPage.goto();
       await currentMonthPage.expectPageLoaded();
@@ -113,7 +120,7 @@ test.describe('Monthly Budget Management', () => {
 
     await test.step('Verify fixed transactions list exists and is properly rendered', async () => {
       // Wait for the fixed transactions list to be present
-      const fixedTransactionsList = page.locator('[data-testid="fixed-transactions-list"]');
+      const fixedTransactionsList = authenticatedPage.locator('[data-testid="fixed-transactions-list"]');
       
       // Use a more lenient approach - just ensure the component is there
       try {
@@ -137,7 +144,7 @@ test.describe('Monthly Budget Management', () => {
       } catch {
         // If the list is not visible, just check that the page loaded successfully
         // This might happen if there are no budget lines or the feature is not fully loaded
-        await expect(page.locator('[data-testid="current-month-page"]')).toBeVisible();
+        await expect(authenticatedPage.locator('[data-testid="current-month-page"]')).toBeVisible();
       }
     });
   });
