@@ -2,7 +2,6 @@ import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import {
   BadRequestException,
-  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -25,65 +24,6 @@ export class BudgetLineService {
     private readonly logger: PinoLogger,
     private readonly budgetLineMapper: BudgetLineMapper,
   ) {}
-
-  /**
-   * Validates budget line access for the authenticated user
-   * Budget lines are user-owned through their parent budget
-   * @param budgetLineId - The budget line ID to validate
-   * @param user - The authenticated user
-   * @param supabase - The authenticated Supabase client
-   */
-  private async validateBudgetLineAccess(
-    budgetLineId: string,
-    user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<void> {
-    const { data, error } = await supabase
-      .from('budget_line')
-      .select(
-        `
-        id,
-        name,
-        budget_id,
-        monthly_budget!inner (
-          id,
-          user_id,
-          description
-        )
-      `,
-      )
-      .eq('id', budgetLineId)
-      .single();
-
-    if (error || !data) {
-      this.logger.warn(
-        { budgetLineId, userId: user.id, error },
-        'Budget line access validation failed - budget line not found',
-      );
-      throw new NotFoundException('Budget line not found');
-    }
-
-    const isOwner = data.monthly_budget.user_id === user.id;
-
-    if (!isOwner) {
-      this.logger.warn(
-        {
-          budgetLineId,
-          userId: user.id,
-          budgetOwnerId: data.monthly_budget.user_id,
-          budgetLineName: data.name,
-          budgetDescription: data.monthly_budget.description,
-        },
-        'Budget line access validation failed - not the owner',
-      );
-      throw new ForbiddenException('You can only access your own budget lines');
-    }
-
-    this.logger.debug(
-      { budgetLineId, userId: user.id },
-      'Budget line access validated successfully',
-    );
-  }
 
   async findAll(
     supabase: AuthenticatedSupabaseClient,
@@ -161,8 +101,6 @@ export class BudgetLineService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineResponse> {
     try {
-      await this.validateBudgetLineAccess(id, user, supabase);
-
       const { data: budgetLineDb, error } = await supabase
         .from('budget_line')
         .select('*')
@@ -182,10 +120,7 @@ export class BudgetLineService {
         data: apiData,
       };
     } catch (error) {
-      if (
-        error instanceof NotFoundException ||
-        error instanceof ForbiddenException
-      ) {
+      if (error instanceof NotFoundException) {
         throw error;
       }
       this.logger.error({ err: error }, 'Failed to fetch single budget line');
@@ -357,8 +292,6 @@ export class BudgetLineService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineResponse> {
     try {
-      await this.validateBudgetLineAccess(id, user, supabase);
-
       this.validateUpdateBudgetLineDto(updateBudgetLineDto);
 
       const updateData = this.prepareBudgetLineUpdateData(updateBudgetLineDto);
@@ -377,8 +310,7 @@ export class BudgetLineService {
     } catch (error) {
       if (
         error instanceof NotFoundException ||
-        error instanceof BadRequestException ||
-        error instanceof ForbiddenException
+        error instanceof BadRequestException
       ) {
         throw error;
       }
@@ -393,8 +325,6 @@ export class BudgetLineService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineDeleteResponse> {
     try {
-      await this.validateBudgetLineAccess(id, user, supabase);
-
       const { error } = await supabase
         .from('budget_line')
         .delete()
@@ -412,10 +342,7 @@ export class BudgetLineService {
         message: 'Ligne budgétaire supprimée avec succès',
       };
     } catch (error) {
-      if (
-        error instanceof NotFoundException ||
-        error instanceof ForbiddenException
-      ) {
+      if (error instanceof NotFoundException) {
         throw error;
       }
       this.logger.error({ err: error }, 'Failed to delete budget line');
