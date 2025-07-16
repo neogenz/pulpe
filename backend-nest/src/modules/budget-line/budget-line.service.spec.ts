@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, jest } from 'bun:test';
 import { Test, TestingModule } from '@nestjs/testing';
 import {
   BadRequestException,
+  ForbiddenException,
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
@@ -168,16 +169,38 @@ describe('BudgetLineService', () => {
   describe('findOne', () => {
     it('should return a single budget line', async () => {
       const budgetLineId = '123e4567-e89b-12d3-a456-426614174000';
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            single: jest.fn().mockResolvedValue({
-              data: mockBudgetLineDb,
-              error: null,
+      const mockAuthValidationData = {
+        id: budgetLineId,
+        name: 'Salaire',
+        budget_id: '123e4567-e89b-12d3-a456-426614174001',
+        monthly_budget: {
+          id: '123e4567-e89b-12d3-a456-426614174001',
+          user_id: 'user123',
+          description: 'Budget January',
+        },
+      };
+
+      mockSupabase.from
+        .mockReturnValueOnce({
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              single: jest.fn().mockResolvedValue({
+                data: mockAuthValidationData,
+                error: null,
+              }),
             }),
           }),
-        }),
-      } as any);
+        })
+        .mockReturnValueOnce({
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              single: jest.fn().mockResolvedValue({
+                data: mockBudgetLineDb,
+                error: null,
+              }),
+            }),
+          }),
+        });
 
       const result = await service.findOne(
         budgetLineId,
@@ -209,6 +232,35 @@ describe('BudgetLineService', () => {
       await expect(
         service.findOne(budgetLineId, mockUser, mockSupabase),
       ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw ForbiddenException when user is not the owner', async () => {
+      const budgetLineId = '123e4567-e89b-12d3-a456-426614174000';
+      const mockAuthValidationData = {
+        id: budgetLineId,
+        name: 'Salaire',
+        budget_id: '123e4567-e89b-12d3-a456-426614174001',
+        monthly_budget: {
+          id: '123e4567-e89b-12d3-a456-426614174001',
+          user_id: 'differentUser',
+          description: 'Budget January',
+        },
+      };
+
+      mockSupabase.from.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: mockAuthValidationData,
+              error: null,
+            }),
+          }),
+        }),
+      } as any);
+
+      await expect(
+        service.findOne(budgetLineId, mockUser, mockSupabase),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 
@@ -292,19 +344,40 @@ describe('BudgetLineService', () => {
         name: 'Salaire Updated',
         amount: 2600,
       };
+      const mockAuthValidationData = {
+        id: budgetLineId,
+        name: 'Salaire',
+        budget_id: '123e4567-e89b-12d3-a456-426614174001',
+        monthly_budget: {
+          id: '123e4567-e89b-12d3-a456-426614174001',
+          user_id: 'user123',
+          description: 'Budget January',
+        },
+      };
 
-      mockSupabase.from.mockReturnValue({
-        update: jest.fn().mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            select: jest.fn().mockReturnValue({
+      mockSupabase.from
+        .mockReturnValueOnce({
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
               single: jest.fn().mockResolvedValue({
-                data: updatedBudgetLine,
+                data: mockAuthValidationData,
                 error: null,
               }),
             }),
           }),
-        }),
-      } as any);
+        })
+        .mockReturnValueOnce({
+          update: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              select: jest.fn().mockReturnValue({
+                single: jest.fn().mockResolvedValue({
+                  data: updatedBudgetLine,
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        });
 
       const result = await service.update(
         budgetLineId,
@@ -324,13 +397,11 @@ describe('BudgetLineService', () => {
     it('should throw NotFoundException when budget line not found', async () => {
       const budgetLineId = '123e4567-e89b-12d3-a456-426614174000';
       mockSupabase.from.mockReturnValue({
-        update: jest.fn().mockReturnValue({
+        select: jest.fn().mockReturnValue({
           eq: jest.fn().mockReturnValue({
-            select: jest.fn().mockReturnValue({
-              single: jest.fn().mockResolvedValue({
-                data: null,
-                error: new Error('Not found'),
-              }),
+            single: jest.fn().mockResolvedValue({
+              data: null,
+              error: new Error('Not found'),
             }),
           }),
         }),
@@ -346,6 +417,27 @@ describe('BudgetLineService', () => {
       const invalidUpdateDto: BudgetLineUpdate = {
         amount: -100, // Invalid negative amount
       };
+      const mockAuthValidationData = {
+        id: budgetLineId,
+        name: 'Salaire',
+        budget_id: '123e4567-e89b-12d3-a456-426614174001',
+        monthly_budget: {
+          id: '123e4567-e89b-12d3-a456-426614174001',
+          user_id: 'user123',
+          description: 'Budget January',
+        },
+      };
+
+      mockSupabase.from.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: mockAuthValidationData,
+              error: null,
+            }),
+          }),
+        }),
+      } as any);
 
       await expect(
         service.update(budgetLineId, invalidUpdateDto, mockUser, mockSupabase),
@@ -356,13 +448,35 @@ describe('BudgetLineService', () => {
   describe('remove', () => {
     it('should delete a budget line', async () => {
       const budgetLineId = '123e4567-e89b-12d3-a456-426614174000';
-      mockSupabase.from.mockReturnValue({
-        delete: jest.fn().mockReturnValue({
-          eq: jest.fn().mockResolvedValue({
-            error: null,
+      const mockAuthValidationData = {
+        id: budgetLineId,
+        name: 'Salaire',
+        budget_id: '123e4567-e89b-12d3-a456-426614174001',
+        monthly_budget: {
+          id: '123e4567-e89b-12d3-a456-426614174001',
+          user_id: 'user123',
+          description: 'Budget January',
+        },
+      };
+
+      mockSupabase.from
+        .mockReturnValueOnce({
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              single: jest.fn().mockResolvedValue({
+                data: mockAuthValidationData,
+                error: null,
+              }),
+            }),
           }),
-        }),
-      } as any);
+        })
+        .mockReturnValueOnce({
+          delete: jest.fn().mockReturnValue({
+            eq: jest.fn().mockResolvedValue({
+              error: null,
+            }),
+          }),
+        });
 
       const result = await service.remove(budgetLineId, mockUser, mockSupabase);
 
@@ -376,9 +490,12 @@ describe('BudgetLineService', () => {
     it('should throw NotFoundException when budget line not found', async () => {
       const budgetLineId = '123e4567-e89b-12d3-a456-426614174000';
       mockSupabase.from.mockReturnValue({
-        delete: jest.fn().mockReturnValue({
-          eq: jest.fn().mockResolvedValue({
-            error: new Error('Not found'),
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: null,
+              error: new Error('Not found'),
+            }),
           }),
         }),
       } as any);
