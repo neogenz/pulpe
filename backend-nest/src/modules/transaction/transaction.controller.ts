@@ -2,7 +2,7 @@ import {
   Controller,
   Get,
   Post,
-  Put,
+  Patch,
   Delete,
   Body,
   Param,
@@ -111,8 +111,10 @@ export class TransactionController {
     return this.transactionService.findOne(id, user, supabase);
   }
 
-  @Put(':id')
-  @ApiOperation({ summary: 'Met à jour une transaction existante' })
+  @Patch(':id')
+  @ApiOperation({
+    summary: 'Met à jour partiellement une transaction existante',
+  })
   @ApiParam({
     name: 'id',
     description: 'Identifiant unique de la transaction',

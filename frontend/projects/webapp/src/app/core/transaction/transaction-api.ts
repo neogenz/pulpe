@@ -38,7 +38,7 @@ export class TransactionApi {
     id: string,
     transaction: TransactionUpdate,
   ): Observable<TransactionUpdateResponse> {
-    return this.http.put<TransactionUpdateResponse>(
+    return this.http.patch<TransactionUpdateResponse>(
       `${this.apiUrl}/${id}`,
       transaction,
     );
