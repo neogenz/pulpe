@@ -16,7 +16,26 @@ import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
-import { MatNativeDateModule } from '@angular/material/core';
+import { MAT_DATE_FORMATS } from '@angular/material/core';
+import { MAT_DATE_FNS_FORMATS } from '@angular/material-date-fns-adapter';
+import { startOfMonth } from 'date-fns';
+import { BudgetCreationFormState } from './budget-creation-form-state';
+
+// Format personnalisé pour le month/year picker
+const MONTH_YEAR_FORMATS = {
+  ...MAT_DATE_FNS_FORMATS,
+  parse: {
+    ...MAT_DATE_FNS_FORMATS.parse,
+    dateInput: ['MM.yyyy'],
+  },
+  display: {
+    ...MAT_DATE_FNS_FORMATS.display,
+    dateInput: 'MM.yyyy',
+    monthYearLabel: 'MMM yyyy',
+    dateA11yLabel: 'MM.yyyy',
+    monthYearA11yLabel: 'MMMM yyyy',
+  },
+};
 
 @Component({
   selector: 'pulpe-month-dialog',
@@ -26,15 +45,18 @@ import { MatNativeDateModule } from '@angular/material/core';
     MatFormFieldModule,
     MatInputModule,
     MatDatepickerModule,
-    MatNativeDateModule,
     MatIconModule,
     ReactiveFormsModule,
+  ],
+  providers: [
+    BudgetCreationFormState,
+    { provide: MAT_DATE_FORMATS, useValue: MONTH_YEAR_FORMATS },
   ],
   template: `
     <h2 mat-dialog-title>Nouveau budget</h2>
 
     <mat-dialog-content>
-      <form [formGroup]="budgetForm" class="space-y-4 md:space-y-6">
+      <form [formGroup]="budgetForm" class="py-4 space-y-4 md:space-y-6">
         <!-- Month/Year Picker -->
         <mat-form-field appearance="outline" class="w-full">
           <mat-label>Mois et année</mat-label>
@@ -54,6 +76,7 @@ import { MatNativeDateModule } from '@angular/material/core';
             (monthSelected)="onMonthSelected($event, monthYearPicker)"
           >
           </mat-datepicker>
+          <mat-hint>mm.aaaa</mat-hint>
           @if (
             budgetForm.get('monthYear')?.invalid &&
             budgetForm.get('monthYear')?.touched
@@ -132,8 +155,9 @@ import { MatNativeDateModule } from '@angular/material/core';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CreateBudgetDialogComponent {
-  #formBuilder = inject(FormBuilder);
-  #dialogRef = inject(MatDialogRef<CreateBudgetDialogComponent>);
+  readonly #dialogRef = inject(MatDialogRef<CreateBudgetDialogComponent>);
+  readonly #formBuilder = inject(FormBuilder);
+  readonly #formState = inject(BudgetCreationFormState);
 
   budgetForm: FormGroup;
 
@@ -143,9 +167,8 @@ export class CreateBudgetDialogComponent {
   });
 
   constructor() {
-    // Initialize form with current year default
-    const currentDate = new Date();
-    currentDate.setDate(1); // Set to first day of current month
+    // Initialize form with current year default using date-fns
+    const currentDate = startOfMonth(new Date());
 
     this.budgetForm = this.#formBuilder.group({
       monthYear: [currentDate, Validators.required],
@@ -153,11 +176,11 @@ export class CreateBudgetDialogComponent {
     });
   }
 
-  onMonthSelected(date: Date, datePicker: { close: () => void }): void {
-    // Set the date to the first day of the selected month
-    const selectedDate = new Date(date.getFullYear(), date.getMonth(), 1);
-    this.budgetForm.get('monthYear')?.setValue(selectedDate);
-    this.budgetForm.get('monthYear')?.markAsTouched();
+  onMonthSelected(
+    normalizedMonthAndYear: Date,
+    datePicker: { close: () => void },
+  ): void {
+    this.#formState.setMonthAndYear(this.budgetForm, normalizedMonthAndYear);
     datePicker.close();
   }
 
@@ -167,9 +190,9 @@ export class CreateBudgetDialogComponent {
   }
 
   onCreateBudget(): void {
-    if (this.budgetForm.valid) {
-      const formValue = this.budgetForm.value;
-      this.#dialogRef.close(formValue);
+    const formData = this.#formState.validateAndGetFormData(this.budgetForm);
+    if (formData) {
+      this.#dialogRef.close(formData);
     }
   }
 }
