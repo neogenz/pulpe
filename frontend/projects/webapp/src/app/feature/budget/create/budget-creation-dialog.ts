@@ -57,70 +57,83 @@ const MONTH_YEAR_FORMATS = {
 
     <mat-dialog-content>
       <form [formGroup]="budgetForm" class="py-4 space-y-4 md:space-y-6">
-        <!-- Month/Year Picker -->
-        <mat-form-field appearance="outline" class="w-full">
-          <mat-label>Mois et année</mat-label>
-          <input
-            matInput
-            [matDatepicker]="monthYearPicker"
-            formControlName="monthYear"
-            readonly
-          />
-          <mat-datepicker-toggle
-            matSuffix
-            [for]="monthYearPicker"
-          ></mat-datepicker-toggle>
-          <mat-datepicker
-            #monthYearPicker
-            startView="multi-year"
-            (monthSelected)="onMonthSelected($event, monthYearPicker)"
-          >
-          </mat-datepicker>
-          <mat-hint>mm.aaaa</mat-hint>
-          @if (
-            budgetForm.get('monthYear')?.invalid &&
-            budgetForm.get('monthYear')?.touched
-          ) {
-            <mat-error>Le mois et l'année sont requis</mat-error>
-          }
-        </mat-form-field>
+        <section class="space-y-2 md:space-y-4">
+          <!-- General Information Section -->
+          <h3 class="text-title-medium text-primary mb-4">
+            Informations générales
+          </h3>
 
-        <!-- Description Field -->
-        <mat-form-field appearance="outline" class="w-full">
-          <mat-label>Description</mat-label>
-          <input
-            matInput
-            formControlName="description"
-            maxlength="100"
-            placeholder="Saisissez une description pour ce budget"
-          />
-          <mat-hint align="end">{{ descriptionLength() }}/100</mat-hint>
-          @if (
-            budgetForm.get('description')?.invalid &&
-            budgetForm.get('description')?.touched
-          ) {
-            <mat-error>
-              @if (budgetForm.get('description')?.errors?.['required']) {
-                La description est requise
-              }
-              @if (budgetForm.get('description')?.errors?.['maxlength']) {
-                La description ne peut pas dépasser 100 caractères
-              }
-            </mat-error>
-          }
-        </mat-form-field>
+          <!-- Month/Year Picker -->
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Mois et année</mat-label>
+            <input
+              matInput
+              [matDatepicker]="monthYearPicker"
+              formControlName="monthYear"
+              readonly
+            />
+            <mat-datepicker-toggle
+              matSuffix
+              [for]="monthYearPicker"
+            ></mat-datepicker-toggle>
+            <mat-datepicker
+              #monthYearPicker
+              startView="multi-year"
+              (monthSelected)="onMonthSelected($event, monthYearPicker)"
+            >
+            </mat-datepicker>
+            <mat-hint>mm.aaaa</mat-hint>
+            @if (
+              budgetForm.get('monthYear')?.invalid &&
+              budgetForm.get('monthYear')?.touched
+            ) {
+              <mat-error>Le mois et l'année sont requis</mat-error>
+            }
+          </mat-form-field>
 
-        <!-- Template Selection Button -->
-        <div class="flex justify-center mt-4 md:mt-6">
-          <button
-            type="button"
-            matButton="tonal"
-            class="px-4 py-2 md:px-6 md:py-2"
-            (click)="onSelectTemplate()"
-          >
-            Choisir un modèle
-          </button>
-        </div>
+          <!-- Description Field -->
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Description</mat-label>
+            <input
+              matInput
+              formControlName="description"
+              maxlength="100"
+              placeholder="Saisissez une description pour ce budget"
+            />
+            <mat-hint align="end">{{ descriptionLength() }}/100</mat-hint>
+            @if (
+              budgetForm.get('description')?.invalid &&
+              budgetForm.get('description')?.touched
+            ) {
+              <mat-error>
+                @if (budgetForm.get('description')?.errors?.['required']) {
+                  La description est requise
+                }
+                @if (budgetForm.get('description')?.errors?.['maxlength']) {
+                  La description ne peut pas dépasser 100 caractères
+                }
+              </mat-error>
+            }
+          </mat-form-field>
+        </section>
+        <section>
+          <!-- Model Selection Section -->
+          <h3 class="text-title-medium text-primary mb-4">
+            Sélection du modèle
+          </h3>
+
+          <!-- Template Selection Button -->
+          <div class="flex justify-center mt-4 md:mt-6">
+            <button
+              type="button"
+              matButton="tonal"
+              class="px-4 py-2 md:px-6 md:py-2"
+              (click)="onSelectTemplate()"
+            >
+              Choisir un modèle
+            </button>
+          </div>
+        </section>
       </form>
     </mat-dialog-content>
 
