@@ -7,16 +7,16 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
-import { MonthCardItem } from './components/month-card-item';
-import { MonthsLoading } from './components/months-loading';
-import { MonthsError } from './components/months-error';
-import { OtherMonthsState } from './services/other-months-state';
+import { MonthCardItem } from './ui/month-card-item';
+import { MonthsLoading } from './ui/budget-loading';
+import { MonthsError } from './ui/budget-error';
+import { BudgetState } from './budget-state';
 import { MatTabsModule } from '@angular/material/tabs';
 import { Title } from '@core/routing';
 
 @Component({
   selector: 'pulpe-other-months',
-  providers: [OtherMonthsState],
+  providers: [BudgetState],
   imports: [
     MatIconModule,
     MatButtonModule,
@@ -104,7 +104,7 @@ import { Title } from '@core/routing';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class OtherMonths implements OnInit {
-  protected readonly state = inject(OtherMonthsState);
+  protected readonly state = inject(BudgetState);
   protected readonly title = inject(Title);
 
   ngOnInit(): void {

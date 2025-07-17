@@ -9,6 +9,7 @@ import {
   effect,
 } from '@angular/core';
 import { Router } from '@angular/router';
+import { ROUTES } from '@core/routing';
 import { OnboardingCurrencyInput } from '../ui/currency-input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -94,7 +95,11 @@ export default class Income {
   }
 
   onPrevious(): void {
-    this.#router.navigate(['/onboarding/personal-info']);
+    this.#router.navigate([
+      '/',
+      ROUTES.ONBOARDING,
+      ROUTES.ONBOARDING_PERSONAL_INFO,
+    ]);
   }
 
   #handleNext(): void {
@@ -103,6 +108,6 @@ export default class Income {
     }
 
     this.#store.updateField('monthlyIncome', this.incomeValue());
-    this.#router.navigate(['/onboarding/housing']);
+    this.#router.navigate(['/', ROUTES.ONBOARDING, ROUTES.ONBOARDING_HOUSING]);
   }
 }

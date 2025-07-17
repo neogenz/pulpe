@@ -2,65 +2,52 @@ import { Routes } from '@angular/router';
 import { publicGuard } from '@core/auth';
 import { authGuard } from '@core/auth/auth-guard';
 import { MainLayout } from '@layout/main-layout';
-import { PAGE_TITLES } from '@core/routing';
-
-export const ROUTES = {
-  HOME: '',
-  LOGIN: 'login',
-  ONBOARDING: 'onboarding',
-  APP: 'app',
-  CURRENT_MONTH: '/app/current-month',
-  OTHER_MONTHS: '/app/other-months',
-  BUDGET_TEMPLATES: '/app/budget-templates',
-  ONBOARDING_REGISTRATION: '/onboarding/registration',
-  ONBOARDING_WELCOME: '/onboarding/welcome',
-};
+import { PAGE_TITLES, ROUTES } from '@core/routing';
 
 export const routes: Routes = [
   {
     path: '',
     pathMatch: 'full',
-    redirectTo: 'app',
+    redirectTo: ROUTES.APP,
   },
   {
-    path: 'login',
+    path: ROUTES.LOGIN,
     title: PAGE_TITLES.LOGIN,
     canActivate: [publicGuard],
     loadComponent: () => import('./feature/auth/login/login'),
   },
   {
-    path: 'onboarding',
+    path: ROUTES.ONBOARDING,
     title: PAGE_TITLES.ONBOARDING,
     canActivate: [publicGuard],
     loadChildren: () => import('./feature/onboarding/onboarding.routes'),
   },
   {
-    path: 'app',
+    path: ROUTES.APP,
     title: PAGE_TITLES.DASHBOARD,
     canActivate: [authGuard],
     component: MainLayout,
     children: [
       {
         path: '',
-        redirectTo: 'current-month',
+        redirectTo: ROUTES.CURRENT_MONTH,
         pathMatch: 'full',
       },
       {
-        path: 'current-month',
+        path: ROUTES.CURRENT_MONTH,
         title: PAGE_TITLES.CURRENT_MONTH,
         data: { breadcrumb: 'Mois en cours', icon: 'today' },
         loadChildren: () =>
           import('./feature/current-month/current-month.routes'),
       },
       {
-        path: 'other-months',
-        title: PAGE_TITLES.OTHER_MONTHS,
-        data: { breadcrumb: 'Autres mois', icon: 'date_range' },
-        loadChildren: () =>
-          import('./feature/other-months/other-months.routes'),
+        path: ROUTES.BUDGET,
+        title: PAGE_TITLES.BUDGET,
+        data: { breadcrumb: 'Mes budgets', icon: 'calendar_month' },
+        loadChildren: () => import('./feature/budget/budget.routes'),
       },
       {
-        path: 'budget-templates',
+        path: ROUTES.BUDGET_TEMPLATES,
         title: PAGE_TITLES.BUDGET_TEMPLATES,
         data: { breadcrumb: 'Modèles de budget', icon: 'description' },
         loadChildren: () =>

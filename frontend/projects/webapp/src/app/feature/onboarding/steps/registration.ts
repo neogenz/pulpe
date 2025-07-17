@@ -20,6 +20,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { Router } from '@angular/router';
+import { ROUTES } from '@core/routing';
 import { OnboardingStore } from '../onboarding-store';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
@@ -163,7 +164,11 @@ export default class Registration implements OnDestroy {
   }
 
   onPrevious(): void {
-    this.#router.navigate(['/onboarding/leasing-credit']);
+    this.#router.navigate([
+      '/',
+      ROUTES.ONBOARDING,
+      ROUTES.ONBOARDING_LEASING_CREDIT,
+    ]);
   }
 
   async onSubmit(): Promise<void> {
@@ -179,7 +184,7 @@ export default class Registration implements OnDestroy {
     const success = await this.store.submitRegistration(email, password);
 
     if (success) {
-      this.#router.navigate(['/current-month']);
+      this.#router.navigate(['/', ROUTES.APP, ROUTES.CURRENT_MONTH]);
     }
   }
 }

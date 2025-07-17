@@ -1,7 +1,7 @@
 import { Routes } from '@angular/router';
 import { OnboardingLayout } from './onboarding-layout';
 import { OnboardingStore, STEP_ORDER } from './onboarding-store';
-import { PAGE_TITLES } from '../../core/routing';
+import { PAGE_TITLES, ROUTES } from '../../core/routing';
 import { onboardingStepGuard } from './onboarding-step-guard';
 
 const routes: Routes = [
@@ -13,7 +13,7 @@ const routes: Routes = [
       {
         path: '',
         pathMatch: 'full',
-        redirectTo: 'welcome',
+        redirectTo: ROUTES.ONBOARDING_WELCOME,
       },
       {
         path: STEP_ORDER[0],
