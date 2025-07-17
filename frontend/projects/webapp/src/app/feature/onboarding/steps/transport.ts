@@ -8,6 +8,7 @@ import {
   effect,
 } from '@angular/core';
 import { Router } from '@angular/router';
+import { ROUTES } from '@core/routing';
 import { OnboardingCurrencyInput } from '../ui/currency-input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -87,11 +88,19 @@ export default class Transport {
   }
 
   onPrevious(): void {
-    this.#router.navigate(['/onboarding/phone-plan']);
+    this.#router.navigate([
+      '/',
+      ROUTES.ONBOARDING,
+      ROUTES.ONBOARDING_PHONE_PLAN,
+    ]);
   }
 
   #handleNext(): void {
     this.#store.updateField('transportCosts', this.transportValue() ?? 0);
-    this.#router.navigate(['/onboarding/leasing-credit']);
+    this.#router.navigate([
+      '/',
+      ROUTES.ONBOARDING,
+      ROUTES.ONBOARDING_LEASING_CREDIT,
+    ]);
   }
 }

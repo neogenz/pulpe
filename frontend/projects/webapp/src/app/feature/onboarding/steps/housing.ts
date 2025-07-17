@@ -8,6 +8,7 @@ import {
   effect,
 } from '@angular/core';
 import { Router } from '@angular/router';
+import { ROUTES } from '@core/routing';
 import { OnboardingCurrencyInput } from '../ui/currency-input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -88,11 +89,15 @@ export default class Housing {
   }
 
   onPrevious(): void {
-    this.#router.navigate(['/onboarding/income']);
+    this.#router.navigate(['/', ROUTES.ONBOARDING, ROUTES.ONBOARDING_INCOME]);
   }
 
   #handleNext(): void {
     this.#store.updateField('housingCosts', this.housingValue() ?? 0);
-    this.#router.navigate(['/onboarding/health-insurance']);
+    this.#router.navigate([
+      '/',
+      ROUTES.ONBOARDING,
+      ROUTES.ONBOARDING_HEALTH_INSURANCE,
+    ]);
   }
 }

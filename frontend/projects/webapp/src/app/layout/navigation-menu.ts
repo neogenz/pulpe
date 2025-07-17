@@ -19,8 +19,8 @@ const NAVIGATION_CONFIG = [
         icon: 'today',
       },
       {
-        label: 'Autres mois',
-        route: ROUTES.OTHER_MONTHS,
+        label: 'Mes budgets',
+        route: ROUTES.BUDGET,
         icon: 'calendar_month',
       },
       {

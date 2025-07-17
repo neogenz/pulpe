@@ -10,6 +10,7 @@ import {
   STEP_ORDER,
   type OnboardingStep,
 } from './onboarding-store';
+import { ROUTES } from '@core/routing';
 
 /**
  * Vérifie si un revenu mensuel est valide pour les règles métier
@@ -53,14 +54,22 @@ export const onboardingStepGuard: CanActivateFn = (
   if (currentStepIndex >= 2) {
     // income et après (après personal-info)
     if (!data.firstName || data.firstName.trim() === '') {
-      return router.createUrlTree(['/onboarding/personal-info']);
+      return router.createUrlTree([
+        '/',
+        ROUTES.ONBOARDING,
+        ROUTES.ONBOARDING_PERSONAL_INFO,
+      ]);
     }
   }
 
   if (currentStepIndex >= 3) {
     // housing et après (après income)
     if (!isValidIncome(data.monthlyIncome)) {
-      return router.createUrlTree(['/onboarding/income']);
+      return router.createUrlTree([
+        '/',
+        ROUTES.ONBOARDING,
+        ROUTES.ONBOARDING_INCOME,
+      ]);
     }
   }
 
@@ -73,10 +82,18 @@ export const onboardingStepGuard: CanActivateFn = (
     ) {
       // Rediriger vers la première étape incomplète
       if (!data.firstName || data.firstName.trim() === '') {
-        return router.createUrlTree(['/onboarding/personal-info']);
+        return router.createUrlTree([
+          '/',
+          ROUTES.ONBOARDING,
+          ROUTES.ONBOARDING_PERSONAL_INFO,
+        ]);
       }
       if (!isValidIncome(data.monthlyIncome)) {
-        return router.createUrlTree(['/onboarding/income']);
+        return router.createUrlTree([
+          '/',
+          ROUTES.ONBOARDING,
+          ROUTES.ONBOARDING_INCOME,
+        ]);
       }
     }
   }

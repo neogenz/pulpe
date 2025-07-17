@@ -16,6 +16,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { OnboardingStore } from '../onboarding-store';
+import { ROUTES } from '@core/routing';
 
 @Component({
   selector: 'pulpe-personal-info',
@@ -113,7 +114,7 @@ export default class PersonalInfo {
   }
 
   onPrevious(): void {
-    this.#router.navigate(['/onboarding/welcome']);
+    this.#router.navigate(['/', ROUTES.ONBOARDING, ROUTES.ONBOARDING_WELCOME]);
   }
 
   #handleNext(): void {
@@ -123,6 +124,6 @@ export default class PersonalInfo {
     }
 
     this.#store.updateField('firstName', this.firstNameControl.value.trim());
-    this.#router.navigate(['/onboarding/income']);
+    this.#router.navigate(['/', ROUTES.ONBOARDING, ROUTES.ONBOARDING_INCOME]);
   }
 }

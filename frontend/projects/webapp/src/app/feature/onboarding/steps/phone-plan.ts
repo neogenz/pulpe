@@ -8,6 +8,7 @@ import {
   effect,
 } from '@angular/core';
 import { Router } from '@angular/router';
+import { ROUTES } from '@core/routing';
 import { OnboardingCurrencyInput } from '../ui/currency-input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -87,11 +88,19 @@ export default class PhonePlan {
   }
 
   onPrevious(): void {
-    this.#router.navigate(['/onboarding/health-insurance']);
+    this.#router.navigate([
+      '/',
+      ROUTES.ONBOARDING,
+      ROUTES.ONBOARDING_HEALTH_INSURANCE,
+    ]);
   }
 
   #handleNext(): void {
     this.#store.updateField('phonePlan', this.phonePlanValue() ?? 0);
-    this.#router.navigate(['/onboarding/transport']);
+    this.#router.navigate([
+      '/',
+      ROUTES.ONBOARDING,
+      ROUTES.ONBOARDING_TRANSPORT,
+    ]);
   }
 }

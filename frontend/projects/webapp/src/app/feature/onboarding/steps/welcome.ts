@@ -8,6 +8,7 @@ import {
 import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { LottieComponent, AnimationOptions } from 'ngx-lottie';
+import { ROUTES } from '@core/routing';
 
 @Component({
   selector: 'pulpe-welcome',
@@ -67,7 +68,11 @@ import { LottieComponent, AnimationOptions } from 'ngx-lottie';
         >
           Commencer
         </button>
-        <button matButton [routerLink]="['/login']" class="w-full max-w-sm">
+        <button
+          matButton
+          [routerLink]="['/', ROUTES.LOGIN]"
+          class="w-full max-w-sm"
+        >
           Se connecter
         </button>
       </div>
@@ -76,6 +81,7 @@ import { LottieComponent, AnimationOptions } from 'ngx-lottie';
 })
 export default class Welcome {
   readonly #router = inject(Router);
+  protected readonly ROUTES = ROUTES;
 
   protected readonly lottieOptions = signal<AnimationOptions>({
     path: '/lottie/welcome-animation.json',
@@ -100,6 +106,10 @@ export default class Welcome {
   }
 
   #continueToNext(): void {
-    this.#router.navigate(['/onboarding/personal-info']);
+    this.#router.navigate([
+      '/',
+      ROUTES.ONBOARDING,
+      ROUTES.ONBOARDING_PERSONAL_INFO,
+    ]);
   }
 }
