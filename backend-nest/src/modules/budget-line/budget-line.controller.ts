@@ -2,7 +2,7 @@ import {
   Controller,
   Get,
   Post,
-  Put,
+  Patch,
   Delete,
   Body,
   Param,
@@ -113,8 +113,10 @@ export class BudgetLineController {
     return this.budgetLineService.findOne(id, user, supabase);
   }
 
-  @Put(':id')
-  @ApiOperation({ summary: 'Met à jour une ligne budgétaire existante' })
+  @Patch(':id')
+  @ApiOperation({
+    summary: 'Met à jour partiellement une ligne budgétaire existante',
+  })
   @ApiParam({
     name: 'id',
     description: 'Identifiant unique de la ligne budgétaire',

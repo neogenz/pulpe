@@ -2,7 +2,7 @@ import {
   Controller,
   Get,
   Post,
-  Put,
+  Patch,
   Delete,
   Body,
   Param,
@@ -157,10 +157,10 @@ export class BudgetController {
     return this.budgetService.findOneWithDetails(id, supabase);
   }
 
-  @Put(':id')
+  @Patch(':id')
   @ApiOperation({
     summary: 'Update existing budget',
-    description: 'Updates an existing budget with new information',
+    description: 'Partially updates an existing budget with new information',
   })
   @ApiParam({
     name: 'id',

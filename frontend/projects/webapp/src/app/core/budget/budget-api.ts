@@ -165,7 +165,7 @@ export class BudgetApi {
     updateData: Partial<BudgetCreate>,
   ): Observable<Budget> {
     return this.#httpClient
-      .put<BudgetResponse>(`${this.#baseUrl}/${budgetId}`, updateData)
+      .patch<BudgetResponse>(`${this.#baseUrl}/${budgetId}`, updateData)
       .pipe(
         map((response) => {
           if (!response.data || Array.isArray(response.data)) {
