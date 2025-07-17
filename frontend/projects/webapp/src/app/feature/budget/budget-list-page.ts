@@ -13,6 +13,8 @@ import { MonthsError } from './ui/budget-error';
 import { BudgetState } from './budget-state';
 import { MatTabsModule } from '@angular/material/tabs';
 import { Title } from '@core/routing';
+import { CreateBudgetDialogComponent } from './create/budget-creation-dialog';
+import { MatDialog } from '@angular/material/dialog';
 
 @Component({
   selector: 'pulpe-other-months',
@@ -34,12 +36,12 @@ import { Title } from '@core/routing';
         </h1>
         <button
           matButton="filled"
-          (click)="state.refreshData()"
+          (click)="openCreateBudgetDialog()"
           [disabled]="state.monthsData.isLoading()"
         >
           <mat-icon class="md:inline hidden">add_circle</mat-icon>
           <span class="md:hidden">Ajouter</span>
-          <span class="hidden md:inline">Ajouter un mois</span>
+          <span class="hidden md:inline">Ajouter un budget</span>
         </button>
       </header>
 
@@ -106,8 +108,13 @@ import { Title } from '@core/routing';
 export default class OtherMonths implements OnInit {
   protected readonly state = inject(BudgetState);
   protected readonly title = inject(Title);
+  #dialog = inject(MatDialog);
 
   ngOnInit(): void {
     this.state.refreshData();
+  }
+
+  openCreateBudgetDialog(): void {
+    this.#dialog.open(CreateBudgetDialogComponent);
   }
 }
