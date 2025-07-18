@@ -80,37 +80,52 @@ export class CurrentMonthState {
     }
   }
 
-  #currentDate = computed(() => {
+  #currentDate = computed<{ month: string; year: string }>(() => {
     const now = this.today();
     return {
       month: format(now, 'MM'),
       year: format(now, 'yyyy'),
     };
   });
-  #transactions = computed(
+  #transactions = computed<Transaction[]>(
     () => this.dashboardData.value()?.transactions || [],
   );
 
-  budgetLines = computed(() => this.dashboardData.value()?.budgetLines || []);
+  budgetLines = computed<BudgetLine[]>(
+    () => this.dashboardData.value()?.budgetLines || [],
+  );
 
-  incomeAmount = computed(() => {
-    const transactions = this.#transactions();
-    return this.#budgetCalculator.calculateTotalIncome(transactions);
+  // Calculs basés sur les budget lines (planifié)
+  plannedIncomeAmount = computed<number>(() => {
+    const budgetLines = this.budgetLines();
+    return this.#budgetCalculator.calculatePlannedIncome(budgetLines);
   });
 
-  expenseAmount = computed(() => {
-    const transactions = this.#transactions();
-    return this.#budgetCalculator.calculateTotalExpenses(transactions);
+  fixedBlockAmount = computed<number>(() => {
+    const budgetLines = this.budgetLines();
+    return this.#budgetCalculator.calculateFixedBlock(budgetLines);
   });
 
-  savingsAmount = computed(() => {
-    const transactions = this.#transactions();
-    return this.#budgetCalculator.calculateTotalSavings(transactions);
+  livingAllowanceAmount = computed<number>(() => {
+    const budgetLines = this.budgetLines();
+    return this.#budgetCalculator.calculateLivingAllowance(budgetLines);
   });
 
-  negativeAmount = computed(() => {
+  // Calculs basés sur les transactions réelles
+  actualTransactionsAmount = computed<number>(() => {
     const transactions = this.#transactions();
-    return this.#budgetCalculator.calculateNegativeBudget(transactions);
+    return this.#budgetCalculator.calculateActualTransactionsAmount(
+      transactions,
+    );
+  });
+
+  remainingBudgetAmount = computed<number>(() => {
+    const budgetLines = this.budgetLines();
+    const transactions = this.#transactions();
+    return this.#budgetCalculator.calculateRemainingBudget(
+      budgetLines,
+      transactions,
+    );
   });
 
   async #loadDashboardData(params: {
