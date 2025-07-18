@@ -15,8 +15,8 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { Title } from '@core/routing';
 import { CreateBudgetDialogComponent } from './create/budget-creation-dialog';
 import { MatDialog } from '@angular/material/dialog';
-import { BudgetApi as CoreBudgetApi } from '@core/budget';
-import { take } from 'rxjs/operators';
+import { BudgetApi } from '@core/budget';
+import { firstValueFrom } from 'rxjs';
 import type { BudgetCreationFormData } from './create/budget-creation-form-state';
 
 @Component({
@@ -72,9 +72,13 @@ import type { BudgetCreationFormData } from './create/budget-creation-form-state
                 <div class="flex-1 overflow-auto">
                   @if (state.monthsData.value()?.length === 0) {
                     <div class="text-center py-8 text-gray-500">
-                      <mat-icon class="text-6xl mb-4">calendar_month</mat-icon>
+                      <mat-icon class="text-display-small mb-4"
+                        >calendar_month</mat-icon
+                      >
                       <p>Aucun mois trouvé</p>
-                      <p class="text-sm">Créez votre premier budget mensuel</p>
+                      <p class="text-body-small">
+                        Créez votre premier budget mensuel
+                      </p>
                     </div>
                   } @else {
                     <div
@@ -112,30 +116,27 @@ export default class OtherMonths implements OnInit {
   protected readonly state = inject(BudgetState);
   protected readonly title = inject(Title);
   #dialog = inject(MatDialog);
-  #coreBudgetApi = inject(CoreBudgetApi);
+  #budgetApi = inject(BudgetApi);
 
   ngOnInit(): void {
     this.state.refreshData();
   }
 
-  openCreateBudgetDialog(): void {
+  async openCreateBudgetDialog(): Promise<void> {
     const dialogRef = this.#dialog.open(CreateBudgetDialogComponent, {
       width: '600px',
       maxWidth: '90vw',
       disableClose: false,
     });
 
-    dialogRef
-      .afterClosed()
-      .pipe(take(1))
-      .subscribe((formData: BudgetCreationFormData | undefined) => {
-        if (formData) {
-          this.#createBudget(formData);
-        }
-      });
+    const formData = await firstValueFrom(dialogRef.afterClosed());
+
+    if (formData) {
+      await this.#createBudget(formData);
+    }
   }
 
-  #createBudget(formData: BudgetCreationFormData): void {
+  async #createBudget(formData: BudgetCreationFormData): Promise<void> {
     const budgetData = {
       month: formData.monthYear.getMonth() + 1, // getMonth() returns 0-11, we need 1-12
       year: formData.monthYear.getFullYear(),
@@ -143,18 +144,13 @@ export default class OtherMonths implements OnInit {
       templateId: formData.templateId,
     };
 
-    this.#coreBudgetApi
-      .createBudget$(budgetData)
-      .pipe(take(1))
-      .subscribe({
-        next: () => {
-          // Refresh the budget list after successful creation
-          this.state.refreshData();
-        },
-        error: (error) => {
-          console.error('Error creating budget:', error);
-          // TODO: Show error message to user
-        },
-      });
+    try {
+      await firstValueFrom(this.#budgetApi.createBudget$(budgetData));
+      // Refresh the budget list after successful creation
+      this.state.refreshData();
+    } catch (error) {
+      console.error('Error creating budget:', error);
+      // TODO: Show error message to user
+    }
   }
 }

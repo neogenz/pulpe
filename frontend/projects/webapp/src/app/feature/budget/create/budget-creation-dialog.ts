@@ -171,7 +171,9 @@ const MONTH_YEAR_FORMATS = {
               <div
                 class="flex flex-col items-center justify-center h-[200px] text-error"
               >
-                <mat-icon class="text-5xl mb-2">error_outline</mat-icon>
+                <mat-icon class="text-display-small mb-2"
+                  >error_outline</mat-icon
+                >
                 <p class="text-label-large">
                   Erreur lors du chargement des modèles
                 </p>
@@ -187,7 +189,7 @@ const MONTH_YEAR_FORMATS = {
               <div
                 class="flex flex-col items-center justify-center h-[200px] text-on-surface-variant"
               >
-                <mat-icon class="text-5xl mb-2">inbox</mat-icon>
+                <mat-icon class="text-display-small mb-2">inbox</mat-icon>
                 <p class="text-label-large">
                   @if (templateSelection.searchControl.value) {
                     Aucun modèle trouvé pour "{{

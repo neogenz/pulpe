@@ -86,7 +86,7 @@ interface TemplateWithMetrics extends BudgetTemplate {
           <div
             class="flex flex-col items-center justify-center h-[300px] text-error"
           >
-            <mat-icon class="text-5xl mb-2">error_outline</mat-icon>
+            <mat-icon class="text-display-small mb-2">error_outline</mat-icon>
             <p class="text-label-large">
               Erreur lors du chargement des modèles
             </p>
@@ -102,7 +102,7 @@ interface TemplateWithMetrics extends BudgetTemplate {
           <div
             class="flex flex-col items-center justify-center h-[300px] text-on-surface-variant"
           >
-            <mat-icon class="text-5xl mb-2">inbox</mat-icon>
+            <mat-icon class="text-display-small mb-2">inbox</mat-icon>
             <p class="text-label-large">
               @if (searchControl.value) {
                 Aucun modèle trouvé pour "{{ searchControl.value }}"
@@ -141,7 +141,7 @@ interface TemplateWithMetrics extends BudgetTemplate {
                           {{ template.name }}
                           @if (template.isDefault) {
                             <mat-icon
-                              class="text-sm align-middle text-primary ml-1"
+                              class="text-label-small align-middle text-primary ml-1"
                             >
                               star
                             </mat-icon>
@@ -181,7 +181,7 @@ interface TemplateWithMetrics extends BudgetTemplate {
                       <!-- Template Metrics -->
                       <div class="flex gap-4 text-label-medium">
                         <span class="text-success">
-                          <mat-icon class="text-sm align-middle"
+                          <mat-icon class="text-label-small align-middle"
                             >trending_up</mat-icon
                           >
                           Revenus:
@@ -191,7 +191,7 @@ interface TemplateWithMetrics extends BudgetTemplate {
                           }}
                         </span>
                         <span class="text-error">
-                          <mat-icon class="text-sm align-middle"
+                          <mat-icon class="text-label-small align-middle"
                             >trending_down</mat-icon
                           >
                           Dépenses:
