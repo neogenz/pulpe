@@ -176,7 +176,8 @@ describe('CreateBudgetDialogComponent', () => {
               line.kind === 'SAVINGS_CONTRIBUTION',
           )
           .reduce((sum, line) => sum + line.amount, 0);
-        return { totalIncome, totalExpenses };
+        const remainingLivingAllowance = totalIncome - totalExpenses;
+        return { totalIncome, totalExpenses, remainingLivingAllowance };
       }),
     } as Partial<TemplateSelectionService>;
 
@@ -247,6 +248,7 @@ describe('CreateBudgetDialogComponent', () => {
       expect(totals['template-1']).toEqual({
         totalIncome: 5000,
         totalExpenses: 1500,
+        remainingLivingAllowance: 3500,
         loading: false,
       });
     });
@@ -266,6 +268,7 @@ describe('CreateBudgetDialogComponent', () => {
       expect(component.templateTotals()['template-1']).toEqual({
         totalIncome: 0,
         totalExpenses: 0,
+        remainingLivingAllowance: 0,
         loading: true,
       });
 
