@@ -15,6 +15,9 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { Title } from '@core/routing';
 import { CreateBudgetDialogComponent } from './create/budget-creation-dialog';
 import { MatDialog } from '@angular/material/dialog';
+import { BudgetApi as CoreBudgetApi } from '@core/budget';
+import { take } from 'rxjs/operators';
+import type { BudgetCreationFormData } from './create/budget-creation-form-state';
 
 @Component({
   selector: 'pulpe-other-months',
@@ -109,12 +112,49 @@ export default class OtherMonths implements OnInit {
   protected readonly state = inject(BudgetState);
   protected readonly title = inject(Title);
   #dialog = inject(MatDialog);
+  #coreBudgetApi = inject(CoreBudgetApi);
 
   ngOnInit(): void {
     this.state.refreshData();
   }
 
   openCreateBudgetDialog(): void {
-    this.#dialog.open(CreateBudgetDialogComponent);
+    const dialogRef = this.#dialog.open(CreateBudgetDialogComponent, {
+      width: '600px',
+      maxWidth: '90vw',
+      disableClose: false,
+    });
+
+    dialogRef
+      .afterClosed()
+      .pipe(take(1))
+      .subscribe((formData: BudgetCreationFormData | undefined) => {
+        if (formData) {
+          this.#createBudget(formData);
+        }
+      });
+  }
+
+  #createBudget(formData: BudgetCreationFormData): void {
+    const budgetData = {
+      month: formData.monthYear.getMonth() + 1, // getMonth() returns 0-11, we need 1-12
+      year: formData.monthYear.getFullYear(),
+      description: formData.description,
+      templateId: formData.templateId,
+    };
+
+    this.#coreBudgetApi
+      .createBudget$(budgetData)
+      .pipe(take(1))
+      .subscribe({
+        next: () => {
+          // Refresh the budget list after successful creation
+          this.state.refreshData();
+        },
+        error: (error) => {
+          console.error('Error creating budget:', error);
+          // TODO: Show error message to user
+        },
+      });
   }
 }

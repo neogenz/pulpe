@@ -3,6 +3,7 @@ import {
   Component,
   computed,
   inject,
+  signal,
 } from '@angular/core';
 import {
   FormBuilder,
@@ -11,15 +12,23 @@ import {
   Validators,
 } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import {
+  MatDialog,
+  MatDialogModule,
+  MatDialogRef,
+} from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { MAT_DATE_FORMATS } from '@angular/material/core';
 import { MAT_DATE_FNS_FORMATS } from '@angular/material-date-fns-adapter';
 import { startOfMonth } from 'date-fns';
+import { type BudgetTemplate } from '@pulpe/shared';
 import { BudgetCreationFormState } from './budget-creation-form-state';
+import { TemplateSelectionDialogComponent } from './template-selection-dialog';
+import { SelectedTemplateCard } from './selected-template-card';
 
 // Format personnalisé pour le month/year picker
 const MONTH_YEAR_FORMATS = {
@@ -42,11 +51,13 @@ const MONTH_YEAR_FORMATS = {
   imports: [
     MatDialogModule,
     MatButtonModule,
+    MatCardModule,
     MatFormFieldModule,
     MatInputModule,
     MatDatepickerModule,
     MatIconModule,
     ReactiveFormsModule,
+    SelectedTemplateCard,
   ],
   providers: [
     BudgetCreationFormState,
@@ -122,15 +133,29 @@ const MONTH_YEAR_FORMATS = {
             Sélection du modèle
           </h3>
 
+          <!-- Selected Template Display -->
+          @if (selectedTemplate()) {
+            <pulpe-selected-template-card
+              [template]="selectedTemplate()!"
+              (clearTemplate)="clearSelectedTemplate()"
+              class="mb-4"
+            />
+          }
+
           <!-- Template Selection Button -->
           <div class="flex justify-center mt-4 md:mt-6">
             <button
               type="button"
-              matButton="tonal"
+              mat-button
+              color="primary"
               class="px-4 py-2 md:px-6 md:py-2"
-              (click)="onSelectTemplate()"
+              (click)="openTemplateSelectionDialog()"
             >
-              Choisir un modèle
+              @if (selectedTemplate()) {
+                Changer de modèle
+              } @else {
+                Choisir un modèle
+              }
             </button>
           </div>
         </section>
@@ -145,9 +170,9 @@ const MONTH_YEAR_FORMATS = {
         Annuler
       </button>
       <button
-        matButton="filled"
+        mat-flat-button
         color="primary"
-        [disabled]="budgetForm.invalid"
+        [disabled]="budgetForm.invalid || !selectedTemplate()"
         (click)="onCreateBudget()"
         class="order-1 md:order-2 w-full md:w-auto"
       >
@@ -171,8 +196,12 @@ export class CreateBudgetDialogComponent {
   readonly #dialogRef = inject(MatDialogRef<CreateBudgetDialogComponent>);
   readonly #formBuilder = inject(FormBuilder);
   readonly #formState = inject(BudgetCreationFormState);
+  readonly #dialog = inject(MatDialog);
 
   budgetForm: FormGroup;
+
+  // Signal for selected template
+  readonly selectedTemplate = signal<BudgetTemplate | null>(null);
 
   // Computed signal for description length
   descriptionLength = computed(() => {
@@ -186,6 +215,7 @@ export class CreateBudgetDialogComponent {
     this.budgetForm = this.#formBuilder.group({
       monthYear: [currentDate, Validators.required],
       description: ['', [Validators.required, Validators.maxLength(100)]],
+      templateId: ['', Validators.required], // Add templateId as required
     });
   }
 
@@ -197,14 +227,32 @@ export class CreateBudgetDialogComponent {
     datePicker.close();
   }
 
-  onSelectTemplate(): void {
-    // TODO: Implement template selection logic
-    console.log('Template selection clicked');
+  openTemplateSelectionDialog(): void {
+    const dialogRef = this.#dialog.open(TemplateSelectionDialogComponent, {
+      width: '600px',
+      maxWidth: '90vw',
+      maxHeight: '90vh',
+      autoFocus: 'first-tabbable',
+    });
+
+    dialogRef
+      .afterClosed()
+      .subscribe((template: BudgetTemplate | undefined) => {
+        if (template) {
+          this.selectedTemplate.set(template);
+          this.budgetForm.patchValue({ templateId: template.id });
+        }
+      });
+  }
+
+  clearSelectedTemplate(): void {
+    this.selectedTemplate.set(null);
+    this.budgetForm.patchValue({ templateId: '' });
   }
 
   onCreateBudget(): void {
     const formData = this.#formState.validateAndGetFormData(this.budgetForm);
-    if (formData) {
+    if (formData && this.selectedTemplate()) {
       this.#dialogRef.close(formData);
     }
   }

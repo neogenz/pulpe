@@ -5,6 +5,7 @@ import { setMonth, setYear, startOfMonth } from 'date-fns';
 export interface BudgetCreationFormData {
   monthYear: Date;
   description: string;
+  templateId: string;
 }
 
 @Injectable()
