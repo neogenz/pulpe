@@ -25,7 +25,9 @@ import { type BudgetTemplate } from '@pulpe/shared';
             <h4 class="text-label-large text-on-surface">
               {{ template().name }}
               @if (template().isDefault) {
-                <mat-icon class="text-sm align-middle text-primary ml-1">
+                <mat-icon
+                  class="text-label-small align-middle text-primary ml-1"
+                >
                   star
                 </mat-icon>
               }

@@ -43,7 +43,7 @@ export interface TransactionsListConfig {
       class="flex flex-col rounded-corner-large overflow-hidden bg-surface-container-low"
     >
       <div
-        class="pb-0 p-4 cursor-pointer"
+        class="p-4 cursor-pointer"
         role="button"
         tabindex="0"
         (click)="toggleExpanded()"

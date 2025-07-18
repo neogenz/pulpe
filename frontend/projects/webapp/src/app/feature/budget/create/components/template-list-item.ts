@@ -81,12 +81,14 @@ import { type BudgetTemplate } from '@pulpe/shared';
                 </div>
               } @else {
                 <span class="text-success">
-                  <mat-icon class="text-sm align-middle">trending_up</mat-icon>
+                  <mat-icon class="text-label-small align-middle"
+                    >trending_up</mat-icon
+                  >
                   Revenus:
                   {{ totalIncome() | currency: 'CHF' : 'symbol' : '1.0-0' }}
                 </span>
                 <span class="text-error">
-                  <mat-icon class="text-sm align-middle"
+                  <mat-icon class="text-label-small align-middle"
                     >trending_down</mat-icon
                   >
                   Dépenses:
