@@ -208,7 +208,7 @@ const MONTH_YEAR_FORMATS = {
                   template of templateSelection.filteredTemplates();
                   track template.id
                 ) {
-                  @let totals = templateTotals().get(template.id);
+                  @let totals = templateTotals()[template.id];
                   <pulpe-template-list-item
                     [template]="template"
                     [selectedTemplateId]="
@@ -280,11 +280,11 @@ export class CreateBudgetDialogComponent {
 
   // Template totals state
   readonly templateTotals = signal<
-    Map<
+    Record<
       string,
       { totalIncome: number; totalExpenses: number; loading: boolean }
     >
-  >(new Map());
+  >({});
 
   // Computed signal for description length
   descriptionLength = computed(() => {
@@ -322,19 +322,20 @@ export class CreateBudgetDialogComponent {
 
   private async loadTemplateTotal(templateId: string): Promise<void> {
     // Check if already loading or loaded
-    const current = this.templateTotals().get(templateId);
+    const current = this.templateTotals()[templateId];
     if (current) {
       return;
     }
 
     // Set loading state
-    const newTotals = new Map(this.templateTotals());
-    newTotals.set(templateId, {
-      totalIncome: 0,
-      totalExpenses: 0,
-      loading: true,
-    });
-    this.templateTotals.set(newTotals);
+    this.templateTotals.update((totals) => ({
+      ...totals,
+      [templateId]: {
+        totalIncome: 0,
+        totalExpenses: 0,
+        loading: true,
+      },
+    }));
 
     try {
       // Load template lines
@@ -343,19 +344,20 @@ export class CreateBudgetDialogComponent {
       const totals = this.templateSelection.calculateTemplateTotals(lines);
 
       // Update totals
-      const updatedTotals = new Map(this.templateTotals());
-      updatedTotals.set(templateId, { ...totals, loading: false });
-      this.templateTotals.set(updatedTotals);
-    } catch (error) {
-      console.error(`Error loading template totals for ${templateId}:`, error);
+      this.templateTotals.update((current) => ({
+        ...current,
+        [templateId]: { ...totals, loading: false },
+      }));
+    } catch {
       // Set error state (show 0 values)
-      const errorTotals = new Map(this.templateTotals());
-      errorTotals.set(templateId, {
-        totalIncome: 0,
-        totalExpenses: 0,
-        loading: false,
-      });
-      this.templateTotals.set(errorTotals);
+      this.templateTotals.update((current) => ({
+        ...current,
+        [templateId]: {
+          totalIncome: 0,
+          totalExpenses: 0,
+          loading: false,
+        },
+      }));
     }
   }
 
