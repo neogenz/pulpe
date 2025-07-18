@@ -1,3 +1,8 @@
+/**
+ * @deprecated This component is deprecated. Template selection is now integrated directly
+ * into the budget creation dialog. Use TemplateSelectionService instead.
+ * This component will be removed in a future version.
+ */
 import {
   ChangeDetectionStrategy,
   Component,
