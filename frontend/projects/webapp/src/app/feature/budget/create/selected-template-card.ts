@@ -1,3 +1,7 @@
+/**
+ * @deprecated This component is deprecated. Template display is now handled by
+ * TemplateListItem component. This component will be removed in a future version.
+ */
 import {
   ChangeDetectionStrategy,
   Component,

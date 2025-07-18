@@ -57,9 +57,7 @@ export class TemplateApi {
    */
   getTemplateLines$(templateId: string): Observable<TemplateLine[]> {
     return this.#http
-      .get<TemplateLineListResponse>(
-        `${this.#apiUrl}/${templateId}/transactions`,
-      )
+      .get<TemplateLineListResponse>(`${this.#apiUrl}/${templateId}/lines`)
       .pipe(map((response) => response.data || []));
   }
 

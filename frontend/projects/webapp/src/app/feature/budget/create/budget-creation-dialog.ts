@@ -3,6 +3,7 @@ import {
   Component,
   computed,
   inject,
+  effect,
   signal,
 } from '@angular/core';
 import {
@@ -22,13 +23,16 @@ import {
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
+import { MatRadioModule } from '@angular/material/radio';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MAT_DATE_FORMATS } from '@angular/material/core';
 import { MAT_DATE_FNS_FORMATS } from '@angular/material-date-fns-adapter';
 import { startOfMonth } from 'date-fns';
 import { type BudgetTemplate } from '@pulpe/shared';
 import { BudgetCreationFormState } from './budget-creation-form-state';
-import { TemplateSelectionDialogComponent } from './template-selection-dialog';
-import { SelectedTemplateCard } from './selected-template-card';
+import { TemplateListItem, TemplateDetailsDialog } from './components';
+import { TemplateSelectionService } from './services';
+import { TemplateApi } from '../../../core/template/template-api';
 
 // Format personnalisé pour le month/year picker
 const MONTH_YEAR_FORMATS = {
@@ -56,11 +60,14 @@ const MONTH_YEAR_FORMATS = {
     MatInputModule,
     MatDatepickerModule,
     MatIconModule,
+    MatRadioModule,
+    MatProgressSpinnerModule,
     ReactiveFormsModule,
-    SelectedTemplateCard,
+    TemplateListItem,
   ],
   providers: [
     BudgetCreationFormState,
+    TemplateSelectionService,
     { provide: MAT_DATE_FORMATS, useValue: MONTH_YEAR_FORMATS },
   ],
   template: `
@@ -133,30 +140,89 @@ const MONTH_YEAR_FORMATS = {
             Sélection du modèle
           </h3>
 
-          <!-- Selected Template Display -->
-          @if (selectedTemplate()) {
-            <pulpe-selected-template-card
-              [template]="selectedTemplate()!"
-              (clearTemplate)="clearSelectedTemplate()"
-              class="mb-4"
+          <!-- Search Field -->
+          <mat-form-field appearance="outline" class="w-full mb-4">
+            <mat-label>Rechercher un modèle</mat-label>
+            <input
+              matInput
+              [formControl]="templateSelection.searchControl"
+              placeholder="Nom ou description..."
             />
-          }
+            <mat-icon matPrefix>search</mat-icon>
+            @if (templateSelection.searchControl.value) {
+              <button
+                mat-icon-button
+                matSuffix
+                (click)="templateSelection.searchControl.setValue('')"
+                type="button"
+              >
+                <mat-icon>clear</mat-icon>
+              </button>
+            }
+          </mat-form-field>
 
-          <!-- Template Selection Button -->
-          <div class="flex justify-center mt-4 md:mt-6">
-            <button
-              type="button"
-              mat-button
-              color="primary"
-              class="px-4 py-2 md:px-6 md:py-2"
-              (click)="openTemplateSelectionDialog()"
-            >
-              @if (selectedTemplate()) {
-                Changer de modèle
-              } @else {
-                Choisir un modèle
-              }
-            </button>
+          <!-- Templates List -->
+          <div class="template-list">
+            @if (templateApi.templatesResource.isLoading()) {
+              <div class="flex justify-center items-center h-[200px]">
+                <mat-spinner diameter="40"></mat-spinner>
+              </div>
+            } @else if (templateApi.templatesResource.error()) {
+              <div
+                class="flex flex-col items-center justify-center h-[200px] text-error"
+              >
+                <mat-icon class="text-5xl mb-2">error_outline</mat-icon>
+                <p class="text-label-large">
+                  Erreur lors du chargement des modèles
+                </p>
+                <button
+                  mat-button
+                  color="primary"
+                  (click)="templateApi.templatesResource.reload()"
+                >
+                  Réessayer
+                </button>
+              </div>
+            } @else if (templateSelection.filteredTemplates().length === 0) {
+              <div
+                class="flex flex-col items-center justify-center h-[200px] text-on-surface-variant"
+              >
+                <mat-icon class="text-5xl mb-2">inbox</mat-icon>
+                <p class="text-label-large">
+                  @if (templateSelection.searchControl.value) {
+                    Aucun modèle trouvé pour "{{
+                      templateSelection.searchControl.value
+                    }}"
+                  } @else {
+                    Aucun modèle disponible
+                  }
+                </p>
+              </div>
+            } @else {
+              <mat-radio-group
+                [value]="templateSelection.selectedTemplateId()"
+                (change)="onTemplateSelect($event.value)"
+                class="flex flex-col gap-3"
+              >
+                @for (
+                  template of templateSelection.filteredTemplates();
+                  track template.id
+                ) {
+                  @let totals = templateTotals().get(template.id);
+                  <pulpe-template-list-item
+                    [template]="template"
+                    [selectedTemplateId]="
+                      templateSelection.selectedTemplateId()
+                    "
+                    [totalIncome]="totals?.totalIncome || 0"
+                    [totalExpenses]="totals?.totalExpenses || 0"
+                    [loading]="totals?.loading || !totals"
+                    (selectTemplate)="onTemplateSelect($event)"
+                    (showDetails)="showTemplateDetails($event)"
+                  />
+                }
+              </mat-radio-group>
+            }
           </div>
         </section>
       </form>
@@ -172,7 +238,7 @@ const MONTH_YEAR_FORMATS = {
       <button
         mat-flat-button
         color="primary"
-        [disabled]="budgetForm.invalid || !selectedTemplate()"
+        [disabled]="budgetForm.invalid || !templateSelection.selectedTemplate()"
         (click)="onCreateBudget()"
         class="order-1 md:order-2 w-full md:w-auto"
       >
@@ -189,6 +255,16 @@ const MONTH_YEAR_FORMATS = {
       max-height: 80vh;
       overflow-y: auto;
     }
+
+    .template-list {
+      min-height: 300px;
+      max-height: 400px;
+      overflow-y: auto;
+      padding: 0.5rem;
+      border: 1px solid var(--mat-form-field-outline-color);
+      border-radius: 4px;
+      background-color: var(--mat-app-surface);
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -197,11 +273,18 @@ export class CreateBudgetDialogComponent {
   readonly #formBuilder = inject(FormBuilder);
   readonly #formState = inject(BudgetCreationFormState);
   readonly #dialog = inject(MatDialog);
+  readonly templateSelection = inject(TemplateSelectionService);
+  readonly templateApi = inject(TemplateApi);
 
   budgetForm: FormGroup;
 
-  // Signal for selected template
-  readonly selectedTemplate = signal<BudgetTemplate | null>(null);
+  // Template totals state
+  readonly templateTotals = signal<
+    Map<
+      string,
+      { totalIncome: number; totalExpenses: number; loading: boolean }
+    >
+  >(new Map());
 
   // Computed signal for description length
   descriptionLength = computed(() => {
@@ -215,8 +298,65 @@ export class CreateBudgetDialogComponent {
     this.budgetForm = this.#formBuilder.group({
       monthYear: [currentDate, Validators.required],
       description: ['', [Validators.required, Validators.maxLength(100)]],
-      templateId: ['', Validators.required], // Add templateId as required
+      templateId: ['', Validators.required],
     });
+
+    // Sync selected template with form
+    effect(() => {
+      const selectedId = this.templateSelection.selectedTemplateId();
+      if (selectedId) {
+        this.budgetForm.patchValue({ templateId: selectedId });
+      } else {
+        this.budgetForm.patchValue({ templateId: '' });
+      }
+    });
+
+    // Load template totals when templates are loaded
+    effect(() => {
+      const templates = this.templateSelection.filteredTemplates();
+      templates.forEach((template) => {
+        this.loadTemplateTotal(template.id);
+      });
+    });
+  }
+
+  private async loadTemplateTotal(templateId: string): Promise<void> {
+    // Check if already loading or loaded
+    const current = this.templateTotals().get(templateId);
+    if (current) {
+      return;
+    }
+
+    // Set loading state
+    const newTotals = new Map(this.templateTotals());
+    newTotals.set(templateId, {
+      totalIncome: 0,
+      totalExpenses: 0,
+      loading: true,
+    });
+    this.templateTotals.set(newTotals);
+
+    try {
+      // Load template lines
+      const lines =
+        await this.templateSelection.loadTemplateDetails(templateId);
+      const totals = this.templateSelection.calculateTemplateTotals(lines);
+
+      // Update totals
+      const updatedTotals = new Map(this.templateTotals());
+      updatedTotals.set(templateId, { ...totals, loading: false });
+      this.templateTotals.set(updatedTotals);
+    } catch (error) {
+      console.error(`Error loading template totals for ${templateId}:`, error);
+      // Set error state (show 0 values)
+      const errorTotals = new Map(this.templateTotals());
+      errorTotals.set(templateId, {
+        totalIncome: 0,
+        totalExpenses: 0,
+        loading: false,
+      });
+      this.templateTotals.set(errorTotals);
+    }
   }
 
   onMonthSelected(
@@ -227,32 +367,23 @@ export class CreateBudgetDialogComponent {
     datePicker.close();
   }
 
-  openTemplateSelectionDialog(): void {
-    const dialogRef = this.#dialog.open(TemplateSelectionDialogComponent, {
-      width: '600px',
-      maxWidth: '90vw',
-      maxHeight: '90vh',
-      autoFocus: 'first-tabbable',
-    });
-
-    dialogRef
-      .afterClosed()
-      .subscribe((template: BudgetTemplate | undefined) => {
-        if (template) {
-          this.selectedTemplate.set(template);
-          this.budgetForm.patchValue({ templateId: template.id });
-        }
-      });
+  onTemplateSelect(templateId: string): void {
+    this.templateSelection.selectTemplate(templateId);
   }
 
-  clearSelectedTemplate(): void {
-    this.selectedTemplate.set(null);
-    this.budgetForm.patchValue({ templateId: '' });
+  showTemplateDetails(template: BudgetTemplate): void {
+    this.#dialog.open(TemplateDetailsDialog, {
+      data: { template },
+      width: '600px',
+      maxWidth: '90vw',
+      maxHeight: '80vh',
+      autoFocus: 'first-tabbable',
+    });
   }
 
   onCreateBudget(): void {
     const formData = this.#formState.validateAndGetFormData(this.budgetForm);
-    if (formData && this.selectedTemplate()) {
+    if (formData && this.templateSelection.selectedTemplate()) {
       this.#dialogRef.close(formData);
     }
   }
