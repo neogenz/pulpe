@@ -266,7 +266,7 @@ test.describe('User Authentication Flows', () => {
     const protectedRoutes = [
       '/app/current-month',
       '/app/budget-templates',
-      '/app/other-months',
+      '/app/budget',
     ] as const;
 
     const publicRoutes = [
