@@ -37,22 +37,27 @@ import { type BudgetTemplate } from '@pulpe/shared';
       [class.bg-surface-container-lowest]="isSelected()"
       (click)="selectTemplate.emit(template().id)"
     >
-      <mat-card-content class="py-3">
-        <div class="flex items-start gap-3">
+      <mat-card-content class="py-2 md:py-3">
+        <div class="flex items-start gap-2 md:gap-3">
           <mat-radio-button
             [value]="template().id"
             [checked]="isSelected()"
-            class="mt-1"
+            class="mt-1 min-w-[20px]"
           ></mat-radio-button>
 
-          <div class="flex-1">
-            <div class="flex items-center justify-between mb-1">
-              <div class="flex items-center gap-2">
-                <h3 class="text-title-medium text-on-surface">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-start justify-between mb-1 gap-2">
+              <div
+                class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 min-w-0"
+              >
+                <h3 class="text-title-medium text-on-surface truncate">
                   {{ template().name }}
                 </h3>
                 @if (template().isDefault) {
-                  <mat-chip appearance="outlined" class="!h-6 !min-h-6">
+                  <mat-chip
+                    appearance="outlined"
+                    class="!h-6 !min-h-6 flex-shrink-0"
+                  >
                     <span class="text-label-small">Par défaut</span>
                   </mat-chip>
                 }
@@ -61,9 +66,10 @@ import { type BudgetTemplate } from '@pulpe/shared';
                 mat-button
                 type="button"
                 (click)="showDetails.emit(template()); $event.stopPropagation()"
-                class="!min-w-0"
+                class="!min-w-0 !min-h-[36px] !px-2 flex-shrink-0"
               >
-                Détails
+                <span class="hidden sm:inline">Détails</span>
+                <mat-icon class="sm:hidden">info</mat-icon>
               </button>
             </div>
 
@@ -73,27 +79,52 @@ import { type BudgetTemplate } from '@pulpe/shared';
               </p>
             }
 
-            <div class="flex gap-4 text-label-medium">
+            <div class="flex flex-col gap-2">
               @if (loading()) {
                 <div class="flex items-center gap-2">
                   <mat-spinner diameter="16"></mat-spinner>
                   <span class="text-on-surface-variant">Chargement...</span>
                 </div>
               } @else {
-                <span class="text-success">
-                  <mat-icon class="text-label-small align-middle"
-                    >trending_up</mat-icon
+                <div
+                  class="flex flex-col sm:flex-row gap-2 sm:gap-4 text-label-medium"
+                >
+                  <span class="text-success flex items-center gap-1">
+                    <mat-icon class="text-label-small">trending_up</mat-icon>
+                    <span class="whitespace-nowrap">
+                      Revenus:
+                      {{ totalIncome() | currency: 'CHF' : 'symbol' : '1.0-0' }}
+                    </span>
+                  </span>
+                  <span class="text-error flex items-center gap-1">
+                    <mat-icon class="text-label-small">trending_down</mat-icon>
+                    <span class="whitespace-nowrap">
+                      Dépenses:
+                      {{
+                        totalExpenses() | currency: 'CHF' : 'symbol' : '1.0-0'
+                      }}
+                    </span>
+                  </span>
+                </div>
+                <div class="flex items-center gap-1 mt-1">
+                  <span
+                    class="text-label-medium font-medium flex items-center gap-1"
+                    [class.text-success]="remainingLivingAllowance() > 0"
+                    [class.text-warning]="remainingLivingAllowance() === 0"
+                    [class.text-error]="remainingLivingAllowance() < 0"
                   >
-                  Revenus:
-                  {{ totalIncome() | currency: 'CHF' : 'symbol' : '1.0-0' }}
-                </span>
-                <span class="text-error">
-                  <mat-icon class="text-label-small align-middle"
-                    >trending_down</mat-icon
-                  >
-                  Dépenses:
-                  {{ totalExpenses() | currency: 'CHF' : 'symbol' : '1.0-0' }}
-                </span>
+                    <mat-icon class="text-label-small"
+                      >account_balance_wallet</mat-icon
+                    >
+                    <span class="whitespace-nowrap">
+                      Reste à vivre:
+                      {{
+                        remainingLivingAllowance()
+                          | currency: 'CHF' : 'symbol' : '1.0-0'
+                      }}
+                    </span>
+                  </span>
+                </div>
               }
             </div>
           </div>
@@ -113,6 +144,7 @@ export class TemplateListItem {
   selectedTemplateId = input<string | null>(null);
   totalIncome = input<number>(0);
   totalExpenses = input<number>(0);
+  remainingLivingAllowance = input<number>(0);
   loading = input<boolean>(false);
 
   selectTemplate = output<string>();
