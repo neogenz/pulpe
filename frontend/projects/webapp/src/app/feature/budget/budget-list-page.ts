@@ -7,16 +7,21 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
-import { MonthCardItem } from './components/month-card-item';
-import { MonthsLoading } from './components/months-loading';
-import { MonthsError } from './components/months-error';
-import { OtherMonthsState } from './services/other-months-state';
+import { MonthCardItem } from './ui/month-card-item';
+import { MonthsLoading } from './ui/budget-loading';
+import { MonthsError } from './ui/budget-error';
+import { BudgetState } from './budget-state';
 import { MatTabsModule } from '@angular/material/tabs';
 import { Title } from '@core/routing';
+import { CreateBudgetDialogComponent } from './create/budget-creation-dialog';
+import { MatDialog } from '@angular/material/dialog';
+import { BudgetApi } from '@core/budget';
+import { firstValueFrom } from 'rxjs';
+import type { BudgetCreationFormData } from './create/budget-creation-form-state';
 
 @Component({
   selector: 'pulpe-other-months',
-  providers: [OtherMonthsState],
+  providers: [BudgetState],
   imports: [
     MatIconModule,
     MatButtonModule,
@@ -34,12 +39,12 @@ import { Title } from '@core/routing';
         </h1>
         <button
           matButton="filled"
-          (click)="state.refreshData()"
+          (click)="openCreateBudgetDialog()"
           [disabled]="state.monthsData.isLoading()"
         >
           <mat-icon class="md:inline hidden">add_circle</mat-icon>
           <span class="md:hidden">Ajouter</span>
-          <span class="hidden md:inline">Ajouter un mois</span>
+          <span class="hidden md:inline">Ajouter un budget</span>
         </button>
       </header>
 
@@ -67,9 +72,13 @@ import { Title } from '@core/routing';
                 <div class="flex-1 overflow-auto">
                   @if (state.monthsData.value()?.length === 0) {
                     <div class="text-center py-8 text-gray-500">
-                      <mat-icon class="text-6xl mb-4">calendar_month</mat-icon>
+                      <mat-icon class="text-display-small mb-4"
+                        >calendar_month</mat-icon
+                      >
                       <p>Aucun mois trouvé</p>
-                      <p class="text-sm">Créez votre premier budget mensuel</p>
+                      <p class="text-body-small">
+                        Créez votre premier budget mensuel
+                      </p>
                     </div>
                   } @else {
                     <div
@@ -104,10 +113,44 @@ import { Title } from '@core/routing';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class OtherMonths implements OnInit {
-  protected readonly state = inject(OtherMonthsState);
+  protected readonly state = inject(BudgetState);
   protected readonly title = inject(Title);
+  #dialog = inject(MatDialog);
+  #budgetApi = inject(BudgetApi);
 
   ngOnInit(): void {
     this.state.refreshData();
+  }
+
+  async openCreateBudgetDialog(): Promise<void> {
+    const dialogRef = this.#dialog.open(CreateBudgetDialogComponent, {
+      width: '600px',
+      maxWidth: '90vw',
+      disableClose: false,
+    });
+
+    const formData = await firstValueFrom(dialogRef.afterClosed());
+
+    if (formData) {
+      await this.#createBudget(formData);
+    }
+  }
+
+  async #createBudget(formData: BudgetCreationFormData): Promise<void> {
+    const budgetData = {
+      month: formData.monthYear.getMonth() + 1, // getMonth() returns 0-11, we need 1-12
+      year: formData.monthYear.getFullYear(),
+      description: formData.description,
+      templateId: formData.templateId,
+    };
+
+    try {
+      await firstValueFrom(this.#budgetApi.createBudget$(budgetData));
+      // Refresh the budget list after successful creation
+      this.state.refreshData();
+    } catch (error) {
+      console.error('Error creating budget:', error);
+      // TODO: Show error message to user
+    }
   }
 }

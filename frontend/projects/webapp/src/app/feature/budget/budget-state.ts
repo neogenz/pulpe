@@ -1,10 +1,10 @@
 import { Injectable, inject, resource } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { OtherMonthsApi, type MonthInfo } from './other-months-api';
+import { BudgetApi, type MonthInfo } from './budget-api';
 
 @Injectable()
-export class OtherMonthsState {
-  #otherMonthsApi = inject(OtherMonthsApi);
+export class BudgetState {
+  #budgetApi = inject(BudgetApi);
 
   monthsData = resource<MonthInfo[], void>({
     loader: async () => this.#loadMonthsData(),
@@ -18,9 +18,7 @@ export class OtherMonthsState {
 
   async #loadMonthsData(): Promise<MonthInfo[]> {
     try {
-      return await firstValueFrom(
-        this.#otherMonthsApi.getExistingMonthsBudgets$(),
-      );
+      return await firstValueFrom(this.#budgetApi.getExistingMonthsBudgets$());
     } catch (error) {
       console.error('Erreur lors du chargement des mois:', error);
       throw error;

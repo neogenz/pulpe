@@ -11,16 +11,18 @@ import { frCH } from 'date-fns/locale';
 
 registerLocaleData(localeFrCH, 'fr-CH', localeFrCHExtra);
 
-// Format de date étendu pour prendre en charge le timepicker
+// Format de date étendu pour prendre en charge le timepicker et month/year picker
 const CUSTOM_DATE_FORMATS = {
   ...MAT_DATE_FNS_FORMATS,
   parse: {
     ...MAT_DATE_FNS_FORMATS.parse,
-    dateInput: ['dd.MM.yyyy'],
+    dateInput: ['dd.MM.yyyy', 'MM.yyyy'], // Support both date and month/year
     timeInput: 'HH:mm', // Format pour parser l'heure
   },
   display: {
     ...MAT_DATE_FNS_FORMATS.display,
+    dateInput: 'dd.MM.yyyy', // Format par défaut
+    monthYearLabel: 'MMM yyyy', // Format pour month/year picker
     timeInput: 'HH:mm', // Format pour afficher l'heure dans l'input
     timeOptionLabel: 'HH:mm', // Format pour afficher les options d'heure
   },

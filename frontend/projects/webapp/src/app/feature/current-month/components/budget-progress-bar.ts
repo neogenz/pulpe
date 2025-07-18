@@ -2,12 +2,14 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  inject,
   input,
 } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { CurrencyPipe } from '@angular/common';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { BudgetCalculator } from '../services/budget-calculator';
 
 @Component({
   selector: 'pulpe-budget-progress-bar',
@@ -48,7 +50,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
       @include mat.progress-bar-overrides(
         (
           track-height: 10px,
-          track-shape: 20px,
+          active-indicator-height: 10px,
         )
       );
     }
@@ -56,9 +58,24 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BudgetProgressBar {
+  readonly #budgetCalculator = inject(BudgetCalculator);
+
   totalBudget = input.required<number>();
-  remainingAmount = input.required<number>();
+  usedAmount = input.required<number>();
+
+  remainingAmount = computed(() => {
+    return this.#budgetCalculator.calculateRemainingAmount(
+      this.totalBudget(),
+      this.usedAmount(),
+    );
+  });
+
   budgetUsedPercentage = computed(() => {
-    return (this.remainingAmount() / this.totalBudget()) * 100;
+    return Math.round(
+      this.#budgetCalculator.calculateUsedPercentage(
+        this.totalBudget(),
+        this.usedAmount(),
+      ),
+    );
   });
 }

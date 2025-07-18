@@ -8,6 +8,7 @@ import {
   effect,
 } from '@angular/core';
 import { Router } from '@angular/router';
+import { ROUTES } from '@core/routing';
 import { OnboardingCurrencyInput } from '../ui/currency-input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -87,7 +88,7 @@ export default class HealthInsurance {
   }
 
   onPrevious(): void {
-    this.#router.navigate(['/onboarding/housing']);
+    this.#router.navigate(['/', ROUTES.ONBOARDING, ROUTES.ONBOARDING_HOUSING]);
   }
 
   #handleNext(): void {
@@ -95,6 +96,10 @@ export default class HealthInsurance {
       'healthInsurance',
       this.healthInsuranceValue() ?? 0,
     );
-    this.#router.navigate(['/onboarding/phone-plan']);
+    this.#router.navigate([
+      '/',
+      ROUTES.ONBOARDING,
+      ROUTES.ONBOARDING_PHONE_PLAN,
+    ]);
   }
 }

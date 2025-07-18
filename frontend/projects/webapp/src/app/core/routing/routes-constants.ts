@@ -3,11 +3,20 @@ export const ROUTES = {
   LOGIN: 'login',
   ONBOARDING: 'onboarding',
   APP: 'app',
-  CURRENT_MONTH: '/app/current-month',
-  OTHER_MONTHS: '/app/other-months',
-  BUDGET_TEMPLATES: '/app/budget-templates',
-  ONBOARDING_REGISTRATION: '/onboarding/registration',
-  ONBOARDING_WELCOME: '/onboarding/welcome',
+  CURRENT_MONTH: 'current-month',
+  BUDGET: 'budget',
+  BUDGET_TEMPLATES: 'budget-templates',
+
+  // Onboarding step paths
+  ONBOARDING_WELCOME: 'welcome',
+  ONBOARDING_PERSONAL_INFO: 'personal-info',
+  ONBOARDING_INCOME: 'income',
+  ONBOARDING_HOUSING: 'housing',
+  ONBOARDING_HEALTH_INSURANCE: 'health-insurance',
+  ONBOARDING_PHONE_PLAN: 'phone-plan',
+  ONBOARDING_TRANSPORT: 'transport',
+  ONBOARDING_LEASING_CREDIT: 'leasing-credit',
+  ONBOARDING_REGISTRATION: 'registration',
 } as const;
 
 // Titres de pages pour la TitleStrategy
@@ -16,7 +25,7 @@ export const PAGE_TITLES = {
   ONBOARDING: 'Configuration initiale',
   DASHBOARD: 'Dashboard',
   CURRENT_MONTH: 'Mois en cours',
-  OTHER_MONTHS: 'Autres mois',
+  BUDGET: 'Mes budgets',
   BUDGET_TEMPLATES: 'Modèles de budget',
   WELCOME: 'Bienvenue',
   PERSONAL_INFO: 'Informations personnelles',
