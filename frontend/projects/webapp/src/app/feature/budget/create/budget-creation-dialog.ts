@@ -30,7 +30,8 @@ import { MAT_DATE_FNS_FORMATS } from '@angular/material-date-fns-adapter';
 import { startOfMonth } from 'date-fns';
 import { type BudgetTemplate } from '@pulpe/shared';
 import { BudgetCreationFormState } from './budget-creation-form-state';
-import { TemplateListItem, TemplateDetailsDialog } from './components';
+import { TemplateListItem } from './ui/template-list-item';
+import { TemplateDetailsDialog } from './template-details-dialog';
 import { TemplateSelectionService } from './services';
 import { TemplateApi } from '../../../core/template/template-api';
 
@@ -74,10 +75,13 @@ const MONTH_YEAR_FORMATS = {
     <h2 mat-dialog-title>Nouveau budget</h2>
 
     <mat-dialog-content>
-      <form [formGroup]="budgetForm" class="py-4 space-y-4 md:space-y-6">
+      <form
+        [formGroup]="budgetForm"
+        class="py-2 md:py-4 space-y-3 md:space-y-6"
+      >
         <section class="space-y-2 md:space-y-4">
           <!-- General Information Section -->
-          <h3 class="text-title-medium text-primary mb-4">
+          <h3 class="text-title-medium text-primary mb-2 md:mb-4">
             Informations générales
           </h3>
 
@@ -136,12 +140,12 @@ const MONTH_YEAR_FORMATS = {
         </section>
         <section>
           <!-- Model Selection Section -->
-          <h3 class="text-title-medium text-primary mb-4">
+          <h3 class="text-title-medium text-primary mb-2 md:mb-4">
             Sélection du modèle
           </h3>
 
           <!-- Search Field -->
-          <mat-form-field appearance="outline" class="w-full mb-4">
+          <mat-form-field appearance="outline" class="w-full mb-2 md:mb-4">
             <mat-label>Rechercher un modèle</mat-label>
             <input
               matInput
@@ -204,7 +208,7 @@ const MONTH_YEAR_FORMATS = {
               <mat-radio-group
                 [value]="templateSelection.selectedTemplateId()"
                 (change)="onTemplateSelect($event.value)"
-                class="flex flex-col gap-3"
+                class="flex flex-col gap-2 md:gap-3"
               >
                 @for (
                   template of templateSelection.filteredTemplates();
@@ -218,6 +222,9 @@ const MONTH_YEAR_FORMATS = {
                     "
                     [totalIncome]="totals?.totalIncome || 0"
                     [totalExpenses]="totals?.totalExpenses || 0"
+                    [remainingLivingAllowance]="
+                      totals?.remainingLivingAllowance || 0
+                    "
                     [loading]="totals?.loading || !totals"
                     (selectTemplate)="onTemplateSelect($event)"
                     (showDetails)="showTemplateDetails($event)"
@@ -232,9 +239,13 @@ const MONTH_YEAR_FORMATS = {
 
     <mat-dialog-actions
       align="end"
-      class="px-4 pb-4 md:px-6 md:pb-4 flex flex-col md:flex-row gap-2 md:gap-0"
+      class="px-3 pb-3 md:px-6 md:pb-4 flex flex-col-reverse md:flex-row gap-2 md:gap-0"
     >
-      <button mat-button mat-dialog-close class="order-2 md:order-1 md:mr-2">
+      <button
+        mat-button
+        mat-dialog-close
+        class="w-full md:w-auto md:mr-2 min-h-[44px]"
+      >
         Annuler
       </button>
       <button
@@ -242,7 +253,7 @@ const MONTH_YEAR_FORMATS = {
         color="primary"
         [disabled]="budgetForm.invalid || !templateSelection.selectedTemplate()"
         (click)="onCreateBudget()"
-        class="order-1 md:order-2 w-full md:w-auto"
+        class="w-full md:w-auto min-h-[44px]"
       >
         Créer le budget
       </button>
@@ -259,13 +270,25 @@ const MONTH_YEAR_FORMATS = {
     }
 
     .template-list {
-      min-height: 300px;
-      max-height: 400px;
+      min-height: 250px;
+      max-height: 350px;
       overflow-y: auto;
-      padding: 0.5rem;
+      padding: 0.375rem;
       border: 1px solid var(--mat-form-field-outline-color);
       border-radius: 4px;
       background-color: var(--mat-app-surface);
+    }
+
+    @media (max-width: 640px) {
+      mat-dialog-content {
+        max-height: 75vh;
+      }
+
+      .template-list {
+        min-height: 200px;
+        max-height: 300px;
+        padding: 0.25rem;
+      }
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -284,7 +307,12 @@ export class CreateBudgetDialogComponent {
   readonly templateTotals = signal<
     Record<
       string,
-      { totalIncome: number; totalExpenses: number; loading: boolean }
+      {
+        totalIncome: number;
+        totalExpenses: number;
+        remainingLivingAllowance: number;
+        loading: boolean;
+      }
     >
   >({});
 
@@ -335,6 +363,7 @@ export class CreateBudgetDialogComponent {
       [templateId]: {
         totalIncome: 0,
         totalExpenses: 0,
+        remainingLivingAllowance: 0,
         loading: true,
       },
     }));
@@ -357,6 +386,7 @@ export class CreateBudgetDialogComponent {
         [templateId]: {
           totalIncome: 0,
           totalExpenses: 0,
+          remainingLivingAllowance: 0,
           loading: false,
         },
       }));
@@ -379,8 +409,8 @@ export class CreateBudgetDialogComponent {
     this.#dialog.open(TemplateDetailsDialog, {
       data: { template },
       width: '600px',
-      maxWidth: '90vw',
-      maxHeight: '80vh',
+      maxWidth: '95vw',
+      maxHeight: '85vh',
       autoFocus: 'first-tabbable',
     });
   }

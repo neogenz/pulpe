@@ -8,6 +8,7 @@ import { TemplateApi } from '../../../../core/template/template-api';
 export interface TemplateTotals {
   totalIncome: number;
   totalExpenses: number;
+  remainingLivingAllowance: number;
 }
 
 @Injectable()
@@ -108,7 +109,9 @@ export class TemplateSelectionService {
       )
       .reduce((sum, line) => sum + line.amount, 0);
 
-    return { totalIncome, totalExpenses };
+    const remainingLivingAllowance = totalIncome - totalExpenses;
+
+    return { totalIncome, totalExpenses, remainingLivingAllowance };
   }
 
   /**

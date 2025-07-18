@@ -12,7 +12,7 @@ import { MatListModule } from '@angular/material/list';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDividerModule } from '@angular/material/divider';
 import { type BudgetTemplate, type TemplateLine } from '@pulpe/shared';
-import { TemplateApi } from '../../../../core/template/template-api';
+import { TemplateApi } from '../../../core/template/template-api';
 import { firstValueFrom } from 'rxjs';
 
 export interface TemplateDetailsDialogData {
