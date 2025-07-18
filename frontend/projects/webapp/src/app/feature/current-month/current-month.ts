@@ -101,8 +101,8 @@ import { BudgetLineMapper } from './services/budget-line-mapper';
         ) {
           @if (state.dashboardData.value()?.budget) {
             <pulpe-budget-progress-bar
-              [totalBudget]="state.incomeAmount()"
-              [usedAmount]="state.expenseAmount() + state.savingsAmount()"
+              [totalBudget]="state.livingAllowanceAmount()"
+              [usedAmount]="state.actualTransactionsAmount()"
             />
             <div class="flex flex-col gap-4" data-testid="dashboard-content">
               <pulpe-transaction-chip-filter
