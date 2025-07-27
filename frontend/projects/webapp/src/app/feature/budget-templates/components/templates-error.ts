@@ -23,7 +23,7 @@ import { MatIconModule } from '@angular/material/icon';
       >
         Impossible de charger les modèles de budget.
       </p>
-      <button mat-button (click)="reload.emit()" data-testid="retry-button">
+      <button matButton (click)="reload.emit()" data-testid="retry-button">
         <mat-icon>refresh</mat-icon>
         Réessayer
       </button>

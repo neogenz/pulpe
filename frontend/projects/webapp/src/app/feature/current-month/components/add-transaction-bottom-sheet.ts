@@ -112,7 +112,7 @@ export interface TransactionFormData {
 
       <!-- Action Buttons -->
       <div class="flex gap-3 pt-4 pb-6 px-6 border-t border-outline-variant">
-        <button mat-button (click)="close()" class="flex-1">Annuler</button>
+        <button matButton (click)="close()" class="flex-1">Annuler</button>
         <button
           matButton="outlined"
           (click)="onSubmit()"

@@ -7,8 +7,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { of, throwError } from 'rxjs';
 
 import { CreateBudgetDialogComponent } from './budget-creation-dialog';
-import { BudgetCreationFormState } from './budget-creation-form-state';
-import { TemplateSelectionService } from './services';
+import { TemplateSelection } from './services/template-selection';
 import { TemplateApi } from '../../../core/template/template-api';
 import {
   BudgetApi,
@@ -20,11 +19,10 @@ describe('CreateBudgetDialogComponent', () => {
   let component: CreateBudgetDialogComponent;
   let fixture: ComponentFixture<CreateBudgetDialogComponent>;
   let mockDialogRef: Partial<MatDialogRef<CreateBudgetDialogComponent>>;
-  let mockFormState: Partial<BudgetCreationFormState>;
   let mockSnackBar: Partial<MatSnackBar>;
   let mockDialog: Partial<MatDialog>;
   let mockBudgetApi: Partial<BudgetApi>;
-  let mockTemplateSelectionService: Partial<TemplateSelectionService>;
+  let mockTemplateSelectionService: Partial<TemplateSelection>;
   let mockTemplateApi: Partial<TemplateApi>;
 
   // Test data
@@ -65,11 +63,6 @@ describe('CreateBudgetDialogComponent', () => {
     // Mock services
     mockDialogRef = {
       close: vi.fn(),
-    };
-
-    mockFormState = {
-      validateAndGetFormData: vi.fn(),
-      setMonthAndYear: vi.fn(),
     };
 
     mockSnackBar = {
@@ -122,12 +115,11 @@ describe('CreateBudgetDialogComponent', () => {
       providers: [
         FormBuilder,
         { provide: MatDialogRef, useValue: mockDialogRef },
-        { provide: BudgetCreationFormState, useValue: mockFormState },
         { provide: MatSnackBar, useValue: mockSnackBar },
         { provide: MatDialog, useValue: mockDialog },
         { provide: BudgetApi, useValue: mockBudgetApi },
         {
-          provide: TemplateSelectionService,
+          provide: TemplateSelection,
           useValue: mockTemplateSelectionService,
         },
         { provide: TemplateApi, useValue: mockTemplateApi },
@@ -334,11 +326,11 @@ describe('CreateBudgetDialogComponent', () => {
   describe('Budget Creation', () => {
     beforeEach(() => {
       // Setup valid form state
-      mockFormState.validateAndGetFormData = vi.fn(() => ({
+      component.budgetForm.patchValue({
         monthYear: new Date(2024, 5, 1),
         description: 'Test budget',
         templateId: 'template-1',
-      }));
+      });
 
       mockTemplateSelectionService.selectedTemplate = vi.fn(() => mockTemplate);
     });
@@ -403,7 +395,12 @@ describe('CreateBudgetDialogComponent', () => {
     });
 
     it('should not create budget if form is invalid', async () => {
-      mockFormState.validateAndGetFormData = vi.fn(() => null);
+      // Make form invalid
+      component.budgetForm.patchValue({
+        monthYear: null,
+        description: '',
+        templateId: '',
+      });
 
       await component.onCreateBudget();
 
@@ -421,13 +418,12 @@ describe('CreateBudgetDialogComponent', () => {
     });
 
     it('should call API with correct budget data format', async () => {
-      const formData = {
+      // Setup form with specific data
+      component.budgetForm.patchValue({
         monthYear: new Date(2024, 5, 15), // June 15, 2024
         description: 'Test budget',
         templateId: 'template-1',
-      };
-
-      mockFormState.validateAndGetFormData = vi.fn(() => formData);
+      });
 
       const mockResponse = {
         budget: { id: 'budget-123', month: 6, year: 2024 },

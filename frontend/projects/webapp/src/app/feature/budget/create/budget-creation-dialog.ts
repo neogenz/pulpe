@@ -28,13 +28,12 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MAT_DATE_FORMATS } from '@angular/material/core';
 import { MAT_DATE_FNS_FORMATS } from '@angular/material-date-fns-adapter';
-import { startOfMonth } from 'date-fns';
+import { startOfMonth, setMonth, setYear } from 'date-fns';
 import { firstValueFrom } from 'rxjs';
 import { type BudgetTemplate } from '@pulpe/shared';
-import { BudgetCreationFormState } from './budget-creation-form-state';
 import { TemplateListItem } from './ui/template-list-item';
 import { TemplateDetailsDialog } from './template-details-dialog';
-import { TemplateSelectionService } from './services';
+import { TemplateSelection } from './services/template-selection';
 import { TemplateApi } from '../../../core/template/template-api';
 import {
   BudgetApi,
@@ -74,8 +73,7 @@ const MONTH_YEAR_FORMATS = {
     TemplateListItem,
   ],
   providers: [
-    BudgetCreationFormState,
-    TemplateSelectionService,
+    TemplateSelection,
     { provide: MAT_DATE_FORMATS, useValue: MONTH_YEAR_FORMATS },
   ],
   template: `
@@ -193,7 +191,7 @@ const MONTH_YEAR_FORMATS = {
                   Erreur lors du chargement des modèles
                 </p>
                 <button
-                  mat-button
+                  matButton
                   color="primary"
                   (click)="templateApi.templatesResource.reload()"
                 >
@@ -253,7 +251,7 @@ const MONTH_YEAR_FORMATS = {
       class="px-3 pb-3 md:px-6 md:pb-4 flex flex-col-reverse md:flex-row gap-2 md:gap-0"
     >
       <button
-        mat-button
+        matButton
         mat-dialog-close
         class="w-full md:w-auto md:mr-2 min-h-[44px]"
       >
@@ -316,11 +314,10 @@ const MONTH_YEAR_FORMATS = {
 export class CreateBudgetDialogComponent {
   readonly #dialogRef = inject(MatDialogRef<CreateBudgetDialogComponent>);
   readonly #formBuilder = inject(FormBuilder);
-  readonly #formState = inject(BudgetCreationFormState);
   readonly #dialog = inject(MatDialog);
   readonly #snackBar = inject(MatSnackBar);
   readonly #budgetApi = inject(BudgetApi);
-  readonly templateSelection = inject(TemplateSelectionService);
+  readonly templateSelection = inject(TemplateSelection);
   readonly templateApi = inject(TemplateApi);
 
   // Expose constants for template usage
@@ -510,7 +507,16 @@ export class CreateBudgetDialogComponent {
     normalizedMonthAndYear: Date,
     datePicker: { close: () => void },
   ): void {
-    this.#formState.setMonthAndYear(this.budgetForm, normalizedMonthAndYear);
+    const currentValue = this.budgetForm.get('monthYear')?.value || new Date();
+    const newDate = startOfMonth(
+      setYear(
+        setMonth(currentValue, normalizedMonthAndYear.getMonth()),
+        normalizedMonthAndYear.getFullYear(),
+      ),
+    );
+
+    this.budgetForm.get('monthYear')?.setValue(newDate);
+    this.budgetForm.get('monthYear')?.markAsTouched();
     datePicker.close();
   }
 
@@ -529,10 +535,11 @@ export class CreateBudgetDialogComponent {
   }
 
   async onCreateBudget(): Promise<void> {
-    const formData = this.#formState.validateAndGetFormData(this.budgetForm);
-    if (!formData || !this.templateSelection.selectedTemplate()) {
+    if (!this.budgetForm.valid || !this.templateSelection.selectedTemplate()) {
       return;
     }
+
+    const formData = this.budgetForm.value;
 
     this.isCreating.set(true);
 
