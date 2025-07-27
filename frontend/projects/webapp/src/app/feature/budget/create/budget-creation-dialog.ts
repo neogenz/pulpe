@@ -1,11 +1,11 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  computed,
   inject,
   effect,
   signal,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import {
   FormBuilder,
   FormGroup,
@@ -36,7 +36,10 @@ import { TemplateListItem } from './ui/template-list-item';
 import { TemplateDetailsDialog } from './template-details-dialog';
 import { TemplateSelectionService } from './services';
 import { TemplateApi } from '../../../core/template/template-api';
-import { BudgetApi } from '../../../core/budget/budget-api';
+import {
+  BudgetApi,
+  type BudgetApiError,
+} from '../../../core/budget/budget-api';
 
 // Format personnalisé pour le month/year picker
 const MONTH_YEAR_FORMATS = {
@@ -333,10 +336,8 @@ export class CreateBudgetDialogComponent {
     >
   >({});
 
-  // Computed signal for description length
-  descriptionLength = computed(() => {
-    return this.budgetForm.get('description')?.value?.length || 0;
-  });
+  // Signal for description length - initialized in constructor
+  readonly descriptionLength = signal(0);
 
   constructor() {
     // Initialize form with current year default using date-fns
@@ -346,6 +347,17 @@ export class CreateBudgetDialogComponent {
       monthYear: [currentDate, Validators.required],
       description: ['', [Validators.required, Validators.maxLength(100)]],
       templateId: ['', Validators.required],
+    });
+
+    // Set up reactive description length tracking
+    const descriptionControl = this.budgetForm.get('description')!;
+    const descriptionValue = toSignal(descriptionControl.valueChanges, {
+      initialValue: descriptionControl.value || '',
+    });
+
+    effect(() => {
+      const value = descriptionValue();
+      this.descriptionLength.set(value?.length || 0);
     });
 
     // Sync selected template with form
@@ -457,24 +469,12 @@ export class CreateBudgetDialogComponent {
         duration: 5000,
         panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
       });
-    } catch (error: unknown) {
+    } catch (error) {
       this.isCreating.set(false);
 
-      // Extract error message
-      const errorObj = error as {
-        error?: { message?: string | { message?: string } };
-        message?: string;
-      };
-      const errorMessage =
-        (typeof errorObj.error?.message === 'object'
-          ? errorObj.error.message.message
-          : errorObj.error?.message) ||
-        errorObj.message ||
-        "Une erreur inattendue s'est produite";
-
-      // Show error snackbar
+      // Show error snackbar with centrally processed error message
       this.#snackBar.open(
-        `Erreur lors de la création du budget : ${errorMessage}`,
+        `Erreur lors de la création du budget : ${(error as BudgetApiError).message}`,
         'Fermer',
         {
           duration: 8000,
