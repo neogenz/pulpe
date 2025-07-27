@@ -22,9 +22,14 @@ import { FormControl } from '@angular/forms';
 import { CreateBudgetDialogComponent } from './budget-creation-dialog';
 import { TemplateSelectionService } from './services/template-selection.service';
 import { TemplateApi } from '../../../core/template/template-api';
+import {
+  BudgetApi,
+  type BudgetApiError,
+} from '../../../core/budget/budget-api';
 import { BudgetCreationFormState } from './budget-creation-form-state';
 import { type BudgetTemplate, type TemplateLine } from '@pulpe/shared';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { fr } from 'date-fns/locale';
 
 describe('CreateBudgetDialogComponent', () => {
@@ -45,6 +50,12 @@ describe('CreateBudgetDialogComponent', () => {
     typeof signal<BudgetTemplate | null>
   >;
   let mockDialog: { open: ReturnType<typeof vi.fn> };
+  let mockBudgetApi: {
+    createBudget$: ReturnType<typeof vi.fn>;
+  };
+  let mockSnackBar: {
+    open: ReturnType<typeof vi.fn>;
+  };
 
   // Mock data
   const mockTemplates: BudgetTemplate[] = [
@@ -138,6 +149,14 @@ describe('CreateBudgetDialogComponent', () => {
       open: vi.fn(),
     };
 
+    mockBudgetApi = {
+      createBudget$: vi.fn(),
+    };
+
+    mockSnackBar = {
+      open: vi.fn(),
+    };
+
     mockTemplateApi = {
       templatesResource: {
         value: vi.fn().mockReturnValue(mockTemplates),
@@ -194,6 +213,8 @@ describe('CreateBudgetDialogComponent', () => {
         { provide: MAT_DIALOG_DATA, useValue: {} },
         { provide: MatDialog, useValue: mockDialog },
         { provide: TemplateApi, useValue: mockTemplateApi },
+        { provide: BudgetApi, useValue: mockBudgetApi },
+        { provide: MatSnackBar, useValue: mockSnackBar },
         {
           provide: TemplateSelectionService,
           useValue: mockTemplateSelectionService,
@@ -354,8 +375,9 @@ describe('CreateBudgetDialogComponent', () => {
     });
   });
 
-  describe('Dialog Actions', () => {
-    it('should close dialog with form data on create', () => {
+  describe('Budget Creation', () => {
+    beforeEach(() => {
+      // Setup valid form for all budget creation tests
       const testDate = new Date();
       component.budgetForm.patchValue({
         monthYear: testDate,
@@ -368,34 +390,132 @@ describe('CreateBudgetDialogComponent', () => {
         component.budgetForm.get(key)?.markAsTouched();
       });
 
-      // Verify form is valid
-      expect(component.budgetForm.valid).toBe(true);
-
       // Mock the selectedTemplate method to return a template
       vi.spyOn(component.templateSelection, 'selectedTemplate').mockReturnValue(
         mockTemplates[0],
       );
-
-      component.onCreateBudget();
-
-      expect(mockDialogRef.close).toHaveBeenCalledWith({
-        monthYear: testDate,
-        description: 'Test budget',
-        templateId: 'template-1',
-      });
     });
 
-    it('should not close dialog if form is invalid', () => {
-      // Leave form empty/invalid
+    it('should close dialog with success data when budget creation succeeds', async () => {
+      // Mock successful API response
+      mockBudgetApi.createBudget$.mockReturnValue(of({ id: 'budget-123' }));
+
+      await component.onCreateBudget();
+
+      expect(mockDialogRef.close).toHaveBeenCalledWith({
+        success: true,
+        data: {
+          monthYear: expect.any(Date),
+          description: 'Test budget',
+          templateId: 'template-1',
+        },
+      });
+
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'Budget créé avec succès !',
+        'Fermer',
+        {
+          duration: 5000,
+          panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
+        },
+      );
+    });
+
+    it('should show error snackbar and keep dialog open when budget creation fails', async () => {
+      // Mock API error
+      const mockError: BudgetApiError = {
+        message: 'Template introuvable ou accès non autorisé',
+      };
+      mockBudgetApi.createBudget$.mockReturnValue(throwError(() => mockError));
+
+      await component.onCreateBudget();
+
+      // Dialog should not close
+      expect(mockDialogRef.close).not.toHaveBeenCalled();
+
+      // Error snackbar should be shown
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'Erreur lors de la création du budget : Template introuvable ou accès non autorisé',
+        'Fermer',
+        {
+          duration: 8000,
+          panelClass: ['bg-[color-error]', 'text-[color-on-error]'],
+        },
+      );
+
+      // Loading state should be reset
+      expect(component.isCreating()).toBe(false);
+    });
+
+    it('should set loading state during budget creation', async () => {
+      // Mock API call that takes time
+      let resolvePromise: (value: unknown) => void;
+      const delayedPromise = new Promise((resolve) => {
+        resolvePromise = resolve;
+      });
+      mockBudgetApi.createBudget$.mockReturnValue(delayedPromise);
+
+      // Start creation
+      const createPromise = component.onCreateBudget();
+
+      // Check loading state is set
+      expect(component.isCreating()).toBe(true);
+
+      // Resolve the API call
+      resolvePromise!({ id: 'budget-123' });
+      await createPromise;
+
+      // Loading should be false after completion (handled by success flow)
+      expect(component.isCreating()).toBe(false);
+    });
+
+    it('should not create budget if form is invalid', async () => {
+      // Make form invalid
       component.budgetForm.patchValue({
         monthYear: null,
         description: '',
         templateId: '',
       });
 
-      component.onCreateBudget();
+      await component.onCreateBudget();
 
+      expect(mockBudgetApi.createBudget$).not.toHaveBeenCalled();
       expect(mockDialogRef.close).not.toHaveBeenCalled();
+      expect(mockSnackBar.open).not.toHaveBeenCalled();
+    });
+
+    it('should not create budget if no template is selected', async () => {
+      // Mock no selected template
+      vi.spyOn(component.templateSelection, 'selectedTemplate').mockReturnValue(
+        null,
+      );
+
+      await component.onCreateBudget();
+
+      expect(mockBudgetApi.createBudget$).not.toHaveBeenCalled();
+      expect(mockDialogRef.close).not.toHaveBeenCalled();
+      expect(mockSnackBar.open).not.toHaveBeenCalled();
+    });
+
+    it('should call API with correct budget data format', async () => {
+      // Mock successful API response
+      mockBudgetApi.createBudget$.mockReturnValue(of({ id: 'budget-123' }));
+
+      const testDate = new Date(2024, 11, 1); // December 2024
+      component.budgetForm.patchValue({
+        monthYear: testDate,
+        description: 'Test budget description',
+        templateId: 'template-1',
+      });
+
+      await component.onCreateBudget();
+
+      expect(mockBudgetApi.createBudget$).toHaveBeenCalledWith({
+        month: 12, // getMonth() returns 11, + 1 = 12
+        year: 2024,
+        description: 'Test budget description',
+        templateId: 'template-1',
+      });
     });
   });
 

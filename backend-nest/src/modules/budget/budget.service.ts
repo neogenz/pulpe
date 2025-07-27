@@ -162,17 +162,14 @@ export class BudgetService {
 
         // Handle specific database errors with better error codes
         if (
-          error.code === 'P0001' ||
-          error.message?.includes('Template not found')
+          error.message?.includes('Template not found') ||
+          error.message?.includes('access denied')
         ) {
           throw new NotFoundException(
             'Template introuvable ou accès non autorisé',
           );
         }
-        if (
-          error.code === 'P0002' ||
-          error.message?.includes('Budget already exists')
-        ) {
+        if (error.message?.includes('Budget already exists')) {
           throw new BadRequestException(
             'Un budget existe déjà pour cette période',
           );

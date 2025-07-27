@@ -272,8 +272,17 @@ export class BudgetApi {
             : undefined,
         };
       } else {
+        // Gérer le cas où error.error?.message peut être un objet
+        const errorMessage = error.error?.message;
+        const message =
+          typeof errorMessage === 'string'
+            ? errorMessage
+            : typeof errorMessage === 'object' && errorMessage?.message
+              ? String(errorMessage.message)
+              : error.message || defaultMessage;
+
         budgetError = {
-          message: error.error?.message || error.message || defaultMessage,
+          message,
         };
       }
     }

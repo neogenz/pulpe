@@ -99,13 +99,14 @@ export class TemplateSelectionService {
    */
   calculateTemplateTotals(lines: TemplateLine[]): TemplateTotals {
     const totalIncome = lines
-      .filter((line) => line.kind === 'INCOME')
+      .filter((line) => line.kind.toUpperCase() === 'INCOME')
       .reduce((sum, line) => sum + line.amount, 0);
 
     const totalExpenses = lines
       .filter(
         (line) =>
-          line.kind === 'FIXED_EXPENSE' || line.kind === 'SAVINGS_CONTRIBUTION',
+          line.kind.toUpperCase() === 'FIXED_EXPENSE' ||
+          line.kind.toUpperCase() === 'SAVINGS_CONTRIBUTION',
       )
       .reduce((sum, line) => sum + line.amount, 0);
 
