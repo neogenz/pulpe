@@ -4,7 +4,7 @@ import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { Component, input, NO_ERRORS_SCHEMA } from '@angular/core';
+import { Component, Output, Input, NO_ERRORS_SCHEMA } from '@angular/core';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
@@ -25,7 +25,7 @@ import { environment } from '../../environments/environment';
   standalone: true,
 })
 class MockNavigationMenuComponent {
-  navItemClick = new Subject<Event>();
+  @Output() navItemClick = new Subject<Event>();
 }
 
 // Mock PulpeBreadcrumb component
@@ -35,7 +35,7 @@ class MockNavigationMenuComponent {
   standalone: true,
 })
 class MockPulpeBreadcrumbComponent {
-  items = input<unknown[]>([]);
+  @Input() items: unknown[] = [];
 }
 
 describe('MainLayout', () => {
