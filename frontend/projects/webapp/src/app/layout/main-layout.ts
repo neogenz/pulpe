@@ -18,10 +18,11 @@ import { Router } from '@angular/router';
 import { RouterModule } from '@angular/router';
 import { map } from 'rxjs';
 import { NavigationMenu } from './navigation-menu';
-import { PulpeBreadcrumb } from '@ui/breadcrumb/breadcrumb';
-import { BreadcrumbState } from '@core/routing/breadcrumb-state';
-import { AuthApi } from '@core/auth/auth-api';
-import { ROUTES } from '@core/routing/routes-constants';
+import { PulpeBreadcrumb } from '../ui/breadcrumb/breadcrumb';
+import { BreadcrumbState } from '../core/routing/breadcrumb-state';
+import { AuthApi } from '../core/auth/auth-api';
+import { ROUTES } from '../core/routing/routes-constants';
+import { environment } from '../../environments/environment';
 
 @Component({
   selector: 'pulpe-main-layout',
@@ -68,12 +69,16 @@ import { ROUTES } from '@core/routing/routes-constants';
               type="button"
               mat-button
               [matMenuTriggerFor]="userMenu"
-              class="toolbar-logo-button !min-w-0 !p-2 !rounded-full"
-              aria-label="Menu utilisateur"
+              class="toolbar-logo-button"
+              [attr.aria-label]="
+                isLoggingOut() ? 'Déconnexion en cours...' : 'Menu utilisateur'
+              "
+              [disabled]="isLoggingOut()"
               data-testid="user-menu-trigger"
             >
               <div
-                class="size-8 pulpe-gradient rounded-full toolbar-logo"
+                class="pulpe-gradient rounded-full toolbar-logo"
+                [class.opacity-50]="isLoggingOut()"
               ></div>
             </button>
 
@@ -82,9 +87,14 @@ import { ROUTES } from '@core/routing/routes-constants';
                 mat-menu-item
                 (click)="onLogout()"
                 [disabled]="isLoggingOut()"
+                [attr.aria-label]="
+                  isLoggingOut()
+                    ? 'Déconnexion en cours, veuillez patienter'
+                    : 'Se déconnecter de votre compte'
+                "
                 data-testid="logout-button"
               >
-                <mat-icon matMenuItemIcon>
+                <mat-icon matMenuItemIcon [attr.aria-hidden]="true">
                   @if (isLoggingOut()) {
                     hourglass_top
                   } @else {
@@ -100,6 +110,13 @@ import { ROUTES } from '@core/routing/routes-constants';
                 </span>
               </button>
             </mat-menu>
+
+            <!-- Accessibility: Screen reader feedback for logout state -->
+            <div class="sr-only" aria-live="polite" aria-atomic="true">
+              @if (isLoggingOut()) {
+                Déconnexion en cours, veuillez patienter...
+              }
+            </div>
           </mat-toolbar>
 
           <pulpe-breadcrumb
@@ -123,18 +140,49 @@ import { ROUTES } from '@core/routing/routes-constants';
         height: 100vh;
       }
 
-      .toolbar-logo-button {
+      mat-toolbar .toolbar-logo-button.mat-mdc-button {
         width: 44px;
         height: 44px;
+        min-width: 44px;
+        padding: 8px;
+        border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         --mat-mdc-button-persistent-ripple-color: transparent;
+        --mdc-text-button-container-shape: 50%;
+        transition: opacity 0.2s ease-in-out;
       }
 
-      .toolbar-logo-button:hover .toolbar-logo {
+      mat-toolbar
+        .toolbar-logo-button.mat-mdc-button:hover:not(:disabled)
+        .toolbar-logo {
         transform: scale(1.05);
-        transition: transform 0.2s ease-in-out;
+      }
+
+      mat-toolbar .toolbar-logo-button.mat-mdc-button:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+
+      .toolbar-logo {
+        width: 32px;
+        height: 32px;
+        transition:
+          transform 0.2s ease-in-out,
+          opacity 0.2s ease-in-out;
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
       }
     `,
   ],
@@ -189,10 +237,29 @@ export class MainLayout {
 
     try {
       this.#isLoggingOut.set(true);
+
+      // Sign out and wait for session to be cleared
       await this.#authApi.signOut();
+
+      // Add a small delay to ensure auth state has been updated
+      // This prevents race conditions with the auth state change
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       await this.#router.navigate([ROUTES.LOGIN]);
     } catch (error) {
-      console.error('Erreur lors de la déconnexion:', error);
+      // Only log detailed errors in development
+      if (!environment.production) {
+        console.error('Erreur lors de la déconnexion:', error);
+      }
+
+      // Always navigate to login on error to ensure user is signed out
+      try {
+        await this.#router.navigate([ROUTES.LOGIN]);
+      } catch (navError) {
+        if (!environment.production) {
+          console.error('Erreur lors de la navigation vers login:', navError);
+        }
+      }
     } finally {
       this.#isLoggingOut.set(false);
     }
