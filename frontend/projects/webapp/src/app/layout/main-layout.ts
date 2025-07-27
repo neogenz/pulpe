@@ -69,12 +69,13 @@ import { ROUTES } from '@core/routing/routes-constants';
               [matMenuTriggerFor]="userMenu"
               class="toolbar-logo-button !min-w-0 !p-2 !rounded-full"
               aria-label="Menu utilisateur"
+              data-testid="user-menu-trigger"
             >
               <div class="size-8 pulpe-gradient rounded-full toolbar-logo"></div>
             </button>
 
             <mat-menu #userMenu="matMenu" xPosition="before">
-              <button mat-menu-item (click)="onLogout()">
+              <button mat-menu-item (click)="onLogout()" data-testid="logout-button">
                 <mat-icon matMenuItemIcon>logout</mat-icon>
                 <span>Se déconnecter</span>
               </button>

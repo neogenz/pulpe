@@ -212,6 +212,12 @@ export const SELECTORS = {
       'a:has-text("onboarding"), [data-testid="onboarding-link"]',
     BACK_BUTTON: 'button:has-text("Retour"), [data-testid="back-button"]',
   },
+  LAYOUT: {
+    USER_MENU_TRIGGER: '[data-testid="user-menu-trigger"], .toolbar-logo-button',
+    USER_MENU: 'mat-menu, [role="menu"], [data-testid="user-menu"]',
+    LOGOUT_BUTTON: '[data-testid="logout-button"], button:has-text("Se déconnecter"), button:has-text("Logout")',
+    MAIN_TOOLBAR: 'mat-toolbar, [data-testid="main-toolbar"]',
+  },
   COMMON: {
     LOADING_SPINNER: '.spinner, .loading, [data-testid="loading-spinner"]',
     SUCCESS_MESSAGE:
