@@ -1,7 +1,4 @@
-import {
-  TemplateSelectionService,
-  type TemplateTotals,
-} from './template-selection.service';
+import { TemplateSelection, type TemplateTotals } from './template-selection';
 import { type TemplateLine } from '@pulpe/shared';
 
 // Helper to create test template lines
@@ -18,7 +15,7 @@ const createTestLine = (partial: Partial<TemplateLine>): TemplateLine => ({
   ...partial,
 });
 
-describe('TemplateSelectionService - calculateTemplateTotals', () => {
+describe('TemplateSelection - calculateTemplateTotals', () => {
   // Create a minimal service instance for testing the pure function
   const service = new (class {
     calculateTemplateTotals(lines: TemplateLine[]): TemplateTotals {
@@ -36,7 +33,7 @@ describe('TemplateSelectionService - calculateTemplateTotals', () => {
 
       return { totalIncome, totalExpenses };
     }
-  })() as Pick<TemplateSelectionService, 'calculateTemplateTotals'>;
+  })() as Pick<TemplateSelection, 'calculateTemplateTotals'>;
 
   describe('calculateTemplateTotals', () => {
     it('should calculate totals correctly with all transaction types', () => {

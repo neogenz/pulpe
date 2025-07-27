@@ -91,7 +91,7 @@ interface TemplateWithMetrics extends BudgetTemplate {
               Erreur lors du chargement des modèles
             </p>
             <button
-              mat-button
+              matButton
               color="primary"
               (click)="templatesResource.reload()"
             >
@@ -276,7 +276,7 @@ interface TemplateWithMetrics extends BudgetTemplate {
     </mat-dialog-content>
 
     <mat-dialog-actions align="end" class="px-6 pb-4">
-      <button mat-button mat-dialog-close>Annuler</button>
+      <button matButton mat-dialog-close>Annuler</button>
       <button
         mat-flat-button
         color="primary"

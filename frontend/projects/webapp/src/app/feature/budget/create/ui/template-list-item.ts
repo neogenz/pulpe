@@ -63,10 +63,9 @@ import { type BudgetTemplate } from '@pulpe/shared';
                 }
               </div>
               <button
-                mat-button
-                type="button"
+                matButton
                 (click)="showDetails.emit(template()); $event.stopPropagation()"
-                class="!min-w-0 !min-h-[36px] !px-2 flex-shrink-0"
+                class="flex-shrink-0"
               >
                 <span class="hidden sm:inline">Détails</span>
                 <mat-icon class="sm:hidden">info</mat-icon>

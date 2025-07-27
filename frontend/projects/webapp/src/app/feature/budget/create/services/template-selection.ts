@@ -12,7 +12,7 @@ export interface TemplateTotals {
 }
 
 @Injectable()
-export class TemplateSelectionService {
+export class TemplateSelection {
   readonly #templateApi = inject(TemplateApi);
 
   // Template details cache

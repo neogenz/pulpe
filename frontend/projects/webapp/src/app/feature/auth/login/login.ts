@@ -143,7 +143,7 @@ import { ROUTES } from '@core/routing/routes-constants';
           <p class="text-body-medium text-on-surface-variant">
             Nouveau sur Pulpe ?
             <button
-              mat-button
+              matButton
               color="primary"
               class="ml-1"
               routerLink="/onboarding/welcome"

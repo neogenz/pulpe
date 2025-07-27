@@ -132,7 +132,7 @@ export interface TemplateDetailsDialogData {
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Fermer</button>
+      <button matButton mat-dialog-close>Fermer</button>
     </mat-dialog-actions>
   `,
   styles: `
