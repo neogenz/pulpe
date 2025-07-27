@@ -25,15 +25,18 @@ import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { MAT_DATE_FORMATS } from '@angular/material/core';
 import { MAT_DATE_FNS_FORMATS } from '@angular/material-date-fns-adapter';
 import { startOfMonth } from 'date-fns';
+import { firstValueFrom } from 'rxjs';
 import { type BudgetTemplate } from '@pulpe/shared';
 import { BudgetCreationFormState } from './budget-creation-form-state';
 import { TemplateListItem } from './ui/template-list-item';
 import { TemplateDetailsDialog } from './template-details-dialog';
 import { TemplateSelectionService } from './services';
 import { TemplateApi } from '../../../core/template/template-api';
+import { BudgetApi } from '../../../core/budget/budget-api';
 
 // Format personnalisé pour le month/year picker
 const MONTH_YEAR_FORMATS = {
@@ -251,11 +254,20 @@ const MONTH_YEAR_FORMATS = {
       <button
         mat-flat-button
         color="primary"
-        [disabled]="budgetForm.invalid || !templateSelection.selectedTemplate()"
+        [disabled]="
+          budgetForm.invalid ||
+          !templateSelection.selectedTemplate() ||
+          isCreating()
+        "
         (click)="onCreateBudget()"
         class="w-full md:w-auto min-h-[44px]"
       >
-        Créer le budget
+        @if (isCreating()) {
+          <mat-spinner diameter="20" class="mr-2"></mat-spinner>
+          Création...
+        } @else {
+          Créer le budget
+        }
       </button>
     </mat-dialog-actions>
   `,
@@ -298,10 +310,15 @@ export class CreateBudgetDialogComponent {
   readonly #formBuilder = inject(FormBuilder);
   readonly #formState = inject(BudgetCreationFormState);
   readonly #dialog = inject(MatDialog);
+  readonly #snackBar = inject(MatSnackBar);
+  readonly #budgetApi = inject(BudgetApi);
   readonly templateSelection = inject(TemplateSelectionService);
   readonly templateApi = inject(TemplateApi);
 
   budgetForm: FormGroup;
+
+  // Creation state
+  readonly isCreating = signal(false);
 
   // Template totals state
   readonly templateTotals = signal<
@@ -415,10 +432,55 @@ export class CreateBudgetDialogComponent {
     });
   }
 
-  onCreateBudget(): void {
+  async onCreateBudget(): Promise<void> {
     const formData = this.#formState.validateAndGetFormData(this.budgetForm);
-    if (formData && this.templateSelection.selectedTemplate()) {
-      this.#dialogRef.close(formData);
+    if (!formData || !this.templateSelection.selectedTemplate()) {
+      return;
+    }
+
+    this.isCreating.set(true);
+
+    const budgetData = {
+      month: formData.monthYear.getMonth() + 1, // getMonth() returns 0-11, we need 1-12
+      year: formData.monthYear.getFullYear(),
+      description: formData.description,
+      templateId: formData.templateId,
+    };
+
+    try {
+      await firstValueFrom(this.#budgetApi.createBudget$(budgetData));
+
+      // Success - close dialog with success indicator
+      this.#dialogRef.close({ success: true, data: formData });
+
+      this.#snackBar.open('Budget créé avec succès !', 'Fermer', {
+        duration: 5000,
+        panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
+      });
+    } catch (error: unknown) {
+      this.isCreating.set(false);
+
+      // Extract error message
+      const errorObj = error as {
+        error?: { message?: string | { message?: string } };
+        message?: string;
+      };
+      const errorMessage =
+        (typeof errorObj.error?.message === 'object'
+          ? errorObj.error.message.message
+          : errorObj.error?.message) ||
+        errorObj.message ||
+        "Une erreur inattendue s'est produite";
+
+      // Show error snackbar
+      this.#snackBar.open(
+        `Erreur lors de la création du budget : ${errorMessage}`,
+        'Fermer',
+        {
+          duration: 8000,
+          panelClass: ['bg-[color-error]', 'text-[color-on-error]'],
+        },
+      );
     }
   }
 }
