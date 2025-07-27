@@ -21,43 +21,34 @@ export class MainLayoutPage {
   }
 
   async expectLayoutLoaded(): Promise<void> {
-    await expect(
-      this.toolbar,
-      'Main toolbar should be visible'
-    ).toBeVisible();
+    await expect(this.toolbar, 'Main toolbar should be visible').toBeVisible();
     await expect(
       this.userMenuTrigger,
-      'User menu trigger should be visible'
+      'User menu trigger should be visible',
     ).toBeVisible();
   }
 
   async openUserMenu(): Promise<void> {
     // Click on the user menu trigger (logo)
     await this.userMenuTrigger.click();
-    
+
     // Wait for the menu to appear
     await expect(
       this.userMenu,
-      'User menu should be visible after click'
+      'User menu should be visible after click',
     ).toBeVisible();
   }
 
   async expectUserMenuOpen(): Promise<void> {
-    await expect(
-      this.userMenu,
-      'User menu should be open'
-    ).toBeVisible();
+    await expect(this.userMenu, 'User menu should be open').toBeVisible();
     await expect(
       this.logoutButton,
-      'Logout button should be visible in menu'
+      'Logout button should be visible in menu',
     ).toBeVisible();
   }
 
   async expectUserMenuClosed(): Promise<void> {
-    await expect(
-      this.userMenu,
-      'User menu should be closed'
-    ).not.toBeVisible();
+    await expect(this.userMenu, 'User menu should be closed').not.toBeVisible();
   }
 
   async clickLogout(): Promise<void> {
@@ -79,18 +70,14 @@ export class MainLayoutPage {
 
   async waitForLogoutRedirect(timeoutMs: number = 5000): Promise<boolean> {
     // Wait for navigation to login page
-    return await WaitHelper.waitForNavigation(
-      this.page,
-      '/login',
-      timeoutMs
-    );
+    return await WaitHelper.waitForNavigation(this.page, '/login', timeoutMs);
   }
 
   async expectLogoutSuccess(): Promise<void> {
     // Should be redirected to login page
     await expect(
       this.page,
-      'Should be redirected to login page after logout'
+      'Should be redirected to login page after logout',
     ).toHaveURL(/.*login/);
 
     // Should not show any authentication errors

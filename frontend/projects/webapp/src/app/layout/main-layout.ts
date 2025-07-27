@@ -71,11 +71,17 @@ import { ROUTES } from '@core/routing/routes-constants';
               aria-label="Menu utilisateur"
               data-testid="user-menu-trigger"
             >
-              <div class="size-8 pulpe-gradient rounded-full toolbar-logo"></div>
+              <div
+                class="size-8 pulpe-gradient rounded-full toolbar-logo"
+              ></div>
             </button>
 
             <mat-menu #userMenu="matMenu" xPosition="before">
-              <button mat-menu-item (click)="onLogout()" data-testid="logout-button">
+              <button
+                mat-menu-item
+                (click)="onLogout()"
+                data-testid="logout-button"
+              >
                 <mat-icon matMenuItemIcon>logout</mat-icon>
                 <span>Se déconnecter</span>
               </button>
