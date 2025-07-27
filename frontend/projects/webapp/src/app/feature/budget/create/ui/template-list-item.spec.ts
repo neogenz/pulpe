@@ -1,5 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Component, signal } from '@angular/core';
+import {
+  Component,
+  signal,
+  provideZonelessChangeDetection,
+} from '@angular/core';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { CurrencyPipe } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
@@ -14,6 +18,7 @@ import { type BudgetTemplate } from '@pulpe/shared';
 
 // Test host component to test input/output behavior
 @Component({
+  imports: [TemplateListItem],
   template: `
     <pulpe-template-list-item
       [template]="template()"
@@ -77,6 +82,7 @@ describe('TemplateListItem', () => {
         TemplateListItem,
         TestHostComponent,
       ],
+      providers: [provideZonelessChangeDetection()],
     }).compileComponents();
 
     // Test standalone component
