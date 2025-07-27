@@ -6,6 +6,7 @@ import {
   effect,
   inject,
   model,
+  signal,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
@@ -80,10 +81,23 @@ import { ROUTES } from '@core/routing/routes-constants';
               <button
                 mat-menu-item
                 (click)="onLogout()"
+                [disabled]="isLoggingOut()"
                 data-testid="logout-button"
               >
-                <mat-icon matMenuItemIcon>logout</mat-icon>
-                <span>Se déconnecter</span>
+                <mat-icon matMenuItemIcon>
+                  @if (isLoggingOut()) {
+                    hourglass_top
+                  } @else {
+                    logout
+                  }
+                </mat-icon>
+                <span>
+                  @if (isLoggingOut()) {
+                    Déconnexion...
+                  } @else {
+                    Se déconnecter
+                  }
+                </span>
               </button>
             </mat-menu>
           </mat-toolbar>
@@ -153,6 +167,10 @@ export class MainLayout {
   // Single source of truth for sidenav state
   readonly sidenavOpened = model<boolean>(!this.#isHandset());
 
+  // State for logout process
+  readonly #isLoggingOut = signal<boolean>(false);
+  readonly isLoggingOut = this.#isLoggingOut.asReadonly();
+
   constructor() {
     effect(() => {
       this.sidenavOpened.set(!this.#isHandset());
@@ -167,11 +185,16 @@ export class MainLayout {
   }
 
   async onLogout(): Promise<void> {
+    if (this.#isLoggingOut()) return;
+
     try {
+      this.#isLoggingOut.set(true);
       await this.#authApi.signOut();
       await this.#router.navigate([ROUTES.LOGIN]);
     } catch (error) {
       console.error('Erreur lors de la déconnexion:', error);
+    } finally {
+      this.#isLoggingOut.set(false);
     }
   }
 }
