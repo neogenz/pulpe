@@ -67,7 +67,7 @@ test.describe('User Logout Functionality', () => {
       await test.step('Click outside menu to close', async () => {
         // Click somewhere outside the menu
         await page.locator('body').click({ position: { x: 10, y: 10 } });
-        
+
         // Wait for menu to close
         await page.waitForTimeout(500);
         await mainLayoutPage.expectUserMenuClosed();
@@ -107,12 +107,15 @@ test.describe('User Logout Functionality', () => {
       await test.step('Verify cannot access protected pages after logout', async () => {
         // Try to navigate to protected page
         await page.goto('/app/current-month');
-        
+
         // Should be redirected back to login or onboarding
-        const isOnPublicPage = page.url().includes('/login') || 
-                              page.url().includes('/onboarding');
+        const isOnPublicPage =
+          page.url().includes('/login') || page.url().includes('/onboarding');
         await expect
-          .soft(isOnPublicPage, 'Should not access protected pages after logout')
+          .soft(
+            isOnPublicPage,
+            'Should not access protected pages after logout',
+          )
           .toBeTruthy();
       });
     });
@@ -133,16 +136,21 @@ test.describe('User Logout Functionality', () => {
       });
 
       await test.step('Verify still logged out', async () => {
-        const isOnLoginPage = page.url().includes('/login') || 
-                             page.url().includes('/onboarding');
+        const isOnLoginPage =
+          page.url().includes('/login') || page.url().includes('/onboarding');
         await expect
           .soft(isOnLoginPage, 'Should remain logged out after refresh')
           .toBeTruthy();
-        
+
         // Should not see logout button since not authenticated
-        const logoutButtonCount = await page.locator(SELECTORS.LAYOUT.LOGOUT_BUTTON).count();
+        const logoutButtonCount = await page
+          .locator(SELECTORS.LAYOUT.LOGOUT_BUTTON)
+          .count();
         await expect
-          .soft(logoutButtonCount, 'Should not see logout button when logged out')
+          .soft(
+            logoutButtonCount,
+            'Should not see logout button when logged out',
+          )
           .toBe(0);
       });
     });
@@ -173,11 +181,12 @@ test.describe('User Logout Functionality', () => {
 
       await test.step('Verify logout still works', async () => {
         const redirected = await mainLayoutPage.waitForLogoutRedirect(10000);
-        
+
         // Should eventually be redirected even with network delay
-        const isOnPublicPage = page.url().includes('/login') || 
-                              page.url().includes('/onboarding') ||
-                              redirected;
+        const isOnPublicPage =
+          page.url().includes('/login') ||
+          page.url().includes('/onboarding') ||
+          redirected;
         await expect
           .soft(isOnPublicPage, 'Should handle logout with network delays')
           .toBeTruthy();
@@ -198,31 +207,35 @@ test.describe('User Logout Functionality', () => {
 
       await test.step('Verify menu positioning', async () => {
         const menuElement = page.locator(SELECTORS.LAYOUT.USER_MENU);
-        
+
         // Check menu is positioned correctly (should be visible and properly positioned)
-        await expect
-          .soft(menuElement, 'Menu should be visible')
-          .toBeVisible();
-        
+        await expect.soft(menuElement, 'Menu should be visible').toBeVisible();
+
         // Verify menu has proper Material Design attributes
         const hasMenuRole = await menuElement.getAttribute('role');
         await expect
-          .soft(hasMenuRole === 'menu', 'Menu should have proper role attribute')
+          .soft(
+            hasMenuRole === 'menu',
+            'Menu should have proper role attribute',
+          )
           .toBeTruthy();
       });
 
       await test.step('Verify logout button accessibility', async () => {
         const logoutButton = page.locator(SELECTORS.LAYOUT.LOGOUT_BUTTON);
-        
+
         // Check button is properly accessible
         await expect
           .soft(logoutButton, 'Logout button should be enabled')
           .toBeEnabled();
-        
+
         // Check for proper text content
         const buttonText = await logoutButton.textContent();
         await expect
-          .soft(buttonText?.includes('Se déconnecter'), 'Button should have proper text')
+          .soft(
+            buttonText?.includes('Se déconnecter'),
+            'Button should have proper text',
+          )
           .toBeTruthy();
       });
     });
@@ -258,14 +271,14 @@ test.describe('User Logout Functionality', () => {
           page,
           SELECTORS.LAYOUT.USER_MENU,
           'hidden',
-          3000
+          3000,
         );
 
         // Should eventually navigate away
         const navigationSuccess = await WaitHelper.waitForNavigation(
           page,
           '/login',
-          8000
+          8000,
         );
 
         await expect
@@ -283,8 +296,12 @@ test.describe('User Logout Functionality', () => {
           url: page.url(),
           title: await page.title(),
           timestamp: new Date().toISOString(),
-          userMenuVisible: await page.locator(SELECTORS.LAYOUT.USER_MENU).isVisible(),
-          logoutButtonVisible: await page.locator(SELECTORS.LAYOUT.LOGOUT_BUTTON).isVisible(),
+          userMenuVisible: await page
+            .locator(SELECTORS.LAYOUT.USER_MENU)
+            .isVisible(),
+          logoutButtonVisible: await page
+            .locator(SELECTORS.LAYOUT.LOGOUT_BUTTON)
+            .isVisible(),
         }),
         contentType: 'application/json',
       });

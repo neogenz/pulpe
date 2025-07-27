@@ -87,25 +87,29 @@ test.describe('Authenticated Session Management', () => {
     if (triggerExists > 0) {
       // Click user menu trigger to open menu
       await userMenuTrigger.click();
-      
+
       // Wait for menu to appear and click logout
       await expect(logoutButton).toBeVisible();
       await logoutButton.click();
-      
+
       // Should be redirected to the login page
       await expect(page).toHaveURL(/.*login/);
-      
+
       // Verify we're on login page with proper content
-      const hasLoginContent = await page.locator('h1, h2, [data-testid="login-title"]').count();
+      const hasLoginContent = await page
+        .locator('h1, h2, [data-testid="login-title"]')
+        .count();
       if (hasLoginContent > 0) {
-        await expect(page.locator('h1, h2, [data-testid="login-title"]')).toContainText(['Connexion']);
+        await expect(
+          page.locator('h1, h2, [data-testid="login-title"]'),
+        ).toContainText(['Connexion']);
       }
     } else {
       // Fallback to generic logout button search for backwards compatibility
       const genericLogoutButton = page.locator(
         'button:has-text("Se déconnecter"), button:has-text("Logout"), a:has-text("Logout")',
       );
-      
+
       const genericExists = await genericLogoutButton.count();
       if (genericExists > 0) {
         await genericLogoutButton.click();
