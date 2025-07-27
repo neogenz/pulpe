@@ -23,6 +23,14 @@ export class AuthMockHelper {
     }
   }
 
+  static async resetAuthState(page: Page): Promise<void> {
+    await page.evaluate(() => {
+      if (window.__E2E_RESET_AUTH_STATE__) {
+        window.__E2E_RESET_AUTH_STATE__();
+      }
+    });
+  }
+
   static #mockSuccessfulAuth = async (page: Page): Promise<void> => {
     await page.addInitScript(() => {
       window.__E2E_AUTH_BYPASS__ = true;
@@ -41,6 +49,16 @@ export class AuthMockHelper {
         },
         isLoading: false,
         isAuthenticated: true,
+      };
+      
+      // Fonction utilitaire pour resettre l'état
+      window.__E2E_RESET_AUTH_STATE__ = () => {
+        window.__E2E_MOCK_AUTH_STATE__ = {
+          user: null,
+          session: null,
+          isLoading: false,
+          isAuthenticated: false,
+        };
       };
     });
 

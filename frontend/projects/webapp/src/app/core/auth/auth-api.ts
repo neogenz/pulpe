@@ -60,7 +60,10 @@ export class AuthApi {
       if (mockState) {
         console.log('🎭 Mode test E2E détecté, utilisation des mocks auth');
         this.#sessionSignal.set(mockState.session);
-        this.#isLoadingSignal.set(false);
+        this.#isLoadingSignal.set(mockState.isLoading);
+
+        // Configurer un observateur pour les changements de mock state
+        this.#setupMockStateObserver();
         return;
       }
     }
@@ -104,6 +107,32 @@ export class AuthApi {
       );
       this.updateAuthState(null);
     }
+  }
+
+  #setupMockStateObserver(): void {
+    // Surveiller les changements de l'état mocké toutes les 100ms
+    const checkMockState = () => {
+      if (
+        (window as unknown as { __E2E_AUTH_BYPASS__: boolean })
+          .__E2E_AUTH_BYPASS__
+      ) {
+        const mockState = (
+          window as unknown as { __E2E_MOCK_AUTH_STATE__: AuthState }
+        ).__E2E_MOCK_AUTH_STATE__;
+
+        if (mockState) {
+          // Synchroniser avec l'état mocké
+          this.#sessionSignal.set(mockState.session);
+          this.#isLoadingSignal.set(mockState.isLoading);
+        }
+
+        // Continuer à surveiller
+        setTimeout(checkMockState, 100);
+      }
+    };
+
+    // Démarrer la surveillance
+    setTimeout(checkMockState, 100);
   }
 
   private updateAuthState(session: Session | null): void {
@@ -177,6 +206,30 @@ export class AuthApi {
 
   async signOut(): Promise<void> {
     try {
+      // Gérer le logout en mode test E2E mocké
+      if (
+        (window as unknown as { __E2E_AUTH_BYPASS__: boolean })
+          .__E2E_AUTH_BYPASS__
+      ) {
+        console.log('🎭 Mode test E2E: Simulation du logout');
+
+        // Réinitialiser l'état mocké
+        (
+          window as unknown as { __E2E_MOCK_AUTH_STATE__: AuthState }
+        ).__E2E_MOCK_AUTH_STATE__ = {
+          user: null,
+          session: null,
+          isLoading: false,
+          isAuthenticated: false,
+        };
+
+        // Mettre à jour les signaux locaux
+        this.updateAuthState(null);
+        this.handleSignOut();
+        return;
+      }
+
+      // Logout normal avec Supabase
       const { error } = await this.#supabaseClient.auth.signOut();
       if (error) {
         console.error('Erreur lors de la déconnexion:', error);
