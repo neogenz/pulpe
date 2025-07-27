@@ -10,13 +10,17 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
+import { Router } from '@angular/router';
 import { RouterModule } from '@angular/router';
 import { map } from 'rxjs';
 import { NavigationMenu } from './navigation-menu';
 import { PulpeBreadcrumb } from '@ui/breadcrumb/breadcrumb';
 import { BreadcrumbState } from '@core/routing/breadcrumb-state';
+import { AuthApi } from '@core/auth/auth-api';
+import { ROUTES } from '@core/routing/routes-constants';
 
 @Component({
   selector: 'pulpe-main-layout',
@@ -25,6 +29,7 @@ import { BreadcrumbState } from '@core/routing/breadcrumb-state';
     MatToolbarModule,
     MatButtonModule,
     MatIconModule,
+    MatMenuModule,
     RouterModule,
     NavigationMenu,
     PulpeBreadcrumb,
@@ -58,7 +63,22 @@ import { BreadcrumbState } from '@core/routing/breadcrumb-state';
             </button>
 
             <span class="flex-1"></span>
-            <div class="size-8 pulpe-gradient rounded-full toolbar-logo"></div>
+            <button
+              type="button"
+              mat-button
+              [matMenuTriggerFor]="userMenu"
+              class="toolbar-logo-button !min-w-0 !p-2 !rounded-full"
+              aria-label="Menu utilisateur"
+            >
+              <div class="size-8 pulpe-gradient rounded-full toolbar-logo"></div>
+            </button>
+
+            <mat-menu #userMenu="matMenu" xPosition="before">
+              <button mat-menu-item (click)="onLogout()">
+                <mat-icon matMenuItemIcon>logout</mat-icon>
+                <span>Se déconnecter</span>
+              </button>
+            </mat-menu>
           </mat-toolbar>
 
           <pulpe-breadcrumb
@@ -81,12 +101,28 @@ import { BreadcrumbState } from '@core/routing/breadcrumb-state';
         display: block;
         height: 100vh;
       }
+
+      .toolbar-logo-button {
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        --mat-mdc-button-persistent-ripple-color: transparent;
+      }
+
+      .toolbar-logo-button:hover .toolbar-logo {
+        transform: scale(1.05);
+        transition: transform 0.2s ease-in-out;
+      }
     `,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MainLayout {
   readonly #breakpointObserver = inject(BreakpointObserver);
+  readonly #authApi = inject(AuthApi);
+  readonly #router = inject(Router);
   readonly breadcrumbState = inject(BreadcrumbState);
 
   // Clean signal for breakpoint state
@@ -120,6 +156,15 @@ export class MainLayout {
     // Auto-close on mobile after navigation
     if (this.#isHandset()) {
       this.sidenavOpened.set(false);
+    }
+  }
+
+  async onLogout(): Promise<void> {
+    try {
+      await this.#authApi.signOut();
+      await this.#router.navigate([ROUTES.LOGIN]);
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
     }
   }
 }
