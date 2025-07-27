@@ -32,11 +32,11 @@ export class MainLayoutPage {
     // Click on the user menu trigger (logo)
     await this.userMenuTrigger.click();
 
-    // Wait for the menu to appear
-    await expect(
-      this.userMenu,
-      'User menu should be visible after click',
-    ).toBeVisible();
+    // Wait for the menu panel to appear in the DOM
+    await this.page.waitForSelector('.mat-mdc-menu-panel[role="menu"]', {
+      state: 'visible',
+      timeout: 5000,
+    });
   }
 
   async expectUserMenuOpen(): Promise<void> {
@@ -53,7 +53,8 @@ export class MainLayoutPage {
 
   async clickLogout(): Promise<void> {
     // Ensure menu is open first
-    const isMenuVisible = await this.userMenu.isVisible();
+    const menuPanel = this.page.locator('.mat-mdc-menu-panel[role="menu"]');
+    const isMenuVisible = await menuPanel.isVisible();
     if (!isMenuVisible) {
       await this.openUserMenu();
     }
