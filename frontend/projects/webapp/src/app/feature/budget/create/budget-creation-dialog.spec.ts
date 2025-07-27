@@ -4,6 +4,12 @@ import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
+import {
+  provideZonelessChangeDetection,
+  signal,
+  CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
+import { provideLocale } from '../../../core/locale';
 import { of, throwError } from 'rxjs';
 
 import { CreateBudgetDialogComponent } from './budget-creation-dialog';
@@ -79,9 +85,9 @@ describe('CreateBudgetDialogComponent', () => {
 
     mockTemplateSelectionService = {
       searchControl: { value: '', valueChanges: of('') },
-      selectedTemplateId: vi.fn(() => null),
-      selectedTemplate: vi.fn(() => null),
-      filteredTemplates: vi.fn(() => [mockTemplate]),
+      selectedTemplateId: signal(null),
+      selectedTemplate: signal(null),
+      filteredTemplates: signal([mockTemplate]),
       selectTemplate: vi.fn(),
       loadTemplateDetails: vi.fn(() => Promise.resolve(mockTemplateLines)),
       calculateTemplateTotals: vi.fn(() => ({
@@ -99,9 +105,9 @@ describe('CreateBudgetDialogComponent', () => {
 
     mockTemplateApi = {
       templatesResource: {
-        value: vi.fn(() => [mockTemplate]),
-        isLoading: vi.fn(() => false),
-        error: vi.fn(() => null),
+        value: signal([mockTemplate]),
+        isLoading: signal(false),
+        error: signal(null),
         reload: vi.fn(),
       },
     };
@@ -113,6 +119,8 @@ describe('CreateBudgetDialogComponent', () => {
         ReactiveFormsModule,
       ],
       providers: [
+        provideZonelessChangeDetection(),
+        ...provideLocale(),
         FormBuilder,
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: MatSnackBar, useValue: mockSnackBar },
@@ -125,6 +133,7 @@ describe('CreateBudgetDialogComponent', () => {
         { provide: TemplateApi, useValue: mockTemplateApi },
         { provide: MAT_DIALOG_DATA, useValue: {} },
       ],
+      schemas: [CUSTOM_ELEMENTS_SCHEMA],
     }).compileComponents();
 
     fixture = TestBed.createComponent(CreateBudgetDialogComponent);

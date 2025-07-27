@@ -4,6 +4,8 @@ import {
   inject,
   effect,
   signal,
+  computed,
+  type Signal,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import {
@@ -342,7 +344,7 @@ export class CreateBudgetDialogComponent {
   >({});
 
   // Signal for description length - initialized in constructor
-  readonly descriptionLength = signal(0);
+  readonly descriptionLength!: Signal<number>;
 
   constructor() {
     // Initialize form with current year default using date-fns
@@ -368,9 +370,10 @@ export class CreateBudgetDialogComponent {
       initialValue: descriptionControl.value || '',
     });
 
-    effect(() => {
+    // Create computed signal for description length
+    this.descriptionLength = computed(() => {
       const value = descriptionValue();
-      this.descriptionLength.set(value?.length || 0);
+      return value?.length || 0;
     });
 
     // Sync selected template with form

@@ -20,18 +20,20 @@ describe('TemplateSelection - calculateTemplateTotals', () => {
   const service = new (class {
     calculateTemplateTotals(lines: TemplateLine[]): TemplateTotals {
       const totalIncome = lines
-        .filter((line) => line.kind === 'INCOME')
+        .filter((line) => line.kind.toUpperCase() === 'INCOME')
         .reduce((sum, line) => sum + line.amount, 0);
 
       const totalExpenses = lines
         .filter(
           (line) =>
-            line.kind === 'FIXED_EXPENSE' ||
-            line.kind === 'SAVINGS_CONTRIBUTION',
+            line.kind.toUpperCase() === 'FIXED_EXPENSE' ||
+            line.kind.toUpperCase() === 'SAVINGS_CONTRIBUTION',
         )
         .reduce((sum, line) => sum + line.amount, 0);
 
-      return { totalIncome, totalExpenses };
+      const remainingLivingAllowance = totalIncome - totalExpenses;
+
+      return { totalIncome, totalExpenses, remainingLivingAllowance };
     }
   })() as Pick<TemplateSelection, 'calculateTemplateTotals'>;
 
@@ -198,24 +200,21 @@ describe('TemplateSelection - calculateTemplateTotals', () => {
           id: '2',
           name: 'Rent',
           amount: 1500,
-          kind: 'expense' as 'FIXED_EXPENSE',
+          kind: 'fixed_expense' as 'FIXED_EXPENSE',
         }),
         createTestLine({
           id: '3',
           name: 'Savings',
           amount: 500,
-          kind: 'saving' as 'SAVINGS_CONTRIBUTION',
+          kind: 'savings_contribution' as 'SAVINGS_CONTRIBUTION',
         }),
       ];
 
       const totals = service.calculateTemplateTotals(templateLines);
 
-      // This test shows that the function doesn't handle lowercase values
-      // which might be the cause of the 0 totals issue
-      expect(totals.totalIncome).toBe(0);
-      expect(totals.totalExpenses).toBe(0);
-
-      // TODO: The function should handle case-insensitive kind values
+      // With case-insensitive handling, these should work correctly
+      expect(totals.totalIncome).toBe(5000);
+      expect(totals.totalExpenses).toBe(2000); // 1500 + 500
     });
   });
 });
