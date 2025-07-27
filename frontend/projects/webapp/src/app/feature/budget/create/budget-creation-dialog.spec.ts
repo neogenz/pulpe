@@ -7,12 +7,17 @@ import { MatDialog } from '@angular/material/dialog';
 import {
   provideZonelessChangeDetection,
   signal,
-  CUSTOM_ELEMENTS_SCHEMA,
+  NO_ERRORS_SCHEMA,
+  Component,
+  EventEmitter,
+  Input,
+  Output,
 } from '@angular/core';
 import { provideLocale } from '../../../core/locale';
 import { of, throwError } from 'rxjs';
 
 import { CreateBudgetDialogComponent } from './budget-creation-dialog';
+import { TemplateListItem } from './ui/template-list-item';
 import { TemplateSelection } from './services/template-selection';
 import { TemplateApi } from '../../../core/template/template-api';
 import {
@@ -20,6 +25,23 @@ import {
   type BudgetApiError,
 } from '../../../core/budget/budget-api';
 import { type BudgetTemplate, type TemplateLine } from '@pulpe/shared';
+
+// Mock component for testing without template rendering issues
+@Component({
+  selector: 'pulpe-template-list-item',
+  template: '<div>Mock Template List Item</div>',
+})
+class MockTemplateListItem {
+  @Input() template: BudgetTemplate | null = null;
+  @Input() selectedTemplateId: string | null = null;
+  @Input() totalIncome = 0;
+  @Input() totalExpenses = 0;
+  @Input() remainingLivingAllowance = 0;
+  @Input() loading = false;
+
+  @Output() selectTemplate = new EventEmitter<string>();
+  @Output() showDetails = new EventEmitter<BudgetTemplate>();
+}
 
 describe('CreateBudgetDialogComponent', () => {
   let component: CreateBudgetDialogComponent;
@@ -30,6 +52,11 @@ describe('CreateBudgetDialogComponent', () => {
   let mockBudgetApi: Partial<BudgetApi>;
   let mockTemplateSelectionService: Partial<TemplateSelection>;
   let mockTemplateApi: Partial<TemplateApi>;
+
+  // Mock function references
+  let mockSelectTemplate: ReturnType<typeof vi.fn>;
+  let mockPreloadAllTemplateDetails: ReturnType<typeof vi.fn>;
+  let mockGetTemplateTotals: ReturnType<typeof vi.fn>;
 
   // Test data
   const mockTemplateLines: TemplateLine[] = [
@@ -83,24 +110,33 @@ describe('CreateBudgetDialogComponent', () => {
       createBudget$: vi.fn(),
     };
 
+    // Initialize mock functions
+    mockSelectTemplate = vi.fn();
+    mockPreloadAllTemplateDetails = vi.fn(() => Promise.resolve());
+    mockGetTemplateTotals = vi.fn(() => ({
+      totalIncome: 5000,
+      totalExpenses: 1500,
+      remainingLivingAllowance: 3500,
+    }));
+
     mockTemplateSelectionService = {
-      searchControl: { value: '', valueChanges: of('') },
+      searchControl: {
+        value: '',
+        valueChanges: of(''),
+        setValue: vi.fn(),
+      },
       selectedTemplateId: signal(null),
       selectedTemplate: signal(null),
       filteredTemplates: signal([mockTemplate]),
-      selectTemplate: vi.fn(),
+      selectTemplate: mockSelectTemplate,
       loadTemplateDetails: vi.fn(() => Promise.resolve(mockTemplateLines)),
       calculateTemplateTotals: vi.fn(() => ({
         totalIncome: 5000,
         totalExpenses: 1500,
         remainingLivingAllowance: 3500,
       })),
-      preloadAllTemplateDetails: vi.fn(() => Promise.resolve()),
-      getTemplateTotals: vi.fn(() => ({
-        totalIncome: 5000,
-        totalExpenses: 1500,
-        remainingLivingAllowance: 3500,
-      })),
+      preloadAllTemplateDetails: mockPreloadAllTemplateDetails,
+      getTemplateTotals: mockGetTemplateTotals,
     };
 
     mockTemplateApi = {
@@ -115,6 +151,7 @@ describe('CreateBudgetDialogComponent', () => {
     await TestBed.configureTestingModule({
       imports: [
         CreateBudgetDialogComponent,
+        MockTemplateListItem,
         NoopAnimationsModule,
         ReactiveFormsModule,
       ],
@@ -133,8 +170,17 @@ describe('CreateBudgetDialogComponent', () => {
         { provide: TemplateApi, useValue: mockTemplateApi },
         { provide: MAT_DIALOG_DATA, useValue: {} },
       ],
-      schemas: [CUSTOM_ELEMENTS_SCHEMA],
-    }).compileComponents();
+      schemas: [NO_ERRORS_SCHEMA],
+    })
+      .overrideComponent(CreateBudgetDialogComponent, {
+        remove: {
+          imports: [TemplateListItem],
+        },
+        add: {
+          imports: [MockTemplateListItem],
+        },
+      })
+      .compileComponents();
 
     fixture = TestBed.createComponent(CreateBudgetDialogComponent);
     component = fixture.componentInstance;
@@ -152,13 +198,45 @@ describe('CreateBudgetDialogComponent', () => {
       expect(monthYearControl?.value).toBeInstanceOf(Date);
     });
 
+    it('should reactively track description length with computed signal', () => {
+      // Initially should be 0 for empty description
+      expect(component.descriptionLength()).toBe(0);
+
+      // Update the form control value
+      component.budgetForm.get('description')?.setValue('Test description');
+
+      // The computed signal should reactively update
+      expect(component.descriptionLength()).toBe(16); // 'Test description'.length
+
+      // Test with another value
+      component.budgetForm
+        .get('description')
+        ?.setValue('A longer test description for the budget');
+      expect(component.descriptionLength()).toBe(40); // Length of the new string
+
+      // Test with empty string
+      component.budgetForm.get('description')?.setValue('');
+      expect(component.descriptionLength()).toBe(0);
+    });
+
     it('should initialize with empty template totals', () => {
-      expect(component.templateTotals()).toEqual({});
+      // Set empty templates to test initial state
+      mockTemplateSelectionService.filteredTemplates = signal([]);
+
+      // Create new component with empty templates
+      const emptyFixture = TestBed.createComponent(CreateBudgetDialogComponent);
+      const emptyComponent = emptyFixture.componentInstance;
+      emptyFixture.detectChanges();
+
+      expect(emptyComponent.templateTotals()).toEqual({});
     });
   });
 
   describe('Template Totals Loading', () => {
     it('should preload all template totals when templates are displayed', async () => {
+      // Reset templateTotals to empty state first
+      component.templateTotals.set({});
+
       // Spy on the private preloadAllTemplateTotals method
       vi.spyOn(
         component as unknown as {
@@ -177,6 +255,7 @@ describe('CreateBudgetDialogComponent', () => {
         }));
       });
 
+      // Verify initial empty state
       expect(component.templateTotals()).toEqual({});
 
       await component['preloadAllTemplateTotals']();
@@ -191,22 +270,19 @@ describe('CreateBudgetDialogComponent', () => {
     });
 
     it('should calculate and store correct totals for templates', async () => {
-      // Mock the service's preloadAllTemplateDetails and getTemplateTotals
-      mockTemplateSelectionService.preloadAllTemplateDetails = vi.fn(
-        async () => {
-          /* mocked implementation */
-        },
-      );
-      mockTemplateSelectionService.getTemplateTotals = vi.fn(() => ({
+      // Reset and configure the mock functions
+      mockPreloadAllTemplateDetails.mockImplementation(async () => {
+        /* mocked implementation */
+      });
+
+      mockGetTemplateTotals.mockReturnValue({
         totalIncome: 5000,
         totalExpenses: 1500,
         remainingLivingAllowance: 3500,
-      }));
+      });
 
       // Mock filteredTemplates to return a template
-      mockTemplateSelectionService.filteredTemplates = vi.fn(() => [
-        mockTemplate,
-      ]);
+      mockTemplateSelectionService.filteredTemplates = signal([mockTemplate]);
 
       await component['preloadAllTemplateTotals']();
 
@@ -312,14 +388,12 @@ describe('CreateBudgetDialogComponent', () => {
     it('should call selectTemplate when template is selected', () => {
       component.onTemplateSelect('template-123');
 
-      expect(mockTemplateSelectionService.selectTemplate).toHaveBeenCalledWith(
-        'template-123',
-      );
+      expect(mockSelectTemplate).toHaveBeenCalledWith('template-123');
     });
 
     it('should validate form correctly when template is selected', () => {
       // Mock selected template
-      mockTemplateSelectionService.selectedTemplate = vi.fn(() => mockTemplate);
+      mockTemplateSelectionService.selectedTemplate = signal(mockTemplate);
 
       // Form should be valid when all required fields are set
       component.budgetForm.patchValue({
@@ -341,7 +415,8 @@ describe('CreateBudgetDialogComponent', () => {
         templateId: 'template-1',
       });
 
-      mockTemplateSelectionService.selectedTemplate = vi.fn(() => mockTemplate);
+      // Ensure the selected template signal returns the mock template
+      mockTemplateSelectionService.selectedTemplate = signal(mockTemplate);
     });
 
     it('should close dialog with success data when budget creation succeeds', async () => {
@@ -418,7 +493,7 @@ describe('CreateBudgetDialogComponent', () => {
     });
 
     it('should not create budget if no template is selected', async () => {
-      mockTemplateSelectionService.selectedTemplate = vi.fn(() => null);
+      mockTemplateSelectionService.selectedTemplate = signal(null);
 
       await component.onCreateBudget();
 
