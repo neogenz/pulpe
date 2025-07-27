@@ -40,6 +40,7 @@ import {
   BudgetApi,
   type BudgetApiError,
 } from '../../../core/budget/budget-api';
+import { BUDGET_CREATION_CONSTANTS } from './budget-creation.constants';
 
 // Format personnalisé pour le month/year picker
 const MONTH_YEAR_FORMATS = {
@@ -58,7 +59,7 @@ const MONTH_YEAR_FORMATS = {
 };
 
 @Component({
-  selector: 'pulpe-month-dialog',
+  selector: 'pulpe-create-budget-dialog',
   imports: [
     MatDialogModule,
     MatButtonModule,
@@ -125,20 +126,24 @@ const MONTH_YEAR_FORMATS = {
             <input
               matInput
               formControlName="description"
-              maxlength="100"
+              [maxlength]="constants.DESCRIPTION_MAX_LENGTH"
               placeholder="Saisissez une description pour ce budget"
             />
-            <mat-hint align="end">{{ descriptionLength() }}/100</mat-hint>
+            <mat-hint align="end"
+              >{{ descriptionLength() }}/{{
+                constants.DESCRIPTION_MAX_LENGTH
+              }}</mat-hint
+            >
             @if (
               budgetForm.get('description')?.invalid &&
               budgetForm.get('description')?.touched
             ) {
               <mat-error>
                 @if (budgetForm.get('description')?.errors?.['required']) {
-                  La description est requise
+                  {{ constants.ERROR_MESSAGES.INVALID_DESCRIPTION }}
                 }
                 @if (budgetForm.get('description')?.errors?.['maxlength']) {
-                  La description ne peut pas dépasser 100 caractères
+                  {{ constants.ERROR_MESSAGES.DESCRIPTION_TOO_LONG }}
                 }
               </mat-error>
             }
@@ -318,6 +323,9 @@ export class CreateBudgetDialogComponent {
   readonly templateSelection = inject(TemplateSelectionService);
   readonly templateApi = inject(TemplateApi);
 
+  // Expose constants for template usage
+  readonly constants = BUDGET_CREATION_CONSTANTS;
+
   budgetForm: FormGroup;
 
   // Creation state
@@ -345,7 +353,15 @@ export class CreateBudgetDialogComponent {
 
     this.budgetForm = this.#formBuilder.group({
       monthYear: [currentDate, Validators.required],
-      description: ['', [Validators.required, Validators.maxLength(100)]],
+      description: [
+        '',
+        [
+          Validators.required,
+          Validators.maxLength(
+            BUDGET_CREATION_CONSTANTS.DESCRIPTION_MAX_LENGTH,
+          ),
+        ],
+      ],
       templateId: ['', Validators.required],
     });
 
@@ -370,54 +386,122 @@ export class CreateBudgetDialogComponent {
       }
     });
 
-    // Load template totals when templates are loaded
+    // Load template totals when templates are loaded - batch load for better performance
     effect(() => {
       const templates = this.templateSelection.filteredTemplates();
-      templates.forEach((template) => {
-        this.loadTemplateTotal(template.id);
-      });
+      if (templates.length > 0) {
+        this.preloadAllTemplateTotals();
+      }
     });
   }
 
-  private async loadTemplateTotal(templateId: string): Promise<void> {
-    // Check if already loading or loaded
-    const current = this.templateTotals()[templateId];
-    if (current) {
+  private async preloadAllTemplateTotals(): Promise<void> {
+    const templates = this.templateSelection.filteredTemplates();
+    const currentTotals = this.templateTotals();
+
+    // Only load templates that aren't already loaded or loading
+    const templatesToLoad = templates.filter(
+      (template) => !currentTotals[template.id],
+    );
+
+    if (templatesToLoad.length === 0) {
       return;
     }
 
-    // Set loading state
-    this.templateTotals.update((totals) => ({
-      ...totals,
-      [templateId]: {
-        totalIncome: 0,
-        totalExpenses: 0,
-        remainingLivingAllowance: 0,
-        loading: true,
-      },
-    }));
-
-    try {
-      // Load template lines
-      const lines =
-        await this.templateSelection.loadTemplateDetails(templateId);
-      const totals = this.templateSelection.calculateTemplateTotals(lines);
-
-      // Update totals
-      this.templateTotals.update((current) => ({
-        ...current,
-        [templateId]: { ...totals, loading: false },
-      }));
-    } catch {
-      // Set error state (show 0 values)
-      this.templateTotals.update((current) => ({
-        ...current,
-        [templateId]: {
+    // Set loading state for all templates that need to be loaded
+    const loadingStates = templatesToLoad.reduce(
+      (acc, template) => {
+        acc[template.id] = {
           totalIncome: 0,
           totalExpenses: 0,
           remainingLivingAllowance: 0,
-          loading: false,
+          loading: true,
+        };
+        return acc;
+      },
+      {} as Record<
+        string,
+        {
+          totalIncome: number;
+          totalExpenses: number;
+          remainingLivingAllowance: number;
+          loading: boolean;
+        }
+      >,
+    );
+
+    this.templateTotals.update((current) => ({
+      ...current,
+      ...loadingStates,
+    }));
+
+    try {
+      // Use the service's optimized preload method
+      await this.templateSelection.preloadAllTemplateDetails();
+
+      // Calculate totals for all loaded templates
+      const calculatedTotals = templatesToLoad.reduce(
+        (acc, template) => {
+          const cachedTotals = this.templateSelection.getTemplateTotals(
+            template.id,
+          );
+          if (cachedTotals) {
+            acc[template.id] = { ...cachedTotals, loading: false };
+          } else {
+            // Fallback to zero values if calculation failed
+            acc[template.id] = {
+              totalIncome: 0,
+              totalExpenses: 0,
+              remainingLivingAllowance: 0,
+              loading: false,
+            };
+          }
+          return acc;
         },
+        {} as Record<
+          string,
+          {
+            totalIncome: number;
+            totalExpenses: number;
+            remainingLivingAllowance: number;
+            loading: boolean;
+          }
+        >,
+      );
+
+      // Update all totals at once
+      this.templateTotals.update((current) => ({
+        ...current,
+        ...calculatedTotals,
+      }));
+    } catch (error) {
+      console.error('Error preloading template totals:', error);
+
+      // Set error state for all templates
+      const errorStates = templatesToLoad.reduce(
+        (acc, template) => {
+          acc[template.id] = {
+            totalIncome: 0,
+            totalExpenses: 0,
+            remainingLivingAllowance: 0,
+            loading: false,
+          };
+          return acc;
+        },
+        {} as Record<
+          string,
+          {
+            totalIncome: number;
+            totalExpenses: number;
+            remainingLivingAllowance: number;
+            loading: boolean;
+          }
+        >,
+      );
+
+      this.templateTotals.update((current) => ({
+        ...current,
+        ...errorStates,
       }));
     }
   }
@@ -465,10 +549,14 @@ export class CreateBudgetDialogComponent {
       // Success - close dialog with success indicator
       this.#dialogRef.close({ success: true, data: formData });
 
-      this.#snackBar.open('Budget créé avec succès !', 'Fermer', {
-        duration: 5000,
-        panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
-      });
+      this.#snackBar.open(
+        BUDGET_CREATION_CONSTANTS.SUCCESS_MESSAGES.BUDGET_CREATED,
+        'Fermer',
+        {
+          duration: 5000,
+          panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
+        },
+      );
     } catch (error) {
       this.isCreating.set(false);
 
