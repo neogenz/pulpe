@@ -216,5 +216,35 @@ describe('TemplateSelection - calculateTemplateTotals', () => {
       expect(totals.totalIncome).toBe(5000);
       expect(totals.totalExpenses).toBe(2000); // 1500 + 500
     });
+
+    it('should handle mixed case kind values (robustness test)', () => {
+      const templateLines = [
+        createTestLine({
+          id: '1',
+          name: 'Salary',
+          amount: 3000,
+          kind: 'Income' as 'INCOME', // Mixed case
+        }),
+        createTestLine({
+          id: '2',
+          name: 'Rent',
+          amount: 1200,
+          kind: 'Fixed_Expense' as 'FIXED_EXPENSE', // Mixed case with underscore
+        }),
+        createTestLine({
+          id: '3',
+          name: 'Savings',
+          amount: 800,
+          kind: 'SAVINGS_contribution' as 'SAVINGS_CONTRIBUTION', // Mixed case
+        }),
+      ];
+
+      const totals = service.calculateTemplateTotals(templateLines);
+
+      // Case-insensitive handling should work for any casing variations
+      expect(totals.totalIncome).toBe(3000);
+      expect(totals.totalExpenses).toBe(2000); // 1200 + 800
+      expect(totals.remainingLivingAllowance).toBe(1000); // 3000 - 2000
+    });
   });
 });
