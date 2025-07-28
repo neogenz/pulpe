@@ -557,6 +557,7 @@ export class CreateBudgetDialogComponent {
       await firstValueFrom(this.#budgetApi.createBudget$(budgetData));
 
       // Success - close dialog with success indicator
+      this.isCreating.set(false);
       this.#dialogRef.close({ success: true, data: formData });
 
       this.#snackBar.open(
