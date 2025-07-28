@@ -100,6 +100,7 @@ describe('CreateBudgetDialogComponent', () => {
 
     // Simplified dialog mock with required observables
     const afterOpenedSubject = new Subject();
+    const afterAllClosedSubject = new Subject();
     mockDialog = {
       open: vi.fn().mockReturnValue({
         afterClosed: () => of(null),
@@ -108,6 +109,8 @@ describe('CreateBudgetDialogComponent', () => {
       }),
       openDialogs: [],
       afterOpened: afterOpenedSubject,
+      afterAllClosed: afterAllClosedSubject,
+      _getAfterAllClosed: () => afterAllClosedSubject,
     };
 
     mockBudgetApi = {
