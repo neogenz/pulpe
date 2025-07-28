@@ -13,6 +13,7 @@ export interface TemplateTotals {
   totalIncome: number;
   totalExpenses: number;
   remainingLivingAllowance: number;
+  loading: boolean;
 }
 
 @Injectable()
@@ -23,6 +24,9 @@ export class TemplateSelection {
   readonly templateDetailsCache = signal<Map<string, TemplateLine[]>>(
     new Map(),
   );
+
+  // Template totals cache with loading states
+  readonly templateTotalsMap = signal<Record<string, TemplateTotals>>({});
 
   // Search functionality
   readonly searchControl = new FormControl('', { nonNullable: true });
@@ -66,10 +70,6 @@ export class TemplateSelection {
     this.selectedTemplateId.set(templateId);
   }
 
-  clearSelectedTemplate(): void {
-    this.selectedTemplateId.set(null);
-  }
-
   /**
    * Load template details (lines) and cache them
    */
@@ -100,6 +100,7 @@ export class TemplateSelection {
 
   /**
    * Calculate template totals from template lines
+   * Returns calculated totals with loading: false
    */
   calculateTemplateTotals(lines: TemplateLine[]): TemplateTotals {
     const totalIncome = lines
@@ -121,29 +122,106 @@ export class TemplateSelection {
 
     const remainingLivingAllowance = totalIncome - totalExpenses;
 
-    return { totalIncome, totalExpenses, remainingLivingAllowance };
+    return {
+      totalIncome,
+      totalExpenses,
+      remainingLivingAllowance,
+      loading: false,
+    };
   }
 
   /**
-   * Get template totals from cache or calculate if available
+   * Load template totals for current filtered templates
+   * This method manages loading states and caching
    */
-  getTemplateTotals(templateId: string): TemplateTotals | null {
-    const lines = this.templateDetailsCache().get(templateId);
-    if (!lines) {
-      return null;
-    }
-    return this.calculateTemplateTotals(lines);
-  }
+  async loadTemplateTotalsForCurrentTemplates(): Promise<void> {
+    const templates = this.filteredTemplates();
+    const currentTotals = this.templateTotalsMap();
 
-  /**
-   * Preload all template details for better UX
-   */
-  async preloadAllTemplateDetails(): Promise<void> {
-    const templates = this.#templateApi.templatesResource.value() || [];
-
-    // Load all template details in parallel
-    await Promise.all(
-      templates.map((template) => this.loadTemplateDetails(template.id)),
+    // Only load templates that aren't already loaded or loading
+    const templatesToLoad = templates.filter(
+      (template) => !currentTotals[template.id],
     );
+
+    if (templatesToLoad.length === 0) {
+      return;
+    }
+
+    // Set loading state for templates that need to be loaded
+    this.#setLoadingStatesForTemplates(templatesToLoad);
+
+    try {
+      // Load template details for all needed templates
+      await Promise.all(
+        templatesToLoad.map((template) =>
+          this.loadTemplateDetails(template.id),
+        ),
+      );
+
+      // Calculate and update totals for loaded templates
+      this.#updateCalculatedTotalsForTemplates(templatesToLoad);
+    } catch (error) {
+      console.error('Error loading template totals:', error);
+      this.#setErrorStatesForTemplates(templatesToLoad);
+    }
+  }
+
+  #setLoadingStatesForTemplates(templates: BudgetTemplate[]): void {
+    const loadingStates = templates.reduce(
+      (acc, template) => {
+        acc[template.id] = this.#createDefaultTotals(true);
+        return acc;
+      },
+      {} as Record<string, TemplateTotals>,
+    );
+
+    this.templateTotalsMap.update((current) => ({
+      ...current,
+      ...loadingStates,
+    }));
+  }
+
+  #updateCalculatedTotalsForTemplates(templates: BudgetTemplate[]): void {
+    const calculatedTotals = templates.reduce(
+      (acc, template) => {
+        const lines = this.templateDetailsCache().get(template.id);
+        if (lines) {
+          acc[template.id] = this.calculateTemplateTotals(lines);
+        } else {
+          acc[template.id] = this.#createDefaultTotals(false);
+        }
+        return acc;
+      },
+      {} as Record<string, TemplateTotals>,
+    );
+
+    this.templateTotalsMap.update((current) => ({
+      ...current,
+      ...calculatedTotals,
+    }));
+  }
+
+  #setErrorStatesForTemplates(templates: BudgetTemplate[]): void {
+    const errorStates = templates.reduce(
+      (acc, template) => {
+        acc[template.id] = this.#createDefaultTotals(false);
+        return acc;
+      },
+      {} as Record<string, TemplateTotals>,
+    );
+
+    this.templateTotalsMap.update((current) => ({
+      ...current,
+      ...errorStates,
+    }));
+  }
+
+  #createDefaultTotals(loading: boolean): TemplateTotals {
+    return {
+      totalIncome: 0,
+      totalExpenses: 0,
+      remainingLivingAllowance: 0,
+      loading,
+    };
   }
 }
