@@ -5,15 +5,9 @@ import {
   effect,
   signal,
   computed,
-  type Signal,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import {
-  FormBuilder,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators,
-} from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDatepickerModule } from '@angular/material/datepicker';
@@ -41,7 +35,22 @@ import {
   BudgetApi,
   type BudgetApiError,
 } from '../../../core/budget/budget-api';
-import { BUDGET_CREATION_CONSTANTS } from './budget-creation.constants';
+
+const BUDGET_CREATION_CONSTANTS = {
+  // Form validation constraints
+  DESCRIPTION_MAX_LENGTH: 100,
+
+  // Error messages
+  ERROR_MESSAGES: {
+    INVALID_DESCRIPTION: 'La description est requise',
+    DESCRIPTION_TOO_LONG: 'La description ne peut pas dépasser 100 caractères',
+  } as const,
+
+  // Success messages
+  SUCCESS_MESSAGES: {
+    BUDGET_CREATED: 'Budget créé avec succès !',
+  } as const,
+} as const;
 
 // Format personnalisé pour le month/year picker
 const MONTH_YEAR_FORMATS = {
@@ -325,9 +334,18 @@ export class CreateBudgetDialogComponent {
   // Expose constants for template usage
   readonly constants = BUDGET_CREATION_CONSTANTS;
 
-  budgetForm: FormGroup;
+  budgetForm = this.#formBuilder.nonNullable.group({
+    monthYear: [startOfMonth(new Date()), Validators.required],
+    description: [
+      '',
+      [
+        Validators.required,
+        Validators.maxLength(BUDGET_CREATION_CONSTANTS.DESCRIPTION_MAX_LENGTH),
+      ],
+    ],
+    templateId: ['', Validators.required],
+  });
 
-  // Creation state
   readonly isCreating = signal(false);
 
   // Template totals state
@@ -343,39 +361,18 @@ export class CreateBudgetDialogComponent {
     >
   >({});
 
-  // Signal for description length - initialized in constructor
-  readonly descriptionLength!: Signal<number>;
+  readonly #descriptionFormValue = toSignal(
+    this.budgetForm.get('description')!.valueChanges,
+    {
+      initialValue: this.budgetForm.get('description')!.value || '',
+    },
+  );
+  readonly descriptionLength = computed(() => {
+    const value = this.#descriptionFormValue();
+    return value?.length || 0;
+  });
 
   constructor() {
-    // Initialize form with current year default using date-fns
-    const currentDate = startOfMonth(new Date());
-
-    this.budgetForm = this.#formBuilder.group({
-      monthYear: [currentDate, Validators.required],
-      description: [
-        '',
-        [
-          Validators.required,
-          Validators.maxLength(
-            BUDGET_CREATION_CONSTANTS.DESCRIPTION_MAX_LENGTH,
-          ),
-        ],
-      ],
-      templateId: ['', Validators.required],
-    });
-
-    // Set up reactive description length tracking
-    const descriptionControl = this.budgetForm.get('description')!;
-    const descriptionValue = toSignal(descriptionControl.valueChanges, {
-      initialValue: descriptionControl.value || '',
-    });
-
-    // Create computed signal for description length
-    this.descriptionLength = computed(() => {
-      const value = descriptionValue();
-      return value?.length || 0;
-    });
-
     // Sync selected template with form
     effect(() => {
       const selectedId = this.templateSelection.selectedTemplateId();
@@ -389,13 +386,12 @@ export class CreateBudgetDialogComponent {
     // Load template totals when templates are loaded - batch load for better performance
     effect(() => {
       const templates = this.templateSelection.filteredTemplates();
-      if (templates.length > 0) {
-        this.preloadAllTemplateTotals();
-      }
+      if (!templates.length) return;
+      this.#preloadAllTemplateTotals();
     });
   }
 
-  private async preloadAllTemplateTotals(): Promise<void> {
+  async #preloadAllTemplateTotals(): Promise<void> {
     const templates = this.templateSelection.filteredTemplates();
     const currentTotals = this.templateTotals();
 
@@ -542,7 +538,7 @@ export class CreateBudgetDialogComponent {
       return;
     }
 
-    const formData = this.budgetForm.value;
+    const formData = this.budgetForm.getRawValue();
 
     this.isCreating.set(true);
 
