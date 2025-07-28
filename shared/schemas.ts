@@ -145,9 +145,6 @@ export const budgetLineUpdateSchema = budgetLineCreateSchema
   .partial();
 export type BudgetLineUpdate = z.infer<typeof budgetLineUpdateSchema>;
 
-// Kept for backward compatibility - use transactionKindSchema instead
-export type TransactionKindEnum = TransactionKind;
-
 // Transaction schemas (nouvelle structure pour les dépenses du quotidien)
 export const transactionSchema = z.object({
   id: z.string().uuid(),

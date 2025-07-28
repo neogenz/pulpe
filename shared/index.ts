@@ -87,7 +87,6 @@ export type {
   // Enum Types
   TransactionRecurrence,
   TransactionKind,
-  TransactionKindEnum,
   PriorityLevel,
   SavingsGoalStatus,
 
