@@ -8,7 +8,7 @@ import {
   effect,
   Injector,
 } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -61,7 +61,7 @@ import { Title } from '@core/routing';
             <header class="flex flex-shrink-0 gap-4 items-center">
               <button
                 class="display-none"
-                mat-icon-button
+                matIconButton
                 (click)="navigateBack()"
                 aria-label="Retour"
               >
@@ -87,7 +87,7 @@ import { Title } from '@core/routing';
                   Transactions fixes
                 </h2>
                 <button
-                  mat-icon-button
+                  matIconButton
                   [matMenuTriggerFor]="transactionsMenu"
                   aria-label="Options des transactions"
                 >
@@ -121,6 +121,7 @@ import { Title } from '@core/routing';
 })
 export default class TemplateDetail {
   #router = inject(Router);
+  #route = inject(ActivatedRoute);
   #budgetTemplatesApi = inject(BudgetTemplatesApi);
   #title = inject(Title);
   #dialog = inject(MatDialog);
@@ -201,7 +202,7 @@ export default class TemplateDetail {
   }
 
   navigateBack() {
-    this.#router.navigate(['..']);
+    this.#router.navigate(['..'], { relativeTo: this.#route });
   }
 
   editTemplate() {

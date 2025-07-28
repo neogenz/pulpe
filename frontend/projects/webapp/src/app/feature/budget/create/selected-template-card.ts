@@ -39,8 +39,7 @@ import { type BudgetTemplate } from '@pulpe/shared';
             }
           </div>
           <button
-            mat-icon-button
-            type="button"
+            matIconButton
             (click)="clearTemplate.emit()"
             matTooltip="Retirer le modèle"
           >

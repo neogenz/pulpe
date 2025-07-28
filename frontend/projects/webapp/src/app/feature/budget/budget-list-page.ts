@@ -16,6 +16,8 @@ import { Title } from '@core/routing';
 import { CreateBudgetDialogComponent } from './create/budget-creation-dialog';
 import { MatDialog } from '@angular/material/dialog';
 import { firstValueFrom } from 'rxjs';
+import { Router } from '@angular/router';
+import { ROUTES } from '@core/routing';
 
 @Component({
   selector: 'pulpe-other-months',
@@ -90,6 +92,7 @@ import { firstValueFrom } from 'rxjs';
                           [displayName]="month.displayName"
                           [totalAmount]="0"
                           [id]="month.budgetId"
+                          (detailsClick)="navigateToDetails($event)"
                         />
                       }
                     </div>
@@ -114,6 +117,7 @@ export default class OtherMonths implements OnInit {
   protected readonly state = inject(BudgetState);
   protected readonly title = inject(Title);
   #dialog = inject(MatDialog);
+  #router = inject(Router);
 
   ngOnInit(): void {
     this.state.refreshData();
@@ -132,5 +136,9 @@ export default class OtherMonths implements OnInit {
     if (result?.success) {
       this.state.refreshData();
     }
+  }
+
+  navigateToDetails(budgetId: string): void {
+    this.#router.navigate([ROUTES.APP, ROUTES.BUDGET, budgetId]);
   }
 }

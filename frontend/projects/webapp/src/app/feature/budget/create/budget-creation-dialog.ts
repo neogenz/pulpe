@@ -177,10 +177,9 @@ const MONTH_YEAR_FORMATS = {
             <mat-icon matPrefix>search</mat-icon>
             @if (templateSelection.searchControl.value) {
               <button
-                mat-icon-button
+                matIconButton
                 matSuffix
                 (click)="templateSelection.searchControl.setValue('')"
-                type="button"
               >
                 <mat-icon>clear</mat-icon>
               </button>
