@@ -56,9 +56,8 @@ import { environment } from '../../environments/environment';
         <div class="flex flex-col h-full">
           <mat-toolbar class="toolbar flex-shrink-0">
             <button
-              type="button"
               aria-label="Toggle sidenav"
-              mat-icon-button
+              matIconButton
               (click)="sidenavOpened.set(!sidenavOpened())"
             >
               <mat-icon>menu</mat-icon>

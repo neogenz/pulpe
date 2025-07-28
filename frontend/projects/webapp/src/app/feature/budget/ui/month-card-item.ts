@@ -1,4 +1,9 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  input,
+  output,
+} from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -36,7 +41,7 @@ import { CurrencyPipe } from '@angular/common';
         </div>
       </mat-card-content>
       <mat-card-actions align="end">
-        <button matButton>
+        <button matButton (click)="detailsClick.emit(id())">
           <mat-icon>visibility</mat-icon>
           Détails
         </button>
@@ -74,4 +79,5 @@ export class MonthCardItem {
   }>();
   totalAmount = input.required<number>();
   id = input.required<string>();
+  detailsClick = output<string>();
 }

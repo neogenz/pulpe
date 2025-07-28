@@ -84,9 +84,8 @@ import { ROUTES } from '@core/routing/routes-constants';
             />
             <mat-icon matPrefix>lock</mat-icon>
             <button
-              mat-icon-button
+              matIconButton
               matSuffix
-              type="button"
               (click)="togglePasswordVisibility()"
               [attr.aria-label]="'Afficher le mot de passe'"
               [attr.aria-pressed]="!hidePassword()"

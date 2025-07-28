@@ -19,7 +19,7 @@ import { AddTemplateForm } from './components/add-template-form';
     <div class="flex flex-col gap-4 h-full" data-testid="add-template-page">
       <header class="flex items-center gap-4" data-testid="page-header">
         <button
-          mat-icon-button
+          matIconButton
           (click)="navigateBack()"
           aria-label="Retour"
           data-testid="back-button"

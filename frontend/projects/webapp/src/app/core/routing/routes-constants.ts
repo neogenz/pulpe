@@ -38,6 +38,7 @@ export const PAGE_TITLES = {
   REGISTRATION: 'Création de compte',
   DASHBOARD_MONTH: 'Mois en cours',
   BUDGET_TEMPLATES_LIST: 'Mes modèles de budget',
+  BUDGET_DETAILS: 'Détail du budget',
   NEW_TEMPLATE: 'Nouveau modèle',
   TEMPLATE_DETAIL: 'Détail du modèle',
   TEMPLATE_DETAIL_DYNAMIC: 'Modèle {{templateId}}',

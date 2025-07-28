@@ -12,6 +12,12 @@ export const budgetRoutes: Routes = [
         title: PAGE_TITLES.BUDGET,
         loadComponent: () => import('./budget-list-page'),
       },
+      {
+        path: ':id',
+        title: PAGE_TITLES.BUDGET_DETAILS,
+        data: { breadcrumb: 'Détail du budget', icon: 'visibility' },
+        loadComponent: () => import('./details/details-page'),
+      },
     ],
   },
 ];
