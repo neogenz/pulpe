@@ -1,21 +1,21 @@
+import { CommonModule } from '@angular/common';
 import {
+  AfterViewInit,
   ChangeDetectionStrategy,
   Component,
+  computed,
+  ElementRef,
   inject,
   signal,
-  computed,
-  AfterViewInit,
-  ViewChild,
-  ElementRef,
+  viewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
 import { MatBottomSheetRef } from '@angular/material/bottom-sheet';
-import { MatIconModule } from '@angular/material/icon';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
-import { CommonModule } from '@angular/common';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
 
 export interface TransactionFormData {
   amount: number;
@@ -127,7 +127,8 @@ export interface TransactionFormData {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AddTransactionBottomSheet implements AfterViewInit {
-  @ViewChild('amountInput') amountInput!: ElementRef<HTMLInputElement>;
+  // Modern view child signal
+  amountInput = viewChild<ElementRef<HTMLInputElement>>('amountInput');
 
   private readonly bottomSheetRef = inject(
     MatBottomSheetRef<AddTransactionBottomSheet>,
@@ -160,7 +161,7 @@ export class AddTransactionBottomSheet implements AfterViewInit {
   ngAfterViewInit() {
     // Auto-focus on amount field for immediate input
     setTimeout(() => {
-      this.amountInput?.nativeElement?.focus();
+      this.amountInput()?.nativeElement?.focus();
     }, 200);
   }
 
