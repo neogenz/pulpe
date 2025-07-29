@@ -20,8 +20,11 @@ import { formatDate } from 'date-fns';
 import { frCH } from 'date-fns/locale';
 import { BudgetLineApi } from './services/budget-line-api';
 import { BudgetLinesTable } from './components/budget-lines-table';
-import { BudgetLineForm } from './components/budget-line-form';
 import { BudgetFinancialOverview } from './components/budget-financial-overview';
+import {
+  BudgetLineDialog,
+  type BudgetLineDialogData,
+} from './components/budget-line-dialog';
 import {
   ConfirmationDialogComponent,
   type ConfirmationDialogData,
@@ -43,7 +46,6 @@ import {
     MatDialogModule,
     DatePipe,
     BudgetLinesTable,
-    BudgetLineForm,
     BudgetFinancialOverview,
   ],
   template: `
@@ -107,21 +109,12 @@ import {
         <!-- Financial Overview -->
         <pulpe-budget-financial-overview [budgetLines]="budgetLines" />
 
-        <!-- Add Budget Line Form -->
-        @if (showAddForm()) {
-          <pulpe-budget-line-form
-            [budgetId]="budget.id"
-            (submitted)="handleCreateBudgetLine($event)"
-            (cancelled)="showAddForm.set(false)"
-          />
-        }
-
         <!-- Budget Lines Table -->
         <pulpe-budget-lines-table
           [budgetLines]="budgetLines"
           (updateClicked)="handleUpdateBudgetLine($event.id, $event.update)"
           (deleteClicked)="handleDeleteBudgetLine($event)"
-          (addClicked)="showAddForm.set(true)"
+          (addClicked)="openAddBudgetLineDialog()"
         />
 
         <!-- Budget Info Card -->
@@ -198,7 +191,6 @@ export default class DetailsPage {
   id = input.required<string>();
 
   // State signals
-  showAddForm = signal(false);
   isSaving = signal(false);
 
   // Track changes
@@ -266,6 +258,24 @@ export default class DetailsPage {
     return formatDate(date, 'MMMM yyyy', { locale: frCH });
   }
 
+  async openAddBudgetLineDialog(): Promise<void> {
+    const budget = this.budgetDetails.value()?.data.budget;
+    if (!budget) return;
+
+    const dialogRef = this.#dialog.open(BudgetLineDialog, {
+      data: {
+        budgetId: budget.id,
+      } satisfies BudgetLineDialogData,
+      width: '600px',
+      maxWidth: '90vw',
+    });
+
+    const budgetLine = await firstValueFrom(dialogRef.afterClosed());
+    if (budgetLine) {
+      this.handleCreateBudgetLine(budgetLine);
+    }
+  }
+
   handleCreateBudgetLine(budgetLine: BudgetLineCreate): void {
     // Create a temporary budget line with a fake ID
     const tempLine: BudgetLine = {
@@ -278,7 +288,6 @@ export default class DetailsPage {
     };
 
     this.newBudgetLines.update((lines) => [...lines, tempLine]);
-    this.showAddForm.set(false);
 
     this.#snackBar.open(
       'Ligne ajoutée. Cliquez sur "Enregistrer" pour sauvegarder.',
