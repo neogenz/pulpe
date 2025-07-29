@@ -13,7 +13,8 @@
       "@env/*": ["environments/*"],
       "@layout/*": ["app/layout/*"],
       "@pattern/*": ["app/pattern/*"],
-      "@app/*": ["app/*"]
+      "@app/*": ["app/*"],
+      "@pulpe/shared": ["../../../shared/index.ts"]
     }
   },
   "include": ["src/**/*.ts"]
