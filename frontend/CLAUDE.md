@@ -562,7 +562,8 @@ This vocabulary follows **Nielsen's 10 Usability Heuristics**, **Bastien & Scapi
 4. **Error prevention**: Logical defaults (Dépense, Tous les mois)
 
 ### Message Patterns
-- **Success**: "Prévision ajoutée. Cliquez sur 'Enregistrer' pour sauvegarder."
+- **Success**: "Prévision ajoutée."
+- **Delete success**: "Prévision supprimée."
 - **Confirmation**: "Êtes-vous sûr de vouloir supprimer cette prévision ?"
 - **Empty states**: "Aucune prévision définie", "Commencer à planifier"
 
