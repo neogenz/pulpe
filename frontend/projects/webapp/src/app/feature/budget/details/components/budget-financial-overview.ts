@@ -69,7 +69,7 @@ export class BudgetFinancialOverview {
   }));
 
   savingsData = computed<FinancialSummaryData>(() => ({
-    title: 'Économies',
+    title: 'Épargne prévue',
     amount: this.totals().savings,
     icon: 'savings',
     type: 'savings',
@@ -78,7 +78,7 @@ export class BudgetFinancialOverview {
   remainingData = computed<FinancialSummaryData>(() => {
     const remaining = this.totals().remaining;
     return {
-      title: remaining >= 0 ? 'Reste disponible' : 'Déficit',
+      title: remaining >= 0 ? 'Disponible à dépenser' : 'Déficit',
       amount: Math.abs(remaining),
       icon: remaining >= 0 ? 'account_balance_wallet' : 'warning',
       type: remaining >= 0 ? 'savings' : 'negative',

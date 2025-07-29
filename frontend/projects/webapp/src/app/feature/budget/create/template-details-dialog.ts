@@ -122,9 +122,7 @@ export interface TemplateDetailsDialogData {
               class="flex flex-col items-center justify-center h-[200px] text-on-surface-variant"
             >
               <mat-icon class="text-display-small mb-2">inbox</mat-icon>
-              <p class="text-label-large">
-                Aucune ligne de budget dans ce modèle
-              </p>
+              <p class="text-label-large">Aucune prévision dans ce modèle</p>
             </div>
           }
         }

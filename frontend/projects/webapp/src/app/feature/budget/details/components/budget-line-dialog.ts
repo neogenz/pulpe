@@ -39,9 +39,7 @@ interface BudgetLineFormData {
     FormsModule,
   ],
   template: `
-    <h2 mat-dialog-title class="text-headline-small">
-      Nouvelle ligne budgétaire
-    </h2>
+    <h2 mat-dialog-title class="text-headline-small">Nouvelle prévision</h2>
 
     <mat-dialog-content>
       <div class="flex flex-col gap-4 pt-4">
@@ -91,13 +89,13 @@ interface BudgetLineFormData {
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Récurrence</mat-label>
+            <mat-label>Fréquence</mat-label>
             <mat-select
               [(ngModel)]="formData.recurrence"
               data-testid="new-line-recurrence"
             >
-              <mat-option value="fixed">Récurrent</mat-option>
-              <mat-option value="one_off">Ponctuel</mat-option>
+              <mat-option value="fixed">Tous les mois</mat-option>
+              <mat-option value="one_off">Une seule fois</mat-option>
             </mat-select>
           </mat-form-field>
         </div>
@@ -129,7 +127,7 @@ export class BudgetLineDialog {
   formData: BudgetLineFormData = {
     name: '',
     amount: null,
-    kind: 'INCOME',
+    kind: 'FIXED_EXPENSE',
     recurrence: 'fixed',
   };
 

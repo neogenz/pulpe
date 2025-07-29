@@ -290,7 +290,7 @@ export default class DetailsPage {
     this.newBudgetLines.update((lines) => [...lines, tempLine]);
 
     this.#snackBar.open(
-      'Ligne ajoutée. Cliquez sur "Enregistrer" pour sauvegarder.',
+      'Prévision ajoutée. Cliquez sur "Enregistrer" pour sauvegarder.',
       'OK',
       {
         duration: 3000,
@@ -322,8 +322,8 @@ export default class DetailsPage {
   async handleDeleteBudgetLine(id: string): Promise<void> {
     const dialogRef = this.#dialog.open(ConfirmationDialogComponent, {
       data: {
-        title: 'Supprimer la ligne',
-        message: 'Êtes-vous sûr de vouloir supprimer cette ligne ?',
+        title: 'Supprimer la prévision',
+        message: 'Êtes-vous sûr de vouloir supprimer cette prévision ?',
         confirmText: 'Supprimer',
         confirmColor: 'warn',
       } satisfies ConfirmationDialogData,
@@ -350,7 +350,7 @@ export default class DetailsPage {
     }
 
     this.#snackBar.open(
-      'Ligne supprimée. Cliquez sur "Enregistrer" pour confirmer.',
+      'Prévision supprimée. Cliquez sur "Enregistrer" pour confirmer.',
       'OK',
       {
         duration: 3000,
