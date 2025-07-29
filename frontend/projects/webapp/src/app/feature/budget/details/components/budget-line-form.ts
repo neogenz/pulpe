@@ -36,7 +36,7 @@ interface BudgetLineFormData {
     FormsModule,
   ],
   template: `
-    <mat-card class="bg-[color-surface-container]">
+    <mat-card appearance="outlined">
       <mat-card-header>
         <mat-card-title class="text-headline-small">
           Ajouter une ligne de budget
@@ -44,7 +44,7 @@ interface BudgetLineFormData {
       </mat-card-header>
       <mat-card-content>
         <div class="flex flex-col gap-4">
-          <mat-form-field appearance="fill" class="w-full">
+          <mat-form-field appearance="outline" class="w-full">
             <mat-label>Nom</mat-label>
             <input
               matInput
@@ -54,7 +54,7 @@ interface BudgetLineFormData {
             />
           </mat-form-field>
 
-          <mat-form-field appearance="fill" class="w-full">
+          <mat-form-field appearance="outline" class="w-full">
             <mat-label>Montant</mat-label>
             <input
               matInput
@@ -69,7 +69,7 @@ interface BudgetLineFormData {
           </mat-form-field>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <mat-form-field appearance="fill" class="w-full">
+            <mat-form-field appearance="outline" class="w-full">
               <mat-label>Type</mat-label>
               <mat-select
                 [(ngModel)]="formData.kind"
@@ -92,7 +92,7 @@ interface BudgetLineFormData {
               </mat-select>
             </mat-form-field>
 
-            <mat-form-field appearance="fill" class="w-full">
+            <mat-form-field appearance="outline" class="w-full">
               <mat-label>Récurrence</mat-label>
               <mat-select
                 [(ngModel)]="formData.recurrence"

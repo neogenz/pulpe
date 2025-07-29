@@ -40,7 +40,6 @@ import {
     BudgetLineForm,
     BudgetFinancialOverview,
   ],
-  providers: [BudgetLineApi],
   template: `
     <div class="flex flex-col gap-6">
       @if (budgetDetails.isLoading()) {
@@ -120,7 +119,7 @@ import {
         />
 
         <!-- Budget Info Card -->
-        <mat-card>
+        <mat-card appearance="outlined">
           <mat-card-header>
             <div mat-card-avatar>
               <div
