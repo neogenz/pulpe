@@ -54,159 +54,160 @@ interface EditingLine {
         </mat-card-subtitle>
       </mat-card-header>
       <mat-card-content class="overflow-x-auto">
-        <table mat-table [dataSource]="budgetLines()" class="w-full min-w-[600px]">
-            <!-- Type Column -->
-            <ng-container matColumnDef="type">
-              <th mat-header-cell *matHeaderCellDef>Type</th>
-              <td mat-cell *matCellDef="let line">
-                <div class="flex items-center gap-2">
-                  <mat-icon [class]="getKindIconClass(line.kind)">
-                    {{ getKindIcon(line.kind) }}
-                  </mat-icon>
-                  <span class="text-label-medium">{{
-                    getKindLabel(line.kind)
-                  }}</span>
-                </div>
-              </td>
-            </ng-container>
+        <table
+          mat-table
+          [dataSource]="budgetLines()"
+          class="w-full min-w-[600px]"
+        >
+          <!-- Type Column -->
+          <ng-container matColumnDef="type">
+            <th mat-header-cell *matHeaderCellDef>Type</th>
+            <td mat-cell *matCellDef="let line">
+              <div class="flex items-center gap-2">
+                <mat-icon [class]="getKindIconClass(line.kind)">
+                  {{ getKindIcon(line.kind) }}
+                </mat-icon>
+                <span class="text-label-medium">{{
+                  getKindLabel(line.kind)
+                }}</span>
+              </div>
+            </td>
+          </ng-container>
 
-            <!-- Name Column -->
-            <ng-container matColumnDef="name">
-              <th mat-header-cell *matHeaderCellDef>Description</th>
-              <td mat-cell *matCellDef="let line">
-                @if (isEditing(line.id)) {
-                  <mat-form-field
-                    appearance="outline"
-                    class="w-full dense-field"
-                  >
-                    <input
-                      matInput
-                      [(ngModel)]="editingLine()!.name"
-                      placeholder="Nom de la ligne"
-                      [attr.data-testid]="'edit-name-' + line.id"
-                    />
-                  </mat-form-field>
-                } @else {
-                  <span class="text-body-medium">{{ line.name }}</span>
-                }
-              </td>
-            </ng-container>
+          <!-- Name Column -->
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef>Description</th>
+            <td mat-cell *matCellDef="let line">
+              @if (isEditing(line.id)) {
+                <mat-form-field appearance="outline" class="w-full dense-field">
+                  <input
+                    matInput
+                    [(ngModel)]="editingLine()!.name"
+                    placeholder="Nom de la ligne"
+                    [attr.data-testid]="'edit-name-' + line.id"
+                  />
+                </mat-form-field>
+              } @else {
+                <span class="text-body-medium">{{ line.name }}</span>
+              }
+            </td>
+          </ng-container>
 
-            <!-- Recurrence Column -->
-            <ng-container matColumnDef="recurrence">
-              <th mat-header-cell *matHeaderCellDef>Récurrence</th>
-              <td mat-cell *matCellDef="let line">
-                <span class="text-label-medium text-[color-on-surface-variant]">
-                  {{ getRecurrenceLabel(line.recurrence) }}
-                </span>
-              </td>
-            </ng-container>
+          <!-- Recurrence Column -->
+          <ng-container matColumnDef="recurrence">
+            <th mat-header-cell *matHeaderCellDef>Récurrence</th>
+            <td mat-cell *matCellDef="let line">
+              <span class="text-label-medium text-[color-on-surface-variant]">
+                {{ getRecurrenceLabel(line.recurrence) }}
+              </span>
+            </td>
+          </ng-container>
 
-            <!-- Amount Column -->
-            <ng-container matColumnDef="amount">
-              <th mat-header-cell *matHeaderCellDef class="text-right">
-                Montant
-              </th>
-              <td mat-cell *matCellDef="let line" class="text-right">
-                @if (isEditing(line.id)) {
-                  <mat-form-field
-                    appearance="outline"
-                    class="w-24 md:w-32 dense-field"
-                  >
-                    <input
-                      matInput
-                      type="number"
-                      [(ngModel)]="editingLine()!.amount"
-                      placeholder="0.00"
-                      step="0.01"
-                      min="0"
-                      [attr.data-testid]="'edit-amount-' + line.id"
-                    />
-                    <span matTextSuffix>CHF</span>
-                  </mat-form-field>
-                } @else {
-                  <span
-                    class="text-body-medium font-medium"
-                    [class]="getAmountClass(line.kind)"
-                  >
-                    {{ line.amount | currency: 'CHF' }}
-                  </span>
-                }
-              </td>
-            </ng-container>
-
-            <!-- Actions Column -->
-            <ng-container matColumnDef="actions">
-              <th mat-header-cell *matHeaderCellDef></th>
-              <td mat-cell *matCellDef="let line">
-                <div class="flex gap-1 justify-end">
-                  @if (isEditing(line.id)) {
-                    <button
-                      mat-icon-button
-                      (click)="saveEdit()"
-                      [attr.aria-label]="'Save ' + line.name"
-                      [attr.data-testid]="'save-' + line.id"
-                      [disabled]="!isValidEdit()"
-                    >
-                      <mat-icon>check</mat-icon>
-                    </button>
-                    <button
-                      mat-icon-button
-                      (click)="cancelEdit()"
-                      [attr.aria-label]="'Cancel editing ' + line.name"
-                      [attr.data-testid]="'cancel-' + line.id"
-                    >
-                      <mat-icon>close</mat-icon>
-                    </button>
-                  } @else {
-                    <button
-                      mat-icon-button
-                      (click)="startEdit(line)"
-                      [attr.aria-label]="'Edit ' + line.name"
-                      [attr.data-testid]="'edit-' + line.id"
-                    >
-                      <mat-icon>edit</mat-icon>
-                    </button>
-                    <button
-                      mat-icon-button
-                      (click)="deleteClicked.emit(line.id)"
-                      [attr.aria-label]="'Delete ' + line.name"
-                      [attr.data-testid]="'delete-' + line.id"
-                    >
-                      <mat-icon>delete</mat-icon>
-                    </button>
-                  }
-                </div>
-              </td>
-            </ng-container>
-
-            <tr mat-header-row *matHeaderRowDef="currentColumns()"></tr>
-            <tr
-              mat-row
-              *matRowDef="let row; columns: currentColumns()"
-              class="hover:bg-[color-surface-container-low]"
-            ></tr>
-
-            <!-- No data row -->
-            <tr class="mat-row" *matNoDataRow>
-              <td
-                class="mat-cell text-center py-8"
-                [attr.colspan]="currentColumns().length"
-              >
-                <p class="text-body-medium text-[color-on-surface-variant]">
-                  Aucune ligne de budget définie
-                </p>
-                <button
-                  mat-stroked-button
-                  (click)="addClicked.emit()"
-                  class="mt-4"
-                  data-testid="add-first-line"
+          <!-- Amount Column -->
+          <ng-container matColumnDef="amount">
+            <th mat-header-cell *matHeaderCellDef class="text-right">
+              Montant
+            </th>
+            <td mat-cell *matCellDef="let line" class="text-right">
+              @if (isEditing(line.id)) {
+                <mat-form-field
+                  appearance="outline"
+                  class="w-24 md:w-32 dense-field"
                 >
-                  <mat-icon>add</mat-icon>
-                  Ajouter une ligne
-                </button>
-              </td>
-            </tr>
+                  <input
+                    matInput
+                    type="number"
+                    [(ngModel)]="editingLine()!.amount"
+                    placeholder="0.00"
+                    step="0.01"
+                    min="0"
+                    [attr.data-testid]="'edit-amount-' + line.id"
+                  />
+                  <span matTextSuffix>CHF</span>
+                </mat-form-field>
+              } @else {
+                <span
+                  class="text-body-medium font-medium"
+                  [class]="getAmountClass(line.kind)"
+                >
+                  {{ line.amount | currency: 'CHF' }}
+                </span>
+              }
+            </td>
+          </ng-container>
+
+          <!-- Actions Column -->
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef></th>
+            <td mat-cell *matCellDef="let line">
+              <div class="flex gap-1 justify-end">
+                @if (isEditing(line.id)) {
+                  <button
+                    mat-icon-button
+                    (click)="saveEdit()"
+                    [attr.aria-label]="'Save ' + line.name"
+                    [attr.data-testid]="'save-' + line.id"
+                    [disabled]="!isValidEdit()"
+                  >
+                    <mat-icon>check</mat-icon>
+                  </button>
+                  <button
+                    mat-icon-button
+                    (click)="cancelEdit()"
+                    [attr.aria-label]="'Cancel editing ' + line.name"
+                    [attr.data-testid]="'cancel-' + line.id"
+                  >
+                    <mat-icon>close</mat-icon>
+                  </button>
+                } @else {
+                  <button
+                    mat-icon-button
+                    (click)="startEdit(line)"
+                    [attr.aria-label]="'Edit ' + line.name"
+                    [attr.data-testid]="'edit-' + line.id"
+                  >
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                  <button
+                    mat-icon-button
+                    (click)="deleteClicked.emit(line.id)"
+                    [attr.aria-label]="'Delete ' + line.name"
+                    [attr.data-testid]="'delete-' + line.id"
+                  >
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                }
+              </div>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="currentColumns()"></tr>
+          <tr
+            mat-row
+            *matRowDef="let row; columns: currentColumns()"
+            class="hover:bg-[color-surface-container-low]"
+          ></tr>
+
+          <!-- No data row -->
+          <tr class="mat-row" *matNoDataRow>
+            <td
+              class="mat-cell text-center py-8"
+              [attr.colspan]="currentColumns().length"
+            >
+              <p class="text-body-medium text-[color-on-surface-variant]">
+                Aucune ligne de budget définie
+              </p>
+              <button
+                mat-stroked-button
+                (click)="addClicked.emit()"
+                class="mt-4"
+                data-testid="add-first-line"
+              >
+                <mat-icon>add</mat-icon>
+                Ajouter une ligne
+              </button>
+            </td>
+          </tr>
         </table>
       </mat-card-content>
       @if (budgetLines().length > 0) {
@@ -250,12 +251,12 @@ interface EditingLine {
       .mat-mdc-table {
         font-size: 0.875rem;
       }
-      
+
       .mat-mdc-cell,
       .mat-mdc-header-cell {
         padding: 8px;
       }
-      
+
       .dense-field {
         ::ng-deep .mat-mdc-form-field {
           font-size: 0.875rem;
@@ -272,18 +273,20 @@ export class BudgetLinesTable {
   addClicked = output<void>();
 
   #breakpointObserver = inject(BreakpointObserver);
-  
+
   displayedColumns = ['type', 'name', 'recurrence', 'amount', 'actions'];
   displayedColumnsMobile = ['name', 'amount', 'actions'];
   editingLine = signal<EditingLine | null>(null);
-  
+
   isMobile = toSignal(
     this.#breakpointObserver.observe([Breakpoints.XSmall, Breakpoints.Small]),
-    { initialValue: { matches: false, breakpoints: {} } }
+    { initialValue: { matches: false, breakpoints: {} } },
   );
-  
-  currentColumns = computed(() => 
-    this.isMobile()?.matches ? this.displayedColumnsMobile : this.displayedColumns
+
+  currentColumns = computed(() =>
+    this.isMobile()?.matches
+      ? this.displayedColumnsMobile
+      : this.displayedColumns,
   );
 
   isEditing(id: string): boolean {
