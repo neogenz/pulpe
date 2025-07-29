@@ -3,6 +3,7 @@ import { LoginPage } from '../pages/login.page';
 import { OnboardingPage } from '../pages/onboarding.page';
 import { CurrentMonthPage } from '../pages/current-month.page';
 import { BudgetTemplatesPage } from '../pages/budget-templates.page';
+import { BudgetDetailsPage } from '../pages/budget-details.page';
 import { AuthMockHelper, TestDataFactory } from './test-helpers';
 
 // Types pour nos fixtures améliorées
@@ -11,6 +12,7 @@ interface AppFixtures {
   onboardingPage: OnboardingPage;
   currentMonthPage: CurrentMonthPage;
   budgetTemplatesPage: BudgetTemplatesPage;
+  budgetDetailsPage: BudgetDetailsPage;
   authenticatedPage: Page;
   authFailurePage: Page;
   serverErrorPage: Page;
@@ -64,6 +66,11 @@ const baseTest = base.extend<AppFixtures>({
   // Page Object pour Budget Templates
   budgetTemplatesPage: async ({ page }, use) => {
     await use(new BudgetTemplatesPage(page));
+  },
+
+  // Page Object pour Budget Details
+  budgetDetailsPage: async ({ page }, use) => {
+    await use(new BudgetDetailsPage(page));
   },
 
   // Page avec authentification mockée - utilise AuthMockHelper
