@@ -81,7 +81,7 @@ interface EditingLine {
             <th mat-header-cell *matHeaderCellDef>Description</th>
             <td mat-cell *matCellDef="let line">
               @if (isEditing(line.id)) {
-                <div class="py-2">
+                <form (ngSubmit)="saveEdit()" class="py-2">
                   <mat-form-field
                     appearance="outline"
                     class="w-full"
@@ -90,12 +90,16 @@ interface EditingLine {
                     <input
                       matInput
                       [(ngModel)]="editingLine()!.name"
+                      name="name"
                       placeholder="Nom de la ligne"
                       [attr.data-testid]="'edit-name-' + line.id"
                       class="text-body-medium"
+                      (keydown.enter)="saveEdit()"
+                      (keydown.escape)="cancelEdit()"
+                      #nameInput
                     />
                   </mat-form-field>
-                </div>
+                </form>
               } @else {
                 <span class="text-body-medium">{{ line.name }}</span>
               }
@@ -122,7 +126,7 @@ interface EditingLine {
             </th>
             <td mat-cell *matCellDef="let line" class="text-right">
               @if (isEditing(line.id)) {
-                <div class="py-2 flex justify-end">
+                <form (ngSubmit)="saveEdit()" class="py-2 flex justify-end">
                   <mat-form-field
                     appearance="outline"
                     class="w-28 md:w-36"
@@ -132,15 +136,19 @@ interface EditingLine {
                       matInput
                       type="number"
                       [(ngModel)]="editingLine()!.amount"
+                      name="amount"
                       placeholder="0.00"
                       step="0.01"
                       min="0"
                       [attr.data-testid]="'edit-amount-' + line.id"
                       class="text-body-medium text-right"
+                      (keydown.enter)="saveEdit()"
+                      (keydown.escape)="cancelEdit()"
+                      #amountInput
                     />
                     <span matTextSuffix class="text-body-small">CHF</span>
                   </mat-form-field>
-                </div>
+                </form>
               } @else {
                 <span
                   class="text-body-medium font-medium"
@@ -156,41 +164,43 @@ interface EditingLine {
           <ng-container matColumnDef="actions">
             <th mat-header-cell *matHeaderCellDef></th>
             <td mat-cell *matCellDef="let line">
-              <div class="flex gap-1 justify-end">
+              <div class="flex gap-1 justify-end items-center">
                 @if (isEditing(line.id)) {
-                  <button
-                    mat-icon-button
-                    (click)="saveEdit()"
-                    [attr.aria-label]="'Save ' + line.name"
-                    [attr.data-testid]="'save-' + line.id"
-                    [disabled]="!isValidEdit()"
-                  >
-                    <mat-icon>check</mat-icon>
-                  </button>
-                  <button
-                    mat-icon-button
-                    (click)="cancelEdit()"
-                    [attr.aria-label]="'Cancel editing ' + line.name"
-                    [attr.data-testid]="'cancel-' + line.id"
-                  >
-                    <mat-icon>close</mat-icon>
-                  </button>
+                  <div class="flex items-center gap-1">
+                    <span
+                      class="text-label-small text-[color-on-surface-variant] mr-1"
+                    >
+                      Entrée pour valider
+                    </span>
+                    <button
+                      mat-stroked-button
+                      (click)="cancelEdit()"
+                      [attr.aria-label]="'Cancel editing ' + line.name"
+                      [attr.data-testid]="'cancel-' + line.id"
+                      class="density-3 min-w-0 px-3 py-1 h-8 text-label-small"
+                    >
+                      <mat-icon class="!text-base mr-1">close</mat-icon>
+                      Annuler
+                    </button>
+                  </div>
                 } @else {
                   <button
                     mat-icon-button
                     (click)="startEdit(line)"
                     [attr.aria-label]="'Edit ' + line.name"
                     [attr.data-testid]="'edit-' + line.id"
+                    class="!w-10 !h-10"
                   >
-                    <mat-icon>edit</mat-icon>
+                    <mat-icon class="!text-xl">edit</mat-icon>
                   </button>
                   <button
                     mat-icon-button
                     (click)="deleteClicked.emit(line.id)"
                     [attr.aria-label]="'Delete ' + line.name"
                     [attr.data-testid]="'delete-' + line.id"
+                    class="!w-10 !h-10 text-[color-error]"
                   >
-                    <mat-icon>delete</mat-icon>
+                    <mat-icon class="!text-xl">delete</mat-icon>
                   </button>
                 }
               </div>
