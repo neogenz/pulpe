@@ -4,7 +4,11 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { format } from 'date-fns';
 import { frCH } from 'date-fns/locale';
-import { type Budget, type BudgetListResponse } from '@pulpe/shared';
+import {
+  type Budget,
+  type BudgetListResponse,
+  type BudgetResponse,
+} from '@pulpe/shared';
 import { environment } from '../../../environments/environment';
 
 export interface MonthInfo {
@@ -44,6 +48,12 @@ export class BudgetApi {
           });
       }),
     );
+  }
+
+  getBudgetById$(id: string): Observable<Budget> {
+    return this.http
+      .get<BudgetResponse>(`${this.apiUrl}/${id}`)
+      .pipe(map((response) => response.data));
   }
 
   #formatMonthYear(month: number, year: number): string {
