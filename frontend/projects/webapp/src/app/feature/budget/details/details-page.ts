@@ -289,13 +289,9 @@ export default class DetailsPage {
 
     this.newBudgetLines.update((lines) => [...lines, tempLine]);
 
-    this.#snackBar.open(
-      'Prévision ajoutée. Cliquez sur "Enregistrer" pour sauvegarder.',
-      'OK',
-      {
-        duration: 3000,
-      },
-    );
+    this.#snackBar.open('Prévision ajoutée.', 'OK', {
+      duration: 3000,
+    });
   }
 
   handleUpdateBudgetLine(id: string, update: BudgetLineUpdate): void {
@@ -349,13 +345,9 @@ export default class DetailsPage {
       this.deletedLineIds.update((ids) => [...ids, id]);
     }
 
-    this.#snackBar.open(
-      'Prévision supprimée. Cliquez sur "Enregistrer" pour confirmer.',
-      'OK',
-      {
-        duration: 3000,
-      },
-    );
+    this.#snackBar.open('Prévision supprimée.', 'OK', {
+      duration: 3000,
+    });
   }
 
   async saveChanges(): Promise<void> {
