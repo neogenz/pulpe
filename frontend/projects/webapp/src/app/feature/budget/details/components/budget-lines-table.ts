@@ -166,21 +166,27 @@ interface EditingLine {
             <td mat-cell *matCellDef="let line">
               <div class="flex gap-1 justify-end items-center">
                 @if (isEditing(line.id)) {
-                  <div class="flex items-center gap-1">
-                    <span
-                      class="text-label-small text-[color-on-surface-variant] mr-1"
-                    >
-                      Entrée pour valider
-                    </span>
+                  <div class="flex items-center gap-2">
                     <button
-                      mat-stroked-button
+                      matButton="outlined"
                       (click)="cancelEdit()"
                       [attr.aria-label]="'Cancel editing ' + line.name"
                       [attr.data-testid]="'cancel-' + line.id"
-                      class="density-3 min-w-0 px-3 py-1 h-8 text-label-small"
+                      class="density-3"
                     >
                       <mat-icon class="!text-base mr-1">close</mat-icon>
                       Annuler
+                    </button>
+                    <button
+                      matButton="filled"
+                      (click)="saveEdit()"
+                      [attr.aria-label]="'Save ' + line.name"
+                      [attr.data-testid]="'save-' + line.id"
+                      [disabled]="!isValidEdit()"
+                      class="density-3"
+                    >
+                      <mat-icon class="!text-base mr-1">check</mat-icon>
+                      Enregistrer
                     </button>
                   </div>
                 } @else {
@@ -191,7 +197,7 @@ interface EditingLine {
                     [attr.data-testid]="'edit-' + line.id"
                     class="!w-10 !h-10"
                   >
-                    <mat-icon class="!text-xl">edit</mat-icon>
+                    <mat-icon>edit</mat-icon>
                   </button>
                   <button
                     mat-icon-button
@@ -200,7 +206,7 @@ interface EditingLine {
                     [attr.data-testid]="'delete-' + line.id"
                     class="!w-10 !h-10 text-[color-error]"
                   >
-                    <mat-icon class="!text-xl">delete</mat-icon>
+                    <mat-icon>delete</mat-icon>
                   </button>
                 }
               </div>

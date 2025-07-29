@@ -3,8 +3,6 @@ import {
   Component,
   inject,
   input,
-  signal,
-  computed,
 } from '@angular/core';
 import { resource } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
@@ -29,11 +27,7 @@ import {
   ConfirmationDialogComponent,
   type ConfirmationDialogData,
 } from '../../../ui/dialogs/confirmation-dialog';
-import {
-  type BudgetLine,
-  type BudgetLineCreate,
-  type BudgetLineUpdate,
-} from '@pulpe/shared';
+import { type BudgetLineCreate, type BudgetLineUpdate } from '@pulpe/shared';
 
 @Component({
   selector: 'pulpe-details-page',
@@ -69,7 +63,7 @@ import {
       } @else {
         @let data = budgetDetails.value()!;
         @let budget = data.data.budget;
-        @let budgetLines = currentBudgetLines();
+        @let budgetLines = data.data.budgetLines;
 
         <!-- Header -->
         <header class="flex items-start gap-4">
@@ -92,18 +86,6 @@ import {
               </p>
             }
           </div>
-          @if (hasUnsavedChanges()) {
-            <button
-              mat-filled-button
-              color="primary"
-              (click)="saveChanges()"
-              [disabled]="isSaving()"
-              data-testid="save-changes"
-            >
-              <mat-icon>save</mat-icon>
-              Enregistrer les modifications
-            </button>
-          }
         </header>
 
         <!-- Financial Overview -->
@@ -190,63 +172,14 @@ export default class DetailsPage {
 
   id = input.required<string>();
 
-  // State signals
-  isSaving = signal(false);
-
-  // Track changes
-  originalBudgetLines = signal<BudgetLine[]>([]);
-  modifiedBudgetLines = signal<BudgetLine[]>([]);
-  deletedLineIds = signal<string[]>([]);
-  newBudgetLines = signal<BudgetLine[]>([]);
-
   // Load budget details
   budgetDetails = resource({
     params: () => this.id(),
     loader: async ({ params: budgetId }) => {
-      const details = await firstValueFrom(
+      return await firstValueFrom(
         this.#budgetLineApi.getBudgetDetails$(budgetId),
       );
-      // Initialize state with loaded data
-      this.originalBudgetLines.set([...details.data.budgetLines]);
-      this.modifiedBudgetLines.set([...details.data.budgetLines]);
-      this.deletedLineIds.set([]);
-      this.newBudgetLines.set([]);
-      return details;
     },
-  });
-
-  // Computed values
-  currentBudgetLines = computed(() => {
-    const modified = this.modifiedBudgetLines();
-    const newLines = this.newBudgetLines();
-    const deletedIds = this.deletedLineIds();
-
-    return [
-      ...modified.filter((line) => !deletedIds.includes(line.id)),
-      ...newLines,
-    ];
-  });
-
-  hasUnsavedChanges = computed(() => {
-    const original = this.originalBudgetLines();
-    const modified = this.modifiedBudgetLines();
-    const deleted = this.deletedLineIds();
-    const newLines = this.newBudgetLines();
-
-    // Check if any new lines were added
-    if (newLines.length > 0) return true;
-
-    // Check if any lines were deleted
-    if (deleted.length > 0) return true;
-
-    // Check if any lines were modified
-    return modified.some((line, index) => {
-      const originalLine = original[index];
-      if (!originalLine) return true;
-      return (
-        line.name !== originalLine.name || line.amount !== originalLine.amount
-      );
-    });
   });
 
   navigateBack(): void {
@@ -276,42 +209,46 @@ export default class DetailsPage {
     }
   }
 
-  handleCreateBudgetLine(budgetLine: BudgetLineCreate): void {
-    // Create a temporary budget line with a fake ID
-    const tempLine: BudgetLine = {
-      ...budgetLine,
-      id: `temp-${Date.now()}`,
-      templateLineId: null,
-      savingsGoalId: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+  async handleCreateBudgetLine(budgetLine: BudgetLineCreate): Promise<void> {
+    try {
+      await firstValueFrom(this.#budgetLineApi.createBudgetLine$(budgetLine));
 
-    this.newBudgetLines.update((lines) => [...lines, tempLine]);
+      // Reload data to reflect changes
+      this.budgetDetails.reload();
 
-    this.#snackBar.open('Prévision ajoutée.', 'OK', {
-      duration: 3000,
-    });
+      this.#snackBar.open('Prévision ajoutée.', 'OK', {
+        duration: 3000,
+      });
+    } catch (error) {
+      this.#snackBar.open("Erreur lors de l'ajout de la prévision", 'OK', {
+        duration: 5000,
+      });
+      console.error('Error creating budget line:', error);
+    }
   }
 
-  handleUpdateBudgetLine(id: string, update: BudgetLineUpdate): void {
-    // Check if it's a new line
-    const newLineIndex = this.newBudgetLines().findIndex(
-      (line) => line.id === id,
-    );
-    if (newLineIndex >= 0) {
-      this.newBudgetLines.update((lines) => {
-        const updated = [...lines];
-        updated[newLineIndex] = { ...updated[newLineIndex], ...update };
-        return updated;
+  async handleUpdateBudgetLine(
+    id: string,
+    update: BudgetLineUpdate,
+  ): Promise<void> {
+    try {
+      await firstValueFrom(this.#budgetLineApi.updateBudgetLine$(id, update));
+
+      // Reload data to reflect changes
+      this.budgetDetails.reload();
+
+      this.#snackBar.open('Prévision modifiée.', 'OK', {
+        duration: 3000,
       });
-    } else {
-      // Update existing line
-      this.modifiedBudgetLines.update((lines) => {
-        return lines.map((line) =>
-          line.id === id ? { ...line, ...update } : line,
-        );
-      });
+    } catch (error) {
+      this.#snackBar.open(
+        'Erreur lors de la modification de la prévision',
+        'OK',
+        {
+          duration: 5000,
+        },
+      );
+      console.error('Error updating budget line:', error);
     }
   }
 
@@ -332,93 +269,24 @@ export default class DetailsPage {
       return;
     }
 
-    // Check if it's a new line
-    const newLineIndex = this.newBudgetLines().findIndex(
-      (line) => line.id === id,
-    );
-    if (newLineIndex >= 0) {
-      this.newBudgetLines.update((lines) =>
-        lines.filter((line) => line.id !== id),
-      );
-    } else {
-      // Mark existing line for deletion
-      this.deletedLineIds.update((ids) => [...ids, id]);
-    }
-
-    this.#snackBar.open('Prévision supprimée.', 'OK', {
-      duration: 3000,
-    });
-  }
-
-  async saveChanges(): Promise<void> {
-    this.isSaving.set(true);
-
     try {
-      const promises: Promise<void>[] = [];
+      await firstValueFrom(this.#budgetLineApi.deleteBudgetLine$(id));
 
-      // Create new lines
-      for (const newLine of this.newBudgetLines()) {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { id, createdAt, updatedAt, ...createData } = newLine;
-        promises.push(
-          firstValueFrom(
-            this.#budgetLineApi.createBudgetLine$(createData),
-          ).then(() => undefined),
-        );
-      }
-
-      // Update modified lines
-      const original = this.originalBudgetLines();
-      const modified = this.modifiedBudgetLines();
-
-      modified.forEach((line, index) => {
-        const originalLine = original[index];
-        if (
-          originalLine &&
-          (line.name !== originalLine.name ||
-            line.amount !== originalLine.amount)
-        ) {
-          const update: BudgetLineUpdate = {
-            name: line.name,
-            amount: line.amount,
-          };
-          promises.push(
-            firstValueFrom(
-              this.#budgetLineApi.updateBudgetLine$(line.id, update),
-            ).then(() => undefined),
-          );
-        }
-      });
-
-      // Delete lines
-      for (const id of this.deletedLineIds()) {
-        promises.push(
-          firstValueFrom(this.#budgetLineApi.deleteBudgetLine$(id)).then(
-            () => undefined,
-          ),
-        );
-      }
-
-      // Execute all operations
-      await Promise.all(promises);
-
-      // Reload data
+      // Reload data to reflect changes
       this.budgetDetails.reload();
 
-      this.#snackBar.open('Modifications enregistrées avec succès', 'OK', {
+      this.#snackBar.open('Prévision supprimée.', 'OK', {
         duration: 3000,
       });
     } catch (error) {
       this.#snackBar.open(
-        "Erreur lors de l'enregistrement des modifications",
+        'Erreur lors de la suppression de la prévision',
         'OK',
         {
           duration: 5000,
         },
       );
-      console.error('Error saving changes:', error);
-    } finally {
-      this.isSaving.set(false);
+      console.error('Error deleting budget line:', error);
     }
   }
 }
