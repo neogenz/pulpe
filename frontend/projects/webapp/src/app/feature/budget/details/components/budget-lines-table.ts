@@ -14,6 +14,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatCardModule } from '@angular/material/card';
+import { MatChipsModule } from '@angular/material/chips';
 import { FormsModule } from '@angular/forms';
 import { CurrencyPipe } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -39,6 +40,7 @@ interface EditingLine {
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
+    MatChipsModule,
     FormsModule,
     CurrencyPipe,
   ],
@@ -67,7 +69,7 @@ interface EditingLine {
                 <mat-icon [class]="getKindIconClass(line.kind)">
                   {{ getKindIcon(line.kind) }}
                 </mat-icon>
-                <span class="text-label-medium">{{
+                <span class="text-body-medium">{{
                   getKindLabel(line.kind)
                 }}</span>
               </div>
@@ -79,14 +81,19 @@ interface EditingLine {
             <th mat-header-cell *matHeaderCellDef>Description</th>
             <td mat-cell *matCellDef="let line">
               @if (isEditing(line.id)) {
-                <mat-form-field appearance="outline" class="w-full dense-field">
-                  <input
-                    matInput
-                    [(ngModel)]="editingLine()!.name"
-                    placeholder="Nom de la ligne"
-                    [attr.data-testid]="'edit-name-' + line.id"
-                  />
-                </mat-form-field>
+                <div class="py-1">
+                  <mat-form-field
+                    appearance="outline"
+                    class="w-full dense-field"
+                  >
+                    <input
+                      matInput
+                      [(ngModel)]="editingLine()!.name"
+                      placeholder="Nom de la ligne"
+                      [attr.data-testid]="'edit-name-' + line.id"
+                    />
+                  </mat-form-field>
+                </div>
               } @else {
                 <span class="text-body-medium">{{ line.name }}</span>
               }
@@ -97,9 +104,12 @@ interface EditingLine {
           <ng-container matColumnDef="recurrence">
             <th mat-header-cell *matHeaderCellDef>Fréquence</th>
             <td mat-cell *matCellDef="let line">
-              <span class="text-label-medium text-[color-on-surface-variant]">
+              <mat-chip
+                [class]="getRecurrenceChipClass(line.recurrence)"
+                class="text-label-medium font-medium"
+              >
                 {{ getRecurrenceLabel(line.recurrence) }}
-              </span>
+              </mat-chip>
             </td>
           </ng-container>
 
@@ -110,21 +120,23 @@ interface EditingLine {
             </th>
             <td mat-cell *matCellDef="let line" class="text-right">
               @if (isEditing(line.id)) {
-                <mat-form-field
-                  appearance="outline"
-                  class="w-24 md:w-32 dense-field"
-                >
-                  <input
-                    matInput
-                    type="number"
-                    [(ngModel)]="editingLine()!.amount"
-                    placeholder="0.00"
-                    step="0.01"
-                    min="0"
-                    [attr.data-testid]="'edit-amount-' + line.id"
-                  />
-                  <span matTextSuffix>CHF</span>
-                </mat-form-field>
+                <div class="py-1 flex justify-end">
+                  <mat-form-field
+                    appearance="outline"
+                    class="w-24 md:w-32 dense-field"
+                  >
+                    <input
+                      matInput
+                      type="number"
+                      [(ngModel)]="editingLine()!.amount"
+                      placeholder="0.00"
+                      step="0.01"
+                      min="0"
+                      [attr.data-testid]="'edit-amount-' + line.id"
+                    />
+                    <span matTextSuffix>CHF</span>
+                  </mat-form-field>
+                </div>
               } @else {
                 <span
                   class="text-body-medium font-medium"
@@ -235,6 +247,11 @@ interface EditingLine {
       }
       ::ng-deep .mat-mdc-form-field-subscript-wrapper {
         display: none;
+      }
+      ::ng-deep .mat-mdc-form-field-infix {
+        min-height: 40px;
+        padding-top: 8px;
+        padding-bottom: 8px;
       }
     }
 
@@ -368,5 +385,19 @@ export class BudgetLinesTable {
       one_off: 'Une seule fois',
     };
     return labels[recurrence] || recurrence;
+  }
+
+  getRecurrenceChipClass(recurrence: TransactionRecurrence): string {
+    const classes: Record<TransactionRecurrence, string> = {
+      fixed: 'bg-[color-primary-container] text-[color-on-primary-container]',
+      variable:
+        'bg-[color-tertiary-container] text-[color-on-tertiary-container]',
+      one_off:
+        'bg-[color-secondary-container] text-[color-on-secondary-container]',
+    };
+    return (
+      classes[recurrence] ||
+      'bg-[color-surface-container-high] text-[color-on-surface]'
+    );
   }
 }
