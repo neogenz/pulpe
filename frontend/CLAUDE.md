@@ -525,5 +525,5 @@ import { MatFormFieldModule } from "@angular/material/form-field";
 
 ## Angular Material Best Practices
 
-- **Button Directives**: N'utilie pas la directive "mat-button" mais "matButton" pour tous les boutons Angular Material, comme documenté dans la version 20.
+- **Button Directives**: N'utilise pas la directive "mat-button" mais "matButton" pour tous les boutons Angular Material, comme documenté dans la version 20.
 ```
