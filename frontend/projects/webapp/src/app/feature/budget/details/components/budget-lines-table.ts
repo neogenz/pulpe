@@ -81,16 +81,18 @@ interface EditingLine {
             <th mat-header-cell *matHeaderCellDef>Description</th>
             <td mat-cell *matCellDef="let line">
               @if (isEditing(line.id)) {
-                <div class="py-1">
+                <div class="py-2">
                   <mat-form-field
                     appearance="outline"
-                    class="w-full dense-field"
+                    class="w-full"
+                    subscriptSizing="dynamic"
                   >
                     <input
                       matInput
                       [(ngModel)]="editingLine()!.name"
                       placeholder="Nom de la ligne"
                       [attr.data-testid]="'edit-name-' + line.id"
+                      class="text-body-medium"
                     />
                   </mat-form-field>
                 </div>
@@ -120,10 +122,11 @@ interface EditingLine {
             </th>
             <td mat-cell *matCellDef="let line" class="text-right">
               @if (isEditing(line.id)) {
-                <div class="py-1 flex justify-end">
+                <div class="py-2 flex justify-end">
                   <mat-form-field
                     appearance="outline"
-                    class="w-24 md:w-32 dense-field"
+                    class="w-28 md:w-36"
+                    subscriptSizing="dynamic"
                   >
                     <input
                       matInput
@@ -133,8 +136,9 @@ interface EditingLine {
                       step="0.01"
                       min="0"
                       [attr.data-testid]="'edit-amount-' + line.id"
+                      class="text-body-medium text-right"
                     />
-                    <span matTextSuffix>CHF</span>
+                    <span matTextSuffix class="text-body-small">CHF</span>
                   </mat-form-field>
                 </div>
               } @else {
@@ -241,44 +245,12 @@ interface EditingLine {
       display: block;
     }
 
-    .dense-field {
-      ::ng-deep .mat-mdc-form-field-wrapper {
-        padding-bottom: 0;
-      }
-      ::ng-deep .mat-mdc-form-field-subscript-wrapper {
-        display: none;
-      }
-      ::ng-deep .mat-mdc-form-field-infix {
-        min-height: 40px;
-        padding-top: 8px;
-        padding-bottom: 8px;
-      }
-    }
-
     table {
       background: transparent;
     }
 
     .mat-mdc-row:hover {
       cursor: pointer;
-    }
-
-    /* Mobile adjustments */
-    :host.mobile-view {
-      .mat-mdc-table {
-        font-size: 0.875rem;
-      }
-
-      .mat-mdc-cell,
-      .mat-mdc-header-cell {
-        padding: 8px;
-      }
-
-      .dense-field {
-        ::ng-deep .mat-mdc-form-field {
-          font-size: 0.875rem;
-        }
-      }
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
