@@ -3,6 +3,8 @@ import {
   Component,
   inject,
   input,
+  signal,
+  computed,
 } from '@angular/core';
 import { resource } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
@@ -68,7 +70,7 @@ import { type BudgetLineCreate, type BudgetLineUpdate } from '@pulpe/shared';
         <!-- Header -->
         <header class="flex items-start gap-4">
           <button
-            matIconButton
+            mat-icon-button
             (click)="navigateBack()"
             aria-label="Retour aux budgets"
             data-testid="back-button"
@@ -94,6 +96,7 @@ import { type BudgetLineCreate, type BudgetLineUpdate } from '@pulpe/shared';
         <!-- Budget Lines Table -->
         <pulpe-budget-lines-table
           [budgetLines]="budgetLines"
+          [operationsInProgress]="operationsInProgress()"
           (updateClicked)="handleUpdateBudgetLine($event.id, $event.update)"
           (deleteClicked)="handleDeleteBudgetLine($event)"
           (addClicked)="openAddBudgetLineDialog()"
@@ -172,6 +175,12 @@ export default class DetailsPage {
 
   id = input.required<string>();
 
+  // Track operations in progress
+  #operationsInProgress = signal(new Set<string>());
+
+  // Expose operations in progress as computed signal
+  operationsInProgress = computed(() => this.#operationsInProgress());
+
   // Load budget details
   budgetDetails = resource({
     params: () => this.id(),
@@ -210,20 +219,48 @@ export default class DetailsPage {
   }
 
   async handleCreateBudgetLine(budgetLine: BudgetLineCreate): Promise<void> {
-    try {
-      await firstValueFrom(this.#budgetLineApi.createBudgetLine$(budgetLine));
+    const tempId = `temp-${Date.now()}`;
 
-      // Reload data to reflect changes
-      this.budgetDetails.reload();
+    // Track operation in progress
+    this.#operationsInProgress.update((ops) => new Set(ops).add(tempId));
+
+    try {
+      // Make the API call first to get the server-generated data
+      const response = await firstValueFrom(
+        this.#budgetLineApi.createBudgetLine$(budgetLine),
+      );
+
+      // Update resource with the new budget line from server
+      this.budgetDetails.update((details) => {
+        if (!details) return details;
+
+        return {
+          ...details,
+          data: {
+            ...details.data,
+            budgetLines: [...details.data.budgetLines, response.data],
+          },
+        };
+      });
 
       this.#snackBar.open('Prévision ajoutée.', 'OK', {
         duration: 3000,
       });
     } catch (error) {
+      // On error, reload to ensure consistency with server
+      this.budgetDetails.reload();
+
       this.#snackBar.open("Erreur lors de l'ajout de la prévision", 'OK', {
         duration: 5000,
       });
       console.error('Error creating budget line:', error);
+    } finally {
+      // Remove operation from tracking
+      this.#operationsInProgress.update((ops) => {
+        const newOps = new Set(ops);
+        newOps.delete(tempId);
+        return newOps;
+      });
     }
   }
 
@@ -231,16 +268,61 @@ export default class DetailsPage {
     id: string,
     update: BudgetLineUpdate,
   ): Promise<void> {
-    try {
-      await firstValueFrom(this.#budgetLineApi.updateBudgetLine$(id, update));
+    // Track operation in progress
+    this.#operationsInProgress.update((ops) => new Set(ops).add(id));
 
-      // Reload data to reflect changes
-      this.budgetDetails.reload();
+    // Store original data for rollback
+    const originalData = this.budgetDetails.value();
+
+    // Optimistic update
+    this.budgetDetails.update((details) => {
+      if (!details) return details;
+
+      return {
+        ...details,
+        data: {
+          ...details.data,
+          budgetLines: details.data.budgetLines.map((line) =>
+            line.id === id
+              ? { ...line, ...update, updatedAt: new Date().toISOString() }
+              : line,
+          ),
+        },
+      };
+    });
+
+    try {
+      // Make the API call
+      const response = await firstValueFrom(
+        this.#budgetLineApi.updateBudgetLine$(id, update),
+      );
+
+      // Update with server response to ensure consistency
+      this.budgetDetails.update((details) => {
+        if (!details) return details;
+
+        return {
+          ...details,
+          data: {
+            ...details.data,
+            budgetLines: details.data.budgetLines.map((line) =>
+              line.id === id ? response.data : line,
+            ),
+          },
+        };
+      });
 
       this.#snackBar.open('Prévision modifiée.', 'OK', {
         duration: 3000,
       });
     } catch (error) {
+      // Rollback on error
+      if (originalData) {
+        this.budgetDetails.set(originalData);
+      } else {
+        this.budgetDetails.reload();
+      }
+
       this.#snackBar.open(
         'Erreur lors de la modification de la prévision',
         'OK',
@@ -249,6 +331,13 @@ export default class DetailsPage {
         },
       );
       console.error('Error updating budget line:', error);
+    } finally {
+      // Remove operation from tracking
+      this.#operationsInProgress.update((ops) => {
+        const newOps = new Set(ops);
+        newOps.delete(id);
+        return newOps;
+      });
     }
   }
 
@@ -269,16 +358,42 @@ export default class DetailsPage {
       return;
     }
 
-    try {
-      await firstValueFrom(this.#budgetLineApi.deleteBudgetLine$(id));
+    // Track operation in progress
+    this.#operationsInProgress.update((ops) => new Set(ops).add(id));
 
-      // Reload data to reflect changes
-      this.budgetDetails.reload();
+    // Store original data for rollback
+    const originalData = this.budgetDetails.value();
+
+    // Optimistic update - remove the item immediately
+    this.budgetDetails.update((details) => {
+      if (!details) return details;
+
+      return {
+        ...details,
+        data: {
+          ...details.data,
+          budgetLines: details.data.budgetLines.filter(
+            (line) => line.id !== id,
+          ),
+        },
+      };
+    });
+
+    try {
+      // Make the API call
+      await firstValueFrom(this.#budgetLineApi.deleteBudgetLine$(id));
 
       this.#snackBar.open('Prévision supprimée.', 'OK', {
         duration: 3000,
       });
     } catch (error) {
+      // Rollback on error
+      if (originalData) {
+        this.budgetDetails.set(originalData);
+      } else {
+        this.budgetDetails.reload();
+      }
+
       this.#snackBar.open(
         'Erreur lors de la suppression de la prévision',
         'OK',
@@ -287,6 +402,13 @@ export default class DetailsPage {
         },
       );
       console.error('Error deleting budget line:', error);
+    } finally {
+      // Remove operation from tracking
+      this.#operationsInProgress.update((ops) => {
+        const newOps = new Set(ops);
+        newOps.delete(id);
+        return newOps;
+      });
     }
   }
 }

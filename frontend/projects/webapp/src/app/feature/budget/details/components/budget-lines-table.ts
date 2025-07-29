@@ -168,7 +168,7 @@ interface EditingLine {
                 @if (isEditing(line.id)) {
                   <div class="flex items-center gap-2">
                     <button
-                      matButton="outlined"
+                      mat-button
                       (click)="cancelEdit()"
                       [attr.aria-label]="'Cancel editing ' + line.name"
                       [attr.data-testid]="'cancel-' + line.id"
@@ -178,7 +178,7 @@ interface EditingLine {
                       Annuler
                     </button>
                     <button
-                      matButton="filled"
+                      mat-flat-button
                       (click)="saveEdit()"
                       [attr.aria-label]="'Save ' + line.name"
                       [attr.data-testid]="'save-' + line.id"
@@ -195,6 +195,7 @@ interface EditingLine {
                     (click)="startEdit(line)"
                     [attr.aria-label]="'Edit ' + line.name"
                     [attr.data-testid]="'edit-' + line.id"
+                    [disabled]="isLoading(line.id)"
                     class="!w-10 !h-10"
                   >
                     <mat-icon>edit</mat-icon>
@@ -204,6 +205,7 @@ interface EditingLine {
                     (click)="deleteClicked.emit(line.id)"
                     [attr.aria-label]="'Delete ' + line.name"
                     [attr.data-testid]="'delete-' + line.id"
+                    [disabled]="isLoading(line.id)"
                     class="!w-10 !h-10 text-[color-error]"
                   >
                     <mat-icon>delete</mat-icon>
@@ -217,7 +219,9 @@ interface EditingLine {
           <tr
             mat-row
             *matRowDef="let row; columns: currentColumns()"
-            class="hover:bg-[color-surface-container-low]"
+            class="hover:bg-[color-surface-container-low] transition-opacity"
+            [class.opacity-50]="isLoading(row.id)"
+            [class.pointer-events-none]="isLoading(row.id)"
           ></tr>
 
           <!-- No data row -->
@@ -273,6 +277,7 @@ interface EditingLine {
 })
 export class BudgetLinesTable {
   budgetLines = input.required<BudgetLine[]>();
+  operationsInProgress = input<Set<string>>(new Set());
   updateClicked = output<{ id: string; update: BudgetLineUpdate }>();
   deleteClicked = output<string>();
   addClicked = output<void>();
@@ -296,6 +301,10 @@ export class BudgetLinesTable {
 
   isEditing(id: string): boolean {
     return this.editingLine()?.id === id;
+  }
+
+  isLoading(id: string): boolean {
+    return this.operationsInProgress().has(id);
   }
 
   startEdit(line: BudgetLine): void {
