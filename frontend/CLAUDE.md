@@ -522,3 +522,8 @@ import { MatFormFieldModule } from "@angular/material/form-field";
 - `projects/webapp/src/app/styles/` - Global styles and theming
 - `projects/webapp/src/app/core/` - Core application services
 - `e2e/` - End-to-end test suites
+
+## Angular Material Best Practices
+
+- **Button Directives**: N'utilie pas la directive "mat-button" mais "matButton" pour tous les boutons Angular Material, comme documenté dans la version 20.
+```

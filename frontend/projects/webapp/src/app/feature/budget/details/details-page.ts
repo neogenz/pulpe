@@ -14,6 +14,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { DatePipe } from '@angular/common';
 import { formatDate } from 'date-fns';
 import { frCH } from 'date-fns/locale';
@@ -21,6 +22,10 @@ import { BudgetLineApi } from './services/budget-line-api';
 import { BudgetLinesTable } from './components/budget-lines-table';
 import { BudgetLineForm } from './components/budget-line-form';
 import { BudgetFinancialOverview } from './components/budget-financial-overview';
+import {
+  ConfirmationDialogComponent,
+  type ConfirmationDialogData,
+} from '../../../ui/dialogs/confirmation-dialog';
 import {
   type BudgetLine,
   type BudgetLineCreate,
@@ -35,6 +40,7 @@ import {
     MatButtonModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
+    MatDialogModule,
     DatePipe,
     BudgetLinesTable,
     BudgetLineForm,
@@ -187,6 +193,7 @@ export default class DetailsPage {
   #router = inject(Router);
   #route = inject(ActivatedRoute);
   #snackBar = inject(MatSnackBar);
+  #dialog = inject(MatDialog);
 
   id = input.required<string>();
 
@@ -303,7 +310,23 @@ export default class DetailsPage {
     }
   }
 
-  handleDeleteBudgetLine(id: string): void {
+  async handleDeleteBudgetLine(id: string): Promise<void> {
+    const dialogRef = this.#dialog.open(ConfirmationDialogComponent, {
+      data: {
+        title: 'Supprimer la ligne',
+        message: 'Êtes-vous sûr de vouloir supprimer cette ligne ?',
+        confirmText: 'Supprimer',
+        confirmColor: 'warn',
+      } satisfies ConfirmationDialogData,
+      width: '400px',
+    });
+
+    const confirmed = await firstValueFrom(dialogRef.afterClosed());
+
+    if (!confirmed) {
+      return;
+    }
+
     // Check if it's a new line
     const newLineIndex = this.newBudgetLines().findIndex(
       (line) => line.id === id,
