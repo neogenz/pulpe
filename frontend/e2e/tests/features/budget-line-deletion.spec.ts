@@ -52,10 +52,10 @@ test.describe('Budget Line Deletion Dialog', () => {
     // Utilisez les méthodes du Page Object pour les assertions
     await expect(budgetDetailsPage.getDialog()).toBeVisible();
     await expect(budgetDetailsPage.getDialogTitle()).toHaveText(
-      'Supprimer la ligne',
+      'Supprimer la prévision',
     );
     await expect(budgetDetailsPage.getDialogMessage()).toHaveText(
-      'Êtes-vous sûr de vouloir supprimer cette ligne ?',
+      'Êtes-vous sûr de vouloir supprimer cette prévision ?',
     );
     await expect(budgetDetailsPage.getCancelButton()).toBeVisible();
     await expect(budgetDetailsPage.getConfirmDeleteButton()).toBeVisible();
