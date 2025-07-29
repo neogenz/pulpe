@@ -124,7 +124,7 @@ import { environment } from '../../environments/environment';
           />
 
           <main class="flex-1 overflow-auto min-h-0">
-            <div class="p-4 2xl:h-full">
+            <div class="p-4">
               <router-outlet />
             </div>
           </main>
