@@ -146,7 +146,7 @@ interface EditingLine {
                       (keydown.escape)="cancelEdit()"
                       #amountInput
                     />
-                    <span matTextSuffix class="text-body-small">CHF</span>
+                    <span matTextSuffix>CHF</span>
                   </mat-form-field>
                 </form>
               } @else {
