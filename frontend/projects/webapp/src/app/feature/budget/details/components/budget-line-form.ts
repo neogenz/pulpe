@@ -39,7 +39,7 @@ interface BudgetLineFormData {
     <mat-card appearance="outlined">
       <mat-card-header>
         <mat-card-title class="text-headline-small">
-          Ajouter une ligne de budget
+          Ajouter une prévision
         </mat-card-title>
       </mat-card-header>
       <mat-card-content>
@@ -93,14 +93,14 @@ interface BudgetLineFormData {
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="w-full">
-              <mat-label>Récurrence</mat-label>
+              <mat-label>Fréquence</mat-label>
               <mat-select
                 [(ngModel)]="formData.recurrence"
                 data-testid="new-line-recurrence"
               >
-                <mat-option value="fixed">Fixe</mat-option>
+                <mat-option value="fixed">Tous les mois</mat-option>
                 <mat-option value="variable">Variable</mat-option>
-                <mat-option value="one_off">Ponctuel</mat-option>
+                <mat-option value="one_off">Une seule fois</mat-option>
               </mat-select>
             </mat-form-field>
           </div>

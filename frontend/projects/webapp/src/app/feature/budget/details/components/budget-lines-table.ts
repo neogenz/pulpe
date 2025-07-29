@@ -48,7 +48,7 @@ interface EditingLine {
   template: `
     <mat-card appearance="outlined">
       <mat-card-header>
-        <mat-card-title>Lignes de budget</mat-card-title>
+        <mat-card-title>Prévisions du budget</mat-card-title>
         <mat-card-subtitle>
           Gérez vos revenus, dépenses et épargnes
         </mat-card-subtitle>
@@ -95,7 +95,7 @@ interface EditingLine {
 
           <!-- Recurrence Column -->
           <ng-container matColumnDef="recurrence">
-            <th mat-header-cell *matHeaderCellDef>Récurrence</th>
+            <th mat-header-cell *matHeaderCellDef>Fréquence</th>
             <td mat-cell *matCellDef="let line">
               <span class="text-label-medium text-[color-on-surface-variant]">
                 {{ getRecurrenceLabel(line.recurrence) }}
@@ -195,7 +195,7 @@ interface EditingLine {
               [attr.colspan]="currentColumns().length"
             >
               <p class="text-body-medium text-[color-on-surface-variant]">
-                Aucune ligne de budget définie
+                Aucune prévision définie
               </p>
               <button
                 mat-stroked-button
@@ -204,21 +204,21 @@ interface EditingLine {
                 data-testid="add-first-line"
               >
                 <mat-icon>add</mat-icon>
-                Ajouter une ligne
+                Commencer à planifier
               </button>
             </td>
           </tr>
         </table>
       </mat-card-content>
       @if (budgetLines().length > 0) {
-        <mat-card-actions>
+        <mat-card-actions class="flex justify-center mb-2">
           <button
             mat-stroked-button
             (click)="addClicked.emit()"
             data-testid="add-budget-line"
           >
             <mat-icon>add</mat-icon>
-            Ajouter une ligne
+            Ajouter une prévision
           </button>
         </mat-card-actions>
       }
@@ -363,9 +363,9 @@ export class BudgetLinesTable {
 
   getRecurrenceLabel(recurrence: TransactionRecurrence): string {
     const labels: Record<TransactionRecurrence, string> = {
-      fixed: 'Fixe',
+      fixed: 'Tous les mois',
       variable: 'Variable',
-      one_off: 'Ponctuel',
+      one_off: 'Une seule fois',
     };
     return labels[recurrence] || recurrence;
   }
