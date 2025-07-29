@@ -523,7 +523,54 @@ import { MatFormFieldModule } from "@angular/material/form-field";
 - `projects/webapp/src/app/core/` - Core application services
 - `e2e/` - End-to-end test suites
 
+## UX Guidelines & Vocabulary
+
+### Business Vocabulary (Critical for Consistency)
+
+**IMPORTANT**: Pulpe maintains a strict separation between planning and reality. Follow this vocabulary precisely:
+
+#### Core Terminology
+- **`budget_lines` (Technical)** = **"prévisions"** (User-facing)
+  - Use "prévisions" in ALL user interfaces
+  - Never use "lignes budgétaires" (too technical)
+  - Examples: "Nouvelle prévision", "Prévisions du budget", "Aucune prévision définie"
+
+#### Financial Overview Labels
+- **"Disponible à dépenser"** (not "Reste disponible")
+- **"Épargne prévue"** (not "Économies") 
+- **"Fréquence"** (not "Récurrence")
+
+#### Recurrence/Frequency Options
+- **"Tous les mois"** (for `fixed` value) - recurring monthly expenses/income
+- **"Une seule fois"** (for `one_off` value) - one-time transactions
+- **"Variable"** (for `variable` value) - when applicable
+
+#### Transaction Types
+- **Default type**: `FIXED_EXPENSE` (Dépense) - most common use case
+- **Available types**: 
+  - "Revenu" (`INCOME`)
+  - "Dépense" (`FIXED_EXPENSE`) 
+  - "Épargne" (`SAVINGS_CONTRIBUTION`)
+
+### UX Principles Applied
+
+This vocabulary follows **Nielsen's 10 Usability Heuristics**, **Bastien & Scapin 8 Ergonomic Criteria**, and **ISO 9241-210:2019**:
+
+1. **Match between system and real world**: "Tous les mois" vs technical "Montant fixe"
+2. **Recognition rather than recall**: Clear, descriptive labels
+3. **Consistency**: Same vocabulary across all components
+4. **Error prevention**: Logical defaults (Dépense, Tous les mois)
+
+### Message Patterns
+- **Success**: "Prévision ajoutée. Cliquez sur 'Enregistrer' pour sauvegarder."
+- **Confirmation**: "Êtes-vous sûr de vouloir supprimer cette prévision ?"
+- **Empty states**: "Aucune prévision définie", "Commencer à planifier"
+
+### Business Logic Context
+- **Prévisions** (`budget_lines`) = Planned income/expenses (the plan)
+- **Transactions** = Actual spending during the month (the reality)
+- This distinction is critical for user comprehension and system integrity
+
 ## Angular Material Best Practices
 
 - **Button Directives**: N'utilise pas la directive "mat-button" mais "matButton" pour tous les boutons Angular Material, comme documenté dans la version 20.
-```
