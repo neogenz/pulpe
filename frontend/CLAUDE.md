@@ -187,85 +187,28 @@ Use correct surface containers based on content hierarchy:
 
 ```html
 <!-- Primary content -->
-<div class="bg-[color-surface]">Content</div>
-
-<!-- Secondary content -->
-<div class="bg-[color-surface-container]">Content</div>
-
-<!-- Tertiary content -->
-<div class="bg-[color-surface-container-high]">Content</div>
-
-<!-- Emphasis levels -->
-<div class="bg-[color-surface-container-highest]">Highest emphasis</div>
-<div class="bg-[color-surface-container-low]">Low emphasis</div>
-<div class="bg-[color-surface-container-lowest]">Lowest emphasis</div>
+<div class="bg-*">Content</div>
 ```
+
+By using Tailwind overriding defined here : @frontend/projects/webapp/src/app/styles/vendors/\_tailwind.css
 
 #### Color System Integration
 
 **Angular Material + Tailwind Color Mapping**:
 
-The color system uses CSS variables mapped in `@theme inline` section of `_tailwind.css`:
+The color system uses CSS variables mapped in `@theme inline` section of @frontend/projects/webapp/src/app/styles/vendors/\_tailwind.css
 
-```css
-/* Available color variables (use with arbitrary values) */
-bg-[color-primary], text-[color-primary]
-bg-[color-on-primary], text-[color-on-primary]
-bg-[color-primary-container], text-[color-on-primary-container]
-
-bg-[color-secondary], text-[color-secondary]
-bg-[color-secondary-container], text-[color-on-secondary-container]
-
-bg-[color-tertiary], text-[color-tertiary]
-bg-[color-tertiary-container], text-[color-on-tertiary-container]
-
-bg-[color-surface], text-[color-on-surface]
-bg-[color-surface-container], text-[color-on-surface]
-bg-[color-surface-container-high], text-[color-on-surface]
-bg-[color-surface-container-highest], text-[color-on-surface]
-bg-[color-surface-container-low], text-[color-on-surface]
-bg-[color-surface-container-lowest], text-[color-on-surface]
-bg-[color-surface-variant], text-[color-on-surface-variant]
-
-bg-[color-error], text-[color-error]
-bg-[color-error-container], text-[color-on-error-container]
-
-bg-[color-outline], text-[color-outline]
-bg-[color-outline-variant], text-[color-outline-variant]
-```
-
-**IMPORTANT**: Use arbitrary values syntax `bg-[color-primary]` since colors are defined as CSS variables.
+**IMPORTANT**: Use arbitrary values syntax `bg-primary` since colors are defined as CSS variables.
 
 #### Typography System
 
 **Material Design 3 Type Scale** (via Tailwind utilities):
 
 ```html
-<!-- Display -->
-<h1 class="text-display-large">Display Large</h1>
-<h2 class="text-display-medium">Display Medium</h2>
-<h3 class="text-display-small">Display Small</h3>
-
-<!-- Headline -->
-<h1 class="text-headline-large">Headline Large</h1>
-<h2 class="text-headline-medium">Headline Medium</h2>
-<h3 class="text-headline-small">Headline Small</h3>
-
-<!-- Title -->
-<h4 class="text-title-large">Title Large</h4>
-<h5 class="text-title-medium">Title Medium</h5>
-<h6 class="text-title-small">Title Small</h6>
-
-<!-- Body -->
-<p class="text-body-large">Body Large</p>
-<p class="text-body-medium">Body Medium</p>
-<p class="text-body-small">Body Small</p>
-
-<!-- Label -->
-<span class="text-label-large">Label Large</span>
-<span class="text-label-medium">Label Medium</span>
-<span class="text-label-small">Label Small</span>
+<div class="text-*">Text</div>
 ```
+
+By using Tailwind overriding defined here : @frontend/projects/webapp/src/app/styles/vendors/\_tailwind.css
 
 #### Responsive Design - Mobile First
 
@@ -315,117 +258,17 @@ import { MatFormFieldModule } from "@angular/material/form-field";
 
 - Full Material Design 3 color palette mapped to Tailwind
 - Typography scale utilities (`text-display-large`, `text-body-medium`, etc.)
-- Angular Material radius variables (use arbitrary values: `rounded-[radius-corner-medium]`)
+- Angular Material radius variables (use arbitrary values: `rounded-corner-medium`)
 - Dark mode support with `.dark-theme` class
 - Custom financial color utilities (`text-financial-income`, `text-financial-negative`)
 - Custom utility classes (`form-field-error-icon`, `icon-filled`)
 - Built-in animations (`animate-fadeIn`, `animate-marquee`)
 
-#### Border Radius System
-
-**Material Design 3 Radius Values** (use with arbitrary values):
-
-```html
-<!-- Material Design 3 radius utilities -->
-<div class="rounded-[radius-corner-extra-small]">Extra small radius</div>
-<div class="rounded-[radius-corner-small]">Small radius</div>
-<div class="rounded-[radius-corner-medium]">Medium radius</div>
-<div class="rounded-[radius-corner-large]">Large radius</div>
-<div class="rounded-[radius-corner-extra-large]">Extra large radius</div>
-<div class="rounded-[radius-corner-full]">Full radius</div>
-
-<!-- Material card radius -->
-<mat-card class="rounded-[radius-mat-card]"> Card with Material Design radius </mat-card>
-```
-
-#### Custom Animations
-
-**Available Animations**:
-
-```html
-<!-- Fade in animation -->
-<div class="animate-fadeIn">Content fades in</div>
-
-<!-- Marquee animation -->
-<div class="animate-marquee">Scrolling content</div>
-
-<!-- Vertical marquee -->
-<div class="animate-marquee-vertical">Vertical scrolling</div>
-```
-
-#### Icon Utilities
-
-**Material Icons Enhancement**:
-
-```html
-<!-- Filled icon variant -->
-<mat-icon class="icon-filled">favorite</mat-icon>
-
-<!-- Form field error icon -->
-<mat-icon class="form-field-error-icon">error</mat-icon>
-```
-
-#### Component Architecture
-
-**Material Component Structure**:
-
-```typescript
-@Component({
-  selector: 'app-feature',
-  standalone: true,
-  imports: [MatButtonModule, MatCardModule],
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <mat-card class="bg-[color-surface-container]">
-      <mat-card-header>
-        <mat-card-title class="text-headline-medium">
-          Feature Title
-        </mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <p class="text-body-medium text-[color-on-surface]">
-          Content with proper typography and colors
-        </p>
-      </mat-card-content>
-      <mat-card-actions>
-        <button mat-filled-button color="primary">
-          Primary Action
-        </button>
-      </mat-card-actions>
-    </mat-card>
-  `
-})
-```
-
-#### Dark Mode Support
-
-**Implementation**: Use `.dark-theme` class:
-
-```html
-<!-- Dark mode toggle -->
-<button (click)="toggleDarkMode()">{{ isDarkMode ? 'Light' : 'Dark' }} Mode</button>
-
-<!-- Dark mode styling -->
-<div class="dark:bg-[color-surface-container-high]">Content adapts to dark mode</div>
-```
-
 #### Mobile-First Breakpoints
 
 **Responsive Design Guidelines**:
 
-```html
-<!-- Mobile first with progressive enhancement -->
-<div
-  class="
-  flex flex-col           <!-- Mobile: vertical stack -->
-  md:flex-row             <!-- Tablet: horizontal -->
-  lg:gap-8                <!-- Desktop: larger gaps -->
-  xl:max-w-7xl            <!-- Large desktop: max width -->
-"
->
-  <!-- Content -->
-</div>
-```
+Follow Tailwind standards breakpoint.
 
 **Standard Breakpoints**:
 
@@ -439,31 +282,14 @@ import { MatFormFieldModule } from "@angular/material/form-field";
 **Material Design 3 Forms**:
 
 ```html
-<mat-form-field class="w-full">
-  <mat-label>Input Label</mat-label>
-  <input matInput placeholder="Placeholder" />
-  <mat-error>Error message</mat-error>
+<mat-form-field>
+  <mat-label>Enter your email</mat-label>
+  <input matInput placeholder="pat@example.com" [formControl]="email" (blur)="updateErrorMessage()" required />
+  @if (email.invalid) {
+  <mat-error>{{errorMessage()}}</mat-error>
+  }
 </mat-form-field>
 ```
-
-#### Accessibility
-
-**Material Design 3 Accessibility Requirements**:
-
-- Minimum touch target size: 44px
-- Color contrast ratios: AA compliance
-- Screen reader support
-- Keyboard navigation
-- Focus indicators
-
-#### Performance Optimization
-
-**Design System Performance**:
-
-- Use Angular Material's OnPush change detection
-- Lazy load non-critical Material modules
-- Optimize Tailwind purging for production
-- Use Material's built-in animations sparingly
 
 ## Code Quality
 
@@ -500,14 +326,6 @@ import { MatFormFieldModule } from "@angular/material/form-field";
 - User-friendly error messages
 - Proper error logging and monitoring
 
-## Development Workflow
-
-1. Start with `pnpm run start` for development
-2. Use `pnpm run test:watch` for continuous testing
-3. Run `pnpm run format` before committing
-4. Use `pnpm run lint` to check code quality
-5. Verify with `pnpm run deps:circular` for dependency issues
-
 ## Build & Deployment
 
 - Production build: `pnpm run build`
@@ -519,7 +337,7 @@ import { MatFormFieldModule } from "@angular/material/form-field";
 
 - `projects/webapp/src/app/app.config.ts` - Application configuration
 - `projects/webapp/src/main.ts` - Application bootstrap
-- `projects/webapp/src/app/styles/` - Global styles and theming
+- `projects/webapp/src/app/styles/` - Global styles and theming - HERE is the Tailwind overriding with Angular Material System Variables implementing well Material Design 3
 - `projects/webapp/src/app/core/` - Core application services
 - `e2e/` - End-to-end test suites
 
@@ -530,31 +348,35 @@ import { MatFormFieldModule } from "@angular/material/form-field";
 **IMPORTANT**: Pulpe maintains a strict separation between planning and reality. Follow this vocabulary precisely:
 
 #### Core Terminology
+
 - **`budget_lines` (Technical)** = **"prévisions"** (User-facing)
   - Use "prévisions" in ALL user interfaces
   - Never use "lignes budgétaires" (too technical)
   - Examples: "Nouvelle prévision", "Prévisions du budget", "Aucune prévision définie"
 
 #### Financial Overview Labels
+
 - **"Disponible à dépenser"** (not "Reste disponible")
-- **"Épargne prévue"** (not "Économies") 
+- **"Épargne prévue"** (not "Économies")
 - **"Fréquence"** (not "Récurrence")
 
 #### Recurrence/Frequency Options
+
 - **"Tous les mois"** (for `fixed` value) - recurring monthly expenses/income
 - **"Une seule fois"** (for `one_off` value) - one-time transactions
 - **"Variable"** (for `variable` value) - when applicable
 
 #### Transaction Types
+
 - **Default type**: `FIXED_EXPENSE` (Dépense) - most common use case
-- **Available types**: 
+- **Available types**:
   - "Revenu" (`INCOME`)
-  - "Dépense" (`FIXED_EXPENSE`) 
+  - "Dépense" (`FIXED_EXPENSE`)
   - "Épargne" (`SAVINGS_CONTRIBUTION`)
 
 ### UX Principles Applied
 
-This vocabulary follows **Nielsen's 10 Usability Heuristics**, **Bastien & Scapin 8 Ergonomic Criteria**, and **ISO 9241-210:2019**:
+This vocabulary and UX must follows **Nielsen's 10 Usability Heuristics**, **Bastien & Scapin 8 Ergonomic Criteria**, and **ISO 9241-210:2019**:
 
 1. **Match between system and real world**: "Tous les mois" vs technical "Montant fixe"
 2. **Recognition rather than recall**: Clear, descriptive labels
@@ -562,15 +384,11 @@ This vocabulary follows **Nielsen's 10 Usability Heuristics**, **Bastien & Scapi
 4. **Error prevention**: Logical defaults (Dépense, Tous les mois)
 
 ### Message Patterns
+
 - **Success**: "Prévision ajoutée."
 - **Delete success**: "Prévision supprimée."
 - **Confirmation**: "Êtes-vous sûr de vouloir supprimer cette prévision ?"
 - **Empty states**: "Aucune prévision définie", "Commencer à planifier"
-
-### Business Logic Context
-- **Prévisions** (`budget_lines`) = Planned income/expenses (the plan)
-- **Transactions** = Actual spending during the month (the reality)
-- This distinction is critical for user comprehension and system integrity
 
 ## Angular Material Best Practices
 
