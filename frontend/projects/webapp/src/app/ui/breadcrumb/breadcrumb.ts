@@ -1,8 +1,15 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  input,
+  contentChildren,
+  contentChild,
+  computed,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { PulpeBreadcrumbNew } from './breadcrumb-new.component';
 import { BreadcrumbItemDirective } from './breadcrumb-item.directive';
 import { BreadcrumbSeparatorDirective } from './breadcrumb-separator.directive';
 
@@ -16,43 +23,70 @@ export interface BreadcrumbItemViewModel {
 @Component({
   selector: 'pulpe-breadcrumb',
   standalone: true,
-  imports: [
-    RouterLink,
-    MatIconModule,
-    MatButtonModule,
-    PulpeBreadcrumbNew,
-    BreadcrumbItemDirective,
-    BreadcrumbSeparatorDirective,
-  ],
+  imports: [NgTemplateOutlet, RouterLink, MatIconModule, MatButtonModule],
   template: `
-    @if (items().length >= 2) {
-      <pulpe-breadcrumb-new>
-        @for (item of items(); track item.url; let isLast = $last) {
-          @if (!isLast) {
-            <a
-              mat-button
-              *pulpeBreadcrumbItem
-              [routerLink]="item.url"
-              class="min-w-0 px-2 text-on-surface-variant hover:text-primary"
-            >
-              @if (item.icon) {
-                <mat-icon class="!text-base mr-1">{{ item.icon }}</mat-icon>
-              }
-              {{ item.label }}
-            </a>
-          } @else {
-            <span
-              *pulpeBreadcrumbItem
-              class="flex items-center gap-1 text-on-surface font-medium px-2"
-            >
-              @if (item.icon) {
-                <mat-icon class="!text-base">{{ item.icon }}</mat-icon>
-              }
-              {{ item.label }}
-            </span>
+    @if (hasContentProjection()) {
+      <!-- Content projection mode -->
+      <nav [attr.aria-label]="ariaLabel()">
+        <ol class="flex items-center list-none p-0 m-0 flex-wrap text-sm">
+          @for (item of projectedItems(); track item; let last = $last) {
+            <li>
+              <ng-template [ngTemplateOutlet]="item.templateRef"></ng-template>
+            </li>
+            @if (!last) {
+              <li aria-hidden="true">
+                @if (separatorTemplateRef()) {
+                  <ng-template
+                    [ngTemplateOutlet]="separatorTemplateRef()!.templateRef"
+                  ></ng-template>
+                } @else {
+                  <mat-icon class="!text-base text-outline align-middle"
+                    >chevron_right</mat-icon
+                  >
+                }
+              </li>
+            }
           }
-        }
-      </pulpe-breadcrumb-new>
+        </ol>
+      </nav>
+    } @else if (items().length >= 2) {
+      <!-- Data-driven mode -->
+      <nav [attr.aria-label]="ariaLabel()">
+        <ol class="flex items-center list-none p-0 m-0 flex-wrap text-sm">
+          @for (item of items(); track item.url; let isLast = $last) {
+            <li>
+              @if (!isLast) {
+                <a
+                  mat-button
+                  [routerLink]="item.url"
+                  class="min-w-0 px-2 text-on-surface-variant hover:text-primary"
+                >
+                  @if (item.icon) {
+                    <mat-icon class="!text-base mr-1">{{ item.icon }}</mat-icon>
+                  }
+                  {{ item.label }}
+                </a>
+              } @else {
+                <span
+                  class="flex items-center gap-1 text-on-surface font-medium px-2"
+                >
+                  @if (item.icon) {
+                    <mat-icon class="!text-base">{{ item.icon }}</mat-icon>
+                  }
+                  {{ item.label }}
+                </span>
+              }
+            </li>
+            @if (!isLast) {
+              <li aria-hidden="true">
+                <mat-icon class="!text-base text-outline align-middle"
+                  >chevron_right</mat-icon
+                >
+              </li>
+            }
+          }
+        </ol>
+      </nav>
     }
   `,
   styles: `
@@ -63,5 +97,19 @@ export interface BreadcrumbItemViewModel {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PulpeBreadcrumb {
-  readonly items = input.required<BreadcrumbItemViewModel[]>();
+  // Data-driven mode
+  readonly items = input<BreadcrumbItemViewModel[]>([]);
+
+  // Content projection mode
+  readonly ariaLabel = input<string>('Breadcrumb', { alias: 'aria-label' });
+  readonly projectedItems = contentChildren<BreadcrumbItemDirective>(
+    BreadcrumbItemDirective,
+  );
+  readonly separatorTemplateRef = contentChild<BreadcrumbSeparatorDirective>(
+    BreadcrumbSeparatorDirective,
+  );
+
+  readonly hasContentProjection = computed(
+    () => this.projectedItems().length > 0,
+  );
 }

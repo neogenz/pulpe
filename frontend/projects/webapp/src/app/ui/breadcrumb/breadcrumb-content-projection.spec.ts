@@ -2,50 +2,39 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Component } from '@angular/core';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { PulpeBreadcrumbNew } from './breadcrumb-new.component';
+import { PulpeBreadcrumb } from './breadcrumb';
 import { BreadcrumbItemDirective } from './breadcrumb-item.directive';
 import { BreadcrumbSeparatorDirective } from './breadcrumb-separator.directive';
-import { MatIconModule } from '@angular/material/icon';
-import { NgTemplateOutlet } from '@angular/common';
 
 @Component({
   template: `
-    <pulpe-breadcrumb-new>
+    <pulpe-breadcrumb>
       <span *pulpeBreadcrumbItem>Home</span>
       <span *pulpeBreadcrumbItem>Products</span>
       <span *pulpeBreadcrumbItem>Electronics</span>
-    </pulpe-breadcrumb-new>
+    </pulpe-breadcrumb>
   `,
-  imports: [
-    PulpeBreadcrumbNew,
-    BreadcrumbItemDirective,
-    MatIconModule,
-    NgTemplateOutlet,
-  ],
-  standalone: true,
+  imports: [PulpeBreadcrumb, BreadcrumbItemDirective],
 })
 class TestHostComponent {}
 
 @Component({
   template: `
-    <pulpe-breadcrumb-new>
+    <pulpe-breadcrumb>
       <span *pulpeBreadcrumbItem>Home</span>
       <span *pulpeBreadcrumbItem>Products</span>
       <span *pulpeBreadcrumbSeparator>/</span>
-    </pulpe-breadcrumb-new>
+    </pulpe-breadcrumb>
   `,
   imports: [
-    PulpeBreadcrumbNew,
+    PulpeBreadcrumb,
     BreadcrumbItemDirective,
     BreadcrumbSeparatorDirective,
-    MatIconModule,
-    NgTemplateOutlet,
   ],
-  standalone: true,
 })
 class TestHostWithCustomSeparatorComponent {}
 
-describe('PulpeBreadcrumbNew', () => {
+describe('PulpeBreadcrumb - Content Projection Mode', () => {
   let fixture: ComponentFixture<TestHostComponent>;
 
   beforeEach(async () => {
@@ -54,7 +43,6 @@ describe('PulpeBreadcrumbNew', () => {
         TestHostComponent,
         TestHostWithCustomSeparatorComponent,
         NoopAnimationsModule,
-        MatIconModule,
       ],
       providers: [provideZonelessChangeDetection()],
     }).compileComponents();
