@@ -6,7 +6,6 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import {
   provideZonelessChangeDetection,
-  signal,
   NO_ERRORS_SCHEMA,
   Component,
   EventEmitter,
@@ -15,6 +14,7 @@ import {
 } from '@angular/core';
 import { provideLocale } from '../../../core/locale';
 import { of, throwError, Subject, defer } from 'rxjs';
+import { createMockResourceRef } from '../../../test/test-utils';
 
 import { CreateBudgetDialogComponent } from './budget-creation-dialog';
 import { TemplateListItem } from './ui/template-list-item';
@@ -22,6 +22,11 @@ import { TemplateSelection } from './services/template-selection';
 import { TemplateApi } from '../../../core/template/template-api';
 import { BudgetApi } from '../../../core/budget/budget-api';
 import { type BudgetTemplate } from '@pulpe/shared';
+
+// Type-safe mock interface that includes internal methods
+interface MatDialogMock extends Partial<MatDialog> {
+  _getAfterAllClosed?: () => Subject<void>;
+}
 
 // ============================================================================
 // Test Helpers
@@ -49,9 +54,9 @@ const createTestTemplate = (
   name: 'Test Template',
   description: 'A test template',
   isDefault: false,
-  user_id: 'user-123',
-  created_at: '2024-01-01T00:00:00Z',
-  updated_at: '2024-01-01T00:00:00Z',
+  userId: 'user-123',
+  createdAt: '2024-01-01T00:00:00Z',
+  updatedAt: '2024-01-01T00:00:00Z',
   ...overrides,
 });
 
@@ -77,7 +82,7 @@ describe('CreateBudgetDialogComponent', () => {
   let fixture: ComponentFixture<CreateBudgetDialogComponent>;
   let mockDialogRef: Partial<MatDialogRef<CreateBudgetDialogComponent>>;
   let mockSnackBar: Partial<MatSnackBar>;
-  let mockDialog: Partial<MatDialog>;
+  let mockDialog: MatDialogMock;
   let mockBudgetApi: Partial<BudgetApi>;
   let mockTemplateApi: Partial<TemplateApi>;
 
@@ -99,8 +104,8 @@ describe('CreateBudgetDialogComponent', () => {
     };
 
     // Simplified dialog mock with required observables
-    const afterOpenedSubject = new Subject();
-    const afterAllClosedSubject = new Subject();
+    const afterOpenedSubject = new Subject<MatDialogRef<unknown, unknown>>();
+    const afterAllClosedSubject = new Subject<void>();
     mockDialog = {
       open: vi.fn().mockReturnValue({
         afterClosed: () => of(null),
@@ -110,20 +115,21 @@ describe('CreateBudgetDialogComponent', () => {
       openDialogs: [],
       afterOpened: afterOpenedSubject,
       afterAllClosed: afterAllClosedSubject,
-      _getAfterAllClosed: () => afterAllClosedSubject,
+      _getAfterAllClosed: vi.fn().mockReturnValue(afterAllClosedSubject),
     };
 
     mockBudgetApi = {
       createBudget$: vi.fn(),
     };
 
+    // Create a type-safe ResourceRef mock using helper
+    const templatesResourceMock = createMockResourceRef<
+      BudgetTemplate[] | undefined
+    >([]);
+
     mockTemplateApi = {
-      templatesResource: {
-        value: signal([]),
-        isLoading: signal(false),
-        error: signal(null),
-        reload: vi.fn(),
-      },
+      templatesResource: templatesResourceMock,
+      getTemplateLines$: vi.fn().mockReturnValue(of([])),
     };
 
     await TestBed.configureTestingModule({
@@ -229,7 +235,7 @@ describe('CreateBudgetDialogComponent', () => {
     it('should not create budget if form is invalid', async () => {
       // Make form invalid
       component.budgetForm.patchValue({
-        monthYear: null,
+        monthYear: undefined,
         description: '',
         templateId: '',
       });
@@ -260,10 +266,22 @@ describe('CreateBudgetDialogComponent', () => {
       component.budgetForm.patchValue(createValidBudgetForm());
 
       // Setup template selection
-      mockTemplateApi.templatesResource.value.set([mockTemplate]);
+      mockTemplateApi.templatesResource?.value.set([mockTemplate]);
       templateSelectionService.selectTemplate(mockTemplate.id);
 
-      const mockResponse = { budget: { id: 'budget-123' }, message: 'Success' };
+      const mockResponse = {
+        budget: {
+          id: 'budget-123',
+          month: 6,
+          year: 2024,
+          description: 'Test budget',
+          userId: 'user-123',
+          templateId: 'template-1',
+          createdAt: '2024-06-01T00:00:00Z',
+          updatedAt: '2024-06-01T00:00:00Z',
+        },
+        message: 'Success',
+      };
       vi.spyOn(budgetApiService, 'createBudget$').mockReturnValue(
         of(mockResponse),
       );
@@ -348,7 +366,7 @@ describe('CreateBudgetDialogComponent', () => {
       const testDate = new Date(2024, 5, 10); // June 10, 2024
 
       // Set form value to null
-      component.budgetForm.patchValue({ monthYear: null });
+      component.budgetForm.patchValue({ monthYear: undefined });
 
       component.onMonthSelected(testDate, mockDatePicker);
 
@@ -392,7 +410,7 @@ describe('CreateBudgetDialogComponent', () => {
       );
 
       // Setup template selection
-      mockTemplateApi.templatesResource.value.set([mockTemplate]);
+      mockTemplateApi.templatesResource?.value.set([mockTemplate]);
       templateSelectionService.selectTemplate(mockTemplate.id);
 
       // Verify form is valid and template is selected
@@ -449,11 +467,23 @@ describe('CreateBudgetDialogComponent', () => {
       );
 
       // Setup template selection
-      mockTemplateApi.templatesResource.value.set([mockTemplate]);
+      mockTemplateApi.templatesResource?.value.set([mockTemplate]);
       templateSelectionService.selectTemplate(mockTemplate.id);
 
       // Mock successful API response with controlled delay
-      const mockResponse = { budget: { id: 'budget-123' }, message: 'Success' };
+      const mockResponse = {
+        budget: {
+          id: 'budget-123',
+          month: 6,
+          year: 2024,
+          description: 'Test budget with loading',
+          userId: 'user-123',
+          templateId: 'template-1',
+          createdAt: '2024-06-01T00:00:00Z',
+          updatedAt: '2024-06-01T00:00:00Z',
+        },
+        message: 'Success',
+      };
       let resolveResponse: (value: typeof mockResponse) => void;
       const responsePromise = new Promise<typeof mockResponse>((resolve) => {
         resolveResponse = resolve;
@@ -501,7 +531,7 @@ describe('CreateBudgetDialogComponent', () => {
     it('should prevent budget creation when form is invalid', async () => {
       // Make form invalid by clearing required fields
       component.budgetForm.patchValue({
-        monthYear: null,
+        monthYear: undefined,
         description: '',
         templateId: '',
       });
