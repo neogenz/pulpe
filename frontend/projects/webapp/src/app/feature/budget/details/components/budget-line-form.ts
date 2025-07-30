@@ -137,7 +137,7 @@ export class BudgetLineForm {
   formData: BudgetLineFormData = {
     name: '',
     amount: null,
-    kind: 'INCOME',
+    kind: 'FIXED_EXPENSE',
     recurrence: 'fixed',
   };
 
