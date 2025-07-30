@@ -1,8 +1,12 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { PulpeBreadcrumbNew } from './breadcrumb-new.component';
+import { BreadcrumbItemDirective } from './breadcrumb-item.directive';
+import { BreadcrumbSeparatorDirective } from './breadcrumb-separator.directive';
 
-interface BreadcrumbItemViewModel {
+export interface BreadcrumbItemViewModel {
   readonly label: string;
   readonly url: string;
   readonly icon?: string;
@@ -11,24 +15,36 @@ interface BreadcrumbItemViewModel {
 
 @Component({
   selector: 'pulpe-breadcrumb',
-  imports: [RouterLink, MatIconModule],
+  standalone: true,
+  imports: [
+    RouterLink,
+    MatIconModule,
+    MatButtonModule,
+    PulpeBreadcrumbNew,
+    BreadcrumbItemDirective,
+    BreadcrumbSeparatorDirective,
+  ],
   template: `
     @if (items().length >= 2) {
-      <nav aria-label="Breadcrumb" class="flex items-center gap-2 text-sm">
+      <pulpe-breadcrumb-new>
         @for (item of items(); track item.url; let isLast = $last) {
           @if (!isLast) {
             <a
+              mat-button
+              *pulpeBreadcrumbItem
               [routerLink]="item.url"
-              class="flex items-center gap-1 text-on-surface-variant hover:text-primary transition-colors"
+              class="min-w-0 px-2 text-on-surface-variant hover:text-primary"
             >
               @if (item.icon) {
-                <mat-icon class="!text-base">{{ item.icon }}</mat-icon>
+                <mat-icon class="!text-base mr-1">{{ item.icon }}</mat-icon>
               }
               {{ item.label }}
             </a>
-            <mat-icon class="!text-base text-outline">chevron_right</mat-icon>
           } @else {
-            <span class="flex items-center gap-1 text-on-surface font-medium">
+            <span
+              *pulpeBreadcrumbItem
+              class="flex items-center gap-1 text-on-surface font-medium px-2"
+            >
               @if (item.icon) {
                 <mat-icon class="!text-base">{{ item.icon }}</mat-icon>
               }
@@ -36,7 +52,7 @@ interface BreadcrumbItemViewModel {
             </span>
           }
         }
-      </nav>
+      </pulpe-breadcrumb-new>
     }
   `,
   styles: `
