@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, catchError, throwError } from 'rxjs';
 import {
   type BudgetLineResponse,
   type BudgetLineListResponse,
@@ -18,34 +18,68 @@ export class BudgetLineApi {
   #budgetsUrl = `${environment.backendUrl}/budgets`;
 
   getBudgetDetails$(budgetId: string): Observable<BudgetDetailsResponse> {
-    return this.#http.get<BudgetDetailsResponse>(
-      `${this.#budgetsUrl}/${budgetId}/details`,
-    );
+    return this.#http
+      .get<BudgetDetailsResponse>(`${this.#budgetsUrl}/${budgetId}/details`)
+      .pipe(
+        catchError((error) => {
+          console.error('Error fetching budget details:', error);
+          return throwError(
+            () => new Error('Impossible de charger les détails du budget'),
+          );
+        }),
+      );
   }
 
   getBudgetLines$(budgetId: string): Observable<BudgetLineListResponse> {
-    return this.#http.get<BudgetLineListResponse>(
-      `${this.#apiUrl}/budget/${budgetId}`,
-    );
+    return this.#http
+      .get<BudgetLineListResponse>(`${this.#apiUrl}/budget/${budgetId}`)
+      .pipe(
+        catchError((error) => {
+          console.error('Error fetching budget lines:', error);
+          return throwError(
+            () => new Error('Impossible de charger les prévisions'),
+          );
+        }),
+      );
   }
 
   createBudgetLine$(
     budgetLine: BudgetLineCreate,
   ): Observable<BudgetLineResponse> {
-    return this.#http.post<BudgetLineResponse>(this.#apiUrl, budgetLine);
+    return this.#http.post<BudgetLineResponse>(this.#apiUrl, budgetLine).pipe(
+      catchError((error) => {
+        console.error('Error creating budget line:', error);
+        return throwError(() => new Error('Impossible de créer la prévision'));
+      }),
+    );
   }
 
   updateBudgetLine$(
     id: string,
     update: BudgetLineUpdate,
   ): Observable<BudgetLineResponse> {
-    return this.#http.patch<BudgetLineResponse>(
-      `${this.#apiUrl}/${id}`,
-      update,
-    );
+    return this.#http
+      .patch<BudgetLineResponse>(`${this.#apiUrl}/${id}`, update)
+      .pipe(
+        catchError((error) => {
+          console.error('Error updating budget line:', error);
+          return throwError(
+            () => new Error('Impossible de mettre à jour la prévision'),
+          );
+        }),
+      );
   }
 
   deleteBudgetLine$(id: string): Observable<BudgetLineDeleteResponse> {
-    return this.#http.delete<BudgetLineDeleteResponse>(`${this.#apiUrl}/${id}`);
+    return this.#http
+      .delete<BudgetLineDeleteResponse>(`${this.#apiUrl}/${id}`)
+      .pipe(
+        catchError((error) => {
+          console.error('Error deleting budget line:', error);
+          return throwError(
+            () => new Error('Impossible de supprimer la prévision'),
+          );
+        }),
+      );
   }
 }
