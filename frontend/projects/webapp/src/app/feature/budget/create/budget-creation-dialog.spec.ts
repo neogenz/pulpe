@@ -14,7 +14,7 @@ import {
 } from '@angular/core';
 import { provideLocale } from '../../../core/locale';
 import { of, throwError, Subject, defer } from 'rxjs';
-import { createMockResourceRef } from '../../../test/test-utils';
+import { createMockResourceRef } from '../../../core/testing';
 
 import { CreateBudgetDialogComponent } from './budget-creation-dialog';
 import { TemplateListItem } from './ui/template-list-item';

@@ -396,11 +396,11 @@ This vocabulary and UX must follows **Nielsen's 10 Usability Heuristics**, **Bas
 
 ## Testing Utilities
 
-- **Location**: `/app/test/test-utils.ts`
+- **Location**: `/app/core/testing/`
 - **`createMockResourceRef<T>(initialValue)`**: Mock Angular's ResourceRef for tests
 
 ```typescript
-import { createMockResourceRef } from '../../../test/test-utils';
+import { createMockResourceRef } from '../../../core/testing';
 
 const mockResource = createMockResourceRef<BudgetTemplate[]>([]);
 mockResource.value.set([{ id: '1', name: 'Template' }]);
