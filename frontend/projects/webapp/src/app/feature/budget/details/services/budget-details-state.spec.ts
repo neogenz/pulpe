@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import type { BudgetLineCreate, BudgetLineUpdate } from '@pulpe/shared';
 
 describe('BudgetDetailsState', () => {
   // NOTE: Due to Angular 20's dependency injection and resource API complexities,
@@ -156,7 +157,8 @@ describe('BudgetDetailsState', () => {
           line.amount > 0 &&
           ['INCOME', 'FIXED_EXPENSE', 'SAVINGS_CONTRIBUTION'].includes(
             line.kind,
-          )
+          ) &&
+          ['fixed', 'variable', 'one_off'].includes(line.recurrence)
         );
       };
 
@@ -165,6 +167,8 @@ describe('BudgetDetailsState', () => {
         name: 'Valid Line',
         amount: 100,
         kind: 'FIXED_EXPENSE',
+        recurrence: 'fixed',
+        isManuallyAdjusted: false,
       };
 
       const invalidLines = [
@@ -173,24 +177,32 @@ describe('BudgetDetailsState', () => {
           name: 'Test',
           amount: 100,
           kind: 'FIXED_EXPENSE' as const,
+          recurrence: 'fixed' as const,
+          isManuallyAdjusted: false,
         },
         {
           budgetId: 'budget-1',
           name: '',
           amount: 100,
           kind: 'FIXED_EXPENSE' as const,
+          recurrence: 'fixed' as const,
+          isManuallyAdjusted: false,
         },
         {
           budgetId: 'budget-1',
           name: 'Test',
           amount: 0,
           kind: 'FIXED_EXPENSE' as const,
+          recurrence: 'fixed' as const,
+          isManuallyAdjusted: false,
         },
         {
           budgetId: 'budget-1',
           name: 'Test',
           amount: -100,
           kind: 'FIXED_EXPENSE' as const,
+          recurrence: 'fixed' as const,
+          isManuallyAdjusted: false,
         },
       ];
 
