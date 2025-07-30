@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import {
   Router,
   ActivatedRouteSnapshot,
+  RouterStateSnapshot,
   Event,
   UrlTree,
 } from '@angular/router';
@@ -35,7 +36,7 @@ describe('OnboardingStepGuard - Sequential Navigation', () => {
     mockTemplateApi = { createFromOnboarding$: vi.fn() };
     mockRouter = {
       navigate: vi.fn(),
-      createUrlTree: vi.fn().mockReturnValue({}), // Mock return value pour simuler UrlTree
+      createUrlTree: vi.fn().mockReturnValue({} as UrlTree), // Mock return value pour simuler UrlTree
       events: new Subject(),
     };
 
@@ -63,7 +64,16 @@ describe('OnboardingStepGuard - Sequential Navigation', () => {
   }
 
   function executeGuard(route: ActivatedRouteSnapshot): boolean | UrlTree {
-    return TestBed.runInInjectionContext(() => onboardingStepGuard(route));
+    const mockState = {} as RouterStateSnapshot;
+    const result = TestBed.runInInjectionContext(() =>
+      onboardingStepGuard(route, mockState),
+    );
+    // Handle the case where the guard might return a RedirectCommand or Promise
+    if (result && typeof result === 'object' && 'redirectTo' in result) {
+      // If it's a RedirectCommand, return the UrlTree
+      return (result as { redirectTo: UrlTree }).redirectTo;
+    }
+    return result as boolean | UrlTree;
   }
 
   describe('Sequential Validation', () => {

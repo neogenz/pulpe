@@ -393,3 +393,15 @@ This vocabulary and UX must follows **Nielsen's 10 Usability Heuristics**, **Bas
 ## Angular Material Best Practices
 
 - **Button Directives**: N'utilise pas la directive "mat-button" mais "matButton" pour tous les boutons Angular Material, comme documenté dans la version 20.
+
+## Testing Utilities
+
+- **Location**: `/app/test/test-utils.ts`
+- **`createMockResourceRef<T>(initialValue)`**: Mock Angular's ResourceRef for tests
+
+```typescript
+import { createMockResourceRef } from '../../../test/test-utils';
+
+const mockResource = createMockResourceRef<BudgetTemplate[]>([]);
+mockResource.value.set([{ id: '1', name: 'Template' }]);
+```

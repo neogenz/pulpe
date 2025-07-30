@@ -56,7 +56,7 @@ describe('MainLayout', () => {
   };
   let breakpointSubject: Subject<{ matches: boolean }>;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // Create observables for breakpoint changes
     breakpointSubject = new Subject<{ matches: boolean }>();
 
@@ -114,6 +114,8 @@ describe('MainLayout', () => {
         ],
       },
     });
+
+    await TestBed.compileComponents();
 
     fixture = TestBed.createComponent(MainLayout);
     component = fixture.componentInstance;

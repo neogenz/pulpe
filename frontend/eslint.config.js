@@ -127,6 +127,13 @@ module.exports = tseslint.config(
           pattern: "e2e/**/*.ts",
         },
         {
+          type: "test",
+          pattern: "test/**/*",
+          mode: "file",
+          basePattern: "frontend/projects/**/src/app",
+          baseCapture: ["app"],
+        },
+        {
           type: "test-spec",
           mode: "file",
           pattern: "**/*.spec.ts",
@@ -263,10 +270,18 @@ module.exports = tseslint.config(
               allow: [["e2e"], ["lib-api"]],
             },
             {
+              from: ["test"],
+              allow: [
+                ["shared"],
+                ["lib-api"],
+              ],
+            },
+            {
               from: ["test-spec"],
               allow: [
                 ["shared"],
                 ["lib-api"],
+                ["test", { app: "${from.app}" }],
                 ["core", { app: "${from.app}" }],
                 ["ui", { app: "${from.app}" }],
                 ["layout", { app: "${from.app}" }],

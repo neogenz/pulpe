@@ -1,9 +1,11 @@
 import { TestBed } from '@angular/core/testing';
-import { signal, provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection } from '@angular/core';
 import { of, throwError } from 'rxjs';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { TemplateSelection } from './template-selection';
 import { TemplateApi } from '../../../../core/template/template-api';
 import { type TemplateLine, type BudgetTemplate } from '@pulpe/shared';
+import { createMockResourceRef } from '../../../../test/test-utils';
 
 // Mock interfaces for tests
 interface TemplateTotals {
@@ -46,13 +48,13 @@ describe('TemplateSelection', () => {
   let mockTemplateApi: Partial<TemplateApi>;
 
   beforeEach(async () => {
+    // Create a type-safe ResourceRef mock using helper
+    const templatesResourceMock = createMockResourceRef<
+      BudgetTemplate[] | undefined
+    >([]);
+
     mockTemplateApi = {
-      templatesResource: {
-        value: signal([]),
-        isLoading: signal(false),
-        error: signal(null),
-        reload: vi.fn(),
-      },
+      templatesResource: templatesResourceMock,
       getTemplateLines$: vi.fn(),
     };
 

@@ -25,7 +25,7 @@ describe('BudgetLinesTable', () => {
         amount: number;
       }
 
-      let editingLine: EditingLine | null = null;
+      let editingLine: EditingLine | undefined = undefined;
 
       // Start editing
       editingLine = {
@@ -33,12 +33,12 @@ describe('BudgetLinesTable', () => {
         name: 'Test Line',
         amount: 100,
       };
-      expect(editingLine).not.toBe(null);
+      expect(editingLine).not.toBeUndefined();
       expect(editingLine?.id).toBe('line-1');
 
       // Cancel editing
-      editingLine = null;
-      expect(editingLine).toBe(null);
+      editingLine = undefined;
+      expect(editingLine).toBeUndefined();
     });
   });
 

@@ -3,12 +3,33 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { OnboardingStore } from './onboarding-store';
 import { AuthApi } from '../../core/auth/auth-api';
-import { BudgetApi } from '../../core/budget/budget-api';
+import {
+  BudgetApi,
+  type CreateBudgetApiResponse,
+} from '../../core/budget/budget-api';
 import { TemplateApi } from '../../core/template/template-api';
 import { NavigationEnd, Router } from '@angular/router';
 import { Subject, of, throwError } from 'rxjs'; // Import Subject and observables
 
 describe('OnboardingStore - Unit Tests', () => {
+  // Mock helper to create valid budget API responses
+  const createMockBudgetResponse = (
+    overrides?: Partial<CreateBudgetApiResponse['budget']>,
+  ): CreateBudgetApiResponse => ({
+    budget: {
+      id: 'budget-123',
+      month: new Date().getMonth() + 1,
+      year: new Date().getFullYear(),
+      description: 'Onboarding budget',
+      userId: 'user-123',
+      templateId: 'template-123',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      ...overrides,
+    },
+    message: 'Budget created successfully',
+  });
+
   let store: OnboardingStore;
   let mockAuthApi: {
     signUpWithEmail: ReturnType<typeof vi.fn>;
@@ -311,7 +332,9 @@ describe('OnboardingStore - Unit Tests', () => {
       mockTemplateApi.createFromOnboarding$.mockReturnValueOnce(
         of({ data: { template: { id: 'template-123' } } }),
       );
-      mockBudgetApi.createBudget$.mockReturnValueOnce(of({ success: true }));
+      mockBudgetApi.createBudget$.mockReturnValueOnce(
+        of(createMockBudgetResponse()),
+      );
 
       const secondResult = await store.submitRegistration(
         'john@example.com',

@@ -3,10 +3,31 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { OnboardingStore } from './onboarding-store';
 import { AuthApi } from '../../core/auth/auth-api';
-import { BudgetApi } from '../../core/budget/budget-api';
+import {
+  BudgetApi,
+  type CreateBudgetApiResponse,
+} from '../../core/budget/budget-api';
 import { TemplateApi } from '../../core/template/template-api';
 import { NavigationEnd, Router } from '@angular/router'; // Import NavigationEnd
 import { of, Subject, throwError } from 'rxjs'; // Import Subject
+
+// Mock helper to create valid budget API responses
+const createMockBudgetResponse = (
+  overrides?: Partial<CreateBudgetApiResponse['budget']>,
+): CreateBudgetApiResponse => ({
+  budget: {
+    id: 'budget-123',
+    month: new Date().getMonth() + 1,
+    year: new Date().getFullYear(),
+    description: 'Onboarding budget',
+    userId: 'user-123',
+    templateId: 'template-123',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    ...overrides,
+  },
+  message: 'Budget created successfully',
+});
 
 // Mock des dépendances API
 const mockAuthApi = {
@@ -75,7 +96,9 @@ describe('OnboardingStore - Integration Tests', () => {
       mockTemplateApi.createFromOnboarding$.mockReturnValue(
         of({ data: { template: { id: 'template-123' } } }),
       );
-      mockBudgetApi.createBudget$.mockReturnValue(of({ success: true }));
+      mockBudgetApi.createBudget$.mockReturnValue(
+        of(createMockBudgetResponse()),
+      );
 
       const result = await store.submitRegistration(
         'john@example.com',
@@ -213,7 +236,9 @@ describe('OnboardingStore - Integration Tests', () => {
       mockTemplateApi.createFromOnboarding$.mockReturnValue(
         of({ data: { template: { id: 'template-123' } } }),
       );
-      mockBudgetApi.createBudget$.mockReturnValue(of({ success: true }));
+      mockBudgetApi.createBudget$.mockReturnValue(
+        of(createMockBudgetResponse()),
+      );
 
       const submitPromise = store.submitRegistration(
         'john@example.com',
@@ -240,7 +265,9 @@ describe('OnboardingStore - Integration Tests', () => {
       mockTemplateApi.createFromOnboarding$.mockReturnValue(
         of({ data: { template: { id: 'template-123' } } }),
       );
-      mockBudgetApi.createBudget$.mockReturnValue(of({ success: true }));
+      mockBudgetApi.createBudget$.mockReturnValue(
+        of(createMockBudgetResponse()),
+      );
 
       await store.submitRegistration('john@example.com', 'password123');
 
@@ -263,7 +290,9 @@ describe('OnboardingStore - Integration Tests', () => {
       mockTemplateApi.createFromOnboarding$.mockReturnValue(
         of({ data: { template: { id: 'template-123' } } }),
       );
-      mockBudgetApi.createBudget$.mockReturnValue(of({ success: true }));
+      mockBudgetApi.createBudget$.mockReturnValue(
+        of(createMockBudgetResponse()),
+      );
 
       await store.submitRegistration('john@example.com', 'password123');
 
@@ -282,7 +311,9 @@ describe('OnboardingStore - Integration Tests', () => {
       mockTemplateApi.createFromOnboarding$.mockReturnValue(
         of({ data: { template: { id: 'template-123' } } }),
       );
-      mockBudgetApi.createBudget$.mockReturnValue(of({ success: true }));
+      mockBudgetApi.createBudget$.mockReturnValue(
+        of(createMockBudgetResponse()),
+      );
 
       await store.submitRegistration('john@example.com', 'password123');
 
@@ -363,7 +394,9 @@ describe('OnboardingStore - Integration Tests', () => {
       mockTemplateApi.createFromOnboarding$.mockReturnValue(
         of({ data: { template: { id: 'template-123' } } }),
       );
-      mockBudgetApi.createBudget$.mockReturnValue(of({ success: true }));
+      mockBudgetApi.createBudget$.mockReturnValue(
+        of(createMockBudgetResponse()),
+      );
 
       await store.submitRegistration('john@example.com', 'password123');
 
@@ -381,7 +414,9 @@ describe('OnboardingStore - Integration Tests', () => {
       mockTemplateApi.createFromOnboarding$.mockReturnValue(
         of({ data: { template: { id: 'template-123' } } }),
       );
-      mockBudgetApi.createBudget$.mockReturnValue(of({ success: true }));
+      mockBudgetApi.createBudget$.mockReturnValue(
+        of(createMockBudgetResponse()),
+      );
 
       // Should not throw
       await expect(
