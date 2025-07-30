@@ -15,9 +15,9 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
-import { FormsModule } from '@angular/forms';
-import { CurrencyPipe } from '@angular/common';
+import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { CurrencyPipe } from '@angular/common';
 import {
   type BudgetLine,
   type BudgetLineUpdate,
@@ -25,10 +25,15 @@ import {
   type TransactionRecurrence,
 } from '@pulpe/shared';
 
-interface EditingLine {
-  id: string;
-  name: string;
-  amount: number;
+interface BudgetLineViewModel extends BudgetLine {
+  kindIcon: string;
+  kindLabel: string;
+  kindIconClass: string;
+  amountClass: string;
+  recurrenceLabel: string;
+  recurrenceChipClass: string;
+  isEditing: boolean;
+  isLoading: boolean;
 }
 
 @Component({
@@ -41,7 +46,7 @@ interface EditingLine {
     MatFormFieldModule,
     MatInputModule,
     MatChipsModule,
-    FormsModule,
+    ReactiveFormsModule,
     CurrencyPipe,
   ],
   host: {
@@ -58,7 +63,7 @@ interface EditingLine {
       <mat-card-content class="overflow-x-auto">
         <table
           mat-table
-          [dataSource]="budgetLines()"
+          [dataSource]="budgetLineViewModels()"
           class="w-full min-w-[600px]"
         >
           <!-- Type Column -->
@@ -66,12 +71,10 @@ interface EditingLine {
             <th mat-header-cell *matHeaderCellDef>Type</th>
             <td mat-cell *matCellDef="let line">
               <div class="flex items-center gap-2">
-                <mat-icon [class]="getKindIconClass(line.kind)">
-                  {{ getKindIcon(line.kind) }}
+                <mat-icon [class]="line.kindIconClass">
+                  {{ line.kindIcon }}
                 </mat-icon>
-                <span class="text-body-medium">{{
-                  getKindLabel(line.kind)
-                }}</span>
+                <span class="text-body-medium">{{ line.kindLabel }}</span>
               </div>
             </td>
           </ng-container>
@@ -80,8 +83,12 @@ interface EditingLine {
           <ng-container matColumnDef="name">
             <th mat-header-cell *matHeaderCellDef>Description</th>
             <td mat-cell *matCellDef="let line">
-              @if (isEditing(line.id)) {
-                <form (ngSubmit)="saveEdit()" class="py-2">
+              @if (line.isEditing) {
+                <form
+                  [formGroup]="editForm"
+                  (ngSubmit)="saveEdit()"
+                  class="py-2"
+                >
                   <mat-form-field
                     appearance="outline"
                     class="w-full"
@@ -89,14 +96,12 @@ interface EditingLine {
                   >
                     <input
                       matInput
-                      [(ngModel)]="editingLine()!.name"
-                      name="name"
+                      formControlName="name"
                       placeholder="Nom de la ligne"
                       [attr.data-testid]="'edit-name-' + line.id"
                       class="text-body-medium"
                       (keydown.enter)="saveEdit()"
                       (keydown.escape)="cancelEdit()"
-                      #nameInput
                     />
                   </mat-form-field>
                 </form>
@@ -111,10 +116,10 @@ interface EditingLine {
             <th mat-header-cell *matHeaderCellDef>Fréquence</th>
             <td mat-cell *matCellDef="let line">
               <mat-chip
-                [class]="getRecurrenceChipClass(line.recurrence)"
+                [class]="line.recurrenceChipClass"
                 class="text-label-medium font-medium"
               >
-                {{ getRecurrenceLabel(line.recurrence) }}
+                {{ line.recurrenceLabel }}
               </mat-chip>
             </td>
           </ng-container>
@@ -125,8 +130,12 @@ interface EditingLine {
               Montant
             </th>
             <td mat-cell *matCellDef="let line" class="text-right">
-              @if (isEditing(line.id)) {
-                <form (ngSubmit)="saveEdit()" class="py-2 flex justify-end">
+              @if (line.isEditing) {
+                <form
+                  [formGroup]="editForm"
+                  (ngSubmit)="saveEdit()"
+                  class="py-2 flex justify-end"
+                >
                   <mat-form-field
                     appearance="outline"
                     class="w-28 md:w-36"
@@ -135,8 +144,7 @@ interface EditingLine {
                     <input
                       matInput
                       type="number"
-                      [(ngModel)]="editingLine()!.amount"
-                      name="amount"
+                      formControlName="amount"
                       placeholder="0.00"
                       step="0.01"
                       min="0"
@@ -144,7 +152,6 @@ interface EditingLine {
                       class="text-body-medium text-right"
                       (keydown.enter)="saveEdit()"
                       (keydown.escape)="cancelEdit()"
-                      #amountInput
                     />
                     <span matTextSuffix>CHF</span>
                   </mat-form-field>
@@ -152,7 +159,7 @@ interface EditingLine {
               } @else {
                 <span
                   class="text-body-medium font-medium"
-                  [class]="getAmountClass(line.kind)"
+                  [class]="line.amountClass"
                 >
                   {{ line.amount | currency: 'CHF' }}
                 </span>
@@ -165,10 +172,10 @@ interface EditingLine {
             <th mat-header-cell *matHeaderCellDef></th>
             <td mat-cell *matCellDef="let line">
               <div class="flex gap-1 justify-end items-center">
-                @if (isEditing(line.id)) {
+                @if (line.isEditing) {
                   <div class="flex items-center gap-2">
                     <button
-                      mat-button
+                      matButton
                       (click)="cancelEdit()"
                       [attr.aria-label]="'Cancel editing ' + line.name"
                       [attr.data-testid]="'cancel-' + line.id"
@@ -178,11 +185,11 @@ interface EditingLine {
                       Annuler
                     </button>
                     <button
-                      mat-flat-button
+                      matButton="filled"
                       (click)="saveEdit()"
                       [attr.aria-label]="'Save ' + line.name"
                       [attr.data-testid]="'save-' + line.id"
-                      [disabled]="!isValidEdit()"
+                      [disabled]="!editForm.valid"
                       class="density-3"
                     >
                       <mat-icon class="!text-base mr-1">check</mat-icon>
@@ -191,22 +198,22 @@ interface EditingLine {
                   </div>
                 } @else {
                   <button
-                    mat-icon-button
+                    matIconButton
                     (click)="startEdit(line)"
                     [attr.aria-label]="'Edit ' + line.name"
                     [attr.data-testid]="'edit-' + line.id"
-                    [disabled]="isLoading(line.id)"
+                    [disabled]="line.isLoading"
                     class="!w-10 !h-10"
                   >
                     <mat-icon>edit</mat-icon>
                   </button>
                   <button
-                    mat-icon-button
+                    matIconButton
                     (click)="deleteClicked.emit(line.id)"
                     [attr.aria-label]="'Delete ' + line.name"
                     [attr.data-testid]="'delete-' + line.id"
-                    [disabled]="isLoading(line.id)"
-                    class="!w-10 !h-10 text-[color-error]"
+                    [disabled]="line.isLoading"
+                    class="!w-10 !h-10 text-error"
                   >
                     <mat-icon>delete</mat-icon>
                   </button>
@@ -219,9 +226,9 @@ interface EditingLine {
           <tr
             mat-row
             *matRowDef="let row; columns: currentColumns()"
-            class="hover:bg-[color-surface-container-low] transition-opacity"
-            [class.opacity-50]="isLoading(row.id)"
-            [class.pointer-events-none]="isLoading(row.id)"
+            class="hover:bg-surface-container-low transition-opacity"
+            [class.opacity-50]="row.isLoading"
+            [class.pointer-events-none]="row.isLoading"
           ></tr>
 
           <!-- No data row -->
@@ -230,11 +237,11 @@ interface EditingLine {
               class="mat-cell text-center py-8"
               [attr.colspan]="currentColumns().length"
             >
-              <p class="text-body-medium text-[color-on-surface-variant]">
+              <p class="text-body-medium text-on-surface-variant">
                 Aucune prévision définie
               </p>
               <button
-                mat-stroked-button
+                matButton="outlined"
                 (click)="addClicked.emit()"
                 class="mt-4"
                 data-testid="add-first-line"
@@ -246,10 +253,10 @@ interface EditingLine {
           </tr>
         </table>
       </mat-card-content>
-      @if (budgetLines().length > 0) {
+      @if (budgetLineViewModels().length > 0) {
         <mat-card-actions class="flex justify-center mb-2">
           <button
-            mat-stroked-button
+            matButton="outlined"
             (click)="addClicked.emit()"
             data-testid="add-budget-line"
           >
@@ -283,10 +290,16 @@ export class BudgetLinesTable {
   addClicked = output<void>();
 
   #breakpointObserver = inject(BreakpointObserver);
+  #fb = inject(FormBuilder);
 
   displayedColumns = ['type', 'name', 'recurrence', 'amount', 'actions'];
   displayedColumnsMobile = ['name', 'amount', 'actions'];
-  editingLine = signal<EditingLine | null>(null);
+
+  editingLineId = signal<string | null>(null);
+  editForm = this.#fb.group({
+    name: ['', [Validators.required, Validators.minLength(1)]],
+    amount: [0, [Validators.required, Validators.min(0.01)]],
+  });
 
   isMobile = toSignal(
     this.#breakpointObserver.observe([Breakpoints.XSmall, Breakpoints.Small]),
@@ -299,102 +312,94 @@ export class BudgetLinesTable {
       : this.displayedColumns,
   );
 
-  isEditing(id: string): boolean {
-    return this.editingLine()?.id === id;
-  }
+  // View models with pre-computed display values
+  budgetLineViewModels = computed(() => {
+    const lines = this.budgetLines();
+    const editingId = this.editingLineId();
+    const inProgress = this.operationsInProgress();
 
-  isLoading(id: string): boolean {
-    return this.operationsInProgress().has(id);
-  }
+    return lines.map(
+      (line) =>
+        ({
+          ...line,
+          kindIcon: this.#kindIcons[line.kind],
+          kindLabel: this.#kindLabels[line.kind],
+          kindIconClass: this.#kindIconClasses[line.kind],
+          amountClass: this.#amountClasses[line.kind],
+          recurrenceLabel:
+            this.#recurrenceLabels[line.recurrence] || line.recurrence,
+          recurrenceChipClass:
+            this.#recurrenceChipClasses[line.recurrence] ||
+            'bg-surface-container-high text-on-surface',
+          isEditing: editingId === line.id,
+          isLoading: inProgress.has(line.id),
+        }) as BudgetLineViewModel,
+    );
+  });
 
   startEdit(line: BudgetLine): void {
-    this.editingLine.set({
-      id: line.id,
+    this.editingLineId.set(line.id);
+    this.editForm.patchValue({
       name: line.name,
       amount: line.amount,
     });
   }
 
   cancelEdit(): void {
-    this.editingLine.set(null);
+    this.editingLineId.set(null);
+    this.editForm.reset();
   }
 
   saveEdit(): void {
-    const editing = this.editingLine();
-    if (editing && this.isValidEdit()) {
+    const editingId = this.editingLineId();
+    if (editingId && this.editForm.valid) {
+      const value = this.editForm.getRawValue();
       const updateData = {
-        id: editing.id,
+        id: editingId,
         update: {
-          name: editing.name.trim(),
-          amount: editing.amount,
+          name: value.name!.trim(),
+          amount: value.amount!,
         },
       };
-      this.editingLine.set(null);
+      this.editingLineId.set(null);
+      this.editForm.reset();
       this.updateClicked.emit(updateData);
     }
   }
 
-  isValidEdit(): boolean {
-    const editing = this.editingLine();
-    return !!(editing && editing.name.trim().length > 0 && editing.amount > 0);
-  }
+  #kindIcons: Record<TransactionKind, string> = {
+    INCOME: 'trending_up',
+    FIXED_EXPENSE: 'trending_down',
+    SAVINGS_CONTRIBUTION: 'savings',
+  };
 
-  getKindIcon(kind: TransactionKind): string {
-    const icons: Record<TransactionKind, string> = {
-      INCOME: 'trending_up',
-      FIXED_EXPENSE: 'trending_down',
-      SAVINGS_CONTRIBUTION: 'savings',
-    };
-    return icons[kind];
-  }
+  #kindLabels: Record<TransactionKind, string> = {
+    INCOME: 'Revenu',
+    FIXED_EXPENSE: 'Dépense',
+    SAVINGS_CONTRIBUTION: 'Épargne',
+  };
 
-  getKindLabel(kind: TransactionKind): string {
-    const labels: Record<TransactionKind, string> = {
-      INCOME: 'Revenu',
-      FIXED_EXPENSE: 'Dépense',
-      SAVINGS_CONTRIBUTION: 'Épargne',
-    };
-    return labels[kind];
-  }
+  #kindIconClasses: Record<TransactionKind, string> = {
+    INCOME: 'text-financial-income',
+    FIXED_EXPENSE: 'text-financial-negative',
+    SAVINGS_CONTRIBUTION: 'text-primary',
+  };
 
-  getKindIconClass(kind: TransactionKind): string {
-    const classes: Record<TransactionKind, string> = {
-      INCOME: 'text-financial-income',
-      FIXED_EXPENSE: 'text-financial-negative',
-      SAVINGS_CONTRIBUTION: 'text-[color-primary]',
-    };
-    return classes[kind];
-  }
+  #amountClasses: Record<TransactionKind, string> = {
+    INCOME: 'text-financial-income',
+    FIXED_EXPENSE: 'text-financial-negative',
+    SAVINGS_CONTRIBUTION: 'text-primary',
+  };
 
-  getAmountClass(kind: TransactionKind): string {
-    const classes: Record<TransactionKind, string> = {
-      INCOME: 'text-financial-income',
-      FIXED_EXPENSE: 'text-financial-negative',
-      SAVINGS_CONTRIBUTION: 'text-[color-primary]',
-    };
-    return classes[kind];
-  }
+  #recurrenceLabels: Record<TransactionRecurrence, string> = {
+    fixed: 'Tous les mois',
+    variable: 'Variable',
+    one_off: 'Une seule fois',
+  };
 
-  getRecurrenceLabel(recurrence: TransactionRecurrence): string {
-    const labels: Record<TransactionRecurrence, string> = {
-      fixed: 'Tous les mois',
-      variable: 'Variable',
-      one_off: 'Une seule fois',
-    };
-    return labels[recurrence] || recurrence;
-  }
-
-  getRecurrenceChipClass(recurrence: TransactionRecurrence): string {
-    const classes: Record<TransactionRecurrence, string> = {
-      fixed: 'bg-[color-primary-container] text-[color-on-primary-container]',
-      variable:
-        'bg-[color-tertiary-container] text-[color-on-tertiary-container]',
-      one_off:
-        'bg-[color-secondary-container] text-[color-on-secondary-container]',
-    };
-    return (
-      classes[recurrence] ||
-      'bg-[color-surface-container-high] text-[color-on-surface]'
-    );
-  }
+  #recurrenceChipClasses: Record<TransactionRecurrence, string> = {
+    fixed: 'bg-primary-container text-on-primary-container',
+    variable: 'bg-tertiary-container text-on-tertiary-container',
+    one_off: 'bg-secondary-container text-on-secondary-container',
+  };
 }
