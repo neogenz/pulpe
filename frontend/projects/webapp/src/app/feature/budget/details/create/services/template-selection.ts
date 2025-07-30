@@ -7,7 +7,7 @@ import {
   type BudgetTemplate,
   type TemplateLine,
 } from '@pulpe/shared';
-import { TemplateApi } from '../../../../core/template/template-api';
+import { TemplateApi } from '../../../../../core/template/template-api';
 
 export interface TemplateTotals {
   totalIncome: number;

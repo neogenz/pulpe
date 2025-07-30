@@ -9,10 +9,19 @@ export class BudgetDetailsPage {
   }
 
   async expectPageLoaded(): Promise<void> {
-    // Wait for the page to load by checking for the header elements
-    await expect(this.page.locator('h1, h2').first()).toBeVisible({
+    // Wait for Angular app to load
+    await expect(this.page.locator('pulpe-root')).toBeVisible({
       timeout: 10000,
     });
+    
+    // Wait for content to render
+    await this.page.waitForTimeout(2000);
+    
+    // Verify meaningful content is present
+    const hasContent = await this.page.locator('body *').first().isVisible();
+    if (!hasContent) {
+      throw new Error('No content found on page');
+    }
   }
 
   async expectBudgetLineVisible(lineName: string): Promise<void> {

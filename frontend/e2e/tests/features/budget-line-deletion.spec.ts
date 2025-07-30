@@ -1,4 +1,5 @@
 import { test, expect } from '../../fixtures/test-fixtures';
+import { createBudgetDetailsMock, createBudgetLineMock } from '../../helpers/api-mocks';
 
 test.describe('Budget Line Deletion Dialog', () => {
   test('should show confirmation dialog when clicking delete button', async ({
@@ -6,38 +7,22 @@ test.describe('Budget Line Deletion Dialog', () => {
     budgetDetailsPage,
   }) => {
     const budgetId = 'test-budget-123';
-    // Mock the budget details API with a budget line
-    await authenticatedPage.route('**/api/budgets/*/details', (route) => {
+    // Mock the budget details API with a budget line using typed helper
+    const mockResponse = createBudgetDetailsMock(budgetId, {
+      budgetLines: [
+        createBudgetLineMock('line-1', budgetId, {
+          name: 'Test Budget Line',
+          amount: 100,
+          recurrence: 'one_off',
+        }),
+      ],
+    });
+    
+    await authenticatedPage.route('**/budgets/*/details', (route) => {
       void route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({
-          data: {
-            budget: {
-              id: budgetId,
-              month: 1,
-              year: 2025,
-              userId: 'test-user',
-              description: 'Test budget for E2E testing',
-              createdAt: '2025-01-01T00:00:00Z',
-              updatedAt: '2025-01-01T00:00:00Z',
-            },
-            budgetLines: [
-              {
-                id: 'line-1',
-                name: 'Test Budget Line',
-                amount: 100,
-                budgetId,
-                kind: 'expense',
-                recurrence: 'once',
-                templateLineId: null,
-                savingsGoalId: null,
-                createdAt: '2025-01-01T00:00:00Z',
-                updatedAt: '2025-01-01T00:00:00Z',
-              },
-            ],
-          },
-        }),
+        body: JSON.stringify(mockResponse),
       });
     });
 

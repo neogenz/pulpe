@@ -30,11 +30,11 @@ import { type BudgetTemplate } from '@pulpe/shared';
 import { TemplateListItem } from './ui/template-list-item';
 import { TemplateDetailsDialog } from './template-details-dialog';
 import { TemplateSelection } from './services/template-selection';
-import { TemplateApi } from '../../../core/template/template-api';
+import { TemplateApi } from '../../../../core/template/template-api';
 import {
   BudgetApi,
   type BudgetApiError,
-} from '../../../core/budget/budget-api';
+} from '../../../../core/budget/budget-api';
 
 // Interface moved to TemplateSelection service
 

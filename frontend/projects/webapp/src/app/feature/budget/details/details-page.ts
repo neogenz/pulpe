@@ -4,6 +4,7 @@ import {
   inject,
   input,
   computed,
+  OnInit,
 } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -162,7 +163,7 @@ import { type BudgetLineCreate, type BudgetLineUpdate } from '@pulpe/shared';
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export default class DetailsPage {
+export default class DetailsPage implements OnInit {
   budgetDetailsState = inject(BudgetDetailsState);
   #router = inject(Router);
   #route = inject(ActivatedRoute);
@@ -170,8 +171,8 @@ export default class DetailsPage {
 
   id = input.required<string>();
 
-  constructor() {
-    // Initialize the budget ID once when component is created
+  ngOnInit(): void {
+    // Initialize the budget ID - inputs are available in ngOnInit
     this.budgetDetailsState.initializeBudgetId(this.id());
   }
 

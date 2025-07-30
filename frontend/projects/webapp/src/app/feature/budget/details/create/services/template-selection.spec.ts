@@ -3,9 +3,9 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { of, throwError } from 'rxjs';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { TemplateSelection } from './template-selection';
-import { TemplateApi } from '../../../../core/template/template-api';
+import { TemplateApi } from '../../../../../core/template/template-api';
 import { type TemplateLine, type BudgetTemplate } from '@pulpe/shared';
-import { createMockResourceRef } from '../../../../core/testing';
+import { createMockResourceRef } from '../../../../../core/testing';
 
 // Mock interfaces for tests
 interface TemplateTotals {

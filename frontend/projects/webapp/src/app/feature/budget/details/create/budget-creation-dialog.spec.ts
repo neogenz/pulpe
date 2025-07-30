@@ -12,15 +12,15 @@ import {
   Input,
   Output,
 } from '@angular/core';
-import { provideLocale } from '../../../core/locale';
+import { provideLocale } from '../../../../core/locale';
 import { of, throwError, Subject, defer } from 'rxjs';
-import { createMockResourceRef } from '../../../core/testing';
+import { createMockResourceRef } from '../../../../core/testing';
 
 import { CreateBudgetDialogComponent } from './budget-creation-dialog';
 import { TemplateListItem } from './ui/template-list-item';
 import { TemplateSelection } from './services/template-selection';
-import { TemplateApi } from '../../../core/template/template-api';
-import { BudgetApi } from '../../../core/budget/budget-api';
+import { TemplateApi } from '../../../../core/template/template-api';
+import { BudgetApi } from '../../../../core/budget/budget-api';
 import { type BudgetTemplate } from '@pulpe/shared';
 
 // Type-safe mock interface that includes internal methods
