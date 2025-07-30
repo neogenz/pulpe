@@ -1,4 +1,5 @@
 import { test, expect } from '../../fixtures/test-fixtures';
+import { createBudgetDetailsMock, createBudgetLineMock, createBudgetLineResponseMock } from '../../helpers/api-mocks';
 
 test.describe('Budget Line Inline Editing', () => {
   test('should allow inline editing of budget lines', async ({
@@ -11,59 +12,39 @@ test.describe('Budget Line Inline Editing', () => {
     const updatedName = 'Updated Budget Line';
     const updatedAmount = 150;
 
-    // Mock the budget details API with a budget line
-    await authenticatedPage.route('**/api/budgets/*/details', (route) => {
+    // Mock the budget details API with a budget line using typed helper
+    const mockResponse = createBudgetDetailsMock(budgetId, {
+      budgetLines: [
+        createBudgetLineMock('line-1', budgetId, {
+          name: originalName,
+          amount: originalAmount,
+          recurrence: 'fixed',
+        }),
+      ],
+    });
+    
+    await authenticatedPage.route('**/budgets/*/details', (route) => {
       void route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({
-          data: {
-            budget: {
-              id: budgetId,
-              month: 1,
-              year: 2025,
-              userId: 'test-user',
-              description: 'Test budget for E2E testing',
-              createdAt: '2025-01-01T00:00:00Z',
-              updatedAt: '2025-01-01T00:00:00Z',
-            },
-            budgetLines: [
-              {
-                id: 'line-1',
-                name: originalName,
-                amount: originalAmount,
-                budgetId,
-                kind: 'FIXED_EXPENSE',
-                recurrence: 'fixed',
-                templateLineId: null,
-                savingsGoalId: null,
-                createdAt: '2025-01-01T00:00:00Z',
-                updatedAt: '2025-01-01T00:00:00Z',
-              },
-            ],
-          },
-        }),
+        body: JSON.stringify(mockResponse),
       });
     });
 
-    // Mock the update API endpoint
+    // Mock the update API endpoint using typed helper
     await authenticatedPage.route('**/api/budget-lines/line-1', (route) => {
       if (route.request().method() === 'PATCH') {
+        const updatedBudgetLine = createBudgetLineMock('line-1', budgetId, {
+          name: updatedName,
+          amount: updatedAmount,
+          recurrence: 'fixed',
+        });
+        const updateResponse = createBudgetLineResponseMock(updatedBudgetLine);
+        
         void route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify({
-            id: 'line-1',
-            name: updatedName,
-            amount: updatedAmount,
-            budgetId,
-            kind: 'FIXED_EXPENSE',
-            recurrence: 'fixed',
-            templateLineId: null,
-            savingsGoalId: null,
-            createdAt: '2025-01-01T00:00:00Z',
-            updatedAt: '2025-01-01T00:00:00Z',
-          }),
+          body: JSON.stringify(updateResponse),
         });
       }
     });
@@ -74,11 +55,9 @@ test.describe('Budget Line Inline Editing', () => {
     // Wait for the table to render
     await authenticatedPage.waitForSelector('table[mat-table]');
 
-    // Find the inputs directly - they might already be in edit mode
-    const nameInput = authenticatedPage.locator('input[placeholder="Nom de la ligne"]').or(
-      authenticatedPage.locator('input[name="name"]')
-    );
-    const amountInput = authenticatedPage.locator('input[name="amount"]');
+    // Find the inputs directly using data-testid
+    const nameInput = authenticatedPage.locator('[data-testid="edit-name-line-1"]');
+    const amountInput = authenticatedPage.locator('[data-testid="edit-amount-line-1"]');
 
     // Check if already in edit mode, if not click the edit button
     const isInEditMode = await nameInput.isVisible({ timeout: 1000 }).catch(() => false);
@@ -101,10 +80,8 @@ test.describe('Budget Line Inline Editing', () => {
     await amountInput.clear();
     await amountInput.fill(updatedAmount.toString());
 
-    // Save the changes - look for save button
-    const saveButton = authenticatedPage.locator('button[aria-label*="Save"]').or(
-      authenticatedPage.locator('button').filter({ hasText: 'Enregistrer' })
-    );
+    // Save the changes using data-testid
+    const saveButton = authenticatedPage.locator('[data-testid="save-line-1"]');
     await saveButton.click();
 
     // Verify the update was successful - use a more specific selector to avoid multiple elements
@@ -124,38 +101,22 @@ test.describe('Budget Line Inline Editing', () => {
     const originalName = 'Test Budget Line';
     const originalAmount = 100;
 
-    // Mock the budget details API
-    await authenticatedPage.route('**/api/budgets/*/details', (route) => {
+    // Mock the budget details API using typed helper
+    const mockResponse = createBudgetDetailsMock(budgetId, {
+      budgetLines: [
+        createBudgetLineMock('line-1', budgetId, {
+          name: originalName,
+          amount: originalAmount,
+          recurrence: 'fixed',
+        }),
+      ],
+    });
+    
+    await authenticatedPage.route('**/budgets/*/details', (route) => {
       void route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({
-          data: {
-            budget: {
-              id: budgetId,
-              month: 1,
-              year: 2025,
-              userId: 'test-user',
-              description: 'Test budget for E2E testing',
-              createdAt: '2025-01-01T00:00:00Z',
-              updatedAt: '2025-01-01T00:00:00Z',
-            },
-            budgetLines: [
-              {
-                id: 'line-1',
-                name: originalName,
-                amount: originalAmount,
-                budgetId,
-                kind: 'FIXED_EXPENSE',
-                recurrence: 'fixed',
-                templateLineId: null,
-                savingsGoalId: null,
-                createdAt: '2025-01-01T00:00:00Z',
-                updatedAt: '2025-01-01T00:00:00Z',
-              },
-            ],
-          },
-        }),
+        body: JSON.stringify(mockResponse),
       });
     });
 
@@ -166,9 +127,7 @@ test.describe('Budget Line Inline Editing', () => {
     await authenticatedPage.waitForSelector('table[mat-table]');
 
     // Find the inputs directly - they might already be in edit mode
-    const nameInput = authenticatedPage.locator('input[placeholder="Nom de la ligne"]').or(
-      authenticatedPage.locator('input[name="name"]')
-    );
+    const nameInput = authenticatedPage.locator('input[placeholder="Nom de la ligne"]');
 
     // Check if already in edit mode, if not click the edit button
     const isInEditMode = await nameInput.isVisible({ timeout: 1000 }).catch(() => false);
@@ -186,10 +145,8 @@ test.describe('Budget Line Inline Editing', () => {
     await nameInput.clear();
     await nameInput.fill('Changed Name That Should Not Be Saved');
 
-    // Cancel the changes
-    const cancelButton = authenticatedPage.locator('button[aria-label*="Cancel"]').or(
-      authenticatedPage.locator('button').filter({ hasText: 'Annuler' })
-    );
+    // Cancel the changes using data-testid
+    const cancelButton = authenticatedPage.locator('[data-testid="cancel-line-1"]');
     await cancelButton.click();
 
     // Verify we're no longer in edit mode
@@ -208,11 +165,12 @@ test.describe('Budget Line Inline Editing', () => {
     const originalName = 'Test Budget Line';
 
     // Mock the budget details API
-    await authenticatedPage.route('**/api/budgets/*/details', (route) => {
+    await authenticatedPage.route('**/budgets/*/details', (route) => {
       void route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
+          success: true,
           data: {
             budget: {
               id: budgetId,
@@ -220,9 +178,11 @@ test.describe('Budget Line Inline Editing', () => {
               year: 2025,
               userId: 'test-user',
               description: 'Test budget for E2E testing',
+              templateId: 'test-template-123',
               createdAt: '2025-01-01T00:00:00Z',
               updatedAt: '2025-01-01T00:00:00Z',
             },
+            transactions: [],
             budgetLines: [
               {
                 id: 'line-1',
@@ -231,6 +191,7 @@ test.describe('Budget Line Inline Editing', () => {
                 budgetId,
                 kind: 'FIXED_EXPENSE',
                 recurrence: 'fixed',
+                isManuallyAdjusted: false,
                 templateLineId: null,
                 savingsGoalId: null,
                 createdAt: '2025-01-01T00:00:00Z',
@@ -248,11 +209,9 @@ test.describe('Budget Line Inline Editing', () => {
     // Wait for the table to render
     await authenticatedPage.waitForSelector('table[mat-table]');
 
-    // Find the inputs directly - they might already be in edit mode
-    const nameInput = authenticatedPage.locator('input[placeholder="Nom de la ligne"]').or(
-      authenticatedPage.locator('input[name="name"]')
-    );
-    const amountInput = authenticatedPage.locator('input[name="amount"]');
+    // Find the inputs directly using data-testid
+    const nameInput = authenticatedPage.locator('[data-testid="edit-name-line-1"]');
+    const amountInput = authenticatedPage.locator('[data-testid="edit-amount-line-1"]');
 
     // Check if already in edit mode, if not click the edit button
     const isInEditMode = await nameInput.isVisible({ timeout: 1000 }).catch(() => false);
@@ -270,9 +229,7 @@ test.describe('Budget Line Inline Editing', () => {
     await nameInput.clear();
 
     // The save button should be disabled
-    const saveButton = authenticatedPage.locator('button[aria-label*="Save"]').or(
-      authenticatedPage.locator('button').filter({ hasText: 'Enregistrer' })
-    );
+    const saveButton = authenticatedPage.locator('[data-testid="save-line-1"]');
     await expect(saveButton).toBeDisabled();
 
     // Fill valid name but invalid amount
@@ -298,11 +255,12 @@ test.describe('Budget Line Inline Editing', () => {
     const budgetId = 'test-budget-123';
 
     // Mock the budget details API with multiple budget lines
-    await authenticatedPage.route('**/api/budgets/*/details', (route) => {
+    await authenticatedPage.route('**/budgets/*/details', (route) => {
       void route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
+          success: true,
           data: {
             budget: {
               id: budgetId,
@@ -310,9 +268,11 @@ test.describe('Budget Line Inline Editing', () => {
               year: 2025,
               userId: 'test-user',
               description: 'Test budget for E2E testing',
+              templateId: 'test-template-123',
               createdAt: '2025-01-01T00:00:00Z',
               updatedAt: '2025-01-01T00:00:00Z',
             },
+            transactions: [],
             budgetLines: [
               {
                 id: 'line-1',
@@ -321,6 +281,7 @@ test.describe('Budget Line Inline Editing', () => {
                 budgetId,
                 kind: 'INCOME',
                 recurrence: 'fixed',
+                isManuallyAdjusted: false,
                 templateLineId: null,
                 savingsGoalId: null,
                 createdAt: '2025-01-01T00:00:00Z',
@@ -333,6 +294,7 @@ test.describe('Budget Line Inline Editing', () => {
                 budgetId,
                 kind: 'FIXED_EXPENSE',
                 recurrence: 'fixed',
+                isManuallyAdjusted: false,
                 templateLineId: null,
                 savingsGoalId: null,
                 createdAt: '2025-01-01T00:00:00Z',
@@ -354,11 +316,9 @@ test.describe('Budget Line Inline Editing', () => {
     await authenticatedPage.waitForSelector('tr:has-text("First Budget Line")');
     await authenticatedPage.waitForSelector('tr:has-text("Second Budget Line")');
 
-    // Edit first line
-    const firstEditButton = authenticatedPage.locator('button[data-testid="edit-line-1"]');
-    const firstNameInput = authenticatedPage.locator('input[placeholder="Nom de la ligne"]').or(
-      authenticatedPage.locator('input[name="name"]')
-    );
+    // Edit first line using data-testid
+    const firstEditButton = authenticatedPage.locator('[data-testid="edit-line-1"]');  
+    const firstNameInput = authenticatedPage.locator('[data-testid="edit-name-line-1"]');
     
     if (await firstEditButton.isVisible({ timeout: 1000 }).catch(() => false)) {
       await firstEditButton.click();
@@ -366,7 +326,7 @@ test.describe('Budget Line Inline Editing', () => {
     await expect(firstNameInput).toBeVisible();
 
     // Edit second line - this should exit edit mode on the first line
-    const secondEditButton = authenticatedPage.locator('button[data-testid="edit-line-2"]');
+    const secondEditButton = authenticatedPage.locator('[data-testid="edit-line-2"]');
     if (await secondEditButton.isVisible({ timeout: 1000 }).catch(() => false)) {
       await secondEditButton.click();
     }
@@ -375,13 +335,11 @@ test.describe('Budget Line Inline Editing', () => {
     await expect(firstEditButton).toBeVisible();
     
     // Verify second line is now in edit mode
-    const secondNameInput = authenticatedPage.locator('input[placeholder="Nom de la ligne"]').or(
-      authenticatedPage.locator('input[name="name"]')
-    );
+    const secondNameInput = authenticatedPage.locator('[data-testid="edit-name-line-2"]');
     await expect(secondNameInput).toBeVisible();
 
     // Cancel second line edit
-    const cancelButton = authenticatedPage.locator('button').filter({ hasText: 'Annuler' });
+    const cancelButton = authenticatedPage.locator('[data-testid="cancel-line-2"]');
     await cancelButton.click();
     
     // Verify second line is no longer in edit mode

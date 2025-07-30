@@ -260,7 +260,7 @@ module.exports = tseslint.config(
             },
             {
               from: ["e2e"],
-              allow: [["e2e"], ["lib-api"]],
+              allow: [["e2e"], ["lib-api"], ["shared"]],
             },
             {
               from: ["test-spec"],

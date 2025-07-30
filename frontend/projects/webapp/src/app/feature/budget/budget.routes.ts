@@ -11,7 +11,7 @@ export const budgetRoutes: Routes = [
       {
         path: '',
         title: PAGE_TITLES.BUDGET,
-        loadComponent: () => import('./budget-list-page'),
+        loadComponent: () => import('./list/budget-list-page'),
       },
       {
         path: ':id',
