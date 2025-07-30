@@ -392,7 +392,15 @@ This vocabulary and UX must follows **Nielsen's 10 Usability Heuristics**, **Bas
 
 ## Angular Material Best Practices
 
-- **Button Directives**: N'utilise pas la directive "mat-button" mais "matButton" pour tous les boutons Angular Material, comme documenté dans la version 20.
+- **Button Directives (v20)**: Utilise les nouvelles directives Angular Material v20 :
+  - `matButton` (text par défaut)
+  - `matButton="filled"` (remplace mat-flat-button)
+  - `matButton="outlined"` (remplace mat-stroked-button)
+  - `matButton="elevated"` (remplace mat-raised-button)
+  - `matButton="tonal"`
+  - `matIconButton` (remplace mat-icon-button)
+  - `matFab` (remplace mat-fab)
+  - `matMiniFab` (remplace mat-mini-fab)
 
 ## Testing Utilities
 
@@ -405,3 +413,12 @@ import { createMockResourceRef } from '../../../core/testing';
 const mockResource = createMockResourceRef<BudgetTemplate[]>([]);
 mockResource.value.set([{ id: '1', name: 'Template' }]);
 ```
+
+## State Management Best Practices
+
+- Directly use public state service when the context is lightweight to avoid unnecessary boilerplate
+- Advantages of direct state access:
+  - Simplify code structure
+  - Reduce code duplication
+  - More direct access to service properties
+  - Clearer and more straightforward implementation
