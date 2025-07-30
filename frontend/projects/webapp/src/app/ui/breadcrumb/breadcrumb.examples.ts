@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { PulpeBreadcrumbNew } from './breadcrumb-new.component';
+import { PulpeBreadcrumb } from './breadcrumb';
 import { BreadcrumbItemDirective } from './breadcrumb-item.directive';
 import { BreadcrumbSeparatorDirective } from './breadcrumb-separator.directive';
 
@@ -12,17 +12,17 @@ import { BreadcrumbSeparatorDirective } from './breadcrumb-separator.directive';
 @Component({
   selector: 'pulpe-breadcrumb-example-basic',
   template: `
-    <pulpe-breadcrumb-new aria-label="Navigation breadcrumb">
+    <pulpe-breadcrumb aria-label="Navigation breadcrumb">
       <a mat-button *pulpeBreadcrumbItem routerLink="/home">Home</a>
       <a mat-button *pulpeBreadcrumbItem routerLink="/products">Products</a>
       <a mat-button *pulpeBreadcrumbItem routerLink="/products/electronics">
         Electronics
       </a>
       <span *pulpeBreadcrumbItem class="font-medium">Smartphones</span>
-    </pulpe-breadcrumb-new>
+    </pulpe-breadcrumb>
   `,
   imports: [
-    PulpeBreadcrumbNew,
+    PulpeBreadcrumb,
     BreadcrumbItemDirective,
     MatButtonModule,
     RouterLink,
@@ -36,7 +36,7 @@ export class BreadcrumbBasicExample {}
 @Component({
   selector: 'pulpe-breadcrumb-example-icons',
   template: `
-    <pulpe-breadcrumb-new>
+    <pulpe-breadcrumb>
       <a mat-button *pulpeBreadcrumbItem routerLink="/dashboard">
         <mat-icon class="mr-1">dashboard</mat-icon>
         Dashboard
@@ -49,10 +49,10 @@ export class BreadcrumbBasicExample {}
         <mat-icon class="mr-1">add</mat-icon>
         Create New Budget
       </span>
-    </pulpe-breadcrumb-new>
+    </pulpe-breadcrumb>
   `,
   imports: [
-    PulpeBreadcrumbNew,
+    PulpeBreadcrumb,
     BreadcrumbItemDirective,
     MatButtonModule,
     MatIconModule,
@@ -67,17 +67,17 @@ export class BreadcrumbWithIconsExample {}
 @Component({
   selector: 'pulpe-breadcrumb-example-custom-separator',
   template: `
-    <pulpe-breadcrumb-new>
+    <pulpe-breadcrumb>
       <a mat-button *pulpeBreadcrumbItem routerLink="/home">Home</a>
       <a mat-button *pulpeBreadcrumbItem routerLink="/docs">Documentation</a>
       <a mat-button *pulpeBreadcrumbItem routerLink="/docs/guides">Guides</a>
       <span *pulpeBreadcrumbItem class="font-medium">Getting Started</span>
 
       <span *pulpeBreadcrumbSeparator class="mx-2 text-outline">/</span>
-    </pulpe-breadcrumb-new>
+    </pulpe-breadcrumb>
   `,
   imports: [
-    PulpeBreadcrumbNew,
+    PulpeBreadcrumb,
     BreadcrumbItemDirective,
     BreadcrumbSeparatorDirective,
     MatButtonModule,
@@ -92,7 +92,7 @@ export class BreadcrumbCustomSeparatorExample {}
 @Component({
   selector: 'pulpe-breadcrumb-example-dynamic',
   template: `
-    <pulpe-breadcrumb-new>
+    <pulpe-breadcrumb>
       <a mat-button *pulpeBreadcrumbItem routerLink="/users">
         <mat-icon class="mr-1">group</mat-icon>
         Users
@@ -109,10 +109,10 @@ export class BreadcrumbCustomSeparatorExample {}
       <mat-icon *pulpeBreadcrumbSeparator class="text-outline mx-1">
         arrow_forward_ios
       </mat-icon>
-    </pulpe-breadcrumb-new>
+    </pulpe-breadcrumb>
   `,
   imports: [
-    PulpeBreadcrumbNew,
+    PulpeBreadcrumb,
     BreadcrumbItemDirective,
     BreadcrumbSeparatorDirective,
     MatButtonModule,
@@ -131,7 +131,7 @@ export class BreadcrumbDynamicExample {
 @Component({
   selector: 'pulpe-breadcrumb-example-custom-style',
   template: `
-    <pulpe-breadcrumb-new>
+    <pulpe-breadcrumb>
       <a
         *pulpeBreadcrumbItem
         routerLink="/home"
@@ -152,8 +152,8 @@ export class BreadcrumbDynamicExample {
       >
         Appearance
       </span>
-    </pulpe-breadcrumb-new>
+    </pulpe-breadcrumb>
   `,
-  imports: [PulpeBreadcrumbNew, BreadcrumbItemDirective, RouterLink],
+  imports: [PulpeBreadcrumb, BreadcrumbItemDirective, RouterLink],
 })
 export class BreadcrumbCustomStyleExample {}
