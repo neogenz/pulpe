@@ -25,7 +25,11 @@ interface AppFixtures {
 // Base test avec beforeEach/afterEach pour l'isolation
 const baseTest = base.extend<AppFixtures>({
   // Factory pour les credentials de test
-  testCredentials: async ({}, use) => {
+  testCredentials: async (
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    {},
+    use,
+  ) => {
     await use({
       valid: TestDataFactory.createValidLoginCredentials(),
       invalid: TestDataFactory.createInvalidLoginCredentials(),
