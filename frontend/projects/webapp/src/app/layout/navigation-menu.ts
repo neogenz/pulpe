@@ -49,7 +49,6 @@ const NAVIGATION_CONFIG = [
                 mat-list-item
                 [routerLink]="item.route"
                 routerLinkActive="active"
-                [routerLinkActiveOptions]="{ exact: true }"
                 (click)="onNavItemClick($event)"
               >
                 <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
