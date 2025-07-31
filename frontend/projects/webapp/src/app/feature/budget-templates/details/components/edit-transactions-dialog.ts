@@ -267,13 +267,15 @@ export default class EditTransactionsDialog {
   readonly #transactionFormService = inject(TransactionFormService);
   readonly data = inject<EditTransactionsDialogData>(MAT_DIALOG_DATA);
 
-  readonly transactionsForm: FormArray<FormGroup<TransactionFormControls>>;
-  readonly #updateTrigger = signal(0);
-  readonly #formValuesSignal: Signal<Partial<TransactionFormData>[]>;
+  readonly transactionsForm!: FormArray<FormGroup<TransactionFormControls>>;
+  #formValuesSignal!: Signal<Partial<TransactionFormData>[]>;
+  readonly #formArraySignal = signal<FormArray<
+    FormGroup<TransactionFormControls>
+  > | null>(null);
 
   readonly transactionsDataSource = computed(() => {
-    this.#updateTrigger(); // Subscribe to trigger
-    return [...this.transactionsForm.controls];
+    const formArray = this.#formArraySignal();
+    return formArray ? [...formArray.controls] : [];
   });
 
   protected readonly displayedColumns: readonly string[] = [
@@ -291,6 +293,9 @@ export default class EditTransactionsDialog {
         this.data.transactions,
       );
 
+    // Update signal with the created form
+    this.#formArraySignal.set(this.transactionsForm);
+
     this.#formValuesSignal = toSignal(this.transactionsForm.valueChanges, {
       initialValue: this.transactionsForm.value,
     });
@@ -301,14 +306,16 @@ export default class EditTransactionsDialog {
       this.transactionsForm,
       index,
     );
-    this.#updateTrigger.update((v) => v + 1);
+    // Trigger reactivity by updating the signal
+    this.#formArraySignal.set(this.transactionsForm);
   }
 
   addNewTransaction(): void {
     this.#transactionFormService.addTransactionToFormArray(
       this.transactionsForm,
     );
-    this.#updateTrigger.update((v) => v + 1);
+    // Trigger reactivity by updating the signal
+    this.#formArraySignal.set(this.transactionsForm);
   }
 
   save(): void {

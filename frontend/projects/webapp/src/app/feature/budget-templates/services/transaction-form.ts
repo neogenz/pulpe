@@ -21,10 +21,9 @@ export const TRANSACTION_VALIDATORS = {
 };
 
 export const TRANSACTION_TYPES = [
-  { value: 'income' as const, label: 'Revenu' },
-  { value: 'expense' as const, label: 'Dépense' },
-  { value: 'saving' as const, label: 'Économie' },
-  { value: 'exceptional_income' as const, label: 'Revenu exceptionnel' },
+  { value: 'INCOME' as const, label: 'Revenu' },
+  { value: 'FIXED_EXPENSE' as const, label: 'Dépense' },
+  { value: 'SAVINGS_CONTRIBUTION' as const, label: 'Économie' },
 ] as const;
 
 @Injectable()
