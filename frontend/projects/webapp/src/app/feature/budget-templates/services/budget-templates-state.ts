@@ -1,4 +1,4 @@
-import { Injectable, inject, resource } from '@angular/core';
+import { Injectable, inject, resource, computed } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { type BudgetTemplate, type BudgetTemplateCreate } from '@pulpe/shared';
 import { BudgetTemplatesApi } from './budget-templates-api';
@@ -10,6 +10,15 @@ export class BudgetTemplatesState {
   templatesData = resource<BudgetTemplate[], void>({
     loader: async () => this.#loadTemplatesData(),
   });
+
+  // Computed signals for common derived state
+  templateCount = computed(() => this.templatesData.value()?.length ?? 0);
+  hasTemplates = computed(() => this.templateCount() > 0);
+  isLoading = computed(
+    () =>
+      this.templatesData.status() === 'loading' ||
+      this.templatesData.status() === 'reloading',
+  );
 
   refreshData(): void {
     if (this.templatesData.status() !== 'loading') {

@@ -66,12 +66,25 @@ export class BudgetTemplatesApi {
    * Fetches a template and its associated transactions in a single call for
    * the frontend. It first retrieves the template by its identifier and then
    * its transactions, finally mapping the responses to a strict view-model.
+   *
+   * Optimized for signal resource usage with proper error handling.
    */
   getDetail$(id: string): Observable<BudgetTemplateDetailViewModel> {
     return forkJoin({
       template: this.getById$(id).pipe(map((r) => r.data)),
       transactions: this.getTemplateTransactions$(id).pipe(map((r) => r.data)),
-    });
+    }).pipe(
+      map((result) => {
+        // Ensure data consistency and provide fallbacks
+        if (!result.template) {
+          throw new Error(`Template with id ${id} not found`);
+        }
+        return {
+          template: result.template,
+          transactions: result.transactions || [],
+        };
+      }),
+    );
   }
 }
 
