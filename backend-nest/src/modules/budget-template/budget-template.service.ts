@@ -751,39 +751,39 @@ export class BudgetTemplateService {
   private readonly onboardingFieldMappings = [
     {
       field: 'monthlyIncome' as const,
-      name: 'Monthly Income',
+      name: 'Salaire',
       kind: 'INCOME' as const,
-      description: 'Regular monthly income',
+      description: 'Salaire & revenus mensuels',
     },
     {
       field: 'housingCosts' as const,
-      name: 'Housing Costs',
+      name: 'Loyer',
       kind: 'FIXED_EXPENSE' as const,
-      description: 'Rent, utilities, home insurance',
+      description: 'Loyer, assurances, etc.',
     },
     {
       field: 'healthInsurance' as const,
-      name: 'Health Insurance',
+      name: 'Assurance maladie',
       kind: 'FIXED_EXPENSE' as const,
-      description: 'Monthly health insurance premium',
+      description: 'Assurance maladie, etc.',
     },
     {
       field: 'phonePlan' as const,
-      name: 'Phone Plan',
+      name: 'Téléphone',
       kind: 'FIXED_EXPENSE' as const,
-      description: 'Monthly mobile plan',
+      description: 'Frais de téléphone',
     },
     {
       field: 'transportCosts' as const,
-      name: 'Transport Costs',
+      name: 'Transport',
       kind: 'FIXED_EXPENSE' as const,
-      description: 'Public transport or vehicle expenses',
+      description: 'Transport en commun, véhicule, etc.',
     },
     {
       field: 'leasingCredit' as const,
-      name: 'Leasing/Credit',
+      name: 'Leasing',
       kind: 'FIXED_EXPENSE' as const,
-      description: 'Monthly credit or leasing payments',
+      description: 'Crédit, leasing, etc.',
     },
   ];
 
