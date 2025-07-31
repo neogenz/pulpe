@@ -8,7 +8,6 @@ import {
   effect,
   Injector,
 } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -354,11 +353,8 @@ export default class TemplateDetail {
       injector: this.#injector,
     });
 
-    // Convert Observable to signal-based pattern
-    const result = toSignal(dialogRef.afterClosed());
-
-    effect(() => {
-      const dialogResult = result();
+    // Handle dialog closure with direct RxJS subscription (appropriate for one-time events)
+    dialogRef.afterClosed().subscribe((dialogResult) => {
       if (dialogResult?.saved) {
         console.log('Transactions mises à jour:', dialogResult.transactions);
         // TODO: Appeler l'API pour sauvegarder les modifications et reload resource
