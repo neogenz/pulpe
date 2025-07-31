@@ -8,12 +8,14 @@ import {
   effect,
   Injector,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDialog } from '@angular/material/dialog';
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import {
   FinancialSummaryData,
   FinancialSummary,
@@ -25,7 +27,7 @@ import {
 } from './components';
 import { BudgetTemplatesApi } from '../services/budget-templates-api';
 import { firstValueFrom } from 'rxjs';
-import { CommonModule } from '@angular/common';
+import { CommonModule, CurrencyPipe } from '@angular/common';
 import { TemplateLine } from '@pulpe/shared';
 import { Title } from '@core/routing';
 
@@ -34,6 +36,7 @@ import { Title } from '@core/routing';
   standalone: true,
   imports: [
     CommonModule,
+    CurrencyPipe,
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
@@ -42,70 +45,170 @@ import { Title } from '@core/routing';
     TransactionsTable,
   ],
   template: `
-    <div class="flex flex-col gap-4 h-full">
+    <!-- Main container with proper surface container background -->
+    <div
+      class="flex flex-col gap-6 h-full bg-surface-container-lowest p-4 md:p-6"
+    >
       @switch (true) {
         @case (data.status() === 'loading' || data.status() === 'reloading') {
-          <div class="flex justify-center items-center h-full">
-            <mat-spinner />
+          <!-- Loading state with proper accessibility -->
+          <div
+            class="flex justify-center items-center h-full"
+            role="status"
+            aria-live="polite"
+            aria-label="Chargement des détails du modèle en cours"
+          >
+            <mat-spinner diameter="48" aria-label="Chargement en cours" />
+            <span class="sr-only"
+              >Chargement des détails du modèle en cours...</span
+            >
           </div>
         }
         @case (data.status() === 'error') {
-          <div class="flex justify-center items-center h-full">
-            <p class="text-error">
-              Une erreur est survenue lors du chargement des détails du modèle.
-            </p>
+          <!-- Error state with proper ARIA roles -->
+          <div
+            class="flex justify-center items-center h-full bg-error-container rounded-xl p-6"
+            role="alert"
+            aria-live="assertive"
+          >
+            <div class="text-center">
+              <mat-icon class="text-error mb-4 !text-4xl" aria-hidden="true">
+                error_outline
+              </mat-icon>
+              <p class="text-body-large text-on-error-container">
+                Une erreur est survenue lors du chargement des détails du
+                modèle.
+              </p>
+              <button
+                mat-stroked-button
+                (click)="data.reload()"
+                class="mt-4"
+                aria-label="Réessayer le chargement"
+              >
+                Réessayer
+              </button>
+            </div>
           </div>
         }
         @case (data.status() === 'resolved' || data.status() === 'local') {
           @if (data.value(); as value) {
-            <header class="flex flex-shrink-0 gap-4 items-center">
+            <!-- Header section with proper semantic structure -->
+            <header
+              class="flex flex-shrink-0 gap-4 items-center bg-surface-container rounded-xl p-4"
+            >
               <button
-                class="display-none"
-                matIconButton
+                mat-icon-button
                 (click)="navigateBack()"
-                aria-label="Retour"
+                aria-label="Retour à la liste des modèles"
+                class="flex-shrink-0"
               >
                 <mat-icon>arrow_back</mat-icon>
               </button>
-              <h1 class="text-display-small">
-                {{ value.template.name }}
-              </h1>
+              <div class="flex-1 min-w-0">
+                <h1
+                  class="text-display-small truncate"
+                  [title]="value.template.name"
+                >
+                  {{ value.template.name }}
+                </h1>
+              </div>
             </header>
 
-            <div
-              class="grid flex-shrink-0 grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-4 md:my-8"
+            <!-- Financial summary cards with responsive grid -->
+            <section
+              class="flex-shrink-0"
+              aria-labelledby="financial-summary-heading"
             >
-              <pulpe-financial-summary [data]="incomeData()" />
-              <pulpe-financial-summary [data]="expenseData()" />
-              <pulpe-financial-summary [data]="savingsData()" />
-              <pulpe-financial-summary [data]="netBalanceData()" />
-            </div>
+              <h2 id="financial-summary-heading" class="sr-only">
+                Résumé financier du modèle
+              </h2>
+              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <pulpe-financial-summary
+                  [data]="incomeData()"
+                  role="region"
+                  [attr.aria-label]="
+                    'Revenus: ' +
+                    (incomeData().amount
+                      | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH')
+                  "
+                />
+                <pulpe-financial-summary
+                  [data]="expenseData()"
+                  role="region"
+                  [attr.aria-label]="
+                    'Dépenses: ' +
+                    (expenseData().amount
+                      | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH')
+                  "
+                />
+                <pulpe-financial-summary
+                  [data]="savingsData()"
+                  role="region"
+                  [attr.aria-label]="
+                    'Économies: ' +
+                    (savingsData().amount
+                      | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH')
+                  "
+                />
+                <pulpe-financial-summary
+                  [data]="netBalanceData()"
+                  role="region"
+                  [attr.aria-label]="
+                    netBalanceData().title +
+                    ': ' +
+                    (netBalanceData().amount
+                      | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH')
+                  "
+                />
+              </div>
+            </section>
 
-            <div class="flex flex-col flex-1 gap-4 min-h-0">
+            <!-- Transactions section with proper surface container -->
+            <section
+              class="flex flex-col flex-1 gap-4 min-h-0 bg-surface-container rounded-xl p-4"
+              aria-labelledby="transactions-heading"
+            >
               <div class="flex gap-4 justify-between items-center">
-                <h2 class="flex-shrink-0 text-headline-small">
+                <h2
+                  id="transactions-heading"
+                  class="flex-shrink-0 text-headline-small"
+                >
                   Transactions fixes
                 </h2>
                 <button
-                  matIconButton
+                  mat-icon-button
                   [matMenuTriggerFor]="transactionsMenu"
-                  aria-label="Options des transactions"
+                  aria-label="Options pour les transactions"
+                  aria-haspopup="menu"
+                  [attr.aria-expanded]="false"
                 >
                   <mat-icon>more_vert</mat-icon>
                 </button>
 
-                <mat-menu #transactionsMenu="matMenu">
-                  <button mat-menu-item (click)="editTemplate()">
-                    <mat-icon>edit</mat-icon>
+                <mat-menu
+                  #transactionsMenu="matMenu"
+                  aria-label="Menu des options"
+                >
+                  <button
+                    mat-menu-item
+                    (click)="editTemplate()"
+                    aria-label="Éditer les transactions du modèle"
+                  >
+                    <mat-icon aria-hidden="true">edit</mat-icon>
                     <span>Éditer</span>
                   </button>
                 </mat-menu>
               </div>
-              <pulpe-transactions-table
-                class="flex-1 min-h-0"
-                [entries]="entries()"
-              />
-            </div>
+
+              <div class="flex-1 min-h-0 bg-surface rounded-lg">
+                <pulpe-transactions-table
+                  class="flex-1 min-h-0"
+                  [entries]="entries()"
+                  role="table"
+                  aria-label="Liste des transactions fixes du modèle"
+                />
+              </div>
+            </section>
           }
         }
       }
@@ -115,6 +218,56 @@ import { Title } from '@core/routing';
     :host {
       display: block;
       height: 100%;
+    }
+
+    /* Material Design 3 Surface Container Classes */
+    .bg-surface-container-lowest {
+      background-color: var(--mat-sys-surface-container-lowest);
+      color: var(--mat-sys-on-surface);
+    }
+
+    .bg-surface-container {
+      background-color: var(--mat-sys-surface-container);
+      color: var(--mat-sys-on-surface);
+    }
+
+    .bg-surface {
+      background-color: var(--mat-sys-surface);
+      color: var(--mat-sys-on-surface);
+    }
+
+    .bg-error-container {
+      background-color: var(--mat-sys-error-container);
+      color: var(--mat-sys-on-error-container);
+    }
+
+    .text-error {
+      color: var(--mat-sys-error);
+    }
+
+    .text-on-error-container {
+      color: var(--mat-sys-on-error-container);
+    }
+
+    /* Screen reader only utility */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    /* Responsive grid improvements */
+    @media (max-width: 640px) {
+      .bg-surface-container-lowest {
+        padding: 1rem;
+        gap: 1rem;
+      }
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -126,6 +279,7 @@ export default class TemplateDetail {
   #title = inject(Title);
   #dialog = inject(MatDialog);
   #injector = inject(Injector);
+  #breakpointObserver = inject(BreakpointObserver);
 
   templateId = input.required<string>();
 
@@ -134,6 +288,14 @@ export default class TemplateDetail {
     loader: async ({ params }) =>
       firstValueFrom(this.#budgetTemplatesApi.getDetail$(params)),
   });
+
+  // Responsive breakpoints for better mobile experience
+  isHandset = computed(() =>
+    this.#breakpointObserver.isMatched([
+      Breakpoints.Handset,
+      Breakpoints.TabletPortrait,
+    ]),
+  );
 
   entries = computed<FinancialEntry[]>(() => {
     const value = this.data.value();
@@ -156,9 +318,21 @@ export default class TemplateDetail {
     });
   });
 
+  // Optimized: Single pass through entries for all totals
+  #totals = computed(() => {
+    return this.entries().reduce(
+      (acc, entry) => ({
+        income: acc.income + entry.earned,
+        expense: acc.expense + entry.spent,
+        savings: acc.savings + entry.saved,
+      }),
+      { income: 0, expense: 0, savings: 0 },
+    );
+  });
+
   incomeData = computed<FinancialSummaryData>(() => ({
     title: 'Revenus',
-    amount: this.entries().reduce((acc, entry) => acc + entry.earned, 0),
+    amount: this.#totals().income,
     icon: 'trending_up',
     type: 'income',
     isClickable: false,
@@ -166,22 +340,21 @@ export default class TemplateDetail {
 
   expenseData = computed<FinancialSummaryData>(() => ({
     title: 'Dépenses',
-    amount: this.entries().reduce((acc, entry) => acc + entry.spent, 0),
+    amount: this.#totals().expense,
     icon: 'trending_down',
     type: 'expense',
   }));
 
   savingsData = computed<FinancialSummaryData>(() => ({
     title: 'Économies',
-    amount: this.entries().reduce((acc, entry) => acc + entry.saved, 0),
+    amount: this.#totals().savings,
     icon: 'savings',
     type: 'savings',
   }));
 
   netBalanceData = computed<FinancialSummaryData>(() => {
-    const incomeAmount = Number(this.incomeData().amount);
-    const expenseAmount = Number(this.expenseData().amount);
-    const total = incomeAmount - expenseAmount;
+    const totals = this.#totals();
+    const total = totals.income - totals.expense;
     return {
       title: total >= 0 ? 'Solde net' : 'Déficit',
       amount: total,
@@ -233,11 +406,16 @@ export default class TemplateDetail {
       injector: this.#injector,
     });
 
-    dialogRef.afterClosed().subscribe((result) => {
-      if (result?.saved) {
-        console.log('Transactions mises à jour:', result.transactions);
-        // TODO: Appeler l'API pour sauvegarder les modifications
-        // this.#budgetTemplatesApi.updateTransactions(this.templateId(), result.transactions);
+    // Convert Observable to signal-based pattern
+    const result = toSignal(dialogRef.afterClosed());
+
+    effect(() => {
+      const dialogResult = result();
+      if (dialogResult?.saved) {
+        console.log('Transactions mises à jour:', dialogResult.transactions);
+        // TODO: Appeler l'API pour sauvegarder les modifications et reload resource
+        // this.#budgetTemplatesApi.updateTransactions(this.templateId(), dialogResult.transactions)
+        //   .then(() => this.data.reload());
       }
     });
   }

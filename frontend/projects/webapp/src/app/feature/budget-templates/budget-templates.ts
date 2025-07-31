@@ -38,7 +38,7 @@ import { Title } from '@core/routing';
             matButton="filled"
             color="primary"
             routerLink="add"
-            [disabled]="state.templatesData.isLoading()"
+            [disabled]="state.isLoading()"
             data-testid="create-template-button"
           >
             <mat-icon>add</mat-icon>
@@ -47,7 +47,7 @@ import { Title } from '@core/routing';
           <button
             matButton
             (click)="state.refreshData()"
-            [disabled]="state.templatesData.isLoading()"
+            [disabled]="state.isLoading()"
             data-testid="refresh-button"
           >
             <mat-icon>refresh</mat-icon>
@@ -57,10 +57,7 @@ import { Title } from '@core/routing';
       </header>
 
       @switch (true) {
-        @case (
-          state.templatesData.status() === 'loading' ||
-          state.templatesData.status() === 'reloading'
-        ) {
+        @case (state.isLoading()) {
           <pulpe-templates-loading data-testid="templates-loading" />
         }
         @case (state.templatesData.status() === 'error') {
