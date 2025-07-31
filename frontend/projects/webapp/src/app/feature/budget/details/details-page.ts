@@ -172,7 +172,7 @@ export default class DetailsPage implements OnInit {
   id = input.required<string>();
 
   ngOnInit(): void {
-    // Initialize the budget ID - inputs are available in ngOnInit
+    // Initialize the budget ID - input is guaranteed to be available in ngOnInit
     this.budgetDetailsState.initializeBudgetId(this.id());
   }
 

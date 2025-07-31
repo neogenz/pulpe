@@ -46,9 +46,7 @@ import { Title } from '@core/routing';
   ],
   template: `
     <!-- Main container with proper surface container background -->
-    <div
-      class="flex flex-col gap-6 h-full bg-surface-container-lowest p-4 md:p-6"
-    >
+    <div class="flex flex-col gap-6 h-full p-4 md:p-6">
       @switch (true) {
         @case (data.status() === 'loading' || data.status() === 'reloading') {
           <!-- Loading state with proper accessibility -->
@@ -67,15 +65,15 @@ import { Title } from '@core/routing';
         @case (data.status() === 'error') {
           <!-- Error state with proper ARIA roles -->
           <div
-            class="flex justify-center items-center h-full bg-error-container rounded-xl p-6"
+            class="flex justify-center items-center h-full bg-error rounded-xl p-6"
             role="alert"
             aria-live="assertive"
           >
             <div class="text-center">
-              <mat-icon class="text-error mb-4 !text-4xl" aria-hidden="true">
+              <mat-icon class="mb-4 !text-4xl" aria-hidden="true">
                 error_outline
               </mat-icon>
-              <p class="text-body-large text-on-error-container">
+              <p class="text-body-large">
                 Une erreur est survenue lors du chargement des détails du
                 modèle.
               </p>
@@ -94,7 +92,7 @@ import { Title } from '@core/routing';
           @if (data.value(); as value) {
             <!-- Header section with proper semantic structure -->
             <header
-              class="flex flex-shrink-0 gap-4 items-center bg-surface-container rounded-xl p-4"
+              class="flex flex-shrink-0 gap-4 items-center rounded-xl p-4"
             >
               <button
                 mat-icon-button
@@ -165,7 +163,7 @@ import { Title } from '@core/routing';
 
             <!-- Transactions section with proper surface container -->
             <section
-              class="flex flex-col flex-1 gap-4 min-h-0 bg-surface-container rounded-xl p-4"
+              class="flex flex-col flex-1 gap-4 min-h-0 rounded-xl p-4"
               aria-labelledby="transactions-heading"
             >
               <div class="flex gap-4 justify-between items-center">
@@ -200,7 +198,7 @@ import { Title } from '@core/routing';
                 </mat-menu>
               </div>
 
-              <div class="flex-1 min-h-0 bg-surface rounded-lg">
+              <div class="flex-1 min-h-0 rounded-lg">
                 <pulpe-transactions-table
                   class="flex-1 min-h-0"
                   [entries]="entries()"
@@ -218,56 +216,6 @@ import { Title } from '@core/routing';
     :host {
       display: block;
       height: 100%;
-    }
-
-    /* Material Design 3 Surface Container Classes */
-    .bg-surface-container-lowest {
-      background-color: var(--mat-sys-surface-container-lowest);
-      color: var(--mat-sys-on-surface);
-    }
-
-    .bg-surface-container {
-      background-color: var(--mat-sys-surface-container);
-      color: var(--mat-sys-on-surface);
-    }
-
-    .bg-surface {
-      background-color: var(--mat-sys-surface);
-      color: var(--mat-sys-on-surface);
-    }
-
-    .bg-error-container {
-      background-color: var(--mat-sys-error-container);
-      color: var(--mat-sys-on-error-container);
-    }
-
-    .text-error {
-      color: var(--mat-sys-error);
-    }
-
-    .text-on-error-container {
-      color: var(--mat-sys-on-error-container);
-    }
-
-    /* Screen reader only utility */
-    .sr-only {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0, 0, 0, 0);
-      white-space: nowrap;
-      border: 0;
-    }
-
-    /* Responsive grid improvements */
-    @media (max-width: 640px) {
-      .bg-surface-container-lowest {
-        padding: 1rem;
-        gap: 1rem;
-      }
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
