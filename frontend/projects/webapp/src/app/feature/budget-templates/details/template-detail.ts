@@ -142,11 +142,10 @@ export default class TemplateDetail {
     }
     return value.transactions.map((transaction: TemplateLine) => {
       const spent =
-        (transaction.kind as string) === 'expense' ? transaction.amount : 0;
-      const earned =
-        (transaction.kind as string) === 'income' ? transaction.amount : 0;
+        transaction.kind === 'FIXED_EXPENSE' ? transaction.amount : 0;
+      const earned = transaction.kind === 'INCOME' ? transaction.amount : 0;
       const saved =
-        (transaction.kind as string) === 'saving' ? transaction.amount : 0;
+        transaction.kind === 'SAVINGS_CONTRIBUTION' ? transaction.amount : 0;
       return {
         description: transaction.name,
         spent,
@@ -215,7 +214,7 @@ export default class TemplateDetail {
       (transaction: TemplateLine) => ({
         description: transaction.name,
         amount: transaction.amount,
-        type: transaction.kind as 'income' | 'expense' | 'saving',
+        type: transaction.kind,
       }),
     );
 
