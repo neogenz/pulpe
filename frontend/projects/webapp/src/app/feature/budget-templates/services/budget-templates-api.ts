@@ -52,7 +52,7 @@ export class BudgetTemplatesApi {
     templateId: string,
   ): Observable<TemplateLineListResponse> {
     return this.#http.get<TemplateLineListResponse>(
-      `${this.#apiUrl}/${templateId}/transactions`,
+      `${this.#apiUrl}/${templateId}/lines`,
     );
   }
 
