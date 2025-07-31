@@ -8,6 +8,7 @@ import {
   effect,
   Injector,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -26,6 +27,7 @@ import {
 } from './components';
 import { BudgetTemplatesApi } from '../services/budget-templates-api';
 import { firstValueFrom } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { CommonModule, CurrencyPipe } from '@angular/common';
 import { TemplateLine } from '@pulpe/shared';
 import { Title } from '@core/routing';
@@ -236,12 +238,12 @@ export default class TemplateDetail {
       firstValueFrom(this.#budgetTemplatesApi.getDetail$(params)),
   });
 
-  // Responsive breakpoints for better mobile experience
-  isHandset = computed(() =>
-    this.#breakpointObserver.isMatched([
-      Breakpoints.Handset,
-      Breakpoints.TabletPortrait,
-    ]),
+  // Reactive breakpoint detection with proper signal integration
+  isHandset = toSignal(
+    this.#breakpointObserver
+      .observe([Breakpoints.Handset, Breakpoints.TabletPortrait])
+      .pipe(map((result) => result.matches)),
+    { initialValue: false },
   );
 
   entries = computed<FinancialEntry[]>(() => {
