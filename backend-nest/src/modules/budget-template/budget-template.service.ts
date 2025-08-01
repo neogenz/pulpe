@@ -142,10 +142,9 @@ export class BudgetTemplateService {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<void> {
-    // First validate template access once
-    await this.validateTemplateAccess(templateId, user, supabase);
+    // Note: Template access is already validated by the calling method
 
-    // Then validate all lines in a single query
+    // Validate all lines in a single query
     const { data: existingLines, error } = await supabase
       .from('template_line')
       .select('id')
