@@ -3,6 +3,9 @@ import { RequestMethod, VersioningType } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from 'nestjs-pino';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import compression from 'compression';
 import { AppModule } from './app.module';
 import { validateEnvironment } from '@config/environment';
 import { patchNestJsSwagger } from 'nestjs-zod';
@@ -10,12 +13,42 @@ import { patchNestJsSwagger } from 'nestjs-zod';
 // ValidationPipe removed - using ZodValidationPipe from app.module.ts instead
 
 function setupCors(app: import('@nestjs/common').INestApplication): void {
+  const configService = app.get(ConfigService);
+  const nodeEnv = configService.get<string>('NODE_ENV', 'development');
+
   app.enableCors({
-    origin: ['http://localhost:4200', 'http://localhost:3000'],
+    origin:
+      nodeEnv === 'production'
+        ? configService.get<string>('CORS_ORIGIN', '').split(',')
+        : ['http://localhost:4200', 'http://localhost:3000'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
   });
+}
+
+function setupSecurity(app: import('@nestjs/common').INestApplication): void {
+  // Helmet for security headers
+  app.use(
+    helmet({
+      contentSecurityPolicy: false, // Disable CSP for API
+      crossOriginEmbedderPolicy: false, // Allow embedding
+    }),
+  );
+
+  // Global rate limiting - 100 requests per 15 minutes per IP
+  const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+    message: 'Too many requests from this IP, please try again later.',
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  });
+
+  app.use(limiter);
+
+  // Response compression
+  app.use(compression());
 }
 
 function setupSwagger(
@@ -88,6 +121,10 @@ async function bootstrap() {
 
   app.useLogger(app.get(Logger));
 
+  // Setup security middleware
+  setupSecurity(app);
+
+  // Setup CORS after security middleware
   setupCors(app);
 
   // Enable URI versioning
