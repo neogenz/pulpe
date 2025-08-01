@@ -5,7 +5,7 @@ import { ZodValidationException } from 'nestjs-zod';
 import { ZodError } from 'zod';
 
 @ApiTags('Debug')
-@Controller('debug')
+@Controller({ path: 'debug', version: '1' })
 export class DebugController {
   constructor(
     @InjectPinoLogger(DebugController.name)

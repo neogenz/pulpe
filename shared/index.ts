@@ -49,6 +49,9 @@ export {
   templateLineResponseSchema,
   templateLineListResponseSchema,
   templateLineDeleteResponseSchema,
+  templateLineUpdateWithIdSchema,
+  templateLinesBulkUpdateSchema,
+  templateLinesBulkUpdateResponseSchema,
 
   // Savings Goal schemas
   savingsGoalSchema,
@@ -132,6 +135,9 @@ export type {
   TemplateLineResponse,
   TemplateLineListResponse,
   TemplateLineDeleteResponse,
+  TemplateLineUpdateWithId,
+  TemplateLinesBulkUpdate,
+  TemplateLinesBulkUpdateResponse,
   TransactionResponse,
 
   // Savings Goal types

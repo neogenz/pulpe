@@ -43,7 +43,7 @@ import { ErrorResponseDto } from '@common/dto/response.dto';
 
 @ApiTags('Budget Lines')
 @ApiBearerAuth()
-@Controller('budget-lines')
+@Controller({ path: 'budget-lines', version: '1' })
 @UseGuards(AuthGuard)
 @ApiUnauthorizedResponse({
   description: 'Authentication required',
