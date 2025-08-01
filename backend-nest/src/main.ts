@@ -110,6 +110,7 @@ async function bootstrap() {
   await app.listen(env.PORT);
 
   logger.log(`🚀 Application is running on: http://localhost:${env.PORT}`);
+  logger.log(`🔗 API v1 endpoints: http://localhost:${env.PORT}/api/v1`);
   logger.log(`📚 Swagger documentation: http://localhost:${env.PORT}/docs`);
   logger.log(`📋 OpenAPI JSON: http://localhost:${env.PORT}/api/openapi`);
   logger.log('HTTP request logging is active with Pino');

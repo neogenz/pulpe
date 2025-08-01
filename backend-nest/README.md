@@ -5,7 +5,7 @@ API backend moderne pour l'application Pulpe Budget, construite avec NestJS, Bun
 ## ✨ **Features**
 
 - **🏗️ NestJS Framework** : Architecture moderne avec decorators et dependency injection
-- **📚 OpenAPI/Swagger** : Documentation API auto-générée accessible à `/api/docs`
+- **📚 OpenAPI/Swagger** : Documentation API auto-générée accessible à `/docs`
 - **✅ Validation Zod** : Validation robuste via schemas partagés `@pulpe/shared`
 - **🔐 Supabase Auth** : Authentification JWT + Row Level Security (RLS)
 - **🔒 TypeScript Strict** : Type safety complète de la DB aux réponses API
@@ -43,7 +43,7 @@ cp .env.example .env
 bun run start:dev
 
 # L'API sera disponible sur http://localhost:3000
-# Documentation Swagger : http://localhost:3000/api/docs
+# Documentation Swagger : http://localhost:3000/docs
 ```
 
 ### Production
@@ -146,7 +146,7 @@ Tous les endpoints sont préfixés par `/api` :
 
 - `GET /api/debug/health` - Health check
 
-> 📚 **Documentation Swagger** : Interface interactive disponible à `/api/docs`  
+> 📚 **Documentation Swagger** : Interface interactive disponible à `/docs`  
 > 🏗️ **Architecture des controllers** : Patterns et bonnes pratiques dans [ARCHITECTURE.md](./ARCHITECTURE.md)
 
 ## 🏗️ **Architecture Overview**
@@ -187,8 +187,8 @@ SUPABASE_SERVICE_ROLE_KEY=votre_clé_service_supabase
 
 ### Endpoints Utiles
 
-- **API** : http://localhost:3000/api
-- **Swagger** : http://localhost:3000/api/docs
+- **API** : http://localhost:3000/api/v1
+- **Swagger** : http://localhost:3000/docs
 - **OpenAPI JSON** : http://localhost:3000/api/openapi
 - **Health** : http://localhost:3000/health
 
