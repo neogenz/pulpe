@@ -13,6 +13,13 @@ type TemplateLineWithTemplate = Tables<'template_line'> & {
   template: Tables<'template'>;
 };
 
+interface ValidationContext {
+  operation: string;
+  userId: string;
+  entityId: string;
+  startTime: number;
+}
+
 @Injectable()
 export class TemplateValidationService {
   constructor(
@@ -38,25 +45,19 @@ export class TemplateValidationService {
     try {
       const template = await this.fetchTemplate(templateId, supabase);
 
-      this.checkTemplateExists(
-        template,
-        templateId,
+      const validationContext: ValidationContext = {
         operation,
-        user.id,
+        userId: user.id,
+        entityId: templateId,
         startTime,
-      );
+      };
 
-      this.checkTemplateOwnership(
-        template!,
-        user.id,
-        operation,
-        templateId,
-        startTime,
-      );
+      this.checkTemplateExists(template, validationContext);
+      this.checkTemplateOwnership(template, validationContext);
 
       this.logSuccessfulValidation(operation, templateId, user.id, startTime);
 
-      return template!;
+      return template;
     } catch (error) {
       if (
         error instanceof NotFoundException ||
@@ -89,37 +90,33 @@ export class TemplateValidationService {
 
   private checkTemplateExists(
     template: Tables<'template'> | null,
-    templateId: string,
-    operation: string,
-    userId: string,
-    startTime: number,
+    context: ValidationContext,
   ): asserts template is Tables<'template'> {
     if (!template) {
       this.logger.warn({
-        operation,
-        templateId,
-        userId,
-        duration: Date.now() - startTime,
+        operation: context.operation,
+        templateId: context.entityId,
+        userId: context.userId,
+        duration: Date.now() - context.startTime,
         message: 'Template not found',
       });
-      throw new NotFoundException(`Template with ID ${templateId} not found`);
+      throw new NotFoundException(
+        `Template with ID ${context.entityId} not found`,
+      );
     }
   }
 
   private checkTemplateOwnership(
     template: Tables<'template'>,
-    userId: string,
-    operation: string,
-    templateId: string,
-    startTime: number,
+    context: ValidationContext,
   ): void {
-    if (template.user_id !== userId) {
+    if (template.user_id !== context.userId) {
       this.logger.warn({
-        operation,
-        templateId,
-        userId,
+        operation: context.operation,
+        templateId: context.entityId,
+        userId: context.userId,
         ownerId: template.user_id,
-        duration: Date.now() - startTime,
+        duration: Date.now() - context.startTime,
         message: 'Unauthorized template access attempt',
       });
       throw new ForbiddenException('You do not have access to this template');
@@ -189,8 +186,8 @@ export class TemplateValidationService {
       );
 
       return {
-        templateLine: lineWithTemplate!,
-        template: lineWithTemplate!.template,
+        templateLine: lineWithTemplate,
+        template: lineWithTemplate.template,
       };
     } catch (error) {
       this.handleValidationError(error, () =>

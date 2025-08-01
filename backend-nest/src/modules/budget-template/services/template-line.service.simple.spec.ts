@@ -2,9 +2,13 @@ import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { TemplateLineService } from './template-line.service';
 import { TemplateValidationService } from './template-validation.service';
 import { BudgetTemplateMapper } from '../budget-template.mapper';
-import { createMockSupabaseClient } from '@/test/test-utils';
+import {
+  createMockSupabaseClient,
+  createMockLoggingService,
+} from '@/test/test-utils';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { Tables } from '@/types/database.types';
+import { LoggingService } from '@common/services/logging.service';
 
 describe('TemplateLineService - Basic Tests', () => {
   let service: TemplateLineService;
@@ -12,13 +16,7 @@ describe('TemplateLineService - Basic Tests', () => {
   let mockUser: AuthenticatedUser;
   let mockValidationService: Partial<TemplateValidationService>;
   let mockMapper: BudgetTemplateMapper;
-
-  const mockLogger = {
-    error: mock(() => {}),
-    warn: mock(() => {}),
-    info: mock(() => {}),
-    debug: mock(() => {}),
-  };
+  let mockLoggingService: LoggingService;
 
   const mockTemplate: Tables<'template'> = {
     id: 'template-123',
@@ -59,8 +57,11 @@ describe('TemplateLineService - Basic Tests', () => {
       validateTemplateLinesAccessBatch: mock(() => Promise.resolve()),
     };
 
+    // Create a mock LoggingService with the new API
+    mockLoggingService = createMockLoggingService();
+
     service = new TemplateLineService(
-      mockLogger as any,
+      mockLoggingService,
       mockMapper,
       mockValidationService as any,
     );
