@@ -14,7 +14,7 @@ import {
   type BudgetLineUpdate,
   type BudgetLineDeleteResponse,
 } from '@pulpe/shared';
-import { BudgetLineMapper } from './budget-line.mapper';
+import * as budgetLineMappers from './budget-line.mappers';
 import type { Database } from '../../types/database.types';
 
 @Injectable()
@@ -22,7 +22,6 @@ export class BudgetLineService {
   constructor(
     @InjectPinoLogger(BudgetLineService.name)
     private readonly logger: PinoLogger,
-    private readonly budgetLineMapper: BudgetLineMapper,
   ) {}
 
   async findAll(
@@ -41,7 +40,7 @@ export class BudgetLineService {
         );
       }
 
-      const apiData = this.budgetLineMapper.toApiList(budgetLinesDb || []);
+      const apiData = budgetLineMappers.toApiList(budgetLinesDb || []);
 
       return {
         success: true as const,
@@ -77,7 +76,7 @@ export class BudgetLineService {
         );
       }
 
-      const apiData = this.budgetLineMapper.toApiList(budgetLinesDb || []);
+      const apiData = budgetLineMappers.toApiList(budgetLinesDb || []);
 
       return {
         success: true as const,
@@ -113,7 +112,7 @@ export class BudgetLineService {
         );
       }
 
-      const apiData = this.budgetLineMapper.toApi(budgetLineDb);
+      const apiData = budgetLineMappers.toApi(budgetLineDb);
 
       return {
         success: true,
@@ -204,7 +203,7 @@ export class BudgetLineService {
         supabase,
       );
 
-      const apiData = this.budgetLineMapper.toApi(budgetLineDb);
+      const apiData = budgetLineMappers.toApi(budgetLineDb);
 
       return {
         success: true,
@@ -301,7 +300,7 @@ export class BudgetLineService {
         supabase,
       );
 
-      const apiData = this.budgetLineMapper.toApi(budgetLineDb);
+      const apiData = budgetLineMappers.toApi(budgetLineDb);
 
       return {
         success: true,

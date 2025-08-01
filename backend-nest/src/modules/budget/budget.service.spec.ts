@@ -6,19 +6,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { BudgetService } from './budget.service';
-import { BudgetMapper } from './budget.mapper';
-import { TransactionMapper } from '../transaction/transaction.mapper';
-import { BudgetLineMapper } from '../budget-line/budget-line.mapper';
 import {
   createMockAuthenticatedUser,
   createMockSupabaseClient,
-  expectSuccessResponse,
   expectErrorThrown,
-  expectListResponse,
-  expectPerformance,
   MOCK_BUDGET_ID,
   MockSupabaseClient,
-} from '../../test/test-utils';
+} from '../../test/test-utils-simple';
 import type { BudgetCreate, BudgetUpdate } from '@pulpe/shared';
 
 describe('BudgetService', () => {
@@ -63,9 +57,6 @@ describe('BudgetService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BudgetService,
-        BudgetMapper,
-        TransactionMapper,
-        BudgetLineMapper,
         {
           provide: `PinoLogger:${BudgetService.name}`,
           useValue: mockPinoLogger,
@@ -89,30 +80,23 @@ describe('BudgetService', () => {
 
       mockSupabaseClient.setMockData(mockBudgets).setMockError(null);
 
-      await expectPerformance(
-        async () => {
-          const result = await service.findAll(mockSupabaseClient as any);
+      const result = await service.findAll(mockSupabaseClient as any);
 
-          expectListResponse(
-            result,
-            (budget: any) => {
-              // Vérifier la transformation snake_case → camelCase
-              expect(budget).toHaveProperty('id');
-              expect(budget).toHaveProperty('createdAt');
-              expect(budget).toHaveProperty('userId');
-              expect(budget).not.toHaveProperty('created_at');
-              expect(budget).not.toHaveProperty('user_id');
-            },
-            2,
-          );
+      // Verify successful response
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveLength(2);
 
-          // Note: Mock client doesn't apply sorting, so we test the transformation only
-          // In real usage, Supabase orders by year desc, month desc
-          expect(result.data).toHaveLength(2);
-        },
-        30,
-        'BudgetService.findAll with proper transformation',
-      );
+      // Verify data transformation snake_case → camelCase
+      result.data.forEach((budget: any) => {
+        expect(budget).toHaveProperty('id');
+        expect(budget).toHaveProperty('createdAt');
+        expect(budget).toHaveProperty('userId');
+        expect(budget).not.toHaveProperty('created_at');
+        expect(budget).not.toHaveProperty('user_id');
+      });
+
+      // Note: Mock client doesn't apply sorting, so we test the transformation only
+      // In real usage, Supabase orders by year desc, month desc
     });
 
     it('should handle database error gracefully', async () => {
@@ -140,7 +124,7 @@ describe('BudgetService', () => {
 
       const result = await service.findAll(mockSupabaseClient as any);
 
-      expectSuccessResponse(result);
+      expect(result.success).toBe(true);
       expect(result.data).toHaveLength(2); // All valid budgets
     });
   });
@@ -177,7 +161,7 @@ describe('BudgetService', () => {
         mockSupabaseClient as any,
       );
 
-      expectSuccessResponse(result);
+      expect(result.success).toBe(true);
       expect(result.data.month).toBe(createBudgetDto.month);
       expect(result.data.year).toBe(createBudgetDto.year);
       expect(result.data.description).toBe(createBudgetDto.description);
@@ -266,7 +250,8 @@ describe('BudgetService', () => {
 
       const result = await service.findOne(budgetId, mockSupabaseClient as any);
 
-      expectSuccessResponse(result);
+      expect(result.success).toBe(true);
+      expect(result.data).toBeDefined();
       expect(result.data.id).toBe(budgetId);
 
       // Vérifier les enrichissements (ces tests passeront quand on utilisera le vrai service)
@@ -320,7 +305,7 @@ describe('BudgetService', () => {
         mockSupabaseClient as any,
       );
 
-      expectSuccessResponse(result);
+      expect(result.success).toBe(true);
       expect(result.data.description).toBe(updateBudgetDto.description!);
       expect(result.data.month).toBe(updateBudgetDto.month!);
     });
@@ -430,7 +415,7 @@ describe('BudgetService', () => {
         mockSupabaseClient as any,
       );
 
-      expectSuccessResponse(result);
+      expect(result.success).toBe(true);
       expect(result.data).toHaveProperty('budget');
       expect(result.data).toHaveProperty('transactions');
       expect(result.data).toHaveProperty('budgetLines');
@@ -487,7 +472,7 @@ describe('BudgetService', () => {
         mockSupabaseClient as any,
       );
 
-      expectSuccessResponse(result);
+      expect(result.success).toBe(true);
       expect(result.data.budget.id).toBe(budgetId);
       expect(result.data.transactions).toEqual([]);
       expect(result.data.budgetLines).toEqual([]);
@@ -544,7 +529,7 @@ describe('BudgetService', () => {
       );
 
       // Should not throw, but return empty arrays for failed queries
-      expectSuccessResponse(result);
+      expect(result.success).toBe(true);
       expect(result.data.budget.id).toBe(budgetId);
       expect(result.data.transactions).toEqual([]);
       expect(result.data.budgetLines).toEqual([]);

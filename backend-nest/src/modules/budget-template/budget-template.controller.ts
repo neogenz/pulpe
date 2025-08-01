@@ -348,12 +348,7 @@ export class BudgetTemplateController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<_TemplateLineResponse> {
-    return this.budgetTemplateService.findTemplateLine(
-      templateId,
-      lineId,
-      user,
-      supabase,
-    );
+    return this.budgetTemplateService.findTemplateLine(lineId, user, supabase);
   }
 
   @Patch(':templateId/lines/:lineId')
@@ -396,7 +391,6 @@ export class BudgetTemplateController {
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<_TemplateLineResponse> {
     return this.budgetTemplateService.updateTemplateLine(
-      templateId,
       lineId,
       updateLineDto,
       user,
@@ -439,7 +433,6 @@ export class BudgetTemplateController {
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<_TemplateLineDeleteResponse> {
     return this.budgetTemplateService.deleteTemplateLine(
-      templateId,
       lineId,
       user,
       supabase,

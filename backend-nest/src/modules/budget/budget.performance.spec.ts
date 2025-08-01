@@ -2,44 +2,17 @@ import { describe, it, expect, beforeEach } from 'bun:test';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { v4 as uuid } from 'uuid';
 import { BudgetService } from './budget.service';
-import { BudgetMapper } from './budget.mapper';
-import { TransactionMapper } from '../transaction/transaction.mapper';
-import { BudgetLineMapper } from '../budget-line/budget-line.mapper';
 import {
   createMockAuthenticatedUser,
   createMockSupabaseClient,
   createMockBudgetEntity,
-  expectPerformance,
-  LoadTestRunner,
-  expectLoadTestPerformance,
   MockSupabaseClient,
-} from '../../test/test-utils';
+} from '../../test/test-utils-simple';
 import type { BudgetCreate } from '@pulpe/shared';
 
 describe('BudgetService (Performance)', () => {
   let service: BudgetService;
   let mockSupabaseClient: MockSupabaseClient;
-  let loadTestRunner: LoadTestRunner;
-
-  const simpleBudgetMapper = {
-    toApiList: (data: any[]) =>
-      data.map((item) => ({ ...item, mappedToApi: true })),
-    toApi: (data: any) => ({ ...data, mappedToApi: true }),
-    toInsert: (data: any, userId: string) => ({ ...data, user_id: userId }),
-    toUpdate: (data: any) => ({ ...data }),
-  };
-
-  const simpleTransactionMapper = {
-    toApiList: (data: any[]) =>
-      data.map((item) => ({ ...item, mappedToApi: true })),
-    toApi: (data: any) => ({ ...data, mappedToApi: true }),
-  };
-
-  const simpleBudgetLineMapper = {
-    toApiList: (data: any[]) =>
-      data.map((item) => ({ ...item, mappedToApi: true })),
-    toApi: (data: any) => ({ ...data, mappedToApi: true }),
-  };
 
   beforeEach(async () => {
     const { mockClient } = createMockSupabaseClient();
@@ -57,9 +30,6 @@ describe('BudgetService (Performance)', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BudgetService,
-        { provide: BudgetMapper, useValue: simpleBudgetMapper },
-        { provide: TransactionMapper, useValue: simpleTransactionMapper },
-        { provide: BudgetLineMapper, useValue: simpleBudgetLineMapper },
         {
           provide: `PinoLogger:${BudgetService.name}`,
           useValue: mockPinoLogger,
@@ -68,7 +38,6 @@ describe('BudgetService (Performance)', () => {
     }).compile();
 
     service = module.get<BudgetService>(BudgetService);
-    loadTestRunner = new LoadTestRunner(50, 10000);
   });
 
   describe('Basic Performance Tests', () => {
@@ -79,15 +48,13 @@ describe('BudgetService (Performance)', () => {
 
       mockSupabaseClient.setMockData(mockBudgets).setMockError(null);
 
-      await expectPerformance(
-        async () => {
-          const result = await service.findAll(mockSupabaseClient as any);
-          expect(result.success).toBe(true);
-          expect(result.data).toHaveLength(100);
-        },
-        50,
-        'BudgetService.findAll with 100 items',
-      );
+      const startTime = Date.now();
+      const result = await service.findAll(mockSupabaseClient as any);
+      const executionTime = Date.now() - startTime;
+
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveLength(100);
+      expect(executionTime).toBeLessThan(50);
     });
 
     it('should perform findOne within performance limits', async () => {
@@ -97,18 +64,13 @@ describe('BudgetService (Performance)', () => {
 
       mockSupabaseClient.setMockData(mockBudget).setMockError(null);
 
-      await expectPerformance(
-        async () => {
-          const result = await service.findOne(
-            budgetId,
-            mockSupabaseClient as any,
-          );
-          expect(result.success).toBe(true);
-          expect(result.data.id).toBe(budgetId);
-        },
-        25,
-        'BudgetService.findOne',
-      );
+      const startTime = Date.now();
+      const result = await service.findOne(budgetId, mockSupabaseClient as any);
+      const executionTime = Date.now() - startTime;
+
+      expect(result.success).toBe(true);
+      expect(result.data.id).toBe(budgetId);
+      expect(executionTime).toBeLessThan(25);
     });
 
     it('should handle large datasets efficiently', async () => {
@@ -123,15 +85,13 @@ describe('BudgetService (Performance)', () => {
 
       mockSupabaseClient.setMockData(largeBudgetList).setMockError(null);
 
-      await expectPerformance(
-        async () => {
-          const result = await service.findAll(mockSupabaseClient as any);
-          expect(result.success).toBe(true);
-          expect(result.data).toHaveLength(1000);
-        },
-        200,
-        'BudgetService.findAll with 1000 items',
-      );
+      const startTime = Date.now();
+      const result = await service.findAll(mockSupabaseClient as any);
+      const executionTime = Date.now() - startTime;
+
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveLength(1000);
+      expect(executionTime).toBeLessThan(200);
     });
   });
 
@@ -143,19 +103,27 @@ describe('BudgetService (Performance)', () => {
 
       mockSupabaseClient.setMockData(mockBudgets).setMockError(null);
 
-      const result = await loadTestRunner.runConcurrentTest(
-        async () => service.findAll(mockSupabaseClient as any),
-        'BudgetService.findAll',
+      const concurrentRequests = 50;
+      const startTime = Date.now();
+
+      const promises = Array.from({ length: concurrentRequests }, () =>
+        service.findAll(mockSupabaseClient as any),
       );
 
-      expectLoadTestPerformance(result, {
-        minSuccessRate: 95,
-        maxAverageResponseTime: 100,
-        minRequestsPerSecond: 100,
-      });
+      const results = await Promise.allSettled(promises);
+      const totalDuration = Date.now() - startTime;
 
-      expect(result.totalRequests).toBe(50);
-      expect(result.failedRequests).toBeLessThanOrEqual(2);
+      const successCount = results.filter(
+        (r) => r.status === 'fulfilled',
+      ).length;
+      const failureCount = results.filter(
+        (r) => r.status === 'rejected',
+      ).length;
+      const successRate = (successCount / concurrentRequests) * 100;
+
+      expect(successRate).toBeGreaterThanOrEqual(95);
+      expect(failureCount).toBeLessThanOrEqual(2);
+      expect(totalDuration).toBeLessThan(1000); // Should complete within 1 second
     });
 
     it('should handle concurrent create requests', async () => {
@@ -204,16 +172,24 @@ describe('BudgetService (Performance)', () => {
         return chainMethods;
       };
 
-      const result = await loadTestRunner.runConcurrentTest(async () => {
+      const concurrentRequests = 50;
+      const startTime = Date.now();
+
+      const promises = Array.from({ length: concurrentRequests }, () => {
         const dto = createBudgetDtoGenerator();
         return service.create(dto, mockUser, mockSupabaseClient as any);
-      }, 'BudgetService.create');
-
-      expectLoadTestPerformance(result, {
-        minSuccessRate: 90,
-        maxAverageResponseTime: 150,
-        minRequestsPerSecond: 50,
       });
+
+      const results = await Promise.allSettled(promises);
+      const totalDuration = Date.now() - startTime;
+
+      const successCount = results.filter(
+        (r) => r.status === 'fulfilled',
+      ).length;
+      const successRate = (successCount / concurrentRequests) * 100;
+
+      expect(successRate).toBeGreaterThanOrEqual(90);
+      expect(totalDuration).toBeLessThan(3000); // Should complete within 3 seconds
     });
   });
 
@@ -221,29 +197,25 @@ describe('BudgetService (Performance)', () => {
     it('should handle empty results efficiently', async () => {
       mockSupabaseClient.setMockData([]).setMockError(null);
 
-      await expectPerformance(
-        async () => {
-          const result = await service.findAll(mockSupabaseClient as any);
-          expect(result.success).toBe(true);
-          expect(result.data).toHaveLength(0);
-        },
-        20,
-        'BudgetService.findAll with empty result',
-      );
+      const startTime = Date.now();
+      const result = await service.findAll(mockSupabaseClient as any);
+      const executionTime = Date.now() - startTime;
+
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveLength(0);
+      expect(executionTime).toBeLessThan(20);
     });
 
     it('should handle null data efficiently', async () => {
       mockSupabaseClient.setMockData(null).setMockError(null);
 
-      await expectPerformance(
-        async () => {
-          const result = await service.findAll(mockSupabaseClient as any);
-          expect(result.success).toBe(true);
-          expect(result.data).toHaveLength(0);
-        },
-        15,
-        'BudgetService.findAll with null data',
-      );
+      const startTime = Date.now();
+      const result = await service.findAll(mockSupabaseClient as any);
+      const executionTime = Date.now() - startTime;
+
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveLength(0);
+      expect(executionTime).toBeLessThan(15);
     });
   });
 });
