@@ -68,7 +68,7 @@ test.describe('Monthly Budget Management', () => {
     const currentMonthPage = new CurrentMonthPage(authenticatedPage);
     await test.step('Setup API error mock', async () => {
       // Mock API error
-      await authenticatedPage.route('**/api/transactions**', (route) => {
+      await authenticatedPage.route('**/api/v1/transactions**', (route) => {
         void route.fulfill({
           status: 500,
           body: JSON.stringify({ error: 'Server error' }),

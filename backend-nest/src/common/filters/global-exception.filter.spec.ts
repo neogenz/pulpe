@@ -31,7 +31,7 @@ const createMockRequest = (overrides: any = {}): Request => {
       authorization: 'Bearer test-token',
     },
     method: 'POST',
-    url: '/api/users',
+    url: '/api/v1/users',
     body: { name: 'Test User', email: 'test@example.com' },
     ip: '192.168.1.100',
     connection: {
@@ -129,7 +129,7 @@ describe('GlobalExceptionFilter', () => {
           'user-agent': 'Test Browser',
         },
         method: 'POST',
-        url: '/api/users',
+        url: '/api/v1/users',
         body: { name: 'Test User', email: 'test@example.com' },
         ip: '192.168.1.100',
         connection: {
@@ -477,7 +477,7 @@ describe('GlobalExceptionFilter', () => {
       };
       const request = createMockRequest({
         method: 'POST',
-        url: '/api/auth/login',
+        url: '/api/v1/auth/login',
       });
       const context = {
         requestId: 'req-abc-123',
@@ -496,7 +496,7 @@ describe('GlobalExceptionFilter', () => {
         timestamp: expect.stringMatching(
           /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/,
         ),
-        path: '/api/auth/login',
+        path: '/api/v1/auth/login',
         method: 'POST',
         error: 'BadRequestException',
         code: 'VALIDATION_ERROR',
@@ -593,7 +593,7 @@ describe('GlobalExceptionFilter', () => {
 
         const request = createMockRequest({
           method: 'PUT',
-          url: '/api/users/123',
+          url: '/api/v1/users/123',
           body: { email: 'invalid-email' },
         });
         const response = createMockResponse();
@@ -623,7 +623,7 @@ describe('GlobalExceptionFilter', () => {
         );
         const request = createMockRequest({
           method: 'GET',
-          url: '/api/protected',
+          url: '/api/v1/protected',
         });
         const response = createMockResponse();
         const host = createMockArgumentsHost(request, response);
@@ -732,7 +732,7 @@ describe('GlobalExceptionFilter', () => {
           'Not found',
           HttpStatus.NOT_FOUND,
         );
-        const request = createMockRequest({ url: '/api/users/999' });
+        const request = createMockRequest({ url: '/api/v1/users/999' });
         const response = createMockResponse();
         const host = createMockArgumentsHost(request, response);
 
@@ -747,7 +747,7 @@ describe('GlobalExceptionFilter', () => {
             message: 'Not found',
             error: 'HttpException',
             code: 'HTTP_404',
-            path: '/api/users/999',
+            path: '/api/v1/users/999',
           }),
         );
       });
@@ -798,7 +798,7 @@ describe('GlobalExceptionFilter', () => {
       const request = {
         headers: {}, // Completely empty headers
         method: 'POST',
-        url: '/api/users',
+        url: '/api/v1/users',
         body: { name: 'Test User', email: 'test@example.com' },
         ip: '192.168.1.100',
         connection: {
