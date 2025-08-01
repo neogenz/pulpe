@@ -142,7 +142,7 @@ describe('MainLayout', () => {
 
     fixture = TestBed.createComponent(MainLayout);
     component = fixture.componentInstance;
-    
+
     // Get the actual router from TestBed and override events
     const router = TestBed.inject(Router);
     Object.defineProperty(router, 'events', {
@@ -153,7 +153,7 @@ describe('MainLayout', () => {
       value: mockRouter.url,
       writable: true,
     });
-    
+
     // Replace the navigate method with our mock
     mockRouter.navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
   });
@@ -206,21 +206,21 @@ describe('MainLayout', () => {
       // Set mobile mode
       breakpointSubject.next({ matches: true });
       fixture.detectChanges();
-      
+
       const mockDrawer = { close: vi.fn() };
       component.closeDrawerOnMobile(mockDrawer);
-      
+
       expect(mockDrawer.close).toHaveBeenCalled();
     });
 
     it('should not close drawer on desktop when isHandset is false', () => {
-      // Set desktop mode  
+      // Set desktop mode
       breakpointSubject.next({ matches: false });
       fixture.detectChanges();
-      
+
       const mockDrawer = { close: vi.fn() };
       component.closeDrawerOnMobile(mockDrawer);
-      
+
       expect(mockDrawer.close).not.toHaveBeenCalled();
     });
   });
