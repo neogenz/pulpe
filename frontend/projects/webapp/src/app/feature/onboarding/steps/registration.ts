@@ -110,7 +110,13 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
         >
           <div class="flex items-center justify-center gap-2">
             @if (store.isSubmitting()) {
-              <mat-spinner diameter="20" />
+              <mat-progress-spinner
+                diameter="24"
+                mode="indeterminate"
+                aria-label="Création en cours"
+                role="progressbar"
+                class="pulpe-loading-indicator pulpe-loading-small"
+              />
             }
             Créer
           </div>

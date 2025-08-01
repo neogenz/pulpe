@@ -190,7 +190,13 @@ const MONTH_YEAR_FORMATS = {
           <div class="template-list">
             @if (templateApi.templatesResource.isLoading()) {
               <div class="flex justify-center items-center h-[200px]">
-                <mat-spinner diameter="40"></mat-spinner>
+                <mat-progress-spinner
+                  diameter="40"
+                  mode="indeterminate"
+                  aria-label="Chargement des modèles"
+                  role="progressbar"
+                  class="pulpe-loading-indicator pulpe-loading-default"
+                ></mat-progress-spinner>
               </div>
             } @else if (templateApi.templatesResource.error()) {
               <div
@@ -282,8 +288,14 @@ const MONTH_YEAR_FORMATS = {
         class="w-full md:w-auto min-h-[44px]"
       >
         @if (isCreating()) {
-          <mat-spinner diameter="20" class="mr-2"></mat-spinner>
-          Création...
+          <mat-progress-spinner
+            diameter="24"
+            mode="indeterminate"
+            aria-label="Création en cours"
+            role="progressbar"
+            class="pulpe-loading-indicator pulpe-loading-small mr-2"
+          ></mat-progress-spinner>
+          <span aria-live="polite">Création...</span>
         } @else {
           Créer le budget
         }

@@ -44,7 +44,13 @@ export interface TemplateDetailsDialogData {
       <div class="min-h-[200px]">
         @if (loading()) {
           <div class="flex justify-center items-center h-[200px]">
-            <mat-spinner diameter="40"></mat-spinner>
+            <mat-progress-spinner
+              diameter="40"
+              mode="indeterminate"
+              aria-label="Chargement des détails du modèle"
+              role="progressbar"
+              class="pulpe-loading-indicator pulpe-loading-default"
+            ></mat-progress-spinner>
           </div>
         } @else if (error()) {
           <div

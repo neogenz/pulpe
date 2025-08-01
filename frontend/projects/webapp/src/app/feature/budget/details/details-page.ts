@@ -12,7 +12,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { BaseLoadingComponent } from '../../../ui/loading';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { DatePipe } from '@angular/common';
 import { formatDate } from 'date-fns';
@@ -38,20 +38,23 @@ import { type BudgetLineCreate, type BudgetLineUpdate } from '@pulpe/shared';
     MatIconModule,
     MatButtonModule,
     MatSnackBarModule,
-    MatProgressSpinnerModule,
     MatDialogModule,
     DatePipe,
     BudgetLinesTable,
     BudgetFinancialOverview,
+    BaseLoadingComponent,
   ],
   providers: [BudgetDetailsState, BudgetLineApi],
   template: `
     <div class="flex flex-col gap-6">
       @if (budgetDetailsState.budgetDetails.isLoading()) {
-        <div class="flex justify-center py-8">
-          <mat-spinner diameter="40"></mat-spinner>
-          <span class="ml-2">Chargement...</span>
-        </div>
+        <pulpe-base-loading
+          message="Chargement des détails du budget..."
+          size="large"
+          [fullHeight]="true"
+          surface="surface-container"
+          testId="budget-details-loading"
+        ></pulpe-base-loading>
       } @else if (budgetDetailsState.budgetDetails.error()) {
         <mat-card class="bg-error-container">
           <mat-card-content>

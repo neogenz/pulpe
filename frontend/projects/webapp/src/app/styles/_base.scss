@@ -7,3 +7,105 @@ html {
   background-color: var(--mat-sys-background);
   color: var(--mat-sys-on-background);
 }
+
+// Material Design 3 Loading Component Variables
+:root {
+  // MD3 Progress Indicator Variables
+  --mdc-circular-progress-size: 40px;
+  --mdc-circular-progress-active-indicator-width: 4px;
+  --mdc-circular-progress-active-indicator-color: var(--mat-sys-primary);
+
+  // Pulpe Loading Size Variants (MD3 Compliant)
+  --pulpe-spinner-small: 24px;
+  --pulpe-spinner-medium: 32px;
+  --pulpe-spinner-default: 40px;
+  --pulpe-spinner-large: 48px;
+  --pulpe-spinner-extra-large: 56px;
+}
+
+// Loading Indicator Components - Material Design 3 Compliant
+.pulpe-loading-indicator {
+  --mdc-circular-progress-active-indicator-color: var(--mat-sys-primary);
+
+  // Enhanced animation timing for better Material Design 3 compliance
+  --mdc-circular-progress-stroke-width: 4px;
+
+  // Apply elevation for better visual hierarchy
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+
+  &.pulpe-loading-small {
+    --mdc-circular-progress-size: var(--pulpe-spinner-small);
+    --mdc-circular-progress-stroke-width: 3px;
+  }
+
+  &.pulpe-loading-medium {
+    --mdc-circular-progress-size: var(--pulpe-spinner-medium);
+    --mdc-circular-progress-stroke-width: 3.5px;
+  }
+
+  &.pulpe-loading-default {
+    --mdc-circular-progress-size: var(--pulpe-spinner-default);
+    --mdc-circular-progress-stroke-width: 4px;
+  }
+
+  &.pulpe-loading-large {
+    --mdc-circular-progress-size: var(--pulpe-spinner-large);
+    --mdc-circular-progress-stroke-width: 4.5px;
+  }
+
+  &.pulpe-loading-extra-large {
+    --mdc-circular-progress-size: var(--pulpe-spinner-extra-large);
+    --mdc-circular-progress-stroke-width: 5px;
+  }
+}
+
+// Motion Sensitivity Support
+@media (prefers-reduced-motion: reduce) {
+  .mat-mdc-progress-spinner circle {
+    animation-duration: 2s !important; // Slower animation for accessibility
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .mat-mdc-progress-spinner circle {
+    animation-duration: 1.4s; // Default MD3 timing
+  }
+}
+
+// Material Design 3 Surface Container Support for Loading Components
+.loading-surface-container {
+  background-color: var(--mat-sys-surface-container);
+  color: var(--mat-sys-on-surface);
+}
+
+.loading-surface-container-low {
+  background-color: var(--mat-sys-surface-container-low);
+  color: var(--mat-sys-on-surface);
+}
+
+.loading-surface-container-high {
+  background-color: var(--mat-sys-surface-container-high);
+  color: var(--mat-sys-on-surface);
+}
+
+.loading-surface-container-highest {
+  background-color: var(--mat-sys-surface-container-highest);
+  color: var(--mat-sys-on-surface);
+}
+
+// Enhanced Loading Animation with Material Design 3 Motion Tokens
+.animate-fadeIn {
+  animation: fadeInMaterial 300ms var(--mat-sys-motion-easing-emphasized)
+    forwards;
+}
+
+@keyframes fadeInMaterial {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

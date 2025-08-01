@@ -126,8 +126,13 @@ import { ROUTES } from '@core/routing/routes-constants';
                 <mat-progress-spinner
                   diameter="24"
                   mode="indeterminate"
+                  aria-label="Connexion en cours"
+                  role="progressbar"
+                  class="pulpe-loading-indicator pulpe-loading-small"
                 ></mat-progress-spinner>
-                <span class="ml-2">Connexion en cours...</span>
+                <span class="ml-2" aria-live="polite"
+                  >Connexion en cours...</span
+                >
               </div>
             } @else {
               <div class="flex items-center justify-center">
