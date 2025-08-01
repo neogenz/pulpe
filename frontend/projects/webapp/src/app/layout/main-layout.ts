@@ -7,7 +7,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
@@ -349,7 +349,6 @@ export class MainLayout {
   // Scroll detection for header border
   protected isScrolled = toSignal(
     this.scrollDispatcher.scrolled(100).pipe(
-      takeUntilDestroyed(),
       map((scrollable) => {
         const top = scrollable
           ? scrollable.getElementRef().nativeElement.scrollTop
