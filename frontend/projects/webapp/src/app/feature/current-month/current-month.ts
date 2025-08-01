@@ -21,7 +21,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { DashboardError } from './components/dashboard-error';
-import { DashboardLoading } from './components/dashboard-loading';
+import { BaseLoadingComponent } from '../../ui/loading';
 import { FixedTransactionsList } from './components/fixed-transactions-list';
 import { VariableExpensesList } from './components/variable-expenses-list';
 import { CurrentMonthState } from './services/current-month-state';
@@ -57,7 +57,7 @@ import { BudgetLineMapper } from './services/budget-line-mapper';
     MatSelectModule,
     FixedTransactionsList,
     DashboardError,
-    DashboardLoading,
+    BaseLoadingComponent,
     VariableExpensesList,
     TransactionChipFilter,
   ],
@@ -87,7 +87,11 @@ import { BudgetLineMapper } from './services/budget-line-mapper';
           state.dashboardData.status() === 'loading' ||
           state.dashboardData.status() === 'reloading'
         ) {
-          <pulpe-dashboard-loading data-testid="dashboard-loading" />
+          <pulpe-base-loading
+            message="Chargement du tableau de bord..."
+            size="large"
+            testId="dashboard-loading"
+          />
         }
         @case (state.dashboardData.status() === 'error') {
           <pulpe-dashboard-error

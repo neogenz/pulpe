@@ -124,7 +124,6 @@ import { ROUTES } from '@core/routing/routes-constants';
             @if (isSubmitting()) {
               <div class="flex items-center justify-center">
                 <mat-progress-spinner
-                  diameter="24"
                   mode="indeterminate"
                   aria-label="Connexion en cours"
                   role="progressbar"

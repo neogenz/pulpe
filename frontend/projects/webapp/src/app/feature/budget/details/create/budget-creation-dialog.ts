@@ -191,11 +191,10 @@ const MONTH_YEAR_FORMATS = {
             @if (templateApi.templatesResource.isLoading()) {
               <div class="flex justify-center items-center h-[200px]">
                 <mat-progress-spinner
-                  diameter="40"
                   mode="indeterminate"
                   aria-label="Chargement des modèles"
                   role="progressbar"
-                  class="pulpe-loading-indicator pulpe-loading-default"
+                  class="pulpe-loading-indicator pulpe-loading-medium"
                 ></mat-progress-spinner>
               </div>
             } @else if (templateApi.templatesResource.error()) {
@@ -289,7 +288,6 @@ const MONTH_YEAR_FORMATS = {
       >
         @if (isCreating()) {
           <mat-progress-spinner
-            diameter="24"
             mode="indeterminate"
             aria-label="Création en cours"
             role="progressbar"

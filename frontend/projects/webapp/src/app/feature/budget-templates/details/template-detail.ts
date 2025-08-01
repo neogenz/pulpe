@@ -55,7 +55,6 @@ import { Title } from '@core/routing';
             message="Chargement des détails du modèle..."
             size="large"
             [fullHeight]="true"
-            surface="surface-container"
             testId="template-details-loading"
           ></pulpe-base-loading>
         }

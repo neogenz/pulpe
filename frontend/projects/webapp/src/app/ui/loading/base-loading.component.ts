@@ -6,21 +6,7 @@ import {
 } from '@angular/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
-export type LoadingSize =
-  | 'small'
-  | 'medium'
-  | 'default'
-  | 'large'
-  | 'extra-large';
-
-export type LoadingVariant = 'spinner' | 'skeleton' | 'shimmer';
-
-export type LoadingSurface =
-  | 'surface'
-  | 'surface-container'
-  | 'surface-container-low'
-  | 'surface-container-high'
-  | 'surface-container-highest';
+export type LoadingSize = 'small' | 'medium' | 'large';
 
 @Component({
   selector: 'pulpe-base-loading',
@@ -28,18 +14,14 @@ export type LoadingSurface =
   imports: [MatProgressSpinnerModule],
   template: `
     <div
-      class="flex justify-center items-center transition-colors duration-200"
-      [class]="containerSurfaceClass()"
+      class="flex justify-center items-center"
       [style.height]="actualHeight()"
       role="status"
       aria-live="polite"
       [attr.data-testid]="testId()"
-      [attr.aria-describedby]="hideMessage() ? null : messageId()"
+      [attr.aria-describedby]="messageId()"
     >
-      <div
-        class="text-center flex flex-col justify-center items-center"
-        [class.gap-4]="!hideMessage()"
-      >
+      <div class="text-center flex flex-col justify-center items-center gap-4">
         <mat-progress-spinner
           [diameter]="spinnerDiameter()"
           mode="indeterminate"
@@ -49,16 +31,14 @@ export type LoadingSurface =
           [class]="spinnerSizeClass()"
           data-testid="loading-spinner"
         />
-        @if (!hideMessage()) {
-          <p
-            class="text-body-large text-on-surface-variant mt-4 animate-fadeIn"
-            aria-live="polite"
-            data-testid="loading-message"
-            [id]="messageId()"
-          >
-            {{ message() }}
-          </p>
-        }
+        <p
+          class="text-body-large text-on-surface-variant"
+          aria-live="polite"
+          data-testid="loading-message"
+          [id]="messageId()"
+        >
+          {{ message() }}
+        </p>
       </div>
     </div>
   `,
@@ -66,12 +46,8 @@ export type LoadingSurface =
 })
 export class BaseLoadingComponent {
   message = input.required<string>();
-  size = input<LoadingSize>('default');
-  variant = input<LoadingVariant>('spinner');
-  surface = input<LoadingSurface>('surface-container');
-  containerHeight = input<number>(256);
+  size = input<LoadingSize>('medium');
   testId = input<string>('loading-container');
-  hideMessage = input<boolean>(false);
   fullHeight = input<boolean>(false);
 
   protected spinnerDiameter = computed(() => {
@@ -80,14 +56,10 @@ export class BaseLoadingComponent {
         return 24;
       case 'medium':
         return 32;
-      case 'default':
-        return 40;
       case 'large':
         return 48;
-      case 'extra-large':
-        return 56;
       default:
-        return 40;
+        return 32;
     }
   });
 
@@ -99,25 +71,7 @@ export class BaseLoadingComponent {
     return `loading-message-${this.testId()}`;
   });
 
-  protected containerSurfaceClass = computed(() => {
-    const surface = this.surface();
-    switch (surface) {
-      case 'surface':
-        return 'bg-surface';
-      case 'surface-container':
-        return 'loading-surface-container';
-      case 'surface-container-low':
-        return 'loading-surface-container-low';
-      case 'surface-container-high':
-        return 'loading-surface-container-high';
-      case 'surface-container-highest':
-        return 'loading-surface-container-highest';
-      default:
-        return 'loading-surface-container';
-    }
-  });
-
   protected actualHeight = computed(() => {
-    return this.fullHeight() ? '100vh' : `${this.containerHeight()}px`;
+    return this.fullHeight() ? '100vh' : '256px';
   });
 }
