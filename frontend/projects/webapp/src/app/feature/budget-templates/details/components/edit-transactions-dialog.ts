@@ -27,6 +27,7 @@ import {
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { BudgetTemplatesApi } from '../../services/budget-templates-api';
 import { firstValueFrom } from 'rxjs';
 import {
@@ -57,6 +58,7 @@ interface EditTransactionsDialogResult {
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    MatProgressBarModule,
     MatTableModule,
     MatFormFieldModule,
     MatInputModule,
@@ -69,6 +71,15 @@ interface EditTransactionsDialogResult {
     </h2>
 
     <mat-dialog-content class="!p-0">
+      <!-- Progress bar at the top when loading -->
+      @if (isLoading()) {
+        <mat-progress-bar
+          mode="indeterminate"
+          class="!h-1"
+          aria-label="Sauvegarde en cours"
+        ></mat-progress-bar>
+      }
+
       <div class="flex flex-col h-full">
         <!-- Fixed header -->
         <div class="flex-shrink-0 p-4 border-b border-outline-variant">
@@ -81,7 +92,6 @@ interface EditTransactionsDialogResult {
               (click)="addNewTransaction()"
               [disabled]="isLoading()"
               class="items-center"
-              [attr.aria-disabled]="isLoading()"
             >
               <mat-icon>add</mat-icon>
               Ajouter une transaction
@@ -90,11 +100,20 @@ interface EditTransactionsDialogResult {
         </div>
 
         <!-- Table container with fixed height -->
-        <div class="overflow-auto flex-1">
+        <div class="overflow-auto flex-1 relative">
+          <!-- Subtle loading overlay that preserves data visibility -->
+          @if (isLoading()) {
+            <div
+              class="absolute inset-0 bg-surface/20 z-10"
+              aria-hidden="true"
+            ></div>
+          }
+
           <table
             mat-table
             [dataSource]="transactionsDataSource()"
             class="w-full"
+            [class.pointer-events-none]="isLoading()"
           >
             <!-- Description Column -->
             <ng-container matColumnDef="description">
@@ -112,9 +131,7 @@ interface EditTransactionsDialogResult {
                   <input
                     matInput
                     [formControl]="formGroup.controls.description"
-                    [disabled]="isLoading()"
                     placeholder="Description de la transaction"
-                    [attr.aria-disabled]="isLoading()"
                   />
                   @if (formGroup.controls.description.hasError('required')) {
                     <mat-error>La description est requise</mat-error>
@@ -146,9 +163,7 @@ interface EditTransactionsDialogResult {
                     min="0"
                     max="999999"
                     [formControl]="formGroup.controls.amount"
-                    [disabled]="isLoading()"
                     placeholder="0.00"
-                    [attr.aria-disabled]="isLoading()"
                   />
                   <span matTextSuffix>CHF</span>
                   @if (formGroup.controls.amount.hasError('required')) {
@@ -179,11 +194,7 @@ interface EditTransactionsDialogResult {
                   class="w-full"
                   subscriptSizing="dynamic"
                 >
-                  <mat-select
-                    [formControl]="formGroup.controls.type"
-                    [disabled]="isLoading()"
-                    [attr.aria-disabled]="isLoading()"
-                  >
+                  <mat-select [formControl]="formGroup.controls.type">
                     @for (type of transactionTypes; track type.value) {
                       <mat-option [value]="type.value">
                         {{ type.label }}
@@ -270,12 +281,7 @@ interface EditTransactionsDialogResult {
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
-      <button
-        matButton
-        (click)="cancel()"
-        [disabled]="isLoading()"
-        [attr.aria-disabled]="isLoading()"
-      >
+      <button matButton (click)="cancel()" [disabled]="isLoading()">
         Annuler
       </button>
       <button
@@ -283,25 +289,17 @@ interface EditTransactionsDialogResult {
         color="primary"
         (click)="save()"
         [disabled]="!isFormValid() || isLoading()"
-        [attr.aria-disabled]="!isFormValid() || isLoading()"
-        [attr.aria-describedby]="
-          isLoading() ? 'save-loading-description' : null
-        "
       >
-        @if (isLoading()) {
-          <mat-spinner
-            diameter="16"
-            strokeWidth="2"
-            aria-hidden="true"
-            class="mr-2"
-          ></mat-spinner>
-          <span>Sauvegarde...</span>
-          <span id="save-loading-description" class="sr-only">
-            Sauvegarde en cours, veuillez patienter
-          </span>
-        } @else {
+        <div class="flex items-center gap-2">
+          @if (isLoading()) {
+            <mat-spinner
+              diameter="16"
+              strokeWidth="2"
+              aria-hidden="true"
+            ></mat-spinner>
+          }
           <span>Enregistrer</span>
-        }
+        </div>
       </button>
     </mat-dialog-actions>
   `,
@@ -312,6 +310,7 @@ interface EditTransactionsDialogResult {
         max-height: unset;
       }
     }
+
     /* Clean Mat-Table styling - let Material handle sticky headers */
     .mat-column-description {
       width: 100%;
@@ -328,6 +327,15 @@ interface EditTransactionsDialogResult {
     }
     .mat-column-actions {
       width: min-content;
+    }
+
+    /* Properly align spinner and text in Material button */
+    .save-button {
+      .mdc-button__label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
