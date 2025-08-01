@@ -52,9 +52,7 @@ interface NavigationItem {
     PulpeBreadcrumb,
   ],
   template: `
-    <mat-sidenav-container
-      class="h-screen !bg-surface-container"
-    >
+    <mat-sidenav-container class="h-screen !bg-surface-container">
       <!-- Navigation Sidenav -->
       <mat-sidenav
         #drawer
@@ -69,9 +67,7 @@ interface NavigationItem {
         @if (isHandset()) {
           <div class="py-4 px-6 flex items-center gap-3">
             <div class="w-10 h-10 pulpe-gradient rounded-full"></div>
-            <span class="text-lg font-medium text-on-surface"
-              >Pulpe</span
-            >
+            <span class="text-lg font-medium text-on-surface">Pulpe</span>
           </div>
         } @else {
           <!-- Rail Mode Header -->
@@ -115,12 +111,8 @@ interface NavigationItem {
                 <div
                   class="w-14 h-8 flex items-center justify-center rounded-full transition-all duration-200"
                   [class.bg-secondary-container]="rla.isActive"
-                  [class.text-on-secondary-container]="
-                    rla.isActive
-                  "
-                  [class.text-on-surface-variant]="
-                    !rla.isActive
-                  "
+                  [class.text-on-secondary-container]="rla.isActive"
+                  [class.text-on-surface-variant]="!rla.isActive"
                   [class.group-hover:bg-surface-container-highest]="
                     !rla.isActive
                   "
@@ -136,9 +128,7 @@ interface NavigationItem {
                 <span
                   class="text-xs font-medium text-center leading-tight mt-1 max-w-full"
                   [class.text-on-surface]="rla.isActive"
-                  [class.text-on-surface-variant]="
-                    !rla.isActive
-                  "
+                  [class.text-on-surface-variant]="!rla.isActive"
                 >
                   {{ item.label }}
                 </span>
@@ -185,7 +175,7 @@ interface NavigationItem {
               type="button"
               mat-button
               [matMenuTriggerFor]="userMenu"
-              class="toolbar-logo-button"
+              class="w-11 h-11 min-w-[44px] p-2 rounded-full flex items-center justify-center transition-opacity duration-200 disabled:cursor-not-allowed disabled:opacity-60"
               [attr.aria-label]="
                 isLoggingOut() ? 'Déconnexion en cours...' : 'Menu utilisateur'
               "
@@ -193,7 +183,7 @@ interface NavigationItem {
               data-testid="user-menu-trigger"
             >
               <div
-                class="pulpe-gradient rounded-full toolbar-logo"
+                class="w-8 h-8 pulpe-gradient rounded-full transition-all duration-200 hover:scale-105"
                 [class.opacity-50]="isLoggingOut()"
               ></div>
             </button>
@@ -257,54 +247,28 @@ interface NavigationItem {
   `,
   styles: [
     `
+      @use '@angular/material' as mat;
+
       :host {
         display: block;
         height: 100vh;
       }
 
-      mat-toolbar .toolbar-logo-button.mat-mdc-button {
-        width: 44px;
-        height: 44px;
-        min-width: 44px;
-        padding: 8px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        --mat-mdc-button-persistent-ripple-color: transparent;
-        --mdc-text-button-container-shape: 50%;
-        transition: opacity 0.2s ease-in-out;
-      }
-
-      mat-toolbar
-        .toolbar-logo-button.mat-mdc-button:hover:not(:disabled)
-        .toolbar-logo {
-        transform: scale(1.05);
-      }
-
-      mat-toolbar .toolbar-logo-button.mat-mdc-button:disabled {
-        cursor: not-allowed;
-        opacity: 0.6;
-      }
-
-      .toolbar-logo {
-        width: 32px;
-        height: 32px;
-        transition:
-          transform 0.2s ease-in-out,
-          opacity 0.2s ease-in-out;
-      }
-
-      .sr-only {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        padding: 0;
-        margin: -1px;
-        overflow: hidden;
-        clip: rect(0, 0, 0, 0);
-        white-space: nowrap;
-        border: 0;
+      /*
+       * En appliquant la surcharge de style pour les boutons à l'intérieur
+       * du sélecteur 'mat-toolbar', nous limitons sa portée aux boutons
+       * qui sont DANS la barre d'outils de ce composant uniquement.
+       * Cela empêche le style de s'appliquer aux composants dans <router-outlet>.
+       */
+      :host mat-toolbar {
+        @include mat.button-overrides(
+          (
+            filled-container-shape: 50%,
+            outlined-container-shape: 50%,
+            text-container-shape: 50%,
+            tonal-container-shape: 50%,
+          )
+        );
       }
 
       /* Smooth transition for icon fill and scale */
