@@ -21,11 +21,14 @@ import {
   type TemplateLineListResponse,
   type TemplateLineResponse,
   type TemplateLineUpdate,
+  type TemplateLinesBulkUpdate,
+  type TemplateLinesBulkUpdateResponse,
   budgetTemplateCreateSchema as createBudgetTemplateSchema,
   budgetTemplateCreateFromOnboardingSchema,
   budgetTemplateUpdateSchema as updateBudgetTemplateSchema,
   templateLineCreateSchema,
   templateLineUpdateSchema,
+  templateLinesBulkUpdateSchema,
 } from '@pulpe/shared';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { BudgetTemplateMapper } from './budget-template.mapper';
@@ -684,6 +687,112 @@ export class BudgetTemplateService {
         throw error;
       }
       this.logger.error({ err: error }, 'Failed to update template line');
+      throw new InternalServerErrorException('Erreur interne du serveur');
+    }
+  }
+
+  private validateBulkTemplateLineUpdate(
+    bulkUpdateDto: TemplateLinesBulkUpdate,
+  ): void {
+    const validationResult =
+      templateLinesBulkUpdateSchema.safeParse(bulkUpdateDto);
+    if (!validationResult.success) {
+      throw new BadRequestException(
+        `Données invalides: ${validationResult.error.message}`,
+      );
+    }
+  }
+
+  async bulkUpdateTemplateLines(
+    templateId: string,
+    bulkUpdateDto: TemplateLinesBulkUpdate,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<TemplateLinesBulkUpdateResponse> {
+    try {
+      // Validate ownership of the template first
+      await this.validateTemplateAccess(templateId, user, supabase);
+
+      // Validate bulk update input
+      this.validateBulkTemplateLineUpdate(bulkUpdateDto);
+
+      // Validate that all lines belong to the template and user has access
+      const lineIds = bulkUpdateDto.lines.map((line) => line.id);
+      for (const lineId of lineIds) {
+        await this.validateTemplateLineAccess(
+          templateId,
+          lineId,
+          user,
+          supabase,
+        );
+      }
+
+      // Use atomic RPC function for bulk updates
+      const { data: updatedLines, error } = await supabase.rpc(
+        'bulk_update_template_lines',
+        {
+          p_template_id: templateId,
+          line_updates: bulkUpdateDto.lines.map((line) => ({
+            id: line.id,
+            name: line.name,
+            amount: line.amount,
+            kind: line.kind,
+            recurrence: line.recurrence,
+            description: line.description,
+          })),
+        },
+      );
+
+      if (error) {
+        this.logger.error(
+          { err: error },
+          'Failed to bulk update template lines via RPC',
+        );
+
+        // Handle specific database errors
+        if (error.code === 'P0001') {
+          throw new NotFoundException('Template introuvable ou accès refusé');
+        }
+        if (error.code === 'P0002') {
+          throw new BadRequestException(
+            'Une ou plusieurs lignes sont invalides',
+          );
+        }
+
+        throw new InternalServerErrorException(
+          'Erreur lors de la mise à jour des lignes',
+        );
+      }
+
+      if (!updatedLines || !Array.isArray(updatedLines)) {
+        this.logger.error('RPC function returned invalid data structure');
+        throw new InternalServerErrorException(
+          'Erreur lors de la mise à jour des lignes',
+        );
+      }
+
+      // Map RPC results to API format - cast to proper database type
+      const apiData = updatedLines.map((line) =>
+        this.budgetTemplateMapper.toApiLine({
+          ...line,
+          description: line.description || '',
+        } as Tables<'template_line'>),
+      );
+
+      return {
+        success: true,
+        data: apiData,
+        message: `${apiData.length} ligne(s) mise(s) à jour avec succès`,
+      };
+    } catch (error) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException ||
+        error instanceof ForbiddenException
+      ) {
+        throw error;
+      }
+      this.logger.error({ err: error }, 'Failed to bulk update template lines');
       throw new InternalServerErrorException('Erreur interne du serveur');
     }
   }

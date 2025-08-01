@@ -29,6 +29,7 @@ import {
   type TemplateLineListResponse,
   type TemplateLineResponse as _TemplateLineResponse,
   type TemplateLineDeleteResponse as _TemplateLineDeleteResponse,
+  type TemplateLinesBulkUpdateResponse as _TemplateLinesBulkUpdateResponse,
 } from '@pulpe/shared';
 import { AuthGuard } from '@common/guards/auth.guard';
 import {
@@ -51,12 +52,14 @@ import {
   TemplateLineListResponseDto,
   TemplateLineResponseDto,
   TemplateLineDeleteResponseDto,
+  TemplateLinesBulkUpdateDto,
+  TemplateLinesBulkUpdateResponseDto,
 } from './dto/budget-template-swagger.dto';
 import { ErrorResponseDto } from '@common/dto/response.dto';
 
 @ApiTags('Budget Templates')
 @ApiBearerAuth()
-@Controller('budget-templates')
+@Controller({ path: 'budget-templates', version: '1' })
 @UseGuards(AuthGuard)
 @ApiUnauthorizedResponse({
   description: 'Authentication required',
@@ -231,6 +234,46 @@ export class BudgetTemplateController {
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateLineListResponse> {
     return this.budgetTemplateService.findTemplateLines(id, user, supabase);
+  }
+
+  @Patch(':id/lines')
+  @ApiOperation({
+    summary: 'Bulk update template lines',
+    description:
+      'Updates multiple template lines for a specific budget template in a single transaction',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Unique budget template identifier',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Template lines updated successfully',
+    type: TemplateLinesBulkUpdateResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid input data',
+    type: ErrorResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Budget template not found',
+    type: ErrorResponseDto,
+  })
+  async bulkUpdateTemplateLines(
+    @Param('id', ParseUUIDPipe) templateId: string,
+    @Body() bulkUpdateDto: TemplateLinesBulkUpdateDto,
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<_TemplateLinesBulkUpdateResponse> {
+    return this.budgetTemplateService.bulkUpdateTemplateLines(
+      templateId,
+      bulkUpdateDto,
+      user,
+      supabase,
+    );
   }
 
   @Post(':id/lines')

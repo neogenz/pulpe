@@ -29,7 +29,11 @@ import { BudgetTemplatesApi } from '../services/budget-templates-api';
 import { firstValueFrom } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { CommonModule, CurrencyPipe } from '@angular/common';
-import { TemplateLine } from '@pulpe/shared';
+import {
+  TemplateLine,
+  type TemplateLineUpdateWithId,
+  type TemplateLinesBulkUpdate,
+} from '@pulpe/shared';
 import { Title } from '@core/routing';
 
 @Component({
@@ -332,7 +336,10 @@ export default class TemplateDetail {
       return;
     }
 
-    const transactions = templateData.transactions.map(
+    // Store original template lines for ID mapping
+    const originalTemplateLines = templateData.transactions;
+
+    const transactions = originalTemplateLines.map(
       (transaction: TemplateLine) => ({
         description: transaction.name,
         amount: transaction.amount,
@@ -359,9 +366,49 @@ export default class TemplateDetail {
     dialogRef.afterClosed().subscribe((dialogResult) => {
       if (dialogResult?.saved) {
         console.log('Transactions mises à jour:', dialogResult.transactions);
-        // TODO: Appeler l'API pour sauvegarder les modifications et reload resource
-        // this.#budgetTemplatesApi.updateTransactions(this.templateId(), dialogResult.transactions)
-        //   .then(() => this.data.reload());
+
+        // Validate that we have the same number of transactions (no add/remove supported yet)
+        if (dialogResult.transactions.length !== originalTemplateLines.length) {
+          console.error(
+            "Le nombre de transactions a changé, cette fonctionnalité n'est pas encore supportée",
+          );
+          // TODO: Support adding/removing transactions
+          return;
+        }
+
+        // Transform dialog data to API format
+        const bulkUpdate: TemplateLinesBulkUpdate = {
+          lines: dialogResult.transactions.map(
+            (transaction, index: number): TemplateLineUpdateWithId => {
+              const originalLine = originalTemplateLines[index];
+              return {
+                id: originalLine.id,
+                name: transaction.description,
+                amount: transaction.amount,
+                kind: transaction.type,
+                recurrence: originalLine.recurrence, // Keep original recurrence
+                description: originalLine.description, // Keep original description or update it
+              };
+            },
+          ),
+        };
+
+        // Call API to save changes
+        firstValueFrom(
+          this.#budgetTemplatesApi.updateTemplateLines$(
+            this.templateId(),
+            bulkUpdate,
+          ),
+        )
+          .then(() => {
+            console.log('Transactions sauvegardées avec succès');
+            // Reload resource to show updated data
+            this.data.reload();
+          })
+          .catch((error) => {
+            console.error('Erreur lors de la sauvegarde:', error);
+            // TODO: Add proper error handling with user-friendly messages
+          });
       }
     });
   }

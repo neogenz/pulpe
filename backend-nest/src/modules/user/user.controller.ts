@@ -33,7 +33,7 @@ import {
 import { ErrorResponseDto } from '@common/dto/response.dto';
 
 @ApiTags('User')
-@Controller('users')
+@Controller({ path: 'users', version: '1' })
 @ApiInternalServerErrorResponse({
   description: 'Internal server error',
   type: ErrorResponseDto,
