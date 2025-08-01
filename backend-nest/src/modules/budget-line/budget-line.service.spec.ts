@@ -6,7 +6,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { BudgetLineService } from './budget-line.service';
-import { BudgetLineMapper } from './budget-line.mapper';
 import { PinoLogger } from 'nestjs-pino';
 import type { BudgetLineCreate, BudgetLineUpdate } from '@pulpe/shared';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
@@ -15,7 +14,6 @@ import type { BudgetLineRow } from './entities/budget-line.entity';
 
 describe('BudgetLineService', () => {
   let service: BudgetLineService;
-  let mapper: BudgetLineMapper;
   let logger: PinoLogger;
   type MockSupabaseResponse<T> = {
     data: T | null;
@@ -125,15 +123,6 @@ describe('BudgetLineService', () => {
       providers: [
         BudgetLineService,
         {
-          provide: BudgetLineMapper,
-          useValue: {
-            toApi: jest.fn().mockReturnValue(mockBudgetLineApi),
-            toApiList: jest
-              .fn()
-              .mockImplementation((data) => data.map(() => mockBudgetLineApi)),
-          },
-        },
-        {
           provide: `PinoLogger:${BudgetLineService.name}`,
           useValue: mockLoggerInstance,
         },
@@ -141,7 +130,6 @@ describe('BudgetLineService', () => {
     }).compile();
 
     service = module.get<BudgetLineService>(BudgetLineService);
-    mapper = module.get<BudgetLineMapper>(BudgetLineMapper);
     logger = module.get<PinoLogger>(`PinoLogger:${BudgetLineService.name}`);
   });
 
@@ -165,7 +153,7 @@ describe('BudgetLineService', () => {
         data: [mockBudgetLineApi],
       });
       expect(mockSupabase.from).toHaveBeenCalledWith('budget_line');
-      expect(mapper.toApiList).toHaveBeenCalledWith([mockBudgetLineDb]);
+      // Mapper functions are now pure functions, no need to check calls
     });
 
     it('should throw InternalServerErrorException on database error', async () => {
@@ -201,7 +189,7 @@ describe('BudgetLineService', () => {
         success: true,
         data: [],
       });
-      expect(mapper.toApiList).toHaveBeenCalledWith([]);
+      // Mapper functions are now pure functions, no need to check calls
     });
   });
 
@@ -226,7 +214,7 @@ describe('BudgetLineService', () => {
         data: mockBudgetLineApi,
       });
       expect(mockSupabase.from).toHaveBeenCalledWith('budget_line');
-      expect(mapper.toApi).toHaveBeenCalledWith(mockBudgetLineDb);
+      // Mapper functions are now pure functions, no need to check calls
     });
 
     it('should throw NotFoundException when budget line not found', async () => {
@@ -275,7 +263,7 @@ describe('BudgetLineService', () => {
         data: mockBudgetLineApi,
       });
       expect(mockSupabase.from).toHaveBeenCalledWith('budget_line');
-      expect(mapper.toApi).toHaveBeenCalledWith(mockBudgetLineDb);
+      // Mapper functions are now pure functions, no need to check calls
     });
 
     it('should throw BadRequestException for invalid data', async () => {
@@ -333,10 +321,22 @@ describe('BudgetLineService', () => {
 
       expect(result).toEqual({
         success: true,
-        data: mockBudgetLineApi,
+        data: {
+          id: updatedBudgetLine.id,
+          budgetId: updatedBudgetLine.budget_id,
+          templateLineId: updatedBudgetLine.template_line_id,
+          savingsGoalId: updatedBudgetLine.savings_goal_id,
+          name: updatedBudgetLine.name,
+          amount: updatedBudgetLine.amount,
+          kind: updatedBudgetLine.kind,
+          recurrence: updatedBudgetLine.recurrence,
+          isManuallyAdjusted: updatedBudgetLine.is_manually_adjusted,
+          createdAt: updatedBudgetLine.created_at,
+          updatedAt: updatedBudgetLine.updated_at,
+        },
       });
       expect(mockSupabase.from).toHaveBeenCalledWith('budget_line');
-      expect(mapper.toApi).toHaveBeenCalledWith(updatedBudgetLine);
+      // Mapper functions are now pure functions, no need to check calls
     });
 
     it('should throw NotFoundException when budget line not found', async () => {

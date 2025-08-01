@@ -15,20 +15,17 @@ import {
   type BudgetUpdate,
   type BudgetDetailsResponse,
 } from '@pulpe/shared';
-import { BudgetMapper } from './budget.mapper';
+import * as budgetMappers from './budget.mappers';
 import { type Tables } from '../../types/database.types';
 import { BUDGET_CONSTANTS } from './budget.constants';
-import { TransactionMapper } from '../transaction/transaction.mapper';
-import { BudgetLineMapper } from '../budget-line/budget-line.mapper';
+import * as transactionMappers from '../transaction/transaction.mappers';
+import * as budgetLineMappers from '../budget-line/budget-line.mappers';
 
 @Injectable()
 export class BudgetService {
   constructor(
     @InjectPinoLogger(BudgetService.name)
     private readonly logger: PinoLogger,
-    private readonly budgetMapper: BudgetMapper,
-    private readonly transactionMapper: TransactionMapper,
-    private readonly budgetLineMapper: BudgetLineMapper,
   ) {}
 
   async findAll(
@@ -48,7 +45,7 @@ export class BudgetService {
         );
       }
 
-      const apiData = this.budgetMapper.toApiList(budgets || []);
+      const apiData = budgetMappers.toApiList(budgets || []);
 
       return {
         success: true as const,
@@ -133,7 +130,7 @@ export class BudgetService {
         supabase,
       );
 
-      const apiData = this.budgetMapper.toApi(processedResult.budgetData);
+      const apiData = budgetMappers.toApi(processedResult.budgetData);
 
       return {
         success: true,
@@ -314,9 +311,7 @@ export class BudgetService {
         throw new NotFoundException('Budget introuvable ou accès non autorisé');
       }
 
-      const apiData = this.budgetMapper.toApi(
-        budgetDb as Tables<'monthly_budget'>,
-      );
+      const apiData = budgetMappers.toApi(budgetDb as Tables<'monthly_budget'>);
 
       return {
         success: true,
@@ -426,15 +421,15 @@ export class BudgetService {
       ? T
       : never,
   ) {
-    const budget = this.budgetMapper.toApi(
+    const budget = budgetMappers.toApi(
       results.budgetResult.data as Tables<'monthly_budget'>,
     );
 
-    const transactions = this.transactionMapper.toApiList(
+    const transactions = transactionMappers.toApiList(
       results.transactionsResult.data || [],
     );
 
-    const budgetLines = this.budgetLineMapper.toApiList(
+    const budgetLines = budgetLineMappers.toApiList(
       results.budgetLinesResult.data || [],
     );
 
@@ -528,9 +523,7 @@ export class BudgetService {
       const updateData = this.prepareBudgetUpdateData(updateBudgetDto);
       const budgetDb = await this.updateBudgetInDb(id, updateData, supabase);
 
-      const apiData = this.budgetMapper.toApi(
-        budgetDb as Tables<'monthly_budget'>,
-      );
+      const apiData = budgetMappers.toApi(budgetDb as Tables<'monthly_budget'>);
 
       return {
         success: true,

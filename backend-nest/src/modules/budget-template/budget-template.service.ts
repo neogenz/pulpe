@@ -1,18 +1,12 @@
-import { type Database, Tables } from '@/types/database.types';
+import { type Database, Tables, TablesInsert } from '@/types/database.types';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-
-interface SupabaseErrorDetails {
-  code?: string;
-  details?: string;
-  hint?: string;
-  message?: string;
-}
 import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   type BudgetTemplateCreate,
@@ -22,246 +16,75 @@ import {
   type BudgetTemplateListResponse,
   type BudgetTemplateResponse,
   type BudgetTemplateUpdate,
+  type TemplateLine,
   type TemplateLineCreateWithoutTemplateId,
   type TemplateLineDeleteResponse,
   type TemplateLineListResponse,
   type TemplateLineResponse,
   type TemplateLineUpdate,
+  type TemplateLineUpdateWithId,
   type TemplateLinesBulkUpdate,
   type TemplateLinesBulkUpdateResponse,
-  budgetTemplateCreateSchema as createBudgetTemplateSchema,
+  budgetTemplateCreateSchema,
   budgetTemplateCreateFromOnboardingSchema,
-  budgetTemplateUpdateSchema as updateBudgetTemplateSchema,
+  budgetTemplateUpdateSchema,
+  templateLineCreateWithoutTemplateIdSchema,
+  templateLineUpdateSchema,
+  templateLinesBulkUpdateSchema,
 } from '@pulpe/shared';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-import { BudgetTemplateMapper } from './budget-template.mapper';
-import { TemplateValidationService } from './services/template-validation.service';
-import { TemplateLineService } from './services/template-line.service';
+import * as budgetTemplateMappers from './budget-template.mappers';
 
 @Injectable()
 export class BudgetTemplateService {
   constructor(
     @InjectPinoLogger(BudgetTemplateService.name)
     private readonly logger: PinoLogger,
-    private readonly budgetTemplateMapper: BudgetTemplateMapper,
-    private readonly templateValidationService: TemplateValidationService,
-    private readonly templateLineService: TemplateLineService,
   ) {}
+
+  // ============ TEMPLATE METHODS ============
 
   async findAll(
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetTemplateListResponse> {
+    const startTime = Date.now();
+
     try {
-      const templatesDb = await this.fetchUserTemplates(user.id, supabase);
+      const { data, error } = await supabase
+        .from('template')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
 
-      const apiData = this.budgetTemplateMapper.toApiList(templatesDb);
+      if (error) throw error;
 
-      return {
-        success: true as const,
-        data: apiData,
-      };
-    } catch (error) {
-      this.handleFindAllError(error);
-    }
-  }
-
-  private async fetchUserTemplates(
-    userId: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<Tables<'template'>[]> {
-    const { data, error } = await supabase
-      .from('template')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      this.logger.error({ err: error }, 'Failed to fetch budget templates');
-      throw new InternalServerErrorException(
-        'Erreur lors de la récupération des templates',
-      );
-    }
-
-    return data || [];
-  }
-
-  private handleFindAllError(error: unknown): never {
-    if (error instanceof InternalServerErrorException) {
-      throw error;
-    }
-    this.logger.error({ err: error }, 'Failed to list budget templates');
-    throw new InternalServerErrorException('Erreur interne du serveur');
-  }
-
-  async create(
-    createTemplateDto: BudgetTemplateCreate,
-    user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetTemplateCreateResponse> {
-    try {
-      this.validateCreateTemplateInput(createTemplateDto);
-      const rpcLines = this.transformLinesToRpcFormat(createTemplateDto.lines);
-      const templateRecord = await this.createTemplateWithLines(
-        createTemplateDto,
-        user,
-        rpcLines,
-        supabase,
-      );
-      const templateData = this.validateAndMapTemplateRecord(templateRecord);
-      const mappedLines = await this.fetchAndMapTemplateLines(
-        templateRecord.id,
-        supabase,
+      this.logger.info(
+        {
+          operation: 'findAll',
+          userId: user.id,
+          duration: Date.now() - startTime,
+          count: data?.length || 0,
+        },
+        'Templates retrieved successfully',
       );
 
       return {
         success: true,
-        data: {
-          template: templateData,
-          lines: mappedLines,
-        },
+        data: budgetTemplateMappers.toApiTemplateList(data || []),
       };
     } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-      this.logger.error({ err: error }, 'Failed to create budget template');
-      throw new InternalServerErrorException('Erreur interne du serveur');
-    }
-  }
-
-  private validateCreateTemplateInput(
-    createTemplateDto: BudgetTemplateCreate,
-  ): void {
-    const validationResult =
-      createBudgetTemplateSchema.safeParse(createTemplateDto);
-    if (!validationResult.success) {
-      throw new BadRequestException(
-        `Données invalides: ${validationResult.error.message}`,
-      );
-    }
-  }
-
-  private transformLinesToRpcFormat(
-    lines: TemplateLineCreateWithoutTemplateId[],
-  ) {
-    return lines.map((line) => ({
-      name: line.name,
-      amount: line.amount,
-      kind: line.kind as Database['public']['Enums']['transaction_kind'],
-      recurrence:
-        line.recurrence as Database['public']['Enums']['transaction_recurrence'],
-      description: line.description || '',
-    }));
-  }
-
-  private async executeCreateTemplateRpc(
-    createTemplateDto: BudgetTemplateCreate,
-    user: AuthenticatedUser,
-    rpcLines: ReturnType<typeof this.transformLinesToRpcFormat>,
-    supabase: AuthenticatedSupabaseClient,
-  ) {
-    const { data: templateRecord, error } = await supabase.rpc(
-      'create_template_with_lines',
-      {
-        p_user_id: user.id,
-        p_name: createTemplateDto.name,
-        p_description: createTemplateDto.description,
-        p_is_default: createTemplateDto.isDefault || false,
-        p_lines: rpcLines,
-      },
-    );
-
-    if (error) {
-      this.handleRpcError(error, createTemplateDto, user, rpcLines);
-    }
-
-    return this.validateRpcResponse(templateRecord);
-  }
-
-  private handleRpcError(
-    error: unknown,
-    createTemplateDto: BudgetTemplateCreate,
-    user: AuthenticatedUser,
-    rpcLines: ReturnType<typeof this.transformLinesToRpcFormat>,
-  ): never {
-    const errorDetails = error as SupabaseErrorDetails;
-    this.logger.error(
-      {
-        err: error,
-        errorCode: errorDetails?.code,
-        errorDetails: errorDetails?.details,
-        errorHint: errorDetails?.hint,
-        errorMessage: errorDetails?.message,
-        rpcParams: {
-          p_user_id: user.id,
-          p_name: createTemplateDto.name,
-          p_description: createTemplateDto.description || null,
-          p_is_default: createTemplateDto.isDefault || false,
-          p_lines: rpcLines,
+      this.logger.error(
+        {
+          operation: 'findAll',
+          userId: user.id,
+          duration: Date.now() - startTime,
+          err: error,
         },
-      },
-      'RPC function create_template_with_lines failed',
-    );
-    throw new InternalServerErrorException(
-      `Erreur lors de la création du template: ${errorDetails?.message || 'Unknown RPC error'}`,
-    );
-  }
-
-  private validateRpcResponse(templateRecord: unknown): Tables<'template'> {
-    if (
-      !templateRecord ||
-      typeof templateRecord !== 'object' ||
-      !('id' in templateRecord)
-    ) {
-      this.logger.error({ templateRecord }, 'Invalid template record returned');
-      throw new InternalServerErrorException(
-        'Template record invalide retourné par la fonction',
+        'Failed to list templates',
       );
+      throw new InternalServerErrorException('Failed to retrieve templates');
     }
-
-    return templateRecord as Tables<'template'>;
-  }
-
-  private async createTemplateWithLines(
-    createTemplateDto: BudgetTemplateCreate,
-    user: AuthenticatedUser,
-    rpcLines: ReturnType<typeof this.transformLinesToRpcFormat>,
-    supabase: AuthenticatedSupabaseClient,
-  ) {
-    return this.executeCreateTemplateRpc(
-      createTemplateDto,
-      user,
-      rpcLines,
-      supabase,
-    );
-  }
-
-  private validateAndMapTemplateRecord(templateRecord: Tables<'template'>) {
-    const templateData = this.budgetTemplateMapper.toApi(templateRecord);
-    if (!templateData) {
-      throw new InternalServerErrorException(
-        'Erreur lors de la validation du template créé',
-      );
-    }
-    return templateData;
-  }
-
-  /**
-   * Fetches template lines for a given template ID and maps them to API format.
-   * Throws an error if fetching fails to maintain data consistency.
-   * @param templateId - The ID of the template to fetch lines for
-   * @param supabase - Authenticated Supabase client
-   * @throws InternalServerErrorException if fetching template lines fails
-   */
-  private async fetchAndMapTemplateLines(
-    templateId: string,
-    supabase: AuthenticatedSupabaseClient,
-  ) {
-    return this.templateLineService.fetchAndMapTemplateLines(
-      templateId,
-      supabase,
-    );
   }
 
   async findOne(
@@ -269,141 +92,224 @@ export class BudgetTemplateService {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetTemplateResponse> {
-    try {
-      // Explicit authorization check before RLS
-      await this.templateValidationService.validateTemplateAccess(
-        id,
-        user,
-        supabase,
-      );
+    const startTime = Date.now();
 
-      const { data: templateDb, error } = await supabase
+    try {
+      await this.validateTemplateAccess(id, user, supabase);
+
+      const { data, error } = await supabase
         .from('template')
         .select('*')
         .eq('id', id)
         .single();
 
-      if (error || !templateDb) {
-        throw new NotFoundException(
-          'Template introuvable ou accès non autorisé',
-        );
-      }
+      if (error || !data) throw new NotFoundException('Template not found');
 
-      const apiData = this.budgetTemplateMapper.toApi(templateDb);
-      if (!apiData) {
-        throw new NotFoundException(
-          'Template introuvable ou données invalides',
-        );
-      }
+      this.logger.info(
+        {
+          operation: 'findOne',
+          userId: user.id,
+          entityId: id,
+          duration: Date.now() - startTime,
+        },
+        'Template retrieved successfully',
+      );
 
-      return {
-        success: true,
-        data: apiData,
-      };
+      return { success: true, data: budgetTemplateMappers.toApiTemplate(data) };
     } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      this.logger.error({ err: error }, 'Failed to fetch budget template');
-      throw new InternalServerErrorException('Erreur interne du serveur');
-    }
-  }
+      if (error instanceof NotFoundException) throw error;
 
-  private validateUpdateTemplateDto(
-    updateTemplateDto: BudgetTemplateUpdate,
-  ): void {
-    const validationResult =
-      updateBudgetTemplateSchema.safeParse(updateTemplateDto);
-    if (!validationResult.success) {
-      throw new BadRequestException(
-        `Données invalides: ${validationResult.error.message}`,
+      this.logger.error(
+        {
+          operation: 'findOne',
+          userId: user.id,
+          entityId: id,
+          duration: Date.now() - startTime,
+          err: error,
+        },
+        'Failed to retrieve template',
       );
+      throw new InternalServerErrorException('Failed to retrieve template');
     }
   }
 
-  private prepareUpdateData(updateTemplateDto: BudgetTemplateUpdate) {
-    return {
-      ...(updateTemplateDto.name && { name: updateTemplateDto.name }),
-      ...(updateTemplateDto.description !== undefined && {
-        description: updateTemplateDto.description,
-      }),
-      ...(updateTemplateDto.isDefault !== undefined && {
-        is_default: updateTemplateDto.isDefault,
-      }),
-      updated_at: new Date().toISOString(),
-    };
-  }
-
-  private async updateTemplateInDb(
-    id: string,
-    updateData: ReturnType<typeof this.prepareUpdateData>,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<Tables<'template'>> {
-    const { data: templateDb, error } = await supabase
-      .from('template')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error || !templateDb) {
-      this.logger.error({ err: error }, 'Failed to update budget template');
-      throw new NotFoundException(
-        'Template introuvable ou modification non autorisée',
-      );
-    }
-
-    return templateDb;
-  }
-
-  async update(
-    id: string,
-    updateTemplateDto: BudgetTemplateUpdate,
+  async create(
+    createDto: BudgetTemplateCreate,
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetTemplateResponse> {
+  ): Promise<BudgetTemplateCreateResponse> {
+    const startTime = Date.now();
+
     try {
-      // Explicit authorization check - require ownership for updates
-      await this.templateValidationService.validateTemplateAccess(
-        id,
+      const validated = budgetTemplateCreateSchema.parse(createDto);
+      const result = await this.executeTemplateCreation(
+        validated,
         user,
         supabase,
       );
 
-      this.validateUpdateTemplateDto(updateTemplateDto);
-
-      if (updateTemplateDto.isDefault) {
-        await this.ensureOnlyOneDefault(supabase, user.id, id);
-      }
-
-      const updateData = this.prepareUpdateData(updateTemplateDto);
-      const templateDb = await this.updateTemplateInDb(
-        id,
-        updateData,
-        supabase,
+      this.logger.info(
+        {
+          operation: 'create',
+          userId: user.id,
+          entityId: result.data.template.id,
+          duration: Date.now() - startTime,
+        },
+        'Template created successfully',
       );
 
-      const apiData = this.budgetTemplateMapper.toApi(templateDb);
-      if (!apiData) {
-        throw new InternalServerErrorException(
-          'Erreur lors de la validation du template modifié',
-        );
+      return result;
+    } catch (error) {
+      this.logger.error(
+        {
+          operation: 'create',
+          userId: user.id,
+          duration: Date.now() - startTime,
+          err: error,
+        },
+        'Failed to create template',
+      );
+
+      if (error instanceof BadRequestException) throw error;
+      throw new InternalServerErrorException('Failed to create template');
+    }
+  }
+
+  private async executeTemplateCreation(
+    validated: BudgetTemplateCreate,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<BudgetTemplateCreateResponse> {
+    const template = await this.createTemplateWithLines(
+      validated,
+      user,
+      supabase,
+    );
+
+    const { data: lines } = await supabase
+      .from('template_line')
+      .select('*')
+      .eq('template_id', template.id)
+      .order('name', { ascending: true });
+
+    return {
+      success: true,
+      data: {
+        template: budgetTemplateMappers.toApiTemplate(template),
+        lines: budgetTemplateMappers.toApiTemplateLineList(lines || []),
+      },
+    };
+  }
+
+  private async createTemplateWithLines(
+    validated: BudgetTemplateCreate,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<Tables<'template'>> {
+    const rpcLines = validated.lines.map((line) => ({
+      name: line.name,
+      amount: line.amount,
+      kind: line.kind as Database['public']['Enums']['transaction_kind'],
+      recurrence:
+        line.recurrence as Database['public']['Enums']['transaction_recurrence'],
+      description: line.description || '',
+    }));
+
+    const { data: templateRecord, error } = await supabase.rpc(
+      'create_template_with_lines',
+      {
+        p_user_id: user.id,
+        p_name: validated.name,
+        p_description: validated.description,
+        p_is_default: validated.isDefault || false,
+        p_lines: rpcLines,
+      },
+    );
+
+    if (error) throw error;
+    if (!templateRecord)
+      throw new InternalServerErrorException('Failed to create template');
+
+    return templateRecord as unknown as Tables<'template'>;
+  }
+
+  async update(
+    id: string,
+    updateDto: BudgetTemplateUpdate,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<BudgetTemplateResponse> {
+    const startTime = Date.now();
+
+    try {
+      await this.validateTemplateAccess(id, user, supabase);
+      const validated = budgetTemplateUpdateSchema.parse(updateDto);
+
+      if (validated.isDefault) {
+        await this.resetDefaultTemplates(user.id, id, supabase);
       }
 
-      return {
-        success: true,
-        data: apiData,
-      };
+      const data = await this.performTemplateUpdate(id, validated, supabase);
+
+      this.logger.info(
+        {
+          operation: 'update',
+          userId: user.id,
+          entityId: id,
+          duration: Date.now() - startTime,
+        },
+        'Template updated successfully',
+      );
+
+      return { success: true, data: budgetTemplateMappers.toApiTemplate(data) };
     } catch (error) {
       if (
         error instanceof NotFoundException ||
         error instanceof BadRequestException
-      ) {
+      )
         throw error;
-      }
-      this.logger.error({ err: error }, 'Failed to update budget template');
-      throw new InternalServerErrorException('Erreur interne du serveur');
+
+      this.logger.error(
+        {
+          operation: 'update',
+          userId: user.id,
+          entityId: id,
+          duration: Date.now() - startTime,
+          err: error,
+        },
+        'Failed to update template',
+      );
+      throw new InternalServerErrorException('Failed to update template');
     }
+  }
+
+  private async resetDefaultTemplates(
+    userId: string,
+    excludeId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    await supabase
+      .from('template')
+      .update({ is_default: false })
+      .eq('user_id', userId)
+      .eq('is_default', true)
+      .neq('id', excludeId);
+  }
+
+  private async performTemplateUpdate(
+    id: string,
+    validated: BudgetTemplateUpdate,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<Tables<'template'>> {
+    const { data, error } = await supabase
+      .from('template')
+      .update(budgetTemplateMappers.toDbTemplateUpdate(validated))
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error || !data) throw new NotFoundException('Template not found');
+    return data;
   }
 
   async remove(
@@ -411,85 +317,487 @@ export class BudgetTemplateService {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetTemplateDeleteResponse> {
+    const startTime = Date.now();
+
     try {
-      // Explicit authorization check - require ownership for deletion
-      await this.templateValidationService.validateTemplateAccess(
-        id,
-        user,
-        supabase,
-      );
+      await this.validateTemplateAccess(id, user, supabase);
 
       const { error } = await supabase.from('template').delete().eq('id', id);
+      if (error) throw error;
 
-      if (error) {
-        this.logger.error({ err: error }, 'Failed to delete budget template');
-        throw new NotFoundException(
-          'Template introuvable ou suppression non autorisée',
-        );
-      }
+      this.logger.info(
+        {
+          operation: 'remove',
+          userId: user.id,
+          entityId: id,
+          duration: Date.now() - startTime,
+        },
+        'Template deleted successfully',
+      );
 
-      return {
-        success: true,
-        message: 'Template supprimé avec succès',
-      };
+      return { success: true, message: 'Template deleted successfully' };
     } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      this.logger.error({ err: error }, 'Failed to delete budget template');
-      throw new InternalServerErrorException('Erreur interne du serveur');
+      if (error instanceof NotFoundException) throw error;
+
+      this.logger.error(
+        {
+          operation: 'remove',
+          userId: user.id,
+          entityId: id,
+          duration: Date.now() - startTime,
+          err: error,
+        },
+        'Failed to delete template',
+      );
+      throw new InternalServerErrorException('Failed to delete template');
     }
   }
+
+  async createFromOnboarding(
+    onboardingData: BudgetTemplateCreateFromOnboarding,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<BudgetTemplateCreateResponse> {
+    const startTime = Date.now();
+
+    try {
+      const validated =
+        budgetTemplateCreateFromOnboardingSchema.parse(onboardingData);
+
+      await this.checkOnboardingRateLimit(user.id, supabase);
+
+      const lines = this.buildOnboardingTemplateLines(validated);
+      const templateCreateDto: BudgetTemplateCreate = {
+        name: validated.name || 'Mois Standard',
+        description: validated.description,
+        isDefault: validated.isDefault,
+        lines,
+      };
+
+      this.logger.info(
+        {
+          operation: 'createFromOnboarding',
+          userId: user.id,
+          duration: Date.now() - startTime,
+        },
+        'Creating template from onboarding',
+      );
+
+      return this.create(templateCreateDto, user, supabase);
+    } catch (error) {
+      if (error instanceof BadRequestException) throw error;
+
+      this.logger.error(
+        {
+          operation: 'createFromOnboarding',
+          userId: user.id,
+          duration: Date.now() - startTime,
+          err: error,
+        },
+        'Failed to create template from onboarding',
+      );
+      throw new InternalServerErrorException(
+        'Failed to create template from onboarding',
+      );
+    }
+  }
+
+  private async checkOnboardingRateLimit(
+    userId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    const twentyFourHoursAgo = new Date();
+    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+
+    const { data: recentTemplates } = await supabase
+      .from('template')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('is_from_onboarding', true)
+      .gte('created_at', twentyFourHoursAgo.toISOString());
+
+    if (recentTemplates && recentTemplates.length > 0) {
+      throw new BadRequestException(
+        'You can only create one template from onboarding per 24 hours',
+      );
+    }
+  }
+
+  private buildOnboardingTemplateLines(
+    validated: BudgetTemplateCreateFromOnboarding,
+  ): TemplateLineCreateWithoutTemplateId[] {
+    const lines: TemplateLineCreateWithoutTemplateId[] = [];
+    const fieldMappings = this.getOnboardingFieldMappings();
+
+    for (const mapping of fieldMappings) {
+      const amount = validated[
+        mapping.field as keyof typeof validated
+      ] as number;
+      if (amount > 0) {
+        lines.push({
+          name: mapping.name,
+          amount,
+          kind: mapping.kind as 'INCOME' | 'FIXED_EXPENSE',
+          recurrence: 'fixed',
+          description: mapping.description,
+        });
+      }
+    }
+
+    if (validated.customTransactions) {
+      lines.push(
+        ...validated.customTransactions.map((t) => ({
+          name: t.name,
+          amount: t.amount,
+          kind: t.type,
+          recurrence: t.expenseType,
+          description: t.description || '',
+        })),
+      );
+    }
+
+    return lines;
+  }
+
+  private getOnboardingFieldMappings() {
+    return [
+      {
+        field: 'monthlyIncome',
+        name: 'Salaire',
+        kind: 'INCOME',
+        description: 'Salaire & revenus mensuels',
+      },
+      {
+        field: 'housingCosts',
+        name: 'Loyer',
+        kind: 'FIXED_EXPENSE',
+        description: 'Loyer, assurances, etc.',
+      },
+      {
+        field: 'healthInsurance',
+        name: 'Assurance maladie',
+        kind: 'FIXED_EXPENSE',
+        description: 'Assurance maladie, etc.',
+      },
+      {
+        field: 'phonePlan',
+        name: 'Téléphone',
+        kind: 'FIXED_EXPENSE',
+        description: 'Frais de téléphone',
+      },
+      {
+        field: 'transportCosts',
+        name: 'Transport',
+        kind: 'FIXED_EXPENSE',
+        description: 'Transport en commun, véhicule, etc.',
+      },
+      {
+        field: 'leasingCredit',
+        name: 'Leasing',
+        kind: 'FIXED_EXPENSE',
+        description: 'Crédit, leasing, etc.',
+      },
+    ];
+  }
+
+  // ============ TEMPLATE LINE METHODS ============
 
   async findTemplateLines(
     templateId: string,
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateLineListResponse> {
-    return this.templateLineService.findTemplateLines(
-      templateId,
-      user,
-      supabase,
-    );
+    const startTime = Date.now();
+
+    try {
+      await this.validateTemplateAccess(templateId, user, supabase);
+      const lines = await this.fetchTemplateLines(templateId, supabase);
+
+      this.logger.info(
+        {
+          operation: 'findTemplateLines',
+          userId: user.id,
+          entityId: templateId,
+          duration: Date.now() - startTime,
+          lineCount: lines.length,
+        },
+        'Template lines retrieved successfully',
+      );
+
+      return {
+        success: true,
+        data: budgetTemplateMappers.toApiTemplateLineList(lines),
+      };
+    } catch (error) {
+      this.logger.error(
+        {
+          operation: 'findTemplateLines',
+          userId: user.id,
+          entityId: templateId,
+          duration: Date.now() - startTime,
+          err: error,
+        },
+        'Failed to retrieve template lines',
+      );
+
+      if (error instanceof NotFoundException) throw error;
+      throw new InternalServerErrorException(
+        'Failed to retrieve template lines',
+      );
+    }
+  }
+
+  private async fetchTemplateLines(
+    templateId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<Tables<'template_line'>[]> {
+    const { data, error } = await supabase
+      .from('template_line')
+      .select('*')
+      .eq('template_id', templateId)
+      .order('name', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
   }
 
   async createTemplateLine(
     templateId: string,
-    createLineDto: TemplateLineCreateWithoutTemplateId,
+    createDto: TemplateLineCreateWithoutTemplateId,
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateLineResponse> {
-    return this.templateLineService.createTemplateLine(
-      templateId,
-      createLineDto,
-      user,
-      supabase,
+    const startTime = Date.now();
+
+    try {
+      const data = await this.executeTemplateLineCreation(
+        templateId,
+        createDto,
+        user,
+        supabase,
+      );
+
+      this.logger.info(
+        {
+          operation: 'createTemplateLine',
+          userId: user.id,
+          entityId: templateId,
+          duration: Date.now() - startTime,
+          lineId: data.id,
+        },
+        'Template line created successfully',
+      );
+
+      return {
+        success: true,
+        data: budgetTemplateMappers.toApiTemplateLine(data),
+      };
+    } catch (error) {
+      this.handleTemplateLineError(error, 'createTemplateLine', {
+        userId: user.id,
+        entityId: templateId,
+        duration: Date.now() - startTime,
+      });
+    }
+  }
+
+  private async executeTemplateLineCreation(
+    templateId: string,
+    createDto: TemplateLineCreateWithoutTemplateId,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<Tables<'template_line'>> {
+    await this.validateTemplateAccess(templateId, user, supabase);
+    const validated =
+      templateLineCreateWithoutTemplateIdSchema.parse(createDto);
+
+    return this.insertTemplateLine(validated, templateId, supabase);
+  }
+
+  private handleTemplateLineError(
+    error: unknown,
+    operation: string,
+    context: Record<string, unknown>,
+  ): never {
+    this.logger.error(
+      { operation, ...context, err: error },
+      `Failed to ${operation.replace(/([A-Z])/g, ' $1').toLowerCase()}`,
     );
+
+    if (
+      error instanceof NotFoundException ||
+      error instanceof BadRequestException ||
+      error instanceof ForbiddenException
+    )
+      throw error;
+    throw new InternalServerErrorException(
+      `Failed to ${operation.replace(/([A-Z])/g, ' $1').toLowerCase()}`,
+    );
+  }
+
+  private async insertTemplateLine(
+    validated: TemplateLineCreateWithoutTemplateId,
+    templateId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<Tables<'template_line'>> {
+    const { data, error } = await supabase
+      .from('template_line')
+      .insert(
+        budgetTemplateMappers.toDbTemplateLineInsert(validated, templateId),
+      )
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
   }
 
   async findTemplateLine(
-    templateId: string,
-    lineId: string,
+    templateLineId: string,
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateLineResponse> {
-    // Note: templateId is passed for validation but the service uses lineId directly
-    return this.templateLineService.findTemplateLine(lineId, user, supabase);
+    const startTime = Date.now();
+
+    try {
+      const line = await this.fetchAndValidateTemplateLine(
+        templateLineId,
+        user,
+        supabase,
+      );
+
+      this.logger.info(
+        {
+          operation: 'findTemplateLine',
+          userId: user.id,
+          entityId: templateLineId,
+          duration: Date.now() - startTime,
+        },
+        'Template line retrieved successfully',
+      );
+
+      return {
+        success: true,
+        data: budgetTemplateMappers.toApiTemplateLine(line),
+      };
+    } catch (error) {
+      this.logger.error(
+        {
+          operation: 'findTemplateLine',
+          userId: user.id,
+          entityId: templateLineId,
+          duration: Date.now() - startTime,
+          err: error,
+        },
+        'Failed to retrieve template line',
+      );
+
+      if (
+        error instanceof NotFoundException ||
+        error instanceof ForbiddenException
+      )
+        throw error;
+      throw new InternalServerErrorException(
+        'Failed to retrieve template line',
+      );
+    }
+  }
+
+  private async fetchAndValidateTemplateLine(
+    templateLineId: string,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<Tables<'template_line'> & { template: Tables<'template'> }> {
+    const { data, error } = await supabase
+      .from('template_line')
+      .select('*, template!inner(*)')
+      .eq('id', templateLineId)
+      .single();
+
+    if (error || !data) throw new NotFoundException('Template line not found');
+
+    if (data.template.user_id !== user.id) {
+      throw new ForbiddenException(
+        'You do not have access to this template line',
+      );
+    }
+
+    return data;
   }
 
   async updateTemplateLine(
-    templateId: string,
-    lineId: string,
-    updateLineDto: TemplateLineUpdate,
+    templateLineId: string,
+    updateDto: TemplateLineUpdate,
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateLineResponse> {
-    return this.templateLineService.updateTemplateLine(
-      lineId,
-      updateLineDto,
-      user,
-      supabase,
-    );
+    const startTime = Date.now();
+
+    try {
+      await this.validateTemplateLineAccess(templateLineId, user, supabase);
+      const validated = templateLineUpdateSchema.parse(updateDto);
+
+      const data = await this.performTemplateLineUpdate(
+        templateLineId,
+        validated,
+        supabase,
+      );
+
+      this.logTemplateLineSuccess(
+        'updateTemplateLine',
+        user.id,
+        templateLineId,
+        startTime,
+        'Template line updated successfully',
+      );
+
+      return {
+        success: true,
+        data: budgetTemplateMappers.toApiTemplateLine(data),
+      };
+    } catch (error) {
+      this.handleTemplateLineError(error, 'updateTemplateLine', {
+        userId: user.id,
+        entityId: templateLineId,
+        duration: Date.now() - startTime,
+      });
+    }
+  }
+
+  private async validateTemplateLineAccess(
+    templateLineId: string,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    const { data: existingLine } = await supabase
+      .from('template_line')
+      .select('*, template!inner(*)')
+      .eq('id', templateLineId)
+      .single();
+
+    if (!existingLine) throw new NotFoundException('Template line not found');
+    if (existingLine.template.user_id !== user.id) {
+      throw new ForbiddenException(
+        'You do not have access to this template line',
+      );
+    }
+  }
+
+  private async performTemplateLineUpdate(
+    templateLineId: string,
+    validated: TemplateLineUpdate,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<Tables<'template_line'>> {
+    const { data, error } = await supabase
+      .from('template_line')
+      .update(budgetTemplateMappers.toDbTemplateLineUpdate(validated))
+      .eq('id', templateLineId)
+      .select()
+      .single();
+
+    if (error || !data)
+      throw error || new NotFoundException('Template line not found');
+    return data;
   }
 
   async bulkUpdateTemplateLines(
@@ -498,237 +806,224 @@ export class BudgetTemplateService {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateLinesBulkUpdateResponse> {
-    return this.templateLineService.bulkUpdateTemplateLines(
-      templateId,
-      bulkUpdateDto,
-      user,
-      supabase,
-    );
-  }
+    const startTime = Date.now();
 
-  async deleteTemplateLine(
-    templateId: string,
-    lineId: string,
-    user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<TemplateLineDeleteResponse> {
-    return this.templateLineService.deleteTemplateLine(lineId, user, supabase);
-  }
-
-  private async ensureOnlyOneDefault(
-    supabase: AuthenticatedSupabaseClient,
-    userId: string,
-    excludeId?: string,
-  ): Promise<void> {
-    const { error } = await supabase
-      .from('template')
-      .update({ is_default: false })
-      .eq('user_id', userId)
-      .eq('is_default', true)
-      .neq('id', excludeId || '');
-
-    if (error) {
-      this.logger.error(
-        { err: error },
-        'Failed to deactivate default templates',
-      );
-      throw new InternalServerErrorException(
-        'Erreur lors de la gestion des templates par défaut',
-      );
-    }
-  }
-
-  private readonly onboardingFieldMappings = [
-    {
-      field: 'monthlyIncome' as const,
-      name: 'Salaire',
-      kind: 'INCOME' as const,
-      description: 'Salaire & revenus mensuels',
-    },
-    {
-      field: 'housingCosts' as const,
-      name: 'Loyer',
-      kind: 'FIXED_EXPENSE' as const,
-      description: 'Loyer, assurances, etc.',
-    },
-    {
-      field: 'healthInsurance' as const,
-      name: 'Assurance maladie',
-      kind: 'FIXED_EXPENSE' as const,
-      description: 'Assurance maladie, etc.',
-    },
-    {
-      field: 'phonePlan' as const,
-      name: 'Téléphone',
-      kind: 'FIXED_EXPENSE' as const,
-      description: 'Frais de téléphone',
-    },
-    {
-      field: 'transportCosts' as const,
-      name: 'Transport',
-      kind: 'FIXED_EXPENSE' as const,
-      description: 'Transport en commun, véhicule, etc.',
-    },
-    {
-      field: 'leasingCredit' as const,
-      name: 'Leasing',
-      kind: 'FIXED_EXPENSE' as const,
-      description: 'Crédit, leasing, etc.',
-    },
-  ];
-
-  private createLineFromOnboardingField(
-    amount: number,
-    name: string,
-    kind: 'INCOME' | 'FIXED_EXPENSE',
-    description: string,
-  ): TemplateLineCreateWithoutTemplateId {
-    return {
-      name,
-      amount,
-      kind,
-      recurrence: 'fixed',
-      description,
-    };
-  }
-
-  private createLinesFromCustomTransactions(
-    customTransactions: BudgetTemplateCreateFromOnboarding['customTransactions'],
-  ): TemplateLineCreateWithoutTemplateId[] {
-    return (
-      customTransactions?.map((transaction) => ({
-        name: transaction.name,
-        amount: transaction.amount,
-        kind: transaction.type,
-        recurrence: transaction.expenseType,
-        description: transaction.description || '',
-      })) || []
-    );
-  }
-
-  private createOnboardingTemplateLines(
-    onboardingData: BudgetTemplateCreateFromOnboarding,
-  ): TemplateLineCreateWithoutTemplateId[] {
-    const lines: TemplateLineCreateWithoutTemplateId[] = [];
-
-    for (const mapping of this.onboardingFieldMappings) {
-      const amount = onboardingData[mapping.field];
-      if (amount && amount > 0) {
-        lines.push(
-          this.createLineFromOnboardingField(
-            amount,
-            mapping.name,
-            mapping.kind,
-            mapping.description,
-          ),
-        );
-      }
-    }
-
-    lines.push(
-      ...this.createLinesFromCustomTransactions(
-        onboardingData.customTransactions,
-      ),
-    );
-    return lines;
-  }
-
-  async createFromOnboarding(
-    onboardingData: BudgetTemplateCreateFromOnboarding,
-    user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetTemplateCreateResponse> {
     try {
-      this.logOnboardingCreation(user, onboardingData);
-
-      await this.templateValidationService.checkOnboardingRateLimit(
-        user.id,
+      const data = await this.executeBulkUpdate(
+        templateId,
+        bulkUpdateDto,
+        user,
         supabase,
       );
 
-      this.validateOnboardingData(onboardingData, user.id);
-
-      const lines = this.createOnboardingTemplateLines(onboardingData);
-      this.logCreatedLines(user.id, lines);
-
-      const templateCreateDto = this.buildTemplateCreateDto(
-        onboardingData,
-        lines,
+      this.logger.info(
+        {
+          operation: 'bulkUpdateTemplateLines',
+          userId: user.id,
+          entityId: templateId,
+          duration: Date.now() - startTime,
+          updateCount: data.length,
+        },
+        'Template lines bulk updated successfully',
       );
 
-      return this.create(templateCreateDto, user, supabase);
+      return { success: true, data };
     } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-      this.logger.error(
-        { err: error },
-        'Failed to create template from onboarding',
-      );
-      throw new InternalServerErrorException('Erreur interne du serveur');
+      this.handleBulkUpdateError(error, user.id, templateId, startTime);
     }
   }
 
-  private logOnboardingCreation(
+  private async executeBulkUpdate(
+    templateId: string,
+    bulkUpdateDto: TemplateLinesBulkUpdate,
     user: AuthenticatedUser,
-    onboardingData: BudgetTemplateCreateFromOnboarding,
-  ): void {
-    this.logger.info(
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<TemplateLine[]> {
+    await this.validateTemplateAccess(templateId, user, supabase);
+    const validated = templateLinesBulkUpdateSchema.parse(bulkUpdateDto);
+
+    await this.validateBulkUpdateLines(validated, templateId, supabase);
+    const allUpdatedLines = await this.performBulkUpdate(validated, supabase);
+
+    return budgetTemplateMappers.toApiTemplateLineList(allUpdatedLines);
+  }
+
+  private handleBulkUpdateError(
+    error: unknown,
+    userId: string,
+    entityId: string,
+    startTime: number,
+  ): never {
+    this.logger.error(
       {
-        userId: user.id,
-        templateName: onboardingData.name,
-        isDefault: onboardingData.isDefault,
-        hasCustomTransactions:
-          (onboardingData.customTransactions?.length || 0) > 0,
+        operation: 'bulkUpdateTemplateLines',
+        userId,
+        entityId,
+        duration: Date.now() - startTime,
+        err: error,
       },
-      'Creating template from onboarding data',
+      'Failed to bulk update template lines',
+    );
+
+    if (
+      error instanceof NotFoundException ||
+      error instanceof BadRequestException
+    )
+      throw error;
+    throw new InternalServerErrorException(
+      'Failed to bulk update template lines',
     );
   }
 
-  private validateOnboardingData(
-    onboardingData: BudgetTemplateCreateFromOnboarding,
-    userId: string,
-  ): void {
-    const validationResult =
-      budgetTemplateCreateFromOnboardingSchema.safeParse(onboardingData);
-    if (!validationResult.success) {
-      this.logger.warn(
-        { userId, validationErrors: validationResult.error.message },
-        'Onboarding data validation failed',
-      );
+  private async validateBulkUpdateLines(
+    validated: TemplateLinesBulkUpdate,
+    templateId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    const lineIds = validated.lines.map((l) => l.id);
+    const { data: existingLines } = await supabase
+      .from('template_line')
+      .select('id, template_id')
+      .in('id', lineIds);
+
+    if (!existingLines || existingLines.length !== lineIds.length) {
+      throw new NotFoundException('Some template lines not found');
+    }
+
+    if (existingLines.some((l) => l.template_id !== templateId)) {
       throw new BadRequestException(
-        `Invalid onboarding data: ${validationResult.error.message}`,
+        'All template lines must belong to the same template',
       );
     }
   }
 
-  private logCreatedLines(
+  private async performBulkUpdate(
+    validated: TemplateLinesBulkUpdate,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<Tables<'template_line'>[]> {
+    const updateGroups = this.groupUpdatesByProperties(validated.lines);
+
+    const updatePromises = Array.from(updateGroups.values()).map(
+      ({ ids, data }) =>
+        supabase.from('template_line').update(data).in('id', ids).select(),
+    );
+
+    const results = await Promise.all(updatePromises);
+    return results.flatMap((r) => r.data || []);
+  }
+
+  private groupUpdatesByProperties(
+    lines: TemplateLineUpdateWithId[],
+  ): Map<
+    string,
+    { ids: string[]; data: Partial<TablesInsert<'template_line'>> }
+  > {
+    const updateGroups = new Map<
+      string,
+      { ids: string[]; data: Partial<TablesInsert<'template_line'>> }
+    >();
+
+    for (const line of lines) {
+      const { id, ...updateData } = line;
+      const dbData = budgetTemplateMappers.toDbTemplateLineUpdate(updateData);
+      const key = JSON.stringify(dbData);
+
+      if (!updateGroups.has(key)) {
+        updateGroups.set(key, { ids: [], data: dbData });
+      }
+      updateGroups.get(key)!.ids.push(id);
+    }
+
+    return updateGroups;
+  }
+
+  async deleteTemplateLine(
+    templateLineId: string,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<TemplateLineDeleteResponse> {
+    const startTime = Date.now();
+
+    try {
+      await this.validateTemplateLineAccess(templateLineId, user, supabase);
+      await this.performTemplateLineDelete(templateLineId, supabase);
+
+      this.logger.info(
+        {
+          operation: 'deleteTemplateLine',
+          userId: user.id,
+          entityId: templateLineId,
+          duration: Date.now() - startTime,
+        },
+        'Template line deleted successfully',
+      );
+
+      return { success: true, message: 'Template line deleted successfully' };
+    } catch (error) {
+      this.logger.error(
+        {
+          operation: 'deleteTemplateLine',
+          userId: user.id,
+          entityId: templateLineId,
+          duration: Date.now() - startTime,
+          err: error,
+        },
+        'Failed to delete template line',
+      );
+
+      if (
+        error instanceof NotFoundException ||
+        error instanceof ForbiddenException
+      )
+        throw error;
+      throw new InternalServerErrorException('Failed to delete template line');
+    }
+  }
+
+  private async performTemplateLineDelete(
+    templateLineId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    const { error } = await supabase
+      .from('template_line')
+      .delete()
+      .eq('id', templateLineId);
+    if (error) throw error;
+  }
+
+  private logTemplateLineSuccess(
+    operation: string,
     userId: string,
-    lines: TemplateLineCreateWithoutTemplateId[],
+    entityId: string,
+    startTime: number,
+    message: string,
   ): void {
     this.logger.info(
       {
+        operation,
         userId,
-        linesCount: lines.length,
-        lines: lines.map((l) => ({
-          name: l.name,
-          kind: l.kind,
-          recurrence: l.recurrence,
-        })),
+        entityId,
+        duration: Date.now() - startTime,
       },
-      'Template lines created from onboarding',
+      message,
     );
   }
 
-  private buildTemplateCreateDto(
-    onboardingData: BudgetTemplateCreateFromOnboarding,
-    lines: TemplateLineCreateWithoutTemplateId[],
-  ): BudgetTemplateCreate {
-    return {
-      name: onboardingData.name || 'Mois Standard',
-      description: onboardingData.description,
-      isDefault: onboardingData.isDefault,
-      lines,
-    };
+  // ============ VALIDATION HELPER ============
+
+  private async validateTemplateAccess(
+    templateId: string,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    const { data, error } = await supabase
+      .from('template')
+      .select('user_id')
+      .eq('id', templateId)
+      .single();
+
+    if (error || !data) throw new NotFoundException('Template not found');
+    if (data.user_id !== user.id)
+      throw new ForbiddenException('You do not have access to this template');
   }
 }

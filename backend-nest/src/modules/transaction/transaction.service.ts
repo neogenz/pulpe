@@ -14,7 +14,7 @@ import {
   type TransactionResponse,
   type TransactionUpdate,
 } from '@pulpe/shared';
-import { TransactionMapper } from './transaction.mapper';
+import * as transactionMappers from './transaction.mappers';
 import { TRANSACTION_CONSTANTS } from './entities';
 import type { Database } from '../../types/database.types';
 
@@ -23,7 +23,6 @@ export class TransactionService {
   constructor(
     @InjectPinoLogger(TransactionService.name)
     private readonly logger: PinoLogger,
-    private readonly transactionMapper: TransactionMapper,
   ) {}
 
   async findAll(
@@ -42,7 +41,7 @@ export class TransactionService {
         );
       }
 
-      const apiData = this.transactionMapper.toApiList(transactionsDb || []);
+      const apiData = transactionMappers.toApiList(transactionsDb || []);
 
       return {
         success: true as const,
@@ -143,7 +142,7 @@ export class TransactionService {
         supabase,
       );
 
-      const apiData = this.transactionMapper.toApi(transactionDb);
+      const apiData = transactionMappers.toApi(transactionDb);
 
       return {
         success: true,
@@ -176,7 +175,7 @@ export class TransactionService {
         );
       }
 
-      const apiData = this.transactionMapper.toApi(transactionDb);
+      const apiData = transactionMappers.toApi(transactionDb);
 
       return {
         success: true,
@@ -280,7 +279,7 @@ export class TransactionService {
         supabase,
       );
 
-      const apiData = this.transactionMapper.toApi(transactionDb);
+      const apiData = transactionMappers.toApi(transactionDb);
 
       return {
         success: true,
@@ -350,7 +349,7 @@ export class TransactionService {
         );
       }
 
-      const apiData = this.transactionMapper.toApiList(transactionsDb || []);
+      const apiData = transactionMappers.toApiList(transactionsDb || []);
 
       return {
         success: true as const,
