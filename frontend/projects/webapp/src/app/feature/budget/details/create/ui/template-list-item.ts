@@ -81,8 +81,16 @@ import { type BudgetTemplate } from '@pulpe/shared';
             <div class="flex flex-col gap-2">
               @if (loading()) {
                 <div class="flex items-center gap-2">
-                  <mat-spinner diameter="16"></mat-spinner>
-                  <span class="text-on-surface-variant">Chargement...</span>
+                  <mat-progress-spinner
+                    diameter="24"
+                    mode="indeterminate"
+                    aria-label="Chargement du modèle"
+                    role="progressbar"
+                    class="pulpe-loading-indicator pulpe-loading-small"
+                  ></mat-progress-spinner>
+                  <span class="text-on-surface-variant" aria-live="polite"
+                    >Chargement du modèle...</span
+                  >
                 </div>
               } @else {
                 <div

@@ -58,7 +58,7 @@ export class OnboardingPage {
     // Messages and indicators
     this.errorMessage = page.getByTestId('error-message');
     this.successMessage = page.locator('.bg-green-50, .bg-blue-50, [data-testid="success"]');
-    this.loadingIndicator = page.locator('.loading, .spinner, mat-spinner');
+    this.loadingIndicator = page.locator('.loading, .spinner, mat-progress-spinner, [data-testid="loading-spinner"]');
   }
 
   // Navigation methods

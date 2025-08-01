@@ -12,7 +12,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { BaseLoadingComponent } from '../../../ui/loading';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDialog } from '@angular/material/dialog';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
@@ -40,10 +40,10 @@ import { Title } from '@core/routing';
     CurrencyPipe,
     MatButtonModule,
     MatIconModule,
-    MatProgressSpinnerModule,
     MatMenuModule,
     FinancialSummary,
     TransactionsTable,
+    BaseLoadingComponent,
   ],
   template: `
     <!-- Main container with proper surface container background -->
@@ -51,17 +51,13 @@ import { Title } from '@core/routing';
       @switch (true) {
         @case (data.status() === 'loading' || data.status() === 'reloading') {
           <!-- Loading state with proper accessibility -->
-          <div
-            class="flex justify-center items-center h-full"
-            role="status"
-            aria-live="polite"
-            aria-label="Chargement des détails du modèle en cours"
-          >
-            <mat-spinner diameter="48" aria-label="Chargement en cours" />
-            <span class="sr-only"
-              >Chargement des détails du modèle en cours...</span
-            >
-          </div>
+          <pulpe-base-loading
+            message="Chargement des détails du modèle..."
+            size="large"
+            [fullHeight]="true"
+            surface="surface-container"
+            testId="template-details-loading"
+          ></pulpe-base-loading>
         }
         @case (data.status() === 'error') {
           <!-- Error state with proper ARIA roles -->
