@@ -28,13 +28,8 @@ import {
 import { BudgetTemplatesApi } from '../services/budget-templates-api';
 import { firstValueFrom } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { TransactionFormData } from '../services/transaction-form';
 import { CommonModule, CurrencyPipe } from '@angular/common';
-import {
-  TemplateLine,
-  type TemplateLineUpdateWithId,
-  type TemplateLinesBulkUpdate,
-} from '@pulpe/shared';
+import { TemplateLine } from '@pulpe/shared';
 import { Title } from '@core/routing';
 
 @Component({
@@ -352,12 +347,14 @@ export default class TemplateDetail {
       data: {
         transactions,
         templateName: templateData.template.name,
+        templateId: this.templateId(),
+        originalTemplateLines,
       },
       width: '90vw',
       maxWidth: '1200px',
       height: '90vh',
       maxHeight: '90vh',
-      disableClose: true,
+      disableClose: false, // Dialog now handles its own close protection during loading
       autoFocus: true,
       restoreFocus: true,
       injector: this.#injector,
@@ -365,55 +362,38 @@ export default class TemplateDetail {
 
     // Handle dialog closure with direct RxJS subscription (appropriate for one-time events)
     dialogRef.afterClosed().subscribe((dialogResult) => {
-      if (dialogResult?.saved) {
-        console.log('Transactions mises à jour:', dialogResult.transactions);
+      if (dialogResult?.saved && dialogResult.updatedLines) {
+        console.log('Transactions mises à jour avec succès');
 
-        // Validate that we have the same number of transactions (no add/remove supported yet)
-        if (dialogResult.transactions.length !== originalTemplateLines.length) {
-          console.error(
-            "Le nombre de transactions a changé, cette fonctionnalité n'est pas encore supportée",
-          );
-          // TODO: Support adding/removing transactions
-          return;
-        }
-
-        // Transform dialog data to API format
-        const bulkUpdate: TemplateLinesBulkUpdate = {
-          lines: dialogResult.transactions.map(
-            (
-              transaction: TransactionFormData,
-              index: number,
-            ): TemplateLineUpdateWithId => {
-              const originalLine = originalTemplateLines[index];
-              return {
-                id: originalLine.id,
-                name: transaction.description,
-                amount: transaction.amount,
-                kind: transaction.type,
-                recurrence: originalLine.recurrence, // Keep original recurrence
-                description: originalLine.description, // Keep original description or update it
-              };
-            },
-          ),
-        };
-
-        // Call API to save changes
-        firstValueFrom(
-          this.#budgetTemplatesApi.updateTemplateLines$(
-            this.templateId(),
-            bulkUpdate,
-          ),
-        )
-          .then(() => {
-            console.log('Transactions sauvegardées avec succès');
-            // Reload resource to show updated data
-            this.data.reload();
-          })
-          .catch((error) => {
-            console.error('Erreur lors de la sauvegarde:', error);
-            // TODO: Add proper error handling with user-friendly messages
-          });
+        // Optimized: Update the resource data directly instead of full reload
+        this.#updateResourceWithNewLines(dialogResult.updatedLines);
+      } else if (dialogResult?.error) {
+        console.error('Erreur lors de la sauvegarde:', dialogResult.error);
+        // Error is already handled by the dialog with user-friendly messages
       }
     });
+  }
+
+  /**
+   * Optimized method to update the resource data directly with new transaction lines
+   * instead of triggering a full API reload
+   */
+  #updateResourceWithNewLines(updatedLines: TemplateLine[]): void {
+    const currentValue = this.data.value();
+    if (!currentValue) {
+      // Fallback to reload if current value is not available
+      this.data.reload();
+      return;
+    }
+
+    // Create updated template data with new transaction lines
+    const updatedTemplateData = {
+      ...currentValue,
+      transactions: updatedLines,
+    };
+
+    // Use the resource's local update capability to avoid unnecessary API calls
+    // This updates the signal-based resource without triggering a reload
+    this.data.update(() => updatedTemplateData);
   }
 }
