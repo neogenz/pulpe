@@ -39,8 +39,12 @@
     "@nestjs/swagger": "^11.2.0",
     "@pulpe/shared": "workspace:*",
     "@supabase/supabase-js": "^2.50.0",
+    "@types/compression": "^1.8.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
+    "compression": "^1.8.1",
+    "express-rate-limit": "^8.0.1",
+    "helmet": "^8.1.0",
     "nestjs-pino": "^4.4.0",
     "nestjs-zod": "^4.3.1",
     "pino": "^9.7.0",
@@ -58,16 +62,16 @@
     "@types/express": "^5.0.3",
     "@types/supertest": "^6.0.2",
     "@types/uuid": "^10.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.15.0",
+    "@typescript-eslint/parser": "^8.15.0",
     "bun-types": "^1.2.17",
+    "eslint": "^9.0.0",
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-boundaries": "^4.2.2",
     "eslint-plugin-prettier": "^5.5.1",
     "supabase": "^2.26.9",
     "supertest": "^7.1.1",
     "ts-node": "^10.9.2",
-    "uuid": "^11.1.0",
-    "eslint": "^9.0.0",
-    "@typescript-eslint/eslint-plugin": "^8.15.0",
-    "@typescript-eslint/parser": "^8.15.0"
+    "uuid": "^11.1.0"
   }
 }
