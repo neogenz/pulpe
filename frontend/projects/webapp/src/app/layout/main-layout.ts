@@ -153,8 +153,6 @@ interface NavigationItem {
             color="primary"
             class="flex-shrink-0"
             [class.rounded-t-xl]="!isHandset()"
-            [class.!border-b]="isScrolled()"
-            [class.!border-outline-variant]="isScrolled()"
           >
             @if (isHandset()) {
               <button
@@ -226,10 +224,12 @@ interface NavigationItem {
           </mat-toolbar>
 
           <!-- Breadcrumb -->
-          <pulpe-breadcrumb
-            class="px-4 py-3 border-b border-outline-variant"
-            [items]="breadcrumbState.breadcrumbs()"
-          />
+          @if (breadcrumbState.breadcrumbs().length > 1) {
+            <pulpe-breadcrumb
+              class="px-4 py-3"
+              [items]="breadcrumbState.breadcrumbs()"
+            />
+          }
 
           <!-- Page Content - Scrollable Container -->
           <main
