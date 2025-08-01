@@ -9,6 +9,8 @@ import {
   type BudgetTemplateResponse,
   type BudgetTemplateDeleteResponse,
   type TemplateLineListResponse,
+  type TemplateLinesBulkUpdate,
+  type TemplateLinesBulkUpdateResponse,
 } from '@pulpe/shared';
 import { environment } from '../../../../environments/environment';
 
@@ -53,6 +55,16 @@ export class BudgetTemplatesApi {
   ): Observable<TemplateLineListResponse> {
     return this.#http.get<TemplateLineListResponse>(
       `${this.#apiUrl}/${templateId}/lines`,
+    );
+  }
+
+  updateTemplateLines$(
+    templateId: string,
+    bulkUpdate: TemplateLinesBulkUpdate,
+  ): Observable<TemplateLinesBulkUpdateResponse> {
+    return this.#http.patch<TemplateLinesBulkUpdateResponse>(
+      `${this.#apiUrl}/${templateId}/lines`,
+      bulkUpdate,
     );
   }
 

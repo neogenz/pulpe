@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { RequestMethod } from '@nestjs/common';
+import { RequestMethod, VersioningType } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from 'nestjs-pino';
@@ -22,8 +22,10 @@ function setupSwagger(
   app: import('@nestjs/common').INestApplication,
 ): import('@nestjs/swagger').OpenAPIObject {
   const config = new DocumentBuilder()
-    .setTitle('Pulpe Budget API')
-    .setDescription('API pour la gestion des budgets personnels Pulpe')
+    .setTitle('Pulpe Budget API v1')
+    .setDescription(
+      'API pour la gestion des budgets personnels Pulpe - Version 1',
+    )
     .setVersion('1.0.0')
     .addBearerAuth(
       {
@@ -38,7 +40,10 @@ function setupSwagger(
     .addTag('Auth', 'Authentification et validation des tokens')
     .addTag('User', 'Gestion des profils utilisateurs')
     .addTag('Budgets', 'Gestion des budgets')
+    .addTag('Budget Templates', 'Gestion des modèles de budget')
+    .addTag('Budget Lines', 'Gestion des lignes de budget')
     .addTag('Transactions', 'Gestion des transactions')
+    .addTag('Debug', 'Outils de développement et débogage')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
@@ -84,6 +89,12 @@ async function bootstrap() {
   app.useLogger(app.get(Logger));
 
   setupCors(app);
+
+  // Enable URI versioning
+  app.enableVersioning({
+    type: VersioningType.URI,
+    defaultVersion: '1',
+  });
 
   app.setGlobalPrefix('api', {
     exclude: [{ path: 'health', method: RequestMethod.GET }],

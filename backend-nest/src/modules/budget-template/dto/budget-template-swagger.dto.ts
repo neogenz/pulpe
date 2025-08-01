@@ -12,6 +12,8 @@ import {
   templateLineResponseSchema,
   templateLineListResponseSchema,
   templateLineDeleteResponseSchema,
+  templateLinesBulkUpdateSchema,
+  templateLinesBulkUpdateResponseSchema,
 } from '@pulpe/shared';
 
 // DTOs pour la documentation Swagger basés sur les schémas Zod partagés
@@ -54,4 +56,12 @@ export class TemplateLineListResponseDto extends createZodDto(
 ) {}
 export class TemplateLineDeleteResponseDto extends createZodDto(
   templateLineDeleteResponseSchema,
+) {}
+
+// Template Line Bulk Update DTOs
+export class TemplateLinesBulkUpdateDto extends createZodDto(
+  templateLinesBulkUpdateSchema,
+) {}
+export class TemplateLinesBulkUpdateResponseDto extends createZodDto(
+  templateLinesBulkUpdateResponseSchema,
 ) {}
