@@ -193,47 +193,43 @@ export class MockSupabaseClient {
   #mockRpcData: any = null;
   #mockRpcError: any = null;
 
-  // Mock the chain: from().select().order().eq().single()
+  // Mock the chain: from().select().order().eq().single() and batch queries
   from(_table: string) {
-    const createChainMethods = () => {
-      const chainMethods = {
-        select: (_columns: string) => chainMethods,
-        order: (_column: string, _options?: any) => chainMethods,
-        eq: (_column: string, _value: any) => chainMethods,
-        neq: (_column: string, _value: any) => chainMethods,
-        single: () =>
-          Promise.resolve({ data: this.#mockData, error: this.#mockError }),
-        insert: (_data: any) => ({
+    const result = { data: this.#mockData, error: this.#mockError };
+
+    const chainMethods = {
+      select: (_columns: string) => chainMethods,
+      order: (_column: string, _options?: any) => chainMethods,
+      eq: (_column: string, _value: any) => chainMethods,
+      neq: (_column: string, _value: any) => chainMethods,
+      in: (_column: string, _values: any[]) => chainMethods,
+      single: () => Promise.resolve(result),
+      insert: (_data: any) => ({
+        select: () => ({
+          single: () =>
+            Promise.resolve({ data: this.#mockData, error: this.#mockError }),
+        }),
+      }),
+      update: (_data: any) => ({
+        eq: (_column: string, _value: any) => ({
           select: () => ({
             single: () =>
-              Promise.resolve({ data: this.#mockData, error: this.#mockError }),
+              Promise.resolve({
+                data: this.#mockData,
+                error: this.#mockError,
+              }),
           }),
         }),
-        update: (_data: any) => ({
-          eq: (_column: string, _value: any) => ({
-            select: () => ({
-              single: () =>
-                Promise.resolve({
-                  data: this.#mockData,
-                  error: this.#mockError,
-                }),
-            }),
-          }),
-        }),
-        delete: () => ({
-          eq: (_column: string, _value: any) =>
-            Promise.resolve({ error: this.#mockError }),
-        }),
-        then: (_callback: any) => {
-          return Promise.resolve().then(() =>
-            _callback({ data: this.#mockData, error: this.#mockError }),
-          );
-        },
-      };
-      return chainMethods;
+      }),
+      delete: () => ({
+        eq: (_column: string, _value: any) =>
+          Promise.resolve({ error: this.#mockError }),
+      }),
+      then: (resolve: any, reject?: any) => {
+        return Promise.resolve(result).then(resolve, reject);
+      },
     };
-
-    return createChainMethods();
+    return chainMethods;
   }
 
   rpc(_functionName: string, _params: any) {

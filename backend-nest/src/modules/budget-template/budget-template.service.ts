@@ -127,6 +127,72 @@ export class BudgetTemplateService {
     );
   }
 
+  /**
+   * Validates multiple template lines access in a single batch query
+   * @param templateId - The template ID
+   * @param lineIds - Array of template line IDs to validate
+   * @param user - The authenticated user
+   * @param supabase - The authenticated Supabase client
+   * @throws {NotFoundException} if template or any lines not found
+   * @throws {ForbiddenException} if user doesn't own the template
+   */
+  private async validateTemplateLinesAccessBatch(
+    templateId: string,
+    lineIds: string[],
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    // First validate template access once
+    await this.validateTemplateAccess(templateId, user, supabase);
+
+    // Then validate all lines in a single query
+    const { data: existingLines, error } = await supabase
+      .from('template_line')
+      .select('id')
+      .in('id', lineIds)
+      .eq('template_id', templateId);
+
+    if (error) {
+      this.logger.error(
+        { templateId, lineIds, userId: user.id, error },
+        'Failed to validate template lines batch',
+      );
+      throw new InternalServerErrorException(
+        'Erreur lors de la validation des lignes',
+      );
+    }
+
+    // Check if all requested lines were found
+    const foundLineIds = new Set(existingLines?.map((line) => line.id) || []);
+    const missingLineIds = lineIds.filter((id) => !foundLineIds.has(id));
+
+    if (missingLineIds.length > 0) {
+      this.logger.warn(
+        {
+          templateId,
+          requestedLineIds: lineIds,
+          foundLineIds: Array.from(foundLineIds),
+          missingLineIds,
+          userId: user.id,
+        },
+        'Template lines access validation failed - some lines not found',
+      );
+      throw new NotFoundException(
+        `Ligne(s) du template introuvable(s): ${missingLineIds.join(', ')}`,
+      );
+    }
+
+    this.logger.debug(
+      {
+        templateId,
+        lineIds,
+        userId: user.id,
+        validatedCount: foundLineIds.size,
+      },
+      'Template lines access validated successfully in batch',
+    );
+  }
+
   async findAll(
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
@@ -717,15 +783,14 @@ export class BudgetTemplateService {
       this.validateBulkTemplateLineUpdate(bulkUpdateDto);
 
       // Validate that all lines belong to the template and user has access
+      // Using batch validation for better performance
       const lineIds = bulkUpdateDto.lines.map((line) => line.id);
-      for (const lineId of lineIds) {
-        await this.validateTemplateLineAccess(
-          templateId,
-          lineId,
-          user,
-          supabase,
-        );
-      }
+      await this.validateTemplateLinesAccessBatch(
+        templateId,
+        lineIds,
+        user,
+        supabase,
+      );
 
       // Use atomic RPC function for bulk updates
       const { data: updatedLines, error } = await supabase.rpc(
