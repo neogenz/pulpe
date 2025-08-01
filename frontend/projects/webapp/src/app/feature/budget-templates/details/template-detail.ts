@@ -121,7 +121,7 @@ import { Title } from '@core/routing';
               <h2 id="financial-summary-heading" class="sr-only">
                 Résumé financier du modèle
               </h2>
-              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <pulpe-financial-summary
                   [data]="incomeData()"
                   role="region"
