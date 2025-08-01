@@ -379,10 +379,6 @@ export class MainLayout {
       // Sign out and wait for session to be cleared
       await this.authApi.signOut();
 
-      // Add a small delay to ensure auth state has been updated
-      // This prevents race conditions with the auth state change
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
       await this.router.navigate([ROUTES.LOGIN]);
     } catch (error) {
       // Only log detailed errors in development
