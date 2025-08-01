@@ -15,6 +15,7 @@ import {
   MAT_DIALOG_DATA,
 } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CommonModule } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
 import {
@@ -26,10 +27,25 @@ import {
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { BudgetTemplatesApi } from '../../services/budget-templates-api';
+import { firstValueFrom } from 'rxjs';
+import {
+  TemplateLine,
+  type TemplateLineUpdateWithId,
+  type TemplateLinesBulkUpdate,
+} from '@pulpe/shared';
 
 interface EditTransactionsDialogData {
   transactions: TransactionFormData[];
   templateName: string;
+  templateId: string;
+  originalTemplateLines: TemplateLine[];
+}
+
+interface EditTransactionsDialogResult {
+  saved: boolean;
+  updatedLines?: TemplateLine[];
+  error?: string;
 }
 
 @Component({
@@ -40,6 +56,7 @@ interface EditTransactionsDialogData {
     MatDialogModule,
     MatButtonModule,
     MatIconModule,
+    MatProgressSpinnerModule,
     MatTableModule,
     MatFormFieldModule,
     MatInputModule,
@@ -62,7 +79,9 @@ interface EditTransactionsDialogData {
             <button
               matButton="tonal"
               (click)="addNewTransaction()"
+              [disabled]="isLoading()"
               class="items-center"
+              [attr.aria-disabled]="isLoading()"
             >
               <mat-icon>add</mat-icon>
               Ajouter une transaction
@@ -93,7 +112,9 @@ interface EditTransactionsDialogData {
                   <input
                     matInput
                     [formControl]="formGroup.controls.description"
+                    [disabled]="isLoading()"
                     placeholder="Description de la transaction"
+                    [attr.aria-disabled]="isLoading()"
                   />
                   @if (formGroup.controls.description.hasError('required')) {
                     <mat-error>La description est requise</mat-error>
@@ -125,7 +146,9 @@ interface EditTransactionsDialogData {
                     min="0"
                     max="999999"
                     [formControl]="formGroup.controls.amount"
+                    [disabled]="isLoading()"
                     placeholder="0.00"
+                    [attr.aria-disabled]="isLoading()"
                   />
                   <span matTextSuffix>CHF</span>
                   @if (formGroup.controls.amount.hasError('required')) {
@@ -156,7 +179,11 @@ interface EditTransactionsDialogData {
                   class="w-full"
                   subscriptSizing="dynamic"
                 >
-                  <mat-select [formControl]="formGroup.controls.type">
+                  <mat-select
+                    [formControl]="formGroup.controls.type"
+                    [disabled]="isLoading()"
+                    [attr.aria-disabled]="isLoading()"
+                  >
                     @for (type of transactionTypes; track type.value) {
                       <mat-option [value]="type.value">
                         {{ type.label }}
@@ -202,7 +229,12 @@ interface EditTransactionsDialogData {
                   matIconButton
                   color="warn"
                   (click)="removeTransaction(i)"
-                  [disabled]="transactionsDataSource().length <= 1"
+                  [disabled]="
+                    transactionsDataSource().length <= 1 || isLoading()
+                  "
+                  [attr.aria-disabled]="
+                    transactionsDataSource().length <= 1 || isLoading()
+                  "
                 >
                   <mat-icon>delete</mat-icon>
                 </button>
@@ -220,18 +252,56 @@ interface EditTransactionsDialogData {
             ></tr>
           </table>
         </div>
+
+        <!-- Error message display -->
+        @if (errorMessage(); as error) {
+          <div
+            class="p-4 mt-4 bg-error-container rounded-lg"
+            role="alert"
+            aria-live="polite"
+          >
+            <div class="flex items-center gap-2">
+              <mat-icon class="text-error" aria-hidden="true">error</mat-icon>
+              <span class="text-on-error-container">{{ error }}</span>
+            </div>
+          </div>
+        }
       </div>
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
-      <button matButton (click)="cancel()">Annuler</button>
+      <button
+        matButton
+        (click)="cancel()"
+        [disabled]="isLoading()"
+        [attr.aria-disabled]="isLoading()"
+      >
+        Annuler
+      </button>
       <button
         matButton="filled"
         color="primary"
         (click)="save()"
-        [disabled]="!isFormValid()"
+        [disabled]="!isFormValid() || isLoading()"
+        [attr.aria-disabled]="!isFormValid() || isLoading()"
+        [attr.aria-describedby]="
+          isLoading() ? 'save-loading-description' : null
+        "
       >
-        Enregistrer
+        @if (isLoading()) {
+          <mat-spinner
+            diameter="16"
+            strokeWidth="2"
+            aria-hidden="true"
+            class="mr-2"
+          ></mat-spinner>
+          <span>Sauvegarde...</span>
+          <span id="save-loading-description" class="sr-only">
+            Sauvegarde en cours, veuillez patienter
+          </span>
+        } @else {
+          <span>Enregistrer</span>
+        }
       </button>
     </mat-dialog-actions>
   `,
@@ -265,7 +335,14 @@ interface EditTransactionsDialogData {
 export default class EditTransactionsDialog {
   readonly #dialogRef = inject(MatDialogRef<EditTransactionsDialog>);
   readonly #transactionFormService = inject(TransactionFormService);
+  readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
   readonly data = inject<EditTransactionsDialogData>(MAT_DIALOG_DATA);
+
+  // Loading state management with signals
+  readonly #isLoading = signal(false);
+  readonly isLoading = this.#isLoading.asReadonly();
+  readonly #errorMessage = signal<string | null>(null);
+  readonly errorMessage = this.#errorMessage.asReadonly();
 
   readonly transactionsForm!: FormArray<FormGroup<TransactionFormControls>>;
   #formValuesSignal!: Signal<Partial<TransactionFormData>[]>;
@@ -299,6 +376,9 @@ export default class EditTransactionsDialog {
     this.#formValuesSignal = toSignal(this.transactionsForm.valueChanges, {
       initialValue: this.transactionsForm.value,
     });
+
+    // Configure dialog to prevent closing during loading
+    this.#dialogRef.disableClose = true;
   }
 
   removeTransaction(index: number): void {
@@ -318,17 +398,76 @@ export default class EditTransactionsDialog {
     this.#formArraySignal.set(this.transactionsForm);
   }
 
-  save(): void {
-    if (this.isFormValid()) {
+  async save(): Promise<void> {
+    if (!this.isFormValid() || this.isLoading()) {
+      return;
+    }
+
+    this.#isLoading.set(true);
+    this.#errorMessage.set(null);
+
+    try {
       const transactions = this.#transactionFormService.getTransactionFormData(
         this.transactionsForm,
       );
-      this.#dialogRef.close({ transactions, saved: true });
+
+      // Validate that we have the same number of transactions
+      if (transactions.length !== this.data.originalTemplateLines.length) {
+        throw new Error(
+          "Le nombre de transactions a changé, cette fonctionnalité n'est pas encore supportée",
+        );
+      }
+
+      // Transform dialog data to API format
+      const bulkUpdate: TemplateLinesBulkUpdate = {
+        lines: transactions.map(
+          (
+            transaction: TransactionFormData,
+            index: number,
+          ): TemplateLineUpdateWithId => {
+            const originalLine = this.data.originalTemplateLines[index];
+            return {
+              id: originalLine.id,
+              name: transaction.description,
+              amount: transaction.amount,
+              kind: transaction.type,
+              recurrence: originalLine.recurrence,
+              description: originalLine.description,
+            };
+          },
+        ),
+      };
+
+      // Call API to save changes
+      const response = await firstValueFrom(
+        this.#budgetTemplatesApi.updateTemplateLines$(
+          this.data.templateId,
+          bulkUpdate,
+        ),
+      );
+
+      // Close dialog with updated data
+      this.#dialogRef.close({
+        saved: true,
+        updatedLines: response.data,
+      } as EditTransactionsDialogResult);
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde:', error);
+      this.#errorMessage.set(
+        error instanceof Error
+          ? error.message
+          : 'Une erreur est survenue lors de la sauvegarde',
+      );
+    } finally {
+      this.#isLoading.set(false);
     }
   }
 
   cancel(): void {
-    this.#dialogRef.close({ saved: false });
+    if (this.isLoading()) {
+      return; // Prevent closing during loading
+    }
+    this.#dialogRef.close({ saved: false } as EditTransactionsDialogResult);
   }
 
   readonly isFormValid = computed(() =>
