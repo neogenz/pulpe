@@ -202,6 +202,10 @@ export class MockSupabaseClient {
       order: (_column: string, _options?: any) => chainMethods,
       eq: (_column: string, _value: any) => chainMethods,
       neq: (_column: string, _value: any) => chainMethods,
+      gte: (_column: string, _value: any) => chainMethods,
+      lte: (_column: string, _value: any) => chainMethods,
+      gt: (_column: string, _value: any) => chainMethods,
+      lt: (_column: string, _value: any) => chainMethods,
       in: (_column: string, _values: any[]) => chainMethods,
       single: () => Promise.resolve(result),
       insert: (_data: any) => ({
