@@ -9,7 +9,18 @@ import { MatListModule } from '@angular/material/list';
 import { RouterModule } from '@angular/router';
 import { ROUTES } from '../core/routing/routes-constants';
 
-const NAVIGATION_CONFIG = [
+interface NavigationItem {
+  label: string;
+  route: string;
+  icon: string;
+}
+
+interface NavigationSection {
+  title: string;
+  items: NavigationItem[];
+}
+
+const NAVIGATION_CONFIG: NavigationSection[] = [
   {
     title: 'Budget',
     items: [
@@ -42,9 +53,9 @@ const NAVIGATION_CONFIG = [
         </div>
 
         <mat-nav-list>
-          @for (section of navigationSections(); track section.title) {
+          @for (section of navigationSections(); track $index) {
             <div mat-subheader>{{ section.title }}</div>
-            @for (item of section.items; track item.route) {
+            @for (item of section.items; track $index) {
               <a
                 mat-list-item
                 [routerLink]="item.route"
@@ -83,12 +94,15 @@ const NAVIGATION_CONFIG = [
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NavigationMenu {
-  readonly navigationSections = signal(NAVIGATION_CONFIG);
-  readonly navItemClick = output<Event>();
+  readonly navigationSections = signal<NavigationSection[]>(NAVIGATION_CONFIG);
+  readonly navItemClick = output<MouseEvent>();
 
-  onNavItemClick(event: Event): void {
+  onNavItemClick(event: MouseEvent): void {
     const target = event.currentTarget as HTMLElement;
-    target.blur();
+    // Only blur if not navigated via keyboard
+    if (event.detail !== 0) {
+      target.blur();
+    }
     this.navItemClick.emit(event);
   }
 }
