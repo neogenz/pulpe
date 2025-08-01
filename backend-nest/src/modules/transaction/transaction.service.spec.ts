@@ -6,40 +6,25 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { TransactionService } from './transaction.service';
-import { TransactionMapper } from './transaction.mapper';
 import {
   createMockAuthenticatedUser,
   createMockSupabaseClient,
   createMockTransactionEntity,
-  expectSuccessResponse,
   expectErrorThrown,
   MOCK_USER_ID as _MOCK_USER_ID,
   MOCK_BUDGET_ID,
   MOCK_TRANSACTION_ID,
   MockSupabaseClient,
-} from '../../test/test-utils';
+} from '../../test/test-utils-simple';
 import type { TransactionCreate, TransactionUpdate } from '@pulpe/shared';
 
 describe('TransactionService', () => {
   let service: TransactionService;
-  let _transactionMapper: TransactionMapper;
   let mockSupabaseClient: MockSupabaseClient;
 
   beforeEach(async () => {
     const { mockClient } = createMockSupabaseClient();
     mockSupabaseClient = mockClient;
-
-    const simpleTransactionMapper = {
-      toApiList: (data: any[]) =>
-        data.map((item) => ({ ...item, mappedToApi: true })),
-      toApi: (data: any) => ({ ...data, mappedToApi: true }),
-      toInsert: (data: any, userId: string) => ({
-        ...data,
-        user_id: userId,
-        created: true,
-      }),
-      toUpdate: (data: any) => ({ ...data, updated: true }),
-    };
 
     const mockPinoLogger = {
       error: () => {},
@@ -54,10 +39,6 @@ describe('TransactionService', () => {
       providers: [
         TransactionService,
         {
-          provide: TransactionMapper,
-          useValue: simpleTransactionMapper,
-        },
-        {
           provide: `PinoLogger:${TransactionService.name}`,
           useValue: mockPinoLogger,
         },
@@ -65,7 +46,6 @@ describe('TransactionService', () => {
     }).compile();
 
     service = module.get<TransactionService>(TransactionService);
-    _transactionMapper = module.get<TransactionMapper>(TransactionMapper);
   });
 
   describe('findByBudgetId', () => {
@@ -91,9 +71,13 @@ describe('TransactionService', () => {
       );
 
       // Assert
-      expectSuccessResponse(result);
+      expect(result.success).toBe(true);
       expect(result.data).toHaveLength(2);
-      expect(result.data[0]).toHaveProperty('mappedToApi', true);
+      // Verify transformation from snake_case to camelCase
+      expect(result.data[0]).toHaveProperty('budgetId');
+      expect(result.data[0]).toHaveProperty('transactionDate');
+      expect(result.data[0]).not.toHaveProperty('budget_id');
+      expect(result.data[0]).not.toHaveProperty('transaction_date');
     });
 
     it('should handle database error gracefully when finding by budget', async () => {
@@ -126,7 +110,7 @@ describe('TransactionService', () => {
       );
 
       // Assert
-      expectSuccessResponse(result);
+      expect(result.success).toBe(true);
       expect(result.data).toHaveLength(0);
     });
 
@@ -144,7 +128,7 @@ describe('TransactionService', () => {
       );
 
       // Assert
-      expectSuccessResponse(result);
+      expect(result.success).toBe(true);
       expect(result.data).toHaveLength(0);
     });
   });
@@ -172,8 +156,12 @@ describe('TransactionService', () => {
       );
 
       // Assert
-      expectSuccessResponse(result);
-      expect(result.data).toHaveProperty('mappedToApi', true);
+      expect(result.success).toBe(true);
+      // Verify transformation from snake_case to camelCase
+      expect(result.data).toHaveProperty('name', mockCreatedTransaction.name);
+      expect(result.data).toHaveProperty('budgetId');
+      expect(result.data).toHaveProperty('transactionDate');
+      expect(result.data).not.toHaveProperty('budget_id');
     });
 
     it('should handle database creation error', async () => {
@@ -254,8 +242,12 @@ describe('TransactionService', () => {
       );
 
       // Assert
-      expectSuccessResponse(result);
-      expect(result.data).toHaveProperty('mappedToApi', true);
+      expect(result.success).toBe(true);
+      // Verify transformation from snake_case to camelCase
+      expect(result.data).toHaveProperty('id', mockTransaction.id);
+      expect(result.data).toHaveProperty('budgetId');
+      expect(result.data).toHaveProperty('transactionDate');
+      expect(result.data).not.toHaveProperty('budget_id');
     });
 
     it('should throw NotFoundException when transaction not found', async () => {
@@ -322,8 +314,13 @@ describe('TransactionService', () => {
       );
 
       // Assert
-      expectSuccessResponse(result);
-      expect(result.data).toHaveProperty('mappedToApi', true);
+      expect(result.success).toBe(true);
+      // Verify transformation from snake_case to camelCase
+      expect(result.data).toHaveProperty('id', mockUpdatedTransaction.id);
+      expect(result.data).toHaveProperty('name', updateTransactionDto.name);
+      expect(result.data).toHaveProperty('amount', updateTransactionDto.amount);
+      expect(result.data).toHaveProperty('budgetId');
+      expect(result.data).not.toHaveProperty('budget_id');
     });
 
     it('should throw NotFoundException when updating non-existent transaction', async () => {

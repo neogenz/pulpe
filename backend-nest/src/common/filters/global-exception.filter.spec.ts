@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import { Request, Response } from 'express';
 import { ZodValidationException } from 'nestjs-zod';
 import { ZodError } from 'zod';
-import { testErrorSilencer } from '../../test/test-utils';
+// Remove testErrorSilencer import - not needed with simplified tests
 import { GlobalExceptionFilter } from './global-exception.filter';
 
 // Helper to create a proper ZodValidationException
@@ -587,211 +587,195 @@ describe('GlobalExceptionFilter', () => {
 
   describe('Logging behavior', () => {
     it('should handle ZodValidationException logging gracefully', async () => {
-      await testErrorSilencer.withSilencedErrors(async () => {
-        const validationErrors = { message: 'Email validation failed' };
-        const zodException = createZodValidationException(validationErrors);
+      const validationErrors = { message: 'Email validation failed' };
+      const zodException = createZodValidationException(validationErrors);
 
-        const request = createMockRequest({
-          method: 'PUT',
-          url: '/api/v1/users/123',
-          body: { email: 'invalid-email' },
-        });
-        const response = createMockResponse();
-        const host = createMockArgumentsHost(request, response);
-
-        // Should not throw when logging
-        expect(() => filter.catch(zodException, host)).not.toThrow();
-
-        // Verify the response was properly formatted
-        expect((response as any).getStatusCode()).toBe(400);
-        expect((response as any).getResponseData()).toEqual(
-          expect.objectContaining({
-            success: false,
-            statusCode: 400,
-            message: validationErrors,
-            code: 'ZOD_VALIDATION_FAILED',
-          }),
-        );
+      const request = createMockRequest({
+        method: 'PUT',
+        url: '/api/v1/users/123',
+        body: { email: 'invalid-email' },
       });
+      const response = createMockResponse();
+      const host = createMockArgumentsHost(request, response);
+
+      // Should not throw when logging
+      expect(() => filter.catch(zodException, host)).not.toThrow();
+
+      // Verify the response was properly formatted
+      expect((response as any).getStatusCode()).toBe(400);
+      expect((response as any).getResponseData()).toEqual(
+        expect.objectContaining({
+          success: false,
+          statusCode: 400,
+          message: validationErrors,
+          code: 'ZOD_VALIDATION_FAILED',
+        }),
+      );
     });
 
     it('should handle 4xx error logging gracefully', async () => {
-      await testErrorSilencer.withSilencedErrors(async () => {
-        const httpException = new HttpException(
-          'Unauthorized access',
-          HttpStatus.UNAUTHORIZED,
-        );
-        const request = createMockRequest({
-          method: 'GET',
-          url: '/api/v1/protected',
-        });
-        const response = createMockResponse();
-        const host = createMockArgumentsHost(request, response);
-
-        // Should not throw when logging
-        expect(() => filter.catch(httpException, host)).not.toThrow();
-
-        // Verify the response was properly formatted
-        expect((response as any).getStatusCode()).toBe(401);
-        expect((response as any).getResponseData()).toEqual(
-          expect.objectContaining({
-            success: false,
-            statusCode: 401,
-            message: 'Unauthorized access',
-            code: 'HTTP_401',
-          }),
-        );
+      const httpException = new HttpException(
+        'Unauthorized access',
+        HttpStatus.UNAUTHORIZED,
+      );
+      const request = createMockRequest({
+        method: 'GET',
+        url: '/api/v1/protected',
       });
+      const response = createMockResponse();
+      const host = createMockArgumentsHost(request, response);
+
+      // Should not throw when logging
+      expect(() => filter.catch(httpException, host)).not.toThrow();
+
+      // Verify the response was properly formatted
+      expect((response as any).getStatusCode()).toBe(401);
+      expect((response as any).getResponseData()).toEqual(
+        expect.objectContaining({
+          success: false,
+          statusCode: 401,
+          message: 'Unauthorized access',
+          code: 'HTTP_401',
+        }),
+      );
     });
 
     it('should handle 5xx error logging gracefully', async () => {
-      await testErrorSilencer.withSilencedErrors(async () => {
-        const httpException = new HttpException(
-          'Internal server error',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-        const request = createMockRequest();
-        const response = createMockResponse();
-        const host = createMockArgumentsHost(request, response);
+      const httpException = new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+      const request = createMockRequest();
+      const response = createMockResponse();
+      const host = createMockArgumentsHost(request, response);
 
-        // Should not throw when logging
-        expect(() => filter.catch(httpException, host)).not.toThrow();
+      // Should not throw when logging
+      expect(() => filter.catch(httpException, host)).not.toThrow();
 
-        // Verify the response was properly formatted
-        expect((response as any).getStatusCode()).toBe(500);
-        expect((response as any).getResponseData()).toEqual(
-          expect.objectContaining({
-            success: false,
-            statusCode: 500,
-            message: 'Internal server error',
-            code: 'HTTP_500',
-          }),
-        );
-      });
+      // Verify the response was properly formatted
+      expect((response as any).getStatusCode()).toBe(500);
+      expect((response as any).getResponseData()).toEqual(
+        expect.objectContaining({
+          success: false,
+          statusCode: 500,
+          message: 'Internal server error',
+          code: 'HTTP_500',
+        }),
+      );
     });
 
     it('should handle generic error logging gracefully', async () => {
-      await testErrorSilencer.withSilencedErrors(async () => {
-        const error = new Error('Custom database error');
-        const request = createMockRequest({ method: 'DELETE' });
-        const response = createMockResponse();
-        const host = createMockArgumentsHost(request, response);
+      const error = new Error('Custom database error');
+      const request = createMockRequest({ method: 'DELETE' });
+      const response = createMockResponse();
+      const host = createMockArgumentsHost(request, response);
 
-        // Should not throw when logging
-        expect(() => filter.catch(error, host)).not.toThrow();
+      // Should not throw when logging
+      expect(() => filter.catch(error, host)).not.toThrow();
 
-        // Verify the response was properly formatted
-        expect((response as any).getStatusCode()).toBe(500);
-        expect((response as any).getResponseData()).toEqual(
-          expect.objectContaining({
-            success: false,
-            statusCode: 500,
-            message: 'Custom database error', // Now shows actual error message
-            code: 'INTERNAL_SERVER_ERROR',
-          }),
-        );
-      });
+      // Verify the response was properly formatted
+      expect((response as any).getStatusCode()).toBe(500);
+      expect((response as any).getResponseData()).toEqual(
+        expect.objectContaining({
+          success: false,
+          statusCode: 500,
+          message: 'Custom database error', // Now shows actual error message
+          code: 'INTERNAL_SERVER_ERROR',
+        }),
+      );
     });
   });
 
   describe('Full integration behavior', () => {
     it('should handle complete flow for ZodValidationException', async () => {
-      await testErrorSilencer.withSilencedErrors(async () => {
-        const validationErrors = {
-          message: 'Validation failed',
-          errors: [{ path: ['email'], message: 'Invalid email' }],
-        };
-        const zodException = createZodValidationException(validationErrors);
-        const request = createMockRequest();
-        const response = createMockResponse();
-        const host = createMockArgumentsHost(request, response);
+      const validationErrors = {
+        message: 'Validation failed',
+        errors: [{ path: ['email'], message: 'Invalid email' }],
+      };
+      const zodException = createZodValidationException(validationErrors);
+      const request = createMockRequest();
+      const response = createMockResponse();
+      const host = createMockArgumentsHost(request, response);
 
-        filter.catch(zodException, host);
+      filter.catch(zodException, host);
 
-        // Verify response was called correctly
-        expect((response as any).getStatusCode()).toBe(400);
-        expect((response as any).getResponseData()).toEqual(
-          expect.objectContaining({
-            success: false,
-            statusCode: 400,
-            message: validationErrors,
-            error: 'ZodValidationException',
-            code: 'ZOD_VALIDATION_FAILED',
-            context: expect.objectContaining({
-              requestId: 'req-123-456',
-              userId: 'user-abc-123',
-            }),
+      // Verify response was called correctly
+      expect((response as any).getStatusCode()).toBe(400);
+      expect((response as any).getResponseData()).toEqual(
+        expect.objectContaining({
+          success: false,
+          statusCode: 400,
+          message: validationErrors,
+          error: 'ZodValidationException',
+          code: 'ZOD_VALIDATION_FAILED',
+          context: expect.objectContaining({
+            requestId: 'req-123-456',
+            userId: 'user-abc-123',
           }),
-        );
-      });
+        }),
+      );
     });
 
     it('should handle complete flow for HttpException', async () => {
-      await testErrorSilencer.withSilencedErrors(async () => {
-        const httpException = new HttpException(
-          'Not found',
-          HttpStatus.NOT_FOUND,
-        );
-        const request = createMockRequest({ url: '/api/v1/users/999' });
-        const response = createMockResponse();
-        const host = createMockArgumentsHost(request, response);
+      const httpException = new HttpException(
+        'Not found',
+        HttpStatus.NOT_FOUND,
+      );
+      const request = createMockRequest({ url: '/api/v1/users/999' });
+      const response = createMockResponse();
+      const host = createMockArgumentsHost(request, response);
 
-        filter.catch(httpException, host);
+      filter.catch(httpException, host);
 
-        // Verify response was called correctly
-        expect((response as any).getStatusCode()).toBe(404);
-        expect((response as any).getResponseData()).toEqual(
-          expect.objectContaining({
-            success: false,
-            statusCode: 404,
-            message: 'Not found',
-            error: 'HttpException',
-            code: 'HTTP_404',
-            path: '/api/v1/users/999',
-          }),
-        );
-      });
+      // Verify response was called correctly
+      expect((response as any).getStatusCode()).toBe(404);
+      expect((response as any).getResponseData()).toEqual(
+        expect.objectContaining({
+          success: false,
+          statusCode: 404,
+          message: 'Not found',
+          error: 'HttpException',
+          code: 'HTTP_404',
+          path: '/api/v1/users/999',
+        }),
+      );
     });
 
     it('should handle complete flow for generic Error', async () => {
-      await testErrorSilencer.withSilencedErrors(async () => {
-        const error = new Error('Database timeout');
-        const request = createMockRequest();
-        const response = createMockResponse();
-        const host = createMockArgumentsHost(request, response);
+      const error = new Error('Database timeout');
+      const request = createMockRequest();
+      const response = createMockResponse();
+      const host = createMockArgumentsHost(request, response);
 
-        filter.catch(error, host);
+      filter.catch(error, host);
 
-        // Verify response was called correctly
-        expect((response as any).getStatusCode()).toBe(500);
-        expect((response as any).getResponseData()).toEqual(
-          expect.objectContaining({
-            success: false,
-            statusCode: 500,
-            message: 'Database timeout',
-            error: 'Error',
-            code: 'INTERNAL_SERVER_ERROR',
-          }),
-        );
-      });
+      // Verify response was called correctly
+      expect((response as any).getStatusCode()).toBe(500);
+      expect((response as any).getResponseData()).toEqual(
+        expect.objectContaining({
+          success: false,
+          statusCode: 500,
+          message: 'Database timeout',
+          error: 'Error',
+          code: 'INTERNAL_SERVER_ERROR',
+        }),
+      );
     });
   });
 
   describe('Edge cases and error scenarios', () => {
     it('should handle exceptions during logging gracefully', async () => {
-      await testErrorSilencer.withSilencedErrors(async () => {
-        const error = new Error('Original error');
-        const request = createMockRequest();
-        const response = createMockResponse();
-        const host = createMockArgumentsHost(request, response);
+      const error = new Error('Original error');
+      const request = createMockRequest();
+      const response = createMockResponse();
+      const host = createMockArgumentsHost(request, response);
 
-        // Should not throw even if logging fails
-        expect(() => filter.catch(error, host)).not.toThrow();
+      // Should not throw even if logging fails
+      expect(() => filter.catch(error, host)).not.toThrow();
 
-        // Response should still be called
-        expect((response as any).getStatusCode()).toBe(500);
-        expect((response as any).getResponseData()).toBeDefined();
-      });
+      // Response should still be called
+      expect((response as any).getStatusCode()).toBe(500);
+      expect((response as any).getResponseData()).toBeDefined();
     });
 
     it('should handle empty headers object', async () => {
