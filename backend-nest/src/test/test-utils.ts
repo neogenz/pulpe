@@ -1,6 +1,7 @@
 import { expect } from 'bun:test';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
+import type { LoggingService } from '@common/services/logging.service';
 
 export const MOCK_USER_ID = '550e8400-e29b-41d4-a716-446655440001';
 export const MOCK_BUDGET_ID = '550e8400-e29b-41d4-a716-446655440002';
@@ -17,7 +18,11 @@ export const createMockAuthenticatedUser = (
   ...overrides,
 });
 
-export const createMockBudgetEntity = (overrides?: any) => {
+export const createMockBudgetEntity = (
+  overrides: Partial<
+    import('@/types/database.types').Tables<'monthly_budget'>
+  > = {},
+) => {
   // Generate a simple UUID-like ID if not provided
   const defaultId = overrides?.id || MOCK_BUDGET_ID;
 
@@ -26,15 +31,15 @@ export const createMockBudgetEntity = (overrides?: any) => {
     user_id: MOCK_USER_ID,
     month: 11,
     year: 2024,
-    description: 'Test Budget',
-    template_id: null,
     created_at: '2024-01-01T00:00:00.000Z',
     updated_at: '2024-01-01T00:00:00.000Z',
     ...overrides,
   };
 };
 
-export const createMockTransactionEntity = (overrides?: any) => ({
+export const createMockTransactionEntity = (
+  overrides?: Partial<import('@/types/database.types').Tables<'transaction'>>,
+) => ({
   id: MOCK_TRANSACTION_ID,
   user_id: MOCK_USER_ID,
   budget_id: MOCK_BUDGET_ID,
@@ -49,7 +54,9 @@ export const createMockTransactionEntity = (overrides?: any) => ({
   ...overrides,
 });
 
-export const createMockBudgetTemplateDbEntity = (overrides?: any) => ({
+export const createMockBudgetTemplateDbEntity = (
+  overrides?: Partial<import('@/types/database.types').Tables<'template'>>,
+) => ({
   id: MOCK_TEMPLATE_ID,
   user_id: MOCK_USER_ID,
   name: 'Test Template',
@@ -89,7 +96,7 @@ export class TestErrorSilencer {
     // Silence console methods
     console.error = () => {};
     console.warn = () => {};
-    console.log = (message: any, ...args: any[]) => {
+    console.log = (message: unknown, ...args: unknown[]) => {
       // Only allow specific test messages through
       const messageStr = String(message);
       if (
@@ -102,7 +109,11 @@ export class TestErrorSilencer {
     };
 
     // Intercept process.stdout.write to catch NestJS Logger output
-    process.stdout.write = ((chunk: any, encoding?: any, callback?: any) => {
+    process.stdout.write = ((
+      chunk: unknown,
+      encoding?: BufferEncoding | ((err?: Error | null) => void),
+      callback?: (err?: Error | null) => void,
+    ) => {
       const chunkStr = String(chunk);
 
       // Allow test-related messages through
@@ -114,7 +125,11 @@ export class TestErrorSilencer {
         chunkStr.includes('expect()')
       ) {
         this.#suppressingNestLog = false;
-        return this.#originalProcessStdoutWrite(chunk, encoding, callback);
+        return this.#originalProcessStdoutWrite(
+          chunk as any,
+          encoding as any,
+          callback as any,
+        );
       }
 
       // Detect start of NestJS log
@@ -139,11 +154,19 @@ export class TestErrorSilencer {
       }
 
       // Allow other output through (for non-NestJS logs)
-      return this.#originalProcessStdoutWrite(chunk, encoding, callback);
-    }) as any;
+      return this.#originalProcessStdoutWrite(
+        chunk as any,
+        encoding as any,
+        callback as any,
+      );
+    }) as typeof process.stdout.write;
 
     // Intercept process.stderr.write to catch NestJS Logger errors
-    process.stderr.write = ((chunk: any, encoding?: any, callback?: any) => {
+    process.stderr.write = ((
+      chunk: unknown,
+      encoding?: BufferEncoding | ((err?: Error | null) => void),
+      callback?: (err?: Error | null) => void,
+    ) => {
       const chunkStr = String(chunk);
 
       // Silence NestJS Logger errors and GlobalExceptionFilter logs
@@ -158,8 +181,12 @@ export class TestErrorSilencer {
       }
 
       // Allow other errors through (for non-NestJS errors)
-      return this.#originalProcessStderrWrite(chunk, encoding, callback);
-    }) as any;
+      return this.#originalProcessStderrWrite(
+        chunk as any,
+        encoding as any,
+        callback as any,
+      );
+    }) as typeof process.stderr.write;
   }
 
   restoreErrorLogging(): void {
@@ -188,34 +215,61 @@ export const testErrorSilencer = new TestErrorSilencer();
 
 // Enhanced MockSupabaseClient with private fields
 export class MockSupabaseClient {
-  #mockData: any = null;
-  #mockError: any = null;
-  #mockRpcData: any = null;
-  #mockRpcError: any = null;
+  #mockData: unknown = null;
+  #mockError: unknown = null;
+  #mockRpcData: unknown = null;
+  #mockRpcError: unknown = null;
+  #mockCount: number | null = null;
 
   // Mock the chain: from().select().order().eq().single() and batch queries
   from(_table: string) {
     const result = { data: this.#mockData, error: this.#mockError };
 
     const chainMethods = {
-      select: (_columns: string) => chainMethods,
-      order: (_column: string, _options?: any) => chainMethods,
-      eq: (_column: string, _value: any) => chainMethods,
-      neq: (_column: string, _value: any) => chainMethods,
-      gte: (_column: string, _value: any) => chainMethods,
-      lte: (_column: string, _value: any) => chainMethods,
-      gt: (_column: string, _value: any) => chainMethods,
-      lt: (_column: string, _value: any) => chainMethods,
-      in: (_column: string, _values: any[]) => chainMethods,
+      select: (
+        _columns: string,
+        options?: { count?: string; head?: boolean },
+      ) => {
+        if (options?.count === 'exact' && options?.head) {
+          // Handle count query
+          return {
+            eq: (_column: string, _value: unknown) => ({
+              then: <T>(
+                resolve: (value: {
+                  count: number | null;
+                  error: unknown;
+                }) => T | PromiseLike<T>,
+                reject?: (reason: unknown) => T | PromiseLike<T>,
+              ) => {
+                return Promise.resolve({
+                  count: this.#mockCount,
+                  error: this.#mockError,
+                }).then(resolve, reject);
+              },
+            }),
+          };
+        }
+        return chainMethods;
+      },
+      order: (_column: string, _options?: { ascending?: boolean }) =>
+        chainMethods,
+      eq: (_column: string, _value: unknown) => chainMethods,
+      neq: (_column: string, _value: unknown) => chainMethods,
+      gte: (_column: string, _value: unknown) => chainMethods,
+      lte: (_column: string, _value: unknown) => chainMethods,
+      gt: (_column: string, _value: unknown) => chainMethods,
+      lt: (_column: string, _value: unknown) => chainMethods,
+      in: (_column: string, _values: unknown[]) => chainMethods,
+      range: (_from: number, _to: number) => chainMethods,
       single: () => Promise.resolve(result),
-      insert: (_data: any) => ({
+      insert: (_data: unknown) => ({
         select: () => ({
           single: () =>
             Promise.resolve({ data: this.#mockData, error: this.#mockError }),
         }),
       }),
-      update: (_data: any) => ({
-        eq: (_column: string, _value: any) => ({
+      update: (_data: unknown) => ({
+        eq: (_column: string, _value: unknown) => ({
           select: () => ({
             single: () =>
               Promise.resolve({
@@ -226,17 +280,20 @@ export class MockSupabaseClient {
         }),
       }),
       delete: () => ({
-        eq: (_column: string, _value: any) =>
+        eq: (_column: string, _value: unknown) =>
           Promise.resolve({ error: this.#mockError }),
       }),
-      then: (resolve: any, reject?: any) => {
+      then: <T>(
+        resolve: (value: typeof result) => T | PromiseLike<T>,
+        reject?: (reason: unknown) => T | PromiseLike<T>,
+      ) => {
         return Promise.resolve(result).then(resolve, reject);
       },
     };
     return chainMethods;
   }
 
-  rpc(_functionName: string, _params: any) {
+  rpc(_functionName: string, _params: unknown) {
     return Promise.resolve({
       data: this.#mockRpcData,
       error: this.#mockRpcError,
@@ -252,23 +309,28 @@ export class MockSupabaseClient {
   };
 
   // Helper methods to configure the mock
-  setMockData(data: any): this {
+  setMockData(data: unknown): this {
     this.#mockData = data;
     return this;
   }
 
-  setMockError(error: any): this {
+  setMockError(error: unknown): this {
     this.#mockError = error;
     return this;
   }
 
-  setMockRpcData(data: any): this {
+  setMockRpcData(data: unknown): this {
     this.#mockRpcData = data;
     return this;
   }
 
-  setMockRpcError(error: any): this {
+  setMockRpcError(error: unknown): this {
     this.#mockRpcError = error;
+    return this;
+  }
+
+  setMockCount(count: number | null): this {
+    this.#mockCount = count;
     return this;
   }
 
@@ -277,6 +339,7 @@ export class MockSupabaseClient {
     this.#mockError = null;
     this.#mockRpcData = null;
     this.#mockRpcError = null;
+    this.#mockCount = null;
     return this;
   }
 }
@@ -318,16 +381,25 @@ export const createTestingModuleBuilder = () => {
 };
 
 export const expectSuccessResponse = (
-  response: any,
-  expectedData?: any,
+  response: unknown,
+  expectedData?: unknown,
 ): void => {
-  expect(response).toHaveProperty('success', true);
+  const typedResponse = response as { success?: boolean; data?: unknown };
+  expect(typedResponse).toHaveProperty('success', true);
   if (expectedData) {
-    expect(response.data).toEqual(expectedData);
+    expect(typedResponse.data).toEqual(expectedData);
   }
 };
 
-export const expectBudgetStructure = (budget: any): void => {
+export const expectBudgetStructure = (budget: unknown): void => {
+  const typedBudget = budget as {
+    id: string;
+    month: number;
+    year: number;
+    description: string;
+    createdAt: string;
+    updatedAt: string;
+  };
   expect(budget).toMatchObject({
     id: expect.any(String),
     month: expect.any(Number),
@@ -338,13 +410,23 @@ export const expectBudgetStructure = (budget: any): void => {
   });
 
   // Validate business rules
-  expect(budget.month).toBeGreaterThanOrEqual(1);
-  expect(budget.month).toBeLessThanOrEqual(12);
-  expect(budget.year).toBeGreaterThan(2000);
-  expect(budget.description).toBeTruthy();
+  expect(typedBudget.month).toBeGreaterThanOrEqual(1);
+  expect(typedBudget.month).toBeLessThanOrEqual(12);
+  expect(typedBudget.year).toBeGreaterThan(2000);
+  expect(typedBudget.description).toBeTruthy();
 };
 
-export const expectBudgetEntityStructure = (budget: any): void => {
+export const expectBudgetEntityStructure = (budget: unknown): void => {
+  const typedBudget = budget as {
+    id: string;
+    month: number;
+    year: number;
+    description: string;
+    template_id: string | null;
+    created_at: string;
+    updated_at: string;
+    user_id: string;
+  };
   expect(budget).toMatchObject({
     id: expect.any(String),
     month: expect.any(Number),
@@ -357,13 +439,24 @@ export const expectBudgetEntityStructure = (budget: any): void => {
   });
 
   // Validate business rules
-  expect(budget.month).toBeGreaterThanOrEqual(1);
-  expect(budget.month).toBeLessThanOrEqual(12);
-  expect(budget.year).toBeGreaterThan(2000);
-  expect(budget.description).toBeTruthy();
+  expect(typedBudget.month).toBeGreaterThanOrEqual(1);
+  expect(typedBudget.month).toBeLessThanOrEqual(12);
+  expect(typedBudget.year).toBeGreaterThan(2000);
+  expect(typedBudget.description).toBeTruthy();
 };
 
-export const expectTransactionStructure = (transaction: any): void => {
+export const expectTransactionStructure = (transaction: unknown): void => {
+  const typedTransaction = transaction as {
+    id: string;
+    budgetId: string;
+    name: string;
+    amount: number;
+    expenseType: string;
+    type: string;
+    isRecurring: boolean;
+    createdAt: string;
+    updatedAt: string;
+  };
   expect(transaction).toMatchObject({
     id: expect.any(String),
     budgetId: expect.any(String),
@@ -377,24 +470,27 @@ export const expectTransactionStructure = (transaction: any): void => {
   });
 
   // Validate business rules
-  expect(transaction.amount).toBeGreaterThan(0);
-  expect(transaction.name).toBeTruthy();
-  expect(transaction.budgetId).toBeTruthy();
+  expect(typedTransaction.amount).toBeGreaterThan(0);
+  expect(typedTransaction.name).toBeTruthy();
+  expect(typedTransaction.budgetId).toBeTruthy();
 };
 
 export const expectListResponse = <T>(
-  response: any,
+  response: unknown,
   validator: (item: T) => void,
   expectedMinLength: number = 0,
 ): void => {
+  const typedResponse = response as { data?: T[] };
   expectSuccessResponse(response);
-  expect(Array.isArray(response.data)).toBe(true);
-  expect(response.data.length).toBeGreaterThanOrEqual(expectedMinLength);
-  response.data.forEach(validator);
+  expect(Array.isArray(typedResponse.data)).toBe(true);
+  expect(typedResponse.data?.length || 0).toBeGreaterThanOrEqual(
+    expectedMinLength,
+  );
+  typedResponse.data?.forEach(validator);
 };
 
 export const expectPerformance = async (
-  operation: () => Promise<any>,
+  operation: () => Promise<unknown>,
   maxExecutionTimeMs: number = 100,
   operationName: string = 'operation',
 ): Promise<void> => {
@@ -411,22 +507,28 @@ export const expectPerformance = async (
   }
 };
 
-export const expectApiResponseStructure = (response: any): void => {
+export const expectApiResponseStructure = (response: unknown): void => {
+  const typedResponse = response as {
+    success?: boolean;
+    error?: unknown;
+    data?: unknown;
+  };
   expect(response).toMatchObject({
     success: expect.any(Boolean),
     data: expect.anything(),
   });
 
-  if (response.success === false) {
-    expect(response).toHaveProperty('error');
-    expect(response.error).toBeTruthy();
+  if (typedResponse.success === false) {
+    expect(typedResponse).toHaveProperty('error');
+    expect(typedResponse.error).toBeTruthy();
   }
 };
 
-export const expectDatabaseError = (error: any): void => {
+export const expectDatabaseError = (error: unknown): void => {
+  const typedError = error as Error;
   expect(error).toBeInstanceOf(Error);
-  expect(error.message).toBeTruthy();
-  expect(typeof error.message).toBe('string');
+  expect(typedError.message).toBeTruthy();
+  expect(typeof typedError.message).toBe('string');
 };
 
 export const expectValidTimestamp = (timestamp: string): void => {
@@ -442,8 +544,8 @@ export const expectValidUuid = (id: string): void => {
 };
 
 export const expectErrorThrown = async (
-  promiseFunction: () => Promise<any>,
-  expectedErrorType: any,
+  promiseFunction: () => Promise<unknown>,
+  expectedErrorType: new (...args: any[]) => any,
   expectedMessage?: string,
 ): Promise<void> => {
   await testErrorSilencer.withSilencedErrors(async () => {
@@ -560,4 +662,68 @@ export const expectLoadTestPerformance = (
       expectations.minRequestsPerSecond,
     );
   }
+};
+
+/**
+ * Create a mock PinoLogger instance for testing
+ */
+export const createMockPinoLogger = () => ({
+  error: () => {},
+  warn: () => {},
+  info: () => {},
+  debug: () => {},
+  trace: () => {},
+  fatal: () => {},
+  setContext: () => {},
+});
+
+/**
+ * Create a mock LoggingService instance for testing (Bun compatible)
+ */
+export const createMockLoggingService = (): LoggingService => {
+  return {
+    setContext: (_context: string) => {},
+    initOperationContext: (operation: string) => ({
+      operation,
+      startTime: Date.now(),
+    }),
+    calculateDuration: (startTime: number) => Date.now() - startTime,
+    logSuccess: (_context, _message) => {},
+    logError: (_context, _message) => {},
+    logWarn: (_context, _message) => {},
+    logDebug: (_context, _message) => {},
+    buildLogContext: (
+      operation,
+      userId,
+      entityId,
+      startTime,
+      additionalContext,
+    ) => ({
+      operation,
+      ...(userId && { userId }),
+      ...(entityId && { entityId }),
+      ...(startTime && { duration: 100 }),
+      ...additionalContext,
+    }),
+    handleError: (error, _context, _message, _knownExceptions) => {
+      throw error;
+    },
+    logOperationSuccess: (
+      _ctx,
+      _userId,
+      _entityId,
+      _message,
+      _additionalContext,
+    ) => {},
+    handleOperationError: (
+      error,
+      _ctx,
+      _userId,
+      _entityId,
+      _message,
+      _knownExceptions,
+    ) => {
+      throw error;
+    },
+  } as LoggingService;
 };

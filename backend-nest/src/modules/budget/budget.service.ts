@@ -235,7 +235,7 @@ export class BudgetService {
       'Atomic budget creation from template failed',
     );
 
-    const errorMessage = (error as any)?.message;
+    const errorMessage = (error as { message?: string })?.message;
     if (
       errorMessage?.includes('Template not found') ||
       errorMessage?.includes('access denied')
@@ -270,7 +270,11 @@ export class BudgetService {
       );
     }
 
-    const typedResult = result as any;
+    const typedResult = result as {
+      budget: Tables<'monthly_budget'>;
+      budget_lines_created: number;
+      template_name: string;
+    };
     return {
       budgetData: typedResult.budget as Tables<'monthly_budget'>,
       budgetLinesCreated: typedResult.budget_lines_created as number,

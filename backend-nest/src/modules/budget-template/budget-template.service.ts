@@ -1,6 +1,13 @@
 import { type Database, Tables } from '@/types/database.types';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
+
+interface SupabaseErrorDetails {
+  code?: string;
+  details?: string;
+  hint?: string;
+  message?: string;
+}
 import {
   BadRequestException,
   Injectable,
@@ -46,32 +53,45 @@ export class BudgetTemplateService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetTemplateListResponse> {
     try {
-      const { data: templatesDb, error } = await supabase
-        .from('template')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+      const templatesDb = await this.fetchUserTemplates(user.id, supabase);
 
-      if (error) {
-        this.logger.error({ err: error }, 'Failed to fetch budget templates');
-        throw new InternalServerErrorException(
-          'Erreur lors de la récupération des templates',
-        );
-      }
-
-      const apiData = this.budgetTemplateMapper.toApiList(templatesDb || []);
+      const apiData = this.budgetTemplateMapper.toApiList(templatesDb);
 
       return {
         success: true as const,
         data: apiData,
-      } as BudgetTemplateListResponse;
+      };
     } catch (error) {
-      if (error instanceof InternalServerErrorException) {
-        throw error;
-      }
-      this.logger.error({ err: error }, 'Failed to list budget templates');
-      throw new InternalServerErrorException('Erreur interne du serveur');
+      this.handleFindAllError(error);
     }
+  }
+
+  private async fetchUserTemplates(
+    userId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<Tables<'template'>[]> {
+    const { data, error } = await supabase
+      .from('template')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      this.logger.error({ err: error }, 'Failed to fetch budget templates');
+      throw new InternalServerErrorException(
+        'Erreur lors de la récupération des templates',
+      );
+    }
+
+    return data || [];
+  }
+
+  private handleFindAllError(error: unknown): never {
+    if (error instanceof InternalServerErrorException) {
+      throw error;
+    }
+    this.logger.error({ err: error }, 'Failed to list budget templates');
+    throw new InternalServerErrorException('Erreur interne du serveur');
   }
 
   async create(
@@ -165,7 +185,7 @@ export class BudgetTemplateService {
     user: AuthenticatedUser,
     rpcLines: ReturnType<typeof this.transformLinesToRpcFormat>,
   ): never {
-    const errorDetails = error as any;
+    const errorDetails = error as SupabaseErrorDetails;
     this.logger.error(
       {
         err: error,

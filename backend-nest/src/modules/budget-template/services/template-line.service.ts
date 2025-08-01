@@ -4,7 +4,6 @@ import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.ser
 import {
   BadRequestException,
   Injectable,
-  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import {
@@ -19,18 +18,23 @@ import {
   templateLineUpdateSchema,
   templateLinesBulkUpdateSchema,
 } from '@pulpe/shared';
-import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { BudgetTemplateMapper } from '../budget-template.mapper';
 import { TemplateValidationService } from './template-validation.service';
+import {
+  LoggingService,
+  type OperationContext,
+} from '@common/services/logging.service';
 
 @Injectable()
 export class TemplateLineService {
   constructor(
-    @InjectPinoLogger(TemplateLineService.name)
-    private readonly logger: PinoLogger,
+    private readonly loggingService: LoggingService,
     private readonly budgetTemplateMapper: BudgetTemplateMapper,
     private readonly templateValidationService: TemplateValidationService,
-  ) {}
+  ) {
+    // Set the logging context for this service instance
+    this.loggingService.setContext(TemplateLineService.name);
+  }
 
   /**
    * Get all template lines for a specific template
@@ -44,8 +48,7 @@ export class TemplateLineService {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateLineListResponse> {
-    const startTime = Date.now();
-    const operation = 'findTemplateLines';
+    const ctx = this.loggingService.initOperationContext('findTemplateLines');
 
     try {
       await this.templateValidationService.validateTemplateAccess(
@@ -58,24 +61,23 @@ export class TemplateLineService {
 
       const response = this.buildTemplateLineListResponse(lines);
 
-      this.logSuccessfulOperation(
-        operation,
-        templateId,
+      this.logSuccessWithContext(
+        ctx,
         user.id,
-        response.data.length,
-        startTime,
+        templateId,
+        'Template lines retrieved successfully',
+        { lineCount: response.data.length },
       );
 
       return response;
     } catch (error) {
-      this.logOperationError(operation, templateId, user.id, error, startTime);
-
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-
-      throw new InternalServerErrorException(
+      this.handleErrorWithContext(
+        error,
+        ctx,
+        user.id,
+        templateId,
         'Failed to retrieve template lines',
+        [NotFoundException],
       );
     }
   }
@@ -109,40 +111,6 @@ export class TemplateLineService {
     };
   }
 
-  private logSuccessfulOperation(
-    operation: string,
-    templateId: string,
-    userId: string,
-    lineCount: number,
-    startTime: number,
-  ): void {
-    this.logger.info({
-      operation,
-      templateId,
-      userId,
-      lineCount,
-      duration: Date.now() - startTime,
-      message: 'Template lines retrieved successfully',
-    });
-  }
-
-  private logOperationError(
-    operation: string,
-    templateId: string,
-    userId: string,
-    error: unknown,
-    startTime: number,
-  ): void {
-    this.logger.error({
-      operation,
-      templateId,
-      userId,
-      err: error,
-      duration: Date.now() - startTime,
-      message: 'Error retrieving template lines',
-    });
-  }
-
   /**
    * Create a new template line
    * @param templateId - The template ID
@@ -157,7 +125,7 @@ export class TemplateLineService {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateLineResponse> {
-    const ctx = this.initOperationContext('createTemplateLine');
+    const ctx = this.loggingService.initOperationContext('createTemplateLine');
 
     try {
       await this.templateValidationService.validateTemplateAccess(
@@ -176,21 +144,60 @@ export class TemplateLineService {
 
       const response = this.buildTemplateLineResponse(newLine);
 
-      this.logLineCreated(ctx, templateId, user.id, response.data.id);
+      this.logSuccessWithContext(
+        ctx,
+        user.id,
+        templateId,
+        'Template line created successfully',
+        { lineId: response.data.id },
+      );
 
       return response;
     } catch (error) {
-      this.logCreateError(ctx, templateId, user.id, error);
-      this.reThrowKnownErrors(error);
-      throw new InternalServerErrorException('Failed to create template line');
+      this.handleErrorWithContext(
+        error,
+        ctx,
+        user.id,
+        templateId,
+        'Failed to create template line',
+        [NotFoundException, BadRequestException],
+      );
     }
   }
 
-  private initOperationContext(operation: string) {
-    return {
-      operation,
-      startTime: Date.now(),
-    };
+  private logSuccessWithContext(
+    ctx: OperationContext,
+    userId: string,
+    entityId: string,
+    message: string,
+    additionalContext?: Record<string, unknown>,
+  ): void {
+    this.loggingService.logOperationSuccess(
+      ctx,
+      userId,
+      entityId,
+      message,
+      additionalContext,
+    );
+  }
+
+  private handleErrorWithContext(
+    error: unknown,
+    ctx: OperationContext,
+    userId: string,
+    entityId: string,
+    message: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    knownExceptions: Array<new (...args: any[]) => any> = [],
+  ): never {
+    this.loggingService.handleOperationError(
+      error,
+      ctx,
+      userId,
+      entityId,
+      message,
+      knownExceptions,
+    );
   }
 
   private reThrowKnownErrors(error: unknown): void {
@@ -204,22 +211,25 @@ export class TemplateLineService {
 
   private validateCreateDto(
     createDto: TemplateLineCreateWithoutTemplateId,
-    ctx: ReturnType<typeof this.initOperationContext>,
+    ctx: OperationContext,
     templateId: string,
     userId: string,
   ): void {
     try {
       templateLineCreateWithoutTemplateIdSchema.parse(createDto);
-    } catch (validationError) {
-      this.logger.error({
-        operation: ctx.operation,
-        templateId,
-        userId,
-        err: validationError,
-        createDto,
-        duration: Date.now() - ctx.startTime,
-        message: 'Template line validation failed',
-      });
+    } catch {
+      this.loggingService.logError(
+        this.loggingService.buildLogContext(
+          ctx.operation,
+          userId,
+          templateId,
+          ctx.startTime,
+          {
+            createDto,
+          },
+        ),
+        'Template line validation failed',
+      );
       throw new BadRequestException('Invalid template line data');
     }
   }
@@ -257,38 +267,6 @@ export class TemplateLineService {
     };
   }
 
-  private logLineCreated(
-    ctx: ReturnType<typeof this.initOperationContext>,
-    templateId: string,
-    userId: string,
-    lineId: string,
-  ): void {
-    this.logger.info({
-      operation: ctx.operation,
-      templateId,
-      userId,
-      lineId,
-      duration: Date.now() - ctx.startTime,
-      message: 'Template line created successfully',
-    });
-  }
-
-  private logCreateError(
-    ctx: ReturnType<typeof this.initOperationContext>,
-    templateId: string,
-    userId: string,
-    error: unknown,
-  ): void {
-    this.logger.error({
-      operation: ctx.operation,
-      templateId,
-      userId,
-      err: error,
-      duration: Date.now() - ctx.startTime,
-      message: 'Error creating template line',
-    });
-  }
-
   /**
    * Get a single template line
    * @param templateLineId - The template line ID
@@ -301,8 +279,7 @@ export class TemplateLineService {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateLineResponse> {
-    const startTime = Date.now();
-    const operation = 'findTemplateLine';
+    const ctx = this.loggingService.initOperationContext('findTemplateLine');
 
     try {
       const { templateLine } =
@@ -314,61 +291,24 @@ export class TemplateLineService {
 
       const response = this.buildTemplateLineResponse(templateLine);
 
-      this.logRetrievalSuccess(operation, templateLineId, user.id, startTime);
+      this.logSuccessWithContext(
+        ctx,
+        user.id,
+        templateLineId,
+        'Template line retrieved successfully',
+      );
 
       return response;
     } catch (error) {
-      this.logRetrievalError(
-        operation,
-        templateLineId,
-        user.id,
+      this.handleErrorWithContext(
         error,
-        startTime,
-      );
-
-      if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException
-      ) {
-        throw error;
-      }
-
-      throw new InternalServerErrorException(
+        ctx,
+        user.id,
+        templateLineId,
         'Failed to retrieve template line',
+        [NotFoundException, BadRequestException],
       );
     }
-  }
-
-  private logRetrievalSuccess(
-    operation: string,
-    templateLineId: string,
-    userId: string,
-    startTime: number,
-  ): void {
-    this.logger.info({
-      operation,
-      templateLineId,
-      userId,
-      duration: Date.now() - startTime,
-      message: 'Template line retrieved successfully',
-    });
-  }
-
-  private logRetrievalError(
-    operation: string,
-    templateLineId: string,
-    userId: string,
-    error: unknown,
-    startTime: number,
-  ): void {
-    this.logger.error({
-      operation,
-      templateLineId,
-      userId,
-      err: error,
-      duration: Date.now() - startTime,
-      message: 'Error retrieving template line',
-    });
   }
 
   /**
@@ -413,8 +353,7 @@ export class TemplateLineService {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateLineResponse> {
-    const startTime = Date.now();
-    const operation = 'updateTemplateLine';
+    const ctx = this.loggingService.initOperationContext('updateTemplateLine');
 
     try {
       await this.templateValidationService.validateTemplateLineAccess(
@@ -432,20 +371,23 @@ export class TemplateLineService {
 
       const response = this.buildTemplateLineResponse(updatedLine);
 
-      this.logUpdateSuccess(operation, templateLineId, user.id, startTime);
+      this.logSuccessWithContext(
+        ctx,
+        user.id,
+        templateLineId,
+        'Template line updated successfully',
+      );
 
       return response;
     } catch (error) {
-      this.logUpdateError(operation, templateLineId, user.id, error, startTime);
-
-      if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException
-      ) {
-        throw error;
-      }
-
-      throw new InternalServerErrorException('Failed to update template line');
+      this.handleErrorWithContext(
+        error,
+        ctx,
+        user.id,
+        templateLineId,
+        'Failed to update template line',
+        [NotFoundException, BadRequestException],
+      );
     }
   }
 
@@ -462,38 +404,6 @@ export class TemplateLineService {
     return this.updateTemplateLineInDb(templateLineId, dbData, supabase);
   }
 
-  private logUpdateSuccess(
-    operation: string,
-    templateLineId: string,
-    userId: string,
-    startTime: number,
-  ): void {
-    this.logger.info({
-      operation,
-      templateLineId,
-      userId,
-      duration: Date.now() - startTime,
-      message: 'Template line updated successfully',
-    });
-  }
-
-  private logUpdateError(
-    operation: string,
-    templateLineId: string,
-    userId: string,
-    error: unknown,
-    startTime: number,
-  ): void {
-    this.logger.error({
-      operation,
-      templateLineId,
-      userId,
-      err: error,
-      duration: Date.now() - startTime,
-      message: 'Error updating template line',
-    });
-  }
-
   /**
    * Bulk update template lines
    * @param templateId - The template ID
@@ -508,8 +418,9 @@ export class TemplateLineService {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateLinesBulkUpdateResponse> {
-    const startTime = Date.now();
-    const operation = 'bulkUpdateTemplateLines';
+    const ctx = this.loggingService.initOperationContext(
+      'bulkUpdateTemplateLines',
+    );
 
     try {
       const validatedData = this.validateBulkUpdateDto(bulkUpdateDto);
@@ -522,27 +433,23 @@ export class TemplateLineService {
 
       const response = this.buildBulkUpdateResponse(updatedLines);
 
-      this.logBulkUpdateSuccess(
-        operation,
-        templateId,
+      this.logSuccessWithContext(
+        ctx,
         user.id,
-        updatedLines.length,
-        startTime,
+        templateId,
+        'Template lines bulk updated successfully',
+        { updateCount: updatedLines.length },
       );
 
       return response;
     } catch (error) {
-      this.logBulkUpdateError(operation, templateId, user.id, error, startTime);
-
-      if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException
-      ) {
-        throw error;
-      }
-
-      throw new InternalServerErrorException(
+      this.handleErrorWithContext(
+        error,
+        ctx,
+        user.id,
+        templateId,
         'Failed to bulk update template lines',
+        [NotFoundException, BadRequestException],
       );
     }
   }
@@ -572,19 +479,85 @@ export class TemplateLineService {
     validatedData: TemplateLinesBulkUpdate,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<Tables<'template_line'>[]> {
-    const updatedLines: Tables<'template_line'>[] = [];
+    const updateBatches = this.groupUpdatesByProperties(validatedData);
+    const batchResults = await this.executeBatchUpdates(
+      updateBatches,
+      supabase,
+    );
+    return this.orderResultsByInput(validatedData.lines, batchResults);
+  }
+
+  private groupUpdatesByProperties(validatedData: TemplateLinesBulkUpdate): Map<
+    string,
+    {
+      ids: string[];
+      data: Partial<Database['public']['Tables']['template_line']['Update']>;
+    }
+  > {
+    const updateBatches = new Map<
+      string,
+      {
+        ids: string[];
+        data: Partial<Database['public']['Tables']['template_line']['Update']>;
+      }
+    >();
 
     for (const update of validatedData.lines) {
       const dbData = this.budgetTemplateMapper.toUpdateLine(update);
-      const updatedLine = await this.updateTemplateLineInDb(
-        update.id,
-        dbData,
-        supabase,
-      );
-      updatedLines.push(updatedLine);
+      const updateKey = JSON.stringify(dbData);
+
+      if (!updateBatches.has(updateKey)) {
+        updateBatches.set(updateKey, { ids: [], data: dbData });
+      }
+      const batchEntry = updateBatches.get(updateKey);
+      if (batchEntry) {
+        batchEntry.ids.push(update.id);
+      }
     }
 
-    return updatedLines;
+    return updateBatches;
+  }
+
+  private async executeBatchUpdates(
+    updateBatches: Map<
+      string,
+      {
+        ids: string[];
+        data: Partial<Database['public']['Tables']['template_line']['Update']>;
+      }
+    >,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<Tables<'template_line'>[][]> {
+    const updatePromises: Promise<Tables<'template_line'>[]>[] = [];
+
+    for (const [, batch] of updateBatches) {
+      const promise = supabase
+        .from('template_line')
+        .update(batch.data)
+        .in('id', batch.ids)
+        .select()
+        .then(({ data, error }) => {
+          if (error) throw error;
+          return data || [];
+        }) as Promise<Tables<'template_line'>[]>;
+      updatePromises.push(promise);
+    }
+
+    return Promise.all(updatePromises);
+  }
+
+  private orderResultsByInput(
+    inputLines: TemplateLinesBulkUpdate['lines'],
+    batchResults: Tables<'template_line'>[][],
+  ): Tables<'template_line'>[] {
+    const allUpdatedLines = batchResults.flat();
+    const lineIdToUpdated = new Map(
+      allUpdatedLines.map((line) => [line.id, line]),
+    );
+
+    return inputLines
+      .map((update) => lineIdToUpdated.get(update.id))
+      .filter((line): line is Tables<'template_line'> => line !== undefined);
   }
 
   private buildBulkUpdateResponse(
@@ -599,40 +572,6 @@ export class TemplateLineService {
     };
   }
 
-  private logBulkUpdateSuccess(
-    operation: string,
-    templateId: string,
-    userId: string,
-    updateCount: number,
-    startTime: number,
-  ): void {
-    this.logger.info({
-      operation,
-      templateId,
-      userId,
-      updateCount,
-      duration: Date.now() - startTime,
-      message: 'Template lines bulk updated successfully',
-    });
-  }
-
-  private logBulkUpdateError(
-    operation: string,
-    templateId: string,
-    userId: string,
-    error: unknown,
-    startTime: number,
-  ): void {
-    this.logger.error({
-      operation,
-      templateId,
-      userId,
-      err: error,
-      duration: Date.now() - startTime,
-      message: 'Error bulk updating template lines',
-    });
-  }
-
   /**
    * Delete a template line
    * @param templateLineId - The template line ID
@@ -645,8 +584,7 @@ export class TemplateLineService {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateLineDeleteResponse> {
-    const startTime = Date.now();
-    const operation = 'deleteTemplateLine';
+    const ctx = this.loggingService.initOperationContext('deleteTemplateLine');
 
     try {
       await this.templateValidationService.validateTemplateLineAccess(
@@ -657,20 +595,23 @@ export class TemplateLineService {
 
       await this.performLineDelete(templateLineId, supabase);
 
-      this.logDeleteSuccess(operation, templateLineId, user.id, startTime);
+      this.logSuccessWithContext(
+        ctx,
+        user.id,
+        templateLineId,
+        'Template line deleted successfully',
+      );
 
       return { success: true, message: 'Template line deleted successfully' };
     } catch (error) {
-      this.logDeleteError(operation, templateLineId, user.id, error, startTime);
-
-      if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException
-      ) {
-        throw error;
-      }
-
-      throw new InternalServerErrorException('Failed to delete template line');
+      this.handleErrorWithContext(
+        error,
+        ctx,
+        user.id,
+        templateLineId,
+        'Failed to delete template line',
+        [NotFoundException, BadRequestException],
+      );
     }
   }
 
@@ -686,38 +627,6 @@ export class TemplateLineService {
     if (error) {
       throw error;
     }
-  }
-
-  private logDeleteSuccess(
-    operation: string,
-    templateLineId: string,
-    userId: string,
-    startTime: number,
-  ): void {
-    this.logger.info({
-      operation,
-      templateLineId,
-      userId,
-      duration: Date.now() - startTime,
-      message: 'Template line deleted successfully',
-    });
-  }
-
-  private logDeleteError(
-    operation: string,
-    templateLineId: string,
-    userId: string,
-    error: unknown,
-    startTime: number,
-  ): void {
-    this.logger.error({
-      operation,
-      templateLineId,
-      userId,
-      err: error,
-      duration: Date.now() - startTime,
-      message: 'Error deleting template line',
-    });
   }
 
   /**
