@@ -135,7 +135,7 @@ export class BudgetTemplateService {
     }));
   }
 
-  private async createTemplateWithLines(
+  private async executeCreateTemplateRpc(
     createTemplateDto: BudgetTemplateCreate,
     user: AuthenticatedUser,
     rpcLines: ReturnType<typeof this.transformLinesToRpcFormat>,
@@ -153,28 +153,42 @@ export class BudgetTemplateService {
     );
 
     if (error) {
-      this.logger.error(
-        {
-          err: error,
-          errorCode: error.code,
-          errorDetails: error.details,
-          errorHint: error.hint,
-          errorMessage: error.message,
-          rpcParams: {
-            p_user_id: user.id,
-            p_name: createTemplateDto.name,
-            p_description: createTemplateDto.description || null,
-            p_is_default: createTemplateDto.isDefault || false,
-            p_lines: rpcLines,
-          },
-        },
-        'RPC function create_template_with_lines failed',
-      );
-      throw new InternalServerErrorException(
-        `Erreur lors de la création du template: ${error.message || 'Unknown RPC error'}`,
-      );
+      this.handleRpcError(error, createTemplateDto, user, rpcLines);
     }
 
+    return this.validateRpcResponse(templateRecord);
+  }
+
+  private handleRpcError(
+    error: unknown,
+    createTemplateDto: BudgetTemplateCreate,
+    user: AuthenticatedUser,
+    rpcLines: ReturnType<typeof this.transformLinesToRpcFormat>,
+  ): never {
+    const errorDetails = error as any;
+    this.logger.error(
+      {
+        err: error,
+        errorCode: errorDetails?.code,
+        errorDetails: errorDetails?.details,
+        errorHint: errorDetails?.hint,
+        errorMessage: errorDetails?.message,
+        rpcParams: {
+          p_user_id: user.id,
+          p_name: createTemplateDto.name,
+          p_description: createTemplateDto.description || null,
+          p_is_default: createTemplateDto.isDefault || false,
+          p_lines: rpcLines,
+        },
+      },
+      'RPC function create_template_with_lines failed',
+    );
+    throw new InternalServerErrorException(
+      `Erreur lors de la création du template: ${errorDetails?.message || 'Unknown RPC error'}`,
+    );
+  }
+
+  private validateRpcResponse(templateRecord: unknown): Tables<'template'> {
     if (
       !templateRecord ||
       typeof templateRecord !== 'object' ||
@@ -187,6 +201,20 @@ export class BudgetTemplateService {
     }
 
     return templateRecord as Tables<'template'>;
+  }
+
+  private async createTemplateWithLines(
+    createTemplateDto: BudgetTemplateCreate,
+    user: AuthenticatedUser,
+    rpcLines: ReturnType<typeof this.transformLinesToRpcFormat>,
+    supabase: AuthenticatedSupabaseClient,
+  ) {
+    return this.executeCreateTemplateRpc(
+      createTemplateDto,
+      user,
+      rpcLines,
+      supabase,
+    );
   }
 
   private validateAndMapTemplateRecord(templateRecord: Tables<'template'>) {
@@ -591,58 +619,22 @@ export class BudgetTemplateService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetTemplateCreateResponse> {
     try {
-      // Enhanced logging for onboarding template creation
-      this.logger.info(
-        {
-          userId: user.id,
-          templateName: onboardingData.name,
-          isDefault: onboardingData.isDefault,
-          hasCustomTransactions:
-            (onboardingData.customTransactions?.length || 0) > 0,
-        },
-        'Creating template from onboarding data',
-      );
+      this.logOnboardingCreation(user, onboardingData);
 
-      // Rate limiting check - prevent abuse by checking recent template creation
       await this.templateValidationService.checkOnboardingRateLimit(
         user.id,
         supabase,
       );
 
-      const validationResult =
-        budgetTemplateCreateFromOnboardingSchema.safeParse(onboardingData);
-      if (!validationResult.success) {
-        this.logger.warn(
-          { userId: user.id, validationErrors: validationResult.error.message },
-          'Onboarding data validation failed',
-        );
-        throw new BadRequestException(
-          `Invalid onboarding data: ${validationResult.error.message}`,
-        );
-      }
+      this.validateOnboardingData(onboardingData, user.id);
 
       const lines = this.createOnboardingTemplateLines(onboardingData);
+      this.logCreatedLines(user.id, lines);
 
-      // Debug: Log the lines being created
-      this.logger.info(
-        {
-          userId: user.id,
-          linesCount: lines.length,
-          lines: lines.map((l) => ({
-            name: l.name,
-            kind: l.kind,
-            recurrence: l.recurrence,
-          })),
-        },
-        'Template lines created from onboarding',
-      );
-
-      const templateCreateDto: BudgetTemplateCreate = {
-        name: onboardingData.name || 'Mois Standard',
-        description: onboardingData.description,
-        isDefault: onboardingData.isDefault,
+      const templateCreateDto = this.buildTemplateCreateDto(
+        onboardingData,
         lines,
-      };
+      );
 
       return this.create(templateCreateDto, user, supabase);
     } catch (error) {
@@ -655,5 +647,68 @@ export class BudgetTemplateService {
       );
       throw new InternalServerErrorException('Erreur interne du serveur');
     }
+  }
+
+  private logOnboardingCreation(
+    user: AuthenticatedUser,
+    onboardingData: BudgetTemplateCreateFromOnboarding,
+  ): void {
+    this.logger.info(
+      {
+        userId: user.id,
+        templateName: onboardingData.name,
+        isDefault: onboardingData.isDefault,
+        hasCustomTransactions:
+          (onboardingData.customTransactions?.length || 0) > 0,
+      },
+      'Creating template from onboarding data',
+    );
+  }
+
+  private validateOnboardingData(
+    onboardingData: BudgetTemplateCreateFromOnboarding,
+    userId: string,
+  ): void {
+    const validationResult =
+      budgetTemplateCreateFromOnboardingSchema.safeParse(onboardingData);
+    if (!validationResult.success) {
+      this.logger.warn(
+        { userId, validationErrors: validationResult.error.message },
+        'Onboarding data validation failed',
+      );
+      throw new BadRequestException(
+        `Invalid onboarding data: ${validationResult.error.message}`,
+      );
+    }
+  }
+
+  private logCreatedLines(
+    userId: string,
+    lines: TemplateLineCreateWithoutTemplateId[],
+  ): void {
+    this.logger.info(
+      {
+        userId,
+        linesCount: lines.length,
+        lines: lines.map((l) => ({
+          name: l.name,
+          kind: l.kind,
+          recurrence: l.recurrence,
+        })),
+      },
+      'Template lines created from onboarding',
+    );
+  }
+
+  private buildTemplateCreateDto(
+    onboardingData: BudgetTemplateCreateFromOnboarding,
+    lines: TemplateLineCreateWithoutTemplateId[],
+  ): BudgetTemplateCreate {
+    return {
+      name: onboardingData.name || 'Mois Standard',
+      description: onboardingData.description,
+      isDefault: onboardingData.isDefault,
+      lines,
+    };
   }
 }
