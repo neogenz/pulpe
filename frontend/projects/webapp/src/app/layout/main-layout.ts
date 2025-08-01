@@ -53,7 +53,7 @@ interface NavigationItem {
   ],
   template: `
     <mat-sidenav-container
-      class="h-screen !bg-[var(--mat-sys-surface-container)]"
+      class="h-screen !bg-surface-container"
     >
       <!-- Navigation Sidenav -->
       <mat-sidenav
@@ -69,7 +69,7 @@ interface NavigationItem {
         @if (isHandset()) {
           <div class="py-4 px-6 flex items-center gap-3">
             <div class="w-10 h-10 pulpe-gradient rounded-full"></div>
-            <span class="text-lg font-medium text-[var(--mat-sys-on-surface)]"
+            <span class="text-lg font-medium text-on-surface"
               >Pulpe</span
             >
           </div>
@@ -114,14 +114,14 @@ interface NavigationItem {
               >
                 <div
                   class="w-14 h-8 flex items-center justify-center rounded-full transition-all duration-200"
-                  [class.bg-[var(--mat-sys-secondary-container)]]="rla.isActive"
-                  [class.text-[var(--mat-sys-on-secondary-container)]]="
+                  [class.bg-secondary-container]="rla.isActive"
+                  [class.text-on-secondary-container]="
                     rla.isActive
                   "
-                  [class.text-[var(--mat-sys-on-surface-variant)]]="
+                  [class.text-on-surface-variant]="
                     !rla.isActive
                   "
-                  [class.group-hover:bg-[var(--mat-sys-surface-container-highest)]]="
+                  [class.group-hover:bg-surface-container-highest]="
                     !rla.isActive
                   "
                 >
@@ -135,8 +135,8 @@ interface NavigationItem {
                 </div>
                 <span
                   class="text-xs font-medium text-center leading-tight mt-1 max-w-full"
-                  [class.text-[var(--mat-sys-on-surface)]]="rla.isActive"
-                  [class.text-[var(--mat-sys-on-surface-variant)]]="
+                  [class.text-on-surface]="rla.isActive"
+                  [class.text-on-surface-variant]="
                     !rla.isActive
                   "
                 >
@@ -164,7 +164,7 @@ interface NavigationItem {
             class="flex-shrink-0"
             [class.rounded-t-xl]="!isHandset()"
             [class.!border-b]="isScrolled()"
-            [class.!border-[var(--mat-sys-outline-variant)]]="isScrolled()"
+            [class.!border-outline-variant]="isScrolled()"
           >
             @if (isHandset()) {
               <button
@@ -237,14 +237,14 @@ interface NavigationItem {
 
           <!-- Breadcrumb -->
           <pulpe-breadcrumb
-            class="px-4 py-3 border-b border-[var(--mat-sys-outline-variant)]"
+            class="px-4 py-3 border-b border-outline-variant"
             [items]="breadcrumbState.breadcrumbs()"
           />
 
           <!-- Page Content - Scrollable Container -->
           <main
             cdkScrollable
-            class="flex-1 overflow-y-auto bg-[var(--mat-sys-surface)] text-[var(--mat-sys-on-surface)]"
+            class="flex-1 overflow-y-auto bg-surface text-on-surface"
             [class.p-6]="!isHandset()"
             [class.md:p-8]="!isHandset()"
             [class.p-4]="isHandset()"

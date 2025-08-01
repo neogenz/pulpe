@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed, ComponentFixture } from '@angular/core/testing';
-import { Router } from '@angular/router';
+import { Router, NavigationEnd } from '@angular/router';
 import { BreakpointObserver } from '@angular/cdk/layout';
+import { ScrollDispatcher } from '@angular/cdk/scrolling';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Component, Output, Input, NO_ERRORS_SCHEMA } from '@angular/core';
 import { MatSidenavModule } from '@angular/material/sidenav';
@@ -10,8 +11,10 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
-import { RouterModule } from '@angular/router';
-import { Subject } from 'rxjs';
+import { MatListModule } from '@angular/material/list';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { RouterTestingModule } from '@angular/router/testing';
+import { Subject, EMPTY } from 'rxjs';
 import { MainLayout } from './main-layout';
 import { AuthApi } from '../core/auth/auth-api';
 import { BreadcrumbState } from '../core/routing/breadcrumb-state';
@@ -46,6 +49,9 @@ describe('MainLayout', () => {
   };
   let mockRouter: {
     navigate: ReturnType<typeof vi.fn>;
+    events: Subject<NavigationEnd>;
+    url: string;
+    createUrlTree: ReturnType<typeof vi.fn>;
   };
   let mockBreakpointObserver: {
     observe: ReturnType<typeof vi.fn>;
@@ -53,6 +59,11 @@ describe('MainLayout', () => {
   };
   let mockBreadcrumbState: {
     breadcrumbs: ReturnType<typeof vi.fn>;
+  };
+  let mockScrollDispatcher: {
+    scrolled: ReturnType<typeof vi.fn>;
+    register: ReturnType<typeof vi.fn>;
+    deregister: ReturnType<typeof vi.fn>;
   };
   let breakpointSubject: Subject<{ matches: boolean }>;
 
@@ -66,6 +77,9 @@ describe('MainLayout', () => {
     };
     mockRouter = {
       navigate: vi.fn(),
+      events: new Subject<NavigationEnd>(),
+      url: ROUTES.CURRENT_MONTH,
+      createUrlTree: vi.fn().mockReturnValue({}),
     };
     mockBreakpointObserver = {
       observe: vi.fn().mockReturnValue(breakpointSubject.asObservable()),
@@ -73,6 +87,11 @@ describe('MainLayout', () => {
     };
     mockBreadcrumbState = {
       breadcrumbs: vi.fn().mockReturnValue([]),
+    };
+    mockScrollDispatcher = {
+      scrolled: vi.fn().mockReturnValue(EMPTY),
+      register: vi.fn(),
+      deregister: vi.fn(),
     };
 
     // Configure TestBed
@@ -85,16 +104,18 @@ describe('MainLayout', () => {
         MatButtonModule,
         MatIconModule,
         MatMenuModule,
-        RouterModule,
+        MatListModule,
+        MatTooltipModule,
+        RouterTestingModule,
         MockNavigationMenuComponent,
         MockPulpeBreadcrumbComponent,
       ],
       providers: [
         provideZonelessChangeDetection(),
         { provide: AuthApi, useValue: mockAuthApi },
-        { provide: Router, useValue: mockRouter },
         { provide: BreakpointObserver, useValue: mockBreakpointObserver },
         { provide: BreadcrumbState, useValue: mockBreadcrumbState },
+        { provide: ScrollDispatcher, useValue: mockScrollDispatcher },
       ],
       schemas: [NO_ERRORS_SCHEMA],
     });
@@ -108,7 +129,9 @@ describe('MainLayout', () => {
           MatButtonModule,
           MatIconModule,
           MatMenuModule,
-          RouterModule,
+          MatListModule,
+          MatTooltipModule,
+          RouterTestingModule,
           MockNavigationMenuComponent,
           MockPulpeBreadcrumbComponent,
         ],
@@ -119,6 +142,20 @@ describe('MainLayout', () => {
 
     fixture = TestBed.createComponent(MainLayout);
     component = fixture.componentInstance;
+    
+    // Get the actual router from TestBed and override events
+    const router = TestBed.inject(Router);
+    Object.defineProperty(router, 'events', {
+      value: mockRouter.events,
+      writable: true,
+    });
+    Object.defineProperty(router, 'url', {
+      value: mockRouter.url,
+      writable: true,
+    });
+    
+    // Replace the navigate method with our mock
+    mockRouter.navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
   });
 
   describe('Component Initialization', () => {
@@ -128,7 +165,7 @@ describe('MainLayout', () => {
 
     it('should initialize with correct default states', () => {
       expect(component.isLoggingOut()).toBe(false);
-      expect(component.sidenavMode()).toBe('side'); // Default for desktop
+      expect(component.isHandset()).toBe(false); // Default for desktop
     });
 
     it('should observe breakpoints on initialization', () => {
@@ -138,63 +175,53 @@ describe('MainLayout', () => {
   });
 
   describe('Responsive Behavior', () => {
-    it('should set sidenav mode to "over" on mobile breakpoints', () => {
+    it('should detect mobile breakpoints', () => {
       // Simulate mobile breakpoint
-      mockBreakpointObserver.isMatched.mockReturnValue(true);
       breakpointSubject.next({ matches: true });
       fixture.detectChanges();
 
-      expect(component.sidenavMode()).toBe('over');
+      expect(component.isHandset()).toBe(true);
     });
 
-    it('should set sidenav mode to "side" on desktop breakpoints', () => {
+    it('should detect desktop breakpoints', () => {
       // Simulate desktop breakpoint
-      mockBreakpointObserver.isMatched.mockReturnValue(false);
       breakpointSubject.next({ matches: false });
       fixture.detectChanges();
 
-      expect(component.sidenavMode()).toBe('side');
+      expect(component.isHandset()).toBe(false);
     });
 
-    it('should adjust sidenav opened state based on screen size', () => {
-      // Start with desktop (sidenav open)
-      mockBreakpointObserver.isMatched.mockReturnValue(false);
+    it('should observe breakpoint changes', () => {
       fixture.detectChanges();
-      expect(component.sidenavOpened()).toBe(true);
-
-      // Switch to mobile (sidenav should close)
-      mockBreakpointObserver.isMatched.mockReturnValue(true);
-      breakpointSubject.next({ matches: true });
-      fixture.detectChanges();
-      expect(component.sidenavOpened()).toBe(false);
+      expect(mockBreakpointObserver.observe).toHaveBeenCalled();
     });
   });
 
   describe('Navigation Interaction', () => {
-    it('should close sidenav on mobile after navigation item click', () => {
-      // Set mobile mode first and then open sidenav
-      mockBreakpointObserver.isMatched.mockReturnValue(true);
-      breakpointSubject.next({ matches: true });
-      fixture.detectChanges();
-
-      // Now set sidenav to open
-      component.sidenavOpened.set(true);
-      fixture.detectChanges();
-
-      component.onNavItemClick();
-
-      expect(component.sidenavOpened()).toBe(false);
+    it('should have closeDrawerOnMobile method', () => {
+      expect(typeof component.closeDrawerOnMobile).toBe('function');
     });
 
-    it('should not close sidenav on desktop after navigation item click', () => {
-      // Set desktop mode
-      mockBreakpointObserver.isMatched.mockReturnValue(false);
-      component.sidenavOpened.set(true);
+    it('should close drawer on mobile when isHandset is true', () => {
+      // Set mobile mode
+      breakpointSubject.next({ matches: true });
       fixture.detectChanges();
+      
+      const mockDrawer = { close: vi.fn() };
+      component.closeDrawerOnMobile(mockDrawer);
+      
+      expect(mockDrawer.close).toHaveBeenCalled();
+    });
 
-      component.onNavItemClick();
-
-      expect(component.sidenavOpened()).toBe(true);
+    it('should not close drawer on desktop when isHandset is false', () => {
+      // Set desktop mode  
+      breakpointSubject.next({ matches: false });
+      fixture.detectChanges();
+      
+      const mockDrawer = { close: vi.fn() };
+      component.closeDrawerOnMobile(mockDrawer);
+      
+      expect(mockDrawer.close).not.toHaveBeenCalled();
     });
   });
 
@@ -540,8 +567,7 @@ describe('MainLayout', () => {
       // Test that the component can handle state changes
       // We test the public interface rather than private implementation
       expect(component.isLoggingOut()).toBe(false);
-      expect(component.sidenavOpened()).toBeDefined();
-      expect(component.sidenavMode()).toBeDefined();
+      expect(component.isHandset()).toBeDefined();
     });
   });
 });
