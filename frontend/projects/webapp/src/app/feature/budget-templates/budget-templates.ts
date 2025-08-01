@@ -9,7 +9,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { BudgetTemplatesState } from './services/budget-templates-state';
 import { TemplateList } from './components/template-list';
-import { TemplatesLoading } from './components/templates-loading';
+import { BaseLoadingComponent } from '../../ui/loading';
 import { TemplatesError } from './components/templates-error';
 import { Title } from '@core/routing';
 
@@ -21,7 +21,7 @@ import { Title } from '@core/routing';
     MatButtonModule,
     MatIconModule,
     TemplateList,
-    TemplatesLoading,
+    BaseLoadingComponent,
     TemplatesError,
   ],
   template: `
@@ -58,7 +58,11 @@ import { Title } from '@core/routing';
 
       @switch (true) {
         @case (state.isLoading()) {
-          <pulpe-templates-loading data-testid="templates-loading" />
+          <pulpe-base-loading
+            message="Chargement des modèles de budget..."
+            size="large"
+            testId="templates-loading"
+          />
         }
         @case (state.templatesData.status() === 'error') {
           <pulpe-templates-error

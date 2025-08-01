@@ -82,7 +82,6 @@ import { type BudgetTemplate } from '@pulpe/shared';
               @if (loading()) {
                 <div class="flex items-center gap-2">
                   <mat-progress-spinner
-                    diameter="24"
                     mode="indeterminate"
                     aria-label="Chargement du modèle"
                     role="progressbar"

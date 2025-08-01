@@ -52,7 +52,6 @@ import { type BudgetLineCreate, type BudgetLineUpdate } from '@pulpe/shared';
           message="Chargement des détails du budget..."
           size="large"
           [fullHeight]="true"
-          surface="surface-container"
           testId="budget-details-loading"
         ></pulpe-base-loading>
       } @else if (budgetDetailsState.budgetDetails.error()) {

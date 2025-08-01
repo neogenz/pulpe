@@ -8,7 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MonthCardItem } from '../ui/month-card-item';
-import { MonthsLoading } from '../ui/budget-loading';
+import { BaseLoadingComponent } from '../../../ui/loading';
 import { MonthsError } from '../ui/budget-error';
 import { BudgetState } from './budget-state';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -27,7 +27,7 @@ import { ROUTES } from '@core/routing';
     MatButtonModule,
     MatCardModule,
     MonthCardItem,
-    MonthsLoading,
+    BaseLoadingComponent,
     MonthsError,
     MatTabsModule,
   ],
@@ -53,7 +53,11 @@ import { ROUTES } from '@core/routing';
           state.monthsData.status() === 'loading' ||
           state.monthsData.status() === 'reloading'
         ) {
-          <pulpe-months-loading />
+          <pulpe-base-loading
+            message="Chargement des données mensuelles..."
+            size="large"
+            testId="months-loading"
+          />
         }
         @case (state.monthsData.status() === 'error') {
           <pulpe-months-error (reload)="state.refreshData()" />
