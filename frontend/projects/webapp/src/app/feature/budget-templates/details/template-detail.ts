@@ -28,6 +28,7 @@ import {
 import { BudgetTemplatesApi } from '../services/budget-templates-api';
 import { firstValueFrom } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { TransactionFormData } from '../services/transaction-form';
 import { CommonModule, CurrencyPipe } from '@angular/common';
 import {
   TemplateLine,
@@ -374,7 +375,10 @@ export default class TemplateDetail {
         // Transform dialog data to API format
         const bulkUpdate: TemplateLinesBulkUpdate = {
           lines: dialogResult.transactions.map(
-            (transaction, index: number): TemplateLineUpdateWithId => {
+            (
+              transaction: TransactionFormData,
+              index: number,
+            ): TemplateLineUpdateWithId => {
               const originalLine = originalTemplateLines[index];
               return {
                 id: originalLine.id,
