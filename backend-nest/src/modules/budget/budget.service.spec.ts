@@ -459,20 +459,27 @@ describe('BudgetService', () => {
       const budgetId = MOCK_BUDGET_ID;
       const mockBudget = createValidBudgetEntity({ id: budgetId });
 
-      // Mock budget found but no transactions or budget lines
-      let callCount = 0;
+      // Create separate mock clients for each table to avoid data collision
+      const mockBudgetClient = new MockSupabaseClient();
+      const mockTransactionClient = new MockSupabaseClient();
+      const mockBudgetLineClient = new MockSupabaseClient();
+
+      // Configure each client with its specific data
+      mockBudgetClient.setMockData(mockBudget).setMockError(null);
+      mockTransactionClient.setMockData([]).setMockError(null);
+      mockBudgetLineClient.setMockData([]).setMockError(null);
+
+      // Override the from method to return the appropriate client
       const originalFrom = mockSupabaseClient.from;
       mockSupabaseClient.from = (table: string) => {
-        const result = originalFrom.call(mockSupabaseClient, table);
-        if (callCount === 0) {
-          // Budget query
-          mockSupabaseClient.setMockData(mockBudget).setMockError(null);
-        } else {
-          // Transactions and budget lines queries
-          mockSupabaseClient.setMockData([]).setMockError(null);
+        if (table === 'monthly_budget') {
+          return mockBudgetClient.from(table);
+        } else if (table === 'transaction') {
+          return mockTransactionClient.from(table);
+        } else if (table === 'budget_line') {
+          return mockBudgetLineClient.from(table);
         }
-        callCount++;
-        return result;
+        return originalFrom.call(mockSupabaseClient, table);
       };
 
       const result = await service.findOneWithDetails(
@@ -504,22 +511,31 @@ describe('BudgetService', () => {
       const budgetId = MOCK_BUDGET_ID;
       const mockBudget = createValidBudgetEntity({ id: budgetId });
 
-      // Mock budget found but errors on other queries
-      let callCount = 0;
+      // Create separate mock clients for each table to avoid data collision
+      const mockBudgetClient = new MockSupabaseClient();
+      const mockTransactionClient = new MockSupabaseClient();
+      const mockBudgetLineClient = new MockSupabaseClient();
+
+      // Configure each client with its specific data
+      mockBudgetClient.setMockData(mockBudget).setMockError(null);
+      mockTransactionClient
+        .setMockData(null)
+        .setMockError({ message: 'Permission denied' });
+      mockBudgetLineClient
+        .setMockData(null)
+        .setMockError({ message: 'Permission denied' });
+
+      // Override the from method to return the appropriate client
       const originalFrom = mockSupabaseClient.from;
       mockSupabaseClient.from = (table: string) => {
-        const result = originalFrom.call(mockSupabaseClient, table);
-        if (callCount === 0) {
-          // Budget query succeeds
-          mockSupabaseClient.setMockData(mockBudget).setMockError(null);
-        } else {
-          // Transactions and budget lines queries fail
-          mockSupabaseClient
-            .setMockData(null)
-            .setMockError({ message: 'Permission denied' });
+        if (table === 'monthly_budget') {
+          return mockBudgetClient.from(table);
+        } else if (table === 'transaction') {
+          return mockTransactionClient.from(table);
+        } else if (table === 'budget_line') {
+          return mockBudgetLineClient.from(table);
         }
-        callCount++;
-        return result;
+        return originalFrom.call(mockSupabaseClient, table);
       };
 
       const result = await service.findOneWithDetails(

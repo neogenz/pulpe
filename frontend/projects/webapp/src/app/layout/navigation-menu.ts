@@ -43,7 +43,6 @@ const NAVIGATION_CONFIG = [
 
         <mat-nav-list>
           @for (section of navigationSections(); track section.title) {
-            <div mat-subheader>{{ section.title }}</div>
             @for (item of section.items; track item.route) {
               <a
                 mat-list-item

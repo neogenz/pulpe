@@ -118,10 +118,12 @@ import { environment } from '../../environments/environment';
             </div>
           </mat-toolbar>
 
-          <pulpe-breadcrumb
-            class="px-4 py-3"
-            [items]="breadcrumbState.breadcrumbs()"
-          />
+          @if (breadcrumbState.breadcrumbs().length > 0) {
+            <pulpe-breadcrumb
+              class="px-4 py-3"
+              [items]="breadcrumbState.breadcrumbs()"
+            />
+          }
 
           <main class="flex-1 overflow-auto min-h-0">
             <div class="p-4">
