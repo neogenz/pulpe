@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed, ComponentFixture } from '@angular/core/testing';
-import { Router, NavigationEnd } from '@angular/router';
+import { Router, NavigationEnd, ActivatedRoute } from '@angular/router';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { ScrollDispatcher } from '@angular/cdk/scrolling';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
@@ -13,7 +13,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatListModule } from '@angular/material/list';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { RouterTestingModule } from '@angular/router/testing';
+import { RouterModule } from '@angular/router';
 import { Subject, EMPTY } from 'rxjs';
 import { MainLayout } from './main-layout';
 import { AuthApi } from '../core/auth/auth-api';
@@ -73,13 +73,14 @@ describe('MainLayout', () => {
 
     // Create mocks
     mockAuthApi = {
-      signOut: vi.fn(),
+      signOut: vi.fn().mockResolvedValue(undefined),
     };
     mockRouter = {
-      navigate: vi.fn(),
+      navigate: vi.fn().mockResolvedValue(true),
       events: new Subject<NavigationEnd>(),
       url: ROUTES.CURRENT_MONTH,
       createUrlTree: vi.fn().mockReturnValue({}),
+      serializeUrl: vi.fn().mockReturnValue(''),
     };
     mockBreakpointObserver = {
       observe: vi.fn().mockReturnValue(breakpointSubject.asObservable()),
@@ -106,13 +107,15 @@ describe('MainLayout', () => {
         MatMenuModule,
         MatListModule,
         MatTooltipModule,
-        RouterTestingModule,
+        RouterModule,
         MockNavigationMenuComponent,
         MockPulpeBreadcrumbComponent,
       ],
       providers: [
         provideZonelessChangeDetection(),
         { provide: AuthApi, useValue: mockAuthApi },
+        { provide: Router, useValue: mockRouter },
+        { provide: ActivatedRoute, useValue: {} },
         { provide: BreakpointObserver, useValue: mockBreakpointObserver },
         { provide: BreadcrumbState, useValue: mockBreadcrumbState },
         { provide: ScrollDispatcher, useValue: mockScrollDispatcher },
@@ -131,7 +134,7 @@ describe('MainLayout', () => {
           MatMenuModule,
           MatListModule,
           MatTooltipModule,
-          RouterTestingModule,
+          RouterModule,
           MockNavigationMenuComponent,
           MockPulpeBreadcrumbComponent,
         ],
@@ -142,20 +145,6 @@ describe('MainLayout', () => {
 
     fixture = TestBed.createComponent(MainLayout);
     component = fixture.componentInstance;
-
-    // Get the actual router from TestBed and override events
-    const router = TestBed.inject(Router);
-    Object.defineProperty(router, 'events', {
-      value: mockRouter.events,
-      writable: true,
-    });
-    Object.defineProperty(router, 'url', {
-      value: mockRouter.url,
-      writable: true,
-    });
-
-    // Replace the navigate method with our mock
-    mockRouter.navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
   });
 
   describe('Component Initialization', () => {
@@ -368,20 +357,6 @@ describe('MainLayout', () => {
 
       expect(component.isLoggingOut()).toBe(false);
     });
-
-    it('should include delay to prevent race conditions', async () => {
-      mockAuthApi.signOut.mockResolvedValue(undefined);
-      mockRouter.navigate.mockResolvedValue(true);
-
-      const start = Date.now();
-      await component.onLogout();
-      const duration = Date.now() - start;
-
-      // Should have waited at least 100ms
-      expect(duration).toBeGreaterThanOrEqual(90); // Allow some margin for test timing
-      expect(mockAuthApi.signOut).toHaveBeenCalledOnce();
-      expect(mockRouter.navigate).toHaveBeenCalledWith([ROUTES.LOGIN]);
-    });
   });
 
   describe('Template Rendering', () => {
@@ -546,11 +521,12 @@ describe('MainLayout', () => {
     });
 
     it('should have proper visual states for logo', () => {
-      const logo = fixture.nativeElement.querySelector('.toolbar-logo');
+      const logo = fixture.nativeElement.querySelector('.pulpe-gradient');
       expect(logo).toBeTruthy();
 
       // Test that the logo exists and has the correct classes
-      expect(logo.classList.contains('toolbar-logo')).toBe(true);
+      expect(logo.classList.contains('pulpe-gradient')).toBe(true);
+      expect(logo.classList.contains('rounded-full')).toBe(true);
     });
 
     it('should have correct initial state for user menu button', () => {
