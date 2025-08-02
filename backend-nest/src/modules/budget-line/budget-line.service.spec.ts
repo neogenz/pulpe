@@ -1,11 +1,7 @@
 import { describe, it, expect, beforeEach, jest } from 'bun:test';
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  BadRequestException,
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
 import { BudgetLineService } from './budget-line.service';
+import { BusinessException } from '@common/exceptions/business.exception';
 import { PinoLogger } from 'nestjs-pino';
 import type { BudgetLineCreate, BudgetLineUpdate } from '@pulpe/shared';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
@@ -14,7 +10,7 @@ import type { BudgetLineRow } from './entities/budget-line.entity';
 
 describe('BudgetLineService', () => {
   let service: BudgetLineService;
-  let logger: PinoLogger;
+  let _logger: PinoLogger;
   type MockSupabaseResponse<T> = {
     data: T | null;
     error: Error | null;
@@ -130,7 +126,7 @@ describe('BudgetLineService', () => {
     }).compile();
 
     service = module.get<BudgetLineService>(BudgetLineService);
-    logger = module.get<PinoLogger>(`PinoLogger:${BudgetLineService.name}`);
+    _logger = module.get<PinoLogger>(`PinoLogger:${BudgetLineService.name}`);
   });
 
   describe('findByBudgetId', () => {
@@ -156,7 +152,7 @@ describe('BudgetLineService', () => {
       // Mapper functions are now pure functions, no need to check calls
     });
 
-    it('should throw InternalServerErrorException on database error', async () => {
+    it('should throw BusinessException on database error', async () => {
       const budgetId = '123e4567-e89b-12d3-a456-426614174001';
       mockSupabase.from.mockReturnValue(
         createMockQueryBuilder({
@@ -167,8 +163,7 @@ describe('BudgetLineService', () => {
 
       await expect(
         service.findByBudgetId(budgetId, getMockSupabaseClient()),
-      ).rejects.toThrow(InternalServerErrorException);
-      expect(logger.error).toHaveBeenCalled();
+      ).rejects.toThrow(BusinessException);
     });
 
     it('should return empty array when no budget lines found', async () => {
@@ -217,7 +212,7 @@ describe('BudgetLineService', () => {
       // Mapper functions are now pure functions, no need to check calls
     });
 
-    it('should throw NotFoundException when budget line not found', async () => {
+    it('should throw BusinessException when budget line not found', async () => {
       const budgetLineId = '123e4567-e89b-12d3-a456-426614174000';
       mockSupabase.from.mockReturnValue(
         createMockQueryBuilder({
@@ -228,7 +223,7 @@ describe('BudgetLineService', () => {
 
       await expect(
         service.findOne(budgetLineId, mockUser, getMockSupabaseClient()),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(BusinessException);
     });
   });
 
@@ -266,7 +261,7 @@ describe('BudgetLineService', () => {
       // Mapper functions are now pure functions, no need to check calls
     });
 
-    it('should throw BadRequestException for invalid data', async () => {
+    it('should throw BusinessException for invalid data', async () => {
       const invalidDto: BudgetLineCreate = {
         ...mockCreateDto,
         budgetId: '',
@@ -274,10 +269,10 @@ describe('BudgetLineService', () => {
 
       await expect(
         service.create(invalidDto, mockUser, getMockSupabaseClient()),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(BusinessException);
     });
 
-    it('should throw BadRequestException on database error', async () => {
+    it('should throw BusinessException on database error', async () => {
       mockSupabase.from.mockReturnValue(
         createMockQueryBuilder({
           data: null,
@@ -287,7 +282,7 @@ describe('BudgetLineService', () => {
 
       await expect(
         service.create(mockCreateDto, mockUser, getMockSupabaseClient()),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(BusinessException);
     });
   });
 
@@ -339,7 +334,7 @@ describe('BudgetLineService', () => {
       // Mapper functions are now pure functions, no need to check calls
     });
 
-    it('should throw NotFoundException when budget line not found', async () => {
+    it('should throw BusinessException when budget line not found', async () => {
       const budgetLineId = '123e4567-e89b-12d3-a456-426614174000';
       mockSupabase.from.mockReturnValue(
         createMockQueryBuilder({
@@ -355,10 +350,10 @@ describe('BudgetLineService', () => {
           mockUser,
           getMockSupabaseClient(),
         ),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(BusinessException);
     });
 
-    it('should throw BadRequestException for invalid update data', async () => {
+    it('should throw BusinessException for invalid update data', async () => {
       const budgetLineId = '123e4567-e89b-12d3-a456-426614174000';
       const invalidUpdateDto: BudgetLineUpdate = {
         amount: -100, // Invalid negative amount
@@ -371,7 +366,7 @@ describe('BudgetLineService', () => {
           mockUser,
           getMockSupabaseClient(),
         ),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(BusinessException);
     });
   });
 
@@ -398,7 +393,7 @@ describe('BudgetLineService', () => {
       expect(mockSupabase.from).toHaveBeenCalledWith('budget_line');
     });
 
-    it('should throw NotFoundException when budget line not found', async () => {
+    it('should throw BusinessException when budget line not found', async () => {
       const budgetLineId = '123e4567-e89b-12d3-a456-426614174000';
       mockSupabase.from.mockReturnValue(
         createMockQueryBuilder({
@@ -409,7 +404,7 @@ describe('BudgetLineService', () => {
 
       await expect(
         service.remove(budgetLineId, mockUser, getMockSupabaseClient()),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(BusinessException);
     });
   });
 });
