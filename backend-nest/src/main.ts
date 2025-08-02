@@ -4,10 +4,9 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from 'nestjs-pino';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
 import compression from 'compression';
 import { AppModule } from './app.module';
-import { validateEnvironment } from '@config/environment';
+import type { Environment } from '@config/environment';
 import { patchNestJsSwagger } from 'nestjs-zod';
 
 // ValidationPipe removed - using ZodValidationPipe from app.module.ts instead
@@ -35,17 +34,6 @@ function setupSecurity(app: import('@nestjs/common').INestApplication): void {
       crossOriginEmbedderPolicy: false, // Allow embedding
     }),
   );
-
-  // Global rate limiting - 100 requests per 15 minutes per IP
-  const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
-    message: 'Too many requests from this IP, please try again later.',
-    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  });
-
-  app.use(limiter);
 
   // Response compression
   app.use(compression());
@@ -117,7 +105,16 @@ async function bootstrap() {
   });
 
   const configService = app.get(ConfigService);
-  const env = validateEnvironment(configService);
+  // Environment is now validated automatically by ConfigModule
+  const env: Environment = {
+    NODE_ENV: configService.get('NODE_ENV')!,
+    PORT: configService.get('PORT')!,
+    FRONTEND_URL: configService.get('FRONTEND_URL')!,
+    SUPABASE_URL: configService.get('SUPABASE_URL')!,
+    SUPABASE_ANON_KEY: configService.get('SUPABASE_ANON_KEY')!,
+    SUPABASE_SERVICE_ROLE_KEY: configService.get('SUPABASE_SERVICE_ROLE_KEY'),
+    DEBUG_HTTP_FULL: configService.get('DEBUG_HTTP_FULL'),
+  };
 
   app.useLogger(app.get(Logger));
 
@@ -142,15 +139,24 @@ async function bootstrap() {
 
   const logger = app.get(Logger);
 
-  logger.log('Starting Pulpe Budget API server...');
-
   await app.listen(env.PORT);
 
   logger.log(`🚀 Application is running on: http://localhost:${env.PORT}`);
   logger.log(`🔗 API v1 endpoints: http://localhost:${env.PORT}/api/v1`);
   logger.log(`📚 Swagger documentation: http://localhost:${env.PORT}/docs`);
   logger.log(`📋 OpenAPI JSON: http://localhost:${env.PORT}/api/openapi`);
-  logger.log('HTTP request logging is active with Pino');
+  logger.log('🔍 HTTP request/response logging is active');
+
+  const debugHttpFull = configService.get<string>('DEBUG_HTTP_FULL') === 'true';
+  if (debugHttpFull) {
+    logger.warn(
+      '⚠️  DEBUG_HTTP_FULL is enabled - sensitive data will be logged!',
+    );
+  } else {
+    logger.log('🛡️ Security: Request data redaction enabled');
+  }
+
+  logger.log(`⚡ Environment: ${env.NODE_ENV}`);
 }
 
 bootstrap();

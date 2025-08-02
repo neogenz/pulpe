@@ -393,7 +393,7 @@ describe('BudgetLineService', () => {
 
       expect(result).toEqual({
         success: true,
-        message: 'Ligne budgétaire supprimée avec succès',
+        message: 'Budget line deleted successfully',
       });
       expect(mockSupabase.from).toHaveBeenCalledWith('budget_line');
     });
