@@ -3,8 +3,10 @@ import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import { Request, Response } from 'express';
 import { ZodValidationException } from 'nestjs-zod';
 import { ZodError } from 'zod';
-import { testErrorSilencer } from '../../test/test-utils';
+// Remove testErrorSilencer import - not needed with simplified tests
 import { GlobalExceptionFilter } from './global-exception.filter';
+import { BusinessException } from '@common/exceptions/business.exception';
+import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 
 // Helper to create a proper ZodValidationException
 const createZodValidationException = (response: any) => {
@@ -31,7 +33,7 @@ const createMockRequest = (overrides: any = {}): Request => {
       authorization: 'Bearer test-token',
     },
     method: 'POST',
-    url: '/api/users',
+    url: '/api/v1/users',
     body: { name: 'Test User', email: 'test@example.com' },
     ip: '192.168.1.100',
     connection: {
@@ -113,7 +115,7 @@ describe('GlobalExceptionFilter', () => {
         user: { id: 'custom-user-456' },
       });
 
-      const context = GlobalExceptionFilter.extractRequestContext(mockRequest);
+      const context = (filter as any).extractRequestContext(mockRequest);
 
       expect(context).toEqual({
         requestId: 'custom-req-id-789',
@@ -129,7 +131,7 @@ describe('GlobalExceptionFilter', () => {
           'user-agent': 'Test Browser',
         },
         method: 'POST',
-        url: '/api/users',
+        url: '/api/v1/users',
         body: { name: 'Test User', email: 'test@example.com' },
         ip: '192.168.1.100',
         connection: {
@@ -138,7 +140,7 @@ describe('GlobalExceptionFilter', () => {
         user: { id: 'user-abc-123' },
       } as any;
 
-      const context = GlobalExceptionFilter.extractRequestContext(mockRequest);
+      const context = (filter as any).extractRequestContext(mockRequest);
 
       expect(context.requestId).toBeUndefined();
       expect(context.userAgent).toBe('Test Browser');
@@ -152,7 +154,7 @@ describe('GlobalExceptionFilter', () => {
         },
       });
 
-      const context = GlobalExceptionFilter.extractRequestContext(mockRequest);
+      const context = (filter as any).extractRequestContext(mockRequest);
 
       expect(context.ip).toBe('198.51.100.1');
     });
@@ -162,7 +164,7 @@ describe('GlobalExceptionFilter', () => {
         user: undefined,
       });
 
-      const context = GlobalExceptionFilter.extractRequestContext(mockRequest);
+      const context = (filter as any).extractRequestContext(mockRequest);
 
       expect(context.userId).toBeUndefined();
     });
@@ -175,7 +177,7 @@ describe('GlobalExceptionFilter', () => {
         },
       });
 
-      const context = GlobalExceptionFilter.extractRequestContext(mockRequest);
+      const context = (filter as any).extractRequestContext(mockRequest);
 
       expect(context.requestId).toBe('req-first');
       expect(context.userAgent).toBe('Browser/1.0');
@@ -189,7 +191,7 @@ describe('GlobalExceptionFilter', () => {
         },
       });
 
-      const context = GlobalExceptionFilter.extractRequestContext(mockRequest);
+      const context = (filter as any).extractRequestContext(mockRequest);
 
       expect(context.requestId).toBeUndefined();
       expect(context.userAgent).toBeUndefined();
@@ -203,7 +205,7 @@ describe('GlobalExceptionFilter', () => {
         },
       });
 
-      const context = GlobalExceptionFilter.extractRequestContext(mockRequest);
+      const context = (filter as any).extractRequestContext(mockRequest);
 
       expect(context.requestId).toBe('single-request-id');
       expect(context.userAgent).toBe('Array Browser/1.0');
@@ -222,16 +224,16 @@ describe('GlobalExceptionFilter', () => {
         };
         const zodException = createZodValidationException(validationErrors);
 
-        const result = GlobalExceptionFilter.processException(zodException);
+        const result = (filter as any).processException(zodException);
 
-        expect(result).toEqual({
+        expect(result).toMatchObject({
           status: 400,
           message: validationErrors,
           error: 'ZodValidationException',
-          code: 'ZOD_VALIDATION_FAILED',
-          originalError: expect.any(Object),
+          code: 'ERR_ZOD_VALIDATION_FAILED',
           stack: undefined,
         });
+        expect(result.originalError).toBeDefined();
       });
 
       it('should include stack trace in development for ZodValidationException', async () => {
@@ -240,7 +242,7 @@ describe('GlobalExceptionFilter', () => {
         const zodException = createZodValidationException(validationErrors);
         zodException.stack = 'ZodValidationException stack trace';
 
-        const result = GlobalExceptionFilter.processException(zodException);
+        const result = (filter as any).processException(zodException);
 
         expect(result.stack).toBe('ZodValidationException stack trace');
       });
@@ -292,16 +294,16 @@ describe('GlobalExceptionFilter', () => {
           HttpStatus.NOT_FOUND,
         );
 
-        const result = GlobalExceptionFilter.processException(httpException);
+        const result = (filter as any).processException(httpException);
 
-        expect(result).toEqual({
+        expect(result).toMatchObject({
           status: 404,
           message: 'Resource not found',
           error: 'HttpException',
           code: 'HTTP_404',
-          originalError: expect.any(Object),
           stack: undefined,
         });
+        expect(result.originalError).toBeDefined();
       });
 
       it('should handle HttpException with object response', async () => {
@@ -314,16 +316,16 @@ describe('GlobalExceptionFilter', () => {
           HttpStatus.BAD_REQUEST,
         );
 
-        const result = GlobalExceptionFilter.processException(httpException);
+        const result = (filter as any).processException(httpException);
 
-        expect(result).toEqual({
+        expect(result).toMatchObject({
           status: 400,
           message: errorResponse,
           error: 'HttpException',
           code: 'HTTP_400',
-          originalError: expect.any(Object),
           stack: undefined,
         });
+        expect(result.originalError).toBeDefined();
       });
     });
 
@@ -331,23 +333,23 @@ describe('GlobalExceptionFilter', () => {
       it('should process generic Error with correct structure', async () => {
         const error = new Error('Database connection timeout');
 
-        const result = GlobalExceptionFilter.processException(error);
+        const result = (filter as any).processException(error);
 
-        expect(result).toEqual({
+        expect(result).toMatchObject({
           status: 500,
-          message: 'Database connection timeout', // Now shows actual error message
+          message: 'Database connection timeout',
           error: 'Error',
-          code: 'INTERNAL_SERVER_ERROR',
-          originalError: expect.any(Object),
+          code: 'ERR_INTERNAL_SERVER',
           stack: undefined,
         });
+        expect(result.originalError).toBeDefined();
       });
 
       it('should handle Error without name property', async () => {
         const error = new Error('Test error');
         Object.defineProperty(error, 'name', { value: undefined });
 
-        const result = GlobalExceptionFilter.processException(error);
+        const result = (filter as any).processException(error);
 
         expect(result.error).toBe('InternalServerErrorException');
       });
@@ -356,7 +358,7 @@ describe('GlobalExceptionFilter', () => {
         process.env.NODE_ENV = 'development';
         const error = new Error('Specific database constraint violation');
 
-        const result = GlobalExceptionFilter.processException(error);
+        const result = (filter as any).processException(error);
 
         expect(result.message).toBe('Specific database constraint violation');
       });
@@ -365,7 +367,7 @@ describe('GlobalExceptionFilter', () => {
         process.env.NODE_ENV = 'production';
         const error = new Error('Detailed internal system error');
 
-        const result = GlobalExceptionFilter.processException(error);
+        const result = (filter as any).processException(error);
 
         expect(result.message).toBe('Detailed internal system error');
       });
@@ -375,20 +377,20 @@ describe('GlobalExceptionFilter', () => {
       it('should process string exception', async () => {
         const unknownException = 'Simple string error';
 
-        const result = GlobalExceptionFilter.processException(unknownException);
+        const result = (filter as any).processException(unknownException);
 
         expect(result).toEqual({
           status: 500,
-          message: 'An unexpected error occurred',
+          message: 'An unknown error occurred',
           error: 'UnknownException',
-          code: 'UNKNOWN_EXCEPTION',
+          code: 'ERR_UNKNOWN',
         });
       });
 
       it('should process null exception', async () => {
-        const result = GlobalExceptionFilter.processException(null);
+        const result = (filter as any).processException(null);
 
-        expect(result.code).toBe('UNKNOWN_EXCEPTION');
+        expect(result.code).toBe('ERR_UNKNOWN');
         expect(result.error).toBe('UnknownException');
       });
     });
@@ -408,7 +410,7 @@ describe('GlobalExceptionFilter', () => {
           ip: '10.0.0.1',
         };
 
-        const sanitized = GlobalExceptionFilter.sanitizeContext(context);
+        const sanitized = (filter as any).sanitizeContext(context);
 
         expect(sanitized).toEqual({
           requestId: 'req-prod-123',
@@ -432,7 +434,7 @@ describe('GlobalExceptionFilter', () => {
           ip: '127.0.0.1',
         };
 
-        const sanitized = GlobalExceptionFilter.sanitizeContext(context);
+        const sanitized = (filter as any).sanitizeContext(context);
 
         expect(sanitized).toEqual({
           requestId: 'req-dev-123',
@@ -454,7 +456,7 @@ describe('GlobalExceptionFilter', () => {
           ip: '10.0.0.1',
         };
 
-        const sanitized = GlobalExceptionFilter.sanitizeContext(context);
+        const sanitized = (filter as any).sanitizeContext(context);
 
         expect(sanitized).toEqual({
           requestId: 'req-123',
@@ -477,14 +479,14 @@ describe('GlobalExceptionFilter', () => {
       };
       const request = createMockRequest({
         method: 'POST',
-        url: '/api/auth/login',
+        url: '/api/v1/auth/login',
       });
       const context = {
         requestId: 'req-abc-123',
         userId: 'user-def-456',
       };
 
-      const result = GlobalExceptionFilter.buildErrorResponse(
+      const result = (filter as any).buildErrorResponse(
         errorData,
         request,
         context,
@@ -496,7 +498,7 @@ describe('GlobalExceptionFilter', () => {
         timestamp: expect.stringMatching(
           /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/,
         ),
-        path: '/api/auth/login',
+        path: '/api/v1/auth/login',
         method: 'POST',
         error: 'BadRequestException',
         code: 'VALIDATION_ERROR',
@@ -527,7 +529,7 @@ describe('GlobalExceptionFilter', () => {
       const request = createMockRequest();
       const context = { requestId: 'req-123' };
 
-      const result = GlobalExceptionFilter.buildErrorResponse(
+      const result = (filter as any).buildErrorResponse(
         errorData,
         request,
         context,
@@ -549,7 +551,7 @@ describe('GlobalExceptionFilter', () => {
       const request = createMockRequest();
       const context = {};
 
-      const result = GlobalExceptionFilter.buildErrorResponse(
+      const result = (filter as any).buildErrorResponse(
         errorData,
         request,
         context,
@@ -569,7 +571,7 @@ describe('GlobalExceptionFilter', () => {
       const context = {};
 
       const before = new Date();
-      const result = GlobalExceptionFilter.buildErrorResponse(
+      const result = (filter as any).buildErrorResponse(
         errorData,
         request,
         context,
@@ -587,218 +589,452 @@ describe('GlobalExceptionFilter', () => {
 
   describe('Logging behavior', () => {
     it('should handle ZodValidationException logging gracefully', async () => {
-      await testErrorSilencer.withSilencedErrors(async () => {
-        const validationErrors = { message: 'Email validation failed' };
-        const zodException = createZodValidationException(validationErrors);
+      const validationErrors = { message: 'Email validation failed' };
+      const zodException = createZodValidationException(validationErrors);
 
-        const request = createMockRequest({
-          method: 'PUT',
-          url: '/api/users/123',
-          body: { email: 'invalid-email' },
-        });
-        const response = createMockResponse();
-        const host = createMockArgumentsHost(request, response);
+      const request = createMockRequest({
+        method: 'PUT',
+        url: '/api/v1/users/123',
+        body: { email: 'invalid-email' },
+      });
+      const response = createMockResponse();
+      const host = createMockArgumentsHost(request, response);
 
-        // Should not throw when logging
-        expect(() => filter.catch(zodException, host)).not.toThrow();
+      // Should not throw when logging
+      expect(() => filter.catch(zodException, host)).not.toThrow();
 
-        // Verify the response was properly formatted
-        expect((response as any).getStatusCode()).toBe(400);
-        expect((response as any).getResponseData()).toEqual(
-          expect.objectContaining({
-            success: false,
-            statusCode: 400,
-            message: validationErrors,
-            code: 'ZOD_VALIDATION_FAILED',
-          }),
-        );
+      // Verify the response was properly formatted
+      expect((response as any).getStatusCode()).toBe(400);
+      const responseData = (response as any).getResponseData();
+      expect(responseData).toMatchObject({
+        success: false,
+        statusCode: 400,
+        message: validationErrors,
+        code: 'ERR_ZOD_VALIDATION_FAILED',
       });
     });
 
     it('should handle 4xx error logging gracefully', async () => {
-      await testErrorSilencer.withSilencedErrors(async () => {
-        const httpException = new HttpException(
-          'Unauthorized access',
-          HttpStatus.UNAUTHORIZED,
-        );
-        const request = createMockRequest({
-          method: 'GET',
-          url: '/api/protected',
-        });
-        const response = createMockResponse();
-        const host = createMockArgumentsHost(request, response);
-
-        // Should not throw when logging
-        expect(() => filter.catch(httpException, host)).not.toThrow();
-
-        // Verify the response was properly formatted
-        expect((response as any).getStatusCode()).toBe(401);
-        expect((response as any).getResponseData()).toEqual(
-          expect.objectContaining({
-            success: false,
-            statusCode: 401,
-            message: 'Unauthorized access',
-            code: 'HTTP_401',
-          }),
-        );
+      const httpException = new HttpException(
+        'Unauthorized access',
+        HttpStatus.UNAUTHORIZED,
+      );
+      const request = createMockRequest({
+        method: 'GET',
+        url: '/api/v1/protected',
       });
+      const response = createMockResponse();
+      const host = createMockArgumentsHost(request, response);
+
+      // Should not throw when logging
+      expect(() => filter.catch(httpException, host)).not.toThrow();
+
+      // Verify the response was properly formatted
+      expect((response as any).getStatusCode()).toBe(401);
+      expect((response as any).getResponseData()).toEqual(
+        expect.objectContaining({
+          success: false,
+          statusCode: 401,
+          message: 'Unauthorized access',
+          code: 'HTTP_401',
+        }),
+      );
     });
 
     it('should handle 5xx error logging gracefully', async () => {
-      await testErrorSilencer.withSilencedErrors(async () => {
-        const httpException = new HttpException(
-          'Internal server error',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-        const request = createMockRequest();
-        const response = createMockResponse();
-        const host = createMockArgumentsHost(request, response);
+      const httpException = new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+      const request = createMockRequest();
+      const response = createMockResponse();
+      const host = createMockArgumentsHost(request, response);
 
-        // Should not throw when logging
-        expect(() => filter.catch(httpException, host)).not.toThrow();
+      // Should not throw when logging
+      expect(() => filter.catch(httpException, host)).not.toThrow();
 
-        // Verify the response was properly formatted
-        expect((response as any).getStatusCode()).toBe(500);
-        expect((response as any).getResponseData()).toEqual(
-          expect.objectContaining({
-            success: false,
-            statusCode: 500,
-            message: 'Internal server error',
-            code: 'HTTP_500',
-          }),
-        );
-      });
+      // Verify the response was properly formatted
+      expect((response as any).getStatusCode()).toBe(500);
+      expect((response as any).getResponseData()).toEqual(
+        expect.objectContaining({
+          success: false,
+          statusCode: 500,
+          message: 'Internal server error',
+          code: 'HTTP_500',
+        }),
+      );
     });
 
     it('should handle generic error logging gracefully', async () => {
-      await testErrorSilencer.withSilencedErrors(async () => {
-        const error = new Error('Custom database error');
-        const request = createMockRequest({ method: 'DELETE' });
-        const response = createMockResponse();
-        const host = createMockArgumentsHost(request, response);
+      const error = new Error('Custom database error');
+      const request = createMockRequest({ method: 'DELETE' });
+      const response = createMockResponse();
+      const host = createMockArgumentsHost(request, response);
 
-        // Should not throw when logging
-        expect(() => filter.catch(error, host)).not.toThrow();
+      // Should not throw when logging
+      expect(() => filter.catch(error, host)).not.toThrow();
 
-        // Verify the response was properly formatted
-        expect((response as any).getStatusCode()).toBe(500);
-        expect((response as any).getResponseData()).toEqual(
-          expect.objectContaining({
-            success: false,
-            statusCode: 500,
-            message: 'Custom database error', // Now shows actual error message
-            code: 'INTERNAL_SERVER_ERROR',
-          }),
-        );
+      // Verify the response was properly formatted
+      expect((response as any).getStatusCode()).toBe(500);
+      const responseData = (response as any).getResponseData();
+      expect(responseData).toMatchObject({
+        success: false,
+        statusCode: 500,
+        message: 'Custom database error',
+        code: 'ERR_INTERNAL_SERVER',
       });
     });
   });
 
   describe('Full integration behavior', () => {
     it('should handle complete flow for ZodValidationException', async () => {
-      await testErrorSilencer.withSilencedErrors(async () => {
-        const validationErrors = {
-          message: 'Validation failed',
-          errors: [{ path: ['email'], message: 'Invalid email' }],
-        };
-        const zodException = createZodValidationException(validationErrors);
-        const request = createMockRequest();
-        const response = createMockResponse();
-        const host = createMockArgumentsHost(request, response);
+      const validationErrors = {
+        message: 'Validation failed',
+        errors: [{ path: ['email'], message: 'Invalid email' }],
+      };
+      const zodException = createZodValidationException(validationErrors);
+      const request = createMockRequest();
+      const response = createMockResponse();
+      const host = createMockArgumentsHost(request, response);
 
-        filter.catch(zodException, host);
+      filter.catch(zodException, host);
 
-        // Verify response was called correctly
-        expect((response as any).getStatusCode()).toBe(400);
-        expect((response as any).getResponseData()).toEqual(
-          expect.objectContaining({
-            success: false,
-            statusCode: 400,
-            message: validationErrors,
-            error: 'ZodValidationException',
-            code: 'ZOD_VALIDATION_FAILED',
-            context: expect.objectContaining({
-              requestId: 'req-123-456',
-              userId: 'user-abc-123',
-            }),
-          }),
-        );
+      // Verify response was called correctly
+      expect((response as any).getStatusCode()).toBe(400);
+      const responseData = (response as any).getResponseData();
+      expect(responseData).toMatchObject({
+        success: false,
+        statusCode: 400,
+        message: validationErrors,
+        error: 'ZodValidationException',
+        code: 'ERR_ZOD_VALIDATION_FAILED',
+      });
+      expect(responseData.context).toMatchObject({
+        requestId: 'req-123-456',
+        userId: 'user-abc-123',
       });
     });
 
     it('should handle complete flow for HttpException', async () => {
-      await testErrorSilencer.withSilencedErrors(async () => {
-        const httpException = new HttpException(
-          'Not found',
-          HttpStatus.NOT_FOUND,
-        );
-        const request = createMockRequest({ url: '/api/users/999' });
-        const response = createMockResponse();
-        const host = createMockArgumentsHost(request, response);
+      const httpException = new HttpException(
+        'Not found',
+        HttpStatus.NOT_FOUND,
+      );
+      const request = createMockRequest({ url: '/api/v1/users/999' });
+      const response = createMockResponse();
+      const host = createMockArgumentsHost(request, response);
 
-        filter.catch(httpException, host);
+      filter.catch(httpException, host);
 
-        // Verify response was called correctly
-        expect((response as any).getStatusCode()).toBe(404);
-        expect((response as any).getResponseData()).toEqual(
-          expect.objectContaining({
-            success: false,
-            statusCode: 404,
-            message: 'Not found',
-            error: 'HttpException',
-            code: 'HTTP_404',
-            path: '/api/users/999',
-          }),
-        );
+      // Verify response was called correctly
+      expect((response as any).getStatusCode()).toBe(404);
+      const responseData = (response as any).getResponseData();
+      expect(responseData).toMatchObject({
+        success: false,
+        statusCode: 404,
+        message: 'Not found',
+        error: 'HttpException',
+        code: 'HTTP_404',
+        path: '/api/v1/users/999',
       });
     });
 
     it('should handle complete flow for generic Error', async () => {
-      await testErrorSilencer.withSilencedErrors(async () => {
-        const error = new Error('Database timeout');
-        const request = createMockRequest();
-        const response = createMockResponse();
-        const host = createMockArgumentsHost(request, response);
+      const error = new Error('Database timeout');
+      const request = createMockRequest();
+      const response = createMockResponse();
+      const host = createMockArgumentsHost(request, response);
 
-        filter.catch(error, host);
+      filter.catch(error, host);
 
-        // Verify response was called correctly
-        expect((response as any).getStatusCode()).toBe(500);
-        expect((response as any).getResponseData()).toEqual(
-          expect.objectContaining({
-            success: false,
-            statusCode: 500,
-            message: 'Database timeout',
-            error: 'Error',
-            code: 'INTERNAL_SERVER_ERROR',
-          }),
-        );
+      // Verify response was called correctly
+      expect((response as any).getStatusCode()).toBe(500);
+      const responseData = (response as any).getResponseData();
+      expect(responseData).toMatchObject({
+        success: false,
+        statusCode: 500,
+        message: 'Database timeout',
+        error: 'Error',
+        code: 'ERR_INTERNAL_SERVER',
       });
+    });
+  });
+
+  describe('BusinessException handling with cause chains', () => {
+    it('should process BusinessException with enriched context and cause chain', async () => {
+      // Create a complex error chain
+      const socketError = new Error('ECONNREFUSED 127.0.0.1:5432');
+      socketError.name = 'SocketError';
+
+      const dbError = new Error('Connection to database failed');
+      dbError.name = 'DatabaseError';
+      (dbError as any).cause = socketError;
+
+      const serviceError = new Error('Failed to create budget');
+      serviceError.name = 'ServiceError';
+      (serviceError as any).cause = dbError;
+
+      const businessException = new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_CREATE_FAILED,
+        { templateId: 'tpl-123' },
+        {
+          userId: 'user-456',
+          operation: 'createBudget',
+          attemptedMonth: 3,
+          attemptedYear: 2024,
+        },
+        { cause: serviceError },
+      );
+
+      const result = (filter as any).processException(businessException);
+
+      expect(result).toMatchObject({
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: expect.stringContaining('Failed to create budget'),
+        error: 'BusinessException',
+        code: 'ERR_BUDGET_CREATE_FAILED',
+        originalError: businessException,
+        details: { templateId: 'tpl-123' },
+        loggingContext: expect.objectContaining({
+          userId: 'user-456',
+          operation: 'createBudget',
+          attemptedMonth: 3,
+          attemptedYear: 2024,
+          causeChain: expect.arrayContaining([
+            expect.objectContaining({
+              depth: 1,
+              name: 'ServiceError',
+              message: 'Failed to create budget',
+            }),
+            expect.objectContaining({
+              depth: 2,
+              name: 'DatabaseError',
+              message: 'Connection to database failed',
+            }),
+            expect.objectContaining({
+              depth: 3,
+              name: 'SocketError',
+              message: 'ECONNREFUSED 127.0.0.1:5432',
+            }),
+          ]),
+          rootCause: expect.objectContaining({
+            name: 'SocketError',
+            message: 'ECONNREFUSED 127.0.0.1:5432',
+          }),
+        }),
+      });
+    });
+
+    it('should include stack traces in cause chain during development', async () => {
+      process.env.NODE_ENV = 'development';
+
+      const rootError = new Error('Root cause');
+      rootError.stack = 'Root stack trace';
+
+      const businessException = new BusinessException(
+        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+        undefined,
+        { operation: 'test' },
+        { cause: rootError },
+      );
+
+      const result = (filter as any).processException(businessException);
+
+      expect(result.loggingContext.causeChain[0]).toHaveProperty(
+        'stack',
+        'Root stack trace',
+      );
+      expect(result.loggingContext.rootCause).toHaveProperty(
+        'stack',
+        'Root stack trace',
+      );
+    });
+
+    it('should exclude stack traces in cause chain during production', async () => {
+      process.env.NODE_ENV = 'production';
+
+      const rootError = new Error('Root cause');
+      rootError.stack = 'Root stack trace';
+
+      const businessException = new BusinessException(
+        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+        undefined,
+        { operation: 'test' },
+        { cause: rootError },
+      );
+
+      const result = (filter as any).processException(businessException);
+
+      expect(result.loggingContext.causeChain[0]).not.toHaveProperty('stack');
+      expect(result.loggingContext.rootCause).not.toHaveProperty('stack');
+    });
+
+    it('should handle BusinessException without cause', async () => {
+      const businessException = new BusinessException(
+        ERROR_DEFINITIONS.VALIDATION_FAILED,
+        { reason: 'Invalid input' },
+        { userId: 'user-123', endpoint: '/api/v1/budgets' },
+      );
+
+      const result = (filter as any).processException(businessException);
+
+      expect(result.loggingContext.causeChain).toEqual([]);
+      expect(result.loggingContext.rootCause).toBeNull();
+    });
+
+    it('should handle non-Error root causes', async () => {
+      const stringCause = 'String error message';
+
+      const businessException = new BusinessException(
+        ERROR_DEFINITIONS.UNKNOWN_EXCEPTION,
+        undefined,
+        { operation: 'parse' },
+        { cause: stringCause },
+      );
+
+      const result = (filter as any).processException(businessException);
+
+      expect(result.loggingContext.causeChain).toHaveLength(1);
+      expect(result.loggingContext.rootCause).toEqual({ value: stringCause });
+    });
+
+    it('should handle Supabase-style error patterns', async () => {
+      const postgresError = new Error('PostgreSQL Error');
+
+      const supabaseError = {
+        message:
+          'duplicate key value violates unique constraint "budgets_user_month_year_key"',
+        code: '23505',
+        details: 'Key (user_id, month, year)=(123, 3, 2024) already exists.',
+        hint: null,
+        originalError: postgresError,
+      };
+
+      const businessException = new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_ALREADY_EXISTS_FOR_MONTH,
+        { month: 3, year: 2024 },
+        {
+          userId: '123',
+          postgresCode: '23505',
+          constraint: 'budgets_user_month_year_key',
+        },
+        { cause: supabaseError },
+      );
+
+      const result = (filter as any).processException(businessException);
+
+      expect(result.loggingContext.causeChain).toHaveLength(2);
+      expect(result.loggingContext.causeChain[0]).toMatchObject({
+        depth: 1,
+        name: 'UnknownError',
+        message:
+          'duplicate key value violates unique constraint "budgets_user_month_year_key"',
+      });
+      expect(result.loggingContext.causeChain[1]).toMatchObject({
+        depth: 2,
+        name: 'Error',
+        message: 'PostgreSQL Error',
+      });
+    });
+
+    it('should log BusinessException with enriched context', async () => {
+      const rootError = new Error('Database connection failed');
+      const businessException = new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_CREATE_FAILED,
+        { templateId: 'tpl-123' },
+        { userId: 'user-456', operation: 'create' },
+        { cause: rootError },
+      );
+
+      const request = createMockRequest({
+        method: 'POST',
+        url: '/api/v1/budgets',
+        body: { templateId: 'tpl-123', month: 3, year: 2024 },
+      });
+      const response = createMockResponse();
+      const host = createMockArgumentsHost(request, response);
+
+      // Spy on logger to capture the log context
+      const loggerErrorSpy = { calls: [] as any[] };
+      const testFilter = new GlobalExceptionFilter({
+        ...mockLogger,
+        error: (context: any, message: string) => {
+          loggerErrorSpy.calls.push({ context, message });
+        },
+      });
+
+      testFilter.catch(businessException, host);
+
+      expect(loggerErrorSpy.calls).toHaveLength(1);
+      expect(loggerErrorSpy.calls[0].message).toBe(
+        'SERVER ERROR: Failed to create budget',
+      );
+      expect(loggerErrorSpy.calls[0].context).toMatchObject({
+        requestId: 'req-123-456',
+        userId: 'user-456',
+        operation: 'create',
+        causeChain: expect.any(Array),
+        rootCause: expect.objectContaining({
+          name: 'Error',
+          message: 'Database connection failed',
+        }),
+      });
+    });
+
+    it('should properly format BusinessException response with details', async () => {
+      const businessException = new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
+        { id: 'budget-123' },
+        { userId: 'user-456', operation: 'findOne' },
+      );
+
+      const request = createMockRequest({
+        method: 'GET',
+        url: '/api/v1/budgets/budget-123',
+      });
+      const response = createMockResponse();
+      const host = createMockArgumentsHost(request, response);
+
+      filter.catch(businessException, host);
+
+      expect((response as any).getStatusCode()).toBe(HttpStatus.NOT_FOUND);
+      expect((response as any).getResponseData()).toEqual(
+        expect.objectContaining({
+          success: false,
+          statusCode: HttpStatus.NOT_FOUND,
+          message: expect.stringContaining(
+            "Budget with ID 'budget-123' not found",
+          ),
+          error: 'BusinessException',
+          code: 'ERR_BUDGET_NOT_FOUND',
+          details: { id: 'budget-123' },
+          path: '/api/v1/budgets/budget-123',
+          method: 'GET',
+        }),
+      );
     });
   });
 
   describe('Edge cases and error scenarios', () => {
     it('should handle exceptions during logging gracefully', async () => {
-      await testErrorSilencer.withSilencedErrors(async () => {
-        const error = new Error('Original error');
-        const request = createMockRequest();
-        const response = createMockResponse();
-        const host = createMockArgumentsHost(request, response);
+      const error = new Error('Original error');
+      const request = createMockRequest();
+      const response = createMockResponse();
+      const host = createMockArgumentsHost(request, response);
 
-        // Should not throw even if logging fails
-        expect(() => filter.catch(error, host)).not.toThrow();
+      // Should not throw even if logging fails
+      expect(() => filter.catch(error, host)).not.toThrow();
 
-        // Response should still be called
-        expect((response as any).getStatusCode()).toBe(500);
-        expect((response as any).getResponseData()).toBeDefined();
-      });
+      // Response should still be called
+      expect((response as any).getStatusCode()).toBe(500);
+      expect((response as any).getResponseData()).toBeDefined();
     });
 
     it('should handle empty headers object', async () => {
       const request = {
         headers: {}, // Completely empty headers
         method: 'POST',
-        url: '/api/users',
+        url: '/api/v1/users',
         body: { name: 'Test User', email: 'test@example.com' },
         ip: '192.168.1.100',
         connection: {
@@ -807,7 +1043,7 @@ describe('GlobalExceptionFilter', () => {
         user: { id: 'user-abc-123' },
       } as any;
 
-      const context = GlobalExceptionFilter.extractRequestContext(request);
+      const context = (filter as any).extractRequestContext(request);
 
       expect(context).toEqual({
         requestId: undefined,
@@ -825,7 +1061,7 @@ describe('GlobalExceptionFilter', () => {
         ip: null as any,
       };
 
-      const sanitized = GlobalExceptionFilter.sanitizeContext(context);
+      const sanitized = (filter as any).sanitizeContext(context);
       expect(sanitized).toBeDefined();
     });
   });

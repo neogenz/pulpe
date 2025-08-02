@@ -43,10 +43,9 @@ ALTER TYPE "public"."savings_goal_status" OWNER TO "postgres";
 
 
 CREATE TYPE "public"."transaction_kind" AS ENUM (
-    'expense',
-    'income',
-    'saving',
-    'exceptional_income'
+    'INCOME',
+    'FIXED_EXPENSE',
+    'SAVINGS_CONTRIBUTION'
 );
 
 
@@ -216,6 +215,92 @@ $$;
 
 
 ALTER FUNCTION "public"."create_template_with_lines"("p_user_id" "uuid", "p_name" "text", "p_description" "text", "p_is_default" boolean, "p_lines" "jsonb") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."bulk_update_template_lines"("p_template_id" "uuid", "line_updates" "jsonb") RETURNS TABLE("id" "uuid", "template_id" "uuid", "name" "text", "amount" numeric, "kind" "public"."transaction_kind", "recurrence" "public"."transaction_recurrence", "description" "text", "created_at" timestamp with time zone, "updated_at" timestamp with time zone)
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+DECLARE
+  line_update JSONB;
+  updated_count INTEGER := 0;
+BEGIN
+  -- Validate that template exists and belongs to authenticated user
+  IF NOT EXISTS(
+    SELECT 1 FROM public.template t 
+    WHERE t.id = p_template_id 
+    AND t.user_id = auth.uid()
+  ) THEN
+    RAISE EXCEPTION 'Template not found or access denied'
+      USING ERRCODE = 'P0001';
+  END IF;
+
+  -- Process each line update atomically
+  FOR line_update IN SELECT * FROM jsonb_array_elements(line_updates)
+  LOOP
+    -- Validate that the line exists and belongs to the template
+    IF NOT EXISTS(
+      SELECT 1 FROM public.template_line tl 
+      WHERE tl.id = (line_update->>'id')::UUID 
+      AND tl.template_id = p_template_id
+    ) THEN
+      RAISE EXCEPTION 'Template line % not found or does not belong to template %', 
+        line_update->>'id', p_template_id
+        USING ERRCODE = 'P0002';
+    END IF;
+
+    -- Update the template line with proper type casting
+    -- Use CASE statements to avoid COALESCE type mismatch issues
+    UPDATE public.template_line 
+    SET 
+      name = CASE 
+        WHEN line_update->>'name' IS NOT NULL THEN (line_update->>'name')::TEXT
+        ELSE public.template_line.name
+      END,
+      amount = CASE 
+        WHEN line_update->>'amount' IS NOT NULL THEN (line_update->>'amount')::NUMERIC
+        ELSE public.template_line.amount
+      END,
+      kind = CASE 
+        WHEN line_update->>'kind' IS NOT NULL THEN (line_update->>'kind')::public.transaction_kind
+        ELSE public.template_line.kind
+      END,
+      recurrence = CASE 
+        WHEN line_update->>'recurrence' IS NOT NULL THEN (line_update->>'recurrence')::public.transaction_recurrence
+        ELSE public.template_line.recurrence
+      END,
+      description = CASE 
+        WHEN line_update->>'description' IS NOT NULL THEN (line_update->>'description')::TEXT
+        ELSE public.template_line.description
+      END,
+      updated_at = NOW()
+    WHERE 
+      public.template_line.id = (line_update->>'id')::UUID 
+      AND public.template_line.template_id = p_template_id;
+    
+    updated_count := updated_count + 1;
+  END LOOP;
+
+  -- Return all updated template lines
+  RETURN QUERY
+  SELECT 
+    tl.id,
+    tl.template_id,
+    tl.name,
+    tl.amount,
+    tl.kind,
+    tl.recurrence,
+    COALESCE(tl.description, '') as description,
+    tl.created_at,
+    tl.updated_at
+  FROM public.template_line tl
+  WHERE tl.template_id = p_template_id
+  ORDER BY tl.created_at;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."bulk_update_template_lines"("p_template_id" "uuid", "line_updates" "jsonb") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."update_updated_at_column"() RETURNS "trigger"

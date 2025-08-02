@@ -32,7 +32,7 @@ test.describe('Budget Line Inline Editing', () => {
     });
 
     // Mock the update API endpoint using typed helper
-    await authenticatedPage.route('**/api/budget-lines/line-1', (route) => {
+    await authenticatedPage.route('**/api/v1/budget-lines/line-1', (route) => {
       if (route.request().method() === 'PATCH') {
         const updatedBudgetLine = createBudgetLineMock('line-1', budgetId, {
           name: updatedName,

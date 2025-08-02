@@ -7,10 +7,9 @@ import { SupabaseService } from '@modules/supabase/supabase.service';
 import {
   createMockAuthenticatedUser,
   createMockSupabaseClient,
-  createTestingModuleBuilder,
   expectErrorThrown,
   MockSupabaseClient,
-} from '../../test/test-utils';
+} from '../../test/test-utils-simple';
 
 describe('AuthGuard', () => {
   let authGuard: AuthGuard;
@@ -19,15 +18,14 @@ describe('AuthGuard', () => {
   let mockSupabaseClient: MockSupabaseClient;
 
   beforeEach(async () => {
-    const { mockSupabaseService } = createTestingModuleBuilder();
     const { mockClient } = createMockSupabaseClient();
     mockSupabaseClient = mockClient;
 
-    // Update the mock to return our mockClient
-    mockSupabaseService.createAuthenticatedClient = () =>
-      mockSupabaseClient as unknown as ReturnType<
-        typeof mockSupabaseService.createAuthenticatedClient
-      >;
+    const mockSupabaseService = {
+      createAuthenticatedClient: () => mockSupabaseClient as any,
+      getClient: () => mockSupabaseClient as any,
+      getServiceRoleClient: () => mockSupabaseClient as any,
+    };
 
     const mockReflector = {
       get: () => undefined,

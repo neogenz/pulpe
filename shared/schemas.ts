@@ -265,6 +265,26 @@ export const templateLineUpdateSchema = z.object({
 });
 export type TemplateLineUpdate = z.infer<typeof templateLineUpdateSchema>;
 
+// Bulk template line update schemas
+export const templateLineUpdateWithIdSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1).max(100).trim().optional(),
+  amount: z.number().positive().optional(),
+  kind: transactionKindSchema.optional(),
+  recurrence: transactionRecurrenceSchema.optional(),
+  description: z.string().max(500).trim().optional(),
+});
+export type TemplateLineUpdateWithId = z.infer<
+  typeof templateLineUpdateWithIdSchema
+>;
+
+export const templateLinesBulkUpdateSchema = z.object({
+  lines: z.array(templateLineUpdateWithIdSchema).min(1),
+});
+export type TemplateLinesBulkUpdate = z.infer<
+  typeof templateLinesBulkUpdateSchema
+>;
+
 // Legacy schema for backward compatibility
 export const templateTransactionUpdateSchema = z.object({
   name: z.string().min(1).max(100).trim().optional(),
@@ -401,6 +421,15 @@ export const templateLineListResponseSchema = z.object({
 });
 export type TemplateLineListResponse = z.infer<
   typeof templateLineListResponseSchema
+>;
+
+export const templateLinesBulkUpdateResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.array(templateLineSchema),
+  message: z.string().optional(),
+});
+export type TemplateLinesBulkUpdateResponse = z.infer<
+  typeof templateLinesBulkUpdateResponseSchema
 >;
 
 export const templateLineDeleteResponseSchema = deleteResponseSchema;

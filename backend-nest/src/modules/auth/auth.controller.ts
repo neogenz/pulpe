@@ -18,7 +18,7 @@ import {
 } from './dto/auth-response.dto';
 
 @ApiTags('Auth')
-@Controller('auth')
+@Controller({ path: 'auth', version: '1' })
 @ApiInternalServerErrorResponse({
   description: 'Internal server error',
   type: AuthErrorResponseDto,

@@ -224,7 +224,7 @@ interface NavigationItem {
           </mat-toolbar>
 
           <!-- Breadcrumb -->
-          @if (breadcrumbState.breadcrumbs().length > 1) {
+          @if (breadcrumbState.breadcrumbs().length > 0) {
             <pulpe-breadcrumb
               class="px-4 py-3"
               [items]="breadcrumbState.breadcrumbs()"

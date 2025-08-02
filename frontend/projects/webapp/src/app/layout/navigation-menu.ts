@@ -53,9 +53,9 @@ const NAVIGATION_CONFIG: NavigationSection[] = [
         </div>
 
         <mat-nav-list>
-          @for (section of navigationSections(); track $index) {
+          @for (section of navigationSections(); track section.title) {
             <div mat-subheader>{{ section.title }}</div>
-            @for (item of section.items; track $index) {
+            @for (item of section.items; track item.route) {
               <a
                 mat-list-item
                 [routerLink]="item.route"

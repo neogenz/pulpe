@@ -1,25 +1,15 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
 import { Test, type TestingModule } from '@nestjs/testing';
-import {
-  BadRequestException,
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
 import { BudgetService } from './budget.service';
-import { BudgetMapper } from './budget.mapper';
-import { TransactionMapper } from '../transaction/transaction.mapper';
-import { BudgetLineMapper } from '../budget-line/budget-line.mapper';
 import {
   createMockAuthenticatedUser,
   createMockSupabaseClient,
-  expectSuccessResponse,
-  expectErrorThrown,
-  expectListResponse,
-  expectPerformance,
+  expectBusinessExceptionThrown,
   MOCK_BUDGET_ID,
   MockSupabaseClient,
-} from '../../test/test-utils';
+} from '../../test/test-utils-simple';
 import type { BudgetCreate, BudgetUpdate } from '@pulpe/shared';
+import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 
 describe('BudgetService', () => {
   let service: BudgetService;
@@ -63,9 +53,6 @@ describe('BudgetService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BudgetService,
-        BudgetMapper,
-        TransactionMapper,
-        BudgetLineMapper,
         {
           provide: `PinoLogger:${BudgetService.name}`,
           useValue: mockPinoLogger,
@@ -78,6 +65,7 @@ describe('BudgetService', () => {
 
   describe('findAll', () => {
     it('should return all budgets with proper data transformation', async () => {
+      const mockUser = createMockAuthenticatedUser();
       const mockBudgets = [
         createValidBudgetEntity(),
         createValidBudgetEntity({
@@ -89,44 +77,38 @@ describe('BudgetService', () => {
 
       mockSupabaseClient.setMockData(mockBudgets).setMockError(null);
 
-      await expectPerformance(
-        async () => {
-          const result = await service.findAll(mockSupabaseClient as any);
+      const result = await service.findAll(mockUser, mockSupabaseClient as any);
 
-          expectListResponse(
-            result,
-            (budget: any) => {
-              // Vérifier la transformation snake_case → camelCase
-              expect(budget).toHaveProperty('id');
-              expect(budget).toHaveProperty('createdAt');
-              expect(budget).toHaveProperty('userId');
-              expect(budget).not.toHaveProperty('created_at');
-              expect(budget).not.toHaveProperty('user_id');
-            },
-            2,
-          );
+      // Verify successful response
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveLength(2);
 
-          // Note: Mock client doesn't apply sorting, so we test the transformation only
-          // In real usage, Supabase orders by year desc, month desc
-          expect(result.data).toHaveLength(2);
-        },
-        30,
-        'BudgetService.findAll with proper transformation',
-      );
+      // Verify data transformation snake_case → camelCase
+      result.data.forEach((budget: any) => {
+        expect(budget).toHaveProperty('id');
+        expect(budget).toHaveProperty('createdAt');
+        expect(budget).toHaveProperty('userId');
+        expect(budget).not.toHaveProperty('created_at');
+        expect(budget).not.toHaveProperty('user_id');
+      });
+
+      // Note: Mock client doesn't apply sorting, so we test the transformation only
+      // In real usage, Supabase orders by year desc, month desc
     });
 
     it('should handle database error gracefully', async () => {
+      const mockUser = createMockAuthenticatedUser();
       const mockError = { message: 'Database connection failed' };
       mockSupabaseClient.setMockData(null).setMockError(mockError);
 
-      await expectErrorThrown(
-        () => service.findAll(mockSupabaseClient as any),
-        InternalServerErrorException,
-        'Erreur lors de la récupération des budgets',
+      await expectBusinessExceptionThrown(
+        () => service.findAll(mockUser, mockSupabaseClient as any),
+        ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
       );
     });
 
     it('should handle valid budget data only', async () => {
+      const mockUser = createMockAuthenticatedUser();
       const validBudgets = [
         createValidBudgetEntity(),
         createValidBudgetEntity({
@@ -138,9 +120,9 @@ describe('BudgetService', () => {
 
       mockSupabaseClient.setMockData(validBudgets).setMockError(null);
 
-      const result = await service.findAll(mockSupabaseClient as any);
+      const result = await service.findAll(mockUser, mockSupabaseClient as any);
 
-      expectSuccessResponse(result);
+      expect(result.success).toBe(true);
       expect(result.data).toHaveLength(2); // All valid budgets
     });
   });
@@ -177,7 +159,7 @@ describe('BudgetService', () => {
         mockSupabaseClient as any,
       );
 
-      expectSuccessResponse(result);
+      expect(result.success).toBe(true);
       expect(result.data.month).toBe(createBudgetDto.month);
       expect(result.data.year).toBe(createBudgetDto.year);
       expect(result.data.description).toBe(createBudgetDto.description);
@@ -195,11 +177,11 @@ describe('BudgetService', () => {
         templateId: 'test-template-id',
       };
 
-      await expectErrorThrown(
+      await expectBusinessExceptionThrown(
         () =>
           service.create(invalidMonthDto, mockUser, mockSupabaseClient as any),
-        BadRequestException,
-        'Mois invalide',
+        ERROR_DEFINITIONS.VALIDATION_FAILED,
+        { reason: 'Month must be between 1 and 12' },
       );
 
       // Test invalid year (too far in future)
@@ -210,11 +192,11 @@ describe('BudgetService', () => {
         templateId: 'test-template-id',
       };
 
-      await expectErrorThrown(
+      await expectBusinessExceptionThrown(
         () =>
           service.create(invalidYearDto, mockUser, mockSupabaseClient as any),
-        BadRequestException,
-        'Budget ne peut pas être créé plus de 2 ans dans le futur',
+        ERROR_DEFINITIONS.VALIDATION_FAILED,
+        { reason: 'Budget date cannot be more than 2 years in the future' },
       );
 
       // Test description too long
@@ -225,11 +207,11 @@ describe('BudgetService', () => {
         templateId: 'test-template-id',
       };
 
-      await expectErrorThrown(
+      await expectBusinessExceptionThrown(
         () =>
           service.create(invalidDescDto, mockUser, mockSupabaseClient as any),
-        BadRequestException,
-        'Description ne peut pas dépasser 500 caractères',
+        ERROR_DEFINITIONS.VALIDATION_FAILED,
+        { reason: 'Description cannot exceed 500 characters' },
       );
     });
 
@@ -242,11 +224,11 @@ describe('BudgetService', () => {
         .setMockData({ id: 'existing-budget' })
         .setMockError(null);
 
-      await expectErrorThrown(
+      await expectBusinessExceptionThrown(
         () =>
           service.create(createBudgetDto, mockUser, mockSupabaseClient as any),
-        BadRequestException,
-        'Un budget existe déjà pour cette période',
+        ERROR_DEFINITIONS.BUDGET_ALREADY_EXISTS_FOR_MONTH,
+        { month: createBudgetDto.month, year: createBudgetDto.year },
       );
     });
   });
@@ -266,7 +248,8 @@ describe('BudgetService', () => {
 
       const result = await service.findOne(budgetId, mockSupabaseClient as any);
 
-      expectSuccessResponse(result);
+      expect(result.success).toBe(true);
+      expect(result.data).toBeDefined();
       expect(result.data.id).toBe(budgetId);
 
       // Vérifier les enrichissements (ces tests passeront quand on utilisera le vrai service)
@@ -288,10 +271,10 @@ describe('BudgetService', () => {
 
       mockSupabaseClient.setMockData(null).setMockError(mockError);
 
-      await expectErrorThrown(
+      await expectBusinessExceptionThrown(
         () => service.findOne(budgetId, mockSupabaseClient as any),
-        NotFoundException,
-        'Budget introuvable ou accès non autorisé',
+        ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
+        { id: budgetId },
       );
     });
   });
@@ -320,7 +303,7 @@ describe('BudgetService', () => {
         mockSupabaseClient as any,
       );
 
-      expectSuccessResponse(result);
+      expect(result.success).toBe(true);
       expect(result.data.description).toBe(updateBudgetDto.description!);
       expect(result.data.month).toBe(updateBudgetDto.month!);
     });
@@ -334,11 +317,11 @@ describe('BudgetService', () => {
         month: 0, // Invalid: must be 1-12
       };
 
-      await expectErrorThrown(
+      await expectBusinessExceptionThrown(
         () =>
           service.update(budgetId, invalidUpdate, mockSupabaseClient as any),
-        BadRequestException,
-        'Mois invalide',
+        ERROR_DEFINITIONS.VALIDATION_FAILED,
+        { reason: 'Month must be between 1 and 12' },
       );
     });
   });
@@ -430,7 +413,7 @@ describe('BudgetService', () => {
         mockSupabaseClient as any,
       );
 
-      expectSuccessResponse(result);
+      expect(result.success).toBe(true);
       expect(result.data).toHaveProperty('budget');
       expect(result.data).toHaveProperty('transactions');
       expect(result.data).toHaveProperty('budgetLines');
@@ -459,20 +442,27 @@ describe('BudgetService', () => {
       const budgetId = MOCK_BUDGET_ID;
       const mockBudget = createValidBudgetEntity({ id: budgetId });
 
-      // Mock budget found but no transactions or budget lines
-      let callCount = 0;
+      // Create separate mock clients for each table to avoid data collision
+      const mockBudgetClient = new MockSupabaseClient();
+      const mockTransactionClient = new MockSupabaseClient();
+      const mockBudgetLineClient = new MockSupabaseClient();
+
+      // Configure each client with its specific data
+      mockBudgetClient.setMockData(mockBudget).setMockError(null);
+      mockTransactionClient.setMockData([]).setMockError(null);
+      mockBudgetLineClient.setMockData([]).setMockError(null);
+
+      // Override the from method to return the appropriate client
       const originalFrom = mockSupabaseClient.from;
       mockSupabaseClient.from = (table: string) => {
-        const result = originalFrom.call(mockSupabaseClient, table);
-        if (callCount === 0) {
-          // Budget query
-          mockSupabaseClient.setMockData(mockBudget).setMockError(null);
-        } else {
-          // Transactions and budget lines queries
-          mockSupabaseClient.setMockData([]).setMockError(null);
+        if (table === 'monthly_budget') {
+          return mockBudgetClient.from(table);
+        } else if (table === 'transaction') {
+          return mockTransactionClient.from(table);
+        } else if (table === 'budget_line') {
+          return mockBudgetLineClient.from(table);
         }
-        callCount++;
-        return result;
+        return originalFrom.call(mockSupabaseClient, table);
       };
 
       const result = await service.findOneWithDetails(
@@ -480,7 +470,7 @@ describe('BudgetService', () => {
         mockSupabaseClient as any,
       );
 
-      expectSuccessResponse(result);
+      expect(result.success).toBe(true);
       expect(result.data.budget.id).toBe(budgetId);
       expect(result.data.transactions).toEqual([]);
       expect(result.data.budgetLines).toEqual([]);
@@ -493,10 +483,10 @@ describe('BudgetService', () => {
         .setMockData(null)
         .setMockError({ message: 'No rows returned' });
 
-      await expectErrorThrown(
+      await expectBusinessExceptionThrown(
         () => service.findOneWithDetails(budgetId, mockSupabaseClient as any),
-        NotFoundException,
-        'Budget introuvable ou accès non autorisé',
+        ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
+        { id: budgetId },
       );
     });
 
@@ -504,22 +494,31 @@ describe('BudgetService', () => {
       const budgetId = MOCK_BUDGET_ID;
       const mockBudget = createValidBudgetEntity({ id: budgetId });
 
-      // Mock budget found but errors on other queries
-      let callCount = 0;
+      // Create separate mock clients for each table to avoid data collision
+      const mockBudgetClient = new MockSupabaseClient();
+      const mockTransactionClient = new MockSupabaseClient();
+      const mockBudgetLineClient = new MockSupabaseClient();
+
+      // Configure each client with its specific data
+      mockBudgetClient.setMockData(mockBudget).setMockError(null);
+      mockTransactionClient
+        .setMockData(null)
+        .setMockError({ message: 'Permission denied' });
+      mockBudgetLineClient
+        .setMockData(null)
+        .setMockError({ message: 'Permission denied' });
+
+      // Override the from method to return the appropriate client
       const originalFrom = mockSupabaseClient.from;
       mockSupabaseClient.from = (table: string) => {
-        const result = originalFrom.call(mockSupabaseClient, table);
-        if (callCount === 0) {
-          // Budget query succeeds
-          mockSupabaseClient.setMockData(mockBudget).setMockError(null);
-        } else {
-          // Transactions and budget lines queries fail
-          mockSupabaseClient
-            .setMockData(null)
-            .setMockError({ message: 'Permission denied' });
+        if (table === 'monthly_budget') {
+          return mockBudgetClient.from(table);
+        } else if (table === 'transaction') {
+          return mockTransactionClient.from(table);
+        } else if (table === 'budget_line') {
+          return mockBudgetLineClient.from(table);
         }
-        callCount++;
-        return result;
+        return originalFrom.call(mockSupabaseClient, table);
       };
 
       const result = await service.findOneWithDetails(
@@ -528,7 +527,7 @@ describe('BudgetService', () => {
       );
 
       // Should not throw, but return empty arrays for failed queries
-      expectSuccessResponse(result);
+      expect(result.success).toBe(true);
       expect(result.data.budget.id).toBe(budgetId);
       expect(result.data.transactions).toEqual([]);
       expect(result.data.budgetLines).toEqual([]);

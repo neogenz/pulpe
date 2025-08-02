@@ -1,12 +1,9 @@
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import {
-  BadRequestException,
-  Injectable,
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, HttpException } from '@nestjs/common';
 import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
+import { BusinessException } from '@common/exceptions/business.exception';
+import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import {
   type BudgetCreate,
   type BudgetDeleteResponse,
@@ -15,23 +12,21 @@ import {
   type BudgetUpdate,
   type BudgetDetailsResponse,
 } from '@pulpe/shared';
-import { BudgetMapper } from './budget.mapper';
+import * as budgetMappers from './budget.mappers';
 import { type Tables } from '../../types/database.types';
 import { BUDGET_CONSTANTS } from './budget.constants';
-import { TransactionMapper } from '../transaction/transaction.mapper';
-import { BudgetLineMapper } from '../budget-line/budget-line.mapper';
+import * as transactionMappers from '../transaction/transaction.mappers';
+import * as budgetLineMappers from '../budget-line/budget-line.mappers';
 
 @Injectable()
 export class BudgetService {
   constructor(
     @InjectPinoLogger(BudgetService.name)
     private readonly logger: PinoLogger,
-    private readonly budgetMapper: BudgetMapper,
-    private readonly transactionMapper: TransactionMapper,
-    private readonly budgetLineMapper: BudgetLineMapper,
   ) {}
 
   async findAll(
+    user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetListResponse> {
     try {
@@ -42,59 +37,91 @@ export class BudgetService {
         .order('month', { ascending: false });
 
       if (error) {
-        this.logger.error({ err: error }, 'Failed to fetch budgets');
-        throw new InternalServerErrorException(
-          'Erreur lors de la récupération des budgets',
+        throw new BusinessException(
+          ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
+          { operation: 'listBudgets' },
+          {
+            userId: user.id,
+            supabaseError: error,
+          },
+          { cause: error },
         );
       }
 
-      const apiData = this.budgetMapper.toApiList(budgets || []);
+      const apiData = budgetMappers.toApiList(budgets || []);
 
       return {
         success: true as const,
         data: apiData,
       } as BudgetListResponse;
     } catch (error) {
-      if (error instanceof InternalServerErrorException) {
+      if (
+        error instanceof BusinessException ||
+        error instanceof HttpException
+      ) {
         throw error;
       }
-      this.logger.error({ err: error }, 'Failed to list budgets');
-      throw new InternalServerErrorException('Erreur interne du serveur');
+      throw new BusinessException(
+        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+        undefined,
+        {
+          userId: user.id,
+          operation: 'listBudgets',
+        },
+        { cause: error },
+      );
     }
   }
 
-  private validateCreateBudgetDto(createBudgetDto: BudgetCreate): BudgetCreate {
-    // Validation métier basique (Supabase gère les contraintes de DB)
+  private validateRequiredFields(createBudgetDto: BudgetCreate): void {
     if (
       !createBudgetDto.month ||
       !createBudgetDto.year ||
       !createBudgetDto.description ||
       !createBudgetDto.templateId
     ) {
-      throw new BadRequestException('Données requises manquantes');
-    }
+      const missingFields = [];
+      if (!createBudgetDto.month) missingFields.push('month');
+      if (!createBudgetDto.year) missingFields.push('year');
+      if (!createBudgetDto.description) missingFields.push('description');
+      if (!createBudgetDto.templateId) missingFields.push('templateId');
 
+      throw new BusinessException(ERROR_DEFINITIONS.REQUIRED_DATA_MISSING, {
+        fields: missingFields,
+      });
+    }
+  }
+
+  private validateMonthAndYear(createBudgetDto: BudgetCreate): void {
     if (
       createBudgetDto.month < BUDGET_CONSTANTS.MONTH_MIN ||
       createBudgetDto.month > BUDGET_CONSTANTS.MONTH_MAX
     ) {
-      throw new BadRequestException('Mois invalide');
+      throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED, {
+        reason: `Month must be between ${BUDGET_CONSTANTS.MONTH_MIN} and ${BUDGET_CONSTANTS.MONTH_MAX}`,
+      });
     }
 
     if (
       createBudgetDto.year < BUDGET_CONSTANTS.MIN_YEAR ||
       createBudgetDto.year > BUDGET_CONSTANTS.MAX_YEAR
     ) {
-      throw new BadRequestException('Année invalide');
+      throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED, {
+        reason: `Year must be between ${BUDGET_CONSTANTS.MIN_YEAR} and ${BUDGET_CONSTANTS.MAX_YEAR}`,
+      });
     }
+  }
 
+  private validateDescriptionAndFutureDate(
+    createBudgetDto: BudgetCreate,
+  ): void {
     if (
       createBudgetDto.description.length >
       BUDGET_CONSTANTS.DESCRIPTION_MAX_LENGTH
     ) {
-      throw new BadRequestException(
-        `Description ne peut pas dépasser ${BUDGET_CONSTANTS.DESCRIPTION_MAX_LENGTH} caractères`,
-      );
+      throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED, {
+        reason: `Description cannot exceed ${BUDGET_CONSTANTS.DESCRIPTION_MAX_LENGTH} characters`,
+      });
     }
 
     // Validation métier : pas plus de 2 ans dans le futur
@@ -105,10 +132,17 @@ export class BudgetService {
     );
     const maxFutureDate = new Date(now.getFullYear() + 2, now.getMonth());
     if (budgetDate > maxFutureDate) {
-      throw new BadRequestException(
-        'Budget ne peut pas être créé plus de 2 ans dans le futur',
-      );
+      throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED, {
+        reason: 'Budget date cannot be more than 2 years in the future',
+      });
     }
+  }
+
+  private validateCreateBudgetDto(createBudgetDto: BudgetCreate): BudgetCreate {
+    // Validation métier basique (Supabase gère les contraintes de DB)
+    this.validateRequiredFields(createBudgetDto);
+    this.validateMonthAndYear(createBudgetDto);
+    this.validateDescriptionAndFutureDate(createBudgetDto);
 
     return createBudgetDto;
   }
@@ -127,100 +161,194 @@ export class BudgetService {
         validatedDto.year,
       );
 
-      this.logger.info(
-        {
-          userId: user.id,
-          templateId: validatedDto.templateId,
-          month: validatedDto.month,
-          year: validatedDto.year,
-        },
-        'Starting atomic budget creation from template',
+      const processedResult = await this.createBudgetFromTemplate(
+        validatedDto,
+        user,
+        supabase,
       );
 
-      // Use atomic database function to create budget with transactions
-      // templateId is guaranteed to exist due to Zod schema validation and business validation
-      const { data: result, error } = await supabase.rpc(
-        'create_budget_from_template',
-        {
-          p_user_id: user.id,
-          p_template_id: validatedDto.templateId!,
-          p_month: validatedDto.month,
-          p_year: validatedDto.year,
-          p_description: validatedDto.description,
-        },
-      );
-
-      if (error) {
-        this.logger.error(
-          {
-            err: error,
-            userId: user.id,
-            templateId: validatedDto.templateId,
-          },
-          'Atomic budget creation from template failed',
-        );
-
-        // Handle specific database errors with better error codes
-        if (
-          error.message?.includes('Template not found') ||
-          error.message?.includes('access denied')
-        ) {
-          throw new NotFoundException(
-            'Template introuvable ou accès non autorisé',
-          );
-        }
-        if (error.message?.includes('Budget already exists')) {
-          throw new BadRequestException(
-            'Un budget existe déjà pour cette période',
-          );
-        }
-
-        throw new InternalServerErrorException(
-          'Erreur lors de la création du budget à partir du template',
-        );
-      }
-
-      if (!result || typeof result !== 'object' || !('budget' in result)) {
-        this.logger.error(
-          { result, userId: user.id, templateId: validatedDto.templateId },
-          'Invalid result returned from create_budget_from_template',
-        );
-        throw new InternalServerErrorException(
-          'Résultat invalide retourné par la fonction de création',
-        );
-      }
-
-      const budgetData = result.budget as Tables<'monthly_budget'>;
-      const budgetLinesCreated = result.budget_lines_created as number;
-      const templateName = result.template_name as string;
-
-      this.logger.info(
-        {
-          userId: user.id,
-          budgetId: budgetData.id,
-          templateId: validatedDto.templateId,
-          templateName,
-          budgetLinesCreated,
-        },
-        'Successfully created budget from template with atomic transaction',
-      );
-
-      const apiData = this.budgetMapper.toApi(budgetData);
+      const apiData = budgetMappers.toApi(processedResult.budgetData);
 
       return {
         success: true,
         data: apiData,
       };
     } catch (error) {
-      if (
-        error instanceof BadRequestException ||
-        error instanceof NotFoundException
-      ) {
-        throw error;
-      }
-      this.logger.error({ err: error }, 'Failed to create budget');
-      throw new InternalServerErrorException('Erreur interne du serveur');
+      this.handleCreateError(error);
     }
+  }
+
+  private async createBudgetFromTemplate(
+    validatedDto: BudgetCreate,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ) {
+    this.logBudgetCreationStart(user.id, validatedDto);
+
+    const result = await this.executeBudgetCreationRpc(
+      validatedDto,
+      user,
+      supabase,
+    );
+
+    const processedResult = this.processBudgetCreationResult(
+      result,
+      user.id,
+      validatedDto.templateId!,
+    );
+
+    this.logBudgetCreationSuccess(
+      user.id,
+      processedResult,
+      validatedDto.templateId!,
+    );
+
+    return processedResult;
+  }
+
+  private handleCreateError(error: unknown): never {
+    if (error instanceof BusinessException || error instanceof HttpException) {
+      throw error;
+    }
+    throw new BusinessException(
+      ERROR_DEFINITIONS.BUDGET_CREATE_FAILED,
+      undefined,
+      {},
+      { cause: error },
+    );
+  }
+
+  private logBudgetCreationStart(
+    userId: string,
+    validatedDto: BudgetCreate,
+  ): void {
+    this.logger.info(
+      {
+        userId,
+        templateId: validatedDto.templateId,
+        month: validatedDto.month,
+        year: validatedDto.year,
+      },
+      'Starting atomic budget creation from template',
+    );
+  }
+
+  private async executeBudgetCreationRpc(
+    validatedDto: BudgetCreate,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<unknown> {
+    const { data: result, error } = await supabase.rpc(
+      'create_budget_from_template',
+      {
+        p_user_id: user.id,
+        p_template_id: validatedDto.templateId!,
+        p_month: validatedDto.month,
+        p_year: validatedDto.year,
+        p_description: validatedDto.description,
+      },
+    );
+
+    if (error) {
+      this.handleBudgetCreationError(error, user.id, validatedDto.templateId!);
+    }
+
+    return result;
+  }
+
+  private handleBudgetCreationError(
+    error: unknown,
+    userId: string,
+    templateId: string,
+  ): never {
+    // Pattern "Enrichir et Relancer" - log technique + throw métier
+    // Log l'erreur technique de bas niveau (Supabase RPC)
+    this.logger.error(
+      {
+        err: error,
+        userId,
+        templateId,
+        operation: 'create_budget_from_template_rpc',
+        postgresError: error,
+      },
+      'Supabase RPC failed at database level',
+    );
+
+    // Throw erreur métier de haut niveau
+    const errorMessage = (error as { message?: string })?.message;
+    if (
+      errorMessage?.includes('Template not found') ||
+      errorMessage?.includes('access denied')
+    ) {
+      throw new BusinessException(ERROR_DEFINITIONS.TEMPLATE_NOT_FOUND, {
+        id: templateId,
+      });
+    }
+    if (errorMessage?.includes('Budget already exists')) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_ALREADY_EXISTS_FOR_MONTH,
+        undefined,
+        { userId, templateId },
+      );
+    }
+
+    throw new BusinessException(
+      ERROR_DEFINITIONS.BUDGET_CREATE_FAILED,
+      undefined,
+      { userId, templateId },
+      { cause: error },
+    );
+  }
+
+  private processBudgetCreationResult(
+    result: unknown,
+    userId: string,
+    templateId: string,
+  ): {
+    budgetData: Tables<'monthly_budget'>;
+    budgetLinesCreated: number;
+    templateName: string;
+  } {
+    if (!result || typeof result !== 'object' || !('budget' in result)) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_CREATE_FAILED,
+        { reason: 'Invalid result structure from RPC' },
+        {
+          userId,
+          templateId,
+          result,
+          operation: 'processBudgetCreationResult',
+        },
+      );
+    }
+
+    const typedResult = result as {
+      budget: Tables<'monthly_budget'>;
+      budget_lines_created: number;
+      template_name: string;
+    };
+    return {
+      budgetData: typedResult.budget as Tables<'monthly_budget'>,
+      budgetLinesCreated: typedResult.budget_lines_created as number,
+      templateName: typedResult.template_name as string,
+    };
+  }
+
+  private logBudgetCreationSuccess(
+    userId: string,
+    processedResult: ReturnType<typeof this.processBudgetCreationResult>,
+    templateId: string,
+  ): void {
+    this.logger.info(
+      {
+        userId,
+        budgetId: processedResult.budgetData.id,
+        templateId,
+        templateName: processedResult.templateName,
+        budgetLinesCreated: processedResult.budgetLinesCreated,
+      },
+      'Successfully created budget from template with atomic transaction',
+    );
   }
 
   async findOne(
@@ -235,23 +363,31 @@ export class BudgetService {
         .single();
 
       if (error || !budgetDb) {
-        throw new NotFoundException('Budget introuvable ou accès non autorisé');
+        throw new BusinessException(ERROR_DEFINITIONS.BUDGET_NOT_FOUND, { id });
       }
 
-      const apiData = this.budgetMapper.toApi(
-        budgetDb as Tables<'monthly_budget'>,
-      );
+      const apiData = budgetMappers.toApi(budgetDb as Tables<'monthly_budget'>);
 
       return {
         success: true,
         data: apiData,
       };
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (
+        error instanceof BusinessException ||
+        error instanceof HttpException
+      ) {
         throw error;
       }
-      this.logger.error({ err: error }, 'Failed to fetch budget');
-      throw new InternalServerErrorException('Erreur interne du serveur');
+      throw new BusinessException(
+        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+        undefined,
+        {
+          operation: 'findOne',
+          budgetId: id,
+        },
+        { cause: error },
+      );
     }
   }
 
@@ -260,85 +396,140 @@ export class BudgetService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetDetailsResponse> {
     try {
-      // Fetch budget, transactions, and budget lines in parallel for better performance
-      const [budgetResult, transactionsResult, budgetLinesResult] =
-        await Promise.all([
-          supabase.from('monthly_budget').select('*').eq('id', id).single(),
-          supabase
-            .from('transaction')
-            .select('*')
-            .eq('budget_id', id)
-            .order('transaction_date', { ascending: false }),
-          supabase
-            .from('budget_line')
-            .select('*')
-            .eq('budget_id', id)
-            .order('created_at', { ascending: false }),
-        ]);
+      const results = await this.fetchBudgetDetailsData(id, supabase);
 
-      // Check if budget exists and user has access
-      if (budgetResult.error || !budgetResult.data) {
-        this.logger.warn(
-          { budgetId: id, error: budgetResult.error },
-          'Budget not found or access denied',
-        );
-        throw new NotFoundException('Budget introuvable ou accès non autorisé');
-      }
+      this.validateBudgetAccess(results.budgetResult, id);
+      this.logDataFetchErrors(results, id);
 
-      // Log any errors for transactions or budget lines (but don't fail the request)
-      if (transactionsResult.error) {
-        this.logger.error(
-          { err: transactionsResult.error, budgetId: id },
-          'Failed to fetch transactions for budget',
-        );
-      }
+      const mappedData = this.mapBudgetDetailsData(results);
 
-      if (budgetLinesResult.error) {
-        this.logger.error(
-          { err: budgetLinesResult.error, budgetId: id },
-          'Failed to fetch budget lines for budget',
-        );
-      }
-
-      // Map the data to API format
-      const budget = this.budgetMapper.toApi(
-        budgetResult.data as Tables<'monthly_budget'>,
-      );
-
-      const transactions = this.transactionMapper.toApiList(
-        transactionsResult.data || [],
-      );
-      const budgetLines = this.budgetLineMapper.toApiList(
-        budgetLinesResult.data || [],
-      );
-
-      this.logger.info(
-        {
-          budgetId: id,
-          transactionCount: transactions.length,
-          budgetLineCount: budgetLines.length,
-        },
-        'Successfully fetched budget with details',
-      );
+      this.logBudgetDetailsFetchSuccess(id, mappedData);
 
       return {
         success: true,
-        data: {
-          budget,
-          transactions,
-          budgetLines,
-        },
+        data: mappedData,
       };
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (
+        error instanceof BusinessException ||
+        error instanceof HttpException
+      ) {
         throw error;
       }
-      this.logger.error(
-        { err: error, budgetId: id },
-        'Failed to fetch budget with details',
+      throw new BusinessException(
+        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+        undefined,
+        {
+          operation: 'findOneWithDetails',
+          budgetId: id,
+        },
+        { cause: error },
       );
-      throw new InternalServerErrorException('Erreur interne du serveur');
     }
+  }
+
+  private async fetchBudgetDetailsData(
+    id: string,
+    supabase: AuthenticatedSupabaseClient,
+  ) {
+    const [budgetResult, transactionsResult, budgetLinesResult] =
+      await Promise.all([
+        supabase.from('monthly_budget').select('*').eq('id', id).single(),
+        supabase
+          .from('transaction')
+          .select('*')
+          .eq('budget_id', id)
+          .order('transaction_date', { ascending: false }),
+        supabase
+          .from('budget_line')
+          .select('*')
+          .eq('budget_id', id)
+          .order('created_at', { ascending: false }),
+      ]);
+
+    return { budgetResult, transactionsResult, budgetLinesResult };
+  }
+
+  private validateBudgetAccess(
+    budgetResult: { error?: unknown; data?: unknown },
+    id: string,
+  ): void {
+    if (budgetResult.error || !budgetResult.data) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
+        { id },
+        {
+          budgetId: id,
+          error: budgetResult.error,
+          operation: 'validateBudgetAccess',
+        },
+      );
+    }
+  }
+
+  private logDataFetchErrors(
+    results: ReturnType<typeof this.fetchBudgetDetailsData> extends Promise<
+      infer T
+    >
+      ? T
+      : never,
+    id: string,
+  ): void {
+    // Ces erreurs sont non-bloquantes, on les log seulement
+    // (la fonction continue même si certaines données manquent)
+    if (results.transactionsResult.error) {
+      this.logger.error(
+        { err: results.transactionsResult.error, budgetId: id },
+        'Failed to fetch transactions for budget',
+      );
+    }
+
+    if (results.budgetLinesResult.error) {
+      this.logger.error(
+        { err: results.budgetLinesResult.error, budgetId: id },
+        'Failed to fetch budget lines for budget',
+      );
+    }
+  }
+
+  private mapBudgetDetailsData(
+    results: ReturnType<typeof this.fetchBudgetDetailsData> extends Promise<
+      infer T
+    >
+      ? T
+      : never,
+  ) {
+    const budget = budgetMappers.toApi(
+      results.budgetResult.data as Tables<'monthly_budget'>,
+    );
+
+    const transactions = transactionMappers.toApiList(
+      results.transactionsResult.data || [],
+    );
+
+    const budgetLines = budgetLineMappers.toApiList(
+      results.budgetLinesResult.data || [],
+    );
+
+    return {
+      budget,
+      transactions,
+      budgetLines,
+    };
+  }
+
+  private logBudgetDetailsFetchSuccess(
+    id: string,
+    mappedData: ReturnType<typeof this.mapBudgetDetailsData>,
+  ): void {
+    this.logger.info(
+      {
+        budgetId: id,
+        transactionCount: mappedData.transactions.length,
+        budgetLineCount: mappedData.budgetLines.length,
+      },
+      'Successfully fetched budget with details',
+    );
   }
 
   private validateUpdateBudgetDto(updateBudgetDto: BudgetUpdate): BudgetUpdate {
@@ -348,7 +539,9 @@ export class BudgetService {
       (updateBudgetDto.month < BUDGET_CONSTANTS.MONTH_MIN ||
         updateBudgetDto.month > BUDGET_CONSTANTS.MONTH_MAX)
     ) {
-      throw new BadRequestException('Mois invalide');
+      throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED, {
+        reason: `Month must be between ${BUDGET_CONSTANTS.MONTH_MIN} and ${BUDGET_CONSTANTS.MONTH_MAX}`,
+      });
     }
 
     if (
@@ -356,7 +549,9 @@ export class BudgetService {
       (updateBudgetDto.year < BUDGET_CONSTANTS.MIN_YEAR ||
         updateBudgetDto.year > BUDGET_CONSTANTS.MAX_YEAR)
     ) {
-      throw new BadRequestException('Année invalide');
+      throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED, {
+        reason: `Year must be between ${BUDGET_CONSTANTS.MIN_YEAR} and ${BUDGET_CONSTANTS.MAX_YEAR}`,
+      });
     }
 
     return updateBudgetDto;
@@ -381,9 +576,14 @@ export class BudgetService {
       .single();
 
     if (error || !budgetDb) {
-      this.logger.error({ err: error }, 'Failed to update budget');
-      throw new NotFoundException(
-        'Budget introuvable ou modification non autorisée',
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
+        { id },
+        {
+          operation: 'updateBudgetInDb',
+          budgetId: id,
+        },
+        { cause: error },
       );
     }
 
@@ -410,9 +610,7 @@ export class BudgetService {
       const updateData = this.prepareBudgetUpdateData(updateBudgetDto);
       const budgetDb = await this.updateBudgetInDb(id, updateData, supabase);
 
-      const apiData = this.budgetMapper.toApi(
-        budgetDb as Tables<'monthly_budget'>,
-      );
+      const apiData = budgetMappers.toApi(budgetDb as Tables<'monthly_budget'>);
 
       return {
         success: true,
@@ -420,13 +618,20 @@ export class BudgetService {
       };
     } catch (error) {
       if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException
+        error instanceof BusinessException ||
+        error instanceof HttpException
       ) {
         throw error;
       }
-      this.logger.error({ err: error }, 'Failed to update budget');
-      throw new InternalServerErrorException('Erreur interne du serveur');
+      throw new BusinessException(
+        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+        undefined,
+        {
+          operation: 'update',
+          budgetId: id,
+        },
+        { cause: error },
+      );
     }
   }
 
@@ -441,9 +646,14 @@ export class BudgetService {
         .eq('id', id);
 
       if (error) {
-        this.logger.error({ err: error }, 'Failed to delete budget');
-        throw new NotFoundException(
-          'Budget introuvable ou suppression non autorisée',
+        throw new BusinessException(
+          ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
+          { id },
+          {
+            operation: 'remove',
+            budgetId: id,
+          },
+          { cause: error },
         );
       }
 
@@ -452,11 +662,21 @@ export class BudgetService {
         message: 'Budget supprimé avec succès',
       };
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (
+        error instanceof BusinessException ||
+        error instanceof HttpException
+      ) {
         throw error;
       }
-      this.logger.error({ err: error }, 'Failed to delete budget');
-      throw new InternalServerErrorException('Erreur interne du serveur');
+      throw new BusinessException(
+        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+        undefined,
+        {
+          operation: 'remove',
+          budgetId: id,
+        },
+        { cause: error },
+      );
     }
   }
 
@@ -475,7 +695,10 @@ export class BudgetService {
       .single();
 
     if (existingBudget) {
-      throw new BadRequestException('Un budget existe déjà pour cette période');
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_ALREADY_EXISTS_FOR_MONTH,
+        { month, year },
+      );
     }
   }
 }

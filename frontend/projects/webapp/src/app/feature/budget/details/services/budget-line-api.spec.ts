@@ -35,7 +35,7 @@ describe('BudgetLineApi', () => {
 
   describe('API Endpoints', () => {
     it('should construct correct endpoint URLs', () => {
-      const backendUrl = 'http://localhost:3000';
+      const backendUrl = 'http://localhost:3000/api/v1';
       const budgetId = 'test-budget-id';
       const lineId = 'test-line-id';
 
@@ -48,17 +48,19 @@ describe('BudgetLineApi', () => {
       };
 
       expect(endpoints.budgetDetails).toBe(
-        'http://localhost:3000/budgets/test-budget-id/details',
+        'http://localhost:3000/api/v1/budgets/test-budget-id/details',
       );
       expect(endpoints.budgetLines).toBe(
-        'http://localhost:3000/budget-lines/budget/test-budget-id',
+        'http://localhost:3000/api/v1/budget-lines/budget/test-budget-id',
       );
-      expect(endpoints.createLine).toBe('http://localhost:3000/budget-lines');
+      expect(endpoints.createLine).toBe(
+        'http://localhost:3000/api/v1/budget-lines',
+      );
       expect(endpoints.updateLine).toBe(
-        'http://localhost:3000/budget-lines/test-line-id',
+        'http://localhost:3000/api/v1/budget-lines/test-line-id',
       );
       expect(endpoints.deleteLine).toBe(
-        'http://localhost:3000/budget-lines/test-line-id',
+        'http://localhost:3000/api/v1/budget-lines/test-line-id',
       );
     });
   });

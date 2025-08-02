@@ -148,7 +148,8 @@ pnpm run shared:build              # Build shared package (turbo)
 - **Structure**: Modular architecture with feature-based organization
 - **Auth**: JWT-based with Supabase sessions
 - **Types**: Auto-generated from Supabase schema
-- **API Documentation**: Swagger/OpenAPI
+- **API Documentation**: Swagger/OpenAPI at `/docs`
+- **API Versioning**: URI-based versioning (v1) - all endpoints prefixed with `/api/v1`
 
 ### Frontend Architecture
 
@@ -335,6 +336,20 @@ The application includes a multi-step onboarding process for new users:
 - **Steps**: Personal info, income, housing, transport, health insurance, phone plan, leasing credit
 - **Layout**: Dedicated onboarding layout with step navigation
 - **Integration**: Connected to user registration and template creation
+
+## API Endpoints
+
+- **Base URL**: `http://localhost:3000`
+- **API v1 Prefix**: `/api/v1`
+- **Full API URLs**: `http://localhost:3000/api/v1/{resource}`
+- **Swagger Documentation**: `http://localhost:3000/docs`
+- **OpenAPI JSON**: `http://localhost:3000/api/openapi`
+- **Health Check**: `http://localhost:3000/health`
+
+Example endpoints:
+- `GET /api/v1/budgets` - List all budgets
+- `POST /api/v1/transactions` - Create transaction
+- `GET /api/v1/budget-templates` - List templates
 
 ## Development Workflow
 

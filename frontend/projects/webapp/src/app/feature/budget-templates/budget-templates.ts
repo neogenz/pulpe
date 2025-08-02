@@ -85,8 +85,6 @@ import { Title } from '@core/routing';
   styles: `
     :host {
       display: block;
-      height: 100%;
-      padding: 1rem;
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

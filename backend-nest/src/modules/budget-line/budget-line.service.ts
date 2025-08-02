@@ -1,12 +1,9 @@
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import {
-  BadRequestException,
-  Injectable,
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, HttpException } from '@nestjs/common';
 import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
+import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import { BusinessException } from '@common/exceptions/business.exception';
 import {
   type BudgetLineCreate,
   type BudgetLineListResponse,
@@ -14,7 +11,7 @@ import {
   type BudgetLineUpdate,
   type BudgetLineDeleteResponse,
 } from '@pulpe/shared';
-import { BudgetLineMapper } from './budget-line.mapper';
+import * as budgetLineMappers from './budget-line.mappers';
 import type { Database } from '../../types/database.types';
 
 @Injectable()
@@ -22,7 +19,6 @@ export class BudgetLineService {
   constructor(
     @InjectPinoLogger(BudgetLineService.name)
     private readonly logger: PinoLogger,
-    private readonly budgetLineMapper: BudgetLineMapper,
   ) {}
 
   async findAll(
@@ -35,96 +31,35 @@ export class BudgetLineService {
         .order('created_at', { ascending: false });
 
       if (error) {
-        this.logger.error({ err: error }, 'Failed to fetch budget lines');
-        throw new InternalServerErrorException(
-          'Erreur lors de la récupération des lignes budgétaires',
+        throw new BusinessException(
+          ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
+          undefined,
+          {
+            operation: 'findAll',
+          },
+          { cause: error },
         );
       }
 
-      const apiData = this.budgetLineMapper.toApiList(budgetLinesDb || []);
+      const apiData = budgetLineMappers.toApiList(budgetLinesDb || []);
 
       return {
         success: true as const,
         data: apiData,
       } as BudgetLineListResponse;
     } catch (error) {
-      if (error instanceof InternalServerErrorException) {
+      if (
+        error instanceof BusinessException ||
+        error instanceof HttpException
+      ) {
         throw error;
       }
-      this.logger.error({ err: error }, 'Failed to list budget lines');
-      throw new InternalServerErrorException('Erreur interne du serveur');
-    }
-  }
-
-  async findByBudgetId(
-    budgetId: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetLineListResponse> {
-    try {
-      const { data: budgetLinesDb, error } = await supabase
-        .from('budget_line')
-        .select('*')
-        .eq('budget_id', budgetId)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        this.logger.error(
-          { err: error },
-          'Failed to fetch budget lines by budget',
-        );
-        throw new InternalServerErrorException(
-          'Erreur lors de la récupération des lignes budgétaires',
-        );
-      }
-
-      const apiData = this.budgetLineMapper.toApiList(budgetLinesDb || []);
-
-      return {
-        success: true as const,
-        data: apiData,
-      } as BudgetLineListResponse;
-    } catch (error) {
-      if (error instanceof InternalServerErrorException) {
-        throw error;
-      }
-      this.logger.error(
-        { err: error },
-        'Failed to list budget lines by budget',
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
+        undefined,
+        {},
+        { cause: error },
       );
-      throw new InternalServerErrorException('Erreur interne du serveur');
-    }
-  }
-
-  async findOne(
-    id: string,
-    user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetLineResponse> {
-    try {
-      const { data: budgetLineDb, error } = await supabase
-        .from('budget_line')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error || !budgetLineDb) {
-        throw new NotFoundException(
-          'Ligne budgétaire introuvable ou accès non autorisé',
-        );
-      }
-
-      const apiData = this.budgetLineMapper.toApi(budgetLineDb);
-
-      return {
-        success: true,
-        data: apiData,
-      };
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      this.logger.error({ err: error }, 'Failed to fetch single budget line');
-      throw new InternalServerErrorException('Erreur interne du serveur');
     }
   }
 
@@ -132,28 +67,33 @@ export class BudgetLineService {
     createBudgetLineDto: BudgetLineCreate,
   ): void {
     if (!createBudgetLineDto.budgetId) {
-      throw new BadRequestException('Budget ID est requis');
+      throw new BusinessException(ERROR_DEFINITIONS.REQUIRED_DATA_MISSING, {
+        fields: ['budgetId'],
+      });
     }
 
-    if (!createBudgetLineDto.amount || createBudgetLineDto.amount <= 0) {
-      throw new BadRequestException('Montant doit être positif');
+    if (!createBudgetLineDto.amount || createBudgetLineDto.amount < 0) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_VALIDATION_FAILED,
+        { reason: 'Amount must be greater than or equal to 0' },
+      );
     }
 
     if (
       !createBudgetLineDto.name ||
       createBudgetLineDto.name.trim().length === 0
     ) {
-      throw new BadRequestException('Nom est requis');
-    }
-
-    if (createBudgetLineDto.name.length > 100) {
-      throw new BadRequestException('Nom ne peut pas dépasser 100 caractères');
+      throw new BusinessException(ERROR_DEFINITIONS.REQUIRED_DATA_MISSING, {
+        fields: ['name'],
+      });
     }
   }
 
   private prepareBudgetLineData(createBudgetLineDto: BudgetLineCreate) {
     if (!createBudgetLineDto.budgetId) {
-      throw new BadRequestException('Budget ID est requis');
+      throw new BusinessException(ERROR_DEFINITIONS.REQUIRED_DATA_MISSING, {
+        fields: ['budgetId'],
+      });
     }
 
     return {
@@ -181,9 +121,21 @@ export class BudgetLineService {
       .single();
 
     if (error) {
-      this.logger.error({ err: error }, 'Failed to create budget line');
-      throw new BadRequestException(
-        'Erreur lors de la création de la ligne budgétaire',
+      // Pattern "Enrichir et Relancer" - log technique + throw métier
+      this.logger.error(
+        {
+          err: error,
+          operation: 'insertBudgetLine',
+          supabaseError: error,
+        },
+        'Supabase insert budget line failed',
+      );
+
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_CREATE_FAILED,
+        undefined,
+        {},
+        { cause: error },
       );
     }
 
@@ -204,39 +156,93 @@ export class BudgetLineService {
         supabase,
       );
 
-      const apiData = this.budgetLineMapper.toApi(budgetLineDb);
+      const apiData = budgetLineMappers.toApi(budgetLineDb);
 
       return {
         success: true,
         data: apiData,
       };
     } catch (error) {
-      if (error instanceof BadRequestException) {
+      if (
+        error instanceof BusinessException ||
+        error instanceof HttpException
+      ) {
         throw error;
       }
-      this.logger.error({ err: error }, 'Failed to create budget line');
-      throw new InternalServerErrorException('Erreur interne du serveur');
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_CREATE_FAILED,
+        undefined,
+        {
+          userId: user.id,
+        },
+        { cause: error },
+      );
+    }
+  }
+
+  async findOne(
+    id: string,
+    _user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<BudgetLineResponse> {
+    try {
+      const { data: budgetLineDb, error } = await supabase
+        .from('budget_line')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error || !budgetLineDb) {
+        throw new BusinessException(ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND, {
+          id,
+        });
+      }
+
+      const apiData = budgetLineMappers.toApi(budgetLineDb);
+
+      return {
+        success: true,
+        data: apiData,
+      };
+    } catch (error) {
+      if (
+        error instanceof BusinessException ||
+        error instanceof HttpException
+      ) {
+        throw error;
+      }
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'findOne',
+          budgetLineId: id,
+        },
+        { cause: error },
+      );
     }
   }
 
   private validateUpdateBudgetLineDto(
     updateBudgetLineDto: BudgetLineUpdate,
   ): void {
-    if (updateBudgetLineDto.amount !== undefined) {
-      if (updateBudgetLineDto.amount <= 0) {
-        throw new BadRequestException('Montant doit être positif');
-      }
+    if (
+      updateBudgetLineDto.amount !== undefined &&
+      updateBudgetLineDto.amount < 0
+    ) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_VALIDATION_FAILED,
+        { reason: 'Amount must be greater than or equal to 0' },
+      );
     }
 
-    if (updateBudgetLineDto.name !== undefined) {
-      if (updateBudgetLineDto.name.trim().length === 0) {
-        throw new BadRequestException('Nom ne peut pas être vide');
-      }
-      if (updateBudgetLineDto.name.length > 100) {
-        throw new BadRequestException(
-          'Nom ne peut pas dépasser 100 caractères',
-        );
-      }
+    if (
+      updateBudgetLineDto.name !== undefined &&
+      updateBudgetLineDto.name.trim().length === 0
+    ) {
+      throw new BusinessException(ERROR_DEFINITIONS.REQUIRED_DATA_MISSING, {
+        fields: ['name'],
+      });
     }
   }
 
@@ -244,16 +250,20 @@ export class BudgetLineService {
     updateBudgetLineDto: BudgetLineUpdate,
   ): Record<string, unknown> {
     return {
+      ...(updateBudgetLineDto.name && { name: updateBudgetLineDto.name }),
+      ...(updateBudgetLineDto.amount !== undefined && {
+        amount: updateBudgetLineDto.amount,
+      }),
       ...(updateBudgetLineDto.templateLineId !== undefined && {
         template_line_id: updateBudgetLineDto.templateLineId,
       }),
       ...(updateBudgetLineDto.savingsGoalId !== undefined && {
         savings_goal_id: updateBudgetLineDto.savingsGoalId,
       }),
-      ...(updateBudgetLineDto.name && { name: updateBudgetLineDto.name }),
-      ...(updateBudgetLineDto.amount && { amount: updateBudgetLineDto.amount }),
-      ...(updateBudgetLineDto.kind && { kind: updateBudgetLineDto.kind }),
-      ...(updateBudgetLineDto.recurrence && {
+      ...(updateBudgetLineDto.kind !== undefined && {
+        kind: updateBudgetLineDto.kind,
+      }),
+      ...(updateBudgetLineDto.recurrence !== undefined && {
         recurrence: updateBudgetLineDto.recurrence,
       }),
       ...(updateBudgetLineDto.isManuallyAdjusted !== undefined && {
@@ -276,9 +286,14 @@ export class BudgetLineService {
       .single();
 
     if (error || !budgetLineDb) {
-      this.logger.error({ err: error }, 'Failed to update budget line');
-      throw new NotFoundException(
-        'Ligne budgétaire introuvable ou modification non autorisée',
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND,
+        { id },
+        {
+          operation: 'updateBudgetLineInDb',
+          budgetLineId: id,
+        },
+        { cause: error },
       );
     }
 
@@ -288,7 +303,7 @@ export class BudgetLineService {
   async update(
     id: string,
     updateBudgetLineDto: BudgetLineUpdate,
-    user: AuthenticatedUser,
+    _user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineResponse> {
     try {
@@ -301,7 +316,7 @@ export class BudgetLineService {
         supabase,
       );
 
-      const apiData = this.budgetLineMapper.toApi(budgetLineDb);
+      const apiData = budgetLineMappers.toApi(budgetLineDb);
 
       return {
         success: true,
@@ -309,19 +324,26 @@ export class BudgetLineService {
       };
     } catch (error) {
       if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException
+        error instanceof BusinessException ||
+        error instanceof HttpException
       ) {
         throw error;
       }
-      this.logger.error({ err: error }, 'Failed to update budget line');
-      throw new InternalServerErrorException('Erreur interne du serveur');
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,
+        { id },
+        {
+          operation: 'update',
+          budgetLineId: id,
+        },
+        { cause: error },
+      );
     }
   }
 
   async remove(
     id: string,
-    user: AuthenticatedUser,
+    _user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineDeleteResponse> {
     try {
@@ -331,22 +353,85 @@ export class BudgetLineService {
         .eq('id', id);
 
       if (error) {
-        this.logger.error({ err: error }, 'Failed to delete budget line');
-        throw new NotFoundException(
-          'Ligne budgétaire introuvable ou suppression non autorisée',
+        throw new BusinessException(
+          ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND,
+          { id },
+          {
+            operation: 'remove',
+            budgetLineId: id,
+          },
+          { cause: error },
         );
       }
 
       return {
         success: true,
-        message: 'Ligne budgétaire supprimée avec succès',
+        message: 'Budget line deleted successfully',
       };
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (
+        error instanceof BusinessException ||
+        error instanceof HttpException
+      ) {
         throw error;
       }
-      this.logger.error({ err: error }, 'Failed to delete budget line');
-      throw new InternalServerErrorException('Erreur interne du serveur');
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_DELETE_FAILED,
+        { id },
+        {
+          operation: 'remove',
+          budgetLineId: id,
+        },
+        { cause: error },
+      );
+    }
+  }
+
+  async findByBudgetId(
+    budgetId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<BudgetLineListResponse> {
+    try {
+      const { data: budgetLinesDb, error } = await supabase
+        .from('budget_line')
+        .select('*')
+        .eq('budget_id', budgetId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
+          undefined,
+          {
+            operation: 'findByBudgetId',
+            budgetId,
+          },
+          { cause: error },
+        );
+      }
+
+      const apiData = budgetLineMappers.toApiList(budgetLinesDb || []);
+
+      return {
+        success: true as const,
+        data: apiData,
+      } as BudgetLineListResponse;
+    } catch (error) {
+      if (
+        error instanceof BusinessException ||
+        error instanceof HttpException
+      ) {
+        throw error;
+      }
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'findByBudgetId',
+          budgetId,
+        },
+        { cause: error },
+      );
     }
   }
 }

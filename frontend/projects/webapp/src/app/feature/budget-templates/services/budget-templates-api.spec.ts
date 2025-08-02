@@ -31,25 +31,25 @@ describe('BudgetTemplatesApi', () => {
       };
 
       expect(endpoints.getAll).toBe(
-        'http://localhost:3000/api/budget-templates',
+        'http://localhost:3000/api/v1/budget-templates',
       );
       expect(endpoints.getById).toBe(
-        'http://localhost:3000/api/budget-templates/template-123',
+        'http://localhost:3000/api/v1/budget-templates/template-123',
       );
       expect(endpoints.create).toBe(
-        'http://localhost:3000/api/budget-templates',
+        'http://localhost:3000/api/v1/budget-templates',
       );
       expect(endpoints.createFromOnboarding).toBe(
-        'http://localhost:3000/api/budget-templates/from-onboarding',
+        'http://localhost:3000/api/v1/budget-templates/from-onboarding',
       );
       expect(endpoints.update).toBe(
-        'http://localhost:3000/api/budget-templates/template-123',
+        'http://localhost:3000/api/v1/budget-templates/template-123',
       );
       expect(endpoints.getTransactions).toBe(
-        'http://localhost:3000/api/budget-templates/template-123/lines',
+        'http://localhost:3000/api/v1/budget-templates/template-123/lines',
       );
       expect(endpoints.delete).toBe(
-        'http://localhost:3000/api/budget-templates/template-123',
+        'http://localhost:3000/api/v1/budget-templates/template-123',
       );
     });
 
@@ -58,7 +58,7 @@ describe('BudgetTemplatesApi', () => {
       const endpoint = `${baseUrl}/${specialId}`;
 
       expect(endpoint).toBe(
-        `http://localhost:3000/api/budget-templates/${specialId}`,
+        `http://localhost:3000/api/v1/budget-templates/${specialId}`,
       );
     });
   });

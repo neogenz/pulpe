@@ -13,9 +13,10 @@ First, use parallel subagents to find and read all files that may be useful for 
 
 ## Plan
 
-Next, think hard and write up a detailed implementation plan. Don't forget to include tests, Lookbook components, and documentation. Use your judgement as to what is necessary, given the standards of this repo.
-If there are things you are not sure about, use parallel subagents to do some web research.
-They should only return useful information, no noise.
+Next, think hard and write up a detailed implementation plan. Don't forget to include tests, lookbook components, and documentation. Use your judgement as to what is necessary, given the standards of this repo.
+
+If there are things you are not sure about, use parallel subagents to do some web research. They should only return useful information, no noise.
+
 If there are things you still do not understand or questions you have for the user, pause here to ask them before continuing.
 
 ## Code
@@ -25,7 +26,9 @@ When you have a thorough implementation plan, you are ready to start writing cod
 ## Test
 
 Use parallel subagents to run tests, and make sure they all pass.
+
 If your changes touch the UX in a major way, use the browser to make sure that everything works correctly. Make a list of what to test for, and use a subagent for this step.
+
 If your testing shows problems, go back to the planning stage and think ultrahard.
 
 ## Write up your work

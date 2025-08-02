@@ -116,7 +116,7 @@ import { Title } from '@core/routing';
               <h2 id="financial-summary-heading" class="sr-only">
                 Résumé financier du modèle
               </h2>
-              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <pulpe-financial-summary
                   [data]="incomeData()"
                   role="region"
@@ -327,7 +327,10 @@ export default class TemplateDetail {
       return;
     }
 
-    const transactions = templateData.transactions.map(
+    // Store original template lines for ID mapping
+    const originalTemplateLines = templateData.transactions;
+
+    const transactions = originalTemplateLines.map(
       (transaction: TemplateLine) => ({
         description: transaction.name,
         amount: transaction.amount,
@@ -339,12 +342,14 @@ export default class TemplateDetail {
       data: {
         transactions,
         templateName: templateData.template.name,
+        templateId: this.templateId(),
+        originalTemplateLines,
       },
       width: '90vw',
       maxWidth: '1200px',
       height: '90vh',
       maxHeight: '90vh',
-      disableClose: true,
+      disableClose: false, // Dialog now handles its own close protection during loading
       autoFocus: true,
       restoreFocus: true,
       injector: this.#injector,
@@ -352,12 +357,38 @@ export default class TemplateDetail {
 
     // Handle dialog closure with direct RxJS subscription (appropriate for one-time events)
     dialogRef.afterClosed().subscribe((dialogResult) => {
-      if (dialogResult?.saved) {
-        console.log('Transactions mises à jour:', dialogResult.transactions);
-        // TODO: Appeler l'API pour sauvegarder les modifications et reload resource
-        // this.#budgetTemplatesApi.updateTransactions(this.templateId(), dialogResult.transactions)
-        //   .then(() => this.data.reload());
+      if (dialogResult?.saved && dialogResult.updatedLines) {
+        console.log('Transactions mises à jour avec succès');
+
+        // Optimized: Update the resource data directly instead of full reload
+        this.#updateResourceWithNewLines(dialogResult.updatedLines);
+      } else if (dialogResult?.error) {
+        console.error('Erreur lors de la sauvegarde:', dialogResult.error);
+        // Error is already handled by the dialog with user-friendly messages
       }
     });
+  }
+
+  /**
+   * Optimized method to update the resource data directly with new transaction lines
+   * instead of triggering a full API reload
+   */
+  #updateResourceWithNewLines(updatedLines: TemplateLine[]): void {
+    const currentValue = this.data.value();
+    if (!currentValue) {
+      // Fallback to reload if current value is not available
+      this.data.reload();
+      return;
+    }
+
+    // Create updated template data with new transaction lines
+    const updatedTemplateData = {
+      ...currentValue,
+      transactions: updatedLines,
+    };
+
+    // Use the resource's local update capability to avoid unnecessary API calls
+    // This updates the signal-based resource without triggering a reload
+    this.data.update(() => updatedTemplateData);
   }
 }

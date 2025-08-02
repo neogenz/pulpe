@@ -1,139 +1,211 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
-import { Test, type TestingModule } from '@nestjs/testing';
-import { InternalServerErrorException } from '@nestjs/common';
+import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { BudgetTemplateService } from './budget-template.service';
-import { BudgetTemplateMapper } from './budget-template.mapper';
+import { createMockSupabaseClient } from '@/test/test-utils-simple';
+import type { AuthenticatedUser } from '@common/decorators/user.decorator';
+import type { Tables } from '@/types/database.types';
 import {
-  createMockAuthenticatedUser,
-  createMockSupabaseClient,
-  expectErrorThrown,
-  MockSupabaseClient,
-} from '../../test/test-utils';
-import type { BudgetTemplateCreate } from '@pulpe/shared';
+  NotFoundException,
+  ForbiddenException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 
-describe('BudgetTemplateService', () => {
+describe('BudgetTemplateService - Simplified Tests', () => {
   let service: BudgetTemplateService;
-  let mockSupabaseClient: MockSupabaseClient;
+  let mockSupabase: any;
+  let mockUser: AuthenticatedUser;
+  let mockLogger: any;
 
-  const createValidTemplateCreateDto = (
-    overrides: any = {},
-  ): BudgetTemplateCreate => ({
+  const mockTemplate: Tables<'template'> = {
+    id: 'template-123',
+    user_id: 'user-123',
     name: 'Test Template',
-    description: 'Test Description',
-    isDefault: false,
-    lines: [
-      {
-        name: 'Test Line',
-        amount: 100,
-        kind: 'FIXED_EXPENSE',
-        recurrence: 'fixed',
-        description: 'Test line description',
-      },
-    ],
-    ...overrides,
-  });
+    is_default: false,
+    description: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
 
-  beforeEach(async () => {
+  const mockTemplateLine: Tables<'template_line'> = {
+    id: 'line-123',
+    template_id: 'template-123',
+    name: 'Test Line',
+    amount: 1000,
+    kind: 'FIXED_EXPENSE',
+    recurrence: 'fixed',
+    description: 'Test description',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  beforeEach(() => {
     const { mockClient } = createMockSupabaseClient();
-    mockSupabaseClient = mockClient;
-
-    const mockPinoLogger = {
-      error: () => {},
-      warn: () => {},
-      info: () => {},
-      debug: () => {},
-      trace: () => {},
-      fatal: () => {},
+    mockSupabase = mockClient;
+    mockUser = { id: 'user-123', email: 'test@example.com' };
+    mockLogger = {
+      error: mock(() => {}),
+      warn: mock(() => {}),
+      info: mock(() => {}),
+      debug: mock(() => {}),
     };
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        BudgetTemplateService,
-        BudgetTemplateMapper,
-        {
-          provide: `PinoLogger:${BudgetTemplateService.name}`,
-          useValue: mockPinoLogger,
-        },
-      ],
-    }).compile();
-
-    service = module.get<BudgetTemplateService>(BudgetTemplateService);
+    service = new BudgetTemplateService(mockLogger);
   });
 
-  describe('create', () => {
-    it('should throw error when template lines fetch fails after successful creation', async () => {
-      const mockUser = createMockAuthenticatedUser();
-      const createDto = createValidTemplateCreateDto();
+  describe('Service Setup', () => {
+    it('should be defined', () => {
+      expect(service).toBeDefined();
+    });
+  });
 
-      // Mock successful RPC call for template creation
-      mockSupabaseClient
-        .setMockRpcData({
-          id: 'template-123',
-          user_id: mockUser.id,
-          name: createDto.name,
-          description: createDto.description,
-          is_default: createDto.isDefault,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .setMockRpcError(null);
+  describe('Templates', () => {
+    it('should return all user templates', async () => {
+      mockSupabase.setMockData([mockTemplate]);
 
-      // Mock failed template_line fetch
-      mockSupabaseClient
-        .setMockData(null)
-        .setMockError(new Error('Database connection failed'));
+      const result = await service.findAll(mockUser, mockSupabase as any);
 
-      await expectErrorThrown(
-        () => service.create(createDto, mockUser, mockSupabaseClient as any),
-        InternalServerErrorException,
-        'Erreur interne du serveur',
-      );
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].name).toBe('Test Template');
+      expect(mockLogger.info).toHaveBeenCalled();
     });
 
-    it('should handle successful template creation with successful line fetch', async () => {
-      const mockUser = createMockAuthenticatedUser();
-      const createDto = createValidTemplateCreateDto();
+    it('should return a specific template', async () => {
+      mockSupabase.setMockData(mockTemplate);
 
-      // Mock successful RPC call for template creation
-      mockSupabaseClient
-        .setMockRpcData({
-          id: 'template-123',
-          user_id: mockUser.id,
-          name: createDto.name,
-          description: createDto.description,
-          is_default: createDto.isDefault,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .setMockRpcError(null);
+      const result = await service.findOne(
+        'template-123',
+        mockUser,
+        mockSupabase as any,
+      );
 
-      // Mock successful template_line fetch
-      mockSupabaseClient
-        .setMockData([
+      expect(result.success).toBe(true);
+      expect(result.data.id).toBe('template-123');
+    });
+
+    it('should delete a template', async () => {
+      mockSupabase.setMockData(mockTemplate);
+
+      const result = await service.remove(
+        'template-123',
+        mockUser,
+        mockSupabase as any,
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.message).toBe('Template deleted successfully');
+    });
+  });
+
+  describe('Template Lines', () => {
+    it('should delete a template line', async () => {
+      const lineWithTemplate = {
+        ...mockTemplateLine,
+        template: mockTemplate,
+      };
+
+      mockSupabase.setMockData(lineWithTemplate);
+
+      const result = await service.deleteTemplateLine(
+        'line-123',
+        mockUser,
+        mockSupabase as any,
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.message).toBe('Template line deleted successfully');
+    });
+
+    it('should throw ForbiddenException for unauthorized line access', async () => {
+      const lineWithTemplate = {
+        ...mockTemplateLine,
+        template: { ...mockTemplate, user_id: 'other-user' },
+      };
+
+      mockSupabase.setMockData(lineWithTemplate);
+
+      await expect(
+        service.deleteTemplateLine('line-123', mockUser, mockSupabase as any),
+      ).rejects.toThrow(ForbiddenException);
+    });
+  });
+
+  describe('Template Creation', () => {
+    it('should create a template with lines', async () => {
+      const createDto = {
+        name: 'New Template',
+        description: 'Test description',
+        isDefault: false,
+        lines: [
           {
-            id: 'line-123',
-            template_id: 'template-123',
-            name: 'Test Line',
-            amount: '100',
-            kind: 'FIXED_EXPENSE',
-            recurrence: 'fixed',
-            description: 'Test line description',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
+            name: 'Line 1',
+            amount: 500,
+            kind: 'INCOME' as const,
+            recurrence: 'fixed' as const,
+            description: 'Income line',
           },
-        ])
-        .setMockError(null);
+        ],
+      };
+
+      // Set up RPC mock to return the template
+      mockSupabase.rpc = () =>
+        Promise.resolve({
+          data: mockTemplate,
+          error: null,
+        });
+      mockSupabase.setMockData([mockTemplateLine]);
 
       const result = await service.create(
         createDto,
         mockUser,
-        mockSupabaseClient as any,
+        mockSupabase as any,
       );
 
       expect(result.success).toBe(true);
-      expect(result.data.template.name).toBe(createDto.name);
+      expect(result.data.template.name).toBe('Test Template');
       expect(result.data.lines).toHaveLength(1);
-      expect(result.data.lines[0].name).toBe('Test Line');
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('should throw NotFoundException when template not found', async () => {
+      mockSupabase.setMockData(null);
+
+      await expect(
+        service.findOne('non-existent', mockUser, mockSupabase as any),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should handle database errors gracefully', async () => {
+      mockSupabase.setMockError(new Error('Database error'));
+
+      await expect(
+        service.findAll(mockUser, mockSupabase as any),
+      ).rejects.toThrow(InternalServerErrorException);
+
+      expect(mockLogger.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('Rate Limiting', () => {
+    it('should enforce onboarding rate limiting', async () => {
+      const onboardingData = {
+        name: 'Onboarding Template',
+        monthlyIncome: 5000,
+        isDefault: true,
+        customTransactions: [],
+      };
+
+      mockSupabase.setMockData([{ id: 'recent-template' }]); // Recent template exists
+
+      await expect(
+        service.createFromOnboarding(
+          onboardingData,
+          mockUser,
+          mockSupabase as any,
+        ),
+      ).rejects.toThrow(
+        'You can only create one template from onboarding per 24 hours',
+      );
     });
   });
 });

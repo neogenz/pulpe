@@ -1,12 +1,9 @@
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import {
-  BadRequestException,
-  Injectable,
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, HttpException } from '@nestjs/common';
 import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
+import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import { BusinessException } from '@common/exceptions/business.exception';
 import {
   type TransactionCreate,
   type TransactionDeleteResponse,
@@ -14,7 +11,7 @@ import {
   type TransactionResponse,
   type TransactionUpdate,
 } from '@pulpe/shared';
-import { TransactionMapper } from './transaction.mapper';
+import * as transactionMappers from './transaction.mappers';
 import { TRANSACTION_CONSTANTS } from './entities';
 import type { Database } from '../../types/database.types';
 
@@ -23,7 +20,6 @@ export class TransactionService {
   constructor(
     @InjectPinoLogger(TransactionService.name)
     private readonly logger: PinoLogger,
-    private readonly transactionMapper: TransactionMapper,
   ) {}
 
   async findAll(
@@ -36,42 +32,59 @@ export class TransactionService {
         .order('transaction_date', { ascending: false });
 
       if (error) {
-        this.logger.error({ err: error }, 'Failed to fetch transactions');
-        throw new InternalServerErrorException(
-          'Erreur lors de la récupération des transactions',
+        throw new BusinessException(
+          ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+          undefined,
+          {
+            operation: 'findAll',
+          },
+          { cause: error },
         );
       }
 
-      const apiData = this.transactionMapper.toApiList(transactionsDb || []);
+      const apiData = transactionMappers.toApiList(transactionsDb || []);
 
       return {
         success: true as const,
         data: apiData,
       } as TransactionListResponse;
     } catch (error) {
-      if (error instanceof InternalServerErrorException) {
+      if (
+        error instanceof BusinessException ||
+        error instanceof HttpException
+      ) {
         throw error;
       }
-      this.logger.error({ err: error }, 'Failed to list transactions');
-      throw new InternalServerErrorException('Erreur interne du serveur');
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+        undefined,
+        {},
+        { cause: error },
+      );
     }
   }
 
   private validateCreateTransactionDto(
     createTransactionDto: TransactionCreate,
   ): void {
-    // Validation métier basique (Supabase gère les contraintes de DB)
+    // Basic business validation (Supabase handles DB constraints)
     if (!createTransactionDto.budgetId) {
-      throw new BadRequestException('Budget ID est requis');
+      throw new BusinessException(ERROR_DEFINITIONS.REQUIRED_DATA_MISSING, {
+        fields: ['budgetId'],
+      });
     }
 
     if (!createTransactionDto.amount || createTransactionDto.amount <= 0) {
-      throw new BadRequestException('Montant doit être positif');
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
+        { reason: 'Amount must be greater than 0' },
+      );
     }
 
     if (createTransactionDto.amount > TRANSACTION_CONSTANTS.MAX_AMOUNT) {
-      throw new BadRequestException(
-        `Montant ne peut pas dépasser ${TRANSACTION_CONSTANTS.MAX_AMOUNT}`,
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
+        { reason: `Amount cannot exceed ${TRANSACTION_CONSTANTS.MAX_AMOUNT}` },
       );
     }
 
@@ -79,21 +92,28 @@ export class TransactionService {
       !createTransactionDto.name ||
       createTransactionDto.name.trim().length === 0
     ) {
-      throw new BadRequestException('Nom est requis');
+      throw new BusinessException(ERROR_DEFINITIONS.REQUIRED_DATA_MISSING, {
+        fields: ['name'],
+      });
     }
 
     if (
       createTransactionDto.name.length > TRANSACTION_CONSTANTS.NAME_MAX_LENGTH
     ) {
-      throw new BadRequestException(
-        `Nom ne peut pas dépasser ${TRANSACTION_CONSTANTS.NAME_MAX_LENGTH} caractères`,
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
+        {
+          reason: `Name cannot exceed ${TRANSACTION_CONSTANTS.NAME_MAX_LENGTH} characters`,
+        },
       );
     }
   }
 
   private prepareTransactionData(createTransactionDto: TransactionCreate) {
     if (!createTransactionDto.budgetId) {
-      throw new BadRequestException('Budget ID est requis');
+      throw new BusinessException(ERROR_DEFINITIONS.REQUIRED_DATA_MISSING, {
+        fields: ['budgetId'],
+      });
     }
 
     return {
@@ -120,9 +140,21 @@ export class TransactionService {
       .single();
 
     if (error) {
-      this.logger.error({ err: error }, 'Failed to create transaction');
-      throw new BadRequestException(
-        'Erreur lors de la création de la transaction',
+      // Pattern "Enrichir et Relancer" - log technique + throw métier
+      this.logger.error(
+        {
+          err: error,
+          operation: 'insertTransaction',
+          supabaseError: error,
+        },
+        'Supabase insert transaction failed',
+      );
+
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_CREATE_FAILED,
+        undefined,
+        {},
+        { cause: error },
       );
     }
 
@@ -143,18 +175,27 @@ export class TransactionService {
         supabase,
       );
 
-      const apiData = this.transactionMapper.toApi(transactionDb);
+      const apiData = transactionMappers.toApi(transactionDb);
 
       return {
         success: true,
         data: apiData,
       };
     } catch (error) {
-      if (error instanceof BadRequestException) {
+      if (
+        error instanceof BusinessException ||
+        error instanceof HttpException
+      ) {
         throw error;
       }
-      this.logger.error({ err: error }, 'Failed to create transaction');
-      throw new InternalServerErrorException('Erreur interne du serveur');
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_CREATE_FAILED,
+        undefined,
+        {
+          userId: user.id,
+        },
+        { cause: error },
+      );
     }
   }
 
@@ -171,50 +212,71 @@ export class TransactionService {
         .single();
 
       if (error || !transactionDb) {
-        throw new NotFoundException(
-          'Transaction introuvable ou accès non autorisé',
-        );
+        throw new BusinessException(ERROR_DEFINITIONS.TRANSACTION_NOT_FOUND, {
+          id,
+        });
       }
 
-      const apiData = this.transactionMapper.toApi(transactionDb);
+      const apiData = transactionMappers.toApi(transactionDb);
 
       return {
         success: true,
         data: apiData,
       };
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (
+        error instanceof BusinessException ||
+        error instanceof HttpException
+      ) {
         throw error;
       }
-      this.logger.error({ err: error }, 'Failed to fetch single transaction');
-      throw new InternalServerErrorException('Erreur interne du serveur');
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'findOne',
+          transactionId: id,
+        },
+        { cause: error },
+      );
     }
   }
 
   private validateUpdateTransactionDto(
     updateTransactionDto: TransactionUpdate,
   ): void {
-    // Validation métier basique pour les champs optionnels
+    // Basic business validation for optional fields
     if (updateTransactionDto.amount !== undefined) {
       if (updateTransactionDto.amount <= 0) {
-        throw new BadRequestException('Montant doit être positif');
+        throw new BusinessException(
+          ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
+          { reason: 'Amount must be greater than 0' },
+        );
       }
       if (updateTransactionDto.amount > TRANSACTION_CONSTANTS.MAX_AMOUNT) {
-        throw new BadRequestException(
-          `Montant ne peut pas dépasser ${TRANSACTION_CONSTANTS.MAX_AMOUNT}`,
+        throw new BusinessException(
+          ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
+          {
+            reason: `Amount cannot exceed ${TRANSACTION_CONSTANTS.MAX_AMOUNT}`,
+          },
         );
       }
     }
 
     if (updateTransactionDto.name !== undefined) {
       if (updateTransactionDto.name.trim().length === 0) {
-        throw new BadRequestException('Nom ne peut pas être vide');
+        throw new BusinessException(ERROR_DEFINITIONS.REQUIRED_DATA_MISSING, {
+          fields: ['name'],
+        });
       }
       if (
         updateTransactionDto.name.length > TRANSACTION_CONSTANTS.NAME_MAX_LENGTH
       ) {
-        throw new BadRequestException(
-          `Nom ne peut pas dépasser ${TRANSACTION_CONSTANTS.NAME_MAX_LENGTH} caractères`,
+        throw new BusinessException(
+          ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
+          {
+            reason: `Name cannot exceed ${TRANSACTION_CONSTANTS.NAME_MAX_LENGTH} characters`,
+          },
         );
       }
     }
@@ -254,9 +316,14 @@ export class TransactionService {
       .single();
 
     if (error || !transactionDb) {
-      this.logger.error({ err: error }, 'Failed to update transaction');
-      throw new NotFoundException(
-        'Transaction introuvable ou modification non autorisée',
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_NOT_FOUND,
+        { id },
+        {
+          operation: 'updateTransactionInDb',
+          transactionId: id,
+        },
+        { cause: error },
       );
     }
 
@@ -280,7 +347,7 @@ export class TransactionService {
         supabase,
       );
 
-      const apiData = this.transactionMapper.toApi(transactionDb);
+      const apiData = transactionMappers.toApi(transactionDb);
 
       return {
         success: true,
@@ -288,13 +355,20 @@ export class TransactionService {
       };
     } catch (error) {
       if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException
+        error instanceof BusinessException ||
+        error instanceof HttpException
       ) {
         throw error;
       }
-      this.logger.error({ err: error }, 'Failed to update transaction');
-      throw new InternalServerErrorException('Erreur interne du serveur');
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_UPDATE_FAILED,
+        { id },
+        {
+          operation: 'update',
+          transactionId: id,
+        },
+        { cause: error },
+      );
     }
   }
 
@@ -310,22 +384,37 @@ export class TransactionService {
         .eq('id', id);
 
       if (error) {
-        this.logger.error({ err: error }, 'Failed to delete transaction');
-        throw new NotFoundException(
-          'Transaction introuvable ou suppression non autorisée',
+        throw new BusinessException(
+          ERROR_DEFINITIONS.TRANSACTION_NOT_FOUND,
+          { id },
+          {
+            operation: 'remove',
+            transactionId: id,
+          },
+          { cause: error },
         );
       }
 
       return {
         success: true,
-        message: 'Transaction supprimée avec succès',
+        message: 'Transaction deleted successfully',
       };
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (
+        error instanceof BusinessException ||
+        error instanceof HttpException
+      ) {
         throw error;
       }
-      this.logger.error({ err: error }, 'Failed to delete transaction');
-      throw new InternalServerErrorException('Erreur interne du serveur');
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_DELETE_FAILED,
+        { id },
+        {
+          operation: 'remove',
+          transactionId: id,
+        },
+        { cause: error },
+      );
     }
   }
 
@@ -341,30 +430,39 @@ export class TransactionService {
         .order('transaction_date', { ascending: false });
 
       if (error) {
-        this.logger.error(
-          { err: error },
-          'Failed to fetch transactions by budget',
-        );
-        throw new InternalServerErrorException(
-          'Erreur lors de la récupération des transactions',
+        throw new BusinessException(
+          ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+          undefined,
+          {
+            operation: 'findByBudgetId',
+            budgetId,
+          },
+          { cause: error },
         );
       }
 
-      const apiData = this.transactionMapper.toApiList(transactionsDb || []);
+      const apiData = transactionMappers.toApiList(transactionsDb || []);
 
       return {
         success: true as const,
         data: apiData,
       } as TransactionListResponse;
     } catch (error) {
-      if (error instanceof InternalServerErrorException) {
+      if (
+        error instanceof BusinessException ||
+        error instanceof HttpException
+      ) {
         throw error;
       }
-      this.logger.error(
-        { err: error },
-        'Failed to list transactions by budget',
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'findByBudgetId',
+          budgetId,
+        },
+        { cause: error },
       );
-      throw new InternalServerErrorException('Erreur interne du serveur');
     }
   }
 }

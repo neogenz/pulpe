@@ -1,17 +1,12 @@
-import {
-  Injectable,
-  Logger,
-  MiddlewareConsumer,
-  Module,
-  NestMiddleware,
-  NestModule,
-} from '@nestjs/common';
+import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_PIPE } from '@nestjs/core';
+import { APP_PIPE, APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { randomUUID } from 'crypto';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { LoggerModule } from 'nestjs-pino';
 import { ZodValidationPipe } from 'nestjs-zod';
+import { CurlGenerator } from 'curl-generator';
 
 // Modules
 import { AuthModule } from '@modules/auth/auth.module';
@@ -26,28 +21,11 @@ import { UserModule } from '@modules/user/user.module';
 // Filters
 import { FiltersModule } from '@common/filters/filters.module';
 
-// HTTP Logging Middleware
-import { NextFunction, Request, Response } from 'express';
+// Middleware
+import { ResponseLoggerMiddleware } from '@common/middleware/response-logger.middleware';
 
-@Injectable()
-class HttpLoggerMiddleware implements NestMiddleware {
-  private logger = new Logger('HTTP');
-
-  use(req: Request, res: Response, next: NextFunction) {
-    const { method, originalUrl } = req;
-    const start = Date.now();
-
-    res.on('finish', () => {
-      const { statusCode } = res;
-      const responseTime = Date.now() - start;
-      this.logger.log(
-        `${method} ${originalUrl} ${statusCode} ${responseTime}ms`,
-      );
-    });
-
-    next();
-  }
-}
+// Configuration
+import { validateConfig } from '@config/environment';
 
 // Logger configuration helpers
 function createRequestIdGenerator() {
@@ -81,10 +59,9 @@ function createLoggerTransport(isProduction: boolean) {
       options: {
         colorize: true,
         singleLine: true,
-        translateTime: 'HH:MM:ss.l',
+        translateTime: 'HH:MM:ss',
         ignore: 'pid,hostname',
-        sync: true, // Sync mode for Bun compatibility
-        append: false,
+        messageFormat: '{msg}',
       },
     };
   }
@@ -93,31 +70,133 @@ function createLoggerTransport(isProduction: boolean) {
   return undefined;
 }
 
+function createCurlCommand(
+  req: IncomingMessage & {
+    method?: string;
+    url?: string;
+    headers?: Record<string, string | string[] | undefined>;
+    body?: unknown;
+  },
+) {
+  const headers = Object.fromEntries(
+    Object.entries(req.headers || {})
+      .filter(([k]) => !['host', 'connection', 'content-length'].includes(k))
+      .map(([k, v]) => [k, Array.isArray(v) ? v[0] : v || '']),
+  );
+
+  return CurlGenerator({
+    url: `http://localhost:3000${req.url}`,
+    method: (req.method || 'GET') as
+      | 'GET'
+      | 'POST'
+      | 'PUT'
+      | 'DELETE'
+      | 'PATCH'
+      | 'get'
+      | 'post'
+      | 'put'
+      | 'patch'
+      | 'delete',
+    headers,
+    body: req.body as string | Record<string, unknown> | undefined,
+  });
+}
+
+function createDebugSerializers() {
+  return {
+    req: (
+      req: IncomingMessage & {
+        method?: string;
+        url?: string;
+        headers?: Record<string, string | string[] | undefined>;
+        body?: unknown;
+        query?: unknown;
+        params?: unknown;
+      },
+    ) => {
+      return {
+        method: req.method,
+        url: req.url,
+        headers: req.headers,
+        body: req.body,
+        query: req.query,
+        params: req.params,
+        curl: createCurlCommand(req),
+      };
+    },
+    res: (
+      res: ServerResponse & {
+        statusCode?: number;
+        headers?: Record<string, string | string[] | undefined>;
+      },
+    ) => ({
+      statusCode: res.statusCode,
+      headers: res.headers,
+    }),
+  };
+}
+
+function createProductionSerializers() {
+  return {
+    req: (
+      req: IncomingMessage & {
+        method?: string;
+        url?: string;
+        headers?: Record<string, string | string[] | undefined>;
+      },
+    ) => ({
+      method: req.method,
+      url: req.url,
+      userAgent: req.headers?.['user-agent'],
+      ip: req.headers?.['x-forwarded-for'] || req.headers?.['x-real-ip'],
+    }),
+    res: (res: ServerResponse & { statusCode?: number }) => ({
+      statusCode: res.statusCode,
+    }),
+  };
+}
+
 function createPinoLoggerConfig(configService: ConfigService) {
   const isProduction = configService.get<string>('NODE_ENV') === 'production';
+  const debugHttpFull = configService.get<string>('DEBUG_HTTP_FULL') === 'true';
 
   return {
     pinoHttp: {
       level: isProduction ? 'info' : 'debug',
       genReqId: createRequestIdGenerator(),
-      redact: {
-        paths: [
-          'req.headers.authorization',
-          'req.headers.cookie',
-          'req.body.password',
-          'req.body.token',
-          'res.headers["set-cookie"]',
-        ],
-        censor: '[REDACTED]',
-      },
+      redact: debugHttpFull
+        ? undefined
+        : {
+            paths: [
+              'req.headers.authorization',
+              'req.headers.cookie',
+              'req.body.password',
+              'req.body.token',
+              'res.headers["set-cookie"]',
+            ],
+            censor: '[REDACTED]',
+          },
       transport: createLoggerTransport(isProduction),
-      autoLogging: {
-        ignore: (req: IncomingMessage & { url?: string }) =>
-          req.url?.includes('/health') ?? false,
+      autoLogging: true,
+      customSuccessMessage: (
+        req: IncomingMessage & { method?: string; url?: string },
+        res: ServerResponse & { statusCode?: number },
+        responseTime: number,
+      ) => {
+        return `${req.method} ${req.url} ${res.statusCode} - ${Math.round(responseTime)}ms`;
       },
+      customErrorMessage: (
+        req: IncomingMessage & { method?: string; url?: string },
+        res: ServerResponse & { statusCode?: number },
+        error: Error,
+      ) => {
+        return `${req.method} ${req.url} ${res.statusCode} - ${error.message}`;
+      },
+      serializers: debugHttpFull
+        ? createDebugSerializers()
+        : createProductionSerializers(),
     },
     renameContext: 'module',
-    useExisting: true as const,
   };
 }
 
@@ -127,12 +206,19 @@ function createPinoLoggerConfig(configService: ConfigService) {
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
       cache: true,
+      validate: validateConfig,
     }),
     LoggerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: createPinoLoggerConfig,
     }),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 900000, // 15 minutes in milliseconds
+        limit: 100, // 100 requests per window
+      },
+    ]),
     SupabaseModule,
     AuthModule,
     BudgetModule,
@@ -148,10 +234,15 @@ function createPinoLoggerConfig(configService: ConfigService) {
       provide: APP_PIPE,
       useClass: ZodValidationPipe,
     },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+    ResponseLoggerMiddleware,
   ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(HttpLoggerMiddleware).forRoutes('*');
+    consumer.apply(ResponseLoggerMiddleware).forRoutes('*');
   }
 }

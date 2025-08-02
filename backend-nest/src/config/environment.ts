@@ -10,6 +10,7 @@ const envSchema = z.object({
   SUPABASE_URL: z.string().min(1, 'SUPABASE_URL is required'),
   SUPABASE_ANON_KEY: z.string().min(1, 'SUPABASE_ANON_KEY is required'),
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+  DEBUG_HTTP_FULL: z.string().optional(),
 });
 
 export type Environment = z.infer<typeof envSchema>;
@@ -22,8 +23,24 @@ export function validateEnvironment(configService: ConfigService): Environment {
     SUPABASE_URL: configService.get('SUPABASE_URL'),
     SUPABASE_ANON_KEY: configService.get('SUPABASE_ANON_KEY'),
     SUPABASE_SERVICE_ROLE_KEY: configService.get('SUPABASE_SERVICE_ROLE_KEY'),
+    DEBUG_HTTP_FULL: configService.get('DEBUG_HTTP_FULL'),
   };
 
+  const result = envSchema.safeParse(config);
+
+  if (!result.success) {
+    throw new Error(
+      `Environment validation failed:\n${result.error.issues
+        .map((issue) => `- ${issue.path.join('.')}: ${issue.message}`)
+        .join('\n')}`,
+    );
+  }
+
+  return result.data;
+}
+
+// Configuration validation function for NestJS ConfigModule
+export function validateConfig(config: Record<string, unknown>): Environment {
   const result = envSchema.safeParse(config);
 
   if (!result.success) {

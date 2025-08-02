@@ -46,7 +46,7 @@
     },
     "test": {
       "dependsOn": ["^build"],
-      "outputs": ["coverage/**", "test-results.json", "test-results/**"]
+      "outputs": []
     },
     "test:watch": {
       "cache": false,
