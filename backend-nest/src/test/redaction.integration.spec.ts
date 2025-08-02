@@ -81,14 +81,15 @@ describe('Sensitive Data Redaction Test', () => {
 
   describe('Pino Logger Configuration', () => {
     it('should have correct redaction paths configured', () => {
-      const configService = new ConfigService();
+      const _configService = new ConfigService();
 
       // We need to import the function that creates the pino config
       // Since it's not exported, we'll verify the paths exist in the module
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const config = require('../app.module');
 
       // This tests that the configuration includes the expected redaction paths
-      const expectedPaths = [
+      const _expectedPaths = [
         'req.headers.authorization',
         'req.headers.cookie',
         'req.body.password',
@@ -161,7 +162,7 @@ describe('Sensitive Data Redaction Test', () => {
       const response = createMockResponse();
       const error = new HttpException('Test error', HttpStatus.BAD_REQUEST);
 
-      [request1, request2, request3].forEach((req, index) => {
+      [request1, request2, request3].forEach((req) => {
         capturedLogs = []; // Clear logs for each test
         const host = createMockArgumentsHost(req, response);
 
@@ -328,7 +329,7 @@ describe('Sensitive Data Redaction Test', () => {
     it('should verify redaction is properly configured in development and production', () => {
       // Test development environment
       process.env.NODE_ENV = 'development';
-      const configService = new ConfigService();
+      const _configService = new ConfigService();
 
       // In a real scenario, we would verify the pino configuration
       // For now, we document that redaction should work in both environments
