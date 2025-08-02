@@ -35,7 +35,9 @@ export class BudgetLineService {
           ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
           undefined,
           {
-            operation: 'findAll',
+            operation: 'listBudgetLines',
+            entityType: 'budget_line',
+            supabaseError: error,
           },
           { cause: error },
         );
@@ -57,7 +59,10 @@ export class BudgetLineService {
       throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
         undefined,
-        {},
+        {
+          operation: 'listBudgetLines',
+          entityType: 'budget_line',
+        },
         { cause: error },
       );
     }
@@ -113,6 +118,7 @@ export class BudgetLineService {
   private async insertBudgetLine(
     budgetLineData: ReturnType<typeof this.prepareBudgetLineData>,
     supabase: AuthenticatedSupabaseClient,
+    user: AuthenticatedUser,
   ): Promise<Database['public']['Tables']['budget_line']['Row']> {
     const { data: budgetLineDb, error } = await supabase
       .from('budget_line')
@@ -125,7 +131,9 @@ export class BudgetLineService {
       this.logger.error(
         {
           err: error,
-          operation: 'insertBudgetLine',
+          operation: 'createBudgetLine',
+          userId: user.id,
+          entityType: 'budget_line',
           supabaseError: error,
         },
         'Supabase insert budget line failed',
@@ -134,7 +142,12 @@ export class BudgetLineService {
       throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_LINE_CREATE_FAILED,
         undefined,
-        {},
+        {
+          operation: 'createBudgetLine',
+          userId: user.id,
+          entityType: 'budget_line',
+          supabaseError: error,
+        },
         { cause: error },
       );
     }
@@ -154,6 +167,7 @@ export class BudgetLineService {
       const budgetLineDb = await this.insertBudgetLine(
         budgetLineData,
         supabase,
+        user,
       );
 
       const apiData = budgetLineMappers.toApi(budgetLineDb);
@@ -173,7 +187,9 @@ export class BudgetLineService {
         ERROR_DEFINITIONS.BUDGET_LINE_CREATE_FAILED,
         undefined,
         {
+          operation: 'createBudgetLine',
           userId: user.id,
+          entityType: 'budget_line',
         },
         { cause: error },
       );
@@ -182,7 +198,7 @@ export class BudgetLineService {
 
   async findOne(
     id: string,
-    _user: AuthenticatedUser,
+    user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineResponse> {
     try {
@@ -193,9 +209,17 @@ export class BudgetLineService {
         .single();
 
       if (error || !budgetLineDb) {
-        throw new BusinessException(ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND, {
-          id,
-        });
+        throw new BusinessException(
+          ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND,
+          { id },
+          {
+            operation: 'getBudgetLine',
+            userId: user.id,
+            entityId: id,
+            entityType: 'budget_line',
+            supabaseError: error,
+          },
+        );
       }
 
       const apiData = budgetLineMappers.toApi(budgetLineDb);
@@ -215,8 +239,10 @@ export class BudgetLineService {
         ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
         undefined,
         {
-          operation: 'findOne',
-          budgetLineId: id,
+          operation: 'getBudgetLine',
+          userId: user.id,
+          entityId: id,
+          entityType: 'budget_line',
         },
         { cause: error },
       );
@@ -277,6 +303,7 @@ export class BudgetLineService {
     id: string,
     updateData: Record<string, unknown>,
     supabase: AuthenticatedSupabaseClient,
+    user: AuthenticatedUser,
   ): Promise<Database['public']['Tables']['budget_line']['Row']> {
     const { data: budgetLineDb, error } = await supabase
       .from('budget_line')
@@ -290,8 +317,11 @@ export class BudgetLineService {
         ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND,
         { id },
         {
-          operation: 'updateBudgetLineInDb',
-          budgetLineId: id,
+          operation: 'updateBudgetLine',
+          userId: user.id,
+          entityId: id,
+          entityType: 'budget_line',
+          supabaseError: error,
         },
         { cause: error },
       );
@@ -303,7 +333,7 @@ export class BudgetLineService {
   async update(
     id: string,
     updateBudgetLineDto: BudgetLineUpdate,
-    _user: AuthenticatedUser,
+    user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineResponse> {
     try {
@@ -314,6 +344,7 @@ export class BudgetLineService {
         id,
         updateData,
         supabase,
+        user,
       );
 
       const apiData = budgetLineMappers.toApi(budgetLineDb);
@@ -333,8 +364,10 @@ export class BudgetLineService {
         ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,
         { id },
         {
-          operation: 'update',
-          budgetLineId: id,
+          operation: 'updateBudgetLine',
+          userId: user.id,
+          entityId: id,
+          entityType: 'budget_line',
         },
         { cause: error },
       );
@@ -343,7 +376,7 @@ export class BudgetLineService {
 
   async remove(
     id: string,
-    _user: AuthenticatedUser,
+    user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineDeleteResponse> {
     try {
@@ -357,8 +390,11 @@ export class BudgetLineService {
           ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND,
           { id },
           {
-            operation: 'remove',
-            budgetLineId: id,
+            operation: 'deleteBudgetLine',
+            userId: user.id,
+            entityId: id,
+            entityType: 'budget_line',
+            supabaseError: error,
           },
           { cause: error },
         );
@@ -379,8 +415,10 @@ export class BudgetLineService {
         ERROR_DEFINITIONS.BUDGET_LINE_DELETE_FAILED,
         { id },
         {
-          operation: 'remove',
-          budgetLineId: id,
+          operation: 'deleteBudgetLine',
+          userId: user.id,
+          entityId: id,
+          entityType: 'budget_line',
         },
         { cause: error },
       );
@@ -403,8 +441,10 @@ export class BudgetLineService {
           ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
           undefined,
           {
-            operation: 'findByBudgetId',
-            budgetId,
+            operation: 'listBudgetLinesByBudget',
+            entityId: budgetId,
+            entityType: 'budget_line',
+            supabaseError: error,
           },
           { cause: error },
         );
@@ -427,8 +467,9 @@ export class BudgetLineService {
         ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
         undefined,
         {
-          operation: 'findByBudgetId',
-          budgetId,
+          operation: 'listBudgetLinesByBudget',
+          entityId: budgetId,
+          entityType: 'budget_line',
         },
         { cause: error },
       );

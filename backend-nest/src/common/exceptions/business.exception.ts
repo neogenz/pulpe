@@ -2,13 +2,13 @@ import { HttpException } from '@nestjs/common';
 import { ErrorDefinition } from '@common/constants/error-definitions';
 
 /**
- * Exception métier qui transporte un contexte d'erreur structuré.
+ * Business exception that carries structured error context.
  *
  * @example
  * throw new BusinessException(
  *   ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
- *   { id: budgetId }, // Details pour le message client
- *   { userId: user.id, entityId: budgetId, entityType: 'Budget' } // Contexte pour les logs
+ *   { id: budgetId }, // Details for client message
+ *   { userId: user.id, entityId: budgetId, entityType: 'Budget' } // Context for logs
  * );
  */
 export class BusinessException extends HttpException {
@@ -23,10 +23,10 @@ export class BusinessException extends HttpException {
     loggingContext: Record<string, unknown> = {},
     options?: { cause?: Error | unknown },
   ) {
-    // Génère le message final et l'envoie au parent
+    // Generate the final message and send it to parent
     const message = errorDefinition.message(details);
 
-    // Utilise la propriété 'cause' standard ES2022 si disponible
+    // Use ES2022 standard 'cause' property if available
     const httpExceptionOptions: { cause?: Error | unknown } = {};
     if (options?.cause) {
       httpExceptionOptions.cause = options.cause;
@@ -34,34 +34,35 @@ export class BusinessException extends HttpException {
 
     super(message, errorDefinition.httpStatus, httpExceptionOptions);
 
-    // Stocke les informations structurées
+    // Store structured information
     this.name = this.constructor.name;
     this.code = errorDefinition.code;
     this.details = details;
     this.loggingContext = loggingContext;
+    // Set cause property for direct access (tests and cause chain methods depend on this)
     this.cause = options?.cause;
   }
 
   /**
-   * Récupère la chaîne causale complète des erreurs
+   * Retrieves the complete error cause chain
    */
   getCauseChain(): (Error | unknown)[] {
     const chain: (Error | unknown)[] = [];
-    const seen = new WeakSet<object>(); // Pour éviter les références circulaires
+    const seen = new WeakSet<object>(); // To avoid circular references
     let current: Error | unknown = this.cause;
 
     while (current) {
-      // WeakSet ne peut contenir que des objets
+      // WeakSet can only contain objects
       if (typeof current === 'object' && current !== null) {
         if (seen.has(current)) {
-          break; // Référence circulaire détectée
+          break; // Circular reference detected
         }
         seen.add(current);
       }
 
       chain.push(current);
 
-      // Support pour Error.cause (ES2022) et les patterns courants
+      // Support for Error.cause (ES2022) and common patterns
       if (current && typeof current === 'object') {
         const errorLike = current as Record<string, unknown>;
         current =
@@ -75,7 +76,7 @@ export class BusinessException extends HttpException {
   }
 
   /**
-   * Récupère la cause racine (la plus profonde)
+   * Retrieves the root cause (the deepest one)
    */
   getRootCause(): Error | unknown {
     const chain = this.getCauseChain();

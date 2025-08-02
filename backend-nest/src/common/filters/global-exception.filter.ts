@@ -111,7 +111,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
    * Processes any exception and returns structured error data
    */
   private processException(exception: unknown): ErrorData {
-    // La BusinessException est maintenant le cas prioritaire et le plus riche
+    // BusinessException is now the priority case and the richest
     if (exception instanceof BusinessException) {
       return this.handleBusinessException(exception);
     }
@@ -119,7 +119,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       return this.handleZodValidation(exception);
     }
     if (exception instanceof HttpException) {
-      // Ce cas gère les HttpException qui NE SONT PAS des BusinessException
+      // This case handles HttpExceptions that are NOT BusinessExceptions
       return this.handleHttpException(exception);
     }
     if (exception instanceof Error) {
@@ -178,7 +178,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   }
 
   private handleBusinessException(exception: BusinessException): ErrorData {
-    // Enrichit le contexte de logging avec la chaîne causale
+    // Enrich logging context with cause chain
     const enrichedLoggingContext = {
       ...exception.loggingContext,
       causeChain: this.buildCauseChain(exception),
@@ -338,7 +338,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       userAgent: this.isDevelopment() ? context.userAgent : undefined,
       ip: this.isDevelopment() ? context.ip : undefined,
       requestBody: this.sanitizeRequestBody(request.body),
-      ...errorData.loggingContext, // Fusionne le contexte fourni par le service
+      ...errorData.loggingContext, // Merge context provided by the service
     };
 
     // Extract readable message from errorData.message
