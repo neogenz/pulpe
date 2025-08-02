@@ -49,7 +49,10 @@ describe('BudgetService (Performance)', () => {
       mockSupabaseClient.setMockData(mockBudgets).setMockError(null);
 
       const startTime = Date.now();
-      const result = await service.findAll(mockSupabaseClient as any);
+      const result = await service.findAll(
+        createMockAuthenticatedUser(),
+        mockSupabaseClient as any,
+      );
       const executionTime = Date.now() - startTime;
 
       expect(result.success).toBe(true);
@@ -86,7 +89,10 @@ describe('BudgetService (Performance)', () => {
       mockSupabaseClient.setMockData(largeBudgetList).setMockError(null);
 
       const startTime = Date.now();
-      const result = await service.findAll(mockSupabaseClient as any);
+      const result = await service.findAll(
+        createMockAuthenticatedUser(),
+        mockSupabaseClient as any,
+      );
       const executionTime = Date.now() - startTime;
 
       expect(result.success).toBe(true);
@@ -107,7 +113,10 @@ describe('BudgetService (Performance)', () => {
       const startTime = Date.now();
 
       const promises = Array.from({ length: concurrentRequests }, () =>
-        service.findAll(mockSupabaseClient as any),
+        service.findAll(
+          createMockAuthenticatedUser(),
+          mockSupabaseClient as any,
+        ),
       );
 
       const results = await Promise.allSettled(promises);
@@ -198,7 +207,10 @@ describe('BudgetService (Performance)', () => {
       mockSupabaseClient.setMockData([]).setMockError(null);
 
       const startTime = Date.now();
-      const result = await service.findAll(mockSupabaseClient as any);
+      const result = await service.findAll(
+        createMockAuthenticatedUser(),
+        mockSupabaseClient as any,
+      );
       const executionTime = Date.now() - startTime;
 
       expect(result.success).toBe(true);
@@ -210,7 +222,10 @@ describe('BudgetService (Performance)', () => {
       mockSupabaseClient.setMockData(null).setMockError(null);
 
       const startTime = Date.now();
-      const result = await service.findAll(mockSupabaseClient as any);
+      const result = await service.findAll(
+        createMockAuthenticatedUser(),
+        mockSupabaseClient as any,
+      );
       const executionTime = Date.now() - startTime;
 
       expect(result.success).toBe(true);

@@ -97,6 +97,43 @@ function setupHealthEndpoints(
   });
 }
 
+function setupApiVersioning(
+  app: import('@nestjs/common').INestApplication,
+): void {
+  // Enable URI versioning
+  app.enableVersioning({
+    type: VersioningType.URI,
+    defaultVersion: '1',
+  });
+
+  app.setGlobalPrefix('api', {
+    exclude: [{ path: 'health', method: RequestMethod.GET }],
+  });
+}
+
+function logApplicationInfo(
+  logger: Logger,
+  port: number,
+  env: Environment,
+): void {
+  logger.log(`🚀 Application is running on: http://localhost:${port}`);
+  logger.log(`🔗 API v1 endpoints: http://localhost:${port}/api/v1`);
+  logger.log(`📚 Swagger documentation: http://localhost:${port}/docs`);
+  logger.log(`📋 OpenAPI JSON: http://localhost:${port}/api/openapi`);
+  logger.log('🔍 HTTP request/response logging is active');
+
+  const debugHttpFull = env.DEBUG_HTTP_FULL === 'true';
+  if (debugHttpFull) {
+    logger.warn(
+      '⚠️  DEBUG_HTTP_FULL is enabled - sensitive data will be logged!',
+    );
+  } else {
+    logger.log('🛡️ Security: Request data redaction enabled');
+  }
+
+  logger.log(`⚡ Environment: ${env.NODE_ENV}`);
+}
+
 async function bootstrap() {
   patchNestJsSwagger();
 
@@ -124,15 +161,8 @@ async function bootstrap() {
   // Setup CORS after security middleware
   setupCors(app);
 
-  // Enable URI versioning
-  app.enableVersioning({
-    type: VersioningType.URI,
-    defaultVersion: '1',
-  });
-
-  app.setGlobalPrefix('api', {
-    exclude: [{ path: 'health', method: RequestMethod.GET }],
-  });
+  // Setup API versioning
+  setupApiVersioning(app);
 
   const document = setupSwagger(app);
   setupHealthEndpoints(app, document);
@@ -141,22 +171,7 @@ async function bootstrap() {
 
   await app.listen(env.PORT);
 
-  logger.log(`🚀 Application is running on: http://localhost:${env.PORT}`);
-  logger.log(`🔗 API v1 endpoints: http://localhost:${env.PORT}/api/v1`);
-  logger.log(`📚 Swagger documentation: http://localhost:${env.PORT}/docs`);
-  logger.log(`📋 OpenAPI JSON: http://localhost:${env.PORT}/api/openapi`);
-  logger.log('🔍 HTTP request/response logging is active');
-
-  const debugHttpFull = configService.get<string>('DEBUG_HTTP_FULL') === 'true';
-  if (debugHttpFull) {
-    logger.warn(
-      '⚠️  DEBUG_HTTP_FULL is enabled - sensitive data will be logged!',
-    );
-  } else {
-    logger.log('🛡️ Security: Request data redaction enabled');
-  }
-
-  logger.log(`⚡ Environment: ${env.NODE_ENV}`);
+  logApplicationInfo(logger, env.PORT, env);
 }
 
 bootstrap();

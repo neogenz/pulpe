@@ -1,6 +1,8 @@
 import { expect } from 'bun:test';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
+import { BusinessException } from '@common/exceptions/business.exception';
+import type { ErrorDefinition } from '@common/constants/error-definitions';
 
 // Mock IDs
 export const MOCK_USER_ID = '550e8400-e29b-41d4-a716-446655440001';
@@ -159,6 +161,27 @@ export const expectErrorThrown = async (
     expect(error).toBeInstanceOf(expectedErrorType);
     if (expectedMessage) {
       expect((error as Error).message).toContain(expectedMessage);
+    }
+  }
+};
+
+// Helper for testing BusinessException patterns
+export const expectBusinessExceptionThrown = async (
+  promiseFunction: () => Promise<unknown>,
+  expectedErrorDefinition: ErrorDefinition,
+  expectedDetails?: Record<string, unknown>,
+): Promise<void> => {
+  try {
+    await promiseFunction();
+    throw new Error('Expected function to throw a BusinessException');
+  } catch (error) {
+    expect(error).toBeInstanceOf(BusinessException);
+    const businessError = error as BusinessException;
+    expect(businessError.code).toBe(expectedErrorDefinition.code);
+    expect(businessError.getStatus()).toBe(expectedErrorDefinition.httpStatus);
+
+    if (expectedDetails) {
+      expect(businessError.details).toEqual(expectedDetails);
     }
   }
 };

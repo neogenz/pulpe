@@ -58,7 +58,7 @@ export class DebugController {
   private createDatabaseError(message: string): Error {
     const dbError = new Error(`Database connection failed: ${message}`);
     dbError.name = 'DatabaseException';
-    (dbError as Error & { cause?: string }).cause =
+    (dbError as Error & { cause?: unknown }).cause =
       'Connection timeout after 5000ms';
     return dbError;
   }
@@ -102,20 +102,8 @@ export class DebugController {
   async testServiceError(
     @Body() data: { shouldFail: boolean; message?: string },
   ) {
-    try {
-      await this.simulateServiceCall(data.shouldFail, data.message);
-      return { success: true, message: 'Service call completed successfully' };
-    } catch (error) {
-      this.logger.error(
-        {
-          err: error,
-          method: 'testServiceError',
-          requestData: JSON.stringify(data),
-        },
-        'Service error test failed',
-      );
-      throw error;
-    }
+    await this.simulateServiceCall(data.shouldFail, data.message);
+    return { success: true, message: 'Service call completed successfully' };
   }
 
   private async simulateAsyncError(message: string): Promise<never> {
@@ -136,7 +124,7 @@ export class DebugController {
       // Add some nested stack trace simulation
       const cause = new Error('Underlying database constraint violation');
       cause.name = 'DatabaseConstraintError';
-      (serviceError as Error & { cause?: string }).cause = cause.message;
+      (serviceError as Error & { cause?: unknown }).cause = cause.message;
 
       throw serviceError;
     }

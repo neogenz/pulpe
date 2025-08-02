@@ -9,10 +9,8 @@ import {
 import { Request, Response } from 'express';
 import { ZodValidationException } from 'nestjs-zod';
 import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
-import {
-  ERROR_DEFINITIONS,
-  getErrorDefinitionByMessage,
-} from '@common/constants/error-definitions';
+import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import { BusinessException } from '@common/exceptions/business.exception';
 
 interface ErrorContext {
   readonly requestId?: string;
@@ -28,6 +26,8 @@ interface ErrorData {
   readonly code: string;
   readonly originalError?: Error;
   readonly stack?: string;
+  readonly details?: Record<string, unknown>;
+  readonly loggingContext?: Record<string, unknown>;
 }
 
 interface ErrorResponse {
@@ -40,6 +40,7 @@ interface ErrorResponse {
   readonly error: string;
   readonly code: string;
   readonly context?: ErrorContext;
+  readonly details?: Record<string, unknown>;
   stack?: string;
 }
 
@@ -110,10 +111,15 @@ export class GlobalExceptionFilter implements ExceptionFilter {
    * Processes any exception and returns structured error data
    */
   private processException(exception: unknown): ErrorData {
+    // La BusinessException est maintenant le cas prioritaire et le plus riche
+    if (exception instanceof BusinessException) {
+      return this.handleBusinessException(exception);
+    }
     if (exception instanceof ZodValidationException) {
       return this.handleZodValidation(exception);
     }
     if (exception instanceof HttpException) {
+      // Ce cas gère les HttpException qui NE SONT PAS des BusinessException
       return this.handleHttpException(exception);
     }
     if (exception instanceof Error) {
@@ -153,11 +159,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       error: errorData.error,
       code: errorData.code,
       context,
+      ...(errorData.details && { details: errorData.details }),
+      ...(errorData.stack && { stack: errorData.stack }),
     };
-
-    if (errorData.stack) {
-      response.stack = errorData.stack;
-    }
 
     return response;
   }
@@ -173,21 +177,71 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     };
   }
 
+  private handleBusinessException(exception: BusinessException): ErrorData {
+    // Enrichit le contexte de logging avec la chaîne causale
+    const enrichedLoggingContext = {
+      ...exception.loggingContext,
+      causeChain: this.buildCauseChain(exception),
+      rootCause: this.extractRootCauseInfo(exception.getRootCause()),
+    };
+
+    return {
+      status: exception.getStatus(),
+      message: exception.message,
+      error: exception.name,
+      code: exception.code,
+      originalError: exception,
+      stack: this.getStackInDevelopment(exception),
+      details: exception.details,
+      loggingContext: enrichedLoggingContext,
+    };
+  }
+
+  private buildCauseChain(exception: BusinessException): unknown[] {
+    return exception.getCauseChain().map((err, index) => {
+      if (err instanceof Error) {
+        return {
+          depth: index + 1,
+          name: err.name || 'UnknownError',
+          message: err.message || 'No message',
+          ...(this.isDevelopment() && err.stack && { stack: err.stack }),
+        };
+      }
+
+      // Handle non-Error objects (like Supabase errors)
+      const errObj = err as { name?: string; message?: string; stack?: string };
+      return {
+        depth: index + 1,
+        name: errObj.name || 'UnknownError',
+        message: errObj.message || JSON.stringify(err),
+        ...(this.isDevelopment() && errObj.stack && { stack: errObj.stack }),
+      };
+    });
+  }
+
+  private extractRootCauseInfo(rootCause: Error | unknown): unknown {
+    if (!rootCause) return null;
+
+    if (rootCause instanceof Error) {
+      return {
+        name: rootCause.name,
+        message: rootCause.message,
+        ...(this.isDevelopment() && { stack: rootCause.stack }),
+      };
+    }
+
+    return { value: rootCause };
+  }
+
   private handleHttpException(exception: HttpException): ErrorData {
     const response = exception.getResponse();
     const message = this.extractHttpMessage(response);
-
-    // Try to find matching error definition
-    const errorDef =
-      typeof message === 'string'
-        ? getErrorDefinitionByMessage(message)
-        : undefined;
 
     return {
       status: exception.getStatus(),
       message,
       error: this.extractHttpError(response, exception),
-      code: errorDef?.code || `HTTP_${exception.getStatus()}`,
+      code: `HTTP_${exception.getStatus()}`,
       originalError: exception,
       stack: this.getStackInDevelopment(exception),
     };
@@ -195,13 +249,12 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
   private handleErrorException(exception: Error): ErrorData {
     const message = this.getErrorMessage(exception);
-    const errorDef = getErrorDefinitionByMessage(message);
 
     return {
-      status: errorDef?.httpStatus || HttpStatus.INTERNAL_SERVER_ERROR,
+      status: HttpStatus.INTERNAL_SERVER_ERROR,
       message,
       error: exception.name || 'InternalServerErrorException',
-      code: errorDef?.code || ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR.code,
+      code: ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR.code,
       originalError: exception,
       stack: this.getStackInDevelopment(exception),
     };
@@ -210,7 +263,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   private handleUnknownException(): ErrorData {
     return {
       status: HttpStatus.INTERNAL_SERVER_ERROR,
-      message: ERROR_DEFINITIONS.UNKNOWN_EXCEPTION.message,
+      message: ERROR_DEFINITIONS.UNKNOWN_EXCEPTION.message(),
       error: 'UnknownException',
       code: ERROR_DEFINITIONS.UNKNOWN_EXCEPTION.code,
     };
@@ -231,7 +284,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   }
 
   private getErrorMessage(exception: Error): string {
-    return exception.message || ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR.message;
+    return (
+      exception.message || ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR.message()
+    );
   }
 
   private getStackInDevelopment(exception: Error): string | undefined {
@@ -283,6 +338,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       userAgent: this.isDevelopment() ? context.userAgent : undefined,
       ip: this.isDevelopment() ? context.ip : undefined,
       requestBody: this.sanitizeRequestBody(request.body),
+      ...errorData.loggingContext, // Fusionne le contexte fourni par le service
     };
 
     // Extract readable message from errorData.message

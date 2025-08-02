@@ -1,19 +1,15 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
 import { Test, type TestingModule } from '@nestjs/testing';
-import {
-  BadRequestException,
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
 import { BudgetService } from './budget.service';
 import {
   createMockAuthenticatedUser,
   createMockSupabaseClient,
-  expectErrorThrown,
+  expectBusinessExceptionThrown,
   MOCK_BUDGET_ID,
   MockSupabaseClient,
 } from '../../test/test-utils-simple';
 import type { BudgetCreate, BudgetUpdate } from '@pulpe/shared';
+import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 
 describe('BudgetService', () => {
   let service: BudgetService;
@@ -69,6 +65,7 @@ describe('BudgetService', () => {
 
   describe('findAll', () => {
     it('should return all budgets with proper data transformation', async () => {
+      const mockUser = createMockAuthenticatedUser();
       const mockBudgets = [
         createValidBudgetEntity(),
         createValidBudgetEntity({
@@ -80,7 +77,7 @@ describe('BudgetService', () => {
 
       mockSupabaseClient.setMockData(mockBudgets).setMockError(null);
 
-      const result = await service.findAll(mockSupabaseClient as any);
+      const result = await service.findAll(mockUser, mockSupabaseClient as any);
 
       // Verify successful response
       expect(result.success).toBe(true);
@@ -100,17 +97,18 @@ describe('BudgetService', () => {
     });
 
     it('should handle database error gracefully', async () => {
+      const mockUser = createMockAuthenticatedUser();
       const mockError = { message: 'Database connection failed' };
       mockSupabaseClient.setMockData(null).setMockError(mockError);
 
-      await expectErrorThrown(
-        () => service.findAll(mockSupabaseClient as any),
-        InternalServerErrorException,
-        'Erreur lors de la récupération des budgets',
+      await expectBusinessExceptionThrown(
+        () => service.findAll(mockUser, mockSupabaseClient as any),
+        ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
       );
     });
 
     it('should handle valid budget data only', async () => {
+      const mockUser = createMockAuthenticatedUser();
       const validBudgets = [
         createValidBudgetEntity(),
         createValidBudgetEntity({
@@ -122,7 +120,7 @@ describe('BudgetService', () => {
 
       mockSupabaseClient.setMockData(validBudgets).setMockError(null);
 
-      const result = await service.findAll(mockSupabaseClient as any);
+      const result = await service.findAll(mockUser, mockSupabaseClient as any);
 
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(2); // All valid budgets
@@ -179,11 +177,11 @@ describe('BudgetService', () => {
         templateId: 'test-template-id',
       };
 
-      await expectErrorThrown(
+      await expectBusinessExceptionThrown(
         () =>
           service.create(invalidMonthDto, mockUser, mockSupabaseClient as any),
-        BadRequestException,
-        'Mois invalide',
+        ERROR_DEFINITIONS.VALIDATION_FAILED,
+        { reason: 'Month must be between 1 and 12' },
       );
 
       // Test invalid year (too far in future)
@@ -194,11 +192,11 @@ describe('BudgetService', () => {
         templateId: 'test-template-id',
       };
 
-      await expectErrorThrown(
+      await expectBusinessExceptionThrown(
         () =>
           service.create(invalidYearDto, mockUser, mockSupabaseClient as any),
-        BadRequestException,
-        'Budget ne peut pas être créé plus de 2 ans dans le futur',
+        ERROR_DEFINITIONS.VALIDATION_FAILED,
+        { reason: 'Budget date cannot be more than 2 years in the future' },
       );
 
       // Test description too long
@@ -209,11 +207,11 @@ describe('BudgetService', () => {
         templateId: 'test-template-id',
       };
 
-      await expectErrorThrown(
+      await expectBusinessExceptionThrown(
         () =>
           service.create(invalidDescDto, mockUser, mockSupabaseClient as any),
-        BadRequestException,
-        'Description ne peut pas dépasser 500 caractères',
+        ERROR_DEFINITIONS.VALIDATION_FAILED,
+        { reason: 'Description cannot exceed 500 characters' },
       );
     });
 
@@ -226,11 +224,11 @@ describe('BudgetService', () => {
         .setMockData({ id: 'existing-budget' })
         .setMockError(null);
 
-      await expectErrorThrown(
+      await expectBusinessExceptionThrown(
         () =>
           service.create(createBudgetDto, mockUser, mockSupabaseClient as any),
-        BadRequestException,
-        'Un budget existe déjà pour cette période',
+        ERROR_DEFINITIONS.BUDGET_ALREADY_EXISTS_FOR_MONTH,
+        { month: createBudgetDto.month, year: createBudgetDto.year },
       );
     });
   });
@@ -273,10 +271,10 @@ describe('BudgetService', () => {
 
       mockSupabaseClient.setMockData(null).setMockError(mockError);
 
-      await expectErrorThrown(
+      await expectBusinessExceptionThrown(
         () => service.findOne(budgetId, mockSupabaseClient as any),
-        NotFoundException,
-        'Budget introuvable ou accès non autorisé',
+        ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
+        { id: budgetId },
       );
     });
   });
@@ -319,11 +317,11 @@ describe('BudgetService', () => {
         month: 0, // Invalid: must be 1-12
       };
 
-      await expectErrorThrown(
+      await expectBusinessExceptionThrown(
         () =>
           service.update(budgetId, invalidUpdate, mockSupabaseClient as any),
-        BadRequestException,
-        'Mois invalide',
+        ERROR_DEFINITIONS.VALIDATION_FAILED,
+        { reason: 'Month must be between 1 and 12' },
       );
     });
   });
@@ -485,10 +483,10 @@ describe('BudgetService', () => {
         .setMockData(null)
         .setMockError({ message: 'No rows returned' });
 
-      await expectErrorThrown(
+      await expectBusinessExceptionThrown(
         () => service.findOneWithDetails(budgetId, mockSupabaseClient as any),
-        NotFoundException,
-        'Budget introuvable ou accès non autorisé',
+        ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
+        { id: budgetId },
       );
     });
 

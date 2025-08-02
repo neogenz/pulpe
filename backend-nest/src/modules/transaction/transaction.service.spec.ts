@@ -1,19 +1,20 @@
+import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import {
   NotFoundException,
-  BadRequestException,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { TransactionService } from './transaction.service';
 import { PinoLogger } from 'nestjs-pino';
 import type { TransactionCreate, TransactionUpdate } from '@pulpe/shared';
 import {
   createMockSupabaseClient,
+  expectBusinessExceptionThrown,
   expectErrorThrown,
   createMockAuthenticatedUser,
   createMockTransactionEntity,
   MockSupabaseClient,
 } from '../../test/test-utils-simple';
+import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 
 const MOCK_BUDGET_ID = 'budget-123';
 const MOCK_TRANSACTION_ID = 'transaction-456';
@@ -72,10 +73,9 @@ describe('TransactionService', () => {
       mockSupabaseClient.reset().setMockError(mockError);
 
       // Act & Assert
-      await expectErrorThrown(
+      await expectBusinessExceptionThrown(
         () => service.findAll(mockSupabaseClient as any),
-        InternalServerErrorException,
-        'Failed to retrieve transactions',
+        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
       );
     });
   });
@@ -126,10 +126,10 @@ describe('TransactionService', () => {
       };
 
       // Act & Assert
-      await expectErrorThrown(
+      await expectBusinessExceptionThrown(
         () => service.create(invalidDto, mockUser, mockSupabaseClient as any),
-        BadRequestException,
-        'Budget ID is required',
+        ERROR_DEFINITIONS.REQUIRED_DATA_MISSING,
+        { fields: ['budgetId'] },
       );
     });
 
@@ -145,10 +145,10 @@ describe('TransactionService', () => {
       };
 
       // Act & Assert
-      await expectErrorThrown(
+      await expectBusinessExceptionThrown(
         () => service.create(invalidDto, mockUser, mockSupabaseClient as any),
-        BadRequestException,
-        'Invalid amount',
+        ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
+        { reason: 'Amount must be greater than 0' },
       );
     });
 
@@ -167,15 +167,14 @@ describe('TransactionService', () => {
       mockSupabaseClient.reset().setMockError(mockError);
 
       // Act & Assert
-      await expectErrorThrown(
+      await expectBusinessExceptionThrown(
         () =>
           service.create(
             createTransactionDto,
             mockUser,
             mockSupabaseClient as any,
           ),
-        BadRequestException,
-        'Database insert failed',
+        ERROR_DEFINITIONS.TRANSACTION_CREATE_FAILED,
       );
     });
 

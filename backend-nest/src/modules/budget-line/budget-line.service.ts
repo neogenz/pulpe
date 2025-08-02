@@ -1,10 +1,6 @@
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, HttpException } from '@nestjs/common';
 import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { BusinessException } from '@common/exceptions/business.exception';
@@ -35,8 +31,14 @@ export class BudgetLineService {
         .order('created_at', { ascending: false });
 
       if (error) {
-        this.logger.error({ err: error }, 'Failed to fetch budget lines');
-        throw new BusinessException(ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED);
+        throw new BusinessException(
+          ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
+          undefined,
+          {
+            operation: 'findAll',
+          },
+          { cause: error },
+        );
       }
 
       const apiData = budgetLineMappers.toApiList(budgetLinesDb || []);
@@ -47,13 +49,17 @@ export class BudgetLineService {
       } as BudgetLineListResponse;
     } catch (error) {
       if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException ||
-        error instanceof BusinessException
+        error instanceof BusinessException ||
+        error instanceof HttpException
       ) {
         throw error;
       }
-      throw new BusinessException(ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED);
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
+        undefined,
+        {},
+        { cause: error },
+      );
     }
   }
 
@@ -61,12 +67,15 @@ export class BudgetLineService {
     createBudgetLineDto: BudgetLineCreate,
   ): void {
     if (!createBudgetLineDto.budgetId) {
-      throw new BusinessException(ERROR_DEFINITIONS.REQUIRED_DATA_MISSING);
+      throw new BusinessException(ERROR_DEFINITIONS.REQUIRED_DATA_MISSING, {
+        fields: ['budgetId'],
+      });
     }
 
     if (!createBudgetLineDto.amount || createBudgetLineDto.amount < 0) {
       throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_LINE_VALIDATION_FAILED,
+        { reason: 'Amount must be greater than or equal to 0' },
       );
     }
 
@@ -74,13 +83,17 @@ export class BudgetLineService {
       !createBudgetLineDto.name ||
       createBudgetLineDto.name.trim().length === 0
     ) {
-      throw new BusinessException(ERROR_DEFINITIONS.REQUIRED_DATA_MISSING);
+      throw new BusinessException(ERROR_DEFINITIONS.REQUIRED_DATA_MISSING, {
+        fields: ['name'],
+      });
     }
   }
 
   private prepareBudgetLineData(createBudgetLineDto: BudgetLineCreate) {
     if (!createBudgetLineDto.budgetId) {
-      throw new BusinessException(ERROR_DEFINITIONS.REQUIRED_DATA_MISSING);
+      throw new BusinessException(ERROR_DEFINITIONS.REQUIRED_DATA_MISSING, {
+        fields: ['budgetId'],
+      });
     }
 
     return {
@@ -108,11 +121,22 @@ export class BudgetLineService {
       .single();
 
     if (error) {
-      this.logger.error({ err: error }, 'Failed to create budget line');
-      if (error.message) {
-        throw new BadRequestException(error.message);
-      }
-      throw new BusinessException(ERROR_DEFINITIONS.BUDGET_LINE_CREATE_FAILED);
+      // Pattern "Enrichir et Relancer" - log technique + throw métier
+      this.logger.error(
+        {
+          err: error,
+          operation: 'insertBudgetLine',
+          supabaseError: error,
+        },
+        'Supabase insert budget line failed',
+      );
+
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_CREATE_FAILED,
+        undefined,
+        {},
+        { cause: error },
+      );
     }
 
     return budgetLineDb;
@@ -140,13 +164,19 @@ export class BudgetLineService {
       };
     } catch (error) {
       if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException ||
-        error instanceof BusinessException
+        error instanceof BusinessException ||
+        error instanceof HttpException
       ) {
         throw error;
       }
-      throw new BusinessException(ERROR_DEFINITIONS.BUDGET_LINE_CREATE_FAILED);
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_CREATE_FAILED,
+        undefined,
+        {
+          userId: user.id,
+        },
+        { cause: error },
+      );
     }
   }
 
@@ -163,7 +193,9 @@ export class BudgetLineService {
         .single();
 
       if (error || !budgetLineDb) {
-        throw new BusinessException(ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND);
+        throw new BusinessException(ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND, {
+          id,
+        });
       }
 
       const apiData = budgetLineMappers.toApi(budgetLineDb);
@@ -173,15 +205,21 @@ export class BudgetLineService {
         data: apiData,
       };
     } catch (error) {
-      this.logger.error({ err: error }, 'Failed to fetch single budget line');
       if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException ||
-        error instanceof BusinessException
+        error instanceof BusinessException ||
+        error instanceof HttpException
       ) {
         throw error;
       }
-      throw new BusinessException(ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED);
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'findOne',
+          budgetLineId: id,
+        },
+        { cause: error },
+      );
     }
   }
 
@@ -194,6 +232,7 @@ export class BudgetLineService {
     ) {
       throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_LINE_VALIDATION_FAILED,
+        { reason: 'Amount must be greater than or equal to 0' },
       );
     }
 
@@ -201,7 +240,9 @@ export class BudgetLineService {
       updateBudgetLineDto.name !== undefined &&
       updateBudgetLineDto.name.trim().length === 0
     ) {
-      throw new BusinessException(ERROR_DEFINITIONS.REQUIRED_DATA_MISSING);
+      throw new BusinessException(ERROR_DEFINITIONS.REQUIRED_DATA_MISSING, {
+        fields: ['name'],
+      });
     }
   }
 
@@ -245,8 +286,15 @@ export class BudgetLineService {
       .single();
 
     if (error || !budgetLineDb) {
-      this.logger.error({ err: error }, 'Failed to update budget line');
-      throw new BusinessException(ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND);
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND,
+        { id },
+        {
+          operation: 'updateBudgetLineInDb',
+          budgetLineId: id,
+        },
+        { cause: error },
+      );
     }
 
     return budgetLineDb;
@@ -276,14 +324,20 @@ export class BudgetLineService {
       };
     } catch (error) {
       if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException ||
-        error instanceof BusinessException
+        error instanceof BusinessException ||
+        error instanceof HttpException
       ) {
         throw error;
       }
-      this.logger.error({ err: error }, 'Failed to update budget line');
-      throw new BusinessException(ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED);
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,
+        { id },
+        {
+          operation: 'update',
+          budgetLineId: id,
+        },
+        { cause: error },
+      );
     }
   }
 
@@ -299,8 +353,15 @@ export class BudgetLineService {
         .eq('id', id);
 
       if (error) {
-        this.logger.error({ err: error }, 'Failed to delete budget line');
-        throw new BusinessException(ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND);
+        throw new BusinessException(
+          ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND,
+          { id },
+          {
+            operation: 'remove',
+            budgetLineId: id,
+          },
+          { cause: error },
+        );
       }
 
       return {
@@ -309,13 +370,20 @@ export class BudgetLineService {
       };
     } catch (error) {
       if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException ||
-        error instanceof BusinessException
+        error instanceof BusinessException ||
+        error instanceof HttpException
       ) {
         throw error;
       }
-      throw new BusinessException(ERROR_DEFINITIONS.BUDGET_LINE_DELETE_FAILED);
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_DELETE_FAILED,
+        { id },
+        {
+          operation: 'remove',
+          budgetLineId: id,
+        },
+        { cause: error },
+      );
     }
   }
 
@@ -331,11 +399,15 @@ export class BudgetLineService {
         .order('created_at', { ascending: false });
 
       if (error) {
-        this.logger.error(
-          { err: error },
-          'Failed to fetch budget lines by budget',
+        throw new BusinessException(
+          ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
+          undefined,
+          {
+            operation: 'findByBudgetId',
+            budgetId,
+          },
+          { cause: error },
         );
-        throw new BusinessException(ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED);
       }
 
       const apiData = budgetLineMappers.toApiList(budgetLinesDb || []);
@@ -345,18 +417,21 @@ export class BudgetLineService {
         data: apiData,
       } as BudgetLineListResponse;
     } catch (error) {
-      this.logger.error(
-        { err: error },
-        'Failed to list budget lines by budget',
-      );
       if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException ||
-        error instanceof BusinessException
+        error instanceof BusinessException ||
+        error instanceof HttpException
       ) {
         throw error;
       }
-      throw new BusinessException(ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED);
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'findByBudgetId',
+          budgetId,
+        },
+        { cause: error },
+      );
     }
   }
 }
