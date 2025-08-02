@@ -1,12 +1,14 @@
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import {
-  BadRequestException,
   Injectable,
-  InternalServerErrorException,
+  BadRequestException,
   NotFoundException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
+import { BusinessException } from '@common/exceptions/business.exception';
+import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import {
   type BudgetCreate,
   type BudgetDeleteResponse,
@@ -40,9 +42,7 @@ export class BudgetService {
 
       if (error) {
         this.logger.error({ err: error }, 'Failed to fetch budgets');
-        throw new InternalServerErrorException(
-          'Erreur lors de la récupération des budgets',
-        );
+        throw new BusinessException(ERROR_DEFINITIONS.BUDGET_FETCH_FAILED);
       }
 
       const apiData = budgetMappers.toApiList(budgets || []);
@@ -56,7 +56,7 @@ export class BudgetService {
         throw error;
       }
       this.logger.error({ err: error }, 'Failed to list budgets');
-      throw new InternalServerErrorException('Erreur interne du serveur');
+      throw new BusinessException(ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -68,30 +68,28 @@ export class BudgetService {
       !createBudgetDto.description ||
       !createBudgetDto.templateId
     ) {
-      throw new BadRequestException('Données requises manquantes');
+      throw new BusinessException(ERROR_DEFINITIONS.REQUIRED_DATA_MISSING);
     }
 
     if (
       createBudgetDto.month < BUDGET_CONSTANTS.MONTH_MIN ||
       createBudgetDto.month > BUDGET_CONSTANTS.MONTH_MAX
     ) {
-      throw new BadRequestException('Mois invalide');
+      throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED);
     }
 
     if (
       createBudgetDto.year < BUDGET_CONSTANTS.MIN_YEAR ||
       createBudgetDto.year > BUDGET_CONSTANTS.MAX_YEAR
     ) {
-      throw new BadRequestException('Année invalide');
+      throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED);
     }
 
     if (
       createBudgetDto.description.length >
       BUDGET_CONSTANTS.DESCRIPTION_MAX_LENGTH
     ) {
-      throw new BadRequestException(
-        `Description ne peut pas dépasser ${BUDGET_CONSTANTS.DESCRIPTION_MAX_LENGTH} caractères`,
-      );
+      throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED);
     }
 
     // Validation métier : pas plus de 2 ans dans le futur
@@ -102,9 +100,7 @@ export class BudgetService {
     );
     const maxFutureDate = new Date(now.getFullYear() + 2, now.getMonth());
     if (budgetDate > maxFutureDate) {
-      throw new BadRequestException(
-        'Budget ne peut pas être créé plus de 2 ans dans le futur',
-      );
+      throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED);
     }
 
     return createBudgetDto;
@@ -237,15 +233,15 @@ export class BudgetService {
       errorMessage?.includes('Template not found') ||
       errorMessage?.includes('access denied')
     ) {
-      throw new NotFoundException('Template introuvable ou accès non autorisé');
+      throw new BusinessException(ERROR_DEFINITIONS.TEMPLATE_NOT_FOUND);
     }
     if (errorMessage?.includes('Budget already exists')) {
-      throw new BadRequestException('Un budget existe déjà pour cette période');
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_ALREADY_EXISTS_FOR_MONTH,
+      );
     }
 
-    throw new InternalServerErrorException(
-      'Erreur lors de la création du budget à partir du template',
-    );
+    throw new BusinessException(ERROR_DEFINITIONS.BUDGET_CREATE_FAILED);
   }
 
   private processBudgetCreationResult(
@@ -262,9 +258,7 @@ export class BudgetService {
         { result, userId, templateId },
         'Invalid result returned from create_budget_from_template',
       );
-      throw new InternalServerErrorException(
-        'Résultat invalide retourné par la fonction de création',
-      );
+      throw new BusinessException(ERROR_DEFINITIONS.BUDGET_CREATE_FAILED);
     }
 
     const typedResult = result as {
@@ -308,7 +302,7 @@ export class BudgetService {
         .single();
 
       if (error || !budgetDb) {
-        throw new NotFoundException('Budget introuvable ou accès non autorisé');
+        throw new BusinessException(ERROR_DEFINITIONS.BUDGET_NOT_FOUND);
       }
 
       const apiData = budgetMappers.toApi(budgetDb as Tables<'monthly_budget'>);
@@ -322,7 +316,7 @@ export class BudgetService {
         throw error;
       }
       this.logger.error({ err: error }, 'Failed to fetch budget');
-      throw new InternalServerErrorException('Erreur interne du serveur');
+      throw new BusinessException(ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -352,7 +346,7 @@ export class BudgetService {
         { err: error, budgetId: id },
         'Failed to fetch budget with details',
       );
-      throw new InternalServerErrorException('Erreur interne du serveur');
+      throw new BusinessException(ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -461,7 +455,7 @@ export class BudgetService {
       (updateBudgetDto.month < BUDGET_CONSTANTS.MONTH_MIN ||
         updateBudgetDto.month > BUDGET_CONSTANTS.MONTH_MAX)
     ) {
-      throw new BadRequestException('Mois invalide');
+      throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED);
     }
 
     if (
@@ -469,7 +463,7 @@ export class BudgetService {
       (updateBudgetDto.year < BUDGET_CONSTANTS.MIN_YEAR ||
         updateBudgetDto.year > BUDGET_CONSTANTS.MAX_YEAR)
     ) {
-      throw new BadRequestException('Année invalide');
+      throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED);
     }
 
     return updateBudgetDto;
@@ -495,9 +489,7 @@ export class BudgetService {
 
     if (error || !budgetDb) {
       this.logger.error({ err: error }, 'Failed to update budget');
-      throw new NotFoundException(
-        'Budget introuvable ou modification non autorisée',
-      );
+      throw new BusinessException(ERROR_DEFINITIONS.BUDGET_NOT_FOUND);
     }
 
     return budgetDb;
@@ -537,7 +529,7 @@ export class BudgetService {
         throw error;
       }
       this.logger.error({ err: error }, 'Failed to update budget');
-      throw new InternalServerErrorException('Erreur interne du serveur');
+      throw new BusinessException(ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -553,9 +545,7 @@ export class BudgetService {
 
       if (error) {
         this.logger.error({ err: error }, 'Failed to delete budget');
-        throw new NotFoundException(
-          'Budget introuvable ou suppression non autorisée',
-        );
+        throw new BusinessException(ERROR_DEFINITIONS.BUDGET_NOT_FOUND);
       }
 
       return {
@@ -567,7 +557,7 @@ export class BudgetService {
         throw error;
       }
       this.logger.error({ err: error }, 'Failed to delete budget');
-      throw new InternalServerErrorException('Erreur interne du serveur');
+      throw new BusinessException(ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -586,7 +576,9 @@ export class BudgetService {
       .single();
 
     if (existingBudget) {
-      throw new BadRequestException('Un budget existe déjà pour cette période');
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_ALREADY_EXISTS_FOR_MONTH,
+      );
     }
   }
 }

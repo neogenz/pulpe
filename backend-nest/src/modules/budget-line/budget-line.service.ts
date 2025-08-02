@@ -3,10 +3,11 @@ import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.ser
 import {
   BadRequestException,
   Injectable,
-  InternalServerErrorException,
   NotFoundException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
+import { ERROR_MESSAGES } from '@common/constants/error-messages';
 import {
   type BudgetLineCreate,
   type BudgetLineListResponse,
@@ -35,9 +36,7 @@ export class BudgetLineService {
 
       if (error) {
         this.logger.error({ err: error }, 'Failed to fetch budget lines');
-        throw new InternalServerErrorException(
-          'Erreur lors de la récupération des lignes budgétaires',
-        );
+        throw error;
       }
 
       const apiData = budgetLineMappers.toApiList(budgetLinesDb || []);
@@ -47,11 +46,15 @@ export class BudgetLineService {
         data: apiData,
       } as BudgetLineListResponse;
     } catch (error) {
-      if (error instanceof InternalServerErrorException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
-      this.logger.error({ err: error }, 'Failed to list budget lines');
-      throw new InternalServerErrorException('Erreur interne du serveur');
+      throw new InternalServerErrorException(
+        ERROR_MESSAGES.BUDGET_LINE_LIST_FAILED,
+      );
     }
   }
 
@@ -71,9 +74,7 @@ export class BudgetLineService {
           { err: error },
           'Failed to fetch budget lines by budget',
         );
-        throw new InternalServerErrorException(
-          'Erreur lors de la récupération des lignes budgétaires',
-        );
+        throw error;
       }
 
       const apiData = budgetLineMappers.toApiList(budgetLinesDb || []);
@@ -83,14 +84,19 @@ export class BudgetLineService {
         data: apiData,
       } as BudgetLineListResponse;
     } catch (error) {
-      if (error instanceof InternalServerErrorException) {
-        throw error;
-      }
       this.logger.error(
         { err: error },
         'Failed to list budget lines by budget',
       );
-      throw new InternalServerErrorException('Erreur interne du serveur');
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        ERROR_MESSAGES.BUDGET_LINE_LIST_FAILED,
+      );
     }
   }
 
@@ -107,9 +113,7 @@ export class BudgetLineService {
         .single();
 
       if (error || !budgetLineDb) {
-        throw new NotFoundException(
-          'Ligne budgétaire introuvable ou accès non autorisé',
-        );
+        throw new NotFoundException(ERROR_MESSAGES.BUDGET_LINE_NOT_FOUND);
       }
 
       const apiData = budgetLineMappers.toApi(budgetLineDb);
@@ -123,7 +127,15 @@ export class BudgetLineService {
         throw error;
       }
       this.logger.error({ err: error }, 'Failed to fetch single budget line');
-      throw new InternalServerErrorException('Erreur interne du serveur');
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        ERROR_MESSAGES.BUDGET_LINE_NOT_FOUND,
+      );
     }
   }
 
@@ -131,28 +143,28 @@ export class BudgetLineService {
     createBudgetLineDto: BudgetLineCreate,
   ): void {
     if (!createBudgetLineDto.budgetId) {
-      throw new BadRequestException('Budget ID est requis');
+      throw new BadRequestException(ERROR_MESSAGES.BUDGET_LINE_BUDGET_REQUIRED);
     }
 
     if (!createBudgetLineDto.amount || createBudgetLineDto.amount <= 0) {
-      throw new BadRequestException('Montant doit être positif');
+      throw new BadRequestException(ERROR_MESSAGES.VALIDATION_INVALID_AMOUNT);
     }
 
     if (
       !createBudgetLineDto.name ||
       createBudgetLineDto.name.trim().length === 0
     ) {
-      throw new BadRequestException('Nom est requis');
+      throw new BadRequestException(ERROR_MESSAGES.VALIDATION_NAME_REQUIRED);
     }
 
     if (createBudgetLineDto.name.length > 100) {
-      throw new BadRequestException('Nom ne peut pas dépasser 100 caractères');
+      throw new BadRequestException(ERROR_MESSAGES.VALIDATION_NAME_TOO_LONG);
     }
   }
 
   private prepareBudgetLineData(createBudgetLineDto: BudgetLineCreate) {
     if (!createBudgetLineDto.budgetId) {
-      throw new BadRequestException('Budget ID est requis');
+      throw new BadRequestException(ERROR_MESSAGES.BUDGET_LINE_BUDGET_REQUIRED);
     }
 
     return {
@@ -181,8 +193,17 @@ export class BudgetLineService {
 
     if (error) {
       this.logger.error({ err: error }, 'Failed to create budget line');
-      throw new BadRequestException(
-        'Erreur lors de la création de la ligne budgétaire',
+      if (error.message) {
+        throw new BadRequestException(error.message);
+      }
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        ERROR_MESSAGES.BUDGET_LINE_CREATE_FAILED,
       );
     }
 
@@ -214,7 +235,15 @@ export class BudgetLineService {
         throw error;
       }
       this.logger.error({ err: error }, 'Failed to create budget line');
-      throw new InternalServerErrorException('Erreur interne du serveur');
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        ERROR_MESSAGES.BUDGET_LINE_CREATE_FAILED,
+      );
     }
   }
 
@@ -223,18 +252,16 @@ export class BudgetLineService {
   ): void {
     if (updateBudgetLineDto.amount !== undefined) {
       if (updateBudgetLineDto.amount <= 0) {
-        throw new BadRequestException('Montant doit être positif');
+        throw new BadRequestException(ERROR_MESSAGES.VALIDATION_INVALID_AMOUNT);
       }
     }
 
     if (updateBudgetLineDto.name !== undefined) {
       if (updateBudgetLineDto.name.trim().length === 0) {
-        throw new BadRequestException('Nom ne peut pas être vide');
+        throw new BadRequestException(ERROR_MESSAGES.VALIDATION_NAME_REQUIRED);
       }
       if (updateBudgetLineDto.name.length > 100) {
-        throw new BadRequestException(
-          'Nom ne peut pas dépasser 100 caractères',
-        );
+        throw new BadRequestException(ERROR_MESSAGES.VALIDATION_NAME_TOO_LONG);
       }
     }
   }
@@ -276,9 +303,7 @@ export class BudgetLineService {
 
     if (error || !budgetLineDb) {
       this.logger.error({ err: error }, 'Failed to update budget line');
-      throw new NotFoundException(
-        'Ligne budgétaire introuvable ou modification non autorisée',
-      );
+      throw new NotFoundException(ERROR_MESSAGES.BUDGET_LINE_NOT_FOUND);
     }
 
     return budgetLineDb;
@@ -314,7 +339,15 @@ export class BudgetLineService {
         throw error;
       }
       this.logger.error({ err: error }, 'Failed to update budget line');
-      throw new InternalServerErrorException('Erreur interne du serveur');
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        ERROR_MESSAGES.BUDGET_LINE_UPDATE_FAILED,
+      );
     }
   }
 
@@ -331,21 +364,27 @@ export class BudgetLineService {
 
       if (error) {
         this.logger.error({ err: error }, 'Failed to delete budget line');
-        throw new NotFoundException(
-          'Ligne budgétaire introuvable ou suppression non autorisée',
-        );
+        throw new NotFoundException(ERROR_MESSAGES.BUDGET_LINE_NOT_FOUND);
       }
 
       return {
         success: true,
-        message: 'Ligne budgétaire supprimée avec succès',
+        message: 'Budget line deleted successfully',
       };
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
       }
       this.logger.error({ err: error }, 'Failed to delete budget line');
-      throw new InternalServerErrorException('Erreur interne du serveur');
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        ERROR_MESSAGES.BUDGET_LINE_DELETE_FAILED,
+      );
     }
   }
 }
