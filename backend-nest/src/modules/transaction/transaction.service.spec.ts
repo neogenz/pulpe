@@ -1,15 +1,10 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
-import {
-  NotFoundException,
-  InternalServerErrorException,
-} from '@nestjs/common';
 import { TransactionService } from './transaction.service';
 import { PinoLogger } from 'nestjs-pino';
 import type { TransactionCreate, TransactionUpdate } from '@pulpe/shared';
 import {
   createMockSupabaseClient,
   expectBusinessExceptionThrown,
-  expectErrorThrown,
   createMockAuthenticatedUser,
   createMockTransactionEntity,
   MockSupabaseClient,
@@ -196,15 +191,14 @@ describe('TransactionService', () => {
       };
 
       // Act & Assert
-      await expectErrorThrown(
+      await expectBusinessExceptionThrown(
         () =>
           service.create(
             createTransactionDto,
             mockUser,
             mockSupabaseClient as any,
           ),
-        InternalServerErrorException,
-        'Failed to create transaction',
+        ERROR_DEFINITIONS.TRANSACTION_CREATE_FAILED,
       );
 
       // Restore
@@ -242,11 +236,10 @@ describe('TransactionService', () => {
       mockSupabaseClient.reset().setMockError({ message: 'Not found' });
 
       // Act & Assert
-      await expectErrorThrown(
+      await expectBusinessExceptionThrown(
         () =>
           service.findOne('non-existent', mockUser, mockSupabaseClient as any),
-        NotFoundException,
-        'Transaction not found',
+        ERROR_DEFINITIONS.TRANSACTION_NOT_FOUND,
       );
     });
 
@@ -261,11 +254,10 @@ describe('TransactionService', () => {
       };
 
       // Act & Assert
-      await expectErrorThrown(
+      await expectBusinessExceptionThrown(
         () =>
           service.findOne(transactionId, mockUser, mockSupabaseClient as any),
-        InternalServerErrorException,
-        'Transaction not found',
+        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
       );
     });
   });
@@ -312,7 +304,7 @@ describe('TransactionService', () => {
       mockSupabaseClient.reset().setMockError(mockError);
 
       // Act & Assert
-      await expectErrorThrown(
+      await expectBusinessExceptionThrown(
         () =>
           service.update(
             'non-existent',
@@ -320,8 +312,7 @@ describe('TransactionService', () => {
             mockUser,
             mockSupabaseClient as any,
           ),
-        NotFoundException,
-        'Transaction not found',
+        ERROR_DEFINITIONS.TRANSACTION_NOT_FOUND,
       );
     });
 
@@ -340,7 +331,7 @@ describe('TransactionService', () => {
       };
 
       // Act & Assert
-      await expectErrorThrown(
+      await expectBusinessExceptionThrown(
         () =>
           service.update(
             transactionId,
@@ -348,8 +339,7 @@ describe('TransactionService', () => {
             mockUser,
             mockSupabaseClient as any,
           ),
-        InternalServerErrorException,
-        'Failed to update transaction',
+        ERROR_DEFINITIONS.TRANSACTION_UPDATE_FAILED,
       );
 
       // Restore
@@ -386,11 +376,10 @@ describe('TransactionService', () => {
       mockSupabaseClient.reset().setMockError(mockError);
 
       // Act & Assert
-      await expectErrorThrown(
+      await expectBusinessExceptionThrown(
         () =>
           service.remove(transactionId, mockUser, mockSupabaseClient as any),
-        NotFoundException,
-        'Transaction not found',
+        ERROR_DEFINITIONS.TRANSACTION_NOT_FOUND,
       );
     });
 
@@ -406,11 +395,10 @@ describe('TransactionService', () => {
       };
 
       // Act & Assert
-      await expectErrorThrown(
+      await expectBusinessExceptionThrown(
         () =>
           service.remove(transactionId, mockUser, mockSupabaseClient as any),
-        InternalServerErrorException,
-        'Failed to delete transaction',
+        ERROR_DEFINITIONS.TRANSACTION_DELETE_FAILED,
       );
 
       // Restore
@@ -444,10 +432,9 @@ describe('TransactionService', () => {
       mockSupabaseClient.reset().setMockError(mockError);
 
       // Act & Assert
-      await expectErrorThrown(
+      await expectBusinessExceptionThrown(
         () => service.findByBudgetId(MOCK_BUDGET_ID, mockSupabaseClient as any),
-        InternalServerErrorException,
-        'Failed to retrieve transactions',
+        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
       );
     });
 
