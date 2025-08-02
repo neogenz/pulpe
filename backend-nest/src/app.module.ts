@@ -113,9 +113,9 @@ function createPinoLoggerConfig(configService: ConfigService) {
                 method?: string;
                 url?: string;
                 headers?: Record<string, string | string[] | undefined>;
-                body?: any;
-                query?: any;
-                params?: any;
+                body?: unknown;
+                query?: unknown;
+                params?: unknown;
               },
             ) => {
               const headers = Object.fromEntries(
@@ -129,9 +129,19 @@ function createPinoLoggerConfig(configService: ConfigService) {
 
               const curlCommand = CurlGenerator({
                 url: `http://localhost:3000${req.url}`,
-                method: (req.method || 'GET') as any,
+                method: (req.method || 'GET') as
+                  | 'GET'
+                  | 'POST'
+                  | 'PUT'
+                  | 'DELETE'
+                  | 'PATCH'
+                  | 'get'
+                  | 'post'
+                  | 'put'
+                  | 'patch'
+                  | 'delete',
                 headers,
-                body: req.body,
+                body: req.body as string | Record<string, unknown> | undefined,
               });
 
               return {
