@@ -1,11 +1,6 @@
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import {
-  Injectable,
-  BadRequestException,
-  NotFoundException,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { Injectable, HttpException } from '@nestjs/common';
 import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
@@ -31,6 +26,7 @@ export class BudgetService {
   ) {}
 
   async findAll(
+    user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetListResponse> {
     try {
@@ -41,8 +37,15 @@ export class BudgetService {
         .order('month', { ascending: false });
 
       if (error) {
-        this.logger.error({ err: error }, 'Failed to fetch budgets');
-        throw new BusinessException(ERROR_DEFINITIONS.BUDGET_FETCH_FAILED);
+        throw new BusinessException(
+          ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
+          { operation: 'listBudgets' },
+          {
+            userId: user.id,
+            supabaseError: error,
+          },
+          { cause: error },
+        );
       }
 
       const apiData = budgetMappers.toApiList(budgets || []);
@@ -52,44 +55,73 @@ export class BudgetService {
         data: apiData,
       } as BudgetListResponse;
     } catch (error) {
-      if (error instanceof InternalServerErrorException) {
+      if (
+        error instanceof BusinessException ||
+        error instanceof HttpException
+      ) {
         throw error;
       }
-      this.logger.error({ err: error }, 'Failed to list budgets');
-      throw new BusinessException(ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR);
+      throw new BusinessException(
+        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+        undefined,
+        {
+          userId: user.id,
+          operation: 'listBudgets',
+        },
+        { cause: error },
+      );
     }
   }
 
-  private validateCreateBudgetDto(createBudgetDto: BudgetCreate): BudgetCreate {
-    // Validation métier basique (Supabase gère les contraintes de DB)
+  private validateRequiredFields(createBudgetDto: BudgetCreate): void {
     if (
       !createBudgetDto.month ||
       !createBudgetDto.year ||
       !createBudgetDto.description ||
       !createBudgetDto.templateId
     ) {
-      throw new BusinessException(ERROR_DEFINITIONS.REQUIRED_DATA_MISSING);
-    }
+      const missingFields = [];
+      if (!createBudgetDto.month) missingFields.push('month');
+      if (!createBudgetDto.year) missingFields.push('year');
+      if (!createBudgetDto.description) missingFields.push('description');
+      if (!createBudgetDto.templateId) missingFields.push('templateId');
 
+      throw new BusinessException(ERROR_DEFINITIONS.REQUIRED_DATA_MISSING, {
+        fields: missingFields,
+      });
+    }
+  }
+
+  private validateMonthAndYear(createBudgetDto: BudgetCreate): void {
     if (
       createBudgetDto.month < BUDGET_CONSTANTS.MONTH_MIN ||
       createBudgetDto.month > BUDGET_CONSTANTS.MONTH_MAX
     ) {
-      throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED);
+      throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED, {
+        reason: `Month must be between ${BUDGET_CONSTANTS.MONTH_MIN} and ${BUDGET_CONSTANTS.MONTH_MAX}`,
+      });
     }
 
     if (
       createBudgetDto.year < BUDGET_CONSTANTS.MIN_YEAR ||
       createBudgetDto.year > BUDGET_CONSTANTS.MAX_YEAR
     ) {
-      throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED);
+      throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED, {
+        reason: `Year must be between ${BUDGET_CONSTANTS.MIN_YEAR} and ${BUDGET_CONSTANTS.MAX_YEAR}`,
+      });
     }
+  }
 
+  private validateDescriptionAndFutureDate(
+    createBudgetDto: BudgetCreate,
+  ): void {
     if (
       createBudgetDto.description.length >
       BUDGET_CONSTANTS.DESCRIPTION_MAX_LENGTH
     ) {
-      throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED);
+      throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED, {
+        reason: `Description cannot exceed ${BUDGET_CONSTANTS.DESCRIPTION_MAX_LENGTH} characters`,
+      });
     }
 
     // Validation métier : pas plus de 2 ans dans le futur
@@ -100,8 +132,17 @@ export class BudgetService {
     );
     const maxFutureDate = new Date(now.getFullYear() + 2, now.getMonth());
     if (budgetDate > maxFutureDate) {
-      throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED);
+      throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED, {
+        reason: 'Budget date cannot be more than 2 years in the future',
+      });
     }
+  }
+
+  private validateCreateBudgetDto(createBudgetDto: BudgetCreate): BudgetCreate {
+    // Validation métier basique (Supabase gère les contraintes de DB)
+    this.validateRequiredFields(createBudgetDto);
+    this.validateMonthAndYear(createBudgetDto);
+    this.validateDescriptionAndFutureDate(createBudgetDto);
 
     return createBudgetDto;
   }
@@ -166,14 +207,15 @@ export class BudgetService {
   }
 
   private handleCreateError(error: unknown): never {
-    if (
-      error instanceof BadRequestException ||
-      error instanceof NotFoundException
-    ) {
+    if (error instanceof BusinessException || error instanceof HttpException) {
       throw error;
     }
-    this.logger.error({ err: error }, 'Failed to create budget');
-    throw new InternalServerErrorException('Erreur interne du serveur');
+    throw new BusinessException(
+      ERROR_DEFINITIONS.BUDGET_CREATE_FAILED,
+      undefined,
+      {},
+      { cause: error },
+    );
   }
 
   private logBudgetCreationStart(
@@ -219,29 +261,43 @@ export class BudgetService {
     userId: string,
     templateId: string,
   ): never {
+    // Pattern "Enrichir et Relancer" - log technique + throw métier
+    // Log l'erreur technique de bas niveau (Supabase RPC)
     this.logger.error(
       {
         err: error,
         userId,
         templateId,
+        operation: 'create_budget_from_template_rpc',
+        postgresError: error,
       },
-      'Atomic budget creation from template failed',
+      'Supabase RPC failed at database level',
     );
 
+    // Throw erreur métier de haut niveau
     const errorMessage = (error as { message?: string })?.message;
     if (
       errorMessage?.includes('Template not found') ||
       errorMessage?.includes('access denied')
     ) {
-      throw new BusinessException(ERROR_DEFINITIONS.TEMPLATE_NOT_FOUND);
+      throw new BusinessException(ERROR_DEFINITIONS.TEMPLATE_NOT_FOUND, {
+        id: templateId,
+      });
     }
     if (errorMessage?.includes('Budget already exists')) {
       throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_ALREADY_EXISTS_FOR_MONTH,
+        undefined,
+        { userId, templateId },
       );
     }
 
-    throw new BusinessException(ERROR_DEFINITIONS.BUDGET_CREATE_FAILED);
+    throw new BusinessException(
+      ERROR_DEFINITIONS.BUDGET_CREATE_FAILED,
+      undefined,
+      { userId, templateId },
+      { cause: error },
+    );
   }
 
   private processBudgetCreationResult(
@@ -254,11 +310,16 @@ export class BudgetService {
     templateName: string;
   } {
     if (!result || typeof result !== 'object' || !('budget' in result)) {
-      this.logger.error(
-        { result, userId, templateId },
-        'Invalid result returned from create_budget_from_template',
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_CREATE_FAILED,
+        { reason: 'Invalid result structure from RPC' },
+        {
+          userId,
+          templateId,
+          result,
+          operation: 'processBudgetCreationResult',
+        },
       );
-      throw new BusinessException(ERROR_DEFINITIONS.BUDGET_CREATE_FAILED);
     }
 
     const typedResult = result as {
@@ -302,7 +363,7 @@ export class BudgetService {
         .single();
 
       if (error || !budgetDb) {
-        throw new BusinessException(ERROR_DEFINITIONS.BUDGET_NOT_FOUND);
+        throw new BusinessException(ERROR_DEFINITIONS.BUDGET_NOT_FOUND, { id });
       }
 
       const apiData = budgetMappers.toApi(budgetDb as Tables<'monthly_budget'>);
@@ -312,11 +373,21 @@ export class BudgetService {
         data: apiData,
       };
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (
+        error instanceof BusinessException ||
+        error instanceof HttpException
+      ) {
         throw error;
       }
-      this.logger.error({ err: error }, 'Failed to fetch budget');
-      throw new BusinessException(ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR);
+      throw new BusinessException(
+        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+        undefined,
+        {
+          operation: 'findOne',
+          budgetId: id,
+        },
+        { cause: error },
+      );
     }
   }
 
@@ -339,14 +410,21 @@ export class BudgetService {
         data: mappedData,
       };
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (
+        error instanceof BusinessException ||
+        error instanceof HttpException
+      ) {
         throw error;
       }
-      this.logger.error(
-        { err: error, budgetId: id },
-        'Failed to fetch budget with details',
+      throw new BusinessException(
+        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+        undefined,
+        {
+          operation: 'findOneWithDetails',
+          budgetId: id,
+        },
+        { cause: error },
       );
-      throw new BusinessException(ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -377,11 +455,15 @@ export class BudgetService {
     id: string,
   ): void {
     if (budgetResult.error || !budgetResult.data) {
-      this.logger.warn(
-        { budgetId: id, error: budgetResult.error },
-        'Budget not found or access denied',
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
+        { id },
+        {
+          budgetId: id,
+          error: budgetResult.error,
+          operation: 'validateBudgetAccess',
+        },
       );
-      throw new NotFoundException('Budget introuvable ou accès non autorisé');
     }
   }
 
@@ -393,6 +475,8 @@ export class BudgetService {
       : never,
     id: string,
   ): void {
+    // Ces erreurs sont non-bloquantes, on les log seulement
+    // (la fonction continue même si certaines données manquent)
     if (results.transactionsResult.error) {
       this.logger.error(
         { err: results.transactionsResult.error, budgetId: id },
@@ -455,7 +539,9 @@ export class BudgetService {
       (updateBudgetDto.month < BUDGET_CONSTANTS.MONTH_MIN ||
         updateBudgetDto.month > BUDGET_CONSTANTS.MONTH_MAX)
     ) {
-      throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED);
+      throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED, {
+        reason: `Month must be between ${BUDGET_CONSTANTS.MONTH_MIN} and ${BUDGET_CONSTANTS.MONTH_MAX}`,
+      });
     }
 
     if (
@@ -463,7 +549,9 @@ export class BudgetService {
       (updateBudgetDto.year < BUDGET_CONSTANTS.MIN_YEAR ||
         updateBudgetDto.year > BUDGET_CONSTANTS.MAX_YEAR)
     ) {
-      throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED);
+      throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED, {
+        reason: `Year must be between ${BUDGET_CONSTANTS.MIN_YEAR} and ${BUDGET_CONSTANTS.MAX_YEAR}`,
+      });
     }
 
     return updateBudgetDto;
@@ -488,8 +576,15 @@ export class BudgetService {
       .single();
 
     if (error || !budgetDb) {
-      this.logger.error({ err: error }, 'Failed to update budget');
-      throw new BusinessException(ERROR_DEFINITIONS.BUDGET_NOT_FOUND);
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
+        { id },
+        {
+          operation: 'updateBudgetInDb',
+          budgetId: id,
+        },
+        { cause: error },
+      );
     }
 
     return budgetDb;
@@ -523,13 +618,20 @@ export class BudgetService {
       };
     } catch (error) {
       if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException
+        error instanceof BusinessException ||
+        error instanceof HttpException
       ) {
         throw error;
       }
-      this.logger.error({ err: error }, 'Failed to update budget');
-      throw new BusinessException(ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR);
+      throw new BusinessException(
+        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+        undefined,
+        {
+          operation: 'update',
+          budgetId: id,
+        },
+        { cause: error },
+      );
     }
   }
 
@@ -544,8 +646,15 @@ export class BudgetService {
         .eq('id', id);
 
       if (error) {
-        this.logger.error({ err: error }, 'Failed to delete budget');
-        throw new BusinessException(ERROR_DEFINITIONS.BUDGET_NOT_FOUND);
+        throw new BusinessException(
+          ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
+          { id },
+          {
+            operation: 'remove',
+            budgetId: id,
+          },
+          { cause: error },
+        );
       }
 
       return {
@@ -553,11 +662,21 @@ export class BudgetService {
         message: 'Budget supprimé avec succès',
       };
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (
+        error instanceof BusinessException ||
+        error instanceof HttpException
+      ) {
         throw error;
       }
-      this.logger.error({ err: error }, 'Failed to delete budget');
-      throw new BusinessException(ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR);
+      throw new BusinessException(
+        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+        undefined,
+        {
+          operation: 'remove',
+          budgetId: id,
+        },
+        { cause: error },
+      );
     }
   }
 
@@ -578,6 +697,7 @@ export class BudgetService {
     if (existingBudget) {
       throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_ALREADY_EXISTS_FOR_MONTH,
+        { month, year },
       );
     }
   }
