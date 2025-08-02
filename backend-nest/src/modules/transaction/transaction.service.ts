@@ -4,10 +4,10 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
-  InternalServerErrorException,
 } from '@nestjs/common';
 import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
-import { ERROR_MESSAGES } from '@common/constants/error-messages';
+import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import { BusinessException } from '@common/exceptions/business.exception';
 import {
   type TransactionCreate,
   type TransactionDeleteResponse,
@@ -37,7 +37,7 @@ export class TransactionService {
 
       if (error) {
         this.logger.error({ err: error }, 'Failed to fetch transactions');
-        throw error;
+        throw new BusinessException(ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED);
       }
 
       const apiData = transactionMappers.toApiList(transactionsDb || []);
@@ -49,13 +49,12 @@ export class TransactionService {
     } catch (error) {
       if (
         error instanceof NotFoundException ||
-        error instanceof BadRequestException
+        error instanceof BadRequestException ||
+        error instanceof BusinessException
       ) {
         throw error;
       }
-      throw new InternalServerErrorException(
-        ERROR_MESSAGES.TRANSACTION_LIST_FAILED,
-      );
+      throw new BusinessException(ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED);
     }
   }
 
@@ -64,11 +63,13 @@ export class TransactionService {
   ): void {
     // Basic business validation (Supabase handles DB constraints)
     if (!createTransactionDto.budgetId) {
-      throw new BadRequestException(ERROR_MESSAGES.TRANSACTION_BUDGET_REQUIRED);
+      throw new BusinessException(ERROR_DEFINITIONS.REQUIRED_DATA_MISSING);
     }
 
     if (!createTransactionDto.amount || createTransactionDto.amount <= 0) {
-      throw new BadRequestException(ERROR_MESSAGES.VALIDATION_INVALID_AMOUNT);
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
+      );
     }
 
     if (createTransactionDto.amount > TRANSACTION_CONSTANTS.MAX_AMOUNT) {
@@ -81,7 +82,7 @@ export class TransactionService {
       !createTransactionDto.name ||
       createTransactionDto.name.trim().length === 0
     ) {
-      throw new BadRequestException(ERROR_MESSAGES.VALIDATION_NAME_REQUIRED);
+      throw new BusinessException(ERROR_DEFINITIONS.REQUIRED_DATA_MISSING);
     }
 
     if (
@@ -95,7 +96,7 @@ export class TransactionService {
 
   private prepareTransactionData(createTransactionDto: TransactionCreate) {
     if (!createTransactionDto.budgetId) {
-      throw new BadRequestException(ERROR_MESSAGES.TRANSACTION_BUDGET_REQUIRED);
+      throw new BusinessException(ERROR_DEFINITIONS.REQUIRED_DATA_MISSING);
     }
 
     return {
@@ -126,7 +127,7 @@ export class TransactionService {
       if (error.message) {
         throw new BadRequestException(error.message);
       }
-      throw error;
+      throw new BusinessException(ERROR_DEFINITIONS.TRANSACTION_CREATE_FAILED);
     }
 
     return transactionDb;
@@ -155,13 +156,12 @@ export class TransactionService {
     } catch (error) {
       if (
         error instanceof NotFoundException ||
-        error instanceof BadRequestException
+        error instanceof BadRequestException ||
+        error instanceof BusinessException
       ) {
         throw error;
       }
-      throw new InternalServerErrorException(
-        ERROR_MESSAGES.TRANSACTION_CREATE_FAILED,
-      );
+      throw new BusinessException(ERROR_DEFINITIONS.TRANSACTION_CREATE_FAILED);
     }
   }
 
@@ -178,7 +178,7 @@ export class TransactionService {
         .single();
 
       if (error || !transactionDb) {
-        throw new NotFoundException(ERROR_MESSAGES.TRANSACTION_NOT_FOUND);
+        throw new BusinessException(ERROR_DEFINITIONS.TRANSACTION_NOT_FOUND);
       }
 
       const apiData = transactionMappers.toApi(transactionDb);
@@ -191,13 +191,12 @@ export class TransactionService {
       this.logger.error({ err: error }, 'Failed to fetch single transaction');
       if (
         error instanceof NotFoundException ||
-        error instanceof BadRequestException
+        error instanceof BadRequestException ||
+        error instanceof BusinessException
       ) {
         throw error;
       }
-      throw new InternalServerErrorException(
-        ERROR_MESSAGES.TRANSACTION_NOT_FOUND,
-      );
+      throw new BusinessException(ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED);
     }
   }
 
@@ -207,7 +206,9 @@ export class TransactionService {
     // Basic business validation for optional fields
     if (updateTransactionDto.amount !== undefined) {
       if (updateTransactionDto.amount <= 0) {
-        throw new BadRequestException(ERROR_MESSAGES.VALIDATION_INVALID_AMOUNT);
+        throw new BusinessException(
+          ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
+        );
       }
       if (updateTransactionDto.amount > TRANSACTION_CONSTANTS.MAX_AMOUNT) {
         throw new BadRequestException(
@@ -218,7 +219,7 @@ export class TransactionService {
 
     if (updateTransactionDto.name !== undefined) {
       if (updateTransactionDto.name.trim().length === 0) {
-        throw new BadRequestException(ERROR_MESSAGES.VALIDATION_NAME_REQUIRED);
+        throw new BusinessException(ERROR_DEFINITIONS.REQUIRED_DATA_MISSING);
       }
       if (
         updateTransactionDto.name.length > TRANSACTION_CONSTANTS.NAME_MAX_LENGTH
@@ -265,7 +266,7 @@ export class TransactionService {
 
     if (error || !transactionDb) {
       this.logger.error({ err: error }, 'Failed to update transaction');
-      throw new NotFoundException(ERROR_MESSAGES.TRANSACTION_NOT_FOUND);
+      throw new BusinessException(ERROR_DEFINITIONS.TRANSACTION_NOT_FOUND);
     }
 
     return transactionDb;
@@ -297,20 +298,13 @@ export class TransactionService {
     } catch (error) {
       if (
         error instanceof NotFoundException ||
-        error instanceof BadRequestException
+        error instanceof BadRequestException ||
+        error instanceof BusinessException
       ) {
         throw error;
       }
       this.logger.error({ err: error }, 'Failed to update transaction');
-      if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException
-      ) {
-        throw error;
-      }
-      throw new InternalServerErrorException(
-        ERROR_MESSAGES.TRANSACTION_UPDATE_FAILED,
-      );
+      throw new BusinessException(ERROR_DEFINITIONS.TRANSACTION_UPDATE_FAILED);
     }
   }
 
@@ -327,7 +321,7 @@ export class TransactionService {
 
       if (error) {
         this.logger.error({ err: error }, 'Failed to delete transaction');
-        throw new NotFoundException(ERROR_MESSAGES.TRANSACTION_NOT_FOUND);
+        throw new BusinessException(ERROR_DEFINITIONS.TRANSACTION_NOT_FOUND);
       }
 
       return {
@@ -337,13 +331,12 @@ export class TransactionService {
     } catch (error) {
       if (
         error instanceof NotFoundException ||
-        error instanceof BadRequestException
+        error instanceof BadRequestException ||
+        error instanceof BusinessException
       ) {
         throw error;
       }
-      throw new InternalServerErrorException(
-        ERROR_MESSAGES.TRANSACTION_DELETE_FAILED,
-      );
+      throw new BusinessException(ERROR_DEFINITIONS.TRANSACTION_DELETE_FAILED);
     }
   }
 
@@ -363,7 +356,7 @@ export class TransactionService {
           { err: error },
           'Failed to fetch transactions by budget',
         );
-        throw error;
+        throw new BusinessException(ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED);
       }
 
       const apiData = transactionMappers.toApiList(transactionsDb || []);
@@ -379,13 +372,12 @@ export class TransactionService {
       );
       if (
         error instanceof NotFoundException ||
-        error instanceof BadRequestException
+        error instanceof BadRequestException ||
+        error instanceof BusinessException
       ) {
         throw error;
       }
-      throw new InternalServerErrorException(
-        ERROR_MESSAGES.TRANSACTION_LIST_FAILED,
-      );
+      throw new BusinessException(ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED);
     }
   }
 }
