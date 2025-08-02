@@ -235,7 +235,7 @@ describe('BudgetService', () => {
 
   describe('findOne', () => {
     it('should return budget with enriched data', async () => {
-      // const mockUser = createMockAuthenticatedUser(); // No longer needed
+      const mockUser = createMockAuthenticatedUser();
       const budgetId = MOCK_BUDGET_ID;
       const currentDate = new Date();
       const mockBudget = createValidBudgetEntity({
@@ -246,7 +246,11 @@ describe('BudgetService', () => {
 
       mockSupabaseClient.setMockData(mockBudget).setMockError(null);
 
-      const result = await service.findOne(budgetId, mockSupabaseClient as any);
+      const result = await service.findOne(
+        budgetId,
+        mockUser,
+        mockSupabaseClient as any,
+      );
 
       expect(result.success).toBe(true);
       expect(result.data).toBeDefined();
@@ -265,14 +269,14 @@ describe('BudgetService', () => {
     });
 
     it('should throw NotFoundException when budget not found', async () => {
-      // const mockUser = createMockAuthenticatedUser(); // No longer needed
+      const mockUser = createMockAuthenticatedUser();
       const budgetId = 'non-existent-id';
       const mockError = { message: 'No rows returned' };
 
       mockSupabaseClient.setMockData(null).setMockError(mockError);
 
       await expectBusinessExceptionThrown(
-        () => service.findOne(budgetId, mockSupabaseClient as any),
+        () => service.findOne(budgetId, mockUser, mockSupabaseClient as any),
         ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
         { id: budgetId },
       );
@@ -281,7 +285,7 @@ describe('BudgetService', () => {
 
   describe('update', () => {
     it('should update budget with validation', async () => {
-      // const mockUser = createMockAuthenticatedUser(); // No longer needed
+      const mockUser = createMockAuthenticatedUser();
       const budgetId = MOCK_BUDGET_ID;
       const updateBudgetDto: BudgetUpdate = {
         description: 'Budget Modifié',
@@ -300,6 +304,7 @@ describe('BudgetService', () => {
       const result = await service.update(
         budgetId,
         updateBudgetDto,
+        mockUser,
         mockSupabaseClient as any,
       );
 
@@ -309,7 +314,7 @@ describe('BudgetService', () => {
     });
 
     it('should validate update data against Zod schema', async () => {
-      // const mockUser = createMockAuthenticatedUser(); // No longer needed
+      const mockUser = createMockAuthenticatedUser();
       const budgetId = MOCK_BUDGET_ID;
 
       // Test invalid update data
@@ -319,7 +324,12 @@ describe('BudgetService', () => {
 
       await expectBusinessExceptionThrown(
         () =>
-          service.update(budgetId, invalidUpdate, mockSupabaseClient as any),
+          service.update(
+            budgetId,
+            invalidUpdate,
+            mockUser,
+            mockSupabaseClient as any,
+          ),
         ERROR_DEFINITIONS.VALIDATION_FAILED,
         { reason: 'Month must be between 1 and 12' },
       );
@@ -328,6 +338,7 @@ describe('BudgetService', () => {
 
   describe('findOneWithDetails', () => {
     it('should return budget with transactions and budget lines', async () => {
+      const mockUser = createMockAuthenticatedUser();
       const budgetId = MOCK_BUDGET_ID;
       const mockBudget = createValidBudgetEntity({ id: budgetId });
       const mockTransactions = [
@@ -410,6 +421,7 @@ describe('BudgetService', () => {
 
       const result = await service.findOneWithDetails(
         budgetId,
+        mockUser,
         mockSupabaseClient as any,
       );
 
@@ -439,6 +451,7 @@ describe('BudgetService', () => {
     });
 
     it('should return budget with empty arrays when no transactions or budget lines', async () => {
+      const mockUser = createMockAuthenticatedUser();
       const budgetId = MOCK_BUDGET_ID;
       const mockBudget = createValidBudgetEntity({ id: budgetId });
 
@@ -467,6 +480,7 @@ describe('BudgetService', () => {
 
       const result = await service.findOneWithDetails(
         budgetId,
+        mockUser,
         mockSupabaseClient as any,
       );
 
@@ -477,6 +491,7 @@ describe('BudgetService', () => {
     });
 
     it('should throw NotFoundException when budget not found', async () => {
+      const mockUser = createMockAuthenticatedUser();
       const budgetId = 'non-existent-id';
 
       mockSupabaseClient
@@ -484,13 +499,19 @@ describe('BudgetService', () => {
         .setMockError({ message: 'No rows returned' });
 
       await expectBusinessExceptionThrown(
-        () => service.findOneWithDetails(budgetId, mockSupabaseClient as any),
+        () =>
+          service.findOneWithDetails(
+            budgetId,
+            mockUser,
+            mockSupabaseClient as any,
+          ),
         ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
         { id: budgetId },
       );
     });
 
     it('should still return budget even if transactions or budget lines queries fail', async () => {
+      const mockUser = createMockAuthenticatedUser();
       const budgetId = MOCK_BUDGET_ID;
       const mockBudget = createValidBudgetEntity({ id: budgetId });
 
@@ -523,6 +544,7 @@ describe('BudgetService', () => {
 
       const result = await service.findOneWithDetails(
         budgetId,
+        mockUser,
         mockSupabaseClient as any,
       );
 

@@ -39,9 +39,11 @@ export class BudgetService {
       if (error) {
         throw new BusinessException(
           ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
-          { operation: 'listBudgets' },
+          undefined,
           {
+            operation: 'listBudgets',
             userId: user.id,
+            entityType: 'budget',
             supabaseError: error,
           },
           { cause: error },
@@ -65,8 +67,9 @@ export class BudgetService {
         ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
         undefined,
         {
-          userId: user.id,
           operation: 'listBudgets',
+          userId: user.id,
+          entityType: 'budget',
         },
         { cause: error },
       );
@@ -174,7 +177,7 @@ export class BudgetService {
         data: apiData,
       };
     } catch (error) {
-      this.handleCreateError(error);
+      this.handleCreateError(error, user.id);
     }
   }
 
@@ -206,14 +209,18 @@ export class BudgetService {
     return processedResult;
   }
 
-  private handleCreateError(error: unknown): never {
+  private handleCreateError(error: unknown, userId: string): never {
     if (error instanceof BusinessException || error instanceof HttpException) {
       throw error;
     }
     throw new BusinessException(
       ERROR_DEFINITIONS.BUDGET_CREATE_FAILED,
       undefined,
-      {},
+      {
+        operation: 'createBudget',
+        userId,
+        entityType: 'budget',
+      },
       { cause: error },
     );
   }
@@ -353,6 +360,7 @@ export class BudgetService {
 
   async findOne(
     id: string,
+    user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetResponse> {
     try {
@@ -363,7 +371,17 @@ export class BudgetService {
         .single();
 
       if (error || !budgetDb) {
-        throw new BusinessException(ERROR_DEFINITIONS.BUDGET_NOT_FOUND, { id });
+        throw new BusinessException(
+          ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
+          { id },
+          {
+            operation: 'getBudget',
+            userId: user.id,
+            entityId: id,
+            entityType: 'budget',
+            supabaseError: error,
+          },
+        );
       }
 
       const apiData = budgetMappers.toApi(budgetDb as Tables<'monthly_budget'>);
@@ -383,8 +401,10 @@ export class BudgetService {
         ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
         undefined,
         {
-          operation: 'findOne',
-          budgetId: id,
+          operation: 'getBudget',
+          userId: user.id,
+          entityId: id,
+          entityType: 'budget',
         },
         { cause: error },
       );
@@ -393,6 +413,7 @@ export class BudgetService {
 
   async findOneWithDetails(
     id: string,
+    user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetDetailsResponse> {
     try {
@@ -420,8 +441,10 @@ export class BudgetService {
         ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
         undefined,
         {
-          operation: 'findOneWithDetails',
-          budgetId: id,
+          operation: 'getBudgetWithDetails',
+          userId: user.id,
+          entityId: id,
+          entityType: 'budget',
         },
         { cause: error },
       );
@@ -459,9 +482,10 @@ export class BudgetService {
         ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
         { id },
         {
-          budgetId: id,
-          error: budgetResult.error,
           operation: 'validateBudgetAccess',
+          entityId: id,
+          entityType: 'budget',
+          supabaseError: budgetResult.error,
         },
       );
     }
@@ -581,7 +605,9 @@ export class BudgetService {
         { id },
         {
           operation: 'updateBudgetInDb',
-          budgetId: id,
+          entityId: id,
+          entityType: 'budget',
+          supabaseError: error,
         },
         { cause: error },
       );
@@ -593,6 +619,7 @@ export class BudgetService {
   async update(
     id: string,
     updateBudgetDto: BudgetUpdate,
+    user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetResponse> {
     try {
@@ -627,8 +654,10 @@ export class BudgetService {
         ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
         undefined,
         {
-          operation: 'update',
-          budgetId: id,
+          operation: 'updateBudget',
+          userId: user.id,
+          entityId: id,
+          entityType: 'budget',
         },
         { cause: error },
       );
@@ -637,6 +666,7 @@ export class BudgetService {
 
   async remove(
     id: string,
+    user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetDeleteResponse> {
     try {
@@ -650,8 +680,11 @@ export class BudgetService {
           ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
           { id },
           {
-            operation: 'remove',
-            budgetId: id,
+            operation: 'deleteBudget',
+            userId: user.id,
+            entityId: id,
+            entityType: 'budget',
+            supabaseError: error,
           },
           { cause: error },
         );
@@ -659,7 +692,7 @@ export class BudgetService {
 
       return {
         success: true,
-        message: 'Budget supprimé avec succès',
+        message: 'Budget deleted successfully',
       };
     } catch (error) {
       if (
@@ -672,8 +705,10 @@ export class BudgetService {
         ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
         undefined,
         {
-          operation: 'remove',
-          budgetId: id,
+          operation: 'deleteBudget',
+          userId: user.id,
+          entityId: id,
+          entityType: 'budget',
         },
         { cause: error },
       );

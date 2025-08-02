@@ -123,9 +123,10 @@ export class BudgetController {
   })
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
+    @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetResponse> {
-    return this.budgetService.findOne(id, supabase);
+    return this.budgetService.findOne(id, user, supabase);
   }
 
   @Get(':id/details')
@@ -152,9 +153,10 @@ export class BudgetController {
   })
   async findOneWithDetails(
     @Param('id', ParseUUIDPipe) id: string,
+    @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetDetailsResponse> {
-    return this.budgetService.findOneWithDetails(id, supabase);
+    return this.budgetService.findOneWithDetails(id, user, supabase);
   }
 
   @Patch(':id')
@@ -185,9 +187,10 @@ export class BudgetController {
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateBudgetDto: BudgetUpdateDto,
+    @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetResponse> {
-    return this.budgetService.update(id, updateBudgetDto, supabase);
+    return this.budgetService.update(id, updateBudgetDto, user, supabase);
   }
 
   @Delete(':id')
@@ -213,8 +216,9 @@ export class BudgetController {
   })
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
+    @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetDeleteResponse> {
-    return this.budgetService.remove(id, supabase);
+    return this.budgetService.remove(id, user, supabase);
   }
 }

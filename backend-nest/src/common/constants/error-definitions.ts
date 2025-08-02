@@ -369,6 +369,104 @@ export const ERROR_DEFINITIONS = {
     message: () => 'Database transaction failed',
     httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
   },
+
+  // Data Integrity Errors
+  DATA_INTEGRITY_VIOLATION: {
+    code: 'ERR_DATA_INTEGRITY_VIOLATION',
+    message: (details?: Record<string, unknown>) =>
+      details?.constraint
+        ? `Data integrity violation: ${details.constraint}`
+        : 'Data integrity violation',
+    httpStatus: HttpStatus.CONFLICT,
+  },
+
+  // Resource State Errors
+  RESOURCE_STATE_INVALID: {
+    code: 'ERR_RESOURCE_STATE_INVALID',
+    message: (details?: Record<string, unknown>) =>
+      details?.currentState && details?.expectedState
+        ? `Resource is in state '${details.currentState}' but operation requires '${details.expectedState}'`
+        : 'Resource is in invalid state for this operation',
+    httpStatus: HttpStatus.CONFLICT,
+  },
+
+  // Business Rule Violations
+  BUSINESS_RULE_VIOLATION: {
+    code: 'ERR_BUSINESS_RULE_VIOLATION',
+    message: (details?: Record<string, unknown>) =>
+      details?.rule
+        ? `Business rule violation: ${details.rule}`
+        : 'Operation violates business rules',
+    httpStatus: HttpStatus.BAD_REQUEST,
+  },
+
+  // Concurrent Access Errors
+  CONCURRENT_MODIFICATION: {
+    code: 'ERR_CONCURRENT_MODIFICATION',
+    message: (details?: Record<string, unknown>) =>
+      details?.resource
+        ? `Resource '${details.resource}' was modified by another operation`
+        : 'Resource was modified concurrently',
+    httpStatus: HttpStatus.CONFLICT,
+  },
+
+  // Missing Dependency Errors
+  DEPENDENCY_NOT_FOUND: {
+    code: 'ERR_DEPENDENCY_NOT_FOUND',
+    message: (details?: Record<string, unknown>) =>
+      details?.dependency && details?.dependencyId
+        ? `Required dependency '${details.dependency}' with ID '${details.dependencyId}' not found`
+        : 'Required dependency not found',
+    httpStatus: HttpStatus.BAD_REQUEST,
+  },
+
+  // Rate Limiting (General)
+  RATE_LIMIT_EXCEEDED: {
+    code: 'ERR_RATE_LIMIT_EXCEEDED',
+    message: (details?: Record<string, unknown>) =>
+      details?.operation && details?.limit
+        ? `Rate limit exceeded for ${details.operation}: ${details.limit}`
+        : 'Rate limit exceeded',
+    httpStatus: HttpStatus.TOO_MANY_REQUESTS,
+  },
+
+  // Import/Export Errors
+  IMPORT_VALIDATION_FAILED: {
+    code: 'ERR_IMPORT_VALIDATION_FAILED',
+    message: (details?: Record<string, unknown>) =>
+      details?.errors
+        ? `Import validation failed: ${details.errors}`
+        : 'Import data validation failed',
+    httpStatus: HttpStatus.BAD_REQUEST,
+  },
+  EXPORT_GENERATION_FAILED: {
+    code: 'ERR_EXPORT_GENERATION_FAILED',
+    message: (details?: Record<string, unknown>) =>
+      details?.format
+        ? `Failed to generate export in ${details.format} format`
+        : 'Export generation failed',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+
+  // Configuration Errors
+  CONFIGURATION_INVALID: {
+    code: 'ERR_CONFIGURATION_INVALID',
+    message: (details?: Record<string, unknown>) =>
+      details?.setting
+        ? `Invalid configuration for ${details.setting}`
+        : 'Invalid configuration detected',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+
+  // External Service Errors
+  EXTERNAL_SERVICE_UNAVAILABLE: {
+    code: 'ERR_EXTERNAL_SERVICE_UNAVAILABLE',
+    message: (details?: Record<string, unknown>) =>
+      details?.service
+        ? `External service '${details.service}' is unavailable`
+        : 'External service unavailable',
+    httpStatus: HttpStatus.SERVICE_UNAVAILABLE,
+  },
 } as const;
 
 // Type for error definition keys

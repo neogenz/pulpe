@@ -63,12 +63,16 @@ describe('BudgetService (Performance)', () => {
     it('should perform findOne within performance limits', async () => {
       const budgetId = uuid();
       const mockBudget = createMockBudgetEntity({ id: budgetId });
-      // const mockUser = createMockAuthenticatedUser(); // No longer needed
+      const mockUser = createMockAuthenticatedUser();
 
       mockSupabaseClient.setMockData(mockBudget).setMockError(null);
 
       const startTime = Date.now();
-      const result = await service.findOne(budgetId, mockSupabaseClient as any);
+      const result = await service.findOne(
+        budgetId,
+        mockUser,
+        mockSupabaseClient as any,
+      );
       const executionTime = Date.now() - startTime;
 
       expect(result.success).toBe(true);

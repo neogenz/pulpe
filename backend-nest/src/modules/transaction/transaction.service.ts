@@ -36,7 +36,9 @@ export class TransactionService {
           ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
           undefined,
           {
-            operation: 'findAll',
+            operation: 'listTransactions',
+            entityType: 'transaction',
+            supabaseError: error,
           },
           { cause: error },
         );
@@ -58,7 +60,10 @@ export class TransactionService {
       throw new BusinessException(
         ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
         undefined,
-        {},
+        {
+          operation: 'listTransactions',
+          entityType: 'transaction',
+        },
         { cause: error },
       );
     }
@@ -110,12 +115,7 @@ export class TransactionService {
   }
 
   private prepareTransactionData(createTransactionDto: TransactionCreate) {
-    if (!createTransactionDto.budgetId) {
-      throw new BusinessException(ERROR_DEFINITIONS.REQUIRED_DATA_MISSING, {
-        fields: ['budgetId'],
-      });
-    }
-
+    // Note: budgetId validation is already handled by validateCreateTransactionDto
     return {
       budget_id: createTransactionDto.budgetId,
       amount: createTransactionDto.amount,
@@ -132,6 +132,7 @@ export class TransactionService {
   private async insertTransaction(
     transactionData: ReturnType<typeof this.prepareTransactionData>,
     supabase: AuthenticatedSupabaseClient,
+    userId?: string,
   ): Promise<Database['public']['Tables']['transaction']['Row']> {
     const { data: transactionDb, error } = await supabase
       .from('transaction')
@@ -145,6 +146,8 @@ export class TransactionService {
         {
           err: error,
           operation: 'insertTransaction',
+          userId,
+          entityType: 'transaction',
           supabaseError: error,
         },
         'Supabase insert transaction failed',
@@ -153,7 +156,12 @@ export class TransactionService {
       throw new BusinessException(
         ERROR_DEFINITIONS.TRANSACTION_CREATE_FAILED,
         undefined,
-        {},
+        {
+          operation: 'insertTransaction',
+          userId,
+          entityType: 'transaction',
+          supabaseError: error,
+        },
         { cause: error },
       );
     }
@@ -173,6 +181,7 @@ export class TransactionService {
       const transactionDb = await this.insertTransaction(
         transactionData,
         supabase,
+        user.id,
       );
 
       const apiData = transactionMappers.toApi(transactionDb);
@@ -192,7 +201,9 @@ export class TransactionService {
         ERROR_DEFINITIONS.TRANSACTION_CREATE_FAILED,
         undefined,
         {
+          operation: 'createTransaction',
           userId: user.id,
+          entityType: 'transaction',
         },
         { cause: error },
       );
@@ -201,7 +212,7 @@ export class TransactionService {
 
   async findOne(
     id: string,
-    _user: AuthenticatedUser,
+    user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionResponse> {
     try {
@@ -212,9 +223,17 @@ export class TransactionService {
         .single();
 
       if (error || !transactionDb) {
-        throw new BusinessException(ERROR_DEFINITIONS.TRANSACTION_NOT_FOUND, {
-          id,
-        });
+        throw new BusinessException(
+          ERROR_DEFINITIONS.TRANSACTION_NOT_FOUND,
+          { id },
+          {
+            operation: 'getTransaction',
+            userId: user.id,
+            entityId: id,
+            entityType: 'transaction',
+            supabaseError: error,
+          },
+        );
       }
 
       const apiData = transactionMappers.toApi(transactionDb);
@@ -234,8 +253,10 @@ export class TransactionService {
         ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
         undefined,
         {
-          operation: 'findOne',
-          transactionId: id,
+          operation: 'getTransaction',
+          userId: user.id,
+          entityId: id,
+          entityType: 'transaction',
         },
         { cause: error },
       );
@@ -286,7 +307,7 @@ export class TransactionService {
     updateTransactionDto: TransactionUpdate,
   ): Record<string, unknown> {
     return {
-      ...(updateTransactionDto.amount && {
+      ...(updateTransactionDto.amount !== undefined && {
         amount: updateTransactionDto.amount,
       }),
       ...(updateTransactionDto.name && { name: updateTransactionDto.name }),
@@ -307,6 +328,7 @@ export class TransactionService {
     id: string,
     updateData: Record<string, unknown>,
     supabase: AuthenticatedSupabaseClient,
+    userId?: string,
   ): Promise<Database['public']['Tables']['transaction']['Row']> {
     const { data: transactionDb, error } = await supabase
       .from('transaction')
@@ -321,7 +343,10 @@ export class TransactionService {
         { id },
         {
           operation: 'updateTransactionInDb',
-          transactionId: id,
+          userId,
+          entityId: id,
+          entityType: 'transaction',
+          supabaseError: error,
         },
         { cause: error },
       );
@@ -333,7 +358,7 @@ export class TransactionService {
   async update(
     id: string,
     updateTransactionDto: TransactionUpdate,
-    _user: AuthenticatedUser,
+    user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionResponse> {
     try {
@@ -345,6 +370,7 @@ export class TransactionService {
         id,
         updateData,
         supabase,
+        user.id,
       );
 
       const apiData = transactionMappers.toApi(transactionDb);
@@ -364,8 +390,10 @@ export class TransactionService {
         ERROR_DEFINITIONS.TRANSACTION_UPDATE_FAILED,
         { id },
         {
-          operation: 'update',
-          transactionId: id,
+          operation: 'updateTransaction',
+          userId: user.id,
+          entityId: id,
+          entityType: 'transaction',
         },
         { cause: error },
       );
@@ -374,7 +402,7 @@ export class TransactionService {
 
   async remove(
     id: string,
-    _user: AuthenticatedUser,
+    user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionDeleteResponse> {
     try {
@@ -388,8 +416,11 @@ export class TransactionService {
           ERROR_DEFINITIONS.TRANSACTION_NOT_FOUND,
           { id },
           {
-            operation: 'remove',
-            transactionId: id,
+            operation: 'deleteTransaction',
+            userId: user.id,
+            entityId: id,
+            entityType: 'transaction',
+            supabaseError: error,
           },
           { cause: error },
         );
@@ -410,8 +441,10 @@ export class TransactionService {
         ERROR_DEFINITIONS.TRANSACTION_DELETE_FAILED,
         { id },
         {
-          operation: 'remove',
-          transactionId: id,
+          operation: 'deleteTransaction',
+          userId: user.id,
+          entityId: id,
+          entityType: 'transaction',
         },
         { cause: error },
       );
@@ -434,8 +467,10 @@ export class TransactionService {
           ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
           undefined,
           {
-            operation: 'findByBudgetId',
-            budgetId,
+            operation: 'listTransactionsByBudget',
+            entityId: budgetId,
+            entityType: 'budget',
+            supabaseError: error,
           },
           { cause: error },
         );
@@ -458,8 +493,9 @@ export class TransactionService {
         ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
         undefined,
         {
-          operation: 'findByBudgetId',
-          budgetId,
+          operation: 'listTransactionsByBudget',
+          entityId: budgetId,
+          entityType: 'budget',
         },
         { cause: error },
       );
