@@ -70,6 +70,92 @@ function createLoggerTransport(isProduction: boolean) {
   return undefined;
 }
 
+function createCurlCommand(
+  req: IncomingMessage & {
+    method?: string;
+    url?: string;
+    headers?: Record<string, string | string[] | undefined>;
+    body?: unknown;
+  },
+) {
+  const headers = Object.fromEntries(
+    Object.entries(req.headers || {})
+      .filter(([k]) => !['host', 'connection', 'content-length'].includes(k))
+      .map(([k, v]) => [k, Array.isArray(v) ? v[0] : v || '']),
+  );
+
+  return CurlGenerator({
+    url: `http://localhost:3000${req.url}`,
+    method: (req.method || 'GET') as
+      | 'GET'
+      | 'POST'
+      | 'PUT'
+      | 'DELETE'
+      | 'PATCH'
+      | 'get'
+      | 'post'
+      | 'put'
+      | 'patch'
+      | 'delete',
+    headers,
+    body: req.body as string | Record<string, unknown> | undefined,
+  });
+}
+
+function createDebugSerializers() {
+  return {
+    req: (
+      req: IncomingMessage & {
+        method?: string;
+        url?: string;
+        headers?: Record<string, string | string[] | undefined>;
+        body?: unknown;
+        query?: unknown;
+        params?: unknown;
+      },
+    ) => {
+      return {
+        method: req.method,
+        url: req.url,
+        headers: req.headers,
+        body: req.body,
+        query: req.query,
+        params: req.params,
+        curl: createCurlCommand(req),
+      };
+    },
+    res: (
+      res: ServerResponse & {
+        statusCode?: number;
+        headers?: Record<string, string | string[] | undefined>;
+      },
+    ) => ({
+      statusCode: res.statusCode,
+      headers: res.headers,
+    }),
+  };
+}
+
+function createProductionSerializers() {
+  return {
+    req: (
+      req: IncomingMessage & {
+        method?: string;
+        url?: string;
+        headers?: Record<string, string | string[] | undefined>;
+      },
+    ) => ({
+      method: req.method,
+      url: req.url,
+      userAgent: req.headers?.['user-agent'],
+      ip: req.headers?.['x-forwarded-for'] || req.headers?.['x-real-ip'],
+    }),
+    res: (res: ServerResponse & { statusCode?: number }) => ({
+      statusCode: res.statusCode,
+    }),
+  };
+}
+
 function createPinoLoggerConfig(configService: ConfigService) {
   const isProduction = configService.get<string>('NODE_ENV') === 'production';
   const debugHttpFull = configService.get<string>('DEBUG_HTTP_FULL') === 'true';
@@ -107,81 +193,8 @@ function createPinoLoggerConfig(configService: ConfigService) {
         return `${req.method} ${req.url} ${res.statusCode} - ${error.message}`;
       },
       serializers: debugHttpFull
-        ? {
-            req: (
-              req: IncomingMessage & {
-                method?: string;
-                url?: string;
-                headers?: Record<string, string | string[] | undefined>;
-                body?: unknown;
-                query?: unknown;
-                params?: unknown;
-              },
-            ) => {
-              const headers = Object.fromEntries(
-                Object.entries(req.headers || {})
-                  .filter(
-                    ([k]) =>
-                      !['host', 'connection', 'content-length'].includes(k),
-                  )
-                  .map(([k, v]) => [k, Array.isArray(v) ? v[0] : v || '']),
-              );
-
-              const curlCommand = CurlGenerator({
-                url: `http://localhost:3000${req.url}`,
-                method: (req.method || 'GET') as
-                  | 'GET'
-                  | 'POST'
-                  | 'PUT'
-                  | 'DELETE'
-                  | 'PATCH'
-                  | 'get'
-                  | 'post'
-                  | 'put'
-                  | 'patch'
-                  | 'delete',
-                headers,
-                body: req.body as string | Record<string, unknown> | undefined,
-              });
-
-              return {
-                method: req.method,
-                url: req.url,
-                headers: req.headers,
-                body: req.body,
-                query: req.query,
-                params: req.params,
-                curl: curlCommand,
-              };
-            },
-            res: (
-              res: ServerResponse & {
-                statusCode?: number;
-                headers?: Record<string, string | string[] | undefined>;
-              },
-            ) => ({
-              statusCode: res.statusCode,
-              headers: res.headers,
-            }),
-          }
-        : {
-            req: (
-              req: IncomingMessage & {
-                method?: string;
-                url?: string;
-                headers?: Record<string, string | string[] | undefined>;
-              },
-            ) => ({
-              method: req.method,
-              url: req.url,
-              userAgent: req.headers?.['user-agent'],
-              ip:
-                req.headers?.['x-forwarded-for'] || req.headers?.['x-real-ip'],
-            }),
-            res: (res: ServerResponse & { statusCode?: number }) => ({
-              statusCode: res.statusCode,
-            }),
-          },
+        ? createDebugSerializers()
+        : createProductionSerializers(),
     },
     renameContext: 'module',
   };
