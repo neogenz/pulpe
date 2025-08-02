@@ -113,7 +113,7 @@ describe('GlobalExceptionFilter', () => {
         user: { id: 'custom-user-456' },
       });
 
-      const context = GlobalExceptionFilter.extractRequestContext(mockRequest);
+      const context = (filter as any).extractRequestContext(mockRequest);
 
       expect(context).toEqual({
         requestId: 'custom-req-id-789',
@@ -138,7 +138,7 @@ describe('GlobalExceptionFilter', () => {
         user: { id: 'user-abc-123' },
       } as any;
 
-      const context = GlobalExceptionFilter.extractRequestContext(mockRequest);
+      const context = (filter as any).extractRequestContext(mockRequest);
 
       expect(context.requestId).toBeUndefined();
       expect(context.userAgent).toBe('Test Browser');
@@ -152,7 +152,7 @@ describe('GlobalExceptionFilter', () => {
         },
       });
 
-      const context = GlobalExceptionFilter.extractRequestContext(mockRequest);
+      const context = (filter as any).extractRequestContext(mockRequest);
 
       expect(context.ip).toBe('198.51.100.1');
     });
@@ -162,7 +162,7 @@ describe('GlobalExceptionFilter', () => {
         user: undefined,
       });
 
-      const context = GlobalExceptionFilter.extractRequestContext(mockRequest);
+      const context = (filter as any).extractRequestContext(mockRequest);
 
       expect(context.userId).toBeUndefined();
     });
@@ -175,7 +175,7 @@ describe('GlobalExceptionFilter', () => {
         },
       });
 
-      const context = GlobalExceptionFilter.extractRequestContext(mockRequest);
+      const context = (filter as any).extractRequestContext(mockRequest);
 
       expect(context.requestId).toBe('req-first');
       expect(context.userAgent).toBe('Browser/1.0');
@@ -189,7 +189,7 @@ describe('GlobalExceptionFilter', () => {
         },
       });
 
-      const context = GlobalExceptionFilter.extractRequestContext(mockRequest);
+      const context = (filter as any).extractRequestContext(mockRequest);
 
       expect(context.requestId).toBeUndefined();
       expect(context.userAgent).toBeUndefined();
@@ -203,7 +203,7 @@ describe('GlobalExceptionFilter', () => {
         },
       });
 
-      const context = GlobalExceptionFilter.extractRequestContext(mockRequest);
+      const context = (filter as any).extractRequestContext(mockRequest);
 
       expect(context.requestId).toBe('single-request-id');
       expect(context.userAgent).toBe('Array Browser/1.0');
@@ -222,7 +222,7 @@ describe('GlobalExceptionFilter', () => {
         };
         const zodException = createZodValidationException(validationErrors);
 
-        const result = GlobalExceptionFilter.processException(zodException);
+        const result = (filter as any).processException(zodException);
 
         expect(result).toEqual({
           status: 400,
@@ -240,7 +240,7 @@ describe('GlobalExceptionFilter', () => {
         const zodException = createZodValidationException(validationErrors);
         zodException.stack = 'ZodValidationException stack trace';
 
-        const result = GlobalExceptionFilter.processException(zodException);
+        const result = (filter as any).processException(zodException);
 
         expect(result.stack).toBe('ZodValidationException stack trace');
       });
@@ -292,7 +292,7 @@ describe('GlobalExceptionFilter', () => {
           HttpStatus.NOT_FOUND,
         );
 
-        const result = GlobalExceptionFilter.processException(httpException);
+        const result = (filter as any).processException(httpException);
 
         expect(result).toEqual({
           status: 404,
@@ -314,7 +314,7 @@ describe('GlobalExceptionFilter', () => {
           HttpStatus.BAD_REQUEST,
         );
 
-        const result = GlobalExceptionFilter.processException(httpException);
+        const result = (filter as any).processException(httpException);
 
         expect(result).toEqual({
           status: 400,
@@ -331,7 +331,7 @@ describe('GlobalExceptionFilter', () => {
       it('should process generic Error with correct structure', async () => {
         const error = new Error('Database connection timeout');
 
-        const result = GlobalExceptionFilter.processException(error);
+        const result = (filter as any).processException(error);
 
         expect(result).toEqual({
           status: 500,
@@ -347,7 +347,7 @@ describe('GlobalExceptionFilter', () => {
         const error = new Error('Test error');
         Object.defineProperty(error, 'name', { value: undefined });
 
-        const result = GlobalExceptionFilter.processException(error);
+        const result = (filter as any).processException(error);
 
         expect(result.error).toBe('InternalServerErrorException');
       });
@@ -356,7 +356,7 @@ describe('GlobalExceptionFilter', () => {
         process.env.NODE_ENV = 'development';
         const error = new Error('Specific database constraint violation');
 
-        const result = GlobalExceptionFilter.processException(error);
+        const result = (filter as any).processException(error);
 
         expect(result.message).toBe('Specific database constraint violation');
       });
@@ -365,7 +365,7 @@ describe('GlobalExceptionFilter', () => {
         process.env.NODE_ENV = 'production';
         const error = new Error('Detailed internal system error');
 
-        const result = GlobalExceptionFilter.processException(error);
+        const result = (filter as any).processException(error);
 
         expect(result.message).toBe('Detailed internal system error');
       });
@@ -375,7 +375,7 @@ describe('GlobalExceptionFilter', () => {
       it('should process string exception', async () => {
         const unknownException = 'Simple string error';
 
-        const result = GlobalExceptionFilter.processException(unknownException);
+        const result = (filter as any).processException(unknownException);
 
         expect(result).toEqual({
           status: 500,
@@ -386,7 +386,7 @@ describe('GlobalExceptionFilter', () => {
       });
 
       it('should process null exception', async () => {
-        const result = GlobalExceptionFilter.processException(null);
+        const result = (filter as any).processException(null);
 
         expect(result.code).toBe('UNKNOWN_EXCEPTION');
         expect(result.error).toBe('UnknownException');
@@ -408,7 +408,7 @@ describe('GlobalExceptionFilter', () => {
           ip: '10.0.0.1',
         };
 
-        const sanitized = GlobalExceptionFilter.sanitizeContext(context);
+        const sanitized = (filter as any).sanitizeContext(context);
 
         expect(sanitized).toEqual({
           requestId: 'req-prod-123',
@@ -432,7 +432,7 @@ describe('GlobalExceptionFilter', () => {
           ip: '127.0.0.1',
         };
 
-        const sanitized = GlobalExceptionFilter.sanitizeContext(context);
+        const sanitized = (filter as any).sanitizeContext(context);
 
         expect(sanitized).toEqual({
           requestId: 'req-dev-123',
@@ -454,7 +454,7 @@ describe('GlobalExceptionFilter', () => {
           ip: '10.0.0.1',
         };
 
-        const sanitized = GlobalExceptionFilter.sanitizeContext(context);
+        const sanitized = (filter as any).sanitizeContext(context);
 
         expect(sanitized).toEqual({
           requestId: 'req-123',
@@ -484,7 +484,7 @@ describe('GlobalExceptionFilter', () => {
         userId: 'user-def-456',
       };
 
-      const result = GlobalExceptionFilter.buildErrorResponse(
+      const result = (filter as any).buildErrorResponse(
         errorData,
         request,
         context,
@@ -527,7 +527,7 @@ describe('GlobalExceptionFilter', () => {
       const request = createMockRequest();
       const context = { requestId: 'req-123' };
 
-      const result = GlobalExceptionFilter.buildErrorResponse(
+      const result = (filter as any).buildErrorResponse(
         errorData,
         request,
         context,
@@ -549,7 +549,7 @@ describe('GlobalExceptionFilter', () => {
       const request = createMockRequest();
       const context = {};
 
-      const result = GlobalExceptionFilter.buildErrorResponse(
+      const result = (filter as any).buildErrorResponse(
         errorData,
         request,
         context,
@@ -569,7 +569,7 @@ describe('GlobalExceptionFilter', () => {
       const context = {};
 
       const before = new Date();
-      const result = GlobalExceptionFilter.buildErrorResponse(
+      const result = (filter as any).buildErrorResponse(
         errorData,
         request,
         context,
@@ -791,7 +791,7 @@ describe('GlobalExceptionFilter', () => {
         user: { id: 'user-abc-123' },
       } as any;
 
-      const context = GlobalExceptionFilter.extractRequestContext(request);
+      const context = (filter as any).extractRequestContext(request);
 
       expect(context).toEqual({
         requestId: undefined,
@@ -809,7 +809,7 @@ describe('GlobalExceptionFilter', () => {
         ip: null as any,
       };
 
-      const sanitized = GlobalExceptionFilter.sanitizeContext(context);
+      const sanitized = (filter as any).sanitizeContext(context);
       expect(sanitized).toBeDefined();
     });
   });
