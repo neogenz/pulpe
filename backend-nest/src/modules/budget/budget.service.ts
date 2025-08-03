@@ -364,26 +364,7 @@ export class BudgetService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetResponse> {
     try {
-      const { data: budgetDb, error } = await supabase
-        .from('monthly_budget')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error || !budgetDb) {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
-          { id },
-          {
-            operation: 'getBudget',
-            userId: user.id,
-            entityId: id,
-            entityType: 'budget',
-            supabaseError: error,
-          },
-        );
-      }
-
+      const budgetDb = await this.fetchBudgetById(id, user, supabase);
       const apiData = budgetMappers.toApi(budgetDb as Tables<'monthly_budget'>);
 
       return {
@@ -391,24 +372,57 @@ export class BudgetService {
         data: apiData,
       };
     } catch (error) {
-      if (
-        error instanceof BusinessException ||
-        error instanceof HttpException
-      ) {
-        throw error;
-      }
+      this.handleBudgetFindOneError(error, id, user);
+    }
+  }
+
+  private async fetchBudgetById(
+    id: string,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ) {
+    const { data: budgetDb, error } = await supabase
+      .from('monthly_budget')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error || !budgetDb) {
       throw new BusinessException(
-        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
-        undefined,
+        ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
+        { id },
         {
           operation: 'getBudget',
           userId: user.id,
           entityId: id,
           entityType: 'budget',
+          supabaseError: error,
         },
-        { cause: error },
       );
     }
+
+    return budgetDb;
+  }
+
+  private handleBudgetFindOneError(
+    error: unknown,
+    id: string,
+    user: AuthenticatedUser,
+  ): never {
+    if (error instanceof BusinessException || error instanceof HttpException) {
+      throw error;
+    }
+    throw new BusinessException(
+      ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+      undefined,
+      {
+        operation: 'getBudget',
+        userId: user.id,
+        entityId: id,
+        entityType: 'budget',
+      },
+      { cause: error },
+    );
   }
 
   async findOneWithDetails(

@@ -46,6 +46,7 @@ describe('MainLayout', () => {
   let fixture: ComponentFixture<MainLayout>;
   let mockAuthApi: {
     signOut: ReturnType<typeof vi.fn>;
+    authState: ReturnType<typeof vi.fn>;
   };
   let mockRouter: {
     navigate: ReturnType<typeof vi.fn>;
@@ -74,6 +75,12 @@ describe('MainLayout', () => {
     // Create mocks
     mockAuthApi = {
       signOut: vi.fn().mockResolvedValue(undefined),
+      authState: vi.fn().mockReturnValue({
+        user: { email: 'test@example.com' },
+        session: null,
+        isLoading: false,
+        isAuthenticated: true,
+      }),
     };
     mockRouter = {
       navigate: vi.fn().mockResolvedValue(true),

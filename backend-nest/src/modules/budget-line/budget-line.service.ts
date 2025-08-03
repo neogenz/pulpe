@@ -202,26 +202,7 @@ export class BudgetLineService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineResponse> {
     try {
-      const { data: budgetLineDb, error } = await supabase
-        .from('budget_line')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error || !budgetLineDb) {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND,
-          { id },
-          {
-            operation: 'getBudgetLine',
-            userId: user.id,
-            entityId: id,
-            entityType: 'budget_line',
-            supabaseError: error,
-          },
-        );
-      }
-
+      const budgetLineDb = await this.fetchBudgetLineById(id, user, supabase);
       const apiData = budgetLineMappers.toApi(budgetLineDb);
 
       return {
@@ -229,24 +210,57 @@ export class BudgetLineService {
         data: apiData,
       };
     } catch (error) {
-      if (
-        error instanceof BusinessException ||
-        error instanceof HttpException
-      ) {
-        throw error;
-      }
+      this.handleFindOneError(error, id, user);
+    }
+  }
+
+  private async fetchBudgetLineById(
+    id: string,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ) {
+    const { data: budgetLineDb, error } = await supabase
+      .from('budget_line')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error || !budgetLineDb) {
       throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
-        undefined,
+        ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND,
+        { id },
         {
           operation: 'getBudgetLine',
           userId: user.id,
           entityId: id,
           entityType: 'budget_line',
+          supabaseError: error,
         },
-        { cause: error },
       );
     }
+
+    return budgetLineDb;
+  }
+
+  private handleFindOneError(
+    error: unknown,
+    id: string,
+    user: AuthenticatedUser,
+  ): never {
+    if (error instanceof BusinessException || error instanceof HttpException) {
+      throw error;
+    }
+    throw new BusinessException(
+      ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
+      undefined,
+      {
+        operation: 'getBudgetLine',
+        userId: user.id,
+        entityId: id,
+        entityType: 'budget_line',
+      },
+      { cause: error },
+    );
   }
 
   private validateUpdateBudgetLineDto(
