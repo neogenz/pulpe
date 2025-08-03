@@ -246,6 +246,6 @@ function createPinoLoggerConfig(configService: ConfigService) {
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer.apply(ResponseLoggerMiddleware).forRoutes('*');
-    consumer.apply(PayloadSizeMiddleware).forRoutes('*bulk-operations*');
+    consumer.apply(PayloadSizeMiddleware).forRoutes('*');
   }
 }
