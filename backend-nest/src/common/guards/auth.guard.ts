@@ -50,7 +50,7 @@ export class AuthGuard implements CanActivate {
       request.supabase = supabase;
 
       return true;
-    } catch (error) {
+    } catch {
       if (error instanceof UnauthorizedException) {
         throw error;
       }

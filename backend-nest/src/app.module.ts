@@ -8,23 +8,35 @@ import {
 } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_PIPE } from '@nestjs/core';
-import { randomUUID } from 'crypto';
-import type { IncomingMessage, ServerResponse } from 'http';
 import { LoggerModule } from 'nestjs-pino';
 import { ZodValidationPipe } from 'nestjs-zod';
 
-// Modules
-import { AuthModule } from '@modules/auth/auth.module';
-import { BudgetTemplateModule } from '@modules/budget-template/budget-template.module';
-import { BudgetModule } from '@modules/budget/budget.module';
-import { BudgetLineModule } from '@modules/budget-line/budget-line.module';
+// Common Modules
 import { DebugModule } from '@modules/debug/debug.module';
+import { HealthModule } from '@modules/health/health.module';
 import { SupabaseModule } from '@modules/supabase/supabase.module';
-import { TransactionModule } from '@modules/transaction/transaction.module';
-import { UserModule } from '@modules/user/user.module';
+
+// Vertical Slices - New Architecture
+import { AuthModule } from '@slices/auth';
+import { BudgetSliceModule } from '@slices/budgets';
+import { BudgetLineModule } from '@slices/budget-lines';
+import { BudgetTemplateModule } from '@slices/budget-templates/infrastructure';
+import { TransactionSliceModule } from '@slices/transactions';
+import { UserSliceModule } from '@slices/users';
 
 // Filters
 import { FiltersModule } from '@common/filters/filters.module';
+
+// Security
+import { SecurityModule } from '@shared/infrastructure/security';
+
+// Logging
+import {
+  LoggingModule,
+  LoggingMiddleware,
+  CorrelationIdMiddleware,
+  createPinoConfig,
+} from '@shared/infrastructure/logging';
 
 // HTTP Logging Middleware
 import { NextFunction, Request, Response } from 'express';
@@ -49,78 +61,6 @@ class HttpLoggerMiddleware implements NestMiddleware {
   }
 }
 
-// Logger configuration helpers
-function createRequestIdGenerator() {
-  return (
-    req: IncomingMessage & {
-      headers: Record<string, string | string[] | undefined>;
-    },
-    res: ServerResponse,
-  ) => {
-    const reqId = (req as typeof req & { id?: string }).id;
-    if (reqId) return reqId;
-
-    const headerValue = req.headers['x-request-id'];
-    if (headerValue) {
-      const existingId = Array.isArray(headerValue)
-        ? headerValue[0]
-        : headerValue;
-      if (existingId) return existingId;
-    }
-
-    const id = randomUUID();
-    res.setHeader('X-Request-Id', id);
-    return id;
-  };
-}
-
-function createLoggerTransport(isProduction: boolean) {
-  if (!isProduction) {
-    return {
-      target: 'pino-pretty',
-      options: {
-        colorize: true,
-        singleLine: true,
-        translateTime: 'HH:MM:ss.l',
-        ignore: 'pid,hostname',
-        sync: true, // Sync mode for Bun compatibility
-        append: false,
-      },
-    };
-  }
-
-  // En production : logs JSON sur stdout pour collecte par l'infrastructure
-  return undefined;
-}
-
-function createPinoLoggerConfig(configService: ConfigService) {
-  const isProduction = configService.get<string>('NODE_ENV') === 'production';
-
-  return {
-    pinoHttp: {
-      level: isProduction ? 'info' : 'debug',
-      genReqId: createRequestIdGenerator(),
-      redact: {
-        paths: [
-          'req.headers.authorization',
-          'req.headers.cookie',
-          'req.body.password',
-          'req.body.token',
-          'res.headers["set-cookie"]',
-        ],
-        censor: '[REDACTED]',
-      },
-      transport: createLoggerTransport(isProduction),
-      autoLogging: {
-        ignore: (req: IncomingMessage & { url?: string }) =>
-          req.url?.includes('/health') ?? false,
-      },
-    },
-    renameContext: 'module',
-    useExisting: true as const,
-  };
-}
-
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -131,17 +71,22 @@ function createPinoLoggerConfig(configService: ConfigService) {
     LoggerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: createPinoLoggerConfig,
+      useFactory: createPinoConfig,
     }),
+    LoggingModule,
+    SecurityModule, // Security module must be imported early for global guards
     SupabaseModule,
-    AuthModule,
-    BudgetModule,
-    BudgetLineModule,
-    BudgetTemplateModule,
-    TransactionModule,
-    UserModule,
+    // Common Modules
+    HealthModule,
     DebugModule,
     FiltersModule,
+    // Vertical Slices - New Architecture
+    AuthModule,
+    BudgetSliceModule,
+    BudgetLineModule,
+    BudgetTemplateModule,
+    TransactionSliceModule,
+    UserSliceModule,
   ],
   providers: [
     {
@@ -152,6 +97,13 @@ function createPinoLoggerConfig(configService: ConfigService) {
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
+    // Apply correlation ID middleware first
+    consumer.apply(CorrelationIdMiddleware).forRoutes('*');
+
+    // Then apply enhanced logging middleware
+    consumer.apply(LoggingMiddleware).forRoutes('*');
+
+    // Keep the original HTTP logger for backward compatibility
     consumer.apply(HttpLoggerMiddleware).forRoutes('*');
   }
 }

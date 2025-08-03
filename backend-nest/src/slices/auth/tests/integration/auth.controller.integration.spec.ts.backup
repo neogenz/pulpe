@@ -1,0 +1,345 @@
+import { Test } from '@nestjs/testing';
+import {
+  INestApplication,
+  ExceptionFilter,
+  Catch,
+  ArgumentsHost,
+  HttpStatus,
+} from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import * as request from 'supertest';
+import { CqrsModule } from '@nestjs/cqrs';
+import { LoggerModule } from 'nestjs-pino';
+import { AuthModule } from '../../auth.module';
+import { ZodValidationPipe } from '@anatine/zod-nestjs';
+import { AUTH_REPOSITORY_TOKEN } from '../../domain/repositories/auth.repository';
+import { MockAuthRepository } from '../mocks/mock-auth.repository';
+import { GenericDomainException } from '@/shared/domain/exceptions/generic-domain.exception';
+import { ZodValidationException } from 'nestjs-zod';
+import { SupabaseService } from '@/modules/supabase/supabase.service';
+
+// Test-specific exception filter
+@Catch()
+class TestExceptionFilter implements ExceptionFilter {
+  catch(exception: unknown, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse();
+
+    if (exception instanceof GenericDomainException) {
+      const status = this.getStatusFromCode(exception.code);
+      response.status(status).json({
+        error: {
+          code: exception.code,
+          message: exception.message,
+          details: exception.details,
+        },
+      });
+    } else if (exception instanceof ZodValidationException) {
+      response.status(HttpStatus.BAD_REQUEST).json({
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Validation failed',
+          details: exception.getZodError(),
+        },
+      });
+    } else {
+      response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: 'An unexpected error occurred',
+        },
+      });
+    }
+  }
+
+  private getStatusFromCode(code: string): number {
+    const codeToStatus: Record<string, number> = {
+      INVALID_CREDENTIALS: HttpStatus.UNAUTHORIZED,
+      TOKEN_REFRESH_FAILED: HttpStatus.UNAUTHORIZED,
+      VALIDATION_ERROR: HttpStatus.BAD_REQUEST,
+      USER_ALREADY_EXISTS: HttpStatus.CONFLICT,
+    };
+    return codeToStatus[code] || HttpStatus.INTERNAL_SERVER_ERROR;
+  }
+}
+
+describe('AuthController (E2E)', () => {
+  let app: INestApplication;
+
+  beforeEach(async () => {
+    const moduleRef = await Test.createTestingModule({
+      imports: [
+        ConfigModule.forRoot({
+          isGlobal: true,
+          envFilePath: '.env.test',
+        }),
+        LoggerModule.forRoot({
+          pinoHttp: {
+            level: 'silent',
+          },
+        }),
+        CqrsModule,
+        AuthModule,
+      ],
+    })
+      .overrideProvider(AUTH_REPOSITORY_TOKEN)
+      .useClass(MockAuthRepository)
+      .compile();
+
+    app = moduleRef.createNestApplication();
+    app.useGlobalPipes(new ZodValidationPipe());
+    app.useGlobalFilters(new TestExceptionFilter());
+    app.setGlobalPrefix('api/v2');
+
+    await app.init();
+  });
+
+  afterEach(async () => {
+    if (app) {
+      await app.close();
+    }
+  });
+
+  describe('POST /api/v2/auth/sign-up', () => {
+    it('should sign up a new user successfully', async () => {
+      const signUpData = {
+        email: `test${Date.now()}@example.com`,
+        password: 'StrongP@ssw0rd123',
+        firstName: 'John',
+        lastName: 'Doe',
+      };
+
+      const response = await request.default(app.getHttpServer())
+        .post('/api/v2/auth/sign-up')
+        .send(signUpData);
+      
+      if (response.status !== 201) {
+        console.error('Unexpected status:', response.status);
+        console.error('Response body:', JSON.stringify(response.body, null, 2));
+        console.error('Response text:', response.text);
+      }
+      
+      expect(response.status).toBe(201);
+
+      expect(response.body).toMatchObject({
+        userId: expect.any(String),
+        email: signUpData.email,
+        accessToken: expect.any(String),
+        expiresAt: expect.any(String),
+      });
+    });
+
+    it('should return 400 for invalid email format', async () => {
+      const signUpData = {
+        email: 'invalid-email',
+        password: 'StrongP@ssw0rd123',
+      };
+
+      const response = await request.default(app.getHttpServer())
+        .post('/api/v2/auth/sign-up')
+        .send(signUpData)
+        .expect(400);
+
+      expect(response.body).toMatchObject({
+        error: expect.objectContaining({
+          code: 'VALIDATION_ERROR',
+        }),
+      });
+    });
+
+    it('should return 400 for weak password', async () => {
+      const signUpData = {
+        email: 'test@example.com',
+        password: '123456',
+      };
+
+      const response = await request.default(app.getHttpServer())
+        .post('/api/v2/auth/sign-up')
+        .send(signUpData)
+        .expect(400);
+
+      expect(response.body).toMatchObject({
+        error: expect.objectContaining({
+          code: 'VALIDATION_ERROR',
+        }),
+      });
+    });
+  });
+
+  describe('POST /api/v2/auth/sign-in', () => {
+    const testEmail = `test${Date.now()}@example.com`;
+    const testPassword = 'StrongP@ssw0rd123';
+
+    beforeEach(async () => {
+      // Sign up a test user first
+      await request.default(app.getHttpServer()).post('/api/v2/auth/sign-up').send({
+        email: testEmail,
+        password: testPassword,
+      });
+    });
+
+    it('should sign in successfully with valid credentials', async () => {
+      const response = await request.default(app.getHttpServer())
+        .post('/api/v2/auth/sign-in')
+        .send({
+          email: testEmail,
+          password: testPassword,
+        })
+        .expect(200);
+
+      expect(response.body).toMatchObject({
+        userId: expect.any(String),
+        email: testEmail,
+        accessToken: expect.any(String),
+        expiresAt: expect.any(String),
+      });
+    });
+
+    it('should return 401 for invalid credentials', async () => {
+      const response = await request.default(app.getHttpServer())
+        .post('/api/v2/auth/sign-in')
+        .send({
+          email: testEmail,
+          password: 'WrongPassword123!',
+        })
+        .expect(401);
+
+      expect(response.body).toMatchObject({
+        error: expect.objectContaining({
+          code: 'INVALID_CREDENTIALS',
+        }),
+      });
+    });
+  });
+
+  describe('POST /api/v2/auth/refresh', () => {
+    it('should refresh token successfully', async () => {
+      // First sign up and sign in to get tokens
+      const testEmail = `test${Date.now()}@example.com`;
+      const signInResponse = await request(app.getHttpServer())
+        .post('/api/v2/auth/sign-up')
+        .send({
+          email: testEmail,
+          password: 'StrongP@ssw0rd123',
+        });
+
+      const { refreshToken } = signInResponse.body;
+
+      // Use refresh token
+      const response = await request.default(app.getHttpServer())
+        .post('/api/v2/auth/refresh')
+        .send({ refreshToken })
+        .expect(200);
+
+      expect(response.body).toMatchObject({
+        accessToken: expect.any(String),
+        userId: expect.any(String),
+        expiresAt: expect.any(String),
+      });
+    });
+
+    it('should return 401 for invalid refresh token', async () => {
+      const response = await request.default(app.getHttpServer())
+        .post('/api/v2/auth/refresh')
+        .send({ refreshToken: 'invalid-token' })
+        .expect(401);
+
+      expect(response.body).toMatchObject({
+        error: expect.objectContaining({
+          code: 'TOKEN_REFRESH_FAILED',
+        }),
+      });
+    });
+  });
+
+  describe('GET /api/v2/auth/validate', () => {
+    it('should validate a valid token', async () => {
+      // Get a valid token
+      const testEmail = `test${Date.now()}@example.com`;
+      const signInResponse = await request(app.getHttpServer())
+        .post('/api/v2/auth/sign-up')
+        .send({
+          email: testEmail,
+          password: 'StrongP@ssw0rd123',
+        });
+
+      const { accessToken } = signInResponse.body;
+
+      const response = await request.default(app.getHttpServer())
+        .get('/api/v2/auth/validate')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(response.body).toEqual({ valid: true });
+    });
+
+    it('should return false for invalid token', async () => {
+      const response = await request.default(app.getHttpServer())
+        .get('/api/v2/auth/validate')
+        .set('Authorization', 'Bearer invalid-token')
+        .expect(200);
+
+      expect(response.body).toEqual({ valid: false });
+    });
+  });
+
+  describe('POST /api/v2/auth/sign-out', () => {
+    it('should sign out successfully', async () => {
+      // Get a valid token
+      const testEmail = `test${Date.now()}@example.com`;
+      const signInResponse = await request(app.getHttpServer())
+        .post('/api/v2/auth/sign-up')
+        .send({
+          email: testEmail,
+          password: 'StrongP@ssw0rd123',
+        });
+
+      const { accessToken } = signInResponse.body;
+
+      await request.default(app.getHttpServer())
+        .post('/api/v2/auth/sign-out')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(204);
+    });
+
+    it('should return 401 without token', async () => {
+      await request.default(app.getHttpServer())
+        .post('/api/v2/auth/sign-out')
+        .expect(401);
+    });
+  });
+
+  describe('GET /api/v2/auth/session', () => {
+    it('should get session successfully', async () => {
+      // Get a valid token
+      const testEmail = `test${Date.now()}@example.com`;
+      const signInResponse = await request(app.getHttpServer())
+        .post('/api/v2/auth/sign-up')
+        .send({
+          email: testEmail,
+          password: 'StrongP@ssw0rd123',
+        });
+
+      const { accessToken } = signInResponse.body;
+
+      const response = await request.default(app.getHttpServer())
+        .get('/api/v2/auth/session')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(response.body).toMatchObject({
+        userId: expect.any(String),
+        email: testEmail,
+        accessToken: expect.any(String),
+        expiresAt: expect.any(String),
+      });
+    });
+
+    it('should return 401 without token', async () => {
+      await request.default(app.getHttpServer())
+        .get('/api/v2/auth/session')
+        .expect(401);
+    });
+  });
+});

@@ -3,9 +3,11 @@ import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
 import { ZodValidationException } from 'nestjs-zod';
 import { ZodError } from 'zod';
+import { Public } from '@shared/infrastructure/security';
 
 @ApiTags('Debug')
 @Controller('debug')
+@Public() // Debug endpoints don't require authentication
 export class DebugController {
   constructor(
     @InjectPinoLogger(DebugController.name)
@@ -105,7 +107,7 @@ export class DebugController {
     try {
       await this.simulateServiceCall(data.shouldFail, data.message);
       return { success: true, message: 'Service call completed successfully' };
-    } catch (error) {
+    } catch {
       this.logger.error(
         {
           err: error,

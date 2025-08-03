@@ -1,5 +1,4 @@
-// Modules exports - Standard NestJS 2024 architecture
-export * from './budget';
-export * from './budget-template';
-export * from './transaction';
-export * from './user';
+// Common modules exports - These remain in the modules directory
+export * from './debug/debug.module';
+export * from './health';
+export * from './supabase/supabase.module';

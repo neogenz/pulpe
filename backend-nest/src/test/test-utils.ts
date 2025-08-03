@@ -201,12 +201,17 @@ export class MockSupabaseClient {
         order: (_column: string, _options?: any) => chainMethods,
         eq: (_column: string, _value: any) => chainMethods,
         neq: (_column: string, _value: any) => chainMethods,
+        limit: (_count: number) => chainMethods,
+        gte: (_column: string, _value: any) => chainMethods,
         single: () =>
           Promise.resolve({ data: this.#mockData, error: this.#mockError }),
         insert: (_data: any) => ({
           select: () => ({
             single: () =>
-              Promise.resolve({ data: this.#mockData, error: this.#mockError }),
+              Promise.resolve({
+                data: this.#mockData,
+                _error: this.#mockError,
+              }),
           }),
         }),
         update: (_data: any) => ({
@@ -247,6 +252,11 @@ export class MockSupabaseClient {
     getUser: () =>
       Promise.resolve({
         data: { user: this.#mockData },
+        error: this.#mockError,
+      }),
+    getSession: () =>
+      Promise.resolve({
+        data: { session: this.#mockData },
         error: this.#mockError,
       }),
   };
@@ -450,7 +460,7 @@ export const expectErrorThrown = async (
     try {
       await promiseFunction();
       throw new Error('Expected function to throw an error');
-    } catch (error) {
+    } catch {
       expect(error).toBeInstanceOf(expectedErrorType);
       if (expectedMessage) {
         expect((error as Error).message).toContain(expectedMessage);
@@ -495,7 +505,7 @@ export class LoadTestRunner {
           await operation();
           const duration = Date.now() - operationStart;
           results.push({ success: true, duration });
-        } catch (error) {
+        } catch {
           const duration = Date.now() - operationStart;
           results.push({ success: false, duration, error: error as Error });
         }

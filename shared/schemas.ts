@@ -511,6 +511,52 @@ export const authLoginSchema = z.object({
 });
 export type AuthLogin = z.infer<typeof authLoginSchema>;
 
+// Sign up schema
+export const signUpSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+});
+export type SignUp = z.infer<typeof signUpSchema>;
+export const SignUpSchema = signUpSchema; // Alias for compatibility
+
+// Sign in schema
+export const signInSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+});
+export type SignIn = z.infer<typeof signInSchema>;
+export const SignInSchema = signInSchema; // Alias for compatibility
+
+// Refresh token schema
+export const refreshTokenSchema = z.object({
+  refreshToken: z.string(),
+});
+export type RefreshToken = z.infer<typeof refreshTokenSchema>;
+export const RefreshTokenSchema = refreshTokenSchema; // Alias for compatibility
+
+// Auth response schema
+export const authResponseSchema = z.object({
+  userId: z.string().uuid(),
+  email: z.string().email(),
+  accessToken: z.string(),
+  refreshToken: z.string().optional(),
+  expiresAt: z.string(),
+});
+export type AuthResponse = z.infer<typeof authResponseSchema>;
+export const AuthResponseSchema = authResponseSchema; // Alias for compatibility
+
+// Session response schema
+export const sessionResponseSchema = z.object({
+  accessToken: z.string(),
+  refreshToken: z.string().optional(),
+  expiresAt: z.string(),
+  userId: z.string().uuid(),
+});
+export type SessionResponse = z.infer<typeof sessionResponseSchema>;
+export const SessionResponseSchema = sessionResponseSchema; // Alias for compatibility
+
 export const authLoginResponseSchema = z.object({
   success: z.literal(true),
   user: userInfoSchema,

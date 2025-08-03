@@ -281,6 +281,20 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      bulk_update_template_lines: {
+        Args: { p_template_id: string; line_updates: Json };
+        Returns: {
+          id: string;
+          template_id: string;
+          name: string;
+          amount: number;
+          kind: Database['public']['Enums']['transaction_kind'];
+          recurrence: Database['public']['Enums']['transaction_recurrence'];
+          description: string;
+          created_at: string;
+          updated_at: string;
+        }[];
+      };
       create_budget_from_template: {
         Args: {
           p_user_id: string;

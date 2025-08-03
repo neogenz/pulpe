@@ -32,7 +32,10 @@
       "@/*": ["src/*"],
       "@common/*": ["src/common/*"],
       "@modules/*": ["src/modules/*"],
-      "@config/*": ["src/config/*"]
+      "@shared/*": ["src/shared/*"],
+      "@config/*": ["src/config/*"],
+      "@slices/*": ["src/slices/*"],
+      "@test/*": ["src/test/*"]
     }
   },
   "include": ["src/**/*"],

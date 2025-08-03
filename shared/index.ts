@@ -80,6 +80,16 @@ export {
   authLoginResponseSchema,
   authValidationResponseSchema,
   authErrorResponseSchema,
+  signUpSchema,
+  SignUpSchema,
+  signInSchema,
+  SignInSchema,
+  refreshTokenSchema,
+  RefreshTokenSchema,
+  authResponseSchema,
+  AuthResponseSchema,
+  sessionResponseSchema,
+  SessionResponseSchema,
 } from './schemas.js';
 
 // Export all types from types.ts
@@ -164,4 +174,9 @@ export type {
   AuthLoginResponse,
   AuthValidationResponse,
   AuthErrorResponse,
+  SignUp,
+  SignIn,
+  RefreshToken,
+  AuthResponse,
+  SessionResponse,
 } from './schemas.js';
