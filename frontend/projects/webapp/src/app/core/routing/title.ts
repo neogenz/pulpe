@@ -17,14 +17,40 @@ export class Title {
   readonly currentTitle = toSignal(
     this.#router.events.pipe(
       filter((event) => event instanceof NavigationEnd),
-      map(() => this.extractTitleFromBrowser()),
-      startWith(this.extractTitleFromBrowser()),
+      map(() => this.extractTitleFromRoute()),
+      startWith(this.extractTitleFromRoute()),
     ),
-    { initialValue: this.APP_NAME },
+    { initialValue: this.extractTitleFromRoute() },
   );
 
   setTitle(title: string): void {
     this.#title.setTitle(`${title}${this.SEPARATOR}${this.APP_NAME}`);
+  }
+
+  private extractTitleFromRoute(): string {
+    // Navigate through the route tree to find the deepest route with a title
+    let route = this.#router.routerState.root;
+    let title = '';
+
+    while (route) {
+      // Check for title in route snapshot
+      if (route.snapshot.title) {
+        title = route.snapshot.title;
+      }
+      // Check for title in route data
+      else if (route.snapshot.data?.['title']) {
+        title = route.snapshot.data['title'];
+      }
+
+      // Move to the first child if it exists
+      if (route.firstChild) {
+        route = route.firstChild;
+      } else {
+        break;
+      }
+    }
+
+    return title;
   }
 
   private extractTitleFromBrowser(): string {
