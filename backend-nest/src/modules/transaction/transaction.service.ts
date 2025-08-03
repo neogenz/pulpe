@@ -216,26 +216,7 @@ export class TransactionService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionResponse> {
     try {
-      const { data: transactionDb, error } = await supabase
-        .from('transaction')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error || !transactionDb) {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.TRANSACTION_NOT_FOUND,
-          { id },
-          {
-            operation: 'getTransaction',
-            userId: user.id,
-            entityId: id,
-            entityType: 'transaction',
-            supabaseError: error,
-          },
-        );
-      }
-
+      const transactionDb = await this.fetchTransactionById(id, user, supabase);
       const apiData = transactionMappers.toApi(transactionDb);
 
       return {
@@ -243,24 +224,57 @@ export class TransactionService {
         data: apiData,
       };
     } catch (error) {
-      if (
-        error instanceof BusinessException ||
-        error instanceof HttpException
-      ) {
-        throw error;
-      }
+      this.handleTransactionFindOneError(error, id, user);
+    }
+  }
+
+  private async fetchTransactionById(
+    id: string,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ) {
+    const { data: transactionDb, error } = await supabase
+      .from('transaction')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error || !transactionDb) {
       throw new BusinessException(
-        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
-        undefined,
+        ERROR_DEFINITIONS.TRANSACTION_NOT_FOUND,
+        { id },
         {
           operation: 'getTransaction',
           userId: user.id,
           entityId: id,
           entityType: 'transaction',
+          supabaseError: error,
         },
-        { cause: error },
       );
     }
+
+    return transactionDb;
+  }
+
+  private handleTransactionFindOneError(
+    error: unknown,
+    id: string,
+    user: AuthenticatedUser,
+  ): never {
+    if (error instanceof BusinessException || error instanceof HttpException) {
+      throw error;
+    }
+    throw new BusinessException(
+      ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+      undefined,
+      {
+        operation: 'getTransaction',
+        userId: user.id,
+        entityId: id,
+        entityType: 'transaction',
+      },
+      { cause: error },
+    );
   }
 
   private validateUpdateTransactionDto(
