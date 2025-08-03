@@ -285,6 +285,29 @@ export type TemplateLinesBulkUpdate = z.infer<
   typeof templateLinesBulkUpdateSchema
 >;
 
+// Extended bulk update schema supporting create, update, and delete operations
+export const templateLinesBulkOperationsSchema = z.object({
+  create: z.array(templateLineCreateWithoutTemplateIdSchema).default([]),
+  update: z.array(templateLineUpdateWithIdSchema).default([]),
+  delete: z.array(z.string().uuid()).default([]),
+});
+export type TemplateLinesBulkOperations = z.infer<
+  typeof templateLinesBulkOperationsSchema
+>;
+
+// Response schema for bulk operations
+export const templateLinesBulkOperationsResponseSchema = z.object({
+  success: z.boolean(),
+  data: z.object({
+    created: z.array(templateLineSchema),
+    updated: z.array(templateLineSchema),
+    deleted: z.array(z.string().uuid()),
+  }),
+});
+export type TemplateLinesBulkOperationsResponse = z.infer<
+  typeof templateLinesBulkOperationsResponseSchema
+>;
+
 // Legacy schema for backward compatibility
 export const templateTransactionUpdateSchema = z.object({
   name: z.string().min(1).max(100).trim().optional(),

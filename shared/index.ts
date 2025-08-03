@@ -52,6 +52,8 @@ export {
   templateLineUpdateWithIdSchema,
   templateLinesBulkUpdateSchema,
   templateLinesBulkUpdateResponseSchema,
+  templateLinesBulkOperationsSchema,
+  templateLinesBulkOperationsResponseSchema,
 
   // Savings Goal schemas
   savingsGoalSchema,
@@ -138,6 +140,8 @@ export type {
   TemplateLineUpdateWithId,
   TemplateLinesBulkUpdate,
   TemplateLinesBulkUpdateResponse,
+  TemplateLinesBulkOperations,
+  TemplateLinesBulkOperationsResponse,
   TransactionResponse,
 
   // Savings Goal types

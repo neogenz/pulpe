@@ -30,6 +30,7 @@ import {
   type TemplateLineResponse as _TemplateLineResponse,
   type TemplateLineDeleteResponse as _TemplateLineDeleteResponse,
   type TemplateLinesBulkUpdateResponse as _TemplateLinesBulkUpdateResponse,
+  type TemplateLinesBulkOperationsResponse as _TemplateLinesBulkOperationsResponse,
 } from '@pulpe/shared';
 import { AuthGuard } from '@common/guards/auth.guard';
 import {
@@ -54,6 +55,8 @@ import {
   TemplateLineDeleteResponseDto,
   TemplateLinesBulkUpdateDto,
   TemplateLinesBulkUpdateResponseDto,
+  TemplateLinesBulkOperationsDto,
+  TemplateLinesBulkOperationsResponseDto,
 } from './dto/budget-template-swagger.dto';
 import { ErrorResponseDto } from '@common/dto/response.dto';
 
@@ -271,6 +274,46 @@ export class BudgetTemplateController {
     return this.budgetTemplateService.bulkUpdateTemplateLines(
       templateId,
       bulkUpdateDto,
+      user,
+      supabase,
+    );
+  }
+
+  @Post(':id/lines/bulk-operations')
+  @ApiOperation({
+    summary: 'Bulk operations on template lines',
+    description:
+      'Performs bulk operations (create, update, delete) on template lines for a specific budget template',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Unique budget template identifier',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Bulk operations completed successfully',
+    type: TemplateLinesBulkOperationsResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid input data',
+    type: ErrorResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Budget template not found',
+    type: ErrorResponseDto,
+  })
+  async bulkOperationsTemplateLines(
+    @Param('id', ParseUUIDPipe) templateId: string,
+    @Body() bulkOperationsDto: TemplateLinesBulkOperationsDto,
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<_TemplateLinesBulkOperationsResponse> {
+    return this.budgetTemplateService.bulkOperationsTemplateLines(
+      templateId,
+      bulkOperationsDto,
       user,
       supabase,
     );
