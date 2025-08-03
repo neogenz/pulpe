@@ -163,27 +163,22 @@ interface NavigationItem {
                 <mat-icon>menu</mat-icon>
               </button>
             }
-
-            <span>{{ currentPageTitle() }}</span>
-
             <span class="flex-1"></span>
 
             <!-- Toolbar Actions -->
             <button
-              type="button"
-              mat-button
+              matButton
               [matMenuTriggerFor]="userMenu"
-              class="w-11 h-11 min-w-[44px] p-2 rounded-full flex items-center justify-center transition-opacity duration-200 disabled:cursor-not-allowed disabled:opacity-60"
               [attr.aria-label]="
                 isLoggingOut() ? 'Déconnexion en cours...' : 'Menu utilisateur'
               "
               [disabled]="isLoggingOut()"
               data-testid="user-menu-trigger"
             >
-              <div
-                class="w-8 h-8 pulpe-gradient rounded-full transition-all duration-200 hover:scale-105"
-                [class.opacity-50]="isLoggingOut()"
-              ></div>
+              <div class="flex items-center gap-2">
+                <mat-icon>person</mat-icon>
+                <span>{{ userEmail() }}</span>
+              </div>
             </button>
 
             <mat-menu #userMenu="matMenu" xPosition="before">
@@ -224,7 +219,7 @@ interface NavigationItem {
           </mat-toolbar>
 
           <!-- Breadcrumb -->
-          @if (breadcrumbState.breadcrumbs().length > 0) {
+          @if (breadcrumbState.breadcrumbs().length > 1) {
             <pulpe-breadcrumb
               class="px-4 py-3"
               [items]="breadcrumbState.breadcrumbs()"
@@ -234,7 +229,7 @@ interface NavigationItem {
           <!-- Page Content - Scrollable Container -->
           <main
             cdkScrollable
-            class="flex-1 overflow-y-auto bg-surface text-on-surface"
+            class="flex-1 overflow-y-auto bg-surface text-on-surface !pt-2"
             [class.p-6]="!isHandset()"
             [class.md:p-8]="!isHandset()"
             [class.p-4]="isHandset()"
@@ -256,11 +251,11 @@ interface NavigationItem {
 
       /*
        * En appliquant la surcharge de style pour les boutons à l'intérieur
-       * du sélecteur 'mat-toolbar', nous limitons sa portée aux boutons
+       * du sélecteur 'mat-nav-list', nous limitons sa portée aux boutons
        * qui sont DANS la barre d'outils de ce composant uniquement.
        * Cela empêche le style de s'appliquer aux composants dans <router-outlet>.
        */
-      :host mat-toolbar {
+      :host mat-sidenav {
         @include mat.button-overrides(
           (
             filled-container-shape: 50%,
@@ -293,6 +288,8 @@ export class MainLayout {
   private readonly scrollDispatcher = inject(ScrollDispatcher);
   private readonly authApi = inject(AuthApi);
   readonly breadcrumbState = inject(BreadcrumbState);
+
+  readonly userEmail = computed(() => this.authApi.authState().user?.email);
 
   // Navigation items configuration
   protected readonly navigationItems: readonly NavigationItem[] = [
