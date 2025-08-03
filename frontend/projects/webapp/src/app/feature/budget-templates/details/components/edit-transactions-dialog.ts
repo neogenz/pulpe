@@ -357,11 +357,10 @@ export default class EditTransactionsDialog {
   readonly errorMessage = this.#state.error;
   readonly hasUnsavedChanges = this.#state.hasUnsavedChanges;
   readonly canRemoveTransaction = this.#state.canRemoveTransaction;
+  readonly isValid = this.#state.isValid;
 
   // Get active (non-deleted) transactions from state
-  readonly activeTransactions = computed(() =>
-    this.#state.transactions().filter((t) => !t.isDeleted),
-  );
+  readonly activeTransactions = this.#state.activeTransactions;
 
   protected readonly displayedColumns: readonly string[] = [
     'description',
@@ -424,13 +423,6 @@ export default class EditTransactionsDialog {
 
     this.#dialogRef.close({ saved: false } as EditTransactionsDialogResult);
   }
-
-  readonly isValid = computed(() => {
-    const transactions = this.activeTransactions();
-    return transactions.every(
-      (t) => t.formData.description.trim().length > 0 && t.formData.amount >= 0,
-    );
-  });
 
   protected readonly runningTotals = computed(() => {
     const transactions = this.activeTransactions();

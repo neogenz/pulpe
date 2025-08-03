@@ -14,174 +14,121 @@ import type {
 } from './edit-transactions.types';
 
 /**
- * State management service for editing template transactions.
- * Follows the established patterns from BudgetDetailsState and OnboardingStore.
+ * Modern state management service for editing template transactions.
+ * Uses signals for reactive state management with simplified CRUD operations.
  */
 @Injectable()
 export class EditTransactionsState {
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
 
-  // Private signals for internal state
+  // Core state signals
   readonly #transactions = signal<EditableTransaction[]>([]);
   readonly #isLoading = signal(false);
   readonly #error = signal<string | null>(null);
 
-  // Public readonly signals
+  // Public readonly computed state
   readonly transactions = this.#transactions.asReadonly();
   readonly isLoading = this.#isLoading.asReadonly();
   readonly error = this.#error.asReadonly();
 
-  // Computed signals for derived state
-  readonly transactionCount = computed(
-    () => this.transactions().filter((t) => !t.isDeleted).length,
+  // Derived computed signals
+  readonly activeTransactions = computed(() =>
+    this.transactions().filter((t) => !t.isDeleted),
   );
 
-  readonly hasUnsavedChanges = computed(() => this.#hasChanges());
+  readonly transactionCount = computed(() => this.activeTransactions().length);
 
   readonly canRemoveTransaction = computed(() => this.transactionCount() > 1);
 
+  readonly hasUnsavedChanges = computed(() => this.#computeHasChanges());
+
+  readonly isValid = computed(() => this.#computeIsValid());
+
+  // Computed bulk operations for performance (memoized)
+  readonly pendingOperations = computed(() => {
+    const transactions = this.#transactions();
+    return this.#generateBulkOperations(transactions);
+  });
+
   /**
    * Initialize the state with template lines and form data.
-   * This should be called when the dialog opens.
    */
   initialize(
     templateLines: TemplateLine[],
     formData: TransactionFormData[],
   ): void {
-    const editableTransactions: EditableTransaction[] = [];
-
-    // Create editable transactions from the form data
-    const maxLength = Math.max(templateLines.length, formData.length);
-
-    for (let i = 0; i < maxLength; i++) {
-      const originalLine = templateLines[i];
-      const data = formData[i];
-
-      if (data) {
-        editableTransactions.push({
-          id: originalLine?.id ?? this.#generateTempId(),
-          formData: data,
-          isNew: !originalLine,
-          isDeleted: false,
-          originalLine,
-        });
-      }
-    }
+    const editableTransactions = formData.map((data, index) => {
+      const originalLine = templateLines[index];
+      return this.#createEditableTransaction(data, originalLine);
+    });
 
     this.#transactions.set(editableTransactions);
-    this.#error.set(null);
+    this.#clearError();
   }
 
   /**
    * Add a new transaction to the list.
-   * Returns the generated ID for the new transaction.
    */
   addTransaction(data: TransactionFormData): string {
-    const tempId = this.#generateTempId();
-
-    const newTransaction: EditableTransaction = {
-      id: tempId,
-      formData: { ...data },
-      isNew: true,
-      isDeleted: false,
-    };
-
+    const newTransaction = this.#createEditableTransaction(data);
     this.#transactions.update((transactions) => [
       ...transactions,
       newTransaction,
     ]);
-
-    return tempId;
+    return newTransaction.id;
   }
 
   /**
    * Update an existing transaction by ID.
-   * Returns true if the transaction was found and updated, false otherwise.
    */
   updateTransaction(
     id: string,
     updates: Partial<TransactionFormData>,
   ): boolean {
-    const transactions = this.#transactions();
-    const index = transactions.findIndex((t) => t.id === id && !t.isDeleted);
+    const found = this.#findTransactionById(id);
 
-    if (index === -1) {
+    // Don't allow updating deleted transactions
+    if (!found || found.transaction.isDeleted) {
       return false;
     }
 
-    const updatedTransactions = [...transactions];
-    updatedTransactions[index] = {
-      ...updatedTransactions[index],
-      formData: {
-        ...updatedTransactions[index].formData,
-        ...updates,
-      },
-    };
-
-    this.#transactions.set(updatedTransactions);
-
-    return true;
+    return this.#updateTransactionById(id, (transaction) => ({
+      ...transaction,
+      formData: { ...transaction.formData, ...updates },
+    }));
   }
 
   /**
    * Remove a transaction by ID.
    * For new transactions, removes them entirely. For existing transactions, marks as deleted.
-   * Returns true if the transaction was removed, false if it can't be removed.
    */
   removeTransaction(id: string): boolean {
-    const transactions = this.#transactions();
-    const activeCount = transactions.filter((t) => !t.isDeleted).length;
-
-    // Prevent removing the last transaction
-    if (activeCount <= 1) {
+    if (!this.canRemoveTransaction()) {
       return false;
     }
 
-    const index = transactions.findIndex((t) => t.id === id);
-    if (index === -1) {
-      return false;
-    }
-
-    const transaction = transactions[index];
-
-    if (transaction.isNew) {
-      // Remove new transactions entirely
-      const updatedTransactions = [...transactions];
-      updatedTransactions.splice(index, 1);
-      this.#transactions.set(updatedTransactions);
-    } else {
-      // Mark existing transactions as deleted
-      const updatedTransactions = [...transactions];
-      updatedTransactions[index] = {
-        ...transaction,
-        isDeleted: true,
-      };
-      this.#transactions.set(updatedTransactions);
-    }
-
-    return true;
+    return this.#updateTransactionById(
+      id,
+      (transaction) =>
+        transaction.isNew
+          ? null // Remove entirely
+          : { ...transaction, isDeleted: true }, // Mark as deleted
+    );
   }
 
   /**
    * Save all changes by calling the bulk operations API.
-   * Returns a result object indicating success/failure and any updated lines.
    */
   async saveChanges(templateId: string): Promise<SaveResult> {
-    const operations = this.#generateBulkOperations();
-
-    // Early return if no changes
-    if (
-      operations.create.length === 0 &&
-      operations.update.length === 0 &&
-      operations.delete.length === 0
-    ) {
+    if (!this.hasUnsavedChanges()) {
       return { success: true, updatedLines: [] };
     }
 
-    this.#isLoading.set(true);
-    this.#error.set(null);
+    this.#setLoading(true);
 
     try {
+      // Use computed operations for consistency
+      const operations = this.pendingOperations();
       const response = await firstValueFrom(
         this.#budgetTemplatesApi.bulkOperationsTemplateLines$(
           templateId,
@@ -189,30 +136,20 @@ export class EditTransactionsState {
         ),
       );
 
-      // Combine created and updated lines
       const updatedLines = [...response.data.created, ...response.data.updated];
-
-      // Update the state to reflect the successful save
       this.#updateStateAfterSave(response.data);
 
-      return {
-        success: true,
-        updatedLines,
-      };
+      return { success: true, updatedLines };
     } catch (error) {
       const errorMessage =
         error instanceof Error
           ? error.message
           : 'Une erreur est survenue lors de la sauvegarde';
 
-      this.#error.set(errorMessage);
-
-      return {
-        success: false,
-        error: errorMessage,
-      };
+      this.#setError(errorMessage);
+      return { success: false, error: errorMessage };
     } finally {
-      this.#isLoading.set(false);
+      this.#setLoading(false);
     }
   }
 
@@ -220,165 +157,227 @@ export class EditTransactionsState {
    * Clear the current error state.
    */
   clearError(): void {
-    this.#error.set(null);
+    this.#clearError();
   }
 
-  /**
-   * Generate a unique temporary ID for new transactions.
-   */
+  // Private helper methods for state management
   #generateTempId(): string {
     return `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  /**
-   * Check if there are any changes that need to be saved.
-   */
-  #hasChanges(): boolean {
-    const transactions = this.#transactions();
-
-    // Check for new transactions
-    if (transactions.some((t) => t.isNew && !t.isDeleted)) {
-      return true;
-    }
-
-    // Check for deleted transactions
-    if (transactions.some((t) => t.isDeleted && !t.isNew)) {
-      return true;
-    }
-
-    // Check for modified existing transactions
-    return transactions.some((t) => {
-      if (t.isNew || t.isDeleted || !t.originalLine) {
-        return false;
-      }
-
-      const original = t.originalLine;
-      const current = t.formData;
-
-      return (
-        original.name !== current.description ||
-        original.amount !== current.amount ||
-        original.kind !== current.type
-      );
-    });
-  }
-
-  /**
-   * Generate bulk operations for the API based on current state.
-   */
-  #generateBulkOperations(): TemplateLinesBulkOperations {
-    const transactions = this.#transactions();
-    const operations: TemplateLinesBulkOperations = {
-      create: [],
-      update: [],
-      delete: [],
+  #createEditableTransaction(
+    data: TransactionFormData,
+    originalLine?: TemplateLine,
+  ): EditableTransaction {
+    return {
+      id: originalLine?.id ?? this.#generateTempId(),
+      formData: { ...data },
+      isNew: !originalLine,
+      isDeleted: false,
+      originalLine,
     };
-
-    for (const transaction of transactions) {
-      if (transaction.isDeleted && !transaction.isNew) {
-        // Delete existing transaction
-        operations.delete.push(transaction.id);
-      } else if (transaction.isNew && !transaction.isDeleted) {
-        // Create new transaction
-        const createData: TemplateLineCreateWithoutTemplateId = {
-          name: transaction.formData.description,
-          amount: transaction.formData.amount,
-          kind: transaction.formData.type,
-          recurrence: 'fixed',
-          description: '',
-        };
-        operations.create.push(createData);
-      } else if (
-        !transaction.isNew &&
-        !transaction.isDeleted &&
-        transaction.originalLine
-      ) {
-        // Update existing transaction (only if changed)
-        const original = transaction.originalLine;
-        const current = transaction.formData;
-
-        if (
-          original.name !== current.description ||
-          original.amount !== current.amount ||
-          original.kind !== current.type
-        ) {
-          const updateData: TemplateLineUpdateWithId = {
-            id: transaction.id,
-            name: current.description,
-            amount: current.amount,
-            kind: current.type,
-            recurrence: original.recurrence,
-            description: original.description,
-          };
-          operations.update.push(updateData);
-        }
-      }
-    }
-
-    return operations;
   }
 
-  /**
-   * Update the internal state after a successful save to reflect that changes are now persisted.
-   */
+  #updateTransactionById(
+    id: string,
+    updater: (transaction: EditableTransaction) => EditableTransaction | null,
+  ): boolean {
+    const found = this.#findTransactionById(id);
+
+    if (!found) return false;
+
+    const updated = updater(found.transaction);
+
+    if (updated === null) {
+      // Remove transaction entirely
+      this.#transactions.update((transactions) =>
+        transactions.filter((_, i) => i !== found.index),
+      );
+    } else {
+      // Update transaction
+      this.#transactions.update((transactions) =>
+        transactions.map((t, i) => (i === found.index ? updated : t)),
+      );
+    }
+
+    return true;
+  }
+
+  #computeHasChanges(): boolean {
+    const transactions = this.#transactions();
+
+    return transactions.some(
+      (t) =>
+        // New transaction (not deleted)
+        (t.isNew && !t.isDeleted) ||
+        // Deleted existing transaction
+        (t.isDeleted && !t.isNew) ||
+        // Modified existing transaction
+        (!t.isNew &&
+          !t.isDeleted &&
+          t.originalLine &&
+          this.#isTransactionModified(t)),
+    );
+  }
+
+  #isTransactionModified(transaction: EditableTransaction): boolean {
+    const { originalLine, formData } = transaction;
+    if (!originalLine) return false;
+
+    return (
+      originalLine.name !== formData.description ||
+      originalLine.amount !== formData.amount ||
+      originalLine.kind !== formData.type
+    );
+  }
+
+  #computeIsValid(): boolean {
+    return this.activeTransactions().every((t) => this.#isTransactionValid(t));
+  }
+
+  #isTransactionValid(transaction: EditableTransaction): boolean {
+    return (
+      transaction.formData.description.trim().length > 0 &&
+      transaction.formData.amount >= 0
+    );
+  }
+
+  // Helper for O(1) transaction lookup
+  #findTransactionById(
+    id: string,
+  ): { transaction: EditableTransaction; index: number } | null {
+    const transactions = this.#transactions();
+    const index = transactions.findIndex((t) => t.id === id);
+    return index !== -1 ? { transaction: transactions[index], index } : null;
+  }
+
+  #setLoading(loading: boolean): void {
+    this.#isLoading.set(loading);
+    if (loading) this.#clearError();
+  }
+
+  #setError(error: string): void {
+    this.#error.set(error);
+  }
+
+  #clearError(): void {
+    this.#error.set(null);
+  }
+
+  #generateBulkOperations(
+    transactions: EditableTransaction[],
+  ): TemplateLinesBulkOperations {
+    return {
+      create: transactions
+        .filter((t) => t.isNew && !t.isDeleted)
+        .map((t) => this.#mapToCreateData(t)),
+
+      update: transactions
+        .filter(
+          (t) =>
+            !t.isNew &&
+            !t.isDeleted &&
+            t.originalLine &&
+            this.#isTransactionModified(t),
+        )
+        .map((t) => this.#mapToUpdateData(t)),
+
+      delete: transactions
+        .filter((t) => t.isDeleted && !t.isNew)
+        .map((t) => t.id),
+    };
+  }
+
+  #mapToCreateData(
+    transaction: EditableTransaction,
+  ): TemplateLineCreateWithoutTemplateId {
+    return {
+      name: transaction.formData.description,
+      amount: transaction.formData.amount,
+      kind: transaction.formData.type,
+      recurrence: 'fixed',
+      description: '',
+    };
+  }
+
+  #mapToUpdateData(transaction: EditableTransaction): TemplateLineUpdateWithId {
+    const { originalLine, formData } = transaction;
+    return {
+      id: transaction.id,
+      name: formData.description,
+      amount: formData.amount,
+      kind: formData.type,
+      recurrence: originalLine!.recurrence,
+      description: originalLine!.description,
+    };
+  }
+
   #updateStateAfterSave(saveResponse: {
     created: TemplateLine[];
     updated: TemplateLine[];
     deleted: string[];
   }): void {
     const currentTransactions = this.#transactions();
-    const updatedTransactions: EditableTransaction[] = [];
-
     let createdIndex = 0;
 
-    for (const transaction of currentTransactions) {
-      if (transaction.isDeleted && !transaction.isNew) {
-        // Remove deleted transactions entirely
-        continue;
-      } else if (transaction.isNew && !transaction.isDeleted) {
-        // Convert new transactions to existing ones with real IDs
-        const createdLine = saveResponse.created[createdIndex++];
-        if (createdLine) {
-          updatedTransactions.push({
-            id: createdLine.id,
-            formData: {
-              description: createdLine.name,
-              amount: createdLine.amount,
-              type: createdLine.kind,
-            },
-            isNew: false,
-            isDeleted: false,
-            originalLine: createdLine,
-          });
+    const updatedTransactions = currentTransactions
+      .filter((t) => !(t.isDeleted && !t.isNew)) // Remove deleted existing transactions
+      .map((transaction) => {
+        if (transaction.isNew && !transaction.isDeleted) {
+          // Convert new transactions to existing ones with real IDs
+          const createdLine = saveResponse.created[createdIndex++];
+          return createdLine
+            ? this.#convertToExistingTransaction(transaction, createdLine)
+            : transaction;
         }
-      } else if (!transaction.isNew && !transaction.isDeleted) {
-        // Keep existing non-deleted transactions with updated original line data
-        const updatedLine = saveResponse.updated.find(
-          (line) => line.id === transaction.id,
-        );
-        const originalLine = updatedLine || transaction.originalLine;
 
-        updatedTransactions.push({
-          ...transaction,
-          formData: originalLine
-            ? {
-                description: originalLine.name,
-                amount: originalLine.amount,
-                type: originalLine.kind,
-              }
-            : transaction.formData,
-          originalLine,
-        });
-      }
-    }
+        if (!transaction.isNew && !transaction.isDeleted) {
+          // Update existing transactions with fresh data from server
+          const updatedLine = saveResponse.updated.find(
+            (line) => line.id === transaction.id,
+          );
+          return this.#syncWithServerData(transaction, updatedLine);
+        }
+
+        return transaction;
+      });
 
     this.#transactions.set(updatedTransactions);
   }
 
-  /**
-   * Set error state (used internally for testing)
-   */
-  private setError(error: string): void {
-    this.#error.set(error);
+  #convertToExistingTransaction(
+    transaction: EditableTransaction,
+    createdLine: TemplateLine,
+  ): EditableTransaction {
+    return {
+      id: createdLine.id,
+      formData: {
+        description: createdLine.name,
+        amount: createdLine.amount,
+        type: createdLine.kind,
+      },
+      isNew: false,
+      isDeleted: false,
+      originalLine: createdLine,
+    };
+  }
+
+  #syncWithServerData(
+    transaction: EditableTransaction,
+    updatedLine?: TemplateLine,
+  ): EditableTransaction {
+    const originalLine = updatedLine || transaction.originalLine;
+
+    return {
+      ...transaction,
+      formData: originalLine
+        ? {
+            description: originalLine.name,
+            amount: originalLine.amount,
+            type: originalLine.kind,
+          }
+        : transaction.formData,
+      originalLine,
+    };
   }
 }
