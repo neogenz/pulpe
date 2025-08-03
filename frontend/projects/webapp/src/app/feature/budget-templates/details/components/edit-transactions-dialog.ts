@@ -4,7 +4,6 @@ import {
   computed,
   inject,
 } from '@angular/core';
-import { FormArray, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import {
   MatDialogModule,
@@ -16,9 +15,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CommonModule } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
 import {
-  TransactionFormService,
   TransactionFormData,
-  TransactionFormControls,
   TRANSACTION_TYPES,
 } from '../../services/transaction-form';
 import { MatSelectModule } from '@angular/material/select';
@@ -52,7 +49,6 @@ interface EditTransactionsDialogResult {
   selector: 'pulpe-edit-transactions-dialog',
   imports: [
     CommonModule,
-    ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,
     MatIconModule,
@@ -86,7 +82,7 @@ interface EditTransactionsDialogResult {
         <div class="flex-shrink-0 p-4 border-b border-outline-variant">
           <div class="flex justify-between items-center">
             <p class="text-body-large">
-              {{ transactionsDataSource().length }} transaction(s)
+              {{ activeTransactions().length }} transaction(s)
             </p>
             <button
               matButton="tonal"
@@ -112,7 +108,7 @@ interface EditTransactionsDialogResult {
 
           <table
             mat-table
-            [dataSource]="transactionsDataSource()"
+            [dataSource]="activeTransactions()"
             class="w-full"
             [class.pointer-events-none]="isLoading()"
           >
@@ -121,7 +117,7 @@ interface EditTransactionsDialogResult {
               <th mat-header-cell *matHeaderCellDef>Description</th>
               <td
                 mat-cell
-                *matCellDef="let formGroup; let i = index"
+                *matCellDef="let transaction; let i = index"
                 class="!p-4"
               >
                 <mat-form-field
@@ -131,20 +127,18 @@ interface EditTransactionsDialogResult {
                 >
                   <input
                     matInput
-                    [formControl]="formGroup.controls.description"
+                    [value]="transaction.formData.description"
+                    (input)="
+                      updateTransactionField(
+                        transaction.id,
+                        'description',
+                        $event
+                      )
+                    "
                     placeholder="Description de la transaction"
                   />
-                  @if (
-                    formGroup.controls.description.touched &&
-                    formGroup.controls.description.hasError('required')
-                  ) {
+                  @if (isFieldRequired(transaction.formData.description)) {
                     <mat-error>La description est requise</mat-error>
-                  }
-                  @if (
-                    formGroup.controls.description.touched &&
-                    formGroup.controls.description.hasError('maxlength')
-                  ) {
-                    <mat-error>Maximum 100 caractères</mat-error>
                   }
                 </mat-form-field>
               </td>
@@ -155,7 +149,7 @@ interface EditTransactionsDialogResult {
               <th mat-header-cell *matHeaderCellDef>Montant</th>
               <td
                 mat-cell
-                *matCellDef="let formGroup; let i = index"
+                *matCellDef="let transaction; let i = index"
                 class="!p-4"
               >
                 <mat-form-field
@@ -169,29 +163,18 @@ interface EditTransactionsDialogResult {
                     step="0.01"
                     min="0"
                     max="999999"
-                    [formControl]="formGroup.controls.amount"
+                    [value]="transaction.formData.amount"
+                    (input)="
+                      updateTransactionField(transaction.id, 'amount', $event)
+                    "
                     placeholder="0.00"
                   />
                   <span matTextSuffix>CHF</span>
                   @if (
-                    formGroup.controls.amount.touched &&
-                    formGroup.controls.amount.hasError('required')
-                  ) {
-                    <mat-error>Le montant est requis</mat-error>
-                  }
-                  @if (
-                    formGroup.controls.amount.touched &&
-                    formGroup.controls.amount.hasError('min')
+                    isFieldRequired(transaction.formData.amount) ||
+                    transaction.formData.amount < 0
                   ) {
                     <mat-error>Le montant doit être positif</mat-error>
-                  }
-                  @if (
-                    formGroup.controls.amount.touched &&
-                    formGroup.controls.amount.hasError('max')
-                  ) {
-                    <mat-error
-                      >Le montant ne peut pas dépasser 999'999 CHF</mat-error
-                    >
                   }
                 </mat-form-field>
               </td>
@@ -202,7 +185,7 @@ interface EditTransactionsDialogResult {
               <th mat-header-cell *matHeaderCellDef>Type</th>
               <td
                 mat-cell
-                *matCellDef="let formGroup; let i = index"
+                *matCellDef="let transaction; let i = index"
                 class="!p-4"
               >
                 <mat-form-field
@@ -210,7 +193,12 @@ interface EditTransactionsDialogResult {
                   class="w-full"
                   subscriptSizing="dynamic"
                 >
-                  <mat-select [formControl]="formGroup.controls.type">
+                  <mat-select
+                    [value]="transaction.formData.type"
+                    (selectionChange)="
+                      updateTransactionField(transaction.id, 'type', $event)
+                    "
+                  >
                     @for (type of transactionTypes; track type.value) {
                       <mat-option [value]="type.value">
                         {{ type.label }}
@@ -226,7 +214,7 @@ interface EditTransactionsDialogResult {
               <th mat-header-cell *matHeaderCellDef>Total</th>
               <td
                 mat-cell
-                *matCellDef="let formGroup; let i = index"
+                *matCellDef="let transaction; let i = index"
                 class="!p-4 text-right"
               >
                 <span
@@ -249,21 +237,17 @@ interface EditTransactionsDialogResult {
               </th>
               <td
                 mat-cell
-                *matCellDef="let formGroup; let i = index"
+                *matCellDef="let transaction; let i = index"
                 class="!p-4"
               >
                 <button
                   matIconButton
                   color="warn"
-                  (click)="removeTransaction(i)"
-                  [disabled]="
-                    transactionsDataSource().length <= 1 || isLoading()
-                  "
-                  [attr.aria-disabled]="
-                    transactionsDataSource().length <= 1 || isLoading()
-                  "
+                  (click)="removeTransaction(transaction.id)"
+                  [disabled]="!canRemoveTransaction() || isLoading()"
+                  [attr.aria-disabled]="!canRemoveTransaction() || isLoading()"
                   [matTooltip]="
-                    transactionsDataSource().length <= 1
+                    !canRemoveTransaction()
                       ? 'Au moins une ligne est requise'
                       : 'Supprimer cette ligne'
                   "
@@ -310,7 +294,7 @@ interface EditTransactionsDialogResult {
         matButton="filled"
         color="primary"
         (click)="save()"
-        [disabled]="!isFormValid() || isLoading()"
+        [disabled]="!isValid() || isLoading()"
       >
         <div class="flex items-center gap-2">
           @if (isLoading()) {
@@ -364,13 +348,9 @@ interface EditTransactionsDialogResult {
 })
 export default class EditTransactionsDialog {
   readonly #dialogRef = inject(MatDialogRef<EditTransactionsDialog>);
-  readonly #transactionFormService = inject(TransactionFormService);
   readonly #dialog = inject(MatDialog);
   readonly #state = inject(EditTransactionsState);
   readonly data = inject<EditTransactionsDialogData>(MAT_DIALOG_DATA);
-
-  // Form array for reactive forms integration
-  readonly transactionsForm!: FormArray<FormGroup<TransactionFormControls>>;
 
   // Expose state signals directly
   readonly isLoading = this.#state.isLoading;
@@ -378,11 +358,10 @@ export default class EditTransactionsDialog {
   readonly hasUnsavedChanges = this.#state.hasUnsavedChanges;
   readonly canRemoveTransaction = this.#state.canRemoveTransaction;
 
-  // Create form array that reflects current state
-  readonly transactionsDataSource = computed(() => {
-    const transactions = this.#state.transactions().filter((t) => !t.isDeleted);
-    return transactions.map((t) => this.#createFormGroupFromTransaction(t));
-  });
+  // Get active (non-deleted) transactions from state
+  readonly activeTransactions = computed(() =>
+    this.#state.transactions().filter((t) => !t.isDeleted),
+  );
 
   protected readonly displayedColumns: readonly string[] = [
     'description',
@@ -404,7 +383,7 @@ export default class EditTransactionsDialog {
     this.#dialogRef.disableClose = true;
   }
 
-  async removeTransaction(index: number): Promise<void> {
+  async removeTransaction(transactionId: string): Promise<void> {
     if (!this.canRemoveTransaction()) {
       return;
     }
@@ -415,12 +394,7 @@ export default class EditTransactionsDialog {
       return;
     }
 
-    // Get the transaction ID from the state
-    const transactions = this.#state.transactions().filter((t) => !t.isDeleted);
-    const transaction = transactions[index];
-    if (transaction) {
-      this.#state.removeTransaction(transaction.id);
-    }
+    this.#state.removeTransaction(transactionId);
   }
 
   addNewTransaction(): void {
@@ -432,44 +406,39 @@ export default class EditTransactionsDialog {
   }
 
   async save(): Promise<void> {
-    if (this.isLoading()) {
-      return;
-    }
+    if (this.isLoading() || !this.isValid()) return;
 
-    // Sync current form values to state before saving
-    this.#syncFormValuesToState();
-
-    // Perform save
+    // Perform save - no sync needed as state is already up-to-date
     const result = await this.#state.saveChanges(this.data.templateId);
 
-    if (result.success) {
-      this.#dialogRef.close({
-        saved: true,
-        updatedLines: result.updatedLines,
-      } as EditTransactionsDialogResult);
-    }
-    // Errors are handled by the state service and displayed via errorMessage signal
+    if (!result.success) return;
+
+    this.#dialogRef.close({
+      saved: true,
+      updatedLines: result.updatedLines,
+    } as EditTransactionsDialogResult);
   }
 
   cancel(): void {
-    if (this.isLoading()) {
-      return;
-    }
+    if (this.isLoading()) return;
+
     this.#dialogRef.close({ saved: false } as EditTransactionsDialogResult);
   }
 
-  readonly isFormValid = computed(() => {
-    // For now, use simple validation - could be enhanced to sync with state
-    return this.transactionsDataSource().every((formGroup) => formGroup.valid);
+  readonly isValid = computed(() => {
+    const transactions = this.activeTransactions();
+    return transactions.every(
+      (t) => t.formData.description.trim().length > 0 && t.formData.amount >= 0,
+    );
   });
 
   protected readonly runningTotals = computed(() => {
-    const formGroups = this.transactionsDataSource();
+    const transactions = this.activeTransactions();
     let runningTotal = 0;
 
-    return formGroups.map((formGroup) => {
-      const amount = formGroup.get('amount')?.value ?? 0;
-      const type = formGroup.get('type')?.value ?? 'FIXED_EXPENSE';
+    return transactions.map((transaction) => {
+      const amount = transaction.formData.amount;
+      const type = transaction.formData.type;
 
       switch (type) {
         case 'INCOME':
@@ -486,14 +455,31 @@ export default class EditTransactionsDialog {
   });
 
   /**
-   * Create a reactive form group from a transaction state
+   * Update a transaction field directly in state
    */
-  #createFormGroupFromTransaction(transaction: {
-    formData: TransactionFormData;
-  }): FormGroup<TransactionFormControls> {
-    return this.#transactionFormService.createTransactionFormGroup(
-      transaction.formData,
-    );
+  updateTransactionField(
+    transactionId: string,
+    field: keyof TransactionFormData,
+    event: Event | { value: unknown },
+  ): void {
+    let value: unknown;
+
+    if ('value' in event && event.value !== undefined) {
+      // Handle mat-select selectionChange event
+      value = event.value;
+    } else if ('target' in event) {
+      // Handle input events
+      const target = event.target as HTMLInputElement | null;
+      if (target) {
+        value = field === 'amount' ? Number(target.value) : target.value;
+      } else {
+        return;
+      }
+    } else {
+      return;
+    }
+
+    this.#state.updateTransaction(transactionId, { [field]: value });
   }
 
   /**
@@ -514,21 +500,9 @@ export default class EditTransactionsDialog {
   }
 
   /**
-   * Sync current form values back to the state
-   * This is called before saving to ensure the state is up-to-date
+   * Simple validation helper for template
    */
-  #syncFormValuesToState(): void {
-    const formGroups = this.transactionsDataSource();
-    const activeTransactions = this.#state
-      .transactions()
-      .filter((t) => !t.isDeleted);
-
-    formGroups.forEach((formGroup, index) => {
-      const transaction = activeTransactions[index];
-      if (transaction && formGroup.value) {
-        const formData = formGroup.value as TransactionFormData;
-        this.#state.updateTransaction(transaction.id, formData);
-      }
-    });
+  isFieldRequired(value: unknown): boolean {
+    return !value || (typeof value === 'string' && value.trim().length === 0);
   }
 }
