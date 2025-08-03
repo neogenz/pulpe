@@ -23,6 +23,7 @@ import { FiltersModule } from '@common/filters/filters.module';
 
 // Middleware
 import { ResponseLoggerMiddleware } from '@common/middleware/response-logger.middleware';
+import { PayloadSizeMiddleware } from '@common/middleware/payload-size.middleware';
 
 // Configuration
 import { validateConfig } from '@config/environment';
@@ -239,10 +240,12 @@ function createPinoLoggerConfig(configService: ConfigService) {
       useClass: ThrottlerGuard,
     },
     ResponseLoggerMiddleware,
+    PayloadSizeMiddleware,
   ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer.apply(ResponseLoggerMiddleware).forRoutes('*');
+    consumer.apply(PayloadSizeMiddleware).forRoutes('*bulk-operations*');
   }
 }

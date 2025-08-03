@@ -286,11 +286,28 @@ export type TemplateLinesBulkUpdate = z.infer<
 >;
 
 // Extended bulk update schema supporting create, update, and delete operations
-export const templateLinesBulkOperationsSchema = z.object({
-  create: z.array(templateLineCreateWithoutTemplateIdSchema).default([]),
-  update: z.array(templateLineUpdateWithIdSchema).default([]),
-  delete: z.array(z.string().uuid()).default([]),
-});
+// Security: Limited to prevent DoS attacks and memory exhaustion
+export const templateLinesBulkOperationsSchema = z
+  .object({
+    create: z
+      .array(templateLineCreateWithoutTemplateIdSchema)
+      .max(100)
+      .default([]),
+    update: z.array(templateLineUpdateWithIdSchema).max(100).default([]),
+    delete: z.array(z.string().uuid()).max(100).default([]),
+  })
+  .refine(
+    (data) => {
+      const totalOperations =
+        data.create.length + data.update.length + data.delete.length;
+      return totalOperations <= 200;
+    },
+    {
+      message:
+        'Total bulk operations cannot exceed 200 items across all arrays',
+      path: ['totalOperations'],
+    },
+  );
 export type TemplateLinesBulkOperations = z.infer<
   typeof templateLinesBulkOperationsSchema
 >;
