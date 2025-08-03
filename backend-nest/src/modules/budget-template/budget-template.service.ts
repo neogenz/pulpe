@@ -940,6 +940,18 @@ export class BudgetTemplateService {
     return updateGroups;
   }
 
+  /**
+   * Utility method to chunk large arrays for processing in batches.
+   * Prevents memory exhaustion and database performance issues.
+   */
+  private chunkArray<T>(array: T[], chunkSize: number = 50): T[][] {
+    const chunks: T[][] = [];
+    for (let i = 0; i < array.length; i += chunkSize) {
+      chunks.push(array.slice(i, i + chunkSize));
+    }
+    return chunks;
+  }
+
   async bulkOperationsTemplateLines(
     templateId: string,
     bulkOperationsDto: TemplateLinesBulkOperations,
@@ -1018,6 +1030,25 @@ export class BudgetTemplateService {
   ): Promise<string[]> {
     if (!deleteIds.length) return [];
 
+    // For large operations, process in chunks to prevent memory issues and DB performance degradation
+    const CHUNK_SIZE = 50;
+
+    if (deleteIds.length > CHUNK_SIZE) {
+      const chunks = this.chunkArray(deleteIds, CHUNK_SIZE);
+      const results: string[] = [];
+
+      for (const chunk of chunks) {
+        const chunkResult = await this.performBulkDeletes(
+          chunk,
+          templateId,
+          supabase,
+        );
+        results.push(...chunkResult);
+      }
+
+      return results;
+    }
+
     // Validate all lines belong to the template
     const { data: existingLines } = await supabase
       .from('template_line')
@@ -1045,6 +1076,25 @@ export class BudgetTemplateService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<Tables<'template_line'>[]> {
     if (!updates.length) return [];
+
+    // For large operations, process in chunks to prevent memory issues and DB performance degradation
+    const CHUNK_SIZE = 50;
+
+    if (updates.length > CHUNK_SIZE) {
+      const chunks = this.chunkArray(updates, CHUNK_SIZE);
+      const results: Tables<'template_line'>[] = [];
+
+      for (const chunk of chunks) {
+        const chunkResult = await this.performBulkUpdates(
+          chunk,
+          templateId,
+          supabase,
+        );
+        results.push(...chunkResult);
+      }
+
+      return results;
+    }
 
     // Validate all lines belong to the template
     const updateIds = updates.map((u) => u.id);
@@ -1076,6 +1126,25 @@ export class BudgetTemplateService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<Tables<'template_line'>[]> {
     if (!creates.length) return [];
+
+    // For large operations, process in chunks to prevent memory issues and DB performance degradation
+    const CHUNK_SIZE = 50;
+
+    if (creates.length > CHUNK_SIZE) {
+      const chunks = this.chunkArray(creates, CHUNK_SIZE);
+      const results: Tables<'template_line'>[] = [];
+
+      for (const chunk of chunks) {
+        const chunkResult = await this.performBulkCreates(
+          chunk,
+          templateId,
+          supabase,
+        );
+        results.push(...chunkResult);
+      }
+
+      return results;
+    }
 
     const inserts = creates.map((line) =>
       budgetTemplateMappers.toDbTemplateLineInsert(line, templateId),
