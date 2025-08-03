@@ -31,6 +31,9 @@ import {
   templateLineCreateWithoutTemplateIdSchema,
   templateLineUpdateSchema,
   templateLinesBulkUpdateSchema,
+  templateLinesBulkOperationsSchema,
+  type TemplateLinesBulkOperations,
+  type TemplateLinesBulkOperationsResponse,
 } from '@pulpe/shared';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import * as budgetTemplateMappers from './budget-template.mappers';
@@ -935,6 +938,184 @@ export class BudgetTemplateService {
     }
 
     return updateGroups;
+  }
+
+  async bulkOperationsTemplateLines(
+    templateId: string,
+    bulkOperationsDto: TemplateLinesBulkOperations,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<TemplateLinesBulkOperationsResponse> {
+    const startTime = Date.now();
+    try {
+      const data = await this.executeBulkOperations(
+        templateId,
+        bulkOperationsDto,
+        user,
+        supabase,
+      );
+      this.logger.info(
+        {
+          operation: 'bulkOperationsTemplateLines',
+          userId: user.id,
+          entityId: templateId,
+          operationCount: {
+            create: bulkOperationsDto.create?.length || 0,
+            update: bulkOperationsDto.update?.length || 0,
+            delete: bulkOperationsDto.delete?.length || 0,
+          },
+          duration: Date.now() - startTime,
+        },
+        'Bulk operations on template lines completed successfully',
+      );
+      return data;
+    } catch (error) {
+      this.handleBulkOperationsError(error, user.id, templateId, startTime);
+    }
+  }
+
+  private async executeBulkOperations(
+    templateId: string,
+    bulkOperationsDto: TemplateLinesBulkOperations,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<TemplateLinesBulkOperationsResponse> {
+    await this.validateTemplateAccess(templateId, user, supabase);
+    const validated =
+      templateLinesBulkOperationsSchema.parse(bulkOperationsDto);
+
+    // Execute operations in order: delete, update, create
+    const deletedIds = await this.performBulkDeletes(
+      validated.delete,
+      templateId,
+      supabase,
+    );
+    const updatedLines = await this.performBulkUpdates(
+      validated.update,
+      templateId,
+      supabase,
+    );
+    const createdLines = await this.performBulkCreates(
+      validated.create,
+      templateId,
+      supabase,
+    );
+
+    return {
+      success: true,
+      data: {
+        created: budgetTemplateMappers.toApiTemplateLineList(createdLines),
+        updated: budgetTemplateMappers.toApiTemplateLineList(updatedLines),
+        deleted: deletedIds,
+      },
+    };
+  }
+
+  private async performBulkDeletes(
+    deleteIds: string[],
+    templateId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<string[]> {
+    if (!deleteIds.length) return [];
+
+    // Validate all lines belong to the template
+    const { data: existingLines } = await supabase
+      .from('template_line')
+      .select('id')
+      .eq('template_id', templateId)
+      .in('id', deleteIds);
+
+    if (!existingLines || existingLines.length !== deleteIds.length) {
+      throw new NotFoundException('Some template lines to delete not found');
+    }
+
+    // Delete the lines
+    const { error } = await supabase
+      .from('template_line')
+      .delete()
+      .in('id', deleteIds);
+
+    if (error) throw error;
+    return deleteIds;
+  }
+
+  private async performBulkUpdates(
+    updates: TemplateLineUpdateWithId[],
+    templateId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<Tables<'template_line'>[]> {
+    if (!updates.length) return [];
+
+    // Validate all lines belong to the template
+    const updateIds = updates.map((u) => u.id);
+    const { data: existingLines } = await supabase
+      .from('template_line')
+      .select('id')
+      .eq('template_id', templateId)
+      .in('id', updateIds);
+
+    if (!existingLines || existingLines.length !== updateIds.length) {
+      throw new NotFoundException('Some template lines to update not found');
+    }
+
+    // Group updates by properties to optimize database queries
+    const updateGroups = this.groupUpdatesByProperties(updates);
+
+    const updatePromises = Array.from(updateGroups.values()).map(
+      ({ ids, data }) =>
+        supabase.from('template_line').update(data).in('id', ids).select(),
+    );
+
+    const results = await Promise.all(updatePromises);
+    return results.flatMap((r) => r.data || []);
+  }
+
+  private async performBulkCreates(
+    creates: TemplateLineCreateWithoutTemplateId[],
+    templateId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<Tables<'template_line'>[]> {
+    if (!creates.length) return [];
+
+    const inserts = creates.map((line) =>
+      budgetTemplateMappers.toDbTemplateLineInsert(line, templateId),
+    );
+
+    const { data, error } = await supabase
+      .from('template_line')
+      .insert(inserts)
+      .select();
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  private handleBulkOperationsError(
+    error: unknown,
+    userId: string,
+    entityId: string,
+    startTime: number,
+  ): never {
+    this.logger.error(
+      {
+        operation: 'bulkOperationsTemplateLines',
+        userId,
+        entityId,
+        duration: Date.now() - startTime,
+        err: error,
+      },
+      'Failed to perform bulk operations on template lines',
+    );
+
+    if (
+      error instanceof NotFoundException ||
+      error instanceof BadRequestException ||
+      error instanceof ForbiddenException
+    )
+      throw error;
+    throw new InternalServerErrorException(
+      'Failed to perform bulk operations on template lines',
+    );
   }
 
   async deleteTemplateLine(

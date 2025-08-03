@@ -33,8 +33,14 @@ import { firstValueFrom } from 'rxjs';
 import {
   TemplateLine,
   type TemplateLineUpdateWithId,
-  type TemplateLinesBulkUpdate,
+  type TemplateLinesBulkOperations,
+  type TemplateLineCreateWithoutTemplateId,
 } from '@pulpe/shared';
+import { MatDialog } from '@angular/material/dialog';
+import {
+  ConfirmationDialogComponent,
+  type ConfirmationDialogData,
+} from '../../../../ui/dialogs/confirmation-dialog';
 
 interface EditTransactionsDialogData {
   transactions: TransactionFormData[];
@@ -344,7 +350,15 @@ export default class EditTransactionsDialog {
   readonly #dialogRef = inject(MatDialogRef<EditTransactionsDialog>);
   readonly #transactionFormService = inject(TransactionFormService);
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
+  readonly #dialog = inject(MatDialog);
   readonly data = inject<EditTransactionsDialogData>(MAT_DIALOG_DATA);
+
+  // Track new lines and deleted lines
+  readonly #newLineIds = new Set<string>();
+  readonly #deletedLineIds = new Set<string>();
+  readonly #lineIdToOriginalLine = new Map<string, TemplateLine>();
+  // Map form index to line ID
+  readonly #formIndexToLineId = new Map<number, string>();
 
   // Loading state management with signals
   readonly #isLoading = signal(false);
@@ -373,10 +387,23 @@ export default class EditTransactionsDialog {
   protected readonly transactionTypes = TRANSACTION_TYPES;
 
   constructor() {
+    // Initialize the ID mapping for original lines
+    this.data.originalTemplateLines.forEach((line) => {
+      this.#lineIdToOriginalLine.set(line.id, line);
+    });
+
     this.transactionsForm =
       this.#transactionFormService.createTransactionsFormArray(
         this.data.transactions,
       );
+
+    // Map form index to line IDs
+    this.transactionsForm.controls.forEach((_, index) => {
+      const originalLine = this.data.originalTemplateLines[index];
+      if (originalLine) {
+        this.#formIndexToLineId.set(index, originalLine.id);
+      }
+    });
 
     // Update signal with the created form
     this.#formArraySignal.set(this.transactionsForm);
@@ -389,19 +416,66 @@ export default class EditTransactionsDialog {
     this.#dialogRef.disableClose = true;
   }
 
-  removeTransaction(index: number): void {
+  async removeTransaction(index: number): Promise<void> {
+    // Prevent removing the last transaction
+    if (this.transactionsForm.length <= 1) {
+      return;
+    }
+
+    const lineId = this.#formIndexToLineId.get(index);
+
+    // If this is an existing line, confirm deletion
+    if (lineId && !this.#newLineIds.has(lineId)) {
+      const dialogRef = this.#dialog.open(ConfirmationDialogComponent, {
+        data: {
+          title: 'Confirmer la suppression',
+          message: 'Êtes-vous sûr de vouloir supprimer cette prévision ?',
+          confirmText: 'Supprimer',
+          cancelText: 'Annuler',
+          confirmColor: 'warn',
+        } as ConfirmationDialogData,
+      });
+
+      const result = await firstValueFrom(dialogRef.afterClosed());
+      if (!result) {
+        return;
+      }
+
+      // Track the deletion
+      this.#deletedLineIds.add(lineId);
+    } else if (lineId && this.#newLineIds.has(lineId)) {
+      // If it's a new line, just remove it from the new lines set
+      this.#newLineIds.delete(lineId);
+    }
+
     this.#transactionFormService.removeTransactionFromFormArray(
       this.transactionsForm,
       index,
     );
+
+    // Rebuild the index mapping after removal
+    this.#rebuildFormIndexMapping();
+
     // Trigger reactivity by updating the signal
     this.#formArraySignal.set(this.transactionsForm);
   }
 
   addNewTransaction(): void {
-    this.#transactionFormService.addTransactionToFormArray(
-      this.transactionsForm,
-    );
+    // Generate a temporary ID for the new line
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // Create a new form group
+    const newFormGroup =
+      this.#transactionFormService.createTransactionFormGroup();
+
+    // Track this as a new line
+    this.#newLineIds.add(tempId);
+    const newIndex = this.transactionsForm.length;
+    this.#formIndexToLineId.set(newIndex, tempId);
+
+    // Add to form array
+    this.transactionsForm.push(newFormGroup);
+
     // Trigger reactivity by updating the signal
     this.#formArraySignal.set(this.transactionsForm);
   }
@@ -415,49 +489,61 @@ export default class EditTransactionsDialog {
     this.#errorMessage.set(null);
 
     try {
-      const transactions = this.#transactionFormService.getTransactionFormData(
-        this.transactionsForm,
-      );
+      const bulkOperations: TemplateLinesBulkOperations = {
+        create: [],
+        update: [],
+        delete: Array.from(this.#deletedLineIds),
+      };
 
-      // Validate that we have the same number of transactions
-      if (transactions.length !== this.data.originalTemplateLines.length) {
-        throw new Error(
-          "Le nombre de transactions a changé, cette fonctionnalité n'est pas encore supportée",
-        );
-      }
+      // Process each form group
+      this.transactionsForm.controls.forEach((formGroup, index) => {
+        const lineId = this.#formIndexToLineId.get(index);
+        if (!lineId) return;
 
-      // Transform dialog data to API format
-      const bulkUpdate: TemplateLinesBulkUpdate = {
-        lines: transactions.map(
-          (
-            transaction: TransactionFormData,
-            index: number,
-          ): TemplateLineUpdateWithId => {
-            const originalLine = this.data.originalTemplateLines[index];
-            return {
-              id: originalLine.id,
-              name: transaction.description,
-              amount: transaction.amount,
-              kind: transaction.type,
+        const formData = formGroup.value as TransactionFormData;
+
+        if (this.#newLineIds.has(lineId)) {
+          // This is a new line to create
+          const createData: TemplateLineCreateWithoutTemplateId = {
+            name: formData.description,
+            amount: formData.amount,
+            kind: formData.type,
+            recurrence: 'fixed', // Default recurrence
+            description: '', // Default empty description
+          };
+          bulkOperations.create.push(createData);
+        } else if (!this.#deletedLineIds.has(lineId)) {
+          // This is an existing line to update (not deleted)
+          const originalLine = this.#lineIdToOriginalLine.get(lineId);
+          if (originalLine) {
+            const updateData: TemplateLineUpdateWithId = {
+              id: lineId,
+              name: formData.description,
+              amount: formData.amount,
+              kind: formData.type,
               recurrence: originalLine.recurrence,
               description: originalLine.description,
             };
-          },
-        ),
-      };
+            bulkOperations.update.push(updateData);
+          }
+        }
+      });
 
       // Call API to save changes
       const response = await firstValueFrom(
-        this.#budgetTemplatesApi.updateTemplateLines$(
+        this.#budgetTemplatesApi.bulkOperationsTemplateLines$(
           this.data.templateId,
-          bulkUpdate,
+          bulkOperations,
         ),
       );
+
+      // Combine all lines for the result
+      const allLines = [...response.data.created, ...response.data.updated];
 
       // Close dialog with updated data
       this.#dialogRef.close({
         saved: true,
-        updatedLines: response.data,
+        updatedLines: allLines,
       } as EditTransactionsDialogResult);
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error);
@@ -476,6 +562,35 @@ export default class EditTransactionsDialog {
       return; // Prevent closing during loading
     }
     this.#dialogRef.close({ saved: false } as EditTransactionsDialogResult);
+  }
+
+  #rebuildFormIndexMapping(): void {
+    const oldMapping = new Map(this.#formIndexToLineId);
+    this.#formIndexToLineId.clear();
+
+    // Rebuild mapping by finding the lineId for each current form based on values
+    this.transactionsForm.controls.forEach((formGroup, newIndex) => {
+      const formData = formGroup.value as TransactionFormData;
+
+      // Try to find the matching lineId from the old mapping
+      for (const [, lineId] of oldMapping) {
+        const originalLine = this.#lineIdToOriginalLine.get(lineId);
+        if (
+          originalLine &&
+          originalLine.name === formData.description &&
+          originalLine.amount === formData.amount &&
+          originalLine.kind === formData.type
+        ) {
+          this.#formIndexToLineId.set(newIndex, lineId);
+          break;
+        } else if (this.#newLineIds.has(lineId)) {
+          // For new lines, we need to match by the form data
+          // This is a bit fragile but works for this use case
+          this.#formIndexToLineId.set(newIndex, lineId);
+          break;
+        }
+      }
+    });
   }
 
   readonly isFormValid = computed(() =>

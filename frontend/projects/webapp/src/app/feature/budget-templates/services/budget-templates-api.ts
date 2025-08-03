@@ -11,6 +11,8 @@ import {
   type TemplateLineListResponse,
   type TemplateLinesBulkUpdate,
   type TemplateLinesBulkUpdateResponse,
+  type TemplateLinesBulkOperations,
+  type TemplateLinesBulkOperationsResponse,
 } from '@pulpe/shared';
 import { environment } from '../../../../environments/environment';
 
@@ -65,6 +67,16 @@ export class BudgetTemplatesApi {
     return this.#http.patch<TemplateLinesBulkUpdateResponse>(
       `${this.#apiUrl}/${templateId}/lines`,
       bulkUpdate,
+    );
+  }
+
+  bulkOperationsTemplateLines$(
+    templateId: string,
+    bulkOperations: TemplateLinesBulkOperations,
+  ): Observable<TemplateLinesBulkOperationsResponse> {
+    return this.#http.post<TemplateLinesBulkOperationsResponse>(
+      `${this.#apiUrl}/${templateId}/lines/bulk-operations`,
+      bulkOperations,
     );
   }
 
