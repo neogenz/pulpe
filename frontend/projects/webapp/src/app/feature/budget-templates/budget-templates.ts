@@ -11,7 +11,7 @@ import { BudgetTemplatesState } from './services/budget-templates-state';
 import { TemplateList } from './components/template-list';
 import { BaseLoadingComponent } from '../../ui/loading';
 import { TemplatesError } from './components/templates-error';
-import { Title } from '@core/routing';
+import { TitleDisplayService } from '@core/routing/title-display.service';
 
 @Component({
   selector: 'pulpe-budget-templates',
@@ -31,7 +31,7 @@ import { Title } from '@core/routing';
         data-testid="page-header"
       >
         <h1 class="text-display-small" data-testid="page-title">
-          {{ title.currentTitle() }}
+          {{ titleDisplay.currentTitle() }}
         </h1>
         <div class="flex gap-2">
           <button
@@ -91,7 +91,7 @@ import { Title } from '@core/routing';
 })
 export default class BudgetTemplates implements OnInit {
   protected readonly state = inject(BudgetTemplatesState);
-  protected readonly title = inject(Title);
+  protected readonly titleDisplay = inject(TitleDisplayService);
 
   ngOnInit() {
     this.state.refreshData();

@@ -26,7 +26,7 @@ import { FixedTransactionsList } from './components/fixed-transactions-list';
 import { VariableExpensesList } from './components/variable-expenses-list';
 import { CurrentMonthState } from './services/current-month-state';
 import { TransactionChipFilter } from './components/transaction-chip-filter';
-import { Title } from '@core/routing';
+import { TitleDisplayService } from '@core/routing/title-display.service';
 import { BudgetProgressBar } from './components/budget-progress-bar';
 import {
   AddTransactionBottomSheet,
@@ -68,7 +68,7 @@ import { BudgetLineMapper } from './services/budget-line-mapper';
         data-testid="page-header"
       >
         <h1 class="text-display-small" data-testid="page-title">
-          {{ title.currentTitle() }}
+          {{ titleDisplay.currentTitle() }}
         </h1>
         <button
           matButton
@@ -204,7 +204,7 @@ export default class CurrentMonth implements OnInit {
   isCreatingTransaction = signal(false);
   selectedTransactions = signal<string[]>([]);
   protected readonly state = inject(CurrentMonthState);
-  protected readonly title = inject(Title);
+  protected readonly titleDisplay = inject(TitleDisplayService);
   private readonly bottomSheet = inject(MatBottomSheet);
   private readonly budgetLineMapper = inject(BudgetLineMapper);
 

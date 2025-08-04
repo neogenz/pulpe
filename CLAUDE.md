@@ -347,6 +347,7 @@ The application includes a multi-step onboarding process for new users:
 - **Health Check**: `http://localhost:3000/health`
 
 Example endpoints:
+
 - `GET /api/v1/budgets` - List all budgets
 - `POST /api/v1/transactions` - Create transaction
 - `GET /api/v1/budget-templates` - List templates
@@ -358,11 +359,10 @@ Example endpoints:
 3. **Testing**: Use `pnpm test:watch` for continuous testing during development
 4. **Type generation**: Run `bun run generate-types` in backend after database changes
 
-## Frontend design system
+## References to Frontend Dynamic Data
 
-- UI must implement Material Design 3 of Google
-- Use Angular Material toolkit for UI component
-- Use Angular Material System Variables to override style
-- Use Taiwlind overriden configuration from @frontend/projects/webapp/src/app/styles/vendors/\_tailwind.css
-- Use colors and typography from Angular Material theming and Tailwind
-- Use always colors surface containers depending on correct level of importance, like documented in Material Design 3 (impl. by Angular Material and Tailwind)
+- You can reference @frontend/CLAUDE.md dynamically to refer at all frontend data
+
+## References to business specs of project
+
+- You can reference @SPECS.md dynamically to refer at all business data
