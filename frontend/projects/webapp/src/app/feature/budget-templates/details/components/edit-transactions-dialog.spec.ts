@@ -118,7 +118,7 @@ describe('EditTransactionsDialog - Component Tests', () => {
     });
 
     it('should display transactions correctly', () => {
-      const transactions = component.activeTransactions();
+      const transactions = component.transactions();
       expect(transactions).toHaveLength(2);
 
       expect(transactions[0].formData.description).toBe('Loyer');
@@ -133,11 +133,11 @@ describe('EditTransactionsDialog - Component Tests', () => {
 
   describe('User Actions', () => {
     it('should add new transaction when addNewTransaction is called', () => {
-      const initialCount = component.activeTransactions().length;
+      const initialCount = component.transactions().length;
 
       component.addNewTransaction();
 
-      const newCount = component.activeTransactions().length;
+      const newCount = component.transactions().length;
       expect(newCount).toBe(initialCount + 1);
       expect(component.hasUnsavedChanges()).toBe(true);
     });
@@ -148,18 +148,18 @@ describe('EditTransactionsDialog - Component Tests', () => {
 
       // Add a transaction so we have more than 2
       component.addNewTransaction();
-      expect(component.activeTransactions()).toHaveLength(3);
+      expect(component.transactions()).toHaveLength(3);
       expect(component.canRemoveTransaction()).toBe(true);
     });
 
     it('should prevent removing when only one transaction remains', () => {
       // Start with 2 transactions
-      expect(component.activeTransactions()).toHaveLength(2);
+      expect(component.transactions()).toHaveLength(2);
       expect(component.canRemoveTransaction()).toBe(true);
 
       // Add one transaction to have 3 total
       component.addNewTransaction();
-      expect(component.activeTransactions()).toHaveLength(3);
+      expect(component.transactions()).toHaveLength(3);
       expect(component.canRemoveTransaction()).toBe(true);
 
       // The component should track this state correctly through its computed signal
