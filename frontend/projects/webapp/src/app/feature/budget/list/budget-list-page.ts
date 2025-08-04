@@ -12,7 +12,7 @@ import { BaseLoadingComponent } from '../../../ui/loading';
 import { MonthsError } from '../ui/budget-error';
 import { BudgetState } from './budget-state';
 import { MatTabsModule } from '@angular/material/tabs';
-import { TitleDisplayService } from '@core/routing/title-display.service';
+import { TitleDisplay } from '@core/routing';
 import { CreateBudgetDialogComponent } from '../details/create/budget-creation-dialog';
 import { MatDialog } from '@angular/material/dialog';
 import { firstValueFrom } from 'rxjs';
@@ -119,7 +119,7 @@ import { ROUTES } from '@core/routing';
 })
 export default class OtherMonths implements OnInit {
   protected readonly state = inject(BudgetState);
-  protected readonly titleDisplay = inject(TitleDisplayService);
+  protected readonly titleDisplay = inject(TitleDisplay);
   #dialog = inject(MatDialog);
   #router = inject(Router);
 

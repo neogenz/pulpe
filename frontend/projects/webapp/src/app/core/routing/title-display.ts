@@ -12,9 +12,9 @@ import { Subject } from 'rxjs';
 import { toSignal } from '@angular/core/rxjs-interop';
 
 /**
- * Lightweight service that exposes the current page title as a signal.
+ * Lightweight class that exposes the current page title as a signal.
  * Works in conjunction with PulpeTitleStrategy for consistent title management.
- * This service only provides read access to the current title for template binding.
+ * This class only provides read access to the current title for template binding.
  *
  * Note: Due to Angular's intentional timing (NavigationEnd fires before title update),
  * we use afterNextRender to ensure proper synchronization with the DOM title.
@@ -22,7 +22,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 @Injectable({
   providedIn: 'root',
 })
-export class TitleDisplayService {
+export class TitleDisplay {
   readonly #browserTitle = inject(Title);
   readonly #router = inject(Router);
   readonly #injector = inject(Injector);

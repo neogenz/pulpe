@@ -11,7 +11,7 @@ import { BudgetTemplatesState } from './services/budget-templates-state';
 import { TemplateList } from './components/template-list';
 import { BaseLoadingComponent } from '../../ui/loading';
 import { TemplatesError } from './components/templates-error';
-import { TitleDisplayService } from '@core/routing/title-display.service';
+import { TitleDisplay } from '@core/routing';
 
 @Component({
   selector: 'pulpe-budget-templates',
@@ -91,7 +91,7 @@ import { TitleDisplayService } from '@core/routing/title-display.service';
 })
 export default class BudgetTemplates implements OnInit {
   protected readonly state = inject(BudgetTemplatesState);
-  protected readonly titleDisplay = inject(TitleDisplayService);
+  protected readonly titleDisplay = inject(TitleDisplay);
 
   ngOnInit() {
     this.state.refreshData();
