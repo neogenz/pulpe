@@ -189,12 +189,6 @@ describe('BudgetTemplatesState', () => {
         updatedAt: new Date().toISOString(),
       };
 
-      mockApi.update$ = vi.fn().mockReturnValue(
-        of({
-          data: { ...mockTemplates[0], isDefault: false },
-          success: true,
-        }),
-      );
       mockApi.create$ = vi
         .fn()
         .mockReturnValue(of({ data: createdTemplate, success: true }));
@@ -204,10 +198,8 @@ describe('BudgetTemplatesState', () => {
 
       await state.addTemplate(newTemplate);
 
-      expect(mockApi.update$).toHaveBeenCalledWith('template-1', {
-        ...mockTemplates[0],
-        isDefault: false,
-      });
+      // Should NOT call update since backend handles default switching
+      expect(mockApi.update$).not.toHaveBeenCalled();
       expect(mockApi.create$).toHaveBeenCalledWith(newTemplate);
     });
 
@@ -238,39 +230,13 @@ describe('BudgetTemplatesState', () => {
       expect(mockApi.create$).toHaveBeenCalledWith(newTemplate);
     });
 
-    it('should handle error when switching default fails', async () => {
+    it('should handle error when creation fails', async () => {
       const newTemplate: BudgetTemplateCreate = {
         name: 'New Default Template',
         description: 'This will fail',
         isDefault: true,
       };
 
-      mockApi.update$ = vi
-        .fn()
-        .mockReturnValue(throwError(() => new Error('Update failed')));
-
-      // Wait for initial load
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      await expect(state.addTemplate(newTemplate)).rejects.toThrow(
-        'Update failed',
-      );
-      expect(mockApi.create$).not.toHaveBeenCalled();
-    });
-
-    it('should handle error when creation fails after default switch', async () => {
-      const newTemplate: BudgetTemplateCreate = {
-        name: 'New Default Template',
-        description: 'Creation will fail',
-        isDefault: true,
-      };
-
-      mockApi.update$ = vi.fn().mockReturnValue(
-        of({
-          data: { ...mockTemplates[0], isDefault: false },
-          success: true,
-        }),
-      );
       mockApi.create$ = vi
         .fn()
         .mockReturnValue(throwError(() => new Error('Creation failed')));
@@ -278,7 +244,34 @@ describe('BudgetTemplatesState', () => {
       // Wait for initial load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
+      await expect(state.addTemplate(newTemplate)).rejects.toThrow(
+        'Creation failed',
+      );
+      expect(state.businessError()).toBe(
+        'Erreur lors de la création du modèle',
+      );
+    });
+
+    it('should rollback optimistic update when creation fails', async () => {
+      const newTemplate: BudgetTemplateCreate = {
+        name: 'New Default Template',
+        description: 'Creation will fail',
+        isDefault: true,
+      };
+
+      mockApi.create$ = vi
+        .fn()
+        .mockReturnValue(throwError(() => new Error('Creation failed')));
+
+      // Wait for initial load
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      const initialCount = state.templateCount();
+
       await expect(state.addTemplate(newTemplate)).rejects.toThrow();
+
+      // Template count should remain the same after rollback
+      expect(state.templateCount()).toBe(initialCount);
       expect(state.businessError()).toBe(
         'Erreur lors de la création du modèle',
       );

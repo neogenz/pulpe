@@ -107,20 +107,6 @@ export class BudgetTemplatesState {
     });
 
     try {
-      // If this template should be default and another exists, unset the previous default
-      if (template.isDefault && this.hasDefaultTemplate()) {
-        const currentDefault = this.currentDefaultTemplate();
-        if (currentDefault) {
-          // Update the existing default template to not be default anymore
-          await firstValueFrom(
-            this.#budgetTemplatesApi.update$(currentDefault.id, {
-              ...currentDefault,
-              isDefault: false,
-            }),
-          );
-        }
-      }
-
       const response = await firstValueFrom(
         this.#budgetTemplatesApi.create$(template),
       );
