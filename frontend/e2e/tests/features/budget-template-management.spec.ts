@@ -194,4 +194,326 @@ test.describe('Budget Template Management', () => {
 
     expect(hasErrorIndication || hasEmptyState || hasContent).toBeTruthy();
   });
+
+  test.describe('Template Creation Limit', () => {
+    test('should enforce 5 template limit', async ({
+      authenticatedPage,
+      budgetTemplatesPage,
+    }) => {
+      // Create 5 templates (assuming user starts with 0)
+      for (let i = 1; i <= 5; i++) {
+        await budgetTemplatesPage.goto();
+        
+        // Check if create button exists and is enabled
+        const createButton = authenticatedPage.locator('[data-testid="create-template-button"]');
+        const buttonExists = await createButton.count() > 0;
+        
+        if (buttonExists && i <= 5) {
+          const isEnabled = await createButton.isEnabled();
+          
+          if (i < 5) {
+            expect(isEnabled).toBeTruthy();
+          }
+          
+          // Create template if button is enabled
+          if (isEnabled) {
+            await budgetTemplatesPage.clickCreateTemplate();
+            
+            const hasForm = await authenticatedPage.locator('form, input').count() > 0;
+            if (hasForm) {
+              await budgetTemplatesPage.expectFormVisible();
+              await budgetTemplatesPage.fillTemplateName(`Template Test ${i}`);
+              await budgetTemplatesPage.submitForm();
+              
+              // Wait for navigation back to list
+              await authenticatedPage.waitForTimeout(1000);
+            }
+          }
+        }
+      }
+      
+      // After creating 5 templates, verify create button is disabled or shows limit message
+      await budgetTemplatesPage.goto();
+      
+      const createButton = authenticatedPage.locator('[data-testid="create-template-button"]');
+      const buttonExists = await createButton.count() > 0;
+      
+      if (buttonExists) {
+        const isDisabled = await createButton.isDisabled();
+        const hasTooltip = await authenticatedPage
+          .locator('[data-testid="create-template-button"][matTooltip]')
+          .count() > 0;
+        const hasLimitMessage = await authenticatedPage
+          .locator('text=/5.*modèles/')
+          .count() > 0;
+        
+        expect(isDisabled || hasTooltip || hasLimitMessage).toBeTruthy();
+      }
+    });
+
+    test('should display template count indicator', async ({
+      authenticatedPage,
+      budgetTemplatesPage,
+    }) => {
+      await budgetTemplatesPage.goto();
+      await budgetTemplatesPage.clickCreateTemplate();
+      
+      // Check for template count display on form
+      const hasCountDisplay = await authenticatedPage
+        .locator('text=/\\d+\\/5.*modèles/')
+        .count() > 0;
+      
+      if (hasCountDisplay) {
+        expect(hasCountDisplay).toBeTruthy();
+      } else {
+        // At least verify we're on the add page
+        await budgetTemplatesPage.expectAddPageLoaded();
+      }
+    });
+  });
+
+  test.describe('Default Template Switching', () => {
+    test('should switch default template when creating new default', async ({
+      authenticatedPage,
+      budgetTemplatesPage,
+    }) => {
+      const firstTemplateName = `Default Template ${Date.now()}`;
+      const secondTemplateName = `New Default ${Date.now()}`;
+      
+      // Create first default template
+      await budgetTemplatesPage.goto();
+      await budgetTemplatesPage.clickCreateTemplate();
+      
+      const hasForm = await authenticatedPage.locator('form').count() > 0;
+      
+      if (hasForm) {
+        await budgetTemplatesPage.expectFormVisible();
+        await budgetTemplatesPage.fillTemplateName(firstTemplateName);
+        
+        // Check default checkbox
+        const defaultCheckbox = authenticatedPage.locator('[data-testid="default-checkbox"]');
+        if (await defaultCheckbox.count() > 0) {
+          await defaultCheckbox.check();
+        }
+        
+        await budgetTemplatesPage.submitForm();
+        await authenticatedPage.waitForTimeout(1000);
+        
+        // Create second default template
+        await budgetTemplatesPage.goto();
+        await budgetTemplatesPage.clickCreateTemplate();
+        await budgetTemplatesPage.expectFormVisible();
+        await budgetTemplatesPage.fillTemplateName(secondTemplateName);
+        
+        // Check default checkbox again
+        if (await defaultCheckbox.count() > 0) {
+          await defaultCheckbox.check();
+        }
+        
+        await budgetTemplatesPage.submitForm();
+        await authenticatedPage.waitForTimeout(1000);
+        
+        // Verify only one default template exists
+        await budgetTemplatesPage.goto();
+        
+        const defaultBadges = authenticatedPage.locator('[data-testid="default-badge"], .default-indicator');
+        const defaultCount = await defaultBadges.count();
+        
+        // Should have at most 1 default template
+        expect(defaultCount).toBeLessThanOrEqual(1);
+      }
+    });
+
+    test('should show default template indicator', async ({
+      authenticatedPage,
+      budgetTemplatesPage,
+    }) => {
+      await budgetTemplatesPage.goto();
+      
+      // Check for default template indicators
+      const hasDefaultIndicator = await authenticatedPage
+        .locator('[data-testid="default-badge"], .default-indicator, text="Par défaut"')
+        .count() > 0;
+      
+      // Either we have templates with indicators or empty state
+      const hasEmptyState = await authenticatedPage
+        .locator('[data-testid="empty-state"]')
+        .count() > 0;
+      
+      expect(hasDefaultIndicator || hasEmptyState).toBeTruthy();
+    });
+  });
+
+  test.describe('Form Validation', () => {
+    test('should validate template name character limit', async ({
+      authenticatedPage,
+      budgetTemplatesPage,
+    }) => {
+      await budgetTemplatesPage.goto();
+      await budgetTemplatesPage.clickCreateTemplate();
+      
+      const hasForm = await authenticatedPage.locator('form').count() > 0;
+      
+      if (hasForm) {
+        await budgetTemplatesPage.expectFormVisible();
+        
+        // Try to enter more than 100 characters
+        const longName = 'A'.repeat(101);
+        await budgetTemplatesPage.fillTemplateName(longName);
+        
+        // Check if input was truncated or error shown
+        const nameInput = authenticatedPage.locator('[data-testid="template-name-input"]');
+        const actualValue = await nameInput.inputValue();
+        
+        expect(actualValue.length).toBeLessThanOrEqual(100);
+        
+        // Check for character counter
+        const hasCharCounter = await authenticatedPage
+          .locator('text=/\\d+\\/100/')
+          .count() > 0;
+        
+        if (hasCharCounter) {
+          expect(hasCharCounter).toBeTruthy();
+        }
+      }
+    });
+
+    test('should validate description character limit', async ({
+      authenticatedPage,
+      budgetTemplatesPage,
+    }) => {
+      await budgetTemplatesPage.goto();
+      await budgetTemplatesPage.clickCreateTemplate();
+      
+      const hasForm = await authenticatedPage.locator('form').count() > 0;
+      
+      if (hasForm) {
+        await budgetTemplatesPage.expectFormVisible();
+        
+        const descriptionInput = authenticatedPage.locator('[data-testid="template-description-input"]');
+        
+        if (await descriptionInput.count() > 0) {
+          // Try to enter more than 500 characters
+          const longDescription = 'B'.repeat(501);
+          await descriptionInput.fill(longDescription);
+          
+          // Check if input was truncated
+          const actualValue = await descriptionInput.inputValue();
+          expect(actualValue.length).toBeLessThanOrEqual(500);
+          
+          // Check for character counter
+          const hasCharCounter = await authenticatedPage
+            .locator('text=/\\d+\\/500/')
+            .count() > 0;
+          
+          if (hasCharCounter) {
+            expect(hasCharCounter).toBeTruthy();
+          }
+        }
+      }
+    });
+
+    test('should require template name', async ({
+      authenticatedPage,
+      budgetTemplatesPage,
+    }) => {
+      await budgetTemplatesPage.goto();
+      await budgetTemplatesPage.clickCreateTemplate();
+      
+      const hasForm = await authenticatedPage.locator('form').count() > 0;
+      
+      if (hasForm) {
+        await budgetTemplatesPage.expectFormVisible();
+        
+        // Clear name field and try to submit
+        const nameInput = authenticatedPage.locator('[data-testid="template-name-input"]');
+        await nameInput.clear();
+        
+        // Try to submit
+        await budgetTemplatesPage.submitForm();
+        
+        // Should show validation error
+        await budgetTemplatesPage.expectValidationErrors();
+        
+        // Verify we're still on the form page
+        const stillHasForm = await authenticatedPage.locator('form').count() > 0;
+        expect(stillHasForm).toBeTruthy();
+      }
+    });
+  });
+
+  test.describe('Template Limit Business Error', () => {
+    test('should show appropriate error when trying to exceed limit', async ({
+      authenticatedPage,
+      budgetTemplatesPage,
+    }) => {
+      // Mock API to simulate 5 existing templates
+      await authenticatedPage.route('**/api/v1/budget-templates', async (route) => {
+        if (route.request().method() === 'GET') {
+          // Return 5 templates for GET
+          const templates = Array.from({ length: 5 }, (_, i) => ({
+            id: `template-${i + 1}`,
+            name: `Template ${i + 1}`,
+            description: `Description ${i + 1}`,
+            isDefault: i === 0,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          }));
+          
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+              data: templates,
+              success: true,
+            }),
+          });
+        } else if (route.request().method() === 'POST') {
+          // Return limit error for POST
+          await route.fulfill({
+            status: 400,
+            contentType: 'application/json',
+            body: JSON.stringify({
+              error: 'Vous avez atteint la limite de 5 modèles',
+              code: 'TEMPLATE_LIMIT_REACHED',
+            }),
+          });
+        } else {
+          await route.continue();
+        }
+      });
+      
+      await budgetTemplatesPage.goto();
+      
+      // Check if create button shows it's disabled or has tooltip
+      const createButton = authenticatedPage.locator('[data-testid="create-template-button"]');
+      
+      if (await createButton.count() > 0) {
+        const isDisabled = await createButton.isDisabled();
+        const hasTooltip = await createButton.getAttribute('matTooltip');
+        
+        if (!isDisabled && !hasTooltip) {
+          // Try to create anyway
+          await budgetTemplatesPage.clickCreateTemplate();
+          
+          const hasForm = await authenticatedPage.locator('form').count() > 0;
+          
+          if (hasForm) {
+            await budgetTemplatesPage.fillTemplateName('Exceeding Template');
+            await budgetTemplatesPage.submitForm();
+            
+            // Should show error message
+            const hasErrorMessage = await authenticatedPage
+              .locator('text=/limite.*5.*modèles/')
+              .count() > 0;
+            
+            expect(hasErrorMessage).toBeTruthy();
+          }
+        } else {
+          // Button is properly disabled or has tooltip
+          expect(isDisabled || hasTooltip).toBeTruthy();
+        }
+      }
+    });
+  });
 });

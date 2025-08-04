@@ -33,10 +33,16 @@ import { type BudgetTemplate } from '@pulpe/shared';
         }
       </mat-card-content>
       <mat-card-actions align="end">
-        <button matButton [routerLink]="template().id">
+        <button matButton [routerLink]="['details', template().id]">
           <mat-icon>visibility</mat-icon>
           Détails
         </button>
+        <!-- TODO: Future feature - Template duplication
+        <button matButton (click)="duplicateTemplate.emit(template())" [disabled]="!canDuplicate">
+          <mat-icon>content_copy</mat-icon>
+          Dupliquer
+        </button>
+        -->
       </mat-card-actions>
     </mat-card>
   `,
