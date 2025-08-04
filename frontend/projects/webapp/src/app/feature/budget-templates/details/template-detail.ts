@@ -28,7 +28,7 @@ import {
 import { BudgetTemplatesApi } from '../services/budget-templates-api';
 import { firstValueFrom } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { CommonModule, CurrencyPipe } from '@angular/common';
+import { CurrencyPipe } from '@angular/common';
 import { TemplateLine } from '@pulpe/shared';
 import { PulpeTitleStrategy } from '@core/routing/title-strategy';
 
@@ -36,7 +36,6 @@ import { PulpeTitleStrategy } from '@core/routing/title-strategy';
   selector: 'pulpe-template-detail',
   standalone: true,
   imports: [
-    CommonModule,
     CurrencyPipe,
     MatButtonModule,
     MatIconModule,
@@ -47,7 +46,10 @@ import { PulpeTitleStrategy } from '@core/routing/title-strategy';
   ],
   template: `
     <!-- Main container with proper surface container background -->
-    <div class="flex flex-col gap-6 h-full p-4 md:p-6">
+    <div
+      class="flex flex-col gap-6 h-full p-4 md:p-6"
+      data-testid="template-detail-page"
+    >
       @switch (true) {
         @case (data.status() === 'loading' || data.status() === 'reloading') {
           <!-- Loading state with proper accessibility -->
@@ -74,7 +76,7 @@ import { PulpeTitleStrategy } from '@core/routing/title-strategy';
                 modèle.
               </p>
               <button
-                mat-stroked-button
+                matButton="outlined"
                 (click)="data.reload()"
                 class="mt-4"
                 aria-label="Réessayer le chargement"
@@ -91,7 +93,7 @@ import { PulpeTitleStrategy } from '@core/routing/title-strategy';
               class="flex flex-shrink-0 gap-4 items-center rounded-xl p-4"
             >
               <button
-                mat-icon-button
+                matIconButton
                 (click)="navigateBack()"
                 aria-label="Retour à la liste des modèles"
                 class="flex-shrink-0"
@@ -170,7 +172,7 @@ import { PulpeTitleStrategy } from '@core/routing/title-strategy';
                   Transactions fixes
                 </h2>
                 <button
-                  mat-icon-button
+                  matIconButton
                   [matMenuTriggerFor]="transactionsMenu"
                   aria-label="Options pour les transactions"
                   aria-haspopup="menu"
