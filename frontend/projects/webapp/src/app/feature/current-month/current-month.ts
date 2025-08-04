@@ -26,7 +26,7 @@ import { FixedTransactionsList } from './components/fixed-transactions-list';
 import { VariableExpensesList } from './components/variable-expenses-list';
 import { CurrentMonthState } from './services/current-month-state';
 import { TransactionChipFilter } from './components/transaction-chip-filter';
-import { TitleDisplayService } from '@core/routing/title-display.service';
+import { TitleDisplay } from '@core/routing';
 import { BudgetProgressBar } from './components/budget-progress-bar';
 import {
   AddTransactionBottomSheet,
@@ -204,7 +204,7 @@ export default class CurrentMonth implements OnInit {
   isCreatingTransaction = signal(false);
   selectedTransactions = signal<string[]>([]);
   protected readonly state = inject(CurrentMonthState);
-  protected readonly titleDisplay = inject(TitleDisplayService);
+  protected readonly titleDisplay = inject(TitleDisplay);
   private readonly bottomSheet = inject(MatBottomSheet);
   private readonly budgetLineMapper = inject(BudgetLineMapper);
 
