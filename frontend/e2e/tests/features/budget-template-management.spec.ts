@@ -1,5 +1,8 @@
 import { test, expect } from '../../fixtures/test-fixtures';
 
+// Increase timeout for these tests as they involve navigation and form interactions
+test.describe.configure({ timeout: 60000 });
+
 test.describe('Budget Template Management', () => {
   test('should display budget templates library with proper content structure', async ({
     authenticatedPage,
