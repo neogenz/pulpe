@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
+import { provideZonelessChangeDetection } from '@angular/core';
 import { BudgetTemplatesState } from './budget-templates-state';
 import { BudgetTemplatesApi } from './budget-templates-api';
 import type { BudgetTemplate, BudgetTemplateCreate } from '@pulpe/shared';
@@ -40,6 +41,7 @@ describe('BudgetTemplatesState', () => {
 
     TestBed.configureTestingModule({
       providers: [
+        provideZonelessChangeDetection(),
         BudgetTemplatesState,
         { provide: BudgetTemplatesApi, useValue: mockApi },
       ],

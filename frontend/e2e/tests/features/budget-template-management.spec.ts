@@ -205,7 +205,7 @@ test.describe('Budget Template Management', () => {
         await budgetTemplatesPage.goto();
         
         // Check if create button exists and is enabled
-        const createButton = authenticatedPage.locator('[data-testid="create-template-button"]');
+        const createButton = authenticatedPage.locator('[data-testid="create-template-fab"]');
         const buttonExists = await createButton.count() > 0;
         
         if (buttonExists && i <= 5) {
@@ -235,13 +235,13 @@ test.describe('Budget Template Management', () => {
       // After creating 5 templates, verify create button is disabled or shows limit message
       await budgetTemplatesPage.goto();
       
-      const createButton = authenticatedPage.locator('[data-testid="create-template-button"]');
+      const createButton = authenticatedPage.locator('[data-testid="create-template-fab"]');
       const buttonExists = await createButton.count() > 0;
       
       if (buttonExists) {
         const isDisabled = await createButton.isDisabled();
         const hasTooltip = await authenticatedPage
-          .locator('[data-testid="create-template-button"][matTooltip]')
+          .locator('[data-testid="create-template-fab"][matTooltip]')
           .count() > 0;
         const hasLimitMessage = await authenticatedPage
           .locator('text=/5.*modèles/')
@@ -291,7 +291,7 @@ test.describe('Budget Template Management', () => {
         await budgetTemplatesPage.fillTemplateName(firstTemplateName);
         
         // Check default checkbox
-        const defaultCheckbox = authenticatedPage.locator('[data-testid="default-checkbox"]');
+        const defaultCheckbox = authenticatedPage.locator('[data-testid="template-default-checkbox"]');
         if (await defaultCheckbox.count() > 0) {
           await defaultCheckbox.check();
         }
@@ -332,7 +332,7 @@ test.describe('Budget Template Management', () => {
       
       // Check for default template indicators
       const hasDefaultIndicator = await authenticatedPage
-        .locator('[data-testid="default-badge"], .default-indicator, text="Par défaut"')
+        .locator('text="Template par défaut"')
         .count() > 0;
       
       // Either we have templates with indicators or empty state
@@ -486,7 +486,7 @@ test.describe('Budget Template Management', () => {
       await budgetTemplatesPage.goto();
       
       // Check if create button shows it's disabled or has tooltip
-      const createButton = authenticatedPage.locator('[data-testid="create-template-button"]');
+      const createButton = authenticatedPage.locator('[data-testid="create-template-fab"]');
       
       if (await createButton.count() > 0) {
         const isDisabled = await createButton.isDisabled();
