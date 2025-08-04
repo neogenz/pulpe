@@ -85,7 +85,7 @@ export class BudgetTemplatesState {
   ): Promise<BudgetTemplate | void> {
     // Validate business rules
     if (!this.validateCanCreate()) {
-      throw new Error(this.businessError());
+      throw new Error(this.businessError() || 'Cannot create template');
     }
 
     if (!this.validateDefaultTemplate(template.isDefault)) {
