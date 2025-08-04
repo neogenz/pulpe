@@ -31,7 +31,13 @@ export class BudgetTemplatesState {
   // showArchived = signal(false);
 
   // Computed signals for common derived state
-  templateCount = computed(() => this.templatesData.value()?.length ?? 0);
+  templateCount = computed(() => {
+    // Handle error state gracefully
+    if (this.templatesData.status() === 'error') {
+      return 0;
+    }
+    return this.templatesData.value()?.length ?? 0;
+  });
   hasTemplates = computed(() => this.templateCount() > 0);
   isLoading = computed(
     () =>
@@ -44,9 +50,13 @@ export class BudgetTemplatesState {
   remainingTemplates = computed(
     () => this.MAX_TEMPLATES - this.templateCount(),
   );
-  currentDefaultTemplate = computed(
-    () => this.templatesData.value()?.find((t) => t.isDefault) ?? null,
-  );
+  currentDefaultTemplate = computed(() => {
+    // Handle error state gracefully
+    if (this.templatesData.status() === 'error') {
+      return null;
+    }
+    return this.templatesData.value()?.find((t) => t.isDefault) ?? null;
+  });
   hasDefaultTemplate = computed(() => this.currentDefaultTemplate() !== null);
 
   refreshData(): void {
