@@ -82,7 +82,7 @@ interface EditTransactionsDialogResult {
         <div class="flex-shrink-0 p-4 border-b border-outline-variant">
           <div class="flex justify-between items-center">
             <p class="text-body-large">
-              {{ transactionViewModels().length }} transaction(s)
+              {{ transactions().length }} transaction(s)
             </p>
             <button
               matButton="tonal"
@@ -108,7 +108,7 @@ interface EditTransactionsDialogResult {
 
           <table
             mat-table
-            [dataSource]="transactionViewModels()"
+            [dataSource]="transactions()"
             class="w-full"
             [class.pointer-events-none]="isLoading()"
           >
@@ -128,17 +128,11 @@ interface EditTransactionsDialogResult {
                   <input
                     matInput
                     [value]="transaction.formData.description"
-                    (input)="
-                      updateTransactionField(
-                        transaction.id,
-                        'description',
-                        $event
-                      )
-                    "
+                    (input)="updateDescription(transaction.id, $event)"
                     placeholder="Description de la transaction"
                   />
-                  @if (transaction.isDescriptionInvalid) {
-                    <mat-error>{{ transaction.descriptionError }}</mat-error>
+                  @if (!transaction.formData.description?.trim()) {
+                    <mat-error>La description est requise</mat-error>
                   }
                 </mat-form-field>
               </td>
@@ -164,14 +158,12 @@ interface EditTransactionsDialogResult {
                     min="0"
                     max="999999"
                     [value]="transaction.formData.amount"
-                    (input)="
-                      updateTransactionField(transaction.id, 'amount', $event)
-                    "
+                    (input)="updateAmount(transaction.id, $event)"
                     placeholder="0.00"
                   />
                   <span matTextSuffix>CHF</span>
-                  @if (transaction.isAmountInvalid) {
-                    <mat-error>{{ transaction.amountError }}</mat-error>
+                  @if (transaction.formData.amount < 0) {
+                    <mat-error>Le montant doit être positif</mat-error>
                   }
                 </mat-form-field>
               </td>
@@ -192,9 +184,7 @@ interface EditTransactionsDialogResult {
                 >
                   <mat-select
                     [value]="transaction.formData.type"
-                    (selectionChange)="
-                      updateTransactionField(transaction.id, 'type', $event)
-                    "
+                    (selectionChange)="updateType(transaction.id, $event.value)"
                   >
                     @for (type of transactionTypes; track type.value) {
                       <mat-option [value]="type.value">
@@ -357,25 +347,7 @@ export default class EditTransactionsDialog {
   readonly isValid = this.#state.isValid;
 
   // Get active (non-deleted) transactions from state
-  readonly activeTransactions = this.#state.activeTransactions;
-
-  // Viewmodel with validation properties to avoid function calls in template
-  readonly transactionViewModels = computed(() => {
-    return this.activeTransactions().map((transaction) => ({
-      ...transaction,
-      descriptionError:
-        !transaction.formData.description ||
-        transaction.formData.description.trim().length === 0
-          ? 'La description est requise'
-          : null,
-      amountError:
-        transaction.formData.amount < 0 ? 'Le montant doit être positif' : null,
-      isDescriptionInvalid:
-        !transaction.formData.description ||
-        transaction.formData.description.trim().length === 0,
-      isAmountInvalid: transaction.formData.amount < 0,
-    }));
-  });
+  readonly transactions = this.#state.activeTransactions;
 
   protected readonly displayedColumns: readonly string[] = [
     'description',
@@ -440,10 +412,8 @@ export default class EditTransactionsDialog {
   }
 
   protected readonly runningTotals = computed(() => {
-    const transactions = this.transactionViewModels();
     let runningTotal = 0;
-
-    return transactions.map((transaction) => {
+    return this.transactions().map((transaction) => {
       const amount = transaction.formData.amount;
       const type = transaction.formData.type;
 
@@ -461,32 +431,18 @@ export default class EditTransactionsDialog {
     });
   });
 
-  /**
-   * Update a transaction field directly in state
-   */
-  updateTransactionField(
-    transactionId: string,
-    field: keyof TransactionFormData,
-    event: Event | { value: unknown },
-  ): void {
-    let value: unknown;
+  updateDescription(transactionId: string, event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.#state.updateTransaction(transactionId, { description: value });
+  }
 
-    if ('value' in event && event.value !== undefined) {
-      // Handle mat-select selectionChange event
-      value = event.value;
-    } else if ('target' in event) {
-      // Handle input events
-      const target = event.target as HTMLInputElement | null;
-      if (target) {
-        value = field === 'amount' ? Number(target.value) : target.value;
-      } else {
-        return;
-      }
-    } else {
-      return;
-    }
+  updateAmount(transactionId: string, event: Event): void {
+    const value = Number((event.target as HTMLInputElement).value);
+    this.#state.updateTransaction(transactionId, { amount: value });
+  }
 
-    this.#state.updateTransaction(transactionId, { [field]: value });
+  updateType(transactionId: string, value: TransactionFormData['type']): void {
+    this.#state.updateTransaction(transactionId, { type: value });
   }
 
   /**
