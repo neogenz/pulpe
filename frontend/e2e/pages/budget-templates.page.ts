@@ -49,7 +49,7 @@ export class BudgetTemplatesPage {
   }
 
   async gotoTemplate(id: string) {
-    await this.page.goto(`/app/budget-templates/${id}`);
+    await this.page.goto(`/app/budget-templates/details/${id}`);
     await this.page.waitForLoadState('domcontentloaded');
     await this.waitForPageStable();
   }
