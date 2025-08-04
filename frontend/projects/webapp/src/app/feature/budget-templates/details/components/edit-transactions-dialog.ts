@@ -82,7 +82,7 @@ interface EditTransactionsDialogResult {
         <div class="flex-shrink-0 p-4 border-b border-outline-variant">
           <div class="flex justify-between items-center">
             <p class="text-body-large">
-              {{ activeTransactions().length }} transaction(s)
+              {{ transactionViewModels().length }} transaction(s)
             </p>
             <button
               matButton="tonal"
@@ -108,7 +108,7 @@ interface EditTransactionsDialogResult {
 
           <table
             mat-table
-            [dataSource]="activeTransactions()"
+            [dataSource]="transactionViewModels()"
             class="w-full"
             [class.pointer-events-none]="isLoading()"
           >
@@ -137,8 +137,8 @@ interface EditTransactionsDialogResult {
                     "
                     placeholder="Description de la transaction"
                   />
-                  @if (isFieldRequired(transaction.formData.description)) {
-                    <mat-error>La description est requise</mat-error>
+                  @if (transaction.isDescriptionInvalid) {
+                    <mat-error>{{ transaction.descriptionError }}</mat-error>
                   }
                 </mat-form-field>
               </td>
@@ -170,11 +170,8 @@ interface EditTransactionsDialogResult {
                     placeholder="0.00"
                   />
                   <span matTextSuffix>CHF</span>
-                  @if (
-                    isFieldRequired(transaction.formData.amount) ||
-                    transaction.formData.amount < 0
-                  ) {
-                    <mat-error>Le montant doit être positif</mat-error>
+                  @if (transaction.isAmountInvalid) {
+                    <mat-error>{{ transaction.amountError }}</mat-error>
                   }
                 </mat-form-field>
               </td>
@@ -362,6 +359,24 @@ export default class EditTransactionsDialog {
   // Get active (non-deleted) transactions from state
   readonly activeTransactions = this.#state.activeTransactions;
 
+  // Viewmodel with validation properties to avoid function calls in template
+  readonly transactionViewModels = computed(() => {
+    return this.activeTransactions().map((transaction) => ({
+      ...transaction,
+      descriptionError:
+        !transaction.formData.description ||
+        transaction.formData.description.trim().length === 0
+          ? 'La description est requise'
+          : null,
+      amountError:
+        transaction.formData.amount < 0 ? 'Le montant doit être positif' : null,
+      isDescriptionInvalid:
+        !transaction.formData.description ||
+        transaction.formData.description.trim().length === 0,
+      isAmountInvalid: transaction.formData.amount < 0,
+    }));
+  });
+
   protected readonly displayedColumns: readonly string[] = [
     'description',
     'amount',
@@ -425,7 +440,7 @@ export default class EditTransactionsDialog {
   }
 
   protected readonly runningTotals = computed(() => {
-    const transactions = this.activeTransactions();
+    const transactions = this.transactionViewModels();
     let runningTotal = 0;
 
     return transactions.map((transaction) => {
@@ -490,12 +505,5 @@ export default class EditTransactionsDialog {
 
     const result = await firstValueFrom(dialogRef.afterClosed());
     return result || false;
-  }
-
-  /**
-   * Simple validation helper for template
-   */
-  isFieldRequired(value: unknown): boolean {
-    return !value || (typeof value === 'string' && value.trim().length === 0);
   }
 }
