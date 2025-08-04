@@ -230,7 +230,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
       // Mock RPC for template creation
       mockSupabase.rpc = () =>
         Promise.resolve({
-          data: { ...mockTemplate, name: 'New Template' },
+          data: { ...mockTemplate, name: 'Test Template' },
           error: null,
         });
       mockSupabase.setMockData([]);
@@ -303,64 +303,74 @@ describe('BudgetTemplateService - Simplified Tests', () => {
         lines: [],
       };
 
-      // Mock finding existing default template
-      const existingDefault = {
+      const createdTemplate = {
         ...mockTemplate,
-        id: 'existing-default-id',
+        name: 'New Default Template',
         is_default: true,
       };
 
-      // Mock queries in sequence
-      let queryCount = 0;
-      mockSupabase.from = mock(() => {
-        queryCount++;
-        if (queryCount === 1) {
-          // First call: count check
-          return {
-            select: mock(() => ({
-              eq: mock(() => ({
-                data: null,
-                error: null,
-                count: 2,
-              })),
-            })),
-          };
-        } else if (queryCount === 2) {
-          // Second call: find existing default
-          return {
-            select: mock(() => ({
-              eq: mock(() => ({
-                neq: mock(() => ({
-                  data: [existingDefault],
+      // Override the from method to handle all queries properly
+      const originalFrom = mockSupabase.from.bind(mockSupabase);
+      let fromCallCount = 0;
+      mockSupabase.from = mock((table: string) => {
+        if (table === 'template') {
+          fromCallCount++;
+          if (fromCallCount === 1) {
+            // First call: count check for template limit
+            const countChain = {
+              select: () => ({
+                eq: () => ({
+                  data: null,
                   error: null,
-                })),
-              })),
-            })),
-          };
-        } else if (queryCount === 3) {
-          // Third call: update existing default
-          return {
-            update: mock(() => ({
-              eq: mock(() => ({
-                data: { ...existingDefault, is_default: false },
-                error: null,
-              })),
-            })),
-          };
+                  count: 2,
+                }),
+              }),
+            };
+            return countChain;
+          } else {
+            // Second call: update existing default templates
+            const updateChain = {
+              update: () => ({
+                eq: () => ({
+                  eq: () =>
+                    Promise.resolve({
+                      data: null,
+                      error: null,
+                    }),
+                }),
+              }),
+            };
+            return updateChain;
+          }
         }
+        if (table === 'template_line') {
+          // Return template lines mock
+          const linesChain = {
+            select: () => ({
+              eq: () => ({
+                order: () =>
+                  Promise.resolve({
+                    data: [],
+                    error: null,
+                  }),
+              }),
+            }),
+          };
+          return linesChain;
+        }
+        return originalFrom(table);
       });
 
-      // Mock RPC for template creation
-      mockSupabase.rpc = () =>
-        Promise.resolve({
-          data: {
-            ...mockTemplate,
-            name: 'New Default Template',
-            is_default: true,
-          },
-          error: null,
-        });
-      mockSupabase.setMockData([]);
+      // Override RPC to return the created template
+      mockSupabase.rpc = mock((name: string, _params: any) => {
+        if (name === 'create_template_with_lines') {
+          return Promise.resolve({
+            data: createdTemplate,
+            error: null,
+          });
+        }
+        return Promise.resolve({ data: null, error: new Error('Unknown RPC') });
+      });
 
       const result = await service.create(
         createDto,
@@ -369,7 +379,12 @@ describe('BudgetTemplateService - Simplified Tests', () => {
       );
 
       expect(result.success).toBe(true);
-      expect(queryCount).toBeGreaterThanOrEqual(3); // Ensure all queries were made
+      expect(result.data.template.isDefault).toBe(true);
+      expect(mockSupabase.rpc).toHaveBeenCalledWith(
+        'create_template_with_lines',
+        expect.any(Object),
+      );
+      // Default switching is now handled inside the RPC call
     });
 
     it('should handle error when updating existing default template', async () => {
@@ -439,47 +454,74 @@ describe('BudgetTemplateService - Simplified Tests', () => {
         lines: [],
       };
 
-      // Mock queries in sequence
-      let queryCount = 0;
-      mockSupabase.from = mock(() => {
-        queryCount++;
-        if (queryCount === 1) {
-          // First call: count check
-          return {
-            select: mock(() => ({
-              eq: mock(() => ({
-                data: null,
-                error: null,
-                count: 1,
-              })),
-            })),
-          };
-        } else if (queryCount === 2) {
-          // Second call: find existing default (none found)
-          return {
-            select: mock(() => ({
-              eq: mock(() => ({
-                neq: mock(() => ({
-                  data: [],
+      const createdTemplate = {
+        ...mockTemplate,
+        name: 'First Default Template',
+        is_default: true,
+      };
+
+      // Override the from method to handle all queries properly
+      const originalFrom = mockSupabase.from.bind(mockSupabase);
+      let fromCallCount = 0;
+      mockSupabase.from = mock((table: string) => {
+        if (table === 'template') {
+          fromCallCount++;
+          if (fromCallCount === 1) {
+            // First call: count check for template limit
+            const countChain = {
+              select: () => ({
+                eq: () => ({
+                  data: null,
                   error: null,
-                })),
-              })),
-            })),
-          };
+                  count: 1,
+                }),
+              }),
+            };
+            return countChain;
+          } else {
+            // Second call: update existing default templates (for isDefault: true)
+            const updateChain = {
+              update: () => ({
+                eq: () => ({
+                  eq: () =>
+                    Promise.resolve({
+                      data: null,
+                      error: null,
+                    }),
+                }),
+              }),
+            };
+            return updateChain;
+          }
         }
+        if (table === 'template_line') {
+          // Return template lines mock
+          const linesChain = {
+            select: () => ({
+              eq: () => ({
+                order: () =>
+                  Promise.resolve({
+                    data: [],
+                    error: null,
+                  }),
+              }),
+            }),
+          };
+          return linesChain;
+        }
+        return originalFrom(table);
       });
 
-      // Mock RPC for template creation
-      mockSupabase.rpc = () =>
-        Promise.resolve({
-          data: {
-            ...mockTemplate,
-            name: 'First Default Template',
-            is_default: true,
-          },
-          error: null,
-        });
-      mockSupabase.setMockData([]);
+      // Override RPC to return the created template
+      mockSupabase.rpc = mock((name: string, _params: any) => {
+        if (name === 'create_template_with_lines') {
+          return Promise.resolve({
+            data: createdTemplate,
+            error: null,
+          });
+        }
+        return Promise.resolve({ data: null, error: new Error('Unknown RPC') });
+      });
 
       const result = await service.create(
         createDto,
@@ -488,7 +530,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
       );
 
       expect(result.success).toBe(true);
-      expect(result.data.template.name).toBe('Test Template');
+      expect(result.data.template.name).toBe('First Default Template');
     });
   });
 
