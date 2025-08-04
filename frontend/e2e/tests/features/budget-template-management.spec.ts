@@ -215,7 +215,7 @@ test.describe('Budget Template Management', () => {
         await budgetTemplatesPage.goto();
         
         // Check if create button exists and is enabled
-        const createButton = authenticatedPage.locator('[data-testid="create-template-fab"]');
+        const createButton = authenticatedPage.locator('[data-testid="create-template-button"]');
         const buttonExists = await createButton.count() > 0;
         
         if (buttonExists && i <= 5) {
@@ -245,13 +245,13 @@ test.describe('Budget Template Management', () => {
       // After creating 5 templates, verify create button is disabled or shows limit message
       await budgetTemplatesPage.goto();
       
-      const createButton = authenticatedPage.locator('[data-testid="create-template-fab"]');
+      const createButton = authenticatedPage.locator('[data-testid="create-template-button"]');
       const buttonExists = await createButton.count() > 0;
       
       if (buttonExists) {
         const isDisabled = await createButton.isDisabled();
         const hasTooltip = await authenticatedPage
-          .locator('[data-testid="create-template-fab"][matTooltip]')
+          .locator('[data-testid="create-template-button"][matTooltip]')
           .count() > 0;
         const hasLimitMessage = await authenticatedPage
           .locator('text=/5.*modèles/')
@@ -276,8 +276,11 @@ test.describe('Budget Template Management', () => {
       if (hasCountDisplay) {
         expect(hasCountDisplay).toBeTruthy();
       } else {
-        // At least verify we're on the add page
-        await budgetTemplatesPage.expectAddPageLoaded();
+        // At least verify we're on the create page
+        const isOnCreatePage = await authenticatedPage
+          .locator('[data-testid="create-template-page"]')
+          .count() > 0;
+        expect(isOnCreatePage).toBeTruthy();
       }
     });
   });
@@ -303,7 +306,8 @@ test.describe('Budget Template Management', () => {
         // Check default checkbox
         const defaultCheckbox = authenticatedPage.locator('[data-testid="template-default-checkbox"]');
         if (await defaultCheckbox.count() > 0) {
-          await defaultCheckbox.check();
+          // Material checkbox needs to be clicked, not checked
+          await defaultCheckbox.click();
         }
         
         await budgetTemplatesPage.submitForm();
@@ -317,7 +321,7 @@ test.describe('Budget Template Management', () => {
         
         // Check default checkbox again
         if (await defaultCheckbox.count() > 0) {
-          await defaultCheckbox.check();
+          await defaultCheckbox.click();
         }
         
         await budgetTemplatesPage.submitForm();
@@ -499,7 +503,7 @@ test.describe('Budget Template Management', () => {
       await budgetTemplatesPage.goto();
       
       // Check if create button shows it's disabled or has tooltip
-      const createButton = authenticatedPage.locator('[data-testid="create-template-fab"]');
+      const createButton = authenticatedPage.locator('[data-testid="create-template-button"]');
       
       if (await createButton.count() > 0) {
         const isDisabled = await createButton.isDisabled();

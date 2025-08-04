@@ -48,15 +48,32 @@ import { Title } from '@core/routing';
             </p>
           }
         </div>
-        <button
-          matIconButton
-          (click)="state.refreshData()"
-          [disabled]="state.isLoading()"
-          aria-label="Actualiser"
-          data-testid="refresh-button"
-        >
-          <mat-icon>refresh</mat-icon>
-        </button>
+        <div class="flex gap-2 items-center">
+          <button
+            matButton="filled"
+            routerLink="create"
+            [disabled]="!state.canCreateMore()"
+            [matTooltip]="
+              !state.canCreateMore()
+                ? 'Limite de ' + state.MAX_TEMPLATES + ' modèles atteinte'
+                : 'Créer un nouveau modèle'
+            "
+            data-testid="create-template-button"
+          >
+            <mat-icon class="md:inline hidden">add_circle</mat-icon>
+            <span class="md:hidden">Ajouter</span>
+            <span class="hidden md:inline">Ajouter un modèle</span>
+          </button>
+          <button
+            matIconButton
+            (click)="state.refreshData()"
+            [disabled]="state.isLoading()"
+            aria-label="Actualiser"
+            data-testid="refresh-button"
+          >
+            <mat-icon>refresh</mat-icon>
+          </button>
+        </div>
       </header>
 
       @switch (true) {
@@ -84,25 +101,6 @@ import { Title } from '@core/routing';
         }
       }
     </div>
-
-    <!-- FAB Create Button -->
-    @if (!state.isLoading()) {
-      <button
-        matFab
-        color="primary"
-        routerLink="create"
-        [disabled]="!state.canCreateMore()"
-        [matTooltip]="
-          !state.canCreateMore()
-            ? 'Limite de ' + state.MAX_TEMPLATES + ' modèles atteinte'
-            : 'Créer un nouveau modèle'
-        "
-        class="fixed bottom-6 right-6 z-10"
-        data-testid="create-template-fab"
-      >
-        <mat-icon>add</mat-icon>
-      </button>
-    }
   `,
   styles: `
     :host {
