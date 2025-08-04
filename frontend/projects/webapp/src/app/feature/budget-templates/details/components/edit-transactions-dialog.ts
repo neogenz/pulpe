@@ -488,7 +488,8 @@ export default class EditTransactionsDialog {
       } as ConfirmationDialogData,
     });
 
-    return firstValueFrom(dialogRef.afterClosed()) || false;
+    const result = await firstValueFrom(dialogRef.afterClosed());
+    return result || false;
   }
 
   /**
