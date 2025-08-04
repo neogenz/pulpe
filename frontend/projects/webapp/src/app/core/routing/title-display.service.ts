@@ -1,15 +1,23 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, afterNextRender, Injector } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { Router, NavigationEnd } from '@angular/router';
-import { filter, map, startWith, distinctUntilChanged } from 'rxjs/operators';
-import { merge } from 'rxjs';
+import {
+  filter,
+  startWith,
+  distinctUntilChanged,
+  tap,
+  switchMap,
+} from 'rxjs/operators';
+import { Subject } from 'rxjs';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { TitleChangeNotifier } from './title-change-notifier';
 
 /**
  * Lightweight service that exposes the current page title as a signal.
  * Works in conjunction with PulpeTitleStrategy for consistent title management.
  * This service only provides read access to the current title for template binding.
+ *
+ * Note: Due to Angular's intentional timing (NavigationEnd fires before title update),
+ * we use afterNextRender to ensure proper synchronization with the DOM title.
  */
 @Injectable({
   providedIn: 'root',
@@ -17,29 +25,28 @@ import { TitleChangeNotifier } from './title-change-notifier';
 export class TitleDisplayService {
   readonly #browserTitle = inject(Title);
   readonly #router = inject(Router);
-  readonly #titleChangeNotifier = inject(TitleChangeNotifier);
+  readonly #injector = inject(Injector);
 
   private readonly APP_NAME = 'Pulpe';
   private readonly SEPARATOR = ' • ';
 
+  // Subject to emit when title is updated after render
+  readonly #titleUpdated$ = new Subject<string>();
+
   /**
    * Signal that provides the current page title (without the app name).
-   * Updates automatically when navigation occurs or when titles are changed programmatically.
+   * Updates automatically when navigation occurs.
+   *
+   * Uses afterNextRender to handle Angular's intentional timing where NavigationEnd
+   * fires before the title is actually updated in the DOM.
    */
   readonly currentTitle = toSignal(
-    merge(
-      // Écoute les navigations pour les mises à jour immédiates
-      this.#router.events.pipe(
-        filter((event) => event instanceof NavigationEnd),
-        map(() => this.#extractPageTitleFromBrowser()),
-      ),
-      // Écoute les notifications de changements programmatiques
-      this.#titleChangeNotifier.titleChanged$.pipe(
-        map(() => this.#extractPageTitleFromBrowser()),
-      ),
-    ).pipe(
+    this.#router.events.pipe(
+      filter((event) => event instanceof NavigationEnd),
+      tap(() => this.#scheduleAfterRenderTitleUpdate()),
+      switchMap(() => this.#titleUpdated$),
       startWith(this.#extractPageTitleFromBrowser()),
-      distinctUntilChanged(), // Évite les émissions redondantes
+      distinctUntilChanged(),
     ),
     { initialValue: '' },
   );
@@ -63,5 +70,20 @@ export class TitleDisplayService {
 
     // Otherwise return the full title
     return fullTitle;
+  }
+
+  /**
+   * Schedules title extraction after the next render cycle.
+   * This ensures the browser title is read after Angular's TitleStrategy has updated the DOM.
+   * Uses Angular's afterNextRender for proper lifecycle integration.
+   */
+  #scheduleAfterRenderTitleUpdate(): void {
+    afterNextRender(
+      () => {
+        const title = this.#extractPageTitleFromBrowser();
+        this.#titleUpdated$.next(title);
+      },
+      { injector: this.#injector },
+    );
   }
 }

@@ -30,7 +30,7 @@ import { firstValueFrom } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { CommonModule, CurrencyPipe } from '@angular/common';
 import { TemplateLine } from '@pulpe/shared';
-import { Title } from '@core/routing';
+import { PulpeTitleStrategy } from '@core/routing/title-strategy';
 
 @Component({
   selector: 'pulpe-template-detail',
@@ -220,7 +220,7 @@ export default class TemplateDetail {
   #router = inject(Router);
   #route = inject(ActivatedRoute);
   #budgetTemplatesApi = inject(BudgetTemplatesApi);
-  #title = inject(Title);
+  #titleStrategy = inject(PulpeTitleStrategy);
   #dialog = inject(MatDialog);
   #injector = inject(Injector);
   #breakpointObserver = inject(BreakpointObserver);
@@ -312,7 +312,7 @@ export default class TemplateDetail {
     effect(() => {
       const value = this.data.value();
       if (value && value.template.name) {
-        this.#title.setTitle(value.template.name);
+        this.#titleStrategy.setTitle(value.template.name);
       }
     });
   }

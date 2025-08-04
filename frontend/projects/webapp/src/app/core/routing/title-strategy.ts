@@ -5,14 +5,12 @@ import {
   TitleStrategy,
   ActivatedRouteSnapshot,
 } from '@angular/router';
-import { TitleChangeNotifier } from './title-change-notifier';
 
 @Injectable({
   providedIn: 'root',
 })
 export class PulpeTitleStrategy extends TitleStrategy {
   readonly #title = inject(Title);
-  readonly #titleChangeNotifier = inject(TitleChangeNotifier);
 
   private readonly APP_NAME = 'Pulpe';
   private readonly SEPARATOR = ' • ';
@@ -30,14 +28,11 @@ export class PulpeTitleStrategy extends TitleStrategy {
 
   /**
    * Allows components to programmatically set titles while maintaining consistent format.
-   * This preserves the functionality from the old Title service.
+   * Used for dynamic titles that cannot be set via routing (e.g., from API data).
    */
   setTitle(title: string): void {
     const finalTitle = `${title}${this.SEPARATOR}${this.APP_NAME}`;
     this.#title.setTitle(finalTitle);
-
-    // Notifie les services qui écoutent les changements de titre
-    this.#titleChangeNotifier.notifyTitleChanged();
   }
 
   override buildTitle(snapshot: RouterStateSnapshot): string | undefined {

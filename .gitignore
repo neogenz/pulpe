@@ -70,3 +70,5 @@ backend-nest/supabase/.temp/*
 coverage/
 claude-rules/
 coverage-report.json
+
+docs/angular-full.txt

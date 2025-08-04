@@ -12,7 +12,7 @@ import { BaseLoadingComponent } from '../../../ui/loading';
 import { MonthsError } from '../ui/budget-error';
 import { BudgetState } from './budget-state';
 import { MatTabsModule } from '@angular/material/tabs';
-import { Title } from '@core/routing';
+import { TitleDisplayService } from '@core/routing/title-display.service';
 import { CreateBudgetDialogComponent } from '../details/create/budget-creation-dialog';
 import { MatDialog } from '@angular/material/dialog';
 import { firstValueFrom } from 'rxjs';
@@ -35,7 +35,7 @@ import { ROUTES } from '@core/routing';
     <div class="flex flex-col 2xl:h-full gap-4 2xl:min-h-0">
       <header class="flex justify-between items-center">
         <h1 class="text-display-small">
-          {{ title.currentTitle() }}
+          {{ titleDisplay.currentTitle() }}
         </h1>
         <button
           matButton="filled"
@@ -119,7 +119,7 @@ import { ROUTES } from '@core/routing';
 })
 export default class OtherMonths implements OnInit {
   protected readonly state = inject(BudgetState);
-  protected readonly title = inject(Title);
+  protected readonly titleDisplay = inject(TitleDisplayService);
   #dialog = inject(MatDialog);
   #router = inject(Router);
 
