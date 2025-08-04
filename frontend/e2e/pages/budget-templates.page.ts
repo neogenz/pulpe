@@ -15,7 +15,7 @@ export class BudgetTemplatesPage {
 
     // Définition des locators avec priorité aux data-testid
     this.createTemplateButton = page.locator(
-      '[data-testid="create-template-fab"]',
+      '[data-testid="create-template-button"]',
     );
     this.templatesList = page.locator('[data-testid="templates-list"]');
     this.templateForm = page.locator('[data-testid="template-form"]');
@@ -124,7 +124,7 @@ export class BudgetTemplatesPage {
       (await this.page.locator('[data-testid="empty-state"]').count()) > 0;
     const hasCreateButton =
       (await this.page
-        .locator('[data-testid="create-template-fab"]')
+        .locator('[data-testid="create-template-button"]')
         .count()) > 0;
 
     expect(hasTemplatesList || hasEmptyState || hasCreateButton).toBeTruthy();
