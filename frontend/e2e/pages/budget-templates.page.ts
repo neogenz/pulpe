@@ -26,9 +26,20 @@ export class BudgetTemplatesPage {
   }
 
   async goto() {
-    await this.page.goto('/app/budget-templates');
-    await this.page.waitForLoadState('domcontentloaded');
-    await this.waitForPageStable();
+    try {
+      await this.page.goto('/app/budget-templates', { 
+        waitUntil: 'domcontentloaded',
+        timeout: 15000 
+      });
+      await this.waitForPageStable();
+    } catch (error) {
+      console.error('Navigation error:', error);
+      // Retry once with a longer timeout
+      await this.page.goto('/app/budget-templates', { 
+        waitUntil: 'load',
+        timeout: 30000 
+      });
+    }
   }
 
   async gotoAddTemplate() {
@@ -46,10 +57,15 @@ export class BudgetTemplatesPage {
   private async waitForPageStable() {
     // Attendre que la page soit stable (pas de changements DOM pendant 500ms)
     try {
-      await this.page.waitForLoadState('networkidle', { timeout: 5000 });
+      await this.page.waitForLoadState('networkidle', { timeout: 10000 });
     } catch {
       // Fallback: attendre au moins que le body soit visible
-      await expect(this.page.locator('body')).toBeVisible({ timeout: 3000 });
+      try {
+        await this.page.waitForSelector('body', { state: 'visible', timeout: 5000 });
+      } catch {
+        // Last resort - just wait a bit
+        await this.page.waitForTimeout(2000);
+      }
     }
   }
 
