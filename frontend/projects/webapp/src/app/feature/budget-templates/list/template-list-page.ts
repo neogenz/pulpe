@@ -12,7 +12,7 @@ import { BudgetTemplatesState } from '../services/budget-templates-state';
 import { TemplateList } from '../components/template-list';
 import { BaseLoadingComponent } from '../../../ui/loading';
 import { TemplatesError } from '../components/templates-error';
-import { Title } from '@core/routing';
+import { TitleDisplay } from '@core/routing';
 
 @Component({
   selector: 'pulpe-template-list-page',
@@ -113,7 +113,7 @@ import { Title } from '@core/routing';
 })
 export default class TemplateListPage implements OnInit {
   protected readonly state = inject(BudgetTemplatesState);
-  protected readonly title = inject(Title);
+  protected readonly title = inject(TitleDisplay);
 
   ngOnInit() {
     this.state.refreshData();
