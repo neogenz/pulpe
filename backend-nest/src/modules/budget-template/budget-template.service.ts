@@ -40,6 +40,8 @@ import * as budgetTemplateMappers from './budget-template.mappers';
 
 @Injectable()
 export class BudgetTemplateService {
+  private readonly MAX_TEMPLATES_PER_USER = 5;
+
   constructor(
     @InjectPinoLogger(BudgetTemplateService.name)
     private readonly logger: PinoLogger,
@@ -145,6 +147,10 @@ export class BudgetTemplateService {
 
     try {
       const validated = budgetTemplateCreateSchema.parse(createDto);
+
+      // Check template count limit
+      await this.validateTemplateLimit(user.id, supabase);
+
       const result = await this.executeTemplateCreation(
         validated,
         user,
@@ -209,6 +215,15 @@ export class BudgetTemplateService {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<Tables<'template'>> {
+    // If this template should be default, reset others first
+    if (validated.isDefault) {
+      await supabase
+        .from('template')
+        .update({ is_default: false })
+        .eq('user_id', user.id)
+        .eq('is_default', true);
+    }
+
     const rpcLines = validated.lines.map((line) => ({
       name: line.name,
       amount: line.amount,
@@ -297,6 +312,26 @@ export class BudgetTemplateService {
       .eq('user_id', userId)
       .eq('is_default', true)
       .neq('id', excludeId);
+  }
+
+  private async validateTemplateLimit(
+    userId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    const { count, error } = await supabase
+      .from('template')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId);
+
+    if (error) {
+      throw new InternalServerErrorException('Failed to check template count');
+    }
+
+    if (count && count >= this.MAX_TEMPLATES_PER_USER) {
+      throw new BadRequestException(
+        `Vous avez atteint la limite de ${this.MAX_TEMPLATES_PER_USER} modèles`,
+      );
+    }
   }
 
   private async performTemplateUpdate(
