@@ -64,12 +64,19 @@ export class TemplateSelection {
     });
   });
 
-  // Computed selected template
+  // Computed selected template - maintains selection even if filtered out
   readonly selectedTemplate = computed(() => {
     const id = this.selectedTemplateId();
     if (!id) return null;
 
-    return this.filteredTemplates().find((t) => t.id === id) || null;
+    // First, look in filtered templates
+    const filteredTemplate = this.filteredTemplates().find((t) => t.id === id);
+    if (filteredTemplate) return filteredTemplate;
+
+    // If not found in filtered results, look in all templates
+    // This ensures the selected template remains selected even when filtered out
+    const allTemplates = this.#templateApi.templatesResource.value() || [];
+    return allTemplates.find((t) => t.id === id) || null;
   });
 
   selectTemplate(templateId: string): void {
@@ -82,14 +89,18 @@ export class TemplateSelection {
   initializeDefaultSelection(): void {
     if (this.selectedTemplateId()) return; // Already selected
 
-    const templates = this.filteredTemplates();
-    const defaultTemplate = templates.find((t) => t.isDefault);
+    // Always look for default template in all templates, not just filtered ones
+    const allTemplates = this.#templateApi.templatesResource.value() || [];
+    const defaultTemplate = allTemplates.find((t) => t.isDefault);
 
     if (defaultTemplate) {
       this.selectedTemplateId.set(defaultTemplate.id);
-    } else if (templates.length > 0) {
-      // If no default, select the first one
-      this.selectedTemplateId.set(templates[0].id);
+    } else {
+      // If no default template exists, select the first visible template
+      const visibleTemplates = this.filteredTemplates();
+      if (visibleTemplates.length > 0) {
+        this.selectedTemplateId.set(visibleTemplates[0].id);
+      }
     }
   }
 
