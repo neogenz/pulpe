@@ -15,6 +15,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDividerModule } from '@angular/material/divider';
 import { type BudgetTemplateCreate } from '@pulpe/shared';
 import { BudgetTemplatesState } from '../services/budget-templates-state';
 
@@ -29,6 +30,7 @@ import { BudgetTemplatesState } from '../services/budget-templates-state';
     MatIconModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
+    MatDividerModule,
   ],
   template: `
     @if (state.isLoading() && state.templatesData.status() === 'loading') {
@@ -47,79 +49,95 @@ import { BudgetTemplatesState } from '../services/budget-templates-state';
           [formGroup]="templateForm"
           (ngSubmit)="onSubmit()"
           data-testid="template-form"
-          class="space-y-6"
         >
-          <div class="space-y-4">
-            <mat-form-field appearance="outline" class="w-full">
-              <mat-label>Nom du modèle</mat-label>
-              <input
-                matInput
-                formControlName="name"
-                required
-                maxlength="100"
-                data-testid="template-name-input"
-              />
-              <mat-hint align="end">
-                {{ templateForm.get('name')?.value?.length || 0 }}/100
-              </mat-hint>
-              @if (
-                templateForm.get('name')?.invalid &&
-                templateForm.get('name')?.touched
-              ) {
-                <mat-error data-testid="name-error">
-                  Le nom est requis
-                </mat-error>
-              }
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="w-full">
-              <mat-label>Description (optionnelle)</mat-label>
-              <textarea
-                matInput
-                formControlName="description"
-                rows="3"
-                maxlength="500"
-                data-testid="template-description-input"
-              ></textarea>
-              <mat-hint align="end">
-                {{ templateForm.get('description')?.value?.length || 0 }}/500
-              </mat-hint>
-            </mat-form-field>
-
-            <div class="flex items-center gap-2">
-              <mat-checkbox
-                formControlName="isDefault"
-                [disabled]="hasDefaultAndNotThis()"
-                data-testid="template-default-checkbox"
-              >
-                Modèle par défaut
-              </mat-checkbox>
-              @if (hasDefaultAndNotThis()) {
-                <mat-icon
-                  class="text-body-small"
-                  [matTooltip]="
-                    'Un modèle par défaut existe déjà: ' +
-                    state.currentDefaultTemplate()?.name
-                  "
-                >
-                  info
-                </mat-icon>
-              }
+          <!-- Grid container with responsive columns -->
+          <div class="grid grid-cols-1 gap-4 md:gap-6 py-4">
+            <!-- Name field - full width for optimal UX -->
+            <div class="col-span-1">
+              <mat-form-field appearance="outline" class="w-full">
+                <mat-label>Nom du modèle</mat-label>
+                <input
+                  matInput
+                  formControlName="name"
+                  required
+                  maxlength="100"
+                  data-testid="template-name-input"
+                />
+                <mat-hint align="end">
+                  {{ templateForm.get('name')?.value?.length || 0 }}/100
+                </mat-hint>
+                @if (
+                  templateForm.get('name')?.invalid &&
+                  templateForm.get('name')?.touched
+                ) {
+                  <mat-error data-testid="name-error">
+                    Le nom est requis
+                  </mat-error>
+                }
+              </mat-form-field>
             </div>
 
+            <!-- Description field - full width for textarea UX -->
+            <div class="col-span-1">
+              <mat-form-field appearance="outline" class="w-full">
+                <mat-label>Description (optionnelle)</mat-label>
+                <textarea
+                  matInput
+                  formControlName="description"
+                  rows="3"
+                  maxlength="500"
+                  data-testid="template-description-input"
+                ></textarea>
+                <mat-hint align="end">
+                  {{ templateForm.get('description')?.value?.length || 0 }}/500
+                </mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- Checkbox section - full width -->
+            <div class="col-span-1">
+              <div class="flex items-center gap-2">
+                <mat-checkbox
+                  formControlName="isDefault"
+                  [disabled]="hasDefaultAndNotThis()"
+                  data-testid="template-default-checkbox"
+                >
+                  Modèle par défaut
+                </mat-checkbox>
+                @if (hasDefaultAndNotThis()) {
+                  <mat-icon
+                    class="text-body-small"
+                    [matTooltip]="
+                      'Un modèle par défaut existe déjà: ' +
+                      state.currentDefaultTemplate()?.name
+                    "
+                  >
+                    info
+                  </mat-icon>
+                }
+              </div>
+            </div>
+
+            <!-- Error message section -->
             @if (state.businessError()) {
-              <div
-                class="p-3 surface-error-container rounded-md flex items-center gap-2"
-              >
-                <mat-icon class="text-error">error</mat-icon>
-                <span class="text-error text-body-medium">
-                  {{ state.businessError() }}
-                </span>
+              <div class="col-span-1">
+                <div
+                  class="p-3 surface-error-container rounded-md flex items-center gap-2"
+                >
+                  <mat-icon class="text-error">error</mat-icon>
+                  <span class="text-error text-body-medium">
+                    {{ state.businessError() }}
+                  </span>
+                </div>
               </div>
             }
           </div>
 
-          <div class="flex justify-end gap-3 pt-4">
+          <!-- Divider to separate form from actions -->
+          <mat-divider class="!mt-4 !mb-4" />
+
+          <!-- Action buttons aligned right -->
+          <div class="flex justify-end gap-3">
             <button
               matButton
               (click)="cancelForm.emit()"
