@@ -50,7 +50,7 @@ test.describe('Budget Template Deletion', () => {
       budgetTemplatesPage,
     }) => {
       // Mock API to return template with associated budgets
-      await authenticatedPage.route('**/api/budget-templates/*/usage', (route) => {
+      await authenticatedPage.route('**/api/v1/budget-templates/*/usage', (route) => {
         route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -81,11 +81,11 @@ test.describe('Budget Template Deletion', () => {
       await expect(authenticatedPage.locator('h2:has-text("Suppression impossible")')).toBeVisible();
       
       // Verify budget list is shown
-      await expect(authenticatedPage.locator('mat-list-item')).toHaveCount(3);
+      await expect(authenticatedPage.locator('mat-card')).toHaveCount(3);
       await expect(authenticatedPage.locator('text="Janvier 2025"')).toBeVisible();
       
       // Close dialog
-      await authenticatedPage.locator('button:has-text("Compris")').click();
+      await authenticatedPage.locator('button[matButton="filled"]:has-text("Compris")').click();
       await expect(authenticatedPage.locator('mat-dialog-container')).toHaveCount(0);
     });
   });
@@ -96,7 +96,7 @@ test.describe('Budget Template Deletion', () => {
       budgetTemplatesPage,
     }) => {
       // Mock API to return templates
-      await authenticatedPage.route('**/api/budget-templates', (route) => {
+      await authenticatedPage.route('**/api/v1/budget-templates', (route) => {
         route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -115,7 +115,7 @@ test.describe('Budget Template Deletion', () => {
       });
       
       // Mock usage check to return no budgets
-      await authenticatedPage.route('**/api/budget-templates/*/usage', (route) => {
+      await authenticatedPage.route('**/api/v1/budget-templates/*/usage', (route) => {
         route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -189,7 +189,7 @@ test.describe('Budget Template Deletion', () => {
       await budgetTemplatesPage.goto();
       
       // Mock deletion
-      await authenticatedPage.route('**/api/budget-templates/*', (route) => {
+      await authenticatedPage.route('**/api/v1/budget-templates/*', (route) => {
         if (route.request().method() === 'DELETE') {
           templatesDeleted = true;
           route.fulfill({
@@ -216,7 +216,7 @@ test.describe('Budget Template Deletion', () => {
       budgetTemplatesPage,
     }) => {
       // Mock API to return error on deletion
-      await authenticatedPage.route('**/api/budget-templates/*', (route) => {
+      await authenticatedPage.route('**/api/v1/budget-templates/*', (route) => {
         if (route.request().method() === 'DELETE') {
           route.fulfill({
             status: 500,
@@ -249,7 +249,7 @@ test.describe('Budget Template Deletion', () => {
       budgetTemplatesPage,
     }) => {
       // Mock API to return error on usage check
-      await authenticatedPage.route('**/api/budget-templates/*/usage', (route) => {
+      await authenticatedPage.route('**/api/v1/budget-templates/*/usage', (route) => {
         route.fulfill({
           status: 500,
           contentType: 'application/json',
