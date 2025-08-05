@@ -58,6 +58,7 @@ import {
   TemplateLinesBulkUpdateResponseDto,
   TemplateLinesBulkOperationsDto,
   TemplateLinesBulkOperationsResponseDto,
+  TemplateUsageResponseDto,
 } from './dto/budget-template-swagger.dto';
 import { ErrorResponseDto } from '@common/dto/response.dto';
 
@@ -139,6 +140,36 @@ export class BudgetTemplateController {
       user,
       supabase,
     );
+  }
+
+  @Get(':id/usage')
+  @ApiOperation({
+    summary: 'Check template usage in budgets',
+    description:
+      'Checks if a budget template is being used in any monthly budgets and returns the list',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Unique budget template identifier',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Template usage information retrieved successfully',
+    type: TemplateUsageResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Budget template not found',
+    type: ErrorResponseDto,
+  })
+  async checkUsage(
+    @Param('id', ParseUUIDPipe) id: string,
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ) {
+    return this.budgetTemplateService.checkTemplateUsage(id, user, supabase);
   }
 
   @Get(':id')
@@ -484,60 +515,6 @@ export class BudgetTemplateController {
     );
   }
 
-  @Get(':id/usage')
-  @ApiOperation({
-    summary: 'Check template usage in budgets',
-    description:
-      'Checks if a budget template is being used in any monthly budgets and returns the list',
-  })
-  @ApiParam({
-    name: 'id',
-    description: 'Unique budget template identifier',
-    example: '123e4567-e89b-12d3-a456-426614174000',
-    type: 'string',
-    format: 'uuid',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Template usage information retrieved successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean' },
-        data: {
-          type: 'object',
-          properties: {
-            isUsed: { type: 'boolean' },
-            budgetCount: { type: 'number' },
-            budgets: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  id: { type: 'string' },
-                  month: { type: 'number' },
-                  year: { type: 'number' },
-                  description: { type: 'string' },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  })
-  @ApiNotFoundResponse({
-    description: 'Budget template not found',
-    type: ErrorResponseDto,
-  })
-  async checkUsage(
-    @Param('id', ParseUUIDPipe) id: string,
-    @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
-  ) {
-    return this.budgetTemplateService.checkTemplateUsage(id, user, supabase);
-  }
-
   @Delete(':id')
   @ApiOperation({
     summary: 'Delete existing budget template',
@@ -547,7 +524,6 @@ export class BudgetTemplateController {
   @ApiParam({
     name: 'id',
     description: 'Unique budget template identifier',
-    example: '123e4567-e89b-12d3-a456-426614174000',
     type: 'string',
     format: 'uuid',
   })

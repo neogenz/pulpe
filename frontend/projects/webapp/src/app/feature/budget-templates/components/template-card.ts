@@ -41,6 +41,7 @@ import { type BudgetTemplate } from '@pulpe/shared';
           mat-icon-button
           [matMenuTriggerFor]="menu"
           aria-label="Options du modèle"
+          data-testid="template-menu-trigger"
           (click)="$event.stopPropagation()"
         >
           <mat-icon>more_vert</mat-icon>
@@ -50,7 +51,12 @@ import { type BudgetTemplate } from '@pulpe/shared';
             <mat-icon>visibility</mat-icon>
             <span>Voir les détails</span>
           </button>
-          <button mat-menu-item (click)="onDelete()" class="text-error">
+          <button
+            mat-menu-item
+            (click)="onDelete()"
+            class="text-error"
+            data-testid="delete-template-menu-item"
+          >
             <mat-icon class="text-error">delete</mat-icon>
             <span>Supprimer</span>
           </button>

@@ -359,53 +359,14 @@ export class BudgetTemplateService {
 
     try {
       await this.validateTemplateAccess(id, user, supabase);
+      await this.validateTemplateNotUsed(id, supabase);
+      await this.performTemplateDeletion(id, supabase);
 
-      // Check if template is used in any budgets
-      const { data: budgets } = await supabase
-        .from('monthly_budget')
-        .select('id')
-        .eq('template_id', id)
-        .limit(1);
-
-      if (budgets && budgets.length > 0) {
-        throw new BadRequestException(
-          'Cannot delete template. It is currently used in one or more budgets.',
-        );
-      }
-
-      const { error } = await supabase.from('template').delete().eq('id', id);
-      if (error) throw error;
-
-      this.logger.info(
-        {
-          operation: 'remove',
-          userId: user.id,
-          entityId: id,
-          duration: Date.now() - startTime,
-        },
-        'Template deleted successfully',
-      );
+      this.logTemplateDeletionSuccess(user.id, id, startTime);
 
       return { success: true, message: 'Template deleted successfully' };
     } catch (error) {
-      if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException ||
-        error instanceof ForbiddenException
-      )
-        throw error;
-
-      this.logger.error(
-        {
-          operation: 'remove',
-          userId: user.id,
-          entityId: id,
-          duration: Date.now() - startTime,
-          err: error,
-        },
-        'Failed to delete template',
-      );
-      throw new InternalServerErrorException('Failed to delete template');
+      this.handleTemplateDeletionError(error, user.id, id, startTime);
     }
   }
 
@@ -430,53 +391,13 @@ export class BudgetTemplateService {
 
     try {
       await this.validateTemplateAccess(id, user, supabase);
+      const budgets = await this.fetchTemplateBudgets(id, supabase);
 
-      const { data: budgets, error } = await supabase
-        .from('monthly_budget')
-        .select('id, month, year, description')
-        .eq('template_id', id)
-        .order('year', { ascending: false })
-        .order('month', { ascending: false });
+      this.logTemplateUsageSuccess(user.id, id, startTime, budgets.length);
 
-      if (error) throw error;
-
-      this.logger.info(
-        {
-          operation: 'checkTemplateUsage',
-          userId: user.id,
-          entityId: id,
-          duration: Date.now() - startTime,
-          budgetCount: budgets?.length || 0,
-        },
-        'Template usage checked successfully',
-      );
-
-      return {
-        success: true,
-        data: {
-          isUsed: (budgets?.length || 0) > 0,
-          budgetCount: budgets?.length || 0,
-          budgets: budgets || [],
-        },
-      };
+      return this.buildTemplateUsageResponse(budgets);
     } catch (error) {
-      if (
-        error instanceof NotFoundException ||
-        error instanceof ForbiddenException
-      )
-        throw error;
-
-      this.logger.error(
-        {
-          operation: 'checkTemplateUsage',
-          userId: user.id,
-          entityId: id,
-          duration: Date.now() - startTime,
-          err: error,
-        },
-        'Failed to check template usage',
-      );
-      throw new InternalServerErrorException('Failed to check template usage');
+      this.handleTemplateUsageError(error, user.id, id, startTime);
     }
   }
 
@@ -1399,5 +1320,157 @@ export class BudgetTemplateService {
     if (error || !data) throw new NotFoundException('Template not found');
     if (data.user_id !== user.id)
       throw new ForbiddenException('You do not have access to this template');
+  }
+
+  // ============ TEMPLATE DELETION HELPERS ============
+
+  private async validateTemplateNotUsed(
+    templateId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    const { data: budgets } = await supabase
+      .from('monthly_budget')
+      .select('id')
+      .eq('template_id', templateId)
+      .limit(1);
+
+    if (budgets && budgets.length > 0) {
+      throw new BadRequestException(
+        'Cannot delete template. It is currently used in one or more budgets.',
+      );
+    }
+  }
+
+  private async performTemplateDeletion(
+    templateId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    const { error } = await supabase
+      .from('template')
+      .delete()
+      .eq('id', templateId);
+    if (error) throw error;
+  }
+
+  private logTemplateDeletionSuccess(
+    userId: string,
+    entityId: string,
+    startTime: number,
+  ): void {
+    this.logger.info(
+      {
+        operation: 'remove',
+        userId,
+        entityId,
+        duration: Date.now() - startTime,
+      },
+      'Template deleted successfully',
+    );
+  }
+
+  private handleTemplateDeletionError(
+    error: unknown,
+    userId: string,
+    entityId: string,
+    startTime: number,
+  ): never {
+    if (
+      error instanceof NotFoundException ||
+      error instanceof BadRequestException ||
+      error instanceof ForbiddenException
+    )
+      throw error;
+
+    this.logger.error(
+      {
+        operation: 'remove',
+        userId,
+        entityId,
+        duration: Date.now() - startTime,
+        err: error,
+      },
+      'Failed to delete template',
+    );
+    throw new InternalServerErrorException('Failed to delete template');
+  }
+
+  // ============ TEMPLATE USAGE HELPERS ============
+
+  private async fetchTemplateBudgets(
+    templateId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<
+    Array<{ id: string; month: number; year: number; description: string }>
+  > {
+    const { data: budgets, error } = await supabase
+      .from('monthly_budget')
+      .select('id, month, year, description')
+      .eq('template_id', templateId)
+      .order('year', { ascending: false })
+      .order('month', { ascending: false });
+
+    if (error) throw error;
+    return budgets || [];
+  }
+
+  private buildTemplateUsageResponse(
+    budgets: Array<{
+      id: string;
+      month: number;
+      year: number;
+      description: string;
+    }>,
+  ) {
+    return {
+      success: true,
+      data: {
+        isUsed: budgets.length > 0,
+        budgetCount: budgets.length,
+        budgets,
+      },
+    };
+  }
+
+  private logTemplateUsageSuccess(
+    userId: string,
+    entityId: string,
+    startTime: number,
+    budgetCount: number,
+  ): void {
+    this.logger.info(
+      {
+        operation: 'checkTemplateUsage',
+        userId,
+        entityId,
+        duration: Date.now() - startTime,
+        budgetCount,
+      },
+      'Template usage checked successfully',
+    );
+  }
+
+  private handleTemplateUsageError(
+    error: unknown,
+    userId: string,
+    entityId: string,
+    startTime: number,
+  ): never {
+    if (
+      error instanceof NotFoundException ||
+      error instanceof ForbiddenException
+    )
+      throw error;
+
+    this.logger.error(
+      {
+        operation: 'checkTemplateUsage',
+        userId,
+        entityId,
+        duration: Date.now() - startTime,
+        err: error,
+      },
+      'Failed to check template usage',
+    );
+    throw new InternalServerErrorException('Failed to check template usage');
   }
 }
