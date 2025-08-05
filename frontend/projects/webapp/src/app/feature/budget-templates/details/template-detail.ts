@@ -31,6 +31,9 @@ import { map } from 'rxjs/operators';
 import { CommonModule, CurrencyPipe } from '@angular/common';
 import { TemplateLine } from '@pulpe/shared';
 import { PulpeTitleStrategy } from '@core/routing/title-strategy';
+import { ConfirmationDialogComponent } from '@ui/dialogs/confirmation-dialog';
+import { TemplateUsageDialogComponent } from '@ui/dialogs/template-usage-dialog';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 @Component({
   selector: 'pulpe-template-detail',
@@ -41,6 +44,7 @@ import { PulpeTitleStrategy } from '@core/routing/title-strategy';
     MatButtonModule,
     MatIconModule,
     MatMenuModule,
+    MatSnackBarModule,
     FinancialSummary,
     TransactionsTable,
     BaseLoadingComponent,
@@ -195,6 +199,17 @@ import { PulpeTitleStrategy } from '@core/routing/title-strategy';
                     <mat-icon aria-hidden="true">edit</mat-icon>
                     <span>Éditer</span>
                   </button>
+                  <button
+                    mat-menu-item
+                    (click)="deleteTemplate()"
+                    aria-label="Supprimer le modèle"
+                    class="text-error"
+                  >
+                    <mat-icon aria-hidden="true" class="text-error"
+                      >delete</mat-icon
+                    >
+                    <span>Supprimer</span>
+                  </button>
                 </mat-menu>
               </div>
 
@@ -221,31 +236,32 @@ import { PulpeTitleStrategy } from '@core/routing/title-strategy';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class TemplateDetail {
-  #router = inject(Router);
-  #route = inject(ActivatedRoute);
-  #budgetTemplatesApi = inject(BudgetTemplatesApi);
-  #titleStrategy = inject(PulpeTitleStrategy);
-  #dialog = inject(MatDialog);
-  #injector = inject(Injector);
-  #breakpointObserver = inject(BreakpointObserver);
+  readonly #router = inject(Router);
+  readonly #route = inject(ActivatedRoute);
+  readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
+  readonly #titleStrategy = inject(PulpeTitleStrategy);
+  readonly #dialog = inject(MatDialog);
+  readonly #injector = inject(Injector);
+  readonly #breakpointObserver = inject(BreakpointObserver);
+  readonly #snackBar = inject(MatSnackBar);
 
-  templateId = input.required<string>();
+  readonly templateId = input.required<string>();
 
-  data = resource({
+  readonly data = resource({
     params: () => this.templateId(),
     loader: async ({ params }) =>
       firstValueFrom(this.#budgetTemplatesApi.getDetail$(params)),
   });
 
   // Reactive breakpoint detection with proper signal integration
-  isHandset = toSignal(
+  readonly isHandset = toSignal(
     this.#breakpointObserver
       .observe([Breakpoints.Handset, Breakpoints.TabletPortrait])
       .pipe(map((result) => result.matches)),
     { initialValue: false },
   );
 
-  entries = computed<FinancialEntry[]>(() => {
+  readonly entries = computed<FinancialEntry[]>(() => {
     const value = this.data.value();
     if (!value) {
       return [];
@@ -267,7 +283,7 @@ export default class TemplateDetail {
   });
 
   // Optimized: Single pass through entries for all totals
-  #totals = computed(() => {
+  readonly #totals = computed(() => {
     return this.entries().reduce(
       (acc, entry) => ({
         income: acc.income + entry.earned,
@@ -278,7 +294,7 @@ export default class TemplateDetail {
     );
   });
 
-  incomeData = computed<FinancialSummaryData>(() => ({
+  readonly incomeData = computed<FinancialSummaryData>(() => ({
     title: 'Revenus',
     amount: this.#totals().income,
     icon: 'trending_up',
@@ -286,21 +302,21 @@ export default class TemplateDetail {
     isClickable: false,
   }));
 
-  expenseData = computed<FinancialSummaryData>(() => ({
+  readonly expenseData = computed<FinancialSummaryData>(() => ({
     title: 'Dépenses',
     amount: this.#totals().expense,
     icon: 'trending_down',
     type: 'expense',
   }));
 
-  savingsData = computed<FinancialSummaryData>(() => ({
+  readonly savingsData = computed<FinancialSummaryData>(() => ({
     title: 'Économies',
     amount: this.#totals().savings,
     icon: 'savings',
     type: 'savings',
   }));
 
-  netBalanceData = computed<FinancialSummaryData>(() => {
+  readonly netBalanceData = computed<FinancialSummaryData>(() => {
     const totals = this.#totals();
     const total = totals.income - totals.expense;
     return {
@@ -394,5 +410,84 @@ export default class TemplateDetail {
     // Use the resource's local update capability to avoid unnecessary API calls
     // This updates the signal-based resource without triggering a reload
     this.data.update(() => updatedTemplateData);
+  }
+
+  async deleteTemplate() {
+    const templateData = this.data.value();
+    if (!templateData) {
+      return;
+    }
+
+    try {
+      // First check if template is being used
+      const usageResponse = await firstValueFrom(
+        this.#budgetTemplatesApi.checkUsage$(this.templateId()),
+      );
+
+      if (usageResponse.data.isUsed) {
+        // Show dialog with list of budgets using this template
+        const dialogRef = this.#dialog.open(TemplateUsageDialogComponent, {
+          data: {
+            templateId: this.templateId(),
+            templateName: templateData.template.name,
+          },
+          width: '90vw',
+          maxWidth: '600px',
+          disableClose: false,
+        });
+
+        // Set the usage data after opening the dialog
+        const dialogInstance = dialogRef.componentInstance;
+        dialogInstance.setUsageData(usageResponse.data.budgets);
+      } else {
+        // Template is not used, show confirmation dialog
+        const dialogRef = this.#dialog.open(ConfirmationDialogComponent, {
+          data: {
+            title: 'Supprimer le modèle',
+            message: `Êtes-vous sûr de vouloir supprimer le modèle « ${templateData.template.name} » ?`,
+            confirmText: 'Supprimer',
+            cancelText: 'Annuler',
+            confirmColor: 'warn',
+          },
+          width: '400px',
+        });
+
+        const confirmed = await firstValueFrom(dialogRef.afterClosed());
+        if (confirmed) {
+          await this.#performDeletion();
+        }
+      }
+    } catch (error) {
+      console.error('Error checking template usage:', error);
+      this.#snackBar.open(
+        'Une erreur est survenue lors de la vérification',
+        'Fermer',
+        {
+          duration: 5000,
+        },
+      );
+    }
+  }
+
+  async #performDeletion() {
+    try {
+      await firstValueFrom(this.#budgetTemplatesApi.delete$(this.templateId()));
+
+      this.#snackBar.open('Modèle supprimé avec succès', undefined, {
+        duration: 3000,
+      });
+
+      // Navigate back to templates list
+      this.#router.navigate(['..'], { relativeTo: this.#route });
+    } catch (error) {
+      console.error('Error deleting template:', error);
+      this.#snackBar.open(
+        'Une erreur est survenue lors de la suppression',
+        'Fermer',
+        {
+          duration: 5000,
+        },
+      );
+    }
   }
 }

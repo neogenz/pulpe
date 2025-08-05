@@ -1,13 +1,25 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  input,
+  output,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { type BudgetTemplate } from '@pulpe/shared';
 
 @Component({
   selector: 'pulpe-template-card',
-  imports: [RouterLink, MatCardModule, MatButtonModule, MatIconModule],
+  imports: [
+    RouterLink,
+    MatCardModule,
+    MatButtonModule,
+    MatIconModule,
+    MatMenuModule,
+  ],
   template: `
     <mat-card appearance="outlined">
       <mat-card-header>
@@ -24,6 +36,25 @@ import { type BudgetTemplate } from '@pulpe/shared';
         } @else {
           <mat-card-subtitle>Template</mat-card-subtitle>
         }
+        <div class="flex-1"></div>
+        <button
+          mat-icon-button
+          [matMenuTriggerFor]="menu"
+          aria-label="Options du modèle"
+          (click)="$event.stopPropagation()"
+        >
+          <mat-icon>more_vert</mat-icon>
+        </button>
+        <mat-menu #menu="matMenu">
+          <button mat-menu-item [routerLink]="template().id">
+            <mat-icon>visibility</mat-icon>
+            <span>Voir les détails</span>
+          </button>
+          <button mat-menu-item (click)="onDelete()" class="text-error">
+            <mat-icon class="text-error">delete</mat-icon>
+            <span>Supprimer</span>
+          </button>
+        </mat-menu>
       </mat-card-header>
       <mat-card-content>
         @if (template().description) {
@@ -56,5 +87,10 @@ import { type BudgetTemplate } from '@pulpe/shared';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TemplateCard {
-  template = input.required<BudgetTemplate>();
+  readonly template = input.required<BudgetTemplate>();
+  readonly delete = output<BudgetTemplate>();
+
+  onDelete(): void {
+    this.delete.emit(this.template());
+  }
 }
