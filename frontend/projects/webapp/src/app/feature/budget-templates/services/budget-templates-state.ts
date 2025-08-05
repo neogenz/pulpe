@@ -77,6 +77,23 @@ export class BudgetTemplatesState {
     return true;
   }
 
+  validateTemplateName(name: string): boolean {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      return false;
+    }
+
+    // Check for name uniqueness (case-insensitive)
+    const existingNames =
+      this.templatesData.value()?.map((t) => t.name.toLowerCase()) ?? [];
+    if (existingNames.includes(trimmedName.toLowerCase())) {
+      this.businessError.set('Un modèle avec ce nom existe déjà');
+      return false;
+    }
+
+    return true;
+  }
+
   validateDefaultTemplate(isDefault: boolean): boolean {
     if (isDefault && this.hasDefaultTemplate()) {
       // We'll handle switching the default automatically
@@ -96,6 +113,10 @@ export class BudgetTemplatesState {
     // Validate business rules
     if (!this.validateCanCreate()) {
       throw new Error(this.businessError() || 'Cannot create template');
+    }
+
+    if (!this.validateTemplateName(template.name)) {
+      throw new Error(this.businessError() || 'Invalid template name');
     }
 
     if (!this.validateDefaultTemplate(template.isDefault)) {
