@@ -13,6 +13,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatListModule } from '@angular/material/list';
+import { MatDividerModule } from '@angular/material/divider';
 import { type BudgetTemplate } from '@pulpe/shared';
 
 @Component({
@@ -27,120 +29,165 @@ import { type BudgetTemplate } from '@pulpe/shared';
     MatChipsModule,
     MatTooltipModule,
     MatProgressSpinnerModule,
+    MatListModule,
+    MatDividerModule,
   ],
   template: `
     <mat-card
       appearance="outlined"
-      class="cursor-pointer transition-all hover:shadow-md"
-      [class.ring-2]="isSelected()"
-      [class.ring-primary]="isSelected()"
-      [class.bg-surface-container-lowest]="isSelected()"
+      class="cursor-pointer transition-all hover:shadow-md template-card"
+      [class.selected]="isSelected()"
       (click)="selectTemplate.emit(template().id)"
     >
-      <mat-card-content class="py-2 md:py-3">
-        <div class="flex items-start gap-2 md:gap-3">
-          <mat-radio-button
-            [value]="template().id"
-            [checked]="isSelected()"
-            class="mt-1 min-w-[20px]"
-          ></mat-radio-button>
-
-          <div class="flex-1 min-w-0">
-            <div class="flex items-start justify-between mb-1 gap-2">
-              <div
-                class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 min-w-0"
-              >
-                <h3 class="text-title-medium text-on-surface truncate">
+      <mat-card-content class="py-3 md:py-4">
+        <!-- Header with title and chip -->
+        <div class="flex items-start justify-between mb-3">
+          <div class="flex items-center gap-3">
+            <mat-radio-button
+              [value]="template().id"
+              [checked]="isSelected()"
+              class="flex-shrink-0"
+              aria-label="Sélectionner {{ template().name }}"
+            ></mat-radio-button>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="text-title-medium text-on-surface">
                   {{ template().name }}
                 </h3>
                 @if (template().isDefault) {
-                  <mat-chip
-                    appearance="outlined"
-                    class="!h-6 !min-h-6 flex-shrink-0"
-                  >
-                    <span class="text-label-small">Par défaut</span>
+                  <mat-chip appearance="outlined">
+                    <span>Par défaut</span>
                   </mat-chip>
                 }
               </div>
-              <button
-                matButton
-                (click)="showDetails.emit(template()); $event.stopPropagation()"
-                class="flex-shrink-0"
-              >
-                <span class="hidden sm:inline">Détails</span>
-                <mat-icon class="sm:hidden">info</mat-icon>
-              </button>
-            </div>
-
-            @if (template().description) {
-              <p class="text-body-medium text-on-surface-variant mb-2">
-                {{ template().description }}
-              </p>
-            }
-
-            <div class="flex flex-col gap-2">
-              @if (loading()) {
-                <div class="flex items-center gap-2">
-                  <mat-progress-spinner
-                    mode="indeterminate"
-                    aria-label="Chargement du modèle"
-                    role="progressbar"
-                    class="pulpe-loading-indicator pulpe-loading-small"
-                  ></mat-progress-spinner>
-                  <span class="text-on-surface-variant" aria-live="polite"
-                    >Chargement du modèle...</span
-                  >
-                </div>
-              } @else {
-                <div
-                  class="flex flex-col sm:flex-row gap-2 sm:gap-4 text-label-medium"
-                >
-                  <span class="text-success flex items-center gap-1">
-                    <mat-icon class="text-label-small">trending_up</mat-icon>
-                    <span class="whitespace-nowrap">
-                      Revenus:
-                      {{ totalIncome() | currency: 'CHF' : 'symbol' : '1.0-0' }}
-                    </span>
-                  </span>
-                  <span class="text-error flex items-center gap-1">
-                    <mat-icon class="text-label-small">trending_down</mat-icon>
-                    <span class="whitespace-nowrap">
-                      Dépenses:
-                      {{
-                        totalExpenses() | currency: 'CHF' : 'symbol' : '1.0-0'
-                      }}
-                    </span>
-                  </span>
-                </div>
-                <div class="flex items-center gap-1 mt-1">
-                  <span
-                    class="text-label-medium font-medium flex items-center gap-1"
-                    [class.text-success]="remainingLivingAllowance() > 0"
-                    [class.text-warning]="remainingLivingAllowance() === 0"
-                    [class.text-error]="remainingLivingAllowance() < 0"
-                  >
-                    <mat-icon class="text-label-small"
-                      >account_balance_wallet</mat-icon
-                    >
-                    <span class="whitespace-nowrap">
-                      Reste à vivre:
-                      {{
-                        remainingLivingAllowance()
-                          | currency: 'CHF' : 'symbol' : '1.0-0'
-                      }}
-                    </span>
-                  </span>
-                </div>
+              @if (template().description) {
+                <p class="text-body-small text-on-surface-variant mt-1">
+                  {{ template().description }}
+                </p>
               }
             </div>
           </div>
+        </div>
+
+        <!-- Financial details -->
+        @if (loading()) {
+          <div class="flex items-center justify-center py-4">
+            <mat-progress-spinner
+              mode="indeterminate"
+              aria-label="Chargement du modèle"
+              role="progressbar"
+              class="pulpe-loading-indicator pulpe-loading-small"
+            ></mat-progress-spinner>
+            <span class="text-on-surface-variant ml-2" aria-live="polite">
+              Chargement...
+            </span>
+          </div>
+        } @else {
+          <mat-list class="pt-0">
+            <!-- Income -->
+            <mat-list-item class="h-auto min-h-0 py-2">
+              <mat-icon matListItemIcon class="icon-filled"
+                >trending_up</mat-icon
+              >
+              <span matListItemTitle class="text-body-medium"
+                >Revenus mensuels</span
+              >
+              <span matListItemMeta class="text-body-medium font-medium">
+                {{ totalIncome() | currency: 'CHF' : 'symbol' : '1.0-0' }}
+              </span>
+            </mat-list-item>
+
+            <mat-divider></mat-divider>
+
+            <!-- Expenses -->
+            <mat-list-item class="h-auto min-h-0 py-2">
+              <mat-icon matListItemIcon class="icon-filled"
+                >trending_down</mat-icon
+              >
+              <span matListItemTitle class="text-body-medium"
+                >Dépenses prévues</span
+              >
+              <span matListItemMeta class="text-body-medium font-medium">
+                {{ totalExpenses() | currency: 'CHF' : 'symbol' : '1.0-0' }}
+              </span>
+            </mat-list-item>
+
+            <mat-divider></mat-divider>
+
+            <!-- Living allowance -->
+            <mat-list-item class="h-auto min-h-0 py-2">
+              <mat-icon matListItemIcon class="icon-filled"
+                >account_balance_wallet</mat-icon
+              >
+              <span matListItemTitle class="text-body-medium"
+                >Disponible à dépenser</span
+              >
+              <span
+                matListItemMeta
+                class="text-body-medium font-medium"
+                [class.text-primary]="remainingLivingAllowance() > 0"
+                [class.text-warning]="remainingLivingAllowance() === 0"
+                [class.text-error]="remainingLivingAllowance() < 0"
+              >
+                {{
+                  remainingLivingAllowance()
+                    | currency: 'CHF' : 'symbol' : '1.0-0'
+                }}
+              </span>
+            </mat-list-item>
+          </mat-list>
+        }
+
+        <!-- Actions -->
+        <div
+          class="flex items-center justify-between mt-4 pt-3 border-t border-outline-variant"
+        >
+          <button
+            matButton
+            [color]="isSelected() ? 'primary' : undefined"
+            class="mr-2"
+          >
+            <mat-icon>{{
+              isSelected() ? 'check_circle' : 'radio_button_unchecked'
+            }}</mat-icon>
+            {{ isSelected() ? 'Sélectionné' : 'Utiliser ce modèle' }}
+          </button>
+          <button
+            matButton
+            (click)="showDetails.emit(template()); $event.stopPropagation()"
+          >
+            <mat-icon>info_outline</mat-icon>
+            Détails
+          </button>
         </div>
       </mat-card-content>
     </mat-card>
   `,
   styles: `
+    @use '@angular/material' as mat;
+
     :host {
       display: block;
+    }
+
+    /* Custom card overrides for selected state */
+    .template-card.selected {
+      @include mat.card-overrides(
+        (
+          outlined-container-color: var(--mat-sys-surface-container-lowest),
+          outlined-outline-color: var(--mat-sys-primary),
+          outlined-outline-width: 2px,
+        )
+      );
+    }
+
+    /* Ensure consistent spacing in list items */
+    ::ng-deep .mat-mdc-list-item {
+      padding: 0 !important;
+    }
+
+    ::ng-deep .mat-mdc-list-item-icon {
+      margin-right: 16px !important;
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

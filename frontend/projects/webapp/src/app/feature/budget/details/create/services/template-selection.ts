@@ -42,20 +42,26 @@ export class TemplateSelection {
   // Selected template tracking
   readonly selectedTemplateId = signal<string | null>(null);
 
-  // Computed filtered templates based on search
+  // Computed filtered templates based on search, with default template first
   readonly filteredTemplates = computed(() => {
     const templates = this.#templateApi.templatesResource.value() || [];
     const search = this.searchTerm();
 
-    if (!search) {
-      return templates;
+    let filtered = templates;
+    if (search) {
+      filtered = templates.filter(
+        (template: BudgetTemplate) =>
+          template.name.toLowerCase().includes(search) ||
+          template.description?.toLowerCase().includes(search),
+      );
     }
 
-    return templates.filter(
-      (template: BudgetTemplate) =>
-        template.name.toLowerCase().includes(search) ||
-        template.description?.toLowerCase().includes(search),
-    );
+    // Sort to put default template first
+    return [...filtered].sort((a, b) => {
+      if (a.isDefault && !b.isDefault) return -1;
+      if (!a.isDefault && b.isDefault) return 1;
+      return 0;
+    });
   });
 
   // Computed selected template
@@ -68,6 +74,23 @@ export class TemplateSelection {
 
   selectTemplate(templateId: string): void {
     this.selectedTemplateId.set(templateId);
+  }
+
+  /**
+   * Initialize selection with default template if no template is selected
+   */
+  initializeDefaultSelection(): void {
+    if (this.selectedTemplateId()) return; // Already selected
+
+    const templates = this.filteredTemplates();
+    const defaultTemplate = templates.find((t) => t.isDefault);
+
+    if (defaultTemplate) {
+      this.selectedTemplateId.set(defaultTemplate.id);
+    } else if (templates.length > 0) {
+      // If no default, select the first one
+      this.selectedTemplateId.set(templates[0].id);
+    }
   }
 
   /**
