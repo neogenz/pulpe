@@ -3,6 +3,7 @@ import {
   Component,
   inject,
   signal,
+  viewChild,
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
@@ -39,6 +40,7 @@ import { CreateTemplateForm } from './create-template-form';
 
       <div class="flex-1 overflow-auto">
         <pulpe-create-template-form
+          #templateForm
           (addTemplate)="onAddTemplate($event)"
           (cancelForm)="navigateBack()"
           [isCreating]="isCreatingTemplate()"
@@ -63,6 +65,9 @@ export default class CreateTemplatePage {
 
   isCreatingTemplate = signal(false);
 
+  // Get reference to the form component to reset it after successful creation
+  formComponent = viewChild(CreateTemplateForm);
+
   async onAddTemplate(template: BudgetTemplateCreate) {
     try {
       this.isCreatingTemplate.set(true);
@@ -74,6 +79,9 @@ export default class CreateTemplatePage {
         horizontalPosition: 'center',
         verticalPosition: 'bottom',
       });
+
+      // Reset form before navigation since we're leaving the page
+      this.formComponent()?.resetForm();
 
       // Navigate to the details page of the newly created template
       if (createdTemplate && createdTemplate.id) {

@@ -6,6 +6,7 @@ import {
   inject,
   computed,
   OnInit,
+  effect,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -38,7 +39,21 @@ import { BudgetTemplatesState } from '../services/budget-templates-state';
         <mat-spinner diameter="40"></mat-spinner>
       </div>
     } @else {
-      <div class="space-y-6" data-testid="template-form-container">
+      <div class="relative space-y-6" data-testid="template-form-container">
+        <!-- Loading overlay during form submission -->
+        @if (shouldShowSpinner()) {
+          <div
+            class="absolute inset-0 bg-surface bg-opacity-50 flex items-center justify-center z-10 rounded-md"
+          >
+            <div class="flex flex-col items-center gap-2">
+              <mat-spinner diameter="32"></mat-spinner>
+              <span class="text-body-small text-on-surface-variant">
+                Création en cours...
+              </span>
+            </div>
+          </div>
+        }
+
         @if (state.templateCount() > 0) {
           <div class="text-body-medium text-on-surface-variant">
             {{ state.templateCount() }}/{{ state.MAX_TEMPLATES }} modèles créés
@@ -141,7 +156,7 @@ import { BudgetTemplatesState } from '../services/budget-templates-state';
             <button
               matButton
               (click)="cancelForm.emit()"
-              [disabled]="isCreating()"
+              [disabled]="isFormDisabled()"
               data-testid="cancel-button"
               type="button"
             >
@@ -151,11 +166,13 @@ import { BudgetTemplatesState } from '../services/budget-templates-state';
               matButton="filled"
               type="submit"
               [disabled]="
-                templateForm.invalid || isCreating() || !state.canCreateMore()
+                templateForm.invalid ||
+                isFormDisabled() ||
+                !state.canCreateMore()
               "
               data-testid="submit-button"
             >
-              {{ isCreating() ? 'Création...' : 'Créer' }}
+              {{ submitButtonText() }}
             </button>
           </div>
         </form>
@@ -191,6 +208,28 @@ export class CreateTemplateForm implements OnInit {
     );
   });
 
+  // Computed signals for derived UI states
+  isFormDisabled = computed(() => this.isCreating());
+  submitButtonText = computed(() =>
+    this.isCreating() ? 'Création...' : 'Créer',
+  );
+  shouldShowSpinner = computed(() => this.isCreating());
+
+  constructor() {
+    // Effect to disable/enable form fields based on isCreating signal
+    effect(() => {
+      if (this.isCreating()) {
+        this.templateForm.disable();
+      } else {
+        this.templateForm.enable();
+        // Re-apply checkbox disabled state based on business logic
+        if (this.hasDefaultAndNotThis()) {
+          this.templateForm.get('isDefault')?.disable();
+        }
+      }
+    });
+  }
+
   ngOnInit() {
     // Load templates to check count and default status
     if (this.state.templatesData.status() === 'idle') {
@@ -199,7 +238,11 @@ export class CreateTemplateForm implements OnInit {
   }
 
   onSubmit() {
-    if (this.templateForm.valid && this.state.canCreateMore()) {
+    if (
+      this.templateForm.valid &&
+      this.state.canCreateMore() &&
+      !this.isCreating()
+    ) {
       const formValue = this.templateForm.value;
 
       const template: BudgetTemplateCreate = {
@@ -209,11 +252,18 @@ export class CreateTemplateForm implements OnInit {
         lines: [],
       };
       this.addTemplate.emit(template);
-      this.templateForm.reset();
+      // Note: Form reset is now handled by parent component after successful navigation
     } else if (!this.state.canCreateMore()) {
       this.state.businessError.set(
         `Vous avez atteint la limite de ${this.state.MAX_TEMPLATES} modèles`,
       );
     }
+  }
+
+  // Method to reset form - called by parent on successful creation
+  resetForm() {
+    this.templateForm.reset();
+    this.templateForm.markAsUntouched();
+    this.templateForm.markAsPristine();
   }
 }
