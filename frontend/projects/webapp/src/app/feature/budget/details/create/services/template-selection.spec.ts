@@ -443,6 +443,110 @@ describe('TemplateSelection', () => {
     });
   });
 
+  describe('initializeDefaultSelection', () => {
+    it('should select default template from all templates', () => {
+      const templates = [
+        createTestTemplate({
+          id: 'template-1',
+          name: 'Regular Template',
+        }),
+        createTestTemplate({
+          id: 'template-2',
+          name: 'Default Template',
+          isDefault: true,
+        }),
+      ];
+
+      mockTemplateApi.templatesResource!.value.set(templates);
+
+      // Initially no selection
+      expect(service.selectedTemplateId()).toBeNull();
+
+      service.initializeDefaultSelection();
+
+      // Should select the default template
+      expect(service.selectedTemplateId()).toBe('template-2');
+    });
+
+    it('should select first visible template if no default exists', () => {
+      const templates = [
+        createTestTemplate({
+          id: 'template-1',
+          name: 'First Template',
+        }),
+        createTestTemplate({
+          id: 'template-2',
+          name: 'Second Template',
+        }),
+      ];
+
+      mockTemplateApi.templatesResource!.value.set(templates);
+
+      service.initializeDefaultSelection();
+
+      // Should select the first template since no default exists
+      expect(service.selectedTemplateId()).toBe('template-1');
+    });
+
+    it('should not change selection if already selected', () => {
+      const templates = [
+        createTestTemplate({
+          id: 'template-1',
+          name: 'Regular Template',
+        }),
+        createTestTemplate({
+          id: 'template-2',
+          name: 'Default Template',
+          isDefault: true,
+        }),
+      ];
+
+      mockTemplateApi.templatesResource!.value.set(templates);
+
+      // Pre-select a template
+      service.selectTemplate('template-1');
+
+      service.initializeDefaultSelection();
+
+      // Should keep the existing selection
+      expect(service.selectedTemplateId()).toBe('template-1');
+    });
+
+    it('should handle empty template list', () => {
+      mockTemplateApi.templatesResource!.value.set([]);
+
+      service.initializeDefaultSelection();
+
+      // Should remain null
+      expect(service.selectedTemplateId()).toBeNull();
+    });
+
+    it('should select default template even if filtered out by search', async () => {
+      const templates = [
+        createTestTemplate({
+          id: 'template-1',
+          name: 'Special Template',
+        }),
+        createTestTemplate({
+          id: 'template-2',
+          name: 'Default Template',
+          isDefault: true,
+        }),
+      ];
+
+      mockTemplateApi.templatesResource!.value.set(templates);
+
+      // Filter out the default template
+      service.searchControl.setValue('Special');
+      await new Promise((resolve) => setTimeout(resolve, 350));
+
+      service.initializeDefaultSelection();
+
+      // Should still select the default template from all templates
+      expect(service.selectedTemplateId()).toBe('template-2');
+    });
+  });
+
   describe('computed properties', () => {
     it('should filter templates based on search term', async () => {
       const templates = [
@@ -503,6 +607,64 @@ describe('TemplateSelection', () => {
       // Select non-existent template
       service.selectTemplate('non-existent');
       expect(service.selectedTemplate()).toBeNull();
+    });
+
+    it('should maintain selected template even when filtered out by search', async () => {
+      const templates = [
+        createTestTemplate({
+          id: 'template-1',
+          name: 'Default Template',
+          isDefault: true,
+        }),
+        createTestTemplate({
+          id: 'template-2',
+          name: 'Special Template',
+        }),
+      ];
+
+      mockTemplateApi.templatesResource!.value.set(templates);
+
+      // Select the default template
+      service.selectTemplate('template-1');
+      expect(service.selectedTemplate()).toEqual(templates[0]);
+
+      // Search for "Special" which should filter out the default template
+      service.searchControl.setValue('Special');
+      await new Promise((resolve) => setTimeout(resolve, 350));
+
+      // The selected template should still be available even though filtered out
+      expect(service.filteredTemplates()).toEqual([templates[1]]);
+      expect(service.selectedTemplate()).toEqual(templates[0]); // Still selected!
+    });
+
+    it('should sort templates with default template first', () => {
+      const templates = [
+        createTestTemplate({
+          id: 'template-1',
+          name: 'A Template',
+        }),
+        createTestTemplate({
+          id: 'template-2',
+          name: 'Default Template',
+          isDefault: true,
+        }),
+        createTestTemplate({
+          id: 'template-3',
+          name: 'Z Template',
+        }),
+      ];
+
+      mockTemplateApi.templatesResource!.value.set(templates);
+
+      const filtered = service.filteredTemplates();
+
+      // Default template should be first
+      expect(filtered[0].id).toBe('template-2');
+      expect(filtered[0].isDefault).toBe(true);
+
+      // Other templates maintain their original order
+      expect(filtered[1].id).toBe('template-1');
+      expect(filtered[2].id).toBe('template-3');
     });
   });
 });
