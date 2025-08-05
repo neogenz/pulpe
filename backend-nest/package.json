@@ -5,9 +5,10 @@
   "main": "dist/main.js",
   "scripts": {
     "build": "bun build src/main.ts --outdir=dist --target=node --minify --packages=external",
-    "start": "bun src/main.ts",
-    "dev": "bun --watch src/main.ts & bunx tsc --watch --project tsconfig.json",
-    "start:prod": "bun dist/main.js",
+    "start": "NODE_ENV=development bun src/main.ts",
+    "dev": "NODE_ENV=development bun --watch src/main.ts",
+    "dev:watch": "NODE_ENV=development bun --watch src/main.ts & bunx tsc --watch --project tsconfig.json",
+    "start:prod": "NODE_ENV=production bun dist/main.js",
     "dump:db": "bunx supabase db dump --schema public --file schema.sql",
     "generate-types": "bun x supabase gen types typescript --project-id xvrbcvltpkqwiiexvfxh --schema public > src/types/database.types.ts",
     "test": "bun test",

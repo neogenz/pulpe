@@ -205,7 +205,11 @@ function createPinoLoggerConfig(configService: ConfigService) {
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['.env.local', '.env'],
+      envFilePath: [
+        `.env.${process.env.NODE_ENV || 'development'}`,
+        '.env.local',
+        '.env',
+      ],
       cache: true,
       validate: validateConfig,
     }),
