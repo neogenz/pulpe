@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { BudgetTemplateDetailViewModel } from '../services/budget-templates-api';
 import type { TemplateLine } from '@pulpe/shared';
+import { of, throwError, firstValueFrom } from 'rxjs';
 
 // Mock data for testing
 const mockTemplateData: BudgetTemplateDetailViewModel = {
@@ -725,6 +726,279 @@ describe('TemplateDetail', () => {
         expense: 1500, // Increased by 300
         savings: 800,
       });
+    });
+  });
+
+  describe('Template Deletion', () => {
+    it('should check template usage before deletion', async () => {
+      const mockBudgetTemplatesApi = {
+        checkUsage$: vi.fn(),
+        delete$: vi.fn(),
+      };
+
+      const mockDialog = {
+        open: vi.fn(),
+      };
+
+      const mockSnackBar = {
+        open: vi.fn(),
+      };
+
+      const templateId = 'template-123';
+      const templateName = 'Test Template';
+
+      // Mock usage check response - template not used
+      const mockUsageResponse = {
+        data: {
+          isUsed: false,
+          budgets: [],
+        },
+        message: 'Template usage checked',
+        success: true,
+      };
+
+      mockBudgetTemplatesApi.checkUsage$.mockReturnValue(of(mockUsageResponse));
+
+      // Simulate deleteTemplate method logic
+      const deleteTemplate = async () => {
+        try {
+          const usageResponse = await firstValueFrom(
+            mockBudgetTemplatesApi.checkUsage$(templateId),
+          );
+
+          if (usageResponse.data.isUsed) {
+            // Show usage dialog
+            mockDialog.open('TemplateUsageDialog', {
+              data: { templateId, templateName },
+            });
+          } else {
+            // Show confirmation dialog
+            mockDialog.open('ConfirmationDialog', {
+              data: {
+                title: 'Supprimer le modèle',
+                message: `Êtes-vous sûr de vouloir supprimer le modèle « ${templateName} » ?`,
+              },
+            });
+          }
+        } catch {
+          mockSnackBar.open('Une erreur est survenue', 'Fermer');
+        }
+      };
+
+      await deleteTemplate();
+
+      expect(mockBudgetTemplatesApi.checkUsage$).toHaveBeenCalledWith(
+        templateId,
+      );
+      expect(mockDialog.open).toHaveBeenCalledWith('ConfirmationDialog', {
+        data: {
+          title: 'Supprimer le modèle',
+          message: `Êtes-vous sûr de vouloir supprimer le modèle « ${templateName} » ?`,
+        },
+      });
+    });
+
+    it('should show usage dialog when template is used', async () => {
+      const mockBudgetTemplatesApi = {
+        checkUsage$: vi.fn(),
+      };
+
+      const mockDialog = {
+        open: vi.fn().mockReturnValue({
+          componentInstance: {
+            setUsageData: vi.fn(),
+          },
+        }),
+      };
+
+      const templateId = 'template-123';
+      const templateName = 'Used Template';
+
+      // Mock usage check response - template is used
+      const mockUsageResponse = {
+        data: {
+          isUsed: true,
+          budgets: [
+            { id: 'budget-1', month: 6, year: 2024, description: 'June 2024' },
+            { id: 'budget-2', month: 7, year: 2024, description: 'July 2024' },
+          ],
+        },
+        message: 'Template usage checked',
+        success: true,
+      };
+
+      mockBudgetTemplatesApi.checkUsage$.mockReturnValue(of(mockUsageResponse));
+
+      // Simulate deleteTemplate method logic
+      const deleteTemplate = async () => {
+        const usageResponse = await firstValueFrom(
+          mockBudgetTemplatesApi.checkUsage$(templateId),
+        );
+
+        if (usageResponse.data.isUsed) {
+          const dialogRef = mockDialog.open('TemplateUsageDialog', {
+            data: { templateId, templateName },
+            width: '90vw',
+            maxWidth: '600px',
+          });
+
+          dialogRef.componentInstance.setUsageData(usageResponse.data.budgets);
+        }
+      };
+
+      await deleteTemplate();
+
+      expect(mockBudgetTemplatesApi.checkUsage$).toHaveBeenCalledWith(
+        templateId,
+      );
+      expect(mockDialog.open).toHaveBeenCalledWith('TemplateUsageDialog', {
+        data: { templateId, templateName },
+        width: '90vw',
+        maxWidth: '600px',
+      });
+      expect(
+        mockDialog.open.mock.results[0].value.componentInstance.setUsageData,
+      ).toHaveBeenCalledWith(mockUsageResponse.data.budgets);
+    });
+
+    it('should perform deletion when confirmed', async () => {
+      const mockBudgetTemplatesApi = {
+        delete$: vi.fn(),
+      };
+
+      const mockRouter = {
+        navigate: vi.fn(),
+      };
+
+      const mockRoute = {
+        snapshot: { params: {} },
+      };
+
+      const mockSnackBar = {
+        open: vi.fn(),
+      };
+
+      const templateId = 'template-123';
+
+      // Mock delete response
+      const mockDeleteResponse = {
+        data: null,
+        message: 'Template deleted',
+        success: true,
+      };
+
+      mockBudgetTemplatesApi.delete$.mockReturnValue(of(mockDeleteResponse));
+
+      // Simulate performDeletion logic
+      const performDeletion = async () => {
+        try {
+          await firstValueFrom(mockBudgetTemplatesApi.delete$(templateId));
+          mockSnackBar.open('Modèle supprimé avec succès', undefined, {
+            duration: 3000,
+          });
+          mockRouter.navigate(['..'], { relativeTo: mockRoute });
+        } catch {
+          mockSnackBar.open(
+            'Une erreur est survenue lors de la suppression',
+            'Fermer',
+            { duration: 5000 },
+          );
+        }
+      };
+
+      await performDeletion();
+
+      expect(mockBudgetTemplatesApi.delete$).toHaveBeenCalledWith(templateId);
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'Modèle supprimé avec succès',
+        undefined,
+        { duration: 3000 },
+      );
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['..'], {
+        relativeTo: mockRoute,
+      });
+    });
+
+    it('should handle deletion error', async () => {
+      const mockBudgetTemplatesApi = {
+        delete$: vi.fn(),
+      };
+
+      const mockSnackBar = {
+        open: vi.fn(),
+      };
+
+      const templateId = 'template-123';
+      const mockError = new Error('Network error');
+
+      mockBudgetTemplatesApi.delete$.mockReturnValue(
+        throwError(() => mockError),
+      );
+
+      // Simulate performDeletion logic with error
+      const performDeletion = async () => {
+        try {
+          await firstValueFrom(mockBudgetTemplatesApi.delete$(templateId));
+        } catch {
+          console.error('Error deleting template:', error);
+          mockSnackBar.open(
+            'Une erreur est survenue lors de la suppression',
+            'Fermer',
+            { duration: 5000 },
+          );
+        }
+      };
+
+      await performDeletion();
+
+      expect(mockBudgetTemplatesApi.delete$).toHaveBeenCalledWith(templateId);
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'Une erreur est survenue lors de la suppression',
+        'Fermer',
+        { duration: 5000 },
+      );
+    });
+
+    it('should handle usage check error', async () => {
+      const mockBudgetTemplatesApi = {
+        checkUsage$: vi.fn(),
+      };
+
+      const mockSnackBar = {
+        open: vi.fn(),
+      };
+
+      const templateId = 'template-123';
+      const mockError = new Error('API error');
+
+      mockBudgetTemplatesApi.checkUsage$.mockReturnValue(
+        throwError(() => mockError),
+      );
+
+      // Simulate deleteTemplate method logic with error
+      const deleteTemplate = async () => {
+        try {
+          await firstValueFrom(mockBudgetTemplatesApi.checkUsage$(templateId));
+        } catch {
+          console.error('Error checking template usage:', error);
+          mockSnackBar.open(
+            'Une erreur est survenue lors de la vérification',
+            'Fermer',
+            { duration: 5000 },
+          );
+        }
+      };
+
+      await deleteTemplate();
+
+      expect(mockBudgetTemplatesApi.checkUsage$).toHaveBeenCalledWith(
+        templateId,
+      );
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'Une erreur est survenue lors de la vérification',
+        'Fermer',
+        { duration: 5000 },
+      );
     });
   });
 

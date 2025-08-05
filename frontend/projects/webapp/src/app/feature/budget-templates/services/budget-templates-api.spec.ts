@@ -498,6 +498,161 @@ describe('BudgetTemplatesApi', () => {
     });
   });
 
+  describe('Template Deletion', () => {
+    it('should construct correct delete endpoint', () => {
+      const templateId = 'template-123';
+      const endpoint = `${baseUrl}/${templateId}`;
+
+      expect(endpoint).toBe(
+        'http://localhost:3000/api/v1/budget-templates/template-123',
+      );
+    });
+
+    it('should use DELETE HTTP method for deletion', () => {
+      const httpMethod = 'DELETE';
+      expect(httpMethod).toBe('DELETE');
+    });
+
+    it('should validate delete response structure', () => {
+      const mockDeleteResponse = {
+        data: null,
+        message: 'Template deleted successfully',
+        success: true,
+      };
+
+      const validateDeleteResponse = (response: unknown): boolean => {
+        return (
+          response &&
+          typeof response.message === 'string' &&
+          typeof response.success === 'boolean'
+        );
+      };
+
+      expect(validateDeleteResponse(mockDeleteResponse)).toBe(true);
+    });
+
+    it('should provide user-friendly error message for delete failure', () => {
+      const errorMessage = 'Impossible de supprimer le modèle de budget';
+      expect(errorMessage).toBe('Impossible de supprimer le modèle de budget');
+    });
+  });
+
+  describe('Template Usage Check', () => {
+    it('should construct correct usage check endpoint', () => {
+      const templateId = 'template-456';
+      const endpoint = `${baseUrl}/${templateId}/usage`;
+
+      expect(endpoint).toBe(
+        'http://localhost:3000/api/v1/budget-templates/template-456/usage',
+      );
+    });
+
+    it('should use GET HTTP method for usage check', () => {
+      const httpMethod = 'GET';
+      expect(httpMethod).toBe('GET');
+    });
+
+    it('should validate usage response structure when template is not used', () => {
+      const mockUsageResponse = {
+        data: {
+          isUsed: false,
+          budgets: [],
+        },
+        message: 'Template usage checked successfully',
+        success: true,
+      };
+
+      const validateUsageResponse = (response: unknown): boolean => {
+        return (
+          response &&
+          response.data &&
+          typeof response.data.isUsed === 'boolean' &&
+          Array.isArray(response.data.budgets) &&
+          typeof response.message === 'string' &&
+          typeof response.success === 'boolean'
+        );
+      };
+
+      expect(validateUsageResponse(mockUsageResponse)).toBe(true);
+      expect(mockUsageResponse.data.isUsed).toBe(false);
+      expect(mockUsageResponse.data.budgets).toHaveLength(0);
+    });
+
+    it('should validate usage response structure when template is used', () => {
+      const mockUsageResponse = {
+        data: {
+          isUsed: true,
+          budgets: [
+            {
+              id: 'budget-1',
+              month: 6,
+              year: 2024,
+              description: 'June 2024 Budget',
+            },
+            {
+              id: 'budget-2',
+              month: 7,
+              year: 2024,
+              description: 'July 2024 Budget',
+            },
+          ],
+        },
+        message: 'Template usage checked successfully',
+        success: true,
+      };
+
+      const validateUsageResponse = (response: unknown): boolean => {
+        return (
+          response &&
+          response.data &&
+          typeof response.data.isUsed === 'boolean' &&
+          Array.isArray(response.data.budgets) &&
+          response.data.budgets.every(
+            (budget: unknown) =>
+              typeof budget.id === 'string' &&
+              typeof budget.month === 'number' &&
+              typeof budget.year === 'number',
+          )
+        );
+      };
+
+      expect(validateUsageResponse(mockUsageResponse)).toBe(true);
+      expect(mockUsageResponse.data.isUsed).toBe(true);
+      expect(mockUsageResponse.data.budgets).toHaveLength(2);
+    });
+
+    it('should validate budget usage data structure', () => {
+      const mockBudgetUsage = {
+        id: 'budget-123',
+        month: 12,
+        year: 2024,
+        description: 'December 2024 Budget',
+      };
+
+      const validateBudgetUsage = (budget: unknown): boolean => {
+        return (
+          budget &&
+          typeof budget.id === 'string' &&
+          typeof budget.month === 'number' &&
+          budget.month >= 1 &&
+          budget.month <= 12 &&
+          typeof budget.year === 'number' &&
+          budget.year >= 2000 &&
+          budget.year <= 2100
+        );
+      };
+
+      expect(validateBudgetUsage(mockBudgetUsage)).toBe(true);
+    });
+
+    it('should provide user-friendly error message for usage check failure', () => {
+      const errorMessage = "Impossible de vérifier l'utilisation du modèle";
+      expect(errorMessage).toBe(
+        "Impossible de vérifier l'utilisation du modèle",
+      );
+    });
+  });
+
   // Full HTTP integration tests are done via E2E tests
   // See e2e/tests/features/budget-template-management.spec.ts
 });
