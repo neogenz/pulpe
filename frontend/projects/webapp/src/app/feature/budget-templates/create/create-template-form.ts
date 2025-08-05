@@ -17,7 +17,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { type BudgetTemplateCreate } from '@pulpe/shared';
-import { BudgetTemplatesState } from '../../services/budget-templates-state';
+import { BudgetTemplatesState } from '../services/budget-templates-state';
 
 @Component({
   selector: 'pulpe-create-template-form',

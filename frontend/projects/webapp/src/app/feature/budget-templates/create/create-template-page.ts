@@ -10,7 +10,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { type BudgetTemplateCreate } from '@pulpe/shared';
 import { BudgetTemplatesState } from '../services/budget-templates-state';
-import { CreateTemplateForm } from './components/create-template-form';
+import { CreateTemplateForm } from './create-template-form';
 
 @Component({
   selector: 'pulpe-create-template-page',
