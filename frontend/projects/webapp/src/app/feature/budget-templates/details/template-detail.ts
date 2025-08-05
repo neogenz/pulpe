@@ -28,7 +28,7 @@ import {
 import { BudgetTemplatesApi } from '../services/budget-templates-api';
 import { firstValueFrom } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { CurrencyPipe } from '@angular/common';
+import { CommonModule, CurrencyPipe } from '@angular/common';
 import { TemplateLine } from '@pulpe/shared';
 import { PulpeTitleStrategy } from '@core/routing/title-strategy';
 
@@ -36,6 +36,7 @@ import { PulpeTitleStrategy } from '@core/routing/title-strategy';
   selector: 'pulpe-template-detail',
   standalone: true,
   imports: [
+    CommonModule,
     CurrencyPipe,
     MatButtonModule,
     MatIconModule,
@@ -104,6 +105,7 @@ import { PulpeTitleStrategy } from '@core/routing/title-strategy';
                 <h1
                   class="text-display-small truncate"
                   [title]="value.template.name"
+                  data-testid="page-title"
                 >
                   {{ value.template.name }}
                 </h1>

@@ -78,7 +78,7 @@ export default class CreateTemplatePage {
       // Navigate to the details page of the newly created template
       if (createdTemplate && createdTemplate.id) {
         this.#router.navigate([
-          '/budget-templates/details',
+          '/app/budget-templates/details',
           createdTemplate.id,
         ]);
       } else {
@@ -104,6 +104,6 @@ export default class CreateTemplatePage {
   }
 
   navigateBack() {
-    this.#router.navigate(['/budget-templates']);
+    this.#router.navigate(['/app/budget-templates']);
   }
 }

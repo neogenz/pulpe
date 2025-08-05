@@ -63,9 +63,21 @@ export class BudgetTemplatesPage {
       try {
         await this.page.waitForSelector('body', { state: 'visible', timeout: 5000 });
       } catch {
-        // Last resort - just wait a bit
-        await this.page.waitForTimeout(2000);
+        // Last resort - just wait a bit (avoid in production)
+        await this.page.waitForTimeout(1000);
       }
+    }
+  }
+
+  // Add dedicated method for API-dependent waits
+  async waitForApiResponse(endpoint: string, timeout: number = 5000) {
+    try {
+      await this.page.waitForResponse(
+        response => response.url().includes(endpoint) && response.status() === 200,
+        { timeout }
+      );
+    } catch {
+      // Continue with test - API might be mocked
     }
   }
 
@@ -289,5 +301,32 @@ export class BudgetTemplatesPage {
   async expectEmptyState() {
     const emptyState = this.page.locator('[data-testid="empty-state"]');
     await expect(emptyState).toBeVisible();
+  }
+
+  async navigateToTemplateDetails(templateName: string) {
+    // Find the template card that contains the specified template
+    const templateContainer = this.page.locator('mat-card, [class*="card"], article', {
+      hasText: templateName
+    });
+    
+    // Look for the "Détails" button within the template container
+    const detailsButton = templateContainer.locator('button', { hasText: 'Détails' }).first();
+    
+    // Check if we found the button
+    const buttonCount = await detailsButton.count();
+    if (buttonCount > 0) {
+      await detailsButton.click();
+    } else {
+      // If no button found, try clicking the card itself
+      const cardCount = await templateContainer.count();
+      if (cardCount > 0) {
+        await templateContainer.first().click();
+      } else {
+        throw new Error(`Template "${templateName}" not found for navigation`);
+      }
+    }
+    
+    // Wait for navigation to complete
+    await this.page.waitForLoadState('networkidle');
   }
 }
