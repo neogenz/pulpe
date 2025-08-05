@@ -274,6 +274,207 @@ export class TestDataFactory {
   }
 }
 
+// Helper pour les mocks d'API Budget et Transaction
+export class BudgetApiMockHelper {
+  static async setupBudgetScenario(
+    page: Page,
+    scenario: 'WITH_BUDGET' | 'EMPTY_STATE' | 'SERVER_ERROR'
+  ): Promise<void> {
+    switch (scenario) {
+      case 'WITH_BUDGET':
+        await this.#mockBudgetWithData(page);
+        break;
+      case 'EMPTY_STATE':
+        await this.#mockEmptyBudget(page);
+        break;
+      case 'SERVER_ERROR':
+        await this.#mockBudgetServerError(page);
+        break;
+    }
+  }
+
+  static #mockBudgetWithData = async (page: Page): Promise<void> => {
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth() + 1;
+    const currentYear = currentDate.getFullYear();
+    
+    const mockBudget = {
+      id: 'test-budget-123',
+      name: 'Budget Test',
+      month: currentMonth,
+      year: currentYear,
+      templateId: 'test-template-123',
+      userId: 'test-user',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    const mockBudgetLines = [
+      {
+        id: 'line-1',
+        budgetId: 'test-budget-123',
+        templateLineId: 'template-line-1',
+        name: 'Salaire',
+        amount: 6500,
+        kind: 'INCOME',
+        recurrence: 'fixed',
+        category: null,
+        userId: 'test-user',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: 'line-2',
+        budgetId: 'test-budget-123',
+        templateLineId: 'template-line-2',
+        name: 'Loyer',
+        amount: 1800,
+        kind: 'FIXED_EXPENSE',
+        recurrence: 'fixed',
+        category: 'housing',
+        userId: 'test-user',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: 'line-3',
+        budgetId: 'test-budget-123',
+        templateLineId: 'template-line-3',
+        name: 'Épargne générale',
+        amount: 500,
+        kind: 'SAVINGS_CONTRIBUTION',
+        recurrence: 'fixed',
+        category: null,
+        userId: 'test-user',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
+    ];
+
+    const mockTransactions = [
+      {
+        id: 'transaction-1',
+        budgetId: 'test-budget-123',
+        name: 'Courses alimentaires',
+        amount: 85.50,
+        kind: 'FIXED_EXPENSE',
+        category: 'groceries',
+        transactionDate: new Date().toISOString(),
+        isOutOfBudget: false,
+        userId: 'test-user',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: 'transaction-2',
+        budgetId: 'test-budget-123',
+        name: 'Restaurant',
+        amount: 45.00,
+        kind: 'FIXED_EXPENSE',
+        category: 'dining',
+        transactionDate: new Date().toISOString(),
+        isOutOfBudget: false,
+        userId: 'test-user',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
+    ];
+
+    // Mock getAllBudgets endpoint
+    await page.route('**/api/v1/budgets', (route) => {
+      if (route.request().method() === 'GET') {
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            data: [mockBudget],
+            message: 'Budgets récupérés avec succès'
+          }),
+        });
+      } else {
+        route.continue();
+      }
+    });
+
+    // Mock getBudgetWithDetails endpoint
+    await page.route('**/api/v1/budgets/*/details', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            budget: mockBudget,
+            budgetLines: mockBudgetLines,
+            transactions: mockTransactions
+          },
+          message: 'Détails du budget récupérés avec succès'
+        }),
+      });
+    });
+
+    // Mock transactions endpoint for creating new transactions
+    await page.route('**/api/v1/transactions', (route) => {
+      if (route.request().method() === 'POST') {
+        const newTransaction = {
+          id: `transaction-${Date.now()}`,
+          budgetId: 'test-budget-123',
+          ...JSON.parse(route.request().postData() || '{}'),
+          userId: 'test-user',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        
+        route.fulfill({
+          status: 201,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            data: newTransaction,
+            message: 'Transaction créée avec succès'
+          }),
+        });
+      } else {
+        route.continue();
+      }
+    });
+  };
+
+  static #mockEmptyBudget = async (page: Page): Promise<void> => {
+    // Mock getAllBudgets endpoint - return empty array
+    await page.route('**/api/v1/budgets', (route) => {
+      if (route.request().method() === 'GET') {
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            data: [],
+            message: 'Aucun budget trouvé'
+          }),
+        });
+      } else {
+        route.continue();
+      }
+    });
+  };
+
+  static #mockBudgetServerError = async (page: Page): Promise<void> => {
+    await page.route('**/api/v1/budgets**', (route) => {
+      route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: false,
+          error: 'Internal server error',
+          message: 'Erreur lors de la récupération des données'
+        }),
+      });
+    });
+  };
+}
+
 // Types utilitaires pour les tests
 export interface TestCredentials {
   email: string;

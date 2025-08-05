@@ -1,5 +1,5 @@
 import { test, expect } from '../../fixtures/test-fixtures';
-import { WaitHelper } from '../../fixtures/test-helpers';
+import { WaitHelper, BudgetApiMockHelper } from '../../fixtures/test-helpers';
 import { CurrentMonthPage } from '../../pages/current-month.page';
 
 test.describe('Monthly Budget Management', () => {
@@ -66,19 +66,43 @@ test.describe('Monthly Budget Management', () => {
     authenticatedPage,
   }) => {
     const currentMonthPage = new CurrentMonthPage(authenticatedPage);
+    
     await test.step('Setup API error mock', async () => {
-      // Mock API error
-      await authenticatedPage.route('**/api/v1/transactions**', (route) => {
-        void route.fulfill({
-          status: 500,
-          body: JSON.stringify({ error: 'Server error' }),
-        });
-      });
+      // Override with server error scenario
+      await BudgetApiMockHelper.setupBudgetScenario(authenticatedPage, 'SERVER_ERROR');
     });
 
     await test.step('Navigate with error condition', async () => {
       await currentMonthPage.goto();
       await currentMonthPage.expectPageLoaded();
+      
+      // Should show error state
+      const errorElement = authenticatedPage.locator('[data-testid="dashboard-error"]');
+      await expect(errorElement).toBeVisible({ timeout: 10000 });
+    });
+  });
+
+  test('should display empty state when no budget exists', async ({
+    authenticatedPage,
+  }) => {
+    const currentMonthPage = new CurrentMonthPage(authenticatedPage);
+    
+    await test.step('Setup empty budget scenario', async () => {
+      // Override with empty state scenario
+      await BudgetApiMockHelper.setupBudgetScenario(authenticatedPage, 'EMPTY_STATE');
+    });
+
+    await test.step('Navigate and verify empty state', async () => {
+      await currentMonthPage.goto();
+      await currentMonthPage.expectPageLoaded();
+      
+      // Should show empty state
+      const emptyState = authenticatedPage.locator('[data-testid="empty-state"]');
+      await expect(emptyState).toBeVisible({ timeout: 10000 });
+      
+      // Should show empty state title and description
+      await expect(authenticatedPage.locator('[data-testid="empty-state-title"]')).toBeVisible();
+      await expect(authenticatedPage.locator('[data-testid="empty-state-description"]')).toBeVisible();
     });
   });
 
