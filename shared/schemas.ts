@@ -438,6 +438,24 @@ export type BudgetTemplateCreateResponse = z.infer<
   typeof budgetTemplateCreateResponseSchema
 >;
 
+// Response schema for template usage check
+export const templateUsageResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    isUsed: z.boolean(),
+    budgetCount: z.number(),
+    budgets: z.array(
+      z.object({
+        id: z.string(),
+        month: z.number().min(MONTH_MIN).max(MONTH_MAX),
+        year: z.number().min(MIN_YEAR).max(MAX_YEAR),
+        description: z.string(),
+      }),
+    ),
+  }),
+});
+export type TemplateUsageResponse = z.infer<typeof templateUsageResponseSchema>;
+
 // Response schema for transactional RPC function
 export const budgetTemplateCreateTransactionalResponseSchema = z.object({
   success: z.literal(true),

@@ -11,8 +11,8 @@ import {
 
 @Injectable()
 export class BudgetDetailsState {
-  #budgetLineApi = inject(BudgetLineApi);
-  #snackBar = inject(MatSnackBar);
+  readonly #budgetLineApi = inject(BudgetLineApi);
+  readonly #snackBar = inject(MatSnackBar);
 
   // Signal to hold the current budget ID - can be initialized in constructor
   #budgetId = signal<string | null>(null);

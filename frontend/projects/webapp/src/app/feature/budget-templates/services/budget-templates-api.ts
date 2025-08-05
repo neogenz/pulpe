@@ -13,6 +13,7 @@ import {
   type TemplateLinesBulkUpdateResponse,
   type TemplateLinesBulkOperations,
   type TemplateLinesBulkOperationsResponse,
+  type TemplateUsageResponse,
 } from '@pulpe/shared';
 import { environment } from '../../../../environments/environment';
 
@@ -121,18 +122,4 @@ export class BudgetTemplatesApi {
 export interface BudgetTemplateDetailViewModel {
   template: BudgetTemplateResponse['data'];
   transactions: TemplateLineListResponse['data'];
-}
-
-export interface TemplateUsageResponse {
-  success: boolean;
-  data: {
-    isUsed: boolean;
-    budgetCount: number;
-    budgets: {
-      id: string;
-      month: number;
-      year: number;
-      description: string;
-    }[];
-  };
 }
