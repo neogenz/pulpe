@@ -34,6 +34,8 @@ testem.log
 # Hono/Node specific
 **/.env
 **/.env.local
+**/.env.development
+**/.env.production
 
 # IDEs and editors
 .idea/

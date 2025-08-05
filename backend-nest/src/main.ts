@@ -19,7 +19,17 @@ function setupCors(app: import('@nestjs/common').INestApplication): void {
     origin:
       nodeEnv === 'production'
         ? configService.get<string>('CORS_ORIGIN', '').split(',')
-        : ['http://localhost:4200', 'http://localhost:3000'],
+        : (
+            origin: string | undefined,
+            callback: (err: Error | null, allow?: boolean) => void,
+          ) => {
+            // En développement, autoriser tous les ports localhost
+            if (!origin || /^http:\/\/localhost:\d+$/.test(origin)) {
+              callback(null, true);
+            } else {
+              callback(new Error('Not allowed by CORS'));
+            }
+          },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
