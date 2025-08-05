@@ -183,6 +183,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
                   aria-label="Options pour les transactions"
                   aria-haspopup="menu"
                   [attr.aria-expanded]="false"
+                  data-testid="template-detail-menu-trigger"
                 >
                   <mat-icon>more_vert</mat-icon>
                 </button>
@@ -204,6 +205,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
                     (click)="deleteTemplate()"
                     aria-label="Supprimer le modèle"
                     class="text-error"
+                    data-testid="delete-template-detail-menu-item"
                   >
                     <mat-icon aria-hidden="true" class="text-error"
                       >delete</mat-icon

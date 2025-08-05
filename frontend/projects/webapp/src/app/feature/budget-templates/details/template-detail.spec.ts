@@ -939,7 +939,7 @@ describe('TemplateDetail', () => {
       const performDeletion = async () => {
         try {
           await firstValueFrom(mockBudgetTemplatesApi.delete$(templateId));
-        } catch {
+        } catch (error) {
           console.error('Error deleting template:', error);
           mockSnackBar.open(
             'Une erreur est survenue lors de la suppression',
@@ -979,7 +979,7 @@ describe('TemplateDetail', () => {
       const deleteTemplate = async () => {
         try {
           await firstValueFrom(mockBudgetTemplatesApi.checkUsage$(templateId));
-        } catch {
+        } catch (error) {
           console.error('Error checking template usage:', error);
           mockSnackBar.open(
             'Une erreur est survenue lors de la vérification',

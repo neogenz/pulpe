@@ -209,7 +209,7 @@ describe('BudgetTemplates', () => {
       const onDeleteTemplate = async (template: BudgetTemplate) => {
         try {
           await firstValueFrom(mockBudgetTemplatesApi.checkUsage$(template.id));
-        } catch {
+        } catch (error) {
           console.error('Error checking template usage:', error);
           mockSnackBar.open(
             'Une erreur est survenue lors de la vérification',
@@ -264,7 +264,7 @@ describe('BudgetTemplates', () => {
 
           // Refresh the templates list
           mockState.refreshData();
-        } catch {
+        } catch (error) {
           console.error('Error deleting template:', error);
           mockSnackBar.open(
             'Une erreur est survenue lors de la suppression',
@@ -306,7 +306,7 @@ describe('BudgetTemplates', () => {
       const performDeletion = async (template: BudgetTemplate) => {
         try {
           await firstValueFrom(mockBudgetTemplatesApi.delete$(template.id));
-        } catch {
+        } catch (error) {
           console.error('Error deleting template:', error);
           mockSnackBar.open(
             'Une erreur est survenue lors de la suppression',
