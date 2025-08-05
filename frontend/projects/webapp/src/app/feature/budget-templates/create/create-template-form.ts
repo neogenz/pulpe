@@ -8,7 +8,6 @@ import {
   OnInit,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -23,7 +22,6 @@ import { BudgetTemplatesState } from '../services/budget-templates-state';
   selector: 'pulpe-create-template-form',
   imports: [
     ReactiveFormsModule,
-    MatCardModule,
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
@@ -34,33 +32,24 @@ import { BudgetTemplatesState } from '../services/budget-templates-state';
   ],
   template: `
     @if (state.isLoading() && state.templatesData.status() === 'loading') {
-      <mat-card class="surface-container-highest">
-        <mat-card-content class="flex justify-center items-center py-8">
-          <mat-spinner diameter="40"></mat-spinner>
-        </mat-card-content>
-      </mat-card>
+      <div class="flex justify-center items-center py-16">
+        <mat-spinner diameter="40"></mat-spinner>
+      </div>
     } @else {
-      <mat-card
-        class="surface-container-highest"
-        data-testid="template-form-card"
-      >
-        <mat-card-header>
-          <mat-card-title data-testid="form-title">
-            Nouveau modèle de budget
-          </mat-card-title>
-          @if (state.templateCount() > 0) {
-            <mat-card-subtitle class="text-body-medium">
-              {{ state.templateCount() }}/{{ state.MAX_TEMPLATES }} modèles
-              créés
-            </mat-card-subtitle>
-          }
-        </mat-card-header>
+      <div class="space-y-6" data-testid="template-form-container">
+        @if (state.templateCount() > 0) {
+          <div class="text-body-medium text-on-surface-variant">
+            {{ state.templateCount() }}/{{ state.MAX_TEMPLATES }} modèles créés
+          </div>
+        }
+
         <form
           [formGroup]="templateForm"
           (ngSubmit)="onSubmit()"
           data-testid="template-form"
+          class="space-y-6"
         >
-          <mat-card-content class="space-y-4">
+          <div class="space-y-4">
             <mat-form-field appearance="outline" class="w-full">
               <mat-label>Nom du modèle</mat-label>
               <input
@@ -120,7 +109,7 @@ import { BudgetTemplatesState } from '../services/budget-templates-state';
 
             @if (state.businessError()) {
               <div
-                class="mt-4 p-3 surface-error-container rounded-md flex items-center gap-2"
+                class="p-3 surface-error-container rounded-md flex items-center gap-2"
               >
                 <mat-icon class="text-error">error</mat-icon>
                 <span class="text-error text-body-medium">
@@ -128,9 +117,9 @@ import { BudgetTemplatesState } from '../services/budget-templates-state';
                 </span>
               </div>
             }
-          </mat-card-content>
+          </div>
 
-          <mat-card-actions align="end">
+          <div class="flex justify-end gap-3 pt-4">
             <button
               matButton
               (click)="cancelForm.emit()"
@@ -150,9 +139,9 @@ import { BudgetTemplatesState } from '../services/budget-templates-state';
             >
               {{ isCreating() ? 'Création...' : 'Créer' }}
             </button>
-          </mat-card-actions>
+          </div>
         </form>
-      </mat-card>
+      </div>
     }
   `,
   styles: `
