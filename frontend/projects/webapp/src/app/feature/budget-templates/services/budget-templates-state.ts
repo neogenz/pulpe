@@ -5,7 +5,7 @@ import { BudgetTemplatesApi } from './budget-templates-api';
 
 @Injectable()
 export class BudgetTemplatesState {
-  #budgetTemplatesApi = inject(BudgetTemplatesApi);
+  readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
 
   // Business constants
   readonly MAX_TEMPLATES = 5;

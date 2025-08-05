@@ -121,8 +121,8 @@ import { ROUTES } from '@core/routing';
 export default class OtherMonths implements OnInit {
   protected readonly state = inject(BudgetState);
   protected readonly titleDisplay = inject(TitleDisplay);
-  #dialog = inject(MatDialog);
-  #router = inject(Router);
+  readonly #dialog = inject(MatDialog);
+  readonly #router = inject(Router);
 
   ngOnInit(): void {
     this.state.refreshData();

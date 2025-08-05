@@ -167,9 +167,9 @@ import { type BudgetLineCreate, type BudgetLineUpdate } from '@pulpe/shared';
 })
 export default class DetailsPage implements OnInit {
   budgetDetailsState = inject(BudgetDetailsState);
-  #router = inject(Router);
-  #route = inject(ActivatedRoute);
-  #dialog = inject(MatDialog);
+  readonly #router = inject(Router);
+  readonly #route = inject(ActivatedRoute);
+  readonly #dialog = inject(MatDialog);
 
   id = input.required<string>();
 
