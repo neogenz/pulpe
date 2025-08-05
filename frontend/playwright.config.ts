@@ -11,7 +11,7 @@ export default defineConfig({
   timeout: process.env.CI ? 60000 : 30000,
   // 🚀 Optimisation CI : 4 workers pour accélérer l'exécution
   workers: process.env.CI ? 4 : undefined,
-  reporter: 'list',
+  reporter: process.env.CI ? 'list' : [['html', { open: 'never' }]],
   use: {
     baseURL: 'http://localhost:4200',
     trace: 'retain-on-failure',

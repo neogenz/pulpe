@@ -272,6 +272,73 @@ export class TestDataFactory {
       fullName: `${TEST_USERS.VALID_USER.firstName} ${TEST_USERS.VALID_USER.lastName}`,
     };
   }
+
+  static createBudgetTemplateData() {
+    return {
+      id: 'test-template-id',
+      name: 'Test Template',
+      description: 'A test template for E2E testing',
+      isDefault: false,
+      income: 5000,
+      expenses: 2000,
+      savings: 3000,
+      transactions: [
+        {
+          id: 'transaction-1',
+          name: 'Test Income',
+          amount: 5000,
+          transactionType: 'INCOME',
+          recurrenceType: 'fixed',
+        },
+        {
+          id: 'transaction-2',
+          name: 'Test Expense',
+          amount: 2000,
+          transactionType: 'FIXED_EXPENSE',
+          recurrenceType: 'fixed',
+        },
+      ],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+  }
+}
+
+// Helper pour mocker les appels API
+export class ApiMockHelper {
+  static async mockBudgetTemplatesApi(page: Page, templates: any[] = []) {
+    await page.route('**/api/v1/budget-templates', async (route) => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ data: templates })
+        });
+      } else {
+        await route.continue();
+      }
+    });
+  }
+
+  static async mockBudgetTemplateDetailsApi(page: Page, templateId: string, templateData: any) {
+    await page.route(`**/api/v1/budget-templates/${templateId}`, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(templateData)
+      });
+    });
+  }
+
+  static async mockApiError(page: Page, endpoint: string, status = 500) {
+    await page.route(endpoint, async (route) => {
+      await route.fulfill({
+        status,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'API Error' })
+      });
+    });
+  }
 }
 
 // Helper pour les mocks d'API Budget et Transaction
