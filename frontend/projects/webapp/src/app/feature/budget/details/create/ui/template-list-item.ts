@@ -85,8 +85,8 @@ import { type BudgetTemplate } from '@pulpe/shared';
         } @else {
           <mat-list class="pt-0">
             <!-- Income -->
-            <mat-list-item class="h-auto min-h-0 py-2">
-              <mat-icon matListItemIcon class="icon-filled"
+            <mat-list-item class="h-auto min-h-0 py-2 !px-0">
+              <mat-icon matListItemIcon class="icon-filled !mr-4"
                 >trending_up</mat-icon
               >
               <span matListItemTitle class="text-body-medium"
@@ -100,8 +100,8 @@ import { type BudgetTemplate } from '@pulpe/shared';
             <mat-divider></mat-divider>
 
             <!-- Expenses -->
-            <mat-list-item class="h-auto min-h-0 py-2">
-              <mat-icon matListItemIcon class="icon-filled"
+            <mat-list-item class="h-auto min-h-0 py-2 !px-0">
+              <mat-icon matListItemIcon class="icon-filled !mr-4"
                 >trending_down</mat-icon
               >
               <span matListItemTitle class="text-body-medium"
@@ -115,8 +115,8 @@ import { type BudgetTemplate } from '@pulpe/shared';
             <mat-divider></mat-divider>
 
             <!-- Living allowance -->
-            <mat-list-item class="h-auto min-h-0 py-2">
-              <mat-icon matListItemIcon class="icon-filled"
+            <mat-list-item class="h-auto min-h-0 py-2 !px-0">
+              <mat-icon matListItemIcon class="icon-filled !mr-4"
                 >account_balance_wallet</mat-icon
               >
               <span matListItemTitle class="text-body-medium"
@@ -179,15 +179,6 @@ import { type BudgetTemplate } from '@pulpe/shared';
           outlined-outline-width: 2px,
         )
       );
-    }
-
-    /* Ensure consistent spacing in list items */
-    ::ng-deep .mat-mdc-list-item {
-      padding: 0 !important;
-    }
-
-    ::ng-deep .mat-mdc-list-item-icon {
-      margin-right: 16px !important;
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
