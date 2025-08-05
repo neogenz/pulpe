@@ -41,6 +41,7 @@ import { ROUTES } from '@core/routing';
           matButton="filled"
           (click)="openCreateBudgetDialog()"
           [disabled]="state.monthsData.isLoading()"
+          data-testid="create-budget-btn"
         >
           <mat-icon class="md:inline hidden">add_circle</mat-icon>
           <span class="md:hidden">Ajouter</span>

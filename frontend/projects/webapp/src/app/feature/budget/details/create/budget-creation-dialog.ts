@@ -235,6 +235,7 @@ const MONTH_YEAR_FORMATS = {
                 [value]="templateSelection.selectedTemplateId()"
                 (change)="onTemplateSelect($event.value)"
                 class="flex flex-col gap-2 md:gap-3"
+                data-testid="template-selection-radio-group"
               >
                 @for (
                   template of templateSelection.filteredTemplates();
@@ -255,6 +256,7 @@ const MONTH_YEAR_FORMATS = {
                     [loading]="templateTotals?.loading || !templateTotals"
                     (selectTemplate)="onTemplateSelect($event)"
                     (showDetails)="showTemplateDetails($event)"
+                    [attr.data-testid]="'template-card-' + template.id"
                   />
                 }
               </mat-radio-group>
@@ -285,6 +287,7 @@ const MONTH_YEAR_FORMATS = {
         "
         (click)="onCreateBudget()"
         class="w-full md:w-auto min-h-[44px]"
+        data-testid="create-budget-button"
       >
         @if (isCreating()) {
           <mat-progress-spinner

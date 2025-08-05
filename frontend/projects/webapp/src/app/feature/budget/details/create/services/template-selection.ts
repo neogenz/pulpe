@@ -96,10 +96,15 @@ export class TemplateSelection {
     if (defaultTemplate) {
       this.selectedTemplateId.set(defaultTemplate.id);
     } else {
-      // If no default template exists, select the first visible template
-      const visibleTemplates = this.filteredTemplates();
-      if (visibleTemplates.length > 0) {
-        this.selectedTemplateId.set(visibleTemplates[0].id);
+      // If no default template exists, select the first template sorted by creation date (newest first)
+      // This provides predictable behavior regardless of search state
+      const sortedTemplates = [...allTemplates].sort((a, b) => {
+        return (
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+      });
+      if (sortedTemplates.length > 0) {
+        this.selectedTemplateId.set(sortedTemplates[0].id);
       }
     }
   }

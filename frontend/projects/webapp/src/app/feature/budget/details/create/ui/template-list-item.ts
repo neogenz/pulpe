@@ -46,7 +46,8 @@ import { type BudgetTemplate } from '@pulpe/shared';
               [value]="template().id"
               [checked]="isSelected()"
               class="flex-shrink-0"
-              aria-label="Sélectionner {{ template().name }}"
+              [attr.aria-label]="'Sélectionner ' + template().name"
+              [attr.data-testid]="'template-radio-' + template().id"
             ></mat-radio-button>
             <div>
               <div class="flex items-center gap-2">

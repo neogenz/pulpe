@@ -4,7 +4,7 @@ import { OnboardingPage } from '../pages/onboarding.page';
 import { CurrentMonthPage } from '../pages/current-month.page';
 import { BudgetTemplatesPage } from '../pages/budget-templates.page';
 import { BudgetDetailsPage } from '../pages/budget-details.page';
-import { AuthMockHelper, TestDataFactory } from './test-helpers';
+import { AuthMockHelper, TestDataFactory, BudgetApiMockHelper } from './test-helpers';
 
 // Types pour nos fixtures améliorées
 interface AppFixtures {
@@ -24,12 +24,9 @@ interface AppFixtures {
 
 // Base test avec beforeEach/afterEach pour l'isolation
 const baseTest = base.extend<AppFixtures>({
-  // Factory pour les credentials de test
-  testCredentials: async (
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    {},
-    use,
-  ) => {
+  // Factory pour les credentials de test  
+  // eslint-disable-next-line no-empty-pattern
+  testCredentials: async ({}, use) => {
     await use({
       valid: TestDataFactory.createValidLoginCredentials(),
       invalid: TestDataFactory.createInvalidLoginCredentials(),
@@ -81,14 +78,28 @@ const baseTest = base.extend<AppFixtures>({
   authenticatedPage: async ({ page }, use) => {
     await AuthMockHelper.setupAuthScenario(page, 'SUCCESS');
 
-    // Mock les API backend pour éviter les erreurs
-    await page.route('**/api/**', (route) =>
-      route.fulfill({
+    // Setup default budget scenario with data for current month tests
+    await BudgetApiMockHelper.setupBudgetScenario(page, 'WITH_BUDGET');
+
+    // Mock only generic API calls that don't have specific test mocks
+    // This allows tests to override with more specific mocks
+    await page.route('**/api/**', async (route) => {
+      const url = route.request().url();
+      
+      // Skip mocking if this is a budget API call (handled by BudgetApiMockHelper)
+      // or template API call that might have test-specific mocks
+      if (url.includes('/budgets') || url.includes('/budget-templates') || url.includes('/transactions')) {
+        await route.continue();
+        return;
+      }
+      
+      // Mock other API calls with generic response
+      await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ data: [], message: 'Mock response' }),
-      }),
-    );
+        body: JSON.stringify({ success: true, data: [], message: 'Generic mock response' }),
+      });
+    });
 
     await use(page);
   },
@@ -118,7 +129,7 @@ export const test = baseTest.extend({
       // Supprimer les cookies
       document.cookie.split(';').forEach((cookie) => {
         const eqPos = cookie.indexOf('=');
-        const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+        const name = eqPos > -1 ? cookie.substring(0, eqPos) : cookie;
         document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
       });
     });

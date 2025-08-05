@@ -468,15 +468,17 @@ describe('TemplateSelection', () => {
       expect(service.selectedTemplateId()).toBe('template-2');
     });
 
-    it('should select first visible template if no default exists', () => {
+    it('should select newest template if no default exists', () => {
       const templates = [
         createTestTemplate({
           id: 'template-1',
-          name: 'First Template',
+          name: 'Older Template',
+          createdAt: '2024-01-01T00:00:00Z',
         }),
         createTestTemplate({
           id: 'template-2',
-          name: 'Second Template',
+          name: 'Newer Template',
+          createdAt: '2024-01-02T00:00:00Z',
         }),
       ];
 
@@ -484,8 +486,8 @@ describe('TemplateSelection', () => {
 
       service.initializeDefaultSelection();
 
-      // Should select the first template since no default exists
-      expect(service.selectedTemplateId()).toBe('template-1');
+      // Should select the newest template (template-2) since no default exists
+      expect(service.selectedTemplateId()).toBe('template-2');
     });
 
     it('should not change selection if already selected', () => {
@@ -543,6 +545,37 @@ describe('TemplateSelection', () => {
       service.initializeDefaultSelection();
 
       // Should still select the default template from all templates
+      expect(service.selectedTemplateId()).toBe('template-2');
+    });
+
+    it('should select newest template from all templates when no default exists and search is active', async () => {
+      const templates = [
+        createTestTemplate({
+          id: 'template-1',
+          name: 'Special Old Template',
+          createdAt: '2024-01-01T00:00:00Z',
+        }),
+        createTestTemplate({
+          id: 'template-2',
+          name: 'Another Template',
+          createdAt: '2024-01-03T00:00:00Z', // Newest
+        }),
+        createTestTemplate({
+          id: 'template-3',
+          name: 'Special New Template',
+          createdAt: '2024-01-02T00:00:00Z',
+        }),
+      ];
+
+      mockTemplateApi.templatesResource!.value.set(templates);
+
+      // Search for "Special" which filters to template-1 and template-3
+      service.searchControl.setValue('Special');
+      await new Promise((resolve) => setTimeout(resolve, 350));
+
+      service.initializeDefaultSelection();
+
+      // Should select template-2 (newest from ALL templates) despite it being filtered out
       expect(service.selectedTemplateId()).toBe('template-2');
     });
   });

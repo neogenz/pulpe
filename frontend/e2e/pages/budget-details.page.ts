@@ -8,6 +8,11 @@ export class BudgetDetailsPage {
     await this.page.waitForLoadState('networkidle');
   }
 
+  async gotoBudgetList(): Promise<void> {
+    await this.page.goto('/app/budget');
+    await this.page.waitForLoadState('networkidle');
+  }
+
   async expectPageLoaded(): Promise<void> {
     // Wait for Angular app to load
     await expect(this.page.locator('pulpe-root')).toBeVisible({
