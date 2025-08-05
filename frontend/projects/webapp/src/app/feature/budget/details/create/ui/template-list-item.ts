@@ -19,7 +19,6 @@ import { type BudgetTemplate } from '@pulpe/shared';
 
 @Component({
   selector: 'pulpe-template-list-item',
-  standalone: true,
   imports: [
     CurrencyPipe,
     MatCardModule,
@@ -71,16 +70,33 @@ import { type BudgetTemplate } from '@pulpe/shared';
 
         <!-- Financial details -->
         @if (loading()) {
-          <div class="flex items-center justify-center py-4">
-            <mat-progress-spinner
-              mode="indeterminate"
-              aria-label="Chargement du modèle"
-              role="progressbar"
-              class="pulpe-loading-indicator pulpe-loading-small"
-            ></mat-progress-spinner>
-            <span class="text-on-surface-variant ml-2" aria-live="polite">
-              Chargement...
-            </span>
+          <!-- Enhanced Material Design 3 Loading State -->
+          <div
+            class="bg-surface-container-low rounded-corner-medium p-6 mx-2 mb-4"
+          >
+            <div
+              class="flex flex-col items-center justify-center space-y-4 md:flex-row md:space-y-0 md:space-x-4 md:justify-start"
+            >
+              <mat-progress-spinner
+                mode="indeterminate"
+                aria-label="Calcul des données financières en cours"
+                role="progressbar"
+                class="pulpe-loading-indicator pulpe-loading-medium flex-shrink-0"
+                diameter="26"
+                strokeWidth="3"
+              ></mat-progress-spinner>
+              <div class="text-center md:text-left">
+                <div
+                  class="text-body-medium text-on-surface font-medium"
+                  aria-live="polite"
+                >
+                  Calcul en cours...
+                </div>
+                <div class="text-body-small text-on-surface-variant mt-1">
+                  Analyse de vos données financières
+                </div>
+              </div>
+            </div>
           </div>
         } @else {
           <mat-list class="pt-0">
@@ -139,19 +155,7 @@ import { type BudgetTemplate } from '@pulpe/shared';
         }
 
         <!-- Actions -->
-        <div
-          class="flex items-center justify-between mt-4 pt-3 border-t border-outline-variant"
-        >
-          <button
-            matButton
-            [color]="isSelected() ? 'primary' : undefined"
-            class="mr-2"
-          >
-            <mat-icon>{{
-              isSelected() ? 'check_circle' : 'radio_button_unchecked'
-            }}</mat-icon>
-            {{ isSelected() ? 'Sélectionné' : 'Utiliser ce modèle' }}
-          </button>
+        <div class="flex items-center justify-end">
           <button
             matButton
             (click)="showDetails.emit(template()); $event.stopPropagation()"
@@ -174,7 +178,6 @@ import { type BudgetTemplate } from '@pulpe/shared';
     .template-card.selected {
       @include mat.card-overrides(
         (
-          outlined-container-color: var(--mat-sys-surface-container-lowest),
           outlined-outline-color: var(--mat-sys-primary),
           outlined-outline-width: 2px,
         )
