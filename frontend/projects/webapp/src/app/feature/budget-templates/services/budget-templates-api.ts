@@ -86,6 +86,10 @@ export class BudgetTemplatesApi {
     );
   }
 
+  checkUsage$(id: string): Observable<TemplateUsageResponse> {
+    return this.#http.get<TemplateUsageResponse>(`${this.#apiUrl}/${id}/usage`);
+  }
+
   /**
    * Fetches a template and its associated transactions in a single call for
    * the frontend. It first retrieves the template by its identifier and then
@@ -117,4 +121,18 @@ export class BudgetTemplatesApi {
 export interface BudgetTemplateDetailViewModel {
   template: BudgetTemplateResponse['data'];
   transactions: TemplateLineListResponse['data'];
+}
+
+export interface TemplateUsageResponse {
+  success: boolean;
+  data: {
+    isUsed: boolean;
+    budgetCount: number;
+    budgets: {
+      id: string;
+      month: number;
+      year: number;
+      description: string;
+    }[];
+  };
 }

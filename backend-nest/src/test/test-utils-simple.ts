@@ -82,6 +82,7 @@ export class MockSupabaseClient {
       gt: () => chainMethods,
       lt: () => chainMethods,
       in: () => chainMethods,
+      limit: () => chainMethods,
       range: () => chainMethods,
       single: () => Promise.resolve(result),
       insert: () => ({
