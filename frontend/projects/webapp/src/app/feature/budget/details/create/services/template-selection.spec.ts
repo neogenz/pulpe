@@ -547,7 +547,6 @@ describe('TemplateSelection', () => {
       // Should still select the default template from all templates
       expect(service.selectedTemplateId()).toBe('template-2');
     });
-
     it('should select newest template from all templates when no default exists and search is active', async () => {
       const templates = [
         createTestTemplate({
