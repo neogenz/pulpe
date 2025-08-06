@@ -84,18 +84,18 @@ import { TitleDisplay } from '@core/routing';
             testId="templates-loading"
           />
         }
-        @case (state.templatesData.status() === 'error') {
+        @case (state.budgetTemplates.status() === 'error') {
           <pulpe-templates-error
             (reload)="state.refreshData()"
             data-testid="templates-error"
           />
         }
         @case (
-          state.templatesData.status() === 'resolved' ||
-          state.templatesData.status() === 'local'
+          state.budgetTemplates.status() === 'resolved' ||
+          state.budgetTemplates.status() === 'local'
         ) {
           <pulpe-template-list
-            [templates]="state.templatesData.value() ?? []"
+            [templates]="state.budgetTemplates.value() ?? []"
             data-testid="templates-list"
           />
         }
