@@ -42,12 +42,13 @@ import { type BudgetTemplate } from '@pulpe/shared';
         <!-- Header with title and chip -->
         <div class="flex items-start justify-between mb-3">
           <div class="flex items-center gap-3">
+            @let dataTestId = 'template-radio-' + template().id;
             <mat-radio-button
               [value]="template().id"
               [checked]="isSelected()"
               class="flex-shrink-0"
               [attr.aria-label]="'Sélectionner ' + template().name"
-              [attr.data-testid]="'template-radio-' + template().id"
+              [attr.data-testid]="dataTestId"
             ></mat-radio-button>
             <div>
               <div class="flex items-center gap-2">

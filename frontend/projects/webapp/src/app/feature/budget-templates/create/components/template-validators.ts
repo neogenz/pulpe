@@ -19,14 +19,6 @@ export const FORM_LIMITS = {
 } as const;
 
 /**
- * Validation error messages functions
- */
-export const VALIDATION_MESSAGES = {
-  TEMPLATE_LIMIT_REACHED: (max: number) =>
-    `Vous avez atteint la limite de ${max} modèles`,
-} as const;
-
-/**
  * Validator that checks for duplicate template names
  * Uses existing names array to verify name uniqueness (case-insensitive)
  */
@@ -40,8 +32,11 @@ export function duplicateNameValidator(existingNames?: string[]): ValidatorFn {
     }
 
     const trimmedName = value.trim().toLowerCase();
+    const trimmedExistingNames = (existingNames ?? []).map((name) =>
+      name.trim().toLowerCase(),
+    );
 
-    if ((existingNames ?? []).includes(trimmedName)) {
+    if (trimmedExistingNames.includes(trimmedName)) {
       return { [TEMPLATE_VALIDATION_ERRORS.DUPLICATE_NAME]: true };
     }
 

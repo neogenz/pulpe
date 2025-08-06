@@ -5,7 +5,9 @@ import {
   effect,
   inject,
   input,
+  linkedSignal,
   output,
+  signal,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -24,7 +26,6 @@ import {
   duplicateNameValidator,
   FORM_LIMITS,
   getTemplateValidationErrorMessage,
-  VALIDATION_MESSAGES,
 } from './template-validators';
 
 @Component({
@@ -42,7 +43,7 @@ import {
     DefaultWarningPanelComponent,
   ],
   template: `
-    @if (state.isLoading() && state.budgetTemplates.status() === 'loading') {
+    @if (state.budgetTemplates.isLoading()) {
       <div class="flex justify-center items-center py-16">
         <mat-spinner diameter="40"></mat-spinner>
       </div>
@@ -148,17 +149,17 @@ import {
             </div>
 
             <!-- Default warning panel -->
-            @if (showDefaultWarning()) {
+            @if (overrideDefaultTemplateWarningMessage(); as warningMessage) {
               <div class="col-span-1">
                 <pulpe-default-warning-panel
                   id="default-warning"
-                  [message]="warningMessage()"
+                  [message]="warningMessage"
                 />
               </div>
             }
 
             <!-- Enhanced error message section -->
-            @if (state.businessError()) {
+            @if (globalFormError(); as errorMessage) {
               <div class="col-span-1">
                 <div
                   class="p-4 bg-error-container text-on-error-container rounded-corner-medium flex items-start gap-3"
@@ -169,14 +170,14 @@ import {
                     >error</mat-icon
                   >
                   <span class="text-body-medium leading-relaxed">
-                    {{ state.businessError() }}
+                    {{ errorMessage }}
                   </span>
                 </div>
               </div>
             }
 
             <!-- Template limit information -->
-            @if (!state.canCreateMore()) {
+            @if (state.isTemplateLimitReached()) {
               <div class="col-span-1">
                 <div
                   id="limit-reached-info"
@@ -242,6 +243,7 @@ export class CreateTemplateForm {
   cancelForm = output<void>();
   formReset = output<void>();
 
+  globalFormError = signal<string | null>(null);
   templateForm = this.#fb.group({
     name: [
       '',
@@ -275,17 +277,15 @@ export class CreateTemplateForm {
   // Computed signals reading from consolidated formValues
   isDefaultChecked = computed(() => this.formValues()?.isDefault ?? false);
 
-  showDefaultWarning = computed(() => {
-    const hasDefault = this.state.hasDefaultTemplate();
+  overrideDefaultTemplateWarningMessage = linkedSignal(() => {
+    const defaultTemplate = this.state.defaultBudgetTemplate();
     const isDefaultChecked = this.isDefaultChecked();
-    return hasDefault && isDefaultChecked;
-  });
 
-  warningMessage = computed(() => {
-    const defaultTemplate = this.state.currentDefaultTemplate();
-    return defaultTemplate?.name
-      ? `Le modèle "${defaultTemplate.name}" ne sera plus le modèle par défaut.`
-      : 'Un modèle par défaut existe déjà. Il sera remplacé.';
+    if (!!defaultTemplate && isDefaultChecked) {
+      return `Le modèle "${defaultTemplate.name}" ne sera plus le modèle par défaut.`;
+    }
+
+    return null;
   });
 
   nameValidationError = computed(() => {
@@ -301,17 +301,17 @@ export class CreateTemplateForm {
   // Smart submit button state management
   submitButtonText = computed(() => {
     const isCreating = this.isCreating();
-    const canCreateMore = this.state.canCreateMore();
+    const isTemplateLimitReached = this.state.isTemplateLimitReached();
     if (isCreating) return 'Création...';
-    if (!canCreateMore) return 'Limite atteinte';
+    if (isTemplateLimitReached) return 'Limite atteinte';
     return 'Créer';
   });
 
   isFormValidForSubmission = computed(() => {
     const isFormValid = this.isFormValid();
     const isPending = this.isCreating();
-    const canCreateMore = this.state.canCreateMore();
-    return isFormValid && !isPending && canCreateMore;
+    const isTemplateLimitReached = this.state.isTemplateLimitReached();
+    return isFormValid && !isPending && !isTemplateLimitReached;
   });
 
   constructor() {
@@ -326,12 +326,11 @@ export class CreateTemplateForm {
   }
 
   onSubmit() {
-    this.state.businessError.set(null);
     this.templateForm.markAllAsTouched();
     if (!this.isFormValidForSubmission()) {
-      if (!this.state.canCreateMore()) {
-        this.state.businessError.set(
-          VALIDATION_MESSAGES.TEMPLATE_LIMIT_REACHED(this.state.MAX_TEMPLATES),
+      if (this.state.isTemplateLimitReached()) {
+        this.globalFormError.set(
+          `Vous avez atteint la limite de ${this.state.MAX_TEMPLATES} modèles`,
         );
       }
       return;
@@ -356,7 +355,6 @@ export class CreateTemplateForm {
     this.templateForm.reset();
     this.templateForm.markAsUntouched();
     this.templateForm.markAsPristine();
-    this.state.businessError.set(null);
 
     this.formReset.emit();
   }

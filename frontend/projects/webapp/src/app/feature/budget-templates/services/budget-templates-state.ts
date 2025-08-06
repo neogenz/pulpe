@@ -13,71 +13,23 @@ export class BudgetTemplatesState {
   budgetTemplates = resource<BudgetTemplate[], void>({
     loader: async () => this.#loadTemplatesData(),
   });
-
-  // Business error signal
-  businessError = signal<string | null>(null);
-
-  // Selected template for detail view
   selectedTemplate = signal<BudgetTemplate | null>(null);
+  templateCount = computed(() => this.budgetTemplates.value()?.length ?? 0);
 
-  // Computed signals for common derived state
-  templateCount = computed(() => {
-    // Handle error state gracefully
-    if (this.budgetTemplates.status() === 'error') {
-      return 0;
-    }
-    return this.budgetTemplates.value()?.length ?? 0;
-  });
-  hasTemplates = computed(() => this.templateCount() > 0);
-  isLoading = computed(
-    () =>
-      this.budgetTemplates.status() === 'loading' ||
-      this.budgetTemplates.status() === 'reloading',
+  isTemplateLimitReached = computed(
+    () => this.templateCount() >= this.MAX_TEMPLATES,
   );
-
-  // Business logic computed signals
-  canCreateMore = computed(() => this.templateCount() < this.MAX_TEMPLATES);
   remainingTemplates = computed(
     () => this.MAX_TEMPLATES - this.templateCount(),
   );
-  currentDefaultTemplate = computed(() => {
-    // Handle error state gracefully
-    if (this.budgetTemplates.status() === 'error') {
-      return null;
-    }
-    return this.budgetTemplates.value()?.find((t) => t.isDefault) ?? null;
-  });
-  hasDefaultTemplate = computed(() => this.currentDefaultTemplate() !== null);
+  defaultBudgetTemplate = computed(
+    () => this.budgetTemplates.value()?.find((t) => t.isDefault) ?? null,
+  );
 
   refreshData(): void {
     if (this.budgetTemplates.status() !== 'loading') {
       this.budgetTemplates.reload();
     }
-  }
-
-  validateTemplateName(name: string): boolean {
-    const trimmedName = name.trim();
-    if (!trimmedName) {
-      return false;
-    }
-
-    // Check for name uniqueness (case-insensitive)
-    const existingNames =
-      this.budgetTemplates.value()?.map((t) => t.name.toLowerCase()) ?? [];
-    if (existingNames.includes(trimmedName.toLowerCase())) {
-      this.businessError.set('Un modèle avec ce nom existe déjà');
-      return false;
-    }
-
-    return true;
-  }
-
-  validateDefaultTemplate(isDefault: boolean): boolean {
-    if (isDefault && this.hasDefaultTemplate()) {
-      // We'll handle switching the default automatically
-      return true;
-    }
-    return true;
   }
 
   selectTemplate(id: string): void {
@@ -89,17 +41,10 @@ export class BudgetTemplatesState {
     template: BudgetTemplateCreate,
   ): Promise<BudgetTemplate | void> {
     // Validate business rules
-    if (!this.#validateCanCreate()) {
-      throw new Error(this.businessError() || 'Cannot create template');
+    if (this.isTemplateLimitReached()) {
+      throw new Error('Template limit reached');
     }
 
-    if (!this.validateTemplateName(template.name)) {
-      throw new Error(this.businessError() || 'Invalid template name');
-    }
-
-    if (!this.validateDefaultTemplate(template.isDefault)) {
-      throw new Error('Cannot set as default template');
-    }
     this.budgetTemplates.update((data) => {
       if (!data) return data;
       const optimisticTemplate: BudgetTemplate = {
@@ -132,22 +77,9 @@ export class BudgetTemplatesState {
         if (!data) return data;
         return data.filter((t) => !t.id.startsWith('temp-'));
       });
-      this.businessError.set('Erreur lors de la création du modèle');
       throw error;
     }
   }
-
-  #validateCanCreate(): boolean {
-    if (!this.canCreateMore()) {
-      this.businessError.set(
-        `Vous avez atteint la limite de ${this.MAX_TEMPLATES} modèles`,
-      );
-      return false;
-    }
-    this.businessError.set(null);
-    return true;
-  }
-
   async deleteTemplate(id: string): Promise<void> {
     const originalData = this.budgetTemplates.value();
 
