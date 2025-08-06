@@ -25,6 +25,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDividerModule } from '@angular/material/divider';
 import { type BudgetTemplateCreate } from '@pulpe/shared';
 import { BudgetTemplatesState } from '../services/budget-templates-state';
+import { DefaultWarningPanelComponent } from './ui/default-warning-panel.component';
 
 // Constants
 const FORM_LIMITS = {
@@ -51,6 +52,7 @@ const VALIDATION_MESSAGES = {
     MatProgressSpinnerModule,
     MatTooltipModule,
     MatDividerModule,
+    DefaultWarningPanelComponent,
   ],
   template: `
     @if (state.isLoading() && state.templatesData.status() === 'loading') {
@@ -140,53 +142,38 @@ const VALIDATION_MESSAGES = {
 
             <!-- Checkbox section - full width with proper touch target -->
             <div class="col-span-1">
-              <mat-checkbox
-                formControlName="isDefault"
-                data-testid="template-default-checkbox"
-                [attr.aria-describedby]="
-                  showDefaultWarning() ? 'default-warning' : null
-                "
-                aria-label="Définir comme modèle par défaut"
-                class="min-h-[44px] flex items-center w-full"
-              >
-                Modèle par défaut
-              </mat-checkbox>
+              <div class="flex items-center gap-2">
+                <mat-checkbox
+                  formControlName="isDefault"
+                  data-testid="template-default-checkbox"
+                  [attr.aria-describedby]="
+                    showDefaultWarning() ? 'default-warning' : null
+                  "
+                  aria-label="Définir comme modèle par défaut"
+                  class="min-h-[44px] flex items-center"
+                >
+                  Modèle par défaut
+                </mat-checkbox>
+                <mat-icon
+                  matTooltip="Le modèle par défaut est utilisé automatiquement pour créer de nouveaux budgets mensuels."
+                  matTooltipPosition="above"
+                  aria-label="Information sur le modèle par défaut"
+                  class="!text-on-surface-variant cursor-help"
+                  tabindex="0"
+                >
+                  info
+                </mat-icon>
+              </div>
             </div>
 
-            <!-- Material Design 3 Info Panel - separate row -->
+            <!-- Default warning panel -->
             @if (showDefaultWarning()) {
               <div class="col-span-1">
-                <div
+                <pulpe-default-warning-panel
                   id="default-warning"
-                  class="p-4 rounded-corner-medium bg-secondary-container text-on-secondary-container flex items-center gap-3"
-                  role="alert"
-                  aria-live="polite"
-                >
-                  <mat-icon
-                    class="text-on-secondary-container flex-shrink-0 mt-0.5"
-                    aria-hidden="true"
-                  >
-                    info
-                  </mat-icon>
-
-                  <p class="text-body-medium flex-1 m-0 leading-relaxed">
-                    Le modèle
-                    <span class="font-medium"
-                      >"{{ state.currentDefaultTemplate()?.name }}"</span
-                    >
-                    ne sera plus le modèle par défaut. Ce nouveau modèle le
-                    remplacera.
-                  </p>
-
-                  <button
-                    matIconButton
-                    (click)="dismissDefaultWarning()"
-                    aria-label="Fermer l'information"
-                    class="flex-shrink-0"
-                  >
-                    <mat-icon>close</mat-icon>
-                  </button>
-                </div>
+                  [message]="warningMessage()"
+                  (dismiss)="dismissDefaultWarning()"
+                />
               </div>
             }
 
@@ -344,6 +331,13 @@ export class CreateTemplateForm implements OnInit {
     const isDismissed = this.#warningDismissed();
 
     return hasDefault && isChecked && !isDismissed;
+  });
+
+  warningMessage = computed(() => {
+    const defaultTemplate = this.state.currentDefaultTemplate();
+    return defaultTemplate?.name
+      ? `Le modèle "${defaultTemplate.name}" ne sera plus le modèle par défaut.`
+      : 'Un modèle par défaut existe déjà. Il sera remplacé.';
   });
 
   // Simplified name validation - only show errors when touched
