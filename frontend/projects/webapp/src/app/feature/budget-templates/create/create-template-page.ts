@@ -10,7 +10,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { type BudgetTemplateCreate } from '@pulpe/shared';
 import { BudgetTemplatesState } from '../services/budget-templates-state';
-import { CreateTemplateForm } from './create-template-form';
+import { CreateTemplateForm } from './components/create-template-form';
 
 // Constants
 const ROUTES = {
@@ -121,6 +121,10 @@ export default class CreateTemplatePage {
     // Currently no additional action required
   }
 
+  navigateBack() {
+    this.#router.navigate([ROUTES.BUDGET_TEMPLATES]);
+  }
+
   private handleError(error: unknown): void {
     // Simple logging - in a real app, this would use a proper logging service
     console.error('Erreur lors de la création du template:', error);
@@ -145,9 +149,5 @@ export default class CreateTemplatePage {
     }
 
     return MESSAGES.GENERIC_ERROR;
-  }
-
-  navigateBack() {
-    this.#router.navigate([ROUTES.BUDGET_TEMPLATES]);
   }
 }

@@ -20,16 +20,6 @@ export class BudgetTemplatesState {
   // Selected template for detail view
   selectedTemplate = signal<BudgetTemplate | null>(null);
 
-  // TODO: Future feature - Template usage tracking
-  // templateUsageCount = computed(() => {
-  //   // Track how many budgets use each template
-  //   return new Map<string, number>();
-  // });
-
-  // TODO: Future feature - Soft delete/archive
-  // archivedTemplates = signal<BudgetTemplate[]>([]);
-  // showArchived = signal(false);
-
   // Computed signals for common derived state
   templateCount = computed(() => {
     // Handle error state gracefully
@@ -63,18 +53,6 @@ export class BudgetTemplatesState {
     if (this.templatesData.status() !== 'loading') {
       this.templatesData.reload();
     }
-  }
-
-  // Validation methods
-  validateCanCreate(): boolean {
-    if (!this.canCreateMore()) {
-      this.businessError.set(
-        `Vous avez atteint la limite de ${this.MAX_TEMPLATES} modèles`,
-      );
-      return false;
-    }
-    this.businessError.set(null);
-    return true;
   }
 
   validateTemplateName(name: string): boolean {
@@ -111,7 +89,7 @@ export class BudgetTemplatesState {
     template: BudgetTemplateCreate,
   ): Promise<BudgetTemplate | void> {
     // Validate business rules
-    if (!this.validateCanCreate()) {
+    if (!this.#validateCanCreate()) {
       throw new Error(this.businessError() || 'Cannot create template');
     }
 
@@ -157,6 +135,17 @@ export class BudgetTemplatesState {
       this.businessError.set('Erreur lors de la création du modèle');
       throw error;
     }
+  }
+
+  #validateCanCreate(): boolean {
+    if (!this.canCreateMore()) {
+      this.businessError.set(
+        `Vous avez atteint la limite de ${this.MAX_TEMPLATES} modèles`,
+      );
+      return false;
+    }
+    this.businessError.set(null);
+    return true;
   }
 
   async deleteTemplate(id: string): Promise<void> {
