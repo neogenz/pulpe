@@ -10,7 +10,7 @@ export class BudgetTemplatesState {
   // Business constants
   readonly MAX_TEMPLATES = 5;
 
-  templatesData = resource<BudgetTemplate[], void>({
+  budgetTemplates = resource<BudgetTemplate[], void>({
     loader: async () => this.#loadTemplatesData(),
   });
 
@@ -23,16 +23,16 @@ export class BudgetTemplatesState {
   // Computed signals for common derived state
   templateCount = computed(() => {
     // Handle error state gracefully
-    if (this.templatesData.status() === 'error') {
+    if (this.budgetTemplates.status() === 'error') {
       return 0;
     }
-    return this.templatesData.value()?.length ?? 0;
+    return this.budgetTemplates.value()?.length ?? 0;
   });
   hasTemplates = computed(() => this.templateCount() > 0);
   isLoading = computed(
     () =>
-      this.templatesData.status() === 'loading' ||
-      this.templatesData.status() === 'reloading',
+      this.budgetTemplates.status() === 'loading' ||
+      this.budgetTemplates.status() === 'reloading',
   );
 
   // Business logic computed signals
@@ -42,16 +42,16 @@ export class BudgetTemplatesState {
   );
   currentDefaultTemplate = computed(() => {
     // Handle error state gracefully
-    if (this.templatesData.status() === 'error') {
+    if (this.budgetTemplates.status() === 'error') {
       return null;
     }
-    return this.templatesData.value()?.find((t) => t.isDefault) ?? null;
+    return this.budgetTemplates.value()?.find((t) => t.isDefault) ?? null;
   });
   hasDefaultTemplate = computed(() => this.currentDefaultTemplate() !== null);
 
   refreshData(): void {
-    if (this.templatesData.status() !== 'loading') {
-      this.templatesData.reload();
+    if (this.budgetTemplates.status() !== 'loading') {
+      this.budgetTemplates.reload();
     }
   }
 
@@ -63,7 +63,7 @@ export class BudgetTemplatesState {
 
     // Check for name uniqueness (case-insensitive)
     const existingNames =
-      this.templatesData.value()?.map((t) => t.name.toLowerCase()) ?? [];
+      this.budgetTemplates.value()?.map((t) => t.name.toLowerCase()) ?? [];
     if (existingNames.includes(trimmedName.toLowerCase())) {
       this.businessError.set('Un modèle avec ce nom existe déjà');
       return false;
@@ -81,7 +81,7 @@ export class BudgetTemplatesState {
   }
 
   selectTemplate(id: string): void {
-    const template = this.templatesData.value()?.find((t) => t.id === id);
+    const template = this.budgetTemplates.value()?.find((t) => t.id === id);
     this.selectedTemplate.set(template ?? null);
   }
 
@@ -100,7 +100,7 @@ export class BudgetTemplatesState {
     if (!this.validateDefaultTemplate(template.isDefault)) {
       throw new Error('Cannot set as default template');
     }
-    this.templatesData.update((data) => {
+    this.budgetTemplates.update((data) => {
       if (!data) return data;
       const optimisticTemplate: BudgetTemplate = {
         id: `temp-${Date.now()}`,
@@ -120,7 +120,7 @@ export class BudgetTemplatesState {
         this.#budgetTemplatesApi.create$(template),
       );
 
-      this.templatesData.update((data) => {
+      this.budgetTemplates.update((data) => {
         if (!data || !response.data) return data;
         return data.map((t) => (t.id.startsWith('temp-') ? response.data : t));
       });
@@ -128,7 +128,7 @@ export class BudgetTemplatesState {
       // Return the created template for navigation
       return response.data;
     } catch (error) {
-      this.templatesData.update((data) => {
+      this.budgetTemplates.update((data) => {
         if (!data) return data;
         return data.filter((t) => !t.id.startsWith('temp-'));
       });
@@ -149,10 +149,10 @@ export class BudgetTemplatesState {
   }
 
   async deleteTemplate(id: string): Promise<void> {
-    const originalData = this.templatesData.value();
+    const originalData = this.budgetTemplates.value();
 
     // Optimistic update
-    this.templatesData.update((data) => {
+    this.budgetTemplates.update((data) => {
       if (!data) return data;
       return data.filter((t) => t.id !== id);
     });
@@ -162,7 +162,7 @@ export class BudgetTemplatesState {
     } catch (error) {
       // Rollback on error
       if (originalData) {
-        this.templatesData.update(() => originalData);
+        this.budgetTemplates.update(() => originalData);
       }
       throw error;
     }

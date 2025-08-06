@@ -42,7 +42,7 @@ import {
     DefaultWarningPanelComponent,
   ],
   template: `
-    @if (state.isLoading() && state.templatesData.status() === 'loading') {
+    @if (state.isLoading() && state.budgetTemplates.status() === 'loading') {
       <div class="flex justify-center items-center py-16">
         <mat-spinner diameter="40"></mat-spinner>
       </div>
@@ -250,7 +250,9 @@ export class CreateTemplateForm {
           Validators.required,
           Validators.maxLength(FORM_LIMITS.NAME_MAX_LENGTH),
           duplicateNameValidator(
-            this.state.templatesData.value()?.map((t) => t.name.toLowerCase()),
+            this.state.budgetTemplates
+              .value()
+              ?.map((t) => t.name.toLowerCase()),
           ),
         ],
       },

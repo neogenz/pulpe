@@ -345,7 +345,7 @@ describe('BudgetTemplatesState', () => {
       const addPromise = state.addTemplate(newTemplate);
 
       // Check optimistic update - should have temporary template
-      const templates = state.templatesData.value();
+      const templates = state.budgetTemplates.value();
       const tempTemplate = templates?.find((t) => t.id.startsWith('temp-'));
       expect(tempTemplate).toBeTruthy();
       expect(tempTemplate?.name).toBe('Optimistic Template');
@@ -355,7 +355,7 @@ describe('BudgetTemplatesState', () => {
       await addPromise;
 
       // Check final state - temporary should be replaced
-      const finalTemplates = state.templatesData.value();
+      const finalTemplates = state.budgetTemplates.value();
       expect(finalTemplates?.find((t) => t.id.startsWith('temp-'))).toBeFalsy();
       expect(finalTemplates?.find((t) => t.id === 'template-3')).toBeTruthy();
     });
@@ -385,7 +385,7 @@ describe('BudgetTemplatesState', () => {
       // Template count should be back to original
       expect(state.templateCount()).toBe(initialCount);
       expect(
-        state.templatesData.value()?.find((t) => t.id.startsWith('temp-')),
+        state.budgetTemplates.value()?.find((t) => t.id.startsWith('temp-')),
       ).toBeFalsy();
     });
   });
@@ -425,7 +425,7 @@ describe('BudgetTemplatesState', () => {
 
       expect(state.templateCount()).toBe(initialCount - 1);
       expect(
-        state.templatesData.value()?.find((t) => t.id === 'template-2'),
+        state.budgetTemplates.value()?.find((t) => t.id === 'template-2'),
       ).toBeFalsy();
       expect(mockApi.delete$).toHaveBeenCalledWith('template-2');
     });
@@ -438,14 +438,14 @@ describe('BudgetTemplatesState', () => {
       // Wait for initial load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      const initialTemplates = state.templatesData.value();
+      const initialTemplates = state.budgetTemplates.value();
 
       await expect(state.deleteTemplate('template-2')).rejects.toThrow(
         'Deletion failed',
       );
 
       // Should be rolled back
-      expect(state.templatesData.value()).toEqual(initialTemplates);
+      expect(state.budgetTemplates.value()).toEqual(initialTemplates);
     });
   });
 
@@ -454,7 +454,7 @@ describe('BudgetTemplatesState', () => {
       // Wait for initial load to complete
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      const reloadSpy = vi.spyOn(state.templatesData, 'reload');
+      const reloadSpy = vi.spyOn(state.budgetTemplates, 'reload');
 
       state.refreshData();
 
@@ -476,7 +476,7 @@ describe('BudgetTemplatesState', () => {
 
       state = TestBed.inject(BudgetTemplatesState);
 
-      const reloadSpy = vi.spyOn(state.templatesData, 'reload');
+      const reloadSpy = vi.spyOn(state.budgetTemplates, 'reload');
 
       // Immediately try to refresh while initial load is happening
       state.refreshData();
@@ -498,9 +498,9 @@ describe('BudgetTemplatesState', () => {
       // Wait for resource to attempt load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      expect(state.templatesData.error()).toBeTruthy();
+      expect(state.budgetTemplates.error()).toBeTruthy();
       // When in error state, resource doesn't return data, so these computed signals should handle it gracefully
-      expect(state.templatesData.status()).toBe('error');
+      expect(state.budgetTemplates.status()).toBe('error');
       // The computed signals should handle the error state without throwing
       expect(state.hasTemplates()).toBe(false);
     });
