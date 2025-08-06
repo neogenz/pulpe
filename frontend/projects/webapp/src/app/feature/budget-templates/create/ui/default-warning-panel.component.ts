@@ -14,7 +14,7 @@ import { MatIconModule } from '@angular/material/icon';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
-      class="p-4 rounded-corner-medium bg-secondary-container text-on-secondary-container flex items-center gap-3"
+      class="p-4 rounded-corner-medium bg-error-container text-on-error-container flex items-center gap-3"
       role="alert"
       aria-live="polite"
       data-testid="default-warning-panel"
@@ -30,7 +30,7 @@ import { MatIconModule } from '@angular/material/icon';
           {{ message() }}
         </span>
       </div>
-      @if (showDismissButton()) {
+      @if (dismissable()) {
         <button
           type="button"
           matIconButton
@@ -47,7 +47,7 @@ import { MatIconModule } from '@angular/material/icon';
 })
 export class DefaultWarningPanelComponent {
   message = input.required<string>();
-  showDismissButton = input(true);
+  dismissable = input(false);
 
   dismiss = output<void>();
 
