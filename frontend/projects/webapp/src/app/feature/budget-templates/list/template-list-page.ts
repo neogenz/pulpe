@@ -52,9 +52,9 @@ import { TitleDisplay } from '@core/routing';
           <button
             matButton="filled"
             routerLink="create"
-            [disabled]="!state.canCreateMore()"
+            [disabled]="state.isTemplateLimitReached()"
             [matTooltip]="
-              !state.canCreateMore()
+              state.isTemplateLimitReached()
                 ? 'Limite de ' + state.MAX_TEMPLATES + ' modèles atteinte'
                 : 'Créer un nouveau modèle'
             "
@@ -67,7 +67,7 @@ import { TitleDisplay } from '@core/routing';
           <button
             matIconButton
             (click)="state.refreshData()"
-            [disabled]="state.isLoading()"
+            [disabled]="state.budgetTemplates.isLoading()"
             aria-label="Actualiser"
             data-testid="refresh-button"
           >
@@ -77,7 +77,7 @@ import { TitleDisplay } from '@core/routing';
       </header>
 
       @switch (true) {
-        @case (state.isLoading()) {
+        @case (state.budgetTemplates.isLoading()) {
           <pulpe-base-loading
             message="Chargement des modèles de budget..."
             size="large"

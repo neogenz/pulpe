@@ -109,7 +109,7 @@ describe('BudgetTemplatesState', () => {
       // Wait for resource to load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      const defaultTemplate = state.currentDefaultTemplate();
+      const defaultTemplate = state.defaultBudgetTemplate();
       expect(defaultTemplate).toBeTruthy();
       expect(defaultTemplate?.id).toBe('template-1');
       expect(defaultTemplate?.isDefault).toBe(true);
@@ -130,7 +130,7 @@ describe('BudgetTemplatesState', () => {
       // Wait for resource to load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      expect(state.currentDefaultTemplate()).toBeNull();
+      expect(state.defaultBudgetTemplate()).toBeNull();
       expect(state.hasDefaultTemplate()).toBe(false);
     });
   });
