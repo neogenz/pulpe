@@ -1,5 +1,4 @@
 import { test, expect } from '../../fixtures/test-fixtures';
-import { BudgetTemplatesPage } from '../../pages/budget-templates.page';
 
 test.describe('Budget Template Deletion', () => {
   test.describe('Delete from Details Page', () => {
@@ -10,26 +9,23 @@ test.describe('Budget Template Deletion', () => {
       // Mock template details and deletion APIs
       const templateName = 'Test Template';
       
-      await authenticatedPage.route('**/api/v1/budget-templates/test-template-1', (route) => {
+      await authenticatedPage.route('**/api/v1/budget-templates/test-template-1', async (route) => {
         if (route.request().method() === 'GET') {
-          route.fulfill({
+          await route.fulfill({
             status: 200,
             contentType: 'application/json',
             body: JSON.stringify({
               success: true,
               data: {
-                template: {
-                  id: 'test-template-1',
-                  name: templateName,
-                  description: 'Template for testing',
-                  isDefault: false,
-                },
-                transactions: [],
+                id: 'test-template-1',
+                name: templateName,
+                description: 'Template for testing',
+                isDefault: false,
               },
             }),
           });
         } else if (route.request().method() === 'DELETE') {
-          route.fulfill({
+          await route.fulfill({
             status: 200,
             contentType: 'application/json',
             body: JSON.stringify({
@@ -40,9 +36,34 @@ test.describe('Budget Template Deletion', () => {
         }
       });
 
+      // Mock template lines (required by getDetail$ forkJoin)
+      await authenticatedPage.route('**/api/v1/budget-templates/test-template-1/lines', async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            data: [
+              {
+                id: 'line-1',
+                name: 'Test Income',
+                amount: 5000,
+                kind: 'INCOME',
+              },
+              {
+                id: 'line-2',
+                name: 'Test Expense',
+                amount: 2000,
+                kind: 'FIXED_EXPENSE',
+              },
+            ],
+          }),
+        });
+      });
+
       // Mock usage check - no budgets using this template
-      await authenticatedPage.route('**/api/v1/budget-templates/test-template-1/usage', (route) => {
-        route.fulfill({
+      await authenticatedPage.route('**/api/v1/budget-templates/test-template-1/usage', async (route) => {
+        await route.fulfill({
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
@@ -79,9 +100,47 @@ test.describe('Budget Template Deletion', () => {
       authenticatedPage,
       budgetTemplatesPage,
     }) => {
+      // Mock template details
+      await authenticatedPage.route('**/api/v1/budget-templates/test-template-id', async (route) => {
+        if (route.request().method() === 'GET') {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+              success: true,
+              data: {
+                id: 'test-template-id',
+                name: 'Test Template with Budgets',
+                description: 'Template for testing with budgets',
+                isDefault: false,
+              },
+            }),
+          });
+        }
+      });
+
+      // Mock template lines
+      await authenticatedPage.route('**/api/v1/budget-templates/test-template-id/lines', async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            data: [
+              {
+                id: 'line-1',
+                name: 'Test Income',
+                amount: 5000,
+                kind: 'INCOME',
+              },
+            ],
+          }),
+        });
+      });
+
       // Mock API to return template with associated budgets
-      await authenticatedPage.route('**/api/v1/budget-templates/*/usage', (route) => {
-        route.fulfill({
+      await authenticatedPage.route('**/api/v1/budget-templates/test-template-id/usage', async (route) => {
+        await route.fulfill({
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
@@ -99,7 +158,6 @@ test.describe('Budget Template Deletion', () => {
         });
       });
       
-      await budgetTemplatesPage.goto();
       await budgetTemplatesPage.gotoTemplate('test-template-id');
       
       // Click on menu and delete
@@ -126,8 +184,8 @@ test.describe('Budget Template Deletion', () => {
       budgetTemplatesPage,
     }) => {
       // Mock API to return templates
-      await authenticatedPage.route('**/api/v1/budget-templates', (route) => {
-        route.fulfill({
+      await authenticatedPage.route('**/api/v1/budget-templates', async (route) => {
+        await route.fulfill({
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
@@ -145,8 +203,8 @@ test.describe('Budget Template Deletion', () => {
       });
       
       // Mock usage check to return no budgets
-      await authenticatedPage.route('**/api/v1/budget-templates/*/usage', (route) => {
-        route.fulfill({
+      await authenticatedPage.route('**/api/v1/budget-templates/*/usage', async (route) => {
+        await route.fulfill({
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
@@ -195,9 +253,9 @@ test.describe('Budget Template Deletion', () => {
       // Mock API to return empty templates after deletion
       let templatesDeleted = false;
       
-      await authenticatedPage.route('**/api/v1/budget-templates', (route) => {
+      await authenticatedPage.route('**/api/v1/budget-templates', async (route) => {
         if (templatesDeleted) {
-          route.fulfill({
+          await route.fulfill({
             status: 200,
             contentType: 'application/json',
             body: JSON.stringify({
@@ -206,7 +264,7 @@ test.describe('Budget Template Deletion', () => {
             }),
           });
         } else {
-          route.fulfill({
+          await route.fulfill({
             status: 200,
             contentType: 'application/json',
             body: JSON.stringify({
@@ -225,8 +283,8 @@ test.describe('Budget Template Deletion', () => {
       });
       
       // Mock usage check - no budgets using this template
-      await authenticatedPage.route('**/api/v1/budget-templates/*/usage', (route) => {
-        route.fulfill({
+      await authenticatedPage.route('**/api/v1/budget-templates/*/usage', async (route) => {
+        await route.fulfill({
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
@@ -241,10 +299,10 @@ test.describe('Budget Template Deletion', () => {
       });
       
       // Mock deletion
-      await authenticatedPage.route('**/api/v1/budget-templates/*', (route) => {
+      await authenticatedPage.route('**/api/v1/budget-templates/*', async (route) => {
         if (route.request().method() === 'DELETE') {
           templatesDeleted = true;
-          route.fulfill({
+          await route.fulfill({
             status: 200,
             contentType: 'application/json',
             body: JSON.stringify({
@@ -282,26 +340,23 @@ test.describe('Budget Template Deletion', () => {
       budgetTemplatesPage,
     }) => {
       // Mock template details first
-      await authenticatedPage.route('**/api/v1/budget-templates/test-template-id', (route) => {
+      await authenticatedPage.route('**/api/v1/budget-templates/test-template-id', async (route) => {
         if (route.request().method() === 'GET') {
-          route.fulfill({
+          await route.fulfill({
             status: 200,
             contentType: 'application/json',
             body: JSON.stringify({
               success: true,
               data: {
-                template: {
-                  id: 'test-template-id',
-                  name: 'Test Template',
-                  description: 'Template for testing',
-                  isDefault: false,
-                },
-                transactions: [],
+                id: 'test-template-id',
+                name: 'Test Template',
+                description: 'Template for testing',
+                isDefault: false,
               },
             }),
           });
         } else if (route.request().method() === 'DELETE') {
-          route.fulfill({
+          await route.fulfill({
             status: 500,
             contentType: 'application/json',
             body: JSON.stringify({
@@ -311,10 +366,29 @@ test.describe('Budget Template Deletion', () => {
           });
         }
       });
+
+      // Mock template lines
+      await authenticatedPage.route('**/api/v1/budget-templates/test-template-id/lines', async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            data: [
+              {
+                id: 'line-1',
+                name: 'Test Income',
+                amount: 5000,
+                kind: 'INCOME',
+              },
+            ],
+          }),
+        });
+      });
       
       // Mock usage check - no budgets using this template
-      await authenticatedPage.route('**/api/v1/budget-templates/test-template-id/usage', (route) => {
-        route.fulfill({
+      await authenticatedPage.route('**/api/v1/budget-templates/test-template-id/usage', async (route) => {
+        await route.fulfill({
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
@@ -350,30 +424,46 @@ test.describe('Budget Template Deletion', () => {
       budgetTemplatesPage,
     }) => {
       // Mock template details first
-      await authenticatedPage.route('**/api/v1/budget-templates/test-template-id', (route) => {
+      await authenticatedPage.route('**/api/v1/budget-templates/test-template-id', async (route) => {
         if (route.request().method() === 'GET') {
-          route.fulfill({
+          await route.fulfill({
             status: 200,
             contentType: 'application/json',
             body: JSON.stringify({
               success: true,
               data: {
-                template: {
-                  id: 'test-template-id',
-                  name: 'Test Template',
-                  description: 'Template for testing',
-                  isDefault: false,
-                },
-                transactions: [],
+                id: 'test-template-id',
+                name: 'Test Template',
+                description: 'Template for testing',
+                isDefault: false,
               },
             }),
           });
         }
       });
+
+      // Mock template lines
+      await authenticatedPage.route('**/api/v1/budget-templates/test-template-id/lines', async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            data: [
+              {
+                id: 'line-1',
+                name: 'Test Income',
+                amount: 5000,
+                kind: 'INCOME',
+              },
+            ],
+          }),
+        });
+      });
       
       // Mock API to return error on usage check
-      await authenticatedPage.route('**/api/v1/budget-templates/test-template-id/usage', (route) => {
-        route.fulfill({
+      await authenticatedPage.route('**/api/v1/budget-templates/test-template-id/usage', async (route) => {
+        await route.fulfill({
           status: 500,
           contentType: 'application/json',
           body: JSON.stringify({
