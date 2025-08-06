@@ -1,8 +1,7 @@
 import { FormControl } from '@angular/forms';
 import {
   duplicateNameValidator,
-  getTemplateValidationErrorMessage,
-  TEMPLATE_VALIDATION_ERRORS,
+  getTemplateNameErrorMessage,
 } from './template-validators';
 
 describe('Template Validators', () => {
@@ -25,7 +24,7 @@ describe('Template Validators', () => {
       const result = validator(control);
 
       expect(result).toEqual({
-        [TEMPLATE_VALIDATION_ERRORS.DUPLICATE_NAME]: true,
+        duplicateName: true,
       });
     });
 
@@ -72,59 +71,39 @@ describe('Template Validators', () => {
       const result = validator(control);
 
       expect(result).toEqual({
-        [TEMPLATE_VALIDATION_ERRORS.DUPLICATE_NAME]: true,
+        duplicateName: true,
       });
     });
   });
 
-  describe('getTemplateValidationErrorMessage', () => {
+  describe('getTemplateNameErrorMessage', () => {
     it('should return null for no errors', () => {
-      const message = getTemplateValidationErrorMessage(null);
+      const message = getTemplateNameErrorMessage(null);
       expect(message).toBeNull();
     });
 
     it('should prioritize required error', () => {
       const errors = {
-        [TEMPLATE_VALIDATION_ERRORS.REQUIRED]: true,
-        [TEMPLATE_VALIDATION_ERRORS.MAX_LENGTH]: { requiredLength: 100 },
+        required: true,
+        duplicateName: true,
       };
 
-      const message = getTemplateValidationErrorMessage(errors);
+      const message = getTemplateNameErrorMessage(errors);
       expect(message).toBe('Le nom est requis');
     });
 
     it('should handle duplicate name error', () => {
-      const errors = { [TEMPLATE_VALIDATION_ERRORS.DUPLICATE_NAME]: true };
+      const errors = { duplicateName: true };
 
-      const message = getTemplateValidationErrorMessage(errors);
+      const message = getTemplateNameErrorMessage(errors);
       expect(message).toBe('Un modèle avec ce nom existe déjà');
     });
 
-    it('should handle max length error with custom field name', () => {
-      const errors = {
-        [TEMPLATE_VALIDATION_ERRORS.MAX_LENGTH]: { requiredLength: 500 },
-      };
-
-      const message = getTemplateValidationErrorMessage(errors, 'description');
-      expect(message).toBe(
-        'Le description ne peut pas dépasser 500 caractères',
-      );
-    });
-
-    it('should handle template limit error', () => {
-      const errors = {
-        [TEMPLATE_VALIDATION_ERRORS.TEMPLATE_LIMIT_REACHED]: { max: 5 },
-      };
-
-      const message = getTemplateValidationErrorMessage(errors);
-      expect(message).toBe('Vous avez atteint la limite de 5 modèles');
-    });
-
-    it('should provide fallback for unknown errors', () => {
+    it('should return null for unknown errors', () => {
       const errors = { customError: true };
 
-      const message = getTemplateValidationErrorMessage(errors);
-      expect(message).toBe('Erreur de validation: customError');
+      const message = getTemplateNameErrorMessage(errors);
+      expect(message).toBeNull();
     });
   });
 });

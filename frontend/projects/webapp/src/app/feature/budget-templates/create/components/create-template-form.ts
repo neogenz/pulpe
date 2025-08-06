@@ -10,7 +10,12 @@ import {
   signal,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  FormBuilder,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators,
+} from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDividerModule } from '@angular/material/divider';
@@ -24,8 +29,7 @@ import { BudgetTemplatesState } from '../../services/budget-templates-state';
 import { DefaultWarningPanelComponent } from '../ui/default-warning-panel.component';
 import {
   duplicateNameValidator,
-  FORM_LIMITS,
-  getTemplateValidationErrorMessage,
+  getTemplateNameErrorMessage,
 } from './template-validators';
 
 @Component({
@@ -89,17 +93,19 @@ import {
                 matInput
                 formControlName="name"
                 required
-                [maxlength]="formLimits.NAME_MAX_LENGTH"
+                [maxlength]="50"
                 data-testid="template-name-input"
               />
               <mat-hint align="end">
-                {{ templateForm.get('name')?.value?.length }}/{{
-                  formLimits.NAME_MAX_LENGTH
-                }}
+                {{ templateForm.get('name')?.value?.length }}/{{ 50 }}
               </mat-hint>
-              @if (nameValidationError()) {
+              @if (this.templateForm.get('name')?.errors) {
                 <mat-error data-testid="name-error" id="name-error-message">
-                  {{ nameValidationError() }}
+                  {{
+                    getTemplateNameErrorMessage(
+                      this.templateForm.get('name')?.errors ?? null
+                    )
+                  }}
                 </mat-error>
               }
             </mat-form-field>
@@ -114,15 +120,12 @@ import {
                 data-testid="template-description-input"
               ></textarea>
               <mat-hint align="end">
-                {{ templateForm.get('description')?.value?.length }}/{{
-                  formLimits.DESCRIPTION_MAX_LENGTH
-                }}
+                {{ templateForm.get('description')?.value?.length }}/{{ 200 }}
               </mat-hint>
               @if (templateForm.get('description')?.errors) {
                 <mat-error>
                   @if (templateForm.get('description')?.errors?.['maxlength']) {
-                    La description ne doit pas dépasser
-                    {{ formLimits.DESCRIPTION_MAX_LENGTH }} caractères.
+                    La description ne doit pas dépasser 200 caractères.
                   }
                 </mat-error>
               }
@@ -235,7 +238,6 @@ export class CreateTemplateForm {
   // Injected dependencies
   #fb = inject(FormBuilder);
   protected state = inject(BudgetTemplatesState);
-  protected formLimits = FORM_LIMITS;
 
   isCreating = input(false);
 
@@ -250,7 +252,7 @@ export class CreateTemplateForm {
       {
         validators: [
           Validators.required,
-          Validators.maxLength(FORM_LIMITS.NAME_MAX_LENGTH),
+          Validators.maxLength(50),
           duplicateNameValidator(
             this.state.budgetTemplates
               .value()
@@ -259,10 +261,7 @@ export class CreateTemplateForm {
         ],
       },
     ],
-    description: [
-      '',
-      [Validators.maxLength(FORM_LIMITS.DESCRIPTION_MAX_LENGTH)],
-    ],
+    description: ['', [Validators.maxLength(200)]],
     isDefault: [false],
   });
 
@@ -286,16 +285,6 @@ export class CreateTemplateForm {
     }
 
     return null;
-  });
-
-  nameValidationError = computed(() => {
-    const isFormValid = this.isFormValid();
-
-    if (isFormValid) return null;
-    return getTemplateValidationErrorMessage(
-      this.templateForm.get('name')?.errors ?? null,
-      'nom',
-    );
   });
 
   // Smart submit button state management
@@ -322,6 +311,18 @@ export class CreateTemplateForm {
       } else {
         this.templateForm.enable();
       }
+    });
+
+    effect(() => {
+      const templates = this.state.budgetTemplates.value();
+      this.templateForm
+        .get('name')
+        ?.setValidators([
+          Validators.required,
+          Validators.maxLength(50),
+          duplicateNameValidator(templates?.map((t) => t.name.toLowerCase())),
+        ]);
+      this.templateForm.get('name')?.updateValueAndValidity();
     });
   }
 
@@ -364,5 +365,9 @@ export class CreateTemplateForm {
     if (!this.isCreating()) {
       this.cancelForm.emit();
     }
+  }
+
+  getTemplateNameErrorMessage(errors: ValidationErrors | null): string | null {
+    return getTemplateNameErrorMessage(errors);
   }
 }
