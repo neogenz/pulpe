@@ -8,7 +8,6 @@ import {
   output,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { JsonPipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -41,7 +40,6 @@ import {
     MatTooltipModule,
     MatDividerModule,
     DefaultWarningPanelComponent,
-    JsonPipe,
   ],
   template: `
     @if (state.isLoading() && state.templatesData.status() === 'loading') {
@@ -206,7 +204,7 @@ import {
             <button
               matButton
               (click)="cancelForm.emit()"
-              [disabled]="isFormDisabled()"
+              [disabled]="isCreating()"
               data-testid="cancel-button"
               type="button"
             >
@@ -297,8 +295,6 @@ export class CreateTemplateForm {
       'nom',
     );
   });
-
-  isFormDisabled = computed(() => this.isCreating());
 
   // Smart submit button state management
   submitButtonText = computed(() => {
