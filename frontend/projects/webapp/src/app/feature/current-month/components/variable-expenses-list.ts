@@ -48,7 +48,7 @@ export class VariableExpensesList {
       emptyStateIcon: 'swap_vert',
       emptyStateTitle: 'Aucune transaction variable',
       emptyStateSubtitle: 'Vos transactions ponctuelles apparaîtront ici',
-      selectable: false,
+      selectable: true,
       deletable: true,
       defaultExpanded: true,
     }),

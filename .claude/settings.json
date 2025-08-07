@@ -14,11 +14,12 @@
       "WebFetch(domain:zod.dev)",
       "mcp__context7",
       "mcp__supabase",
-      "mcp__playwright"
+      "mcp__playwright",
+      "mcp__serena"
     ],
     "deny": [],
     "defaultModel": "acceptEdits"
   },
-  "enabledMcpjsonServers": ["context7", "supabase", "playwright"],
+  "enabledMcpjsonServers": ["context7", "supabase", "playwright", "serena"],
   "enableAllProjectMcpServers": true
 }
