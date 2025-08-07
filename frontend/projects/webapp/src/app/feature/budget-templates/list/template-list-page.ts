@@ -19,7 +19,7 @@ import { BaseLoadingComponent } from '../../../ui/loading';
 import { TemplatesError } from '../components/templates-error';
 import { TitleDisplay } from '@core/routing';
 import { ConfirmationDialogComponent } from '@ui/dialogs/confirmation-dialog';
-import { TemplateUsageDialogComponent } from '@ui/dialogs/template-usage-dialog';
+import { TemplateUsageDialogComponent } from '../components/dialogs/template-usage-dialog';
 
 @Component({
   selector: 'pulpe-template-list-page',

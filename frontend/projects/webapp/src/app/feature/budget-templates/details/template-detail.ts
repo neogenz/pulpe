@@ -32,7 +32,7 @@ import { CommonModule, CurrencyPipe } from '@angular/common';
 import { TemplateLine } from '@pulpe/shared';
 import { PulpeTitleStrategy } from '@core/routing/title-strategy';
 import { ConfirmationDialogComponent } from '@ui/dialogs/confirmation-dialog';
-import { TemplateUsageDialogComponent } from '@ui/dialogs/template-usage-dialog';
+import { TemplateUsageDialogComponent } from '../components/dialogs/template-usage-dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 @Component({
