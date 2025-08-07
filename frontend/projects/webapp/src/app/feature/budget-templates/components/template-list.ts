@@ -38,7 +38,7 @@ import { TemplateCard } from './template-card';
         @for (template of templates(); track template.id) {
           <pulpe-template-card
             [template]="template"
-            (delete)="onDeleteTemplate($event)"
+            (delete)="deleteTemplate.emit($event)"
             data-testid="template-card"
           />
         }
@@ -55,8 +55,4 @@ import { TemplateCard } from './template-card';
 export class TemplateList {
   readonly templates = input.required<BudgetTemplate[]>();
   readonly deleteTemplate = output<BudgetTemplate>();
-
-  onDeleteTemplate(template: BudgetTemplate): void {
-    this.deleteTemplate.emit(template);
-  }
 }
