@@ -53,7 +53,7 @@ import { type BudgetTemplate } from '@pulpe/shared';
           </button>
           <button
             mat-menu-item
-            (click)="onDelete()"
+            (click)="delete.emit(template())"
             class="text-error"
             data-testid="delete-template-menu-item"
           >
@@ -95,8 +95,4 @@ import { type BudgetTemplate } from '@pulpe/shared';
 export class TemplateCard {
   readonly template = input.required<BudgetTemplate>();
   readonly delete = output<BudgetTemplate>();
-
-  onDelete(): void {
-    this.delete.emit(this.template());
-  }
 }
