@@ -13,6 +13,7 @@ import {
   MatBottomSheet,
   MatBottomSheetModule,
 } from '@angular/material/bottom-sheet';
+import { MatDialog } from '@angular/material/dialog';
 import {
   MAT_FORM_FIELD_DEFAULT_OPTIONS,
   MatFormFieldModule,
@@ -20,6 +21,7 @@ import {
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { DashboardError } from './components/dashboard-error';
 import { BaseLoadingComponent } from '../../ui/loading';
 import { FixedTransactionsList } from './components/fixed-transactions-list';
@@ -33,6 +35,8 @@ import {
   TransactionFormData,
 } from './components/add-transaction-bottom-sheet';
 import { BudgetLineMapper } from './services/budget-line-mapper';
+import { ConfirmationDialogComponent } from '@ui/dialogs/confirmation-dialog';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'pulpe-current-month',
@@ -205,8 +209,10 @@ export default class CurrentMonth implements OnInit {
   selectedTransactions = signal<string[]>([]);
   protected readonly state = inject(CurrentMonthState);
   protected readonly titleDisplay = inject(TitleDisplay);
-  private readonly bottomSheet = inject(MatBottomSheet);
-  private readonly budgetLineMapper = inject(BudgetLineMapper);
+  #bottomSheet = inject(MatBottomSheet);
+  #dialog = inject(MatDialog);
+  #snackBar = inject(MatSnackBar);
+  #budgetLineMapper = inject(BudgetLineMapper);
 
   fixedTransactions = computed(() => {
     const budgetLines = this.state.budgetLines();
@@ -217,7 +223,7 @@ export default class CurrentMonth implements OnInit {
     // Filter budget lines with 'fixed' recurrence and map them to Transaction-like objects
     return budgetLines
       .filter((line) => line.recurrence === 'fixed')
-      .map((line) => this.budgetLineMapper.toTransaction(line, budgetId));
+      .map((line) => this.#budgetLineMapper.toTransaction(line, budgetId));
   });
   variableTransactions = computed(() => {
     // For now, show all transactions as variable expenses
@@ -248,7 +254,7 @@ export default class CurrentMonth implements OnInit {
    *
    */
   openAddTransactionBottomSheet(): void {
-    const bottomSheetRef = this.bottomSheet.open(AddTransactionBottomSheet, {
+    const bottomSheetRef = this.#bottomSheet.open(AddTransactionBottomSheet, {
       disableClose: false,
       panelClass: 'add-transaction-bottom-sheet',
     });
@@ -286,11 +292,58 @@ export default class CurrentMonth implements OnInit {
     }
   }
 
-  deleteSelectedTransactions(): void {
+  async deleteSelectedTransactions(): Promise<void> {
     const selectedIds = this.selectedTransactions();
-    console.log('Supprimer les transactions:', selectedIds);
-    // TODO: Implémenter la suppression des transactions
-    this.selectedTransactions.set([]);
+
+    if (selectedIds.length === 0) return;
+
+    // Open confirmation dialog
+    const dialogRef = this.#dialog.open(ConfirmationDialogComponent, {
+      data: {
+        title: 'Supprimer les transactions',
+        message:
+          selectedIds.length === 1
+            ? 'Êtes-vous sûr de vouloir supprimer cette transaction ?'
+            : `Êtes-vous sûr de vouloir supprimer ces ${selectedIds.length} transactions ?`,
+        confirmText: 'Supprimer',
+        cancelText: 'Annuler',
+        confirmColor: 'warn' as const,
+      },
+      width: '400px',
+    });
+
+    const confirmed = await firstValueFrom(dialogRef.afterClosed());
+
+    if (confirmed) {
+      try {
+        // Delete transactions
+        await this.state.deleteTransactions(selectedIds);
+
+        // Clear selection
+        this.selectedTransactions.set([]);
+
+        // Show success message
+        const message =
+          selectedIds.length === 1
+            ? 'Transaction supprimée'
+            : `${selectedIds.length} transactions supprimées`;
+
+        this.#snackBar.open(message, 'Fermer', {
+          duration: 3000,
+        });
+      } catch (error) {
+        console.error('Error deleting transactions:', error);
+
+        // Show error message
+        this.#snackBar.open(
+          'Une erreur est survenue lors de la suppression',
+          'Fermer',
+          {
+            duration: 5000,
+          },
+        );
+      }
+    }
   }
 
   editSelectedTransactions(): void {
