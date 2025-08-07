@@ -25,7 +25,7 @@ export const budgetTemplatesRoutes: Routes = [
         loadComponent: () => import('./create/create-template-page'),
       },
       {
-        path: 'details/:id',
+        path: 'details/:templateId',
         title: PAGE_TITLES.TEMPLATE_DETAIL,
         data: { breadcrumb: 'Détail du modèle', icon: 'visibility' },
         loadComponent: () => import('./details/template-detail'),

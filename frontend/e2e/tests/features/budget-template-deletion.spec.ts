@@ -8,8 +8,10 @@ test.describe('Budget Template Deletion', () => {
     }) => {
       // Mock template details and deletion APIs
       const templateName = 'Test Template';
+      const templateId = 'test-template-1';
       
-      await authenticatedPage.route('**/api/v1/budget-templates/test-template-1', async (route) => {
+      // Set up all API mocks before navigation
+      await authenticatedPage.route('**/api/v1/budget-templates/' + templateId, async (route) => {
         if (route.request().method() === 'GET') {
           await route.fulfill({
             status: 200,
@@ -17,10 +19,12 @@ test.describe('Budget Template Deletion', () => {
             body: JSON.stringify({
               success: true,
               data: {
-                id: 'test-template-1',
+                id: templateId,
                 name: templateName,
                 description: 'Template for testing',
                 isDefault: false,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
               },
             }),
           });
@@ -37,7 +41,7 @@ test.describe('Budget Template Deletion', () => {
       });
 
       // Mock template lines (required by getDetail$ forkJoin)
-      await authenticatedPage.route('**/api/v1/budget-templates/test-template-1/lines', async (route) => {
+      await authenticatedPage.route('**/api/v1/budget-templates/' + templateId + '/lines', async (route) => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -46,15 +50,21 @@ test.describe('Budget Template Deletion', () => {
             data: [
               {
                 id: 'line-1',
+                templateId: templateId,
                 name: 'Test Income',
                 amount: 5000,
                 kind: 'INCOME',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
               },
               {
                 id: 'line-2',
+                templateId: templateId,
                 name: 'Test Expense',
                 amount: 2000,
                 kind: 'FIXED_EXPENSE',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
               },
             ],
           }),
@@ -62,7 +72,7 @@ test.describe('Budget Template Deletion', () => {
       });
 
       // Mock usage check - no budgets using this template
-      await authenticatedPage.route('**/api/v1/budget-templates/test-template-1/usage', async (route) => {
+      await authenticatedPage.route('**/api/v1/budget-templates/' + templateId + '/usage', async (route) => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -78,30 +88,46 @@ test.describe('Budget Template Deletion', () => {
       });
       
       // Navigate directly to the template details page
-      await budgetTemplatesPage.gotoTemplate('test-template-1');
+      await budgetTemplatesPage.gotoTemplate(templateId);
+      
+      // Wait for the page to be fully loaded - check for the template detail page element
+      await authenticatedPage.waitForSelector('[data-testid="template-detail-page"]', { timeout: 10000 });
+      
+      // Wait for the menu trigger to be available (indicates data is loaded and template is rendered)
+      await authenticatedPage.waitForSelector('[data-testid="template-detail-menu-trigger"]', { 
+        state: 'visible',
+        timeout: 10000 
+      });
+      
+      // Small delay to ensure all event handlers are attached
+      await authenticatedPage.waitForTimeout(500);
       
       // Click on menu and delete
       await authenticatedPage.locator('[data-testid="template-detail-menu-trigger"]').click();
+      await authenticatedPage.waitForSelector('[data-testid="delete-template-detail-menu-item"]', { state: 'visible' });
       await authenticatedPage.locator('[data-testid="delete-template-detail-menu-item"]').click();
       
       // Confirm deletion in dialog
-      await authenticatedPage.locator('[role="dialog"]').waitFor();
+      await authenticatedPage.waitForSelector('[role="dialog"]', { state: 'visible' });
       await authenticatedPage.locator('[role="dialog"] button:has-text("Supprimer")').click();
       
-      // Verify navigation back to list (deletion should trigger navigation)
+      // Wait for navigation back to list
       await authenticatedPage.waitForURL('**/budget-templates', { timeout: 10000 });
       
-      // Success verification - just check we're back on the list page
-      const isBackToList = authenticatedPage.url().includes('/budget-templates');
-      expect(isBackToList).toBeTruthy();
+      // Success verification
+      expect(authenticatedPage.url()).toContain('/budget-templates');
+      expect(authenticatedPage.url()).not.toContain('/details/');
     });
 
     test('should show budget usage dialog when template has associated budgets', async ({
       authenticatedPage,
       budgetTemplatesPage,
     }) => {
+      const templateId = 'test-template-id';
+      const templateName = 'Test Template with Budgets';
+      
       // Mock template details
-      await authenticatedPage.route('**/api/v1/budget-templates/test-template-id', async (route) => {
+      await authenticatedPage.route('**/api/v1/budget-templates/' + templateId, async (route) => {
         if (route.request().method() === 'GET') {
           await route.fulfill({
             status: 200,
@@ -109,10 +135,12 @@ test.describe('Budget Template Deletion', () => {
             body: JSON.stringify({
               success: true,
               data: {
-                id: 'test-template-id',
-                name: 'Test Template with Budgets',
+                id: templateId,
+                name: templateName,
                 description: 'Template for testing with budgets',
                 isDefault: false,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
               },
             }),
           });
@@ -120,7 +148,7 @@ test.describe('Budget Template Deletion', () => {
       });
 
       // Mock template lines
-      await authenticatedPage.route('**/api/v1/budget-templates/test-template-id/lines', async (route) => {
+      await authenticatedPage.route('**/api/v1/budget-templates/' + templateId + '/lines', async (route) => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -129,9 +157,12 @@ test.describe('Budget Template Deletion', () => {
             data: [
               {
                 id: 'line-1',
+                templateId: templateId,
                 name: 'Test Income',
                 amount: 5000,
                 kind: 'INCOME',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
               },
             ],
           }),
@@ -139,7 +170,7 @@ test.describe('Budget Template Deletion', () => {
       });
 
       // Mock API to return template with associated budgets
-      await authenticatedPage.route('**/api/v1/budget-templates/test-template-id/usage', async (route) => {
+      await authenticatedPage.route('**/api/v1/budget-templates/' + templateId + '/usage', async (route) => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -158,14 +189,28 @@ test.describe('Budget Template Deletion', () => {
         });
       });
       
-      await budgetTemplatesPage.gotoTemplate('test-template-id');
+      // Navigate to template
+      await budgetTemplatesPage.gotoTemplate(templateId);
+      
+      // Wait for the page to be fully loaded
+      await authenticatedPage.waitForSelector('[data-testid="template-detail-page"]', { timeout: 10000 });
+      
+      // Wait for the menu trigger to be available
+      await authenticatedPage.waitForSelector('[data-testid="template-detail-menu-trigger"]', { 
+        state: 'visible',
+        timeout: 10000 
+      });
+      
+      // Small delay to ensure all event handlers are attached
+      await authenticatedPage.waitForTimeout(500);
       
       // Click on menu and delete
       await authenticatedPage.locator('[data-testid="template-detail-menu-trigger"]').click();
+      await authenticatedPage.waitForSelector('[data-testid="delete-template-detail-menu-item"]', { state: 'visible' });
       await authenticatedPage.locator('[data-testid="delete-template-detail-menu-item"]').click();
       
       // Verify usage dialog appears
-      await authenticatedPage.locator('[role="dialog"]').waitFor();
+      await authenticatedPage.waitForSelector('[role="dialog"]', { state: 'visible' });
       await expect(authenticatedPage.locator('h2:has-text("Suppression impossible")')).toBeVisible();
       
       // Verify budget list is shown (look specifically in dialog)
@@ -174,7 +219,7 @@ test.describe('Budget Template Deletion', () => {
       
       // Close dialog
       await authenticatedPage.locator('button[matButton="filled"]:has-text("Compris")').click();
-      await expect(authenticatedPage.locator('[role="dialog"]')).toHaveCount(0);
+      await authenticatedPage.waitForSelector('[role="dialog"]', { state: 'detached' });
     });
   });
 
@@ -183,27 +228,33 @@ test.describe('Budget Template Deletion', () => {
       authenticatedPage,
       budgetTemplatesPage,
     }) => {
+      const templateId = 'template-1';
+      
       // Mock API to return templates
       await authenticatedPage.route('**/api/v1/budget-templates', async (route) => {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            success: true,
-            data: [
-              {
-                id: 'template-1',
-                name: 'Template to Delete',
-                description: 'Test template',
-                isDefault: false,
-              },
-            ],
-          }),
-        });
+        if (route.request().method() === 'GET') {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+              success: true,
+              data: [
+                {
+                  id: templateId,
+                  name: 'Template to Delete',
+                  description: 'This template will be deleted',
+                  isDefault: false,
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                },
+              ],
+            }),
+          });
+        }
       });
       
       // Mock usage check to return no budgets
-      await authenticatedPage.route('**/api/v1/budget-templates/*/usage', async (route) => {
+      await authenticatedPage.route('**/api/v1/budget-templates/' + templateId + '/usage', async (route) => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -217,16 +268,37 @@ test.describe('Budget Template Deletion', () => {
           }),
         });
       });
+
+      // Mock deletion
+      await authenticatedPage.route('**/api/v1/budget-templates/' + templateId, async (route) => {
+        if (route.request().method() === 'DELETE') {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+              success: true,
+              message: 'Template deleted successfully',
+            }),
+          });
+        }
+      });
       
       await budgetTemplatesPage.goto();
       await budgetTemplatesPage.expectTemplatesListVisible();
       
+      // Wait for templates to load
+      await authenticatedPage.waitForSelector('mat-card', { state: 'visible' });
+      
       // Click menu on template card  
-      await authenticatedPage.locator('mat-card').first().locator('button[mat-icon-button]').filter({ hasText: 'more_vert' }).click();
+      const menuButton = authenticatedPage.locator('mat-card').first().locator('button[mat-icon-button]').filter({ hasText: 'more_vert' });
+      await menuButton.click();
+      
+      // Wait for menu to open and click delete
+      await authenticatedPage.waitForSelector('button[mat-menu-item]:has-text("Supprimer")', { state: 'visible' });
       await authenticatedPage.locator('button[mat-menu-item]:has-text("Supprimer")').click();
       
       // Confirm deletion
-      await authenticatedPage.locator('[role="dialog"]').waitFor();
+      await authenticatedPage.waitForSelector('[role="dialog"]', { state: 'visible' });
       await authenticatedPage.locator('[role="dialog"] button:has-text("Supprimer")').click();
       
       // Verify success message or page refresh
@@ -404,6 +476,12 @@ test.describe('Budget Template Deletion', () => {
       
       await budgetTemplatesPage.gotoTemplate('test-template-id');
       
+      // Wait for loading to finish and data to be available
+      await authenticatedPage.waitForLoadState('networkidle', { timeout: 15000 });
+      
+      // Wait for the menu trigger to be available (indicates data is loaded)
+      await authenticatedPage.locator('[data-testid="template-detail-menu-trigger"]').waitFor({ timeout: 15000 });
+      
       // Try to delete
       await authenticatedPage.locator('[data-testid="template-detail-menu-trigger"]').click();
       await authenticatedPage.locator('[data-testid="delete-template-detail-menu-item"]').click();
@@ -474,6 +552,12 @@ test.describe('Budget Template Deletion', () => {
       });
       
       await budgetTemplatesPage.gotoTemplate('test-template-id');
+      
+      // Wait for loading to finish and data to be available
+      await authenticatedPage.waitForLoadState('networkidle', { timeout: 15000 });
+      
+      // Wait for the menu trigger to be available (indicates data is loaded)
+      await authenticatedPage.locator('[data-testid="template-detail-menu-trigger"]').waitFor({ timeout: 15000 });
       
       // Try to delete
       await authenticatedPage.locator('[data-testid="template-detail-menu-trigger"]').click();

@@ -8,11 +8,18 @@ import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { firstValueFrom } from 'rxjs';
+import { type BudgetTemplate } from '@pulpe/shared';
 import { BudgetTemplatesState } from '../services/budget-templates-state';
+import { BudgetTemplatesApi } from '../services/budget-templates-api';
 import { TemplateList } from '../components/template-list';
 import { BaseLoadingComponent } from '../../../ui/loading';
 import { TemplatesError } from '../components/templates-error';
 import { TitleDisplay } from '@core/routing';
+import { ConfirmationDialogComponent } from '@ui/dialogs/confirmation-dialog';
+import { TemplateUsageDialogComponent } from '@ui/dialogs/template-usage-dialog';
 
 @Component({
   selector: 'pulpe-template-list-page',
@@ -96,6 +103,7 @@ import { TitleDisplay } from '@core/routing';
         ) {
           <pulpe-template-list
             [templates]="state.budgetTemplates.value() ?? []"
+            (deleteTemplate)="onDeleteTemplate($event)"
             data-testid="templates-list"
           />
         }
@@ -114,8 +122,85 @@ import { TitleDisplay } from '@core/routing';
 export default class TemplateListPage implements OnInit {
   protected readonly state = inject(BudgetTemplatesState);
   protected readonly title = inject(TitleDisplay);
+  readonly #dialog = inject(MatDialog);
+  readonly #snackBar = inject(MatSnackBar);
+  readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
 
   ngOnInit() {
     this.state.refreshData();
+  }
+
+  async onDeleteTemplate(template: BudgetTemplate) {
+    try {
+      // First check if template is being used
+      const usageResponse = await firstValueFrom(
+        this.#budgetTemplatesApi.checkUsage$(template.id),
+      );
+
+      if (usageResponse.data.isUsed) {
+        // Show dialog with list of budgets using this template
+        const dialogRef = this.#dialog.open(TemplateUsageDialogComponent, {
+          data: {
+            templateId: template.id,
+            templateName: template.name,
+          },
+          width: '90vw',
+          maxWidth: '600px',
+          disableClose: false,
+        });
+
+        // Set the usage data after opening the dialog
+        const dialogInstance = dialogRef.componentInstance;
+        dialogInstance.setUsageData(usageResponse.data.budgets);
+      } else {
+        // Template is not used, show confirmation dialog
+        const dialogRef = this.#dialog.open(ConfirmationDialogComponent, {
+          data: {
+            title: 'Supprimer le modèle',
+            message: `Êtes-vous sûr de vouloir supprimer le modèle « ${template.name} » ?`,
+            confirmText: 'Supprimer',
+            cancelText: 'Annuler',
+            confirmColor: 'warn',
+          },
+          width: '400px',
+        });
+
+        const confirmed = await firstValueFrom(dialogRef.afterClosed());
+        if (confirmed) {
+          await this.#performDeletion(template);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking template usage:', error);
+      this.#snackBar.open(
+        'Une erreur est survenue lors de la vérification',
+        'Fermer',
+        {
+          duration: 5000,
+        },
+      );
+    }
+  }
+
+  async #performDeletion(template: BudgetTemplate) {
+    try {
+      await firstValueFrom(this.#budgetTemplatesApi.delete$(template.id));
+
+      this.#snackBar.open('Modèle supprimé avec succès', undefined, {
+        duration: 3000,
+      });
+
+      // Refresh the templates list
+      this.state.refreshData();
+    } catch (error) {
+      console.error('Error deleting template:', error);
+      this.#snackBar.open(
+        'Une erreur est survenue lors de la suppression',
+        'Fermer',
+        {
+          duration: 5000,
+        },
+      );
+    }
   }
 }
