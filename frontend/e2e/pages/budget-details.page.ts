@@ -36,8 +36,9 @@ export class BudgetDetailsPage {
   }
 
   async clickDeleteBudgetLine(lineIndex = 0): Promise<void> {
+    // Use a more specific selector to avoid CSS parsing issues
     const deleteButton = this.page
-      .locator('[data-testid^="delete-"]')
+      .locator('button[aria-label*="delete"], button[aria-label*="Delete"], button[aria-label*="supprimer"], button[aria-label*="Supprimer"]')
       .nth(lineIndex);
     await expect(deleteButton).toBeVisible({ timeout: 5000 });
     await deleteButton.click();

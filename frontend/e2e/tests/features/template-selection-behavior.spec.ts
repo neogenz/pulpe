@@ -116,10 +116,12 @@ test.describe('Template Selection UX Behavior', () => {
       await expect(radioGroupLocator).toBeVisible();
 
       // Wait for templates to be fully rendered
-      const templateCards = authenticatedPage.locator('[data-testid^="template-card-"]');
-      await expect(templateCards.first()).toBeVisible();
+      // Check that the radio group contains template options
+      const radioGroup = authenticatedPage.getByTestId('template-selection-radio-group');
+      const templateOptions = radioGroup.locator('mat-radio-button');
+      await expect(templateOptions.first()).toBeVisible();
 
-      // Check if the default template (template-2) has the mat-mdc-radio-checked class
+      // Check if the default template is selected
       const defaultTemplateRadio = authenticatedPage.getByTestId('template-radio-template-2');
       await expect(defaultTemplateRadio).toBeVisible();
       
@@ -250,8 +252,10 @@ test.describe('Template Selection UX Behavior', () => {
       await authenticatedPage.waitForTimeout(3000);
 
       // Wait for templates to be fully rendered
-      const templateCards = authenticatedPage.locator('[data-testid^="template-card-"]');
-      await expect(templateCards.first()).toBeVisible();
+      // Check that the radio group contains template options
+      const radioGroup = authenticatedPage.getByTestId('template-selection-radio-group');
+      const templateOptions = radioGroup.locator('mat-radio-button');
+      await expect(templateOptions.first()).toBeVisible();
 
       // Check if "Newest Template" (template-2, created 2024-01-03) is selected
       const newestTemplateRadio = authenticatedPage.getByTestId('template-radio-template-2');
@@ -373,8 +377,10 @@ test.describe('Template Selection UX Behavior', () => {
       await authenticatedPage.waitForTimeout(3000);
 
       // Wait for templates to be fully rendered
-      const templateCards = authenticatedPage.locator('[data-testid^="template-card-"]');
-      await expect(templateCards.first()).toBeVisible();
+      // Check that the radio group contains template options
+      const radioGroup = authenticatedPage.getByTestId('template-selection-radio-group');
+      const templateOptions = radioGroup.locator('mat-radio-button');
+      await expect(templateOptions.first()).toBeVisible();
 
       // The default template (template-1) should be selected initially
       const defaultTemplateRadio = authenticatedPage.getByTestId('template-radio-template-1');
@@ -399,7 +405,7 @@ test.describe('Template Selection UX Behavior', () => {
       await authenticatedPage.waitForTimeout(500); // Wait for debounce
 
       // Verify that search filters templates
-      const visibleTemplates = authenticatedPage.locator('[data-testid^="template-radio-"]:visible');
+      const visibleTemplates = authenticatedPage.getByTestId('template-selection-radio-group').locator('mat-radio-button:visible');
       const visibleCount = await visibleTemplates.count();
       
       // Should show fewer templates now
@@ -415,9 +421,7 @@ test.describe('Template Selection UX Behavior', () => {
       // if no default exists, we select the newest template from ALL templates,
       // not just from the filtered search results
       
-      const selectedTemplate = authenticatedPage.locator(
-        '[data-testid^="template-radio-"][aria-checked="true"]'
-      );
+      const selectedTemplate = authenticatedPage.locator('mat-radio-button[aria-checked="true"]');
       
       // The selection behavior should still maintain the newest template overall
       // even if it's not visible in the search results
@@ -443,7 +447,7 @@ test.describe('Template Selection UX Behavior', () => {
       await authenticatedPage.waitForTimeout(500);
 
       // Now all templates should be visible again
-      const allTemplates = authenticatedPage.locator('[data-testid^="template-radio-"]');
+      const allTemplates = authenticatedPage.getByTestId('template-selection-radio-group').locator('mat-radio-button');
       const totalCount = await allTemplates.count();
       console.log(`Total templates visible after clearing search: ${totalCount}`);
 
@@ -573,7 +577,8 @@ test.describe('Template Selection UX Behavior', () => {
       if (!isLoading) {
         // If not loading, should have templates or empty state
         const hasTemplates = (await authenticatedPage
-          .locator('[data-testid^="template-radio-"]')
+          .getByTestId('template-selection-radio-group')
+          .locator('mat-radio-button')
           .count()) > 0;
         
         const hasEmptyState = await authenticatedPage
@@ -587,7 +592,7 @@ test.describe('Template Selection UX Behavior', () => {
           
           // Verify that a template is automatically selected for better UX
           const selectedTemplates = await authenticatedPage
-            .locator('[data-testid^="template-radio-"][aria-checked="true"]')
+            .locator('mat-radio-button[aria-checked="true"]')
             .count();
           
           if (selectedTemplates > 0) {
