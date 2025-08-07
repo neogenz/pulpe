@@ -480,7 +480,7 @@ export default class TemplateDetail {
       });
 
       // Navigate back to templates list
-      this.#router.navigate(['..'], { relativeTo: this.#route });
+      this.#router.navigate(['/app/budget-templates']);
     } catch (error) {
       console.error('Error deleting template:', error);
       this.#snackBar.open(
