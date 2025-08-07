@@ -80,43 +80,42 @@ export class CurrentMonthState {
     }
   }
 
-  async deleteTransactions(transactionIds: string[]): Promise<void> {
+  async deleteTransaction(transactionId: string): Promise<void> {
     // Save current transactions for rollback
     const currentData = this.dashboardData.value();
     if (!currentData) {
       throw new Error('No data available');
     }
 
-    const transactionsToDelete = currentData.transactions.filter((t) =>
-      transactionIds.includes(t.id),
+    const transactionToDelete = currentData.transactions.find(
+      (t) => t.id === transactionId,
     );
 
-    // Optimistic update: remove transactions from UI immediately
+    if (!transactionToDelete) {
+      throw new Error('Transaction not found');
+    }
+
+    // Optimistic update: remove transaction from UI immediately
     this.dashboardData.update((data) => {
       if (!data) return data;
       return {
         ...data,
-        transactions: data.transactions.filter(
-          (t) => !transactionIds.includes(t.id),
-        ),
+        transactions: data.transactions.filter((t) => t.id !== transactionId),
       };
     });
 
     try {
-      // Delete all transactions sequentially
-      // Using Promise.all could overwhelm the backend, so we process them one by one
-      for (const id of transactionIds) {
-        await firstValueFrom(this.#transactionApi.remove$(id));
-      }
+      // Delete the transaction
+      await firstValueFrom(this.#transactionApi.remove$(transactionId));
 
-      // If all deletions succeed, the optimistic update stands
+      // If deletion succeeds, the optimistic update stands
     } catch (error) {
-      // Rollback on error: restore the deleted transactions
+      // Rollback on error: restore the deleted transaction
       this.dashboardData.update((data) => {
         if (!data) return data;
         return {
           ...data,
-          transactions: [...data.transactions, ...transactionsToDelete],
+          transactions: [...data.transactions, transactionToDelete],
         };
       });
       throw error;
