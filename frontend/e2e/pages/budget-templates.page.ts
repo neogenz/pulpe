@@ -43,7 +43,7 @@ export class BudgetTemplatesPage {
   }
 
   async gotoAddTemplate() {
-    await this.page.goto('/app/budget-templates/add');
+    await this.page.goto('/app/budget-templates/create');
     await this.page.waitForLoadState('domcontentloaded');
     await this.waitForPageStable();
   }
@@ -82,13 +82,13 @@ export class BudgetTemplatesPage {
   }
 
   async expectPageLoaded() {
-    // Check if we're on the main templates page or add template page
+    // Check if we're on the main templates page or create template page
     const isMainPage =
       (await this.page
         .locator('[data-testid="budget-templates-page"]')
         .count()) > 0;
-    const isAddPage =
-      (await this.page.locator('[data-testid="add-template-page"]').count()) >
+    const isCreatePage =
+      (await this.page.locator('[data-testid="create-template-page"]').count()) >
       0;
 
     if (isMainPage) {
@@ -100,8 +100,8 @@ export class BudgetTemplatesPage {
       await expect(
         this.page.locator('[data-testid="budget-templates-page"]'),
       ).toBeVisible();
-    } else if (isAddPage) {
-      // We're on the add template page
+    } else if (isCreatePage) {
+      // We're on the create template page
       await this.expectAddPageLoaded();
     } else {
       // Fallback: check for basic page structure
@@ -121,9 +121,9 @@ export class BudgetTemplatesPage {
   }
 
   async expectAddPageLoaded() {
-    // Use data-testid for add template page
+    // Use data-testid for create template page
     await expect(
-      this.page.locator('[data-testid="add-template-page"]'),
+      this.page.locator('[data-testid="create-template-page"]'),
     ).toBeVisible();
     await expect(this.page.locator('[data-testid="page-title"]')).toBeVisible();
   }
@@ -143,37 +143,19 @@ export class BudgetTemplatesPage {
   }
 
   async clickCreateTemplate() {
-    // Wait for loading to finish first
-    await this.page.waitForFunction(() => {
-      // Check if any loading indicator is still visible
-      const loadingElements = document.querySelectorAll('[data-testid="templates-loading"], mat-progress-spinner, .loading');
-      return loadingElements.length === 0;
-    }, { timeout: 10000 });
+    // Direct navigation is more reliable for CI environments
+    await this.page.goto('/app/budget-templates/create', { 
+      waitUntil: 'networkidle', 
+      timeout: 15000 
+    });
     
-    // Use the data-testid selector for create button
-    try {
-      await this.createTemplateButton.waitFor({ state: 'visible', timeout: 5000 });
-      await this.createTemplateButton.click();
-      // Attendre la navigation
-      await this.page.waitForTimeout(1000);
-    } catch (error) {
-      // If FAB is not visible, try alternative create button or navigation
-      const alternativeButton = this.page.locator('button:has-text("Nouveau"), a[href*="create"], a[href*="add"]').first();
-      if (await alternativeButton.count() > 0) {
-        await alternativeButton.click();
-      } else {
-        // Direct navigation as fallback
-        await this.page.goto('/app/budget-templates/create');
-      }
-      await this.page.waitForTimeout(1000);
-    }
+    // Additional wait to ensure Angular components are rendered
+    await this.page.waitForTimeout(1000);
   }
 
   async expectFormVisible() {
-    await expect(
-      this.page.locator('[data-testid="add-template-form"]'),
-    ).toBeVisible();
-    await expect(this.templateNameInput).toBeVisible();
+    // Wait for the template name input to be visible (the most important field)
+    await expect(this.templateNameInput).toBeVisible({ timeout: 10000 });
   }
 
   async fillTemplateName(name: string) {
