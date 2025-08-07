@@ -34,6 +34,7 @@ import { PulpeTitleStrategy } from '@core/routing/title-strategy';
 import { ConfirmationDialogComponent } from '@ui/dialogs/confirmation-dialog';
 import { TemplateUsageDialogComponent } from '../components/dialogs/template-usage-dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { getDeleteConfirmationConfig } from '../delete/template-delete-dialog';
 
 @Component({
   selector: 'pulpe-template-detail',
@@ -444,13 +445,7 @@ export default class TemplateDetail {
       } else {
         // Template is not used, show confirmation dialog
         const dialogRef = this.#dialog.open(ConfirmationDialogComponent, {
-          data: {
-            title: 'Supprimer le modèle',
-            message: `Êtes-vous sûr de vouloir supprimer le modèle « ${templateData.template.name} » ?`,
-            confirmText: 'Supprimer',
-            cancelText: 'Annuler',
-            confirmColor: 'warn',
-          },
+          data: getDeleteConfirmationConfig(templateData.template.name),
           width: '400px',
         });
 

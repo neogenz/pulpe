@@ -13,3 +13,5 @@ traces/
 
 # Browser downloads
 browsers/ playwright/.auth
+
+light_angular-architecture-for-enterprise.md

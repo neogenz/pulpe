@@ -20,6 +20,7 @@ import { TemplatesError } from '../components/templates-error';
 import { TitleDisplay } from '@core/routing';
 import { ConfirmationDialogComponent } from '@ui/dialogs/confirmation-dialog';
 import { TemplateUsageDialogComponent } from '../components/dialogs/template-usage-dialog';
+import { getDeleteConfirmationConfig } from '../delete/template-delete-dialog';
 
 @Component({
   selector: 'pulpe-template-list-page',
@@ -155,13 +156,7 @@ export default class TemplateListPage implements OnInit {
       } else {
         // Template is not used, show confirmation dialog
         const dialogRef = this.#dialog.open(ConfirmationDialogComponent, {
-          data: {
-            title: 'Supprimer le modèle',
-            message: `Êtes-vous sûr de vouloir supprimer le modèle « ${template.name} » ?`,
-            confirmText: 'Supprimer',
-            cancelText: 'Annuler',
-            confirmColor: 'warn',
-          },
+          data: getDeleteConfirmationConfig(template.name),
           width: '400px',
         });
 
