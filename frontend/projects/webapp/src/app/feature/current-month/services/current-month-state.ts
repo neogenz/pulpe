@@ -80,6 +80,49 @@ export class CurrentMonthState {
     }
   }
 
+  async deleteTransactions(transactionIds: string[]): Promise<void> {
+    // Save current transactions for rollback
+    const currentData = this.dashboardData.value();
+    if (!currentData) {
+      throw new Error('No data available');
+    }
+
+    const transactionsToDelete = currentData.transactions.filter((t) =>
+      transactionIds.includes(t.id),
+    );
+
+    // Optimistic update: remove transactions from UI immediately
+    this.dashboardData.update((data) => {
+      if (!data) return data;
+      return {
+        ...data,
+        transactions: data.transactions.filter(
+          (t) => !transactionIds.includes(t.id),
+        ),
+      };
+    });
+
+    try {
+      // Delete all transactions sequentially
+      // Using Promise.all could overwhelm the backend, so we process them one by one
+      for (const id of transactionIds) {
+        await firstValueFrom(this.#transactionApi.remove$(id));
+      }
+
+      // If all deletions succeed, the optimistic update stands
+    } catch (error) {
+      // Rollback on error: restore the deleted transactions
+      this.dashboardData.update((data) => {
+        if (!data) return data;
+        return {
+          ...data,
+          transactions: [...data.transactions, ...transactionsToDelete],
+        };
+      });
+      throw error;
+    }
+  }
+
   #currentDate = computed<{ month: string; year: string }>(() => {
     const now = this.today();
     return {
