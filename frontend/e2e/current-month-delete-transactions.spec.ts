@@ -1,92 +1,111 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Current Month - Delete Transactions', () => {
-  test('should show delete button when transactions are selected', async ({ page }) => {
-    // Navigate to the current month page (assuming user is already logged in)
+test.describe('Current Month - Delete Transaction', () => {
+  test.beforeEach(async ({ page }) => {
+    // Navigate to the current month page
     await page.goto('/current-month');
     
     // Wait for the page to load
     await page.waitForSelector('[data-testid="current-month-page"]');
+  });
+
+  test('should show delete button on each transaction', async ({ page }) => {
+    // Wait for transactions to load
+    await page.waitForSelector('[data-testid="variable-expenses-list"]');
     
-    // Check if there are any transactions in the variable expenses list
-    const transactionsList = page.locator('[data-testid="variable-expenses-list"]');
+    // Check that delete buttons are visible on transactions
+    const deleteButtons = await page.locator('[data-testid^="delete-transaction-"]').all();
     
-    // Try to find checkboxes in the transactions list
-    const checkboxes = transactionsList.locator('input[type="checkbox"]');
-    const checkboxCount = await checkboxes.count();
-    
-    if (checkboxCount > 0) {
-      // Select the first transaction
-      await checkboxes.first().check();
-      
-      // Verify the delete button appears with correct count
-      const deleteButton = page.locator('[data-testid="delete-selected-button"]');
-      await expect(deleteButton).toBeVisible();
-      await expect(deleteButton).toContainText('Supprimer (1)');
-      
-      // Select another transaction if available
-      if (checkboxCount > 1) {
-        await checkboxes.nth(1).check();
-        await expect(deleteButton).toContainText('Supprimer (2)');
-      }
-      
-      // Click the delete button
-      await deleteButton.click();
-      
-      // Verify the confirmation dialog appears
-      const dialog = page.locator('mat-dialog-container');
-      await expect(dialog).toBeVisible();
-      await expect(dialog).toContainText('Supprimer les transactions');
-      
-      // Check the correct message based on selection count
-      if (checkboxCount > 1) {
-        await expect(dialog).toContainText('Êtes-vous sûr de vouloir supprimer ces 2 transactions ?');
-      } else {
-        await expect(dialog).toContainText('Êtes-vous sûr de vouloir supprimer cette transaction ?');
-      }
-      
-      // Verify dialog buttons
-      const cancelButton = dialog.locator('button:has-text("Annuler")');
-      const confirmButton = dialog.locator('button:has-text("Supprimer")');
-      
-      await expect(cancelButton).toBeVisible();
-      await expect(confirmButton).toBeVisible();
-      
-      // Cancel the operation
-      await cancelButton.click();
-      
-      // Dialog should close
-      await expect(dialog).not.toBeVisible();
-      
-      // Selections should still be there
-      await expect(deleteButton).toBeVisible();
+    // Should have at least one delete button if there are transactions
+    const transactionItems = await page.locator('[data-testid="variable-expenses-list"] .mat-mdc-list-item').count();
+    if (transactionItems > 0) {
+      expect(deleteButtons.length).toBeGreaterThan(0);
+      expect(deleteButtons.length).toBe(transactionItems);
     }
   });
-  
-  test('should hide bulk actions when no transactions are selected', async ({ page }) => {
-    await page.goto('/current-month');
+
+  test('should show confirmation dialog when clicking delete', async ({ page }) => {
+    // Wait for transactions to load
+    await page.waitForSelector('[data-testid="variable-expenses-list"]');
+    
+    // Find the first delete button
+    const firstDeleteButton = page.locator('[data-testid^="delete-transaction-"]').first();
+    
+    // Check if delete button exists (there might be no transactions)
+    const buttonCount = await firstDeleteButton.count();
+    if (buttonCount === 0) {
+      test.skip();
+      return;
+    }
+    
+    // Get the transaction name for verification
+    const transactionName = await page.locator('[data-testid="variable-expenses-list"] .mat-mdc-list-item').first()
+      .locator('[matlistitemtitle]').textContent();
+    
+    // Click the delete button
+    await firstDeleteButton.click();
+    
+    // Check that confirmation dialog appears
+    await expect(page.locator('mat-dialog-container')).toBeVisible();
+    await expect(page.locator('mat-dialog-container')).toContainText('Supprimer la transaction');
+    
+    // Check that the transaction name is mentioned in the dialog
+    if (transactionName) {
+      await expect(page.locator('mat-dialog-container')).toContainText(transactionName);
+    }
+    
+    // Check dialog buttons
+    await expect(page.locator('button:has-text("Supprimer")')).toBeVisible();
+    await expect(page.locator('button:has-text("Annuler")')).toBeVisible();
+  });
+
+  test('should cancel deletion when clicking cancel in dialog', async ({ page }) => {
+    // Wait for transactions to load
+    await page.waitForSelector('[data-testid="variable-expenses-list"]');
+    
+    // Count initial transactions
+    const initialCount = await page.locator('[data-testid="variable-expenses-list"] .mat-mdc-list-item').count();
+    
+    if (initialCount === 0) {
+      test.skip();
+      return;
+    }
+    
+    // Click the first delete button
+    await page.locator('[data-testid^="delete-transaction-"]').first().click();
+    
+    // Wait for dialog and click cancel
+    await page.waitForSelector('mat-dialog-container');
+    await page.locator('button:has-text("Annuler")').click();
+    
+    // Wait for dialog to close
+    await expect(page.locator('mat-dialog-container')).not.toBeVisible();
+    
+    // Check that transaction count is unchanged
+    const finalCount = await page.locator('[data-testid="variable-expenses-list"] .mat-mdc-list-item').count();
+    expect(finalCount).toBe(initialCount);
+  });
+
+  test('should not show bulk delete actions', async ({ page }) => {
+    // Wait for page to load
     await page.waitForSelector('[data-testid="current-month-page"]');
     
-    // Initially, bulk actions should not be visible
-    const bulkActions = page.locator('[data-testid="bulk-actions"]');
-    await expect(bulkActions).not.toBeVisible();
+    // Check that bulk actions are not present
+    await expect(page.locator('[data-testid="bulk-actions"]')).not.toBeVisible();
+    await expect(page.locator('[data-testid="delete-selected-button"]')).not.toBeVisible();
+    await expect(page.locator('[data-testid="merge-selected-button"]')).not.toBeVisible();
+  });
+
+  test('should not allow selection of transactions', async ({ page }) => {
+    // Wait for transactions to load
+    await page.waitForSelector('[data-testid="variable-expenses-list"]');
     
-    // Check if there are transactions to select
-    const checkboxes = page.locator('[data-testid="variable-expenses-list"] input[type="checkbox"]');
-    const checkboxCount = await checkboxes.count();
+    // Check that checkboxes are not present
+    const checkboxes = await page.locator('[data-testid="variable-expenses-list"] mat-checkbox').count();
+    expect(checkboxes).toBe(0);
     
-    if (checkboxCount > 0) {
-      // Select a transaction
-      await checkboxes.first().check();
-      
-      // Bulk actions should appear
-      await expect(bulkActions).toBeVisible();
-      
-      // Unselect the transaction
-      await checkboxes.first().uncheck();
-      
-      // Bulk actions should disappear
-      await expect(bulkActions).not.toBeVisible();
-    }
+    // Also check for input checkboxes
+    const inputCheckboxes = await page.locator('[data-testid="variable-expenses-list"] input[type="checkbox"]').count();
+    expect(inputCheckboxes).toBe(0);
   });
 });

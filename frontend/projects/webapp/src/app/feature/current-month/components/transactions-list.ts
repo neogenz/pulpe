@@ -4,6 +4,7 @@ import {
   computed,
   input,
   model,
+  output,
   signal,
 } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
@@ -24,6 +25,7 @@ export interface TransactionsListConfig {
   readonly emptyStateSubtitle?: string;
   readonly selectable?: boolean;
   readonly defaultExpanded?: boolean;
+  readonly deletable?: boolean;
 }
 
 @Component({
@@ -125,6 +127,10 @@ export interface TransactionsListConfig {
                   "
                   [class.expense-item]="transaction.kind === 'FIXED_EXPENSE'"
                   [class.!cursor-pointer]="config().selectable"
+                  [class.opacity-50]="isTransactionLoading(transaction.id)"
+                  [class.pointer-events-none]="
+                    isTransactionLoading(transaction.id)
+                  "
                   (click)="
                     config().selectable ? toggleSelection(transaction.id) : null
                   "
@@ -186,6 +192,20 @@ export interface TransactionsListConfig {
                           | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH'
                       }}
                     </span>
+                    @if (config().deletable) {
+                      <button
+                        matIconButton
+                        (click)="onDeleteClick(transaction.id, $event)"
+                        [attr.aria-label]="'Supprimer ' + transaction.name"
+                        [attr.data-testid]="
+                          'delete-transaction-' + transaction.id
+                        "
+                        [disabled]="isTransactionLoading(transaction.id)"
+                        class="!w-10 !h-10 text-error"
+                      >
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    }
                   </div>
                 </mat-list-item>
                 @if (!isLast) {
@@ -279,6 +299,8 @@ export class TransactionsList {
   readonly transactions = input.required<Transaction[]>();
   readonly config = input.required<TransactionsListConfig>();
   readonly selectedTransactions = model<string[]>([]);
+  readonly deleteTransaction = output<string>();
+  readonly loadingTransactionIds = input<string[]>([]);
 
   private readonly expandedState = signal<boolean | null>(null);
   protected readonly showAllItems = signal(false);
@@ -343,5 +365,14 @@ export class TransactionsList {
 
   isSelected(transactionId: string): boolean {
     return this.selectedTransactions().includes(transactionId);
+  }
+
+  isTransactionLoading(transactionId: string): boolean {
+    return this.loadingTransactionIds().includes(transactionId);
+  }
+
+  onDeleteClick(transactionId: string, event: Event): void {
+    event.stopPropagation();
+    this.deleteTransaction.emit(transactionId);
   }
 }

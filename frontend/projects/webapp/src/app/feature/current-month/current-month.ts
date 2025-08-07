@@ -116,33 +116,14 @@ import { firstValueFrom } from 'rxjs';
               <pulpe-transaction-chip-filter
                 data-testid="transaction-chip-filter"
               />
-              @if (selectedTransactions().length > 0) {
-                <div class="flex gap-4" data-testid="bulk-actions">
-                  <button
-                    matButton="tonal"
-                    (click)="deleteSelectedTransactions()"
-                    data-testid="delete-selected-button"
-                  >
-                    <mat-icon>delete_sweep</mat-icon>
-                    Supprimer ({{ selectedTransactions().length }})
-                  </button>
-                  <button
-                    matButton="tonal"
-                    (click)="editSelectedTransactions()"
-                    data-testid="merge-selected-button"
-                  >
-                    <mat-icon>call_merge</mat-icon>
-                    Fusionner ({{ selectedTransactions().length }})
-                  </button>
-                </div>
-              }
               <pulpe-fixed-transactions-list
                 [transactions]="fixedTransactions()"
                 data-testid="fixed-transactions-list"
               />
               <pulpe-variable-expenses-list
                 [transactions]="variableTransactions()"
-                [(selectedTransactions)]="selectedTransactions"
+                [loadingTransactionIds]="deletingTransactionIds()"
+                (deleteTransaction)="deleteTransaction($event)"
                 data-testid="variable-expenses-list"
               />
             </div>
@@ -206,13 +187,15 @@ import { firstValueFrom } from 'rxjs';
 })
 export default class CurrentMonth implements OnInit {
   isCreatingTransaction = signal(false);
-  selectedTransactions = signal<string[]>([]);
+  #deletingTransactionIds = signal<string[]>([]);
   protected readonly state = inject(CurrentMonthState);
   protected readonly titleDisplay = inject(TitleDisplay);
   #bottomSheet = inject(MatBottomSheet);
   #dialog = inject(MatDialog);
   #snackBar = inject(MatSnackBar);
   #budgetLineMapper = inject(BudgetLineMapper);
+
+  deletingTransactionIds = this.#deletingTransactionIds.asReadonly();
 
   fixedTransactions = computed(() => {
     const budgetLines = this.state.budgetLines();
@@ -292,19 +275,19 @@ export default class CurrentMonth implements OnInit {
     }
   }
 
-  async deleteSelectedTransactions(): Promise<void> {
-    const selectedIds = this.selectedTransactions();
+  async deleteTransaction(transactionId: string): Promise<void> {
+    // Find transaction for the confirmation dialog
+    const transaction = this.variableTransactions().find(
+      (t) => t.id === transactionId,
+    );
 
-    if (selectedIds.length === 0) return;
+    if (!transaction) return;
 
     // Open confirmation dialog
     const dialogRef = this.#dialog.open(ConfirmationDialogComponent, {
       data: {
-        title: 'Supprimer les transactions',
-        message:
-          selectedIds.length === 1
-            ? 'Êtes-vous sûr de vouloir supprimer cette transaction ?'
-            : `Êtes-vous sûr de vouloir supprimer ces ${selectedIds.length} transactions ?`,
+        title: 'Supprimer la transaction',
+        message: `Êtes-vous sûr de vouloir supprimer « ${transaction.name} » ?`,
         confirmText: 'Supprimer',
         cancelText: 'Annuler',
         confirmColor: 'warn' as const,
@@ -315,24 +298,19 @@ export default class CurrentMonth implements OnInit {
     const confirmed = await firstValueFrom(dialogRef.afterClosed());
 
     if (confirmed) {
-      try {
-        // Delete transactions
-        await this.state.deleteTransactions(selectedIds);
+      // Add to loading state
+      this.#deletingTransactionIds.update((ids) => [...ids, transactionId]);
 
-        // Clear selection
-        this.selectedTransactions.set([]);
+      try {
+        // Delete transaction
+        await this.state.deleteTransaction(transactionId);
 
         // Show success message
-        const message =
-          selectedIds.length === 1
-            ? 'Transaction supprimée'
-            : `${selectedIds.length} transactions supprimées`;
-
-        this.#snackBar.open(message, 'Fermer', {
+        this.#snackBar.open('Transaction supprimée', undefined, {
           duration: 3000,
         });
       } catch (error) {
-        console.error('Error deleting transactions:', error);
+        console.error('Error deleting transaction:', error);
 
         // Show error message
         this.#snackBar.open(
@@ -342,13 +320,12 @@ export default class CurrentMonth implements OnInit {
             duration: 5000,
           },
         );
+      } finally {
+        // Remove from loading state
+        this.#deletingTransactionIds.update((ids) =>
+          ids.filter((id) => id !== transactionId),
+        );
       }
     }
-  }
-
-  editSelectedTransactions(): void {
-    const selectedIds = this.selectedTransactions();
-    console.log('Modifier les transactions:', selectedIds);
-    // TODO: Implémenter la modification des transactions
   }
 }
