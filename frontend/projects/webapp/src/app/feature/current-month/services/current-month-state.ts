@@ -80,6 +80,48 @@ export class CurrentMonthState {
     }
   }
 
+  async deleteTransaction(transactionId: string): Promise<void> {
+    // Save current transactions for rollback
+    const currentData = this.dashboardData.value();
+    if (!currentData) {
+      throw new Error('No data available');
+    }
+
+    const transactionToDelete = currentData.transactions.find(
+      (t) => t.id === transactionId,
+    );
+
+    if (!transactionToDelete) {
+      throw new Error('Transaction not found');
+    }
+
+    // Optimistic update: remove transaction from UI immediately
+    this.dashboardData.update((data) => {
+      if (!data) return data;
+      return {
+        ...data,
+        transactions: data.transactions.filter((t) => t.id !== transactionId),
+      };
+    });
+
+    try {
+      // Delete the transaction
+      await firstValueFrom(this.#transactionApi.remove$(transactionId));
+
+      // If deletion succeeds, the optimistic update stands
+    } catch (error) {
+      // Rollback on error: restore the deleted transaction
+      this.dashboardData.update((data) => {
+        if (!data) return data;
+        return {
+          ...data,
+          transactions: [...data.transactions, transactionToDelete],
+        };
+      });
+      throw error;
+    }
+  }
+
   #currentDate = computed<{ month: string; year: string }>(() => {
     const now = this.today();
     return {

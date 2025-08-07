@@ -74,3 +74,5 @@ claude-rules/
 coverage-report.json
 
 docs/angular-full.txt
+
+.serena/cache/

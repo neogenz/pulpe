@@ -4,6 +4,7 @@ import {
   computed,
   input,
   model,
+  output,
 } from '@angular/core';
 import { TransactionsList, TransactionsListConfig } from './transactions-list';
 import { Transaction } from '@pulpe/shared';
@@ -15,7 +16,9 @@ import { Transaction } from '@pulpe/shared';
     <pulpe-transactions-list
       [transactions]="transactions()"
       [config]="config()"
+      [loadingTransactionIds]="loadingTransactionIds()"
       [(selectedTransactions)]="selectedTransactions"
+      (deleteTransaction)="deleteTransaction.emit($event)"
     />
   `,
   styles: ``,
@@ -24,6 +27,8 @@ import { Transaction } from '@pulpe/shared';
 export class VariableExpensesList {
   transactions = input.required<Transaction[]>();
   selectedTransactions = model<string[]>([]);
+  loadingTransactionIds = input<string[]>([]);
+  deleteTransaction = output<string>();
 
   config = computed(
     (): TransactionsListConfig => ({
@@ -44,6 +49,7 @@ export class VariableExpensesList {
       emptyStateTitle: 'Aucune transaction variable',
       emptyStateSubtitle: 'Vos transactions ponctuelles apparaîtront ici',
       selectable: true,
+      deletable: true,
       defaultExpanded: true,
     }),
   );

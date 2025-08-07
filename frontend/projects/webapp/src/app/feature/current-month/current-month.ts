@@ -13,6 +13,7 @@ import {
   MatBottomSheet,
   MatBottomSheetModule,
 } from '@angular/material/bottom-sheet';
+import { MatDialog } from '@angular/material/dialog';
 import {
   MAT_FORM_FIELD_DEFAULT_OPTIONS,
   MatFormFieldModule,
@@ -20,6 +21,7 @@ import {
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { DashboardError } from './components/dashboard-error';
 import { BaseLoadingComponent } from '../../ui/loading';
 import { FixedTransactionsList } from './components/fixed-transactions-list';
@@ -33,6 +35,8 @@ import {
   TransactionFormData,
 } from './components/add-transaction-bottom-sheet';
 import { BudgetLineMapper } from './services/budget-line-mapper';
+import { ConfirmationDialogComponent } from '@ui/dialogs/confirmation-dialog';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'pulpe-current-month',
@@ -112,33 +116,14 @@ import { BudgetLineMapper } from './services/budget-line-mapper';
               <pulpe-transaction-chip-filter
                 data-testid="transaction-chip-filter"
               />
-              @if (selectedTransactions().length > 0) {
-                <div class="flex gap-4" data-testid="bulk-actions">
-                  <button
-                    matButton="tonal"
-                    (click)="deleteSelectedTransactions()"
-                    data-testid="delete-selected-button"
-                  >
-                    <mat-icon>delete_sweep</mat-icon>
-                    Supprimer ({{ selectedTransactions().length }})
-                  </button>
-                  <button
-                    matButton="tonal"
-                    (click)="editSelectedTransactions()"
-                    data-testid="merge-selected-button"
-                  >
-                    <mat-icon>call_merge</mat-icon>
-                    Fusionner ({{ selectedTransactions().length }})
-                  </button>
-                </div>
-              }
               <pulpe-fixed-transactions-list
                 [transactions]="fixedTransactions()"
                 data-testid="fixed-transactions-list"
               />
               <pulpe-variable-expenses-list
                 [transactions]="variableTransactions()"
-                [(selectedTransactions)]="selectedTransactions"
+                [loadingTransactionIds]="deletingTransactionIds()"
+                (deleteTransaction)="deleteTransaction($event)"
                 data-testid="variable-expenses-list"
               />
             </div>
@@ -202,11 +187,15 @@ import { BudgetLineMapper } from './services/budget-line-mapper';
 })
 export default class CurrentMonth implements OnInit {
   isCreatingTransaction = signal(false);
-  selectedTransactions = signal<string[]>([]);
+  #deletingTransactionIds = signal<string[]>([]);
   protected readonly state = inject(CurrentMonthState);
   protected readonly titleDisplay = inject(TitleDisplay);
-  private readonly bottomSheet = inject(MatBottomSheet);
-  private readonly budgetLineMapper = inject(BudgetLineMapper);
+  #bottomSheet = inject(MatBottomSheet);
+  #dialog = inject(MatDialog);
+  #snackBar = inject(MatSnackBar);
+  #budgetLineMapper = inject(BudgetLineMapper);
+
+  deletingTransactionIds = this.#deletingTransactionIds.asReadonly();
 
   fixedTransactions = computed(() => {
     const budgetLines = this.state.budgetLines();
@@ -217,7 +206,7 @@ export default class CurrentMonth implements OnInit {
     // Filter budget lines with 'fixed' recurrence and map them to Transaction-like objects
     return budgetLines
       .filter((line) => line.recurrence === 'fixed')
-      .map((line) => this.budgetLineMapper.toTransaction(line, budgetId));
+      .map((line) => this.#budgetLineMapper.toTransaction(line, budgetId));
   });
   variableTransactions = computed(() => {
     // For now, show all transactions as variable expenses
@@ -248,7 +237,7 @@ export default class CurrentMonth implements OnInit {
    *
    */
   openAddTransactionBottomSheet(): void {
-    const bottomSheetRef = this.bottomSheet.open(AddTransactionBottomSheet, {
+    const bottomSheetRef = this.#bottomSheet.open(AddTransactionBottomSheet, {
       disableClose: false,
       panelClass: 'add-transaction-bottom-sheet',
     });
@@ -286,16 +275,57 @@ export default class CurrentMonth implements OnInit {
     }
   }
 
-  deleteSelectedTransactions(): void {
-    const selectedIds = this.selectedTransactions();
-    console.log('Supprimer les transactions:', selectedIds);
-    // TODO: Implémenter la suppression des transactions
-    this.selectedTransactions.set([]);
-  }
+  async deleteTransaction(transactionId: string): Promise<void> {
+    // Find transaction for the confirmation dialog
+    const transaction = this.variableTransactions().find(
+      (t) => t.id === transactionId,
+    );
 
-  editSelectedTransactions(): void {
-    const selectedIds = this.selectedTransactions();
-    console.log('Modifier les transactions:', selectedIds);
-    // TODO: Implémenter la modification des transactions
+    if (!transaction) return;
+
+    // Open confirmation dialog
+    const dialogRef = this.#dialog.open(ConfirmationDialogComponent, {
+      data: {
+        title: 'Supprimer la transaction',
+        message: `Êtes-vous sûr de vouloir supprimer « ${transaction.name} » ?`,
+        confirmText: 'Supprimer',
+        cancelText: 'Annuler',
+        confirmColor: 'warn' as const,
+      },
+      width: '400px',
+    });
+
+    const confirmed = await firstValueFrom(dialogRef.afterClosed());
+
+    if (confirmed) {
+      // Add to loading state
+      this.#deletingTransactionIds.update((ids) => [...ids, transactionId]);
+
+      try {
+        // Delete transaction
+        await this.state.deleteTransaction(transactionId);
+
+        // Show success message
+        this.#snackBar.open('Transaction supprimée', undefined, {
+          duration: 3000,
+        });
+      } catch (error) {
+        console.error('Error deleting transaction:', error);
+
+        // Show error message
+        this.#snackBar.open(
+          'Une erreur est survenue lors de la suppression',
+          'Fermer',
+          {
+            duration: 5000,
+          },
+        );
+      } finally {
+        // Remove from loading state
+        this.#deletingTransactionIds.update((ids) =>
+          ids.filter((id) => id !== transactionId),
+        );
+      }
+    }
   }
 }

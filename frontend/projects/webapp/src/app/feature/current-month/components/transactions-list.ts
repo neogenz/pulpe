@@ -4,17 +4,17 @@ import {
   computed,
   input,
   model,
+  output,
   signal,
 } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatListModule } from '@angular/material/list';
-import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatRippleModule } from '@angular/material/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
 import { Transaction } from '@pulpe/shared';
+import { TransactionItem, TransactionItemData } from './transaction-item';
 
 export interface TransactionsListConfig {
   readonly title: string;
@@ -24,6 +24,7 @@ export interface TransactionsListConfig {
   readonly emptyStateSubtitle?: string;
   readonly selectable?: boolean;
   readonly defaultExpanded?: boolean;
+  readonly deletable?: boolean;
 }
 
 @Component({
@@ -33,10 +34,9 @@ export interface TransactionsListConfig {
     MatIconModule,
     MatDividerModule,
     MatListModule,
-    MatCheckboxModule,
-    MatRippleModule,
     MatButtonModule,
     MatChipsModule,
+    TransactionItem,
   ],
   template: `
     <div
@@ -110,98 +110,33 @@ export interface TransactionsListConfig {
           } @else {
             <mat-list class="!pb-0">
               @for (
-                transaction of displayedTransactions();
-                track transaction.id;
+                vm of displayState().items;
+                track vm.id;
                 let isLast = $last;
                 let isOdd = $odd
               ) {
-                <mat-list-item
-                  matRipple
-                  [matRippleDisabled]="!config().selectable"
-                  [class.odd-item]="isOdd"
-                  [class.income-item]="transaction.kind === 'INCOME'"
-                  [class.saving-item]="
-                    transaction.kind === 'SAVINGS_CONTRIBUTION'
-                  "
-                  [class.expense-item]="transaction.kind === 'FIXED_EXPENSE'"
-                  [class.!cursor-pointer]="config().selectable"
-                  (click)="
-                    config().selectable ? toggleSelection(transaction.id) : null
-                  "
-                >
-                  <div
-                    matListItemAvatar
-                    class="flex justify-center items-center gap-4"
-                  >
-                    @if (config().selectable) {
-                      <mat-checkbox
-                        [checked]="isSelected(transaction.id)"
-                        (change)="
-                          onSelectionChange(transaction.id, $event.checked)
-                        "
-                        (click)="$event.stopPropagation()"
-                      />
-                    }
-                    <div
-                      class="flex justify-center items-center size-11 bg-surface rounded-full"
-                    >
-                      @switch (transaction.kind) {
-                        @case ('INCOME') {
-                          <mat-icon class="!text-(--pulpe-financial-income)">
-                            trending_up
-                          </mat-icon>
-                        }
-                        @case ('SAVINGS_CONTRIBUTION') {
-                          <mat-icon class="!text-(--pulpe-financial-savings)">
-                            savings
-                          </mat-icon>
-                        }
-                        @case ('FIXED_EXPENSE') {
-                          <mat-icon class="!text-(--pulpe-financial-expense)">
-                            trending_down
-                          </mat-icon>
-                        }
-                        @default {
-                          <mat-icon class="!text-(--pulpe-financial-expense)">
-                            trending_down
-                          </mat-icon>
-                        }
-                      }
-                    </div>
-                  </div>
-                  <div matListItemTitle>{{ transaction.name }}</div>
-                  @if (transaction.category) {
-                    <div matListItemLine class="text-body-small italic">
-                      {{ transaction.category }}
-                    </div>
-                  }
-                  <div
-                    matListItemMeta
-                    class="!flex !h-full !items-center !gap-3"
-                  >
-                    <span>
-                      {{ transaction.kind === 'INCOME' ? '+' : '-'
-                      }}{{
-                        transaction.amount
-                          | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH'
-                      }}
-                    </span>
-                  </div>
-                </mat-list-item>
+                <pulpe-transaction-item
+                  [data]="vm"
+                  [selectable]="config().selectable ?? false"
+                  [deletable]="config().deletable ?? false"
+                  [isOdd]="isOdd"
+                  (selectionChange)="onSelectionChange(vm.id, $event)"
+                  (deleteClick)="deleteTransaction.emit(vm.id)"
+                />
                 @if (!isLast) {
                   <mat-divider></mat-divider>
                 }
               }
             </mat-list>
 
-            @if (hasMoreTransactions()) {
+            @if (displayState().hasMore) {
               <div class="flex justify-center p-4">
                 <button
                   matButton
                   (click)="showAllTransactions()"
                   class="text-primary"
                 >
-                  Voir plus ({{ remainingTransactionsCount() }})
+                  Voir plus ({{ displayState().remaining }})
                 </button>
               </div>
             }
@@ -214,63 +149,6 @@ export interface TransactionsListConfig {
     @use '@angular/material' as mat;
     :host {
       color: var(--mat-sys-on-surface);
-
-      @include mat.list-overrides(
-        (
-          list-item-leading-avatar-color: none,
-          list-item-leading-avatar-size: fit-content,
-          list-item-two-line-container-height: 71px,
-          list-item-one-line-container-height: 71px,
-          list-item-trailing-supporting-text-size: var(
-              --mat-sys-title-medium-size
-            ),
-          list-item-trailing-supporting-text-color: var(
-              --pulpe-financial-expense
-            ),
-        )
-      );
-
-      .mat-mdc-list-item:hover {
-        background-color: rgba(0, 0, 0, 0.04);
-      }
-    }
-
-    .odd-item {
-      @include mat.list-overrides(
-        (
-          list-item-container-color: var(--mat-sys-surface-container),
-        )
-      );
-    }
-
-    .income-item {
-      @include mat.list-overrides(
-        (
-          list-item-trailing-supporting-text-color: var(
-              --pulpe-financial-income
-            ),
-        )
-      );
-    }
-
-    .saving-item {
-      @include mat.list-overrides(
-        (
-          list-item-trailing-supporting-text-color: var(
-              --pulpe-financial-savings
-            ),
-        )
-      );
-    }
-
-    .expense-item {
-      @include mat.list-overrides(
-        (
-          list-item-trailing-supporting-text-color: var(
-              --pulpe-financial-expense
-            ),
-        )
-      );
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -279,10 +157,12 @@ export class TransactionsList {
   readonly transactions = input.required<Transaction[]>();
   readonly config = input.required<TransactionsListConfig>();
   readonly selectedTransactions = model<string[]>([]);
+  readonly deleteTransaction = output<string>();
+  readonly loadingTransactionIds = input<string[]>([]);
 
   private readonly expandedState = signal<boolean | null>(null);
   protected readonly showAllItems = signal(false);
-  private readonly maxItemsToShow = 5;
+  private readonly INITIAL_DISPLAY_COUNT = 5;
 
   protected readonly isExpanded = computed(() => {
     const explicitState = this.expandedState();
@@ -292,25 +172,38 @@ export class TransactionsList {
     return this.config().defaultExpanded ?? true;
   });
 
-  protected readonly displayedTransactions = computed(() => {
-    const allTransactions = this.transactions();
-    if (!this.isExpanded()) {
-      return [];
-    }
-    if (this.showAllItems() || allTransactions.length <= this.maxItemsToShow) {
-      return allTransactions;
-    }
-    return allTransactions.slice(0, this.maxItemsToShow);
-  });
+  protected readonly transactionViewModels = computed(() => {
+    const transactions = this.transactions();
+    const selectedIds = new Set(this.selectedTransactions());
+    const loadingIds = new Set(this.loadingTransactionIds());
 
-  protected readonly hasMoreTransactions = computed(() => {
-    return (
-      this.transactions().length > this.maxItemsToShow && !this.showAllItems()
+    return transactions.map(
+      (transaction) =>
+        ({
+          ...transaction,
+          isSelected: selectedIds.has(transaction.id),
+          isLoading: loadingIds.has(transaction.id),
+        }) as TransactionItemData,
     );
   });
 
-  protected readonly remainingTransactionsCount = computed(() => {
-    return Math.max(0, this.transactions().length - this.maxItemsToShow);
+  protected readonly displayState = computed(() => {
+    const all = this.transactionViewModels();
+    const expanded = this.isExpanded();
+    const showAll = this.showAllItems();
+
+    if (!expanded) {
+      return { items: [], hasMore: false, remaining: 0 };
+    }
+
+    const total = all.length;
+    const shouldShowAll = showAll || total <= this.INITIAL_DISPLAY_COUNT;
+
+    return {
+      items: shouldShowAll ? all : all.slice(0, this.INITIAL_DISPLAY_COUNT),
+      hasMore: !shouldShowAll && total > this.INITIAL_DISPLAY_COUNT,
+      remaining: Math.max(0, total - this.INITIAL_DISPLAY_COUNT),
+    };
   });
 
   protected toggleExpanded(): void {
@@ -337,11 +230,8 @@ export class TransactionsList {
   }
 
   toggleSelection(transactionId: string): void {
-    const isCurrentlySelected = this.isSelected(transactionId);
+    const currentSelection = this.selectedTransactions();
+    const isCurrentlySelected = currentSelection.includes(transactionId);
     this.onSelectionChange(transactionId, !isCurrentlySelected);
-  }
-
-  isSelected(transactionId: string): boolean {
-    return this.selectedTransactions().includes(transactionId);
   }
 }

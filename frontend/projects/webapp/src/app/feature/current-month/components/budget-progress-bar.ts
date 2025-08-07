@@ -2,14 +2,12 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  inject,
   input,
 } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { CurrencyPipe } from '@angular/common';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { BudgetCalculator } from '../services/budget-calculator';
 
 @Component({
   selector: 'pulpe-budget-progress-bar',
@@ -58,24 +56,26 @@ import { BudgetCalculator } from '../services/budget-calculator';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BudgetProgressBar {
-  readonly #budgetCalculator = inject(BudgetCalculator);
-
+  // Essential inputs from parent
   totalBudget = input.required<number>();
   usedAmount = input.required<number>();
 
+  // Computed display values
   remainingAmount = computed(() => {
-    return this.#budgetCalculator.calculateRemainingAmount(
-      this.totalBudget(),
-      this.usedAmount(),
-    );
+    const total = this.totalBudget();
+    const used = this.usedAmount();
+    return Math.max(0, total - used);
   });
 
   budgetUsedPercentage = computed(() => {
-    return Math.round(
-      this.#budgetCalculator.calculateUsedPercentage(
-        this.totalBudget(),
-        this.usedAmount(),
-      ),
-    );
+    const total = this.totalBudget();
+    const used = this.usedAmount();
+
+    // Handle edge cases
+    if (!total || total <= 0) return 0;
+    if (!used || used < 0) return 0;
+
+    const percentage = (used / total) * 100;
+    return Math.round(Math.min(Math.max(0, percentage), 100));
   });
 }
