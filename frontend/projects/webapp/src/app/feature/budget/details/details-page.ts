@@ -19,7 +19,7 @@ import { formatDate } from 'date-fns';
 import { frCH } from 'date-fns/locale';
 import { BudgetDetailsState } from './services/budget-details-state';
 import { BudgetLineApi } from './services/budget-line-api';
-import { BudgetLinesTable } from './components/budget-lines-table';
+import { BudgetItemsTable } from './components/budget-items-table';
 import { BudgetFinancialOverview } from './components/budget-financial-overview';
 import {
   BudgetLineDialog,
@@ -29,7 +29,29 @@ import {
   ConfirmationDialogComponent,
   type ConfirmationDialogData,
 } from '../../../ui/dialogs/confirmation-dialog';
-import { type BudgetLineCreate, type BudgetLineUpdate } from '@pulpe/shared';
+import {
+  type BudgetLineCreate,
+  type BudgetLineUpdate,
+  type TransactionKind,
+  type TransactionRecurrence,
+} from '@pulpe/shared';
+
+interface BudgetItemViewModel {
+  id: string;
+  name: string;
+  amount: number;
+  kind: TransactionKind;
+  recurrence: TransactionRecurrence;
+  itemType: 'budget_line' | 'transaction';
+  kindIcon: string;
+  kindLabel: string;
+  kindIconClass: string;
+  amountClass: string;
+  recurrenceLabel: string;
+  recurrenceChipClass: string;
+  isEditing: boolean;
+  isLoading: boolean;
+}
 
 @Component({
   selector: 'pulpe-details-page',
@@ -40,7 +62,7 @@ import { type BudgetLineCreate, type BudgetLineUpdate } from '@pulpe/shared';
     MatSnackBarModule,
     MatDialogModule,
     DatePipe,
-    BudgetLinesTable,
+    BudgetItemsTable,
     BudgetFinancialOverview,
     BaseLoadingComponent,
   ],
@@ -94,12 +116,12 @@ import { type BudgetLineCreate, type BudgetLineUpdate } from '@pulpe/shared';
         <!-- Financial Overview -->
         <pulpe-budget-financial-overview [budgetLines]="budgetLines" />
 
-        <!-- Budget Lines Table -->
-        <pulpe-budget-lines-table
-          [budgetLines]="budgetLines"
+        <!-- Budget Items Table -->
+        <pulpe-budget-items-table
+          [budgetItems]="budgetItemViewModels()"
           [operationsInProgress]="budgetDetailsState.operationsInProgress()"
           (updateClicked)="handleUpdateBudgetLine($event.id, $event.update)"
-          (deleteClicked)="handleDeleteBudgetLine($event)"
+          (deleteClicked)="handleDeleteItem($event)"
           (addClicked)="openAddBudgetLineDialog()"
         />
 
@@ -189,6 +211,100 @@ export default class DetailsPage implements OnInit {
     return formatDate(date, 'MMMM yyyy', { locale: frCH });
   });
 
+  // Unified budget items view model
+  budgetItemViewModels = computed(() => {
+    const data = this.budgetDetailsState.budgetDetails.value()?.data;
+    if (!data) return [];
+
+    const inProgress = this.budgetDetailsState.operationsInProgress();
+    const editingId = null; // TODO: gérer l'édition plus tard
+
+    // Map budget lines
+    const budgetLineViewModels: BudgetItemViewModel[] = data.budgetLines.map(
+      (line) => ({
+        id: line.id,
+        name: line.name,
+        amount: line.amount,
+        kind: line.kind,
+        recurrence: line.recurrence,
+        itemType: 'budget_line' as const,
+        kindIcon: this.#kindIcons[line.kind],
+        kindLabel: this.#kindLabels[line.kind],
+        kindIconClass: this.#kindIconClasses[line.kind],
+        amountClass: this.#amountClasses[line.kind],
+        recurrenceLabel: this.#recurrenceLabels[line.recurrence],
+        recurrenceChipClass: this.#recurrenceChipClasses[line.recurrence],
+        isEditing: editingId === line.id,
+        isLoading: inProgress.has(line.id),
+      }),
+    );
+
+    // Map transactions (always one-off)
+    const transactionViewModels: BudgetItemViewModel[] = data.transactions.map(
+      (transaction) => ({
+        id: transaction.id,
+        name: transaction.name,
+        amount: transaction.amount,
+        kind: transaction.kind,
+        recurrence: 'one_off' as const, // Transactions are always one-off
+        itemType: 'transaction' as const,
+        kindIcon: this.#kindIcons[transaction.kind],
+        kindLabel: this.#kindLabels[transaction.kind],
+        kindIconClass: this.#kindIconClasses[transaction.kind],
+        amountClass: this.#amountClasses[transaction.kind],
+        recurrenceLabel: this.#recurrenceLabels['one_off'],
+        recurrenceChipClass: this.#recurrenceChipClasses['one_off'],
+        isEditing: false, // Transactions cannot be edited in this view
+        isLoading: inProgress.has(transaction.id),
+      }),
+    );
+
+    // Combine and sort by amount (descending) then by name
+    return [...budgetLineViewModels, ...transactionViewModels].sort((a, b) => {
+      if (a.amount !== b.amount) {
+        return b.amount - a.amount;
+      }
+      return a.name.localeCompare(b.name);
+    });
+  });
+
+  // Mapping constants (same as in BudgetLinesTable)
+  #kindIcons: Record<TransactionKind, string> = {
+    income: 'trending_up',
+    expense: 'trending_down',
+    saving: 'savings',
+  };
+
+  #kindLabels: Record<TransactionKind, string> = {
+    income: 'Revenu',
+    expense: 'Dépense',
+    saving: 'Épargne',
+  };
+
+  #kindIconClasses: Record<TransactionKind, string> = {
+    income: 'text-financial-income',
+    expense: 'text-financial-negative',
+    saving: 'text-primary',
+  };
+
+  #amountClasses: Record<TransactionKind, string> = {
+    income: 'text-financial-income',
+    expense: 'text-financial-negative',
+    saving: 'text-primary',
+  };
+
+  #recurrenceLabels: Record<TransactionRecurrence, string> = {
+    fixed: 'Tous les mois',
+    variable: 'Variable',
+    one_off: 'Une seule fois',
+  };
+
+  #recurrenceChipClasses: Record<TransactionRecurrence, string> = {
+    fixed: 'bg-primary-container text-on-primary-container',
+    variable: 'bg-tertiary-container text-on-tertiary-container',
+    one_off: 'bg-secondary-container text-on-secondary-container',
+  };
+
   async openAddBudgetLineDialog(): Promise<void> {
     const budget = this.budgetDetailsState.budgetDetails.value()?.data.budget;
     if (!budget) return;
@@ -216,6 +332,43 @@ export default class DetailsPage implements OnInit {
     update: BudgetLineUpdate,
   ): Promise<void> {
     await this.budgetDetailsState.updateBudgetLine(id, update);
+  }
+
+  async handleDeleteItem(id: string): Promise<void> {
+    // Find the item to determine if it's a budget line or transaction
+    const item = this.budgetItemViewModels().find((item) => item.id === id);
+    if (!item) return;
+
+    const isBudgetLine = item.itemType === 'budget_line';
+    const title = isBudgetLine
+      ? 'Supprimer la prévision'
+      : 'Supprimer la transaction';
+    const message = isBudgetLine
+      ? 'Êtes-vous sûr de vouloir supprimer cette prévision ?'
+      : 'Êtes-vous sûr de vouloir supprimer cette transaction ?';
+
+    const dialogRef = this.#dialog.open(ConfirmationDialogComponent, {
+      data: {
+        title,
+        message,
+        confirmText: 'Supprimer',
+        confirmColor: 'warn',
+      } satisfies ConfirmationDialogData,
+      width: '400px',
+    });
+
+    const confirmed = await firstValueFrom(dialogRef.afterClosed());
+
+    if (!confirmed) {
+      return;
+    }
+
+    if (isBudgetLine) {
+      await this.budgetDetailsState.deleteBudgetLine(id);
+    } else {
+      // TODO: Implement transaction deletion
+      console.warn('Transaction deletion not yet implemented');
+    }
   }
 
   async handleDeleteBudgetLine(id: string): Promise<void> {

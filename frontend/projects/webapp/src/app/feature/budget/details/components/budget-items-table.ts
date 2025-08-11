@@ -19,13 +19,18 @@ import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { CurrencyPipe } from '@angular/common';
 import {
-  type BudgetLine,
   type BudgetLineUpdate,
   type TransactionKind,
   type TransactionRecurrence,
 } from '@pulpe/shared';
 
-interface BudgetLineViewModel extends BudgetLine {
+interface BudgetItemViewModel {
+  id: string;
+  name: string;
+  amount: number;
+  kind: TransactionKind;
+  recurrence: TransactionRecurrence;
+  itemType: 'budget_line' | 'transaction';
   kindIcon: string;
   kindLabel: string;
   kindIconClass: string;
@@ -37,7 +42,7 @@ interface BudgetLineViewModel extends BudgetLine {
 }
 
 @Component({
-  selector: 'pulpe-budget-lines-table',
+  selector: 'pulpe-budget-items-table',
   imports: [
     MatTableModule,
     MatCardModule,
@@ -55,15 +60,15 @@ interface BudgetLineViewModel extends BudgetLine {
   template: `
     <mat-card appearance="outlined">
       <mat-card-header>
-        <mat-card-title>Prévisions du budget</mat-card-title>
+        <mat-card-title>Éléments du budget</mat-card-title>
         <mat-card-subtitle>
-          Gérez vos revenus, dépenses et épargnes
+          Prévisions et transactions réelles
         </mat-card-subtitle>
       </mat-card-header>
       <mat-card-content class="overflow-x-auto">
         <table
           mat-table
-          [dataSource]="budgetLineViewModels()"
+          [dataSource]="budgetItems()"
           class="w-full min-w-[600px]"
         >
           <!-- Type Column -->
@@ -197,16 +202,18 @@ interface BudgetLineViewModel extends BudgetLine {
                     </button>
                   </div>
                 } @else {
-                  <button
-                    matIconButton
-                    (click)="startEdit(line)"
-                    [attr.aria-label]="'Edit ' + line.name"
-                    [attr.data-testid]="'edit-' + line.id"
-                    [disabled]="line.isLoading"
-                    class="!w-10 !h-10"
-                  >
-                    <mat-icon>edit</mat-icon>
-                  </button>
+                  @if (line.itemType === 'budget_line') {
+                    <button
+                      matIconButton
+                      (click)="startEdit(line)"
+                      [attr.aria-label]="'Edit ' + line.name"
+                      [attr.data-testid]="'edit-' + line.id"
+                      [disabled]="line.isLoading"
+                      class="!w-10 !h-10"
+                    >
+                      <mat-icon>edit</mat-icon>
+                    </button>
+                  }
                   <button
                     matIconButton
                     (click)="deleteClicked.emit(line.id)"
@@ -253,7 +260,7 @@ interface BudgetLineViewModel extends BudgetLine {
           </tr>
         </table>
       </mat-card-content>
-      @if (budgetLineViewModels().length > 0) {
+      @if (budgetItems().length > 0) {
         <mat-card-actions class="flex justify-center mb-2">
           <button
             matButton="outlined"
@@ -282,8 +289,8 @@ interface BudgetLineViewModel extends BudgetLine {
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class BudgetLinesTable {
-  budgetLines = input.required<BudgetLine[]>();
+export class BudgetItemsTable {
+  budgetItems = input.required<BudgetItemViewModel[]>();
   operationsInProgress = input<Set<string>>(new Set());
   updateClicked = output<{ id: string; update: BudgetLineUpdate }>();
   deleteClicked = output<string>();
@@ -312,36 +319,14 @@ export class BudgetLinesTable {
       : this.displayedColumns,
   );
 
-  // View models with pre-computed display values
-  budgetLineViewModels = computed(() => {
-    const lines = this.budgetLines();
-    const editingId = this.editingLineId();
-    const inProgress = this.operationsInProgress();
+  startEdit(item: BudgetItemViewModel): void {
+    // Only allow editing budget lines, not transactions
+    if (item.itemType !== 'budget_line') return;
 
-    return lines.map(
-      (line) =>
-        ({
-          ...line,
-          kindIcon: this.#kindIcons[line.kind],
-          kindLabel: this.#kindLabels[line.kind],
-          kindIconClass: this.#kindIconClasses[line.kind],
-          amountClass: this.#amountClasses[line.kind],
-          recurrenceLabel:
-            this.#recurrenceLabels[line.recurrence] || line.recurrence,
-          recurrenceChipClass:
-            this.#recurrenceChipClasses[line.recurrence] ||
-            'bg-surface-container-high text-on-surface',
-          isEditing: editingId === line.id,
-          isLoading: inProgress.has(line.id),
-        }) as BudgetLineViewModel,
-    );
-  });
-
-  startEdit(line: BudgetLine): void {
-    this.editingLineId.set(line.id);
+    this.editingLineId.set(item.id);
     this.editForm.patchValue({
-      name: line.name,
-      amount: line.amount,
+      name: item.name,
+      amount: item.amount,
     });
   }
 
@@ -366,40 +351,4 @@ export class BudgetLinesTable {
       this.updateClicked.emit(updateData);
     }
   }
-
-  #kindIcons: Record<TransactionKind, string> = {
-    income: 'trending_up',
-    expense: 'trending_down',
-    saving: 'savings',
-  };
-
-  #kindLabels: Record<TransactionKind, string> = {
-    income: 'Revenu',
-    expense: 'Dépense',
-    saving: 'Épargne',
-  };
-
-  #kindIconClasses: Record<TransactionKind, string> = {
-    income: 'text-financial-income',
-    expense: 'text-financial-negative',
-    saving: 'text-primary',
-  };
-
-  #amountClasses: Record<TransactionKind, string> = {
-    income: 'text-financial-income',
-    expense: 'text-financial-negative',
-    saving: 'text-primary',
-  };
-
-  #recurrenceLabels: Record<TransactionRecurrence, string> = {
-    fixed: 'Tous les mois',
-    variable: 'Variable',
-    one_off: 'Une seule fois',
-  };
-
-  #recurrenceChipClasses: Record<TransactionRecurrence, string> = {
-    fixed: 'bg-primary-container text-on-primary-container',
-    variable: 'bg-tertiary-container text-on-tertiary-container',
-    one_off: 'bg-secondary-container text-on-secondary-container',
-  };
 }
