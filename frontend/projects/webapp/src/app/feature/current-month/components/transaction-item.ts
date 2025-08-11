@@ -15,7 +15,7 @@ export interface TransactionItemData {
   id: string;
   name: string;
   amount: number;
-  kind: 'INCOME' | 'FIXED_EXPENSE' | 'SAVINGS_CONTRIBUTION';
+  kind: 'income' | 'expense' | 'saving';
   category?: string | null;
   isSelected: boolean;
 }
@@ -36,9 +36,9 @@ export interface TransactionItemData {
       matRipple
       [matRippleDisabled]="!selectable()"
       [class.odd-item]="isOdd()"
-      [class.income-item]="data().kind === 'INCOME'"
-      [class.saving-item]="data().kind === 'SAVINGS_CONTRIBUTION'"
-      [class.expense-item]="data().kind === 'FIXED_EXPENSE'"
+      [class.income-item]="data().kind === 'income'"
+      [class.saving-item]="data().kind === 'saving'"
+      [class.expense-item]="data().kind === 'expense'"
       [class.!cursor-pointer]="selectable()"
       (click)="handleClick()"
     >
@@ -54,17 +54,17 @@ export interface TransactionItemData {
           class="flex justify-center items-center size-11 bg-surface rounded-full"
         >
           @switch (data().kind) {
-            @case ('INCOME') {
+            @case ('income') {
               <mat-icon class="!text-(--pulpe-financial-income)">
                 trending_up
               </mat-icon>
             }
-            @case ('SAVINGS_CONTRIBUTION') {
+            @case ('saving') {
               <mat-icon class="!text-(--pulpe-financial-savings)">
                 savings
               </mat-icon>
             }
-            @case ('FIXED_EXPENSE') {
+            @case ('expense') {
               <mat-icon class="!text-(--pulpe-financial-expense)">
                 trending_down
               </mat-icon>
@@ -85,7 +85,7 @@ export interface TransactionItemData {
       }
       <div matListItemMeta class="!flex !h-full !items-center !gap-3">
         <span>
-          {{ data().kind === 'INCOME' ? '+' : '-'
+          {{ data().kind === 'income' ? '+' : '-'
           }}{{ data().amount | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH' }}
         </span>
         @if (deletable()) {

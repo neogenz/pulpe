@@ -43,7 +43,7 @@ Template "Standard Month"
 ├── Income
 │   ├── Salary: 6500 CHF
 │   └── Freelance: 200 CHF (variable)
-├── Fixed Expenses
+├── Expenses
 │   ├── Rent: 1800 CHF
 │   ├── Health Insurance: 320 CHF
 │   ├── Subscriptions: 180 CHF
@@ -65,7 +65,7 @@ A **Monthly Budget** is an _instance_ of a Template for a specific month.
 ### Core Calculation Logic: "Fixed Block" vs. "Living Allowance"
 
 1.  **The Plan (Fixed Block):** At the start of the month, the system calculates the **Fixed Block**.
-    `Fixed Block = Sum(All Fixed Expenses) + Sum(All Planned Savings)`
+    `Fixed Block = Sum(All Expenses) + Sum(All Planned Savings)`
 2.  **The Living Allowance:** The system then calculates the **Living Allowance**.
     `Living Allowance = Planned Income - Fixed Block`
 3.  **Tracking (Transactions):** All manually entered transactions throughout the month decrease _only_ the Living Allowance.
@@ -75,7 +75,7 @@ A **Monthly Budget** is an _instance_ of a Template for a specific month.
 
 Savings are treated as a **priority expense**, not a leftover amount.
 
-- **Formula:** `Available to Spend = Income - Planned Savings - Fixed Expenses`
+- **Formula:** `Available to Spend = Income - Planned Savings - Expenses`
 - **User Message:** The user is only shown the final `Available to Spend` amount.
 
 ## 3. Business Processes & Workflows
@@ -92,7 +92,7 @@ Savings are treated as a **priority expense**, not a leftover amount.
   ```
   1. DEFINE IDENTITY: Name (required), description, color/icon.
   2. CONFIGURE INCOME: Add recurring, variable, and exceptional income lines.
-  3. ENTER FIXED EXPENSES: Import from another template or enter manually.
+  3. ENTER EXPENSES: Import from another template or enter manually.
   4. PLAN SAVINGS: Allocate funds to existing savings goals or create new ones.
   5. VALIDATE & SAVE: System checks for `Income >= Expenses + Savings`.
   ```
@@ -114,7 +114,7 @@ Savings are treated as a **priority expense**, not a leftover amount.
 - **Trigger:** User completes the final step of the initial setup (income/expenses).
 - **Workflow:**
   ```
-  1. [USER] Completes setup form (personal info, income, fixed expenses).
+  1. [USER] Completes setup form (personal info, income, expenses).
   2. [SYSTEM] On validation, automatically creates a user account.
   3. [SYSTEM] Creates the first template named "Mois Standard" populated with the provided data.
   4. [SYSTEM] Instantiates this new template to generate the budget for the current month.
@@ -180,6 +180,19 @@ Savings are treated as a **priority expense**, not a leftover amount.
 - The data model maintains a strict separation between planning and reality.
 - **`budget_lines` (The Plan):** Represent planned, recurring (`'fixed'`) or one-off (`'one_off'`) income/expenses. They constitute the **Fixed Block**.
 - **`transactions` (The Events):** Represent actual, manually entered spending. They are linked to a `monthly_budget` but **never** to a specific `budget_line`. They decrease the **Living Allowance**.
+
+### RG-008: Transaction Type Classification (Technical)
+
+- **Unified Enum System:** The application uses a simplified, unified enum system for transaction types:
+  - **`'income'`:** All sources of revenue (salary, freelance, bonuses, etc.)
+  - **`'expense'`:** All types of expenses (rent, food, subscriptions, etc.)
+  - **`'saving'`:** All savings contributions (emergency fund, goals, investments)
+- **Database Implementation:** All tables (`budget_line`, `template_line`, `transaction`) use the same enum values for consistency.
+- **API Consistency:** All endpoints return and accept the same unified enum values without conversion.
+- **User Interface Mapping:**
+  - `'income'` → "Revenu" (user-facing label)
+  - `'expense'` → "Dépense" (user-facing label) 
+  - `'saving'` → "Épargne" (user-facing label)
 
 ## 5. Functional Behaviors (CF)
 

@@ -368,27 +368,27 @@ export class BudgetLinesTable {
   }
 
   #kindIcons: Record<TransactionKind, string> = {
-    INCOME: 'trending_up',
-    FIXED_EXPENSE: 'trending_down',
-    SAVINGS_CONTRIBUTION: 'savings',
+    income: 'trending_up',
+    expense: 'trending_down',
+    saving: 'savings',
   };
 
   #kindLabels: Record<TransactionKind, string> = {
-    INCOME: 'Revenu',
-    FIXED_EXPENSE: 'Dépense',
-    SAVINGS_CONTRIBUTION: 'Épargne',
+    income: 'Revenu',
+    expense: 'Dépense',
+    saving: 'Épargne',
   };
 
   #kindIconClasses: Record<TransactionKind, string> = {
-    INCOME: 'text-financial-income',
-    FIXED_EXPENSE: 'text-financial-negative',
-    SAVINGS_CONTRIBUTION: 'text-primary',
+    income: 'text-financial-income',
+    expense: 'text-financial-negative',
+    saving: 'text-primary',
   };
 
   #amountClasses: Record<TransactionKind, string> = {
-    INCOME: 'text-financial-income',
-    FIXED_EXPENSE: 'text-financial-negative',
-    SAVINGS_CONTRIBUTION: 'text-primary',
+    income: 'text-financial-income',
+    expense: 'text-financial-negative',
+    saving: 'text-primary',
   };
 
   #recurrenceLabels: Record<TransactionRecurrence, string> = {

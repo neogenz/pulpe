@@ -387,7 +387,7 @@ export default class EditTransactionsDialog {
     this.#state.addTransaction({
       description: '',
       amount: 0,
-      type: 'FIXED_EXPENSE',
+      type: 'expense',
     });
   }
 
@@ -418,11 +418,11 @@ export default class EditTransactionsDialog {
       const type = transaction.formData.type;
 
       switch (type) {
-        case 'INCOME':
-        case 'SAVINGS_CONTRIBUTION':
+        case 'income':
+        case 'saving':
           runningTotal += amount;
           break;
-        case 'FIXED_EXPENSE':
+        case 'expense':
           runningTotal -= amount;
           break;
       }

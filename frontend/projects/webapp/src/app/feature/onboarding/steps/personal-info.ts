@@ -124,6 +124,6 @@ export default class PersonalInfo {
     }
 
     this.#store.updateField('firstName', this.firstNameControl.value.trim());
-    this.#router.navigate(['/', ROUTES.ONBOARDING, ROUTES.ONBOARDING_INCOME]);
+    this.#router.navigate(['/', ROUTES.ONBOARDING, ROUTES.ONBOARDING_income]);
   }
 }

@@ -115,17 +115,16 @@ export class TransactionService {
   }
 
   private prepareTransactionData(createTransactionDto: TransactionCreate) {
-    // Note: budgetId validation is already handled by validateCreateTransactionDto
+    // Manual conversion without Zod validation (already validated in service)
     return {
       budget_id: createTransactionDto.budgetId,
       amount: createTransactionDto.amount,
       name: createTransactionDto.name,
+      kind: createTransactionDto.kind as Database['public']['Enums']['transaction_kind'],
       transaction_date:
         createTransactionDto.transactionDate || new Date().toISOString(),
       is_out_of_budget: createTransactionDto.isOutOfBudget || false,
-      category: createTransactionDto.category || null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      category: createTransactionDto.category ?? null,
     };
   }
 
@@ -325,6 +324,9 @@ export class TransactionService {
         amount: updateTransactionDto.amount,
       }),
       ...(updateTransactionDto.name && { name: updateTransactionDto.name }),
+      ...(updateTransactionDto.kind !== undefined && {
+        kind: updateTransactionDto.kind as Database['public']['Enums']['transaction_kind'],
+      }),
       ...(updateTransactionDto.transactionDate !== undefined && {
         transaction_date: updateTransactionDto.transactionDate,
       }),

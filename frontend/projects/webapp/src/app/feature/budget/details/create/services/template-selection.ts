@@ -2,11 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormControl } from '@angular/forms';
 import { startWith, map, debounceTime, firstValueFrom } from 'rxjs';
-import {
-  transactionKindSchema,
-  type BudgetTemplate,
-  type TemplateLine,
-} from '@pulpe/shared';
+import { type BudgetTemplate, type TemplateLine } from '@pulpe/shared';
 import { TemplateApi } from '../../../../../core/template/template-api';
 
 export interface TemplateTotals {
@@ -143,20 +139,11 @@ export class TemplateSelection {
    */
   calculateTemplateTotals(lines: TemplateLine[]): TemplateTotals {
     const totalIncome = lines
-      .filter(
-        (line) =>
-          line.kind.toUpperCase() === transactionKindSchema.Values.INCOME,
-      )
+      .filter((line) => line.kind === 'income')
       .reduce((sum, line) => sum + line.amount, 0);
 
     const totalExpenses = lines
-      .filter(
-        (line) =>
-          line.kind.toUpperCase() ===
-            transactionKindSchema.Values.FIXED_EXPENSE ||
-          line.kind.toUpperCase() ===
-            transactionKindSchema.Values.SAVINGS_CONTRIBUTION,
-      )
+      .filter((line) => line.kind === 'expense' || line.kind === 'saving')
       .reduce((sum, line) => sum + line.amount, 0);
 
     const remainingLivingAllowance = totalIncome - totalExpenses;

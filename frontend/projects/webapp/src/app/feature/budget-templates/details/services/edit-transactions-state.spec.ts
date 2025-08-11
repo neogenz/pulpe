@@ -30,7 +30,7 @@ describe('EditTransactionsState - Unit Tests', () => {
       templateId: 'template-1',
       name: 'Loyer',
       amount: 1200,
-      kind: 'FIXED_EXPENSE' as TemplateLineKind,
+      kind: 'expense' as TemplateLineKind,
       recurrence: 'fixed',
       description: '',
       createdAt: '2024-01-01T00:00:00Z',
@@ -41,7 +41,7 @@ describe('EditTransactionsState - Unit Tests', () => {
       templateId: 'template-1',
       name: 'Salaire',
       amount: 5000,
-      kind: 'INCOME' as TemplateLineKind,
+      kind: 'income' as TemplateLineKind,
       recurrence: 'fixed',
       description: '',
       createdAt: '2024-01-01T00:00:00Z',
@@ -53,12 +53,12 @@ describe('EditTransactionsState - Unit Tests', () => {
     {
       description: 'Loyer',
       amount: 1200,
-      type: 'FIXED_EXPENSE',
+      type: 'expense',
     },
     {
       description: 'Salaire',
       amount: 5000,
-      type: 'INCOME',
+      type: 'income',
     },
   ];
 
@@ -136,7 +136,7 @@ describe('EditTransactionsState - Unit Tests', () => {
       const newData: TransactionFormData = {
         description: 'Transport',
         amount: 150,
-        type: 'FIXED_EXPENSE',
+        type: 'expense',
       };
 
       const id = state.addTransaction(newData);
@@ -161,7 +161,7 @@ describe('EditTransactionsState - Unit Tests', () => {
       state.addTransaction({
         description: 'Test',
         amount: 100,
-        type: 'FIXED_EXPENSE',
+        type: 'expense',
       });
 
       expect(state.transactionCount()).toBe(3);
@@ -173,7 +173,7 @@ describe('EditTransactionsState - Unit Tests', () => {
       state.addTransaction({
         description: 'Test',
         amount: 100,
-        type: 'FIXED_EXPENSE',
+        type: 'expense',
       });
 
       expect(state.hasUnsavedChanges()).toBe(true);
@@ -201,7 +201,7 @@ describe('EditTransactionsState - Unit Tests', () => {
         .find((t) => t.id === transactionId);
       expect(transaction!.formData.description).toBe('Loyer modifié');
       expect(transaction!.formData.amount).toBe(1300);
-      expect(transaction!.formData.type).toBe('FIXED_EXPENSE'); // unchanged
+      expect(transaction!.formData.type).toBe('expense'); // unchanged
     });
 
     it('should return false for non-existent transaction', () => {
@@ -276,7 +276,7 @@ describe('EditTransactionsState - Unit Tests', () => {
       const newId = state.addTransaction({
         description: 'New',
         amount: 100,
-        type: 'FIXED_EXPENSE',
+        type: 'expense',
       });
 
       const result = state.removeTransaction(newId);
@@ -307,7 +307,7 @@ describe('EditTransactionsState - Unit Tests', () => {
       state.addTransaction({
         description: 'New Transaction',
         amount: 200,
-        type: 'FIXED_EXPENSE',
+        type: 'expense',
       });
 
       // Update existing transaction
@@ -400,7 +400,7 @@ describe('EditTransactionsState - Unit Tests', () => {
       state.addTransaction({
         description: 'Test',
         amount: 100,
-        type: 'FIXED_EXPENSE',
+        type: 'expense',
       });
       expect(state.transactionCount()).toBe(3);
 
@@ -417,7 +417,7 @@ describe('EditTransactionsState - Unit Tests', () => {
       state.addTransaction({
         description: 'Test',
         amount: 100,
-        type: 'FIXED_EXPENSE',
+        type: 'expense',
       });
       expect(state.hasUnsavedChanges()).toBe(true);
     });

@@ -368,11 +368,11 @@ Follow Tailwind standards breakpoint.
 
 #### Transaction Types
 
-- **Default type**: `FIXED_EXPENSE` (Dépense) - most common use case
+- **Default type**: `expense` (Dépense) - most common use case
 - **Available types**:
-  - "Revenu" (`INCOME`)
-  - "Dépense" (`FIXED_EXPENSE`)
-  - "Épargne" (`SAVINGS_CONTRIBUTION`)
+  - "Revenu" (`income`)
+  - "Dépense" (`expense`)
+  - "Épargne" (`saving`)
 
 ### UX Principles Applied
 

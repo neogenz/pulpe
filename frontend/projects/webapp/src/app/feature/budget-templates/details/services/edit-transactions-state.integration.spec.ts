@@ -23,7 +23,7 @@ describe('EditTransactionsState - Integration Tests', () => {
       templateId,
       name: 'Loyer',
       amount: 1200,
-      kind: 'FIXED_EXPENSE' as TemplateLineKind,
+      kind: 'expense' as TemplateLineKind,
       recurrence: 'fixed',
       description: 'Monthly rent payment',
       createdAt: '2024-01-01T00:00:00Z',
@@ -34,7 +34,7 @@ describe('EditTransactionsState - Integration Tests', () => {
       templateId,
       name: 'Salaire',
       amount: 5000,
-      kind: 'INCOME' as TemplateLineKind,
+      kind: 'income' as TemplateLineKind,
       recurrence: 'fixed',
       description: 'Monthly salary',
       createdAt: '2024-01-01T00:00:00Z',
@@ -46,12 +46,12 @@ describe('EditTransactionsState - Integration Tests', () => {
     {
       description: 'Loyer',
       amount: 1200,
-      type: 'FIXED_EXPENSE',
+      type: 'expense',
     },
     {
       description: 'Salaire',
       amount: 5000,
-      type: 'INCOME',
+      type: 'income',
     },
   ];
 
@@ -78,7 +78,7 @@ describe('EditTransactionsState - Integration Tests', () => {
       const newTransaction = {
         description: 'Transport',
         amount: 150,
-        type: 'FIXED_EXPENSE' as const,
+        type: 'expense' as const,
       };
 
       // Add new transaction
@@ -93,7 +93,7 @@ describe('EditTransactionsState - Integration Tests', () => {
               templateId,
               name: 'Transport',
               amount: 150,
-              kind: 'FIXED_EXPENSE' as TemplateLineKind,
+              kind: 'expense' as TemplateLineKind,
               recurrence: 'fixed',
               description: '',
               createdAt: '2024-01-01T00:00:00Z',
@@ -123,7 +123,7 @@ describe('EditTransactionsState - Integration Tests', () => {
           {
             name: 'Transport',
             amount: 150,
-            kind: 'FIXED_EXPENSE',
+            kind: 'expense',
             recurrence: 'fixed',
             description: '',
           },
@@ -153,7 +153,7 @@ describe('EditTransactionsState - Integration Tests', () => {
               templateId,
               name: 'Loyer modifié',
               amount: 1300,
-              kind: 'FIXED_EXPENSE' as TemplateLineKind,
+              kind: 'expense' as TemplateLineKind,
               recurrence: 'fixed',
               description: 'Monthly rent payment',
               createdAt: '2024-01-01T00:00:00Z',
@@ -185,7 +185,7 @@ describe('EditTransactionsState - Integration Tests', () => {
             id: 'line-1',
             name: 'Loyer modifié',
             amount: 1300,
-            kind: 'FIXED_EXPENSE',
+            kind: 'expense',
             recurrence: 'fixed',
             description: 'Monthly rent payment',
           },
@@ -234,7 +234,7 @@ describe('EditTransactionsState - Integration Tests', () => {
       state.addTransaction({
         description: 'Transport',
         amount: 200,
-        type: 'FIXED_EXPENSE',
+        type: 'expense',
       });
 
       // Update existing transaction
@@ -255,7 +255,7 @@ describe('EditTransactionsState - Integration Tests', () => {
               templateId,
               name: 'Transport',
               amount: 200,
-              kind: 'FIXED_EXPENSE' as TemplateLineKind,
+              kind: 'expense' as TemplateLineKind,
               recurrence: 'fixed',
               description: '',
               createdAt: '2024-01-01T00:00:00Z',
@@ -268,7 +268,7 @@ describe('EditTransactionsState - Integration Tests', () => {
               templateId,
               name: 'Loyer',
               amount: 1400,
-              kind: 'FIXED_EXPENSE' as TemplateLineKind,
+              kind: 'expense' as TemplateLineKind,
               recurrence: 'fixed',
               description: 'Monthly rent payment',
               createdAt: '2024-01-01T00:00:00Z',
@@ -410,7 +410,7 @@ describe('EditTransactionsState - Integration Tests', () => {
       state.addTransaction({
         description: 'New',
         amount: 100,
-        type: 'FIXED_EXPENSE',
+        type: 'expense',
       });
       state.updateTransaction(state.transactions()[0].id, { amount: 1500 });
 
@@ -456,7 +456,7 @@ describe('EditTransactionsState - Integration Tests', () => {
                 id: 'line-1',
                 name: 'Final description',
                 amount: 1400,
-                kind: 'FIXED_EXPENSE',
+                kind: 'expense',
               },
             ],
             deleted: [],

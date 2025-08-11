@@ -28,7 +28,7 @@ const routes: Routes = [
       },
       {
         path: STEP_ORDER[2],
-        title: PAGE_TITLES.INCOME,
+        title: PAGE_TITLES.income,
         loadComponent: () => import('./steps/income'),
         canActivate: [onboardingStepGuard],
       },

@@ -25,7 +25,7 @@ describe('BudgetLineMapper', () => {
     savingsGoalId: null,
     name: 'Test Budget Line',
     amount: 1000,
-    kind: 'FIXED_EXPENSE',
+    kind: 'expense',
     recurrence: 'fixed',
     isManuallyAdjusted: false,
     createdAt: '2024-01-01T00:00:00.000Z',
@@ -48,7 +48,7 @@ describe('BudgetLineMapper', () => {
         budgetId: 'budget-789',
         name: 'Test Budget Line',
         amount: 1000,
-        kind: 'FIXED_EXPENSE',
+        kind: 'expense',
         transactionDate: '2024-01-15T10:00:00.000Z',
         isOutOfBudget: false,
         category: null,
@@ -57,10 +57,10 @@ describe('BudgetLineMapper', () => {
       });
     });
 
-    it('should handle INCOME kind correctly', () => {
+    it('should handle income kind correctly', () => {
       // Arrange
       const budgetLine = createBudgetLine({
-        kind: 'INCOME',
+        kind: 'income',
         name: 'Monthly Salary',
         amount: 5000,
       });
@@ -69,15 +69,15 @@ describe('BudgetLineMapper', () => {
       const result = mapper.toTransaction(budgetLine, 'budget-123');
 
       // Assert
-      expect(result.kind).toBe('INCOME');
+      expect(result.kind).toBe('income');
       expect(result.name).toBe('Monthly Salary');
       expect(result.amount).toBe(5000);
     });
 
-    it('should handle SAVINGS_CONTRIBUTION kind correctly', () => {
+    it('should handle saving kind correctly', () => {
       // Arrange
       const budgetLine = createBudgetLine({
-        kind: 'SAVINGS_CONTRIBUTION',
+        kind: 'saving',
         name: 'Emergency Fund',
         amount: 500,
       });
@@ -86,7 +86,7 @@ describe('BudgetLineMapper', () => {
       const result = mapper.toTransaction(budgetLine, 'budget-123');
 
       // Assert
-      expect(result.kind).toBe('SAVINGS_CONTRIBUTION');
+      expect(result.kind).toBe('saving');
       expect(result.name).toBe('Emergency Fund');
       expect(result.amount).toBe(500);
     });
@@ -181,18 +181,18 @@ describe('BudgetLineMapper', () => {
     it('should handle mixed transaction kinds', () => {
       // Arrange
       const budgetLines = [
-        createBudgetLine({ kind: 'INCOME', name: 'Salary' }),
-        createBudgetLine({ kind: 'FIXED_EXPENSE', name: 'Rent' }),
-        createBudgetLine({ kind: 'SAVINGS_CONTRIBUTION', name: 'Savings' }),
+        createBudgetLine({ kind: 'income', name: 'Salary' }),
+        createBudgetLine({ kind: 'expense', name: 'Rent' }),
+        createBudgetLine({ kind: 'saving', name: 'Savings' }),
       ];
 
       // Act
       const result = mapper.toTransactions(budgetLines, 'budget-123');
 
       // Assert
-      expect(result[0].kind).toBe('INCOME');
-      expect(result[1].kind).toBe('FIXED_EXPENSE');
-      expect(result[2].kind).toBe('SAVINGS_CONTRIBUTION');
+      expect(result[0].kind).toBe('income');
+      expect(result[1].kind).toBe('expense');
+      expect(result[2].kind).toBe('saving');
     });
   });
 });

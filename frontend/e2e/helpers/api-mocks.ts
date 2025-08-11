@@ -50,7 +50,7 @@ export function createBudgetLineMock(
     budgetId,
     name: 'Test Budget Line',
     amount: 100,
-    kind: 'FIXED_EXPENSE',
+    kind: 'expense',
     recurrence: 'one_off',
     isManuallyAdjusted: false,
     templateLineId: null,
@@ -78,7 +78,7 @@ export function createMultipleBudgetLinesMock(
     createBudgetLineMock(line.id, budgetId, {
       name: line.name,
       amount: line.amount,
-      kind: line.kind || 'FIXED_EXPENSE',
+      kind: line.kind || 'expense',
     })
   );
 }

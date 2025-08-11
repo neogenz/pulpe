@@ -266,10 +266,10 @@ export default class CurrentMonth implements OnInit {
         name: transaction.name,
         kind:
           transaction.type === 'income'
-            ? 'INCOME'
+            ? 'income'
             : transaction.type === 'saving'
-              ? 'SAVINGS_CONTRIBUTION'
-              : 'FIXED_EXPENSE',
+              ? 'saving'
+              : 'expense',
         transactionDate: new Date().toISOString(),
         isOutOfBudget: false,
         category: transaction.category ?? null,

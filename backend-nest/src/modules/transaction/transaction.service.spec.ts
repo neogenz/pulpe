@@ -83,12 +83,15 @@ describe('TransactionService', () => {
         budgetId: MOCK_BUDGET_ID,
         name: 'Test Transaction',
         amount: 100,
-        kind: 'FIXED_EXPENSE',
+        kind: 'expense',
         isOutOfBudget: false,
       };
       const mockCreatedTransaction = createMockTransactionEntity({
-        ...createTransactionDto,
         budget_id: createTransactionDto.budgetId,
+        name: createTransactionDto.name,
+        amount: createTransactionDto.amount,
+        kind: 'expense', // DB uses new enum
+        is_out_of_budget: createTransactionDto.isOutOfBudget,
       });
 
       mockSupabaseClient.reset().setMockData(mockCreatedTransaction);
@@ -116,7 +119,7 @@ describe('TransactionService', () => {
         budgetId: '',
         name: 'Test',
         amount: 100,
-        kind: 'FIXED_EXPENSE',
+        kind: 'expense',
         isOutOfBudget: false,
       };
 
@@ -135,7 +138,7 @@ describe('TransactionService', () => {
         budgetId: MOCK_BUDGET_ID,
         name: 'Test',
         amount: -50,
-        kind: 'FIXED_EXPENSE',
+        kind: 'expense',
         isOutOfBudget: false,
       };
 
@@ -154,7 +157,7 @@ describe('TransactionService', () => {
         budgetId: MOCK_BUDGET_ID,
         name: 'Test Transaction',
         amount: 100,
-        kind: 'FIXED_EXPENSE',
+        kind: 'expense',
         isOutOfBudget: false,
       };
       const mockError = { message: 'Database insert failed' };
@@ -180,7 +183,7 @@ describe('TransactionService', () => {
         budgetId: MOCK_BUDGET_ID,
         name: 'Test Transaction',
         amount: 150,
-        kind: 'FIXED_EXPENSE',
+        kind: 'expense',
         isOutOfBudget: false,
       };
 
@@ -271,7 +274,8 @@ describe('TransactionService', () => {
         amount: 200,
       };
       const mockUpdatedTransaction = createMockTransactionEntity({
-        ...updateData,
+        name: updateData.name,
+        amount: updateData.amount,
       });
 
       mockSupabaseClient.reset().setMockData(mockUpdatedTransaction);

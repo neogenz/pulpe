@@ -35,12 +35,12 @@ describe('EditTransactionsDialog - Component Tests', () => {
       {
         description: 'Loyer',
         amount: 1200,
-        type: 'FIXED_EXPENSE' as const,
+        type: 'expense' as const,
       },
       {
         description: 'Salaire',
         amount: 5000,
-        type: 'INCOME' as const,
+        type: 'income' as const,
       },
     ] as TransactionFormData[],
     templateName: 'Test Template',
@@ -51,7 +51,7 @@ describe('EditTransactionsDialog - Component Tests', () => {
         templateId: 'template-123',
         name: 'Loyer',
         amount: 1200,
-        kind: 'FIXED_EXPENSE',
+        kind: 'expense',
         recurrence: 'fixed',
         description: '',
         createdAt: '2024-01-01T00:00:00Z',
@@ -62,7 +62,7 @@ describe('EditTransactionsDialog - Component Tests', () => {
         templateId: 'template-123',
         name: 'Salaire',
         amount: 5000,
-        kind: 'INCOME',
+        kind: 'income',
         recurrence: 'fixed',
         description: '',
         createdAt: '2024-01-01T00:00:00Z',
@@ -123,11 +123,11 @@ describe('EditTransactionsDialog - Component Tests', () => {
 
       expect(transactions[0].formData.description).toBe('Loyer');
       expect(transactions[0].formData.amount).toBe(1200);
-      expect(transactions[0].formData.type).toBe('FIXED_EXPENSE');
+      expect(transactions[0].formData.type).toBe('expense');
 
       expect(transactions[1].formData.description).toBe('Salaire');
       expect(transactions[1].formData.amount).toBe(5000);
-      expect(transactions[1].formData.type).toBe('INCOME');
+      expect(transactions[1].formData.type).toBe('income');
     });
   });
 

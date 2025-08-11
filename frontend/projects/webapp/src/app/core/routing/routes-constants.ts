@@ -10,7 +10,7 @@ export const ROUTES = {
   // Onboarding step paths
   ONBOARDING_WELCOME: 'welcome',
   ONBOARDING_PERSONAL_INFO: 'personal-info',
-  ONBOARDING_INCOME: 'income',
+  ONBOARDING_income: 'income',
   ONBOARDING_HOUSING: 'housing',
   ONBOARDING_HEALTH_INSURANCE: 'health-insurance',
   ONBOARDING_PHONE_PLAN: 'phone-plan',
@@ -30,7 +30,7 @@ export const PAGE_TITLES = {
   WELCOME: 'Bienvenue',
   PERSONAL_INFO: 'Informations personnelles',
   HOUSING: 'Logement',
-  INCOME: 'Revenus',
+  income: 'Revenus',
   HEALTH_INSURANCE: 'Assurance maladie',
   PHONE_PLAN: 'Abonnement téléphonique',
   TRANSPORT: 'Transport',

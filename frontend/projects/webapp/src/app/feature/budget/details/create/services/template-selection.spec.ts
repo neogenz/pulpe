@@ -21,7 +21,7 @@ const createTestLine = (partial: Partial<TemplateLine>): TemplateLine => ({
   templateId: 'template-1',
   name: 'Test',
   amount: 100,
-  kind: 'INCOME',
+  kind: 'income',
   recurrence: 'fixed',
   description: 'Test description',
   createdAt: '2024-01-01T00:00:00Z',
@@ -80,31 +80,31 @@ describe('TemplateSelection', () => {
           id: '1',
           name: 'Salary',
           amount: 5000,
-          kind: 'INCOME',
+          kind: 'income',
         }),
         createTestLine({
           id: '2',
           name: 'Freelance',
           amount: 1000,
-          kind: 'INCOME',
+          kind: 'income',
         }),
         createTestLine({
           id: '3',
           name: 'Rent',
           amount: 1500,
-          kind: 'FIXED_EXPENSE',
+          kind: 'expense',
         }),
         createTestLine({
           id: '4',
           name: 'Insurance',
           amount: 300,
-          kind: 'FIXED_EXPENSE',
+          kind: 'expense',
         }),
         createTestLine({
           id: '5',
           name: 'Savings',
           amount: 500,
-          kind: 'SAVINGS_CONTRIBUTION',
+          kind: 'saving',
         }),
       ];
 
@@ -129,13 +129,13 @@ describe('TemplateSelection', () => {
           id: '1',
           name: 'Salary',
           amount: 5000,
-          kind: 'INCOME',
+          kind: 'income',
         }),
         createTestLine({
           id: '2',
           name: 'Bonus',
           amount: 2000,
-          kind: 'INCOME',
+          kind: 'income',
         }),
       ];
 
@@ -151,14 +151,14 @@ describe('TemplateSelection', () => {
           id: '1',
           name: 'Rent',
           amount: 1500,
-          kind: 'FIXED_EXPENSE',
+          kind: 'expense',
           description: 'Monthly rent',
         }),
         createTestLine({
           id: '2',
           name: 'Utilities',
           amount: 200,
-          kind: 'FIXED_EXPENSE',
+          kind: 'expense',
           description: 'Utilities',
         }),
       ];
@@ -169,20 +169,20 @@ describe('TemplateSelection', () => {
       expect(totals.totalExpenses).toBe(1700);
     });
 
-    it('should treat SAVINGS_CONTRIBUTION as expense', () => {
+    it('should treat saving as expense', () => {
       const templateLines: TemplateLine[] = [
         createTestLine({
           id: '1',
           name: 'Emergency Fund',
           amount: 1000,
-          kind: 'SAVINGS_CONTRIBUTION',
+          kind: 'saving',
           description: 'Emergency fund savings',
         }),
         createTestLine({
           id: '2',
           name: 'Retirement',
           amount: 500,
-          kind: 'SAVINGS_CONTRIBUTION',
+          kind: 'saving',
           description: 'Retirement savings',
         }),
       ];
@@ -199,21 +199,21 @@ describe('TemplateSelection', () => {
           id: '1',
           name: 'Salary',
           amount: 4999.99,
-          kind: 'INCOME',
+          kind: 'income',
           description: 'Monthly salary',
         }),
         createTestLine({
           id: '2',
           name: 'Phone',
           amount: 29.95,
-          kind: 'FIXED_EXPENSE',
+          kind: 'expense',
           description: 'Phone bill',
         }),
         createTestLine({
           id: '3',
           name: 'Internet',
           amount: 49.99,
-          kind: 'FIXED_EXPENSE',
+          kind: 'expense',
           description: 'Internet bill',
         }),
       ];
@@ -222,65 +222,6 @@ describe('TemplateSelection', () => {
 
       expect(totals.totalIncome).toBeCloseTo(4999.99, 2);
       expect(totals.totalExpenses).toBeCloseTo(79.94, 2);
-    });
-
-    it('should handle lowercase kind values (API compatibility)', () => {
-      const templateLines = [
-        createTestLine({
-          id: '1',
-          name: 'Salary',
-          amount: 5000,
-          kind: 'income' as 'INCOME',
-        }),
-        createTestLine({
-          id: '2',
-          name: 'Rent',
-          amount: 1500,
-          kind: 'fixed_expense' as 'FIXED_EXPENSE',
-        }),
-        createTestLine({
-          id: '3',
-          name: 'Savings',
-          amount: 500,
-          kind: 'savings_contribution' as 'SAVINGS_CONTRIBUTION',
-        }),
-      ];
-
-      const totals = testCalculation(templateLines);
-
-      // With case-insensitive handling, these should work correctly
-      expect(totals.totalIncome).toBe(5000);
-      expect(totals.totalExpenses).toBe(2000); // 1500 + 500
-    });
-
-    it('should handle mixed case kind values (robustness test)', () => {
-      const templateLines = [
-        createTestLine({
-          id: '1',
-          name: 'Salary',
-          amount: 3000,
-          kind: 'Income' as 'INCOME', // Mixed case
-        }),
-        createTestLine({
-          id: '2',
-          name: 'Rent',
-          amount: 1200,
-          kind: 'Fixed_Expense' as 'FIXED_EXPENSE', // Mixed case with underscore
-        }),
-        createTestLine({
-          id: '3',
-          name: 'Savings',
-          amount: 800,
-          kind: 'SAVINGS_contribution' as 'SAVINGS_CONTRIBUTION', // Mixed case
-        }),
-      ];
-
-      const totals = testCalculation(templateLines);
-
-      // Case-insensitive handling should work for any casing variations
-      expect(totals.totalIncome).toBe(3000);
-      expect(totals.totalExpenses).toBe(2000); // 1200 + 800
-      expect(totals.remainingLivingAllowance).toBe(1000); // 3000 - 2000
     });
   });
 
@@ -373,13 +314,13 @@ describe('TemplateSelection', () => {
           id: 'line-1',
           name: 'Salary',
           amount: 5000,
-          kind: 'INCOME',
+          kind: 'income',
         }),
         createTestLine({
           id: 'line-2',
           name: 'Rent',
           amount: 1500,
-          kind: 'FIXED_EXPENSE',
+          kind: 'expense',
         }),
       ];
 

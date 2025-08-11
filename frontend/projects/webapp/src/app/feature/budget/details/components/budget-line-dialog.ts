@@ -66,17 +66,17 @@ export interface BudgetLineDialogData {
             <mat-form-field appearance="outline" class="w-full">
               <mat-label>Type</mat-label>
               <mat-select formControlName="kind" data-testid="new-line-kind">
-                <mat-option value="INCOME">
+                <mat-option value="income">
                   <mat-icon class="text-financial-income">trending_up</mat-icon>
                   <span>Revenu</span>
                 </mat-option>
-                <mat-option value="FIXED_EXPENSE">
+                <mat-option value="expense">
                   <mat-icon class="text-financial-negative"
                     >trending_down</mat-icon
                   >
                   <span>Dépense</span>
                 </mat-option>
-                <mat-option value="SAVINGS_CONTRIBUTION">
+                <mat-option value="saving">
                   <mat-icon class="text-primary">savings</mat-icon>
                   <span>Épargne</span>
                 </mat-option>
@@ -127,7 +127,7 @@ export class BudgetLineDialog {
       null as number | null,
       [Validators.required, Validators.min(0.01)],
     ],
-    kind: ['FIXED_EXPENSE' as TransactionKind, Validators.required],
+    kind: ['expense' as TransactionKind, Validators.required],
     recurrence: ['fixed' as TransactionRecurrence, Validators.required],
   });
 

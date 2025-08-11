@@ -89,7 +89,7 @@ export default class Housing {
   }
 
   onPrevious(): void {
-    this.#router.navigate(['/', ROUTES.ONBOARDING, ROUTES.ONBOARDING_INCOME]);
+    this.#router.navigate(['/', ROUTES.ONBOARDING, ROUTES.ONBOARDING_income]);
   }
 
   #handleNext(): void {

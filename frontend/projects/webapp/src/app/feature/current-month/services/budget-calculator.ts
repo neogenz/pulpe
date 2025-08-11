@@ -9,10 +9,7 @@ export class BudgetCalculator {
    */
   calculateFixedBlock(budgetLines: BudgetLine[]): number {
     return budgetLines
-      .filter(
-        (line) =>
-          line.kind === 'FIXED_EXPENSE' || line.kind === 'SAVINGS_CONTRIBUTION',
-      )
+      .filter((line) => line.kind === 'expense' || line.kind === 'saving')
       .reduce((total, line) => total + line.amount, 0);
   }
 
@@ -21,7 +18,7 @@ export class BudgetCalculator {
    */
   calculatePlannedIncome(budgetLines: BudgetLine[]): number {
     return budgetLines
-      .filter((line) => line.kind === 'INCOME')
+      .filter((line) => line.kind === 'income')
       .reduce((total, line) => total + line.amount, 0);
   }
 
@@ -38,11 +35,11 @@ export class BudgetCalculator {
   /**
    * Calcule le montant total des transactions réelles
    * Note: Dans le contexte métier, les transactions manuelles représentent les dépenses variables
-   * qui sont catégorisées comme FIXED_EXPENSE dans le système
+   * qui sont catégorisées comme expense dans le système
    */
   calculateActualTransactionsAmount(transactions: Transaction[]): number {
     return transactions
-      .filter((transaction) => transaction.kind === 'FIXED_EXPENSE')
+      .filter((transaction) => transaction.kind === 'expense')
       .reduce((total, transaction) => total + transaction.amount, 0);
   }
 

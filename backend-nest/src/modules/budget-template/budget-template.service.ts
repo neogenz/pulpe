@@ -485,7 +485,7 @@ export class BudgetTemplateService {
         lines.push({
           name: mapping.name,
           amount,
-          kind: mapping.kind as 'INCOME' | 'FIXED_EXPENSE',
+          kind: mapping.kind as 'income' | 'expense' | 'saving',
           recurrence: 'fixed',
           description: mapping.description,
         });
@@ -512,37 +512,37 @@ export class BudgetTemplateService {
       {
         field: 'monthlyIncome',
         name: 'Salaire',
-        kind: 'INCOME',
+        kind: 'income',
         description: 'Salaire & revenus mensuels',
       },
       {
         field: 'housingCosts',
         name: 'Loyer',
-        kind: 'FIXED_EXPENSE',
+        kind: 'expense',
         description: 'Loyer, assurances, etc.',
       },
       {
         field: 'healthInsurance',
         name: 'Assurance maladie',
-        kind: 'FIXED_EXPENSE',
+        kind: 'expense',
         description: 'Assurance maladie, etc.',
       },
       {
         field: 'phonePlan',
         name: 'Téléphone',
-        kind: 'FIXED_EXPENSE',
+        kind: 'expense',
         description: 'Frais de téléphone',
       },
       {
         field: 'transportCosts',
         name: 'Transport',
-        kind: 'FIXED_EXPENSE',
+        kind: 'expense',
         description: 'Transport en commun, véhicule, etc.',
       },
       {
         field: 'leasingCredit',
         name: 'Leasing',
-        kind: 'FIXED_EXPENSE',
+        kind: 'expense',
         description: 'Crédit, leasing, etc.',
       },
     ];

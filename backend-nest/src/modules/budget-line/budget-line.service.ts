@@ -95,6 +95,7 @@ export class BudgetLineService {
   }
 
   private prepareBudgetLineData(createBudgetLineDto: BudgetLineCreate) {
+    // Manual conversion without Zod validation (already validated in service)
     if (!createBudgetLineDto.budgetId) {
       throw new BusinessException(ERROR_DEFINITIONS.REQUIRED_DATA_MISSING, {
         fields: ['budgetId'],
@@ -107,7 +108,7 @@ export class BudgetLineService {
       savings_goal_id: createBudgetLineDto.savingsGoalId || null,
       name: createBudgetLineDto.name,
       amount: createBudgetLineDto.amount,
-      kind: createBudgetLineDto.kind,
+      kind: createBudgetLineDto.kind as Database['public']['Enums']['transaction_kind'],
       recurrence: createBudgetLineDto.recurrence,
       is_manually_adjusted: createBudgetLineDto.isManuallyAdjusted || false,
       created_at: new Date().toISOString(),
@@ -301,7 +302,7 @@ export class BudgetLineService {
         savings_goal_id: updateBudgetLineDto.savingsGoalId,
       }),
       ...(updateBudgetLineDto.kind !== undefined && {
-        kind: updateBudgetLineDto.kind,
+        kind: updateBudgetLineDto.kind as Database['public']['Enums']['transaction_kind'],
       }),
       ...(updateBudgetLineDto.recurrence !== undefined && {
         recurrence: updateBudgetLineDto.recurrence,

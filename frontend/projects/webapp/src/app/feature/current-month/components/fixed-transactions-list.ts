@@ -26,11 +26,11 @@ export class FixedTransactionsList {
       title: 'Transactions fixes',
       totalAmount: this.transactions().reduce((total, transaction) => {
         switch (transaction.kind) {
-          case 'INCOME':
+          case 'income':
             return total + transaction.amount;
-          case 'FIXED_EXPENSE':
+          case 'expense':
             return total - transaction.amount;
-          case 'SAVINGS_CONTRIBUTION':
+          case 'saving':
             return total - transaction.amount;
           default:
             return total;
