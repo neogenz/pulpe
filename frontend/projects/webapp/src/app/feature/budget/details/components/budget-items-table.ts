@@ -19,6 +19,8 @@ import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { CurrencyPipe } from '@angular/common';
 import {
+  type BudgetLine,
+  type Transaction,
   type BudgetLineUpdate,
   type TransactionKind,
   type TransactionRecurrence,
@@ -68,7 +70,7 @@ interface BudgetItemViewModel {
       <mat-card-content class="overflow-x-auto">
         <table
           mat-table
-          [dataSource]="budgetItems()"
+          [dataSource]="budgetItemViewModels()"
           class="w-full min-w-[600px]"
         >
           <!-- Type Column -->
@@ -260,7 +262,7 @@ interface BudgetItemViewModel {
           </tr>
         </table>
       </mat-card-content>
-      @if (budgetItems().length > 0) {
+      @if (budgetItemViewModels().length > 0) {
         <mat-card-actions class="flex justify-center mb-2">
           <button
             matButton="outlined"
@@ -290,7 +292,8 @@ interface BudgetItemViewModel {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BudgetItemsTable {
-  budgetItems = input.required<BudgetItemViewModel[]>();
+  budgetLines = input.required<BudgetLine[]>();
+  transactions = input.required<Transaction[]>();
   operationsInProgress = input<Set<string>>(new Set());
   updateClicked = output<{ id: string; update: BudgetLineUpdate }>();
   deleteClicked = output<string>();
@@ -318,6 +321,99 @@ export class BudgetItemsTable {
       ? this.displayedColumnsMobile
       : this.displayedColumns,
   );
+
+  // View models with pre-computed display values
+  budgetItemViewModels = computed(() => {
+    const budgetLines = this.budgetLines();
+    const transactions = this.transactions();
+    const inProgress = this.operationsInProgress();
+    const editingId = this.editingLineId();
+
+    // Map budget lines
+    const budgetLineViewModels: BudgetItemViewModel[] = budgetLines.map(
+      (line) => ({
+        id: line.id,
+        name: line.name,
+        amount: line.amount,
+        kind: line.kind,
+        recurrence: line.recurrence,
+        itemType: 'budget_line' as const,
+        kindIcon: this.#kindIcons[line.kind],
+        kindLabel: this.#kindLabels[line.kind],
+        kindIconClass: this.#kindIconClasses[line.kind],
+        amountClass: this.#amountClasses[line.kind],
+        recurrenceLabel: this.#recurrenceLabels[line.recurrence],
+        recurrenceChipClass: this.#recurrenceChipClasses[line.recurrence],
+        isEditing: editingId === line.id,
+        isLoading: inProgress.has(line.id),
+      }),
+    );
+
+    // Map transactions (always one-off)
+    const transactionViewModels: BudgetItemViewModel[] = transactions.map(
+      (transaction) => ({
+        id: transaction.id,
+        name: transaction.name,
+        amount: transaction.amount,
+        kind: transaction.kind,
+        recurrence: 'one_off' as const, // Transactions are always one-off
+        itemType: 'transaction' as const,
+        kindIcon: this.#kindIcons[transaction.kind],
+        kindLabel: this.#kindLabels[transaction.kind],
+        kindIconClass: this.#kindIconClasses[transaction.kind],
+        amountClass: this.#amountClasses[transaction.kind],
+        recurrenceLabel: this.#recurrenceLabels['one_off'],
+        recurrenceChipClass: this.#recurrenceChipClasses['one_off'],
+        isEditing: false, // Transactions cannot be edited in this view
+        isLoading: inProgress.has(transaction.id),
+      }),
+    );
+
+    // Combine and sort by amount (descending) then by name
+    return [...budgetLineViewModels, ...transactionViewModels].sort((a, b) => {
+      if (a.amount !== b.amount) {
+        return b.amount - a.amount;
+      }
+      return a.name.localeCompare(b.name);
+    });
+  });
+
+  // Mapping constants
+  #kindIcons: Record<TransactionKind, string> = {
+    income: 'trending_up',
+    expense: 'trending_down',
+    saving: 'savings',
+  };
+
+  #kindLabels: Record<TransactionKind, string> = {
+    income: 'Revenu',
+    expense: 'Dépense',
+    saving: 'Épargne',
+  };
+
+  #kindIconClasses: Record<TransactionKind, string> = {
+    income: 'text-financial-income',
+    expense: 'text-financial-negative',
+    saving: 'text-primary',
+  };
+
+  #amountClasses: Record<TransactionKind, string> = {
+    income: 'text-financial-income',
+    expense: 'text-financial-negative',
+    saving: 'text-primary',
+  };
+
+  #recurrenceLabels: Record<TransactionRecurrence, string> = {
+    fixed: 'Tous les mois',
+    variable: 'Variable',
+    one_off: 'Une seule fois',
+  };
+
+  #recurrenceChipClasses: Record<TransactionRecurrence, string> = {
+    fixed: 'bg-primary-container text-on-primary-container',
+    variable: 'bg-tertiary-container text-on-tertiary-container',
+    one_off: 'bg-secondary-container text-on-secondary-container',
+  };
 
   startEdit(item: BudgetItemViewModel): void {
     // Only allow editing budget lines, not transactions
