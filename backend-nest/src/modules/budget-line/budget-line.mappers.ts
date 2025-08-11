@@ -21,7 +21,7 @@ export function toApi(budgetLineDb: BudgetLineRow): BudgetLine {
     savingsGoalId: budgetLineDb.savings_goal_id,
     name: budgetLineDb.name,
     amount: budgetLineDb.amount,
-    kind: budgetLineDb.kind,
+    kind: budgetLineDb.kind, // Pas de conversion - les enums sont maintenant unifiés
     recurrence: budgetLineDb.recurrence,
     isManuallyAdjusted: budgetLineDb.is_manually_adjusted,
     createdAt: budgetLineDb.created_at,
@@ -70,7 +70,7 @@ export function toInsert(
     savings_goal_id: createDto.savingsGoalId ?? null,
     name: createDto.name,
     amount: createDto.amount,
-    kind: createDto.kind,
+    kind: createDto.kind, // Pas de conversion - les enums sont maintenant unifiés
     recurrence: createDto.recurrence,
     is_manually_adjusted: createDto.isManuallyAdjusted ?? false,
   };
@@ -97,7 +97,7 @@ export function toUpdate(
     updateData.amount = updateDto.amount;
   }
   if (updateDto.kind !== undefined) {
-    updateData.kind = updateDto.kind;
+    updateData.kind = updateDto.kind; // Pas de conversion - les enums sont maintenant unifiés
   }
   if (updateDto.recurrence !== undefined) {
     updateData.recurrence = updateDto.recurrence;

@@ -64,7 +64,7 @@ export const onboardingStepGuard: CanActivateFn = (
     // housing et après (après income)
     if (!isValidIncome(data.monthlyIncome)) {
       return router.createUrlTree([
-        `/${ROUTES.ONBOARDING}/${ROUTES.ONBOARDING_INCOME}`,
+        `/${ROUTES.ONBOARDING}/${ROUTES.ONBOARDING_income}`,
       ]);
     }
   }
@@ -84,7 +84,7 @@ export const onboardingStepGuard: CanActivateFn = (
       }
       if (!isValidIncome(data.monthlyIncome)) {
         return router.createUrlTree([
-          `/${ROUTES.ONBOARDING}/${ROUTES.ONBOARDING_INCOME}`,
+          `/${ROUTES.ONBOARDING}/${ROUTES.ONBOARDING_income}`,
         ]);
       }
     }

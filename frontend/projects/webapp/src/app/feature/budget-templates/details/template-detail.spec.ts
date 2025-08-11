@@ -20,7 +20,7 @@ const mockTemplateData: BudgetTemplateDetailViewModel = {
       templateId: 'template-123',
       name: 'Salaire',
       amount: 5000,
-      kind: 'INCOME',
+      kind: 'income',
       recurrence: 'fixed',
       description: 'Salaire mensuel',
       createdAt: '2024-01-01T00:00:00.000Z',
@@ -31,7 +31,7 @@ const mockTemplateData: BudgetTemplateDetailViewModel = {
       templateId: 'template-123',
       name: 'Loyer',
       amount: 1200,
-      kind: 'FIXED_EXPENSE',
+      kind: 'expense',
       recurrence: 'fixed',
       description: 'Loyer mensuel',
       createdAt: '2024-01-01T00:00:00.000Z',
@@ -42,7 +42,7 @@ const mockTemplateData: BudgetTemplateDetailViewModel = {
       templateId: 'template-123',
       name: 'Épargne',
       amount: 800,
-      kind: 'SAVINGS_CONTRIBUTION',
+      kind: 'saving',
       recurrence: 'fixed',
       description: 'Épargne mensuelle',
       createdAt: '2024-01-01T00:00:00.000Z',
@@ -60,13 +60,9 @@ describe('TemplateDetail', () => {
     it('should correctly transform template transactions to financial entries', () => {
       const transformTransactions = (transactions: TemplateLine[]) => {
         return transactions.map((transaction) => {
-          const spent =
-            transaction.kind === 'FIXED_EXPENSE' ? transaction.amount : 0;
-          const earned = transaction.kind === 'INCOME' ? transaction.amount : 0;
-          const saved =
-            transaction.kind === 'SAVINGS_CONTRIBUTION'
-              ? transaction.amount
-              : 0;
+          const spent = transaction.kind === 'expense' ? transaction.amount : 0;
+          const earned = transaction.kind === 'income' ? transaction.amount : 0;
+          const saved = transaction.kind === 'saving' ? transaction.amount : 0;
           return {
             description: transaction.name,
             spent,
@@ -372,10 +368,7 @@ describe('TemplateDetail', () => {
         return transactions.map((transaction) => ({
           description: transaction.name,
           amount: transaction.amount,
-          type: transaction.kind as
-            | 'INCOME'
-            | 'FIXED_EXPENSE'
-            | 'SAVINGS_CONTRIBUTION',
+          type: transaction.kind as 'income' | 'expense' | 'saving',
         }));
       };
 
@@ -387,17 +380,17 @@ describe('TemplateDetail', () => {
         {
           description: 'Salaire',
           amount: 5000,
-          type: 'INCOME',
+          type: 'income',
         },
         {
           description: 'Loyer',
           amount: 1200,
-          type: 'FIXED_EXPENSE',
+          type: 'expense',
         },
         {
           description: 'Épargne',
           amount: 800,
-          type: 'SAVINGS_CONTRIBUTION',
+          type: 'saving',
         },
       ]);
     });
@@ -413,7 +406,7 @@ describe('TemplateDetail', () => {
       const transactions = templateData.transactions.map((t) => ({
         description: t.name,
         amount: t.amount,
-        type: t.kind as 'INCOME' | 'FIXED_EXPENSE' | 'SAVINGS_CONTRIBUTION',
+        type: t.kind as 'income' | 'expense' | 'saving',
       }));
 
       const expectedDialogConfig = {
@@ -442,7 +435,7 @@ describe('TemplateDetail', () => {
       const mockDialogResult = {
         saved: true,
         transactions: [
-          { description: 'Updated Salary', amount: 5500, type: 'INCOME' },
+          { description: 'Updated Salary', amount: 5500, type: 'income' },
         ],
       };
 
@@ -562,13 +555,9 @@ describe('TemplateDetail', () => {
 
       const transformTransactions = (transactions: TemplateLine[]) => {
         return transactions.map((transaction) => {
-          const spent =
-            transaction.kind === 'FIXED_EXPENSE' ? transaction.amount : 0;
-          const earned = transaction.kind === 'INCOME' ? transaction.amount : 0;
-          const saved =
-            transaction.kind === 'SAVINGS_CONTRIBUTION'
-              ? transaction.amount
-              : 0;
+          const spent = transaction.kind === 'expense' ? transaction.amount : 0;
+          const earned = transaction.kind === 'income' ? transaction.amount : 0;
+          const saved = transaction.kind === 'saving' ? transaction.amount : 0;
           return {
             description: transaction.name,
             spent,
@@ -589,7 +578,7 @@ describe('TemplateDetail', () => {
         templateId: 'template-123',
         name: 'Large Income',
         amount: 999999.99,
-        kind: 'INCOME',
+        kind: 'income',
         recurrence: 'fixed',
         description: 'Very large income',
         createdAt: '2024-01-01T00:00:00.000Z',
@@ -599,19 +588,19 @@ describe('TemplateDetail', () => {
       const entry = {
         description: largeAmountTransaction.name,
         spent:
-          largeAmountTransaction.kind === 'FIXED_EXPENSE'
+          largeAmountTransaction.kind === 'expense'
             ? largeAmountTransaction.amount
             : 0,
         earned:
-          largeAmountTransaction.kind === 'INCOME'
+          largeAmountTransaction.kind === 'income'
             ? largeAmountTransaction.amount
             : 0,
         saved:
-          largeAmountTransaction.kind === 'SAVINGS_CONTRIBUTION'
+          largeAmountTransaction.kind === 'saving'
             ? largeAmountTransaction.amount
             : 0,
         total:
-          largeAmountTransaction.kind === 'INCOME'
+          largeAmountTransaction.kind === 'income'
             ? largeAmountTransaction.amount
             : 0,
       };
@@ -626,7 +615,7 @@ describe('TemplateDetail', () => {
         templateId: 'template-123',
         name: 'Zero Amount',
         amount: 0,
-        kind: 'FIXED_EXPENSE',
+        kind: 'expense',
         recurrence: 'fixed',
         description: 'Zero amount transaction',
         createdAt: '2024-01-01T00:00:00.000Z',
@@ -636,15 +625,15 @@ describe('TemplateDetail', () => {
       const entry = {
         description: zeroAmountTransaction.name,
         spent:
-          zeroAmountTransaction.kind === 'FIXED_EXPENSE'
+          zeroAmountTransaction.kind === 'expense'
             ? zeroAmountTransaction.amount
             : 0,
         earned:
-          zeroAmountTransaction.kind === 'INCOME'
+          zeroAmountTransaction.kind === 'income'
             ? zeroAmountTransaction.amount
             : 0,
         saved:
-          zeroAmountTransaction.kind === 'SAVINGS_CONTRIBUTION'
+          zeroAmountTransaction.kind === 'saving'
             ? zeroAmountTransaction.amount
             : 0,
         total: 0,
@@ -677,13 +666,9 @@ describe('TemplateDetail', () => {
 
       const calculateTotals = (txs: TemplateLine[]) => {
         const entries = txs.map((transaction) => {
-          const spent =
-            transaction.kind === 'FIXED_EXPENSE' ? transaction.amount : 0;
-          const earned = transaction.kind === 'INCOME' ? transaction.amount : 0;
-          const saved =
-            transaction.kind === 'SAVINGS_CONTRIBUTION'
-              ? transaction.amount
-              : 0;
+          const spent = transaction.kind === 'expense' ? transaction.amount : 0;
+          const earned = transaction.kind === 'income' ? transaction.amount : 0;
+          const saved = transaction.kind === 'saving' ? transaction.amount : 0;
           return { spent, earned, saved };
         });
 
@@ -712,7 +697,7 @@ describe('TemplateDetail', () => {
           templateId: 'template-123',
           name: 'New Expense',
           amount: 300,
-          kind: 'FIXED_EXPENSE' as const,
+          kind: 'expense' as const,
           recurrence: 'fixed' as const,
           description: 'New expense',
           createdAt: '2024-01-01T00:00:00.000Z',

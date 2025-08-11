@@ -11,7 +11,7 @@ const createBudgetLine = (overrides: Partial<BudgetLine> = {}): BudgetLine => ({
   savingsGoalId: null,
   name: 'Test Budget Line',
   amount: 1000,
-  kind: 'FIXED_EXPENSE',
+  kind: 'expense',
   recurrence: 'fixed',
   isManuallyAdjusted: false,
   createdAt: '2024-01-01T00:00:00.000Z',
@@ -26,7 +26,7 @@ const createTransaction = (
   budgetId: 'budget-456',
   name: 'Test Transaction',
   amount: 50,
-  kind: 'FIXED_EXPENSE',
+  kind: 'expense',
   transactionDate: '2024-01-15T10:00:00.000Z',
   isOutOfBudget: false,
   category: null,
@@ -333,18 +333,18 @@ describe('CurrentMonth Component', () => {
       const getTransactionKind = (type: TransactionType): string => {
         switch (type) {
           case 'income':
-            return 'INCOME';
+            return 'income';
           case 'saving':
-            return 'SAVINGS_CONTRIBUTION';
+            return 'saving';
           case 'expense':
           default:
-            return 'FIXED_EXPENSE';
+            return 'expense';
         }
       };
 
-      expect(getTransactionKind('income')).toBe('INCOME');
-      expect(getTransactionKind('saving')).toBe('SAVINGS_CONTRIBUTION');
-      expect(getTransactionKind('expense')).toBe('FIXED_EXPENSE');
+      expect(getTransactionKind('income')).toBe('income');
+      expect(getTransactionKind('saving')).toBe('saving');
+      expect(getTransactionKind('expense')).toBe('expense');
     });
 
     it('should create transaction data with correct structure', () => {
@@ -374,10 +374,10 @@ describe('CurrentMonth Component', () => {
           name: formData.name,
           kind:
             formData.type === 'income'
-              ? 'INCOME'
+              ? 'income'
               : formData.type === 'saving'
-                ? 'SAVINGS_CONTRIBUTION'
-                : 'FIXED_EXPENSE',
+                ? 'saving'
+                : 'expense',
           transactionDate: new Date().toISOString(),
           isOutOfBudget: false,
           category: formData.category,
@@ -390,7 +390,7 @@ describe('CurrentMonth Component', () => {
         budgetId: budget.id,
         amount: 100,
         name: 'Test Transaction',
-        kind: 'FIXED_EXPENSE',
+        kind: 'expense',
         transactionDate: expect.any(String),
         isOutOfBudget: false,
         category: 'food',

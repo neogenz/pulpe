@@ -21,9 +21,9 @@ export const TRANSACTION_VALIDATORS = {
 };
 
 export const TRANSACTION_TYPES = [
-  { value: 'INCOME' as const, label: 'Revenu' },
-  { value: 'FIXED_EXPENSE' as const, label: 'Dépense' },
-  { value: 'SAVINGS_CONTRIBUTION' as const, label: 'Économie' },
+  { value: 'income' as const, label: 'Revenu' },
+  { value: 'expense' as const, label: 'Dépense' },
+  { value: 'saving' as const, label: 'Économie' },
 ] as const;
 
 @Injectable()
@@ -40,7 +40,7 @@ export class TransactionFormService {
         nonNullable: true,
         validators: TRANSACTION_VALIDATORS.amount,
       }),
-      type: new FormControl(transaction?.type ?? 'FIXED_EXPENSE', {
+      type: new FormControl(transaction?.type ?? 'expense', {
         nonNullable: true,
         validators: TRANSACTION_VALIDATORS.type,
       }),

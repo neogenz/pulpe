@@ -58,14 +58,14 @@ describe('BudgetDetailsState', () => {
               budgetId: 'budget-1',
               name: 'Loyer',
               amount: 800,
-              kind: 'FIXED_EXPENSE' as const,
+              kind: 'expense' as const,
             },
             {
               id: 'line-2',
               budgetId: 'budget-1',
               name: 'Salaire',
               amount: 3000,
-              kind: 'INCOME' as const,
+              kind: 'income' as const,
             },
           ],
         },
@@ -155,9 +155,7 @@ describe('BudgetDetailsState', () => {
           line.budgetId !== '' &&
           line.name.trim().length > 0 &&
           line.amount > 0 &&
-          ['INCOME', 'FIXED_EXPENSE', 'SAVINGS_CONTRIBUTION'].includes(
-            line.kind,
-          ) &&
+          ['income', 'expense', 'saving'].includes(line.kind) &&
           ['fixed', 'variable', 'one_off'].includes(line.recurrence)
         );
       };
@@ -166,7 +164,7 @@ describe('BudgetDetailsState', () => {
         budgetId: 'budget-1',
         name: 'Valid Line',
         amount: 100,
-        kind: 'FIXED_EXPENSE',
+        kind: 'expense',
         recurrence: 'fixed',
         isManuallyAdjusted: false,
       };
@@ -176,7 +174,7 @@ describe('BudgetDetailsState', () => {
           budgetId: '',
           name: 'Test',
           amount: 100,
-          kind: 'FIXED_EXPENSE' as const,
+          kind: 'expense' as const,
           recurrence: 'fixed' as const,
           isManuallyAdjusted: false,
         },
@@ -184,7 +182,7 @@ describe('BudgetDetailsState', () => {
           budgetId: 'budget-1',
           name: '',
           amount: 100,
-          kind: 'FIXED_EXPENSE' as const,
+          kind: 'expense' as const,
           recurrence: 'fixed' as const,
           isManuallyAdjusted: false,
         },
@@ -192,7 +190,7 @@ describe('BudgetDetailsState', () => {
           budgetId: 'budget-1',
           name: 'Test',
           amount: 0,
-          kind: 'FIXED_EXPENSE' as const,
+          kind: 'expense' as const,
           recurrence: 'fixed' as const,
           isManuallyAdjusted: false,
         },
@@ -200,7 +198,7 @@ describe('BudgetDetailsState', () => {
           budgetId: 'budget-1',
           name: 'Test',
           amount: -100,
-          kind: 'FIXED_EXPENSE' as const,
+          kind: 'expense' as const,
           recurrence: 'fixed' as const,
           isManuallyAdjusted: false,
         },

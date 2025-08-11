@@ -21,10 +21,7 @@ describe('DetailsPage', () => {
     });
 
     it('should calculate totals correctly', () => {
-      type TransactionKind =
-        | 'INCOME'
-        | 'FIXED_EXPENSE'
-        | 'SAVINGS_CONTRIBUTION';
+      type TransactionKind = 'income' | 'expense' | 'saving';
 
       interface BudgetLineForCalculation {
         amount: number;
@@ -41,15 +38,15 @@ describe('DetailsPage', () => {
       };
 
       const testLines: BudgetLineForCalculation[] = [
-        { amount: 3000, kind: 'INCOME' },
-        { amount: 1200, kind: 'FIXED_EXPENSE' },
-        { amount: 500, kind: 'FIXED_EXPENSE' },
-        { amount: 300, kind: 'SAVINGS_CONTRIBUTION' },
+        { amount: 3000, kind: 'income' },
+        { amount: 1200, kind: 'expense' },
+        { amount: 500, kind: 'expense' },
+        { amount: 300, kind: 'saving' },
       ];
 
-      expect(calculateTotal(testLines, 'INCOME')).toBe(3000);
-      expect(calculateTotal(testLines, 'FIXED_EXPENSE')).toBe(1700);
-      expect(calculateTotal(testLines, 'SAVINGS_CONTRIBUTION')).toBe(300);
+      expect(calculateTotal(testLines, 'income')).toBe(3000);
+      expect(calculateTotal(testLines, 'expense')).toBe(1700);
+      expect(calculateTotal(testLines, 'saving')).toBe(300);
     });
 
     it('should calculate balance correctly', () => {

@@ -21,7 +21,7 @@ export function toApi(transactionDb: TransactionRow): Transaction {
     budgetId: transactionDb.budget_id,
     amount: transactionDb.amount,
     name: transactionDb.name,
-    kind: transactionDb.kind,
+    kind: transactionDb.kind, // Pas de conversion - les enums sont maintenant unifiés
     transactionDate: transactionDb.transaction_date,
     isOutOfBudget: transactionDb.is_out_of_budget,
     category: transactionDb.category,
@@ -67,7 +67,7 @@ export function toInsert(
     budget_id: finalBudgetId,
     amount: createDto.amount,
     name: createDto.name,
-    kind: createDto.kind,
+    kind: createDto.kind, // Pas de conversion - les enums sont maintenant unifiés
     transaction_date: createDto.transactionDate || new Date().toISOString(),
     is_out_of_budget: createDto.isOutOfBudget || false,
     category: createDto.category ?? null,
@@ -89,7 +89,7 @@ export function toUpdate(
     updateData.name = updateDto.name;
   }
   if (updateDto.kind !== undefined) {
-    updateData.kind = updateDto.kind;
+    updateData.kind = updateDto.kind; // Pas de conversion - les enums sont maintenant unifiés
   }
   if (updateDto.transactionDate !== undefined) {
     updateData.transaction_date = updateDto.transactionDate;

@@ -249,7 +249,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           is_out_of_budget?: boolean;
-          kind?: Database['public']['Enums']['transaction_kind'];
+          kind: Database['public']['Enums']['transaction_kind'];
           name: string;
           transaction_date?: string;
           updated_at?: string;
@@ -288,8 +288,8 @@ export type Database = {
           template_id: string;
           name: string;
           amount: number;
-          kind: string;
-          recurrence: string;
+          kind: Database['public']['Enums']['transaction_kind'];
+          recurrence: Database['public']['Enums']['transaction_recurrence'];
           description: string;
           created_at: string;
           updated_at: string;
@@ -319,7 +319,7 @@ export type Database = {
     Enums: {
       priority_level: 'HIGH' | 'MEDIUM' | 'LOW';
       savings_goal_status: 'ACTIVE' | 'COMPLETED' | 'PAUSED';
-      transaction_kind: 'INCOME' | 'FIXED_EXPENSE' | 'SAVINGS_CONTRIBUTION';
+      transaction_kind: 'income' | 'expense' | 'saving';
       transaction_recurrence: 'fixed' | 'variable' | 'one_off';
     };
     CompositeTypes: {
@@ -453,7 +453,7 @@ export const Constants = {
     Enums: {
       priority_level: ['HIGH', 'MEDIUM', 'LOW'],
       savings_goal_status: ['ACTIVE', 'COMPLETED', 'PAUSED'],
-      transaction_kind: ['INCOME', 'FIXED_EXPENSE', 'SAVINGS_CONTRIBUTION'],
+      transaction_kind: ['income', 'expense', 'saving'],
       transaction_recurrence: ['fixed', 'variable', 'one_off'],
     },
   },

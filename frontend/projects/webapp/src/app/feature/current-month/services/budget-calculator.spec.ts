@@ -12,7 +12,7 @@ describe('BudgetCalculator', () => {
   const createTransaction = (
     amount: number,
     name = 'Test Transaction',
-    kind: 'INCOME' | 'FIXED_EXPENSE' | 'SAVINGS_CONTRIBUTION' = 'FIXED_EXPENSE',
+    kind: 'income' | 'expense' | 'saving' = 'expense',
   ): Transaction => ({
     id: `transaction-${amount}`,
     amount,
@@ -30,7 +30,7 @@ describe('BudgetCalculator', () => {
   const createBudgetLine = (
     amount: number,
     name: string,
-    kind: 'INCOME' | 'FIXED_EXPENSE' | 'SAVINGS_CONTRIBUTION',
+    kind: 'income' | 'expense' | 'saving',
     id = `budget-line-${Date.now()}-${Math.random()}`,
   ): BudgetLine => ({
     id,
@@ -50,10 +50,10 @@ describe('BudgetCalculator', () => {
     it('should calculate fixed block correctly for expenses only', () => {
       // Arrange
       const budgetLines: BudgetLine[] = [
-        createBudgetLine(2200, 'Housing Costs', 'FIXED_EXPENSE'),
-        createBudgetLine(450, 'Health Insurance', 'FIXED_EXPENSE'),
-        createBudgetLine(150, 'Phone Plan', 'FIXED_EXPENSE'),
-        createBudgetLine(8000, 'Monthly Income', 'INCOME'), // Should be ignored
+        createBudgetLine(2200, 'Housing Costs', 'expense'),
+        createBudgetLine(450, 'Health Insurance', 'expense'),
+        createBudgetLine(150, 'Phone Plan', 'expense'),
+        createBudgetLine(8000, 'Monthly Income', 'income'), // Should be ignored
       ];
 
       // Act
@@ -66,11 +66,11 @@ describe('BudgetCalculator', () => {
     it('should calculate fixed block correctly for expenses and savings', () => {
       // Arrange
       const budgetLines: BudgetLine[] = [
-        createBudgetLine(2200, 'Housing Costs', 'FIXED_EXPENSE'),
-        createBudgetLine(450, 'Health Insurance', 'FIXED_EXPENSE'),
-        createBudgetLine(500, 'Emergency Fund', 'SAVINGS_CONTRIBUTION'),
-        createBudgetLine(1200, 'House Goal', 'SAVINGS_CONTRIBUTION'),
-        createBudgetLine(8000, 'Monthly Income', 'INCOME'), // Should be ignored
+        createBudgetLine(2200, 'Housing Costs', 'expense'),
+        createBudgetLine(450, 'Health Insurance', 'expense'),
+        createBudgetLine(500, 'Emergency Fund', 'saving'),
+        createBudgetLine(1200, 'House Goal', 'saving'),
+        createBudgetLine(8000, 'Monthly Income', 'income'), // Should be ignored
       ];
 
       // Act
@@ -94,8 +94,8 @@ describe('BudgetCalculator', () => {
     it('should return 0 when no relevant budget lines exist', () => {
       // Arrange
       const budgetLines: BudgetLine[] = [
-        createBudgetLine(8000, 'Monthly Income', 'INCOME'),
-        createBudgetLine(200, 'Freelance', 'INCOME'),
+        createBudgetLine(8000, 'Monthly Income', 'income'),
+        createBudgetLine(200, 'Freelance', 'income'),
       ];
 
       // Act
@@ -110,10 +110,10 @@ describe('BudgetCalculator', () => {
     it('should calculate planned income correctly', () => {
       // Arrange
       const budgetLines: BudgetLine[] = [
-        createBudgetLine(8000, 'Monthly Income', 'INCOME'),
-        createBudgetLine(200, 'Freelance', 'INCOME'),
-        createBudgetLine(2200, 'Housing Costs', 'FIXED_EXPENSE'), // Should be ignored
-        createBudgetLine(500, 'Emergency Fund', 'SAVINGS_CONTRIBUTION'), // Should be ignored
+        createBudgetLine(8000, 'Monthly Income', 'income'),
+        createBudgetLine(200, 'Freelance', 'income'),
+        createBudgetLine(2200, 'Housing Costs', 'expense'), // Should be ignored
+        createBudgetLine(500, 'Emergency Fund', 'saving'), // Should be ignored
       ];
 
       // Act
@@ -137,8 +137,8 @@ describe('BudgetCalculator', () => {
     it('should return 0 when no income lines exist', () => {
       // Arrange
       const budgetLines: BudgetLine[] = [
-        createBudgetLine(2200, 'Housing Costs', 'FIXED_EXPENSE'),
-        createBudgetLine(500, 'Emergency Fund', 'SAVINGS_CONTRIBUTION'),
+        createBudgetLine(2200, 'Housing Costs', 'expense'),
+        createBudgetLine(500, 'Emergency Fund', 'saving'),
       ];
 
       // Act
@@ -153,12 +153,12 @@ describe('BudgetCalculator', () => {
     it('should calculate living allowance correctly', () => {
       // Arrange
       const budgetLines: BudgetLine[] = [
-        createBudgetLine(8000, 'Monthly Income', 'INCOME'),
-        createBudgetLine(2200, 'Housing Costs', 'FIXED_EXPENSE'),
-        createBudgetLine(450, 'Health Insurance', 'FIXED_EXPENSE'),
-        createBudgetLine(150, 'Phone Plan', 'FIXED_EXPENSE'),
-        createBudgetLine(1137, 'Leasing/Credit', 'FIXED_EXPENSE'),
-        createBudgetLine(500, 'Emergency Fund', 'SAVINGS_CONTRIBUTION'),
+        createBudgetLine(8000, 'Monthly Income', 'income'),
+        createBudgetLine(2200, 'Housing Costs', 'expense'),
+        createBudgetLine(450, 'Health Insurance', 'expense'),
+        createBudgetLine(150, 'Phone Plan', 'expense'),
+        createBudgetLine(1137, 'Leasing/Credit', 'expense'),
+        createBudgetLine(500, 'Emergency Fund', 'saving'),
       ];
 
       // Act
@@ -171,9 +171,9 @@ describe('BudgetCalculator', () => {
     it('should handle negative living allowance', () => {
       // Arrange
       const budgetLines: BudgetLine[] = [
-        createBudgetLine(5000, 'Monthly Income', 'INCOME'),
-        createBudgetLine(6000, 'Expensive Housing', 'FIXED_EXPENSE'),
-        createBudgetLine(1000, 'Savings', 'SAVINGS_CONTRIBUTION'),
+        createBudgetLine(5000, 'Monthly Income', 'income'),
+        createBudgetLine(6000, 'Expensive Housing', 'expense'),
+        createBudgetLine(1000, 'Savings', 'saving'),
       ];
 
       // Act
@@ -199,11 +199,11 @@ describe('BudgetCalculator', () => {
     it('should calculate actual transactions amount correctly', () => {
       // Arrange
       const transactions: Transaction[] = [
-        createTransaction(30, 'Repas restaurant', 'FIXED_EXPENSE'),
-        createTransaction(50, 'Groceries', 'FIXED_EXPENSE'),
-        createTransaction(25, 'Coffee', 'FIXED_EXPENSE'),
-        createTransaction(1000, 'Salary', 'INCOME'), // Should be ignored
-        createTransaction(500, 'Savings', 'SAVINGS_CONTRIBUTION'), // Should be ignored
+        createTransaction(30, 'Repas restaurant', 'expense'),
+        createTransaction(50, 'Groceries', 'expense'),
+        createTransaction(25, 'Coffee', 'expense'),
+        createTransaction(1000, 'Salary', 'income'), // Should be ignored
+        createTransaction(500, 'Savings', 'saving'), // Should be ignored
       ];
 
       // Act
@@ -226,11 +226,11 @@ describe('BudgetCalculator', () => {
       expect(actualTransactions).toBe(0);
     });
 
-    it('should return 0 when no FIXED_EXPENSE transactions exist', () => {
+    it('should return 0 when no expense transactions exist', () => {
       // Arrange
       const transactions: Transaction[] = [
-        createTransaction(1000, 'Salary', 'INCOME'),
-        createTransaction(500, 'Savings', 'SAVINGS_CONTRIBUTION'),
+        createTransaction(1000, 'Salary', 'income'),
+        createTransaction(500, 'Savings', 'saving'),
       ];
 
       // Act
@@ -246,16 +246,16 @@ describe('BudgetCalculator', () => {
     it('should calculate remaining budget correctly', () => {
       // Arrange
       const budgetLines: BudgetLine[] = [
-        createBudgetLine(8000, 'Monthly Income', 'INCOME'),
-        createBudgetLine(2200, 'Housing Costs', 'FIXED_EXPENSE'),
-        createBudgetLine(450, 'Health Insurance', 'FIXED_EXPENSE'),
-        createBudgetLine(150, 'Phone Plan', 'FIXED_EXPENSE'),
-        createBudgetLine(1137, 'Leasing/Credit', 'FIXED_EXPENSE'),
+        createBudgetLine(8000, 'Monthly Income', 'income'),
+        createBudgetLine(2200, 'Housing Costs', 'expense'),
+        createBudgetLine(450, 'Health Insurance', 'expense'),
+        createBudgetLine(150, 'Phone Plan', 'expense'),
+        createBudgetLine(1137, 'Leasing/Credit', 'expense'),
       ];
 
       const transactions: Transaction[] = [
-        createTransaction(30, 'Repas restaurant', 'FIXED_EXPENSE'),
-        createTransaction(50, 'Groceries', 'FIXED_EXPENSE'),
+        createTransaction(30, 'Repas restaurant', 'expense'),
+        createTransaction(50, 'Groceries', 'expense'),
       ];
 
       // Act
@@ -274,12 +274,12 @@ describe('BudgetCalculator', () => {
     it('should handle negative remaining budget', () => {
       // Arrange
       const budgetLines: BudgetLine[] = [
-        createBudgetLine(1000, 'Monthly Income', 'INCOME'),
-        createBudgetLine(900, 'Fixed Costs', 'FIXED_EXPENSE'),
+        createBudgetLine(1000, 'Monthly Income', 'income'),
+        createBudgetLine(900, 'Fixed Costs', 'expense'),
       ];
 
       const transactions: Transaction[] = [
-        createTransaction(200, 'Overspending', 'FIXED_EXPENSE'),
+        createTransaction(200, 'Overspending', 'expense'),
       ];
 
       // Act
@@ -313,15 +313,15 @@ describe('BudgetCalculator', () => {
     it('should match the provided data example', () => {
       // Arrange - Using the exact data from the user's JSON
       const budgetLines: BudgetLine[] = [
-        createBudgetLine(8000, 'Monthly Income', 'INCOME'),
-        createBudgetLine(2200, 'Housing Costs', 'FIXED_EXPENSE'),
-        createBudgetLine(450, 'Health Insurance', 'FIXED_EXPENSE'),
-        createBudgetLine(150, 'Phone Plan', 'FIXED_EXPENSE'),
-        createBudgetLine(1137, 'Leasing/Credit', 'FIXED_EXPENSE'),
+        createBudgetLine(8000, 'Monthly Income', 'income'),
+        createBudgetLine(2200, 'Housing Costs', 'expense'),
+        createBudgetLine(450, 'Health Insurance', 'expense'),
+        createBudgetLine(150, 'Phone Plan', 'expense'),
+        createBudgetLine(1137, 'Leasing/Credit', 'expense'),
       ];
 
       const transactions: Transaction[] = [
-        createTransaction(30, 'Repas restaurant', 'FIXED_EXPENSE'),
+        createTransaction(30, 'Repas restaurant', 'expense'),
       ];
 
       // Act

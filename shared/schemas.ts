@@ -14,11 +14,7 @@ export const transactionRecurrenceSchema = z.enum([
   'one_off',
 ]);
 export type TransactionRecurrence = z.infer<typeof transactionRecurrenceSchema>;
-export const transactionKindSchema = z.enum([
-  'INCOME',
-  'FIXED_EXPENSE',
-  'SAVINGS_CONTRIBUTION',
-]);
+export const transactionKindSchema = z.enum(['income', 'expense', 'saving']);
 export type TransactionKind = z.infer<typeof transactionKindSchema>;
 
 export const priorityLevelSchema = z.enum(['HIGH', 'MEDIUM', 'LOW']);

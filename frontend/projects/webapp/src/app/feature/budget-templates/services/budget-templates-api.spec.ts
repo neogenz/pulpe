@@ -81,7 +81,7 @@ describe('BudgetTemplatesApi', () => {
           templateId: 'template-123',
           name: 'Salaire',
           amount: 5000,
-          kind: 'INCOME',
+          kind: 'income',
           recurrence: 'fixed',
           description: 'Salaire mensuel',
           createdAt: '2024-01-01T00:00:00.000Z',
@@ -204,7 +204,7 @@ describe('BudgetTemplatesApi', () => {
         customTransactions: [
           {
             amount: 50,
-            type: 'FIXED_EXPENSE',
+            type: 'expense',
             name: 'Internet',
             expenseType: 'fixed',
             isRecurring: true,
@@ -383,7 +383,7 @@ describe('BudgetTemplatesApi', () => {
             templateId: 'template-1',
             name: 'Income',
             amount: 5000,
-            kind: 'INCOME',
+            kind: 'income',
             recurrence: 'fixed',
             description: 'Monthly income',
             createdAt: '2024-01-01T00:00:00.000Z',
@@ -427,15 +427,15 @@ describe('BudgetTemplatesApi', () => {
     });
 
     it('should validate transaction kinds', () => {
-      const validKinds = ['INCOME', 'FIXED_EXPENSE', 'SAVINGS_CONTRIBUTION'];
+      const validKinds = ['income', 'expense', 'saving'];
 
       const validateTransactionKind = (kind: string): boolean => {
         return validKinds.includes(kind);
       };
 
-      expect(validateTransactionKind('INCOME')).toBe(true);
-      expect(validateTransactionKind('FIXED_EXPENSE')).toBe(true);
-      expect(validateTransactionKind('SAVINGS_CONTRIBUTION')).toBe(true);
+      expect(validateTransactionKind('income')).toBe(true);
+      expect(validateTransactionKind('expense')).toBe(true);
+      expect(validateTransactionKind('saving')).toBe(true);
       expect(validateTransactionKind('INVALID_KIND')).toBe(false);
     });
 
@@ -484,7 +484,7 @@ describe('BudgetTemplatesApi', () => {
     it('should handle templates with maximum numeric values', () => {
       const maxValueTransaction = {
         amount: Number.MAX_SAFE_INTEGER,
-        type: 'INCOME' as const,
+        type: 'income' as const,
         name: 'Max Value',
         expenseType: 'fixed' as const,
         isRecurring: true,

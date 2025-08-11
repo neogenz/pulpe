@@ -10,6 +10,9 @@ import { Tables, TablesInsert } from '@/types/database.types';
 
 // Simple mapping functions - no need for a class
 
+// Enum values are now consistent between shared schemas and database
+// No conversion needed - both use the new enum values ('income', 'expense', 'saving')
+
 export const toApiTemplate = (db: Tables<'template'>): BudgetTemplate => ({
   id: db.id,
   name: db.name,

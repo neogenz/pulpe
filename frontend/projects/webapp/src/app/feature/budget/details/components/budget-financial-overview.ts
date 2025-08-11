@@ -37,13 +37,13 @@ export class BudgetFinancialOverview {
 
     lines.forEach((line) => {
       switch (line.kind) {
-        case 'INCOME':
+        case 'income':
           income += line.amount;
           break;
-        case 'FIXED_EXPENSE':
+        case 'expense':
           expenses += line.amount;
           break;
-        case 'SAVINGS_CONTRIBUTION':
+        case 'saving':
           savings += line.amount;
           break;
       }

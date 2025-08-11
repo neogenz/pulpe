@@ -94,13 +94,11 @@ export interface TemplateDetailsDialogData {
                       </div>
                       <div
                         class="ml-4 text-body-large font-medium"
-                        [class.text-success]="line.kind === 'INCOME'"
-                        [class.text-error]="line.kind === 'FIXED_EXPENSE'"
-                        [class.text-primary]="
-                          line.kind === 'SAVINGS_CONTRIBUTION'
-                        "
+                        [class.text-success]="line.kind === 'income'"
+                        [class.text-error]="line.kind === 'expense'"
+                        [class.text-primary]="line.kind === 'saving'"
                       >
-                        {{ line.kind === 'INCOME' ? '+' : '-' }}
+                        {{ line.kind === 'income' ? '+' : '-' }}
                         {{ line.amount | currency: 'CHF' : 'symbol' : '1.0-2' }}
                       </div>
                     </div>
@@ -182,15 +180,11 @@ export class TemplateDetailsDialog {
       this.templateLines.set(lines);
 
       const income = lines
-        .filter((line) => line.kind === 'INCOME')
+        .filter((line) => line.kind === 'income')
         .reduce((sum, line) => sum + line.amount, 0);
 
       const expenses = lines
-        .filter(
-          (line) =>
-            line.kind === 'FIXED_EXPENSE' ||
-            line.kind === 'SAVINGS_CONTRIBUTION',
-        )
+        .filter((line) => line.kind === 'expense' || line.kind === 'saving')
         .reduce((sum, line) => sum + line.amount, 0);
 
       this.totalIncome.set(income);
