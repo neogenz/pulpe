@@ -1,9 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  inject,
-  OnInit,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -94,6 +89,7 @@ import { getDeleteConfirmationConfig } from '../delete/template-delete-dialog';
         }
         @case (state.budgetTemplates.status() === 'error') {
           <pulpe-templates-error
+            [error]="state.budgetTemplates.error()"
             (reload)="state.refreshData()"
             data-testid="templates-error"
           />
@@ -120,16 +116,12 @@ import { getDeleteConfirmationConfig } from '../delete/template-delete-dialog';
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export default class TemplateListPage implements OnInit {
+export default class TemplateListPage {
   protected readonly state = inject(BudgetTemplatesState);
   protected readonly title = inject(TitleDisplay);
   readonly #dialog = inject(MatDialog);
   readonly #snackBar = inject(MatSnackBar);
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
-
-  ngOnInit() {
-    this.state.refreshData();
-  }
 
   async onDeleteTemplate(template: BudgetTemplate) {
     try {

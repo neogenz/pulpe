@@ -18,7 +18,6 @@ export interface TransactionItemData {
   kind: 'INCOME' | 'FIXED_EXPENSE' | 'SAVINGS_CONTRIBUTION';
   category?: string | null;
   isSelected: boolean;
-  isLoading: boolean;
 }
 
 @Component({
@@ -41,15 +40,13 @@ export interface TransactionItemData {
       [class.saving-item]="data().kind === 'SAVINGS_CONTRIBUTION'"
       [class.expense-item]="data().kind === 'FIXED_EXPENSE'"
       [class.!cursor-pointer]="selectable()"
-      [class.opacity-50]="data().isLoading"
-      [class.pointer-events-none]="data().isLoading"
       (click)="handleClick()"
     >
       <div matListItemAvatar class="flex justify-center items-center gap-4">
         @if (selectable()) {
           <mat-checkbox
             [checked]="data().isSelected"
-            (change)="onSelectionChange($event.checked)"
+            (change)="selectionChange.emit($event.checked)"
             (click)="$event.stopPropagation()"
           />
         }
@@ -97,7 +94,6 @@ export interface TransactionItemData {
             (click)="onDeleteClick($event)"
             [attr.aria-label]="'Supprimer ' + data().name"
             [attr.data-testid]="'delete-transaction-' + data().id"
-            [disabled]="data().isLoading"
             class="!w-10 !h-10 text-error"
           >
             <mat-icon>delete</mat-icon>
@@ -182,10 +178,6 @@ export class TransactionItem {
     if (this.selectable()) {
       this.selectionChange.emit(!this.data().isSelected);
     }
-  }
-
-  protected onSelectionChange(checked: boolean): void {
-    this.selectionChange.emit(checked);
   }
 
   protected onDeleteClick(event: Event): void {
