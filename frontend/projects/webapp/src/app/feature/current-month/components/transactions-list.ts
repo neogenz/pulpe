@@ -110,7 +110,7 @@ export interface TransactionsListConfig {
           } @else {
             <mat-list class="!pb-0">
               @for (
-                vm of displayState().items;
+                vm of displayedTransactions().items;
                 track vm.id;
                 let isLast = $last;
                 let isOdd = $odd
@@ -120,7 +120,7 @@ export interface TransactionsListConfig {
                   [selectable]="config().selectable ?? false"
                   [deletable]="config().deletable ?? false"
                   [isOdd]="isOdd"
-                  (selectionChange)="onSelectionChange(vm.id, $event)"
+                  (selectionChange)="toggleSelection(vm.id, $event)"
                   (deleteClick)="deleteTransaction.emit(vm.id)"
                 />
                 @if (!isLast) {
@@ -129,14 +129,14 @@ export interface TransactionsListConfig {
               }
             </mat-list>
 
-            @if (displayState().hasMore) {
+            @if (displayedTransactions().hasMore) {
               <div class="flex justify-center p-4">
                 <button
                   matButton
                   (click)="showAllTransactions()"
                   class="text-primary"
                 >
-                  Voir plus ({{ displayState().remaining }})
+                  Voir plus ({{ displayedTransactions().remaining }})
                 </button>
               </div>
             }
@@ -158,7 +158,6 @@ export class TransactionsList {
   readonly config = input.required<TransactionsListConfig>();
   readonly selectedTransactions = model<string[]>([]);
   readonly deleteTransaction = output<string>();
-  readonly loadingTransactionIds = input<string[]>([]);
 
   private readonly expandedState = signal<boolean | null>(null);
   protected readonly showAllItems = signal(false);
@@ -172,23 +171,21 @@ export class TransactionsList {
     return this.config().defaultExpanded ?? true;
   });
 
-  protected readonly transactionViewModels = computed(() => {
+  readonly #transactionViewModels = computed(() => {
     const transactions = this.transactions();
     const selectedIds = new Set(this.selectedTransactions());
-    const loadingIds = new Set(this.loadingTransactionIds());
 
     return transactions.map(
       (transaction) =>
         ({
           ...transaction,
           isSelected: selectedIds.has(transaction.id),
-          isLoading: loadingIds.has(transaction.id),
         }) as TransactionItemData,
     );
   });
 
-  protected readonly displayState = computed(() => {
-    const all = this.transactionViewModels();
+  protected readonly displayedTransactions = computed(() => {
+    const all = this.#transactionViewModels();
     const expanded = this.isExpanded();
     const showAll = this.showAllItems();
 
@@ -218,7 +215,7 @@ export class TransactionsList {
     this.showAllItems.set(true);
   }
 
-  onSelectionChange(transactionId: string, selected: boolean): void {
+  toggleSelection(transactionId: string, selected: boolean): void {
     const currentSelection = this.selectedTransactions();
     if (selected) {
       this.selectedTransactions.set([...currentSelection, transactionId]);
@@ -227,11 +224,5 @@ export class TransactionsList {
         currentSelection.filter((id) => id !== transactionId),
       );
     }
-  }
-
-  toggleSelection(transactionId: string): void {
-    const currentSelection = this.selectedTransactions();
-    const isCurrentlySelected = currentSelection.includes(transactionId);
-    this.onSelectionChange(transactionId, !isCurrentlySelected);
   }
 }

@@ -116,13 +116,29 @@ import { firstValueFrom } from 'rxjs';
               <pulpe-transaction-chip-filter
                 data-testid="transaction-chip-filter"
               />
+              @if (selectedTransactions().length > 0) {
+                <div class="flex gap-4" data-testid="bulk-actions">
+                  <!--<button
+                    matButton="tonal"
+                    (click)="deleteSelectedTransactions()"
+                    data-testid="delete-selected-button"
+                  >
+                    <mat-icon>delete_sweep</mat-icon>
+                    Supprimer ({{ selectedTransactions().length }})
+                  </button>-->
+                  <button matButton="tonal" data-testid="merge-selected-button">
+                    <mat-icon>call_merge</mat-icon>
+                    Fusionner ({{ selectedTransactions().length }})
+                  </button>
+                </div>
+              }
               <pulpe-fixed-transactions-list
                 [transactions]="fixedTransactions()"
                 data-testid="fixed-transactions-list"
               />
               <pulpe-variable-expenses-list
                 [transactions]="variableTransactions()"
-                [loadingTransactionIds]="deletingTransactionIds()"
+                [(selectedTransactions)]="selectedTransactions"
                 (deleteTransaction)="deleteTransaction($event)"
                 data-testid="variable-expenses-list"
               />
@@ -173,29 +189,19 @@ import { firstValueFrom } from 'rxjs';
       bottom: 24px;
       right: 24px;
       z-index: 1000;
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.24);
-    }
-
-    :host ::ng-deep .add-transaction-bottom-sheet {
-      .mat-mdc-bottom-sheet-container {
-        border-radius: 16px 16px 0 0;
-        max-height: 80vh;
-      }
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class CurrentMonth implements OnInit {
   isCreatingTransaction = signal(false);
-  #deletingTransactionIds = signal<string[]>([]);
+  selectedTransactions = signal<string[]>([]);
   protected readonly state = inject(CurrentMonthState);
   protected readonly titleDisplay = inject(TitleDisplay);
   #bottomSheet = inject(MatBottomSheet);
   #dialog = inject(MatDialog);
   #snackBar = inject(MatSnackBar);
   #budgetLineMapper = inject(BudgetLineMapper);
-
-  deletingTransactionIds = this.#deletingTransactionIds.asReadonly();
 
   fixedTransactions = computed(() => {
     const budgetLines = this.state.budgetLines();
@@ -298,9 +304,6 @@ export default class CurrentMonth implements OnInit {
     const confirmed = await firstValueFrom(dialogRef.afterClosed());
 
     if (confirmed) {
-      // Add to loading state
-      this.#deletingTransactionIds.update((ids) => [...ids, transactionId]);
-
       try {
         // Delete transaction
         await this.state.deleteTransaction(transactionId);
@@ -319,11 +322,6 @@ export default class CurrentMonth implements OnInit {
           {
             duration: 5000,
           },
-        );
-      } finally {
-        // Remove from loading state
-        this.#deletingTransactionIds.update((ids) =>
-          ids.filter((id) => id !== transactionId),
         );
       }
     }

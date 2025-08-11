@@ -16,7 +16,6 @@ import { Transaction } from '@pulpe/shared';
     <pulpe-transactions-list
       [transactions]="transactions()"
       [config]="config()"
-      [loadingTransactionIds]="loadingTransactionIds()"
       [(selectedTransactions)]="selectedTransactions"
       (deleteTransaction)="deleteTransaction.emit($event)"
     />
@@ -27,7 +26,6 @@ import { Transaction } from '@pulpe/shared';
 export class VariableExpensesList {
   transactions = input.required<Transaction[]>();
   selectedTransactions = model<string[]>([]);
-  loadingTransactionIds = input<string[]>([]);
   deleteTransaction = output<string>();
 
   config = computed(
