@@ -116,7 +116,7 @@ import { firstValueFrom } from 'rxjs';
               <pulpe-transaction-chip-filter
                 data-testid="transaction-chip-filter"
               />
-              @if (selectedTransactions().length > 0) {
+              @if (selectedTransactions().length > 1) {
                 <div class="flex gap-4" data-testid="bulk-actions">
                   <!--<button
                     matButton="tonal"

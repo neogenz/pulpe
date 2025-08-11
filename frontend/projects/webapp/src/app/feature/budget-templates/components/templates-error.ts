@@ -6,6 +6,8 @@ import {
   computed,
   signal,
   effect,
+  DestroyRef,
+  inject,
 } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -52,7 +54,7 @@ type TemplateErrorType = HttpErrorResponse | ApiError | Error | null;
         </p>
       }
       <button
-        matButton
+        matButton="elevated"
         (click)="handleRetry()"
         [disabled]="retryDisabled()"
         data-testid="retry-button"
@@ -70,13 +72,15 @@ type TemplateErrorType = HttpErrorResponse | ApiError | Error | null;
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TemplatesError {
-  reload = output<void>();
-  error = input<TemplateErrorType>();
+  readonly #destroyRef = inject(DestroyRef);
 
-  retryCountdown = signal(0);
-  retryDisabled = computed(() => this.retryCountdown() > 0);
+  readonly reload = output<void>();
+  readonly error = input<TemplateErrorType>();
 
-  isRateLimited = computed(() => {
+  readonly retryCountdown = signal(0);
+  readonly retryDisabled = computed(() => this.retryCountdown() > 0);
+
+  readonly isRateLimited = computed(() => {
     const err = this.error();
     if (!err) return false;
 
@@ -98,53 +102,78 @@ export class TemplatesError {
     return false;
   });
 
-  errorIcon = computed(() => {
+  readonly errorIcon = computed(() => {
     return this.isRateLimited() ? 'schedule' : 'error';
   });
 
-  errorTitle = computed(() => {
+  readonly errorTitle = computed(() => {
     return this.isRateLimited() ? 'Trop de requêtes' : 'Erreur de chargement';
   });
 
-  errorMessage = computed(() => {
+  readonly errorMessage = computed(() => {
     if (this.isRateLimited()) {
       return 'Le serveur a reçu trop de requêtes. Veuillez patienter un instant.';
     }
     return 'Impossible de charger les modèles de budget.';
   });
 
-  retryButtonLabel = computed(() => {
+  readonly retryButtonLabel = computed(() => {
     return this.retryDisabled() ? 'Patienter...' : 'Réessayer';
   });
 
+  #currentIntervalId: number | null = null;
+
   constructor() {
-    // Start countdown when rate limited
+    // Track when rate limited state changes to manage countdown
     effect(() => {
-      if (this.isRateLimited() && this.retryCountdown() === 0) {
-        this.retryCountdown.set(30); // 30 seconds countdown
-        this.#startCountdown();
+      if (this.isRateLimited()) {
+        this.#startCountdownIfNeeded();
+      } else {
+        this.#clearCountdown();
       }
     });
   }
 
+  #startCountdownIfNeeded(): void {
+    // Only start countdown if not already running and countdown is 0
+    if (this.#currentIntervalId === null && this.retryCountdown() === 0) {
+      this.retryCountdown.set(30);
+      this.#startCountdown();
+    }
+  }
+
   #startCountdown(): void {
-    const interval = setInterval(() => {
+    this.#clearCountdown(); // Ensure no existing interval
+
+    this.#currentIntervalId = window.setInterval(() => {
       const current = this.retryCountdown();
       if (current > 0) {
         this.retryCountdown.set(current - 1);
       } else {
-        clearInterval(interval);
+        this.#clearCountdown();
       }
     }, 1000);
+
+    // Cleanup on destroy
+    this.#destroyRef.onDestroy(() => {
+      this.#clearCountdown();
+    });
+  }
+
+  #clearCountdown(): void {
+    if (this.#currentIntervalId !== null) {
+      clearInterval(this.#currentIntervalId);
+      this.#currentIntervalId = null;
+    }
   }
 
   handleRetry(): void {
     if (!this.retryDisabled()) {
       this.reload.emit();
+
       // Reset countdown if rate limited
       if (this.isRateLimited()) {
-        this.retryCountdown.set(30);
-        this.#startCountdown();
+        this.retryCountdown.set(0); // Reset to 0 to trigger new countdown
       }
     }
   }
