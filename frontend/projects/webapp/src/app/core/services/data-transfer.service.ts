@@ -35,7 +35,6 @@ export interface ExportData {
 
 export enum ImportMode {
   REPLACE = 'replace',
-  MERGE = 'merge',
   APPEND = 'append',
 }
 
@@ -139,6 +138,19 @@ export class DataTransferService {
    */
   readImportFile(file: File): Observable<ExportData> {
     return new Observable((observer) => {
+      // File size validation (3MB limit)
+      const MAX_FILE_SIZE = 3 * 1024 * 1024; // 3MB in bytes
+      if (file.size > MAX_FILE_SIZE) {
+        observer.error(new Error('File size exceeds 3MB limit'));
+        return;
+      }
+
+      // File type validation
+      if (!file.type.includes('json') && !file.name.endsWith('.json')) {
+        observer.error(new Error('Only JSON files are allowed'));
+        return;
+      }
+
       const reader = new FileReader();
 
       reader.onload = (e) => {

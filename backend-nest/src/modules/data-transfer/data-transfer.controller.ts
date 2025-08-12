@@ -79,6 +79,14 @@ export class DataTransferController {
   ): Promise<ImportResultDto> {
     const userId = user.id;
 
+    // File size validation (3MB limit)
+    const dataString = JSON.stringify(data);
+    const MAX_SIZE = 3 * 1024 * 1024; // 3MB in bytes
+
+    if (dataString.length > MAX_SIZE) {
+      throw new BadRequestException('Data size exceeds 3MB limit');
+    }
+
     // Validate the incoming data
     try {
       const validatedData = exportDataSchema.parse(data);
@@ -122,6 +130,14 @@ export class DataTransferController {
     @Body('options') options?: ImportOptionsDto,
   ): Promise<ImportResultDto> {
     const userId = user.id;
+
+    // File size validation (3MB limit)
+    const dataString = JSON.stringify(data);
+    const MAX_SIZE = 3 * 1024 * 1024; // 3MB in bytes
+
+    if (dataString.length > MAX_SIZE) {
+      throw new BadRequestException('Data size exceeds 3MB limit');
+    }
 
     // Validate the incoming data
     try {
