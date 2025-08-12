@@ -292,6 +292,108 @@ The project uses [Lefthook](https://lefthook.dev/) for managing git hooks:
 - **Types**: Auto-generated TypeScript types in `backend-nest/src/types/database.types.ts`
 - **Schema validation**: Zod schemas for DB entities in each module's `schemas/` directory
 
+## Local Development with Supabase
+
+The project is configured for local development with Supabase CLI. This allows you to:
+- Run a local Supabase instance with Docker
+- Develop against a local database without affecting production
+- Manage database migrations with version control
+- Test changes locally before deploying
+
+### Initial Setup (One-time)
+
+1. **Prerequisites**: Ensure Docker is running on your machine
+2. **Install Supabase CLI**: `brew install supabase/tap/supabase` (or follow [official installation guide](https://supabase.com/docs/guides/cli))
+3. **Link to remote project**: `cd backend-nest && supabase link --project-ref xvrbcvltpkqwiiexvfxh`
+4. **Pull existing schema**: `bun run supabase:pull` (creates migration file from remote)
+5. **Start local instance**: `bun run supabase:start`
+6. **Generate local types**: `bun run generate-types:local`
+
+### Daily Development Workflow
+
+```bash
+cd backend-nest
+
+# Start your development session
+bun run supabase:start          # Start local Supabase stack
+bun run dev:local               # Start backend with local DB
+
+# Make schema changes via Studio UI: http://localhost:54323
+# Test your changes with local backend and frontend
+
+# When ready to deploy
+bun run supabase:diff           # Generate migration from changes
+bun run supabase:push          # Deploy to remote when ready
+```
+
+### Local Development Commands
+
+```bash
+cd backend-nest
+
+# Supabase local instance management
+bun run supabase:start          # Start local Supabase stack
+bun run supabase:stop           # Stop local instance  
+bun run supabase:status         # Show status of local services
+bun run supabase:restart        # Restart local instance
+bun run supabase:reset          # Reset local database to clean state
+
+# Database migrations and schema
+bun run supabase:diff           # Show schema differences between local and remote
+bun run supabase:pull          # Pull schema changes from remote (creates migration file)
+bun run supabase:push          # Push local migrations to remote
+
+# Type generation
+bun run generate-types:local    # Generate types from local instance
+bun run generate-types          # Generate types from remote instance
+
+# Development with local database
+bun run dev:local               # Start backend with .env.local configuration
+```
+
+### Environment Configuration
+
+The project uses different environment files:
+- `.env` - Remote Supabase (production/staging)
+- `.env.local` - Local Supabase development instance (not committed to Git)
+
+**Frontend configuration**: No changes needed - frontend calls backend API only, not Supabase directly.
+
+### Migration Strategies
+
+**Option 1: Schema-first (Recommended for new features)**
+1. `bun run supabase:start` - Start local instance
+2. Make schema changes via local Studio UI (http://localhost:54323)
+3. `bun run supabase:diff` - Generate migration file from changes
+4. Test with local backend: `bun run dev:local`
+5. `bun run supabase:push` - Deploy changes to remote when ready
+
+**Option 2: Migration-first (For complex changes)**
+1. Write migration file manually in `supabase/migrations/`
+2. `bun run supabase:reset` - Apply migration locally
+3. Test changes
+4. `bun run supabase:push` - Deploy to remote
+
+### Troubleshooting
+
+**CLI Version Issues:**
+- Always use workspace commands (`bun run supabase:*`) instead of global CLI
+- If issues persist, update CLI version in `package.json` and run `pnpm install` from workspace root
+
+**Database Connection Issues:**
+- Ensure Docker is running and ports 54321-54324 are available
+- Check `supabase/config.toml` major_version matches your remote database
+- Use `bun run supabase:restart` for clean restart
+
+**Migration Sync Issues:**
+- Run `bun run supabase:pull` to synchronize with remote schema
+- Check migration history with `supabase migration list`
+- Use `supabase migration repair` if needed for history conflicts
+
+**Container Issues:**
+- Clean Docker volumes: `docker volume rm $(docker volume ls -f label=com.supabase.cli.project=backend-nest -q)`
+- Ensure no conflicting Postgres instances on port 5432
+
 ## Module Organization
 
 ### Backend Module Structure
