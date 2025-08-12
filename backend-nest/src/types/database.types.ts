@@ -7,10 +7,30 @@ export type Json =
   | Json[];
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: '12.2.3 (519615d)';
+  graphql_public: {
+    Tables: {
+      [_ in never]: never;
+    };
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json;
+          operationName?: string;
+          query?: string;
+          variables?: Json;
+        };
+        Returns: Json;
+      };
+    };
+    Enums: {
+      [_ in never]: never;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
+    };
   };
   public: {
     Tables: {
@@ -282,36 +302,36 @@ export type Database = {
     };
     Functions: {
       bulk_update_template_lines: {
-        Args: { p_template_id: string; line_updates: Json };
+        Args: { line_updates: Json; p_template_id: string };
         Returns: {
-          id: string;
+          description: string;
+          created_at: string;
+          updated_at: string;
           template_id: string;
           name: string;
           amount: number;
           kind: Database['public']['Enums']['transaction_kind'];
           recurrence: Database['public']['Enums']['transaction_recurrence'];
-          description: string;
-          created_at: string;
-          updated_at: string;
+          id: string;
         }[];
       };
       create_budget_from_template: {
         Args: {
-          p_user_id: string;
-          p_template_id: string;
-          p_month: number;
-          p_year: number;
           p_description: string;
+          p_month: number;
+          p_template_id: string;
+          p_user_id: string;
+          p_year: number;
         };
         Returns: Json;
       };
       create_template_with_lines: {
         Args: {
-          p_user_id: string;
-          p_name: string;
           p_description?: string;
           p_is_default?: boolean;
           p_lines?: Json;
+          p_name: string;
+          p_user_id: string;
         };
         Returns: Json;
       };
@@ -449,6 +469,9 @@ export type CompositeTypes<
     : never;
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       priority_level: ['HIGH', 'MEDIUM', 'LOW'],
