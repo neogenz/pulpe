@@ -6,7 +6,7 @@
   "scripts": {
     "build": "bun build src/main.ts --outdir=dist --target=node --minify --packages=external",
     "start": "NODE_ENV=development bun src/main.ts",
-    "dev": "NODE_ENV=development bun --watch src/main.ts",
+    "dev": "bun run supabase:start && NODE_ENV=development bun --env-file=.env.local --watch src/main.ts",
     "dev:watch": "NODE_ENV=development bun --watch src/main.ts & bunx tsc --watch --project tsconfig.json",
     "start:prod": "NODE_ENV=production bun dist/main.js",
     "dump:db": "bunx supabase db dump --schema public --file schema.sql",
