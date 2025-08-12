@@ -1,5 +1,8 @@
 import { TestBed } from '@angular/core/testing';
-import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import {
+  HttpClientTestingModule,
+  HttpTestingController,
+} from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { vi } from 'vitest';
 import { ApplicationConfiguration } from './application-configuration';
@@ -68,16 +71,16 @@ describe('ApplicationConfiguration', () => {
     it('should compute rawConfiguration correctly', () => {
       // Initially null since configuration is incomplete
       expect(service.rawConfiguration()).toBe(null);
-      
+
       // Set partial configuration - still null
       service.supabaseUrl.set('http://localhost:54321');
       service.supabaseAnonKey.set('test-key');
       expect(service.rawConfiguration()).toBe(null);
-      
+
       // Complete configuration - should return full config
       service.backendApiUrl.set('http://localhost:3000/api/v1');
       service.environment.set('local');
-      
+
       const config = service.rawConfiguration();
       expect(config).toEqual({
         supabase: {
@@ -110,7 +113,7 @@ describe('ApplicationConfiguration', () => {
 
     it('should set defaults and throw error on HTTP failure', async () => {
       const consoleSpy = vi.spyOn(console, 'error');
-      
+
       const promise = service.initialize();
 
       const req = httpMock.expectOne('/config.json');
@@ -128,13 +131,15 @@ describe('ApplicationConfiguration', () => {
     it('should throw error on invalid configuration structure', async () => {
       const consoleSpy = vi.spyOn(console, 'error');
       const invalidConfig = null;
-      
+
       const promise = service.initialize();
 
       const req = httpMock.expectOne('/config.json');
       req.flush(invalidConfig);
 
-      await expect(promise).rejects.toThrow('Configuration invalide: structure incorrecte');
+      await expect(promise).rejects.toThrow(
+        'Configuration invalide: structure incorrecte',
+      );
       expect(consoleSpy).toHaveBeenCalled();
     });
 
@@ -144,13 +149,15 @@ describe('ApplicationConfiguration', () => {
         backend: { apiUrl: 'http://localhost:3000/api/v1' },
         environment: 'local',
       };
-      
+
       const promise = service.initialize();
 
       const req = httpMock.expectOne('/config.json');
       req.flush(invalidConfig);
 
-      await expect(promise).rejects.toThrow('Configuration invalide: paramètres Supabase manquants');
+      await expect(promise).rejects.toThrow(
+        'Configuration invalide: paramètres Supabase manquants',
+      );
       expect(consoleSpy).toHaveBeenCalled();
     });
 
@@ -160,13 +167,15 @@ describe('ApplicationConfiguration', () => {
         supabase: { url: 'http://localhost:54321', anonKey: 'key' },
         environment: 'local',
       };
-      
+
       const promise = service.initialize();
 
       const req = httpMock.expectOne('/config.json');
       req.flush(invalidConfig);
 
-      await expect(promise).rejects.toThrow('Configuration invalide: URL de l\'API backend manquante');
+      await expect(promise).rejects.toThrow(
+        "Configuration invalide: URL de l'API backend manquante",
+      );
       expect(consoleSpy).toHaveBeenCalled();
     });
 
@@ -177,13 +186,15 @@ describe('ApplicationConfiguration', () => {
         backend: { apiUrl: 'http://localhost:3000/api/v1' },
         environment: 'invalid',
       };
-      
+
       const promise = service.initialize();
 
       const req = httpMock.expectOne('/config.json');
       req.flush(invalidConfig);
 
-      await expect(promise).rejects.toThrow('Configuration invalide: environnement non valide');
+      await expect(promise).rejects.toThrow(
+        'Configuration invalide: environnement non valide',
+      );
       expect(consoleSpy).toHaveBeenCalled();
     });
   });
@@ -200,5 +211,4 @@ describe('ApplicationConfiguration', () => {
       expect(service.supabaseUrl()).toBe(mockValidConfig.supabase.url);
     });
   });
-
 });

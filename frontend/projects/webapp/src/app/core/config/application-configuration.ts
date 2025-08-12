@@ -4,7 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import type { ApplicationConfig, ConfigFile } from './types';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ApplicationConfiguration {
   #http = inject(HttpClient);
@@ -13,7 +13,9 @@ export class ApplicationConfiguration {
   readonly supabaseUrl = signal<string>('');
   readonly supabaseAnonKey = signal<string>('');
   readonly backendApiUrl = signal<string>('');
-  readonly environment = signal<'development' | 'production' | 'local'>('development');
+  readonly environment = signal<'development' | 'production' | 'local'>(
+    'development',
+  );
 
   // Configuration complète en lecture seule
   readonly rawConfiguration = computed<ApplicationConfig | null>(() => {
@@ -21,12 +23,12 @@ export class ApplicationConfiguration {
     const key = this.supabaseAnonKey();
     const apiUrl = this.backendApiUrl();
     const env = this.environment();
-    
+
     // Retourne null si pas encore configuré
     if (!url || !key || !apiUrl) {
       return null;
     }
-    
+
     return {
       supabase: { url, anonKey: key },
       backend: { apiUrl },
@@ -82,7 +84,7 @@ export class ApplicationConfiguration {
     }
 
     if (!this.#hasValidBackendConfig(config)) {
-      throw new Error('Configuration invalide: URL de l\'API backend manquante');
+      throw new Error("Configuration invalide: URL de l'API backend manquante");
     }
 
     if (!this.#hasValidEnvironment(config)) {
@@ -120,10 +122,14 @@ export class ApplicationConfiguration {
       typeof config['supabase'] === 'object' &&
       'url' in config['supabase'] &&
       'anonKey' in config['supabase'] &&
-      typeof (config['supabase'] as Record<string, unknown>)['url'] === 'string' &&
-      typeof (config['supabase'] as Record<string, unknown>)['anonKey'] === 'string' &&
-      ((config['supabase'] as Record<string, unknown>)['url'] as string).length > 0 &&
-      ((config['supabase'] as Record<string, unknown>)['anonKey'] as string).length > 0
+      typeof (config['supabase'] as Record<string, unknown>)['url'] ===
+        'string' &&
+      typeof (config['supabase'] as Record<string, unknown>)['anonKey'] ===
+        'string' &&
+      ((config['supabase'] as Record<string, unknown>)['url'] as string)
+        .length > 0 &&
+      ((config['supabase'] as Record<string, unknown>)['anonKey'] as string)
+        .length > 0
     );
   }
 
@@ -138,8 +144,10 @@ export class ApplicationConfiguration {
       config['backend'] !== null &&
       typeof config['backend'] === 'object' &&
       'apiUrl' in config['backend'] &&
-      typeof (config['backend'] as Record<string, unknown>)['apiUrl'] === 'string' &&
-      ((config['backend'] as Record<string, unknown>)['apiUrl'] as string).length > 0
+      typeof (config['backend'] as Record<string, unknown>)['apiUrl'] ===
+        'string' &&
+      ((config['backend'] as Record<string, unknown>)['apiUrl'] as string)
+        .length > 0
     );
   }
 
@@ -152,7 +160,9 @@ export class ApplicationConfiguration {
     return (
       'environment' in config &&
       typeof config['environment'] === 'string' &&
-      ['development', 'production', 'local'].includes(config['environment'] as string)
+      ['development', 'production', 'local'].includes(
+        config['environment'] as string,
+      )
     );
   }
 

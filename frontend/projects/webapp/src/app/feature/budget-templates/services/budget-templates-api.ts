@@ -15,12 +15,16 @@ import {
   type TemplateLinesBulkOperationsResponse,
   type TemplateUsageResponse,
 } from '@pulpe/shared';
-import { environment } from '../../../../environments/environment';
+import { ApplicationConfiguration } from '../../../core/config/application-configuration';
 
 @Injectable()
 export class BudgetTemplatesApi {
   #http = inject(HttpClient);
-  #apiUrl = `${environment.backendUrl}/budget-templates`;
+  #applicationConfig = inject(ApplicationConfiguration);
+
+  get #apiUrl(): string {
+    return `${this.#applicationConfig.backendApiUrl()}/budget-templates`;
+  }
 
   getAll$(): Observable<BudgetTemplateListResponse> {
     return this.#http.get<BudgetTemplateListResponse>(this.#apiUrl);
