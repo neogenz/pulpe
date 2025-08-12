@@ -35,6 +35,7 @@ export interface ExportData {
 
 export enum ImportMode {
   REPLACE = 'replace',
+  MERGE = 'merge',
   APPEND = 'append',
 }
 
