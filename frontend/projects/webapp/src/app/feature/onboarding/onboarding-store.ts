@@ -5,7 +5,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, startWith } from 'rxjs/operators';
 import { AuthApi } from '../../core/auth/auth-api';
 import { BudgetApi } from '../../core/budget';
-import { TemplateApi } from '../../core/template';
+import { OnboardingApi } from './services/onboarding-api';
 import {
   type BudgetCreate,
   type BudgetTemplateCreateFromOnboarding,
@@ -43,7 +43,7 @@ export type OnboardingStep = (typeof STEP_ORDER)[number];
 export class OnboardingStore {
   readonly #authApi = inject(AuthApi);
   readonly #budgetApi = inject(BudgetApi);
-  readonly #templateApi = inject(TemplateApi);
+  readonly #onboardingApi = inject(OnboardingApi);
   readonly #router = inject(Router);
 
   readonly #data = signal<OnboardingData>({
@@ -149,7 +149,7 @@ export class OnboardingStore {
       };
 
       const templateResponse = await firstValueFrom(
-        this.#templateApi.createFromOnboarding$(templateRequest),
+        this.#onboardingApi.createTemplateFromOnboarding$(templateRequest),
       );
 
       // 3. Créer le budget

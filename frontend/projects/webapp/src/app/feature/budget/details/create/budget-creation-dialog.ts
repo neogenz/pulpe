@@ -30,7 +30,6 @@ import { type BudgetTemplate } from '@pulpe/shared';
 import { TemplateListItem } from './ui/template-list-item';
 import { TemplateDetailsDialog } from './template-details-dialog';
 import { TemplateSelection } from './services/template-selection';
-import { TemplateApi } from '../../../../core/template/template-api';
 import {
   BudgetApi,
   type BudgetApiError,
@@ -188,7 +187,7 @@ const MONTH_YEAR_FORMATS = {
 
           <!-- Templates List -->
           <div class="template-list">
-            @if (templateApi.templatesResource.isLoading()) {
+            @if (templateSelection.templates.isLoading()) {
               <div class="flex justify-center items-center h-[200px]">
                 <mat-progress-spinner
                   mode="indeterminate"
@@ -197,7 +196,7 @@ const MONTH_YEAR_FORMATS = {
                   class="pulpe-loading-indicator pulpe-loading-medium"
                 ></mat-progress-spinner>
               </div>
-            } @else if (templateApi.templatesResource.error()) {
+            } @else if (templateSelection.templates.error()) {
               <div
                 class="flex flex-col items-center justify-center h-[200px] text-error"
               >
@@ -210,7 +209,7 @@ const MONTH_YEAR_FORMATS = {
                 <button
                   matButton
                   color="primary"
-                  (click)="templateApi.templatesResource.reload()"
+                  (click)="templateSelection.templates.reload()"
                 >
                   Réessayer
                 </button>
@@ -344,7 +343,6 @@ export class CreateBudgetDialogComponent {
   readonly #snackBar = inject(MatSnackBar);
   readonly #budgetApi = inject(BudgetApi);
   readonly templateSelection = inject(TemplateSelection);
-  readonly templateApi = inject(TemplateApi);
 
   // Expose constants for template usage
   readonly constants = BUDGET_CREATION_CONSTANTS;
