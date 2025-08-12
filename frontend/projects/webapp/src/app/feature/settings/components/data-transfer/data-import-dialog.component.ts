@@ -71,16 +71,6 @@ interface DialogData {
               </div>
             </mat-radio-button>
 
-            <mat-radio-button value="merge">
-              <div class="ml-2">
-                <p class="font-medium">Fusionner</p>
-                <p class="text-sm text-gray-600 dark:text-gray-400">
-                  Conserve vos données actuelles et ajoute les nouvelles (ignore
-                  les doublons)
-                </p>
-              </div>
-            </mat-radio-button>
-
             <mat-radio-button value="append">
               <div class="ml-2">
                 <p class="font-medium">Ajouter</p>
