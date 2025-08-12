@@ -47,7 +47,7 @@ describe('TemplateListItem', () => {
     it('should have input and output properties defined', () => {
       // These are the properties that should exist on the component class
       expect(component.template).toBeDefined();
-      expect(component.selectedTemplateId).toBeDefined();
+      expect(component.isSelected).toBeDefined();
       expect(component.totalIncome).toBeDefined();
       expect(component.totalExpenses).toBeDefined();
       expect(component.remainingLivingAllowance).toBeDefined();
@@ -60,7 +60,6 @@ describe('TemplateListItem', () => {
       // Test that the component has the expected input properties defined
       // This is sufficient for testing the component structure
       expect(component.template).toBeDefined();
-      expect(component.selectedTemplateId).toBeDefined();
       expect(component.isSelected).toBeDefined();
     });
   });

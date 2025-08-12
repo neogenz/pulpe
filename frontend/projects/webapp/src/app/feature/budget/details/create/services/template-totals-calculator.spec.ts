@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { provideZonelessChangeDetection } from '@angular/core';
 import { type TemplateLine } from '@pulpe/shared';
 import { TemplateTotalsCalculator } from './template-totals-calculator';
 
@@ -7,7 +8,7 @@ describe('TemplateTotalsCalculator', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [TemplateTotalsCalculator],
+      providers: [provideZonelessChangeDetection(), TemplateTotalsCalculator],
     });
     calculator = TestBed.inject(TemplateTotalsCalculator);
   });
