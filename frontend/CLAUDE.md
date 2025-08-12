@@ -422,3 +422,236 @@ mockResource.value.set([{ id: '1', name: 'Template' }]);
   - Reduce code duplication
   - More direct access to service properties
   - Clearer and more straightforward implementation
+
+## Application Information System
+
+### Overview
+
+The application implements a modern build information system following 2025 standards for Angular 20. It provides comprehensive metadata about the application including version, build details, environment configuration, and Git commit information.
+
+### Architecture
+
+#### Core Service: `ApplicationInfo` (Angular 20 Naming Convention)
+
+**Location**: `core/services/application-info.ts`
+
+- **Modern Naming**: Follows Angular 20 convention (no `.service` suffix)
+- **Signal-based**: Uses Angular signals for reactive state management
+- **Standalone Injectable**: Compatible with standalone components architecture
+
+#### Build Information Generation
+
+**Script**: `scripts/generate-build-info.js`
+
+Automatically generates build metadata at compile time:
+
+```bash
+# Generate build info before development
+pnpm run generate:build-info:dev
+
+# Generate build info before production build  
+pnpm run generate:build-info
+```
+
+**Generated Files**:
+- `src/environments/build-info.ts` - Production build metadata
+- `src/environments/build-info.development.ts` - Development build metadata
+
+#### Debug Component: `AppInfoDebug`
+
+**Location**: `ui/debug-screen/app-info-debug.ts`
+
+- **Material Design 3**: Full MD3 compliance with Tailwind CSS v4
+- **Responsive**: Mobile-first design with adaptive breakpoints
+- **Feature-rich**: Interactive options, copy functionality, expandable sections
+- **Development-only**: Accessible via `/app/debug` route (only when `enableDebug: true`)
+
+### Available Data
+
+The `ApplicationInfo` service exposes the following information through signals:
+
+```typescript
+interface ApplicationInfo {
+  environment: {
+    production: boolean;
+  };
+  versionEnv: {
+    version: string;           // "2025.8.0"
+    commitHash: string;        // Full Git commit hash
+    shortCommitHash: string;   // 7-character Git hash
+    buildDate: string;         // ISO timestamp
+    buildTimestamp: number;    // Unix timestamp
+  };
+  config: {
+    apiPath: string;           // "/api/v1"
+    backendUrl: string;        // "http://localhost:3000"
+    environmentName: string;   // "development" | "production"
+    enableDebug: boolean;      // Debug mode flag
+    isProduction: boolean;     // Production flag
+    fullApiUrl: string;        // Computed full API URL
+  };
+}
+```
+
+### Usage Examples
+
+#### Service Injection (Angular 20 Style)
+
+```typescript
+import { inject } from '@angular/core';
+import { ApplicationInfo } from '@core/services/application-info';
+
+@Component({
+  selector: 'pulpe-my-component',
+  standalone: true,
+  template: `
+    <p>Version: {{ appInfo.formattedVersion() }}</p>
+    <p>Environment: {{ appInfo.config().environmentName }}</p>
+  `
+})
+export class MyComponent {
+  readonly appInfo = inject(ApplicationInfo);
+}
+```
+
+#### Computed Values
+
+The service provides reactive computed values:
+
+```typescript
+readonly formattedVersion = computed(() => 
+  `${versionInfo.version} (${versionInfo.shortCommitHash})`
+);
+
+readonly formattedBuildDate = computed(() => 
+  // Localized date formatting based on display options
+);
+
+readonly isDebugMode = computed(() => this.config().enableDebug);
+```
+
+#### Display Options
+
+```typescript
+// Update date format display
+applicationInfo.updateDisplayOptions({ 
+  dateFormat: 'relative' // 'short' | 'long' | 'relative'
+});
+
+// Get JSON representation
+const jsonData = applicationInfo.toJSON(true); // includeAll = true
+
+// Get string representation  
+const summary = applicationInfo.toString(); // "2025.8.0 (fdbbf7b) - development"
+```
+
+### Build Integration
+
+#### Package.json Scripts
+
+All development and build scripts automatically generate build information:
+
+```json
+{
+  "scripts": {
+    "start": "npm run generate:build-info:dev && ng serve --open",
+    "dev": "npm run generate:build-info:dev && ng serve --host 0.0.0.0",
+    "build": "npm run generate:build-info && ng build",
+    "generate:build-info": "node scripts/generate-build-info.js"
+  }
+}
+```
+
+#### CI/CD Compatibility
+
+- **Git Integration**: Automatically detects Git commit information
+- **Fallback Handling**: Graceful degradation when Git is not available
+- **Docker Ready**: Works in containerized environments
+- **Environment Aware**: Different metadata for dev/staging/production
+
+### Debug Screen Features
+
+Access via `/app/debug` route (development only):
+
+1. **Version Information**
+   - Formatted version display
+   - Environment indicators
+   - Build timestamp with relative time
+
+2. **Git Details**
+   - Full and short commit hashes  
+   - Expandable sections for detailed info
+
+3. **API Configuration**
+   - Backend URL and API paths
+   - Full API URL construction
+   - Environment-specific settings
+
+4. **Interactive Features**
+   - Copy all information to clipboard
+   - Copy JSON data separately
+   - Toggle date format options
+   - Expandable detail sections
+
+5. **Material Design 3**
+   - Adaptive color system
+   - Proper surface containers
+   - Responsive typography scale
+   - Touch-friendly interactions
+
+### Environment Configuration
+
+**Development** (`environment.development.ts`):
+```typescript
+{
+  production: false,
+  apiPath: '/api/v1',
+  backendUrl: 'http://localhost:3000',
+  environmentName: 'development', 
+  enableDebug: true
+}
+```
+
+**Production** (`environment.ts`):
+```typescript
+{
+  production: true,
+  apiPath: '/api/v1',
+  backendUrl: 'http://localhost:3000',
+  environmentName: 'production',
+  enableDebug: false
+}
+```
+
+### Best Practices
+
+1. **Use Signals**: Leverage the reactive computed values for optimal performance
+2. **Development Only**: Keep debug screens accessible only in non-production environments  
+3. **Build Integration**: Always run build info generation before compilation
+4. **Error Handling**: Service includes fallback mechanisms for missing build data
+5. **Type Safety**: Full TypeScript coverage with comprehensive interfaces
+
+### Troubleshooting
+
+#### Build Info Generation Issues
+
+```bash
+# Manual generation
+node scripts/generate-build-info.js
+
+# Check generated files
+ls -la src/environments/build-info*
+```
+
+#### Route Access Issues
+
+- Debug route is only available when `environment.enableDebug: true`
+- Ensure user is authenticated (protected by `authGuard`)
+- Check browser console for routing errors
+
+#### Missing Build Data
+
+The service gracefully handles missing build information:
+- Uses package.json version as fallback
+- Provides default timestamps for development
+- Shows meaningful defaults in UI

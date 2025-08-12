@@ -27,6 +27,8 @@ import { provideAuth } from './auth/auth-providers';
 import { AuthApi } from './auth/auth-api';
 import { PulpeTitleStrategy } from './routing/title-strategy';
 import { ApplicationConfiguration } from './config/application-configuration';
+import { buildInfo } from '@env/build-info';
+import { environment } from '@env/environment';
 
 export interface CoreOptions {
   routes: Routes; // possible to extend options with more props in the future
@@ -39,6 +41,34 @@ function provideLottie() {
     }),
     provideCacheableAnimationLoader(),
   ];
+}
+
+/**
+ * Logger unifié pour les informations de build et configuration
+ * Utilise le service Logger pour un logging approprié selon l'environnement
+ */
+function logAppInfo(applicationConfig: ApplicationConfiguration) {
+  const appData = {
+    // Build Info
+    version: buildInfo.version,
+    commitHash: buildInfo.commitHash,
+    buildDate: buildInfo.buildDate,
+    buildTimestamp: buildInfo.buildTimestamp,
+
+    // Environment
+    environment:
+      applicationConfig.environment() ||
+      (environment.production ? 'production' : 'development'),
+
+    // Configuration - Données sécurisées pour production
+    supabaseUrl: applicationConfig.supabaseUrl(),
+    supabaseAnonKey: applicationConfig.supabaseAnonKey()
+      ? '***'
+      : 'Non configuré',
+    backendApiUrl: applicationConfig.backendApiUrl(),
+  };
+
+  console.log('Pulpe Budget - Application Info', appData);
 }
 
 export function provideCore({ routes }: CoreOptions) {
@@ -68,15 +98,24 @@ export function provideCore({ routes }: CoreOptions) {
     { provide: TitleStrategy, useClass: PulpeTitleStrategy },
 
     // perform initialization, has to be last
-    // Configuration must be loaded first
-    provideAppInitializer(() => {
+    // Sequential initialization with explicit order
+    provideAppInitializer(async () => {
       const applicationConfig = inject(ApplicationConfiguration);
-      return applicationConfig.initialize();
-    }),
-    // Then initialize auth
-    provideAppInitializer(() => {
       const authService = inject(AuthApi);
-      return authService.initializeAuthState();
+
+      try {
+        // 1. Charger la configuration d'abord
+        await applicationConfig.initialize();
+
+        // 2. Logger les informations complètes après chargement
+        logAppInfo(applicationConfig);
+
+        // 3. Initialiser l'auth ensuite (config garantie disponible)
+        await authService.initializeAuthState();
+      } catch (error) {
+        console.error("Erreur lors de l'initialisation", error);
+        throw error; // Bloquer le démarrage de l'app en cas d'erreur critique
+      }
     }),
 
     ...provideLocale(),

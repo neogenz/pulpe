@@ -1,5 +1,10 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
-import { createClient, type Session, type User } from '@supabase/supabase-js';
+import {
+  createClient,
+  type Session,
+  type User,
+  type SupabaseClient,
+} from '@supabase/supabase-js';
 import { AuthErrorLocalizer } from './auth-error-localizer';
 import { ApplicationConfiguration } from '../config/application-configuration';
 
@@ -17,10 +22,8 @@ export class AuthApi {
   readonly #errorLocalizer = inject(AuthErrorLocalizer);
   readonly #applicationConfig = inject(ApplicationConfiguration);
 
-  readonly #supabaseClient = createClient(
-    this.#applicationConfig.supabaseUrl(),
-    this.#applicationConfig.supabaseAnonKey(),
-  );
+  // Supabase client - créé dans initializeAuthState() après le chargement de la config
+  #supabaseClient: SupabaseClient | null = null;
 
   readonly #sessionSignal = signal<Session | null>(null);
   readonly #isLoadingSignal = signal<boolean>(true);
@@ -50,6 +53,18 @@ export class AuthApi {
   }));
 
   async initializeAuthState(): Promise<void> {
+    // À ce point, applicationConfig.initialize() a déjà été appelé
+    // Les valeurs sont garanties d'être disponibles
+    const url = this.#applicationConfig.supabaseUrl();
+    const key = this.#applicationConfig.supabaseAnonKey();
+
+    if (!url || !key) {
+      throw new Error('Configuration Supabase manquante après initialisation');
+    }
+
+    // Créer le client Supabase une seule fois
+    this.#supabaseClient = createClient(url, key);
+
     // Vérifier si on est en mode test E2E et utiliser les mocks
     if (
       (window as unknown as { __E2E_AUTH_BYPASS__: boolean })
@@ -158,7 +173,7 @@ export class AuthApi {
     password: string,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const { error } = await this.#supabaseClient.auth.signInWithPassword({
+      const { error } = await this.#supabaseClient!.auth.signInWithPassword({
         email,
         password,
       });
@@ -184,7 +199,7 @@ export class AuthApi {
     password: string,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const { error } = await this.#supabaseClient.auth.signUp({
+      const { error } = await this.#supabaseClient!.auth.signUp({
         email,
         password,
       });
@@ -231,7 +246,7 @@ export class AuthApi {
       }
 
       // Logout normal avec Supabase
-      const { error } = await this.#supabaseClient.auth.signOut();
+      const { error } = await this.#supabaseClient!.auth.signOut();
       if (error) {
         console.error('Erreur lors de la déconnexion:', error);
       }
@@ -245,7 +260,7 @@ export class AuthApi {
       const {
         data: { session },
         error,
-      } = await this.#supabaseClient.auth.getSession();
+      } = await this.#supabaseClient!.auth.getSession();
 
       if (error) {
         console.error('Erreur lors de la récupération de la session:', error);
@@ -264,7 +279,7 @@ export class AuthApi {
 
   async refreshSession(): Promise<boolean> {
     try {
-      const { data, error } = await this.#supabaseClient.auth.refreshSession();
+      const { data, error } = await this.#supabaseClient!.auth.refreshSession();
 
       if (error) {
         console.error('Erreur lors du rafraîchissement de la session:', error);
