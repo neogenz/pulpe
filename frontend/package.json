@@ -1,6 +1,6 @@
 {
   "name": "pulpe-frontend",
-  "version": "0.0.0",
+  "version": "2025.8.0",
   "scripts": {
     "ng": "ng",
     "start": "ng serve --open",
