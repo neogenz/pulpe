@@ -465,6 +465,40 @@ Example endpoints:
 
 - You can reference @frontend/CLAUDE.md dynamically to refer at all frontend data
 
+## Version Management
+
+This project uses **Changesets** for automated version management across the monorepo packages.
+
+### Version Strategy
+
+- **Frontend** (`pulpe-frontend`): CalVer format `YYYY.M.PATCH` (e.g., `2025.8.0`)
+- **Backend** (`backend-nest`): SemVer format `MAJOR.MINOR.PATCH` (e.g., `0.1.0`)
+- **Shared** (`@pulpe/shared`): SemVer format `MAJOR.MINOR.PATCH` (e.g., `0.1.0`)
+- **Workspace** (`pulpe-workspace`): No versioning (private package)
+
+### Changesets Commands
+
+```bash
+# Create a new changeset (describe your changes)
+pnpm changeset
+
+# Apply version bumps and update changelogs
+pnpm changeset:version
+```
+
+### Workflow
+
+1. **Make your changes** to any package
+2. **Create changeset**: `pnpm changeset` and describe the impact
+3. **Apply versions**: `pnpm changeset:version` bumps versions and updates changelogs
+4. **Commit**: Commit the version changes and updated CHANGELOG.md files
+
+### Version Evolution Guidelines
+
+- **Frontend**: Increment `PATCH` for hotfixes, `MINOR` for monthly releases
+- **Backend**: Follow SemVer - `PATCH` for bugs, `MINOR` for new endpoints, `MAJOR` for breaking changes
+- **Shared**: Follow SemVer - `PATCH` for fixes, `MINOR` for new schemas, `MAJOR` for breaking schema changes
+
 ## References to business specs of project
 
 - You can reference @SPECS.md dynamically to refer at all business data
