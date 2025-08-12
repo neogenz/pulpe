@@ -11,14 +11,18 @@ import {
   type TemplateLineListResponse,
   type TemplateLine,
 } from '@pulpe/shared';
-import { environment } from '../../../environments/environment';
+import { ApplicationConfiguration } from '../config/application-configuration';
 
 @Injectable({
   providedIn: 'root',
 })
 export class TemplateApi {
   #http = inject(HttpClient);
-  #apiUrl = `${environment.backendUrl}/budget-templates`;
+  #applicationConfig = inject(ApplicationConfiguration);
+
+  get #apiUrl(): string {
+    return `${this.#applicationConfig.backendApiUrl()}/budget-templates`;
+  }
 
   /**
    * Resource that fetches all templates for the current user

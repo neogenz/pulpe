@@ -9,13 +9,20 @@ import {
   type BudgetLineUpdate,
   type BudgetDetailsResponse,
 } from '@pulpe/shared';
-import { environment } from '../../../../../environments/environment';
+import { ApplicationConfiguration } from '../../../../core/config/application-configuration';
 
 @Injectable()
 export class BudgetLineApi {
   #http = inject(HttpClient);
-  #apiUrl = `${environment.backendUrl}/budget-lines`;
-  #budgetsUrl = `${environment.backendUrl}/budgets`;
+  #applicationConfig = inject(ApplicationConfiguration);
+
+  get #apiUrl(): string {
+    return `${this.#applicationConfig.backendApiUrl()}/budget-lines`;
+  }
+
+  get #budgetsUrl(): string {
+    return `${this.#applicationConfig.backendApiUrl()}/budgets`;
+  }
 
   getBudgetDetails$(budgetId: string): Observable<BudgetDetailsResponse> {
     return this.#http

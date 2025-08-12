@@ -7,16 +7,17 @@ import {
 } from '@angular/common/http';
 import { Observable, throwError, from, switchMap, catchError } from 'rxjs';
 import { AuthApi } from './auth-api';
-import { environment } from '../../../environments/environment';
+import { ApplicationConfiguration } from '../config/application-configuration';
 
 export const authInterceptor: HttpInterceptorFn = (
   req: HttpRequest<unknown>,
   next,
 ): Observable<HttpEvent<unknown>> => {
   const authApi = inject(AuthApi);
+  const applicationConfig = inject(ApplicationConfiguration);
 
   // Vérifier si la requête va vers notre backend
-  if (!shouldInterceptRequest(req.url)) {
+  if (!shouldInterceptRequest(req.url, applicationConfig.backendApiUrl())) {
     return next(req);
   }
 
@@ -27,8 +28,8 @@ export const authInterceptor: HttpInterceptorFn = (
   );
 };
 
-function shouldInterceptRequest(url: string): boolean {
-  return url.startsWith(environment.backendUrl);
+function shouldInterceptRequest(url: string, backendApiUrl: string): boolean {
+  return url.startsWith(backendApiUrl);
 }
 
 async function addAuthToken(
