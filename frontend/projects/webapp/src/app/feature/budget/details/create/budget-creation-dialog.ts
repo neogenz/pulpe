@@ -7,7 +7,12 @@ import {
   computed,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  FormBuilder,
+  FormControl,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDatepickerModule } from '@angular/material/datepicker';
@@ -25,17 +30,16 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MAT_DATE_FORMATS } from '@angular/material/core';
 import { MAT_DATE_FNS_FORMATS } from '@angular/material-date-fns-adapter';
 import { startOfMonth, setMonth, setYear } from 'date-fns';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, startWith, debounceTime, map } from 'rxjs';
 import { type BudgetTemplate } from '@pulpe/shared';
 import { TemplateListItem } from './ui/template-list-item';
 import { TemplateDetailsDialog } from './template-details-dialog';
-import { TemplateSelection } from './services/template-selection';
+import { TemplateStore } from './services/template-store';
+import { TemplateTotalsCalculator } from './services/template-totals-calculator';
 import {
   BudgetApi,
   type BudgetApiError,
 } from '../../../../core/budget/budget-api';
-
-// Interface moved to TemplateSelection service
 
 const BUDGET_CREATION_CONSTANTS = {
   // Form validation constraints
@@ -85,7 +89,8 @@ const MONTH_YEAR_FORMATS = {
     TemplateListItem,
   ],
   providers: [
-    TemplateSelection,
+    TemplateStore,
+    TemplateTotalsCalculator,
     { provide: MAT_DATE_FORMATS, useValue: MONTH_YEAR_FORMATS },
   ],
   template: `
@@ -170,15 +175,15 @@ const MONTH_YEAR_FORMATS = {
             <mat-label>Rechercher un modèle</mat-label>
             <input
               matInput
-              [formControl]="templateSelection.searchControl"
+              [formControl]="searchControl"
               placeholder="Nom ou description..."
             />
             <mat-icon matPrefix>search</mat-icon>
-            @if (templateSelection.searchControl.value) {
+            @if (searchControl.value) {
               <button
                 matIconButton
                 matSuffix
-                (click)="templateSelection.searchControl.setValue('')"
+                (click)="searchControl.setValue('')"
               >
                 <mat-icon>clear</mat-icon>
               </button>
@@ -187,7 +192,7 @@ const MONTH_YEAR_FORMATS = {
 
           <!-- Templates List -->
           <div class="template-list">
-            @if (templateSelection.templates.isLoading()) {
+            @if (templateStore.templates.isLoading()) {
               <div class="flex justify-center items-center h-[200px]">
                 <mat-progress-spinner
                   mode="indeterminate"
@@ -196,7 +201,7 @@ const MONTH_YEAR_FORMATS = {
                   class="pulpe-loading-indicator pulpe-loading-medium"
                 ></mat-progress-spinner>
               </div>
-            } @else if (templateSelection.templates.error()) {
+            } @else if (templateStore.templates.error()) {
               <div
                 class="flex flex-col items-center justify-center h-[200px] text-error"
               >
@@ -209,21 +214,19 @@ const MONTH_YEAR_FORMATS = {
                 <button
                   matButton
                   color="primary"
-                  (click)="templateSelection.templates.reload()"
+                  (click)="templateStore.reloadTemplates()"
                 >
                   Réessayer
                 </button>
               </div>
-            } @else if (templateSelection.filteredTemplates().length === 0) {
+            } @else if (filteredTemplates().length === 0) {
               <div
                 class="flex flex-col items-center justify-center h-[200px] text-on-surface-variant"
               >
                 <mat-icon class="text-display-small mb-2">inbox</mat-icon>
                 <p class="text-label-large">
-                  @if (templateSelection.searchControl.value) {
-                    Aucun modèle trouvé pour "{{
-                      templateSelection.searchControl.value
-                    }}"
+                  @if (searchControl.value) {
+                    Aucun modèle trouvé pour "{{ searchControl.value }}"
                   } @else {
                     Aucun modèle disponible
                   }
@@ -231,24 +234,24 @@ const MONTH_YEAR_FORMATS = {
               </div>
             } @else {
               <mat-radio-group
-                [value]="templateSelection.selectedTemplateId()"
+                [value]="templateStore.selectedTemplateId()"
                 (change)="onTemplateSelect($event.value)"
                 class="flex flex-col gap-2 md:gap-3"
                 data-testid="template-selection-radio-group"
               >
-                @for (
-                  template of templateSelection.filteredTemplates();
-                  track template.id
-                ) {
+                @for (template of filteredTemplates(); track template.id) {
                   @let templateTotals =
-                    templateSelection.templateTotalsMap()[template.id];
+                    templateStore.templateTotalsMap()[template.id];
                   <pulpe-template-list-item
                     [template]="template"
-                    [selectedTemplateId]="
-                      templateSelection.selectedTemplateId()
+                    [isSelected]="
+                      templateStore.selectedTemplateId() === template.id
                     "
                     [totalIncome]="templateTotals?.totalIncome || 0"
-                    [totalExpenses]="templateTotals?.totalExpenses || 0"
+                    [totalExpenses]="
+                      (templateTotals?.totalExpenses || 0) +
+                      (templateTotals?.totalSavings || 0)
+                    "
                     [remainingLivingAllowance]="
                       templateTotals?.remainingLivingAllowance || 0
                     "
@@ -281,7 +284,7 @@ const MONTH_YEAR_FORMATS = {
         color="primary"
         [disabled]="
           budgetForm.invalid ||
-          !templateSelection.selectedTemplate() ||
+          !templateStore.selectedTemplate() ||
           isCreating()
         "
         (click)="onCreateBudget()"
@@ -342,10 +345,43 @@ export class CreateBudgetDialogComponent {
   readonly #dialog = inject(MatDialog);
   readonly #snackBar = inject(MatSnackBar);
   readonly #budgetApi = inject(BudgetApi);
-  readonly templateSelection = inject(TemplateSelection);
+  readonly templateStore = inject(TemplateStore);
 
   // Expose constants for template usage
   readonly constants = BUDGET_CREATION_CONSTANTS;
+
+  // UI State - Search control moved to component
+  readonly searchControl = new FormControl('', { nonNullable: true });
+  readonly searchTerm = toSignal(
+    this.searchControl.valueChanges.pipe(
+      startWith(''),
+      debounceTime(300),
+      map((term) => term.toLowerCase().trim()),
+    ),
+    { initialValue: '' },
+  );
+
+  // Computed filtered templates (UI logic in component)
+  readonly filteredTemplates = computed(() => {
+    const templates = this.templateStore.templates.value() || [];
+    const search = this.searchTerm();
+
+    let filtered = templates;
+    if (search) {
+      filtered = templates.filter(
+        (template: BudgetTemplate) =>
+          template.name.toLowerCase().includes(search) ||
+          template.description?.toLowerCase().includes(search),
+      );
+    }
+
+    // Sort to put default template first
+    return [...filtered].sort((a, b) => {
+      if (a.isDefault && !b.isDefault) return -1;
+      if (!a.isDefault && b.isDefault) return 1;
+      return 0;
+    });
+  });
 
   budgetForm = this.#formBuilder.nonNullable.group({
     monthYear: [startOfMonth(new Date()), Validators.required],
@@ -375,7 +411,7 @@ export class CreateBudgetDialogComponent {
   constructor() {
     // Sync selected template with form
     effect(() => {
-      const selectedId = this.templateSelection.selectedTemplateId();
+      const selectedId = this.templateStore.selectedTemplateId();
       if (selectedId) {
         this.budgetForm.patchValue({ templateId: selectedId });
       } else {
@@ -385,14 +421,15 @@ export class CreateBudgetDialogComponent {
 
     // Load template totals when filtered templates change
     effect(() => {
-      const templates = this.templateSelection.filteredTemplates();
+      const templates = this.filteredTemplates();
       if (!templates.length) return;
 
       // Initialize default selection on first load
-      this.templateSelection.initializeDefaultSelection();
+      this.templateStore.initializeDefaultSelection();
 
-      // Load template totals
-      this.templateSelection.loadTemplateTotalsForCurrentTemplates();
+      // Load template totals for visible templates
+      const templateIds = templates.map((t) => t.id);
+      this.templateStore.loadTemplateTotals(templateIds);
     });
   }
 
@@ -414,7 +451,7 @@ export class CreateBudgetDialogComponent {
   }
 
   onTemplateSelect(templateId: string): void {
-    this.templateSelection.selectTemplate(templateId);
+    this.templateStore.selectTemplate(templateId);
   }
 
   showTemplateDetails(template: BudgetTemplate): void {
@@ -428,7 +465,7 @@ export class CreateBudgetDialogComponent {
   }
 
   async onCreateBudget(): Promise<void> {
-    if (!this.budgetForm.valid || !this.templateSelection.selectedTemplate()) {
+    if (!this.budgetForm.valid || !this.templateStore.selectedTemplate()) {
       return;
     }
 

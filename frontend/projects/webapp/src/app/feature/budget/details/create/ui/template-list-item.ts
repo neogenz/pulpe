@@ -1,20 +1,19 @@
+import { CurrencyPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
-  computed,
   input,
   output,
 } from '@angular/core';
-import { CurrencyPipe } from '@angular/common';
-import { MatCardModule } from '@angular/material/card';
-import { MatRadioModule } from '@angular/material/radio';
-import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatListModule } from '@angular/material/list';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatIconModule } from '@angular/material/icon';
+import { MatListModule } from '@angular/material/list';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatRadioModule } from '@angular/material/radio';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { type BudgetTemplate } from '@pulpe/shared';
 
 @Component({
@@ -190,7 +189,6 @@ import { type BudgetTemplate } from '@pulpe/shared';
 })
 export class TemplateListItem {
   template = input.required<BudgetTemplate>();
-  selectedTemplateId = input<string | null>(null);
   totalIncome = input<number>(0);
   totalExpenses = input<number>(0);
   remainingLivingAllowance = input<number>(0);
@@ -198,6 +196,5 @@ export class TemplateListItem {
 
   selectTemplate = output<string>();
   showDetails = output<BudgetTemplate>();
-
-  isSelected = computed(() => this.selectedTemplateId() === this.template().id);
+  isSelected = input<boolean>(false);
 }

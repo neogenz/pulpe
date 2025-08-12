@@ -1,27 +1,29 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatDialog } from '@angular/material/dialog';
 import {
-  provideZonelessChangeDetection,
-  NO_ERRORS_SCHEMA,
   Component,
   EventEmitter,
   Input,
+  NO_ERRORS_SCHEMA,
   Output,
+  provideZonelessChangeDetection,
 } from '@angular/core';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import {
+  MAT_DIALOG_DATA,
+  MatDialog,
+  MatDialogRef,
+} from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { Subject, defer, of, throwError } from 'rxjs';
 import { provideLocale } from '../../../../core/locale';
-import { of, throwError, Subject, defer } from 'rxjs';
 import { createMockResourceRef } from '../../../../core/testing';
 
+import { type BudgetTemplate } from '@pulpe/shared';
+import { BudgetApi } from '../../../../core/budget/budget-api';
+import { TemplateApi } from '../../../../core/template/template-api';
 import { CreateBudgetDialogComponent } from './budget-creation-dialog';
 import { TemplateListItem } from './ui/template-list-item';
-import { TemplateSelection } from './services/template-selection';
-import { TemplateApi } from '../../../../core/template/template-api';
-import { BudgetApi } from '../../../../core/budget/budget-api';
-import { type BudgetTemplate } from '@pulpe/shared';
 
 // Type-safe mock interface that includes internal methods
 interface MatDialogMock extends Partial<MatDialog> {
@@ -207,10 +209,10 @@ describe('CreateBudgetDialogComponent', () => {
 
     it('should initialize with empty template totals', () => {
       // Reset the current component's templateTotals to test initial state
-      component.templateSelection.templateTotalsMap.set({});
+      component.templateStore.templateTotalsMap.set({});
       fixture.detectChanges();
 
-      expect(component.templateSelection.templateTotalsMap()).toEqual({});
+      expect(component.templateStore.templateTotalsMap()).toEqual({});
     });
   });
 
@@ -221,7 +223,7 @@ describe('CreateBudgetDialogComponent', () => {
     it('should call selectTemplate when template is selected', () => {
       // Simple public behavior test
       const selectTemplateSpy = vi.spyOn(
-        component.templateSelection,
+        component.templateStore,
         'selectTemplate',
       );
 
@@ -252,7 +254,7 @@ describe('CreateBudgetDialogComponent', () => {
       component.budgetForm.patchValue(createValidBudgetForm());
 
       // Mock no selected template through the service
-      templateSelectionService.selectedTemplateId.set(null);
+      templateStore.selectedTemplateId.set(null);
 
       const createBudgetSpy = vi.spyOn(budgetApiService, 'createBudget$');
 
@@ -265,9 +267,9 @@ describe('CreateBudgetDialogComponent', () => {
       // Setup valid form and template
       component.budgetForm.patchValue(createValidBudgetForm());
 
-      // Setup template selection
-      mockTemplateApi.templatesResource?.value.set([mockTemplate]);
-      templateSelectionService.selectTemplate(mockTemplate.id);
+      // Setup template selection with mock
+      // Note: templateStore uses resource internally which will fetch from API
+      component.templateStore.selectTemplate(mockTemplate.id);
 
       const mockResponse = {
         budget: {
@@ -409,9 +411,9 @@ describe('CreateBudgetDialogComponent', () => {
         }),
       );
 
-      // Setup template selection
-      mockTemplateApi.templatesResource?.value.set([mockTemplate]);
-      templateSelectionService.selectTemplate(mockTemplate.id);
+      // Setup template selection with mock
+      // Note: templateStore uses resource internally which will fetch from API
+      component.templateStore.selectTemplate(mockTemplate.id);
 
       // Verify form is valid and template is selected
       expect(component.budgetForm.valid).toBe(true);
@@ -466,9 +468,9 @@ describe('CreateBudgetDialogComponent', () => {
         }),
       );
 
-      // Setup template selection
-      mockTemplateApi.templatesResource?.value.set([mockTemplate]);
-      templateSelectionService.selectTemplate(mockTemplate.id);
+      // Setup template selection with mock
+      // Note: templateStore uses resource internally which will fetch from API
+      component.templateStore.selectTemplate(mockTemplate.id);
 
       // Mock successful API response with controlled delay
       const mockResponse = {
