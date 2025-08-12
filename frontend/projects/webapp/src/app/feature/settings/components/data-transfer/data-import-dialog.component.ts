@@ -70,16 +70,6 @@ interface DialogData {
                 </p>
               </div>
             </mat-radio-button>
-
-            <mat-radio-button value="append">
-              <div class="ml-2">
-                <p class="font-medium">Ajouter</p>
-                <p class="text-sm text-gray-600 dark:text-gray-400">
-                  Ajoute toutes les données comme nouvelles (peut créer des
-                  doublons)
-                </p>
-              </div>
-            </mat-radio-button>
           </mat-radio-group>
         </div>
 

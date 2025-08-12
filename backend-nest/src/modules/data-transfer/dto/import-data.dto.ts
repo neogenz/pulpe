@@ -3,7 +3,6 @@ import { IsEnum, IsOptional } from 'class-validator';
 
 export enum ImportMode {
   REPLACE = 'replace', // Delete existing data and import new
-  APPEND = 'append', // Add all as new (may create duplicates)
 }
 
 export class ImportOptionsDto {
