@@ -1,13 +1,11 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import {
   MatDialogModule,
   MatDialogRef,
   MAT_DIALOG_DATA,
 } from '@angular/material/dialog';
-import { MatRadioModule } from '@angular/material/radio';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
@@ -29,10 +27,8 @@ interface DialogData {
   standalone: true,
   imports: [
     CommonModule,
-    FormsModule,
     MatButtonModule,
     MatDialogModule,
-    MatRadioModule,
     MatProgressSpinnerModule,
     MatIconModule,
     MatSnackBarModule,
@@ -54,25 +50,6 @@ interface DialogData {
       }
 
       @if (fileData() && !validationResult()) {
-        <!-- Import Mode Selection -->
-        <div class="import-mode-section">
-          <h3 class="text-base font-medium mb-3">Mode d'importation</h3>
-          <mat-radio-group
-            [(ngModel)]="importMode"
-            class="flex flex-col space-y-2"
-          >
-            <mat-radio-button value="replace">
-              <div class="ml-2">
-                <p class="font-medium">Remplacer</p>
-                <p class="text-sm text-gray-600 dark:text-gray-400">
-                  Supprime toutes vos données actuelles et les remplace par
-                  celles du fichier
-                </p>
-              </div>
-            </mat-radio-button>
-          </mat-radio-group>
-        </div>
-
         <!-- File Preview -->
         <div class="file-preview bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
           <h3 class="text-base font-medium mb-3">Aperçu du fichier</h3>
@@ -365,7 +342,6 @@ export class DataImportDialogComponent {
   readonly #dataTransferService = inject(DataTransferService);
   readonly #snackBar = inject(MatSnackBar);
 
-  readonly importMode = signal<ImportMode>(ImportMode.REPLACE);
   readonly isLoading = signal(false);
   readonly fileData = signal<ExportData | null>(null);
   readonly validationResult = signal<ImportResult | null>(null);
@@ -399,7 +375,7 @@ export class DataImportDialogComponent {
 
     this.#dataTransferService
       .validateImportData(data, {
-        mode: this.importMode(),
+        mode: ImportMode.REPLACE,
         dryRun: true,
       })
       .subscribe({
@@ -436,7 +412,7 @@ export class DataImportDialogComponent {
 
     this.#dataTransferService
       .importUserData(data, {
-        mode: this.importMode(),
+        mode: ImportMode.REPLACE,
         dryRun: false,
       })
       .subscribe({

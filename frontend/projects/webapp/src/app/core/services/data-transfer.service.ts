@@ -2,24 +2,26 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, catchError, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import {
+  BudgetTemplate,
+  TemplateLine,
+  Budget,
+  BudgetLine,
+  Transaction,
+  SavingsGoal,
+} from '@pulpe/shared';
 
 export interface ExportData {
   version: string;
   exported_at: string;
   user_id: string;
   data: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    templates: any[];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    template_lines: any[];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    monthly_budgets: any[];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    budget_lines: any[];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    transactions: any[];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    savings_goals: any[];
+    templates: BudgetTemplate[];
+    template_lines: TemplateLine[];
+    monthly_budgets: Budget[];
+    budget_lines: BudgetLine[];
+    transactions: Transaction[];
+    savings_goals: SavingsGoal[];
   };
   metadata: {
     total_templates: number;
