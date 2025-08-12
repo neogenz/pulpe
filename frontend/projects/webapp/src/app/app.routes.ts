@@ -53,6 +53,15 @@ export const routes: Routes = [
         loadChildren: () =>
           import('./feature/budget-templates/budget-templates.routes'),
       },
+      {
+        path: ROUTES.SETTINGS,
+        title: PAGE_TITLES.SETTINGS,
+        data: { breadcrumb: 'Paramètres', icon: 'settings' },
+        loadChildren: () =>
+          import('./feature/settings/settings.routes').then(
+            (m) => m.settingsRoutes,
+          ),
+      },
     ],
   },
   {

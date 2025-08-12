@@ -6,6 +6,7 @@ export const ROUTES = {
   CURRENT_MONTH: 'current-month',
   BUDGET: 'budget',
   BUDGET_TEMPLATES: 'budget-templates',
+  SETTINGS: 'settings',
 
   // Onboarding step paths
   ONBOARDING_WELCOME: 'welcome',
@@ -27,6 +28,7 @@ export const PAGE_TITLES = {
   CURRENT_MONTH: 'Mois en cours',
   BUDGET: 'Mes budgets',
   BUDGET_TEMPLATES: 'Modèles de budget',
+  SETTINGS: 'Paramètres',
   WELCOME: 'Bienvenue',
   PERSONAL_INFO: 'Informations personnelles',
   HOUSING: 'Logement',

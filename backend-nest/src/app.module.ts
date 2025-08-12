@@ -14,6 +14,7 @@ import { BudgetTemplateModule } from '@modules/budget-template/budget-template.m
 import { BudgetModule } from '@modules/budget/budget.module';
 import { BudgetLineModule } from '@modules/budget-line/budget-line.module';
 import { DebugModule } from '@modules/debug/debug.module';
+import { DataTransferModule } from '@modules/data-transfer/data-transfer.module';
 import { SupabaseModule } from '@modules/supabase/supabase.module';
 import { TransactionModule } from '@modules/transaction/transaction.module';
 import { UserModule } from '@modules/user/user.module';
@@ -236,6 +237,7 @@ function createPinoLoggerConfig(configService: ConfigService) {
     TransactionModule,
     UserModule,
     DebugModule,
+    DataTransferModule,
     FiltersModule,
   ],
   providers: [
