@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { provideZonelessChangeDetection } from '@angular/core';
 import { of, throwError } from 'rxjs';
 import { type TemplateLine } from '@pulpe/shared';
 import { TemplateStore } from './template-store';
@@ -36,7 +37,8 @@ describe('TemplateStore', () => {
       id: 'line1',
       templateId: 'template1',
       kind: 'income',
-      label: 'Salary',
+      name: 'Salary',
+      description: 'Monthly salary',
       amount: 5000,
       recurrence: 'fixed',
       createdAt: '2024-01-01T00:00:00Z',
@@ -46,7 +48,8 @@ describe('TemplateStore', () => {
       id: 'line2',
       templateId: 'template1',
       kind: 'expense',
-      label: 'Rent',
+      name: 'Rent',
+      description: 'Monthly rent',
       amount: 1500,
       recurrence: 'fixed',
       createdAt: '2024-01-01T00:00:00Z',
@@ -55,9 +58,13 @@ describe('TemplateStore', () => {
   ];
 
   beforeEach(() => {
+    // Create a function mock for the observable methods
+    const getAll$ = vi.fn().mockReturnValue(of(mockTemplates));
+    const getTemplateLines$ = vi.fn().mockReturnValue(of(mockTemplateLines));
+
     templateApiMock = {
-      getAll$: vi.fn().mockReturnValue(of(mockTemplates)),
-      getTemplateLines$: vi.fn().mockReturnValue(of(mockTemplateLines)),
+      getAll$,
+      getTemplateLines$,
     };
     totalsCalculatorMock = {
       calculateTemplateTotals: vi.fn(),
@@ -81,6 +88,7 @@ describe('TemplateStore', () => {
 
     TestBed.configureTestingModule({
       providers: [
+        provideZonelessChangeDetection(),
         TemplateStore,
         { provide: TemplateApi, useValue: templateApiMock },
         { provide: TemplateTotalsCalculator, useValue: totalsCalculatorMock },
@@ -107,8 +115,8 @@ describe('TemplateStore', () => {
     });
 
     it('should initialize default selection with default template', async () => {
-      // Wait for templates to load
-      await TestBed.flushEffects();
+      // Wait for resource to load
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       store.initializeDefaultSelection();
       expect(store.selectedTemplateId()).toBe('template1');
@@ -125,7 +133,9 @@ describe('TemplateStore', () => {
 
       // Recreate store with new mock data
       store = TestBed.inject(TemplateStore);
-      await TestBed.flushEffects();
+
+      // Wait for resource to load
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       store.initializeDefaultSelection();
       expect(store.selectedTemplateId()).toBe('template2'); // Newest by date
@@ -252,7 +262,8 @@ describe('TemplateStore', () => {
 
   describe('computed values', () => {
     it('should compute selected template', async () => {
-      await TestBed.flushEffects();
+      // Wait for resource to load
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       store.selectTemplate('template1');
       const selected = store.selectedTemplate();
@@ -266,7 +277,8 @@ describe('TemplateStore', () => {
     });
 
     it('should compute sorted templates with default first', async () => {
-      await TestBed.flushEffects();
+      // Wait for resource to load
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       const sorted = store.sortedTemplates();
 
