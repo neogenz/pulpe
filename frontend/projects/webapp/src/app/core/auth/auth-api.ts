@@ -1,7 +1,7 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { createClient, type Session, type User } from '@supabase/supabase-js';
-import { environment } from '../../../environments/environment';
 import { AuthErrorLocalizer } from './auth-error-localizer';
+import { ApplicationConfiguration } from '../config/application-configuration';
 
 export interface AuthState {
   readonly user: User | null;
@@ -15,10 +15,11 @@ export interface AuthState {
 })
 export class AuthApi {
   readonly #errorLocalizer = inject(AuthErrorLocalizer);
+  readonly #applicationConfig = inject(ApplicationConfiguration);
 
   readonly #supabaseClient = createClient(
-    environment.supabaseUrl,
-    environment.supabaseAnonKey,
+    this.#applicationConfig.supabaseUrl(),
+    this.#applicationConfig.supabaseAnonKey(),
   );
 
   readonly #sessionSignal = signal<Session | null>(null);
