@@ -1,4 +1,4 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, computed, inject, signal, resource } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormControl } from '@angular/forms';
 import { startWith, map, debounceTime, firstValueFrom } from 'rxjs';
@@ -15,6 +15,14 @@ export interface TemplateTotals {
 @Injectable()
 export class TemplateSelection {
   readonly #templateApi = inject(TemplateApi);
+
+  // Resource that fetches all templates for the current user
+  readonly templates = resource({
+    loader: async () => {
+      const templates = await firstValueFrom(this.#templateApi.getAll$());
+      return templates || [];
+    },
+  });
 
   // Template details cache
   readonly templateDetailsCache = signal<Map<string, TemplateLine[]>>(
@@ -40,7 +48,7 @@ export class TemplateSelection {
 
   // Computed filtered templates based on search, with default template first
   readonly filteredTemplates = computed(() => {
-    const templates = this.#templateApi.templatesResource.value() || [];
+    const templates = this.templates.value() || [];
     const search = this.searchTerm();
 
     let filtered = templates;
@@ -71,7 +79,7 @@ export class TemplateSelection {
 
     // If not found in filtered results, look in all templates
     // This ensures the selected template remains selected even when filtered out
-    const allTemplates = this.#templateApi.templatesResource.value() || [];
+    const allTemplates = this.templates.value() || [];
     return allTemplates.find((t) => t.id === id) || null;
   });
 
@@ -86,8 +94,10 @@ export class TemplateSelection {
     if (this.selectedTemplateId()) return; // Already selected
 
     // Always look for default template in all templates, not just filtered ones
-    const allTemplates = this.#templateApi.templatesResource.value() || [];
-    const defaultTemplate = allTemplates.find((t) => t.isDefault);
+    const allTemplates = this.templates.value() || [];
+    const defaultTemplate = allTemplates.find(
+      (t: BudgetTemplate) => t.isDefault,
+    );
 
     if (defaultTemplate) {
       this.selectedTemplateId.set(defaultTemplate.id);
