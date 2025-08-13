@@ -115,8 +115,8 @@ describe('TemplateStore', () => {
     });
 
     it('should initialize default selection with default template', async () => {
-      // Wait for resource to load
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // Load templates first
+      await store.loadTemplates();
 
       store.initializeDefaultSelection();
       expect(store.selectedTemplateId()).toBe('template1');
@@ -134,8 +134,8 @@ describe('TemplateStore', () => {
       // Recreate store with new mock data
       store = TestBed.inject(TemplateStore);
 
-      // Wait for resource to load
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // Load templates
+      await store.loadTemplates();
 
       store.initializeDefaultSelection();
       expect(store.selectedTemplateId()).toBe('template2'); // Newest by date
@@ -148,26 +148,26 @@ describe('TemplateStore', () => {
     });
   });
 
-  describe('template details loading', () => {
-    it('should load and cache template details', async () => {
-      const lines = await store.loadTemplateDetails('template1');
+  describe('template lines loading', () => {
+    it('should load and cache template lines', async () => {
+      const lines = await store.loadTemplateLines('template1');
 
       expect(lines).toEqual(mockTemplateLines);
       expect(templateApiMock.getTemplateLines$).toHaveBeenCalledWith(
         'template1',
       );
-      expect(store.getCachedTemplateDetails('template1')).toEqual(
+      expect(store.getCachedTemplateLines('template1')).toEqual(
         mockTemplateLines,
       );
     });
 
-    it('should return cached details without API call', async () => {
+    it('should return cached lines without API call', async () => {
       // First load
-      await store.loadTemplateDetails('template1');
+      await store.loadTemplateLines('template1');
       vi.clearAllMocks();
 
       // Second load should use cache
-      const lines = await store.loadTemplateDetails('template1');
+      const lines = await store.loadTemplateLines('template1');
 
       expect(lines).toEqual(mockTemplateLines);
       expect(templateApiMock.getTemplateLines$).not.toHaveBeenCalled();
@@ -178,7 +178,7 @@ describe('TemplateStore', () => {
         throwError(() => new Error('API Error')),
       );
 
-      const lines = await store.loadTemplateDetails('template1');
+      const lines = await store.loadTemplateLines('template1');
 
       expect(lines).toEqual([]);
     });
@@ -193,16 +193,9 @@ describe('TemplateStore', () => {
     });
 
     it('should skip already loaded templates', async () => {
-      // Pre-set some totals
-      store.templateTotalsMap.set({
-        template1: {
-          totalIncome: 5000,
-          totalExpenses: 1500,
-          totalSavings: 0,
-          remainingLivingAllowance: 3500,
-          loading: false,
-        },
-      });
+      // Pre-load template1 totals
+      await store.loadTemplateTotals(['template1']);
+      vi.clearAllMocks();
 
       await store.loadTemplateTotals(['template1', 'template2']);
 
@@ -234,27 +227,27 @@ describe('TemplateStore', () => {
   describe('cache management', () => {
     it('should clear all caches', async () => {
       // Load some data
-      await store.loadTemplateDetails('template1');
+      await store.loadTemplateLines('template1');
       await store.loadTemplateTotals(['template1']);
 
       // Clear caches
       store.clearCaches();
 
-      expect(store.getCachedTemplateDetails('template1')).toBeNull();
+      expect(store.getCachedTemplateLines('template1')).toBeNull();
       expect(store.templateTotalsMap()).toEqual({});
     });
 
     it('should invalidate specific template', async () => {
       // Load data for multiple templates
-      await store.loadTemplateDetails('template1');
-      await store.loadTemplateDetails('template2');
+      await store.loadTemplateLines('template1');
+      await store.loadTemplateLines('template2');
       await store.loadTemplateTotals(['template1', 'template2']);
 
       // Invalidate only template1
       store.invalidateTemplate('template1');
 
-      expect(store.getCachedTemplateDetails('template1')).toBeNull();
-      expect(store.getCachedTemplateDetails('template2')).not.toBeNull();
+      expect(store.getCachedTemplateLines('template1')).toBeNull();
+      expect(store.getCachedTemplateLines('template2')).not.toBeNull();
       expect(store.templateTotalsMap()['template1']).toBeUndefined();
       expect(store.templateTotalsMap()['template2']).toBeDefined();
     });
@@ -262,8 +255,8 @@ describe('TemplateStore', () => {
 
   describe('computed values', () => {
     it('should compute selected template', async () => {
-      // Wait for resource to load
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // Load templates first
+      await store.loadTemplates();
 
       store.selectTemplate('template1');
       const selected = store.selectedTemplate();
@@ -277,8 +270,8 @@ describe('TemplateStore', () => {
     });
 
     it('should compute sorted templates with default first', async () => {
-      // Wait for resource to load
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // Load templates first
+      await store.loadTemplates();
 
       const sorted = store.sortedTemplates();
 

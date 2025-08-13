@@ -45,22 +45,24 @@ describe('TemplateListItem', () => {
     // since Angular 20 required inputs cannot be set directly on standalone components
 
     it('should have input and output properties defined', () => {
-      // These are the properties that should exist on the component class
-      expect(component.template).toBeDefined();
+      // These are the properties that should exist on the component class with new Angular input/output APIs
+      expect(component.templateViewModel).toBeDefined();
+      expect(typeof component.templateViewModel).toBe('function'); // signal
       expect(component.isSelected).toBeDefined();
-      expect(component.totalIncome).toBeDefined();
-      expect(component.totalExpenses).toBeDefined();
-      expect(component.remainingLivingAllowance).toBeDefined();
-      expect(component.loading).toBeDefined();
+      expect(typeof component.isSelected).toBe('function'); // signal
       expect(component.selectTemplate).toBeDefined();
+      expect(typeof component.selectTemplate.emit).toBe('function'); // output
       expect(component.showDetails).toBeDefined();
+      expect(typeof component.showDetails.emit).toBe('function'); // output
     });
 
     it('should have required input properties', () => {
-      // Test that the component has the expected input properties defined
-      // This is sufficient for testing the component structure
-      expect(component.template).toBeDefined();
+      // Test that the component has the expected input properties defined with Angular 20 APIs
+      // templateViewModel is required, isSelected has default value
+      expect(component.templateViewModel).toBeDefined();
+      expect(typeof component.templateViewModel).toBe('function'); // signal
       expect(component.isSelected).toBeDefined();
+      expect(typeof component.isSelected).toBe('function'); // signal
     });
   });
 

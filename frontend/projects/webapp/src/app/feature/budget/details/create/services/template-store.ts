@@ -1,16 +1,32 @@
-import { Injectable, computed, inject, signal, resource } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { type TemplateLine } from '@pulpe/shared';
+import { type TemplateLine, type BudgetTemplate } from '@pulpe/shared';
 import { TemplateApi } from '../../../../../core/template/template-api';
 import {
   TemplateTotalsCalculator,
   type TemplateTotals,
 } from './template-totals-calculator';
 
+// Re-export for external use
+export type { TemplateTotals };
+
+/**
+ * Centralized state for the TemplateStore
+ */
+interface TemplateStoreState {
+  templates: BudgetTemplate[];
+  selectedId: string | null;
+  templateLinesCache: Map<string, TemplateLine[]>;
+  templateTotalsMap: Record<string, TemplateTotals>;
+  isLoadingTemplates: boolean;
+  error: Error | null;
+}
+
 /**
  * Centralized state management for budget templates.
- * Handles resource loading, caching, and selection state.
+ * Handles loading, caching, and selection state.
  *
+ * Follows STATE-PATTERN.md with a single centralized state signal.
  * Following Angular 20 naming convention (no .service suffix)
  */
 @Injectable()
@@ -19,44 +35,35 @@ export class TemplateStore {
   readonly #totalsCalculator = inject(TemplateTotalsCalculator);
 
   /**
-   * Resource that fetches all templates for the current user
-   * Using Angular 20 resource API for automatic loading states
+   * Single source of truth for all store state
    */
-  readonly templates = resource({
-    loader: async () => {
-      const templates = await firstValueFrom(this.#templateApi.getAll$());
-      return templates || [];
-    },
+  readonly #state = signal<TemplateStoreState>({
+    templates: [],
+    selectedId: null,
+    templateLinesCache: new Map(),
+    templateTotalsMap: {},
+    isLoadingTemplates: false,
+    error: null,
   });
 
-  /**
-   * Cache for template details (lines)
-   * Key: template ID, Value: template lines
-   */
-  readonly #templateDetailsCache = signal<Map<string, TemplateLine[]>>(
-    new Map(),
+  // Public read-only selectors via computed
+  readonly templates = computed(() => this.#state().templates);
+  readonly selectedTemplateId = computed(() => this.#state().selectedId);
+  readonly templateTotalsMap = computed(() => this.#state().templateTotalsMap);
+  readonly isLoadingTemplates = computed(
+    () => this.#state().isLoadingTemplates,
   );
-
-  /**
-   * Map of template totals with loading states
-   * Key: template ID, Value: calculated totals
-   */
-  readonly templateTotalsMap = signal<Record<string, TemplateTotals>>({});
-
-  /**
-   * Currently selected template ID
-   */
-  readonly selectedTemplateId = signal<string | null>(null);
+  readonly error = computed(() => this.#state().error);
 
   /**
    * Computed value for the currently selected template
    * Returns the full template object or null
    */
   readonly selectedTemplate = computed(() => {
-    const id = this.selectedTemplateId();
+    const id = this.#state().selectedId;
     if (!id) return null;
 
-    const allTemplates = this.templates.value() || [];
+    const allTemplates = this.#state().templates;
     return allTemplates.find((t) => t.id === id) || null;
   });
 
@@ -64,7 +71,7 @@ export class TemplateStore {
    * Computed value for all templates sorted with default first
    */
   readonly sortedTemplates = computed(() => {
-    const templates = this.templates.value() || [];
+    const templates = this.#state().templates;
     return [...templates].sort((a, b) => {
       // Default template always first
       if (a.isDefault && !b.isDefault) return -1;
@@ -75,24 +82,30 @@ export class TemplateStore {
   });
 
   /**
-   * Get cached template details or null if not cached
+   * Get cached template lines or null if not cached
    */
-  getCachedTemplateDetails(templateId: string): TemplateLine[] | null {
-    return this.#templateDetailsCache().get(templateId) || null;
+  getCachedTemplateLines(templateId: string): TemplateLine[] | null {
+    return this.#state().templateLinesCache.get(templateId) || null;
   }
 
   /**
    * Select a template by ID
    */
   selectTemplate(templateId: string): void {
-    this.selectedTemplateId.set(templateId);
+    this.#state.update((state) => ({
+      ...state,
+      selectedId: templateId,
+    }));
   }
 
   /**
    * Clear selection
    */
   clearSelection(): void {
-    this.selectedTemplateId.set(null);
+    this.#state.update((state) => ({
+      ...state,
+      selectedId: null,
+    }));
   }
 
   /**
@@ -100,29 +113,29 @@ export class TemplateStore {
    * Selects the default template or the newest one
    */
   initializeDefaultSelection(): void {
-    if (this.selectedTemplateId()) return; // Already selected
+    if (this.#state().selectedId) return; // Already selected
 
-    const allTemplates = this.templates.value() || [];
+    const allTemplates = this.#state().templates;
     const defaultTemplate = allTemplates.find((t) => t.isDefault);
 
     if (defaultTemplate) {
-      this.selectedTemplateId.set(defaultTemplate.id);
+      this.selectTemplate(defaultTemplate.id);
     } else if (allTemplates.length > 0) {
       // Select the newest template if no default
       const sortedTemplates = [...allTemplates].sort(
         (a, b) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       );
-      this.selectedTemplateId.set(sortedTemplates[0].id);
+      this.selectTemplate(sortedTemplates[0].id);
     }
   }
 
   /**
-   * Load template details and cache them
+   * Load template lines and cache them
    */
-  async loadTemplateDetails(templateId: string): Promise<TemplateLine[]> {
+  async loadTemplateLines(templateId: string): Promise<TemplateLine[]> {
     // Check cache first
-    const cached = this.getCachedTemplateDetails(templateId);
+    const cached = this.getCachedTemplateLines(templateId);
     if (cached) {
       return cached;
     }
@@ -134,11 +147,15 @@ export class TemplateStore {
       );
 
       // Update cache
-      this.#updateTemplateDetailsCache(templateId, lines);
+      this.#updateTemplateLinesCache(templateId, lines);
 
       return lines;
     } catch (error) {
-      console.error('Error loading template details:', error);
+      console.error('Error loading template lines:', error);
+      this.#state.update((state) => ({
+        ...state,
+        error: error instanceof Error ? error : new Error('Unknown error'),
+      }));
       return [];
     }
   }
@@ -148,7 +165,7 @@ export class TemplateStore {
    * Manages loading states and caching
    */
   async loadTemplateTotals(templateIds: string[]): Promise<void> {
-    const currentTotals = this.templateTotalsMap();
+    const currentTotals = this.#state().templateTotalsMap;
 
     // Filter templates that need loading
     const templatesToLoad = templateIds.filter((id) => !currentTotals[id]);
@@ -161,22 +178,25 @@ export class TemplateStore {
     this.#setLoadingStates(templatesToLoad);
 
     try {
-      // Load all template details in parallel
-      const templateDetailsPromises = templatesToLoad.map(async (id) => ({
+      // Load all template lines in parallel
+      const templateLinesPromises = templatesToLoad.map(async (id) => ({
         id,
-        lines: await this.loadTemplateDetails(id),
+        lines: await this.loadTemplateLines(id),
       }));
 
-      const templatesWithLines = await Promise.all(templateDetailsPromises);
+      const templatesWithLines = await Promise.all(templateLinesPromises);
 
       // Calculate totals using the calculator service
       const calculatedTotals =
         this.#totalsCalculator.calculateBatchTotals(templatesWithLines);
 
       // Update totals map
-      this.templateTotalsMap.update((current) => ({
-        ...current,
-        ...calculatedTotals,
+      this.#state.update((state) => ({
+        ...state,
+        templateTotalsMap: {
+          ...state.templateTotalsMap,
+          ...calculatedTotals,
+        },
       }));
     } catch (error) {
       console.error('Error loading template totals:', error);
@@ -192,44 +212,81 @@ export class TemplateStore {
   }
 
   /**
+   * Load all templates from API
+   */
+  async loadTemplates(): Promise<void> {
+    this.#state.update((state) => ({
+      ...state,
+      isLoadingTemplates: true,
+      error: null,
+    }));
+
+    try {
+      const templates = await firstValueFrom(this.#templateApi.getAll$());
+      this.#state.update((state) => ({
+        ...state,
+        templates: templates || [],
+        isLoadingTemplates: false,
+      }));
+    } catch (error) {
+      console.error('Error loading templates:', error);
+      this.#state.update((state) => ({
+        ...state,
+        isLoadingTemplates: false,
+        error: error instanceof Error ? error : new Error('Unknown error'),
+      }));
+    }
+  }
+
+  /**
    * Clear all caches
    */
   clearCaches(): void {
-    this.#templateDetailsCache.set(new Map());
-    this.templateTotalsMap.set({});
+    this.#state.update((state) => ({
+      ...state,
+      templateLinesCache: new Map(),
+      templateTotalsMap: {},
+    }));
   }
 
   /**
    * Invalidate cache for a specific template
    */
   invalidateTemplate(templateId: string): void {
-    // Remove from details cache
-    const detailsCache = this.#templateDetailsCache();
-    detailsCache.delete(templateId);
-    this.#templateDetailsCache.set(new Map(detailsCache));
+    this.#state.update((state) => {
+      const newLinesCache = new Map(state.templateLinesCache);
+      newLinesCache.delete(templateId);
 
-    // Remove from totals map
-    this.templateTotalsMap.update((current) => {
-      const updated = { ...current };
-      delete updated[templateId];
-      return updated;
+      const newTotalsMap = { ...state.templateTotalsMap };
+      delete newTotalsMap[templateId];
+
+      return {
+        ...state,
+        templateLinesCache: newLinesCache,
+        templateTotalsMap: newTotalsMap,
+      };
     });
   }
 
   /**
-   * Reload templates resource
+   * Reload templates from API
    */
-  reloadTemplates(): void {
-    this.templates.reload();
+  async reloadTemplates(): Promise<void> {
+    await this.loadTemplates();
   }
 
   /**
-   * Update template details cache
+   * Update template lines cache
    */
-  #updateTemplateDetailsCache(templateId: string, lines: TemplateLine[]): void {
-    const currentCache = this.#templateDetailsCache();
-    currentCache.set(templateId, lines);
-    this.#templateDetailsCache.set(new Map(currentCache));
+  #updateTemplateLinesCache(templateId: string, lines: TemplateLine[]): void {
+    this.#state.update((state) => {
+      const newCache = new Map(state.templateLinesCache);
+      newCache.set(templateId, lines);
+      return {
+        ...state,
+        templateLinesCache: newCache,
+      };
+    });
   }
 
   /**
@@ -244,9 +301,12 @@ export class TemplateStore {
       {} as Record<string, TemplateTotals>,
     );
 
-    this.templateTotalsMap.update((current) => ({
-      ...current,
-      ...loadingStates,
+    this.#state.update((state) => ({
+      ...state,
+      templateTotalsMap: {
+        ...state.templateTotalsMap,
+        ...loadingStates,
+      },
     }));
   }
 
@@ -262,9 +322,12 @@ export class TemplateStore {
       {} as Record<string, TemplateTotals>,
     );
 
-    this.templateTotalsMap.update((current) => ({
-      ...current,
-      ...errorStates,
+    this.#state.update((state) => ({
+      ...state,
+      templateTotalsMap: {
+        ...state.templateTotalsMap,
+        ...errorStates,
+      },
     }));
   }
 }
