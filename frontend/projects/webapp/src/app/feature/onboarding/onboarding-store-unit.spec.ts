@@ -8,6 +8,7 @@ import {
   type CreateBudgetApiResponse,
 } from '../../core/budget/budget-api';
 import { TemplateApi } from '../../core/template/template-api';
+import { OnboardingApi } from './services/onboarding-api';
 import { NavigationEnd, Router } from '@angular/router';
 import { Subject, of, throwError } from 'rxjs'; // Import Subject and observables
 
@@ -40,6 +41,9 @@ describe('OnboardingStore - Unit Tests', () => {
   let mockTemplateApi: {
     createFromOnboarding$: ReturnType<typeof vi.fn>;
   };
+  let mockOnboardingApi: {
+    createTemplateFromOnboarding$: ReturnType<typeof vi.fn>;
+  };
   let mockRouter: {
     navigate: ReturnType<typeof vi.fn>;
     events: Subject<NavigationEnd>; // Add events property
@@ -59,6 +63,9 @@ describe('OnboardingStore - Unit Tests', () => {
     mockTemplateApi = {
       createFromOnboarding$: vi.fn(),
     };
+    mockOnboardingApi = {
+      createTemplateFromOnboarding$: vi.fn(),
+    };
     mockRouter = {
       navigate: vi.fn(),
       events: new Subject<NavigationEnd>(), // Initialize events as a Subject
@@ -72,6 +79,7 @@ describe('OnboardingStore - Unit Tests', () => {
         { provide: AuthApi, useValue: mockAuthApi },
         { provide: BudgetApi, useValue: mockBudgetApi },
         { provide: TemplateApi, useValue: mockTemplateApi },
+        { provide: OnboardingApi, useValue: mockOnboardingApi },
         { provide: Router, useValue: mockRouter },
       ],
     });
@@ -219,6 +227,7 @@ describe('OnboardingStore - Unit Tests', () => {
           { provide: AuthApi, useValue: mockAuthApi },
           { provide: BudgetApi, useValue: mockBudgetApi },
           { provide: TemplateApi, useValue: mockTemplateApi },
+          { provide: OnboardingApi, useValue: mockOnboardingApi },
           { provide: Router, useValue: mockRouter },
         ],
       });
@@ -239,6 +248,7 @@ describe('OnboardingStore - Unit Tests', () => {
           { provide: AuthApi, useValue: mockAuthApi },
           { provide: BudgetApi, useValue: mockBudgetApi },
           { provide: TemplateApi, useValue: mockTemplateApi },
+          { provide: OnboardingApi, useValue: mockOnboardingApi },
           { provide: Router, useValue: mockRouter },
         ],
       });
@@ -314,7 +324,7 @@ describe('OnboardingStore - Unit Tests', () => {
     it('should not retry signup if user was already created successfully', async () => {
       // First attempt - signup succeeds, template creation fails
       mockAuthApi.signUpWithEmail.mockResolvedValueOnce({ success: true });
-      mockTemplateApi.createFromOnboarding$.mockReturnValueOnce(
+      mockOnboardingApi.createTemplateFromOnboarding$.mockReturnValueOnce(
         throwError(() => new Error('Template creation failed')),
       );
 
@@ -329,7 +339,7 @@ describe('OnboardingStore - Unit Tests', () => {
       expect(store.data().isUserCreated).toBe(true);
 
       // Second attempt - should skip signup and retry template creation
-      mockTemplateApi.createFromOnboarding$.mockReturnValueOnce(
+      mockOnboardingApi.createTemplateFromOnboarding$.mockReturnValueOnce(
         of({ data: { template: { id: 'template-123' } } }),
       );
       mockBudgetApi.createBudget$.mockReturnValueOnce(
@@ -346,7 +356,9 @@ describe('OnboardingStore - Unit Tests', () => {
       expect(mockAuthApi.signUpWithEmail).toHaveBeenCalledTimes(1);
 
       // Template and budget creation should have been retried
-      expect(mockTemplateApi.createFromOnboarding$).toHaveBeenCalledTimes(2);
+      expect(
+        mockOnboardingApi.createTemplateFromOnboarding$,
+      ).toHaveBeenCalledTimes(2);
       expect(mockBudgetApi.createBudget$).toHaveBeenCalledTimes(1);
     });
 

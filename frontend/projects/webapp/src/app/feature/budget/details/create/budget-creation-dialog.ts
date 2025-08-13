@@ -454,9 +454,22 @@ export class CreateBudgetDialogComponent {
     this.templateStore.selectTemplate(templateId);
   }
 
-  showTemplateDetails(template: BudgetTemplate): void {
+  async showTemplateDetails(template: BudgetTemplate): Promise<void> {
+    // Récupérer les templateLines depuis le cache ou les charger si nécessaire
+    let templateLines = this.templateStore.getCachedTemplateDetails(
+      template.id,
+    );
+
+    if (!templateLines) {
+      // Si pas dans le cache, les charger maintenant
+      templateLines = await this.templateStore.loadTemplateDetails(template.id);
+    }
+
     this.#dialog.open(TemplateDetailsDialog, {
-      data: { template },
+      data: {
+        template,
+        templateLines,
+      },
       width: '600px',
       maxWidth: '95vw',
       maxHeight: '85vh',

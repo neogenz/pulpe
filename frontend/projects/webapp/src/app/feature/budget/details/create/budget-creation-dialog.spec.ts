@@ -16,6 +16,7 @@ import {
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Subject, defer, of, throwError } from 'rxjs';
+import { signal, WritableSignal } from '@angular/core';
 import { provideLocale } from '../../../../core/locale';
 import { createMockResourceRef } from '../../../../core/testing';
 
@@ -23,8 +24,8 @@ import { type BudgetTemplate } from '@pulpe/shared';
 import { BudgetApi } from '../../../../core/budget/budget-api';
 import { TemplateApi } from '../../../../core/template/template-api';
 import { CreateBudgetDialogComponent } from './budget-creation-dialog';
-import { TemplateListItem } from './ui/template-list-item';
-import { TemplateStore } from './services/template-store';
+import { TemplatesList } from './ui/templates-list';
+import { TemplateStore, type TemplateTotals } from './services/template-store';
 import { TemplateTotalsCalculator } from './services/template-totals-calculator';
 
 // Type-safe mock interface that includes internal methods
@@ -66,19 +67,18 @@ const createTestTemplate = (
 
 // Mock component for testing without template rendering issues
 @Component({
-  selector: 'pulpe-template-list-item',
-  template: '<div>Mock Template List Item</div>',
+  selector: 'pulpe-templates-list',
+  template: '<div>Mock Templates List</div>',
 })
-class MockTemplateListItem {
-  @Input() template: BudgetTemplate | null = null;
+class MockTemplatesList {
+  @Input() templates: BudgetTemplate[] = [];
   @Input() selectedTemplateId: string | null = null;
-  @Input() totalIncome = 0;
-  @Input() totalExpenses = 0;
-  @Input() remainingLivingAllowance = 0;
-  @Input() loading = false;
+  @Input() isLoading = false;
+  @Input() hasError = false;
 
-  @Output() selectTemplate = new EventEmitter<string>();
-  @Output() showDetails = new EventEmitter<BudgetTemplate>();
+  @Output() templateSelected = new EventEmitter<string>();
+  @Output() templateDetailsRequested = new EventEmitter<BudgetTemplate>();
+  @Output() retryRequested = new EventEmitter<void>();
 }
 
 describe('CreateBudgetDialogComponent', () => {
@@ -137,15 +137,28 @@ describe('CreateBudgetDialogComponent', () => {
       getTemplateLines$: vi.fn().mockReturnValue(of([])),
     };
 
-    // Mock TemplateStore
+    // Mock TemplateStore with proper signals
+    const selectedTemplateIdSignal = signal<string | null>(null);
+    const selectedTemplateSignal = signal<BudgetTemplate | null>(null);
+    const templateTotalsMapSignal = signal<Record<string, TemplateTotals>>({});
+
     mockTemplateStore = {
       templates: templatesResourceMock,
-      selectedTemplateId: vi.fn(() => null),
-      selectedTemplate: vi.fn(() => null),
-      sortedTemplates: vi.fn(() => []),
-      templateTotalsMap: vi.fn(() => ({})),
-      selectTemplate: vi.fn(),
-      clearSelection: vi.fn(),
+      selectedTemplateId: selectedTemplateIdSignal,
+      selectedTemplate: selectedTemplateSignal,
+      sortedTemplates: signal([]),
+      templateTotalsMap: templateTotalsMapSignal,
+      selectTemplate: vi.fn((id: string) => {
+        selectedTemplateIdSignal.set(id);
+        // Also update selectedTemplate when selecting
+        if (id === mockTemplate.id) {
+          selectedTemplateSignal.set(mockTemplate);
+        }
+      }),
+      clearSelection: vi.fn(() => {
+        selectedTemplateIdSignal.set(null);
+        selectedTemplateSignal.set(null);
+      }),
       initializeDefaultSelection: vi.fn(),
       loadTemplateDetails: vi.fn().mockResolvedValue([]),
       loadTemplateTotals: vi.fn().mockResolvedValue(undefined),
@@ -178,7 +191,7 @@ describe('CreateBudgetDialogComponent', () => {
     await TestBed.configureTestingModule({
       imports: [
         CreateBudgetDialogComponent,
-        MockTemplateListItem,
+        MockTemplatesList,
         NoopAnimationsModule,
         ReactiveFormsModule,
       ],
@@ -198,11 +211,11 @@ describe('CreateBudgetDialogComponent', () => {
     })
       .overrideComponent(CreateBudgetDialogComponent, {
         remove: {
-          imports: [TemplateListItem],
+          imports: [TemplatesList],
           providers: [TemplateStore, TemplateTotalsCalculator],
         },
         add: {
-          imports: [MockTemplateListItem],
+          imports: [MockTemplatesList],
           providers: [
             { provide: TemplateStore, useValue: mockTemplateStore },
             {
@@ -260,10 +273,12 @@ describe('CreateBudgetDialogComponent', () => {
 
     it('should initialize with empty template totals', () => {
       // Reset the current component's templateTotals to test initial state
-      component.templateStore.templateTotalsMap.set({});
+      const totalsSignal = component.templateStore
+        .templateTotalsMap as WritableSignal<Record<string, TemplateTotals>>;
+      totalsSignal.set({});
       fixture.detectChanges();
 
-      expect(component.templateStore.templateTotalsMap()).toEqual({});
+      expect(totalsSignal()).toEqual({});
     });
   });
 
@@ -305,7 +320,11 @@ describe('CreateBudgetDialogComponent', () => {
       component.budgetForm.patchValue(createValidBudgetForm());
 
       // Mock no selected template through the service
-      component.templateStore.selectedTemplateId.set(null);
+      (
+        component.templateStore.selectedTemplateId as WritableSignal<
+          string | null
+        >
+      ).set(null);
 
       const createBudgetSpy = vi.spyOn(budgetApiService, 'createBudget$');
 
@@ -352,10 +371,14 @@ describe('CreateBudgetDialogComponent', () => {
   describe('Reactivity with Record-based Signal', () => {
     it('should properly update Record-based signal', () => {
       // Reset to empty state first
-      mockTemplateStore.templateTotalsMap.set({});
+      const totalsSignal =
+        mockTemplateStore.templateTotalsMap as WritableSignal<
+          Record<string, TemplateTotals>
+        >;
+      totalsSignal.set({});
 
       // Test that the templateTotals signal works correctly with Record updates
-      expect(mockTemplateStore.templateTotalsMap()).toEqual({});
+      expect(totalsSignal()).toEqual({});
 
       // Update with new template totals
       const newTotals = {
@@ -367,11 +390,11 @@ describe('CreateBudgetDialogComponent', () => {
         },
       };
 
-      mockTemplateStore.templateTotalsMap.set(newTotals);
-      expect(mockTemplateStore.templateTotalsMap()).toEqual(newTotals);
+      totalsSignal.set(newTotals);
+      expect(totalsSignal()).toEqual(newTotals);
 
       // Update specific template
-      mockTemplateStore.templateTotalsMap.update((current) => ({
+      totalsSignal.update((current) => ({
         ...current,
         'template-2': {
           totalIncome: 4000,
@@ -381,7 +404,7 @@ describe('CreateBudgetDialogComponent', () => {
         },
       }));
 
-      const updatedTotals = mockTemplateStore.templateTotalsMap();
+      const updatedTotals = totalsSignal();
       expect(updatedTotals['template-1']).toEqual(newTotals['template-1']);
       expect(updatedTotals['template-2']).toEqual({
         totalIncome: 4000,
@@ -547,7 +570,10 @@ describe('CreateBudgetDialogComponent', () => {
       // Start budget creation (don't await yet)
       const createPromise = component.onCreateBudget();
 
-      // Should be loading immediately after starting
+      // Use a microtask to let the promise start executing
+      await new Promise((resolve) => queueMicrotask(resolve));
+
+      // Now it should be loading
       expect(component.isCreating()).toBe(true);
 
       // Resolve the API call
