@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
-import { EditTransactionsState } from './edit-transactions-state';
+import { EditTransactionsStore } from './edit-transactions-store';
 import { BudgetTemplatesApi } from '../../services/budget-templates-api';
 import {
   TransactionFormService,
@@ -14,8 +14,8 @@ import {
   type TemplateLinesBulkOperations,
 } from '@pulpe/shared';
 
-describe('EditTransactionsState - Unit Tests', () => {
-  let state: EditTransactionsState;
+describe('EditTransactionsStore - Unit Tests', () => {
+  let state: EditTransactionsStore;
   let mockBudgetTemplatesApi: {
     bulkOperationsTemplateLines$: ReturnType<typeof vi.fn>;
   };
@@ -75,7 +75,7 @@ describe('EditTransactionsState - Unit Tests', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
-        EditTransactionsState,
+        EditTransactionsStore,
         { provide: BudgetTemplatesApi, useValue: mockBudgetTemplatesApi },
         {
           provide: TransactionFormService,
@@ -84,7 +84,7 @@ describe('EditTransactionsState - Unit Tests', () => {
       ],
     });
 
-    state = TestBed.inject(EditTransactionsState);
+    state = TestBed.inject(EditTransactionsStore);
   });
 
   describe('Initial State', () => {
