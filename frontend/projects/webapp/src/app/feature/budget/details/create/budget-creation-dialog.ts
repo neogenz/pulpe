@@ -162,8 +162,8 @@ const MONTH_YEAR_FORMATS = {
           <pulpe-templates-list
             [templates]="templateViewModels()"
             [selectedTemplateId]="templateStore.selectedTemplateId()"
-            [isLoading]="templateStore.templates.isLoading()"
-            [hasError]="!!templateStore.templates.error()"
+            [isLoading]="templateStore.isLoadingTemplates()"
+            [hasError]="!!templateStore.error()"
             (templateSelected)="onTemplateSelect($event)"
             (templateDetailsRequested)="showTemplateDetails($event)"
             (retryRequested)="templateStore.reloadTemplates()"
@@ -240,7 +240,7 @@ export class CreateBudgetDialogComponent {
 
   // Computed template view models for UI
   readonly templateViewModels = computed((): TemplateViewModel[] => {
-    const templates = this.templateStore.templates.value() || [];
+    const templates = this.templateStore.templates();
     const totalsMap = this.templateStore.templateTotalsMap();
 
     // Transform templates to view models
@@ -290,6 +290,9 @@ export class CreateBudgetDialogComponent {
   });
 
   constructor() {
+    // Initialize templates loading
+    this.templateStore.loadTemplates();
+
     // Sync selected template with form
     effect(() => {
       const selectedId = this.templateStore.selectedTemplateId();
@@ -302,7 +305,7 @@ export class CreateBudgetDialogComponent {
 
     // Load template totals when templates change
     effect(() => {
-      const templates = this.templateStore.templates.value() || [];
+      const templates = this.templateStore.templates();
       if (!templates.length) return;
 
       // Initialize default selection on first load
@@ -339,7 +342,7 @@ export class CreateBudgetDialogComponent {
     templateViewModel: TemplateViewModel,
   ): Promise<void> {
     const template = templateViewModel.template;
-    const templateLines = await this.templateStore.loadTemplateDetails(
+    const templateLines = await this.templateStore.loadTemplateLines(
       template.id,
     );
 

@@ -18,13 +18,12 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Subject, defer, of, throwError } from 'rxjs';
 import { signal, WritableSignal } from '@angular/core';
 import { provideLocale } from '../../../../core/locale';
-import { createMockResourceRef } from '../../../../core/testing';
 
 import { type BudgetTemplate } from '@pulpe/shared';
 import { BudgetApi } from '../../../../core/budget/budget-api';
 import { TemplateApi } from '../../../../core/template/template-api';
 import { CreateBudgetDialogComponent } from './budget-creation-dialog';
-import { TemplatesList } from './ui/templates-list';
+import { TemplatesList, type TemplateViewModel } from './ui/templates-list';
 import { TemplateStore, type TemplateTotals } from './services/template-store';
 import { TemplateTotalsCalculator } from './services/template-totals-calculator';
 
@@ -63,6 +62,21 @@ const createTestTemplate = (
   createdAt: '2024-01-01T00:00:00Z',
   updatedAt: '2024-01-01T00:00:00Z',
   ...overrides,
+});
+
+/**
+ * Creates a test template view model with default values
+ */
+const createTestTemplateViewModel = (
+  templateOverrides: Partial<BudgetTemplate> = {},
+  viewModelOverrides: Partial<Omit<TemplateViewModel, 'template'>> = {},
+): TemplateViewModel => ({
+  template: createTestTemplate(templateOverrides),
+  totalIncome: 5000,
+  totalExpenses: 3000,
+  remainingLivingAllowance: 2000,
+  loading: false,
+  ...viewModelOverrides,
 });
 
 // Mock component for testing without template rendering issues
@@ -127,27 +141,26 @@ describe('CreateBudgetDialogComponent', () => {
       createBudget$: vi.fn(),
     };
 
-    // Create a type-safe ResourceRef mock using helper
-    const templatesResourceMock = createMockResourceRef<
-      BudgetTemplate[] | undefined
-    >([]);
-
     mockTemplateApi = {
-      templatesResource: templatesResourceMock,
       getTemplateLines$: vi.fn().mockReturnValue(of([])),
     };
 
     // Mock TemplateStore with proper signals
+    const templatesSignal = signal<BudgetTemplate[]>([]);
     const selectedTemplateIdSignal = signal<string | null>(null);
     const selectedTemplateSignal = signal<BudgetTemplate | null>(null);
     const templateTotalsMapSignal = signal<Record<string, TemplateTotals>>({});
+    const isLoadingTemplatesSignal = signal<boolean>(false);
+    const errorSignal = signal<Error | null>(null);
 
     mockTemplateStore = {
-      templates: templatesResourceMock,
+      templates: templatesSignal,
       selectedTemplateId: selectedTemplateIdSignal,
       selectedTemplate: selectedTemplateSignal,
       sortedTemplates: signal([]),
       templateTotalsMap: templateTotalsMapSignal,
+      isLoadingTemplates: isLoadingTemplatesSignal,
+      error: errorSignal,
       selectTemplate: vi.fn((id: string) => {
         selectedTemplateIdSignal.set(id);
         // Also update selectedTemplate when selecting
@@ -160,13 +173,14 @@ describe('CreateBudgetDialogComponent', () => {
         selectedTemplateSignal.set(null);
       }),
       initializeDefaultSelection: vi.fn(),
-      loadTemplateDetails: vi.fn().mockResolvedValue([]),
+      loadTemplateLines: vi.fn().mockResolvedValue([]),
       loadTemplateTotals: vi.fn().mockResolvedValue(undefined),
       loadSingleTemplateTotals: vi.fn().mockResolvedValue(undefined),
-      getCachedTemplateDetails: vi.fn(() => null),
+      getCachedTemplateLines: vi.fn(() => null),
       clearCaches: vi.fn(),
       invalidateTemplate: vi.fn(),
       reloadTemplates: vi.fn(),
+      loadTemplates: vi.fn(),
     };
 
     // Mock TemplateTotalsCalculator
@@ -452,12 +466,14 @@ describe('CreateBudgetDialogComponent', () => {
 
   describe('Template Details Dialog', () => {
     it('should open template details dialog with correct configuration', () => {
-      const template = mockTemplate;
+      const templateViewModel = createTestTemplateViewModel();
 
       // The component uses private field injection (#dialog = inject(MatDialog))
       // which makes it difficult to spy on in tests.
       // As a workaround, we verify the method executes without errors.
-      expect(() => component.showTemplateDetails(template)).not.toThrow();
+      expect(() =>
+        component.showTemplateDetails(templateViewModel),
+      ).not.toThrow();
 
       // In a real test environment, we would expect:
       // expect(dialogService.open).toHaveBeenCalledWith(
