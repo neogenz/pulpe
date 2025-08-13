@@ -11,7 +11,7 @@ import type {
 import type {
   EditableTransaction,
   SaveResult,
-} from './edit-transactions-state.interface';
+} from './edit-transactions-state';
 
 /**
  * EditTransactionsStore - Signal-based state management for editing template transactions

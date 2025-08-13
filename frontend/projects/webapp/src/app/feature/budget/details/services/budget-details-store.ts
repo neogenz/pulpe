@@ -12,7 +12,7 @@ import { BudgetLineApi } from './budget-line-api';
 import {
   type BudgetDetailsState,
   createInitialBudgetDetailsState,
-} from './budget-details-state.interface';
+} from './budget-details-state';
 import {
   type BudgetLineCreate,
   type BudgetLineUpdate,
