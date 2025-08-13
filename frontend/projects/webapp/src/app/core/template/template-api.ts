@@ -1,10 +1,8 @@
-import { inject, Injectable, resource } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, firstValueFrom } from 'rxjs';
+import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import {
-  type BudgetTemplateCreateFromOnboarding,
-  type BudgetTemplateCreateResponse,
   type BudgetTemplateListResponse,
   type BudgetTemplateResponse,
   type BudgetTemplate,
@@ -25,21 +23,7 @@ export class TemplateApi {
   }
 
   /**
-   * Resource that fetches all templates for the current user
-   * Uses Angular's resource API for reactive data management
-   */
-  readonly templatesResource = resource({
-    loader: async () => {
-      const response = await firstValueFrom(
-        this.#http.get<BudgetTemplateListResponse>(this.#apiUrl),
-      );
-      return response.data || [];
-    },
-  });
-
-  /**
    * Observable that fetches all templates for the current user
-   * Alternative to resource for traditional observable approach
    */
   getAll$(): Observable<BudgetTemplate[]> {
     return this.#http
@@ -63,14 +47,5 @@ export class TemplateApi {
     return this.#http
       .get<TemplateLineListResponse>(`${this.#apiUrl}/${templateId}/lines`)
       .pipe(map((response) => response.data || []));
-  }
-
-  createFromOnboarding$(
-    onboardingData: BudgetTemplateCreateFromOnboarding,
-  ): Observable<BudgetTemplateCreateResponse> {
-    return this.#http.post<BudgetTemplateCreateResponse>(
-      `${this.#apiUrl}/from-onboarding`,
-      onboardingData,
-    );
   }
 }

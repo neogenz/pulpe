@@ -1,21 +1,20 @@
+import { CurrencyPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
-  computed,
   input,
   output,
 } from '@angular/core';
-import { CurrencyPipe } from '@angular/common';
-import { MatCardModule } from '@angular/material/card';
-import { MatRadioModule } from '@angular/material/radio';
-import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatListModule } from '@angular/material/list';
 import { MatDividerModule } from '@angular/material/divider';
-import { type BudgetTemplate } from '@pulpe/shared';
+import { MatIconModule } from '@angular/material/icon';
+import { MatListModule } from '@angular/material/list';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatRadioModule } from '@angular/material/radio';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { type TemplateViewModel } from './templates-list';
 
 @Component({
   selector: 'pulpe-template-list-item',
@@ -36,34 +35,37 @@ import { type BudgetTemplate } from '@pulpe/shared';
       appearance="outlined"
       class="cursor-pointer transition-all hover:shadow-md template-card"
       [class.selected]="isSelected()"
-      (click)="selectTemplate.emit(template().id)"
+      (click)="selectTemplate.emit(templateViewModel().template.id)"
     >
       <mat-card-content class="py-3 md:py-4">
         <!-- Header with title and chip -->
         <div class="flex items-start justify-between mb-3">
           <div class="flex items-center gap-3">
-            @let dataTestId = 'template-radio-' + template().id;
+            @let dataTestId =
+              'template-radio-' + templateViewModel().template.id;
             <mat-radio-button
-              [value]="template().id"
+              [value]="templateViewModel().template.id"
               [checked]="isSelected()"
               class="flex-shrink-0"
-              [attr.aria-label]="'Sélectionner ' + template().name"
+              [attr.aria-label]="
+                'Sélectionner ' + templateViewModel().template.name
+              "
               [attr.data-testid]="dataTestId"
             ></mat-radio-button>
             <div>
               <div class="flex items-center gap-2">
                 <h3 class="text-title-medium text-on-surface">
-                  {{ template().name }}
+                  {{ templateViewModel().template.name }}
                 </h3>
-                @if (template().isDefault) {
+                @if (templateViewModel().template.isDefault) {
                   <mat-chip appearance="outlined">
                     <span>Par défaut</span>
                   </mat-chip>
                 }
               </div>
-              @if (template().description) {
+              @if (templateViewModel().template.description) {
                 <p class="text-body-small text-on-surface-variant mt-1">
-                  {{ template().description }}
+                  {{ templateViewModel().template.description }}
                 </p>
               }
             </div>
@@ -71,7 +73,7 @@ import { type BudgetTemplate } from '@pulpe/shared';
         </div>
 
         <!-- Financial details -->
-        @if (loading()) {
+        @if (templateViewModel().loading) {
           <!-- Enhanced Material Design 3 Loading State -->
           <div
             class="bg-surface-container-low rounded-corner-medium p-6 mx-2 mb-4"
@@ -111,7 +113,10 @@ import { type BudgetTemplate } from '@pulpe/shared';
                 >Revenus mensuels</span
               >
               <span matListItemMeta class="text-body-medium font-medium">
-                {{ totalIncome() | currency: 'CHF' : 'symbol' : '1.0-0' }}
+                {{
+                  templateViewModel().totalIncome
+                    | currency: 'CHF' : 'symbol' : '1.0-0'
+                }}
               </span>
             </mat-list-item>
 
@@ -126,7 +131,10 @@ import { type BudgetTemplate } from '@pulpe/shared';
                 >Dépenses prévues</span
               >
               <span matListItemMeta class="text-body-medium font-medium">
-                {{ totalExpenses() | currency: 'CHF' : 'symbol' : '1.0-0' }}
+                {{
+                  templateViewModel().totalExpenses
+                    | currency: 'CHF' : 'symbol' : '1.0-0'
+                }}
               </span>
             </mat-list-item>
 
@@ -143,12 +151,18 @@ import { type BudgetTemplate } from '@pulpe/shared';
               <span
                 matListItemMeta
                 class="text-body-medium font-medium"
-                [class.text-primary]="remainingLivingAllowance() > 0"
-                [class.text-warning]="remainingLivingAllowance() === 0"
-                [class.text-error]="remainingLivingAllowance() < 0"
+                [class.text-primary]="
+                  templateViewModel().remainingLivingAllowance > 0
+                "
+                [class.text-warning]="
+                  templateViewModel().remainingLivingAllowance === 0
+                "
+                [class.text-error]="
+                  templateViewModel().remainingLivingAllowance < 0
+                "
               >
                 {{
-                  remainingLivingAllowance()
+                  templateViewModel().remainingLivingAllowance
                     | currency: 'CHF' : 'symbol' : '1.0-0'
                 }}
               </span>
@@ -160,7 +174,9 @@ import { type BudgetTemplate } from '@pulpe/shared';
         <div class="flex items-center justify-end">
           <button
             matButton
-            (click)="showDetails.emit(template()); $event.stopPropagation()"
+            (click)="
+              showDetails.emit(templateViewModel()); $event.stopPropagation()
+            "
           >
             <mat-icon>info_outline</mat-icon>
             Détails
@@ -189,15 +205,9 @@ import { type BudgetTemplate } from '@pulpe/shared';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TemplateListItem {
-  template = input.required<BudgetTemplate>();
-  selectedTemplateId = input<string | null>(null);
-  totalIncome = input<number>(0);
-  totalExpenses = input<number>(0);
-  remainingLivingAllowance = input<number>(0);
-  loading = input<boolean>(false);
+  templateViewModel = input.required<TemplateViewModel>();
+  isSelected = input<boolean>(false);
 
   selectTemplate = output<string>();
-  showDetails = output<BudgetTemplate>();
-
-  isSelected = computed(() => this.selectedTemplateId() === this.template().id);
+  showDetails = output<TemplateViewModel>();
 }

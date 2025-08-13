@@ -13,6 +13,7 @@ import { OnboardingStore, type OnboardingStep } from './onboarding-store';
 import { AuthApi } from '../../core/auth/auth-api';
 import { BudgetApi } from '../../core/budget/budget-api';
 import { TemplateApi } from '../../core/template/template-api';
+import { OnboardingApi } from './services/onboarding-api';
 import { Subject } from 'rxjs';
 
 describe('OnboardingStepGuard - Sequential Navigation', () => {
@@ -25,6 +26,9 @@ describe('OnboardingStepGuard - Sequential Navigation', () => {
   let mockAuthApi: { signUpWithEmail: ReturnType<typeof vi.fn> };
   let mockBudgetApi: { createBudget$: ReturnType<typeof vi.fn> };
   let mockTemplateApi: { createFromOnboarding$: ReturnType<typeof vi.fn> };
+  let mockOnboardingApi: {
+    createTemplateFromOnboarding$: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(() => {
     // Clear localStorage before each test
@@ -34,6 +38,7 @@ describe('OnboardingStepGuard - Sequential Navigation', () => {
     mockAuthApi = { signUpWithEmail: vi.fn() };
     mockBudgetApi = { createBudget$: vi.fn() };
     mockTemplateApi = { createFromOnboarding$: vi.fn() };
+    mockOnboardingApi = { createTemplateFromOnboarding$: vi.fn() };
     mockRouter = {
       navigate: vi.fn(),
       createUrlTree: vi.fn().mockReturnValue({} as UrlTree), // Mock return value pour simuler UrlTree
@@ -48,6 +53,7 @@ describe('OnboardingStepGuard - Sequential Navigation', () => {
         { provide: AuthApi, useValue: mockAuthApi },
         { provide: BudgetApi, useValue: mockBudgetApi },
         { provide: TemplateApi, useValue: mockTemplateApi },
+        { provide: OnboardingApi, useValue: mockOnboardingApi },
         { provide: Router, useValue: mockRouter },
       ],
     });
