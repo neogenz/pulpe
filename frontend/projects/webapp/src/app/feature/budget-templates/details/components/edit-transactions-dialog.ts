@@ -30,6 +30,7 @@ import {
   type ConfirmationDialogData,
 } from '../../../../ui/dialogs/confirmation-dialog';
 import { EditTransactionsStore } from '../services/edit-transactions-store';
+import type { EditableTransaction } from '../services/edit-transactions-state';
 import { firstValueFrom } from 'rxjs';
 
 interface EditTransactionsDialogData {
@@ -109,6 +110,7 @@ interface EditTransactionsDialogResult {
           <table
             mat-table
             [dataSource]="transactions()"
+            [trackBy]="trackByTransactionId"
             class="w-full"
             [class.pointer-events-none]="isLoading()"
           >
@@ -130,6 +132,7 @@ interface EditTransactionsDialogResult {
                     [value]="transaction.formData.description"
                     (input)="updateDescription(transaction.id, $event)"
                     placeholder="Description de la transaction"
+                    [attr.id]="'desc-' + transaction.id"
                   />
                   @if (!transaction.formData.description?.trim()) {
                     <mat-error>La description est requise</mat-error>
@@ -160,6 +163,7 @@ interface EditTransactionsDialogResult {
                     [value]="transaction.formData.amount"
                     (input)="updateAmount(transaction.id, $event)"
                     placeholder="0.00"
+                    [attr.id]="'amount-' + transaction.id"
                   />
                   <span matTextSuffix>CHF</span>
                   @if (transaction.formData.amount < 0) {
@@ -185,6 +189,7 @@ interface EditTransactionsDialogResult {
                   <mat-select
                     [value]="transaction.formData.type"
                     (selectionChange)="updateType(transaction.id, $event.value)"
+                    [attr.id]="'type-' + transaction.id"
                   >
                     @for (type of transactionTypes; track type.value) {
                       <mat-option [value]="type.value">
@@ -444,6 +449,13 @@ export default class EditTransactionsDialog {
   updateType(transactionId: string, value: TransactionFormData['type']): void {
     this.#state.updateTransaction(transactionId, { type: value });
   }
+
+  protected trackByTransactionId = (
+    _index: number,
+    transaction: EditableTransaction,
+  ): string => {
+    return transaction.id;
+  };
 
   /**
    * Show confirmation dialog for transaction removal
