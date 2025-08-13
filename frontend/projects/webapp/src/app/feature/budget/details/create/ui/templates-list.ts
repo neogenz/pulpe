@@ -16,7 +16,23 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { startWith, debounceTime, map } from 'rxjs';
 import { type BudgetTemplate } from '@pulpe/shared';
 import { TemplateListItem } from './template-list-item';
-import { type TemplateViewModel } from './templates-list.types';
+
+/**
+ * ViewModel interface for template display in the UI component.
+ * Simplified structure focused on presentation needs.
+ */
+export interface TemplateViewModel {
+  /** Original template data */
+  template: BudgetTemplate;
+  /** Total monthly income from template */
+  totalIncome: number;
+  /** Total monthly expenses + savings from template */
+  totalExpenses: number;
+  /** Remaining living allowance after expenses and savings */
+  remainingLivingAllowance: number;
+  /** Whether financial data is currently being loaded */
+  loading: boolean;
+}
 
 @Component({
   selector: 'pulpe-templates-list',
@@ -93,18 +109,12 @@ import { type TemplateViewModel } from './templates-list.types';
             track templateViewModel.template.id
           ) {
             <pulpe-template-list-item
-              [template]="templateViewModel.template"
+              [templateViewModel]="templateViewModel"
               [isSelected]="
                 selectedTemplateId() === templateViewModel.template.id
               "
-              [totalIncome]="templateViewModel.totalIncome"
-              [totalExpenses]="templateViewModel.totalExpenses"
-              [remainingLivingAllowance]="
-                templateViewModel.remainingLivingAllowance
-              "
-              [loading]="templateViewModel.loading"
               (selectTemplate)="onTemplateSelect($event)"
-              (showDetails)="onShowDetails(templateViewModel.template)"
+              (showDetails)="onShowDetails(templateViewModel)"
               [attr.data-testid]="
                 'template-card-' + templateViewModel.template.id
               "
@@ -148,7 +158,7 @@ export class TemplatesList {
 
   // Outputs
   templateSelected = output<string>();
-  templateDetailsRequested = output<BudgetTemplate>();
+  templateDetailsRequested = output<TemplateViewModel>();
   retryRequested = output<void>();
 
   // Local search state
@@ -184,7 +194,7 @@ export class TemplatesList {
     this.templateSelected.emit(templateId);
   }
 
-  onShowDetails(template: BudgetTemplate): void {
-    this.templateDetailsRequested.emit(template);
+  onShowDetails(templateViewModel: TemplateViewModel): void {
+    this.templateDetailsRequested.emit(templateViewModel);
   }
 }
