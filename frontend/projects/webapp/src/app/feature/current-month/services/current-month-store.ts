@@ -1,11 +1,4 @@
-import {
-  computed,
-  inject,
-  Injectable,
-  resource,
-  signal,
-  effect,
-} from '@angular/core';
+import { computed, inject, Injectable, resource, signal } from '@angular/core';
 import { BudgetApi } from '@core/budget';
 import { BudgetCalculator } from './budget-calculator';
 import { TransactionApi } from '@core/transaction';
@@ -41,23 +34,29 @@ export class CurrentMonthStore {
 
   // === PRIVATE STATE ===
   /**
-   * Single source of truth for all current month state
+   * State for data not managed by resource
    */
-  #state = signal<CurrentMonthState>({
-    dashboardData: null,
-    isLoading: false,
-    error: null,
-    currentDate: new Date(),
-    operationsInProgress: new Set<string>(),
+  #currentDate = signal<Date>(new Date());
+  #operationsInProgress = signal<Set<string>>(new Set());
+
+  /**
+   * Optimistic updates state - overlays on top of resource data
+   */
+  #optimisticUpdates = signal<{
+    addedTransactions: Transaction[];
+    removedTransactionIds: Set<string>;
+  }>({
+    addedTransactions: [],
+    removedTransactionIds: new Set(),
   });
 
   /**
-   * Resource for loading dashboard data - encapsulated within state
+   * Resource for loading dashboard data - single source of truth for async data
    */
   #dashboardResource = resource<DashboardData, { month: string; year: string }>(
     {
       params: () => {
-        const currentDate = this.#state().currentDate;
+        const currentDate = this.#currentDate();
         return {
           month: format(currentDate, 'MM'),
           year: format(currentDate, 'yyyy'),
@@ -67,78 +66,75 @@ export class CurrentMonthStore {
     },
   );
 
-  // === EFFECTS ===
-  /**
-   * Effect to sync resource state with internal state
-   */
-  constructor() {
-    effect(() => {
-      const resourceValue = this.#dashboardResource.value();
-      const resourceStatus = this.#dashboardResource.status();
-      const resourceError = this.#dashboardResource.error();
-
-      this.#updateState((currentState) => ({
-        ...currentState,
-        dashboardData: resourceValue || null,
-        isLoading: resourceStatus === 'loading',
-        error: resourceError || null,
-      }));
-    });
-  }
-
   // === PUBLIC SELECTORS ===
   /**
-   * Current state (read-only)
+   * Current state (read-only) - for backward compatibility
    */
-  readonly state = this.#state.asReadonly();
+  readonly state = computed<CurrentMonthState>(() => ({
+    dashboardData: this.#dashboardResource.value() || null,
+    isLoading: this.#dashboardResource.isLoading(),
+    error: this.#dashboardResource.error() || null,
+    currentDate: this.#currentDate(),
+    operationsInProgress: this.#operationsInProgress(),
+  }));
 
   /**
-   * Dashboard data selector
+   * Dashboard data selector - directly from resource
    */
-  readonly dashboardData = computed(() => this.#state().dashboardData);
+  readonly dashboardData = computed(
+    () => this.#dashboardResource.value() || null,
+  );
 
   /**
-   * Loading state selector
+   * Loading state selector - directly from resource
    */
-  readonly isLoading = computed(() => this.#state().isLoading);
+  readonly isLoading = computed(() => this.#dashboardResource.isLoading());
 
   /**
-   * Error state selector
+   * Error state selector - directly from resource
    */
-  readonly error = computed(() => this.#state().error);
+  readonly error = computed(() => this.#dashboardResource.error() || null);
 
   /**
    * Current date selector
    */
-  readonly today = computed(() => this.#state().currentDate);
+  readonly today = computed(() => this.#currentDate());
 
   /**
    * Budget lines selector
    */
   readonly budgetLines = computed<BudgetLine[]>(
-    () => this.#state().dashboardData?.budgetLines || [],
+    () => this.#dashboardResource.value()?.budgetLines || [],
   );
 
   /**
-   * Transactions selector (private computed)
+   * Transactions selector (private computed) - includes optimistic updates
    */
-  #transactions = computed<Transaction[]>(
-    () => this.#state().dashboardData?.transactions || [],
-  );
+  #transactions = computed<Transaction[]>(() => {
+    const resourceTransactions =
+      this.#dashboardResource.value()?.transactions || [];
+    const { addedTransactions, removedTransactionIds } =
+      this.#optimisticUpdates();
+
+    // Filter out removed transactions and add optimistic ones
+    const filteredTransactions = resourceTransactions.filter(
+      (t) => !removedTransactionIds.has(t.id),
+    );
+
+    return [...addedTransactions, ...filteredTransactions];
+  });
 
   /**
    * Current budget selector
    */
   readonly budget = computed<Budget | null>(
-    () => this.#state().dashboardData?.budget || null,
+    () => this.#dashboardResource.value()?.budget || null,
   );
 
   /**
    * Operations in progress selector
    */
-  readonly operationsInProgress = computed(
-    () => this.#state().operationsInProgress,
-  );
+  readonly operationsInProgress = computed(() => this.#operationsInProgress());
 
   // === FINANCIAL CALCULATIONS ===
   /**
@@ -201,10 +197,7 @@ export class CurrentMonthStore {
    * Update the current date (triggers data reload)
    */
   setCurrentDate(date: Date): void {
-    this.#updateState((currentState) => ({
-      ...currentState,
-      currentDate: new Date(date), // Ensure immutability
-    }));
+    this.#currentDate.set(new Date(date)); // Ensure immutability
   }
 
   /**
@@ -224,20 +217,11 @@ export class CurrentMonthStore {
       updatedAt: new Date().toISOString(),
     };
 
-    this.#updateState((currentState) => {
-      if (!currentState.dashboardData) return currentState;
-
-      return {
-        ...currentState,
-        dashboardData: {
-          ...currentState.dashboardData,
-          transactions: [
-            optimisticTransaction,
-            ...currentState.dashboardData.transactions,
-          ],
-        },
-      };
-    });
+    // Add to optimistic updates
+    this.#optimisticUpdates.update((state) => ({
+      ...state,
+      addedTransactions: [optimisticTransaction, ...state.addedTransactions],
+    }));
 
     try {
       const response = await firstValueFrom(
@@ -245,35 +229,22 @@ export class CurrentMonthStore {
       );
 
       // Replace optimistic transaction with real one
-      this.#updateState((currentState) => {
-        if (!currentState.dashboardData || !response.data) return currentState;
-
-        return {
-          ...currentState,
-          dashboardData: {
-            ...currentState.dashboardData,
-            transactions: currentState.dashboardData.transactions.map((t) =>
-              t.id.startsWith('temp-') ? response.data : t,
-            ),
-          },
-        };
-      });
+      if (response.data) {
+        this.#optimisticUpdates.update((state) => ({
+          ...state,
+          addedTransactions: state.addedTransactions.map((t) =>
+            t.id.startsWith('temp-') ? response.data : t,
+          ),
+        }));
+      }
     } catch (error) {
       // Rollback: remove optimistic transaction
-      this.#updateState((currentState) => {
-        if (!currentState.dashboardData) return currentState;
-
-        return {
-          ...currentState,
-          dashboardData: {
-            ...currentState.dashboardData,
-            transactions: currentState.dashboardData.transactions.filter(
-              (t) => !t.id.startsWith('temp-'),
-            ),
-          },
-          error: error as Error,
-        };
-      });
+      this.#optimisticUpdates.update((state) => ({
+        ...state,
+        addedTransactions: state.addedTransactions.filter(
+          (t) => !t.id.startsWith('temp-'),
+        ),
+      }));
       throw error;
     } finally {
       this.#removeOperationInProgress(operationId);
@@ -290,7 +261,7 @@ export class CurrentMonthStore {
     this.#addOperationInProgress(operationId);
 
     // Get current state for potential rollback
-    const currentData = this.#state().dashboardData;
+    const currentData = this.#dashboardResource.value();
     if (!currentData) {
       this.#removeOperationInProgress(operationId);
       throw new Error('No data available');
@@ -305,38 +276,25 @@ export class CurrentMonthStore {
     }
 
     // Optimistic update: remove transaction immediately
-    this.#updateState((currentState) => {
-      if (!currentState.dashboardData) return currentState;
-
-      return {
-        ...currentState,
-        dashboardData: {
-          ...currentState.dashboardData,
-          transactions: currentState.dashboardData.transactions.filter(
-            (t) => t.id !== transactionId,
-          ),
-        },
-      };
-    });
+    this.#optimisticUpdates.update((state) => ({
+      ...state,
+      removedTransactionIds: new Set([
+        ...state.removedTransactionIds,
+        transactionId,
+      ]),
+    }));
 
     try {
       await firstValueFrom(this.#transactionApi.remove$(transactionId));
       // Success: optimistic update stands
     } catch (error) {
       // Rollback: restore deleted transaction
-      this.#updateState((currentState) => {
-        if (!currentState.dashboardData) return currentState;
-
+      this.#optimisticUpdates.update((state) => {
+        const newRemovedIds = new Set(state.removedTransactionIds);
+        newRemovedIds.delete(transactionId);
         return {
-          ...currentState,
-          dashboardData: {
-            ...currentState.dashboardData,
-            transactions: [
-              ...currentState.dashboardData.transactions,
-              transactionToDelete,
-            ],
-          },
-          error: error as Error,
+          ...state,
+          removedTransactionIds: newRemovedIds,
         };
       });
       throw error;
@@ -349,49 +307,26 @@ export class CurrentMonthStore {
    * Clear any error state
    */
   clearError(): void {
-    this.#updateState((currentState) => ({
-      ...currentState,
-      error: null,
-    }));
+    // Note: Resource errors are read-only, this method is kept for backward compatibility
+    // In the future, consider removing this method as resource errors clear on retry
   }
 
   // === PRIVATE HELPERS ===
   /**
-   * Immutable state update helper
-   */
-  #updateState(
-    updater: (currentState: CurrentMonthState) => CurrentMonthState,
-  ): void {
-    this.#state.update(updater);
-  }
-
-  /**
    * Add operation to progress tracking
    */
   #addOperationInProgress(operationId: string): void {
-    this.#updateState((currentState) => ({
-      ...currentState,
-      operationsInProgress: new Set([
-        ...currentState.operationsInProgress,
-        operationId,
-      ]),
-    }));
+    this.#operationsInProgress.update((ops) => new Set([...ops, operationId]));
   }
 
   /**
    * Remove operation from progress tracking
    */
   #removeOperationInProgress(operationId: string): void {
-    this.#updateState((currentState) => {
-      const newOperationsInProgress = new Set(
-        currentState.operationsInProgress,
-      );
-      newOperationsInProgress.delete(operationId);
-
-      return {
-        ...currentState,
-        operationsInProgress: newOperationsInProgress,
-      };
+    this.#operationsInProgress.update((ops) => {
+      const newOps = new Set(ops);
+      newOps.delete(operationId);
+      return newOps;
     });
   }
 
