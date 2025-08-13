@@ -9,14 +9,12 @@ import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDividerModule } from '@angular/material/divider';
 import { type BudgetTemplate, type TemplateLine } from '@pulpe/shared';
-import { TemplateApi } from '../../../../core/template/template-api';
-import { firstValueFrom } from 'rxjs';
 
 export interface TemplateDetailsDialogData {
   template: BudgetTemplate;
+  templateLines: TemplateLine[]; // Lignes du template passées depuis le cache
 }
 
 @Component({
@@ -28,7 +26,6 @@ export interface TemplateDetailsDialogData {
     MatButtonModule,
     MatIconModule,
     MatListModule,
-    MatProgressSpinnerModule,
     MatDividerModule,
   ],
   template: `
@@ -42,92 +39,72 @@ export interface TemplateDetailsDialogData {
       }
 
       <div class="min-h-[200px]">
-        @if (loading()) {
-          <div class="flex justify-center items-center h-[200px]">
-            <mat-progress-spinner
-              mode="indeterminate"
-              aria-label="Chargement des détails du modèle"
-              role="progressbar"
-              class="pulpe-loading-indicator pulpe-loading-medium"
-            ></mat-progress-spinner>
-          </div>
-        } @else if (error()) {
-          <div
-            class="flex flex-col items-center justify-center h-[200px] text-error"
-          >
-            <mat-icon class="text-display-small mb-2">error_outline</mat-icon>
-            <p class="text-label-large">
-              Erreur lors du chargement des détails
-            </p>
-          </div>
-        } @else {
-          @let lines = templateLines();
-          @if (lines.length > 0) {
-            <div class="space-y-4">
-              <div class="mb-4">
-                <div class="flex justify-between text-label-large mb-2">
-                  <span class="text-success">
-                    Total revenus:
-                    {{ totalIncome() | currency: 'CHF' : 'symbol' : '1.0-2' }}
-                  </span>
-                  <span class="text-error">
-                    Total dépenses:
-                    {{ totalExpenses() | currency: 'CHF' : 'symbol' : '1.0-2' }}
-                  </span>
-                </div>
-                <mat-divider></mat-divider>
-              </div>
-
-              <mat-list class="max-h-[400px] overflow-y-auto">
-                @for (line of lines; track line.id) {
-                  <mat-list-item class="h-auto py-2">
-                    <div class="flex justify-between items-center w-full">
-                      <div class="flex-1">
-                        <div class="text-body-large font-medium">
-                          {{ line.name }}
-                        </div>
-                        @if (line.description) {
-                          <div class="text-body-small text-on-surface-variant">
-                            {{ line.description }}
-                          </div>
-                        }
-                      </div>
-                      <div
-                        class="ml-4 text-body-large font-medium"
-                        [class.text-success]="line.kind === 'income'"
-                        [class.text-error]="line.kind === 'expense'"
-                        [class.text-primary]="line.kind === 'saving'"
-                      >
-                        {{ line.kind === 'income' ? '+' : '-' }}
-                        {{ line.amount | currency: 'CHF' : 'symbol' : '1.0-2' }}
-                      </div>
-                    </div>
-                  </mat-list-item>
-                  @if (!$last) {
-                    <mat-divider></mat-divider>
-                  }
-                }
-              </mat-list>
-
-              <mat-divider></mat-divider>
-              <div class="flex justify-between text-title-medium pt-2">
-                <span>Solde net:</span>
-                <span
-                  [class.text-success]="netBalance() >= 0"
-                  [class.text-error]="netBalance() < 0"
-                >
-                  {{ netBalance() | currency: 'CHF' : 'symbol' : '1.0-2' }}
+        @let lines = templateLines();
+        @if (lines.length > 0) {
+          <div class="space-y-4">
+            <div class="mb-4">
+              <div class="flex justify-between text-label-large mb-2">
+                <span class="text-success">
+                  Total revenus:
+                  {{ totalIncome() | currency: 'CHF' : 'symbol' : '1.0-2' }}
+                </span>
+                <span class="text-error">
+                  Total dépenses:
+                  {{ totalExpenses() | currency: 'CHF' : 'symbol' : '1.0-2' }}
                 </span>
               </div>
+              <mat-divider></mat-divider>
             </div>
-          } @else {
-            <div
-              class="flex flex-col items-center justify-center h-[200px] text-on-surface-variant"
-            >
-              <mat-icon class="text-display-small mb-2">inbox</mat-icon>
-              <p class="text-label-large">Aucune prévision dans ce modèle</p>
+
+            <mat-list class="max-h-[400px] overflow-y-auto">
+              @for (line of lines; track line.id) {
+                <mat-list-item class="h-auto py-2">
+                  <div class="flex justify-between items-center w-full">
+                    <div class="flex-1">
+                      <div class="text-body-large font-medium">
+                        {{ line.name }}
+                      </div>
+                      @if (line.description) {
+                        <div class="text-body-small text-on-surface-variant">
+                          {{ line.description }}
+                        </div>
+                      }
+                    </div>
+                    <div
+                      class="ml-4 text-body-large font-medium"
+                      [class.text-success]="line.kind === 'income'"
+                      [class.text-error]="line.kind === 'expense'"
+                      [class.text-primary]="line.kind === 'saving'"
+                    >
+                      {{ line.kind === 'income' ? '+' : '-' }}
+                      {{ line.amount | currency: 'CHF' : 'symbol' : '1.0-2' }}
+                    </div>
+                  </div>
+                </mat-list-item>
+                @if (!$last) {
+                  <mat-divider></mat-divider>
+                }
+              }
+            </mat-list>
+
+            <mat-divider></mat-divider>
+            <div class="flex justify-between text-title-medium pt-2">
+              <span>Solde net:</span>
+              <span
+                [class.text-success]="netBalance() >= 0"
+                [class.text-error]="netBalance() < 0"
+              >
+                {{ netBalance() | currency: 'CHF' : 'symbol' : '1.0-2' }}
+              </span>
             </div>
-          }
+          </div>
+        } @else {
+          <div
+            class="flex flex-col items-center justify-center h-[200px] text-on-surface-variant"
+          >
+            <mat-icon class="text-display-small mb-2">inbox</mat-icon>
+            <p class="text-label-large">Aucune prévision dans ce modèle</p>
+          </div>
         }
       </div>
     </mat-dialog-content>
@@ -156,11 +133,8 @@ export interface TemplateDetailsDialogData {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TemplateDetailsDialog {
-  readonly #templateApi = inject(TemplateApi);
   readonly data = inject<TemplateDetailsDialogData>(MAT_DIALOG_DATA);
 
-  readonly loading = signal<boolean>(true);
-  readonly error = signal<boolean>(false);
   readonly templateLines = signal<TemplateLine[]>([]);
 
   readonly totalIncome = signal<number>(0);
@@ -168,34 +142,23 @@ export class TemplateDetailsDialog {
   readonly netBalance = signal<number>(0);
 
   constructor() {
-    this.loadTemplateDetails();
+    // Utiliser directement les templateLines passées
+    this.useProvidedTemplateLines(this.data.templateLines);
   }
 
-  private async loadTemplateDetails(): Promise<void> {
-    try {
-      const lines = await firstValueFrom(
-        this.#templateApi.getTemplateLines$(this.data.template.id),
-      );
+  private useProvidedTemplateLines(lines: TemplateLine[]): void {
+    this.templateLines.set(lines);
 
-      this.templateLines.set(lines);
+    const income = lines
+      .filter((line) => line.kind === 'income')
+      .reduce((sum, line) => sum + line.amount, 0);
 
-      const income = lines
-        .filter((line) => line.kind === 'income')
-        .reduce((sum, line) => sum + line.amount, 0);
+    const expenses = lines
+      .filter((line) => line.kind === 'expense' || line.kind === 'saving')
+      .reduce((sum, line) => sum + line.amount, 0);
 
-      const expenses = lines
-        .filter((line) => line.kind === 'expense' || line.kind === 'saving')
-        .reduce((sum, line) => sum + line.amount, 0);
-
-      this.totalIncome.set(income);
-      this.totalExpenses.set(expenses);
-      this.netBalance.set(income - expenses);
-
-      this.loading.set(false);
-    } catch (error) {
-      console.error('Error loading template details:', error);
-      this.error.set(true);
-      this.loading.set(false);
-    }
+    this.totalIncome.set(income);
+    this.totalExpenses.set(expenses);
+    this.netBalance.set(income - expenses);
   }
 }
