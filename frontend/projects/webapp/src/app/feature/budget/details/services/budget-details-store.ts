@@ -1,17 +1,10 @@
-import {
-  inject,
-  Injectable,
-  signal,
-  computed,
-  effect,
-  resource,
-} from '@angular/core';
+import { inject, Injectable, signal, computed, resource } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { BudgetLineApi } from './budget-line-api';
 import {
-  type BudgetDetailsState,
-  createInitialBudgetDetailsState,
+  type BudgetDetailsInternalState,
+  createInitialBudgetDetailsInternalState,
 } from './budget-details-state';
 import {
   type BudgetLineCreate,
@@ -21,19 +14,19 @@ import {
 
 /**
  * Signal-based store for budget details state management
- * Follows the reactive patterns with unified state signal
+ * Follows the reactive patterns with single state signal and resource separation
  */
 @Injectable()
 export class BudgetDetailsStore {
   readonly #budgetLineApi = inject(BudgetLineApi);
   readonly #snackBar = inject(MatSnackBar);
 
-  // Single source of truth - private state signal
-  readonly #state = signal<BudgetDetailsState>(
-    createInitialBudgetDetailsState(),
+  // Single source of truth - private state signal for non-resource data
+  readonly #state = signal<BudgetDetailsInternalState>(
+    createInitialBudgetDetailsInternalState(),
   );
 
-  // Resource for budget details data - managed independently but synchronized with state
+  // Resource for budget details data - managed independently
   readonly #budgetDetailsResource = resource<
     BudgetDetailsResponse,
     string | null
@@ -55,32 +48,19 @@ export class BudgetDetailsStore {
   readonly operationsInProgress = computed(
     () => this.#state().operationsInProgress,
   );
-  readonly isLoading = computed(() => this.#state().isLoading);
-  readonly error = computed(() => this.#state().error);
+  readonly isLoading = computed(() => this.#budgetDetailsResource.isLoading());
+  readonly error = computed(
+    () => this.#budgetDetailsResource.error() || this.#state().error,
+  );
 
   // Derived selectors for convenience
   readonly hasOperationsInProgress = computed(
     () => this.operationsInProgress().size > 0,
   );
   readonly budgetData = computed(
-    () => this.budgetDetails().value()?.data ?? null,
+    () => this.#budgetDetailsResource.value()?.data ?? null,
   );
   readonly budgetLines = computed(() => this.budgetData()?.budgetLines ?? []);
-
-  constructor() {
-    // Effect to synchronize resource state with internal state
-    effect(() => {
-      const resource = this.#budgetDetailsResource;
-      const resourceState = resource.status();
-
-      this.#setState((currentState) => ({
-        ...currentState,
-        budgetDetails: resource,
-        isLoading: resourceState === 'loading',
-        error: resource.error() ? String(resource.error()) : null,
-      }));
-    });
-  }
 
   // Public Actions
 
@@ -88,8 +68,8 @@ export class BudgetDetailsStore {
    * Initialize the budget ID (called once from component)
    */
   initializeBudgetId(id: string): void {
-    this.#setState((currentState) => ({
-      ...currentState,
+    this.#state.update((state) => ({
+      ...state,
       budgetId: id,
       error: null,
     }));
@@ -261,21 +241,12 @@ export class BudgetDetailsStore {
   // Private state mutation methods
 
   /**
-   * Immutably update the state signal
-   */
-  #setState(
-    updater: (currentState: BudgetDetailsState) => BudgetDetailsState,
-  ): void {
-    this.#state.update(updater);
-  }
-
-  /**
    * Add an operation ID to the in-progress tracking
    */
   #addOperationInProgress(operationId: string): void {
-    this.#setState((currentState) => ({
-      ...currentState,
-      operationsInProgress: new Set(currentState.operationsInProgress).add(
+    this.#state.update((state) => ({
+      ...state,
+      operationsInProgress: new Set(state.operationsInProgress).add(
         operationId,
       ),
     }));
@@ -285,11 +256,11 @@ export class BudgetDetailsStore {
    * Remove an operation ID from the in-progress tracking
    */
   #removeOperationInProgress(operationId: string): void {
-    this.#setState((currentState) => {
-      const newSet = new Set(currentState.operationsInProgress);
+    this.#state.update((state) => {
+      const newSet = new Set(state.operationsInProgress);
       newSet.delete(operationId);
       return {
-        ...currentState,
+        ...state,
         operationsInProgress: newSet,
       };
     });
@@ -299,8 +270,8 @@ export class BudgetDetailsStore {
    * Set an error message in the state
    */
   #setError(error: string): void {
-    this.#setState((currentState) => ({
-      ...currentState,
+    this.#state.update((state) => ({
+      ...state,
       error,
     }));
   }
@@ -309,8 +280,8 @@ export class BudgetDetailsStore {
    * Clear the error state
    */
   #clearError(): void {
-    this.#setState((currentState) => ({
-      ...currentState,
+    this.#state.update((state) => ({
+      ...state,
       error: null,
     }));
   }
