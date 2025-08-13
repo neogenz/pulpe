@@ -3,3 +3,4 @@ export * from './budget';
 export * from './budget-template';
 export * from './transaction';
 export * from './user';
+export * from './data-transfer';

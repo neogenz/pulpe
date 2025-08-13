@@ -311,6 +311,12 @@ export class MainLayout {
       icon: 'description',
       tooltip: 'Modèles de budget',
     },
+    {
+      route: ROUTES.SETTINGS,
+      label: 'Paramètres',
+      icon: 'settings',
+      tooltip: "Paramètres de l'application",
+    },
   ] as const;
 
   // Responsive breakpoint detection
