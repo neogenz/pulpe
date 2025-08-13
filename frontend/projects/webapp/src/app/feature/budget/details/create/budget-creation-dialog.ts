@@ -23,9 +23,7 @@ import { MAT_DATE_FORMATS } from '@angular/material/core';
 import { MAT_DATE_FNS_FORMATS } from '@angular/material-date-fns-adapter';
 import { startOfMonth, setMonth, setYear } from 'date-fns';
 import { firstValueFrom } from 'rxjs';
-import { type BudgetTemplate } from '@pulpe/shared';
-import { TemplatesList } from './ui/templates-list';
-import { type TemplateViewModel } from './ui/templates-list.types';
+import { TemplatesList, type TemplateViewModel } from './ui/templates-list';
 import { TemplateDetailsDialog } from './template-details-dialog';
 import { TemplateStore } from './services/template-store';
 import { TemplateTotalsCalculator } from './services/template-totals-calculator';
@@ -337,7 +335,10 @@ export class CreateBudgetDialogComponent {
     this.templateStore.selectTemplate(templateId);
   }
 
-  async showTemplateDetails(template: BudgetTemplate): Promise<void> {
+  async showTemplateDetails(
+    templateViewModel: TemplateViewModel,
+  ): Promise<void> {
+    const template = templateViewModel.template;
     const templateLines = await this.templateStore.loadTemplateDetails(
       template.id,
     );
