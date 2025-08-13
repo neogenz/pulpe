@@ -11,14 +11,25 @@ import type {
 import type {
   EditableTransaction,
   SaveResult,
-} from './edit-transactions.types';
+} from './edit-transactions-state.interface';
 
 /**
- * Modern state management service for editing template transactions.
- * Uses signals for reactive state management with simplified CRUD operations.
+ * EditTransactionsStore - Signal-based state management for editing template transactions
+ *
+ * This store manages the editing of template transactions including:
+ * - CRUD operations on editable transactions
+ * - Bulk operations for efficient API calls
+ * - Form validation and state tracking
+ * - Optimistic updates and error handling
+ *
+ * Architecture:
+ * - Individual signals for each state aspect (already conforms to pattern)
+ * - Public computed selectors for reactive data access
+ * - Actions for state mutations with strict immutability
+ * - Efficient bulk operations for API calls
  */
 @Injectable()
-export class EditTransactionsState {
+export class EditTransactionsStore {
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
 
   // Core state signals

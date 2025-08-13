@@ -29,7 +29,7 @@ import {
   ConfirmationDialogComponent,
   type ConfirmationDialogData,
 } from '../../../../ui/dialogs/confirmation-dialog';
-import { EditTransactionsState } from '../services/edit-transactions-state';
+import { EditTransactionsStore } from '../services/edit-transactions-store';
 import { firstValueFrom } from 'rxjs';
 
 interface EditTransactionsDialogData {
@@ -60,7 +60,7 @@ interface EditTransactionsDialogResult {
     MatSelectModule,
     MatTooltipModule,
   ],
-  providers: [EditTransactionsState],
+  providers: [EditTransactionsStore],
   template: `
     <h2 mat-dialog-title class="flex gap-2 items-center">
       <mat-icon class="text-primary">edit</mat-icon>
@@ -336,7 +336,7 @@ interface EditTransactionsDialogResult {
 export default class EditTransactionsDialog {
   readonly #dialogRef = inject(MatDialogRef<EditTransactionsDialog>);
   readonly #dialog = inject(MatDialog);
-  readonly #state = inject(EditTransactionsState);
+  readonly #state = inject(EditTransactionsStore);
   readonly data = inject<EditTransactionsDialogData>(MAT_DIALOG_DATA);
 
   // Expose state signals directly

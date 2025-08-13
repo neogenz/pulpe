@@ -143,16 +143,19 @@ describe('TemplatesList', () => {
         'emit',
       );
       const template = createTestTemplate();
-
-      component.onShowDetails({
+      const templateViewModel = {
         template,
         totalIncome: 0,
         totalExpenses: 0,
         remainingLivingAllowance: 0,
         loading: false,
-      });
+      };
 
-      expect(templateDetailsRequestedSpy).toHaveBeenCalledWith(template);
+      component.onShowDetails(templateViewModel);
+
+      expect(templateDetailsRequestedSpy).toHaveBeenCalledWith(
+        templateViewModel,
+      );
     });
   });
 
