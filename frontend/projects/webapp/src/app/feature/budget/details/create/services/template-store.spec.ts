@@ -127,9 +127,9 @@ describe('TemplateStore', () => {
         ...t,
         isDefault: false,
       }));
-      vi.spyOn(templateApiMock, 'getAll$').mockReturnValue(
-        of(templatesWithoutDefault),
-      );
+      templateApiMock.getAll$ = vi
+        .fn()
+        .mockReturnValue(of(templatesWithoutDefault));
 
       // Recreate store with new mock data
       store = TestBed.inject(TemplateStore);
@@ -174,9 +174,9 @@ describe('TemplateStore', () => {
     });
 
     it('should handle API errors gracefully', async () => {
-      vi.spyOn(templateApiMock, 'getTemplateLines$').mockReturnValue(
-        throwError(() => new Error('API Error')),
-      );
+      templateApiMock.getTemplateLines$ = vi
+        .fn()
+        .mockReturnValue(throwError(() => new Error('API Error')));
 
       const lines = await store.loadTemplateLines('template1');
 
@@ -207,7 +207,7 @@ describe('TemplateStore', () => {
     });
 
     it('should set loading states while loading', () => {
-      vi.spyOn(totalsCalculatorMock, 'createDefaultTotals').mockReturnValue({
+      totalsCalculatorMock.createDefaultTotals = vi.fn().mockReturnValue({
         totalIncome: 0,
         totalExpenses: 0,
         totalSavings: 0,

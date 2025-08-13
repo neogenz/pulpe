@@ -352,7 +352,7 @@ describe('CreateBudgetDialogComponent', () => {
       component.budgetForm.patchValue(createValidBudgetForm());
 
       // Setup template selection with mock
-      mockTemplateStore.selectTemplate(mockTemplate.id);
+      mockTemplateStore.selectTemplate?.(mockTemplate.id);
 
       const mockResponse = {
         budget: {
@@ -399,6 +399,7 @@ describe('CreateBudgetDialogComponent', () => {
         'template-1': {
           totalIncome: 3000,
           totalExpenses: 2000,
+          totalSavings: 0,
           remainingLivingAllowance: 1000,
           loading: false,
         },
@@ -413,6 +414,7 @@ describe('CreateBudgetDialogComponent', () => {
         'template-2': {
           totalIncome: 4000,
           totalExpenses: 2500,
+          totalSavings: 0,
           remainingLivingAllowance: 1500,
           loading: true,
         },
@@ -423,6 +425,7 @@ describe('CreateBudgetDialogComponent', () => {
       expect(updatedTotals['template-2']).toEqual({
         totalIncome: 4000,
         totalExpenses: 2500,
+        totalSavings: 0,
         remainingLivingAllowance: 1500,
         loading: true,
       });
@@ -499,7 +502,7 @@ describe('CreateBudgetDialogComponent', () => {
       );
 
       // Setup template selection with mock
-      mockTemplateStore.selectTemplate(mockTemplate.id);
+      mockTemplateStore.selectTemplate?.(mockTemplate.id);
 
       // Verify form is valid and template is selected
       expect(component.budgetForm.valid).toBe(true);
@@ -555,7 +558,7 @@ describe('CreateBudgetDialogComponent', () => {
       );
 
       // Setup template selection with mock
-      mockTemplateStore.selectTemplate(mockTemplate.id);
+      mockTemplateStore.selectTemplate?.(mockTemplate.id);
 
       // Mock successful API response with controlled delay
       const mockResponse = {
@@ -587,7 +590,7 @@ describe('CreateBudgetDialogComponent', () => {
       const createPromise = component.onCreateBudget();
 
       // Use a microtask to let the promise start executing
-      await new Promise((resolve) => queueMicrotask(resolve));
+      await new Promise((resolve) => queueMicrotask(() => resolve(undefined)));
 
       // Now it should be loading
       expect(component.isCreating()).toBe(true);
