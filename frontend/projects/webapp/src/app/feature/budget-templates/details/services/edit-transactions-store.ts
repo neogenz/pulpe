@@ -11,7 +11,9 @@ import type {
 import type {
   EditableTransaction,
   SaveResult,
+  EditTransactionsState,
 } from './edit-transactions-state';
+import { createInitialEditTransactionsState } from './edit-transactions-state';
 
 /**
  * EditTransactionsStore - Signal-based state management for editing template transactions
@@ -23,7 +25,7 @@ import type {
  * - Optimistic updates and error handling
  *
  * Architecture:
- * - Individual signals for each state aspect (already conforms to pattern)
+ * - Single private state signal following the recommended pattern
  * - Public computed selectors for reactive data access
  * - Actions for state mutations with strict immutability
  * - Efficient bulk operations for API calls
@@ -32,15 +34,15 @@ import type {
 export class EditTransactionsStore {
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
 
-  // Core state signals
-  readonly #transactions = signal<EditableTransaction[]>([]);
-  readonly #isLoading = signal(false);
-  readonly #error = signal<string | null>(null);
+  // Single source of truth - private state signal
+  readonly #state = signal<EditTransactionsState>(
+    createInitialEditTransactionsState(),
+  );
 
-  // Public readonly computed state
-  readonly transactions = this.#transactions.asReadonly();
-  readonly isLoading = this.#isLoading.asReadonly();
-  readonly error = this.#error.asReadonly();
+  // Public computed selectors (read-only)
+  readonly transactions = computed(() => this.#state().transactions);
+  readonly isLoading = computed(() => this.#state().isLoading);
+  readonly error = computed(() => this.#state().error);
 
   // Derived computed signals
   readonly activeTransactions = computed(() =>
@@ -57,7 +59,7 @@ export class EditTransactionsStore {
 
   // Computed bulk operations for performance (memoized)
   readonly pendingOperations = computed(() => {
-    const transactions = this.#transactions();
+    const transactions = this.#state().transactions;
     return this.#generateBulkOperations(transactions);
   });
 
@@ -73,8 +75,11 @@ export class EditTransactionsStore {
       return this.#createEditableTransaction(data, originalLine);
     });
 
-    this.#transactions.set(editableTransactions);
-    this.#clearError();
+    this.#state.update((state) => ({
+      ...state,
+      transactions: editableTransactions,
+      error: null,
+    }));
   }
 
   /**
@@ -82,10 +87,10 @@ export class EditTransactionsStore {
    */
   addTransaction(data: TransactionFormData): string {
     const newTransaction = this.#createEditableTransaction(data);
-    this.#transactions.update((transactions) => [
-      ...transactions,
-      newTransaction,
-    ]);
+    this.#state.update((state) => ({
+      ...state,
+      transactions: [...state.transactions, newTransaction],
+    }));
     return newTransaction.id;
   }
 
@@ -173,7 +178,7 @@ export class EditTransactionsStore {
 
   // Private helper methods for state management
   #generateTempId(): string {
-    return `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    return `temp-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
   }
 
   #createEditableTransaction(
@@ -201,21 +206,25 @@ export class EditTransactionsStore {
 
     if (updated === null) {
       // Remove transaction entirely
-      this.#transactions.update((transactions) =>
-        transactions.filter((_, i) => i !== found.index),
-      );
+      this.#state.update((state) => ({
+        ...state,
+        transactions: state.transactions.filter((_, i) => i !== found.index),
+      }));
     } else {
       // Update transaction
-      this.#transactions.update((transactions) =>
-        transactions.map((t, i) => (i === found.index ? updated : t)),
-      );
+      this.#state.update((state) => ({
+        ...state,
+        transactions: state.transactions.map((t, i) =>
+          i === found.index ? updated : t,
+        ),
+      }));
     }
 
     return true;
   }
 
   #computeHasChanges(): boolean {
-    const transactions = this.#transactions();
+    const transactions = this.#state().transactions;
 
     return transactions.some(
       (t) =>
@@ -257,22 +266,31 @@ export class EditTransactionsStore {
   #findTransactionById(
     id: string,
   ): { transaction: EditableTransaction; index: number } | null {
-    const transactions = this.#transactions();
+    const transactions = this.#state().transactions;
     const index = transactions.findIndex((t) => t.id === id);
     return index !== -1 ? { transaction: transactions[index], index } : null;
   }
 
   #setLoading(loading: boolean): void {
-    this.#isLoading.set(loading);
-    if (loading) this.#clearError();
+    this.#state.update((state) => ({
+      ...state,
+      isLoading: loading,
+      error: loading ? null : state.error,
+    }));
   }
 
   #setError(error: string): void {
-    this.#error.set(error);
+    this.#state.update((state) => ({
+      ...state,
+      error,
+    }));
   }
 
   #clearError(): void {
-    this.#error.set(null);
+    this.#state.update((state) => ({
+      ...state,
+      error: null,
+    }));
   }
 
   #generateBulkOperations(
@@ -328,7 +346,7 @@ export class EditTransactionsStore {
     updated: TemplateLine[];
     deleted: string[];
   }): void {
-    const currentTransactions = this.#transactions();
+    const currentTransactions = this.#state().transactions;
     let createdIndex = 0;
 
     const updatedTransactions = currentTransactions
@@ -353,11 +371,14 @@ export class EditTransactionsStore {
         return transaction;
       });
 
-    this.#transactions.set(updatedTransactions);
+    this.#state.update((state) => ({
+      ...state,
+      transactions: updatedTransactions,
+    }));
   }
 
   #convertToExistingTransaction(
-    transaction: EditableTransaction,
+    _transaction: EditableTransaction,
     createdLine: TemplateLine,
   ): EditableTransaction {
     return {

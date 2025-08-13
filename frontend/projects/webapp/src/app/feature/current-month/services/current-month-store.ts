@@ -7,9 +7,11 @@ import { format } from 'date-fns';
 import { firstValueFrom } from 'rxjs';
 import {
   CurrentMonthState,
+  CurrentMonthInternalState,
   DashboardData,
   TransactionCreateData,
 } from './current-month-state';
+import { createInitialCurrentMonthInternalState } from './current-month-state';
 
 /**
  * CurrentMonthStore - Signal-based state management for current month dashboard
@@ -34,21 +36,11 @@ export class CurrentMonthStore {
 
   // === PRIVATE STATE ===
   /**
-   * State for data not managed by resource
+   * Single source of truth - private state signal for non-resource data
    */
-  #currentDate = signal<Date>(new Date());
-  #operationsInProgress = signal<Set<string>>(new Set());
-
-  /**
-   * Optimistic updates state - overlays on top of resource data
-   */
-  #optimisticUpdates = signal<{
-    addedTransactions: Transaction[];
-    removedTransactionIds: Set<string>;
-  }>({
-    addedTransactions: [],
-    removedTransactionIds: new Set(),
-  });
+  readonly #state = signal<CurrentMonthInternalState>(
+    createInitialCurrentMonthInternalState(),
+  );
 
   /**
    * Resource for loading dashboard data - single source of truth for async data
@@ -56,7 +48,7 @@ export class CurrentMonthStore {
   #dashboardResource = resource<DashboardData, { month: string; year: string }>(
     {
       params: () => {
-        const currentDate = this.#currentDate();
+        const currentDate = this.#state().currentDate;
         return {
           month: format(currentDate, 'MM'),
           year: format(currentDate, 'yyyy'),
@@ -74,16 +66,20 @@ export class CurrentMonthStore {
     dashboardData: this.#dashboardResource.value() || null,
     isLoading: this.#dashboardResource.isLoading(),
     error: this.#dashboardResource.error() || null,
-    currentDate: this.#currentDate(),
-    operationsInProgress: this.#operationsInProgress(),
+    currentDate: this.#state().currentDate,
+    operationsInProgress: this.#state().operationsInProgress,
   }));
 
   /**
-   * Dashboard data selector - directly from resource
+   * Dashboard data selector - resource with backward compatibility
    */
-  readonly dashboardData = computed(
-    () => this.#dashboardResource.value() || null,
-  );
+  readonly dashboardData = computed(() => ({
+    value: () => this.#dashboardResource.value(),
+    isLoading: () => this.#dashboardResource.isLoading(),
+    error: () => this.#dashboardResource.error(),
+    status: () => this.#dashboardResource.status(),
+    reload: () => this.#dashboardResource.reload(),
+  }));
 
   /**
    * Loading state selector - directly from resource
@@ -98,7 +94,7 @@ export class CurrentMonthStore {
   /**
    * Current date selector
    */
-  readonly today = computed(() => this.#currentDate());
+  readonly today = computed(() => this.#state().currentDate);
 
   /**
    * Budget lines selector
@@ -114,7 +110,7 @@ export class CurrentMonthStore {
     const resourceTransactions =
       this.#dashboardResource.value()?.transactions || [];
     const { addedTransactions, removedTransactionIds } =
-      this.#optimisticUpdates();
+      this.#state().optimisticUpdates;
 
     // Filter out removed transactions and add optimistic ones
     const filteredTransactions = resourceTransactions.filter(
@@ -134,7 +130,9 @@ export class CurrentMonthStore {
   /**
    * Operations in progress selector
    */
-  readonly operationsInProgress = computed(() => this.#operationsInProgress());
+  readonly operationsInProgress = computed(
+    () => this.#state().operationsInProgress,
+  );
 
   // === FINANCIAL CALCULATIONS ===
   /**
@@ -197,7 +195,10 @@ export class CurrentMonthStore {
    * Update the current date (triggers data reload)
    */
   setCurrentDate(date: Date): void {
-    this.#currentDate.set(new Date(date)); // Ensure immutability
+    this.#state.update((state) => ({
+      ...state,
+      currentDate: new Date(date), // Ensure immutability
+    }));
   }
 
   /**
@@ -218,9 +219,15 @@ export class CurrentMonthStore {
     };
 
     // Add to optimistic updates
-    this.#optimisticUpdates.update((state) => ({
+    this.#state.update((state) => ({
       ...state,
-      addedTransactions: [optimisticTransaction, ...state.addedTransactions],
+      optimisticUpdates: {
+        ...state.optimisticUpdates,
+        addedTransactions: [
+          optimisticTransaction,
+          ...state.optimisticUpdates.addedTransactions,
+        ],
+      },
     }));
 
     try {
@@ -230,20 +237,26 @@ export class CurrentMonthStore {
 
       // Replace optimistic transaction with real one
       if (response.data) {
-        this.#optimisticUpdates.update((state) => ({
+        this.#state.update((state) => ({
           ...state,
-          addedTransactions: state.addedTransactions.map((t) =>
-            t.id.startsWith('temp-') ? response.data : t,
-          ),
+          optimisticUpdates: {
+            ...state.optimisticUpdates,
+            addedTransactions: state.optimisticUpdates.addedTransactions.map(
+              (t) => (t.id.startsWith('temp-') ? response.data : t),
+            ),
+          },
         }));
       }
     } catch (error) {
       // Rollback: remove optimistic transaction
-      this.#optimisticUpdates.update((state) => ({
+      this.#state.update((state) => ({
         ...state,
-        addedTransactions: state.addedTransactions.filter(
-          (t) => !t.id.startsWith('temp-'),
-        ),
+        optimisticUpdates: {
+          ...state.optimisticUpdates,
+          addedTransactions: state.optimisticUpdates.addedTransactions.filter(
+            (t) => !t.id.startsWith('temp-'),
+          ),
+        },
       }));
       throw error;
     } finally {
@@ -276,12 +289,15 @@ export class CurrentMonthStore {
     }
 
     // Optimistic update: remove transaction immediately
-    this.#optimisticUpdates.update((state) => ({
+    this.#state.update((state) => ({
       ...state,
-      removedTransactionIds: new Set([
-        ...state.removedTransactionIds,
-        transactionId,
-      ]),
+      optimisticUpdates: {
+        ...state.optimisticUpdates,
+        removedTransactionIds: new Set([
+          ...state.optimisticUpdates.removedTransactionIds,
+          transactionId,
+        ]),
+      },
     }));
 
     try {
@@ -289,12 +305,17 @@ export class CurrentMonthStore {
       // Success: optimistic update stands
     } catch (error) {
       // Rollback: restore deleted transaction
-      this.#optimisticUpdates.update((state) => {
-        const newRemovedIds = new Set(state.removedTransactionIds);
+      this.#state.update((state) => {
+        const newRemovedIds = new Set(
+          state.optimisticUpdates.removedTransactionIds,
+        );
         newRemovedIds.delete(transactionId);
         return {
           ...state,
-          removedTransactionIds: newRemovedIds,
+          optimisticUpdates: {
+            ...state.optimisticUpdates,
+            removedTransactionIds: newRemovedIds,
+          },
         };
       });
       throw error;
@@ -316,17 +337,26 @@ export class CurrentMonthStore {
    * Add operation to progress tracking
    */
   #addOperationInProgress(operationId: string): void {
-    this.#operationsInProgress.update((ops) => new Set([...ops, operationId]));
+    this.#state.update((state) => ({
+      ...state,
+      operationsInProgress: new Set([
+        ...state.operationsInProgress,
+        operationId,
+      ]),
+    }));
   }
 
   /**
    * Remove operation from progress tracking
    */
   #removeOperationInProgress(operationId: string): void {
-    this.#operationsInProgress.update((ops) => {
-      const newOps = new Set(ops);
+    this.#state.update((state) => {
+      const newOps = new Set(state.operationsInProgress);
       newOps.delete(operationId);
-      return newOps;
+      return {
+        ...state,
+        operationsInProgress: newOps,
+      };
     });
   }
 
