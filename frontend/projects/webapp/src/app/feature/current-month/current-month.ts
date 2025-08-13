@@ -37,6 +37,7 @@ import {
 import { BudgetLineMapper } from './services/budget-line-mapper';
 import { ConfirmationDialogComponent } from '@ui/dialogs/confirmation-dialog';
 import { firstValueFrom } from 'rxjs';
+import { type Transaction } from '@pulpe/shared';
 
 @Component({
   selector: 'pulpe-current-month',
@@ -76,20 +77,20 @@ import { firstValueFrom } from 'rxjs';
         </h1>
         <button
           matButton
-          (click)="store.dashboardData.reload()"
-          [disabled]="store.dashboardData.isLoading()"
+          (click)="store.dashboardData().reload()"
+          [disabled]="store.dashboardData().isLoading()"
           data-testid="refresh-button"
         >
           <mat-icon>refresh</mat-icon>
           Actualiser
         </button>
       </header>
-      {{ store.dashboardData.status() }}
+      {{ store.dashboardData().status() }}
 
       @switch (true) {
         @case (
-          store.dashboardData.status() === 'loading' ||
-          store.dashboardData.status() === 'reloading'
+          store.dashboardData().status() === 'loading' ||
+          store.dashboardData().status() === 'reloading'
         ) {
           <pulpe-base-loading
             message="Chargement du tableau de bord..."
@@ -97,17 +98,17 @@ import { firstValueFrom } from 'rxjs';
             testId="dashboard-loading"
           />
         }
-        @case (store.dashboardData.status() === 'error') {
+        @case (store.dashboardData().status() === 'error') {
           <pulpe-dashboard-error
-            (reload)="store.dashboardData.reload()"
+            (reload)="store.dashboardData().reload()"
             data-testid="dashboard-error"
           />
         }
         @case (
-          store.dashboardData.status() === 'resolved' ||
-          store.dashboardData.status() === 'local'
+          store.dashboardData().status() === 'resolved' ||
+          store.dashboardData().status() === 'local'
         ) {
-          @if (store.dashboardData.value()?.budget) {
+          @if (store.dashboardData().value()?.budget) {
             <pulpe-budget-progress-bar
               [totalBudget]="store.livingAllowanceAmount()"
               [usedAmount]="store.actualTransactionsAmount()"
@@ -205,7 +206,7 @@ export default class CurrentMonth implements OnInit {
 
   fixedTransactions = computed(() => {
     const budgetLines = this.store.budgetLines();
-    const budgetId = this.store.dashboardData.value()?.budget?.id;
+    const budgetId = this.store.dashboardData().value()?.budget?.id;
 
     if (!budgetId) return [];
 
@@ -216,7 +217,7 @@ export default class CurrentMonth implements OnInit {
   });
   variableTransactions = computed(() => {
     // For now, show all transactions as variable expenses
-    const transactions = this.store.dashboardData.value()?.transactions ?? [];
+    const transactions = this.store.dashboardData().value()?.transactions ?? [];
     return transactions;
   });
 
@@ -261,7 +262,7 @@ export default class CurrentMonth implements OnInit {
     try {
       this.isCreatingTransaction.set(true);
       await this.store.addTransaction({
-        budgetId: this.store.dashboardData.value()?.budget?.id ?? '',
+        budgetId: this.store.dashboardData().value()?.budget?.id ?? '',
         amount: transaction.amount ?? 0,
         name: transaction.name,
         kind:
@@ -284,7 +285,7 @@ export default class CurrentMonth implements OnInit {
   async deleteTransaction(transactionId: string): Promise<void> {
     // Find transaction for the confirmation dialog
     const transaction = this.variableTransactions().find(
-      (t) => t.id === transactionId,
+      (t: Transaction) => t.id === transactionId,
     );
 
     if (!transaction) return;

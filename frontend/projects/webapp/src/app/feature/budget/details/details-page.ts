@@ -29,7 +29,12 @@ import {
   ConfirmationDialogComponent,
   type ConfirmationDialogData,
 } from '../../../ui/dialogs/confirmation-dialog';
-import { type BudgetLineCreate, type BudgetLineUpdate } from '@pulpe/shared';
+import {
+  type BudgetLineCreate,
+  type BudgetLineUpdate,
+  type BudgetLine,
+  type Transaction,
+} from '@pulpe/shared';
 
 @Component({
   selector: 'pulpe-details-page',
@@ -47,14 +52,14 @@ import { type BudgetLineCreate, type BudgetLineUpdate } from '@pulpe/shared';
   providers: [BudgetDetailsStore, BudgetLineApi],
   template: `
     <div class="flex flex-col gap-6">
-      @if (budgetDetailsStore.budgetDetails.isLoading()) {
+      @if (budgetDetailsStore.isLoading()) {
         <pulpe-base-loading
           message="Chargement des détails du budget..."
           size="large"
           [fullHeight]="true"
           testId="budget-details-loading"
         ></pulpe-base-loading>
-      } @else if (budgetDetailsStore.budgetDetails.error()) {
+      } @else if (budgetDetailsStore.error()) {
         <mat-card class="bg-error-container">
           <mat-card-content>
             <div class="flex items-center gap-2 text-on-error-container">
@@ -64,10 +69,10 @@ import { type BudgetLineCreate, type BudgetLineUpdate } from '@pulpe/shared';
           </mat-card-content>
         </mat-card>
       } @else {
-        @let data = budgetDetailsStore.budgetDetails.value()!;
-        @let budget = data.data.budget;
-        @let budgetLines = data.data.budgetLines;
-        @let transactions = data.data.transactions;
+        @let data = budgetDetailsStore.budgetData()!;
+        @let budget = data.budget;
+        @let budgetLines = data.budgetLines;
+        @let transactions = data.transactions;
 
         <!-- Header -->
         <header class="flex items-start gap-4">
@@ -185,14 +190,14 @@ export default class DetailsPage implements OnInit {
   }
 
   displayName = computed(() => {
-    const budget = this.budgetDetailsStore.budgetDetails.value()?.data.budget;
+    const budget = this.budgetDetailsStore.budgetDetails().value()?.data.budget;
     if (!budget) return '';
     const date = new Date(budget.year, budget.month - 1, 1);
     return formatDate(date, 'MMMM yyyy', { locale: frCH });
   });
 
   async openAddBudgetLineDialog(): Promise<void> {
-    const budget = this.budgetDetailsStore.budgetDetails.value()?.data.budget;
+    const budget = this.budgetDetailsStore.budgetDetails().value()?.data.budget;
     if (!budget) return;
 
     const dialogRef = this.#dialog.open(BudgetLineDialog, {
@@ -221,12 +226,16 @@ export default class DetailsPage implements OnInit {
   }
 
   async handleDeleteItem(id: string): Promise<void> {
-    const data = this.budgetDetailsStore.budgetDetails.value()?.data;
+    const data = this.budgetDetailsStore.budgetData();
     if (!data) return;
 
     // Find the item to determine if it's a budget line or transaction
-    const budgetLine = data.budgetLines.find((line) => line.id === id);
-    const transaction = data.transactions.find((tx) => tx.id === id);
+    const budgetLine = data.budgetLines.find(
+      (line: BudgetLine) => line.id === id,
+    );
+    const transaction = data.transactions.find(
+      (tx: Transaction) => tx.id === id,
+    );
 
     if (!budgetLine && !transaction) {
       console.error('Item not found with id:', id);
