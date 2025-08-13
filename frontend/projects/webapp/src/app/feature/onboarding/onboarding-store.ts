@@ -15,10 +15,10 @@ import {
   type OnboardingData,
   type OnboardingStep,
   createInitialOnboardingState,
-} from './onboarding-state.interface';
+} from './onboarding-state';
 
 // Re-export for external use
-export type { OnboardingStep } from './onboarding-state.interface';
+export type { OnboardingStep } from './onboarding-state';
 
 const STORAGE_KEY = 'pulpe-onboarding-data';
 

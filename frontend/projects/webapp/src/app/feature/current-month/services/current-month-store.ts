@@ -9,7 +9,7 @@ import {
   CurrentMonthState,
   DashboardData,
   TransactionCreateData,
-} from './current-month-state.interface';
+} from './current-month-state';
 
 /**
  * CurrentMonthStore - Signal-based state management for current month dashboard

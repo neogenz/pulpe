@@ -26,7 +26,7 @@ import { DashboardError } from './components/dashboard-error';
 import { BaseLoadingComponent } from '../../ui/loading';
 import { FixedTransactionsList } from './components/fixed-transactions-list';
 import { VariableExpensesList } from './components/variable-expenses-list';
-import { CurrentMonthState } from './services/current-month-state';
+import { CurrentMonthStore } from './services/current-month-store';
 import { TransactionChipFilter } from './components/transaction-chip-filter';
 import { TitleDisplay } from '@core/routing';
 import { BudgetProgressBar } from './components/budget-progress-bar';
@@ -76,20 +76,20 @@ import { firstValueFrom } from 'rxjs';
         </h1>
         <button
           matButton
-          (click)="state.dashboardData.reload()"
-          [disabled]="state.dashboardData.isLoading()"
+          (click)="store.dashboardData.reload()"
+          [disabled]="store.dashboardData.isLoading()"
           data-testid="refresh-button"
         >
           <mat-icon>refresh</mat-icon>
           Actualiser
         </button>
       </header>
-      {{ state.dashboardData.status() }}
+      {{ store.dashboardData.status() }}
 
       @switch (true) {
         @case (
-          state.dashboardData.status() === 'loading' ||
-          state.dashboardData.status() === 'reloading'
+          store.dashboardData.status() === 'loading' ||
+          store.dashboardData.status() === 'reloading'
         ) {
           <pulpe-base-loading
             message="Chargement du tableau de bord..."
@@ -97,20 +97,20 @@ import { firstValueFrom } from 'rxjs';
             testId="dashboard-loading"
           />
         }
-        @case (state.dashboardData.status() === 'error') {
+        @case (store.dashboardData.status() === 'error') {
           <pulpe-dashboard-error
-            (reload)="state.dashboardData.reload()"
+            (reload)="store.dashboardData.reload()"
             data-testid="dashboard-error"
           />
         }
         @case (
-          state.dashboardData.status() === 'resolved' ||
-          state.dashboardData.status() === 'local'
+          store.dashboardData.status() === 'resolved' ||
+          store.dashboardData.status() === 'local'
         ) {
-          @if (state.dashboardData.value()?.budget) {
+          @if (store.dashboardData.value()?.budget) {
             <pulpe-budget-progress-bar
-              [totalBudget]="state.livingAllowanceAmount()"
-              [usedAmount]="state.actualTransactionsAmount()"
+              [totalBudget]="store.livingAllowanceAmount()"
+              [usedAmount]="store.actualTransactionsAmount()"
             />
             <div class="flex flex-col gap-4" data-testid="dashboard-content">
               <pulpe-transaction-chip-filter
@@ -153,7 +153,7 @@ import { firstValueFrom } from 'rxjs';
                 data-testid="empty-state-description"
               >
                 Aucun budget n'a été créé pour
-                {{ state.today() | date: 'MMMM yyyy' }}.
+                {{ store.today() | date: 'MMMM yyyy' }}.
               </p>
             </div>
           }
@@ -196,7 +196,7 @@ import { firstValueFrom } from 'rxjs';
 export default class CurrentMonth implements OnInit {
   isCreatingTransaction = signal(false);
   selectedTransactions = signal<string[]>([]);
-  protected readonly state = inject(CurrentMonthState);
+  protected readonly store = inject(CurrentMonthStore);
   protected readonly titleDisplay = inject(TitleDisplay);
   #bottomSheet = inject(MatBottomSheet);
   #dialog = inject(MatDialog);
@@ -204,8 +204,8 @@ export default class CurrentMonth implements OnInit {
   #budgetLineMapper = inject(BudgetLineMapper);
 
   fixedTransactions = computed(() => {
-    const budgetLines = this.state.budgetLines();
-    const budgetId = this.state.dashboardData.value()?.budget?.id;
+    const budgetLines = this.store.budgetLines();
+    const budgetId = this.store.dashboardData.value()?.budget?.id;
 
     if (!budgetId) return [];
 
@@ -216,7 +216,7 @@ export default class CurrentMonth implements OnInit {
   });
   variableTransactions = computed(() => {
     // For now, show all transactions as variable expenses
-    const transactions = this.state.dashboardData.value()?.transactions ?? [];
+    const transactions = this.store.dashboardData.value()?.transactions ?? [];
     return transactions;
   });
 
@@ -231,7 +231,7 @@ export default class CurrentMonth implements OnInit {
    * [TEMPORAIREMENT DÉSACTIVÉ POUR LES TESTS E2E]
    */
   ngOnInit() {
-    this.state.refreshData();
+    this.store.refreshData();
 
     // Désactiver temporairement l'ouverture automatique pour éviter les interférences avec les tests E2E
     // setTimeout(() => {
@@ -260,8 +260,8 @@ export default class CurrentMonth implements OnInit {
   async onAddTransaction(transaction: TransactionFormData) {
     try {
       this.isCreatingTransaction.set(true);
-      await this.state.addTransaction({
-        budgetId: this.state.dashboardData.value()?.budget?.id ?? '',
+      await this.store.addTransaction({
+        budgetId: this.store.dashboardData.value()?.budget?.id ?? '',
         amount: transaction.amount ?? 0,
         name: transaction.name,
         kind:
@@ -306,7 +306,7 @@ export default class CurrentMonth implements OnInit {
     if (confirmed) {
       try {
         // Delete transaction
-        await this.state.deleteTransaction(transactionId);
+        await this.store.deleteTransaction(transactionId);
 
         // Show success message
         this.#snackBar.open('Transaction supprimée', undefined, {
