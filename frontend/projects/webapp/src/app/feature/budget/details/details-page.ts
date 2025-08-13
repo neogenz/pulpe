@@ -17,7 +17,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { DatePipe } from '@angular/common';
 import { formatDate } from 'date-fns';
 import { frCH } from 'date-fns/locale';
-import { BudgetDetailsState } from './services/budget-details-state';
+import { BudgetDetailsStore } from './services/budget-details-store';
 import { BudgetLineApi } from './services/budget-line-api';
 import { BudgetItemsTable } from './components/budget-items-table';
 import { BudgetFinancialOverview } from './components/budget-financial-overview';
@@ -44,17 +44,17 @@ import { type BudgetLineCreate, type BudgetLineUpdate } from '@pulpe/shared';
     BudgetFinancialOverview,
     BaseLoadingComponent,
   ],
-  providers: [BudgetDetailsState, BudgetLineApi],
+  providers: [BudgetDetailsStore, BudgetLineApi],
   template: `
     <div class="flex flex-col gap-6">
-      @if (budgetDetailsState.budgetDetails.isLoading()) {
+      @if (budgetDetailsStore.budgetDetails.isLoading()) {
         <pulpe-base-loading
           message="Chargement des détails du budget..."
           size="large"
           [fullHeight]="true"
           testId="budget-details-loading"
         ></pulpe-base-loading>
-      } @else if (budgetDetailsState.budgetDetails.error()) {
+      } @else if (budgetDetailsStore.budgetDetails.error()) {
         <mat-card class="bg-error-container">
           <mat-card-content>
             <div class="flex items-center gap-2 text-on-error-container">
@@ -64,7 +64,7 @@ import { type BudgetLineCreate, type BudgetLineUpdate } from '@pulpe/shared';
           </mat-card-content>
         </mat-card>
       } @else {
-        @let data = budgetDetailsState.budgetDetails.value()!;
+        @let data = budgetDetailsStore.budgetDetails.value()!;
         @let budget = data.data.budget;
         @let budgetLines = data.data.budgetLines;
         @let transactions = data.data.transactions;
@@ -99,7 +99,7 @@ import { type BudgetLineCreate, type BudgetLineUpdate } from '@pulpe/shared';
         <pulpe-budget-items-table
           [budgetLines]="budgetLines"
           [transactions]="transactions"
-          [operationsInProgress]="budgetDetailsState.operationsInProgress()"
+          [operationsInProgress]="budgetDetailsStore.operationsInProgress()"
           (updateClicked)="handleUpdateBudgetLine($event.id, $event.update)"
           (deleteClicked)="handleDeleteItem($event)"
           (addClicked)="openAddBudgetLineDialog()"
@@ -168,7 +168,7 @@ import { type BudgetLineCreate, type BudgetLineUpdate } from '@pulpe/shared';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class DetailsPage implements OnInit {
-  budgetDetailsState = inject(BudgetDetailsState);
+  budgetDetailsStore = inject(BudgetDetailsStore);
   readonly #router = inject(Router);
   readonly #route = inject(ActivatedRoute);
   readonly #dialog = inject(MatDialog);
@@ -177,7 +177,7 @@ export default class DetailsPage implements OnInit {
 
   ngOnInit(): void {
     // Initialize the budget ID - input is guaranteed to be available in ngOnInit
-    this.budgetDetailsState.initializeBudgetId(this.id());
+    this.budgetDetailsStore.initializeBudgetId(this.id());
   }
 
   navigateBack(): void {
@@ -185,14 +185,14 @@ export default class DetailsPage implements OnInit {
   }
 
   displayName = computed(() => {
-    const budget = this.budgetDetailsState.budgetDetails.value()?.data.budget;
+    const budget = this.budgetDetailsStore.budgetDetails.value()?.data.budget;
     if (!budget) return '';
     const date = new Date(budget.year, budget.month - 1, 1);
     return formatDate(date, 'MMMM yyyy', { locale: frCH });
   });
 
   async openAddBudgetLineDialog(): Promise<void> {
-    const budget = this.budgetDetailsState.budgetDetails.value()?.data.budget;
+    const budget = this.budgetDetailsStore.budgetDetails.value()?.data.budget;
     if (!budget) return;
 
     const dialogRef = this.#dialog.open(BudgetLineDialog, {
@@ -210,18 +210,18 @@ export default class DetailsPage implements OnInit {
   }
 
   async handleCreateBudgetLine(budgetLine: BudgetLineCreate): Promise<void> {
-    await this.budgetDetailsState.createBudgetLine(budgetLine);
+    await this.budgetDetailsStore.createBudgetLine(budgetLine);
   }
 
   async handleUpdateBudgetLine(
     id: string,
     update: BudgetLineUpdate,
   ): Promise<void> {
-    await this.budgetDetailsState.updateBudgetLine(id, update);
+    await this.budgetDetailsStore.updateBudgetLine(id, update);
   }
 
   async handleDeleteItem(id: string): Promise<void> {
-    const data = this.budgetDetailsState.budgetDetails.value()?.data;
+    const data = this.budgetDetailsStore.budgetDetails.value()?.data;
     if (!data) return;
 
     // Find the item to determine if it's a budget line or transaction
@@ -258,7 +258,7 @@ export default class DetailsPage implements OnInit {
     }
 
     if (isBudgetLine) {
-      await this.budgetDetailsState.deleteBudgetLine(id);
+      await this.budgetDetailsStore.deleteBudgetLine(id);
     } else {
       // TODO: Implement transaction deletion
       console.warn('Transaction deletion not yet implemented');
@@ -282,6 +282,6 @@ export default class DetailsPage implements OnInit {
       return;
     }
 
-    await this.budgetDetailsState.deleteBudgetLine(id);
+    await this.budgetDetailsStore.deleteBudgetLine(id);
   }
 }
