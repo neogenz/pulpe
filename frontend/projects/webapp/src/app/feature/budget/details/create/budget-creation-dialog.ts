@@ -7,14 +7,8 @@ import {
   computed,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import {
-  FormBuilder,
-  FormControl,
-  ReactiveFormsModule,
-  Validators,
-} from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import {
   MatDialog,
@@ -23,16 +17,15 @@ import {
 } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatIconModule } from '@angular/material/icon';
-import { MatRadioModule } from '@angular/material/radio';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MAT_DATE_FORMATS } from '@angular/material/core';
 import { MAT_DATE_FNS_FORMATS } from '@angular/material-date-fns-adapter';
 import { startOfMonth, setMonth, setYear } from 'date-fns';
-import { firstValueFrom, startWith, debounceTime, map } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import { type BudgetTemplate } from '@pulpe/shared';
-import { TemplateListItem } from './ui/template-list-item';
+import { TemplatesList } from './ui/templates-list';
+import { type TemplateViewModel } from './ui/templates-list.types';
 import { TemplateDetailsDialog } from './template-details-dialog';
 import { TemplateStore } from './services/template-store';
 import { TemplateTotalsCalculator } from './services/template-totals-calculator';
@@ -78,15 +71,12 @@ const MONTH_YEAR_FORMATS = {
   imports: [
     MatDialogModule,
     MatButtonModule,
-    MatCardModule,
     MatFormFieldModule,
     MatInputModule,
     MatDatepickerModule,
-    MatIconModule,
-    MatRadioModule,
     MatProgressSpinnerModule,
     ReactiveFormsModule,
-    TemplateListItem,
+    TemplatesList,
   ],
   providers: [
     TemplateStore,
@@ -170,100 +160,16 @@ const MONTH_YEAR_FORMATS = {
             Sélection du modèle
           </h3>
 
-          <!-- Search Field -->
-          <mat-form-field appearance="outline" class="w-full mb-2 md:mb-4">
-            <mat-label>Rechercher un modèle</mat-label>
-            <input
-              matInput
-              [formControl]="searchControl"
-              placeholder="Nom ou description..."
-            />
-            <mat-icon matPrefix>search</mat-icon>
-            @if (searchControl.value) {
-              <button
-                matIconButton
-                matSuffix
-                (click)="searchControl.setValue('')"
-              >
-                <mat-icon>clear</mat-icon>
-              </button>
-            }
-          </mat-form-field>
-
-          <!-- Templates List -->
-          <div class="template-list">
-            @if (templateStore.templates.isLoading()) {
-              <div class="flex justify-center items-center h-[200px]">
-                <mat-progress-spinner
-                  mode="indeterminate"
-                  aria-label="Chargement des modèles"
-                  role="progressbar"
-                  class="pulpe-loading-indicator pulpe-loading-medium"
-                ></mat-progress-spinner>
-              </div>
-            } @else if (templateStore.templates.error()) {
-              <div
-                class="flex flex-col items-center justify-center h-[200px] text-error"
-              >
-                <mat-icon class="text-display-small mb-2"
-                  >error_outline</mat-icon
-                >
-                <p class="text-label-large">
-                  Erreur lors du chargement des modèles
-                </p>
-                <button
-                  matButton
-                  color="primary"
-                  (click)="templateStore.reloadTemplates()"
-                >
-                  Réessayer
-                </button>
-              </div>
-            } @else if (filteredTemplates().length === 0) {
-              <div
-                class="flex flex-col items-center justify-center h-[200px] text-on-surface-variant"
-              >
-                <mat-icon class="text-display-small mb-2">inbox</mat-icon>
-                <p class="text-label-large">
-                  @if (searchControl.value) {
-                    Aucun modèle trouvé pour "{{ searchControl.value }}"
-                  } @else {
-                    Aucun modèle disponible
-                  }
-                </p>
-              </div>
-            } @else {
-              <mat-radio-group
-                [value]="templateStore.selectedTemplateId()"
-                (change)="onTemplateSelect($event.value)"
-                class="flex flex-col gap-2 md:gap-3"
-                data-testid="template-selection-radio-group"
-              >
-                @for (template of filteredTemplates(); track template.id) {
-                  @let templateTotals =
-                    templateStore.templateTotalsMap()[template.id];
-                  <pulpe-template-list-item
-                    [template]="template"
-                    [isSelected]="
-                      templateStore.selectedTemplateId() === template.id
-                    "
-                    [totalIncome]="templateTotals?.totalIncome || 0"
-                    [totalExpenses]="
-                      (templateTotals?.totalExpenses || 0) +
-                      (templateTotals?.totalSavings || 0)
-                    "
-                    [remainingLivingAllowance]="
-                      templateTotals?.remainingLivingAllowance || 0
-                    "
-                    [loading]="templateTotals?.loading || !templateTotals"
-                    (selectTemplate)="onTemplateSelect($event)"
-                    (showDetails)="showTemplateDetails($event)"
-                    [attr.data-testid]="'template-card-' + template.id"
-                  />
-                }
-              </mat-radio-group>
-            }
-          </div>
+          <!-- Templates List Component -->
+          <pulpe-templates-list
+            [templates]="templateViewModels()"
+            [selectedTemplateId]="templateStore.selectedTemplateId()"
+            [isLoading]="templateStore.templates.isLoading()"
+            [hasError]="!!templateStore.templates.error()"
+            (templateSelected)="onTemplateSelect($event)"
+            (templateDetailsRequested)="showTemplateDetails($event)"
+            (retryRequested)="templateStore.reloadTemplates()"
+          />
         </section>
       </form>
     </mat-dialog-content>
@@ -315,25 +221,9 @@ const MONTH_YEAR_FORMATS = {
       overflow-y: auto;
     }
 
-    .template-list {
-      min-height: 250px;
-      max-height: 350px;
-      overflow-y: auto;
-      padding: 0.375rem;
-      border: 1px solid var(--mat-form-field-outline-color);
-      border-radius: 4px;
-      background-color: var(--mat-app-surface);
-    }
-
     @media (max-width: 640px) {
       mat-dialog-content {
         max-height: 75vh;
-      }
-
-      .template-list {
-        min-height: 200px;
-        max-height: 300px;
-        padding: 0.25rem;
       }
     }
   `,
@@ -350,35 +240,28 @@ export class CreateBudgetDialogComponent {
   // Expose constants for template usage
   readonly constants = BUDGET_CREATION_CONSTANTS;
 
-  // UI State - Search control moved to component
-  readonly searchControl = new FormControl('', { nonNullable: true });
-  readonly searchTerm = toSignal(
-    this.searchControl.valueChanges.pipe(
-      startWith(''),
-      debounceTime(300),
-      map((term) => term.toLowerCase().trim()),
-    ),
-    { initialValue: '' },
-  );
-
-  // Computed filtered templates (UI logic in component)
-  readonly filteredTemplates = computed(() => {
+  // Computed template view models for UI
+  readonly templateViewModels = computed((): TemplateViewModel[] => {
     const templates = this.templateStore.templates.value() || [];
-    const search = this.searchTerm();
+    const totalsMap = this.templateStore.templateTotalsMap();
 
-    let filtered = templates;
-    if (search) {
-      filtered = templates.filter(
-        (template: BudgetTemplate) =>
-          template.name.toLowerCase().includes(search) ||
-          template.description?.toLowerCase().includes(search),
-      );
-    }
+    // Transform templates to view models
+    const viewModels = templates.map((template): TemplateViewModel => {
+      const totals = totalsMap[template.id];
+      return {
+        template,
+        totalIncome: totals?.totalIncome || 0,
+        totalExpenses:
+          (totals?.totalExpenses || 0) + (totals?.totalSavings || 0),
+        remainingLivingAllowance: totals?.remainingLivingAllowance || 0,
+        loading: totals?.loading || !totals,
+      };
+    });
 
     // Sort to put default template first
-    return [...filtered].sort((a, b) => {
-      if (a.isDefault && !b.isDefault) return -1;
-      if (!a.isDefault && b.isDefault) return 1;
+    return [...viewModels].sort((a, b) => {
+      if (a.template.isDefault && !b.template.isDefault) return -1;
+      if (!a.template.isDefault && b.template.isDefault) return 1;
       return 0;
     });
   });
@@ -419,15 +302,15 @@ export class CreateBudgetDialogComponent {
       }
     });
 
-    // Load template totals when filtered templates change
+    // Load template totals when templates change
     effect(() => {
-      const templates = this.filteredTemplates();
+      const templates = this.templateStore.templates.value() || [];
       if (!templates.length) return;
 
       // Initialize default selection on first load
       this.templateStore.initializeDefaultSelection();
 
-      // Load template totals for visible templates
+      // Load template totals for all templates
       const templateIds = templates.map((t) => t.id);
       this.templateStore.loadTemplateTotals(templateIds);
     });
@@ -455,15 +338,9 @@ export class CreateBudgetDialogComponent {
   }
 
   async showTemplateDetails(template: BudgetTemplate): Promise<void> {
-    // Récupérer les templateLines depuis le cache ou les charger si nécessaire
-    let templateLines = this.templateStore.getCachedTemplateDetails(
+    const templateLines = await this.templateStore.loadTemplateDetails(
       template.id,
     );
-
-    if (!templateLines) {
-      // Si pas dans le cache, les charger maintenant
-      templateLines = await this.templateStore.loadTemplateDetails(template.id);
-    }
 
     this.#dialog.open(TemplateDetailsDialog, {
       data: {
