@@ -10,7 +10,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of } from 'rxjs';
 
 import EditTransactionsDialog from './edit-transactions-dialog';
-import { EditTransactionsStore } from '../services/edit-transactions-store';
+import { TemplateLineStore } from '../services/template-line-store';
 import { TransactionFormService } from '../../services/transaction-form';
 import { BudgetTemplatesApi } from '../../services/budget-templates-api';
 import { MatDialog } from '@angular/material/dialog';
@@ -92,7 +92,7 @@ describe('EditTransactionsDialog - Component Tests', () => {
       providers: [
         provideZonelessChangeDetection(),
         TransactionFormService,
-        EditTransactionsStore,
+        TemplateLineStore,
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: MAT_DIALOG_DATA, useValue: mockDialogData },
         { provide: BudgetTemplatesApi, useValue: mockBudgetTemplatesApi },
