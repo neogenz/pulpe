@@ -1,13 +1,3 @@
-import type { BudgetTemplate, TemplateLine } from '@pulpe/shared';
-
-/**
- * Response structure for template details API
- */
-export interface TemplateDetailsResponse {
-  template: BudgetTemplate;
-  transactions: TemplateLine[];
-}
-
 /**
  * State for template details store
  * Manages non-resource state like operation tracking and template ID

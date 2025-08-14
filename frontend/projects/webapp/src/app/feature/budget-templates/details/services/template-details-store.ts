@@ -1,9 +1,11 @@
 import { inject, Injectable, signal, computed, resource } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { BudgetTemplatesApi } from '../../services/budget-templates-api';
+import {
+  BudgetTemplatesApi,
+  type BudgetTemplateDetailViewModel,
+} from '../../services/budget-templates-api';
 import {
   type TemplateDetailsState,
-  type TemplateDetailsResponse,
   createInitialTemplateDetailsState,
 } from './template-details-state';
 
@@ -22,7 +24,7 @@ export class TemplateDetailsStore {
 
   // Resource for template details data - managed independently
   readonly #templateDetailsResource = resource<
-    TemplateDetailsResponse,
+    BudgetTemplateDetailViewModel,
     string | null
   >({
     params: () => this.#state().templateId,
@@ -45,13 +47,15 @@ export class TemplateDetailsStore {
   );
 
   // Derived selectors for convenience
-  readonly templateData = computed(
+  readonly templateDetails = computed(
     () => this.#templateDetailsResource.value() ?? null,
   );
-  readonly template = computed(() => this.templateData()?.template ?? null);
-  readonly transactions = computed(
-    () => this.templateData()?.transactions ?? [],
+  readonly template = computed(() => this.templateDetails()?.template ?? null);
+  readonly templateLines = computed(
+    () => this.templateDetails()?.transactions ?? [],
   );
+  // Alias for backward compatibility
+  readonly transactions = this.templateLines;
 
   // Public Actions
 

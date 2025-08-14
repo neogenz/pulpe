@@ -1,38 +1,7 @@
 import type { Budget, BudgetLine, Transaction } from '@pulpe/shared';
 
 /**
- * Interface describing the state managed by CurrentMonthStore
- * This is for backward compatibility and represents the combined view
- */
-export interface CurrentMonthState {
-  /**
-   * Dashboard data containing budget, transactions, and budget lines
-   */
-  dashboardData: DashboardData | null;
-
-  /**
-   * Loading state for async operations
-   */
-  isLoading: boolean;
-
-  /**
-   * Error state for failed operations
-   */
-  error: Error | null;
-
-  /**
-   * Current date used for calculations and data fetching
-   */
-  currentDate: Date;
-
-  /**
-   * Set of operations currently in progress (for optimistic updates)
-   */
-  operationsInProgress: Set<string>;
-}
-
-/**
- * Internal state interface for CurrentMonthStore following the single state signal pattern
+ * State interface for CurrentMonthStore following the single state signal pattern
  * Contains only the data not managed by the resource
  */
 export interface CurrentMonthInternalState {

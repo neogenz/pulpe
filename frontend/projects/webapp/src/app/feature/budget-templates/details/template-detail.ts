@@ -91,7 +91,7 @@ import { TemplateDetailsStore } from './services/template-details-store';
           </div>
         </div>
       } @else {
-        @let templateData = templateDetailsStore.templateData();
+        @let templateData = templateDetailsStore.templateDetails();
         @if (templateData) {
           <!-- Header section with proper semantic structure -->
           <header class="flex flex-shrink-0 gap-4 items-center rounded-xl p-4">
