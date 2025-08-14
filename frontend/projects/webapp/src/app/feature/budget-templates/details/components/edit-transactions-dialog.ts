@@ -43,6 +43,7 @@ interface EditTransactionsDialogData {
 interface EditTransactionsDialogResult {
   saved: boolean;
   updatedLines?: TemplateLine[];
+  deletedIds?: string[];
   error?: string;
 }
 
@@ -287,6 +288,7 @@ interface EditTransactionsDialogResult {
         color="primary"
         (click)="save()"
         [disabled]="!isValid() || isLoading()"
+        [attr.aria-describedby]="!isValid() ? 'validation-error' : null"
       >
         <div class="flex items-center gap-2">
           @if (isLoading()) {
@@ -407,6 +409,7 @@ export default class EditTransactionsDialog {
     this.#dialogRef.close({
       saved: true,
       updatedLines: result.updatedLines,
+      deletedIds: result.deletedIds,
     } as EditTransactionsDialogResult);
   }
 

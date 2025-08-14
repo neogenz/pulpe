@@ -185,6 +185,7 @@ describe('EditTransactionsDialog - Component Tests', () => {
       expect(mockDialogRef.close).toHaveBeenCalledWith({
         saved: true,
         updatedLines: [],
+        deletedIds: [],
       });
     });
 
