@@ -156,40 +156,4 @@ export class Logger {
       }
     }
   }
-
-  /**
-   * Group related log messages
-   */
-  group(label: string): void {
-    if (!this.#isProduction) {
-      console.group(label);
-    }
-  }
-
-  /**
-   * End a log group
-   */
-  groupEnd(): void {
-    if (!this.#isProduction) {
-      console.groupEnd();
-    }
-  }
-
-  /**
-   * Time a code execution
-   */
-  time(label: string): void {
-    if (!this.#isProduction) {
-      console.time(label);
-    }
-  }
-
-  /**
-   * End timing and log the result
-   */
-  timeEnd(label: string): void {
-    if (!this.#isProduction) {
-      console.timeEnd(label);
-    }
-  }
 }
