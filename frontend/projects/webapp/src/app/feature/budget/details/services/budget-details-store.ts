@@ -1,6 +1,5 @@
 import { inject, Injectable, signal, computed, resource } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { BudgetLineApi } from './budget-line-api';
 import { Logger } from '../../../../core/services/logger';
 import {
@@ -20,7 +19,6 @@ import {
 @Injectable()
 export class BudgetDetailsStore {
   readonly #budgetLineApi = inject(BudgetLineApi);
-  readonly #snackBar = inject(MatSnackBar);
   readonly #logger = inject(Logger);
 
   // Single source of truth - private state signal for non-resource data
@@ -104,14 +102,12 @@ export class BudgetDetailsStore {
         };
       });
 
-      this.#showSuccessMessage('Prévision ajoutée.');
       this.#clearError();
     } catch (error) {
       // On error, reload to ensure consistency
       this.#budgetDetailsResource.reload();
 
       const errorMessage = "Erreur lors de l'ajout de la prévision";
-      this.#showErrorMessage(errorMessage);
       this.#setError(errorMessage);
       this.#logger.error('Error creating budget line', error);
     } finally {
@@ -166,7 +162,6 @@ export class BudgetDetailsStore {
         };
       });
 
-      this.#showSuccessMessage('Prévision modifiée.');
       this.#clearError();
     } catch (error) {
       // Rollback on error
@@ -177,7 +172,6 @@ export class BudgetDetailsStore {
       }
 
       const errorMessage = 'Erreur lors de la modification de la prévision';
-      this.#showErrorMessage(errorMessage);
       this.#setError(errorMessage);
       this.#logger.error('Error updating budget line', error);
     } finally {
@@ -213,7 +207,6 @@ export class BudgetDetailsStore {
     try {
       await firstValueFrom(this.#budgetLineApi.deleteBudgetLine$(id));
 
-      this.#showSuccessMessage('Prévision supprimée.');
       this.#clearError();
     } catch (error) {
       // Rollback on error
@@ -224,7 +217,6 @@ export class BudgetDetailsStore {
       }
 
       const errorMessage = 'Erreur lors de la suppression de la prévision';
-      this.#showErrorMessage(errorMessage);
       this.#setError(errorMessage);
       this.#logger.error('Error deleting budget line', error);
     } finally {
@@ -289,22 +281,4 @@ export class BudgetDetailsStore {
   }
 
   // Private utility methods
-
-  /**
-   * Show success message via snackbar
-   */
-  #showSuccessMessage(message: string): void {
-    this.#snackBar.open(message, 'OK', {
-      duration: 3000,
-    });
-  }
-
-  /**
-   * Show error message via snackbar
-   */
-  #showErrorMessage(message: string): void {
-    this.#snackBar.open(message, 'OK', {
-      duration: 5000,
-    });
-  }
 }

@@ -1,6 +1,5 @@
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { of, throwError, Subject } from 'rxjs';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type {
@@ -66,9 +65,6 @@ describe('BudgetDetailsStore - Integration Tests', () => {
     updateBudgetLine$: ReturnType<typeof vi.fn>;
     deleteBudgetLine$: ReturnType<typeof vi.fn>;
   };
-  let mockSnackBar: {
-    open: ReturnType<typeof vi.fn>;
-  };
 
   // Helper function to set resource data manually for testing
   const setResourceData = () => {
@@ -88,16 +84,11 @@ describe('BudgetDetailsStore - Integration Tests', () => {
       deleteBudgetLine$: vi.fn(),
     };
 
-    mockSnackBar = {
-      open: vi.fn(),
-    };
-
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
         BudgetDetailsStore,
         { provide: BudgetLineApi, useValue: mockBudgetLineApi },
-        { provide: MatSnackBar, useValue: mockSnackBar },
       ],
     });
 
@@ -187,14 +178,7 @@ describe('BudgetDetailsStore - Integration Tests', () => {
       expect(addedLine).toBeDefined();
       expect(addedLine?.name).toBe('Groceries');
 
-      // Check success message
-      expect(mockSnackBar.open).toHaveBeenCalledWith(
-        'Prévision ajoutée.',
-        'OK',
-        {
-          duration: 3000,
-        },
-      );
+      // Success - no snackbar calls (moved to component responsibility)
     });
 
     it('should handle creation errors and reload data', async () => {
@@ -221,11 +205,6 @@ describe('BudgetDetailsStore - Integration Tests', () => {
 
       // Check error handling
       expect(reloadSpy).toHaveBeenCalled();
-      expect(mockSnackBar.open).toHaveBeenCalledWith(
-        "Erreur lors de l'ajout de la prévision",
-        'OK',
-        { duration: 5000 },
-      );
     });
   });
 
@@ -266,14 +245,7 @@ describe('BudgetDetailsStore - Integration Tests', () => {
       expect(updatedLine?.name).toBe('Updated Rent');
       expect(updatedLine?.amount).toBe(1600);
 
-      // Check success message
-      expect(mockSnackBar.open).toHaveBeenCalledWith(
-        'Prévision modifiée.',
-        'OK',
-        {
-          duration: 3000,
-        },
-      );
+      // Success - no snackbar calls (moved to component responsibility)
     });
 
     it('should rollback on update error', async () => {
@@ -301,12 +273,7 @@ describe('BudgetDetailsStore - Integration Tests', () => {
 
       expect(rolledBackLine?.name).toBe(originalLine?.name);
 
-      // Check error message
-      expect(mockSnackBar.open).toHaveBeenCalledWith(
-        'Erreur lors de la modification de la prévision',
-        'OK',
-        { duration: 5000 },
-      );
+      // Error handled - no snackbar calls (moved to component responsibility)
     });
   });
 
@@ -334,14 +301,7 @@ describe('BudgetDetailsStore - Integration Tests', () => {
       );
       expect(deletedLine).toBeUndefined();
 
-      // Check success message
-      expect(mockSnackBar.open).toHaveBeenCalledWith(
-        'Prévision supprimée.',
-        'OK',
-        {
-          duration: 3000,
-        },
-      );
+      // Success - no snackbar calls (moved to component responsibility)
     });
 
     it('should rollback on deletion error', async () => {
@@ -364,12 +324,7 @@ describe('BudgetDetailsStore - Integration Tests', () => {
       );
       expect(restoredLine).toBeDefined();
 
-      // Check error message
-      expect(mockSnackBar.open).toHaveBeenCalledWith(
-        'Erreur lors de la suppression de la prévision',
-        'OK',
-        { duration: 5000 },
-      );
+      // Error handled - no snackbar calls (moved to component responsibility)
     });
   });
 
@@ -490,11 +445,7 @@ describe('BudgetDetailsStore - Integration Tests', () => {
       // Should not throw, but handle gracefully
       await expect(service.createBudgetLine(newLine)).resolves.toBeUndefined();
 
-      expect(mockSnackBar.open).toHaveBeenCalledWith(
-        "Erreur lors de l'ajout de la prévision",
-        'OK',
-        { duration: 5000 },
-      );
+      // Error handled - no snackbar calls (moved to component responsibility)
     });
   });
 });

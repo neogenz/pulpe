@@ -184,7 +184,6 @@ describe('CurrentMonthStore', () => {
       expect(service.setCurrentDate).toBeDefined();
       expect(service.addTransaction).toBeDefined();
       expect(service.deleteTransaction).toBeDefined();
-      expect(service.clearError).toBeDefined();
     });
   });
 
@@ -363,11 +362,6 @@ describe('CurrentMonthStore', () => {
   });
 
   describe('Error Handling', () => {
-    it('should have clearError method', () => {
-      expect(service.clearError).toBeDefined();
-      expect(() => service.clearError()).not.toThrow();
-    });
-
     it('should initially have no error', () => {
       expect(service.error()).toBeNull();
     });
@@ -378,16 +372,6 @@ describe('CurrentMonthStore', () => {
       const operations = service.operationsInProgress();
       expect(operations).toBeInstanceOf(Set);
       expect(operations.size).toBe(0);
-    });
-  });
-
-  describe('State Signal', () => {
-    it('should expose readonly state', () => {
-      expect(service.state).toBeDefined();
-      const state = service.state();
-      expect(state).toBeDefined();
-      expect(state.currentDate).toBeInstanceOf(Date);
-      expect(state.operationsInProgress).toBeInstanceOf(Set);
     });
   });
 });

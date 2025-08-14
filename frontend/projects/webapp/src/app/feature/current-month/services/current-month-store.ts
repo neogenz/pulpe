@@ -7,7 +7,6 @@ import { type Budget, type Transaction, type BudgetLine } from '@pulpe/shared';
 import { format } from 'date-fns';
 import { firstValueFrom } from 'rxjs';
 import {
-  CurrentMonthState,
   CurrentMonthInternalState,
   DashboardData,
   TransactionCreateData,
@@ -62,18 +61,7 @@ export class CurrentMonthStore {
 
   // === PUBLIC SELECTORS ===
   /**
-   * Current state (read-only) - for backward compatibility
-   */
-  readonly state = computed<CurrentMonthState>(() => ({
-    dashboardData: this.#dashboardResource.value() || null,
-    isLoading: this.#dashboardResource.isLoading(),
-    error: this.#dashboardResource.error() || null,
-    currentDate: this.#state().currentDate,
-    operationsInProgress: this.#state().operationsInProgress,
-  }));
-
-  /**
-   * Dashboard data selector - resource with backward compatibility
+   * Dashboard data selector
    */
   readonly dashboardData = computed(() => ({
     value: () => this.#dashboardResource.value(),
@@ -324,14 +312,6 @@ export class CurrentMonthStore {
     } finally {
       this.#removeOperationInProgress(operationId);
     }
-  }
-
-  /**
-   * Clear any error state
-   */
-  clearError(): void {
-    // Note: Resource errors are read-only, this method is kept for backward compatibility
-    // In the future, consider removing this method as resource errors clear on retry
   }
 
   // === PRIVATE HELPERS ===
