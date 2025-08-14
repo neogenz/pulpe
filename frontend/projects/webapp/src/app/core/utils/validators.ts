@@ -1,7 +1,20 @@
 /**
- * URL validation utilities for configuration and user input.
+ * URL validation utilities using Zod for configuration and user input.
  * Provides secure URL validation and sanitization functions.
  */
+
+import { z } from 'zod';
+
+// Base Zod schemas
+const urlSchema = z.string().url();
+const httpUrlSchema = z.string().url().refine(
+  url => url.startsWith('http://') || url.startsWith('https://'),
+  'Only HTTP/HTTPS URLs allowed'
+);
+
+// Helper for URL validation with type safety
+const isUrlValid = (url: unknown): url is string => 
+  typeof url === 'string' && urlSchema.safeParse(url).success;
 
 /**
  * Validates if a string is a valid HTTP or HTTPS URL.
@@ -10,17 +23,7 @@
  * @returns true if the URL is valid HTTP/HTTPS, false otherwise
  */
 export function isValidUrl(url: unknown): boolean {
-  if (!url || typeof url !== 'string') {
-    return false;
-  }
-
-  try {
-    const parsedUrl = new URL(url);
-    // Only allow HTTP and HTTPS protocols for security
-    return parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:';
-  } catch {
-    return false;
-  }
+  return httpUrlSchema.safeParse(url).success;
 }
 
 /**
@@ -34,9 +37,7 @@ export function isValidHttpUrl(
   url: unknown,
   allowedProtocols: string[] = ['http:', 'https:'],
 ): boolean {
-  if (!url || typeof url !== 'string') {
-    return false;
-  }
+  if (!isUrlValid(url)) return false;
 
   try {
     const parsedUrl = new URL(url);
@@ -58,16 +59,12 @@ export function sanitizeUrl(
   url: unknown,
   fallback = 'http://localhost:3000',
 ): string {
-  if (!url || typeof url !== 'string') {
-    return fallback;
+  if (typeof url === 'string') {
+    const trimmedUrl = url.trim();
+    if (httpUrlSchema.safeParse(trimmedUrl).success) {
+      return trimmedUrl;
+    }
   }
-
-  const trimmedUrl = url.trim();
-
-  if (isValidUrl(trimmedUrl)) {
-    return trimmedUrl;
-  }
-
   return fallback;
 }
 
@@ -103,7 +100,7 @@ export function validateConfigUrls(
       // Check if this key should contain a URL
       if (key.endsWith('Url') || key.endsWith('URL')) {
         if (typeof value === 'string') {
-          if (!isValidUrl(value)) {
+          if (!httpUrlSchema.safeParse(value).success) {
             errors.push(`Invalid URL for ${fullPath}: ${value}`);
           }
         }
@@ -135,7 +132,12 @@ export function createUrlValidator(
   allowedProtocols: string[] = ['http:', 'https:'],
 ): (url: unknown) => boolean {
   return (url: unknown): boolean => {
-    return isValidHttpUrl(url, allowedProtocols);
+    if (!isUrlValid(url)) return false;
+    try {
+      return allowedProtocols.includes(new URL(url).protocol);
+    } catch {
+      return false;
+    }
   };
 }
 
@@ -147,13 +149,10 @@ export function createUrlValidator(
  * @returns The base URL (origin) or null if invalid
  */
 export function extractBaseUrl(url: unknown): string | null {
-  if (!isValidUrl(url) || typeof url !== 'string') {
-    return null;
-  }
+  if (!isUrlValid(url)) return null;
 
   try {
-    const parsedUrl = new URL(url);
-    return parsedUrl.origin;
+    return new URL(url).origin;
   } catch {
     return null;
   }
@@ -170,16 +169,12 @@ export function isFromTrustedDomain(
   url: unknown,
   trustedDomains: string[],
 ): boolean {
-  if (!isValidUrl(url) || typeof url !== 'string') {
-    return false;
-  }
+  if (!isUrlValid(url)) return false;
 
   try {
-    const parsedUrl = new URL(url);
+    const hostname = new URL(url).hostname;
     return trustedDomains.some(
-      (domain) =>
-        parsedUrl.hostname === domain ||
-        parsedUrl.hostname.endsWith(`.${domain}`),
+      (domain) => hostname === domain || hostname.endsWith(`.${domain}`)
     );
   } catch {
     return false;
