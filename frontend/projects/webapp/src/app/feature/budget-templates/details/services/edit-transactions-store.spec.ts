@@ -89,10 +89,10 @@ describe('EditTransactionsStore - Unit Tests', () => {
 
   describe('Initial State', () => {
     it('should initialize with empty state', () => {
-      expect(state.transactions()).toEqual([]);
+      expect(state.activeTransactions()).toEqual([]);
       expect(state.isLoading()).toBe(false);
       expect(state.error()).toBe(null);
-      expect(state.transactionCount()).toBe(0);
+      expect(state.activeTransactions().length).toBe(0);
       expect(state.hasUnsavedChanges()).toBe(false);
       expect(state.canRemoveTransaction()).toBe(false);
     });
@@ -102,7 +102,7 @@ describe('EditTransactionsStore - Unit Tests', () => {
     it('should initialize transactions from template lines and form data', () => {
       state.initialize(mockTemplateLines, mockTransactionData);
 
-      const transactions = state.transactions();
+      const transactions = state.activeTransactions();
       expect(transactions).toHaveLength(2);
 
       expect(transactions[0].formData).toEqual(mockTransactionData[0]);
@@ -121,7 +121,7 @@ describe('EditTransactionsStore - Unit Tests', () => {
 
       state.initialize(mockTemplateLines, shortFormData);
 
-      const transactions = state.transactions();
+      const transactions = state.activeTransactions();
       expect(transactions).toHaveLength(1);
       expect(transactions[0].formData).toEqual(shortFormData[0]);
     });
@@ -144,7 +144,7 @@ describe('EditTransactionsStore - Unit Tests', () => {
       expect(id).toBeTruthy();
       expect(id.startsWith('temp-')).toBe(true);
 
-      const transactions = state.transactions();
+      const transactions = state.activeTransactions();
       expect(transactions).toHaveLength(3);
 
       const newTransaction = transactions.find((t) => t.id === id);
@@ -156,7 +156,7 @@ describe('EditTransactionsStore - Unit Tests', () => {
     });
 
     it('should update transaction count', () => {
-      expect(state.transactionCount()).toBe(2);
+      expect(state.activeTransactions().length).toBe(2);
 
       state.addTransaction({
         description: 'Test',
@@ -164,7 +164,7 @@ describe('EditTransactionsStore - Unit Tests', () => {
         type: 'expense',
       });
 
-      expect(state.transactionCount()).toBe(3);
+      expect(state.activeTransactions().length).toBe(3);
     });
 
     it('should mark as having unsaved changes', () => {
@@ -185,7 +185,7 @@ describe('EditTransactionsStore - Unit Tests', () => {
 
     beforeEach(() => {
       state.initialize(mockTemplateLines, mockTransactionData);
-      const transactions = state.transactions();
+      const transactions = state.activeTransactions();
       transactionId = transactions[0].id;
     });
 
@@ -197,7 +197,7 @@ describe('EditTransactionsStore - Unit Tests', () => {
       expect(result).toBe(true);
 
       const transaction = state
-        .transactions()
+        .activeTransactions()
         .find((t) => t.id === transactionId);
       expect(transaction!.formData.description).toBe('Loyer modifié');
       expect(transaction!.formData.amount).toBe(1300);
@@ -240,30 +240,31 @@ describe('EditTransactionsStore - Unit Tests', () => {
     });
 
     it('should mark transaction as deleted and return true', () => {
-      const transactions = state.transactions();
+      const transactions = state.activeTransactions();
       const transactionId = transactions[0].id;
 
       const result = state.removeTransaction(transactionId);
 
       expect(result).toBe(true);
-      expect(state.transactionCount()).toBe(1); // Only non-deleted count
+      expect(state.activeTransactions().length).toBe(1); // Only non-deleted count
 
-      const transaction = state
-        .transactions()
+      // Transaction should be marked as deleted (not in activeTransactions anymore)
+      const activeTransaction = state
+        .activeTransactions()
         .find((t) => t.id === transactionId);
-      expect(transaction!.isDeleted).toBe(true);
+      expect(activeTransaction).toBeUndefined(); // Should not be in active transactions
     });
 
     it('should return false when trying to remove last transaction', () => {
       // Remove first transaction
-      const transactions = state.transactions();
+      const transactions = state.activeTransactions();
       state.removeTransaction(transactions[0].id);
 
       // Try to remove second (last remaining) transaction
       const result = state.removeTransaction(transactions[1].id);
 
       expect(result).toBe(false);
-      expect(state.transactionCount()).toBe(1);
+      expect(state.activeTransactions().length).toBe(1);
     });
 
     it('should return false for non-existent transaction', () => {
@@ -282,14 +283,16 @@ describe('EditTransactionsStore - Unit Tests', () => {
       const result = state.removeTransaction(newId);
 
       expect(result).toBe(true);
-      expect(state.transactions().find((t) => t.id === newId)).toBeUndefined();
+      expect(
+        state.activeTransactions().find((t) => t.id === newId),
+      ).toBeUndefined();
     });
 
     it('should update canRemoveTransaction signal', () => {
       expect(state.canRemoveTransaction()).toBe(true);
 
       // Remove one transaction, should still be able to remove
-      const transactions = state.transactions();
+      const transactions = state.activeTransactions();
       state.removeTransaction(transactions[0].id);
       expect(state.canRemoveTransaction()).toBe(false);
     });
@@ -311,7 +314,7 @@ describe('EditTransactionsStore - Unit Tests', () => {
       });
 
       // Update existing transaction
-      const transactions = state.transactions();
+      const transactions = state.activeTransactions();
       const existingId = transactions[0].id;
       state.updateTransaction(existingId, { amount: 1400 });
 
@@ -346,7 +349,9 @@ describe('EditTransactionsStore - Unit Tests', () => {
     });
 
     it('should handle save errors gracefully', async () => {
-      state.updateTransaction(state.transactions()[0].id, { amount: 1500 });
+      state.updateTransaction(state.activeTransactions()[0].id, {
+        amount: 1500,
+      });
 
       mockBudgetTemplatesApi.bulkOperationsTemplateLines$.mockReturnValue(
         throwError(() => new Error('API Error')),
@@ -361,7 +366,9 @@ describe('EditTransactionsStore - Unit Tests', () => {
     });
 
     it('should set loading state during save', async () => {
-      state.updateTransaction(state.transactions()[0].id, { amount: 1500 });
+      state.updateTransaction(state.activeTransactions()[0].id, {
+        amount: 1500,
+      });
 
       let loadingDuringSave = false;
       mockBudgetTemplatesApi.bulkOperationsTemplateLines$.mockImplementation(
@@ -394,7 +401,7 @@ describe('EditTransactionsStore - Unit Tests', () => {
     });
 
     it('should calculate transaction count correctly', () => {
-      expect(state.transactionCount()).toBe(2);
+      expect(state.activeTransactions().length).toBe(2);
 
       // Add transaction
       state.addTransaction({
@@ -402,12 +409,12 @@ describe('EditTransactionsStore - Unit Tests', () => {
         amount: 100,
         type: 'expense',
       });
-      expect(state.transactionCount()).toBe(3);
+      expect(state.activeTransactions().length).toBe(3);
 
       // Remove transaction (mark as deleted)
-      const transactions = state.transactions();
+      const transactions = state.activeTransactions();
       state.removeTransaction(transactions[0].id);
-      expect(state.transactionCount()).toBe(2);
+      expect(state.activeTransactions().length).toBe(2);
     });
 
     it('should detect unsaved changes correctly', () => {
@@ -426,7 +433,7 @@ describe('EditTransactionsStore - Unit Tests', () => {
       expect(state.canRemoveTransaction()).toBe(true);
 
       // Remove one transaction
-      const transactions = state.transactions();
+      const transactions = state.activeTransactions();
       state.removeTransaction(transactions[0].id);
       expect(state.canRemoveTransaction()).toBe(false);
     });
@@ -437,25 +444,34 @@ describe('EditTransactionsStore - Unit Tests', () => {
       state.initialize(mockTemplateLines, mockTransactionData);
     });
 
-    it('should clear error state', () => {
+    it('should clear error state', async () => {
       // Trigger an error first through a failed save
       mockBudgetTemplatesApi.bulkOperationsTemplateLines$.mockReturnValue(
         throwError(() => new Error('Test error')),
       );
 
       // Make a change and try to save to trigger error
-      state.updateTransaction(state.transactions()[0].id, { amount: 1500 });
-
-      return state.saveChanges('template-123').then(() => {
-        expect(state.error()).toBe('Test error');
-
-        state.clearError();
-        expect(state.error()).toBe(null);
+      state.updateTransaction(state.activeTransactions()[0].id, {
+        amount: 1500,
       });
+
+      await state.saveChanges('template-123');
+      expect(state.error()).toBe('Test error');
+
+      // Mock successful response for next save
+      mockBudgetTemplatesApi.bulkOperationsTemplateLines$.mockReturnValue(
+        of({ data: { created: [], updated: [], deleted: [] } }),
+      );
+
+      // Error clearing happens automatically during successful operations
+      await state.saveChanges('template-123'); // This should clear the error
+      expect(state.error()).toBe(null);
     });
 
     it('should handle unknown errors with fallback message', async () => {
-      state.updateTransaction(state.transactions()[0].id, { amount: 1500 });
+      state.updateTransaction(state.activeTransactions()[0].id, {
+        amount: 1500,
+      });
 
       mockBudgetTemplatesApi.bulkOperationsTemplateLines$.mockReturnValue(
         throwError(() => 'Unknown error type'),

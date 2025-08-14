@@ -61,9 +61,14 @@ export interface SaveResult {
   success: boolean;
 
   /**
-   * Updated template lines after successful save
+   * Template lines that were created or updated (not all lines)
    */
   updatedLines?: TemplateLine[];
+
+  /**
+   * IDs of template lines that were deleted
+   */
+  deletedIds?: string[];
 
   /**
    * Error message if save failed
