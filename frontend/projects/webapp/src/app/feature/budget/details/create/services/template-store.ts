@@ -2,6 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { type TemplateLine, type BudgetTemplate } from '@pulpe/shared';
 import { TemplateApi } from '../../../../../core/template/template-api';
+import { Logger } from '../../../../../core/services/logger';
 import {
   TemplateTotalsCalculator,
   type TemplateTotals,
@@ -33,6 +34,7 @@ interface TemplateStoreState {
 export class TemplateStore {
   readonly #templateApi = inject(TemplateApi);
   readonly #totalsCalculator = inject(TemplateTotalsCalculator);
+  readonly #logger = inject(Logger);
 
   /**
    * Single source of truth for all store state
@@ -151,7 +153,7 @@ export class TemplateStore {
 
       return lines;
     } catch (error) {
-      console.error('Error loading template lines:', error);
+      this.#logger.error('Error loading template lines:', error);
       this.#state.update((state) => ({
         ...state,
         error: error instanceof Error ? error : new Error('Unknown error'),
@@ -199,7 +201,7 @@ export class TemplateStore {
         },
       }));
     } catch (error) {
-      console.error('Error loading template totals:', error);
+      this.#logger.error('Error loading template totals:', error);
       this.#setErrorStates(templatesToLoad);
     }
   }
@@ -229,7 +231,7 @@ export class TemplateStore {
         isLoadingTemplates: false,
       }));
     } catch (error) {
-      console.error('Error loading templates:', error);
+      this.#logger.error('Error loading templates:', error);
       this.#state.update((state) => ({
         ...state,
         isLoadingTemplates: false,

@@ -9,7 +9,7 @@ import {
   type TransactionFormData,
 } from '../../services/transaction-form';
 import {
-  TemplateLineKind,
+  type TransactionKind,
   type TemplateLine,
   type TemplateLinesBulkOperations,
 } from '@pulpe/shared';
@@ -30,7 +30,7 @@ describe('EditTransactionsStore - Unit Tests', () => {
       templateId: 'template-1',
       name: 'Loyer',
       amount: 1200,
-      kind: 'expense' as TemplateLineKind,
+      kind: 'expense' as TransactionKind,
       recurrence: 'fixed',
       description: '',
       createdAt: '2024-01-01T00:00:00Z',
@@ -41,7 +41,7 @@ describe('EditTransactionsStore - Unit Tests', () => {
       templateId: 'template-1',
       name: 'Salaire',
       amount: 5000,
-      kind: 'income' as TemplateLineKind,
+      kind: 'income' as TransactionKind,
       recurrence: 'fixed',
       description: '',
       createdAt: '2024-01-01T00:00:00Z',

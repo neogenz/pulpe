@@ -61,30 +61,32 @@ function handleAuthError(
   next: (req: HttpRequest<unknown>) => Observable<HttpEvent<unknown>>,
   authApi: AuthApi,
 ): Observable<HttpEvent<unknown>> {
+  // Only attempt refresh if it's a 401 and user is authenticated
   if (error.status === 401 && authApi.isAuthenticated()) {
-    // Token expiré, essayer de le rafraîchir
+    // Convert the refresh promise to an observable and handle the flow
     return from(authApi.refreshSession()).pipe(
       switchMap((refreshSuccess) => {
-        if (refreshSuccess) {
-          // Réessayer la requête avec le nouveau token
-          return from(addAuthToken(originalReq, authApi)).pipe(
-            switchMap((authReq) => next(authReq)),
-          );
-        } else {
-          // Impossible de rafraîchir, déconnecter l'utilisateur
+        if (!refreshSuccess) {
+          // Refresh failed, sign out and throw error
           authApi.signOut();
           return throwError(
             () => new Error('Session expirée, veuillez vous reconnecter'),
           );
         }
+
+        // Refresh succeeded, retry the original request with new token
+        return from(addAuthToken(originalReq, authApi)).pipe(
+          switchMap((authReq) => next(authReq)),
+        );
       }),
       catchError((refreshError) => {
-        // Erreur lors du rafraîchissement
+        // Error during refresh attempt
         authApi.signOut();
         return throwError(() => refreshError);
       }),
     );
   }
 
+  // Not a 401 or user not authenticated, just pass the error through
   return throwError(() => error);
 }
