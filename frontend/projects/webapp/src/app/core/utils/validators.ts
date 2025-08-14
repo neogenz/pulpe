@@ -7,13 +7,16 @@ import { z } from 'zod';
 
 // Base Zod schemas
 const urlSchema = z.string().url();
-const httpUrlSchema = z.string().url().refine(
-  url => url.startsWith('http://') || url.startsWith('https://'),
-  'Only HTTP/HTTPS URLs allowed'
-);
+const httpUrlSchema = z
+  .string()
+  .url()
+  .refine(
+    (url) => url.startsWith('http://') || url.startsWith('https://'),
+    'Only HTTP/HTTPS URLs allowed',
+  );
 
 // Helper for URL validation with type safety
-const isUrlValid = (url: unknown): url is string => 
+const isUrlValid = (url: unknown): url is string =>
   typeof url === 'string' && urlSchema.safeParse(url).success;
 
 /**
@@ -174,7 +177,7 @@ export function isFromTrustedDomain(
   try {
     const hostname = new URL(url).hostname;
     return trustedDomains.some(
-      (domain) => hostname === domain || hostname.endsWith(`.${domain}`)
+      (domain) => hostname === domain || hostname.endsWith(`.${domain}`),
     );
   } catch {
     return false;
