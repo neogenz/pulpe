@@ -8,7 +8,7 @@ import {
   TransactionFormService,
   type TransactionFormData,
 } from '../../services/transaction-form';
-import { TemplateLineKind, type TemplateLine } from '@pulpe/shared';
+import { type TransactionKind, type TemplateLine } from '@pulpe/shared';
 
 describe('EditTransactionsStore - Integration Tests', () => {
   let state: EditTransactionsStore;
@@ -23,7 +23,7 @@ describe('EditTransactionsStore - Integration Tests', () => {
       templateId,
       name: 'Loyer',
       amount: 1200,
-      kind: 'expense' as TemplateLineKind,
+      kind: 'expense' as TransactionKind,
       recurrence: 'fixed',
       description: 'Monthly rent payment',
       createdAt: '2024-01-01T00:00:00Z',
@@ -34,7 +34,7 @@ describe('EditTransactionsStore - Integration Tests', () => {
       templateId,
       name: 'Salaire',
       amount: 5000,
-      kind: 'income' as TemplateLineKind,
+      kind: 'income' as TransactionKind,
       recurrence: 'fixed',
       description: 'Monthly salary',
       createdAt: '2024-01-01T00:00:00Z',
@@ -93,7 +93,7 @@ describe('EditTransactionsStore - Integration Tests', () => {
               templateId,
               name: 'Transport',
               amount: 150,
-              kind: 'expense' as TemplateLineKind,
+              kind: 'expense' as TransactionKind,
               recurrence: 'fixed',
               description: '',
               createdAt: '2024-01-01T00:00:00Z',
@@ -153,7 +153,7 @@ describe('EditTransactionsStore - Integration Tests', () => {
               templateId,
               name: 'Loyer modifié',
               amount: 1300,
-              kind: 'expense' as TemplateLineKind,
+              kind: 'expense' as TransactionKind,
               recurrence: 'fixed',
               description: 'Monthly rent payment',
               createdAt: '2024-01-01T00:00:00Z',
@@ -255,7 +255,7 @@ describe('EditTransactionsStore - Integration Tests', () => {
               templateId,
               name: 'Transport',
               amount: 200,
-              kind: 'expense' as TemplateLineKind,
+              kind: 'expense' as TransactionKind,
               recurrence: 'fixed',
               description: '',
               createdAt: '2024-01-01T00:00:00Z',
@@ -268,7 +268,7 @@ describe('EditTransactionsStore - Integration Tests', () => {
               templateId,
               name: 'Loyer',
               amount: 1400,
-              kind: 'expense' as TemplateLineKind,
+              kind: 'expense' as TransactionKind,
               recurrence: 'fixed',
               description: 'Monthly rent payment',
               createdAt: '2024-01-01T00:00:00Z',

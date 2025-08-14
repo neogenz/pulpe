@@ -21,6 +21,7 @@ import { AuthApi } from '@core/auth/auth-api';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ROUTES } from '@core/routing/routes-constants';
+import { Logger } from '@core/services/logger';
 
 @Component({
   selector: 'pulpe-login',
@@ -164,6 +165,7 @@ export default class Login {
   readonly #formBuilder = inject(FormBuilder);
   readonly #destroyRef = inject(DestroyRef);
   readonly #router = inject(Router);
+  readonly #logger = inject(Logger);
 
   protected hidePassword = signal<boolean>(true);
   protected isSubmitting = signal<boolean>(false);
@@ -239,7 +241,7 @@ export default class Login {
         );
       }
     } catch (error) {
-      console.error('Erreur lors de la connexion:', error);
+      this.#logger.error('Erreur lors de la connexion:', error);
       this.errorMessage.set(
         "Une erreur inattendue s'est produite. Veuillez réessayer.",
       );

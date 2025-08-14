@@ -97,7 +97,7 @@ export class EditTransactionsStore {
     const found = this.#findTransactionById(id);
 
     // Don't allow updating deleted transactions
-    if (!found || found.transaction.isDeleted) {
+    if (!found || found.transaction?.isDeleted) {
       return false;
     }
 

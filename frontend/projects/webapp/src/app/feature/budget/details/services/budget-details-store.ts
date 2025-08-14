@@ -2,6 +2,7 @@ import { inject, Injectable, signal, computed, resource } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { BudgetLineApi } from './budget-line-api';
+import { Logger } from '../../../../core/services/logger';
 import {
   type BudgetDetailsInternalState,
   createInitialBudgetDetailsInternalState,
@@ -20,6 +21,7 @@ import {
 export class BudgetDetailsStore {
   readonly #budgetLineApi = inject(BudgetLineApi);
   readonly #snackBar = inject(MatSnackBar);
+  readonly #logger = inject(Logger);
 
   // Single source of truth - private state signal for non-resource data
   readonly #state = signal<BudgetDetailsInternalState>(
@@ -111,7 +113,7 @@ export class BudgetDetailsStore {
       const errorMessage = "Erreur lors de l'ajout de la prévision";
       this.#showErrorMessage(errorMessage);
       this.#setError(errorMessage);
-      console.error('Error creating budget line:', error);
+      this.#logger.error('Error creating budget line', error);
     } finally {
       this.#removeOperationInProgress(tempId);
     }
@@ -177,7 +179,7 @@ export class BudgetDetailsStore {
       const errorMessage = 'Erreur lors de la modification de la prévision';
       this.#showErrorMessage(errorMessage);
       this.#setError(errorMessage);
-      console.error('Error updating budget line:', error);
+      this.#logger.error('Error updating budget line', error);
     } finally {
       this.#removeOperationInProgress(id);
     }
@@ -224,7 +226,7 @@ export class BudgetDetailsStore {
       const errorMessage = 'Erreur lors de la suppression de la prévision';
       this.#showErrorMessage(errorMessage);
       this.#setError(errorMessage);
-      console.error('Error deleting budget line:', error);
+      this.#logger.error('Error deleting budget line', error);
     } finally {
       this.#removeOperationInProgress(id);
     }
