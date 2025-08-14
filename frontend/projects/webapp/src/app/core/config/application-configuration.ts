@@ -2,12 +2,15 @@ import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import type { ApplicationConfig, ConfigFile } from './types';
+import { isValidUrl, sanitizeUrl } from '../utils/validators';
+import { Logger } from '../services/logger';
 
 @Injectable({
   providedIn: 'root',
 })
 export class ApplicationConfiguration {
-  #http = inject(HttpClient);
+  readonly #http = inject(HttpClient);
+  readonly #logger = inject(Logger);
 
   // Signaux de configuration
   readonly supabaseUrl = signal<string>('');
@@ -49,8 +52,12 @@ export class ApplicationConfiguration {
       const configData = await this.#loadConfigFile();
       const validatedConfig = this.#validateConfig(configData);
       this.#applyConfiguration(validatedConfig);
+      this.#logger.info('Configuration loaded successfully');
     } catch (error) {
-      console.error('Erreur lors du chargement de la configuration:', error);
+      this.#logger.error(
+        'Erreur lors du chargement de la configuration',
+        error,
+      );
       this.#setDefaults();
       throw error;
     }
@@ -170,9 +177,34 @@ export class ApplicationConfiguration {
    * Applique la configuration validée aux signaux
    */
   #applyConfiguration(config: ApplicationConfig): void {
-    this.supabaseUrl.set(config.supabase.url);
+    // Validate and sanitize URLs before setting
+    const supabaseUrl = sanitizeUrl(
+      config.supabase.url,
+      'http://localhost:54321',
+    );
+    const backendApiUrl = sanitizeUrl(
+      config.backend.apiUrl,
+      'http://localhost:3000/api/v1',
+    );
+
+    // Log validation results in development
+    if (!isValidUrl(config.supabase.url)) {
+      this.#logger.warn('Invalid Supabase URL, using sanitized fallback', {
+        original: config.supabase.url,
+        sanitized: supabaseUrl,
+      });
+    }
+
+    if (!isValidUrl(config.backend.apiUrl)) {
+      this.#logger.warn('Invalid Backend API URL, using sanitized fallback', {
+        original: config.backend.apiUrl,
+        sanitized: backendApiUrl,
+      });
+    }
+
+    this.supabaseUrl.set(supabaseUrl);
     this.supabaseAnonKey.set(config.supabase.anonKey);
-    this.backendApiUrl.set(config.backend.apiUrl);
+    this.backendApiUrl.set(backendApiUrl);
     this.environment.set(config.environment);
   }
 

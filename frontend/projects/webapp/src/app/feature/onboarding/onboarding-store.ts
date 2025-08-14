@@ -6,6 +6,7 @@ import { filter, map, startWith } from 'rxjs/operators';
 import { AuthApi } from '../../core/auth/auth-api';
 import { BudgetApi } from '../../core/budget';
 import { OnboardingApi } from './services/onboarding-api';
+import { Logger } from '../../core/services/logger';
 import {
   type BudgetCreate,
   type BudgetTemplateCreateFromOnboarding,
@@ -55,6 +56,7 @@ export class OnboardingStore {
   readonly #budgetApi = inject(BudgetApi);
   readonly #onboardingApi = inject(OnboardingApi);
   readonly #router = inject(Router);
+  readonly #logger = inject(Logger);
 
   // Single source of truth - private state signal
   readonly #state = signal<OnboardingState>(createInitialOnboardingState());
@@ -228,7 +230,7 @@ export class OnboardingStore {
       this.#clearStorage();
       return true;
     } catch (error) {
-      console.error("Erreur lors de l'inscription:", error);
+      this.#logger.error("Erreur lors de l'inscription:", error);
 
       // Déterminer le type d'erreur selon le stack trace ou le message
       const errorMessage = error?.toString() || '';
@@ -294,7 +296,7 @@ export class OnboardingStore {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch (error) {
-      console.error('Erreur sauvegarde localStorage:', error);
+      this.#logger.error('Erreur sauvegarde localStorage:', error);
     }
   }
 
@@ -312,7 +314,7 @@ export class OnboardingStore {
         }));
       }
     } catch (error) {
-      console.error('Erreur chargement localStorage:', error);
+      this.#logger.error('Erreur chargement localStorage:', error);
     }
   }
 
@@ -323,7 +325,7 @@ export class OnboardingStore {
     try {
       localStorage.removeItem(STORAGE_KEY);
     } catch (error) {
-      console.error('Erreur suppression localStorage:', error);
+      this.#logger.error('Erreur suppression localStorage:', error);
     }
   }
 }

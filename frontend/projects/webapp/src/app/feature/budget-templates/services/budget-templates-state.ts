@@ -3,10 +3,12 @@ import { type BudgetTemplate, type BudgetTemplateCreate } from '@pulpe/shared';
 import { catchError, firstValueFrom, map } from 'rxjs';
 import { BudgetTemplatesApi } from './budget-templates-api';
 import { rxResource } from '@angular/core/rxjs-interop';
+import { Logger } from '../../../core/services/logger';
 
 @Injectable()
 export class BudgetTemplatesState {
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
+  readonly #logger = inject(Logger);
 
   // Business constants
   readonly MAX_TEMPLATES = 5;
@@ -17,7 +19,7 @@ export class BudgetTemplatesState {
       this.#budgetTemplatesApi.getAll$().pipe(
         map((response) => (Array.isArray(response.data) ? response.data : [])),
         catchError((error) => {
-          console.error('Erreur lors du chargement des templates:', error);
+          this.#logger.error('Erreur lors du chargement des templates:', error);
           // Return an error observable to properly set the resource status to 'error'
           throw error;
         }),
