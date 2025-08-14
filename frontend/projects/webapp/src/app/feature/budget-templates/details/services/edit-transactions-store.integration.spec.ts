@@ -134,7 +134,7 @@ describe('EditTransactionsStore - Integration Tests', () => {
     });
 
     it('should handle update operation successfully', async () => {
-      const transactions = state.transactions();
+      const transactions = state.activeTransactions();
       const firstTransactionId = transactions[0].id;
 
       // Update existing transaction
@@ -195,7 +195,7 @@ describe('EditTransactionsStore - Integration Tests', () => {
     });
 
     it('should handle delete operation successfully', async () => {
-      const transactions = state.transactions();
+      const transactions = state.activeTransactions();
       const secondTransactionId = transactions[1].id;
 
       // Remove transaction
@@ -238,7 +238,7 @@ describe('EditTransactionsStore - Integration Tests', () => {
       });
 
       // Update existing transaction
-      const transactions = state.transactions();
+      const transactions = state.activeTransactions();
       const firstTransactionId = transactions[0].id;
       state.updateTransaction(firstTransactionId, { amount: 1400 });
 
@@ -300,7 +300,9 @@ describe('EditTransactionsStore - Integration Tests', () => {
 
   describe('API Integration - Error Handling', () => {
     it('should handle network errors gracefully', async () => {
-      state.updateTransaction(state.transactions()[0].id, { amount: 1500 });
+      state.updateTransaction(state.activeTransactions()[0].id, {
+        amount: 1500,
+      });
 
       const networkError = new Error('Network request failed');
       mockBudgetTemplatesApi.bulkOperationsTemplateLines$.mockReturnValue(
@@ -317,7 +319,9 @@ describe('EditTransactionsStore - Integration Tests', () => {
     });
 
     it('should handle API validation errors', async () => {
-      state.updateTransaction(state.transactions()[0].id, { amount: 1500 });
+      state.updateTransaction(state.activeTransactions()[0].id, {
+        amount: 1500,
+      });
 
       const validationError = new Error('Invalid data provided');
       mockBudgetTemplatesApi.bulkOperationsTemplateLines$.mockReturnValue(
@@ -332,7 +336,9 @@ describe('EditTransactionsStore - Integration Tests', () => {
     });
 
     it('should handle unknown error types', async () => {
-      state.updateTransaction(state.transactions()[0].id, { amount: 1500 });
+      state.updateTransaction(state.activeTransactions()[0].id, {
+        amount: 1500,
+      });
 
       mockBudgetTemplatesApi.bulkOperationsTemplateLines$.mockReturnValue(
         throwError(() => 'String error'),
@@ -350,7 +356,9 @@ describe('EditTransactionsStore - Integration Tests', () => {
     });
 
     it('should maintain loading state correctly during API calls', async () => {
-      state.updateTransaction(state.transactions()[0].id, { amount: 1500 });
+      state.updateTransaction(state.activeTransactions()[0].id, {
+        amount: 1500,
+      });
 
       // Mock successful response
       mockBudgetTemplatesApi.bulkOperationsTemplateLines$.mockReturnValue(
@@ -386,7 +394,9 @@ describe('EditTransactionsStore - Integration Tests', () => {
     });
 
     it('should handle API response with missing data', async () => {
-      state.updateTransaction(state.transactions()[0].id, { amount: 1500 });
+      state.updateTransaction(state.activeTransactions()[0].id, {
+        amount: 1500,
+      });
 
       // Mock API response with minimal data
       mockBudgetTemplatesApi.bulkOperationsTemplateLines$.mockReturnValue(
@@ -412,7 +422,9 @@ describe('EditTransactionsStore - Integration Tests', () => {
         amount: 100,
         type: 'expense',
       });
-      state.updateTransaction(state.transactions()[0].id, { amount: 1500 });
+      state.updateTransaction(state.activeTransactions()[0].id, {
+        amount: 1500,
+      });
 
       expect(state.hasUnsavedChanges()).toBe(true);
 
@@ -438,7 +450,7 @@ describe('EditTransactionsStore - Integration Tests', () => {
 
   describe('API Integration - Concurrent Operations', () => {
     it('should handle rapid successive changes correctly', async () => {
-      const transactions = state.transactions();
+      const transactions = state.activeTransactions();
       const firstId = transactions[0].id;
 
       // Make rapid changes

@@ -40,28 +40,21 @@ export class EditTransactionsStore {
   );
 
   // Public computed selectors (read-only)
-  readonly transactions = computed(() => this.#state().transactions);
   readonly isLoading = computed(() => this.#state().isLoading);
   readonly error = computed(() => this.#state().error);
 
   // Derived computed signals
   readonly activeTransactions = computed(() =>
-    this.transactions().filter((t) => !t.isDeleted),
+    this.#state().transactions.filter((t) => !t.isDeleted),
   );
 
-  readonly transactionCount = computed(() => this.activeTransactions().length);
-
-  readonly canRemoveTransaction = computed(() => this.transactionCount() > 1);
+  readonly canRemoveTransaction = computed(
+    () => this.activeTransactions().length > 1,
+  );
 
   readonly hasUnsavedChanges = computed(() => this.#computeHasChanges());
 
   readonly isValid = computed(() => this.#computeIsValid());
-
-  // Computed bulk operations for performance (memoized)
-  readonly pendingOperations = computed(() => {
-    const transactions = this.#state().transactions;
-    return this.#generateBulkOperations(transactions);
-  });
 
   /**
    * Initialize the state with template lines and form data.
@@ -137,14 +130,17 @@ export class EditTransactionsStore {
    */
   async saveChanges(templateId: string): Promise<SaveResult> {
     if (!this.hasUnsavedChanges()) {
-      return { success: true, updatedLines: [] };
+      // No changes were made, return empty array
+      return { success: true, updatedLines: [], deletedIds: [] };
     }
 
     this.#setLoading(true);
 
     try {
-      // Use computed operations for consistency
-      const operations = this.pendingOperations();
+      // Generate bulk operations for API call
+      const operations = this.#generateBulkOperations(
+        this.#state().transactions,
+      );
       const response = await firstValueFrom(
         this.#budgetTemplatesApi.bulkOperationsTemplateLines$(
           templateId,
@@ -152,10 +148,15 @@ export class EditTransactionsStore {
         ),
       );
 
-      const updatedLines = [...response.data.created, ...response.data.updated];
       this.#updateStateAfterSave(response.data);
 
-      return { success: true, updatedLines };
+      // Return only the lines that were actually modified
+      const updatedLines = [...response.data.created, ...response.data.updated];
+      return {
+        success: true,
+        updatedLines,
+        deletedIds: response.data.deleted,
+      };
     } catch (error) {
       const errorMessage =
         error instanceof Error
@@ -167,13 +168,6 @@ export class EditTransactionsStore {
     } finally {
       this.#setLoading(false);
     }
-  }
-
-  /**
-   * Clear the current error state.
-   */
-  clearError(): void {
-    this.#clearError();
   }
 
   // Private helper methods for state management
@@ -283,13 +277,6 @@ export class EditTransactionsStore {
     this.#state.update((state) => ({
       ...state,
       error,
-    }));
-  }
-
-  #clearError(): void {
-    this.#state.update((state) => ({
-      ...state,
-      error: null,
     }));
   }
 
