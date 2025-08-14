@@ -1,0 +1,47 @@
+import type { TemplateLine } from '@pulpe/shared';
+import type { TransactionFormData } from '../../services/transaction-form';
+
+/**
+ * Simplified editable line structure for template line editing
+ */
+export interface EditableLine {
+  /**
+   * Current form data for the line
+   */
+  formData: TransactionFormData;
+
+  /**
+   * Whether this line has been modified from its original state
+   */
+  isModified: boolean;
+
+  /**
+   * Reference to the original template line (undefined for new lines)
+   */
+  originalLine?: TemplateLine;
+}
+
+/**
+ * Result of save operation
+ */
+export interface SaveResult {
+  /**
+   * Whether the save operation was successful
+   */
+  success: boolean;
+
+  /**
+   * Template lines that were created or updated (not all lines)
+   */
+  updatedLines?: TemplateLine[];
+
+  /**
+   * IDs of template lines that were deleted
+   */
+  deletedIds?: string[];
+
+  /**
+   * Error message if save failed
+   */
+  error?: string;
+}
