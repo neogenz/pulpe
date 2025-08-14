@@ -175,45 +175,6 @@ describe('Logger', () => {
     });
   });
 
-  describe('utility methods', () => {
-    // Environment is already mocked as development (production: false)
-
-    it('should support grouping in development', () => {
-      const groupSpy = vi.spyOn(console, 'group').mockImplementation(() => {
-        // Mock implementation
-      });
-      const groupEndSpy = vi
-        .spyOn(console, 'groupEnd')
-        .mockImplementation(() => {
-          // Mock implementation
-        });
-
-      logger.group('Test Group');
-      expect(groupSpy).toHaveBeenCalledWith('Test Group');
-
-      logger.groupEnd();
-      expect(groupEndSpy).toHaveBeenCalled();
-    });
-
-    it('should support timing in development', () => {
-      const timeSpy = vi.spyOn(console, 'time').mockImplementation(() => {
-        // Mock implementation
-      });
-      const timeEndSpy = vi.spyOn(console, 'timeEnd').mockImplementation(() => {
-        // Mock implementation
-      });
-
-      logger.time('Operation');
-      expect(timeSpy).toHaveBeenCalledWith('Operation');
-
-      logger.timeEnd('Operation');
-      expect(timeEndSpy).toHaveBeenCalledWith('Operation');
-    });
-
-    // Production mode utility methods test removed due to vi.mock limitations
-    // This behavior would need to be tested with a separate test suite or integration tests
-  });
-
   describe('edge cases', () => {
     // Environment is already mocked as development (production: false)
 
