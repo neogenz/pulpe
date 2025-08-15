@@ -251,3 +251,5 @@ pnpm changeset:version
 2. **Create changeset**: `pnpm changeset` and describe the impact
 3. **Apply versions**: `pnpm changeset:version` bumps versions and updates changelogs
 4. **Commit**: Commit the version changes and updated CHANGELOG.md files
+
+- Always apply YAGNI and KISS principles. It is for a modern project, maintained by 1 developer.
