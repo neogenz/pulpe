@@ -56,6 +56,8 @@ These files control:
 - Bundle size optimizations
 - Development vs production Angular behaviors
 
+**Note**: All runtime configuration (API URLs, environment names, etc.) comes from `config.json`, NOT from these environment files.
+
 ## Why Runtime Configuration?
 
 ### 1. Build Once, Deploy Everywhere
@@ -144,8 +146,7 @@ core/config/
 ├── README.md                        # This file
 ├── application-configuration.ts    # Main configuration service
 ├── config.schema.ts                # Zod validation schemas
-├── types.ts                        # TypeScript types (generated from Zod)
-└── index.ts                        # Public API exports
+└── types.ts                        # TypeScript types (generated from Zod)
 ```
 
 ## Local Development
@@ -179,9 +180,9 @@ For production:
 
 If migrating from build-time configuration:
 
-1. Move API URLs from `environment.ts` to `config.json`
-2. Keep build flags in `environment.ts`
-3. Update services to use `ApplicationConfiguration`
+1. Move API URLs and keys to `config.json`
+2. Keep only the `production` flag in `environment.ts`
+3. Update services to use `ApplicationConfiguration` service
 4. Test in all environments
 
 ## Troubleshooting
