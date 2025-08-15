@@ -23,7 +23,8 @@ import { type BudgetTemplate } from '@pulpe/shared';
 import { BudgetApi } from '../../../../core/budget/budget-api';
 import { TemplateApi } from '../../../../core/template/template-api';
 import { CreateBudgetDialogComponent } from './budget-creation-dialog';
-import { TemplatesList, type TemplateViewModel } from './ui/templates-list';
+import { TemplatesList } from './ui/templates-list';
+import { type TemplateViewModel } from './ui/template-view-model';
 import { TemplateStore, type TemplateTotals } from './services/template-store';
 import { TemplateTotalsCalculator } from './services/template-totals-calculator';
 

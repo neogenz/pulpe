@@ -14,7 +14,7 @@ import { MatListModule } from '@angular/material/list';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { type TemplateViewModel } from './templates-list';
+import { type TemplateViewModel } from './template-view-model';
 
 @Component({
   selector: 'pulpe-template-list-item',
