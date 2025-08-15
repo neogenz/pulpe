@@ -1,5 +1,5 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import {
   type ApplicationConfig,
@@ -87,7 +87,13 @@ export class ApplicationConfiguration {
    * Charge le fichier de configuration depuis /config.json
    */
   async #loadConfigFile(): Promise<ConfigFile> {
-    return firstValueFrom(this.#http.get<ConfigFile>('/config.json'));
+    const headers = new HttpHeaders({
+      'Cache-Control': 'no-cache, no-store, max-age=0',
+      Pragma: 'no-cache',
+    });
+    return firstValueFrom(
+      this.#http.get<ConfigFile>('/config.json', { headers }),
+    );
   }
 
   /**
