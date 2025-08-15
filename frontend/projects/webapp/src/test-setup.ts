@@ -1,5 +1,4 @@
 import { getTestBed } from '@angular/core/testing';
-// @ts-expect-error - These imports are deprecated in Angular 20 but still needed for test setup
 import {
   BrowserDynamicTestingModule,
   platformBrowserDynamicTesting,
