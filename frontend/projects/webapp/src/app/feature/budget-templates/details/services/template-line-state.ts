@@ -6,6 +6,13 @@ import type { TransactionFormData } from '../../services/transaction-form';
  */
 export interface EditableLine {
   /**
+   * Stable unique identifier for this editable line
+   * - For existing lines: uses the originalLine.id
+   * - For new lines: uses a generated UUID
+   */
+  id: string;
+
+  /**
    * Current form data for the line
    */
   formData: TransactionFormData;

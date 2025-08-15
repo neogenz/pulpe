@@ -138,7 +138,7 @@ describe('TemplateLineStore - Unit Tests', () => {
       store.initialize(mockTemplateLines, mockTransactionData);
     });
 
-    it('should add new line and return index as string ID', () => {
+    it('should add new line and return UUID', () => {
       const newData: TransactionFormData = {
         description: 'Transport',
         amount: 150,
@@ -147,12 +147,15 @@ describe('TemplateLineStore - Unit Tests', () => {
 
       const id = store.addTransaction(newData);
 
-      expect(id).toBe('2'); // Index as string
+      expect(id).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+      ); // UUID format
 
       const lines = store.activeLines();
       expect(lines).toHaveLength(3);
 
       const newLine = lines[2];
+      expect(newLine.id).toBe(id);
       expect(newLine.formData).toEqual(newData);
       expect(newLine.isModified).toBe(true);
       expect(newLine.originalLine).toBeUndefined();
@@ -188,10 +191,11 @@ describe('TemplateLineStore - Unit Tests', () => {
       store.initialize(mockTemplateLines, mockTransactionData);
     });
 
-    it('should update existing line by index and return true', () => {
+    it('should update existing line by ID and return true', () => {
       const updates = { description: 'Loyer modifié', amount: 1300 };
+      const firstLine = store.activeLines()[0];
 
-      const result = store.updateTransaction('0', updates);
+      const result = store.updateTransaction(firstLine.id, updates);
 
       expect(result).toBe(true);
 
@@ -202,34 +206,39 @@ describe('TemplateLineStore - Unit Tests', () => {
       expect(line.isModified).toBe(true);
     });
 
-    it('should return false for invalid index', () => {
-      const result = store.updateTransaction('99', {
+    it('should return false for invalid ID', () => {
+      const result = store.updateTransaction('invalid-uuid', {
         description: 'Test',
       });
 
       expect(result).toBe(false);
     });
 
-    it('should return false for non-numeric ID', () => {
-      const result = store.updateTransaction('invalid', {
-        description: 'Test',
-      });
+    it('should return false for non-existent UUID', () => {
+      const result = store.updateTransaction(
+        '12345678-1234-1234-1234-123456789abc',
+        {
+          description: 'Test',
+        },
+      );
 
       expect(result).toBe(false);
     });
 
     it('should mark as having unsaved changes', () => {
       expect(store.hasUnsavedChanges()).toBe(false);
+      const firstLine = store.activeLines()[0];
 
-      store.updateTransaction('0', { description: 'Modified' });
+      store.updateTransaction(firstLine.id, { description: 'Modified' });
 
       expect(store.hasUnsavedChanges()).toBe(true);
     });
 
     it('should not update deleted line', () => {
-      store.removeTransaction('0');
+      const firstLine = store.activeLines()[0];
+      store.removeTransaction(firstLine.id);
 
-      const result = store.updateTransaction('0', {
+      const result = store.updateTransaction(firstLine.id, {
         description: 'Test',
       });
 
@@ -243,26 +252,29 @@ describe('TemplateLineStore - Unit Tests', () => {
     });
 
     it('should remove existing line and return true', () => {
-      const result = store.removeTransaction('0');
+      const firstLine = store.activeLines()[0];
+      const result = store.removeTransaction(firstLine.id);
 
       expect(result).toBe(true);
       expect(store.activeLines().length).toBe(1);
     });
 
     it('should return false when trying to remove last transaction', () => {
+      const lines = store.activeLines();
       // Remove first line
-      store.removeTransaction('0');
+      store.removeTransaction(lines[0].id);
       expect(store.activeLines().length).toBe(1);
 
       // Try to remove second (last remaining) line
-      const result = store.removeTransaction('1');
+      const remainingLine = store.activeLines()[0];
+      const result = store.removeTransaction(remainingLine.id);
 
       expect(result).toBe(false);
       expect(store.activeLines().length).toBe(1);
     });
 
-    it('should return false for invalid index', () => {
-      const result = store.removeTransaction('99');
+    it('should return false for invalid ID', () => {
+      const result = store.removeTransaction('invalid-uuid');
 
       expect(result).toBe(false);
     });
@@ -287,12 +299,14 @@ describe('TemplateLineStore - Unit Tests', () => {
       expect(store.canRemoveTransaction()).toBe(true);
 
       // Remove one line, should still be able to remove
-      store.removeTransaction('0');
+      const firstLine = store.activeLines()[0];
+      store.removeTransaction(firstLine.id);
       expect(store.canRemoveTransaction()).toBe(false);
     });
 
     it('should preserve hasUnsavedChanges after removal', () => {
-      store.removeTransaction('0');
+      const firstLine = store.activeLines()[0];
+      store.removeTransaction(firstLine.id);
       expect(store.hasUnsavedChanges()).toBe(true);
     });
   });
@@ -313,10 +327,12 @@ describe('TemplateLineStore - Unit Tests', () => {
       });
 
       // Update existing line
-      store.updateTransaction('0', { amount: 1400 });
+      const firstLine = store.activeLines()[0];
+      store.updateTransaction(firstLine.id, { amount: 1400 });
 
       // Remove another line
-      store.removeTransaction('1');
+      const secondLine = store.activeLines()[1];
+      store.removeTransaction(secondLine.id);
 
       // Mock API response
       mockBudgetTemplatesApi.bulkOperationsTemplateLines$.mockReturnValue(
@@ -369,7 +385,8 @@ describe('TemplateLineStore - Unit Tests', () => {
     });
 
     it('should handle save errors gracefully', async () => {
-      store.updateTransaction('0', { amount: 1500 });
+      const firstLine = store.activeLines()[0];
+      store.updateTransaction(firstLine.id, { amount: 1500 });
 
       mockBudgetTemplatesApi.bulkOperationsTemplateLines$.mockReturnValue(
         throwError(() => new Error('API Error')),
@@ -385,7 +402,8 @@ describe('TemplateLineStore - Unit Tests', () => {
     });
 
     it('should set loading state during save', async () => {
-      store.updateTransaction('0', { amount: 1500 });
+      const firstLine = store.activeLines()[0];
+      store.updateTransaction(firstLine.id, { amount: 1500 });
 
       let loadingDuringSave = false;
       mockBudgetTemplatesApi.bulkOperationsTemplateLines$.mockImplementation(
@@ -414,7 +432,8 @@ describe('TemplateLineStore - Unit Tests', () => {
     it('should clear error on loading start', async () => {
       // Set an error first
       store.error.set('Previous error');
-      store.updateTransaction('0', { amount: 1500 });
+      const firstLine = store.activeLines()[0];
+      store.updateTransaction(firstLine.id, { amount: 1500 });
 
       mockBudgetTemplatesApi.bulkOperationsTemplateLines$.mockReturnValue(
         of({ data: { created: [], updated: [], deleted: [] } }),
@@ -443,7 +462,8 @@ describe('TemplateLineStore - Unit Tests', () => {
       expect(store.activeLines().length).toBe(3);
 
       // Remove line (mark as deleted)
-      store.removeTransaction('0');
+      const firstLine = store.activeLines()[0];
+      store.removeTransaction(firstLine.id);
       expect(store.activeLines().length).toBe(2);
     });
 
@@ -463,7 +483,8 @@ describe('TemplateLineStore - Unit Tests', () => {
       expect(store.canRemoveTransaction()).toBe(true);
 
       // Remove one line
-      store.removeTransaction('0');
+      const firstLine = store.activeLines()[0];
+      store.removeTransaction(firstLine.id);
       expect(store.canRemoveTransaction()).toBe(false);
     });
 
@@ -487,7 +508,8 @@ describe('TemplateLineStore - Unit Tests', () => {
     });
 
     it('should handle unknown errors with fallback message', async () => {
-      store.updateTransaction('0', { amount: 1500 });
+      const firstLine = store.activeLines()[0];
+      store.updateTransaction(firstLine.id, { amount: 1500 });
 
       mockBudgetTemplatesApi.bulkOperationsTemplateLines$.mockReturnValue(
         throwError(() => 'Unknown error type'),
@@ -502,7 +524,8 @@ describe('TemplateLineStore - Unit Tests', () => {
     });
 
     it('should preserve changes on error', async () => {
-      store.updateTransaction('0', { amount: 1500 });
+      const firstLine = store.activeLines()[0];
+      store.updateTransaction(firstLine.id, { amount: 1500 });
       expect(store.hasUnsavedChanges()).toBe(true);
 
       mockBudgetTemplatesApi.bulkOperationsTemplateLines$.mockReturnValue(
@@ -521,14 +544,15 @@ describe('TemplateLineStore - Unit Tests', () => {
     it('should maintain state consistency after complex operations', () => {
       store.initialize(mockTemplateLines, mockTransactionData);
 
+      const initialLines = store.activeLines();
       // Add, update, remove in sequence
       const newId = store.addTransaction({
         description: 'New',
         amount: 100,
         type: 'expense',
       });
-      store.updateTransaction('0', { amount: 1500 });
-      store.removeTransaction('1');
+      store.updateTransaction(initialLines[0].id, { amount: 1500 });
+      store.removeTransaction(initialLines[1].id);
       store.updateTransaction(newId, { description: 'Updated New' });
 
       const activeLines = store.activeLines();
@@ -542,6 +566,155 @@ describe('TemplateLineStore - Unit Tests', () => {
       expect(activeLines[1].formData.description).toBe('Updated New');
       expect(activeLines[1].isModified).toBe(true);
       expect(activeLines[1].originalLine).toBeUndefined();
+    });
+  });
+
+  describe('UUID-Based Identification (Bug Fix)', () => {
+    beforeEach(() => {
+      store.initialize(mockTemplateLines, mockTransactionData);
+    });
+
+    it('should correctly handle delete → add → edit scenario with stable IDs', () => {
+      // Initial state: 2 transactions with stable IDs
+      const initialLines = store.activeLines();
+      expect(initialLines).toHaveLength(2);
+      expect(store.lines()).toHaveLength(2);
+
+      const firstLineId = initialLines[0].id;
+      const secondLineId = initialLines[1].id;
+
+      // Step 1: Delete first transaction
+      const removeResult = store.removeTransaction(firstLineId);
+      expect(removeResult).toBe(true);
+
+      // After deletion: activeLines has 1 item, lines still has 2 (one marked as deleted)
+      expect(store.activeLines()).toHaveLength(1);
+      expect(store.lines()).toHaveLength(2);
+
+      // Step 2: Add a new transaction
+      const newId = store.addTransaction({
+        description: 'New Transaction',
+        amount: 300,
+        type: 'expense',
+      });
+
+      // After addition: activeLines has 2 items, lines has 3
+      expect(store.activeLines()).toHaveLength(2);
+      expect(store.lines()).toHaveLength(3);
+
+      // Step 3: Edit the new transaction using its stable UUID
+      const updateResult = store.updateTransaction(newId, {
+        description: 'Updated New Transaction',
+        amount: 400,
+      });
+      expect(updateResult).toBe(true);
+
+      // Step 4: Verify only the new transaction was updated
+      const activeLines = store.activeLines();
+      expect(activeLines).toHaveLength(2);
+
+      // Find lines by ID to verify correct updates
+      const remainingOriginalLine = activeLines.find(
+        (line) => line.id === secondLineId,
+      );
+      const newLine = activeLines.find((line) => line.id === newId);
+
+      // Original remaining line should be unchanged
+      expect(remainingOriginalLine?.formData.description).toBe('Salaire');
+      expect(remainingOriginalLine?.formData.amount).toBe(5000);
+      expect(remainingOriginalLine?.isModified).toBe(false);
+
+      // New line should be updated
+      expect(newLine?.formData.description).toBe('Updated New Transaction');
+      expect(newLine?.formData.amount).toBe(400);
+      expect(newLine?.isModified).toBe(true);
+    });
+
+    it('should handle complex operations with stable UUID identification', () => {
+      const initialLines = store.activeLines();
+      const firstLineId = initialLines[0].id;
+      const secondLineId = initialLines[1].id;
+
+      // Add some more transactions
+      const thirdId = store.addTransaction({
+        description: 'Third',
+        amount: 100,
+        type: 'expense',
+      });
+      const fourthId = store.addTransaction({
+        description: 'Fourth',
+        amount: 200,
+        type: 'income',
+      });
+
+      expect(store.activeLines()).toHaveLength(4);
+
+      // Delete first line (existing - should be marked as deleted)
+      store.removeTransaction(firstLineId);
+
+      // Delete third line (new - should be completely removed)
+      store.removeTransaction(thirdId);
+
+      // Remaining active lines should be second and fourth
+      expect(store.activeLines()).toHaveLength(2);
+      const remainingLines = store.activeLines();
+
+      // Verify the correct lines remain by checking their IDs
+      const remainingIds = remainingLines.map((line) => line.id);
+      expect(remainingIds).toContain(secondLineId);
+      expect(remainingIds).toContain(fourthId);
+      expect(remainingIds).not.toContain(firstLineId);
+      expect(remainingIds).not.toContain(thirdId);
+
+      // Add a new transaction
+      const fifthId = store.addTransaction({
+        description: 'Fifth',
+        amount: 500,
+        type: 'saving',
+      });
+
+      // Update specific lines by ID - this should work reliably
+      store.updateTransaction(secondLineId, { amount: 6000 });
+      store.updateTransaction(fifthId, { amount: 600 });
+
+      const finalLines = store.activeLines();
+      expect(finalLines).toHaveLength(3);
+
+      // Find and verify updates by ID
+      const updatedSecondLine = finalLines.find(
+        (line) => line.id === secondLineId,
+      );
+      const unchangedFourthLine = finalLines.find(
+        (line) => line.id === fourthId,
+      );
+      const updatedFifthLine = finalLines.find((line) => line.id === fifthId);
+
+      expect(updatedSecondLine?.formData.amount).toBe(6000);
+      expect(unchangedFourthLine?.formData.amount).toBe(200);
+      expect(updatedFifthLine?.formData.amount).toBe(600);
+    });
+
+    it('should ensure all lines have stable UUIDs', () => {
+      const initialLines = store.activeLines();
+
+      // Check that existing lines use their original IDs
+      expect(initialLines[0].id).toBe(mockTemplateLines[0].id);
+      expect(initialLines[1].id).toBe(mockTemplateLines[1].id);
+
+      // Check that new lines get UUIDs
+      const newId = store.addTransaction({
+        description: 'New',
+        amount: 100,
+        type: 'expense',
+      });
+
+      expect(newId).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+      );
+
+      const newLine = store.activeLines().find((line) => line.id === newId);
+      expect(newLine?.id).toBe(newId);
+      expect(newLine?.originalLine).toBeUndefined();
     });
   });
 });

@@ -15,7 +15,7 @@ import type { EditableLine, SaveResult } from './template-line-state';
  *
  * This store provides a simplified API for managing template line editing:
  * - Direct state management with public signals
- * - CRUD operations with array index-based identification
+ * - CRUD operations with UUID-based identification for stability
  * - Bulk operations for efficient API calls
  * - Minimal complexity while preserving all essential functionality
  */
@@ -30,7 +30,7 @@ export class TemplateLineStore {
 
   // Computed properties for component consumption
   readonly activeLines = computed(() =>
-    this.lines().filter((_, index) => !this.#isLineDeleted(index)),
+    this.lines().filter((line) => !this.#deletedIds().has(line.id)),
   );
 
   readonly hasUnsavedChanges = computed(() => {
@@ -39,7 +39,7 @@ export class TemplateLineStore {
       (line) =>
         line.isModified ||
         !line.originalLine ||
-        this.#isLineDeleted(currentLines.indexOf(line)),
+        this.#deletedIds().has(line.id),
     );
   });
 
@@ -48,8 +48,16 @@ export class TemplateLineStore {
     this.activeLines().every((line) => this.#isLineValid(line)),
   );
 
-  // Track deleted line indices
-  readonly #deletedIndices = signal<Set<number>>(new Set());
+  // Track deleted line IDs
+  readonly #deletedIds = signal<Set<string>>(new Set());
+
+  /**
+   * Get line by ID - returns undefined if not found or deleted
+   */
+  getLineById(id: string): EditableLine | undefined {
+    const line = this.lines().find((line) => line.id === id);
+    return line && !this.#deletedIds().has(id) ? line : undefined;
+  }
 
   /**
    * Initialize the editor with template lines and form data
@@ -64,7 +72,7 @@ export class TemplateLineStore {
     });
 
     this.lines.set(editableLines);
-    this.#deletedIndices.set(new Set());
+    this.#deletedIds.set(new Set());
     this.error.set(null);
   }
 
@@ -74,29 +82,24 @@ export class TemplateLineStore {
   addTransaction(data: TransactionFormData): string {
     const newLine = this.#createEditableLine(data);
     this.lines.update((lines) => [...lines, newLine]);
-    return this.lines().length - 1 + ''; // Return index as string ID
+    return newLine.id; // Return the UUID
   }
 
   /**
-   * Update an existing line by index
+   * Update an existing line by ID
    */
   updateTransaction(
     id: string,
     updates: Partial<TransactionFormData>,
   ): boolean {
-    const index = parseInt(id);
-    if (
-      isNaN(index) ||
-      index < 0 ||
-      index >= this.lines().length ||
-      this.#isLineDeleted(index)
-    ) {
+    // Check if line exists and is not deleted
+    if (!this.getLineById(id)) {
       return false;
     }
 
     this.lines.update((lines) =>
-      lines.map((line, i) =>
-        i === index
+      lines.map((line) =>
+        line.id === id
           ? {
               ...line,
               formData: { ...line.formData, ...updates },
@@ -109,37 +112,24 @@ export class TemplateLineStore {
   }
 
   /**
-   * Remove a line by index
+   * Remove a line by ID
    */
   removeTransaction(id: string): boolean {
     if (!this.canRemoveTransaction()) {
       return false;
     }
 
-    const index = parseInt(id);
-    if (isNaN(index) || index < 0 || index >= this.lines().length) {
+    const line = this.lines().find((line) => line.id === id);
+    if (!line || this.#deletedIds().has(id)) {
       return false;
     }
 
-    const line = this.lines()[index];
-
     if (!line.originalLine) {
-      // New line - remove entirely
-      this.lines.update((lines) => lines.filter((_, i) => i !== index));
-      // Update deleted indices after removal
-      const deletedSet = new Set(this.#deletedIndices());
-      const updatedDeleted = new Set<number>();
-      deletedSet.forEach((deletedIndex) => {
-        if (deletedIndex > index) {
-          updatedDeleted.add(deletedIndex - 1);
-        } else if (deletedIndex !== index) {
-          updatedDeleted.add(deletedIndex);
-        }
-      });
-      this.#deletedIndices.set(updatedDeleted);
+      // New line - remove entirely from array
+      this.lines.update((lines) => lines.filter((l) => l.id !== id));
     } else {
       // Existing line - mark as deleted
-      this.#deletedIndices.update((deleted) => new Set([...deleted, index]));
+      this.#deletedIds.update((deleted) => new Set([...deleted, id]));
     }
 
     return true;
@@ -193,14 +183,11 @@ export class TemplateLineStore {
     originalLine?: TemplateLine,
   ): EditableLine {
     return {
+      id: originalLine?.id ?? crypto.randomUUID(),
       formData: { ...data },
       isModified: !originalLine,
       originalLine,
     };
-  }
-
-  #isLineDeleted(index: number): boolean {
-    return this.#deletedIndices().has(index);
   }
 
   #isLineValid(line: EditableLine): boolean {
@@ -211,25 +198,25 @@ export class TemplateLineStore {
 
   #generateBulkOperations(): TemplateLinesBulkOperations {
     const currentLines = this.lines();
-    const deletedSet = this.#deletedIndices();
+    const deletedSet = this.#deletedIds();
 
     return {
       create: currentLines
-        .filter((line, index) => !line.originalLine && !deletedSet.has(index))
+        .filter((line) => !line.originalLine && !deletedSet.has(line.id))
         .map((line) => this.#mapToCreateData(line)),
 
       update: currentLines
         .filter(
-          (line, index) =>
+          (line) =>
             line.originalLine &&
-            !deletedSet.has(index) &&
+            !deletedSet.has(line.id) &&
             line.isModified &&
             this.#isLineModified(line),
         )
         .map((line) => this.#mapToUpdateData(line)),
 
       delete: currentLines
-        .filter((line, index) => line.originalLine && deletedSet.has(index))
+        .filter((line) => line.originalLine && deletedSet.has(line.id))
         .map((line) => line.originalLine!.id),
     };
   }
@@ -277,7 +264,7 @@ export class TemplateLineStore {
 
     // Remove deleted lines and update existing lines
     const updatedLines = currentLines
-      .filter((_, index) => !this.#deletedIndices().has(index))
+      .filter((line) => !this.#deletedIds().has(line.id))
       .map((line) => {
         if (!line.originalLine) {
           // Convert new line to existing with real template line data
@@ -297,11 +284,12 @@ export class TemplateLineStore {
       });
 
     this.lines.set(updatedLines);
-    this.#deletedIndices.set(new Set());
+    this.#deletedIds.set(new Set());
   }
 
   #convertToExistingLine(createdLine: TemplateLine): EditableLine {
     return {
+      id: createdLine.id,
       formData: {
         description: createdLine.name,
         amount: createdLine.amount,
@@ -320,6 +308,7 @@ export class TemplateLineStore {
 
     return {
       ...line,
+      id: originalLine?.id ?? line.id,
       formData: originalLine
         ? {
             description: originalLine.name,
