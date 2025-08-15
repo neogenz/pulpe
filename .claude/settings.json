@@ -18,7 +18,7 @@
       "mcp__serena"
     ],
     "deny": [],
-    "defaultModel": "acceptEdits"
+    "defaultMode": "acceptEdits"
   },
   "enabledMcpjsonServers": ["context7", "supabase", "playwright", "serena"],
   "enableAllProjectMcpServers": true
