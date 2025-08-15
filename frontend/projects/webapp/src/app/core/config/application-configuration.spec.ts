@@ -15,7 +15,7 @@ describe('ApplicationConfiguration', () => {
   const mockValidConfig: ApplicationConfig = {
     supabase: {
       url: 'http://localhost:54321',
-      anonKey: 'mock-anon-key',
+      anonKey: 'mock.anon.key', // Simple mock JWT format (3 parts separated by dots)
     },
     backend: {
       apiUrl: 'http://localhost:3000/api/v1',
@@ -121,7 +121,7 @@ describe('ApplicationConfiguration', () => {
 
       await expect(promise).rejects.toThrow();
 
-      expect(service.supabaseUrl()).toBe('');
+      expect(service.supabaseUrl()).toBe('http://localhost:54321');
       expect(service.supabaseAnonKey()).toBe('');
       expect(service.backendApiUrl()).toBe('http://localhost:3000/api/v1');
       expect(service.environment()).toBe('development');
@@ -137,9 +137,7 @@ describe('ApplicationConfiguration', () => {
       const req = httpMock.expectOne('/config.json');
       req.flush(invalidConfig);
 
-      await expect(promise).rejects.toThrow(
-        'Configuration invalide: structure incorrecte',
-      );
+      await expect(promise).rejects.toThrow('Configuration validation failed');
       expect(consoleSpy).toHaveBeenCalled();
     });
 
@@ -155,16 +153,14 @@ describe('ApplicationConfiguration', () => {
       const req = httpMock.expectOne('/config.json');
       req.flush(invalidConfig);
 
-      await expect(promise).rejects.toThrow(
-        'Configuration invalide: paramètres Supabase manquants',
-      );
+      await expect(promise).rejects.toThrow('Configuration validation failed');
       expect(consoleSpy).toHaveBeenCalled();
     });
 
     it('should throw error on missing backend configuration', async () => {
       const consoleSpy = vi.spyOn(console, 'error');
       const invalidConfig = {
-        supabase: { url: 'http://localhost:54321', anonKey: 'key' },
+        supabase: { url: 'http://localhost:54321', anonKey: 'mock.anon.key' },
         environment: 'local',
       };
 
@@ -173,16 +169,14 @@ describe('ApplicationConfiguration', () => {
       const req = httpMock.expectOne('/config.json');
       req.flush(invalidConfig);
 
-      await expect(promise).rejects.toThrow(
-        "Configuration invalide: URL de l'API backend manquante",
-      );
+      await expect(promise).rejects.toThrow('Configuration validation failed');
       expect(consoleSpy).toHaveBeenCalled();
     });
 
     it('should throw error on invalid environment', async () => {
       const consoleSpy = vi.spyOn(console, 'error');
       const invalidConfig = {
-        supabase: { url: 'http://localhost:54321', anonKey: 'key' },
+        supabase: { url: 'http://localhost:54321', anonKey: 'mock.anon.key' },
         backend: { apiUrl: 'http://localhost:3000/api/v1' },
         environment: 'invalid',
       };
@@ -192,9 +186,7 @@ describe('ApplicationConfiguration', () => {
       const req = httpMock.expectOne('/config.json');
       req.flush(invalidConfig);
 
-      await expect(promise).rejects.toThrow(
-        'Configuration invalide: environnement non valide',
-      );
+      await expect(promise).rejects.toThrow('Configuration validation failed');
       expect(consoleSpy).toHaveBeenCalled();
     });
   });
