@@ -1,3 +1,4 @@
+import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -6,31 +7,31 @@ import {
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import {
+  MAT_DIALOG_DATA,
+  MatDialog,
   MatDialogModule,
   MatDialogRef,
-  MAT_DIALOG_DATA,
 } from '@angular/material/dialog';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { CommonModule } from '@angular/common';
-import { MatTableModule } from '@angular/material/table';
-import {
-  TransactionFormData,
-  TRANSACTION_TYPES,
-} from '../../services/transaction-form';
-import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSelectModule } from '@angular/material/select';
+import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TemplateLine } from '@pulpe/shared';
-import { MatDialog } from '@angular/material/dialog';
+import { firstValueFrom } from 'rxjs';
 import {
   ConfirmationDialogComponent,
   type ConfirmationDialogData,
 } from '../../../../ui/dialogs/confirmation-dialog';
-import { EditTransactionsState } from '../services/edit-transactions-state';
-import { firstValueFrom } from 'rxjs';
+import {
+  TRANSACTION_TYPES,
+  TransactionFormData,
+} from '../../services/transaction-form';
+import { TemplateLineStore } from '../services/template-line-store';
+import { EditableLine } from '../services/template-line-state';
 
 interface EditTransactionsDialogData {
   transactions: TransactionFormData[];
@@ -42,6 +43,7 @@ interface EditTransactionsDialogData {
 interface EditTransactionsDialogResult {
   saved: boolean;
   updatedLines?: TemplateLine[];
+  deletedIds?: string[];
   error?: string;
 }
 
@@ -60,7 +62,7 @@ interface EditTransactionsDialogResult {
     MatSelectModule,
     MatTooltipModule,
   ],
-  providers: [EditTransactionsState],
+  providers: [TemplateLineStore],
   template: `
     <h2 mat-dialog-title class="flex gap-2 items-center">
       <mat-icon class="text-primary">edit</mat-icon>
@@ -109,6 +111,7 @@ interface EditTransactionsDialogResult {
           <table
             mat-table
             [dataSource]="transactions()"
+            [trackBy]="trackByTransactionId"
             class="w-full"
             [class.pointer-events-none]="isLoading()"
           >
@@ -130,6 +133,7 @@ interface EditTransactionsDialogResult {
                     [value]="transaction.formData.description"
                     (input)="updateDescription(transaction.id, $event)"
                     placeholder="Description de la transaction"
+                    [attr.id]="'desc-' + transaction.id"
                   />
                   @if (!transaction.formData.description?.trim()) {
                     <mat-error>La description est requise</mat-error>
@@ -160,6 +164,7 @@ interface EditTransactionsDialogResult {
                     [value]="transaction.formData.amount"
                     (input)="updateAmount(transaction.id, $event)"
                     placeholder="0.00"
+                    [attr.id]="'amount-' + transaction.id"
                   />
                   <span matTextSuffix>CHF</span>
                   @if (transaction.formData.amount < 0) {
@@ -185,6 +190,7 @@ interface EditTransactionsDialogResult {
                   <mat-select
                     [value]="transaction.formData.type"
                     (selectionChange)="updateType(transaction.id, $event.value)"
+                    [attr.id]="'type-' + transaction.id"
                   >
                     @for (type of transactionTypes; track type.value) {
                       <mat-option [value]="type.value">
@@ -282,6 +288,7 @@ interface EditTransactionsDialogResult {
         color="primary"
         (click)="save()"
         [disabled]="!isValid() || isLoading()"
+        [attr.aria-describedby]="!isValid() ? 'validation-error' : null"
       >
         <div class="flex items-center gap-2">
           @if (isLoading()) {
@@ -336,18 +343,18 @@ interface EditTransactionsDialogResult {
 export default class EditTransactionsDialog {
   readonly #dialogRef = inject(MatDialogRef<EditTransactionsDialog>);
   readonly #dialog = inject(MatDialog);
-  readonly #state = inject(EditTransactionsState);
+  readonly #store = inject(TemplateLineStore);
   readonly data = inject<EditTransactionsDialogData>(MAT_DIALOG_DATA);
 
-  // Expose state signals directly
-  readonly isLoading = this.#state.isLoading;
-  readonly errorMessage = this.#state.error;
-  readonly hasUnsavedChanges = this.#state.hasUnsavedChanges;
-  readonly canRemoveTransaction = this.#state.canRemoveTransaction;
-  readonly isValid = this.#state.isValid;
+  // Expose store signals directly
+  readonly isLoading = this.#store.isLoading;
+  readonly errorMessage = this.#store.error;
+  readonly hasUnsavedChanges = this.#store.hasUnsavedChanges;
+  readonly canRemoveTransaction = this.#store.canRemoveTransaction;
+  readonly isValid = this.#store.isValid;
 
-  // Get active (non-deleted) transactions from state
-  readonly transactions = this.#state.activeTransactions;
+  // Get active lines from store
+  readonly transactions = this.#store.activeLines;
 
   protected readonly displayedColumns: readonly string[] = [
     'description',
@@ -359,8 +366,8 @@ export default class EditTransactionsDialog {
   protected readonly transactionTypes = TRANSACTION_TYPES;
 
   constructor() {
-    // Initialize the state service
-    this.#state.initialize(
+    // Initialize the store
+    this.#store.initialize(
       this.data.originalTemplateLines,
       this.data.transactions,
     );
@@ -369,7 +376,7 @@ export default class EditTransactionsDialog {
     this.#dialogRef.disableClose = true;
   }
 
-  async removeTransaction(transactionId: string): Promise<void> {
+  async removeTransaction(id: string): Promise<void> {
     if (!this.canRemoveTransaction()) {
       return;
     }
@@ -380,11 +387,12 @@ export default class EditTransactionsDialog {
       return;
     }
 
-    this.#state.removeTransaction(transactionId);
+    // Remove transaction by ID
+    this.#store.removeTransaction(id);
   }
 
   addNewTransaction(): void {
-    this.#state.addTransaction({
+    this.#store.addTransaction({
       description: '',
       amount: 0,
       type: 'expense',
@@ -395,13 +403,14 @@ export default class EditTransactionsDialog {
     if (this.isLoading() || !this.isValid()) return;
 
     // Perform save - no sync needed as state is already up-to-date
-    const result = await this.#state.saveChanges(this.data.templateId);
+    const result = await this.#store.saveChanges(this.data.templateId);
 
     if (!result.success) return;
 
     this.#dialogRef.close({
       saved: true,
       updatedLines: result.updatedLines,
+      deletedIds: result.deletedIds,
     } as EditTransactionsDialogResult);
   }
 
@@ -431,19 +440,28 @@ export default class EditTransactionsDialog {
     });
   });
 
-  updateDescription(transactionId: string, event: Event): void {
+  updateDescription(id: string, event: Event): void {
     const value = (event.target as HTMLInputElement).value;
-    this.#state.updateTransaction(transactionId, { description: value });
+    this.#store.updateTransaction(id, {
+      description: value,
+    });
   }
 
-  updateAmount(transactionId: string, event: Event): void {
+  updateAmount(id: string, event: Event): void {
     const value = Number((event.target as HTMLInputElement).value);
-    this.#state.updateTransaction(transactionId, { amount: value });
+    this.#store.updateTransaction(id, { amount: value });
   }
 
-  updateType(transactionId: string, value: TransactionFormData['type']): void {
-    this.#state.updateTransaction(transactionId, { type: value });
+  updateType(id: string, value: TransactionFormData['type']): void {
+    this.#store.updateTransaction(id, { type: value });
   }
+
+  protected trackByTransactionId = (
+    _index: number,
+    transaction: EditableLine,
+  ): string => {
+    return transaction.id; // Use the stable UUID for tracking
+  };
 
   /**
    * Show confirmation dialog for transaction removal

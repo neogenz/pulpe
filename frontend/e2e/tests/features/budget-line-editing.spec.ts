@@ -12,18 +12,32 @@ test.describe('Budget Line Inline Editing', () => {
     const updatedName = 'Updated Budget Line';
     const updatedAmount = 150;
 
-    // Mock the budget details API with a budget line using typed helper
-    const mockResponse = createBudgetDetailsMock(budgetId, {
-      budgetLines: [
-        createBudgetLineMock('line-1', budgetId, {
-          name: originalName,
-          amount: originalAmount,
-          recurrence: 'fixed',
-        }),
-      ],
-    });
+    // Track whether the update has been called
+    let hasBeenUpdated = false;
     
+    // Mock the budget details API with a budget line using typed helper
     await authenticatedPage.route('**/budgets/*/details', (route) => {
+      // Return updated data if the PATCH has been called
+      const mockResponse = hasBeenUpdated
+        ? createBudgetDetailsMock(budgetId, {
+            budgetLines: [
+              createBudgetLineMock('line-1', budgetId, {
+                name: updatedName,
+                amount: updatedAmount,
+                recurrence: 'fixed',
+              }),
+            ],
+          })
+        : createBudgetDetailsMock(budgetId, {
+            budgetLines: [
+              createBudgetLineMock('line-1', budgetId, {
+                name: originalName,
+                amount: originalAmount,
+                recurrence: 'fixed',
+              }),
+            ],
+          });
+          
       void route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -34,6 +48,9 @@ test.describe('Budget Line Inline Editing', () => {
     // Mock the update API endpoint using typed helper
     await authenticatedPage.route('**/api/v1/budget-lines/line-1', (route) => {
       if (route.request().method() === 'PATCH') {
+        // Mark that the update has been called
+        hasBeenUpdated = true;
+        
         const updatedBudgetLine = createBudgetLineMock('line-1', budgetId, {
           name: updatedName,
           amount: updatedAmount,
@@ -84,13 +101,20 @@ test.describe('Budget Line Inline Editing', () => {
     const saveButton = authenticatedPage.locator('[data-testid="save-line-1"]');
     await saveButton.click();
 
-    // Verify the update was successful - use a more specific selector to avoid multiple elements
+    // Wait for the API request to complete by waiting for the success message
     await expect(authenticatedPage.locator('.mat-mdc-snack-bar-label').last()).toHaveText('Prévision modifiée.');
     
-    // Verify the values are updated in the table (name is in column 1, amount is in column 3)
-    const budgetLineRow = authenticatedPage.locator('tr').filter({ hasText: updatedName });
-    await expect(budgetLineRow.locator('td').nth(1)).toContainText(updatedName);
-    await expect(budgetLineRow.locator('td').nth(3)).toContainText('150.00');
+    // Wait a bit more to ensure the DOM has been updated with the server response
+    await authenticatedPage.waitForTimeout(500);
+    
+    // Since we can't find the updated row by text, let's verify by looking at the first row
+    // (there should only be one row in our test)
+    const firstRowNameCell = authenticatedPage.locator('table[mat-table] tbody tr').first().locator('td').nth(1);
+    const firstRowAmountCell = authenticatedPage.locator('table[mat-table] tbody tr').first().locator('td').nth(3);
+    
+    // Verify the first row contains the updated values
+    await expect(firstRowNameCell).toContainText(updatedName);
+    await expect(firstRowAmountCell).toContainText('150.00');
   });
 
   test('should cancel inline editing without saving changes', async ({
@@ -123,22 +147,17 @@ test.describe('Budget Line Inline Editing', () => {
     await budgetDetailsPage.goto(budgetId);
     await budgetDetailsPage.expectPageLoaded();
     
-    // Wait for the table to render
+    // Wait for the table to render and for the row to be visible
     await authenticatedPage.waitForSelector('table[mat-table]');
+    await authenticatedPage.waitForSelector('tr:has-text("Test Budget Line")');
 
-    // Find the inputs directly - they might already be in edit mode
-    const nameInput = authenticatedPage.locator('input[placeholder="Nom de la ligne"]');
+    // Find and click the edit button
+    const editButton = authenticatedPage.locator('button[data-testid="edit-line-1"]');
+    await expect(editButton).toBeVisible();
+    await editButton.click();
 
-    // Check if already in edit mode, if not click the edit button
-    const isInEditMode = await nameInput.isVisible({ timeout: 1000 }).catch(() => false);
-    
-    if (!isInEditMode) {
-      // Find and click the edit button
-      const editButton = authenticatedPage.locator('button[data-testid="edit-line-1"]');
-      await editButton.click();
-    }
-
-    // Verify we're in edit mode
+    // Wait for edit mode to be active
+    const nameInput = authenticatedPage.locator('[data-testid="edit-name-line-1"]');
     await expect(nameInput).toBeVisible();
 
     // Make some changes
@@ -147,6 +166,7 @@ test.describe('Budget Line Inline Editing', () => {
 
     // Cancel the changes using data-testid
     const cancelButton = authenticatedPage.locator('[data-testid="cancel-line-1"]');
+    await expect(cancelButton).toBeVisible();
     await cancelButton.click();
 
     // Verify we're no longer in edit mode

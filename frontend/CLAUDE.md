@@ -6,11 +6,12 @@ This file provides specific guidance for Claude Code when working with the Angul
 
 ```bash
 # Development
-pnpm run start                     # Start dev server and open browser
+pnpm run start                     # Start dev server and open browser (with build info generation)
 pnpm run start:ci                  # Start dev server without opening browser
-pnpm run dev                       # Alias for ng serve
+pnpm run dev                       # Alias for ng serve with host 0.0.0.0
 pnpm run build                     # Build for production
 pnpm run watch                     # Build in watch mode for development
+pnpm run generate:build-info       # Generate build information
 
 # Testing
 pnpm run test                      # Run unit tests with Vitest
@@ -74,9 +75,10 @@ projects/webapp/src/app/
 #### Core (`core/`)
 
 - **Purpose**: Central hub for shared, headless application logic
-- **Content**: Services, guards, interceptors, state management setup
+- **Content**: Domain-organized services (auth/, budget/, template/, config/), guards, interceptors
 - **Loading**: Eager-loaded (part of main bundle)
 - **Constraints**: No components, directives, or pipes with templates
+- **Organization**: Services are grouped by domain, not in a single services/ folder
 
 #### Layout (`layout/`)
 
@@ -146,7 +148,7 @@ feature/[domain]/
 
 - Use Angular signals for local state
 - Feature-specific state services in `feature/[domain]/services/`
-- Shared state in `core/services/`
+- Shared services organized by domain in `core/` (e.g., `core/auth/`, `core/budget/`, `core/template/`)
 
 ### Testing
 
@@ -314,7 +316,7 @@ Follow Tailwind standards breakpoint.
 
 ## Authentication Flow
 
-1. Supabase Auth integration in `core/services/auth.service.ts`
+1. Supabase Auth integration in `core/auth/` (auth-api.ts, auth-guard.ts, auth-interceptor.ts)
 2. Auth guards protect feature routes
 3. Interceptors add Bearer tokens to API requests
 4. User context available throughout the app

@@ -102,21 +102,23 @@ export class OnboardingPage {
     
     // Wait for Angular to fully load
     await this.page.waitForLoadState('networkidle');
-    // Wait removed - rely on Playwright's auto-waiting
     
     // Initially, the Next button should be disabled
     await this.expectNextButtonDisabled();
     
     // Fill the input field to ensure data is captured for the onboarding store
+    // Use a more reliable input method to prevent character loss
     await this.firstNameInput.click();
     await this.firstNameInput.clear();
-    await this.firstNameInput.pressSequentially(firstName, { delay: 100 });
+    
+    // Wait for the input to be ready after clearing
+    await this.page.waitForTimeout(100);
+    
+    // Use fill() method which is more reliable than pressSequentially for text input
+    await this.firstNameInput.fill(firstName);
     
     // Verify the input contains the expected value
     await expect(this.firstNameInput).toHaveValue(firstName);
-    
-    // Wait for Angular to process the input and enable the button
-    // Wait removed - rely on Playwright's auto-waiting
     
     // Now the Next button should be enabled
     await this.expectNextButtonEnabled();

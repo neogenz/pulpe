@@ -7,14 +7,13 @@ import {
   type BudgetTemplateResponse,
   type TemplateLineListResponse,
 } from '@pulpe/shared';
-import { environment } from '../../../../environments/environment';
 
 describe('BudgetTemplatesApi', () => {
   // NOTE: Due to Angular 20's dependency injection complexities with HttpClient,
   // these tests focus on validating the service's business logic and API integration patterns.
   // Full HTTP integration is tested through E2E tests.
 
-  const baseUrl = `${environment.backendUrl}/budget-templates`;
+  const baseUrl = 'http://localhost:3000/api/v1/budget-templates';
 
   describe('API Endpoints', () => {
     it('should construct correct endpoint URLs', () => {

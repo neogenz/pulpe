@@ -8,6 +8,7 @@ import {
   type CreateBudgetApiResponse,
 } from '../../core/budget/budget-api';
 import { TemplateApi } from '../../core/template/template-api';
+import { OnboardingApi } from './services/onboarding-api';
 import { NavigationEnd, Router } from '@angular/router'; // Import NavigationEnd
 import { of, Subject, throwError } from 'rxjs'; // Import Subject
 
@@ -38,6 +39,10 @@ const mockTemplateApi = {
   createFromOnboarding$: vi.fn(),
 };
 
+const mockOnboardingApi = {
+  createTemplateFromOnboarding$: vi.fn(),
+};
+
 const mockBudgetApi = {
   createBudget$: vi.fn(),
 };
@@ -59,6 +64,7 @@ describe('OnboardingStore - Integration Tests', () => {
         OnboardingStore,
         { provide: AuthApi, useValue: mockAuthApi },
         { provide: TemplateApi, useValue: mockTemplateApi },
+        { provide: OnboardingApi, useValue: mockOnboardingApi },
         { provide: BudgetApi, useValue: mockBudgetApi },
         { provide: Router, useValue: mockRouter },
       ],
@@ -93,7 +99,7 @@ describe('OnboardingStore - Integration Tests', () => {
     it('should complete full registration flow successfully', async () => {
       // Mock successful responses
       mockAuthApi.signUpWithEmail.mockResolvedValue({ success: true });
-      mockTemplateApi.createFromOnboarding$.mockReturnValue(
+      mockOnboardingApi.createTemplateFromOnboarding$.mockReturnValue(
         of({ data: { template: { id: 'template-123' } } }),
       );
       mockBudgetApi.createBudget$.mockReturnValue(
@@ -110,7 +116,9 @@ describe('OnboardingStore - Integration Tests', () => {
         'john@example.com',
         'password123',
       );
-      expect(mockTemplateApi.createFromOnboarding$).toHaveBeenCalled();
+      expect(
+        mockOnboardingApi.createTemplateFromOnboarding$,
+      ).toHaveBeenCalled();
       expect(mockBudgetApi.createBudget$).toHaveBeenCalled();
       // Router navigation is now handled by the registration component, not the store
     });
@@ -134,7 +142,7 @@ describe('OnboardingStore - Integration Tests', () => {
 
     it('should handle template creation failure', async () => {
       mockAuthApi.signUpWithEmail.mockResolvedValue({ success: true });
-      mockTemplateApi.createFromOnboarding$.mockReturnValue(
+      mockOnboardingApi.createTemplateFromOnboarding$.mockReturnValue(
         throwError(() => new Error('Template creation failed')),
       );
 
@@ -150,7 +158,7 @@ describe('OnboardingStore - Integration Tests', () => {
 
     it('should handle budget creation failure', async () => {
       mockAuthApi.signUpWithEmail.mockResolvedValue({ success: true });
-      mockTemplateApi.createFromOnboarding$.mockReturnValue(
+      mockOnboardingApi.createTemplateFromOnboarding$.mockReturnValue(
         of({ data: { template: { id: 'template-123' } } }),
       );
       mockBudgetApi.createBudget$.mockReturnValue(
@@ -233,7 +241,7 @@ describe('OnboardingStore - Integration Tests', () => {
             setTimeout(() => resolve({ success: true }), 100),
           ),
       );
-      mockTemplateApi.createFromOnboarding$.mockReturnValue(
+      mockOnboardingApi.createTemplateFromOnboarding$.mockReturnValue(
         of({ data: { template: { id: 'template-123' } } }),
       );
       mockBudgetApi.createBudget$.mockReturnValue(
@@ -262,7 +270,7 @@ describe('OnboardingStore - Integration Tests', () => {
       store.updateField('phonePlan', 50);
 
       mockAuthApi.signUpWithEmail.mockResolvedValue({ success: true });
-      mockTemplateApi.createFromOnboarding$.mockReturnValue(
+      mockOnboardingApi.createTemplateFromOnboarding$.mockReturnValue(
         of({ data: { template: { id: 'template-123' } } }),
       );
       mockBudgetApi.createBudget$.mockReturnValue(
@@ -271,7 +279,9 @@ describe('OnboardingStore - Integration Tests', () => {
 
       await store.submitRegistration('john@example.com', 'password123');
 
-      expect(mockTemplateApi.createFromOnboarding$).toHaveBeenCalledWith({
+      expect(
+        mockOnboardingApi.createTemplateFromOnboarding$,
+      ).toHaveBeenCalledWith({
         name: 'Mois Standard',
         description: 'Template personnel de John',
         isDefault: true,
@@ -287,7 +297,7 @@ describe('OnboardingStore - Integration Tests', () => {
 
     it('should build correct budget creation request', async () => {
       mockAuthApi.signUpWithEmail.mockResolvedValue({ success: true });
-      mockTemplateApi.createFromOnboarding$.mockReturnValue(
+      mockOnboardingApi.createTemplateFromOnboarding$.mockReturnValue(
         of({ data: { template: { id: 'template-123' } } }),
       );
       mockBudgetApi.createBudget$.mockReturnValue(
@@ -308,7 +318,7 @@ describe('OnboardingStore - Integration Tests', () => {
     it('should handle null values in template creation', async () => {
       // Don't set optional fields, they should default to 0
       mockAuthApi.signUpWithEmail.mockResolvedValue({ success: true });
-      mockTemplateApi.createFromOnboarding$.mockReturnValue(
+      mockOnboardingApi.createTemplateFromOnboarding$.mockReturnValue(
         of({ data: { template: { id: 'template-123' } } }),
       );
       mockBudgetApi.createBudget$.mockReturnValue(
@@ -317,7 +327,9 @@ describe('OnboardingStore - Integration Tests', () => {
 
       await store.submitRegistration('john@example.com', 'password123');
 
-      expect(mockTemplateApi.createFromOnboarding$).toHaveBeenCalledWith({
+      expect(
+        mockOnboardingApi.createTemplateFromOnboarding$,
+      ).toHaveBeenCalledWith({
         name: 'Mois Standard',
         description: 'Template personnel de John',
         isDefault: true,
@@ -373,6 +385,7 @@ describe('OnboardingStore - Integration Tests', () => {
           OnboardingStore,
           { provide: AuthApi, useValue: mockAuthApi },
           { provide: TemplateApi, useValue: mockTemplateApi },
+          { provide: OnboardingApi, useValue: mockOnboardingApi },
           { provide: BudgetApi, useValue: mockBudgetApi },
           { provide: Router, useValue: mockRouter },
         ],
@@ -391,7 +404,7 @@ describe('OnboardingStore - Integration Tests', () => {
 
       // Mock successful registration
       mockAuthApi.signUpWithEmail.mockResolvedValue({ success: true });
-      mockTemplateApi.createFromOnboarding$.mockReturnValue(
+      mockOnboardingApi.createTemplateFromOnboarding$.mockReturnValue(
         of({ data: { template: { id: 'template-123' } } }),
       );
       mockBudgetApi.createBudget$.mockReturnValue(
@@ -411,7 +424,7 @@ describe('OnboardingStore - Integration Tests', () => {
       });
 
       mockAuthApi.signUpWithEmail.mockResolvedValue({ success: true });
-      mockTemplateApi.createFromOnboarding$.mockReturnValue(
+      mockOnboardingApi.createTemplateFromOnboarding$.mockReturnValue(
         of({ data: { template: { id: 'template-123' } } }),
       );
       mockBudgetApi.createBudget$.mockReturnValue(

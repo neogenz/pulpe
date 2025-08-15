@@ -9,20 +9,29 @@ import {
   type BudgetLineUpdate,
   type BudgetDetailsResponse,
 } from '@pulpe/shared';
-import { environment } from '../../../../../environments/environment';
+import { ApplicationConfiguration } from '../../../../core/config/application-configuration';
+import { Logger } from '../../../../core/logging/logger';
 
 @Injectable()
 export class BudgetLineApi {
   #http = inject(HttpClient);
-  #apiUrl = `${environment.backendUrl}/budget-lines`;
-  #budgetsUrl = `${environment.backendUrl}/budgets`;
+  #applicationConfig = inject(ApplicationConfiguration);
+  #logger = inject(Logger);
+
+  get #apiUrl(): string {
+    return `${this.#applicationConfig.backendApiUrl()}/budget-lines`;
+  }
+
+  get #budgetsUrl(): string {
+    return `${this.#applicationConfig.backendApiUrl()}/budgets`;
+  }
 
   getBudgetDetails$(budgetId: string): Observable<BudgetDetailsResponse> {
     return this.#http
       .get<BudgetDetailsResponse>(`${this.#budgetsUrl}/${budgetId}/details`)
       .pipe(
         catchError((error) => {
-          console.error('Error fetching budget details:', error);
+          this.#logger.error('Error fetching budget details:', error);
           return throwError(
             () => new Error('Impossible de charger les détails du budget'),
           );
@@ -35,7 +44,7 @@ export class BudgetLineApi {
       .get<BudgetLineListResponse>(`${this.#apiUrl}/budget/${budgetId}`)
       .pipe(
         catchError((error) => {
-          console.error('Error fetching budget lines:', error);
+          this.#logger.error('Error fetching budget lines:', error);
           return throwError(
             () => new Error('Impossible de charger les prévisions'),
           );
@@ -48,7 +57,7 @@ export class BudgetLineApi {
   ): Observable<BudgetLineResponse> {
     return this.#http.post<BudgetLineResponse>(this.#apiUrl, budgetLine).pipe(
       catchError((error) => {
-        console.error('Error creating budget line:', error);
+        this.#logger.error('Error creating budget line:', error);
         return throwError(() => new Error('Impossible de créer la prévision'));
       }),
     );
@@ -62,7 +71,7 @@ export class BudgetLineApi {
       .patch<BudgetLineResponse>(`${this.#apiUrl}/${id}`, update)
       .pipe(
         catchError((error) => {
-          console.error('Error updating budget line:', error);
+          this.#logger.error('Error updating budget line:', error);
           return throwError(
             () => new Error('Impossible de mettre à jour la prévision'),
           );
@@ -75,7 +84,7 @@ export class BudgetLineApi {
       .delete<BudgetLineDeleteResponse>(`${this.#apiUrl}/${id}`)
       .pipe(
         catchError((error) => {
-          console.error('Error deleting budget line:', error);
+          this.#logger.error('Error deleting budget line:', error);
           return throwError(
             () => new Error('Impossible de supprimer la prévision'),
           );

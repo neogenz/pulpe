@@ -9,7 +9,7 @@ import {
   type BudgetListResponse,
   type BudgetResponse,
 } from '@pulpe/shared';
-import { environment } from '../../../environments/environment';
+import { ApplicationConfiguration } from '../../core/config/application-configuration';
 
 export interface MonthInfo {
   month: number;
@@ -21,11 +21,15 @@ export interface MonthInfo {
 
 @Injectable()
 export class BudgetApi {
-  private readonly http = inject(HttpClient);
-  private readonly apiUrl = `${environment.backendUrl}/budgets`;
+  readonly #http = inject(HttpClient);
+  readonly #applicationConfig = inject(ApplicationConfiguration);
+
+  get #apiUrl(): string {
+    return `${this.#applicationConfig.backendApiUrl()}/budgets`;
+  }
 
   getExistingMonthsBudgets$(): Observable<MonthInfo[]> {
-    return this.http.get<BudgetListResponse>(this.apiUrl).pipe(
+    return this.#http.get<BudgetListResponse>(this.#apiUrl).pipe(
       map((response) => {
         if (!response.data || !Array.isArray(response.data)) {
           return [];
@@ -51,8 +55,8 @@ export class BudgetApi {
   }
 
   getBudgetById$(id: string): Observable<Budget> {
-    return this.http
-      .get<BudgetResponse>(`${this.apiUrl}/${id}`)
+    return this.#http
+      .get<BudgetResponse>(`${this.#apiUrl}/${id}`)
       .pipe(map((response) => response.data));
   }
 

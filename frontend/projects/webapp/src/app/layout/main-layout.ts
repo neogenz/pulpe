@@ -27,7 +27,7 @@ import { PulpeBreadcrumb } from '../ui/breadcrumb/breadcrumb';
 import { BreadcrumbState } from '../core/routing/breadcrumb-state';
 import { AuthApi } from '../core/auth/auth-api';
 import { ROUTES } from '../core/routing/routes-constants';
-import { environment } from '../../environments/environment';
+import { ApplicationConfiguration } from '../core/config/application-configuration';
 
 interface NavigationItem {
   readonly route: string;
@@ -287,6 +287,7 @@ export class MainLayout {
   private readonly router = inject(Router);
   private readonly scrollDispatcher = inject(ScrollDispatcher);
   private readonly authApi = inject(AuthApi);
+  private readonly applicationConfig = inject(ApplicationConfiguration);
   readonly breadcrumbState = inject(BreadcrumbState);
 
   readonly userEmail = computed(() => this.authApi.authState().user?.email);
@@ -379,7 +380,7 @@ export class MainLayout {
       await this.router.navigate([ROUTES.LOGIN]);
     } catch (error) {
       // Only log detailed errors in development
-      if (!environment.production) {
+      if (!this.applicationConfig.isProduction()) {
         console.error('Erreur lors de la déconnexion:', error);
       }
 
@@ -387,7 +388,7 @@ export class MainLayout {
       try {
         await this.router.navigate([ROUTES.LOGIN]);
       } catch (navError) {
-        if (!environment.production) {
+        if (!this.applicationConfig.isProduction()) {
           console.error('Erreur lors de la navigation vers login:', navError);
         }
       }

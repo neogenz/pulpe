@@ -8,14 +8,14 @@ export interface AuthenticatedUser {
 }
 
 export const User = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext): AuthenticatedUser => {
+  (_data: unknown, ctx: ExecutionContext): AuthenticatedUser => {
     const request = ctx.switchToHttp().getRequest();
     return request.user;
   },
 );
 
 export const SupabaseClient = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext) => {
+  (_data: unknown, ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest();
     return request.supabase;
   },

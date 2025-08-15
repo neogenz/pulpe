@@ -4,7 +4,7 @@
 pre-commit:
   commands:
     quality:
-      run: pnpm run quality --filter="...[HEAD^]" || pnpm run quality
+      run: pnpm run quality --filter="...[HEAD^]"
       skip:
         - merge
         - rebase

@@ -6,6 +6,7 @@ import {
 
 // Initialize Angular testing environment for Vitest
 // Angular v20 modern setup without zone.js (zoneless)
+// TODO: Update to new Angular 20 testing API when available
 getTestBed().initTestEnvironment(
   BrowserDynamicTestingModule,
   platformBrowserDynamicTesting(),

@@ -2,6 +2,10 @@
 projects/webapp/public/lottie/**/*.json
 **/lottie/**/*.json
 
+# Generated build info - auto-generated, not versioned
+projects/webapp/src/environments/build-info.ts
+projects/webapp/src/environments/build-info.development.ts
+
 # Other files that should not be formatted
 dist/
 node_modules/

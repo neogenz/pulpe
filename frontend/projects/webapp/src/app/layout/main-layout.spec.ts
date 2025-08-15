@@ -15,6 +15,7 @@ import { MatListModule } from '@angular/material/list';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterModule } from '@angular/router';
 import { Subject, EMPTY } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
 import { MainLayout } from './main-layout';
 import { AuthApi } from '../core/auth/auth-api';
 import { BreadcrumbState } from '../core/routing/breadcrumb-state';
@@ -66,6 +67,9 @@ describe('MainLayout', () => {
     register: ReturnType<typeof vi.fn>;
     deregister: ReturnType<typeof vi.fn>;
   };
+  let mockHttpClient: {
+    get: ReturnType<typeof vi.fn>;
+  };
   let breakpointSubject: Subject<{ matches: boolean }>;
 
   beforeEach(async () => {
@@ -101,6 +105,9 @@ describe('MainLayout', () => {
       register: vi.fn(),
       deregister: vi.fn(),
     };
+    mockHttpClient = {
+      get: vi.fn().mockReturnValue(EMPTY),
+    };
 
     // Configure TestBed
     TestBed.configureTestingModule({
@@ -126,6 +133,7 @@ describe('MainLayout', () => {
         { provide: BreakpointObserver, useValue: mockBreakpointObserver },
         { provide: BreadcrumbState, useValue: mockBreadcrumbState },
         { provide: ScrollDispatcher, useValue: mockScrollDispatcher },
+        { provide: HttpClient, useValue: mockHttpClient },
       ],
       schemas: [NO_ERRORS_SCHEMA],
     });
@@ -291,7 +299,7 @@ describe('MainLayout', () => {
       consoleSpy.mockRestore();
     });
 
-    it('should not log errors in production', async () => {
+    it('should log auth errors in production for debugging', async () => {
       const authError = new Error('Auth service error');
       mockAuthApi.signOut.mockRejectedValue(authError);
       mockRouter.navigate.mockResolvedValue(true);
@@ -311,7 +319,11 @@ describe('MainLayout', () => {
 
       expect(mockAuthApi.signOut).toHaveBeenCalledOnce();
       expect(mockRouter.navigate).toHaveBeenCalledWith([ROUTES.LOGIN]);
-      expect(consoleSpy).not.toHaveBeenCalled();
+      // Auth errors should be logged even in production for debugging
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Erreur lors de la déconnexion:',
+        authError,
+      );
       expect(component.isLoggingOut()).toBe(false);
 
       // Restore original environment

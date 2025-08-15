@@ -1,0 +1,234 @@
+---
+description: ALWAYS use stable unique identifiers (UUIDs or database IDs) for tracking items in lists and state management, NEVER use array indices as identifiers
+globs: 
+  - "frontend/**/*store*.ts"
+  - "frontend/**/*state*.ts"
+  - "frontend/**/components/**/*.ts"
+  - "frontend/**/services/**/*.ts"
+alwaysApply: true
+---
+
+# Angular Stable Identification Pattern
+
+## Core Principle
+Every item in a collection must have a stable, unique identifier that persists across all operations (add, remove, update, reorder).
+
+## ❌ Anti-patterns to AVOID
+
+### Never use array indices as identifiers
+```typescript
+// BAD: Index-based identification
+removeTransaction(index: number) {
+  this.items.splice(index, 1);
+}
+
+updateTransaction(index: number, data: any) {
+  this.items[index] = { ...this.items[index], ...data };
+}
+
+// BAD: Returning index as ID
+addItem(item: Item): string {
+  this.items.push(item);
+  return (this.items.length - 1).toString(); // Index as ID
+}
+
+// BAD: trackBy using index
+trackByIndex(index: number): number {
+  return index;
+}
+```
+
+### Never map between "visual" and "actual" indices
+```typescript
+// BAD: Complex index mapping
+getActualIndex(visualIndex: number): number {
+  // Complex logic to map filtered index to actual array index
+  let actualIndex = 0;
+  // ... mapping logic
+  return actualIndex;
+}
+```
+
+## ✅ Correct Patterns to FOLLOW
+
+### Use UUIDs for new items
+```typescript
+// GOOD: UUID generation for new items
+interface EditableItem {
+  id: string; // Stable identifier
+  data: any;
+  originalItem?: DatabaseItem;
+}
+
+addItem(data: ItemData): string {
+  const newItem: EditableItem = {
+    id: crypto.randomUUID(), // Generate stable UUID
+    data,
+    originalItem: undefined
+  };
+  this.items.push(newItem);
+  return newItem.id; // Return the stable ID
+}
+```
+
+### Use database IDs for existing items
+```typescript
+// GOOD: Preserve existing IDs
+createEditableItem(data: ItemData, original?: DatabaseItem): EditableItem {
+  return {
+    id: original?.id ?? crypto.randomUUID(), // Use existing ID or generate new
+    data,
+    original
+  };
+}
+```
+
+### Find items by ID, not index
+```typescript
+// GOOD: ID-based operations
+updateItem(id: string, updates: Partial<ItemData>): boolean {
+  const item = this.items.find(i => i.id === id);
+  if (!item) return false;
+  
+  item.data = { ...item.data, ...updates };
+  return true;
+}
+
+removeItem(id: string): boolean {
+  const index = this.items.findIndex(i => i.id === id);
+  if (index === -1) return false;
+  
+  this.items.splice(index, 1);
+  return true;
+}
+```
+
+### Proper Angular trackBy implementation
+```typescript
+// GOOD: Track by stable ID
+@Component({
+  template: `
+    <div *ngFor="let item of items; trackBy: trackById">
+      {{ item.name }}
+    </div>
+  `
+})
+export class ListComponent {
+  trackById(index: number, item: { id: string }): string {
+    return item.id; // Use ID, ignore index
+  }
+}
+
+// Or with function expression
+trackById = (_: number, item: { id: string }) => item.id;
+```
+
+### Use Maps for O(1) lookups when appropriate
+```typescript
+// GOOD: Map for efficient lookups
+class ItemStore {
+  private items = new Map<string, EditableItem>();
+  
+  addItem(data: ItemData): string {
+    const id = crypto.randomUUID();
+    this.items.set(id, { id, data });
+    return id;
+  }
+  
+  updateItem(id: string, updates: Partial<ItemData>): boolean {
+    const item = this.items.get(id);
+    if (!item) return false;
+    
+    item.data = { ...item.data, ...updates };
+    return true;
+  }
+  
+  getActiveItems(): EditableItem[] {
+    return Array.from(this.items.values())
+      .filter(item => !item.deleted);
+  }
+}
+```
+
+## Why This Matters
+
+### Problems with index-based identification:
+1. **Data corruption**: Indices shift when items are added/removed, causing operations on wrong items
+2. **Lost UI state**: Form focus, expanded states, selections are lost
+3. **Animation bugs**: Items animate incorrectly when their position changes
+4. **Race conditions**: Async operations may target wrong items after list changes
+5. **Testing difficulties**: Non-deterministic tests due to index dependencies
+
+### Benefits of stable IDs:
+1. **Data integrity**: Operations always target the correct item
+2. **UI stability**: Maintains focus, selections, and component state
+3. **Correct animations**: Angular can properly track item movements
+4. **Async safety**: IDs remain valid across async operations
+5. **Testability**: Deterministic, reliable tests
+
+## Implementation Checklist
+
+When working with collections in Angular:
+
+- [ ] Every item has a stable `id` field
+- [ ] New items get UUIDs via `crypto.randomUUID()`
+- [ ] Existing items preserve their database IDs
+- [ ] All CRUD operations use ID lookups, not indices
+- [ ] trackBy functions return the stable ID
+- [ ] No "visual index" to "actual index" mapping
+- [ ] Consider using Map for large collections
+- [ ] Test that operations work after adding/removing items
+
+## Real-world Example
+
+```typescript
+@Injectable()
+export class TodoStore {
+  readonly #todos = signal<Todo[]>([]);
+  
+  readonly todos = this.#todos.asReadonly();
+  readonly activeTodos = computed(() => 
+    this.#todos().filter(t => !t.completed)
+  );
+  
+  addTodo(text: string): string {
+    const id = crypto.randomUUID();
+    this.#todos.update(todos => [...todos, {
+      id,
+      text,
+      completed: false,
+      createdAt: new Date()
+    }]);
+    return id;
+  }
+  
+  updateTodo(id: string, updates: Partial<Todo>): void {
+    this.#todos.update(todos => 
+      todos.map(todo => 
+        todo.id === id 
+          ? { ...todo, ...updates }
+          : todo
+      )
+    );
+  }
+  
+  removeTodo(id: string): void {
+    this.#todos.update(todos => 
+      todos.filter(todo => todo.id !== id)
+    );
+  }
+}
+```
+
+## Migration Guide
+
+If you have index-based code:
+
+1. Add `id` field to your interfaces
+2. Generate UUIDs for new items
+3. Preserve IDs from database
+4. Replace index parameters with id parameters
+5. Update trackBy functions
+6. Test with add/remove operations
+
+This pattern prevents an entire class of bugs and makes your Angular applications more robust and maintainable.

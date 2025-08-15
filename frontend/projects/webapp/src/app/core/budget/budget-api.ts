@@ -11,7 +11,7 @@ import {
 } from '@pulpe/shared';
 import { Observable, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
-import { environment } from '../../../environments/environment';
+import { ApplicationConfiguration } from '../config/application-configuration';
 
 export interface CreateBudgetApiResponse {
   readonly budget: Budget;
@@ -30,7 +30,11 @@ const CURRENT_BUDGET_STORAGE_KEY = 'pulpe-current-budget';
 })
 export class BudgetApi {
   readonly #httpClient = inject(HttpClient);
-  readonly #baseUrl = `${environment.backendUrl}/budgets`;
+  readonly #applicationConfig = inject(ApplicationConfiguration);
+
+  get #apiUrl(): string {
+    return `${this.#applicationConfig.backendApiUrl()}/budgets`;
+  }
 
   /**
    * Crée un budget à partir d'un template
@@ -42,7 +46,7 @@ export class BudgetApi {
     const validatedRequest = budgetCreateSchema.parse(templateData);
 
     return this.#httpClient
-      .post<BudgetResponse>(`${this.#baseUrl}`, validatedRequest)
+      .post<BudgetResponse>(`${this.#apiUrl}`, validatedRequest)
       .pipe(
         map((response) => {
           if (!response.data || Array.isArray(response.data)) {
@@ -70,7 +74,7 @@ export class BudgetApi {
    * Récupère tous les budgets de l'utilisateur
    */
   getAllBudgets$(): Observable<Budget[]> {
-    return this.#httpClient.get<BudgetResponse>(this.#baseUrl).pipe(
+    return this.#httpClient.get<BudgetResponse>(this.#apiUrl).pipe(
       map((response) => {
         return Array.isArray(response.data) ? response.data : [];
       }),
@@ -88,7 +92,7 @@ export class BudgetApi {
    */
   getBudgetById$(budgetId: string): Observable<Budget> {
     return this.#httpClient
-      .get<BudgetResponse>(`${this.#baseUrl}/${budgetId}`)
+      .get<BudgetResponse>(`${this.#apiUrl}/${budgetId}`)
       .pipe(
         map((response) => {
           if (!response.data || Array.isArray(response.data)) {
@@ -111,7 +115,7 @@ export class BudgetApi {
    */
   getBudgetWithDetails$(budgetId: string): Observable<BudgetDetailsResponse> {
     return this.#httpClient
-      .get<BudgetDetailsResponse>(`${this.#baseUrl}/${budgetId}/details`)
+      .get<BudgetDetailsResponse>(`${this.#apiUrl}/${budgetId}/details`)
       .pipe(
         map((response) => {
           if (!response.data) {
@@ -165,7 +169,7 @@ export class BudgetApi {
     updateData: Partial<BudgetCreate>,
   ): Observable<Budget> {
     return this.#httpClient
-      .patch<BudgetResponse>(`${this.#baseUrl}/${budgetId}`, updateData)
+      .patch<BudgetResponse>(`${this.#apiUrl}/${budgetId}`, updateData)
       .pipe(
         map((response) => {
           if (!response.data || Array.isArray(response.data)) {
@@ -188,7 +192,7 @@ export class BudgetApi {
    * Supprime un budget
    */
   deleteBudget$(budgetId: string): Observable<void> {
-    return this.#httpClient.delete(`${this.#baseUrl}/${budgetId}`).pipe(
+    return this.#httpClient.delete(`${this.#apiUrl}/${budgetId}`).pipe(
       map(() => {
         this.#removeBudgetFromStorage(budgetId);
       }),
