@@ -1,7 +1,13 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import type { ApplicationConfig, ConfigFile } from './types';
+import {
+  type ApplicationConfig,
+  type ConfigFile,
+  safeValidateConfig,
+  DEFAULT_CONFIG,
+  formatConfigError,
+} from './config.schema';
 import { isValidUrl, sanitizeUrl } from '../utils/validators';
 import { Logger } from '../logging/logger';
 
@@ -50,9 +56,16 @@ export class ApplicationConfiguration {
   async initialize(): Promise<void> {
     try {
       const configData = await this.#loadConfigFile();
-      const validatedConfig = this.#validateConfig(configData);
-      this.#applyConfiguration(validatedConfig);
-      this.#logger.info('Configuration loaded successfully');
+      const validationResult = safeValidateConfig(configData);
+
+      if (!validationResult.success) {
+        const errorMessage = formatConfigError(validationResult.error);
+        this.#logger.error('Configuration validation failed', errorMessage);
+        throw new Error(errorMessage);
+      }
+
+      this.#applyConfiguration(validationResult.data);
+      this.#logger.info('Configuration loaded and validated successfully');
     } catch (error) {
       this.#logger.error(
         'Erreur lors du chargement de la configuration',
@@ -75,102 +88,6 @@ export class ApplicationConfiguration {
    */
   async #loadConfigFile(): Promise<ConfigFile> {
     return firstValueFrom(this.#http.get<ConfigFile>('/config.json'));
-  }
-
-  /**
-   * Valide la structure de la configuration
-   */
-  #validateConfig(config: ConfigFile): ApplicationConfig {
-    // Validation basique - peut être étendue avec Zod si nécessaire
-    if (!config || typeof config !== 'object') {
-      throw new Error('Configuration invalide: structure incorrecte');
-    }
-
-    if (!this.#hasValidSupabaseConfig(config)) {
-      throw new Error('Configuration invalide: paramètres Supabase manquants');
-    }
-
-    if (!this.#hasValidBackendConfig(config)) {
-      throw new Error("Configuration invalide: URL de l'API backend manquante");
-    }
-
-    if (!this.#hasValidEnvironment(config)) {
-      throw new Error('Configuration invalide: environnement non valide');
-    }
-
-    // À ce point, on sait que la structure est correcte grâce aux type guards
-    const validConfig = config as {
-      supabase: { url: string; anonKey: string };
-      backend: { apiUrl: string };
-      environment: 'development' | 'production' | 'local';
-    };
-
-    return {
-      supabase: {
-        url: validConfig.supabase.url,
-        anonKey: validConfig.supabase.anonKey,
-      },
-      backend: {
-        apiUrl: validConfig.backend.apiUrl,
-      },
-      environment: validConfig.environment,
-    };
-  }
-
-  /**
-   * Vérifie que la configuration Supabase est valide
-   */
-  #hasValidSupabaseConfig(config: ConfigFile): config is ConfigFile & {
-    supabase: { url: string; anonKey: string };
-  } {
-    return (
-      'supabase' in config &&
-      config['supabase'] !== null &&
-      typeof config['supabase'] === 'object' &&
-      'url' in config['supabase'] &&
-      'anonKey' in config['supabase'] &&
-      typeof (config['supabase'] as Record<string, unknown>)['url'] ===
-        'string' &&
-      typeof (config['supabase'] as Record<string, unknown>)['anonKey'] ===
-        'string' &&
-      ((config['supabase'] as Record<string, unknown>)['url'] as string)
-        .length > 0 &&
-      ((config['supabase'] as Record<string, unknown>)['anonKey'] as string)
-        .length > 0
-    );
-  }
-
-  /**
-   * Vérifie que la configuration backend est valide
-   */
-  #hasValidBackendConfig(config: ConfigFile): config is ConfigFile & {
-    backend: { apiUrl: string };
-  } {
-    return (
-      'backend' in config &&
-      config['backend'] !== null &&
-      typeof config['backend'] === 'object' &&
-      'apiUrl' in config['backend'] &&
-      typeof (config['backend'] as Record<string, unknown>)['apiUrl'] ===
-        'string' &&
-      ((config['backend'] as Record<string, unknown>)['apiUrl'] as string)
-        .length > 0
-    );
-  }
-
-  /**
-   * Vérifie que l'environnement est valide
-   */
-  #hasValidEnvironment(config: ConfigFile): config is ConfigFile & {
-    environment: 'development' | 'production' | 'local';
-  } {
-    return (
-      'environment' in config &&
-      typeof config['environment'] === 'string' &&
-      ['development', 'production', 'local'].includes(
-        config['environment'] as string,
-      )
-    );
   }
 
   /**
@@ -212,9 +129,10 @@ export class ApplicationConfiguration {
    * Définit les valeurs par défaut en cas d'erreur
    */
   #setDefaults(): void {
-    this.supabaseUrl.set('');
-    this.supabaseAnonKey.set('');
-    this.backendApiUrl.set('http://localhost:3000/api/v1');
-    this.environment.set('development');
+    this.#logger.warn('Using default configuration as fallback');
+    this.supabaseUrl.set(DEFAULT_CONFIG.supabase.url);
+    this.supabaseAnonKey.set(DEFAULT_CONFIG.supabase.anonKey);
+    this.backendApiUrl.set(DEFAULT_CONFIG.backend.apiUrl);
+    this.environment.set(DEFAULT_CONFIG.environment);
   }
 }
