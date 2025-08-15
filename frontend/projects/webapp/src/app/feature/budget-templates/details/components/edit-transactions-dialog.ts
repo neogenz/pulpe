@@ -1,3 +1,4 @@
+import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -6,31 +7,31 @@ import {
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import {
+  MAT_DIALOG_DATA,
+  MatDialog,
   MatDialogModule,
   MatDialogRef,
-  MAT_DIALOG_DATA,
 } from '@angular/material/dialog';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { CommonModule } from '@angular/common';
-import { MatTableModule } from '@angular/material/table';
-import {
-  TransactionFormData,
-  TRANSACTION_TYPES,
-} from '../../services/transaction-form';
-import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSelectModule } from '@angular/material/select';
+import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TemplateLine } from '@pulpe/shared';
-import { MatDialog } from '@angular/material/dialog';
+import { firstValueFrom } from 'rxjs';
 import {
   ConfirmationDialogComponent,
   type ConfirmationDialogData,
 } from '../../../../ui/dialogs/confirmation-dialog';
+import {
+  TRANSACTION_TYPES,
+  TransactionFormData,
+} from '../../services/transaction-form';
 import { TemplateLineStore } from '../services/template-line-store';
-import { firstValueFrom } from 'rxjs';
+import { EditableLine } from '../services/template-line-state';
 
 interface EditTransactionsDialogData {
   transactions: TransactionFormData[];
@@ -130,9 +131,9 @@ interface EditTransactionsDialogResult {
                   <input
                     matInput
                     [value]="transaction.formData.description"
-                    (input)="updateDescription(i.toString(), $event)"
+                    (input)="updateDescription(transaction.id, $event)"
                     placeholder="Description de la transaction"
-                    [attr.id]="'desc-' + i"
+                    [attr.id]="'desc-' + transaction.id"
                   />
                   @if (!transaction.formData.description?.trim()) {
                     <mat-error>La description est requise</mat-error>
@@ -161,9 +162,9 @@ interface EditTransactionsDialogResult {
                     min="0"
                     max="999999"
                     [value]="transaction.formData.amount"
-                    (input)="updateAmount(i.toString(), $event)"
+                    (input)="updateAmount(transaction.id, $event)"
                     placeholder="0.00"
-                    [attr.id]="'amount-' + i"
+                    [attr.id]="'amount-' + transaction.id"
                   />
                   <span matTextSuffix>CHF</span>
                   @if (transaction.formData.amount < 0) {
@@ -188,8 +189,8 @@ interface EditTransactionsDialogResult {
                 >
                   <mat-select
                     [value]="transaction.formData.type"
-                    (selectionChange)="updateType(i.toString(), $event.value)"
-                    [attr.id]="'type-' + i"
+                    (selectionChange)="updateType(transaction.id, $event.value)"
+                    [attr.id]="'type-' + transaction.id"
                   >
                     @for (type of transactionTypes; track type.value) {
                       <mat-option [value]="type.value">
@@ -235,7 +236,7 @@ interface EditTransactionsDialogResult {
                 <button
                   matIconButton
                   color="warn"
-                  (click)="removeTransaction(i.toString())"
+                  (click)="removeTransaction(transaction.id)"
                   [disabled]="!canRemoveTransaction() || isLoading()"
                   [attr.aria-disabled]="!canRemoveTransaction() || isLoading()"
                   [matTooltip]="
@@ -375,7 +376,7 @@ export default class EditTransactionsDialog {
     this.#dialogRef.disableClose = true;
   }
 
-  async removeTransaction(transactionId: string): Promise<void> {
+  async removeTransaction(id: string): Promise<void> {
     if (!this.canRemoveTransaction()) {
       return;
     }
@@ -386,7 +387,8 @@ export default class EditTransactionsDialog {
       return;
     }
 
-    this.#store.removeTransaction(transactionId);
+    // Remove transaction by ID
+    this.#store.removeTransaction(id);
   }
 
   addNewTransaction(): void {
@@ -438,22 +440,27 @@ export default class EditTransactionsDialog {
     });
   });
 
-  updateDescription(transactionId: string, event: Event): void {
+  updateDescription(id: string, event: Event): void {
     const value = (event.target as HTMLInputElement).value;
-    this.#store.updateTransaction(transactionId, { description: value });
+    this.#store.updateTransaction(id, {
+      description: value,
+    });
   }
 
-  updateAmount(transactionId: string, event: Event): void {
+  updateAmount(id: string, event: Event): void {
     const value = Number((event.target as HTMLInputElement).value);
-    this.#store.updateTransaction(transactionId, { amount: value });
+    this.#store.updateTransaction(id, { amount: value });
   }
 
-  updateType(transactionId: string, value: TransactionFormData['type']): void {
-    this.#store.updateTransaction(transactionId, { type: value });
+  updateType(id: string, value: TransactionFormData['type']): void {
+    this.#store.updateTransaction(id, { type: value });
   }
 
-  protected trackByTransactionId = (index: number): string => {
-    return index.toString(); // Use index as identifier since we use index-based approach
+  protected trackByTransactionId = (
+    _index: number,
+    transaction: EditableLine,
+  ): string => {
+    return transaction.id; // Use the stable UUID for tracking
   };
 
   /**
