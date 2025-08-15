@@ -2,503 +2,224 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-# important-instruction-reminders
-
-Do what has been asked; nothing more, nothing less.
-NEVER create files unless they're absolutely necessary for achieving your goal.
-ALWAYS prefer editing an existing file to creating a new one.
-NEVER proactively create documentation files (\*.md) or README files. Only create documentation files if explicitly requested by the User.
-
 ## Quick Start Commands
 
-The most commonly used commands for development:
+### Development
 
 ```bash
-# Start full development environment
-pnpm dev
+# Full stack development (recommended)
+pnpm dev                        # Start all services with Turborepo orchestration
 
-# Quality checks and fixes
-pnpm quality:fix                   # Auto-fix all quality issues
-pnpm quality                       # Check all quality issues
+# Targeted development
+pnpm dev:frontend-only          # Frontend + shared only
+pnpm dev:backend-only           # Backend + shared only
 
-# Testing
-pnpm test                          # Run all tests across packages
-pnpm test:watch                    # Run tests in watch mode
+# Individual services
+pnpm dev:frontend               # Frontend only (localhost:4200)
+pnpm dev:backend                # Backend only (localhost:3000)
 ```
 
-## Project Structure
-
-This is a monorepo with three main packages:
-
-- `backend-nest/` - NestJS API with Supabase integration and Bun runtime
-- `frontend/` - Angular 20 application with standalone components and signals
-- `shared/` - Shared Zod schemas and TypeScript types
-
-## Development Commands
-
-### Backend (NestJS + Supabase + Bun)
+### Building
 
 ```bash
-cd backend-nest
-bun install
-bun run dev                        # Start development server with hot reload
-bun run start                      # Start server without watch
-bun run start:prod                 # Start production build
-bun run build                      # Build for production
-bun run generate-types             # Generate TypeScript types from Supabase
-bun run dump:db                    # Dump database schema to schema.sql
-bun run test                       # Run all tests
-bun run test:watch                 # Run tests in watch mode
-bun run test:coverage              # Run tests with coverage
-bun run test:unit                  # Run unit tests only
-bun run test:integration           # Run integration tests only
-bun run test:performance           # Run performance tests
-bun run test:load                  # Run load/performance tests with timeout
-bun run test:all                   # Run all test suites
-bun run test:ci                    # Run tests for CI with JSON output
-bun run test:silent                # Run tests silently
-bun run lint                       # Run ESLint
-bun run lint:fix                   # Fix ESLint issues automatically
-bun run format                     # Apply Prettier formatting
-bun run format:check               # Check Prettier formatting
-bun run type-check:full            # Full TypeScript type checking
-bun run quality                    # Full type check + lint + format check
-bun run quality:fix                # Auto-fix formatting and linting issues
+pnpm build                      # Build all projects with Turborepo
+pnpm build:shared               # Build shared package only
+pnpm build:frontend             # Build frontend only
+pnpm build:backend              # Build backend only
 ```
 
-### Frontend (Angular 20)
+### Testing
 
 ```bash
-cd frontend
-pnpm install
-pnpm run start                     # Start dev server and open browser
-pnpm run start:ci                  # Start dev server without opening browser
-pnpm run dev                       # Alias for ng serve
-pnpm run build                     # Build for production
-pnpm run watch                     # Build in watch mode for development
-pnpm run test                      # Run unit tests with Vitest
-pnpm run test:watch                # Run unit tests in watch mode
-pnpm run test:e2e                  # Run end-to-end tests with Playwright
-pnpm run test:e2e:ui               # Run Playwright tests with UI
-pnpm run test:e2e:headed           # Run E2E tests in headed mode
-pnpm run test:e2e:debug            # Debug E2E tests
-pnpm run test:e2e:report           # Show E2E test report
-pnpm run test:e2e:codegen          # Generate E2E test code
-pnpm run lint                      # Run ESLint
-pnpm run format                    # Apply Prettier formatting
-pnpm run format:check              # Check Prettier formatting
-pnpm run analyze                   # Bundle analyzer with treemap
-pnpm run analyze:sme               # Source map explorer analysis
-pnpm run analyze:deps              # Dependency analysis with madge
-pnpm run deps:circular             # Check for circular dependencies
+# All tests
+pnpm test                       # Run all tests
+pnpm test:watch                 # Run tests in watch mode
+pnpm test:unit                  # Unit tests only
+pnpm test:e2e                   # E2E tests only (Playwright)
+pnpm test:performance           # Performance tests
+
+# Frontend specific tests
+cd frontend && pnpm test        # Vitest unit tests
+cd frontend && pnpm test:e2e    # Playwright E2E tests
+cd frontend && pnpm test:e2e:ui # Playwright with UI
+
+# Backend specific tests
+cd backend-nest && bun test     # Bun unit tests
+cd backend-nest && bun test:performance # Performance tests
 ```
 
-### Shared Package
+### Code Quality
 
 ```bash
-cd shared
-pnpm install
-pnpm run build                     # Compile TypeScript to ESM
-pnpm run build:esm                 # Compile TypeScript to ESM (explicit)
-pnpm run watch                     # Watch mode compilation
-pnpm run clean                     # Clean dist directory
-pnpm run format                    # Apply Prettier formatting
-pnpm run format:check              # Check Prettier formatting
+# Quality checks
+pnpm quality                    # Run all quality checks (type-check, lint, format)
+pnpm quality:fix                # Fix all auto-fixable issues
+pnpm lint                       # ESLint check
+pnpm lint:fix                   # ESLint auto-fix
+pnpm format                     # Prettier format
+pnpm format:check               # Prettier check
+pnpm type-check                 # TypeScript type checking
+
+# Frontend bundle analysis
+cd frontend && pnpm analyze     # Bundle analyzer with treemap
+cd frontend && pnpm analyze:sme # Source map explorer
+cd frontend && pnpm deps:circular # Check for circular dependencies
 ```
 
-### Workspace Commands (from root)
+## High-level Architecture
+
+### Monorepo Structure
+
+```
+pulpe-workspace/
+├── frontend/              # Angular 20 web app with Material Design 3
+├── backend-nest/          # NestJS API with Supabase & Bun runtime
+├── shared/                # Shared Zod schemas and TypeScript types
+├── mobile/                # iOS SwiftUI application
+├── .cursor/               # Cursor AI rules and configurations
+└── turbo.json             # Turborepo orchestration config
+```
+
+### Technology Stack
+
+- **Monorepo**: Turborepo + pnpm workspace for orchestration
+- **Backend**: NestJS 11+, Bun runtime, Supabase (PostgreSQL + Auth), Zod validation
+- **Frontend**: Angular 20+, Standalone Components, Signals, Tailwind CSS v4.1, Angular Material v20
+- **Mobile**: iOS SwiftUI, MVVM architecture, iOS 17.0+
+- **Shared**: TypeScript strict, Zod schemas, ESM-first
+
+### Key Architectural Principles
+
+#### 1. Type Safety Across Stack
+
+- **@pulpe/shared**: Contains Zod schemas for REST DTOs only
+- **Backend types**: Supabase types stay in backend only
+- **Frontend types**: Import from @pulpe/shared for API contracts
+
+#### 2. Frontend Architecture (Angular)
+
+- **Standalone Components**: No NgModules, everything is standalone
+- **Signal-based**: Use Angular signals for reactive state
+- **OnPush Strategy**: All components use OnPush change detection
+- **Feature Isolation**: Features cannot depend on each other directly
+- **Lazy Loading**: All features must be lazy-loaded
+
+Directory structure:
+
+```
+frontend/projects/webapp/src/app/
+├── core/       # Application-wide services, guards, interceptors
+├── layout/     # App shell components (header, navigation)
+├── ui/         # Reusable, stateless components
+├── feature/    # Business domain features (lazy-loaded)
+└── pattern/    # Reusable stateful components
+```
+
+Details at @frontend/CLAUDE.md, following rules at @.cursor/rules/00-architecture/0-angular-architecture-structure.mdc
+
+#### 3. Backend Architecture (NestJS)
+
+- **Module-based**: Each domain has its own module
+- **JWT + RLS**: Authentication via Supabase with Row Level Security
+- **Validation**: Zod schemas with NestJS integration
+- **API Versioning**: All endpoints prefixed with `/api/v1`
+
+Module structure:
+
+```
+backend-nest/src/modules/[domain]/
+├── [domain].controller.ts    # HTTP routes + validation
+├── [domain].service.ts       # Business logic
+├── [domain].module.ts        # Module configuration
+├── [domain].mapper.ts        # DTO ↔ Entity transformation
+├── dto/                      # NestJS DTOs
+└── entities/                 # Business entities
+```
+
+Details at @backend-nest/CLAUDE.md
+
+### Development Workflow
+
+#### 1. Adding a New Feature
+
+1. Define shared types in `shared/schemas.ts` if needed
+2. Build shared: `cd shared && pnpm build`
+3. Implement backend API in `backend-nest/src/modules/`
+4. Create frontend feature in `frontend/projects/webapp/src/app/feature/`
+5. Add E2E tests in `frontend/e2e/tests/`
+
+#### 2. Database Changes
+
+1. Apply migrations: `cd backend-nest && bun run supabase:push`
+2. Generate types: `cd backend-nest && bun run generate-types:local`
+3. Update DTOs in shared package if needed
+
+#### 3. Testing Strategy
+
+- **Unit Tests**: Test business logic and component behavior
+- **E2E Tests**: Critical path tests with real auth, feature tests with mocks
+- **Performance Tests**: Load testing for backend endpoints
+
+### Authentication Flow
+
+1. **Frontend**: Supabase SDK manages JWT tokens
+2. **Backend**: Validates tokens via `supabase.auth.getUser()`
+3. **Database**: Row Level Security policies enforce data isolation
+4. **Guards**: AuthGuard protects backend routes
+
+### Important Conventions
+
+#### Angular Naming (v20)
+
+- Services: `application-info.ts` (no `.service` suffix)
+- Components: Standalone with `pulpe-` prefix
+- Use private fields with `#fieldName` syntax
+- Angular Material v20 button directives: `matButton="filled"`, `matButton="outlined"`
+
+#### State Management
+
+- Use Angular signals for local state
+- Feature-specific state services in `feature/[domain]/services/`
+- Direct state service access when context is lightweight
+
+#### Material Design 3
+
+- Use Material Design 3 principles strictly
+- Color system via CSS variables in Tailwind config
+- Mobile-first responsive design
+- Typography scale: `text-display-large`, `text-body-medium`, etc.
+
+#### Business Vocabulary (French UI)
+
+- **budget_lines** → "prévisions" (never "lignes budgétaires")
+- **Recurrence**: "Tous les mois" (fixed), "Une seule fois" (one_off)
+- **Financial labels**: "Disponible à dépenser", "Épargne prévue"
+- **Default transaction type**: expense (Dépense)
+
+### Pre-commit Hooks
+
+Lefthook runs quality checks automatically:
 
 ```bash
-pnpm install                       # Install all dependencies
-pnpm run dev                       # Start all packages in development mode (turbo)
-pnpm run dev:shared                # Start shared package in watch mode
-pnpm run dev:frontend              # Start frontend only
-pnpm run dev:backend               # Build shared + start backend
-pnpm run dev:frontend-only         # Start frontend only (turbo)
-pnpm run dev:backend-only          # Build shared + start backend
-pnpm run build                     # Build all packages (turbo)
-pnpm run build:all                 # Build all packages (turbo)
-pnpm run build:shared              # Build shared package only
-pnpm run build:frontend            # Build frontend only
-pnpm run build:backend             # Build backend only
-pnpm run test                      # Run all tests (turbo)
-pnpm run test:watch                # Run all tests in watch mode (turbo)
-pnpm run test:unit                 # Run unit tests (turbo)
-pnpm run test:e2e                  # Run E2E tests (turbo)
-pnpm run test:performance          # Run performance tests (turbo)
-pnpm run lint                      # Run ESLint on all packages (turbo)
-pnpm run lint:fix                  # Fix ESLint issues on all packages (turbo)
-pnpm run format                    # Apply Prettier on all packages (turbo)
-pnpm run format:check              # Check Prettier on all packages (turbo)
-pnpm run type-check                # Type check all packages (turbo)
-pnpm run quality                   # Full quality check (turbo)
-pnpm run quality:fix               # Auto-fix quality issues (turbo)
-pnpm run deps:check                # Check circular dependencies in frontend
-pnpm run shared:watch              # Watch shared package (turbo)
-pnpm run shared:build              # Build shared package (turbo)
+pnpm run quality --filter="...[HEAD^]"
 ```
 
-## Architecture
+### Environment Setup
 
-### Backend Architecture
+1. **Backend**: Copy `.env.example` to `.env` and configure Supabase
+2. **Frontend**: Configuration in `environment.development.ts`
+3. **E2E Tests**: Set `TEST_EMAIL` and `TEST_PASSWORD` env vars
 
-- **Framework**: NestJS with Bun runtime
-- **Database**: Supabase (PostgreSQL + Auth + RLS)
-- **Validation**: Zod + class-validator
-- **Structure**: Modular architecture with feature-based organization
-- **Auth**: JWT-based with Supabase sessions
-- **Types**: Auto-generated from Supabase schema
-- **API Documentation**: Swagger/OpenAPI at `/docs`
-- **API Versioning**: URI-based versioning (v1) - all endpoints prefixed with `/api/v1`
+### Debugging
 
-### Frontend Architecture
+- Frontend debug route: `/app/debug` (development only)
+- Backend Swagger: `http://localhost:3000/api/docs`
+- Application info service shows version, build info, Git hash
 
-- **Framework**: Angular 20 with standalone components
-- **Change Detection**: OnPush strategy for performance
-- **Auth**: Supabase client with guards and interceptors
-- **Styling**: Tailwind CSS + Angular Material
-- **Structure**: Feature-based architecture with `core/`, `feature/`, `ui/` separation
-- **State**: Signal-based reactive patterns
-- **Testing**: Vitest for unit tests, Playwright for E2E
+### Key Files
 
-#### Fundamental Principles:
-
-- Prioritize isolation over DRY (Don't Repeat Yourself) for business logic.
-- Only consider abstraction for business logic after at least 3 occurrences.
-- Maintain a strict, acyclic (no cycles) one-way dependency graph.
-- All features must be lazy-loaded to ensure fast initial load times.
-- Use `eslint-plugin-boundaries` to automatically enforce all architectural rules.
-- Design the application to be composed of standalone components; avoid `NgModules`.
-
-Architectural Type Deep Dive:
-
-#### Core Type (`core/`)
-
-- **Purpose**: Central hub for all shared, headless, application-wide logic.
-- **Content**: Injector-based logic only. This includes services (`@Injectable`), route guards, HTTP interceptors, state management setup (e.g., NgRx `provideStore`), and infrastructure configuration.
-- **Loading**: Eager-loaded. Its content is part of the initial JavaScript bundle.
-- **Constraints**: MUST NOT contain any components, directives, or pipes (i.e., nothing with a template). It is the foundation that other types build upon. Can be sub-structured by domain (e.g., `core/orders/`, `core/auth/`).
-
-#### Layout Type (`layout/`)
-
-- **Purpose**: Defines the main application shell(s) or "chrome".
-- **Content**: Standalone components that structure the main view, such as headers, footers, side navigation, and the primary `<router-outlet>`.
-- **Loading**: Eager-loaded. It is the first thing the user sees.
-- **Constraints**: Consumes services from `core` to display stateful information (e.g., current user). Consumes presentational components from `ui`.
-
-#### UI Type (`ui/`)
-
-- **Purpose**: A library of generic, reusable, and purely presentational ("dumb") standalone components.
-- **Content**: Standalone components, directives, and pipes that are completely decoupled from application business logic.
-- **Loading**: Can be consumed by both eager (`layout`) and lazy (`feature`, `pattern`) parts of the app. Bundling is optimized via cherry-picking.
-- **Constraints**: MUST be stateless. MUST NOT inject services from `core`. MUST communicate exclusively via `@Input()` and `@Output()`. This ensures maximum reusability.
-
-#### Feature Type (`feature/`)
-
-- **Purpose**: Implements a specific business domain or user flow. This is where the majority of the application's unique value resides.
-- **Content**: A self-contained combination of standalone components (smart/container components), services, and routing specific to that domain.
-- **Loading**: **Always lazy-loaded** via routing's `loadChildren`.
-- **Constraints**: A `feature` is a "black box." It MUST be completely isolated from other sibling features. All sharing must happen through the "extract one level up" rule (to `core`, `ui`, or `pattern`).
-
-#### Pattern Type (`pattern/`)
-
-- **Purpose**: A reusable, state-aware, cross-cutting piece of functionality. It's more complex than a `ui` component but smaller than a full `feature`.
-- **Content**: A pre-packaged combination of standalone components and injectables. Unlike `ui` components, a `pattern` can inject services from `core` to manage its own state.
-- **Loading**: Not loaded via routing. It is "dropped in" to a `feature`'s template.
-- **Example**: A self-contained document manager, approval widget, or audit log that can be used across different `features`.
-
-#### Dependency Rules & Isolation:
-
-- A `feature` MUST NOT import from a sibling `feature`.
-- `core` MUST NOT import from `feature`, `layout`, or `pattern`.
-- `ui` MUST NOT import from `core`, `feature`, `layout`, or `pattern`.
-- A `feature` can import from `core`, `ui`, `pattern`, and its own sub-modules.
-- A `layout` can import from `core`, `ui`, and `pattern`.
-- A `pattern` can import from `core` and `ui`.
-
-#### Shared Logic & Reusability:
-
-- To share logic, always "extract one level up" into the appropriate shared type.
-- Logic shared between top-level `features` must be extracted to `core` (headless) or `pattern` (stateful UI).
-- UI components shared between `features` must be extracted to `ui`.
-- Logic shared only between sub-features of the _same_ parent `feature` is extracted to that parent `feature`'s folder.
-  Implementation Best Practices:
-- Components should be "logic-free," delegating all business operations to injected services.
-- Use `loadChildren` pointing to a `.routes.ts` file for all feature loading. Avoid `loadComponent`.
-- Use `@defer` only for very large, non-critical components within a feature (e.g., charts, rich text editors).
-- DO NOT create custom wrappers or abstractions around Angular or third-party library APIs. Use them directly.
-
-### Key Patterns
-
-- **Shared schemas**: Zod schemas in `shared/` package used by both backend and frontend
-- **Type safety**: Full TypeScript coverage from database to UI
-- **Module separation**: Each business domain (budget, transaction, auth) has its own folder
-- **Component architecture**: Standalone Angular components with minimal modules
-- **Mapper pattern**: Backend uses mappers for DB ↔ API transformations with validation
-
-## Validation & Type Safety
-
-- Backend uses double-layer validation: Supabase types (compile-time) + Zod schemas (runtime)
-- Frontend uses the same Zod schemas from `shared/` for client-side validation
-- Database types are auto-generated: `bun run generate-types` in backend-nest
-- All API routes have OpenAPI documentation via NestJS Swagger
-
-## Authentication Flow
-
-1. User signs up/in via frontend using Supabase SDK
-2. Frontend obtains JWT tokens from Supabase auth
-3. Frontend sends Bearer tokens in Authorization header for API calls
-4. Backend middleware validates JWT tokens and provides user context
-5. RLS policies in Supabase handle data access control
-
-## Testing
-
-### Backend Testing
-
-- **Framework**: Bun Test + NestJS Testing
-- **Types**: Unit tests (`*.service.spec.ts`), integration tests (`*.integration.spec.ts`), performance tests (`*.performance.spec.ts`)
-- **Test utilities**: Centralized mocks and helpers in `src/test/test-utils.ts`
-- **Coverage**: `bun run test:coverage`
-
-### Frontend Testing
-
-- **Unit tests**: Vitest for component and service testing
-- **E2E tests**: Playwright with page object model pattern. Use attr.data-testid
-- **Test organization**: Tests in `e2e/` directory with fixtures and utilities
-- **Commands**: `pnpm run test:watch` for interactive unit testing, `pnpm run test:e2e:ui` for E2E testing
-
-## Code Style
-
-- **TypeScript**: Strict mode enabled across all packages
-- **Private fields**: Use `#fieldName` syntax instead of `private` keyword
-- **Formatting**: Prettier with project-specific configuration
-- **Linting**: ESLint with NestJS, Angular, and TypeScript rules
-- **Validation**: Zod for runtime validation, comprehensive error handling
-
-## Git Hooks
-
-The project uses [Lefthook](https://lefthook.dev/) for managing git hooks:
-
-- **Pre-commit**: Runs `turbo quality` (type-check + lint + format:check) on all changed workspaces
-- **Installation**: Automatically installed via `postinstall` script when running `pnpm install`
-- **Skip hooks**: Use `git commit --no-verify` to bypass pre-commit checks when needed
-- **Configuration**: See `lefthook.yml` for hook definitions
-
-## Database
-
-- **Database**: Supabase PostgreSQL with Row Level Security (RLS)
-- **Client**: Direct Supabase client, no additional ORM
-- **Migrations**: Managed through Supabase dashboard or CLI
-- **Types**: Auto-generated TypeScript types in `backend-nest/src/types/database.types.ts`
-- **Schema validation**: Zod schemas for DB entities in each module's `schemas/` directory
-
-## Local Development with Supabase
-
-The project is configured for local development with Supabase CLI. This allows you to:
-- Run a local Supabase instance with Docker
-- Develop against a local database without affecting production
-- Manage database migrations with version control
-- Test changes locally before deploying
-
-### Initial Setup (One-time)
-
-1. **Prerequisites**: Ensure Docker is running on your machine
-2. **Install Supabase CLI**: `brew install supabase/tap/supabase` (or follow [official installation guide](https://supabase.com/docs/guides/cli))
-3. **Link to remote project**: `cd backend-nest && supabase link --project-ref xvrbcvltpkqwiiexvfxh`
-4. **Pull existing schema**: `bun run supabase:pull` (creates migration file from remote)
-5. **Start local instance**: `bun run supabase:start`
-6. **Generate local types**: `bun run generate-types:local`
-
-### Daily Development Workflow
-
-```bash
-cd backend-nest
-
-# Start your development session
-bun run supabase:start          # Start local Supabase stack
-bun run dev:local               # Start backend with local DB
-
-# Make schema changes via Studio UI: http://localhost:54323
-# Test your changes with local backend and frontend
-
-# When ready to deploy
-bun run supabase:diff           # Generate migration from changes
-bun run supabase:push          # Deploy to remote when ready
-```
-
-### Local Development Commands
-
-```bash
-cd backend-nest
-
-# Supabase local instance management
-bun run supabase:start          # Start local Supabase stack
-bun run supabase:stop           # Stop local instance  
-bun run supabase:status         # Show status of local services
-bun run supabase:restart        # Restart local instance
-bun run supabase:reset          # Reset local database to clean state
-
-# Database migrations and schema
-bun run supabase:diff           # Show schema differences between local and remote
-bun run supabase:pull          # Pull schema changes from remote (creates migration file)
-bun run supabase:push          # Push local migrations to remote
-
-# Type generation
-bun run generate-types:local    # Generate types from local instance
-bun run generate-types          # Generate types from remote instance
-
-# Development with local database
-bun run dev:local               # Start backend with .env.local configuration
-```
-
-### Environment Configuration
-
-The project uses different environment files:
-- `.env` - Remote Supabase (production/staging)
-- `.env.local` - Local Supabase development instance (not committed to Git)
-
-**Frontend configuration**: No changes needed - frontend calls backend API only, not Supabase directly.
-
-### Migration Strategies
-
-**Option 1: Schema-first (Recommended for new features)**
-1. `bun run supabase:start` - Start local instance
-2. Make schema changes via local Studio UI (http://localhost:54323)
-3. `bun run supabase:diff` - Generate migration file from changes
-4. Test with local backend: `bun run dev:local`
-5. `bun run supabase:push` - Deploy changes to remote when ready
-
-**Option 2: Migration-first (For complex changes)**
-1. Write migration file manually in `supabase/migrations/`
-2. `bun run supabase:reset` - Apply migration locally
-3. Test changes
-4. `bun run supabase:push` - Deploy to remote
-
-### Troubleshooting
-
-**CLI Version Issues:**
-- Always use workspace commands (`bun run supabase:*`) instead of global CLI
-- If issues persist, update CLI version in `package.json` and run `pnpm install` from workspace root
-
-**Database Connection Issues:**
-- Ensure Docker is running and ports 54321-54324 are available
-- Check `supabase/config.toml` major_version matches your remote database
-- Use `bun run supabase:restart` for clean restart
-
-**Migration Sync Issues:**
-- Run `bun run supabase:pull` to synchronize with remote schema
-- Check migration history with `supabase migration list`
-- Use `supabase migration repair` if needed for history conflicts
-
-**Container Issues:**
-- Clean Docker volumes: `docker volume rm $(docker volume ls -f label=com.supabase.cli.project=backend-nest -q)`
-- Ensure no conflicting Postgres instances on port 5432
-
-## Module Organization
-
-### Backend Module Structure
-
-```
-backend-nest/src/modules/[feature]/
-├── dto/                    # Swagger DTOs for API documentation
-├── entities/              # TypeScript entities for API responses
-├── schemas/               # Zod validation schemas for DB entities
-├── [feature].controller.ts
-├── [feature].service.ts
-├── [feature].mapper.ts    # Data transformation with validation
-├── [feature].module.ts
-└── [feature].*.spec.ts    # Tests
-```
-
-### Frontend Feature Structure
-
-```
-frontend/projects/webapp/src/app/feature/[feature]/
-├── components/            # Feature-specific components
-├── services/             # Feature-specific services and state
-├── [feature].routes.ts   # Feature routing
-└── [feature].ts         # Main feature component
-```
-
-## Important Files
-
-- `backend-nest/src/main.ts` - NestJS application entry point
-- `frontend/projects/webapp/src/app/app.config.ts` - Angular application configuration
-- `shared/index.ts` - Exported schemas and types
-- `shared/schemas.ts` - Zod validation schemas
-- `pnpm-workspace.yaml` - Monorepo workspace configuration
-- `turbo.json` - Turborepo pipeline configuration
-
-## Onboarding Feature
-
-The application includes a multi-step onboarding process for new users:
-
-- **Location**: `frontend/projects/webapp/src/app/feature/onboarding/`
-- **State Management**: Uses custom store with signals (`onboarding-store.ts`)
-- **Steps**: Personal info, income, housing, transport, health insurance, phone plan, leasing credit
-- **Layout**: Dedicated onboarding layout with step navigation
-- **Integration**: Connected to user registration and template creation
-
-## API Endpoints
-
-- **Base URL**: `http://localhost:3000`
-- **API v1 Prefix**: `/api/v1`
-- **Full API URLs**: `http://localhost:3000/api/v1/{resource}`
-- **Swagger Documentation**: `http://localhost:3000/docs`
-- **OpenAPI JSON**: `http://localhost:3000/api/openapi`
-- **Health Check**: `http://localhost:3000/health`
-
-Example endpoints:
-
-- `GET /api/v1/budgets` - List all budgets
-- `POST /api/v1/transactions` - Create transaction
-- `GET /api/v1/budget-templates` - List templates
-
-## Development Workflow
-
-1. **Start development**: `pnpm dev` starts all services with hot reload
-2. **Quality checks**: Always run `pnpm quality:fix` before committing
-3. **Testing**: Use `pnpm test:watch` for continuous testing during development
-4. **Type generation**: Run `bun run generate-types` in backend after database changes
-
-## References to Frontend Dynamic Data
-
-- You can reference @frontend/CLAUDE.md dynamically to refer at all frontend data
-
-## Version Management
-
-This project uses **Changesets** for automated version management across the monorepo packages.
-
-### Version Strategy
-
-- **Frontend** (`pulpe-frontend`): CalVer format `YYYY.M.PATCH` (e.g., `2025.8.0`)
-- **Backend** (`backend-nest`): SemVer format `MAJOR.MINOR.PATCH` (e.g., `0.1.0`)
-- **Shared** (`@pulpe/shared`): SemVer format `MAJOR.MINOR.PATCH` (e.g., `0.1.0`)
-- **Workspace** (`pulpe-workspace`): No versioning (private package)
-
-### Changesets Commands
-
-```bash
-# Create a new changeset (describe your changes)
-pnpm changeset
-
-# Apply version bumps and update changelogs
-pnpm changeset:version
-```
-
-### Workflow
-
-1. **Make your changes** to any package
-2. **Create changeset**: `pnpm changeset` and describe the impact
-3. **Apply versions**: `pnpm changeset:version` bumps versions and updates changelogs
-4. **Commit**: Commit the version changes and updated CHANGELOG.md files
-
-### Version Evolution Guidelines
-
-- **Frontend**: Increment `PATCH` for hotfixes, `MINOR` for monthly releases
-- **Backend**: Follow SemVer - `PATCH` for bugs, `MINOR` for new endpoints, `MAJOR` for breaking changes
-- **Shared**: Follow SemVer - `PATCH` for fixes, `MINOR` for new schemas, `MAJOR` for breaking schema changes
-
-## References to business specs of project
-
-- You can reference @SPECS.md dynamically to refer at all business data
+- **Root config**: `turbo.json`, `pnpm-workspace.yaml`
+- **Frontend config**: `frontend/angular.json`, `frontend/projects/webapp/src/app/app.config.ts`
+- **Backend config**: `backend-nest/src/app.module.ts`, `backend-nest/src/config/environment.ts`
+- **Shared types**: `shared/schemas.ts`, `shared/types.ts`
+- **Database types**: `backend-nest/src/types/database.types.ts`
