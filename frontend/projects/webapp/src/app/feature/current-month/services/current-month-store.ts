@@ -2,7 +2,7 @@ import { computed, inject, Injectable, resource, signal } from '@angular/core';
 import { BudgetApi } from '@core/budget';
 import { BudgetCalculator } from './budget-calculator';
 import { TransactionApi } from '@core/transaction';
-import { Logger } from '@core/services/logger';
+import { Logger } from '@core/logging/logger';
 import { type Budget, type Transaction, type BudgetLine } from '@pulpe/shared';
 import { format } from 'date-fns';
 import { firstValueFrom } from 'rxjs';

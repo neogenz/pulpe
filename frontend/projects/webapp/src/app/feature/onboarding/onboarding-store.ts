@@ -6,7 +6,7 @@ import { filter, map, startWith } from 'rxjs/operators';
 import { AuthApi } from '../../core/auth/auth-api';
 import { BudgetApi } from '../../core/budget';
 import { OnboardingApi } from './services/onboarding-api';
-import { Logger } from '../../core/services/logger';
+import { Logger } from '../../core/logging/logger';
 import {
   type BudgetCreate,
   type BudgetTemplateCreateFromOnboarding,

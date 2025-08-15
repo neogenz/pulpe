@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import type { ApplicationConfig, ConfigFile } from './types';
 import { isValidUrl, sanitizeUrl } from '../utils/validators';
-import { Logger } from '../services/logger';
+import { Logger } from '../logging/logger';
 
 @Injectable({
   providedIn: 'root',
