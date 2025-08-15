@@ -1,5 +1,6 @@
 import { inject, Injectable, signal, computed, resource } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { BudgetLineApi } from './budget-line-api';
 import { Logger } from '../../../../core/logging/logger';
 import {
@@ -20,6 +21,7 @@ import {
 export class BudgetDetailsStore {
   readonly #budgetLineApi = inject(BudgetLineApi);
   readonly #logger = inject(Logger);
+  readonly #snackBar = inject(MatSnackBar);
 
   // Single source of truth - private state signal for non-resource data
   readonly #state = signal<BudgetDetailsInternalState>(
@@ -163,6 +165,12 @@ export class BudgetDetailsStore {
       });
 
       this.#clearError();
+
+      // Show success message
+      this.#snackBar.open('Prévision modifiée.', 'Fermer', {
+        duration: 5000,
+        panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
+      });
     } catch (error) {
       // Rollback on error
       if (originalData) {
