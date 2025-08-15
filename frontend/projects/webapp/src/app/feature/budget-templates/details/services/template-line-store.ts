@@ -35,12 +35,11 @@ export class TemplateLineStore {
 
   readonly hasUnsavedChanges = computed(() => {
     const currentLines = this.lines();
-    return currentLines.some(
-      (line) =>
-        line.isModified ||
-        !line.originalLine ||
-        this.#deletedIds().has(line.id),
+    const hasDeletedLines = this.#deletedIds().size > 0;
+    const hasModifiedLines = currentLines.some(
+      (line) => line.isModified || !line.originalLine,
     );
+    return hasDeletedLines || hasModifiedLines;
   });
 
   readonly canRemoveTransaction = computed(() => this.activeLines().length > 1);
@@ -210,14 +209,19 @@ export class TemplateLineStore {
           (line) =>
             line.originalLine &&
             !deletedSet.has(line.id) &&
-            line.isModified &&
-            this.#isLineModified(line),
+            (line.isModified || this.#isLineModified(line)),
         )
         .map((line) => this.#mapToUpdateData(line)),
 
-      delete: currentLines
-        .filter((line) => line.originalLine && deletedSet.has(line.id))
-        .map((line) => line.originalLine!.id),
+      delete: Array.from(deletedSet)
+        .filter((id) => {
+          const line = currentLines.find((l) => l.id === id);
+          return line?.originalLine;
+        })
+        .map((id) => {
+          const line = currentLines.find((l) => l.id === id);
+          return line!.originalLine!.id;
+        }),
     };
   }
 

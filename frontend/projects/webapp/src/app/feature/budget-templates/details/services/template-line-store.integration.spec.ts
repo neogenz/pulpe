@@ -134,8 +134,9 @@ describe('TemplateLineStore - Integration Tests', () => {
     });
 
     it('should handle update operation successfully', async () => {
-      // Update existing line by index
-      store.updateTransaction('0', {
+      // Update existing line by its ID
+      const lineToUpdate = store.lines()[0];
+      store.updateTransaction(lineToUpdate.id, {
         description: 'Loyer modifié',
         amount: 1300,
       });
@@ -192,8 +193,9 @@ describe('TemplateLineStore - Integration Tests', () => {
     });
 
     it('should handle delete operation successfully', async () => {
-      // Remove line by index
-      store.removeTransaction('1');
+      // Remove line by its ID
+      const lineToDelete = store.lines()[1];
+      store.removeTransaction(lineToDelete.id);
 
       // Mock API response
       const mockApiResponse = {
@@ -232,11 +234,13 @@ describe('TemplateLineStore - Integration Tests', () => {
         type: 'expense',
       });
 
-      // Update existing line (index 0)
-      store.updateTransaction('0', { amount: 1400 });
+      // Update existing line by its ID
+      const lineToUpdate = store.lines()[0];
+      store.updateTransaction(lineToUpdate.id, { amount: 1400 });
 
-      // Remove existing line (index 1)
-      store.removeTransaction('1');
+      // Remove existing line by its ID
+      const lineToRemove = store.lines()[1];
+      store.removeTransaction(lineToRemove.id);
 
       // Mock API response
       const mockApiResponse = {
@@ -292,7 +296,8 @@ describe('TemplateLineStore - Integration Tests', () => {
 
   describe('API Integration - Error Handling', () => {
     it('should handle network errors gracefully', async () => {
-      store.updateTransaction('0', { amount: 1500 });
+      const lineToUpdate = store.lines()[0];
+      store.updateTransaction(lineToUpdate.id, { amount: 1500 });
 
       const networkError = new Error('Network request failed');
       mockBudgetTemplatesApi.bulkOperationsTemplateLines$.mockReturnValue(
@@ -309,7 +314,8 @@ describe('TemplateLineStore - Integration Tests', () => {
     });
 
     it('should handle API validation errors', async () => {
-      store.updateTransaction('0', { amount: 1500 });
+      const lineToUpdate = store.lines()[0];
+      store.updateTransaction(lineToUpdate.id, { amount: 1500 });
 
       const validationError = new Error('Invalid data provided');
       mockBudgetTemplatesApi.bulkOperationsTemplateLines$.mockReturnValue(
@@ -324,7 +330,8 @@ describe('TemplateLineStore - Integration Tests', () => {
     });
 
     it('should handle unknown error types', async () => {
-      store.updateTransaction('0', { amount: 1500 });
+      const lineToUpdate = store.lines()[0];
+      store.updateTransaction(lineToUpdate.id, { amount: 1500 });
 
       mockBudgetTemplatesApi.bulkOperationsTemplateLines$.mockReturnValue(
         throwError(() => 'String error'),
@@ -342,7 +349,8 @@ describe('TemplateLineStore - Integration Tests', () => {
     });
 
     it('should maintain loading state correctly during API calls', async () => {
-      store.updateTransaction('0', { amount: 1500 });
+      const lineToUpdate = store.lines()[0];
+      store.updateTransaction(lineToUpdate.id, { amount: 1500 });
 
       // Mock successful response
       mockBudgetTemplatesApi.bulkOperationsTemplateLines$.mockReturnValue(
@@ -378,7 +386,8 @@ describe('TemplateLineStore - Integration Tests', () => {
     });
 
     it('should handle API response with missing data', async () => {
-      store.updateTransaction('0', { amount: 1500 });
+      const lineToUpdate = store.lines()[0];
+      store.updateTransaction(lineToUpdate.id, { amount: 1500 });
 
       // Mock API response with minimal data
       mockBudgetTemplatesApi.bulkOperationsTemplateLines$.mockReturnValue(
@@ -404,7 +413,8 @@ describe('TemplateLineStore - Integration Tests', () => {
         amount: 100,
         type: 'expense',
       });
-      store.updateTransaction('0', { amount: 1500 });
+      const lineToUpdate = store.lines()[0];
+      store.updateTransaction(lineToUpdate.id, { amount: 1500 });
 
       expect(store.hasUnsavedChanges()).toBe(true);
 
@@ -462,9 +472,12 @@ describe('TemplateLineStore - Integration Tests', () => {
   describe('API Integration - Concurrent Operations', () => {
     it('should handle rapid successive changes correctly', async () => {
       // Make rapid changes to the same line
-      store.updateTransaction('0', { amount: 1300 });
-      store.updateTransaction('0', { amount: 1400 });
-      store.updateTransaction('0', { description: 'Final description' });
+      const lineToUpdate = store.lines()[0];
+      store.updateTransaction(lineToUpdate.id, { amount: 1300 });
+      store.updateTransaction(lineToUpdate.id, { amount: 1400 });
+      store.updateTransaction(lineToUpdate.id, {
+        description: 'Final description',
+      });
 
       // Mock API response
       mockBudgetTemplatesApi.bulkOperationsTemplateLines$.mockReturnValue(
@@ -509,8 +522,9 @@ describe('TemplateLineStore - Integration Tests', () => {
         type: 'expense',
       });
 
-      // Remove first line (index 0)
-      store.removeTransaction('0');
+      // Remove first line by its ID
+      const firstLine = store.lines()[0];
+      store.removeTransaction(firstLine.id);
 
       // Update the new line (should still work after removal)
       store.updateTransaction(newId, { description: 'Updated New Line' });
@@ -595,7 +609,8 @@ describe('TemplateLineStore - Integration Tests', () => {
     });
 
     it('should correctly sync updated lines with server data', async () => {
-      store.updateTransaction('0', {
+      const lineToUpdate = store.lines()[0];
+      store.updateTransaction(lineToUpdate.id, {
         description: 'Updated Rent',
         amount: 1300,
       });
