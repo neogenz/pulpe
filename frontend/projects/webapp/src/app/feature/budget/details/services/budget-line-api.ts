@@ -10,7 +10,7 @@ import {
   type BudgetDetailsResponse,
 } from '@pulpe/shared';
 import { ApplicationConfiguration } from '../../../../core/config/application-configuration';
-import { Logger } from '../../../../core/services/logger';
+import { Logger } from '../../../../core/logging/logger';
 
 @Injectable()
 export class BudgetLineApi {

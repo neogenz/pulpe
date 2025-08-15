@@ -21,7 +21,7 @@ import { AuthApi } from '@core/auth/auth-api';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ROUTES } from '@core/routing/routes-constants';
-import { Logger } from '@core/services/logger';
+import { Logger } from '@core/logging/logger';
 
 @Component({
   selector: 'pulpe-login',

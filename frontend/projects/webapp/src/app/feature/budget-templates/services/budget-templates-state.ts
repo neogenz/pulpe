@@ -3,7 +3,7 @@ import { type BudgetTemplate, type BudgetTemplateCreate } from '@pulpe/shared';
 import { catchError, firstValueFrom, map } from 'rxjs';
 import { BudgetTemplatesApi } from './budget-templates-api';
 import { rxResource } from '@angular/core/rxjs-interop';
-import { Logger } from '../../../core/services/logger';
+import { Logger } from '../../../core/logging/logger';
 
 @Injectable()
 export class BudgetTemplatesState {
