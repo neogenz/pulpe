@@ -223,3 +223,31 @@ pnpm run quality --filter="...[HEAD^]"
 - **Backend config**: `backend-nest/src/app.module.ts`, `backend-nest/src/config/environment.ts`
 - **Shared types**: `shared/schemas.ts`, `shared/types.ts`
 - **Database types**: `backend-nest/src/types/database.types.ts`
+
+## References to business specs of project
+
+- You can reference @SPECS.md dynamically to refer at all business data
+
+## Version Management
+
+- **Frontend** (`pulpe-frontend`): CalVer format `YYYY.M.PATCH` (e.g., `2025.8.0`)
+- **Backend** (`backend-nest`): SemVer format `MAJOR.MINOR.PATCH` (e.g., `0.1.0`)
+- **Shared** (`@pulpe/shared`): SemVer format `MAJOR.MINOR.PATCH` (e.g., `0.1.0`)
+- **Workspace** (`pulpe-workspace`): No versioning (private package)
+
+### Changesets Commands
+
+```bash
+# Create a new changeset (describe your changes)
+pnpm changeset
+
+# Apply version bumps and update changelogs
+pnpm changeset:version
+```
+
+### Workflow
+
+1. **Make your changes** to any package
+2. **Create changeset**: `pnpm changeset` and describe the impact
+3. **Apply versions**: `pnpm changeset:version` bumps versions and updates changelogs
+4. **Commit**: Commit the version changes and updated CHANGELOG.md files
