@@ -55,12 +55,83 @@ jobs:
       - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
 
-  # 🏗️ BUILD
+  # 🗄️ SUPABASE SETUP (Approche officielle 2025)
+  supabase-setup:
+    name: 🗄️ Setup Supabase Local
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    needs: install
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🗄️ Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: 🐳 Start Supabase Local (Optimisé)
+        working-directory: backend-nest
+        run: |
+          echo "🚀 Starting Supabase local instance..."
+          # Exclure les services non nécessaires pour gain de performance
+          supabase start --exclude studio,inbucket,imgproxy
+          
+          echo "⏳ Health check robuste..."
+          timeout=180
+          counter=0
+          until curl -s http://127.0.0.1:54321/rest/v1/ >/dev/null; do
+            if [ $counter -gt $timeout ]; then
+              echo "❌ Timeout waiting for Supabase"
+              supabase status  # Debug en cas d'échec
+              exit 1
+            fi
+            echo "Waiting for Supabase... ($counter/180s)"
+            sleep 1
+            counter=$((counter + 1))
+          done
+          echo "✅ Supabase ready!"
+
+      - name: 🔧 Generate TypeScript Types
+        working-directory: backend-nest
+        run: |
+          echo "📝 Generating TypeScript types from local schema..."
+          supabase gen types typescript --local > src/types/database.types.ts
+          echo "✅ Types generated"
+
+      - name: 🔧 Setup CI Environment
+        working-directory: backend-nest
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_LOCAL_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_LOCAL_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_LOCAL_SERVICE_ROLE_KEY }}
+        run: |
+          echo "📝 Creating CI environment file..."
+          cp .env.ci .env
+          
+          # Inject secrets into .env file
+          echo "SUPABASE_URL=${SUPABASE_URL}" >> .env
+          echo "SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}" >> .env
+          echo "SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}" >> .env
+          
+          echo "✅ Environment ready"
+
+      - name: 💾 Save Supabase State
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-state
+          path: |
+            backend-nest/.env
+            backend-nest/src/types/database.types.ts
+            backend-nest/supabase/.temp/
+          retention-days: 1
+
+  # 🏗️ BUILD (Modifié pour dépendre de supabase-setup)
   build:
     name: 🏗️ Build Projects
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: install
+    needs: [install, supabase-setup]
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@v4
@@ -82,6 +153,35 @@ jobs:
         with:
           bun-version: ${{ env.BUN_VERSION }}
 
+      - name: 🗄️ Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: 📥 Download Supabase State
+        uses: actions/download-artifact@v4
+        with:
+          name: supabase-state
+          path: backend-nest/
+
+      - name: 🐳 Restore Supabase
+        working-directory: backend-nest
+        run: |
+          supabase start --exclude studio,inbucket,imgproxy
+          
+          # Health check rapide pour restore
+          timeout=60
+          counter=0
+          until curl -s http://127.0.0.1:54321/rest/v1/ >/dev/null; do
+            if [ $counter -gt $timeout ]; then
+              echo "❌ Failed to restore Supabase"
+              exit 1
+            fi
+            sleep 1
+            counter=$((counter + 1))
+          done
+          echo "✅ Supabase restored"
+
       - name: 📥 Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -98,7 +198,7 @@ jobs:
             backend-nest/dist/
           retention-days: 1
 
-  # 🧪 TESTS UNITAIRES
+  # 🧪 TESTS UNITAIRES (Modifié pour utiliser Supabase local)
   test-unit:
     name: 🧪 Unit Tests
     runs-on: ubuntu-latest
@@ -125,16 +225,55 @@ jobs:
         with:
           bun-version: ${{ env.BUN_VERSION }}
 
-      - name: 📥 Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: 🗄️ Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: 📥 Download Supabase State
+        uses: actions/download-artifact@v4
+        with:
+          name: supabase-state
+          path: backend-nest/
 
       - name: 📥 Download build artifacts
         uses: actions/download-artifact@v4
         with:
           name: build-artifacts
 
+      - name: 🐳 Start Supabase for Tests
+        working-directory: backend-nest
+        run: |
+          supabase start --exclude studio,inbucket,imgproxy
+          
+          # Health check pour tests
+          timeout=60
+          counter=0
+          until curl -s http://127.0.0.1:54321/rest/v1/ >/dev/null; do
+            if [ $counter -gt $timeout ]; then
+              echo "❌ Supabase not ready for tests"
+              exit 1
+            fi
+            sleep 1
+            counter=$((counter + 1))
+          done
+          echo "✅ Supabase ready for tests"
+
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: 🧪 Run unit tests
         run: pnpm test:unit
+        env:
+          NODE_ENV: test
+          SUPABASE_URL: ${{ secrets.SUPABASE_LOCAL_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_LOCAL_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_LOCAL_SERVICE_ROLE_KEY }}
+
+      - name: 🧹 Cleanup Supabase
+        if: always()
+        working-directory: backend-nest
+        run: supabase stop
 
   # 🎭 E2E TESTS avec cache Playwright optimisé
   test-e2e:
@@ -261,16 +400,55 @@ jobs:
         with:
           bun-version: ${{ env.BUN_VERSION }}
 
-      - name: 📥 Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: 🗄️ Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: 📥 Download Supabase State
+        uses: actions/download-artifact@v4
+        with:
+          name: supabase-state
+          path: backend-nest/
 
       - name: 📥 Download build artifacts
         uses: actions/download-artifact@v4
         with:
           name: build-artifacts
 
+      - name: 🐳 Start Supabase for Performance Tests
+        working-directory: backend-nest
+        run: |
+          supabase start --exclude studio,inbucket,imgproxy
+          
+          # Health check pour tests
+          timeout=60
+          counter=0
+          until curl -s http://127.0.0.1:54321/rest/v1/ >/dev/null; do
+            if [ $counter -gt $timeout ]; then
+              echo "❌ Supabase not ready for tests"
+              exit 1
+            fi
+            sleep 1
+            counter=$((counter + 1))
+          done
+          echo "✅ Supabase ready for performance tests"
+
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: 🚀 Run performance tests
         run: pnpm test:performance
+        env:
+          NODE_ENV: test
+          SUPABASE_URL: ${{ secrets.SUPABASE_LOCAL_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_LOCAL_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_LOCAL_SERVICE_ROLE_KEY }}
+
+      - name: 🧹 Cleanup Supabase
+        if: always()
+        working-directory: backend-nest
+        run: supabase stop
 
   # ✅ SUCCESS JOB pour status checks
   ci-success:
