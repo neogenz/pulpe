@@ -156,7 +156,7 @@ interface NavigationItem {
           >
             @if (isHandset()) {
               <button
-                mat-icon-button
+                matIconButton
                 (click)="drawer.toggle()"
                 aria-label="Toggle navigation"
               >

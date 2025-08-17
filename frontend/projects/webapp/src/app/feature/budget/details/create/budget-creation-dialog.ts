@@ -185,7 +185,7 @@ const MONTH_YEAR_FORMATS = {
         Annuler
       </button>
       <button
-        mat-flat-button
+        matButton="filled"
         color="primary"
         [disabled]="
           budgetForm.invalid ||

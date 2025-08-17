@@ -12,7 +12,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
-import { BaseLoadingComponent } from '../../../ui/loading';
+import { BaseLoading } from '../../../ui/loading';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { DatePipe } from '@angular/common';
 import { formatDate } from 'date-fns';
@@ -26,7 +26,7 @@ import {
   type BudgetLineDialogData,
 } from './components/budget-line-dialog';
 import {
-  ConfirmationDialogComponent,
+  ConfirmationDialog,
   type ConfirmationDialogData,
 } from '../../../ui/dialogs/confirmation-dialog';
 import {
@@ -47,7 +47,7 @@ import {
     DatePipe,
     BudgetItemsTable,
     BudgetFinancialOverview,
-    BaseLoadingComponent,
+    BaseLoading,
   ],
   providers: [BudgetDetailsStore, BudgetLineApi],
   template: `
@@ -77,7 +77,7 @@ import {
         <!-- Header -->
         <header class="flex items-start gap-4">
           <button
-            mat-icon-button
+            matIconButton
             (click)="navigateBack()"
             aria-label="Retour aux budgets"
             data-testid="back-button"
@@ -250,7 +250,7 @@ export default class DetailsPage implements OnInit {
       ? 'Êtes-vous sûr de vouloir supprimer cette prévision ?'
       : 'Êtes-vous sûr de vouloir supprimer cette transaction ?';
 
-    const dialogRef = this.#dialog.open(ConfirmationDialogComponent, {
+    const dialogRef = this.#dialog.open(ConfirmationDialog, {
       data: {
         title,
         message,
@@ -275,7 +275,7 @@ export default class DetailsPage implements OnInit {
   }
 
   async handleDeleteBudgetLine(id: string): Promise<void> {
-    const dialogRef = this.#dialog.open(ConfirmationDialogComponent, {
+    const dialogRef = this.#dialog.open(ConfirmationDialog, {
       data: {
         title: 'Supprimer la prévision',
         message: 'Êtes-vous sûr de vouloir supprimer cette prévision ?',

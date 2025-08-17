@@ -8,7 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MonthCardItem } from '../ui/month-card-item';
-import { BaseLoadingComponent } from '../../../ui/loading';
+import { BaseLoading } from '../../../ui/loading';
 import { MonthsError } from '../ui/budget-error';
 import { BudgetState } from './budget-state';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -27,7 +27,7 @@ import { ROUTES } from '@core/routing';
     MatButtonModule,
     MatCardModule,
     MonthCardItem,
-    BaseLoadingComponent,
+    BaseLoading,
     MonthsError,
     MatTabsModule,
   ],

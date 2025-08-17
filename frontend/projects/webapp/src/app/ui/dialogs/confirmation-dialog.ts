@@ -52,8 +52,8 @@ export interface ConfirmationDialogData {
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ConfirmationDialogComponent {
-  readonly #dialogRef = inject(MatDialogRef<ConfirmationDialogComponent>);
+export class ConfirmationDialog {
+  readonly #dialogRef = inject(MatDialogRef<ConfirmationDialog>);
   readonly data = inject<ConfirmationDialogData>(MAT_DIALOG_DATA);
 
   onConfirm(): void {

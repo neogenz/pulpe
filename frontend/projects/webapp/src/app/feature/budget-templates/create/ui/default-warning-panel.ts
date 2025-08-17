@@ -45,7 +45,7 @@ import { MatIconModule } from '@angular/material/icon';
     </div>
   `,
 })
-export class DefaultWarningPanelComponent {
+export class DefaultWarningPanel {
   message = input.required<string>();
   dismissable = input(false);
 

@@ -60,7 +60,7 @@ import { ROUTES } from '@core/routing';
       </div>
       <div class="flex gap-4 flex-col items-center justify-center w-full">
         <button
-          mat-flat-button
+          matButton="filled"
           color="primary"
           class="w-full max-w-sm"
           data-testid="welcome-start-button"
