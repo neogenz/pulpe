@@ -290,12 +290,12 @@ test.describe('Budget Template Deletion', () => {
       await authenticatedPage.waitForSelector('mat-card', { state: 'visible' });
       
       // Click menu on template card  
-      const menuButton = authenticatedPage.locator('mat-card').first().locator('button[mat-icon-button]').filter({ hasText: 'more_vert' });
+      const menuButton = authenticatedPage.locator('mat-card').first().locator('[data-testid="template-menu-trigger"]');
       await menuButton.click();
       
       // Wait for menu to open and click delete
-      await authenticatedPage.waitForSelector('button[mat-menu-item]:has-text("Supprimer")', { state: 'visible' });
-      await authenticatedPage.locator('button[mat-menu-item]:has-text("Supprimer")').click();
+      await authenticatedPage.waitForSelector('[data-testid="delete-template-menu-item"]', { state: 'visible' });
+      await authenticatedPage.locator('[data-testid="delete-template-menu-item"]').click();
       
       // Confirm deletion
       await authenticatedPage.waitForSelector('[role="dialog"]', { state: 'visible' });
@@ -389,8 +389,8 @@ test.describe('Budget Template Deletion', () => {
       await budgetTemplatesPage.expectTemplatesListVisible();
       
       // Delete the template from card menu
-      await authenticatedPage.locator('mat-card').first().locator('button[mat-icon-button]').filter({ hasText: 'more_vert' }).click();
-      await authenticatedPage.locator('button[mat-menu-item]:has-text("Supprimer")').click();
+      await authenticatedPage.locator('mat-card').first().locator('[data-testid="template-menu-trigger"]').click();
+      await authenticatedPage.locator('[data-testid="delete-template-menu-item"]').click();
       
       // Confirm deletion
       await authenticatedPage.locator('[role="dialog"]').waitFor();
