@@ -23,7 +23,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TemplateLine } from '@pulpe/shared';
 import { firstValueFrom } from 'rxjs';
 import {
-  ConfirmationDialogComponent,
+  ConfirmationDialog,
   type ConfirmationDialogData,
 } from '../../../../ui/dialogs/confirmation-dialog';
 import {
@@ -467,7 +467,7 @@ export default class EditTransactionsDialog {
    * Show confirmation dialog for transaction removal
    */
   async #showConfirmationDialog(): Promise<boolean> {
-    const dialogRef = this.#dialog.open(ConfirmationDialogComponent, {
+    const dialogRef = this.#dialog.open(ConfirmationDialog, {
       data: {
         title: 'Confirmer la suppression',
         message: 'Êtes-vous sûr de vouloir supprimer cette ligne ?',

@@ -142,6 +142,7 @@ function logApplicationInfo(
   }
 
   logger.log(`⚡ Environment: ${env.NODE_ENV}`);
+  logger.log(`🔗 Supabase URL: ${env.SUPABASE_URL}`);
 }
 
 async function bootstrap() {

@@ -38,7 +38,7 @@ import { type BudgetTemplate } from '@pulpe/shared';
         }
         <div class="flex-1"></div>
         <button
-          mat-icon-button
+          matIconButton
           [matMenuTriggerFor]="menu"
           aria-label="Options du modèle"
           data-testid="template-menu-trigger"

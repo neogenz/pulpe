@@ -54,7 +54,7 @@ import { ROUTES } from '@core/routing';
 
       <div class="flex gap-4 p-4 md:p-0 w-full mt-auto">
         <button
-          mat-stroked-button
+          matButton="outlined"
           class="flex-1"
           data-testid="previous-button"
           (click)="onPrevious()"
@@ -62,7 +62,7 @@ import { ROUTES } from '@core/routing';
           Précédent
         </button>
         <button
-          mat-flat-button
+          matButton="filled"
           color="primary"
           class="flex-1"
           [disabled]="!isValid()"

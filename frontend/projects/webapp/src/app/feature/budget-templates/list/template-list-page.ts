@@ -10,10 +10,10 @@ import { type BudgetTemplate } from '@pulpe/shared';
 import { BudgetTemplatesState } from '../services/budget-templates-state';
 import { BudgetTemplatesApi } from '../services/budget-templates-api';
 import { TemplateList } from '../components/template-list';
-import { BaseLoadingComponent } from '../../../ui/loading';
+import { BaseLoading } from '../../../ui/loading';
 import { TemplatesError } from '../components/templates-error';
 import { TitleDisplay } from '@core/routing';
-import { ConfirmationDialogComponent } from '@ui/dialogs/confirmation-dialog';
+import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
 import { TemplateUsageDialogComponent } from '../components/dialogs/template-usage-dialog';
 import { getDeleteConfirmationConfig } from '../delete/template-delete-dialog';
 
@@ -26,7 +26,7 @@ import { getDeleteConfirmationConfig } from '../delete/template-delete-dialog';
     MatIconModule,
     MatTooltipModule,
     TemplateList,
-    BaseLoadingComponent,
+    BaseLoading,
     TemplatesError,
   ],
   template: `
@@ -147,7 +147,7 @@ export default class TemplateListPage {
         dialogInstance.setUsageData(usageResponse.data.budgets);
       } else {
         // Template is not used, show confirmation dialog
-        const dialogRef = this.#dialog.open(ConfirmationDialogComponent, {
+        const dialogRef = this.#dialog.open(ConfirmationDialog, {
           data: getDeleteConfirmationConfig(template.name),
           width: '400px',
         });

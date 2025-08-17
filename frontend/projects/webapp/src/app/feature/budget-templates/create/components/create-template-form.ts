@@ -26,7 +26,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { type BudgetTemplateCreate } from '@pulpe/shared';
 import { BudgetTemplatesState } from '../../services/budget-templates-state';
-import { DefaultWarningPanelComponent } from '../ui/default-warning-panel.component';
+import { DefaultWarningPanel } from '../ui/default-warning-panel';
 import {
   duplicateNameValidator,
   getTemplateNameErrorMessage,
@@ -44,7 +44,7 @@ import {
     MatProgressSpinnerModule,
     MatTooltipModule,
     MatDividerModule,
-    DefaultWarningPanelComponent,
+    DefaultWarningPanel,
   ],
   template: `
     @if (state.budgetTemplates.isLoading()) {

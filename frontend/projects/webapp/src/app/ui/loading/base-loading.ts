@@ -44,7 +44,7 @@ export type LoadingSize = 'small' | 'medium' | 'large';
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class BaseLoadingComponent {
+export class BaseLoading {
   message = input.required<string>();
   size = input<LoadingSize>('medium');
   testId = input<string>('loading-container');

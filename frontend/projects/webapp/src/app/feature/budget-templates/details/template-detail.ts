@@ -12,7 +12,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { BaseLoadingComponent } from '../../../ui/loading';
+import { BaseLoading } from '../../../ui/loading';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDialog } from '@angular/material/dialog';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
@@ -31,7 +31,7 @@ import { map } from 'rxjs/operators';
 import { CommonModule, CurrencyPipe } from '@angular/common';
 import { TemplateLine } from '@pulpe/shared';
 import { PulpeTitleStrategy } from '@core/routing/title-strategy';
-import { ConfirmationDialogComponent } from '@ui/dialogs/confirmation-dialog';
+import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
 import { TemplateUsageDialogComponent } from '../components/dialogs/template-usage-dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { getDeleteConfirmationConfig } from '../delete/template-delete-dialog';
@@ -49,7 +49,7 @@ import { TemplateDetailsStore } from './services/template-details-store';
     MatSnackBarModule,
     FinancialSummary,
     TransactionsTable,
-    BaseLoadingComponent,
+    BaseLoading,
   ],
   providers: [TemplateDetailsStore],
   template: `
@@ -417,7 +417,7 @@ export default class TemplateDetail implements OnInit {
         dialogInstance.setUsageData(usageResponse.data.budgets);
       } else {
         // Template is not used, show confirmation dialog
-        const dialogRef = this.#dialog.open(ConfirmationDialogComponent, {
+        const dialogRef = this.#dialog.open(ConfirmationDialog, {
           data: getDeleteConfirmationConfig(template.name),
           width: '400px',
         });

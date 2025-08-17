@@ -23,7 +23,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { DashboardError } from './components/dashboard-error';
-import { BaseLoadingComponent } from '../../ui/loading';
+import { BaseLoading } from '../../ui/loading';
 import { FixedTransactionsList } from './components/fixed-transactions-list';
 import { VariableExpensesList } from './components/variable-expenses-list';
 import { CurrentMonthStore } from './services/current-month-store';
@@ -35,7 +35,7 @@ import {
   TransactionFormData,
 } from './components/add-transaction-bottom-sheet';
 import { BudgetLineMapper } from './services/budget-line-mapper';
-import { ConfirmationDialogComponent } from '@ui/dialogs/confirmation-dialog';
+import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
 import { firstValueFrom } from 'rxjs';
 import { type Transaction } from '@pulpe/shared';
 
@@ -62,7 +62,7 @@ import { type Transaction } from '@pulpe/shared';
     MatSelectModule,
     FixedTransactionsList,
     DashboardError,
-    BaseLoadingComponent,
+    BaseLoading,
     VariableExpensesList,
     TransactionChipFilter,
   ],
@@ -291,7 +291,7 @@ export default class CurrentMonth implements OnInit {
     if (!transaction) return;
 
     // Open confirmation dialog
-    const dialogRef = this.#dialog.open(ConfirmationDialogComponent, {
+    const dialogRef = this.#dialog.open(ConfirmationDialog, {
       data: {
         title: 'Supprimer la transaction',
         message: `Êtes-vous sûr de vouloir supprimer « ${transaction.name} » ?`,

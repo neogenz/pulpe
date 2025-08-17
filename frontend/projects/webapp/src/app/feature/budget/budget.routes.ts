@@ -1,12 +1,11 @@
 import { Routes } from '@angular/router';
-import { BudgetApi } from './budget-api';
 import { BudgetLineApi } from './details/services/budget-line-api';
 import { PAGE_TITLES } from '@core/routing';
 
 export const budgetRoutes: Routes = [
   {
     path: '',
-    providers: [BudgetApi],
+    providers: [],
     children: [
       {
         path: '',
