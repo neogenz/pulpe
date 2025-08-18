@@ -2,7 +2,7 @@ import type { Budget, BudgetLine, Transaction } from '@pulpe/shared';
 
 /**
  * State interface for CurrentMonthStore following the single state signal pattern
- * Contains only the data not managed by the resource
+ * Simplified to work better with resource() API
  */
 export interface CurrentMonthInternalState {
   /**
@@ -11,21 +11,13 @@ export interface CurrentMonthInternalState {
   currentDate: Date;
 
   /**
-   * Set of operations currently in progress (for optimistic updates)
+   * Set of operations currently in progress (for UI feedback)
    */
   operationsInProgress: Set<string>;
-
-  /**
-   * Optimistic updates state - overlays on top of resource data
-   */
-  optimisticUpdates: {
-    addedTransactions: Transaction[];
-    removedTransactionIds: Set<string>;
-  };
 }
 
 /**
- * Dashboard data structure
+ * Dashboard data structure returned by the resource
  */
 export interface DashboardData {
   budget: Budget | null;
@@ -48,9 +40,5 @@ export function createInitialCurrentMonthInternalState(): CurrentMonthInternalSt
   return {
     currentDate: new Date(),
     operationsInProgress: new Set(),
-    optimisticUpdates: {
-      addedTransactions: [],
-      removedTransactionIds: new Set(),
-    },
   };
 }

@@ -18,15 +18,14 @@ import { createInitialCurrentMonthInternalState } from './current-month-state';
  *
  * This store manages the current month's financial data including:
  * - Budget information and lines
- * - Transactions (with optimistic updates)
+ * - Transactions
  * - Loading and error states
  * - Calculated financial metrics
  *
  * Architecture:
- * - Single private state signal for immutable state management
- * - Public computed selectors for reactive data access
- * - Actions for state mutations with strict immutability
- * - Resource integration for async data loading
+ * - Uses Angular's resource() API for async data loading
+ * - Simplified state management without complex optimistic updates
+ * - Relies on resource reload for data consistency after mutations
  */
 @Injectable()
 export class CurrentMonthStore {
@@ -37,7 +36,7 @@ export class CurrentMonthStore {
 
   // === PRIVATE STATE ===
   /**
-   * Single source of truth - private state signal for non-resource data
+   * Simple state signal for UI feedback during operations
    */
   readonly #state = signal<CurrentMonthInternalState>(
     createInitialCurrentMonthInternalState(),
@@ -98,22 +97,6 @@ export class CurrentMonthStore {
   );
 
   /**
-   * Transactions selector (private computed) - includes optimistic updates
-   */
-  #transactions = computed<Transaction[]>(() => {
-    const resourceTransactions = this.dashboardData()?.transactions || [];
-    const { addedTransactions, removedTransactionIds } =
-      this.#state().optimisticUpdates;
-
-    // Filter out removed transactions and add optimistic ones
-    const filteredTransactions = resourceTransactions.filter(
-      (t) => !removedTransactionIds.has(t.id),
-    );
-
-    return [...addedTransactions, ...filteredTransactions];
-  });
-
-  /**
    * Current budget selector
    */
   readonly budget = computed<Budget | null>(
@@ -156,7 +139,7 @@ export class CurrentMonthStore {
    * Actual transactions amount (spent so far)
    */
   readonly actualTransactionsAmount = computed<number>(() => {
-    const transactions = this.#transactions();
+    const transactions = this.dashboardData()?.transactions || [];
     return this.#budgetCalculator.calculateActualTransactionsAmount(
       transactions,
     );
@@ -167,7 +150,7 @@ export class CurrentMonthStore {
    */
   readonly remainingBudgetAmount = computed<number>(() => {
     const budgetLines = this.budgetLines();
-    const transactions = this.#transactions();
+    const transactions = this.dashboardData()?.transactions || [];
     return this.#budgetCalculator.calculateRemainingBudget(
       budgetLines,
       transactions,
@@ -195,62 +178,23 @@ export class CurrentMonthStore {
   }
 
   /**
-   * Add a new transaction with optimistic updates
+   * Add a new transaction
+   * Simplified approach: perform the mutation and reload data
    */
   async addTransaction(transactionData: TransactionCreateData): Promise<void> {
     const operationId = `add-transaction-${Date.now()}`;
 
-    // Mark operation as in progress
+    // Mark operation as in progress for UI feedback
     this.#addOperationInProgress(operationId);
 
-    // Optimistic update: add temporary transaction
-    const optimisticTransaction: Transaction = {
-      ...transactionData,
-      id: `temp-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    // Add to optimistic updates
-    this.#state.update((state) => ({
-      ...state,
-      optimisticUpdates: {
-        ...state.optimisticUpdates,
-        addedTransactions: [
-          optimisticTransaction,
-          ...state.optimisticUpdates.addedTransactions,
-        ],
-      },
-    }));
-
     try {
-      const response = await firstValueFrom(
-        this.#transactionApi.create$(transactionData),
-      );
+      // Create the transaction
+      await firstValueFrom(this.#transactionApi.create$(transactionData));
 
-      // Replace optimistic transaction with real one
-      if (response.data) {
-        this.#state.update((state) => ({
-          ...state,
-          optimisticUpdates: {
-            ...state.optimisticUpdates,
-            addedTransactions: state.optimisticUpdates.addedTransactions.map(
-              (t) => (t.id.startsWith('temp-') ? response.data : t),
-            ),
-          },
-        }));
-      }
+      // Reload dashboard data to get the updated state
+      this.reloadDashboard();
     } catch (error) {
-      // Rollback: remove optimistic transaction
-      this.#state.update((state) => ({
-        ...state,
-        optimisticUpdates: {
-          ...state.optimisticUpdates,
-          addedTransactions: state.optimisticUpdates.addedTransactions.filter(
-            (t) => !t.id.startsWith('temp-'),
-          ),
-        },
-      }));
+      this.#logger.error('Error adding transaction:', error);
       throw error;
     } finally {
       this.#removeOperationInProgress(operationId);
@@ -258,44 +202,23 @@ export class CurrentMonthStore {
   }
 
   /**
-   * Delete a transaction with optimistic updates
+   * Delete a transaction
+   * Simplified approach: perform the deletion and reload data
    */
   async deleteTransaction(transactionId: string): Promise<void> {
     const operationId = `delete-transaction-${transactionId}`;
 
-    // Mark operation as in progress
+    // Mark operation as in progress for UI feedback
     this.#addOperationInProgress(operationId);
 
-    // Optimistic update: remove transaction immediately
-    this.#state.update((state) => ({
-      ...state,
-      optimisticUpdates: {
-        ...state.optimisticUpdates,
-        removedTransactionIds: new Set([
-          ...state.optimisticUpdates.removedTransactionIds,
-          transactionId,
-        ]),
-      },
-    }));
-
     try {
+      // Delete the transaction
       await firstValueFrom(this.#transactionApi.remove$(transactionId));
-      // Success: optimistic update stands
+
+      // Reload dashboard data to get the updated state
+      this.reloadDashboard();
     } catch (error) {
-      // Rollback: restore deleted transaction
-      this.#state.update((state) => {
-        const newRemovedIds = new Set(
-          state.optimisticUpdates.removedTransactionIds,
-        );
-        newRemovedIds.delete(transactionId);
-        return {
-          ...state,
-          optimisticUpdates: {
-            ...state.optimisticUpdates,
-            removedTransactionIds: newRemovedIds,
-          },
-        };
-      });
+      this.#logger.error('Error deleting transaction:', error);
       throw error;
     } finally {
       this.#removeOperationInProgress(operationId);

@@ -1,7 +1,11 @@
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
+import {
+  HttpClientTestingModule,
+  HttpTestingController,
+} from '@angular/common/http/testing';
 import { of, throwError, Subject } from 'rxjs';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type {
   BudgetLine,
   BudgetLineCreate,
@@ -10,6 +14,8 @@ import type {
 
 import { BudgetDetailsStore } from './budget-details-store';
 import { BudgetLineApi } from './budget-line-api';
+import { TransactionApi } from '../../../../core/transaction/transaction-api';
+import { ApplicationConfiguration } from '../../../../core/config/application-configuration';
 
 // Mock data
 const mockBudgetId = 'budget-123';
@@ -59,11 +65,18 @@ const mockBudgetDetailsResponse = {
 
 describe('BudgetDetailsStore - Integration Tests', () => {
   let service: BudgetDetailsStore;
+  let httpMock: HttpTestingController;
   let mockBudgetLineApi: {
     getBudgetDetails$: ReturnType<typeof vi.fn>;
     createBudgetLine$: ReturnType<typeof vi.fn>;
     updateBudgetLine$: ReturnType<typeof vi.fn>;
     deleteBudgetLine$: ReturnType<typeof vi.fn>;
+  };
+  let mockTransactionApi: {
+    remove$: ReturnType<typeof vi.fn>;
+  };
+  let mockApplicationConfiguration: {
+    backendApiUrl: ReturnType<typeof vi.fn>;
   };
 
   // Helper function to set resource data manually for testing
@@ -84,15 +97,35 @@ describe('BudgetDetailsStore - Integration Tests', () => {
       deleteBudgetLine$: vi.fn(),
     };
 
+    mockTransactionApi = {
+      remove$: vi.fn(),
+    };
+
+    mockApplicationConfiguration = {
+      backendApiUrl: vi.fn().mockReturnValue('http://localhost:3000/api/v1'),
+    };
+
     TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule],
       providers: [
         provideZonelessChangeDetection(),
         BudgetDetailsStore,
         { provide: BudgetLineApi, useValue: mockBudgetLineApi },
+        { provide: TransactionApi, useValue: mockTransactionApi },
+        {
+          provide: ApplicationConfiguration,
+          useValue: mockApplicationConfiguration,
+        },
       ],
     });
 
     service = TestBed.inject(BudgetDetailsStore);
+    httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => {
+    // Verify that no unexpected HTTP requests were made
+    httpMock?.verify();
   });
 
   it('should create', () => {

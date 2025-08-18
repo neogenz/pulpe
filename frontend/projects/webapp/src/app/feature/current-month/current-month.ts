@@ -34,7 +34,7 @@ import {
   AddTransactionBottomSheet,
   TransactionFormData,
 } from './components/add-transaction-bottom-sheet';
-import { BudgetLineMapper } from './services/budget-line-mapper';
+import { mapBudgetLineToTransaction } from './utils/budget-line-mapper';
 import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
 import { firstValueFrom } from 'rxjs';
 import { type Transaction } from '@pulpe/shared';
@@ -48,7 +48,6 @@ import { type Transaction } from '@pulpe/shared';
         appearance: 'outline',
       },
     },
-    BudgetLineMapper,
   ],
   imports: [
     BudgetProgressBar,
@@ -85,7 +84,6 @@ import { type Transaction } from '@pulpe/shared';
           Actualiser
         </button>
       </header>
-      {{ store.dashboardStatus() }}
 
       @switch (true) {
         @case (
@@ -202,7 +200,6 @@ export default class CurrentMonth implements OnInit {
   #bottomSheet = inject(MatBottomSheet);
   #dialog = inject(MatDialog);
   #snackBar = inject(MatSnackBar);
-  #budgetLineMapper = inject(BudgetLineMapper);
 
   fixedTransactions = computed(() => {
     const budgetLines = this.store.budgetLines();
@@ -215,7 +212,7 @@ export default class CurrentMonth implements OnInit {
       .filter(
         (line) => line.recurrence === 'fixed' || line.recurrence === 'one_off',
       )
-      .map((line) => this.#budgetLineMapper.toTransaction(line, budgetId));
+      .map((line) => mapBudgetLineToTransaction(line, budgetId));
   });
   variableTransactions = computed(() => {
     // For now, show all transactions as variable expenses
