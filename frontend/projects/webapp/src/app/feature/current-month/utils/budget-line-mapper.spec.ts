@@ -1,12 +1,12 @@
-import { describe, beforeEach, it, expect, vi } from 'vitest';
-import { BudgetLineMapper } from './budget-line-mapper';
+import { describe, beforeEach, it, expect, vi, afterEach } from 'vitest';
+import {
+  mapBudgetLineToTransaction,
+  mapBudgetLinesToTransactions,
+} from './budget-line-mapper';
 import { BudgetLine, Transaction } from '@pulpe/shared';
 
-describe('BudgetLineMapper', () => {
-  let mapper: BudgetLineMapper;
-
+describe('Budget Line Mapper Utils', () => {
   beforeEach(() => {
-    mapper = new BudgetLineMapper();
     // Mock the current date for consistent testing
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2024-01-15T10:00:00.000Z'));
@@ -33,14 +33,14 @@ describe('BudgetLineMapper', () => {
     ...overrides,
   });
 
-  describe('toTransaction', () => {
+  describe('mapBudgetLineToTransaction', () => {
     it('should map a budget line to a transaction', () => {
       // Arrange
       const budgetLine = createBudgetLine();
       const budgetId = 'budget-789';
 
       // Act
-      const result = mapper.toTransaction(budgetLine, budgetId);
+      const result = mapBudgetLineToTransaction(budgetLine, budgetId);
 
       // Assert
       expect(result).toEqual<Transaction>({
@@ -66,7 +66,7 @@ describe('BudgetLineMapper', () => {
       });
 
       // Act
-      const result = mapper.toTransaction(budgetLine, 'budget-123');
+      const result = mapBudgetLineToTransaction(budgetLine, 'budget-123');
 
       // Assert
       expect(result.kind).toBe('income');
@@ -83,7 +83,7 @@ describe('BudgetLineMapper', () => {
       });
 
       // Act
-      const result = mapper.toTransaction(budgetLine, 'budget-123');
+      const result = mapBudgetLineToTransaction(budgetLine, 'budget-123');
 
       // Assert
       expect(result.kind).toBe('saving');
@@ -99,7 +99,7 @@ describe('BudgetLineMapper', () => {
       });
 
       // Act
-      const result = mapper.toTransaction(budgetLine, 'budget-123');
+      const result = mapBudgetLineToTransaction(budgetLine, 'budget-123');
 
       // Assert
       expect(result.createdAt).toBe('2023-12-01T00:00:00.000Z');
@@ -111,7 +111,7 @@ describe('BudgetLineMapper', () => {
       const budgetLine = createBudgetLine();
 
       // Act
-      const result = mapper.toTransaction(budgetLine, 'budget-123');
+      const result = mapBudgetLineToTransaction(budgetLine, 'budget-123');
 
       // Assert
       expect(result.isOutOfBudget).toBe(false);
@@ -122,7 +122,7 @@ describe('BudgetLineMapper', () => {
       const budgetLine = createBudgetLine();
 
       // Act
-      const result = mapper.toTransaction(budgetLine, 'budget-123');
+      const result = mapBudgetLineToTransaction(budgetLine, 'budget-123');
 
       // Assert
       expect(result.category).toBe(null);
@@ -136,14 +136,14 @@ describe('BudgetLineMapper', () => {
       const newBudgetId = 'new-budget-id';
 
       // Act
-      const result = mapper.toTransaction(budgetLine, newBudgetId);
+      const result = mapBudgetLineToTransaction(budgetLine, newBudgetId);
 
       // Assert
       expect(result.budgetId).toBe('new-budget-id');
     });
   });
 
-  describe('toTransactions', () => {
+  describe('mapBudgetLinesToTransactions', () => {
     it('should map multiple budget lines to transactions', () => {
       // Arrange
       const budgetLines = [
@@ -154,7 +154,7 @@ describe('BudgetLineMapper', () => {
       const budgetId = 'budget-123';
 
       // Act
-      const result = mapper.toTransactions(budgetLines, budgetId);
+      const result = mapBudgetLinesToTransactions(budgetLines, budgetId);
 
       // Assert
       expect(result).toHaveLength(3);
@@ -172,7 +172,7 @@ describe('BudgetLineMapper', () => {
       const budgetLines: BudgetLine[] = [];
 
       // Act
-      const result = mapper.toTransactions(budgetLines, 'budget-123');
+      const result = mapBudgetLinesToTransactions(budgetLines, 'budget-123');
 
       // Assert
       expect(result).toEqual([]);
@@ -187,7 +187,7 @@ describe('BudgetLineMapper', () => {
       ];
 
       // Act
-      const result = mapper.toTransactions(budgetLines, 'budget-123');
+      const result = mapBudgetLinesToTransactions(budgetLines, 'budget-123');
 
       // Assert
       expect(result[0].kind).toBe('income');

@@ -291,24 +291,66 @@ describe('CurrentMonthStore', () => {
   });
 
   describe('Transaction Methods', () => {
-    it('should throw error when adding transaction without data', async () => {
+    it('should call create API and reload data when adding transaction', async () => {
       const newTransaction = {
         budgetId: 'budget-1',
         amount: 100,
-        description: 'Test',
+        name: 'Test',
         kind: 'expense' as const,
-        date: '2024-01-16T14:00:00Z',
+        transactionDate: '2024-01-16T14:00:00Z',
+        isOutOfBudget: false,
+        category: null,
       };
 
-      // Without loaded data, the method should handle gracefully
-      // The actual implementation checks for dashboardData being null
-      await expect(service.addTransaction(newTransaction)).rejects.toThrow();
+      mockTransactionApi.create$ = vi
+        .fn()
+        .mockReturnValue(of({ data: { ...newTransaction, id: 'new-txn-1' } }));
+
+      const reloadSpy = vi.spyOn(service, 'reloadDashboard');
+
+      await service.addTransaction(newTransaction);
+
+      expect(mockTransactionApi.create$).toHaveBeenCalledWith(newTransaction);
+      expect(reloadSpy).toHaveBeenCalled();
     });
 
-    it('should throw error when deleting transaction without data', async () => {
-      // Without loaded data, the method should throw
+    it('should call remove API and reload data when deleting transaction', async () => {
+      mockTransactionApi.remove$ = vi.fn().mockReturnValue(of({}));
+      const reloadSpy = vi.spyOn(service, 'reloadDashboard');
+
+      await service.deleteTransaction('txn-1');
+
+      expect(mockTransactionApi.remove$).toHaveBeenCalledWith('txn-1');
+      expect(reloadSpy).toHaveBeenCalled();
+    });
+
+    it('should handle errors when adding transaction', async () => {
+      const newTransaction = {
+        budgetId: 'budget-1',
+        amount: 100,
+        name: 'Test',
+        kind: 'expense' as const,
+        transactionDate: '2024-01-16T14:00:00Z',
+        isOutOfBudget: false,
+        category: null,
+      };
+
+      mockTransactionApi.create$ = vi
+        .fn()
+        .mockReturnValue(throwError(() => new Error('API Error')));
+
+      await expect(service.addTransaction(newTransaction)).rejects.toThrow(
+        'API Error',
+      );
+    });
+
+    it('should handle errors when deleting transaction', async () => {
+      mockTransactionApi.remove$ = vi
+        .fn()
+        .mockReturnValue(throwError(() => new Error('Delete Error')));
+
       await expect(service.deleteTransaction('txn-1')).rejects.toThrow(
-        'No data available',
+        'Delete Error',
       );
     });
   });
