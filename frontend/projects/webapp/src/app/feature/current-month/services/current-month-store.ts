@@ -63,13 +63,17 @@ export class CurrentMonthStore {
   /**
    * Dashboard data selector
    */
-  readonly dashboardData = computed(() => ({
-    value: () => this.#dashboardResource.value(),
-    isLoading: () => this.#dashboardResource.isLoading(),
-    error: () => this.#dashboardResource.error(),
-    status: () => this.#dashboardResource.status(),
-    reload: () => this.#dashboardResource.reload(),
-  }));
+  readonly dashboardData = computed(() => this.#dashboardResource.value());
+
+  /**
+   * Dashboard resource status
+   */
+  readonly dashboardStatus = computed(() => this.#dashboardResource.status());
+
+  /**
+   * Dashboard reload function
+   */
+  readonly reloadDashboard = () => this.#dashboardResource.reload();
 
   /**
    * Loading state selector - directly from resource
@@ -90,15 +94,14 @@ export class CurrentMonthStore {
    * Budget lines selector
    */
   readonly budgetLines = computed<BudgetLine[]>(
-    () => this.#dashboardResource.value()?.budgetLines || [],
+    () => this.dashboardData()?.budgetLines || [],
   );
 
   /**
    * Transactions selector (private computed) - includes optimistic updates
    */
   #transactions = computed<Transaction[]>(() => {
-    const resourceTransactions =
-      this.#dashboardResource.value()?.transactions || [];
+    const resourceTransactions = this.dashboardData()?.transactions || [];
     const { addedTransactions, removedTransactionIds } =
       this.#state().optimisticUpdates;
 
@@ -114,7 +117,7 @@ export class CurrentMonthStore {
    * Current budget selector
    */
   readonly budget = computed<Budget | null>(
-    () => this.#dashboardResource.value()?.budget || null,
+    () => this.dashboardData()?.budget || null,
   );
 
   /**
@@ -176,8 +179,8 @@ export class CurrentMonthStore {
    * Refresh dashboard data by reloading the resource
    */
   refreshData(): void {
-    if (this.#dashboardResource.status() !== 'loading') {
-      this.#dashboardResource.reload();
+    if (this.dashboardStatus() !== 'loading') {
+      this.reloadDashboard();
     }
   }
 
@@ -262,21 +265,6 @@ export class CurrentMonthStore {
 
     // Mark operation as in progress
     this.#addOperationInProgress(operationId);
-
-    // Get current state for potential rollback
-    const currentData = this.#dashboardResource.value();
-    if (!currentData) {
-      this.#removeOperationInProgress(operationId);
-      throw new Error('No data available');
-    }
-
-    const transactionToDelete = currentData.transactions.find(
-      (t) => t.id === transactionId,
-    );
-    if (!transactionToDelete) {
-      this.#removeOperationInProgress(operationId);
-      throw new Error('Transaction not found');
-    }
 
     // Optimistic update: remove transaction immediately
     this.#state.update((state) => ({

@@ -77,20 +77,20 @@ import { type Transaction } from '@pulpe/shared';
         </h1>
         <button
           matButton
-          (click)="store.dashboardData().reload()"
-          [disabled]="store.dashboardData().isLoading()"
+          (click)="store.reloadDashboard()"
+          [disabled]="store.isLoading()"
           data-testid="refresh-button"
         >
           <mat-icon>refresh</mat-icon>
           Actualiser
         </button>
       </header>
-      {{ store.dashboardData().status() }}
+      {{ store.dashboardStatus() }}
 
       @switch (true) {
         @case (
-          store.dashboardData().status() === 'loading' ||
-          store.dashboardData().status() === 'reloading'
+          store.dashboardStatus() === 'loading' ||
+          store.dashboardStatus() === 'reloading'
         ) {
           <pulpe-base-loading
             message="Chargement du tableau de bord..."
@@ -98,17 +98,17 @@ import { type Transaction } from '@pulpe/shared';
             testId="dashboard-loading"
           />
         }
-        @case (store.dashboardData().status() === 'error') {
+        @case (store.dashboardStatus() === 'error') {
           <pulpe-dashboard-error
-            (reload)="store.dashboardData().reload()"
+            (reload)="store.reloadDashboard()"
             data-testid="dashboard-error"
           />
         }
         @case (
-          store.dashboardData().status() === 'resolved' ||
-          store.dashboardData().status() === 'local'
+          store.dashboardStatus() === 'resolved' ||
+          store.dashboardStatus() === 'local'
         ) {
-          @if (store.dashboardData().value()?.budget) {
+          @if (store.dashboardData()?.budget) {
             <pulpe-budget-progress-bar
               [totalBudget]="store.livingAllowanceAmount()"
               [usedAmount]="store.actualTransactionsAmount()"
@@ -206,7 +206,7 @@ export default class CurrentMonth implements OnInit {
 
   fixedTransactions = computed(() => {
     const budgetLines = this.store.budgetLines();
-    const budgetId = this.store.dashboardData().value()?.budget?.id;
+    const budgetId = this.store.dashboardData()?.budget?.id;
 
     if (!budgetId) return [];
 
@@ -217,7 +217,7 @@ export default class CurrentMonth implements OnInit {
   });
   variableTransactions = computed(() => {
     // For now, show all transactions as variable expenses
-    const transactions = this.store.dashboardData().value()?.transactions ?? [];
+    const transactions = this.store.dashboardData()?.transactions ?? [];
     return transactions;
   });
 
@@ -262,7 +262,7 @@ export default class CurrentMonth implements OnInit {
     try {
       this.isCreatingTransaction.set(true);
       await this.store.addTransaction({
-        budgetId: this.store.dashboardData().value()?.budget?.id ?? '',
+        budgetId: this.store.dashboardData()?.budget?.id ?? '',
         amount: transaction.amount ?? 0,
         name: transaction.name,
         kind:

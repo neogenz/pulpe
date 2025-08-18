@@ -269,8 +269,7 @@ export default class DetailsPage implements OnInit {
     if (isBudgetLine) {
       await this.budgetDetailsStore.deleteBudgetLine(id);
     } else {
-      // TODO: Implement transaction deletion
-      console.warn('Transaction deletion not yet implemented');
+      await this.budgetDetailsStore.deleteTransaction(id);
     }
   }
 
