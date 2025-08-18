@@ -2,6 +2,7 @@ import { inject, Injectable, signal, computed, resource } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { BudgetLineApi } from './budget-line-api';
+import { TransactionApi } from '../../../../core/transaction/transaction-api';
 import { Logger } from '../../../../core/logging/logger';
 import {
   type BudgetDetailsInternalState,
@@ -20,6 +21,7 @@ import {
 @Injectable()
 export class BudgetDetailsStore {
   readonly #budgetLineApi = inject(BudgetLineApi);
+  readonly #transactionApi = inject(TransactionApi);
   readonly #logger = inject(Logger);
   readonly #snackBar = inject(MatSnackBar);
 
@@ -227,6 +229,56 @@ export class BudgetDetailsStore {
       const errorMessage = 'Erreur lors de la suppression de la prévision';
       this.#setError(errorMessage);
       this.#logger.error('Error deleting budget line', error);
+    } finally {
+      this.#removeOperationInProgress(id);
+    }
+  }
+
+  /**
+   * Delete a transaction with optimistic updates and rollback on error
+   */
+  async deleteTransaction(id: string): Promise<void> {
+    // Start operation tracking
+    this.#addOperationInProgress(id);
+
+    // Store original data for rollback
+    const originalData = this.#budgetDetailsResource.value();
+
+    // Optimistic update - remove the transaction
+    this.#budgetDetailsResource.update((details) => {
+      if (!details) return details;
+
+      return {
+        ...details,
+        data: {
+          ...details.data,
+          transactions:
+            details.data.transactions?.filter((tx) => tx.id !== id) ?? [],
+        },
+      };
+    });
+
+    try {
+      await firstValueFrom(this.#transactionApi.remove$(id));
+
+      this.#clearError();
+
+      // Show success message
+      this.#snackBar.open('Transaction supprimée.', 'Fermer', {
+        duration: 5000,
+        panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
+      });
+    } catch (error) {
+      // Rollback on error
+      if (originalData) {
+        this.#budgetDetailsResource.set(originalData);
+      } else {
+        this.#budgetDetailsResource.reload();
+      }
+
+      const errorMessage = 'Erreur lors de la suppression de la transaction';
+      this.#setError(errorMessage);
+      this.#logger.error('Error deleting transaction', error);
     } finally {
       this.#removeOperationInProgress(id);
     }

@@ -24,6 +24,14 @@ export default defineConfig({
       testMatch: /.*\.setup\.ts/,
     },
     {
+      name: 'Chromium - Smoke Tests',
+      testDir: './e2e/tests/smoke',
+      workers: 1, // Run smoke tests sequentially for stability
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+    },
+    {
       name: 'Chromium - Critical Path',
       dependencies: ['setup'],
       testDir: './e2e/tests/critical-path',

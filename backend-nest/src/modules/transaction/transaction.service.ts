@@ -421,6 +421,17 @@ export class TransactionService {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionDeleteResponse> {
+    const startTime = Date.now();
+
+    this.logger.debug(
+      {
+        operation: 'deleteTransaction',
+        userId: user.id,
+        entityId: id,
+      },
+      'Starting transaction deletion',
+    );
+
     try {
       const { error } = await supabase
         .from('transaction')
@@ -428,6 +439,16 @@ export class TransactionService {
         .eq('id', id);
 
       if (error) {
+        this.logger.warn(
+          {
+            operation: 'deleteTransaction',
+            userId: user.id,
+            entityId: id,
+            error: error.message,
+          },
+          'Transaction deletion failed - not found or unauthorized',
+        );
+
         throw new BusinessException(
           ERROR_DEFINITIONS.TRANSACTION_NOT_FOUND,
           { id },
@@ -442,6 +463,19 @@ export class TransactionService {
         );
       }
 
+      const duration = Date.now() - startTime;
+
+      this.logger.info(
+        {
+          operation: 'deleteTransaction',
+          userId: user.id,
+          entityId: id,
+          entityType: 'transaction',
+          duration,
+        },
+        'Transaction deleted successfully',
+      );
+
       return {
         success: true,
         message: 'Transaction deleted successfully',
@@ -453,6 +487,17 @@ export class TransactionService {
       ) {
         throw error;
       }
+
+      this.logger.error(
+        {
+          operation: 'deleteTransaction',
+          userId: user.id,
+          entityId: id,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+        'Unexpected error during transaction deletion',
+      );
+
       throw new BusinessException(
         ERROR_DEFINITIONS.TRANSACTION_DELETE_FAILED,
         { id },
