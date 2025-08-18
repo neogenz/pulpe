@@ -210,9 +210,11 @@ export default class CurrentMonth implements OnInit {
 
     if (!budgetId) return [];
 
-    // Filter budget lines with 'fixed' recurrence and map them to Transaction-like objects
+    // Filter budget lines with 'fixed' or 'one_off' recurrence (Fixed Block) and map them to Transaction-like objects
     return budgetLines
-      .filter((line) => line.recurrence === 'fixed')
+      .filter(
+        (line) => line.recurrence === 'fixed' || line.recurrence === 'one_off',
+      )
       .map((line) => this.#budgetLineMapper.toTransaction(line, budgetId));
   });
   variableTransactions = computed(() => {
