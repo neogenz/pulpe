@@ -171,14 +171,11 @@ export default class TemplateListPage {
 
   async #performDeletion(template: BudgetTemplate) {
     try {
-      await firstValueFrom(this.#budgetTemplatesApi.delete$(template.id));
+      await this.state.deleteTemplate(template.id);
 
       this.#snackBar.open('Modèle supprimé avec succès', undefined, {
         duration: 3000,
       });
-
-      // Refresh the templates list
-      this.state.refreshData();
     } catch (error) {
       console.error('Error deleting template:', error);
       this.#snackBar.open(

@@ -26,8 +26,9 @@ const mockBudgetLines: BudgetLine[] = [
     id: 'line-1',
     budgetId: 'budget-1',
     templateLineId: 'tpl-1',
+    isManuallyAdjusted: false,
+    savingsGoalId: null,
     name: 'Salary',
-    description: 'Monthly salary',
     amount: 5000,
     kind: 'income',
     recurrence: 'fixed',
@@ -38,8 +39,9 @@ const mockBudgetLines: BudgetLine[] = [
     id: 'line-2',
     budgetId: 'budget-1',
     templateLineId: 'tpl-2',
+    isManuallyAdjusted: false,
+    savingsGoalId: null,
     name: 'Rent',
-    description: 'Monthly rent',
     amount: 1500,
     kind: 'expense',
     recurrence: 'fixed',
@@ -50,8 +52,9 @@ const mockBudgetLines: BudgetLine[] = [
     id: 'line-3',
     budgetId: 'budget-1',
     templateLineId: 'tpl-3',
+    isManuallyAdjusted: false,
+    savingsGoalId: null,
     name: 'Emergency Fund',
-    description: 'Monthly savings',
     amount: 500,
     kind: 'saving',
     recurrence: 'fixed',
@@ -64,22 +67,24 @@ const mockTransactions: Transaction[] = [
   {
     id: 'txn-1',
     budgetId: 'budget-1',
-    userId: 'user-1',
     amount: 50,
-    description: 'Coffee',
+    category: null,
+    isOutOfBudget: false,
+    name: 'Coffee',
     kind: 'expense',
-    date: '2024-01-15T10:00:00Z',
+    transactionDate: '2024-01-15T10:00:00Z',
     createdAt: '2024-01-15T10:00:00Z',
     updatedAt: '2024-01-15T10:00:00Z',
   },
   {
     id: 'txn-2',
     budgetId: 'budget-1',
-    userId: 'user-1',
     amount: 25,
-    description: 'Lunch',
+    category: null,
+    isOutOfBudget: false,
+    name: 'Lunch',
     kind: 'expense',
-    date: '2024-01-15T12:00:00Z',
+    transactionDate: '2024-01-15T12:00:00Z',
     createdAt: '2024-01-15T12:00:00Z',
     updatedAt: '2024-01-15T12:00:00Z',
   },
@@ -100,7 +105,6 @@ describe('CurrentMonthStore', () => {
     calculateFixedBlock: ReturnType<typeof vi.fn>;
     calculateLivingAllowance: ReturnType<typeof vi.fn>;
     calculateActualTransactionsAmount: ReturnType<typeof vi.fn>;
-    calculateRemainingBudget: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
@@ -138,9 +142,6 @@ describe('CurrentMonthStore', () => {
         .mockImplementation((transactions) =>
           transactions.length > 0 ? 75 : 0,
         ),
-      calculateRemainingBudget: vi
-        .fn()
-        .mockImplementation((lines) => (lines.length > 0 ? 2925 : 0)),
     };
 
     TestBed.configureTestingModule({
@@ -167,16 +168,10 @@ describe('CurrentMonthStore', () => {
 
     it('should have all required public properties', () => {
       expect(service.dashboardData).toBeDefined();
-      expect(service.isLoading).toBeDefined();
-      expect(service.error).toBeDefined();
-      expect(service.today).toBeDefined();
+      expect(service.budgetDate).toBeDefined();
       expect(service.budgetLines).toBeDefined();
-      expect(service.budget).toBeDefined();
-      expect(service.plannedIncomeAmount).toBeDefined();
-      expect(service.fixedBlockAmount).toBeDefined();
       expect(service.livingAllowanceAmount).toBeDefined();
       expect(service.actualTransactionsAmount).toBeDefined();
-      expect(service.remainingBudgetAmount).toBeDefined();
     });
 
     it('should have all required public methods', () => {
@@ -191,16 +186,12 @@ describe('CurrentMonthStore', () => {
     it('should have correct initial values when no data is loaded', () => {
       // Before resource loads, these should return empty/zero values
       expect(service.budgetLines()).toEqual([]);
-      expect(service.plannedIncomeAmount()).toBe(0);
-      expect(service.fixedBlockAmount()).toBe(0);
       expect(service.livingAllowanceAmount()).toBe(0);
       expect(service.actualTransactionsAmount()).toBe(0);
-      expect(service.remainingBudgetAmount()).toBe(0);
-      expect(service.budget()).toBeNull();
     });
 
     it('should have a current date set', () => {
-      const today = service.today();
+      const today = service.budgetDate();
       expect(today).toBeInstanceOf(Date);
     });
   });
@@ -209,14 +200,14 @@ describe('CurrentMonthStore', () => {
     it('should update the current date', () => {
       const newDate = new Date('2024-02-15T10:00:00Z');
       service.setCurrentDate(newDate);
-      expect(service.today()).toEqual(newDate);
+      expect(service.budgetDate()).toEqual(newDate);
     });
 
     it('should format date correctly for API calls', () => {
       // The resource would normally call the API with formatted dates
       // In test environment, the resource may not trigger immediately
       // We can verify the date formatting logic works
-      const date = service.today();
+      const date = service.budgetDate();
       const month = date.getMonth() + 1; // JS months are 0-indexed
       const year = date.getFullYear();
 
@@ -238,7 +229,7 @@ describe('CurrentMonthStore', () => {
 
       // Verify the API mock is properly configured
       const result = mockBudgetApi.getBudgetForMonth$('01', '2024');
-      result.subscribe((data) => {
+      result.subscribe((data: Budget | null) => {
         expect(data).toEqual(mockBudget);
       });
     });
@@ -262,7 +253,6 @@ describe('CurrentMonthStore', () => {
 
       // Service should still be created
       expect(newService).toBeTruthy();
-      expect(newService.budget()).toBeNull();
       expect(newService.budgetLines()).toEqual([]);
     });
 
@@ -291,39 +281,6 @@ describe('CurrentMonthStore', () => {
   });
 
   describe('Transaction Methods', () => {
-    it('should call create API and reload data when adding transaction', async () => {
-      const newTransaction = {
-        budgetId: 'budget-1',
-        amount: 100,
-        name: 'Test',
-        kind: 'expense' as const,
-        transactionDate: '2024-01-16T14:00:00Z',
-        isOutOfBudget: false,
-        category: null,
-      };
-
-      mockTransactionApi.create$ = vi
-        .fn()
-        .mockReturnValue(of({ data: { ...newTransaction, id: 'new-txn-1' } }));
-
-      const reloadSpy = vi.spyOn(service, 'reloadDashboard');
-
-      await service.addTransaction(newTransaction);
-
-      expect(mockTransactionApi.create$).toHaveBeenCalledWith(newTransaction);
-      expect(reloadSpy).toHaveBeenCalled();
-    });
-
-    it('should call remove API and reload data when deleting transaction', async () => {
-      mockTransactionApi.remove$ = vi.fn().mockReturnValue(of({}));
-      const reloadSpy = vi.spyOn(service, 'reloadDashboard');
-
-      await service.deleteTransaction('txn-1');
-
-      expect(mockTransactionApi.remove$).toHaveBeenCalledWith('txn-1');
-      expect(reloadSpy).toHaveBeenCalled();
-    });
-
     it('should handle errors when adding transaction', async () => {
       const newTransaction = {
         budgetId: 'budget-1',
@@ -357,23 +314,12 @@ describe('CurrentMonthStore', () => {
 
   describe('Computed Values', () => {
     it('should return zero/empty values when no data is loaded', () => {
-      expect(service.plannedIncomeAmount()).toBe(0);
-      expect(service.fixedBlockAmount()).toBe(0);
       expect(service.livingAllowanceAmount()).toBe(0);
       expect(service.actualTransactionsAmount()).toBe(0);
-      expect(service.remainingBudgetAmount()).toBe(0);
     });
 
     it('should call calculator methods with correct parameters', () => {
       // When we have empty data, the calculators should be called with empty arrays
-      service.plannedIncomeAmount();
-      expect(mockBudgetCalculator.calculatePlannedIncome).toHaveBeenCalledWith(
-        [],
-      );
-
-      service.fixedBlockAmount();
-      expect(mockBudgetCalculator.calculateFixedBlock).toHaveBeenCalledWith([]);
-
       service.livingAllowanceAmount();
       expect(
         mockBudgetCalculator.calculateLivingAllowance,
@@ -383,11 +329,6 @@ describe('CurrentMonthStore', () => {
       expect(
         mockBudgetCalculator.calculateActualTransactionsAmount,
       ).toHaveBeenCalledWith([]);
-
-      service.remainingBudgetAmount();
-      expect(
-        mockBudgetCalculator.calculateRemainingBudget,
-      ).toHaveBeenCalledWith([], []);
     });
   });
 
@@ -400,20 +341,6 @@ describe('CurrentMonthStore', () => {
       const refreshSpy = vi.spyOn(service, 'refreshData');
       service.refreshData();
       expect(refreshSpy).toHaveBeenCalled();
-    });
-  });
-
-  describe('Error Handling', () => {
-    it('should initially have no error', () => {
-      expect(service.error()).toBeNull();
-    });
-  });
-
-  describe('Operations in Progress', () => {
-    it('should track operations in progress', () => {
-      const operations = service.operationsInProgress();
-      expect(operations).toBeInstanceOf(Set);
-      expect(operations.size).toBe(0);
     });
   });
 });

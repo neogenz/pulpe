@@ -42,22 +42,4 @@ export class BudgetCalculator {
       .filter((transaction) => transaction.kind === 'expense')
       .reduce((total, transaction) => total + transaction.amount, 0);
   }
-
-  /**
-   * Calcule le budget restant selon les spécifications métier
-   * Budget restant = Living Allowance - Transactions réelles
-   *
-   * Note: Cette méthode est conservée pour les tests, mais dans l'application
-   * il est préférable d'utiliser les computed properties de CurrentMonthState
-   * pour éviter de recalculer les mêmes valeurs
-   */
-  calculateRemainingBudget(
-    budgetLines: BudgetLine[],
-    transactions: Transaction[],
-  ): number {
-    const livingAllowance = this.calculateLivingAllowance(budgetLines);
-    const actualTransactions =
-      this.calculateActualTransactionsAmount(transactions);
-    return livingAllowance - actualTransactions;
-  }
 }

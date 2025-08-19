@@ -76,8 +76,8 @@ import { type Transaction } from '@pulpe/shared';
         </h1>
         <button
           matButton
-          (click)="store.reloadDashboard()"
-          [disabled]="store.isLoading()"
+          (click)="store.refreshData()"
+          [disabled]="store.dashboardStatus() === 'loading'"
           data-testid="refresh-button"
         >
           <mat-icon>refresh</mat-icon>
@@ -98,7 +98,7 @@ import { type Transaction } from '@pulpe/shared';
         }
         @case (store.dashboardStatus() === 'error') {
           <pulpe-dashboard-error
-            (reload)="store.reloadDashboard()"
+            (reload)="store.refreshData()"
             data-testid="dashboard-error"
           />
         }
@@ -152,7 +152,7 @@ import { type Transaction } from '@pulpe/shared';
                 data-testid="empty-state-description"
               >
                 Aucun budget n'a été créé pour
-                {{ store.today() | date: 'MMMM yyyy' }}.
+                {{ store.budgetDate() | date: 'MMMM yyyy' }}.
               </p>
             </div>
           }
@@ -230,9 +230,10 @@ export default class CurrentMonth implements OnInit {
    *
    * [TEMPORAIREMENT DÉSACTIVÉ POUR LES TESTS E2E]
    */
+  // eslint-disable-next-line @angular-eslint/no-empty-lifecycle-method
   ngOnInit() {
-    this.store.refreshData();
-
+    // Note: Removed this.store.refreshData() to prevent double loading
+    // The resource auto-loads when the component initializes, so manual refresh is not needed
     // Désactiver temporairement l'ouverture automatique pour éviter les interférences avec les tests E2E
     // setTimeout(() => {
     //   this.openAddTransactionBottomSheet();
@@ -260,16 +261,21 @@ export default class CurrentMonth implements OnInit {
   async onAddTransaction(transaction: TransactionFormData) {
     try {
       this.isCreatingTransaction.set(true);
+      const budgetId = this.store.dashboardData()?.budget?.id;
+      if (!budgetId) {
+        throw new Error('Budget ID not found');
+      }
+      const kind =
+        transaction.type === 'income'
+          ? 'income'
+          : transaction.type === 'saving'
+            ? 'saving'
+            : 'expense';
       await this.store.addTransaction({
-        budgetId: this.store.dashboardData()?.budget?.id ?? '',
+        budgetId,
         amount: transaction.amount ?? 0,
         name: transaction.name,
-        kind:
-          transaction.type === 'income'
-            ? 'income'
-            : transaction.type === 'saving'
-              ? 'saving'
-              : 'expense',
+        kind,
         transactionDate: new Date().toISOString(),
         isOutOfBudget: false,
         category: transaction.category ?? null,
