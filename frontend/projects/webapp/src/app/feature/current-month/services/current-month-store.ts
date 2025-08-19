@@ -3,7 +3,7 @@ import { BudgetApi } from '@core/budget';
 import { BudgetCalculator } from './budget-calculator';
 import { TransactionApi } from '@core/transaction';
 import { Logger } from '@core/logging/logger';
-import { type Budget, type Transaction, type BudgetLine } from '@pulpe/shared';
+import { type Budget, type BudgetLine } from '@pulpe/shared';
 import { format } from 'date-fns';
 import { firstValueFrom } from 'rxjs';
 import {
@@ -45,18 +45,19 @@ export class CurrentMonthStore {
   /**
    * Resource for loading dashboard data - single source of truth for async data
    */
-  #dashboardResource = resource<DashboardData, { month: string; year: string }>(
-    {
-      params: () => {
-        const currentDate = this.#state().currentDate;
-        return {
-          month: format(currentDate, 'MM'),
-          year: format(currentDate, 'yyyy'),
-        };
-      },
-      loader: async ({ params }) => this.#loadDashboardData(params),
+  readonly #dashboardResource = resource<
+    DashboardData,
+    { month: string; year: string }
+  >({
+    params: () => {
+      const currentDate = this.#state().currentDate;
+      return {
+        month: format(currentDate, 'MM'),
+        year: format(currentDate, 'yyyy'),
+      };
     },
-  );
+    loader: async ({ params }) => this.#loadDashboardData(params),
+  });
 
   // === PUBLIC SELECTORS ===
   /**
@@ -70,24 +71,9 @@ export class CurrentMonthStore {
   readonly dashboardStatus = computed(() => this.#dashboardResource.status());
 
   /**
-   * Dashboard reload function
-   */
-  readonly reloadDashboard = () => this.#dashboardResource.reload();
-
-  /**
-   * Loading state selector - directly from resource
-   */
-  readonly isLoading = computed(() => this.#dashboardResource.isLoading());
-
-  /**
-   * Error state selector - directly from resource
-   */
-  readonly error = computed(() => this.#dashboardResource.error() || null);
-
-  /**
    * Current date selector
    */
-  readonly today = computed(() => this.#state().currentDate);
+  readonly budgetDate = computed(() => this.#state().currentDate);
 
   /**
    * Budget lines selector
@@ -96,36 +82,7 @@ export class CurrentMonthStore {
     () => this.dashboardData()?.budgetLines || [],
   );
 
-  /**
-   * Current budget selector
-   */
-  readonly budget = computed<Budget | null>(
-    () => this.dashboardData()?.budget || null,
-  );
-
-  /**
-   * Operations in progress selector
-   */
-  readonly operationsInProgress = computed(
-    () => this.#state().operationsInProgress,
-  );
-
   // === FINANCIAL CALCULATIONS ===
-  /**
-   * Planned income amount (from budget lines)
-   */
-  readonly plannedIncomeAmount = computed<number>(() => {
-    const budgetLines = this.budgetLines();
-    return this.#budgetCalculator.calculatePlannedIncome(budgetLines);
-  });
-
-  /**
-   * Fixed block amount (planned expenses + savings)
-   */
-  readonly fixedBlockAmount = computed<number>(() => {
-    const budgetLines = this.budgetLines();
-    return this.#budgetCalculator.calculateFixedBlock(budgetLines);
-  });
 
   /**
    * Living allowance amount (available to spend)
@@ -145,25 +102,13 @@ export class CurrentMonthStore {
     );
   });
 
-  /**
-   * Remaining budget amount (living allowance - spent)
-   */
-  readonly remainingBudgetAmount = computed<number>(() => {
-    const budgetLines = this.budgetLines();
-    const transactions = this.dashboardData()?.transactions || [];
-    return this.#budgetCalculator.calculateRemainingBudget(
-      budgetLines,
-      transactions,
-    );
-  });
-
   // === PUBLIC ACTIONS ===
   /**
    * Refresh dashboard data by reloading the resource
    */
   refreshData(): void {
     if (this.dashboardStatus() !== 'loading') {
-      this.reloadDashboard();
+      this.#dashboardResource.reload();
     }
   }
 
@@ -179,82 +124,79 @@ export class CurrentMonthStore {
 
   /**
    * Add a new transaction
-   * Simplified approach: perform the mutation and reload data
+   * Optimized approach: use optimistic update to avoid full data reload
    */
   async addTransaction(transactionData: TransactionCreateData): Promise<void> {
-    const operationId = `add-transaction-${Date.now()}`;
-
-    // Mark operation as in progress for UI feedback
-    this.#addOperationInProgress(operationId);
-
     try {
       // Create the transaction
-      await firstValueFrom(this.#transactionApi.create$(transactionData));
+      const response = await firstValueFrom(
+        this.#transactionApi.create$(transactionData),
+      );
 
-      // Reload dashboard data to get the updated state
-      this.reloadDashboard();
+      // Optimistically update the resource value to include the new transaction
+      const currentData = this.#dashboardResource.value();
+      if (currentData && response.data) {
+        this.#dashboardResource.set({
+          ...currentData,
+          transactions: [...currentData.transactions, response.data],
+        });
+      }
+
+      this.#logger.info(
+        'Transaction added successfully with optimistic update',
+      );
     } catch (error) {
       this.#logger.error('Error adding transaction:', error);
+
+      // On error, reload data to ensure consistency
+      this.refreshData();
       throw error;
-    } finally {
-      this.#removeOperationInProgress(operationId);
     }
   }
 
   /**
    * Delete a transaction
-   * Simplified approach: perform the deletion and reload data
+   * Optimized approach: use optimistic update to avoid full data reload
    */
   async deleteTransaction(transactionId: string): Promise<void> {
-    const operationId = `delete-transaction-${transactionId}`;
-
-    // Mark operation as in progress for UI feedback
-    this.#addOperationInProgress(operationId);
+    // Store original state for rollback on error
+    const originalData = this.#dashboardResource.value();
 
     try {
-      // Delete the transaction
+      // Optimistically remove the transaction from the UI immediately
+      const currentData = this.#dashboardResource.value();
+      if (currentData) {
+        this.#dashboardResource.set({
+          ...currentData,
+          transactions: currentData.transactions.filter(
+            (t) => t.id !== transactionId,
+          ),
+        });
+      }
+
+      // Delete the transaction from the backend
       await firstValueFrom(this.#transactionApi.remove$(transactionId));
 
-      // Reload dashboard data to get the updated state
-      this.reloadDashboard();
+      this.#logger.info(
+        'Transaction deleted successfully with optimistic update',
+      );
     } catch (error) {
       this.#logger.error('Error deleting transaction:', error);
+
+      // Rollback to original state on error
+      if (originalData) {
+        this.#dashboardResource.set(originalData);
+      } else {
+        // If no original data, reload to ensure consistency
+        this.refreshData();
+      }
       throw error;
-    } finally {
-      this.#removeOperationInProgress(operationId);
     }
-  }
-
-  // === PRIVATE HELPERS ===
-  /**
-   * Add operation to progress tracking
-   */
-  #addOperationInProgress(operationId: string): void {
-    this.#state.update((state) => ({
-      ...state,
-      operationsInProgress: new Set([
-        ...state.operationsInProgress,
-        operationId,
-      ]),
-    }));
-  }
-
-  /**
-   * Remove operation from progress tracking
-   */
-  #removeOperationInProgress(operationId: string): void {
-    this.#state.update((state) => {
-      const newOps = new Set(state.operationsInProgress);
-      newOps.delete(operationId);
-      return {
-        ...state,
-        operationsInProgress: newOps,
-      };
-    });
   }
 
   /**
    * Load dashboard data from API
+   * Note: Uses two sequential calls for now. Could be optimized with a single endpoint.
    */
   async #loadDashboardData(params: {
     month: string;
@@ -270,7 +212,7 @@ export class CurrentMonthStore {
         return { budget: null, transactions: [], budgetLines: [] };
       }
 
-      // Use the new endpoint to fetch everything in a single request
+      // Use the budget ID to fetch everything in a single request
       const detailsResponse = await firstValueFrom(
         this.#budgetApi.getBudgetWithDetails$(budget.id),
       );

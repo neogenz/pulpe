@@ -11,7 +11,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { BaseLoading } from '../../../ui/loading';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { DatePipe } from '@angular/common';
@@ -177,6 +177,7 @@ export default class DetailsPage implements OnInit {
   readonly #router = inject(Router);
   readonly #route = inject(ActivatedRoute);
   readonly #dialog = inject(MatDialog);
+  readonly #snackBar = inject(MatSnackBar);
 
   id = input.required<string>();
 
@@ -223,6 +224,11 @@ export default class DetailsPage implements OnInit {
     update: BudgetLineUpdate,
   ): Promise<void> {
     await this.budgetDetailsStore.updateBudgetLine(id, update);
+
+    this.#snackBar.open('Prévision modifiée.', 'Fermer', {
+      duration: 5000,
+      panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
+    });
   }
 
   async handleDeleteItem(id: string): Promise<void> {
@@ -270,6 +276,11 @@ export default class DetailsPage implements OnInit {
       await this.budgetDetailsStore.deleteBudgetLine(id);
     } else {
       await this.budgetDetailsStore.deleteTransaction(id);
+
+      this.#snackBar.open('Transaction supprimée.', 'Fermer', {
+        duration: 5000,
+        panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
+      });
     }
   }
 

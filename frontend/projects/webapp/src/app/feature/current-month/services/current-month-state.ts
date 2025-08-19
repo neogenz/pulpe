@@ -9,11 +9,6 @@ export interface CurrentMonthInternalState {
    * Current date used for calculations and data fetching
    */
   currentDate: Date;
-
-  /**
-   * Set of operations currently in progress (for UI feedback)
-   */
-  operationsInProgress: Set<string>;
 }
 
 /**
@@ -39,6 +34,5 @@ export type TransactionCreateData = Omit<
 export function createInitialCurrentMonthInternalState(): CurrentMonthInternalState {
   return {
     currentDate: new Date(),
-    operationsInProgress: new Set(),
   };
 }
