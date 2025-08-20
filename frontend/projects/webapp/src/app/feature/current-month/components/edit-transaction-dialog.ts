@@ -1,10 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  inject,
-  ViewChild,
-  type AfterViewInit,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import {
   MatDialogModule,
@@ -41,93 +35,44 @@ export interface EditTransactionDialogData {
     EditTransactionForm,
   ],
   template: `
-    <div class="dialog-container">
-      <div class="dialog-header">
-        <h2 class="dialog-title">Modifier la transaction</h2>
-        <button matIconButton (click)="close()" aria-label="Fermer la dialog">
-          <mat-icon>close</mat-icon>
-        </button>
-      </div>
+    <h2
+      mat-dialog-title
+      class="text-headline-small flex items-center justify-between"
+    >
+      <span>Modifier la transaction</span>
+      <button matIconButton (click)="close()" aria-label="Fermer la dialog">
+        <mat-icon>close</mat-icon>
+      </button>
+    </h2>
 
-      <div class="dialog-content">
-        <pulpe-edit-transaction-form
-          #formComponent
-          [transaction]="data.transaction"
-          (updateTransaction)="onUpdateTransaction($event)"
-          (cancelEdit)="close()"
-        />
-      </div>
-    </div>
+    <mat-dialog-content class="!px-4 !py-3 md:!px-6 md:!py-4">
+      <pulpe-edit-transaction-form
+        [transaction]="data.transaction"
+        (updateTransaction)="onUpdateTransaction($event)"
+        (cancelEdit)="close()"
+      />
+    </mat-dialog-content>
   `,
   styles: `
-    .dialog-container {
-      display: flex;
-      flex-direction: column;
-      max-width: 100%;
-      min-width: 320px;
+    :host {
+      display: block;
     }
 
-    .dialog-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 24px 24px 16px 24px;
-      border-bottom: 1px solid
-        var(--mat-dialog-container-divider-color, rgba(0, 0, 0, 0.12));
-    }
+    mat-dialog-content {
+      min-width: 280px;
 
-    .dialog-title {
-      margin: 0;
-      font-size: 1.5rem;
-      font-weight: 500;
-      color: var(--mat-dialog-container-text-color, rgba(0, 0, 0, 0.87));
-    }
-
-    .dialog-content {
-      padding: 16px 24px 24px 24px;
-      overflow-y: auto;
-      flex: 1;
-    }
-
-    @media (max-width: 640px) {
-      .dialog-container {
-        min-width: 280px;
-      }
-
-      .dialog-header {
-        padding: 16px 16px 12px 16px;
-      }
-
-      .dialog-title {
-        font-size: 1.375rem;
-      }
-
-      .dialog-content {
-        padding: 12px 16px 16px 16px;
+      @media (min-width: 640px) {
+        min-width: 320px;
       }
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class EditTransactionDialog implements AfterViewInit {
+export class EditTransactionDialog {
   private readonly dialogRef = inject(MatDialogRef<EditTransactionDialog>);
   protected readonly data = inject<EditTransactionDialogData>(MAT_DIALOG_DATA);
 
-  @ViewChild('formComponent') formComponent!: EditTransactionForm;
-
-  ngAfterViewInit(): void {
-    // Reset form state when dialog opens to ensure clean validation state
-    // Using setTimeout to avoid ExpressionChangedAfterItHasBeenCheckedError
-    setTimeout(() => {
-      this.formComponent?.resetForm();
-    });
-  }
-
   protected close(): void {
-    // Reset loading state before closing
-    if (this.formComponent) {
-      this.formComponent.isUpdating.set(false);
-    }
     this.dialogRef.close();
   }
 

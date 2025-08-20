@@ -43,7 +43,6 @@ import {
   type EditTransactionDialogData,
 } from './components/edit-transaction-dialog';
 import { type EditTransactionFormData } from './components/edit-transaction-form';
-import { extractErrorMessage } from './utils/error-handler';
 
 @Component({
   selector: 'pulpe-current-month',
@@ -274,7 +273,7 @@ export default class CurrentMonth implements OnInit {
         budgetId,
         amount: transaction.amount ?? 0,
         name: transaction.name,
-        kind: transaction.kind,
+        kind: transaction.type,
         transactionDate: new Date().toISOString(),
         isOutOfBudget: false,
         category: transaction.category ?? null,
@@ -321,10 +320,13 @@ export default class CurrentMonth implements OnInit {
         console.error('Error deleting transaction:', error);
 
         // Show specific error message
-        const errorMessage = extractErrorMessage(error);
-        this.#snackBar.open(errorMessage, 'Fermer', {
-          duration: 5000,
-        });
+        this.#snackBar.open(
+          'Une erreur inattendue est survenue. Veuillez réessayer.',
+          'Fermer',
+          {
+            duration: 5000,
+          },
+        );
       }
     }
   }
@@ -369,10 +371,13 @@ export default class CurrentMonth implements OnInit {
         console.error('Error updating transaction:', error);
 
         // Show specific error message
-        const errorMessage = extractErrorMessage(error);
-        this.#snackBar.open(errorMessage, 'Fermer', {
-          duration: 5000,
-        });
+        this.#snackBar.open(
+          'Une erreur inattendue est survenue. Veuillez réessayer.',
+          'Fermer',
+          {
+            duration: 5000,
+          },
+        );
       }
     }
   }
