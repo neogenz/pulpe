@@ -38,6 +38,11 @@ import { mapBudgetLineToTransaction } from './utils/budget-line-mapper';
 import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
 import { firstValueFrom } from 'rxjs';
 import { type Transaction } from '@pulpe/shared';
+import {
+  EditTransactionDialog,
+  type EditTransactionDialogData,
+} from './components/edit-transaction-dialog';
+import { type EditTransactionFormData } from './components/edit-transaction-form';
 
 @Component({
   selector: 'pulpe-current-month',
@@ -139,6 +144,7 @@ import { type Transaction } from '@pulpe/shared';
                 [transactions]="variableTransactions()"
                 [(selectedTransactions)]="selectedTransactions"
                 (deleteTransaction)="deleteTransaction($event)"
+                (editTransaction)="editTransaction($event)"
                 data-testid="variable-expenses-list"
               />
             </div>
@@ -322,6 +328,57 @@ export default class CurrentMonth implements OnInit {
         // Show error message
         this.#snackBar.open(
           'Une erreur est survenue lors de la suppression',
+          'Fermer',
+          {
+            duration: 5000,
+          },
+        );
+      }
+    }
+  }
+
+  async editTransaction(transactionId: string): Promise<void> {
+    // Find transaction to edit
+    const transaction = this.variableTransactions().find(
+      (t: Transaction) => t.id === transactionId,
+    );
+
+    if (!transaction) return;
+
+    // Open edit dialog
+    const dialogRef = this.#dialog.open(EditTransactionDialog, {
+      data: {
+        transaction,
+      } as EditTransactionDialogData,
+      width: '500px',
+      maxWidth: '90vw',
+    });
+
+    const updatedData = (await firstValueFrom(dialogRef.afterClosed())) as
+      | EditTransactionFormData
+      | undefined;
+
+    if (updatedData) {
+      try {
+        // Update transaction
+        await this.store.updateTransaction(transactionId, {
+          name: updatedData.name,
+          amount: updatedData.amount || 0,
+          kind: updatedData.kind,
+          transactionDate: updatedData.transactionDate,
+          category: updatedData.category,
+        });
+
+        // Show success message
+        this.#snackBar.open('Transaction modifiée', undefined, {
+          duration: 3000,
+        });
+      } catch (error) {
+        console.error('Error updating transaction:', error);
+
+        // Show error message
+        this.#snackBar.open(
+          'Une erreur est survenue lors de la modification',
           'Fermer',
           {
             duration: 5000,

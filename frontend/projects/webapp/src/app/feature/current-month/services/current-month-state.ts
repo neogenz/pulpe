@@ -29,6 +29,17 @@ export type TransactionCreateData = Omit<
 >;
 
 /**
+ * Transaction update data (partial fields that can be updated)
+ */
+export interface TransactionUpdateData {
+  name?: string;
+  amount?: number;
+  kind?: 'income' | 'expense' | 'saving';
+  transactionDate?: string;
+  category?: string | null;
+}
+
+/**
  * Factory function to create initial internal state
  */
 export function createInitialCurrentMonthInternalState(): CurrentMonthInternalState {

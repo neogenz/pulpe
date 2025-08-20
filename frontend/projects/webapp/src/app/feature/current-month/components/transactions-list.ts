@@ -25,6 +25,7 @@ export interface TransactionsListConfig {
   readonly selectable?: boolean;
   readonly defaultExpanded?: boolean;
   readonly deletable?: boolean;
+  readonly editable?: boolean;
 }
 
 @Component({
@@ -119,9 +120,11 @@ export interface TransactionsListConfig {
                   [data]="vm"
                   [selectable]="config().selectable ?? false"
                   [deletable]="config().deletable ?? false"
+                  [editable]="config().editable ?? false"
                   [isOdd]="isOdd"
                   (selectionChange)="toggleSelection(vm.id, $event)"
                   (deleteClick)="deleteTransaction.emit(vm.id)"
+                  (editClick)="editTransaction.emit(vm.id)"
                 />
                 @if (!isLast) {
                   <mat-divider></mat-divider>
@@ -158,6 +161,7 @@ export class TransactionsList {
   readonly config = input.required<TransactionsListConfig>();
   readonly selectedTransactions = model<string[]>([]);
   readonly deleteTransaction = output<string>();
+  readonly editTransaction = output<string>();
 
   private readonly expandedState = signal<boolean | null>(null);
   protected readonly showAllItems = signal(false);

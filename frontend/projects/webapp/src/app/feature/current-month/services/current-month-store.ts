@@ -10,6 +10,7 @@ import {
   type CurrentMonthInternalState,
   type DashboardData,
   type TransactionCreateData,
+  type TransactionUpdateData,
 } from './current-month-state';
 import { createInitialCurrentMonthInternalState } from './current-month-state';
 
@@ -182,6 +183,51 @@ export class CurrentMonthStore {
       );
     } catch (error) {
       this.#logger.error('Error deleting transaction:', error);
+
+      // Rollback to original state on error
+      if (originalData) {
+        this.#dashboardResource.set(originalData);
+      } else {
+        // If no original data, reload to ensure consistency
+        this.refreshData();
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Update a transaction
+   * Optimized approach: use optimistic update to avoid full data reload
+   */
+  async updateTransaction(
+    transactionId: string,
+    transactionData: TransactionUpdateData,
+  ): Promise<void> {
+    // Store original state for rollback on error
+    const originalData = this.#dashboardResource.value();
+
+    try {
+      // Update the transaction on the backend first
+      const response = await firstValueFrom(
+        this.#transactionApi.update$(transactionId, transactionData),
+      );
+
+      // Optimistically update the transaction in the UI
+      const currentData = this.#dashboardResource.value();
+      if (currentData && response.data) {
+        this.#dashboardResource.set({
+          ...currentData,
+          transactions: currentData.transactions.map((t) =>
+            t.id === transactionId ? response.data : t,
+          ),
+        });
+      }
+
+      this.#logger.info(
+        'Transaction updated successfully with optimistic update',
+      );
+    } catch (error) {
+      this.#logger.error('Error updating transaction:', error);
 
       // Rollback to original state on error
       if (originalData) {

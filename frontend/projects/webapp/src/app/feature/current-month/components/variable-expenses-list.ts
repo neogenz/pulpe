@@ -21,6 +21,7 @@ import { type Transaction } from '@pulpe/shared';
       [config]="config()"
       [(selectedTransactions)]="selectedTransactions"
       (deleteTransaction)="deleteTransaction.emit($event)"
+      (editTransaction)="editTransaction.emit($event)"
     />
   `,
   styles: ``,
@@ -30,6 +31,7 @@ export class VariableExpensesList {
   transactions = input.required<Transaction[]>();
   selectedTransactions = model<string[]>([]);
   deleteTransaction = output<string>();
+  editTransaction = output<string>();
 
   config = computed(
     (): TransactionsListConfig => ({
@@ -51,6 +53,7 @@ export class VariableExpensesList {
       emptyStateSubtitle: 'Vos transactions ponctuelles apparaîtront ici',
       selectable: true,
       deletable: true,
+      editable: true,
       defaultExpanded: true,
     }),
   );
