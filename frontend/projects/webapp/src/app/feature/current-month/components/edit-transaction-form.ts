@@ -200,12 +200,25 @@ export class EditTransactionForm implements OnInit {
     if (this.transactionForm.valid) {
       const formData = this.transactionForm.getRawValue();
 
+      // Since form is valid, required fields are guaranteed to be non-null
+      if (
+        !formData.name ||
+        !formData.transactionDate ||
+        !formData.amount ||
+        !formData.kind
+      ) {
+        console.error('Form validation failed: required fields are missing');
+        return;
+      }
+
       // Convert date to ISO string for backend
       const transactionDate = new Date(formData.transactionDate);
       const isoDate = transactionDate.toISOString();
 
       this.updateTransaction.emit({
-        ...formData,
+        name: formData.name,
+        amount: formData.amount,
+        kind: formData.kind,
         transactionDate: isoDate,
         category: formData.category || null,
       });
