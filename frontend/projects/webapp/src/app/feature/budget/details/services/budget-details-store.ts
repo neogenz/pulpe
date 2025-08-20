@@ -1,8 +1,8 @@
 import { inject, Injectable, signal, computed, resource } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { BudgetLineApi } from './budget-line-api';
-import { TransactionApi } from '../../../../core/transaction/transaction-api';
-import { Logger } from '../../../../core/logging/logger';
+import { TransactionApi } from '@core/transaction/transaction-api';
+import { Logger } from '@core/logging/logger';
 import {
   type BudgetDetailsInternalState,
   createInitialBudgetDetailsInternalState,

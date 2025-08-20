@@ -14,7 +14,16 @@ module.exports = tseslint.config(
       ...angular.configs.tsRecommended,
     ],
     processor: angular.processInlineTemplates,
-    rules: {},
+    rules: {
+      // Simple import ordering that's fully auto-fixable
+      "@typescript-eslint/consistent-type-imports": [
+        "error",
+        {
+          prefer: "type-imports",
+          fixStyle: "inline-type-imports"
+        }
+      ],
+    },
   },
   {
     files: ["**/*.ts"],

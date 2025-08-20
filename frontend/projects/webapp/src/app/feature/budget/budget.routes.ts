@@ -1,4 +1,4 @@
-import { Routes } from '@angular/router';
+import { type Routes } from '@angular/router';
 import { BudgetLineApi } from './details/services/budget-line-api';
 import { PAGE_TITLES } from '@core/routing';
 

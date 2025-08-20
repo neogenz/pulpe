@@ -3,7 +3,7 @@ import {
   mapBudgetLineToTransaction,
   mapBudgetLinesToTransactions,
 } from './budget-line-mapper';
-import { BudgetLine, Transaction } from '@pulpe/shared';
+import { type BudgetLine, type Transaction } from '@pulpe/shared';
 
 describe('Budget Line Mapper Utils', () => {
   beforeEach(() => {

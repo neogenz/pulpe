@@ -5,7 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
 import {
   QuickAddExpenseForm,
-  TransactionFormData,
+  type TransactionFormData,
 } from './quick-add-expense-form';
 
 @Component({

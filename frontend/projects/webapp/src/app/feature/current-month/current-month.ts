@@ -4,7 +4,7 @@ import {
   Component,
   computed,
   inject,
-  OnInit,
+  type OnInit,
   signal,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
@@ -23,7 +23,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { DashboardError } from './components/dashboard-error';
-import { BaseLoading } from '../../ui/loading';
+import { BaseLoading } from '@ui/loading';
 import { FixedTransactionsList } from './components/fixed-transactions-list';
 import { VariableExpensesList } from './components/variable-expenses-list';
 import { CurrentMonthStore } from './services/current-month-store';
@@ -32,7 +32,7 @@ import { TitleDisplay } from '@core/routing';
 import { BudgetProgressBar } from './components/budget-progress-bar';
 import {
   AddTransactionBottomSheet,
-  TransactionFormData,
+  type TransactionFormData,
 } from './components/add-transaction-bottom-sheet';
 import { mapBudgetLineToTransaction } from './utils/budget-line-mapper';
 import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';

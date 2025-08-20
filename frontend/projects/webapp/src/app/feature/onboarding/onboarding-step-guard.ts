@@ -1,16 +1,16 @@
 import { inject } from '@angular/core';
 import {
-  ActivatedRouteSnapshot,
-  CanActivateFn,
+  type ActivatedRouteSnapshot,
+  type CanActivateFn,
   Router,
-  UrlTree,
+  type UrlTree,
 } from '@angular/router';
 import {
   OnboardingStore,
   STEP_ORDER,
   type OnboardingStep,
 } from './onboarding-store';
-import { ROUTES } from '../../core/routing';
+import { ROUTES } from '@core/routing';
 
 /**
  * Vérifie si un revenu mensuel est valide pour les règles métier

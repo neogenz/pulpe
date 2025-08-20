@@ -1,10 +1,10 @@
 import { Injectable, inject, resource } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { BudgetApi } from '@core/budget/budget-api';
-import { MonthInfo } from '@core/budget/month-info';
+import { type MonthInfo } from '@core/budget/month-info';
 import { format } from 'date-fns';
 import { frCH } from 'date-fns/locale';
-import { Logger } from '../../../core/logging/logger';
+import { Logger } from '@core/logging/logger';
 
 @Injectable()
 export class BudgetState {

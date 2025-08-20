@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Transaction, BudgetLine } from '@pulpe/shared';
+import { type Transaction, type BudgetLine } from '@pulpe/shared';
 
 @Injectable()
 export class BudgetCalculator {

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { provideZonelessChangeDetection } from '@angular/core';
-import { TestBed, ComponentFixture } from '@angular/core/testing';
-import { Router, NavigationEnd, ActivatedRoute } from '@angular/router';
+import { TestBed, type ComponentFixture } from '@angular/core/testing';
+import { Router, type NavigationEnd, ActivatedRoute } from '@angular/router';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { ScrollDispatcher } from '@angular/cdk/scrolling';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';

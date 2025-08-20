@@ -6,8 +6,11 @@ import {
   model,
   output,
 } from '@angular/core';
-import { TransactionsList, TransactionsListConfig } from './transactions-list';
-import { Transaction } from '@pulpe/shared';
+import {
+  TransactionsList,
+  type TransactionsListConfig,
+} from './transactions-list';
+import { type Transaction } from '@pulpe/shared';
 
 @Component({
   selector: 'pulpe-variable-expenses-list',

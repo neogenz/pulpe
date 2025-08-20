@@ -2,17 +2,17 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import {
   Router,
-  ActivatedRouteSnapshot,
-  RouterStateSnapshot,
-  Event,
-  UrlTree,
+  type ActivatedRouteSnapshot,
+  type RouterStateSnapshot,
+  type Event,
+  type UrlTree,
 } from '@angular/router';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { onboardingStepGuard } from './onboarding-step-guard';
 import { OnboardingStore, type OnboardingStep } from './onboarding-store';
-import { AuthApi } from '../../core/auth/auth-api';
-import { BudgetApi } from '../../core/budget/budget-api';
-import { TemplateApi } from '../../core/template/template-api';
+import { AuthApi } from '@core/auth/auth-api';
+import { BudgetApi } from '@core/budget/budget-api';
+import { TemplateApi } from '@core/template/template-api';
 import { OnboardingApi } from './services/onboarding-api';
 import { Subject } from 'rxjs';
 

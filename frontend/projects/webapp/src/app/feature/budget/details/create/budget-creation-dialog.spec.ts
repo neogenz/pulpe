@@ -6,7 +6,7 @@ import {
   Output,
   provideZonelessChangeDetection,
 } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import {
   MAT_DIALOG_DATA,
@@ -16,12 +16,12 @@ import {
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Subject, defer, of, throwError } from 'rxjs';
-import { signal, WritableSignal } from '@angular/core';
-import { provideLocale } from '../../../../core/locale';
+import { signal, type WritableSignal } from '@angular/core';
+import { provideLocale } from '@core/locale';
 
 import { type BudgetTemplate } from '@pulpe/shared';
-import { BudgetApi } from '../../../../core/budget/budget-api';
-import { TemplateApi } from '../../../../core/template/template-api';
+import { BudgetApi } from '@core/budget/budget-api';
+import { TemplateApi } from '@core/template/template-api';
 import { CreateBudgetDialogComponent } from './budget-creation-dialog';
 import { TemplatesList } from './ui/templates-list';
 import { type TemplateViewModel } from './ui/template-view-model';

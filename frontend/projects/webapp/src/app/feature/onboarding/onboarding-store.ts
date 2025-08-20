@@ -3,10 +3,10 @@ import { firstValueFrom } from 'rxjs';
 import { Router, NavigationEnd } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, startWith } from 'rxjs/operators';
-import { AuthApi } from '../../core/auth/auth-api';
-import { BudgetApi } from '../../core/budget';
+import { AuthApi } from '@core/auth/auth-api';
+import { BudgetApi } from '@core/budget';
 import { OnboardingApi } from './services/onboarding-api';
-import { Logger } from '../../core/logging/logger';
+import { Logger } from '@core/logging/logger';
 import {
   type BudgetCreate,
   type BudgetTemplateCreateFromOnboarding,

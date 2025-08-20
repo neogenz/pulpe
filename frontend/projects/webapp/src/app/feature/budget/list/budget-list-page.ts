@@ -2,13 +2,13 @@ import {
   ChangeDetectionStrategy,
   Component,
   inject,
-  OnInit,
+  type OnInit,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MonthCardItem } from '../ui/month-card-item';
-import { BaseLoading } from '../../../ui/loading';
+import { BaseLoading } from '@ui/loading';
 import { MonthsError } from '../ui/budget-error';
 import { BudgetState } from './budget-state';
 import { MatTabsModule } from '@angular/material/tabs';

@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, catchError, throwError } from 'rxjs';
+import { type Observable, catchError, throwError } from 'rxjs';
 import {
   type BudgetLineResponse,
   type BudgetLineListResponse,
@@ -9,8 +9,8 @@ import {
   type BudgetLineUpdate,
   type BudgetDetailsResponse,
 } from '@pulpe/shared';
-import { ApplicationConfiguration } from '../../../../core/config/application-configuration';
-import { Logger } from '../../../../core/logging/logger';
+import { ApplicationConfiguration } from '@core/config/application-configuration';
+import { Logger } from '@core/logging/logger';
 
 @Injectable()
 export class BudgetLineApi {

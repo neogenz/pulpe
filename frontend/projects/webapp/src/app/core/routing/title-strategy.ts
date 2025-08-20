@@ -1,9 +1,9 @@
 import { Injectable, inject } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import {
-  RouterStateSnapshot,
+  type RouterStateSnapshot,
   TitleStrategy,
-  ActivatedRouteSnapshot,
+  type ActivatedRouteSnapshot,
 } from '@angular/router';
 
 @Injectable({

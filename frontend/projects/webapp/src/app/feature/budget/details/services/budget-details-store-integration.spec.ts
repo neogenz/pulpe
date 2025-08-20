@@ -14,8 +14,8 @@ import type {
 
 import { BudgetDetailsStore } from './budget-details-store';
 import { BudgetLineApi } from './budget-line-api';
-import { TransactionApi } from '../../../../core/transaction/transaction-api';
-import { ApplicationConfiguration } from '../../../../core/config/application-configuration';
+import { TransactionApi } from '@core/transaction/transaction-api';
+import { ApplicationConfiguration } from '@core/config/application-configuration';
 
 // Mock data
 const mockBudgetId = 'budget-123';
