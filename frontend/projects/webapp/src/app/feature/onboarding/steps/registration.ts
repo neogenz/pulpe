@@ -5,7 +5,7 @@ import {
   computed,
   HostListener,
   inject,
-  OnDestroy,
+  type OnDestroy,
   signal,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';

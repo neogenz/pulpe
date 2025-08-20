@@ -6,7 +6,7 @@ import {
 } from '@angular/core';
 import {
   FinancialSummary,
-  FinancialSummaryData,
+  type FinancialSummaryData,
 } from '@ui/financial-summary/financial-summary';
 import { type BudgetLine } from '@pulpe/shared';
 

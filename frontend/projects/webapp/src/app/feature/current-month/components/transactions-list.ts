@@ -13,8 +13,8 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatListModule } from '@angular/material/list';
 import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
-import { Transaction } from '@pulpe/shared';
-import { TransactionItem, TransactionItemData } from './transaction-item';
+import { type Transaction } from '@pulpe/shared';
+import { TransactionItem, type TransactionItemData } from './transaction-item';
 
 export interface TransactionsListConfig {
   readonly title: string;

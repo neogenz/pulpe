@@ -4,7 +4,7 @@ import { of, throwError } from 'rxjs';
 import { type TemplateLine } from '@pulpe/shared';
 import { TemplateStore } from './template-store';
 import { TemplateTotalsCalculator } from './template-totals-calculator';
-import { TemplateApi } from '../../../../../core/template/template-api';
+import { TemplateApi } from '@core/template/template-api';
 
 describe('TemplateStore', () => {
   let store: TemplateStore;

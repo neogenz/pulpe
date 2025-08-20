@@ -1,6 +1,6 @@
 import { describe, beforeEach, it, expect } from 'vitest';
 import { BudgetCalculator } from './budget-calculator';
-import { Transaction, BudgetLine } from '@pulpe/shared';
+import { type Transaction, type BudgetLine } from '@pulpe/shared';
 
 describe('BudgetCalculator', () => {
   let calculator: BudgetCalculator;

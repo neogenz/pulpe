@@ -1,4 +1,4 @@
-import { Routes } from '@angular/router';
+import { type Routes } from '@angular/router';
 import { BudgetTemplatesApi } from './services/budget-templates-api';
 import { BudgetTemplatesState } from './services/budget-templates-state';
 import { TransactionFormService } from './services/transaction-form';

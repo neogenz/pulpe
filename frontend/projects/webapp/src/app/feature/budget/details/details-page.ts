@@ -4,7 +4,7 @@ import {
   inject,
   input,
   computed,
-  OnInit,
+  type OnInit,
 } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -12,7 +12,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { BaseLoading } from '../../../ui/loading';
+import { BaseLoading } from '@ui/loading';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { DatePipe } from '@angular/common';
 import { formatDate } from 'date-fns';
@@ -28,7 +28,7 @@ import {
 import {
   ConfirmationDialog,
   type ConfirmationDialogData,
-} from '../../../ui/dialogs/confirmation-dialog';
+} from '@ui/dialogs/confirmation-dialog';
 import {
   type BudgetLineCreate,
   type BudgetLineUpdate,

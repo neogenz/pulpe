@@ -13,7 +13,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { CommonModule } from '@angular/common';
-import { HttpErrorResponse } from '@angular/common/http';
+import { type HttpErrorResponse } from '@angular/common/http';
 
 interface ApiErrorDetails {
   readonly statusCode?: number;

@@ -7,9 +7,9 @@ import { type Budget, type BudgetLine } from '@pulpe/shared';
 import { format } from 'date-fns';
 import { firstValueFrom } from 'rxjs';
 import {
-  CurrentMonthInternalState,
-  DashboardData,
-  TransactionCreateData,
+  type CurrentMonthInternalState,
+  type DashboardData,
+  type TransactionCreateData,
 } from './current-month-state';
 import { createInitialCurrentMonthInternalState } from './current-month-state';
 

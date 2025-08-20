@@ -4,8 +4,11 @@ import {
   computed,
   input,
 } from '@angular/core';
-import { Transaction } from '@pulpe/shared';
-import { TransactionsList, TransactionsListConfig } from './transactions-list';
+import { type Transaction } from '@pulpe/shared';
+import {
+  TransactionsList,
+  type TransactionsListConfig,
+} from './transactions-list';
 
 @Component({
   selector: 'pulpe-fixed-transactions-list',

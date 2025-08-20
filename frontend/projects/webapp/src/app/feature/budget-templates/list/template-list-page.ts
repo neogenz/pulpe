@@ -10,7 +10,7 @@ import { type BudgetTemplate } from '@pulpe/shared';
 import { BudgetTemplatesState } from '../services/budget-templates-state';
 import { BudgetTemplatesApi } from '../services/budget-templates-api';
 import { TemplateList } from '../components/template-list';
-import { BaseLoading } from '../../../ui/loading';
+import { BaseLoading } from '@ui/loading';
 import { TemplatesError } from '../components/templates-error';
 import { TitleDisplay } from '@core/routing';
 import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';

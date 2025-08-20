@@ -1,10 +1,10 @@
 import { CommonModule } from '@angular/common';
 import {
-  AfterViewInit,
+  type AfterViewInit,
   ChangeDetectionStrategy,
   Component,
   computed,
-  ElementRef,
+  type ElementRef,
   inject,
   signal,
   viewChild,

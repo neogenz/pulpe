@@ -1,8 +1,8 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { type TemplateLine, type BudgetTemplate } from '@pulpe/shared';
-import { TemplateApi } from '../../../../../core/template/template-api';
-import { Logger } from '../../../../../core/logging/logger';
+import { TemplateApi } from '@core/template/template-api';
+import { Logger } from '@core/logging/logger';
 import {
   TemplateTotalsCalculator,
   type TemplateTotals,

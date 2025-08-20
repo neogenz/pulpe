@@ -1,4 +1,4 @@
-import { Routes } from '@angular/router';
+import { type Routes } from '@angular/router';
 import { publicGuard } from '@core/auth';
 import { authGuard } from '@core/auth/auth-guard';
 import { MainLayout } from '@layout/main-layout';

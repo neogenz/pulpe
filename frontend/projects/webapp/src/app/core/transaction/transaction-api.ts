@@ -8,7 +8,7 @@ import {
   type TransactionFindOneResponse,
   type TransactionListResponse,
 } from '@pulpe/shared';
-import { Observable } from 'rxjs';
+import { type Observable } from 'rxjs';
 import { ApplicationConfiguration } from '../config/application-configuration';
 
 @Injectable({

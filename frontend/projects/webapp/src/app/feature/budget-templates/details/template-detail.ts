@@ -6,30 +6,30 @@ import {
   input,
   effect,
   Injector,
-  OnInit,
+  type OnInit,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { BaseLoading } from '../../../ui/loading';
+import { BaseLoading } from '@ui/loading';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDialog } from '@angular/material/dialog';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import {
-  FinancialSummaryData,
+  type FinancialSummaryData,
   FinancialSummary,
 } from '@ui/financial-summary/financial-summary';
 import {
   TransactionsTable,
-  FinancialEntry,
+  type FinancialEntry,
   EditTransactionsDialog,
 } from './components';
 import { BudgetTemplatesApi } from '../services/budget-templates-api';
 import { firstValueFrom } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { CommonModule, CurrencyPipe } from '@angular/common';
-import { TemplateLine } from '@pulpe/shared';
+import { type TemplateLine } from '@pulpe/shared';
 import { PulpeTitleStrategy } from '@core/routing/title-strategy';
 import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
 import { TemplateUsageDialogComponent } from '../components/dialogs/template-usage-dialog';

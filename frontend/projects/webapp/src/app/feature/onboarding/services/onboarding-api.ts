@@ -1,11 +1,11 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { type Observable } from 'rxjs';
 import {
   type BudgetTemplateCreateFromOnboarding,
   type BudgetTemplateCreateResponse,
 } from '@pulpe/shared';
-import { ApplicationConfiguration } from '../../../core/config/application-configuration';
+import { ApplicationConfiguration } from '@core/config/application-configuration';
 
 @Injectable()
 export class OnboardingApi {

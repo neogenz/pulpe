@@ -1,11 +1,11 @@
 import { inject } from '@angular/core';
 import {
-  HttpInterceptorFn,
-  HttpRequest,
-  HttpEvent,
-  HttpErrorResponse,
+  type HttpInterceptorFn,
+  type HttpRequest,
+  type HttpEvent,
+  type HttpErrorResponse,
 } from '@angular/common/http';
-import { Observable, throwError, from, switchMap, catchError } from 'rxjs';
+import { type Observable, throwError, from, switchMap, catchError } from 'rxjs';
 import { AuthApi } from './auth-api';
 import { ApplicationConfiguration } from '../config/application-configuration';
 

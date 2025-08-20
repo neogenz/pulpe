@@ -1,5 +1,5 @@
 import {
-  Routes,
+  type Routes,
   provideRouter,
   withComponentInputBinding,
   withEnabledBlockingInitialNavigation,

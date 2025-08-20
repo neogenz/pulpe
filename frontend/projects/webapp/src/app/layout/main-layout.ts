@@ -23,11 +23,11 @@ import {
   RouterOutlet,
 } from '@angular/router';
 import { filter, map, shareReplay, startWith } from 'rxjs/operators';
-import { PulpeBreadcrumb } from '../ui/breadcrumb/breadcrumb';
-import { BreadcrumbState } from '../core/routing/breadcrumb-state';
-import { AuthApi } from '../core/auth/auth-api';
-import { ROUTES } from '../core/routing/routes-constants';
-import { ApplicationConfiguration } from '../core/config/application-configuration';
+import { PulpeBreadcrumb } from '@ui/breadcrumb/breadcrumb';
+import { BreadcrumbState } from '@core/routing/breadcrumb-state';
+import { AuthApi } from '@core/auth/auth-api';
+import { ROUTES } from '@core/routing/routes-constants';
+import { ApplicationConfiguration } from '@core/config/application-configuration';
 
 interface NavigationItem {
   readonly route: string;

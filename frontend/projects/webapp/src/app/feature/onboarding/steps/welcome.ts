@@ -7,7 +7,7 @@ import {
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
-import { LottieComponent, AnimationOptions } from 'ngx-lottie';
+import { LottieComponent, type AnimationOptions } from 'ngx-lottie';
 import { ROUTES } from '@core/routing';
 
 @Component({

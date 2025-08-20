@@ -28,10 +28,7 @@ import { type TemplateViewModel } from './ui/template-view-model';
 import { TemplateDetailsDialog } from './template-details-dialog';
 import { TemplateStore } from './services/template-store';
 import { TemplateTotalsCalculator } from './services/template-totals-calculator';
-import {
-  BudgetApi,
-  type BudgetApiError,
-} from '../../../../core/budget/budget-api';
+import { BudgetApi, type BudgetApiError } from '@core/budget/budget-api';
 
 const BUDGET_CREATION_CONSTANTS = {
   // Form validation constraints

@@ -20,18 +20,18 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TemplateLine } from '@pulpe/shared';
+import { type TemplateLine } from '@pulpe/shared';
 import { firstValueFrom } from 'rxjs';
 import {
   ConfirmationDialog,
   type ConfirmationDialogData,
-} from '../../../../ui/dialogs/confirmation-dialog';
+} from '@ui/dialogs/confirmation-dialog';
 import {
   TRANSACTION_TYPES,
-  TransactionFormData,
+  type TransactionFormData,
 } from '../../services/transaction-form';
 import { TemplateLineStore } from '../services/template-line-store';
-import { EditableLine } from '../services/template-line-state';
+import { type EditableLine } from '../services/template-line-state';
 
 interface EditTransactionsDialogData {
   transactions: TransactionFormData[];

@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, forkJoin, map } from 'rxjs';
+import { type Observable, forkJoin, map } from 'rxjs';
 import {
   type BudgetTemplateCreate,
   type BudgetTemplateCreateFromOnboarding,
@@ -15,7 +15,7 @@ import {
   type TemplateLinesBulkOperationsResponse,
   type TemplateUsageResponse,
 } from '@pulpe/shared';
-import { ApplicationConfiguration } from '../../../core/config/application-configuration';
+import { ApplicationConfiguration } from '@core/config/application-configuration';
 
 @Injectable()
 export class BudgetTemplatesApi {

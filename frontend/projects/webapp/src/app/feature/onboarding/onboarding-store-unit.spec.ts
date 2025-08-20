@@ -2,12 +2,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { OnboardingStore } from './onboarding-store';
-import { AuthApi } from '../../core/auth/auth-api';
+import { AuthApi } from '@core/auth/auth-api';
 import {
   BudgetApi,
   type CreateBudgetApiResponse,
-} from '../../core/budget/budget-api';
-import { TemplateApi } from '../../core/template/template-api';
+} from '@core/budget/budget-api';
+import { TemplateApi } from '@core/template/template-api';
 import { OnboardingApi } from './services/onboarding-api';
 import { NavigationEnd, Router } from '@angular/router';
 import { Subject, of, throwError } from 'rxjs'; // Import Subject and observables

@@ -6,7 +6,7 @@ import {
   Output,
   provideZonelessChangeDetection,
 } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { type BudgetTemplate } from '@pulpe/shared';
