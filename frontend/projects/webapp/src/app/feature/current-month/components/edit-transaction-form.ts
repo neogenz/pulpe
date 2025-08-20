@@ -4,6 +4,7 @@ import {
   inject,
   input,
   output,
+  signal,
   type OnInit,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -15,7 +16,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { type Transaction } from '@pulpe/shared';
-import { format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { startOfMonth, endOfMonth } from 'date-fns';
 
 export interface EditTransactionFormData {
   name: string;
@@ -23,26 +24,6 @@ export interface EditTransactionFormData {
   kind: 'expense' | 'income' | 'saving';
   transactionDate: string;
   category: string | null;
-}
-
-/**
- * Custom validator to ensure date is within current month
- */
-function currentMonthValidator() {
-  return (control: { value: unknown }) => {
-    if (!control.value) return null;
-
-    const selectedDate = new Date(control.value as string);
-    const now = new Date();
-    const monthStart = startOfMonth(now);
-    const monthEnd = endOfMonth(now);
-
-    if (!isWithinInterval(selectedDate, { start: monthStart, end: monthEnd })) {
-      return { notCurrentMonth: true };
-    }
-
-    return null;
-  };
 }
 
 @Component({
@@ -57,6 +38,7 @@ function currentMonthValidator() {
     MatNativeDateModule,
     ReactiveFormsModule,
   ],
+  standalone: true,
   template: `
     <form
       [formGroup]="transactionForm"
@@ -116,6 +98,8 @@ function currentMonthValidator() {
           <input
             matInput
             [matDatepicker]="picker"
+            [min]="minDate"
+            [max]="maxDate"
             formControlName="transactionDate"
           />
           <mat-hint>Date doit être dans le mois actuel</mat-hint>
@@ -125,12 +109,10 @@ function currentMonthValidator() {
           ></mat-datepicker-toggle>
           <mat-datepicker #picker></mat-datepicker>
           @if (
-            transactionForm
-              .get('transactionDate')
-              ?.hasError('notCurrentMonth') &&
+            transactionForm.get('transactionDate')?.hasError('required') &&
             transactionForm.get('transactionDate')?.touched
           ) {
-            <mat-error>La date doit être dans le mois actuel</mat-error>
+            <mat-error>La date est requise</mat-error>
           }
         </mat-form-field>
 
@@ -147,10 +129,10 @@ function currentMonthValidator() {
         <button
           matButton="filled"
           type="submit"
-          [disabled]="transactionForm.invalid"
+          [disabled]="transactionForm.invalid || isUpdating()"
         >
-          <mat-icon>save</mat-icon>
-          Enregistrer
+          <mat-icon>{{ isUpdating() ? 'hourglass_empty' : 'save' }}</mat-icon>
+          {{ isUpdating() ? 'Enregistrement...' : 'Enregistrer' }}
         </button>
       </div>
     </form>
@@ -168,6 +150,11 @@ export class EditTransactionForm implements OnInit {
   readonly transaction = input.required<Transaction>();
   readonly updateTransaction = output<EditTransactionFormData>();
   readonly cancelEdit = output<void>();
+  readonly isUpdating = signal(false);
+
+  // Date constraints for current month
+  protected readonly minDate = startOfMonth(new Date());
+  protected readonly maxDate = endOfMonth(new Date());
 
   transactionForm = this.#fb.group({
     name: ['', Validators.required],
@@ -176,49 +163,68 @@ export class EditTransactionForm implements OnInit {
       [Validators.required, Validators.min(0.01)],
     ],
     kind: ['expense' as 'expense' | 'income' | 'saving', Validators.required],
-    transactionDate: ['', [Validators.required, currentMonthValidator()]],
+    transactionDate: [null as Date | null, Validators.required],
     category: [''],
   });
 
   ngOnInit(): void {
-    const transaction = this.transaction();
+    this.initializeForm();
+  }
 
-    // Parse the date to get just the date part without time
-    const transactionDate = new Date(transaction.transactionDate);
-    const formattedDate = format(transactionDate, 'yyyy-MM-dd');
+  /**
+   * Initialize form with transaction data and reset validation state
+   */
+  private initializeForm(): void {
+    // Reset form state to pristine
+    this.transactionForm.markAsUntouched();
+    this.transactionForm.markAsPristine();
 
-    this.transactionForm.patchValue({
-      name: transaction.name,
-      amount: transaction.amount,
-      kind: transaction.kind,
-      transactionDate: formattedDate,
-      category: transaction.category || '',
-    });
+    // Reset loading state
+    this.isUpdating.set(false);
+
+    // Only populate form if transaction input is available
+    // This handles both initialization and reset scenarios
+    try {
+      const transaction = this.transaction();
+
+      // Use Date object directly for Material DatePicker
+      const transactionDate = new Date(transaction.transactionDate);
+
+      this.transactionForm.patchValue({
+        name: transaction.name,
+        amount: transaction.amount,
+        kind: transaction.kind,
+        transactionDate,
+        category: transaction.category || '',
+      });
+    } catch {
+      // Input not available yet (e.g., during testing or initial creation)
+      // Form will be populated when ngOnInit is called
+    }
+  }
+
+  /**
+   * Public method to reset the form state
+   * Can be called from parent component when dialog reopens
+   */
+  resetForm(): void {
+    this.initializeForm();
   }
 
   protected onSubmit(): void {
-    if (this.transactionForm.valid) {
+    if (this.transactionForm.valid && !this.isUpdating()) {
       const formData = this.transactionForm.getRawValue();
 
-      // Since form is valid, required fields are guaranteed to be non-null
-      if (
-        !formData.name ||
-        !formData.transactionDate ||
-        !formData.amount ||
-        !formData.kind
-      ) {
-        console.error('Form validation failed: required fields are missing');
-        return;
-      }
-
       // Convert date to ISO string for backend
-      const transactionDate = new Date(formData.transactionDate);
-      const isoDate = transactionDate.toISOString();
+      const isoDate = (formData.transactionDate as Date).toISOString();
+
+      // Set loading state - will be reset by dialog close or form reset
+      this.isUpdating.set(true);
 
       this.updateTransaction.emit({
-        name: formData.name,
-        amount: formData.amount,
-        kind: formData.kind,
+        name: formData.name!,
+        amount: formData.amount!,
+        kind: formData.kind!,
         transactionDate: isoDate,
         category: formData.category || null,
       });

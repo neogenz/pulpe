@@ -1,4 +1,10 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  ViewChild,
+  type AfterViewInit,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import {
   MatDialogModule,
@@ -15,6 +21,7 @@ import { type Transaction } from '@pulpe/shared';
 
 export interface EditTransactionDialogData {
   transaction: Transaction;
+  isUpdating?: boolean;
 }
 
 @Component({
@@ -44,6 +51,7 @@ export interface EditTransactionDialogData {
 
       <div class="dialog-content">
         <pulpe-edit-transaction-form
+          #formComponent
           [transaction]="data.transaction"
           (updateTransaction)="onUpdateTransaction($event)"
           (cancelEdit)="close()"
@@ -56,7 +64,7 @@ export interface EditTransactionDialogData {
       display: flex;
       flex-direction: column;
       max-width: 100%;
-      min-width: 400px;
+      min-width: 320px;
     }
 
     .dialog-header {
@@ -83,7 +91,7 @@ export interface EditTransactionDialogData {
 
     @media (max-width: 640px) {
       .dialog-container {
-        min-width: 320px;
+        min-width: 280px;
       }
 
       .dialog-header {
@@ -101,17 +109,33 @@ export interface EditTransactionDialogData {
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class EditTransactionDialog {
+export class EditTransactionDialog implements AfterViewInit {
   private readonly dialogRef = inject(MatDialogRef<EditTransactionDialog>);
   protected readonly data = inject<EditTransactionDialogData>(MAT_DIALOG_DATA);
 
+  @ViewChild('formComponent') formComponent!: EditTransactionForm;
+
+  ngAfterViewInit(): void {
+    // Reset form state when dialog opens to ensure clean validation state
+    // Using setTimeout to avoid ExpressionChangedAfterItHasBeenCheckedError
+    setTimeout(() => {
+      this.formComponent?.resetForm();
+    });
+  }
+
   protected close(): void {
+    // Reset loading state before closing
+    if (this.formComponent) {
+      this.formComponent.isUpdating.set(false);
+    }
     this.dialogRef.close();
   }
 
   protected onUpdateTransaction(
     transactionData: EditTransactionFormData,
   ): void {
+    // Note: loading state is managed by the form component
+    // It will be reset by the parent component after API call completes
     this.dialogRef.close(transactionData);
   }
 }
