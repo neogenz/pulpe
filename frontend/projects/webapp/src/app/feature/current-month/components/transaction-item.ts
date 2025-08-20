@@ -88,6 +88,17 @@ export interface TransactionItemData {
           {{ data().kind === 'income' ? '+' : '-'
           }}{{ data().amount | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH' }}
         </span>
+        @if (editable()) {
+          <button
+            matIconButton
+            (click)="onEditClick($event)"
+            [attr.aria-label]="'Modifier ' + data().name"
+            [attr.data-testid]="'edit-transaction-' + data().id"
+            class="!w-10 !h-10 text-primary"
+          >
+            <mat-icon>edit</mat-icon>
+          </button>
+        }
         @if (deletable()) {
           <button
             matIconButton
@@ -169,10 +180,12 @@ export class TransactionItem {
   readonly data = input.required<TransactionItemData>();
   readonly selectable = input<boolean>(false);
   readonly deletable = input<boolean>(false);
+  readonly editable = input<boolean>(false);
   readonly isOdd = input<boolean>(false);
 
   readonly selectionChange = output<boolean>();
   readonly deleteClick = output<void>();
+  readonly editClick = output<void>();
 
   protected handleClick(): void {
     if (this.selectable()) {
@@ -183,5 +196,10 @@ export class TransactionItem {
   protected onDeleteClick(event: Event): void {
     event.stopPropagation();
     this.deleteClick.emit();
+  }
+
+  protected onEditClick(event: Event): void {
+    event.stopPropagation();
+    this.editClick.emit();
   }
 }
