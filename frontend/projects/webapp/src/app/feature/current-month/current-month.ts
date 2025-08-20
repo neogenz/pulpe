@@ -43,6 +43,7 @@ import {
   type EditTransactionDialogData,
 } from './components/edit-transaction-dialog';
 import { type EditTransactionFormData } from './components/edit-transaction-form';
+import { extractErrorMessage } from './utils/error-handler';
 
 @Component({
   selector: 'pulpe-current-month',
@@ -269,17 +270,11 @@ export default class CurrentMonth implements OnInit {
       if (!budgetId) {
         throw new Error('Budget ID not found');
       }
-      const kind =
-        transaction.type === 'income'
-          ? 'income'
-          : transaction.type === 'saving'
-            ? 'saving'
-            : 'expense';
       await this.store.addTransaction({
         budgetId,
         amount: transaction.amount ?? 0,
         name: transaction.name,
-        kind,
+        kind: transaction.kind,
         transactionDate: new Date().toISOString(),
         isOutOfBudget: false,
         category: transaction.category ?? null,
@@ -325,14 +320,11 @@ export default class CurrentMonth implements OnInit {
       } catch (error) {
         console.error('Error deleting transaction:', error);
 
-        // Show error message
-        this.#snackBar.open(
-          'Une erreur est survenue lors de la suppression',
-          'Fermer',
-          {
-            duration: 5000,
-          },
-        );
+        // Show specific error message
+        const errorMessage = extractErrorMessage(error);
+        this.#snackBar.open(errorMessage, 'Fermer', {
+          duration: 5000,
+        });
       }
     }
   }
@@ -376,14 +368,11 @@ export default class CurrentMonth implements OnInit {
       } catch (error) {
         console.error('Error updating transaction:', error);
 
-        // Show error message
-        this.#snackBar.open(
-          'Une erreur est survenue lors de la modification',
-          'Fermer',
-          {
-            duration: 5000,
-          },
-        );
+        // Show specific error message
+        const errorMessage = extractErrorMessage(error);
+        this.#snackBar.open(errorMessage, 'Fermer', {
+          duration: 5000,
+        });
       }
     }
   }
