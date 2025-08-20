@@ -203,14 +203,6 @@ export class EditTransactionForm implements OnInit {
     }
   }
 
-  /**
-   * Public method to reset the form state
-   * Can be called from parent component when dialog reopens
-   */
-  resetForm(): void {
-    this.initializeForm();
-  }
-
   protected onSubmit(): void {
     if (this.transactionForm.valid && !this.isUpdating()) {
       const formData = this.transactionForm.getRawValue();

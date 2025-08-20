@@ -25,66 +25,32 @@ import {
     QuickAddExpenseForm,
   ],
   template: `
-    <div class="dialog-container">
-      <div class="dialog-header">
-        <h2 class="dialog-title">Ajouter une transaction</h2>
-        <button matIconButton (click)="close()" aria-label="Fermer la dialog">
-          <mat-icon>close</mat-icon>
-        </button>
-      </div>
+    <h2
+      mat-dialog-title
+      class="text-headline-small flex items-center justify-between"
+    >
+      <span>Ajouter une transaction</span>
+      <button matIconButton (click)="close()" aria-label="Fermer la dialog">
+        <mat-icon>close</mat-icon>
+      </button>
+    </h2>
 
-      <div class="dialog-content">
-        <pulpe-quick-add-expense-form
-          (addTransaction)="onAddTransaction($event)"
-        />
-      </div>
-    </div>
+    <mat-dialog-content class="!px-4 !py-3 md:!px-6 md:!py-4">
+      <pulpe-quick-add-expense-form
+        (addTransaction)="onAddTransaction($event)"
+      />
+    </mat-dialog-content>
   `,
   styles: `
-    .dialog-container {
-      display: flex;
-      flex-direction: column;
-      max-width: 100%;
-      min-width: 320px;
+    :host {
+      display: block;
     }
 
-    .dialog-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 24px 24px 16px 24px;
-      border-bottom: 1px solid
-        var(--mat-dialog-container-divider-color, rgba(0, 0, 0, 0.12));
-    }
+    mat-dialog-content {
+      min-width: 280px;
 
-    .dialog-title {
-      margin: 0;
-      font-size: 1.5rem;
-      font-weight: 500;
-      color: var(--mat-dialog-container-text-color, rgba(0, 0, 0, 0.87));
-    }
-
-    .dialog-content {
-      padding: 16px 24px 24px 24px;
-      overflow-y: auto;
-      flex: 1;
-    }
-
-    @media (max-width: 640px) {
-      .dialog-container {
-        min-width: 280px;
-      }
-
-      .dialog-header {
-        padding: 16px 16px 12px 16px;
-      }
-
-      .dialog-title {
-        font-size: 1.375rem;
-      }
-
-      .dialog-content {
-        padding: 12px 16px 16px 16px;
+      @media (min-width: 640px) {
+        min-width: 320px;
       }
     }
   `,

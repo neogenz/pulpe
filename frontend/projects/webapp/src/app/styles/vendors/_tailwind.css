@@ -1,8 +1,3 @@
-/*
-	Installed from https://ui.angular-material.dev/api/registry/
-	Update this file using `@ngm-dev/cli update styles/vendors`
-*/
-
 @import "tailwindcss";
 
 /* base for setting the font-families */
