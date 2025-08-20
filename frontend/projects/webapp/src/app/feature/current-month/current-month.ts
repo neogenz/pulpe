@@ -232,8 +232,6 @@ export default class CurrentMonth implements OnInit {
    */
   // eslint-disable-next-line @angular-eslint/no-empty-lifecycle-method
   ngOnInit() {
-    // Note: Removed this.store.refreshData() to prevent double loading
-    // The resource auto-loads when the component initializes, so manual refresh is not needed
     // Désactiver temporairement l'ouverture automatique pour éviter les interférences avec les tests E2E
     // setTimeout(() => {
     //   this.openAddTransactionBottomSheet();
