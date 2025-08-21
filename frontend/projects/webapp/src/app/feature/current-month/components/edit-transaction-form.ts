@@ -303,32 +303,33 @@ export class EditTransactionForm implements OnInit {
         transactionDate,
         category: transaction.category || '',
       });
-    } catch {
-      // Input not available yet (e.g., during testing or initial creation)
-      // Form will be populated when ngOnInit is called
+    } catch (error) {
+      if (typeof ngDevMode !== 'undefined' && ngDevMode) {
+        console.warn(
+          "Impossible d'initialiser le formulaire de transaction :",
+          error,
+        );
+      }
+      this.cancelEdit.emit();
     }
   }
 
   onSubmit(): void {
-    if (this.transactionForm.valid && !this.isUpdating()) {
-      const formData = this.transactionForm.getRawValue();
-
-      // Convert date to ISO string for backend
-      const isoDate = (formData.transactionDate as Date).toISOString();
-
-      // Set loading state - will be reset by dialog close or form reset
-      this.isUpdating.set(true);
-
-      this.updateTransaction.emit({
-        name: formData.name!,
-        amount: formData.amount!,
-        kind: formData.kind!,
-        transactionDate: isoDate,
-        category: formData.category || null,
-      });
-    } else {
-      // Mark all fields as touched to show validation errors
+    if (!this.transactionForm.valid || this.isUpdating()) {
       this.transactionForm.markAllAsTouched();
+      return;
     }
+
+    const { name, amount, kind, transactionDate, category } =
+      this.transactionForm.getRawValue();
+    this.isUpdating.set(true);
+
+    this.updateTransaction.emit({
+      name: name!,
+      amount: amount!,
+      kind: kind!,
+      transactionDate: (transactionDate as Date).toISOString(),
+      category: category || null,
+    });
   }
 }
