@@ -141,7 +141,7 @@ import { type EditTransactionFormData } from './components/edit-transaction-form
                 [transactions]="variableTransactions()"
                 [(selectedTransactions)]="selectedTransactions"
                 (deleteTransaction)="deleteTransaction($event)"
-                (editTransaction)="editTransaction($event)"
+                (editTransaction)="openEditTransactionDialogAndUpdate($event)"
                 data-testid="variable-expenses-list"
               />
             </div>
@@ -288,7 +288,12 @@ export default class CurrentMonth implements OnInit {
       (t: Transaction) => t.id === transactionId,
     );
 
-    if (!transaction) return;
+    if (!transaction) {
+      this.#snackBar.open('Transaction non trouvée', 'Fermer', {
+        duration: 3000,
+      });
+      return;
+    }
 
     // Open confirmation dialog
     const dialogRef = this.#dialog.open(ConfirmationDialog, {
@@ -328,10 +333,12 @@ export default class CurrentMonth implements OnInit {
     }
   }
 
-  async editTransaction(transactionId: string): Promise<void> {
+  async openEditTransactionDialogAndUpdate(
+    transactionId: string,
+  ): Promise<void> {
     // Find transaction to edit
     const transaction = this.variableTransactions().find(
-      (t: Transaction) => t.id === transactionId,
+      (transaction) => transaction.id === transactionId,
     );
 
     if (!transaction) return;
@@ -345,37 +352,39 @@ export default class CurrentMonth implements OnInit {
       maxWidth: '90vw',
     });
 
-    const updatedData = (await firstValueFrom(dialogRef.afterClosed())) as
-      | EditTransactionFormData
-      | undefined;
+    const updatedData = await firstValueFrom<
+      EditTransactionFormData | undefined
+    >(dialogRef.afterClosed());
 
-    if (updatedData) {
-      try {
-        // Update transaction
-        await this.store.updateTransaction(transactionId, {
-          name: updatedData.name,
-          amount: updatedData.amount || 0,
-          kind: updatedData.kind,
-          transactionDate: updatedData.transactionDate,
-          category: updatedData.category,
-        });
+    if (!updatedData) {
+      return;
+    }
 
-        // Show success message
-        this.#snackBar.open('Transaction modifiée', undefined, {
-          duration: 3000,
-        });
-      } catch (error) {
-        console.error('Error updating transaction:', error);
+    try {
+      // Update transaction
+      await this.store.updateTransaction(transactionId, {
+        name: updatedData.name,
+        amount: updatedData.amount || 0,
+        kind: updatedData.kind,
+        transactionDate: updatedData.transactionDate,
+        category: updatedData.category,
+      });
 
-        // Show specific error message
-        this.#snackBar.open(
-          'Une erreur inattendue est survenue. Veuillez réessayer.',
-          'Fermer',
-          {
-            duration: 5000,
-          },
-        );
-      }
+      // Show success message
+      this.#snackBar.open('Transaction modifiée', undefined, {
+        duration: 3000,
+      });
+    } catch (error) {
+      console.error('Error updating transaction:', error);
+
+      // Show specific error message
+      this.#snackBar.open(
+        'Une erreur inattendue est survenue. Veuillez réessayer.',
+        'Fermer',
+        {
+          duration: 5000,
+        },
+      );
     }
   }
 }
