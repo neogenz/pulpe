@@ -38,10 +38,7 @@ import { mapBudgetLineToTransaction } from './utils/budget-line-mapper';
 import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
 import { firstValueFrom } from 'rxjs';
 import { type Transaction } from '@pulpe/shared';
-import {
-  EditTransactionDialog,
-  type EditTransactionDialogData,
-} from './components/edit-transaction-dialog';
+import { EditTransactionDialog } from './components/edit-transaction-dialog';
 import { type EditTransactionFormData } from './components/edit-transaction-form';
 
 @Component({
@@ -343,7 +340,7 @@ export default class CurrentMonth implements OnInit {
     const dialogRef = this.#dialog.open(EditTransactionDialog, {
       data: {
         transaction,
-      } as EditTransactionDialogData,
+      },
       width: '500px',
       maxWidth: '90vw',
     });

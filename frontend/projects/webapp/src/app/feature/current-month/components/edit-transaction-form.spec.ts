@@ -70,6 +70,7 @@ describe('EditTransactionForm', () => {
       amountControl?.setValue(0.01);
       expect(amountControl?.hasError('min')).toBe(false);
 
+      // @ts-expect-error: setValue can accept string for testing purposes
       kindControl?.setValue('');
       expect(kindControl?.hasError('required')).toBe(true);
 
@@ -78,36 +79,10 @@ describe('EditTransactionForm', () => {
     });
   });
 
-  describe('Form Reset Functionality', () => {
-    it('should have resetForm method', () => {
-      expect(component.resetForm).toBeDefined();
-      expect(typeof component.resetForm).toBe('function');
-    });
-
-    it('should reset loading state when resetForm is called', () => {
-      // Set loading state to true
-      component.isUpdating.set(true);
-      expect(component.isUpdating()).toBe(true);
-
-      // Call resetForm
-      component.resetForm();
-
-      // Verify loading state is reset
-      expect(component.isUpdating()).toBe(false);
-    });
-
-    it('should reset form state to pristine and untouched', () => {
-      // Make form dirty and touched
-      component.transactionForm.markAsDirty();
-      component.transactionForm.markAsTouched();
-
-      expect(component.transactionForm.dirty).toBe(true);
-      expect(component.transactionForm.touched).toBe(true);
-
-      // Call resetForm
-      component.resetForm();
-
-      // Verify form state is reset
+  describe('Form Initialization', () => {
+    it('should initialize form with transaction data', () => {
+      // Form should be initialized in ngOnInit
+      expect(component.transactionForm.value.name).toBeDefined();
       expect(component.transactionForm.pristine).toBe(true);
       expect(component.transactionForm.untouched).toBe(true);
     });
@@ -127,7 +102,7 @@ describe('EditTransactionForm', () => {
       expect(component.isUpdating()).toBe(false);
 
       // Submit form
-      component['onSubmit']();
+      component.onSubmit();
 
       // Verify loading state is set
       expect(component.isUpdating()).toBe(true);
@@ -143,7 +118,7 @@ describe('EditTransactionForm', () => {
       const initialLoadingState = component.isUpdating();
 
       // Try to submit
-      component['onSubmit']();
+      component.onSubmit();
 
       // Verify loading state hasn't changed
       expect(component.isUpdating()).toBe(initialLoadingState);
@@ -163,7 +138,7 @@ describe('EditTransactionForm', () => {
       component.isUpdating.set(true);
 
       // Try to submit
-      component['onSubmit']();
+      component.onSubmit();
 
       // Verify still in updating state (no change)
       expect(component.isUpdating()).toBe(true);

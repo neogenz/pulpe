@@ -7,7 +7,13 @@ import {
   signal,
   type OnInit,
 } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  FormBuilder,
+  ReactiveFormsModule,
+  Validators,
+  type AbstractControl,
+  type ValidationErrors,
+} from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -43,98 +49,182 @@ export interface EditTransactionFormData {
     <form
       [formGroup]="transactionForm"
       (ngSubmit)="onSubmit()"
-      class="flex flex-col gap-4 min-w-0"
+      class="flex flex-col gap-6 min-w-0 px-1"
+      novalidate
+      aria-label="Formulaire de modification de transaction"
     >
-      <mat-form-field subscriptSizing="dynamic">
-        <mat-label>Nom</mat-label>
-        <input matInput formControlName="name" placeholder="Entrez un nom" />
+      <!-- Transaction Name Field -->
+      <mat-form-field subscriptSizing="dynamic" class="w-full">
+        <mat-label>Nom de la transaction</mat-label>
+        <input
+          matInput
+          formControlName="name"
+          placeholder="Ex: Courses, Loyer, Salaire"
+          aria-describedby="name-hint"
+          maxlength="100"
+        />
+        <mat-hint id="name-hint" align="end"
+          >{{ transactionForm.get('name')?.value?.length || 0 }}/100</mat-hint
+        >
         @if (
           transactionForm.get('name')?.hasError('required') &&
           transactionForm.get('name')?.touched
         ) {
-          <mat-error>Le nom est requis</mat-error>
+          <mat-error role="alert" aria-live="polite"
+            >Le nom est requis</mat-error
+          >
+        }
+        @if (
+          transactionForm.get('name')?.hasError('minlength') &&
+          transactionForm.get('name')?.touched
+        ) {
+          <mat-error role="alert" aria-live="polite"
+            >Le nom doit contenir au moins 2 caractères</mat-error
+          >
+        }
+        @if (
+          transactionForm.get('name')?.hasError('maxlength') &&
+          transactionForm.get('name')?.touched
+        ) {
+          <mat-error role="alert" aria-live="polite"
+            >Le nom ne peut pas dépasser 100 caractères</mat-error
+          >
         }
       </mat-form-field>
 
-      <div class="flex gap-4">
-        <mat-form-field class="flex-1" subscriptSizing="dynamic">
-          <mat-label>Montant</mat-label>
-          <input
-            matInput
-            type="number"
-            formControlName="amount"
-            placeholder="0.00"
-            step="0.01"
-            min="0"
-          />
-          <span matTextSuffix>CHF</span>
-          @if (
-            transactionForm.get('amount')?.hasError('required') &&
-            transactionForm.get('amount')?.touched
-          ) {
-            <mat-error>Le montant est requis</mat-error>
-          }
-          @if (
-            transactionForm.get('amount')?.hasError('min') &&
-            transactionForm.get('amount')?.touched
-          ) {
-            <mat-error>Le montant doit être positif</mat-error>
-          }
-        </mat-form-field>
-
-        <mat-form-field class="flex-1" subscriptSizing="dynamic">
-          <mat-label>Type</mat-label>
-          <mat-select formControlName="kind">
-            <mat-option value="expense">Dépense</mat-option>
-            <mat-option value="income">Revenu</mat-option>
-            <mat-option value="saving">Épargne</mat-option>
-          </mat-select>
-        </mat-form-field>
-      </div>
-
-      <div class="flex gap-4">
-        <mat-form-field class="flex-1" subscriptSizing="dynamic">
-          <mat-label>Date</mat-label>
-          <input
-            matInput
-            [matDatepicker]="picker"
-            [min]="minDate"
-            [max]="maxDate"
-            formControlName="transactionDate"
-          />
-          <mat-hint>Date doit être dans le mois actuel</mat-hint>
-          <mat-datepicker-toggle
-            matIconSuffix
-            [for]="picker"
-          ></mat-datepicker-toggle>
-          <mat-datepicker #picker></mat-datepicker>
-          @if (
-            transactionForm.get('transactionDate')?.hasError('required') &&
-            transactionForm.get('transactionDate')?.touched
-          ) {
-            <mat-error>La date est requise</mat-error>
-          }
-        </mat-form-field>
-
-        <mat-form-field class="flex-1" subscriptSizing="dynamic">
-          <mat-label>Catégorie</mat-label>
-          <input matInput formControlName="category" placeholder="Optionnel" />
-        </mat-form-field>
-      </div>
-
-      <div class="flex gap-3 justify-end">
-        <button matButton="outlined" type="button" (click)="cancelEdit.emit()">
-          Annuler
-        </button>
-        <button
-          matButton="filled"
-          type="submit"
-          [disabled]="transactionForm.invalid || isUpdating()"
+      <!-- Amount Field -->
+      <mat-form-field class="w-full" subscriptSizing="dynamic">
+        <mat-label>Montant</mat-label>
+        <mat-icon matIconPrefix class="text-on-surface-variant"
+          >payments</mat-icon
         >
-          <mat-icon>{{ isUpdating() ? 'hourglass_empty' : 'save' }}</mat-icon>
-          {{ isUpdating() ? 'Enregistrement...' : 'Enregistrer' }}
-        </button>
-      </div>
+        <input
+          matInput
+          type="number"
+          formControlName="amount"
+          placeholder="0.00"
+          step="0.01"
+          min="0.01"
+          max="999999.99"
+          aria-describedby="amount-hint"
+        />
+        <span matTextSuffix>CHF</span>
+        <mat-hint id="amount-hint">Montant en francs suisses</mat-hint>
+        @if (
+          transactionForm.get('amount')?.hasError('required') &&
+          transactionForm.get('amount')?.touched
+        ) {
+          <mat-error role="alert" aria-live="polite"
+            >Le montant est requis</mat-error
+          >
+        }
+        @if (
+          transactionForm.get('amount')?.hasError('min') &&
+          transactionForm.get('amount')?.touched
+        ) {
+          <mat-error role="alert" aria-live="polite"
+            >Le montant doit être au moins 0.01 CHF</mat-error
+          >
+        }
+        @if (
+          transactionForm.get('amount')?.hasError('max') &&
+          transactionForm.get('amount')?.touched
+        ) {
+          <mat-error role="alert" aria-live="polite"
+            >Le montant ne peut pas dépasser 999'999.99 CHF</mat-error
+          >
+        }
+      </mat-form-field>
+
+      <!-- Type Field -->
+      <mat-form-field class="w-full" subscriptSizing="dynamic">
+        <mat-label>Type de transaction</mat-label>
+        <mat-select formControlName="kind" aria-label="Type de transaction">
+          <mat-option value="expense">
+            <mat-icon class="mr-2 icon-filled">remove_circle</mat-icon>
+            Dépense
+          </mat-option>
+          <mat-option value="income">
+            <mat-icon class="mr-2 icon-filled">add_circle</mat-icon>
+            Revenu
+          </mat-option>
+          <mat-option value="saving">
+            <mat-icon class="mr-2 icon-filled">savings</mat-icon>
+            Épargne
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <!-- Date Field -->
+      <mat-form-field class="w-full" subscriptSizing="dynamic">
+        <mat-label>Date de transaction</mat-label>
+        <input
+          matInput
+          [matDatepicker]="picker"
+          [min]="minDate"
+          [max]="maxDate"
+          formControlName="transactionDate"
+          placeholder="jj.mm.aaaa"
+          aria-describedby="date-hint"
+          readonly
+        />
+        <mat-datepicker-toggle
+          matIconSuffix
+          [for]="picker"
+          aria-label="Ouvrir le calendrier"
+        ></mat-datepicker-toggle>
+        <mat-datepicker #picker></mat-datepicker>
+        <mat-hint id="date-hint">Doit être dans le mois en cours</mat-hint>
+        @if (
+          transactionForm.get('transactionDate')?.hasError('required') &&
+          transactionForm.get('transactionDate')?.touched
+        ) {
+          <mat-error role="alert" aria-live="polite"
+            >La date est requise</mat-error
+          >
+        }
+        @if (
+          transactionForm.get('transactionDate')?.hasError('dateOutOfRange') &&
+          transactionForm.get('transactionDate')?.touched
+        ) {
+          <mat-error role="alert" aria-live="polite">
+            La date doit être comprise entre le
+            {{
+              transactionForm.get('transactionDate')?.errors?.['dateOutOfRange']
+                ?.min
+            }}
+            et le
+            {{
+              transactionForm.get('transactionDate')?.errors?.['dateOutOfRange']
+                ?.max
+            }}
+          </mat-error>
+        }
+      </mat-form-field>
+
+      <!-- Category Field -->
+      <mat-form-field class="w-full" subscriptSizing="dynamic">
+        <mat-label>Notes</mat-label>
+        <input
+          matInput
+          formControlName="category"
+          placeholder="Ex: Alimentation, Transport"
+          maxlength="50"
+          aria-describedby="category-hint"
+        />
+        <mat-hint id="category-hint" align="end"
+          >{{ transactionForm.get('category')?.value?.length || 0 }}/50
+          (optionnel)</mat-hint
+        >
+        @if (
+          transactionForm.get('category')?.hasError('maxlength') &&
+          transactionForm.get('category')?.touched
+        ) {
+          <mat-error role="alert" aria-live="polite"
+            >La catégorie ne peut pas dépasser 50 caractères</mat-error
+          >
+        }
+      </mat-form-field>
     </form>
   `,
   styles: `
@@ -145,7 +235,7 @@ export interface EditTransactionFormData {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EditTransactionForm implements OnInit {
-  #fb = inject(FormBuilder);
+  readonly #fb = inject(FormBuilder);
 
   readonly transaction = input.required<Transaction>();
   readonly updateTransaction = output<EditTransactionFormData>();
@@ -156,34 +246,50 @@ export class EditTransactionForm implements OnInit {
   protected readonly minDate = startOfMonth(new Date());
   protected readonly maxDate = endOfMonth(new Date());
 
+  // Custom validator for date range
+  readonly #dateRangeValidator = (
+    control: AbstractControl,
+  ): ValidationErrors | null => {
+    if (!control.value) return null;
+
+    const date = new Date(control.value);
+    const min = this.minDate;
+    const max = this.maxDate;
+
+    if (date < min || date > max) {
+      return {
+        dateOutOfRange: {
+          min: min.toLocaleDateString('fr-CH'),
+          max: max.toLocaleDateString('fr-CH'),
+        },
+      };
+    }
+
+    return null;
+  };
+
   transactionForm = this.#fb.group({
-    name: ['', Validators.required],
+    name: [
+      '',
+      [Validators.required, Validators.minLength(2), Validators.maxLength(100)],
+    ],
     amount: [
       null as number | null,
-      [Validators.required, Validators.min(0.01)],
+      [Validators.required, Validators.min(0.01), Validators.max(999999.99)],
     ],
     kind: ['expense' as 'expense' | 'income' | 'saving', Validators.required],
-    transactionDate: [null as Date | null, Validators.required],
-    category: [''],
+    transactionDate: [
+      null as Date | null,
+      [Validators.required, this.#dateRangeValidator],
+    ],
+    category: ['', [Validators.maxLength(50)]],
   });
 
   ngOnInit(): void {
-    this.initializeForm();
+    this.#initializeForm();
   }
 
-  /**
-   * Initialize form with transaction data and reset validation state
-   */
-  private initializeForm(): void {
-    // Reset form state to pristine
-    this.transactionForm.markAsUntouched();
-    this.transactionForm.markAsPristine();
-
-    // Reset loading state
-    this.isUpdating.set(false);
-
-    // Only populate form if transaction input is available
-    // This handles both initialization and reset scenarios
+  #initializeForm(): void {
     try {
       const transaction = this.transaction();
 
@@ -203,7 +309,7 @@ export class EditTransactionForm implements OnInit {
     }
   }
 
-  protected onSubmit(): void {
+  onSubmit(): void {
     if (this.transactionForm.valid && !this.isUpdating()) {
       const formData = this.transactionForm.getRawValue();
 
@@ -220,6 +326,9 @@ export class EditTransactionForm implements OnInit {
         transactionDate: isoDate,
         category: formData.category || null,
       });
+    } else {
+      // Mark all fields as touched to show validation errors
+      this.transactionForm.markAllAsTouched();
     }
   }
 }
