@@ -1,14 +1,12 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { type BudgetTemplate, type BudgetTemplateCreate } from '@pulpe/shared';
-import { catchError, firstValueFrom, map } from 'rxjs';
+import { firstValueFrom, map } from 'rxjs';
 import { BudgetTemplatesApi } from './budget-templates-api';
 import { rxResource } from '@angular/core/rxjs-interop';
-import { Logger } from '@core/logging/logger';
 
 @Injectable()
 export class BudgetTemplatesState {
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
-  readonly #logger = inject(Logger);
 
   // Business constants
   readonly MAX_TEMPLATES = 5;
@@ -16,14 +14,13 @@ export class BudgetTemplatesState {
   // Using rxResource for better error handling with HTTP errors
   budgetTemplates = rxResource<BudgetTemplate[], void>({
     stream: () =>
-      this.#budgetTemplatesApi.getAll$().pipe(
-        map((response) => (Array.isArray(response.data) ? response.data : [])),
-        catchError((error) => {
-          this.#logger.error('Erreur lors du chargement des templates:', error);
-          // Return an error observable to properly set the resource status to 'error'
-          throw error;
-        }),
-      ),
+      this.#budgetTemplatesApi
+        .getAll$()
+        .pipe(
+          map((response) =>
+            Array.isArray(response.data) ? response.data : [],
+          ),
+        ),
   });
   selectedTemplate = signal<BudgetTemplate | null>(null);
   templateCount = computed(() => this.budgetTemplates.value()?.length ?? 0);
