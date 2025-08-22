@@ -12,11 +12,15 @@ import {
 } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
-import {
-  EditTransactionForm,
-  type EditTransactionFormData,
-} from './edit-transaction-form';
-import { type Transaction } from '@pulpe/shared';
+import { EditTransactionForm } from './edit-transaction-form';
+import { type Transaction, type TransactionCreate } from '@pulpe/shared';
+
+type EditTransactionFormData = Pick<
+  TransactionCreate,
+  'name' | 'amount' | 'kind' | 'category'
+> & {
+  transactionDate: string;
+};
 
 export interface EditTransactionDialogData {
   transaction: Transaction;
@@ -55,7 +59,7 @@ export interface EditTransactionDialogData {
       />
     </mat-dialog-content>
 
-    <mat-dialog-actions align="end" class="gap-3">
+    <mat-dialog-actions align="end" class="gap-2">
       <button
         matButton="outlined"
         type="button"

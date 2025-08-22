@@ -6,8 +6,10 @@ import {
   type HttpErrorResponse,
 } from '@angular/common/http';
 import { type Observable, throwError, from, switchMap, catchError } from 'rxjs';
+import { Router } from '@angular/router';
 import { AuthApi } from './auth-api';
 import { ApplicationConfiguration } from '../config/application-configuration';
+import { ROUTES } from '../routing/routes-constants';
 
 export const authInterceptor: HttpInterceptorFn = (
   req: HttpRequest<unknown>,
@@ -15,6 +17,7 @@ export const authInterceptor: HttpInterceptorFn = (
 ): Observable<HttpEvent<unknown>> => {
   const authApi = inject(AuthApi);
   const applicationConfig = inject(ApplicationConfiguration);
+  const router = inject(Router);
 
   // Vérifier si la requête va vers notre backend
   if (!shouldInterceptRequest(req.url, applicationConfig.backendApiUrl())) {
@@ -24,7 +27,7 @@ export const authInterceptor: HttpInterceptorFn = (
   // Obtenir le token actuel et l'ajouter à la requête
   return from(addAuthToken(req, authApi)).pipe(
     switchMap((authReq) => next(authReq)),
-    catchError((error) => handleAuthError(error, req, next, authApi)),
+    catchError((error) => handleAuthError(error, req, next, authApi, router)),
   );
 };
 
@@ -60,6 +63,7 @@ function handleAuthError(
   originalReq: HttpRequest<unknown>,
   next: (req: HttpRequest<unknown>) => Observable<HttpEvent<unknown>>,
   authApi: AuthApi,
+  router: Router,
 ): Observable<HttpEvent<unknown>> {
   // Only attempt refresh if it's a 401 and user is authenticated
   if (error.status === 401 && authApi.isAuthenticated()) {
@@ -67,8 +71,9 @@ function handleAuthError(
     return from(authApi.refreshSession()).pipe(
       switchMap((refreshSuccess) => {
         if (!refreshSuccess) {
-          // Refresh failed, sign out and throw error
+          // Refresh failed, sign out and navigate to login
           authApi.signOut();
+          router.navigate([ROUTES.LOGIN]);
           return throwError(
             () => new Error('Session expirée, veuillez vous reconnecter'),
           );
@@ -80,8 +85,9 @@ function handleAuthError(
         );
       }),
       catchError((refreshError) => {
-        // Error during refresh attempt
+        // Error during refresh attempt, sign out and navigate to login
         authApi.signOut();
+        router.navigate([ROUTES.LOGIN]);
         return throwError(() => refreshError);
       }),
     );

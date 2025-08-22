@@ -3,14 +3,17 @@ import { BudgetApi } from '@core/budget';
 import { BudgetCalculator } from './budget-calculator';
 import { TransactionApi } from '@core/transaction';
 import { Logger } from '@core/logging/logger';
-import { type Budget, type BudgetLine } from '@pulpe/shared';
+import {
+  type Budget,
+  type BudgetLine,
+  type TransactionCreate,
+  type TransactionUpdate,
+} from '@pulpe/shared';
 import { format } from 'date-fns';
 import { firstValueFrom } from 'rxjs';
 import {
-  type CurrentMonthInternalState,
+  type CurrentMonthState,
   type DashboardData,
-  type TransactionCreateData,
-  type TransactionUpdateData,
 } from './current-month-state';
 import { createInitialCurrentMonthInternalState } from './current-month-state';
 
@@ -39,7 +42,7 @@ export class CurrentMonthStore {
   /**
    * Simple state signal for UI feedback during operations
    */
-  readonly #state = signal<CurrentMonthInternalState>(
+  readonly #state = signal<CurrentMonthState>(
     createInitialCurrentMonthInternalState(),
   );
 
@@ -127,7 +130,7 @@ export class CurrentMonthStore {
    * Add a new transaction
    * Optimized approach: use optimistic update to avoid full data reload
    */
-  async addTransaction(transactionData: TransactionCreateData): Promise<void> {
+  async addTransaction(transactionData: TransactionCreate): Promise<void> {
     try {
       // Create the transaction
       const response = await firstValueFrom(
@@ -201,7 +204,7 @@ export class CurrentMonthStore {
    */
   async updateTransaction(
     transactionId: string,
-    transactionData: TransactionUpdateData,
+    transactionData: TransactionUpdate,
   ): Promise<void> {
     // Store original state for rollback on error
     const originalData = this.#dashboardResource.value();
