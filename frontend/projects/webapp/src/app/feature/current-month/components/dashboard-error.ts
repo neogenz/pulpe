@@ -15,7 +15,7 @@ import { MatButtonModule } from '@angular/material/button';
         <mat-card-header>
           <mat-card-title>
             <div
-              class="flex items-center justify-center gap-2"
+              class="flex items-center justify-center gap-2 shrink-0"
               data-testid="error-title"
             >
               <mat-icon data-testid="error-icon">error_outline</mat-icon>
