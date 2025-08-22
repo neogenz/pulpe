@@ -1,0 +1,75 @@
+# Dependencies
+node_modules
+**/node_modules
+
+# Build outputs
+dist
+**/dist
+build
+**/build
+
+# Logs
+*.log
+**/*.log
+backend.log
+
+# Environment files
+.env*
+!.env.example
+
+# Git
+.git
+.gitignore
+
+# Development files
+*.md
+README*
+CHANGELOG*
+docs/
+
+# Test files
+coverage
+**/*.spec.ts
+**/*.test.ts
+**/test
+**/tests
+**/e2e
+
+# Docker files
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp
+temp
+**/tmp
+**/temp
+
+# Frontend and mobile (not needed for backend)
+frontend/
+mobile/
+
+# Supabase local
+supabase/.temp
+supabase/logs
+
+# Cache
+.cache
+**/.cache
+.turbo
+**/.turbo
+
+# Lock files (exclude npm/yarn, keep pnpm and bun)
+package-lock.json
+yarn.lock
