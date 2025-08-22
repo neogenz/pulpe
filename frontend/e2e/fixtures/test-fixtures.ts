@@ -86,9 +86,9 @@ const baseTest = base.extend<AppFixtures>({
     await page.route('**/api/**', async (route) => {
       const url = route.request().url();
       
-      // Skip mocking if this is a budget API call (handled by BudgetApiMockHelper)
-      // or template API call that might have test-specific mocks
-      if (url.includes('/budgets') || url.includes('/budget-templates') || url.includes('/transactions')) {
+      // Skip mocking if this is a template API call that might have test-specific mocks
+      // Budget API calls are handled by BudgetApiMockHelper and should NOT continue to real backend
+      if (url.includes('/budget-templates')) {
         await route.continue();
         return;
       }

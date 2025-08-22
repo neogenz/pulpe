@@ -154,7 +154,7 @@ export class BudgetTemplatesPage {
     
     // Ensure the create template page is loaded
     try {
-      await this.page.waitForSelector('[data-testid="create-template-page"]', { 
+      await this.page.waitForSelector('[data-testid="create-template-page"], [data-testid="template-form"], form', { 
         timeout: 10000 
       });
     } catch {

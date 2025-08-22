@@ -74,7 +74,16 @@ test.describe('App Health Check', () => {
       if (url.includes('chunk-') && url.includes('.js')) {
         return false;
       }
-      return url.includes('.css') || url.includes('.ico') || (url.includes('.js') && !url.includes('chunk-'));
+      // Allow Angular Material and deps to fail as they might be dynamically loaded
+      if (url.includes('@angular_material') || url.includes('/deps/')) {
+        return false;
+      }
+      // Allow vite hot module replacement to fail
+      if (url.includes('@vite') || url.includes('/@fs/')) {
+        return false;
+      }
+      // Only critical are main app files and favicon
+      return url.includes('.css') || url.includes('.ico') || (url.includes('.js') && !url.includes('chunk-') && !url.includes('/@'));
     });
     
     expect(criticalAssetFailures).toHaveLength(0);

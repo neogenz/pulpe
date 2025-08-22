@@ -112,10 +112,10 @@ test.describe('Budget Template Deletion', () => {
       await authenticatedPage.locator('[role="dialog"] button:has-text("Supprimer")').click();
       
       // Wait for navigation back to list
-      await authenticatedPage.waitForURL('**/budget-templates', { timeout: 10000 });
+      await authenticatedPage.waitForURL('**/app/budget-templates', { timeout: 10000 });
       
       // Success verification
-      expect(authenticatedPage.url()).toContain('/budget-templates');
+      expect(authenticatedPage.url()).toContain('/app/budget-templates');
       expect(authenticatedPage.url()).not.toContain('/details/');
     });
 
