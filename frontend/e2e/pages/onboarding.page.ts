@@ -331,7 +331,7 @@ export class OnboardingPage {
   }
 
   async expectRedirectToCurrentMonth() {
-    await expect(this.page).toHaveURL(new RegExp('/current-month'));
+    await expect(this.page).toHaveURL(new RegExp('/app/current-month'));
   }
 
   // Authentication state methods

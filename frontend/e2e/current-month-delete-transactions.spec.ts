@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Current Month - Delete Transaction', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to the current month page
-    await page.goto('/current-month');
+    await page.goto('/app/current-month');
     
     // Wait for the page to load
     await page.waitForSelector('[data-testid="current-month-page"]');

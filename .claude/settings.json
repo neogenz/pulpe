@@ -20,6 +20,6 @@
     "deny": [],
     "defaultMode": "acceptEdits"
   },
-  "enabledMcpjsonServers": ["context7", "supabase", "playwright", "serena"],
+  "enabledMcpjsonServers": ["context7", "supabase", "playwright"],
   "enableAllProjectMcpServers": true
 }

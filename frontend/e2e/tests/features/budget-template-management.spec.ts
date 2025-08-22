@@ -155,7 +155,7 @@ test.describe('Budget Template Management', () => {
     await budgetTemplatesPage.navigateToTemplateDetails('Test Template');
     
     // Verify we navigated to the correct URL
-    await expect(authenticatedPage).toHaveURL(/budget-templates\/details\/test-template-id/);
+    await expect(authenticatedPage).toHaveURL(/app\/budget-templates\/details\/test-template-id/);
     
     // Verify breadcrumb shows we're on detail page
     const breadcrumb = authenticatedPage.locator('nav[aria-label="Breadcrumb"]');

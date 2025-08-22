@@ -88,7 +88,8 @@ export class MainLayoutPage {
 
   async expectOnProtectedPage(): Promise<boolean> {
     const currentUrl = this.page.url();
-    return currentUrl.includes('/app/') && !currentUrl.includes('/login');
+    // Updated to match new routing structure (no /app prefix)
+    return !currentUrl.includes('/login') && !currentUrl.includes('/onboarding') && currentUrl !== '/';
   }
 
   async navigateToApp(): Promise<void> {

@@ -43,7 +43,7 @@ setup('authenticate', async ({ page }) => {
 
     // Wait until the page receives the cookies and redirects
     console.log('⏳ Waiting for successful authentication...');
-    await page.waitForURL(/\/current-month/, { timeout: 10000 });
+    await page.waitForURL(/\/app\/current-month/, { timeout: 10000 });
   }
 
   // Verify we're actually authenticated (not on login page)

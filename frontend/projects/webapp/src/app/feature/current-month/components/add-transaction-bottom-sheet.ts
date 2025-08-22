@@ -67,7 +67,6 @@ import { TransactionValidators } from '../utils/transaction-form-validators';
             #amountInput
             type="number"
             inputmode="decimal"
-            pattern="[0-9]*"
             placeholder="0.00"
             formControlName="amount"
             step="0.01"
