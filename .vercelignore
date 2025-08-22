@@ -1,0 +1,37 @@
+# Backend and mobile (not deployed on Vercel)
+backend-nest/
+mobile/
+
+# Development and test files
+**/*.spec.ts
+**/*.spec.js
+**/e2e/
+**/playwright-report/
+**/test-results/
+**/coverage/
+**/.turbo/
+
+# Build outputs (will be built fresh)
+**/dist/
+**/node_modules/
+
+# Config and env files
+**/.env*
+!**/.env.example
+**/*.log
+
+# IDE and system files
+**/.DS_Store
+**/.idea/
+**/.vscode/
+
+# Documentation
+**/docs/
+**/*.md
+!README.md
+
+# Test configuration
+**/playwright.config.ts
+**/vitest.config.ts
+**/tsconfig.spec.json
+**/test-setup.ts

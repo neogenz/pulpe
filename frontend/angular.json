@@ -81,7 +81,20 @@
                   "maximumError": "8kB"
                 }
               ],
-              "outputHashing": "all"
+              "outputHashing": "all",
+              "assets": [
+                {
+                  "glob": "**/*",
+                  "input": "projects/webapp/public",
+                  "output": "/",
+                  "ignore": ["environments/**", "config*.json"]
+                },
+                {
+                  "glob": "config.json",
+                  "input": "projects/webapp/public/environments/production",
+                  "output": "/"
+                }
+              ]
             },
             "development": {
               "optimization": false,
@@ -91,6 +104,19 @@
                 {
                   "replace": "projects/webapp/src/environments/environment.ts",
                   "with": "projects/webapp/src/environments/environment.development.ts"
+                }
+              ],
+              "assets": [
+                {
+                  "glob": "**/*",
+                  "input": "projects/webapp/public",
+                  "output": "/",
+                  "ignore": ["environments/**", "config*.json"]
+                },
+                {
+                  "glob": "config.json",
+                  "input": "projects/webapp/public/environments/development",
+                  "output": "/"
                 }
               ]
             }
