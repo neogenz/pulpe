@@ -22,13 +22,15 @@ export const publicGuard: CanActivateFn = () => {
     take(1),
     map((state) => {
       if (state.isAuthenticated) {
-        router.navigate([ROUTES.CURRENT_MONTH]).catch((error) => {
-          console.error(
-            'Navigation to the main application page failed, redirecting to onboarding.',
-            error,
-          );
-          router.navigate([ROUTES.ONBOARDING]);
-        });
+        router
+          .navigate(['/', ROUTES.APP, ROUTES.CURRENT_MONTH])
+          .catch((error) => {
+            console.error(
+              'Navigation to the main application page failed, redirecting to onboarding.',
+              error,
+            );
+            router.navigate([ROUTES.ONBOARDING]);
+          });
         return false;
       }
 

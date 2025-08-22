@@ -30,16 +30,23 @@ import { CurrentMonthStore } from './services/current-month-store';
 import { TransactionChipFilter } from './components/transaction-chip-filter';
 import { TitleDisplay } from '@core/routing';
 import { BudgetProgressBar } from './components/budget-progress-bar';
-import {
-  AddTransactionBottomSheet,
-  type TransactionFormData,
-} from './components/add-transaction-bottom-sheet';
+import { AddTransactionBottomSheet } from './components/add-transaction-bottom-sheet';
 import { mapBudgetLineToTransaction } from './utils/budget-line-mapper';
 import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
 import { firstValueFrom } from 'rxjs';
-import { type Transaction } from '@pulpe/shared';
+import { type Transaction, type TransactionCreate } from '@pulpe/shared';
 import { EditTransactionDialog } from './components/edit-transaction-dialog';
-import { type EditTransactionFormData } from './components/edit-transaction-form';
+
+type TransactionFormData = Pick<
+  TransactionCreate,
+  'name' | 'amount' | 'kind' | 'category'
+>;
+type EditTransactionFormData = Pick<
+  TransactionCreate,
+  'name' | 'amount' | 'kind' | 'category'
+> & {
+  transactionDate: string;
+};
 
 @Component({
   selector: 'pulpe-current-month',
@@ -270,7 +277,7 @@ export default class CurrentMonth implements OnInit {
         budgetId,
         amount: transaction.amount ?? 0,
         name: transaction.name,
-        kind: transaction.type,
+        kind: transaction.kind,
         transactionDate: new Date().toISOString(),
         isOutOfBudget: false,
         category: transaction.category ?? null,
@@ -364,7 +371,7 @@ export default class CurrentMonth implements OnInit {
       // Update transaction
       await this.store.updateTransaction(transactionId, {
         name: updatedData.name,
-        amount: updatedData.amount || 0,
+        amount: updatedData.amount ?? undefined,
         kind: updatedData.kind,
         transactionDate: updatedData.transactionDate,
         category: updatedData.category,

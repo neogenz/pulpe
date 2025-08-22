@@ -4,7 +4,7 @@ import type { Budget, BudgetLine, Transaction } from '@pulpe/shared';
  * State interface for CurrentMonthStore following the single state signal pattern
  * Simplified to work better with resource() API
  */
-export interface CurrentMonthInternalState {
+export interface CurrentMonthState {
   /**
    * Current date used for calculations and data fetching
    */
@@ -21,28 +21,9 @@ export interface DashboardData {
 }
 
 /**
- * Transaction creation data (omitting generated fields)
- */
-export type TransactionCreateData = Omit<
-  Transaction,
-  'id' | 'createdAt' | 'updatedAt' | 'userId'
->;
-
-/**
- * Transaction update data (partial fields that can be updated)
- */
-export interface TransactionUpdateData {
-  name?: string;
-  amount?: number;
-  kind?: 'income' | 'expense' | 'saving';
-  transactionDate?: string;
-  category?: string | null;
-}
-
-/**
  * Factory function to create initial internal state
  */
-export function createInitialCurrentMonthInternalState(): CurrentMonthInternalState {
+export function createInitialCurrentMonthInternalState(): CurrentMonthState {
   return {
     currentDate: new Date(),
   };

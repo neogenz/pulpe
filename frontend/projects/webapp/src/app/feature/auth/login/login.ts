@@ -110,7 +110,7 @@ import { Logger } from '@core/logging/logger';
             <div
               class="bg-error-container text-on-error-container p-3 rounded-lg flex items-center gap-2"
             >
-              <mat-icon>error_outline</mat-icon>
+              <mat-icon class="flex-shrink-0">error_outline</mat-icon>
               <span>{{ errorMessage() }}</span>
             </div>
           }
@@ -126,13 +126,12 @@ import { Logger } from '@core/logging/logger';
               <div class="flex items-center justify-center">
                 <mat-progress-spinner
                   mode="indeterminate"
+                  [diameter]="24"
                   aria-label="Connexion en cours"
                   role="progressbar"
-                  class="pulpe-loading-indicator pulpe-loading-small"
+                  class="pulpe-loading-indicator pulpe-loading-small mr-2"
                 ></mat-progress-spinner>
-                <span class="ml-2" aria-live="polite"
-                  >Connexion en cours...</span
-                >
+                <span aria-live="polite">Connexion en cours...</span>
               </div>
             } @else {
               <div class="flex items-center justify-center">
@@ -234,7 +233,7 @@ export default class Login {
       const result = await this.#authService.signInWithEmail(email, password);
 
       if (result.success) {
-        this.#router.navigate([ROUTES.CURRENT_MONTH]);
+        this.#router.navigate(['/', ROUTES.APP, ROUTES.CURRENT_MONTH]);
       } else {
         this.errorMessage.set(
           result.error || 'Email ou mot de passe incorrect.',

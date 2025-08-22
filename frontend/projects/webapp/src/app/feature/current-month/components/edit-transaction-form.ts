@@ -21,16 +21,16 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
-import { type Transaction } from '@pulpe/shared';
+import { type Transaction, type TransactionCreate } from '@pulpe/shared';
 import { startOfMonth, endOfMonth } from 'date-fns';
+import { TransactionValidators } from '../utils/transaction-form-validators';
 
-export interface EditTransactionFormData {
-  name: string;
-  amount: number | null;
-  kind: 'expense' | 'income' | 'saving';
+type EditTransactionFormData = Pick<
+  TransactionCreate,
+  'name' | 'amount' | 'kind' | 'category'
+> & {
   transactionDate: string;
-  category: string | null;
-}
+};
 
 @Component({
   selector: 'pulpe-edit-transaction-form',
@@ -70,7 +70,7 @@ export interface EditTransactionFormData {
           transactionForm.get('name')?.hasError('required') &&
           transactionForm.get('name')?.touched
         ) {
-          <mat-error role="alert" aria-live="polite"
+          <mat-error role="alert" aria-live="assertive"
             >Le nom est requis</mat-error
           >
         }
@@ -78,7 +78,7 @@ export interface EditTransactionFormData {
           transactionForm.get('name')?.hasError('minlength') &&
           transactionForm.get('name')?.touched
         ) {
-          <mat-error role="alert" aria-live="polite"
+          <mat-error role="alert" aria-live="assertive"
             >Le nom doit contenir au moins 2 caractères</mat-error
           >
         }
@@ -86,7 +86,7 @@ export interface EditTransactionFormData {
           transactionForm.get('name')?.hasError('maxlength') &&
           transactionForm.get('name')?.touched
         ) {
-          <mat-error role="alert" aria-live="polite"
+          <mat-error role="alert" aria-live="assertive"
             >Le nom ne peut pas dépasser 100 caractères</mat-error
           >
         }
@@ -114,7 +114,7 @@ export interface EditTransactionFormData {
           transactionForm.get('amount')?.hasError('required') &&
           transactionForm.get('amount')?.touched
         ) {
-          <mat-error role="alert" aria-live="polite"
+          <mat-error role="alert" aria-live="assertive"
             >Le montant est requis</mat-error
           >
         }
@@ -122,7 +122,7 @@ export interface EditTransactionFormData {
           transactionForm.get('amount')?.hasError('min') &&
           transactionForm.get('amount')?.touched
         ) {
-          <mat-error role="alert" aria-live="polite"
+          <mat-error role="alert" aria-live="assertive"
             >Le montant doit être au moins 0.01 CHF</mat-error
           >
         }
@@ -130,7 +130,7 @@ export interface EditTransactionFormData {
           transactionForm.get('amount')?.hasError('max') &&
           transactionForm.get('amount')?.touched
         ) {
-          <mat-error role="alert" aria-live="polite"
+          <mat-error role="alert" aria-live="assertive"
             >Le montant ne peut pas dépasser 999'999.99 CHF</mat-error
           >
         }
@@ -179,7 +179,7 @@ export interface EditTransactionFormData {
           transactionForm.get('transactionDate')?.hasError('required') &&
           transactionForm.get('transactionDate')?.touched
         ) {
-          <mat-error role="alert" aria-live="polite"
+          <mat-error role="alert" aria-live="assertive"
             >La date est requise</mat-error
           >
         }
@@ -187,7 +187,7 @@ export interface EditTransactionFormData {
           transactionForm.get('transactionDate')?.hasError('dateOutOfRange') &&
           transactionForm.get('transactionDate')?.touched
         ) {
-          <mat-error role="alert" aria-live="polite">
+          <mat-error role="alert" aria-live="assertive">
             La date doit être comprise entre le
             {{
               transactionForm.get('transactionDate')?.errors?.['dateOutOfRange']
@@ -220,7 +220,7 @@ export interface EditTransactionFormData {
           transactionForm.get('category')?.hasError('maxlength') &&
           transactionForm.get('category')?.touched
         ) {
-          <mat-error role="alert" aria-live="polite"
+          <mat-error role="alert" aria-live="assertive"
             >La catégorie ne peut pas dépasser 50 caractères</mat-error
           >
         }
@@ -269,20 +269,17 @@ export class EditTransactionForm implements OnInit {
   };
 
   transactionForm = this.#fb.group({
-    name: [
-      '',
-      [Validators.required, Validators.minLength(2), Validators.maxLength(100)],
+    name: ['', TransactionValidators.name],
+    amount: [null as number | null, TransactionValidators.amount],
+    kind: [
+      'expense' as 'expense' | 'income' | 'saving',
+      TransactionValidators.kind,
     ],
-    amount: [
-      null as number | null,
-      [Validators.required, Validators.min(0.01), Validators.max(999999.99)],
-    ],
-    kind: ['expense' as 'expense' | 'income' | 'saving', Validators.required],
     transactionDate: [
       null as Date | null,
       [Validators.required, this.#dateRangeValidator],
     ],
-    category: ['', [Validators.maxLength(50)]],
+    category: ['', TransactionValidators.category],
   });
 
   ngOnInit(): void {
@@ -325,11 +322,11 @@ export class EditTransactionForm implements OnInit {
     this.isUpdating.set(true);
 
     this.updateTransaction.emit({
-      name: name!,
-      amount: amount!,
-      kind: kind!,
+      name: name as string,
+      amount: amount as number,
+      kind: kind as 'expense' | 'income' | 'saving',
       transactionDate: (transactionDate as Date).toISOString(),
-      category: category || null,
+      category: (category as string) || null,
     });
   }
 }
