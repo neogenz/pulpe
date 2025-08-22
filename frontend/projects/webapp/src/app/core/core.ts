@@ -15,6 +15,7 @@ import {
   provideZonelessChangeDetection,
   provideAppInitializer,
   inject,
+  ErrorHandler,
 } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import {
@@ -27,9 +28,11 @@ import { provideAuth } from './auth/auth-providers';
 import { AuthApi } from './auth/auth-api';
 import { PulpeTitleStrategy } from './routing/title-strategy';
 import { ApplicationConfiguration } from './config/application-configuration';
-import { buildInfo } from '@env/build-info';
 import { environment } from '@env/environment';
-import { providePulpeErrorHandler } from './error';
+import { buildInfo } from '@env/build-info';
+import { AppErrorHandler } from './error';
+import { errorInterceptor } from './http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 
 export interface CoreOptions {
   routes: Routes; // possible to extend options with more props in the future
@@ -77,8 +80,11 @@ export function provideCore({ routes }: CoreOptions) {
     // zoneless change detection for better performance
     provideZonelessChangeDetection(),
 
+    // HTTP client with error interceptor
+    provideHttpClient(withInterceptors([errorInterceptor])),
+
     // Custom error handler - must be before global listeners
-    providePulpeErrorHandler(),
+    { provide: ErrorHandler, useClass: AppErrorHandler },
 
     // global error handling for zoneless apps
     provideBrowserGlobalErrorListeners(),

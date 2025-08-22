@@ -58,3 +58,31 @@ body {
     #ffea00 100%
   );
 }
+
+// MatSnackBar custom styles
+.mat-mdc-snack-bar-container {
+  &.error-snackbar {
+    .mdc-snackbar__surface {
+      background-color: var(--mat-sys-error-container);
+      color: var(--mat-sys-on-error-container);
+    }
+
+    .mat-mdc-button {
+      color: var(--mat-sys-error);
+    }
+  }
+
+  &.success-snackbar {
+    .mdc-snackbar__surface {
+      background-color: var(--mat-sys-primary-container);
+      color: var(--mat-sys-on-primary-container);
+    }
+  }
+
+  &.info-snackbar {
+    .mdc-snackbar__surface {
+      background-color: var(--mat-sys-secondary-container);
+      color: var(--mat-sys-on-secondary-container);
+    }
+  }
+}
