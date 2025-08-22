@@ -106,10 +106,14 @@ CMD ["bun", "run", "dist/main.js"]
 ```bash
 cd backend-nest
 railway init  # Nom: pulpe-backend
-railway variables set NODE_ENV=production
-railway variables set SUPABASE_URL=[VOTRE_URL]
-railway variables set SUPABASE_ANON_KEY=[VOTRE_KEY]
-railway variables set SUPABASE_SERVICE_ROLE_KEY=[VOTRE_SERVICE_KEY]
+
+# Configurer les variables d'environnement
+railway variables --set "NODE_ENV=production" \
+                  --set "SUPABASE_URL=[VOTRE_URL]" \
+                  --set "SUPABASE_ANON_KEY=[VOTRE_KEY]" \
+                  --set "SUPABASE_SERVICE_ROLE_KEY=[VOTRE_SERVICE_KEY]"
+
+# Déployer et configurer le domaine
 railway up
 railway domain  # Récupérer l'URL
 ```
