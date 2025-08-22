@@ -3,6 +3,8 @@ import { BudgetApi } from '@core/budget';
 import { BudgetCalculator } from './budget-calculator';
 import { TransactionApi } from '@core/transaction';
 import { Logger } from '@core/logging/logger';
+import { ErrorManager } from '@core/error';
+import { RetryStrategy } from '@core/error';
 import {
   type Budget,
   type BudgetLine,
@@ -37,6 +39,8 @@ export class CurrentMonthStore {
   #transactionApi = inject(TransactionApi);
   #budgetCalculator = inject(BudgetCalculator);
   #logger = inject(Logger);
+  #errorManager = inject(ErrorManager);
+  #retryStrategy = inject(RetryStrategy);
 
   // === PRIVATE STATE ===
   /**
@@ -129,73 +133,95 @@ export class CurrentMonthStore {
   /**
    * Add a new transaction
    * Optimized approach: use optimistic update to avoid full data reload
+   * Enhanced with error management and retry strategy
    */
   async addTransaction(transactionData: TransactionCreate): Promise<void> {
-    try {
-      // Create the transaction
-      const response = await firstValueFrom(
-        this.#transactionApi.create$(transactionData),
-      );
+    return this.#errorManager.handleWithRecovery(
+      async () => {
+        // Use retry strategy for network operations
+        const response = await this.#retryStrategy.retryOperation(
+          () => firstValueFrom(this.#transactionApi.create$(transactionData)),
+          { maxAttempts: 2, delay: 1000 },
+          'add-transaction',
+        );
 
-      // Optimistically update the resource value to include the new transaction
-      const currentData = this.#dashboardResource.value();
-      if (currentData && response.data) {
-        this.#dashboardResource.set({
-          ...currentData,
-          transactions: [...currentData.transactions, response.data],
+        // Optimistically update the resource value to include the new transaction
+        const currentData = this.#dashboardResource.value();
+        if (currentData && response.data) {
+          this.#dashboardResource.set({
+            ...currentData,
+            transactions: [...currentData.transactions, response.data],
+          });
+        }
+
+        this.#logger.info(
+          'Transaction added successfully with optimistic update',
+        );
+      },
+      async (error) => {
+        // Recovery: reload data to ensure consistency
+        this.#logger.warn('Recovering from transaction add error', {
+          error: error.message,
         });
-      }
+        this.refreshData();
 
-      this.#logger.info(
-        'Transaction added successfully with optimistic update',
-      );
-    } catch (error) {
-      this.#logger.error('Error adding transaction:', error);
-
-      // On error, reload data to ensure consistency
-      this.refreshData();
-      throw error;
-    }
+        // Re-throw to propagate the error after recovery attempt
+        throw error;
+      },
+    );
   }
 
   /**
    * Delete a transaction
    * Optimized approach: use optimistic update to avoid full data reload
+   * Enhanced with error management and retry strategy
    */
   async deleteTransaction(transactionId: string): Promise<void> {
     // Store original state for rollback on error
     const originalData = this.#dashboardResource.value();
 
-    try {
-      // Optimistically remove the transaction from the UI immediately
-      const currentData = this.#dashboardResource.value();
-      if (currentData) {
-        this.#dashboardResource.set({
-          ...currentData,
-          transactions: currentData.transactions.filter(
-            (t) => t.id !== transactionId,
-          ),
+    return this.#errorManager.handleWithRecovery(
+      async () => {
+        // Optimistically remove the transaction from the UI immediately
+        const currentData = this.#dashboardResource.value();
+        if (currentData) {
+          this.#dashboardResource.set({
+            ...currentData,
+            transactions: currentData.transactions.filter(
+              (t) => t.id !== transactionId,
+            ),
+          });
+        }
+
+        // Delete the transaction from the backend with retry
+        await this.#retryStrategy.retryOperation(
+          () => firstValueFrom(this.#transactionApi.remove$(transactionId)),
+          { maxAttempts: 2, delay: 1000 },
+          `delete-transaction-${transactionId}`,
+        );
+
+        this.#logger.info(
+          'Transaction deleted successfully with optimistic update',
+        );
+      },
+      async (error) => {
+        // Recovery: rollback to original state
+        this.#logger.warn('Recovering from transaction delete error', {
+          error: error.message,
+          transactionId,
         });
-      }
 
-      // Delete the transaction from the backend
-      await firstValueFrom(this.#transactionApi.remove$(transactionId));
+        if (originalData) {
+          this.#dashboardResource.set(originalData);
+        } else {
+          // If no original data, reload to ensure consistency
+          this.refreshData();
+        }
 
-      this.#logger.info(
-        'Transaction deleted successfully with optimistic update',
-      );
-    } catch (error) {
-      this.#logger.error('Error deleting transaction:', error);
-
-      // Rollback to original state on error
-      if (originalData) {
-        this.#dashboardResource.set(originalData);
-      } else {
-        // If no original data, reload to ensure consistency
-        this.refreshData();
-      }
-      throw error;
-    }
+        // Re-throw to propagate the error after recovery attempt
+        throw error;
+      },
+    );
   }
 
   /**

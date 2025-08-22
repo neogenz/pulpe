@@ -29,6 +29,7 @@ import { PulpeTitleStrategy } from './routing/title-strategy';
 import { ApplicationConfiguration } from './config/application-configuration';
 import { buildInfo } from '@env/build-info';
 import { environment } from '@env/environment';
+import { providePulpeErrorHandler } from './error';
 
 export interface CoreOptions {
   routes: Routes; // possible to extend options with more props in the future
@@ -75,6 +76,9 @@ export function provideCore({ routes }: CoreOptions) {
   return [
     // zoneless change detection for better performance
     provideZonelessChangeDetection(),
+
+    // Custom error handler - must be before global listeners
+    providePulpeErrorHandler(),
 
     // global error handling for zoneless apps
     provideBrowserGlobalErrorListeners(),
