@@ -25,9 +25,9 @@ WORKDIR /usr/src/app/shared
 RUN pnpm run build
 WORKDIR /usr/src/app
 
-# Build backend avec Bun (targeting Node.js runtime)
+# Build backend avec TypeScript (Node.js runtime)
 WORKDIR /usr/src/app/backend-nest
-RUN bun build src/main.ts --outdir=dist --target=node --minify --packages=external
+RUN npx tsc --build
 
 # Production stage - Runtime Node.js
 FROM node:20-alpine AS production
