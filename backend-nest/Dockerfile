@@ -1,52 +1,51 @@
-FROM oven/bun:1.2.15-alpine AS dependencies
-WORKDIR /app
+# Dockerfile optimisé pour Railway + Node.js runtime (monorepo pnpm)
+FROM node:20-alpine AS base
+WORKDIR /usr/src/app
 
-# Install git pour lefthook (build-time seulement)
+# Dependencies stage - Install avec pnpm pour workspace resolution
+FROM base AS install
+RUN corepack enable && corepack prepare pnpm@10.12.1 --activate
 RUN apk add --no-cache git
 
-# Copy workspace structure pour pnpm
+# Copy workspace files pour pnpm resolution
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY shared/package.json ./shared/
 COPY backend-nest/package.json ./backend-nest/
 
-# Install toutes les dépendances
-RUN git init && bun install --frozen-lockfile
+# Install toutes les dépendances (sans cache BuildKit)
+RUN git init && pnpm install --frozen-lockfile
 
-FROM dependencies AS builder
-WORKDIR /app
-
-# Copy source après deps pour optimiser cache
+# Build stage
+FROM install AS build
 COPY shared/ ./shared/
 COPY backend-nest/ ./backend-nest/
 
-# Build shared package
-WORKDIR /app/shared
-RUN bun run build
+# Build shared package FIRST (dependency requirement)
+RUN pnpm build --filter=@pulpe/shared
 
-# Build backend avec TypeScript
-WORKDIR /app/backend-nest
-RUN bunx tsc -p tsconfig.build.json
+# Build backend avec Bun (targeting Node.js runtime)
+WORKDIR /usr/src/app/backend-nest
+RUN bun build src/main.ts --outdir=dist --target=node --minify --packages=external
 
-# Production stage - Bun natif optimisé
-FROM oven/bun:1.2.15-alpine
+# Production stage - Runtime Node.js
+FROM node:20-alpine AS production
 WORKDIR /app
 
-# Copy runtime artifacts avec permissions
-COPY --from=builder --chown=bun:bun /app/backend-nest/dist ./dist
-COPY --from=builder --chown=bun:bun /app/node_modules ./node_modules
-COPY --from=builder --chown=bun:bun /app/backend-nest/package.json ./package.json
+# Copier les artefacts de build
+COPY --from=build --chown=node:node /usr/src/app/backend-nest/dist ./dist
+COPY --from=build --chown=node:node /usr/src/app/backend-nest/package.json ./
+COPY --from=build --chown=node:node /usr/src/app/node_modules ./node_modules
 
-# Sécurité : utilisateur non-root (bun existe déjà)
-USER bun
+# Sécurité : utilisateur non-root
+USER node
 
-# Runtime configuration
+# Configuration Railway
 ENV NODE_ENV=production
-ENV PORT=3000
 EXPOSE 3000
 
-# Health check
+# Health check pour Railway
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD bun --version || exit 1
+  CMD node --version || exit 1
 
-# Start avec Bun runtime natif
-CMD ["bun", "run", "dist/main.js"]
+# Start avec Node.js runtime
+ENTRYPOINT ["node", "dist/main.js"]

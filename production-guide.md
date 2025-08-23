@@ -33,90 +33,125 @@ supabase link --project-ref [PROJECT_REF]
 supabase db push
 ```
 
-## Étape 2: Backend sur Railway
+## Étape 2: Backend sur Railway (monorepo pnpm + Node.js)
 
-### Dockerfile (Déjà Optimisé)
+### Principe
 
-Le `backend-nest/Dockerfile` existant est déjà optimisé et suit les meilleures pratiques 2024 :
+- Build depuis la racine du monorepo pour résoudre `workspace:*` (pnpm)
+- **Runtime Node.js** pour la stabilité (images Bun peuvent être indisponibles)
+- Dockerfile multi-stage optimisé avec BuildKit cache
+- Build avec Bun → Runtime avec Node.js (meilleur compromis performance/fiabilité)
+
+### Dockerfile (production-ready)
+
+Le `backend-nest/Dockerfile` utilise pnpm via corepack + Node.js runtime:
 
 ```dockerfile
-FROM oven/bun:1.2.15-alpine AS dependencies
-WORKDIR /app
+# Dockerfile optimisé pour Railway + Node.js runtime (monorepo pnpm)
+FROM node:20-alpine AS base
+WORKDIR /usr/src/app
 
-# Install git pour lefthook (build-time seulement)
+# Dependencies stage - Install avec pnpm pour workspace resolution
+FROM base AS install
+RUN corepack enable && corepack prepare pnpm@10.12.1 --activate
 RUN apk add --no-cache git
 
-# Copy workspace structure pour pnpm
+# Copy workspace files pour pnpm resolution
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY shared/package.json ./shared/
 COPY backend-nest/package.json ./backend-nest/
 
-# Install toutes les dépendances
-RUN git init && bun install --frozen-lockfile
+# Install toutes les dépendances avec cache optimisé
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
+    git init && pnpm install --frozen-lockfile
 
-FROM dependencies AS builder
-WORKDIR /app
-
-# Copy source après deps pour optimiser cache
+# Build stage
+FROM install AS build
 COPY shared/ ./shared/
 COPY backend-nest/ ./backend-nest/
 
-# Build shared package
-WORKDIR /app/shared
-RUN bun run build
+# Build shared package FIRST (dependency requirement)
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
+    pnpm build --filter=@pulpe/shared
 
-# Build backend avec TypeScript
-WORKDIR /app/backend-nest
-RUN bunx tsc -p tsconfig.build.json
+# Build backend avec Bun (targeting Node.js runtime)
+WORKDIR /usr/src/app/backend-nest
+RUN bun build src/main.ts --outdir=dist --target=node --minify --packages=external
 
-# Production stage - Bun natif optimisé
-FROM oven/bun:1.2.15-alpine
+# Production stage - Runtime Node.js
+FROM node:20-alpine AS production
 WORKDIR /app
 
-# Copy runtime artifacts avec permissions
-COPY --from=builder --chown=bun:bun /app/backend-nest/dist ./dist
-COPY --from=builder --chown=bun:bun /app/node_modules ./node_modules
-COPY --from=builder --chown=bun:bun /app/backend-nest/package.json ./package.json
+# Copier les artefacts de build
+COPY --from=build --chown=node:node /usr/src/app/backend-nest/dist ./dist
+COPY --from=build --chown=node:node /usr/src/app/backend-nest/package.json ./
+COPY --from=build --chown=node:node /usr/src/app/node_modules ./node_modules
 
-# Sécurité : utilisateur non-root (bun existe déjà)
-USER bun
+# Sécurité : utilisateur non-root
+USER node
 
-# Runtime configuration
+# Configuration Railway
 ENV NODE_ENV=production
-ENV PORT=3000
 EXPOSE 3000
 
-# Health check
+# Health check pour Railway
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD bun --version || exit 1
+  CMD node --version || exit 1
 
-# Start avec Bun runtime natif
-CMD ["bun", "run", "dist/main.js"]
+# Start avec Node.js runtime
+ENTRYPOINT ["node", "dist/main.js"]
 ```
 
-**Points forts** :
-- ✅ Multi-stage build optimisé (3 stages)
-- ✅ Gestion correcte du monorepo pnpm
-- ✅ Sécurité renforcée (utilisateur non-root)
-- ✅ Health check intégré
-- ✅ Version Bun récente (1.2.15)
+### Configuration Railway
 
-### Déployer
+- Projet: créer/ouvrir le projet Railway
+- Service: créer un service Docker (build context = racine du repo)
+- Paramètres du service:
+  - Build from: GitHub repo (monorepo) ou CLI
+  - **Variable critique**: `RAILWAY_DOCKERFILE_PATH=backend-nest/Dockerfile`
+  - Watch Paths: `backend-nest/**`, `shared/**`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `package.json`
+  - Variables d'environnement requises:
+    - `NODE_ENV=production`
+    - `PORT` (Railway l'injecte automatiquement)
+    - `FRONTEND_URL=https://[FRONTEND_DOMAIN]`
+    - `SUPABASE_URL=https://[PROJECT_REF].supabase.co`
+    - `SUPABASE_ANON_KEY=[ANON_KEY]`
+    - `SUPABASE_SERVICE_ROLE_KEY=[SERVICE_KEY]`
+    - `DEBUG_HTTP_FULL=false`
+
+### Déploiement via CLI
+
+Depuis la racine du dépôt:
 
 ```bash
-cd backend-nest
-railway init  # Nom: pulpe-backend
+# Lier le répertoire au projet/service Railway
+railway link
 
-# Configurer les variables d'environnement
-railway variables --set "NODE_ENV=production" \
-                  --set "SUPABASE_URL=[VOTRE_URL]" \
-                  --set "SUPABASE_ANON_KEY=[VOTRE_KEY]" \
-                  --set "SUPABASE_SERVICE_ROLE_KEY=[VOTRE_SERVICE_KEY]"
+# (Optionnel) Sélectionner le service si plusieurs
+railway service
 
-# Déployer et configurer le domaine
+# Déployer (Docker build depuis la racine, Dockerfile path configuré côté service)
 railway up
-railway domain  # Récupérer l'URL
+
+# Récupérer l’URL publique
+railway domain
 ```
+
+### Diagnostic des Problèmes Courants
+
+#### ❌ Problème : "No deployments found" ou builds en échec infini
+**Cause** : Images Docker indisponibles (ex: `oven/bun:*` en timeout)
+**Solution** : Vérifier localement avec `docker pull node:20-alpine` puis basculer vers Node.js
+
+#### ❌ Problème : Erreurs de résolution `workspace:*`  
+**Cause** : Build context incorrect ou fichiers workspace manquants
+**Solution** : Vérifier la présence de `pnpm-workspace.yaml` et `pnpm-lock.yaml` à la racine
+
+### Notes importantes
+
+- **Critique** : Railway doit définir `RAILWAY_DOCKERFILE_PATH=backend-nest/Dockerfile` pour localiser le Dockerfile dans le monorepo.
+- **Port** : Automatiquement injecté via `PORT` par Railway.
+- **Performance** : Build avec Bun + Runtime Node.js = bon compromis stabilité/performance.
 
 ## Étape 3: Configuration Frontend
 
@@ -139,9 +174,7 @@ railway domain  # Récupérer l'URL
 
 ### Configurer Vercel (Monorepo)
 
-**IMPORTANT**: Pour monorepo pnpm avec packages partagés
-
-`vercel.json` à la **RACINE** du monorepo:
+`vercel.json` à la racine:
 
 ```json
 {
@@ -149,16 +182,11 @@ railway domain  # Récupérer l'URL
   "outputDirectory": "frontend/dist/webapp/browser",
   "installCommand": "pnpm install --frozen-lockfile --filter=pulpe-frontend --filter=@pulpe/shared --ignore-scripts",
   "framework": "angular",
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ]
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }
 ```
 
-`.vercelignore` à la **RACINE**:
+`.vercelignore` à la racine:
 
 ```
 backend-nest/
@@ -202,18 +230,8 @@ console.log(`✅ Configuration '${env}' activée`);
 ### Déployer
 
 ```bash
-# Depuis la RACINE du monorepo
+# Depuis la racine du monorepo
 vercel
-
-# Réponses:
-? Set up and deploy? → Y
-? Which scope? → [Votre compte]
-? Link to existing? → N
-? Project name? → pulpe
-? Directory? → ./
-? Modify settings? → N
-
-# Production
 vercel --prod
 ```
 
@@ -222,7 +240,5 @@ vercel --prod
 - [ ] Supabase projet créé, credentials récupérés
 - [ ] Backend Railway déployé, URL obtenue
 - [ ] config.production.json créé avec vraies valeurs
-- [ ] vercel.json à la racine du monorepo
-- [ ] .vercelignore à la racine
-- [ ] Scripts use-config.js et package.json mis à jour
+- [ ] vercel.json et .vercelignore à la racine
 - [ ] Frontend déployé sur Vercel
