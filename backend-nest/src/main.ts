@@ -18,7 +18,13 @@ function setupCors(app: import('@nestjs/common').INestApplication): void {
   app.enableCors({
     origin:
       nodeEnv === 'production'
-        ? configService.get<string>('CORS_ORIGIN', '').split(',')
+        ? [
+            // URLs de production fixes
+            'https://pulpe.maximedesogus.ch',
+            'https://pulpe-frontend.vercel.app',
+            // Pattern pour les URLs de preview Vercel
+            /^https:\/\/pulpe-frontend-[a-zA-Z0-9-]+-maximes-projects-56d66b35\.vercel\.app$/,
+          ]
         : (
             origin: string | undefined,
             callback: (err: Error | null, allow?: boolean) => void,
