@@ -180,7 +180,7 @@ async function bootstrap() {
 
   const logger = app.get(Logger);
 
-  await app.listen(env.PORT);
+  await app.listen(env.PORT, '0.0.0.0');
 
   logApplicationInfo(logger, env.PORT, env);
 }

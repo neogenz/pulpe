@@ -10,6 +10,7 @@ const envSchema = z.object({
   SUPABASE_URL: z.string().min(1, 'SUPABASE_URL is required'),
   SUPABASE_ANON_KEY: z.string().min(1, 'SUPABASE_ANON_KEY is required'),
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+  CORS_ORIGIN: z.string().optional(),
   DEBUG_HTTP_FULL: z.string().optional(),
 });
 
@@ -23,6 +24,7 @@ export function validateEnvironment(configService: ConfigService): Environment {
     SUPABASE_URL: configService.get('SUPABASE_URL'),
     SUPABASE_ANON_KEY: configService.get('SUPABASE_ANON_KEY'),
     SUPABASE_SERVICE_ROLE_KEY: configService.get('SUPABASE_SERVICE_ROLE_KEY'),
+    CORS_ORIGIN: configService.get('CORS_ORIGIN'),
     DEBUG_HTTP_FULL: configService.get('DEBUG_HTTP_FULL'),
   };
 

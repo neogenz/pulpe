@@ -1,53 +1,59 @@
-# Dockerfile optimisé pour Railway + Node.js runtime (monorepo pnpm)
-FROM node:20-alpine AS base
-WORKDIR /usr/src/app
+# Dockerfile optimisé pour Railway - NestJS + pnpm monorepo
+FROM node:20-slim AS base
 
-# Dependencies stage - Install avec pnpm pour workspace resolution
-FROM base AS install
+# Configuration pnpm + Git (requis pour lefthook)
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable && corepack prepare pnpm@10.12.1 --activate
-RUN apk add --no-cache git
 
-# Copy workspace files pour pnpm resolution
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+# Installation Bun + Git pour le build
+RUN apt-get update && apt-get install -y curl unzip git && \
+    curl -fsSL https://bun.sh/install | bash && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+ENV PATH="/root/.bun/bin:$PATH"
+
+WORKDIR /app
+
+# Copier les fichiers de configuration du monorepo
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml turbo.json ./
 COPY shared/package.json ./shared/
 COPY backend-nest/package.json ./backend-nest/
 
-# Install toutes les dépendances (sans cache BuildKit)
+# Initialiser git pour lefthook puis installer les dépendances
 RUN git init && pnpm install --frozen-lockfile
 
-# Build stage
-FROM install AS build
+# Build shared package
 COPY shared/ ./shared/
-COPY backend-nest/ ./backend-nest/
-
-# Build shared package FIRST (direct build, not turbo)
-WORKDIR /usr/src/app/shared
+WORKDIR /app/shared
 RUN pnpm run build
-WORKDIR /usr/src/app
 
-# Build backend avec TypeScript (Node.js runtime)
-WORKDIR /usr/src/app/backend-nest
-RUN npx tsc --build
+# Build backend avec TypeScript classique (meilleure compatibilité NestJS)
+WORKDIR /app
+COPY backend-nest/ ./backend-nest/
+WORKDIR /app/backend-nest
+RUN npx nest build
 
-# Production stage - Runtime Node.js
-FROM node:20-alpine AS production
+# Deploy stage - Créer un artifact minimal pour production
+FROM base AS deploy
+RUN pnpm --filter=backend-nest --prod deploy --legacy /prod/backend
+
+# Stage production
+FROM node:20-slim AS production
 WORKDIR /app
 
-# Copier les artefacts de build
-COPY --from=build --chown=node:node /usr/src/app/backend-nest/dist ./dist
-COPY --from=build --chown=node:node /usr/src/app/backend-nest/package.json ./
-COPY --from=build --chown=node:node /usr/src/app/node_modules ./node_modules
+# Copier l'artifact minimal (sans devDependencies)
+COPY --from=deploy /prod/backend ./
 
-# Sécurité : utilisateur non-root
-USER node
-
-# Configuration Railway
+# Configuration production
 ENV NODE_ENV=production
 EXPOSE 3000
 
-# Health check pour Railway
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node --version || exit 1
+# Utilisateur non-root
+USER node
 
-# Start avec Node.js runtime
-ENTRYPOINT ["node", "dist/main.js"]
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:' + (process.env.PORT || 3000) + '/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
+
+# Démarrage avec Node.js (pas Bun en production)
+CMD ["node", "dist/main.js"]

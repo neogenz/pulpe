@@ -33,73 +33,78 @@ supabase link --project-ref [PROJECT_REF]
 supabase db push
 ```
 
-## Étape 2: Backend sur Railway (monorepo pnpm + Node.js)
+## Étape 2: Backend sur Railway (monorepo pnpm + Bun build + Node.js runtime)
 
 ### Principe
 
 - Build depuis la racine du monorepo pour résoudre `workspace:*` (pnpm)
-- **Runtime Node.js** pour la stabilité (images Bun peuvent être indisponibles)
-- Dockerfile multi-stage optimisé avec BuildKit cache
-- Build avec Bun → Runtime avec Node.js (meilleur compromis performance/fiabilité)
+- **Build avec Bun** pour les performances (comme spécifié dans package.json)
+- **Runtime Node.js** pour la stabilité Railway
+- Dockerfile multi-stage optimisé pour monorepos
+- .dockerignore inclus pour optimiser le contexte de build
 
-### Dockerfile (production-ready)
+### Dockerfile (standards 2025)
 
-Le `backend-nest/Dockerfile` utilise pnpm via corepack + Node.js runtime:
+Le `backend-nest/Dockerfile` utilise pnpm + Bun build + Node.js runtime:
 
 ```dockerfile
-# Dockerfile optimisé pour Railway + Node.js runtime (monorepo pnpm)
-FROM node:20-alpine AS base
-WORKDIR /usr/src/app
+# Dockerfile optimisé pour Railway - NestJS + pnpm monorepo
+FROM node:20-slim AS base
 
-# Dependencies stage - Install avec pnpm pour workspace resolution
-FROM base AS install
+# Configuration pnpm
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable && corepack prepare pnpm@10.12.1 --activate
-RUN apk add --no-cache git
 
-# Copy workspace files pour pnpm resolution
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+# Installation Bun pour le build uniquement
+RUN apt-get update && apt-get install -y curl unzip && \
+    curl -fsSL https://bun.sh/install | bash && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+ENV PATH="/root/.bun/bin:$PATH"
+
+WORKDIR /app
+
+# Copier les fichiers de configuration du monorepo
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml turbo.json ./
 COPY shared/package.json ./shared/
 COPY backend-nest/package.json ./backend-nest/
 
-# Install toutes les dépendances avec cache optimisé
-RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
-    git init && pnpm install --frozen-lockfile
+# Installer les dépendances
+RUN pnpm install --frozen-lockfile
 
-# Build stage
-FROM install AS build
+# Build shared package
 COPY shared/ ./shared/
+WORKDIR /app/shared
+RUN pnpm run build
+
+# Build backend avec Bun
+WORKDIR /app
 COPY backend-nest/ ./backend-nest/
-
-# Build shared package FIRST (dependency requirement)
-RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
-    pnpm build --filter=@pulpe/shared
-
-# Build backend avec Bun (targeting Node.js runtime)
-WORKDIR /usr/src/app/backend-nest
+WORKDIR /app/backend-nest
 RUN bun build src/main.ts --outdir=dist --target=node --minify --packages=external
 
-# Production stage - Runtime Node.js
-FROM node:20-alpine AS production
+# Stage production
+FROM node:20-slim AS production
 WORKDIR /app
 
-# Copier les artefacts de build
-COPY --from=build --chown=node:node /usr/src/app/backend-nest/dist ./dist
-COPY --from=build --chown=node:node /usr/src/app/backend-nest/package.json ./
-COPY --from=build --chown=node:node /usr/src/app/node_modules ./node_modules
+# Copier uniquement les fichiers nécessaires
+COPY --from=base /app/backend-nest/dist ./dist
+COPY --from=base /app/backend-nest/package.json ./
+COPY --from=base /app/node_modules ./node_modules
 
-# Sécurité : utilisateur non-root
-USER node
-
-# Configuration Railway
+# Configuration production
 ENV NODE_ENV=production
 EXPOSE 3000
 
-# Health check pour Railway
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node --version || exit 1
+# Utilisateur non-root
+USER node
 
-# Start avec Node.js runtime
-ENTRYPOINT ["node", "dist/main.js"]
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:' + (process.env.PORT || 3000) + '/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
+
+# Démarrage avec Node.js (pas Bun en production)
+CMD ["node", "dist/main.js"]
 ```
 
 ### Configuration Railway
@@ -109,15 +114,14 @@ ENTRYPOINT ["node", "dist/main.js"]
 - Paramètres du service:
   - Build from: GitHub repo (monorepo) ou CLI
   - **Variable critique**: `RAILWAY_DOCKERFILE_PATH=backend-nest/Dockerfile`
-  - Watch Paths: `backend-nest/**`, `shared/**`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `package.json`
+  - Watch Paths: `backend-nest/**`, `shared/**`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `package.json`, `turbo.json`
   - Variables d'environnement requises:
     - `NODE_ENV=production`
-    - `PORT` (Railway l'injecte automatiquement)
+    - `RAILWAY_DOCKERFILE_PATH=backend-nest/Dockerfile`
     - `FRONTEND_URL=https://[FRONTEND_DOMAIN]`
+    - `CORS_ORIGIN=https://[FRONTEND_DOMAIN]` *(critique pour CORS)*
     - `SUPABASE_URL=https://[PROJECT_REF].supabase.co`
     - `SUPABASE_ANON_KEY=[ANON_KEY]`
-    - `SUPABASE_SERVICE_ROLE_KEY=[SERVICE_KEY]`
-    - `DEBUG_HTTP_FULL=false`
 
 ### Déploiement via CLI
 

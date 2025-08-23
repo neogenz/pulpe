@@ -1,0 +1,45 @@
+# Dependencies
+node_modules
+**/node_modules
+.pnpm-store
+
+# Environment files
+.env*
+!.env.example
+
+# Build outputs
+dist
+**/dist
+
+# Development files
+*.log
+*.spec.ts
+*.test.ts
+coverage
+.nyc_output
+
+# Git and IDE
+.git
+.gitignore
+.vscode
+.idea
+*.swp
+
+# Documentation
+*.md
+LICENSE
+
+# Testing
+test
+tests
+e2e
+jest.config.js
+vitest.config.ts
+
+# Supabase local
+supabase
+.supabase
+
+# Cache
+.turbo
+.cache
