@@ -179,7 +179,6 @@ src/
 ```env
 NODE_ENV=development
 PORT=3000
-FRONTEND_URL=http://localhost:4200
 SUPABASE_URL=votre_url_supabase
 SUPABASE_ANON_KEY=votre_clé_anon_supabase
 SUPABASE_SERVICE_ROLE_KEY=votre_clé_service_supabase

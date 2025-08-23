@@ -5,6 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Quick Start Commands
 
 ### Development
+
 ```bash
 # Start with local Supabase (recommended)
 bun run dev                    # Starts Supabase + watches for changes (port 3000)
@@ -19,12 +20,14 @@ bun run supabase:reset         # Reset database to initial state
 ```
 
 ### Building & Production
+
 ```bash
 bun run build                  # Build for production with minification
 bun run start:prod             # Run production build
 ```
 
 ### Testing
+
 ```bash
 # Test commands
 bun test                       # Run all tests
@@ -39,6 +42,7 @@ DEBUG_PERFORMANCE=true bun test # Enable performance debugging
 ```
 
 ### Code Quality
+
 ```bash
 # Quality checks (run before committing)
 bun run quality                # Type-check + Lint + Format check
@@ -53,6 +57,7 @@ bun run type-check:full        # Full TypeScript type checking
 ```
 
 ### Database Operations
+
 ```bash
 # Type generation
 bun run generate-types:local   # Generate types from local Supabase
@@ -68,6 +73,7 @@ bun run dump:db                # Export schema to SQL file
 ## High-level Architecture
 
 ### NestJS Module Structure
+
 ```
 src/modules/[domain]/
 ├── [domain].controller.ts    # HTTP routes, validation, Swagger docs
@@ -81,6 +87,7 @@ src/modules/[domain]/
 ### Key Architectural Patterns
 
 #### 1. Authentication Flow
+
 - **JWT Bearer tokens** validated via Supabase Auth
 - **AuthGuard** protects all routes by default
 - **@User() decorator** injects authenticated user
@@ -88,21 +95,26 @@ src/modules/[domain]/
 - **Row Level Security (RLS)** enforces data isolation at DB level
 
 #### 2. Data Validation Pipeline
+
 ```typescript
 Frontend (Zod) → Backend DTO (createZodDto) → Service Validation → Database (RLS)
 ```
+
 - Shared schemas from `@pulpe/shared` package
 - Runtime validation with Zod
 - Type safety with TypeScript strict mode
 - Database constraints and RLS policies
 
 #### 3. Service Pattern
+
 Services handle business logic and use mappers for data transformation:
+
 ```typescript
 DB Row (snake_case) → Mapper → API Response (camelCase)
 ```
 
 #### 4. Error Handling
+
 - Global exception filter for consistent error responses
 - Structured logging with Pino
 - Request ID tracking for debugging
@@ -111,23 +123,25 @@ DB Row (snake_case) → Mapper → API Response (camelCase)
 ### Database Architecture
 
 #### Supabase Integration
+
 - **Authentication**: Supabase Auth with JWT
 - **Database**: PostgreSQL with Row Level Security
 - **Types**: Auto-generated from database schema
 - **RLS Policies**: User data isolation via `auth.uid()`
 
 #### Key Tables
+
 - `monthly_budget`: User budgets by month/year
 - `transaction`: Financial transactions
 - `template`: Budget templates (public + private)
 - `template_line`: Template transaction items
 
 ### Environment Configuration
+
 ```env
 # Required variables (.env file)
 NODE_ENV=development
 PORT=3000
-FRONTEND_URL=http://localhost:4200
 SUPABASE_URL=your_url_here
 SUPABASE_ANON_KEY=your_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_key
@@ -136,11 +150,13 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_key
 ### Testing Strategy
 
 #### Unit Tests
+
 - Mock Supabase client for isolated testing
 - Test services and guards independently
 - Use `createMockSupabaseClient()` helper
 
 #### Performance Tests
+
 - Load testing with metrics
 - Response time tracking
 - Memory usage monitoring
@@ -149,6 +165,7 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_key
 ### Common Development Tasks
 
 #### Adding a New Module
+
 1. Create module structure in `src/modules/[domain]/`
 2. Define DTOs using `createZodDto` with shared schemas
 3. Implement service with business logic
@@ -157,15 +174,18 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_key
 6. Register module in `app.module.ts`
 
 #### Working with Database Types
+
 1. Make schema changes in Supabase Studio or migrations
 2. Run `bun run generate-types:local` to update types
 3. Use generated types in services:
+
 ```typescript
 import type { Database } from '../../types/database.types';
 type BudgetRow = Database['public']['Tables']['monthly_budget']['Row'];
 ```
 
 #### Debugging Requests
+
 - Enable debug logging: `DEBUG_HTTP_FULL=true`
 - Check Swagger docs at `http://localhost:3000/docs`
 - Use request ID from response headers for log correlation
@@ -173,12 +193,15 @@ type BudgetRow = Database['public']['Tables']['monthly_budget']['Row'];
 ### Logging with Pino
 
 #### Configuration
+
 The application uses **nestjs-pino** for structured logging with high performance:
+
 - **Development**: Pretty-printed colorful output with `pino-pretty`
 - **Production**: JSON structured logs for observability platforms
 - **Auto-correlation**: Request IDs generated and propagated automatically
 
 #### Usage in Services
+
 ```typescript
 import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
 
@@ -191,25 +214,31 @@ export class MyService {
 
   async businessMethod(user: User, data: SomeData) {
     const startTime = Date.now();
-    
-    this.logger.info({
-      operation: 'business_method',
-      userId: user.id,
-      entityId: result.id,
-      duration: Date.now() - startTime,
-    }, 'Business operation completed');
+
+    this.logger.info(
+      {
+        operation: 'business_method',
+        userId: user.id,
+        entityId: result.id,
+        duration: Date.now() - startTime,
+      },
+      'Business operation completed',
+    );
   }
 }
 ```
 
 #### Log Levels
+
 - **error**: Server errors (5xx), critical exceptions
 - **warn**: Client errors (4xx), abnormal situations
 - **info**: Important business operations, audit, metrics
 - **debug**: Technical details, validation (dev only)
 
 #### Security & Redaction
+
 Sensitive fields are automatically masked:
+
 - `req.headers.authorization`
 - `req.headers.cookie`
 - `req.body.password`
@@ -217,6 +246,7 @@ Sensitive fields are automatically masked:
 - `res.headers["set-cookie"]`
 
 #### Testing with Logger
+
 ```typescript
 // Mock the logger in tests
 const mockPinoLogger = {
@@ -238,6 +268,7 @@ For detailed logging documentation, see [LOGGING.md](./LOGGING.md).
 ### Important Conventions
 
 #### NestJS Best Practices
+
 - Use constructor injection for dependencies
 - Keep controllers thin (HTTP only)
 - Business logic in services
@@ -245,12 +276,14 @@ For detailed logging documentation, see [LOGGING.md](./LOGGING.md).
 - Custom decorators for request data
 
 #### Type Safety
+
 - TypeScript strict mode enabled
 - No `any` types allowed
 - Validate all external data with Zod
 - Use type guards for runtime checks
 
 #### Security
+
 - All routes protected by default
 - RLS policies enforce data isolation
 - Input validation at multiple layers
@@ -259,6 +292,7 @@ For detailed logging documentation, see [LOGGING.md](./LOGGING.md).
 ### API Endpoints
 
 All endpoints prefixed with `/api/v1`:
+
 - `/api/v1/auth/*` - Authentication
 - `/api/v1/users/*` - User management
 - `/api/v1/budgets/*` - Budget operations
@@ -268,12 +302,14 @@ All endpoints prefixed with `/api/v1`:
 ### Troubleshooting
 
 #### Common Issues
+
 1. **Supabase connection errors**: Check `bun run supabase:status`
 2. **Type errors after DB changes**: Run `bun run generate-types:local`
 3. **Test failures**: Ensure Supabase is running for integration tests
 4. **Permission errors**: Verify RLS policies and user authentication
 
 #### Debug Tools
+
 - Swagger UI: `http://localhost:3000/docs`
 - Supabase Studio: `http://localhost:54323`
 - Request tracking: Check `X-Request-ID` header

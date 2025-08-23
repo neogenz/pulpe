@@ -157,7 +157,6 @@ async function bootstrap() {
   const env: Environment = {
     NODE_ENV: configService.get('NODE_ENV')!,
     PORT: configService.get('PORT')!,
-    FRONTEND_URL: configService.get('FRONTEND_URL')!,
     SUPABASE_URL: configService.get('SUPABASE_URL')!,
     SUPABASE_ANON_KEY: configService.get('SUPABASE_ANON_KEY')!,
     SUPABASE_SERVICE_ROLE_KEY: configService.get('SUPABASE_SERVICE_ROLE_KEY'),

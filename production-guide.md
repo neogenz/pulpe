@@ -118,8 +118,7 @@ CMD ["node", "dist/main.js"]
   - Variables d'environnement requises:
     - `NODE_ENV=production`
     - `RAILWAY_DOCKERFILE_PATH=backend-nest/Dockerfile`
-    - `FRONTEND_URL=https://[FRONTEND_DOMAIN]`
-    - `CORS_ORIGIN=https://[FRONTEND_DOMAIN]` *(critique pour CORS)*
+    - `CORS_ORIGIN=https://[FRONTEND_DOMAIN]` _(critique pour CORS)_
     - `SUPABASE_URL=https://[PROJECT_REF].supabase.co`
     - `SUPABASE_ANON_KEY=[ANON_KEY]`
 
@@ -144,10 +143,12 @@ railway domain
 ### Diagnostic des Problèmes Courants
 
 #### ❌ Problème : "No deployments found" ou builds en échec infini
+
 **Cause** : Images Docker indisponibles (ex: `oven/bun:*` en timeout)
 **Solution** : Vérifier localement avec `docker pull node:20-alpine` puis basculer vers Node.js
 
-#### ❌ Problème : Erreurs de résolution `workspace:*`  
+#### ❌ Problème : Erreurs de résolution `workspace:*`
+
 **Cause** : Build context incorrect ou fichiers workspace manquants
 **Solution** : Vérifier la présence de `pnpm-workspace.yaml` et `pnpm-lock.yaml` à la racine
 

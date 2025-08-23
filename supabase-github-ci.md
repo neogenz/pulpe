@@ -18,12 +18,15 @@ Ce guide vous accompagne pour configurer vos GitHub Actions afin qu'elles utilis
 ## 🔍 Vue d'ensemble de la solution {#vue-densemble}
 
 ### Situation actuelle
+
 - **Local** : Supabase local via Docker (`supabase start`)
 - **CI/CD** : Actuellement configuré pour Supabase distant
 - **Production** : Supabase distant (à venir)
 
 ### Solution proposée (Approche officielle 2025)
+
 Nous allons configurer GitHub Actions pour :
+
 1. Installer Supabase CLI (via `supabase/setup-cli@v1`)
 2. Démarrer une instance Supabase locale avec Docker (via `supabase start`)
 3. Attendre que l'instance soit prête (health check robuste)
@@ -32,6 +35,7 @@ Nous allons configurer GitHub Actions pour :
 6. Nettoyer l'instance après les tests
 
 ### Avantages
+
 - ✅ **Approche officielle** documentée par Supabase 2025
 - ✅ Cohérence avec l'environnement de développement local
 - ✅ Tests 100% isolés (chaque PR a sa propre DB)
@@ -46,6 +50,7 @@ Nous allons configurer GitHub Actions pour :
 ### Dans votre projet
 
 Vérifiez que vous avez :
+
 - ✅ Le dossier `backend-nest/supabase/` avec :
   - `config.toml` ✅ (déjà présent)
   - `migrations/` ✅ (déjà présent)
@@ -58,15 +63,16 @@ Vérifiez que vous avez :
 1. Allez dans **Settings > Secrets and variables > Actions**
 2. Ajoutez ces secrets :
 
-| Nom | Valeur | Description |
-|-----|--------|-------------|
-| `SUPABASE_LOCAL_URL` | `http://127.0.0.1:54321` | URL Supabase local |
-| `SUPABASE_LOCAL_ANON_KEY` | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0` | Clé anon standard (publique mais traitée comme secret) |
+| Nom                               | Valeur                                                                                                                                                                 | Description                                                    |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `SUPABASE_LOCAL_URL`              | `http://127.0.0.1:54321`                                                                                                                                               | URL Supabase local                                             |
+| `SUPABASE_LOCAL_ANON_KEY`         | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0`            | Clé anon standard (publique mais traitée comme secret)         |
 | `SUPABASE_LOCAL_SERVICE_ROLE_KEY` | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU` | Clé service_role standard (publique mais traitée comme secret) |
 
 > **💡 Pourquoi GitHub Secrets ?** Même si ces clés locales sont publiques, les traiter comme des secrets :
+>
 > - Maintient la cohérence des pratiques
-> - Prépare la migration vers la production  
+> - Prépare la migration vers la production
 > - Évite les erreurs de manipulation
 > - Donne l'exemple à l'équipe
 
@@ -80,7 +86,7 @@ Vérifiez que vous avez :
 2. **Cliquez sur "New repository secret"**
 3. **Ajoutez ces 3 secrets** (valeurs dans le tableau ci-dessus) :
    - `SUPABASE_LOCAL_URL`
-   - `SUPABASE_LOCAL_ANON_KEY` 
+   - `SUPABASE_LOCAL_ANON_KEY`
    - `SUPABASE_LOCAL_SERVICE_ROLE_KEY`
 
 ### Étape 2 : Créer le fichier d'environnement CI
@@ -92,11 +98,10 @@ Créez `.env.ci` dans `backend-nest/` :
 # Environment for CI/CD with local Supabase
 NODE_ENV=test
 PORT=3000
-FRONTEND_URL=http://localhost:4200
 
 # Supabase configuration will be injected from GitHub Secrets
 # SUPABASE_URL - injected via workflow
-# SUPABASE_ANON_KEY - injected via workflow  
+# SUPABASE_ANON_KEY - injected via workflow
 # SUPABASE_SERVICE_ROLE_KEY - injected via workflow
 
 # Rate Limiting
@@ -182,7 +187,7 @@ jobs:
           echo "🚀 Starting Supabase local instance..."
           # Exclure les services non nécessaires pour gain de performance
           supabase start --exclude studio,inbucket,imgproxy
-          
+
           echo "⏳ Health check robuste..."
           timeout=180
           counter=0
@@ -214,12 +219,12 @@ jobs:
         run: |
           echo "📝 Creating CI environment file..."
           cp .env.ci .env
-          
+
           # Inject secrets into .env file
           echo "SUPABASE_URL=${SUPABASE_URL}" >> .env
           echo "SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}" >> .env
           echo "SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}" >> .env
-          
+
           echo "✅ Environment ready"
 
       - name: 💾 Save Supabase State
@@ -274,7 +279,7 @@ jobs:
         working-directory: backend-nest
         run: |
           supabase start --exclude studio,inbucket,imgproxy
-          
+
           # Health check rapide pour restore
           timeout=60
           counter=0
@@ -351,7 +356,7 @@ jobs:
         working-directory: backend-nest
         run: |
           supabase start --exclude studio,inbucket,imgproxy
-          
+
           # Health check pour tests
           timeout=60
           counter=0
@@ -411,17 +416,17 @@ Mettez à jour `backend-nest/package.json` avec les bonnes pratiques 2025 :
 {
   "scripts": {
     // ... scripts existants ...
-    
+
     // Scripts CI spécifiques (approche officielle)
     "test:ci": "NODE_ENV=test bun --env-file=.env.ci test",
     "start:ci": "NODE_ENV=test bun --env-file=.env.ci src/main.ts",
-    
+
     // Scripts Supabase optimisés pour CI
     "supabase:ci:start": "supabase start --exclude studio,inbucket,imgproxy",
     "supabase:ci:stop": "supabase stop",
     "supabase:ci:status": "supabase status",
     "supabase:ci:types": "supabase gen types typescript --local > src/types/database.types.ts",
-    
+
     // Scripts de debug pour CI
     "supabase:ci:health": "curl -f http://127.0.0.1:54321/rest/v1/ || exit 1",
     "supabase:ci:logs": "docker logs $(docker ps -q --filter 'name=supabase')"
@@ -482,6 +487,7 @@ echo -e "${GREEN}✅ CI environment ready!${NC}"
 ```
 
 Rendez le script exécutable :
+
 ```bash
 chmod +x backend-nest/scripts/ci-setup.sh
 ```
@@ -524,12 +530,12 @@ supabase/.branches/
   "scripts": {
     // Développement local
     "dev:local": "bun run supabase:start && NODE_ENV=development bun --env-file=.env.local --watch src/main.ts",
-    
+
     // CI/CD (approche officielle)
     "ci:setup": "./scripts/ci-setup.sh",
     "ci:test": "NODE_ENV=test bun --env-file=.env.ci test",
     "ci:health": "curl -f http://127.0.0.1:54321/rest/v1/ || exit 1",
-    
+
     // Production (future)
     "start:prod": "NODE_ENV=production bun --env-file=.env.production dist/main.js"
   }
@@ -543,12 +549,13 @@ supabase/.branches/
 ### Problème : Supabase ne démarre pas dans GitHub Actions
 
 **Solution** : Utiliser les logs de debug intégrés
+
 ```yaml
 - name: 🐳 Start Supabase with Debug
   run: |
     # Approche 2025 : services optimisés + logs
     supabase start --exclude studio,inbucket,imgproxy --debug
-    
+
     # En cas d'échec, afficher le status pour debug
     if [ $? -ne 0 ]; then
       echo "❌ Supabase failed to start"
@@ -558,10 +565,11 @@ supabase/.branches/
     fi
 ```
 
-### Problème : Tests échouent avec "connection refused" 
+### Problème : Tests échouent avec "connection refused"
 
 **Solution** : Health check robuste déjà implémenté ✅
 Le guide utilise maintenant un health check actif avec timeout configurable :
+
 ```bash
 timeout=180
 counter=0
@@ -581,6 +589,7 @@ done
 `supabase start` applique automatiquement toutes les migrations du dossier `supabase/migrations/`.
 
 Si besoin de forcer :
+
 ```yaml
 - name: 📊 Force Apply Migrations
   working-directory: backend-nest
@@ -597,6 +606,7 @@ Si besoin de forcer :
 Ce problème n'arrive généralement pas sur GitHub Actions car chaque runner est isolé.
 
 Si nécessaire, utilisez un port différent :
+
 ```toml
 # backend-nest/supabase/config.toml
 [api]
@@ -612,13 +622,15 @@ Et mettez à jour les secrets GitHub avec `http://127.0.0.1:54330`.
 ### 1. Services exclus pour performance ✅
 
 Le guide utilise `--exclude studio,inbucket,imgproxy` qui permet de gagner ~30-60 secondes :
+
 - `studio` : Interface web non nécessaire en CI
-- `inbucket` : Service email de test non requis 
+- `inbucket` : Service email de test non requis
 - `imgproxy` : Service de transformation d'images non requis
 
 ### 2. Health check robuste ✅
 
 Remplace le `sleep 10` par un check actif qui :
+
 - Teste la disponibilité réelle de l'API
 - Évite d'attendre inutilement
 - Fournit des logs de debug en cas d'échec
@@ -626,6 +638,7 @@ Remplace le `sleep 10` par un check actif qui :
 ### 3. Génération automatique des types ✅
 
 Les types TypeScript sont générés automatiquement via :
+
 ```bash
 supabase gen types typescript --local > src/types/database.types.ts
 ```
@@ -635,6 +648,7 @@ supabase gen types typescript --local > src/types/database.types.ts
 Si les temps CI deviennent problématiques :
 
 #### Parallélisation des tests
+
 ```yaml
 strategy:
   matrix:
@@ -645,6 +659,7 @@ steps:
 ```
 
 #### Cache des images Docker (avancé)
+
 ```yaml
 - name: 🐳 Cache Docker buildx
   uses: actions/cache@v4
@@ -654,7 +669,6 @@ steps:
     restore-keys: |
       ${{ runner.os }}-buildx-
 ```
-
 
 ---
 
@@ -702,4 +716,4 @@ steps:
 
 ---
 
-*Guide créé le 14/08/2025 - Optimisé avec les bonnes pratiques Supabase 2025 pour le projet Pulpe*
+_Guide créé le 14/08/2025 - Optimisé avec les bonnes pratiques Supabase 2025 pour le projet Pulpe_
