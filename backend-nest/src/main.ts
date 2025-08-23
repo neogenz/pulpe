@@ -16,26 +16,51 @@ function setupCors(app: import('@nestjs/common').INestApplication): void {
   const nodeEnv = configService.get<string>('NODE_ENV', 'development');
 
   app.enableCors({
-    origin:
-      nodeEnv === 'production'
-        ? [
-            // URLs de production fixes
-            'https://pulpe.maximedesogus.ch',
-            'https://pulpe-frontend.vercel.app',
-            // Pattern pour les URLs de preview Vercel
-            /^https:\/\/pulpe-frontend-[a-zA-Z0-9-]+-maximes-projects-56d66b35\.vercel\.app$/,
-          ]
-        : (
-            origin: string | undefined,
-            callback: (err: Error | null, allow?: boolean) => void,
-          ) => {
-            // En développement, autoriser tous les ports localhost
-            if (!origin || /^http:\/\/localhost:\d+$/.test(origin)) {
-              callback(null, true);
-            } else {
-              callback(new Error('Not allowed by CORS'));
-            }
-          },
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
+      // Pas d'origin (mobile apps, server-to-server)
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (nodeEnv === 'production') {
+        // URLs de production depuis les variables d'environnement
+        const productionOrigins = configService
+          .get<string>('CORS_ORIGIN', '')
+          .split(',')
+          .map((url) => url.trim())
+          .filter((url) => url);
+
+        // Vérifier les URLs fixes de production
+        if (productionOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+
+        // Pattern pour les URLs de preview Vercel de ton projet
+        if (
+          /^https:\/\/pulpe-frontend-.+-maximes-projects-.+\.vercel\.app$/.test(
+            origin,
+          )
+        ) {
+          return callback(null, true);
+        }
+
+        // Rejeter tout le reste en production
+        return callback(new Error('Not allowed by CORS'), false);
+      } else {
+        // En développement : localhost + toutes les URLs Vercel
+        if (
+          /^http:\/\/localhost:\d+$/.test(origin) ||
+          origin.includes('.vercel.app')
+        ) {
+          return callback(null, true);
+        }
+
+        return callback(new Error('Not allowed by CORS'), false);
+      }
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
