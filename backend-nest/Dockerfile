@@ -20,8 +20,10 @@ FROM install AS build
 COPY shared/ ./shared/
 COPY backend-nest/ ./backend-nest/
 
-# Build shared package FIRST (dependency requirement)
-RUN pnpm build --filter=@pulpe/shared
+# Build shared package FIRST (direct build, not turbo)
+WORKDIR /usr/src/app/shared
+RUN pnpm run build
+WORKDIR /usr/src/app
 
 # Build backend avec Bun (targeting Node.js runtime)
 WORKDIR /usr/src/app/backend-nest
