@@ -1,0 +1,15 @@
+{
+  "supabase": {
+    "url": "https://your-project.supabase.co",
+    "anonKey": "your-anon-key-here"
+  },
+  "backend": {
+    "apiUrl": "https://api.pulpe.app/api/v1"
+  },
+  "environment": "production",
+  "posthog": {
+    "apiKey": "phc_your_posthog_api_key_here",
+    "apiHost": "https://app.posthog.com",
+    "enabled": true
+  }
+}

@@ -33,6 +33,7 @@ import { buildInfo } from '@env/build-info';
 import { AppErrorHandler } from './error';
 import { errorInterceptor } from './http';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { PostHogService } from './analytics';
 
 export interface CoreOptions {
   routes: Routes; // possible to extend options with more props in the future
@@ -112,19 +113,28 @@ export function provideCore({ routes }: CoreOptions) {
     provideAppInitializer(async () => {
       const applicationConfig = inject(ApplicationConfiguration);
       const authService = inject(AuthApi);
+      const posthog = inject(PostHogService);
 
       try {
-        // 1. Charger la configuration d'abord
+        // 1. Critical: Load configuration first
         await applicationConfig.initialize();
 
         // 2. Logger les informations complètes après chargement
         logAppInfo(applicationConfig);
 
-        // 3. Initialiser l'auth ensuite (config garantie disponible)
+        // 3. Critical: Initialize auth (config guaranteed available)
         await authService.initializeAuthState();
+
+        // 4. Non-critical: Initialize PostHog analytics (fire-and-forget)
+        // Won't block app startup even if it fails
+        posthog.initialize().catch((error) => {
+          console.debug('PostHog initialization skipped', error);
+          // Already handled internally, just ensuring no unhandled rejection
+        });
       } catch (error) {
-        console.error("Erreur lors de l'initialisation", error);
-        throw error; // Bloquer le démarrage de l'app en cas d'erreur critique
+        // Only throw for critical failures (config or auth)
+        console.error("Erreur critique lors de l'initialisation", error);
+        throw error;
       }
     }),
 
