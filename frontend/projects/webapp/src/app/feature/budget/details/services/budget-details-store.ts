@@ -86,12 +86,38 @@ export class BudgetDetailsStore {
     // Start operation tracking
     this.#addOperationInProgress(tempId);
 
+    // Store original data for rollback
+    const originalData = this.#budgetDetailsResource.value();
+
+    // Create temporary budget line for optimistic update
+    const tempBudgetLine = {
+      id: tempId,
+      ...budgetLine,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      templateLineId: null,
+      savingsGoalId: null,
+    };
+
+    // Optimistic update - add the new line immediately
+    this.#budgetDetailsResource.update((details) => {
+      if (!details) return details;
+
+      return {
+        ...details,
+        data: {
+          ...details.data,
+          budgetLines: [...details.data.budgetLines, tempBudgetLine],
+        },
+      };
+    });
+
     try {
       const response = await firstValueFrom(
         this.#budgetLineApi.createBudgetLine$(budgetLine),
       );
 
-      // Update resource with the new budget line
+      // Replace temporary line with server response
       this.#budgetDetailsResource.update((details) => {
         if (!details) return details;
 
@@ -99,15 +125,21 @@ export class BudgetDetailsStore {
           ...details,
           data: {
             ...details.data,
-            budgetLines: [...details.data.budgetLines, response.data],
+            budgetLines: details.data.budgetLines.map((line) =>
+              line.id === tempId ? response.data : line,
+            ),
           },
         };
       });
 
       this.#clearError();
     } catch (error) {
-      // On error, reload to ensure consistency
-      this.#budgetDetailsResource.reload();
+      // Rollback on error
+      if (originalData) {
+        this.#budgetDetailsResource.set(originalData);
+      } else {
+        this.#budgetDetailsResource.reload();
+      }
 
       const errorMessage = "Erreur lors de l'ajout de la prévision";
       this.#setError(errorMessage);
@@ -145,25 +177,10 @@ export class BudgetDetailsStore {
     });
 
     try {
-      const response = await firstValueFrom(
-        this.#budgetLineApi.updateBudgetLine$(id, update),
-      );
+      // Just persist to server, don't update local state again
+      await firstValueFrom(this.#budgetLineApi.updateBudgetLine$(id, update));
 
-      // Update with server response
-      this.#budgetDetailsResource.update((details) => {
-        if (!details) return details;
-
-        return {
-          ...details,
-          data: {
-            ...details.data,
-            budgetLines: details.data.budgetLines.map((line) =>
-              line.id === id ? response.data : line,
-            ),
-          },
-        };
-      });
-
+      // Clear any previous errors
       this.#clearError();
     } catch (error) {
       // Rollback on error

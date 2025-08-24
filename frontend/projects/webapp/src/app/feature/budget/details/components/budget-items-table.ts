@@ -15,6 +15,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatDialog } from '@angular/material/dialog';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { CurrencyPipe } from '@angular/common';
@@ -25,6 +26,7 @@ import {
   type TransactionKind,
   type TransactionRecurrence,
 } from '@pulpe/shared';
+import { EditBudgetLineDialog } from './edit-budget-line-dialog';
 
 interface BudgetItemViewModel {
   id: string;
@@ -301,6 +303,7 @@ export class BudgetItemsTable {
 
   #breakpointObserver = inject(BreakpointObserver);
   #fb = inject(FormBuilder);
+  #dialog = inject(MatDialog);
 
   displayedColumns = ['type', 'name', 'recurrence', 'amount', 'actions'];
   displayedColumnsMobile = ['name', 'amount', 'actions'];
@@ -419,11 +422,32 @@ export class BudgetItemsTable {
     // Only allow editing budget lines, not transactions
     if (item.itemType !== 'budget_line') return;
 
-    this.editingLineId.set(item.id);
-    this.editForm.patchValue({
-      name: item.name,
-      amount: item.amount,
-    });
+    // On mobile, open dialog for editing
+    if (this.isMobile()?.matches) {
+      const budgetLine = this.budgetLines().find((l) => l.id === item.id);
+      if (!budgetLine) return;
+
+      const dialogRef = this.#dialog.open(EditBudgetLineDialog, {
+        data: { budgetLine },
+        width: '400px',
+        maxWidth: '90vw',
+      });
+
+      dialogRef
+        .afterClosed()
+        .subscribe((update: BudgetLineUpdate | undefined) => {
+          if (update) {
+            this.updateClicked.emit({ id: item.id, update });
+          }
+        });
+    } else {
+      // Desktop: inline editing
+      this.editingLineId.set(item.id);
+      this.editForm.patchValue({
+        name: item.name,
+        amount: item.amount,
+      });
+    }
   }
 
   cancelEdit(): void {
