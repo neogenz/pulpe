@@ -50,13 +50,19 @@ import { Logger } from '@core/logging/logger';
           </p>
         </div>
 
-        <form [formGroup]="loginForm" (ngSubmit)="signIn()" class="space-y-6">
+        <form
+          [formGroup]="loginForm"
+          (ngSubmit)="signIn()"
+          class="space-y-6"
+          data-testid="login-form"
+        >
           <mat-form-field appearance="outline" class="w-full">
             <mat-label>Email</mat-label>
             <input
               matInput
               type="email"
               formControlName="email"
+              data-testid="email-input"
               (input)="clearMessages()"
               placeholder="votre@email.com"
               [disabled]="isSubmitting()"
@@ -79,6 +85,7 @@ import { Logger } from '@core/logging/logger';
               matInput
               [type]="hidePassword() ? 'password' : 'text'"
               formControlName="password"
+              data-testid="password-input"
               (input)="clearMessages()"
               placeholder="Mot de passe"
               [disabled]="isSubmitting()"
@@ -119,6 +126,7 @@ import { Logger } from '@core/logging/logger';
             matButton="filled"
             color="primary"
             type="submit"
+            data-testid="login-submit-button"
             class="w-full h-12"
             [disabled]="!canSubmit() || isSubmitting()"
           >
