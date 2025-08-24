@@ -1,6 +1,5 @@
 import { computed, inject, Injectable, resource, signal } from '@angular/core';
-import { BudgetApi } from '@core/budget';
-import { BudgetCalculator } from './budget-calculator';
+import { BudgetApi, BudgetCalculator } from '@core/budget';
 import { TransactionApi } from '@core/transaction';
 import { Logger } from '@core/logging/logger';
 import {
