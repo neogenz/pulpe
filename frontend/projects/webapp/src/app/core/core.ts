@@ -126,11 +126,19 @@ export function provideCore({ routes }: CoreOptions) {
         await authService.initializeAuthState();
 
         // 4. Non-critical: Initialize PostHog analytics (fire-and-forget)
-        // Won't block app startup even if it fails
-        posthog.initialize().catch((error) => {
-          console.debug('PostHog initialization skipped', error);
-          // Already handled internally, just ensuring no unhandled rejection
-        });
+        // Only attempt initialization if PostHog is configured
+        const posthogEnabled = applicationConfig.posthogEnabled?.() ?? false;
+        const posthogApiKey = applicationConfig.posthogApiKey?.();
+
+        if (posthogEnabled && posthogApiKey && posthogApiKey.trim() !== '') {
+          // Won't block app startup even if it fails
+          posthog.initialize().catch((error) => {
+            console.debug('PostHog initialization skipped', error);
+            // Already handled internally, just ensuring no unhandled rejection
+          });
+        } else {
+          console.debug('PostHog initialization skipped - not configured');
+        }
       } catch (error) {
         // Only throw for critical failures (config or auth)
         console.error("Erreur critique lors de l'initialisation", error);
