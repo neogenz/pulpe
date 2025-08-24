@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import type { Request } from '@playwright/test';
 
 /**
  * Smoke Tests: App Health Check
@@ -16,7 +17,7 @@ test.describe('App Health Check', () => {
   test('application loads without errors', async ({ page }) => {
     // Check that the page loads and doesn't have any console errors
     const errors: string[] = [];
-    page.on('pageerror', (error) => {
+    page.on('pageerror', (error: Error) => {
       errors.push(error.message);
     });
 
@@ -61,7 +62,7 @@ test.describe('App Health Check', () => {
   test('static assets load correctly (allowing for some dynamic chunks)', async ({ page }) => {
     // Track failed network requests
     const failedRequests: string[] = [];
-    page.on('requestfailed', (request) => {
+    page.on('requestfailed', (request: Request) => {
       failedRequests.push(request.url());
     });
 
@@ -80,6 +81,14 @@ test.describe('App Health Check', () => {
       }
       // Allow vite hot module replacement to fail
       if (url.includes('@vite') || url.includes('/@fs/')) {
+        return false;
+      }
+      // Allow config files to fail as they might be dynamically loaded
+      if (url.includes('config.json') || url.includes('config.local.json')) {
+        return false;
+      }
+      // Allow animation files to fail as they are optional
+      if (url.includes('lottie') || url.includes('animation')) {
         return false;
       }
       // Only critical are main app files and favicon

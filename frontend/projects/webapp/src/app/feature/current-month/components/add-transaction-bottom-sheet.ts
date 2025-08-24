@@ -69,6 +69,7 @@ import { TransactionValidators } from '../utils/transaction-form-validators';
             inputmode="decimal"
             placeholder="0.00"
             formControlName="amount"
+            data-testid="transaction-amount-input"
             step="0.01"
             min="0.01"
             max="999999.99"
@@ -118,6 +119,7 @@ import { TransactionValidators } from '../utils/transaction-form-validators';
           <input
             matInput
             formControlName="name"
+            data-testid="transaction-description-input"
             placeholder="Ex: Courses chez Migros"
           />
           @if (
@@ -141,7 +143,11 @@ import { TransactionValidators } from '../utils/transaction-form-validators';
         <!-- Type Field -->
         <mat-form-field class="w-full" subscriptSizing="dynamic">
           <mat-label>Type de transaction</mat-label>
-          <mat-select formControlName="kind" aria-label="Type de transaction">
+          <mat-select
+            formControlName="kind"
+            aria-label="Type de transaction"
+            data-testid="transaction-type-select"
+          >
             <mat-option value="expense">
               <mat-icon class="mr-2 icon-filled">remove_circle</mat-icon>
               Dépense
@@ -197,6 +203,7 @@ import { TransactionValidators } from '../utils/transaction-form-validators';
           matButton="outlined"
           (click)="onSubmit()"
           [disabled]="transactionForm.invalid"
+          data-testid="transaction-submit-button"
           class="flex-2"
         >
           Ajouter

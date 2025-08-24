@@ -7,46 +7,32 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  timeout: process.env.CI ? 60000 : 30000,
-  // 🚀 Optimisation CI : 4 workers pour accélérer l'exécution
-  workers: process.env.CI ? 4 : undefined,
-  reporter: process.env.CI ? 'list' : [['html', { open: 'never' }]],
+  retries: process.env.CI ? 1 : 0,
+  timeout: 20000,
+  workers: process.env.CI ? '50%' : '75%',
+  reporter: [['json', { outputFile: 'test-results.json' }], ['list']],
   use: {
     baseURL: 'http://localhost:4200',
-    trace: 'retain-on-failure',
+    trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
+    actionTimeout: 5000,
+    navigationTimeout: 10000,
   },
 
+  testDir: './e2e',
+  
   projects: [
     {
       name: 'setup',
       testMatch: /.*\.setup\.ts/,
     },
     {
-      name: 'Chromium - Smoke Tests',
-      testDir: './e2e/tests/smoke',
-      workers: 1, // Run smoke tests sequentially for stability
-      use: {
-        ...devices['Desktop Chrome'],
-      },
-    },
-    {
-      name: 'Chromium - Critical Path',
+      name: 'chromium',
       dependencies: ['setup'],
-      testDir: './e2e/tests/critical-path',
-      workers: process.env.CI ? 2 : undefined,
       use: {
         ...devices['Desktop Chrome'],
         storageState: 'playwright/.auth/user.json',
-      },
-    },
-    {
-      name: 'Chromium - Features (Mocked)',
-      testDir: './e2e/tests/features',
-      workers: process.env.CI ? 4 : undefined,
-      use: {
-        ...devices['Desktop Chrome'],
       },
     },
   ],

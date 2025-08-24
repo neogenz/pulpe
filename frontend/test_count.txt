@@ -1,0 +1,30 @@
+File: e2e/tests/smoke/app-health.spec.ts
+6
+File: e2e/tests/critical-path/core-navigation.spec.ts
+5
+File: e2e/tests/critical-path/session.spec.ts
+4
+File: e2e/tests/auth.spec.ts
+5
+File: e2e/tests/features/navigation.spec.ts
+3
+File: e2e/tests/features/transactions.spec.ts
+3
+File: e2e/tests/features/budget-line-editing.spec.ts
+2
+File: e2e/tests/features/budget-line-deletion.spec.ts
+1
+File: e2e/tests/features/onboarding-navigation-store.spec.ts
+7
+File: e2e/tests/features/budget-template-deletion.spec.ts
+2
+File: e2e/tests/features/user-onboarding-flow.spec.ts
+6
+File: e2e/tests/features/monthly-budget-management.spec.ts
+7
+File: e2e/tests/features/budget-template-management.spec.ts
+8
+File: e2e/tests/features/onboarding-business-requirements.spec.ts
+5
+File: e2e/tests/features/template-selection-behavior.spec.ts
+1

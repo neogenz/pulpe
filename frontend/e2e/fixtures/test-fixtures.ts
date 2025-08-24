@@ -1,158 +1,128 @@
-import { test as base, type Page } from '@playwright/test';
-import { LoginPage } from '../pages/login.page';
+import { test as base, type Page, type Route } from '@playwright/test';
+import type { E2EWindow } from '../types/e2e.types';
+import { LoginPage } from '../pages/auth/login.page';
 import { OnboardingPage } from '../pages/onboarding.page';
 import { CurrentMonthPage } from '../pages/current-month.page';
 import { BudgetTemplatesPage } from '../pages/budget-templates.page';
 import { BudgetDetailsPage } from '../pages/budget-details.page';
-import { AuthMockHelper, TestDataFactory, BudgetApiMockHelper } from './test-helpers';
+import { MainLayoutPage } from '../pages/main-layout.page';
 
-// Types pour nos fixtures améliorées
+// Simple fixture types - only what we actually use
 interface AppFixtures {
   loginPage: LoginPage;
   onboardingPage: OnboardingPage;
   currentMonthPage: CurrentMonthPage;
   budgetTemplatesPage: BudgetTemplatesPage;
   budgetDetailsPage: BudgetDetailsPage;
+  mainLayoutPage: MainLayoutPage;
   authenticatedPage: Page;
-  authFailurePage: Page;
-  serverErrorPage: Page;
-  testCredentials: {
-    valid: { email: string; password: string };
-    invalid: { email: string; password: string };
-  };
 }
 
-// Base test avec beforeEach/afterEach pour l'isolation
-const baseTest = base.extend<AppFixtures>({
-  // Factory pour les credentials de test  
-  // eslint-disable-next-line no-empty-pattern
-  testCredentials: async ({}, use) => {
-    await use({
-      valid: TestDataFactory.createValidLoginCredentials(),
-      invalid: TestDataFactory.createInvalidLoginCredentials(),
-    });
+// Simple, direct fixture extension - KISS principle
+export const test = base.extend<AppFixtures>({
+  // Page Objects - simple instantiation
+  loginPage: async ({ page }, use) => {
+    await use(new LoginPage(page));
   },
 
-  // Page Object pour Login avec navigation automatique
-  loginPage: async ({ page }, use, testInfo) => {
-    const loginPage = new LoginPage(page);
-
-    // Automatiquement aller à la page de login avant chaque test
-    await loginPage.goto();
-
-    // Vérifier les éléments de login seulement si on est sur la page de login
-    if (page.url().includes('/login')) {
-      await loginPage.expectLoginFormVisible();
-    }
-
-    await use(loginPage);
-
-    // Cleanup après le test si nécessaire
-    await testInfo.attach('page-state', {
-      body: `Test completed on page: ${page.url()}`,
-      contentType: 'text/plain',
-    });
-  },
-
-  // Page Object pour Onboarding
   onboardingPage: async ({ page }, use) => {
     await use(new OnboardingPage(page));
   },
 
-  // Page Object pour Current Month
   currentMonthPage: async ({ page }, use) => {
     await use(new CurrentMonthPage(page));
   },
 
-  // Page Object pour Budget Templates
   budgetTemplatesPage: async ({ page }, use) => {
     await use(new BudgetTemplatesPage(page));
   },
 
-  // Page Object pour Budget Details
   budgetDetailsPage: async ({ page }, use) => {
     await use(new BudgetDetailsPage(page));
   },
 
-  // Page avec authentification mockée - utilise AuthMockHelper
+  mainLayoutPage: async ({ page }, use) => {
+    await use(new MainLayoutPage(page));
+  },
+
+  // Authenticated page - balanced between simplicity and functionality
   authenticatedPage: async ({ page }, use) => {
-    await AuthMockHelper.setupAuthScenario(page, 'SUCCESS');
+    // Setup auth bypass with complete mock state
+    await page.addInitScript(() => {
+      const e2eWindow = window as E2EWindow;
+      e2eWindow.__E2E_AUTH_BYPASS__ = true;
+      e2eWindow.__E2E_MOCK_AUTH_STATE__ = {
+        user: { id: 'test-user', email: 'test@example.com' },
+        session: { access_token: 'mock-token', user: { id: 'test-user', email: 'test@example.com' } },
+        isLoading: false,
+        isAuthenticated: true
+      };
+      localStorage.setItem('auth_token', 'mock-token');
+    });
 
-    // Setup default budget scenario with data for current month tests
-    await BudgetApiMockHelper.setupBudgetScenario(page, 'WITH_BUDGET');
-
-    // Mock only generic API calls that don't have specific test mocks
-    // This allows tests to override with more specific mocks
-    await page.route('**/api/**', async (route) => {
+    // API mocks with minimal but complete data for tests
+    await page.route('**/api/**', (route: Route) => {
       const url = route.request().url();
+      const method = route.request().method();
       
-      // Skip mocking if this is a template API call that might have test-specific mocks
-      // Budget API calls are handled by BudgetApiMockHelper and should NOT continue to real backend
-      if (url.includes('/budget-templates')) {
-        await route.continue();
-        return;
+      // Auth endpoints
+      if (url.includes('auth')) {
+        return route.fulfill({
+          status: 200,
+          body: JSON.stringify({ 
+            user: { id: 'test-user', email: 'test@example.com' }
+          })
+        });
       }
       
-      // Mock other API calls with generic response
-      await route.fulfill({
+      // Budget endpoints - complete data for tests
+      if (url.includes('budgets')) {
+        return route.fulfill({
+          status: 200,
+          body: JSON.stringify({ 
+            data: [{ 
+              id: 'budget-1',
+              month: new Date().getMonth() + 1,
+              year: new Date().getFullYear(),
+              total_income: 5000,
+              total_expenses: 3000,
+              available_to_spend: 2000
+            }]
+          })
+        });
+      }
+      
+      // Templates for template tests
+      if (url.includes('templates')) {
+        return route.fulfill({
+          status: 200,
+          body: JSON.stringify({ 
+            data: [{ 
+              id: 'template-1',
+              name: 'Template Test',
+              is_default: true
+            }]
+          })
+        });
+      }
+      
+      // Success for mutations (POST/PUT/DELETE)
+      if (method !== 'GET') {
+        return route.fulfill({
+          status: 200,
+          body: JSON.stringify({ success: true, data: {} })
+        });
+      }
+      
+      // Default empty array for other GETs
+      return route.fulfill({
         status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ success: true, data: [], message: 'Generic mock response' }),
+        body: JSON.stringify({ data: [] })
       });
     });
 
     await use(page);
-  },
-
-  // Page avec échec d'authentification mocké
-  authFailurePage: async ({ page }, use) => {
-    await AuthMockHelper.setupAuthScenario(page, 'FAILURE');
-    await use(page);
-  },
-
-  // Page avec erreur serveur mockée
-  serverErrorPage: async ({ page }, use) => {
-    await AuthMockHelper.setupAuthScenario(page, 'SERVER_ERROR');
-    await use(page);
-  },
-});
-
-// Test étendu avec gestion d'isolation automatique
-export const test = baseTest.extend({
-  page: async ({ page }, use, testInfo) => {
-    // BeforeEach automatique : isoler le test
-    await page.goto('/'); // Page neutre
-    await page.evaluate(() => {
-      // Nettoyer le localStorage et sessionStorage
-      localStorage.clear();
-      sessionStorage.clear();
-      // Supprimer les cookies
-      document.cookie.split(';').forEach((cookie) => {
-        const eqPos = cookie.indexOf('=');
-        const name = eqPos > -1 ? cookie.substring(0, eqPos) : cookie;
-        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-      });
-    });
-
-    await use(page);
-
-    // AfterEach automatique : capturer l'état en cas d'échec
-    if (testInfo.status === 'failed') {
-      await testInfo.attach('screenshot', {
-        body: await page.screenshot({ fullPage: true }),
-        contentType: 'image/png',
-      });
-
-      await testInfo.attach('console-logs', {
-        body: JSON.stringify(
-          page.context().serviceWorkers().length > 0
-            ? 'Service workers active'
-            : 'No service workers',
-        ),
-        contentType: 'application/json',
-      });
-    }
-  },
+  }
 });
 
 export { expect } from '@playwright/test';
