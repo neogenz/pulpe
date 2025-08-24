@@ -15,7 +15,7 @@ export interface BudgetItemDisplay {
   itemType: 'budget_line' | 'transaction';
 }
 
-@Injectable()
+@Injectable({ providedIn: 'root' })
 export class BudgetCalculator {
   /**
    * Calcule le Fixed Block selon les spécifications métier
@@ -47,14 +47,23 @@ export class BudgetCalculator {
   }
 
   /**
-   * Calcule le montant total des transactions réelles
-   * Note: Dans le contexte métier, les transactions manuelles représentent les dépenses variables
-   * qui sont catégorisées comme expense dans le système
+   * Calcule l'impact des transactions réelles sur la Living Allowance
+   * Note: Selon RG-007, les transactions diminuent la Living Allowance
+   * - Les revenus (income) l'augmentent (+)
+   * - Les dépenses et épargnes (expense, saving) la diminuent (-)
    */
   calculateActualTransactionsAmount(transactions: Transaction[]): number {
-    return transactions
-      .filter((transaction) => transaction.kind === 'expense')
-      .reduce((total, transaction) => total + transaction.amount, 0);
+    return transactions.reduce((total, transaction) => {
+      switch (transaction.kind) {
+        case 'income':
+          return total + transaction.amount;
+        case 'expense':
+        case 'saving':
+          return total - transaction.amount;
+        default:
+          return total;
+      }
+    }, 0);
   }
 
   /**
@@ -65,19 +74,29 @@ export class BudgetCalculator {
     budgetLines: BudgetLine[],
     transactions: Transaction[],
   ): BudgetItemDisplay[] {
+    // Constants pour éviter les magic numbers
+    const DISPLAY_ORDER = {
+      KIND_MULTIPLIER: 1000,
+      TRANSACTION_OFFSET: 500,
+      INCOME: 1,
+      SAVING: 2,
+      EXPENSE: 3,
+      DEFAULT: 4,
+    } as const;
+
     const items: BudgetItemDisplay[] = [];
 
     // Helper pour déterminer l'ordre de tri par type
     const getKindOrder = (kind: string): number => {
       switch (kind) {
         case 'income':
-          return 1;
+          return DISPLAY_ORDER.INCOME;
         case 'saving':
-          return 2;
+          return DISPLAY_ORDER.SAVING;
         case 'expense':
-          return 3;
+          return DISPLAY_ORDER.EXPENSE;
         default:
-          return 4;
+          return DISPLAY_ORDER.DEFAULT;
       }
     };
 
@@ -99,7 +118,8 @@ export class BudgetCalculator {
       items.push({
         item: line,
         cumulativeBalance: 0, // Sera calculé après tri
-        displayOrder: getKindOrder(line.kind) * 1000 + index, // Budget lines en premier
+        displayOrder:
+          getKindOrder(line.kind) * DISPLAY_ORDER.KIND_MULTIPLIER + index,
         itemType: 'budget_line',
       });
     });
@@ -109,7 +129,10 @@ export class BudgetCalculator {
       items.push({
         item: transaction,
         cumulativeBalance: 0, // Sera calculé après tri
-        displayOrder: getKindOrder(transaction.kind) * 1000 + 500 + index, // Transactions après budget lines
+        displayOrder:
+          getKindOrder(transaction.kind) * DISPLAY_ORDER.KIND_MULTIPLIER +
+          DISPLAY_ORDER.TRANSACTION_OFFSET +
+          index,
         itemType: 'transaction',
       });
     });

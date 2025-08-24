@@ -28,7 +28,7 @@ import {
 import {
   BudgetCalculator,
   type BudgetItemDisplay,
-} from '../../../../core/budget/budget-calculator';
+} from '@core/budget/budget-calculator';
 
 interface BudgetItemViewModel {
   id: string;
@@ -62,7 +62,6 @@ interface BudgetItemViewModel {
     ReactiveFormsModule,
     CurrencyPipe,
   ],
-  providers: [BudgetCalculator],
   host: {
     '[class.mobile-view]': 'isMobile()?.matches',
   },
