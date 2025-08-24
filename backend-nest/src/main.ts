@@ -4,7 +4,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from 'nestjs-pino';
 import helmet from 'helmet';
-import compression from 'compression';
+import * as compression from 'compression';
 import { AppModule } from './app.module';
 import type { Environment } from '@config/environment';
 import { patchNestJsSwagger } from 'nestjs-zod';
@@ -16,20 +16,51 @@ function setupCors(app: import('@nestjs/common').INestApplication): void {
   const nodeEnv = configService.get<string>('NODE_ENV', 'development');
 
   app.enableCors({
-    origin:
-      nodeEnv === 'production'
-        ? configService.get<string>('CORS_ORIGIN', '').split(',')
-        : (
-            origin: string | undefined,
-            callback: (err: Error | null, allow?: boolean) => void,
-          ) => {
-            // En développement, autoriser tous les ports localhost
-            if (!origin || /^http:\/\/localhost:\d+$/.test(origin)) {
-              callback(null, true);
-            } else {
-              callback(new Error('Not allowed by CORS'));
-            }
-          },
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
+      // Pas d'origin (mobile apps, server-to-server)
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (nodeEnv === 'production') {
+        // URLs de production depuis les variables d'environnement
+        const productionOrigins = configService
+          .get<string>('CORS_ORIGIN', '')
+          .split(',')
+          .map((url) => url.trim())
+          .filter((url) => url);
+
+        // Vérifier les URLs fixes de production
+        if (productionOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+
+        // Pattern pour les URLs de preview Vercel de ton projet
+        if (
+          /^https:\/\/pulpe-frontend-.+-maximes-projects-.+\.vercel\.app$/.test(
+            origin,
+          )
+        ) {
+          return callback(null, true);
+        }
+
+        // Rejeter tout le reste en production
+        return callback(new Error('Not allowed by CORS'), false);
+      } else {
+        // En développement : localhost + toutes les URLs Vercel
+        if (
+          /^http:\/\/localhost:\d+$/.test(origin) ||
+          origin.includes('.vercel.app')
+        ) {
+          return callback(null, true);
+        }
+
+        return callback(new Error('Not allowed by CORS'), false);
+      }
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
@@ -157,7 +188,6 @@ async function bootstrap() {
   const env: Environment = {
     NODE_ENV: configService.get('NODE_ENV')!,
     PORT: configService.get('PORT')!,
-    FRONTEND_URL: configService.get('FRONTEND_URL')!,
     SUPABASE_URL: configService.get('SUPABASE_URL')!,
     SUPABASE_ANON_KEY: configService.get('SUPABASE_ANON_KEY')!,
     SUPABASE_SERVICE_ROLE_KEY: configService.get('SUPABASE_SERVICE_ROLE_KEY'),
@@ -180,7 +210,7 @@ async function bootstrap() {
 
   const logger = app.get(Logger);
 
-  await app.listen(env.PORT);
+  await app.listen(env.PORT, '0.0.0.0');
 
   logApplicationInfo(logger, env.PORT, env);
 }

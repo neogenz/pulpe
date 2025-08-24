@@ -6,20 +6,14 @@
       "Edit",
       "Bash(ls:*)",
       "Bash(git:*)",
-      "WebFetch(domain:pnpm.io)",
-      "WebFetch(domain:nodejs.org)",
-      "WebFetch(domain:www.typescriptlang.org)",
-      "WebFetch(domain:material.angular.dev)",
-      "WebFetch(domain:angular.dev)",
-      "WebFetch(domain:zod.dev)",
-      "mcp__context7",
+      "WebFetch(domain:*)",
       "mcp__supabase",
-      "mcp__playwright",
-      "mcp__serena"
+      "mcp__vercel",
+      "Bash(railway:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
   },
-  "enabledMcpjsonServers": ["context7", "supabase", "playwright"],
+  "enabledMcpjsonServers": ["supabase", "vercel"],
   "enableAllProjectMcpServers": true
 }

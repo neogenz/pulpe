@@ -81,3 +81,4 @@ docs/angular-full.txt
 frontend/projects/webapp/src/environments/build-info.ts
 frontend/projects/webapp/src/environments/build-info.development.ts
 docs/angular-architecture-doc.md
+.vercel

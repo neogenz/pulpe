@@ -1,0 +1,11 @@
+{
+  "$schema": "https://docs.railway.com/schema.json",
+  "build": {
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "backend-nest/Dockerfile",
+    "rootDirectory": "."
+  },
+  "deploy": {
+    "numReplicas": 1
+  }
+}

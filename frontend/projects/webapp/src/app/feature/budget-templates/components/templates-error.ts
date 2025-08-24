@@ -39,7 +39,7 @@ type TemplateErrorType = HttpErrorResponse | ApiError | Error | null;
       <mat-icon class="text-error text-5xl mb-4" data-testid="error-icon">{{
         errorIcon()
       }}</mat-icon>
-      <h2 class="text-title-large mb-2" data-testid="error-title">
+      <h2 class="text-title-large mb-2 shrink-0" data-testid="error-title">
         {{ errorTitle() }}
       </h2>
       <p

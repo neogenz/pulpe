@@ -1,0 +1,80 @@
+# Dependencies
+node_modules
+**/node_modules
+.pnpm-store
+
+# Build outputs (except those needed for production)
+**/dist
+!backend-nest/dist
+!shared/dist
+
+# Development files
+**/*.log
+**/*.spec.ts
+**/*.test.ts
+**/coverage
+**/.nyc_output
+
+# Source maps and dev builds
+**/*.map
+**/.tsbuildinfo
+
+# TypeScript configs needed for build
+!shared/tsconfig.json
+!shared/tsconfig.esm.json
+!backend-nest/tsconfig.json
+
+# Git and version control
+.git
+.gitignore
+**/.DS_Store
+
+# Documentation
+README.md
+**/README.md
+LICENSE
+**/*.md
+!package.json
+
+# Docker files themselves
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Environment files
+.env
+.env.local
+.env.*.local
+**/.env
+
+# CI/CD
+.github
+.gitlab-ci.yml
+
+# Cache directories
+.cache
+**/.cache
+.turbo
+**/.turbo
+
+# Frontend specific (not needed for backend deployment)
+frontend/
+mobile/
+
+# Development tools
+.editorconfig
+.prettierrc
+.eslintrc*
+**/lefthook.yml
+
+# Temporary files
+tmp/
+temp/
+**/.tmp
