@@ -5,9 +5,8 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import type { Budget, BudgetLine, Transaction } from '@pulpe/shared';
 
 import { CurrentMonthStore } from './current-month-store';
-import { BudgetApi } from '@core/budget/budget-api';
+import { BudgetApi, BudgetCalculator } from '@core/budget';
 import { TransactionApi } from '@core/transaction/transaction-api';
-import { BudgetCalculator } from './budget-calculator';
 
 // Mock data
 const mockBudget: Budget = {
