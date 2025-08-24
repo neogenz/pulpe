@@ -13,7 +13,7 @@ import { CurrencyPipe } from '@angular/common';
   selector: 'pulpe-month-card-item',
   imports: [MatCardModule, MatIconModule, MatButtonModule, CurrencyPipe],
   template: `
-    <mat-card appearance="outlined">
+    <mat-card appearance="outlined" [attr.data-testid]="'month-card-' + id()">
       <mat-card-header>
         <div mat-card-avatar>
           <div
@@ -22,7 +22,9 @@ import { CurrencyPipe } from '@angular/common';
             <mat-icon>calendar_month</mat-icon>
           </div>
         </div>
-        <mat-card-title class="capitalize">{{ displayName() }}</mat-card-title>
+        <mat-card-title class="capitalize" data-testid="month-card-title">{{
+          displayName()
+        }}</mat-card-title>
         @if (parentTemplate()) {
           <mat-card-subtitle
             >Créer depuis le template
@@ -35,13 +37,18 @@ import { CurrencyPipe } from '@angular/common';
           <p
             class="text-headline-small financial-amount overflow-hidden text-ellipsis"
             [attr.data-type]="totalAmount() >= 0 ? 'positive' : 'negative'"
+            data-testid="month-card-amount"
           >
             {{ totalAmount() | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH' }}
           </p>
         </div>
       </mat-card-content>
       <mat-card-actions align="end">
-        <button matButton (click)="detailsClick.emit(id())">
+        <button
+          matButton
+          (click)="detailsClick.emit(id())"
+          data-testid="month-card-details-button"
+        >
           <mat-icon>visibility</mat-icon>
           Détails
         </button>
