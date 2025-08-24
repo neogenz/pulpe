@@ -13,25 +13,41 @@ export class LoginPage {
   }
 
   async login(email: string, password: string) {
-    // Use the new data-testid selectors
-    await this.page.getByTestId('email-input').fill(email);
-    await this.page.getByTestId('password-input').fill(password);
-    await this.page.getByTestId('login-submit-button').click();
-    
-    // Wait for navigation after login
-    await this.page.waitForURL(/\/app/, { timeout: 10000 });
+    try {
+      // Use the new data-testid selectors
+      await this.page.getByTestId('email-input').fill(email);
+      await this.page.getByTestId('password-input').fill(password);
+      await this.page.getByTestId('login-submit-button').click();
+      
+      // Wait for navigation after login
+      await this.page.waitForURL(/\/app/, { timeout: 10000 });
+    } catch (error) {
+      throw new Error(`Login failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   async fillEmail(email: string) {
-    await this.page.getByTestId('email-input').fill(email);
+    try {
+      await this.page.getByTestId('email-input').fill(email);
+    } catch (error) {
+      throw new Error(`Failed to fill email field: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   async fillPassword(password: string) {
-    await this.page.getByTestId('password-input').fill(password);
+    try {
+      await this.page.getByTestId('password-input').fill(password);
+    } catch (error) {
+      throw new Error(`Failed to fill password field: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   async clickLogin() {
-    await this.page.getByTestId('login-submit-button').click();
+    try {
+      await this.page.getByTestId('login-submit-button').click();
+    } catch (error) {
+      throw new Error(`Failed to click login button: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   async expectLoginFormVisible() {

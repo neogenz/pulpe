@@ -47,19 +47,33 @@ export const test = base.extend<AppFixtures>({
 
   // Authenticated page - balanced between simplicity and functionality
   authenticatedPage: async ({ page }, use) => {
+    // Import test config (injected as parameter to avoid bundling issues)
+    const { TEST_CONFIG } = await import('../config/test-config');
+    
     // Setup auth bypass with complete mock state
-    await page.addInitScript(() => {
-      const e2eWindow = window as E2EWindow;
+    await page.addInitScript((config) => {
+      // Security check
+      if (window.location.hostname === 'production.pulpe.com') {
+        throw new Error('E2E auth bypass cannot be used in production');
+      }
+      
+      const e2eWindow = window as unknown as import('../types/e2e.types').E2EWindow;
       e2eWindow.__E2E_AUTH_BYPASS__ = true;
       e2eWindow.__E2E_MOCK_AUTH_STATE__ = {
-        user: { id: 'test-user', email: 'test@example.com' },
-        session: { access_token: 'mock-token', user: { id: 'test-user', email: 'test@example.com' } },
+        user: { id: config.USER.ID, email: config.USER.EMAIL },
+        session: { 
+          access_token: config.TOKENS.ACCESS, 
+          user: { id: config.USER.ID, email: config.USER.EMAIL } 
+        },
         isLoading: false,
         isAuthenticated: true
       };
-      localStorage.setItem('auth_token', 'mock-token');
-    });
+      localStorage.setItem('auth_token', config.TOKENS.ACCESS);
+    }, TEST_CONFIG);
 
+    // Import mock responses
+    const { MOCK_API_RESPONSES } = await import('../mocks/api-responses');
+    
     // API mocks with minimal but complete data for tests
     await page.route('**/api/**', (route: Route) => {
       const url = route.request().url();
@@ -69,9 +83,7 @@ export const test = base.extend<AppFixtures>({
       if (url.includes('auth')) {
         return route.fulfill({
           status: 200,
-          body: JSON.stringify({ 
-            user: { id: 'test-user', email: 'test@example.com' }
-          })
+          body: JSON.stringify(MOCK_API_RESPONSES.auth)
         });
       }
       
@@ -79,16 +91,7 @@ export const test = base.extend<AppFixtures>({
       if (url.includes('budgets')) {
         return route.fulfill({
           status: 200,
-          body: JSON.stringify({ 
-            data: [{ 
-              id: 'budget-1',
-              month: new Date().getMonth() + 1,
-              year: new Date().getFullYear(),
-              total_income: 5000,
-              total_expenses: 3000,
-              available_to_spend: 2000
-            }]
-          })
+          body: JSON.stringify(MOCK_API_RESPONSES.budgets)
         });
       }
       
@@ -96,13 +99,7 @@ export const test = base.extend<AppFixtures>({
       if (url.includes('templates')) {
         return route.fulfill({
           status: 200,
-          body: JSON.stringify({ 
-            data: [{ 
-              id: 'template-1',
-              name: 'Template Test',
-              is_default: true
-            }]
-          })
+          body: JSON.stringify(MOCK_API_RESPONSES.templates)
         });
       }
       
@@ -110,7 +107,7 @@ export const test = base.extend<AppFixtures>({
       if (method !== 'GET') {
         return route.fulfill({
           status: 200,
-          body: JSON.stringify({ success: true, data: {} })
+          body: JSON.stringify(MOCK_API_RESPONSES.success)
         });
       }
       

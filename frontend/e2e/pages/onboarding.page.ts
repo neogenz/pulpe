@@ -64,11 +64,29 @@ export class OnboardingPage {
     await this.page.locator('input[type="number"]').fill('0');
     await this.clickNext();
     
-    // After leasing-credit, there might be more steps or registration
-    // Try to click next/continue if available
-    const nextButton = this.page.getByRole('button', { name: /suivant|continuer|terminer|créer/i });
-    if (await nextButton.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await nextButton.click();
+    // Registration step - wait for registration page
+    await this.page.waitForTimeout(1000); // Small wait for page transition
+    
+    // Check if we're on registration page by looking for email input
+    const emailInput = this.page.locator('input[type="email"]');
+    const passwordInput = this.page.locator('input[type="password"]');
+    
+    if (await emailInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+      // Fill registration form
+      const testEmail = `e2e-test-${Date.now()}@pulpe.local`;
+      const testPassword = 'TestPassword123!';
+      
+      await emailInput.fill(testEmail);
+      await passwordInput.fill(testPassword);
+      
+      // Click the create button
+      const createButton = this.page.getByRole('button', { name: /créer|create|s'inscrire|register/i });
+      await createButton.click();
+      
+      // Wait for navigation after registration
+      await this.page.waitForURL(/\/app|\/current-month/, { timeout: 10000 }).catch(() => {
+        // Registration might have different redirect
+      });
     }
   }
 
