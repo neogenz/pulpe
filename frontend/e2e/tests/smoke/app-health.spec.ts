@@ -16,14 +16,37 @@ test.describe('App Health Check', () => {
   test('application loads without errors', async ({ page }) => {
     // Check that the page loads and doesn't have any console errors
     const errors: string[] = [];
+    const consoleLogs: string[] = [];
+    
     page.on('pageerror', (error) => {
       errors.push(error.message);
+      console.error('Page error:', error.message);
+    });
+    
+    page.on('console', (msg) => {
+      const text = `[${msg.type()}] ${msg.text()}`;
+      consoleLogs.push(text);
+      console.log('Browser console:', text);
     });
 
     await page.goto('/');
     
     // Wait for the app to load
     await page.waitForLoadState('networkidle');
+    
+    // Log all console messages for debugging
+    if (consoleLogs.length > 0) {
+      console.log('\n=== All console logs ===');
+      consoleLogs.forEach(log => console.log(log));
+      console.log('========================\n');
+    }
+    
+    // Log any errors for debugging
+    if (errors.length > 0) {
+      console.error('\n=== JavaScript errors ===');
+      errors.forEach(err => console.error(err));
+      console.error('========================\n');
+    }
     
     // Should not have any JavaScript errors
     expect(errors).toHaveLength(0);
