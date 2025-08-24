@@ -1,5 +1,4 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
-import posthog from 'posthog-js';
 import type {
   PostHogEventProperties,
   PostHogUserProperties,
@@ -25,6 +24,10 @@ export class PostHogService {
   readonly #initialized = signal(false);
   readonly #initializationError = signal<Error | null>(null);
 
+  // Lazy-loaded PostHog instance
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  #posthogInstance: any = null;
+
   // Public computed states for components to react to
   readonly isReady = computed(
     () => this.#initialized() && !this.#initializationError(),
@@ -32,18 +35,7 @@ export class PostHogService {
   readonly hasError = computed(() => !!this.#initializationError());
 
   constructor() {
-    // Auto-capture page leave on window unload
-    if (typeof window !== 'undefined') {
-      window.addEventListener('beforeunload', () => {
-        if (this.isReady()) {
-          try {
-            posthog.capture('$pageleave');
-          } catch {
-            // Silent fail on page leave
-          }
-        }
-      });
-    }
+    // Auto-capture page leave on window unload - will be set up after initialization
   }
 
   /**
@@ -58,10 +50,13 @@ export class PostHogService {
       const posthogEnabled = this.#config.posthogEnabled?.() ?? false;
 
       // Skip initialization if not enabled or no API key
-      if (!posthogEnabled || !posthogKey) {
+      if (!posthogEnabled || !posthogKey || posthogKey.trim() === '') {
         this.#logger.info('PostHog analytics disabled or not configured');
         return;
       }
+
+      // Only load PostHog library if we have a valid configuration
+      await this.#loadPostHogLibrary();
 
       // Initialize with timeout for fault tolerance
       await Promise.race([
@@ -71,6 +66,19 @@ export class PostHogService {
 
       this.#initialized.set(true);
       this.#logger.info('PostHog initialized successfully');
+
+      // Set up page leave handler after successful initialization
+      if (typeof window !== 'undefined') {
+        window.addEventListener('beforeunload', () => {
+          if (this.isReady() && this.#posthogInstance) {
+            try {
+              this.#posthogInstance.capture('$pageleave');
+            } catch {
+              // Silent fail on page leave
+            }
+          }
+        });
+      }
     } catch (error) {
       // Never throw - just log and mark as failed
       this.#initializationError.set(
@@ -84,13 +92,27 @@ export class PostHogService {
   }
 
   /**
+   * Load PostHog library dynamically
+   */
+  async #loadPostHogLibrary(): Promise<void> {
+    // Import PostHog only when needed
+    const { default: posthog } = await import('posthog-js');
+    this.#posthogInstance = posthog;
+  }
+
+  /**
    * Internal PostHog initialization
    */
   async #initializePostHog(apiKey: string, host: string): Promise<void> {
+    if (!this.#posthogInstance) {
+      throw new Error('PostHog library not loaded');
+    }
+
     return new Promise((resolve) => {
-      posthog.init(apiKey, {
+      this.#posthogInstance.init(apiKey, {
         api_host: host,
-        loaded: (ph) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        loaded: (ph: any) => {
           // Register app metadata once
           ph.register_once({
             app_version: buildInfo.version,
@@ -131,7 +153,7 @@ export class PostHogService {
     if (!this.#checkReady('identify')) return;
 
     try {
-      posthog.identify(userId, properties);
+      this.#posthogInstance.identify(userId, properties);
       this.#logger.debug('User identified in PostHog', { userId });
     } catch (error) {
       this.#logger.warn('Failed to identify user in PostHog', error);
@@ -148,7 +170,7 @@ export class PostHogService {
     if (!this.#checkReady('capture')) return;
 
     try {
-      posthog.capture(eventName, {
+      this.#posthogInstance.capture(eventName, {
         ...properties,
         app_version: buildInfo.version,
         environment: this.#config.environment(),
@@ -166,7 +188,7 @@ export class PostHogService {
     if (!this.#checkReady('captureException')) return;
 
     try {
-      posthog.capture('$exception', {
+      this.#posthogInstance.capture('$exception', {
         $exception_message: error.message,
         $exception_stack_trace: error.stack,
         $exception_type: error.name,
@@ -190,7 +212,7 @@ export class PostHogService {
     if (!this.#checkReady('capturePageView')) return;
 
     try {
-      posthog.capture('$pageview', {
+      this.#posthogInstance.capture('$pageview', {
         $current_url: window.location.href,
         $host: window.location.hostname,
         $pathname: window.location.pathname,
@@ -222,7 +244,7 @@ export class PostHogService {
     if (!this.#checkReady('reset')) return;
 
     try {
-      posthog.reset();
+      this.#posthogInstance.reset();
       this.#logger.debug('PostHog user session reset');
     } catch (error) {
       this.#logger.warn('Failed to reset PostHog session', error);
@@ -236,7 +258,7 @@ export class PostHogService {
     if (!this.#checkReady('getFeatureFlag')) return undefined;
 
     try {
-      return posthog.getFeatureFlag(flagName);
+      return this.#posthogInstance.getFeatureFlag(flagName);
     } catch (error) {
       this.#logger.warn(`Failed to get feature flag: ${flagName}`, error);
       return undefined;
@@ -247,7 +269,7 @@ export class PostHogService {
    * Check if PostHog is ready for operations
    */
   #checkReady(operation: string): boolean {
-    if (!this.isReady()) {
+    if (!this.isReady() || !this.#posthogInstance) {
       this.#logger.debug(`PostHog not ready for operation: ${operation}`);
       return false;
     }
