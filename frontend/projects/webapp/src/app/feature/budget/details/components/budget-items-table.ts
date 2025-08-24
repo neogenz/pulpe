@@ -28,6 +28,10 @@ import {
   type TransactionRecurrence,
 } from '@pulpe/shared';
 import { EditBudgetLineDialog } from './edit-budget-line-dialog';
+import {
+  BudgetCalculator,
+  type BudgetItemDisplay,
+} from '../../../../core/budget/budget-calculator';
 
 interface BudgetItemViewModel {
   id: string;
@@ -44,6 +48,8 @@ interface BudgetItemViewModel {
   recurrenceChipClass: string;
   isEditing: boolean;
   isLoading: boolean;
+  cumulativeBalance: number;
+  cumulativeBalanceClass: string;
 }
 
 @Component({
@@ -59,6 +65,7 @@ interface BudgetItemViewModel {
     ReactiveFormsModule,
     CurrencyPipe,
   ],
+  providers: [BudgetCalculator],
   host: {
     '[class.mobile-view]': 'isMobile()?.matches',
   },
@@ -174,6 +181,24 @@ interface BudgetItemViewModel {
                   {{ line.amount | currency: 'CHF' }}
                 </span>
               }
+            </td>
+          </ng-container>
+
+          <!-- Remaining Balance Column -->
+          <ng-container matColumnDef="remaining">
+            <th mat-header-cell *matHeaderCellDef class="text-right">
+              Solde restant
+            </th>
+            <td mat-cell *matCellDef="let line" class="text-right">
+              <span
+                class="text-body-medium font-medium"
+                [class]="line.cumulativeBalanceClass"
+              >
+                {{
+                  line.cumulativeBalance
+                    | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH'
+                }}
+              </span>
             </td>
           </ng-container>
 
@@ -307,9 +332,17 @@ export class BudgetItemsTable {
   #fb = inject(FormBuilder);
   #dialog = inject(MatDialog);
   #destroyRef = inject(DestroyRef);
+  #budgetCalculator = inject(BudgetCalculator);
 
-  displayedColumns = ['type', 'name', 'recurrence', 'amount', 'actions'];
-  displayedColumnsMobile = ['name', 'amount', 'actions'];
+  displayedColumns = [
+    'type',
+    'name',
+    'recurrence',
+    'amount',
+    'remaining',
+    'actions',
+  ];
+  displayedColumnsMobile = ['name', 'amount', 'remaining', 'actions'];
 
   editingLineId = signal<string | null>(null);
   editForm = this.#fb.group({
@@ -328,60 +361,51 @@ export class BudgetItemsTable {
       : this.displayedColumns,
   );
 
-  // View models with pre-computed display values
+  // View models with pre-computed display values and cumulative balance
   budgetItemViewModels = computed(() => {
     const budgetLines = this.budgetLines();
     const transactions = this.transactions();
     const inProgress = this.operationsInProgress();
     const editingId = this.editingLineId();
 
-    // Map budget lines
-    const budgetLineViewModels: BudgetItemViewModel[] = budgetLines.map(
-      (line) => ({
-        id: line.id,
-        name: line.name,
-        amount: line.amount,
-        kind: line.kind,
-        recurrence: line.recurrence,
-        itemType: 'budget_line' as const,
-        kindIcon: this.#kindIcons[line.kind],
-        kindLabel: this.#kindLabels[line.kind],
-        kindIconClass: this.#kindIconClasses[line.kind],
-        amountClass: this.#amountClasses[line.kind],
-        recurrenceLabel: this.#recurrenceLabels[line.recurrence],
-        recurrenceChipClass: this.#recurrenceChipClasses[line.recurrence],
-        isEditing: editingId === line.id,
-        isLoading: inProgress.has(line.id),
-      }),
-    );
+    // Use budget calculator to get sorted items with cumulative balance
+    const itemsWithBalance =
+      this.#budgetCalculator.composeBudgetItemsWithBalance(
+        budgetLines,
+        transactions,
+      );
 
-    // Map transactions (always one-off)
-    const transactionViewModels: BudgetItemViewModel[] = transactions.map(
-      (transaction) => ({
-        id: transaction.id,
-        name: transaction.name,
-        amount: transaction.amount,
-        kind: transaction.kind,
-        recurrence: 'one_off' as const, // Transactions are always one-off
-        itemType: 'transaction' as const,
-        kindIcon: this.#kindIcons[transaction.kind],
-        kindLabel: this.#kindLabels[transaction.kind],
-        kindIconClass: this.#kindIconClasses[transaction.kind],
-        amountClass: this.#amountClasses[transaction.kind],
-        recurrenceLabel: this.#recurrenceLabels['one_off'],
-        recurrenceChipClass: this.#recurrenceChipClasses['one_off'],
-        isEditing: false, // Transactions cannot be edited in this view
-        isLoading: inProgress.has(transaction.id),
-      }),
-    );
+    // Map to view models
+    return itemsWithBalance.map(
+      (itemDisplay: BudgetItemDisplay): BudgetItemViewModel => {
+        const item = itemDisplay.item;
+        const recurrence: TransactionRecurrence =
+          'recurrence' in item ? item.recurrence : 'one_off';
 
-    // Combine and sort by amount (descending) then by name
-    return [...budgetLineViewModels, ...transactionViewModels].sort((a, b) => {
-      if (a.amount !== b.amount) {
-        return b.amount - a.amount;
-      }
-      return a.name.localeCompare(b.name);
-    });
+        return {
+          id: item.id,
+          name: item.name,
+          amount: item.amount,
+          kind: item.kind as TransactionKind,
+          recurrence: recurrence,
+          itemType: itemDisplay.itemType,
+          kindIcon: this.#kindIcons[item.kind as TransactionKind],
+          kindLabel: this.#kindLabels[item.kind as TransactionKind],
+          kindIconClass: this.#kindIconClasses[item.kind as TransactionKind],
+          amountClass: this.#amountClasses[item.kind as TransactionKind],
+          recurrenceLabel: this.#recurrenceLabels[recurrence],
+          recurrenceChipClass: this.#recurrenceChipClasses[recurrence],
+          isEditing:
+            itemDisplay.itemType === 'budget_line' && editingId === item.id,
+          isLoading: inProgress.has(item.id),
+          cumulativeBalance: itemDisplay.cumulativeBalance,
+          cumulativeBalanceClass:
+            itemDisplay.cumulativeBalance >= 0
+              ? 'text-financial-income'
+              : 'text-financial-negative',
+        };
+      },
+    );
   });
 
   // Mapping constants
