@@ -16,55 +16,70 @@ function setupCors(app: import('@nestjs/common').INestApplication): void {
   const nodeEnv = configService.get<string>('NODE_ENV', 'development');
 
   app.enableCors({
-    origin: (
-      origin: string | undefined,
-      callback: (err: Error | null, allow?: boolean) => void,
-    ) => {
-      // Pas d'origin (mobile apps, server-to-server)
-      if (!origin) {
-        return callback(null, true);
-      }
-
-      if (nodeEnv === 'production') {
-        // URLs de production depuis les variables d'environnement
-        const productionOrigins = configService
-          .get<string>('CORS_ORIGIN', '')
-          .split(',')
-          .map((url) => url.trim())
-          .filter((url) => url);
-
-        // Vérifier les URLs fixes de production
-        if (productionOrigins.includes(origin)) {
-          return callback(null, true);
-        }
-
-        // Pattern pour les URLs de preview Vercel de ton projet
-        if (
-          /^https:\/\/pulpe-frontend-.+-maximes-projects-.+\.vercel\.app$/.test(
-            origin,
-          )
-        ) {
-          return callback(null, true);
-        }
-
-        // Rejeter tout le reste en production
-        return callback(new Error('Not allowed by CORS'), false);
-      } else {
-        // En développement : localhost + toutes les URLs Vercel
-        if (
-          /^http:\/\/localhost:\d+$/.test(origin) ||
-          origin.includes('.vercel.app')
-        ) {
-          return callback(null, true);
-        }
-
-        return callback(new Error('Not allowed by CORS'), false);
-      }
-    },
+    origin: createOriginValidator(configService, nodeEnv),
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
   });
+}
+
+function createOriginValidator(
+  configService: ConfigService,
+  nodeEnv: string,
+): (
+  origin: string | undefined,
+  callback: (err: Error | null, allow?: boolean) => void,
+) => void {
+  return (origin, callback) => {
+    // Pas d'origin (mobile apps, server-to-server)
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    if (nodeEnv === 'production') {
+      if (isAllowedOriginProduction(origin, configService)) {
+        return callback(null, true);
+      }
+      return callback(new Error('Not allowed by CORS'), false);
+    } else {
+      if (isAllowedOriginDevelopment(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error('Not allowed by CORS'), false);
+    }
+  };
+}
+
+function isAllowedOriginProduction(
+  origin: string,
+  configService: ConfigService,
+): boolean {
+  const productionOrigins = getProductionOrigins(configService);
+
+  // Vérifier les URLs fixes de production
+  if (productionOrigins.includes(origin)) {
+    return true;
+  }
+
+  // Pattern pour les URLs de preview Vercel de ton projet
+  return /^https:\/\/pulpe-frontend-.+-maximes-projects-.+\.vercel\.app$/.test(
+    origin,
+  );
+}
+
+function isAllowedOriginDevelopment(origin: string): boolean {
+  // En développement : localhost + toutes les URLs Vercel
+  return (
+    /^http:\/\/localhost:\d+$/.test(origin) || origin.includes('.vercel.app')
+  );
+}
+
+function getProductionOrigins(configService: ConfigService): string[] {
+  return configService
+    .get<string>('CORS_ORIGIN', '')
+    .split(',')
+    .map((url) => url.trim())
+    .filter((url) => url);
 }
 
 function setupSecurity(app: import('@nestjs/common').INestApplication): void {

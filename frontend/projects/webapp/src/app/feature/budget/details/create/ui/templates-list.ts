@@ -52,6 +52,7 @@ import { type TemplateViewModel } from './template-view-model';
         <div class="flex justify-center items-center h-[200px]">
           <mat-progress-spinner
             mode="indeterminate"
+            [diameter]="24"
             aria-label="Chargement des modèles"
             role="progressbar"
             class="pulpe-loading-indicator pulpe-loading-medium"

@@ -112,9 +112,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
             @if (store.isSubmitting()) {
               <mat-progress-spinner
                 mode="indeterminate"
+                [diameter]="24"
                 aria-label="Création en cours"
                 role="progressbar"
-                class="pulpe-loading-indicator pulpe-loading-small"
+                class="pulpe-loading-indicator pulpe-loading-small flex-shrink-0"
               />
             }
             Créer

@@ -86,8 +86,7 @@ import { type TemplateViewModel } from './template-view-model';
                 aria-label="Calcul des données financières en cours"
                 role="progressbar"
                 class="pulpe-loading-indicator pulpe-loading-medium flex-shrink-0"
-                diameter="26"
-                strokeWidth="3"
+                [diameter]="24"
               ></mat-progress-spinner>
               <div class="text-center md:text-left">
                 <div
@@ -145,9 +144,7 @@ import { type TemplateViewModel } from './template-view-model';
               <mat-icon matListItemIcon class="icon-filled !mr-4"
                 >account_balance_wallet</mat-icon
               >
-              <span matListItemTitle class="text-body-medium"
-                >Disponible à dépenser</span
-              >
+              <span matListItemTitle class="text-body-medium">Disponible</span>
               <span
                 matListItemMeta
                 class="text-body-medium font-medium"

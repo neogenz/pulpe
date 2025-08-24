@@ -423,93 +423,89 @@ export class TransactionService {
   ): Promise<TransactionDeleteResponse> {
     const startTime = Date.now();
 
-    this.logger.debug(
-      {
-        operation: 'deleteTransaction',
-        userId: user.id,
-        entityId: id,
-      },
-      'Starting transaction deletion',
-    );
-
     try {
-      const { error } = await supabase
-        .from('transaction')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        this.logger.warn(
-          {
-            operation: 'deleteTransaction',
-            userId: user.id,
-            entityId: id,
-            error: error.message,
-          },
-          'Transaction deletion failed - not found or unauthorized',
-        );
-
-        throw new BusinessException(
-          ERROR_DEFINITIONS.TRANSACTION_NOT_FOUND,
-          { id },
-          {
-            operation: 'deleteTransaction',
-            userId: user.id,
-            entityId: id,
-            entityType: 'transaction',
-            supabaseError: error,
-          },
-          { cause: error },
-        );
-      }
-
-      const duration = Date.now() - startTime;
-
-      this.logger.info(
-        {
-          operation: 'deleteTransaction',
-          userId: user.id,
-          entityId: id,
-          entityType: 'transaction',
-          duration,
-        },
-        'Transaction deleted successfully',
-      );
+      await this.performTransactionDeletion(id, supabase);
+      this.logTransactionDeletionSuccess(user.id, id, startTime);
 
       return {
         success: true,
         message: 'Transaction deleted successfully',
       };
     } catch (error) {
-      if (
-        error instanceof BusinessException ||
-        error instanceof HttpException
-      ) {
-        throw error;
-      }
+      return this.handleTransactionDeletionError(error, user.id, id, startTime);
+    }
+  }
 
-      this.logger.error(
-        {
-          operation: 'deleteTransaction',
-          userId: user.id,
-          entityId: id,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        },
-        'Unexpected error during transaction deletion',
-      );
+  private async performTransactionDeletion(
+    id: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    const { error } = await supabase.from('transaction').delete().eq('id', id);
 
+    if (error) {
       throw new BusinessException(
-        ERROR_DEFINITIONS.TRANSACTION_DELETE_FAILED,
+        ERROR_DEFINITIONS.TRANSACTION_NOT_FOUND,
         { id },
         {
           operation: 'deleteTransaction',
-          userId: user.id,
           entityId: id,
           entityType: 'transaction',
+          supabaseError: error,
         },
         { cause: error },
       );
     }
+  }
+
+  private logTransactionDeletionSuccess(
+    userId: string,
+    entityId: string,
+    startTime: number,
+  ): void {
+    this.logger.info(
+      {
+        operation: 'deleteTransaction',
+        userId,
+        entityId,
+        entityType: 'transaction',
+        duration: Date.now() - startTime,
+      },
+      'Transaction deleted successfully',
+    );
+  }
+
+  private handleTransactionDeletionError(
+    error: unknown,
+    userId: string,
+    entityId: string,
+    startTime: number,
+  ): never {
+    if (error instanceof BusinessException || error instanceof HttpException) {
+      throw error;
+    }
+
+    this.logger.error(
+      {
+        operation: 'deleteTransaction',
+        userId,
+        entityId,
+        duration: Date.now() - startTime,
+        err: error,
+      },
+      'Unexpected error during transaction deletion',
+    );
+
+    throw new BusinessException(
+      ERROR_DEFINITIONS.TRANSACTION_DELETE_FAILED,
+      { id: entityId },
+      {
+        operation: 'deleteTransaction',
+        userId,
+        entityId,
+        entityType: 'transaction',
+      },
+      { cause: error },
+    );
   }
 
   async findByBudgetId(

@@ -196,9 +196,10 @@ const MONTH_YEAR_FORMATS = {
         @if (isCreating()) {
           <mat-progress-spinner
             mode="indeterminate"
+            [diameter]="24"
             aria-label="Création en cours"
             role="progressbar"
-            class="pulpe-loading-indicator pulpe-loading-small mr-2"
+            class="pulpe-loading-indicator pulpe-loading-small mr-2 flex-shrink-0"
           ></mat-progress-spinner>
           <span aria-live="polite">Création...</span>
         } @else {

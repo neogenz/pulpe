@@ -129,7 +129,7 @@ import { Logger } from '@core/logging/logger';
                   [diameter]="24"
                   aria-label="Connexion en cours"
                   role="progressbar"
-                  class="pulpe-loading-indicator pulpe-loading-small mr-2"
+                  class="pulpe-loading-indicator pulpe-loading-small mr-2 flex-shrink-0"
                 ></mat-progress-spinner>
                 <span aria-live="polite">Connexion en cours...</span>
               </div>
