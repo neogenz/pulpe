@@ -15,6 +15,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { CurrencyPipe } from '@angular/common';
@@ -59,6 +60,7 @@ interface BudgetItemViewModel {
     MatFormFieldModule,
     MatInputModule,
     MatChipsModule,
+    MatTooltipModule,
     ReactiveFormsModule,
     CurrencyPipe,
   ],
@@ -79,19 +81,6 @@ interface BudgetItemViewModel {
           [dataSource]="budgetItemViewModels()"
           class="w-full min-w-[600px]"
         >
-          <!-- Type Column -->
-          <ng-container matColumnDef="type">
-            <th mat-header-cell *matHeaderCellDef>Type</th>
-            <td mat-cell *matCellDef="let line">
-              <div class="flex items-center gap-2">
-                <mat-icon [class]="line.kindIconClass">
-                  {{ line.kindIcon }}
-                </mat-icon>
-                <span class="text-body-medium">{{ line.kindLabel }}</span>
-              </div>
-            </td>
-          </ng-container>
-
           <!-- Name Column -->
           <ng-container matColumnDef="name">
             <th mat-header-cell *matHeaderCellDef>Description</th>
@@ -119,7 +108,23 @@ interface BudgetItemViewModel {
                   </mat-form-field>
                 </form>
               } @else {
-                <span class="text-body-medium">{{ line.name }}</span>
+                <div class="flex items-center gap-2">
+                  <span
+                    class="inline-flex items-center gap-2 cursor-help"
+                    [matTooltip]="line.kindLabel"
+                    matTooltipPosition="above"
+                    [attr.aria-describedby]="'type-tooltip-' + line.id"
+                    [attr.aria-label]="'Type de transaction: ' + line.kindLabel"
+                    tabindex="0"
+                  >
+                    <mat-icon [class]="line.kindIconClass">
+                      {{ line.kindIcon }}
+                    </mat-icon>
+                    <span class="text-body-medium font-semibold">{{
+                      line.name
+                    }}</span>
+                  </span>
+                </div>
               }
             </td>
           </ng-container>
@@ -327,14 +332,7 @@ export class BudgetItemsTable {
   #fb = inject(FormBuilder);
   #budgetCalculator = inject(BudgetCalculator);
 
-  displayedColumns = [
-    'type',
-    'name',
-    'recurrence',
-    'amount',
-    'remaining',
-    'actions',
-  ];
+  displayedColumns = ['name', 'recurrence', 'amount', 'remaining', 'actions'];
   displayedColumnsMobile = ['name', 'amount', 'remaining', 'actions'];
 
   editingLineId = signal<string | null>(null);
