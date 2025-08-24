@@ -53,6 +53,18 @@ interface BudgetItemViewModel {
   cumulativeBalanceClass: string;
 }
 
+interface SectionHeaderRow {
+  type: 'section_header';
+  id: string;
+  title: string;
+}
+
+interface DataRow extends BudgetItemViewModel {
+  type: 'data_row';
+}
+
+type TableRow = SectionHeaderRow | DataRow;
+
 @Component({
   selector: 'pulpe-budget-items-table',
   imports: [
@@ -263,14 +275,46 @@ interface BudgetItemViewModel {
             </td>
           </ng-container>
 
-          <tr mat-header-row *matHeaderRowDef="currentColumns()"></tr>
+          <!-- Section Header Column -->
+          <ng-container matColumnDef="section-header">
+            <td
+              mat-cell
+              *matCellDef="let row"
+              [attr.colspan]="currentColumns().length"
+              class=""
+            >
+              <h3 class="text-title-medium font-bold text-on-surface m-0">
+                {{ row.title }}
+              </h3>
+            </td>
+          </ng-container>
+
+          <tr
+            mat-header-row
+            *matHeaderRowDef="currentColumns(); sticky: true"
+          ></tr>
           <tr
             mat-row
-            *matRowDef="let row; columns: currentColumns()"
-            [attr.data-testid]="'budget-line-' + row.name"
+            *matRowDef="
+              let row;
+              columns: ['section-header'];
+              when: isSectionHeader;
+              trackBy: trackByRow
+            "
+            class="!hover:bg-transparent"
+          ></tr>
+          <tr
+            mat-row
+            *matRowDef="
+              let row;
+              columns: currentColumns();
+              when: isDataRow;
+              trackBy: trackByRow
+            "
             class="hover:bg-surface-container-low transition-opacity"
             [class.opacity-50]="row.isLoading"
             [class.pointer-events-none]="row.isLoading"
+            [attr.data-testid]="'budget-line-' + row.name"
           ></tr>
 
           <!-- No data row -->
@@ -342,7 +386,7 @@ export class BudgetItemsTable {
   displayedColumnsMobile = ['name', 'amount', 'remaining', 'actions'];
 
   editingLineId = signal<string | null>(null);
-  editForm = this.#fb.group({
+  readonly editForm = this.#fb.group({
     name: ['', [Validators.required, Validators.minLength(1)]],
     amount: [0, [Validators.required, Validators.min(0.01)]],
   });
@@ -359,7 +403,7 @@ export class BudgetItemsTable {
   );
 
   // View models with pre-computed display values and cumulative balance
-  budgetItemViewModels = computed(() => {
+  budgetItemViewModels = computed((): TableRow[] => {
     const budgetLines = this.budgetLines();
     const transactions = this.transactions();
     const inProgress = this.operationsInProgress();
@@ -372,37 +416,61 @@ export class BudgetItemsTable {
         transactions,
       );
 
-    // Map to view models
-    return itemsWithBalance.map(
-      (itemDisplay: BudgetItemDisplay): BudgetItemViewModel => {
-        const item = itemDisplay.item;
-        const recurrence: TransactionRecurrence =
-          'recurrence' in item ? item.recurrence : 'one_off';
+    const result: TableRow[] = [];
+    const budgetLineRows: DataRow[] = [];
+    const transactionRows: DataRow[] = [];
 
-        return {
-          id: item.id,
-          name: item.name,
-          amount: item.amount,
-          kind: item.kind as TransactionKind,
-          recurrence: recurrence,
-          itemType: itemDisplay.itemType,
-          kindIcon: this.#kindIcons[item.kind as TransactionKind],
-          kindLabel: this.#kindLabels[item.kind as TransactionKind],
-          kindIconClass: this.#kindIconClasses[item.kind as TransactionKind],
-          amountClass: this.#amountClasses[item.kind as TransactionKind],
-          recurrenceLabel: this.#recurrenceLabels[recurrence],
-          recurrenceChipClass: this.#recurrenceChipClasses[recurrence],
-          isEditing:
-            itemDisplay.itemType === 'budget_line' && editingId === item.id,
-          isLoading: inProgress.has(item.id),
-          cumulativeBalance: itemDisplay.cumulativeBalance,
-          cumulativeBalanceClass:
-            itemDisplay.cumulativeBalance >= 0
-              ? 'text-financial-income'
-              : 'text-financial-negative',
-        };
-      },
-    );
+    // Separate items by type and convert to DataRow
+    itemsWithBalance.forEach((itemDisplay: BudgetItemDisplay) => {
+      const item = itemDisplay.item;
+      const recurrence: TransactionRecurrence =
+        'recurrence' in item ? item.recurrence : 'one_off';
+
+      const dataRow: DataRow = {
+        type: 'data_row',
+        id: item.id,
+        name: item.name,
+        amount: item.amount,
+        kind: item.kind as TransactionKind,
+        recurrence: recurrence,
+        itemType: itemDisplay.itemType,
+        kindIcon: this.#kindIcons[item.kind as TransactionKind],
+        kindLabel: this.#kindLabels[item.kind as TransactionKind],
+        kindIconClass: this.#kindIconClasses[item.kind as TransactionKind],
+        amountClass: this.#amountClasses[item.kind as TransactionKind],
+        recurrenceLabel: this.#recurrenceLabels[recurrence],
+        recurrenceChipClass: this.#recurrenceChipClasses[recurrence],
+        isEditing:
+          itemDisplay.itemType === 'budget_line' && editingId === item.id,
+        isLoading: inProgress.has(item.id),
+        cumulativeBalance: itemDisplay.cumulativeBalance,
+        cumulativeBalanceClass:
+          itemDisplay.cumulativeBalance >= 0
+            ? 'text-financial-income'
+            : 'text-financial-negative',
+      };
+
+      if (itemDisplay.itemType === 'budget_line') {
+        budgetLineRows.push(dataRow);
+      } else {
+        transactionRows.push(dataRow);
+      }
+    });
+
+    // Add budget lines first
+    result.push(...budgetLineRows);
+
+    // Add section header if there are transactions
+    if (transactionRows.length > 0) {
+      result.push({
+        type: 'section_header',
+        id: 'transactions-header',
+        title: 'Ajouté durant le mois',
+      });
+      result.push(...transactionRows);
+    }
+
+    return result;
   });
 
   // Mapping constants
@@ -442,7 +510,19 @@ export class BudgetItemsTable {
     one_off: 'bg-secondary-container text-on-secondary-container',
   };
 
-  startEdit(item: BudgetItemViewModel): void {
+  // Predicate functions for row types
+  readonly isSectionHeader = (
+    _: number,
+    row: TableRow,
+  ): row is SectionHeaderRow => row.type === 'section_header';
+
+  readonly isDataRow = (_: number, row: TableRow): row is DataRow =>
+    row.type === 'data_row';
+
+  // Track function for performance optimization
+  readonly trackByRow = (_: number, row: TableRow): string => row.id;
+
+  startEdit(item: DataRow): void {
     // Only allow editing budget lines, not transactions
     if (item.itemType !== 'budget_line') return;
 
