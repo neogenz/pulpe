@@ -28,8 +28,27 @@ export default defineConfig({
       testMatch: /.*\.setup\.ts/,
     },
     {
-      name: 'chromium',
+      name: 'Chromium - Critical Path',
       dependencies: ['setup'],
+      testMatch: '**/critical-path/**/*.spec.ts',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'playwright/.auth/user.json',
+      },
+    },
+    {
+      name: 'Chromium - Features (Mocked)',
+      dependencies: ['setup'],
+      testMatch: '**/features/**/*.spec.ts',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'playwright/.auth/user.json',
+      },
+    },
+    {
+      name: 'Chromium - Smoke',
+      dependencies: ['setup'],
+      testMatch: '**/smoke/**/*.spec.ts',
       use: {
         ...devices['Desktop Chrome'],
         storageState: 'playwright/.auth/user.json',
