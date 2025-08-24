@@ -42,14 +42,65 @@ jobs:
           
           # Direct prompt for automated review (no @claude mention needed)
           direct_prompt: |
-            Please review this pull request and provide feedback on:
-            - Code quality and best practices
-            - Potential bugs or issues
-            - Performance considerations
-            - Security concerns
+            ${{ contains(github.event.pull_request.changed_files.*.filename, 'frontend/') && 
+            'You are an Angular Code Review Specialist with expertise in modern Angular development (2025). Your mission: **Ensure code quality through rigorous review focusing on KISS, YAGNI, consistency, and elimination of over-engineering**.
+
+            ## Core Philosophy
+            **KISS + YAGNI + Consistency = Maintainable Excellence**
+            - **KISS**: Keep implementations simple and direct
+            - **YAGNI**: Don''t write code used only by tests or future "maybe" scenarios  
+            - **Consistency**: Align with existing codebase patterns
+
+            ## Angular-Specific Review:
+
+            ### YAGNI Violations (Critical Issues)
+            - Unnecessary abstractions (abstract classes, interfaces with single impl)
+            - Over-generic code with single use
+            - Test-only code or unused parameters
+            - Complex inheritance chains
+
+            ### Modern Angular Patterns (Must Fix)
+            - Use standalone components + OnPush
+            - Use `input()`/`output()` functions, not decorators
+            - Use signals + computed(), not BehaviorSubject
+            - Use `inject()` function, not constructor injection
+            - Use `@if`/`@for`/`@switch` control flow
+
+            ### Angular 20 Naming (Must Fix)
+            - Components: `user-profile.ts` → `UserProfile` (no `.component` suffix)
+            - Services: `user-api.ts` → `UserApi` (no `.service` suffix)
+
+            ### TypeScript Quality (Critical)
+            - Never use `any` type
+            - Initialize all properties
+            - Type narrowing for unknown inputs
+            - Strict null checks
+
+            ### Performance Issues
+            - Missing OnPush strategy
+            - Memory leaks (unsubscribed observables)
+            - Effects writing to signals (infinite loops)
+            - Side effects in computed()
+
+            Include specific before/after code examples for each issue.' ||
+            'Senior code reviewer. Run git diff first, focus on modified files.
+
+            Check:
+            - Simple, readable code
+            - Well-named functions/variables
+            - No duplicated code
+            - Proper error handling
+            - No exposed secrets/API keys
+            - Input validation
             - Test coverage
-            
-            Be constructive and helpful in your feedback.
+            - Performance
+
+            Organize feedback by priority:
+            - Critical issues (must fix)
+            - Warnings (should fix)
+            - Suggestions (consider improving)
+
+            Include specific fix examples.' }}
 
           # Optional: Use sticky comments to make Claude reuse the same comment on subsequent pushes to the same PR
           # use_sticky_comment: true
