@@ -146,13 +146,10 @@ export class CurrentMonthStore {
         });
       }
 
-      this.#logger.info(
-        'Transaction added successfully with optimistic update',
-      );
+      this.#logger.info('Transaction added successfully');
     } catch (error) {
-      this.#logger.error('Error adding transaction:', error);
-
-      // On error, reload data to ensure consistency
+      // Error is handled by the interceptor and shown to user
+      // Just reload data to ensure consistency
       this.refreshData();
       throw error;
     }
@@ -181,17 +178,12 @@ export class CurrentMonthStore {
       // Delete the transaction from the backend
       await firstValueFrom(this.#transactionApi.remove$(transactionId));
 
-      this.#logger.info(
-        'Transaction deleted successfully with optimistic update',
-      );
+      this.#logger.info('Transaction deleted successfully');
     } catch (error) {
-      this.#logger.error('Error deleting transaction:', error);
-
       // Rollback to original state on error
       if (originalData) {
         this.#dashboardResource.set(originalData);
       } else {
-        // If no original data, reload to ensure consistency
         this.refreshData();
       }
       throw error;

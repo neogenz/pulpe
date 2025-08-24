@@ -56,6 +56,18 @@ export const ConfigSchema = z.object({
       message: "Environment must be 'development', 'production', or 'local'",
     }),
   }),
+
+  // PostHog analytics configuration (optional)
+  posthog: z
+    .object({
+      apiKey: z.string().min(1, 'PostHog API key is required when enabled'),
+      apiHost: z
+        .string()
+        .url('PostHog host must be a valid URL')
+        .default('https://app.posthog.com'),
+      enabled: z.boolean().default(false),
+    })
+    .optional(),
 });
 
 /**

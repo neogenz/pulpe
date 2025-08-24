@@ -26,6 +26,11 @@ export class ApplicationConfiguration {
     'development',
   );
 
+  // PostHog configuration signals
+  readonly posthogApiKey = signal<string | undefined>(undefined);
+  readonly posthogApiHost = signal<string>('https://app.posthog.com');
+  readonly posthogEnabled = signal<boolean>(false);
+
   // Configuration complète en lecture seule
   readonly rawConfiguration = computed<ApplicationConfig | null>(() => {
     const url = this.supabaseUrl();
@@ -38,11 +43,23 @@ export class ApplicationConfiguration {
       return null;
     }
 
-    return {
+    const config: ApplicationConfig = {
       supabase: { url, anonKey: key },
       backend: { apiUrl },
       environment: env,
     };
+
+    // Add PostHog configuration if available
+    const posthogKey = this.posthogApiKey();
+    if (posthogKey) {
+      config.posthog = {
+        apiKey: posthogKey,
+        apiHost: this.posthogApiHost(),
+        enabled: this.posthogEnabled(),
+      };
+    }
+
+    return config;
   });
 
   // Signaux dérivés (computed)
@@ -129,6 +146,15 @@ export class ApplicationConfiguration {
     this.supabaseAnonKey.set(config.supabase.anonKey);
     this.backendApiUrl.set(backendApiUrl);
     this.environment.set(config.environment);
+
+    // Apply PostHog configuration if present
+    if (config.posthog) {
+      this.posthogApiKey.set(config.posthog.apiKey);
+      this.posthogApiHost.set(
+        config.posthog.apiHost || 'https://app.posthog.com',
+      );
+      this.posthogEnabled.set(config.posthog.enabled);
+    }
   }
 
   /**

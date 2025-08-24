@@ -1,4 +1,4 @@
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import {
   type Budget,
@@ -7,20 +7,14 @@ import {
   type BudgetResponse,
   type BudgetDetailsResponse,
   budgetSchema,
-  errorResponseSchema,
 } from '@pulpe/shared';
-import { type Observable, throwError } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { type Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { ApplicationConfiguration } from '../config/application-configuration';
 
 export interface CreateBudgetApiResponse {
   readonly budget: Budget;
   readonly message: string;
-}
-
-export interface BudgetApiError {
-  readonly message: string;
-  readonly details?: readonly string[];
 }
 
 const CURRENT_BUDGET_STORAGE_KEY = 'pulpe-current-budget';
@@ -61,12 +55,6 @@ export class BudgetApi {
           this.#saveBudgetToStorage(response.data);
           return result;
         }),
-        catchError((error) =>
-          this.#handleApiError(
-            error,
-            'Erreur lors de la création du budget à partir du template',
-          ),
-        ),
       );
   }
 
@@ -78,12 +66,6 @@ export class BudgetApi {
       map((response) => {
         return Array.isArray(response.data) ? response.data : [];
       }),
-      catchError((error) =>
-        this.#handleApiError(
-          error,
-          'Erreur lors de la récupération des budgets',
-        ),
-      ),
     );
   }
 
@@ -101,12 +83,6 @@ export class BudgetApi {
 
           return response.data;
         }),
-        catchError((error) =>
-          this.#handleApiError(
-            error,
-            'Erreur lors de la récupération du budget',
-          ),
-        ),
       );
   }
 
@@ -127,12 +103,6 @@ export class BudgetApi {
 
           return response;
         }),
-        catchError((error) =>
-          this.#handleApiError(
-            error,
-            'Erreur lors de la récupération des détails du budget',
-          ),
-        ),
       );
   }
 
@@ -179,12 +149,6 @@ export class BudgetApi {
           this.#saveBudgetToStorage(response.data);
           return response.data;
         }),
-        catchError((error) =>
-          this.#handleApiError(
-            error,
-            'Erreur lors de la mise à jour du budget',
-          ),
-        ),
       );
   }
 
@@ -196,9 +160,6 @@ export class BudgetApi {
       map(() => {
         this.#removeBudgetFromStorage(budgetId);
       }),
-      catchError((error) =>
-        this.#handleApiError(error, 'Erreur lors de la suppression du budget'),
-      ),
     );
   }
 
@@ -258,39 +219,5 @@ export class BudgetApi {
         error,
       );
     }
-  }
-
-  #handleApiError(error: unknown, defaultMessage: string): Observable<never> {
-    console.error('Erreur API Budget:', error);
-
-    let budgetError: BudgetApiError = { message: defaultMessage };
-
-    if (error instanceof HttpErrorResponse) {
-      const parsedError = errorResponseSchema.safeParse(error.error);
-
-      if (parsedError.success) {
-        budgetError = {
-          message: parsedError.data.error,
-          details: parsedError.data.details
-            ? [parsedError.data.details]
-            : undefined,
-        };
-      } else {
-        // Gérer le cas où error.error?.message peut être un objet
-        const errorMessage = error.error?.message;
-        const message =
-          typeof errorMessage === 'string'
-            ? errorMessage
-            : typeof errorMessage === 'object' && errorMessage?.message
-              ? String(errorMessage.message)
-              : error.message || defaultMessage;
-
-        budgetError = {
-          message,
-        };
-      }
-    }
-
-    return throwError(() => budgetError);
   }
 }
