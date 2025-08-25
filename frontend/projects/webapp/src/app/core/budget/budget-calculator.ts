@@ -1,5 +1,9 @@
 import { Injectable } from '@angular/core';
-import { type Transaction, type BudgetLine } from '@pulpe/shared';
+import {
+  type Transaction,
+  type BudgetLine,
+  type TransactionKind,
+} from '@pulpe/shared';
 
 /**
  * Interface pour l'affichage des éléments de budget avec solde cumulatif
@@ -7,7 +11,7 @@ import { type Transaction, type BudgetLine } from '@pulpe/shared';
 export interface BudgetItemDisplay {
   /** Données originales (budget line OU transaction) */
   item: BudgetLine | Transaction;
-  /** Solde cumulatif calculé en centimes */
+  /** Solde cumulatif calculé en CHF francs */
   cumulativeBalance: number;
   /** Ordre d'affichage selon les règles métier */
   displayOrder: number;
@@ -87,7 +91,7 @@ export class BudgetCalculator {
     const items: BudgetItemDisplay[] = [];
 
     // Helper pour déterminer l'ordre de tri par type
-    const getKindOrder = (kind: string): number => {
+    const getKindOrder = (kind: TransactionKind): number => {
       switch (kind) {
         case 'income':
           return DISPLAY_ORDER.INCOME;
