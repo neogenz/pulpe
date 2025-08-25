@@ -57,17 +57,11 @@ export class BudgetCalculator {
    * - Les dépenses et épargnes (expense, saving) la diminuent (-)
    */
   calculateActualTransactionsAmount(transactions: Transaction[]): number {
-    return transactions.reduce((total, transaction) => {
-      switch (transaction.kind) {
-        case 'income':
-          return total + transaction.amount;
-        case 'expense':
-        case 'saving':
-          return total - transaction.amount;
-        default:
-          return total;
-      }
-    }, 0);
+    return transactions.reduce(
+      (total, transaction) =>
+        total + this.#getSignedAmount(transaction.kind, transaction.amount),
+      0,
+    );
   }
 
   // Configuration des ordres d'affichage pour éviter les magic numbers
