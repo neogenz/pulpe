@@ -1,14 +1,4 @@
 {
   "cookies": [],
-  "origins": [
-    {
-      "origin": "http://localhost:4200",
-      "localStorage": [
-        {
-          "name": "pulpe-current-budget",
-          "value": "undefined"
-        }
-      ]
-    }
-  ]
+  "origins": []
 }
