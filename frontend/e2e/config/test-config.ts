@@ -4,22 +4,22 @@
  */
 
 // Security check: Only allow in test environments
-if (typeof process !== 'undefined' && process.env.NODE_ENV === 'production') {
+if (typeof process !== 'undefined' && process.env['NODE_ENV'] === 'production') {
   throw new Error('Test configuration cannot be loaded in production environment');
 }
 
 export const TEST_CONFIG = {
   // User credentials (can be overridden by environment variables)
   USER: {
-    ID: process.env.E2E_TEST_USER_ID || 'e2e-test-user-' + Date.now(),
-    EMAIL: process.env.E2E_TEST_EMAIL || `e2e-test-${Date.now()}@pulpe.local`,
-    PASSWORD: process.env.E2E_TEST_PASSWORD || 'E2E-Test-Pass-123!'
+    ID: process.env['E2E_TEST_USER_ID'] || 'e2e-test-user-' + Date.now(),
+    EMAIL: process.env['E2E_TEST_EMAIL'] || `e2e-test-${Date.now()}@pulpe.local`,
+    PASSWORD: process.env['E2E_TEST_PASSWORD'] || 'E2E-Test-Pass-123!'
   },
   
   // Auth tokens
   TOKENS: {
-    ACCESS: process.env.E2E_ACCESS_TOKEN || `mock-access-token-${Date.now()}`,
-    REFRESH: process.env.E2E_REFRESH_TOKEN || `mock-refresh-token-${Date.now()}`
+    ACCESS: process.env['E2E_ACCESS_TOKEN'] || `mock-access-token-${Date.now()}`,
+    REFRESH: process.env['E2E_REFRESH_TOKEN'] || `mock-refresh-token-${Date.now()}`
   },
   
   // Test data

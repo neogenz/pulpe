@@ -1,4 +1,4 @@
-import { test, expect } from '../../fixtures/test-fixtures';
+import { test } from '../../fixtures/test-fixtures';
 
 test.describe('Budget Template Deletion', () => {
   test('should delete template when no budgets are associated', async ({

@@ -1,5 +1,4 @@
 import { Page, Route } from '@playwright/test';
-import type { E2EWindow } from '../types/e2e.types';
 import { TEST_CONFIG } from '../config/test-config';
 
 /**
@@ -12,7 +11,9 @@ export async function mockAuth(page: Page) {
       throw new Error('E2E auth bypass cannot be used in production');
     }
     
-    const e2eWindow = window as unknown as import('../types/e2e.types').E2EWindow;
+    const e2eWindow = window as typeof window & {
+      __E2E_AUTH_BYPASS__: boolean;
+    };
     e2eWindow.__E2E_AUTH_BYPASS__ = true;
     localStorage.setItem('auth_token', config.TOKENS.ACCESS);
   }, TEST_CONFIG);

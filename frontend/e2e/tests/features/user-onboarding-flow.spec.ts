@@ -1,4 +1,4 @@
-import { test, expect } from '../../fixtures/test-fixtures';
+import { test } from '../../fixtures/test-fixtures';
 
 test.describe('Onboarding Flow', () => {
   // Increase timeout for complex onboarding flow
@@ -9,7 +9,7 @@ test.describe('Onboarding Flow', () => {
     await onboardingPage.expectRedirectToCurrentMonth();
   });
 
-  test('should navigate through all onboarding steps', async ({ page, onboardingPage }) => {
+  test('should navigate through all onboarding steps', async ({ onboardingPage }) => {
     await onboardingPage.goto();
     await onboardingPage.completeOnboardingFlow();
     // In test context with mocked auth, might end on registration or app
