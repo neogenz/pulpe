@@ -283,24 +283,4 @@ export default class DetailsPage implements OnInit {
       });
     }
   }
-
-  async handleDeleteBudgetLine(id: string): Promise<void> {
-    const dialogRef = this.#dialog.open(ConfirmationDialog, {
-      data: {
-        title: 'Supprimer la prévision',
-        message: 'Êtes-vous sûr de vouloir supprimer cette prévision ?',
-        confirmText: 'Supprimer',
-        confirmColor: 'warn',
-      } satisfies ConfirmationDialogData,
-      width: '400px',
-    });
-
-    const confirmed = await firstValueFrom(dialogRef.afterClosed());
-
-    if (!confirmed) {
-      return;
-    }
-
-    await this.budgetDetailsStore.deleteBudgetLine(id);
-  }
 }
