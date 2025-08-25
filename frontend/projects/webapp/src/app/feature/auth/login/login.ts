@@ -210,7 +210,7 @@ export default class Login {
     const { email, password } = this.loginForm.value;
 
     try {
-      const result = await this.#authService.signInWithEmail(email, password);
+      const result = await this.#authService.signInWithEmail(email!, password!);
 
       if (result.success) {
         this.#router.navigate(['/', ROUTES.APP, ROUTES.CURRENT_MONTH]);
