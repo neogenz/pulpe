@@ -472,4 +472,179 @@ describe('BudgetCalculator', () => {
       expect(kinds.slice(5, 9).every((k) => k === 'expense')).toBe(true);
     });
   });
+
+  describe('composeBudgetItemsWithBalanceGrouped', () => {
+    it('should group budget lines by recurrence and sort according to business rules', () => {
+      // Arrange
+      const budgetLines: BudgetLine[] = [
+        {
+          ...createBudgetLine(2000, 'Rent', 'expense', 'bl-expense-fixed'),
+          recurrence: 'fixed',
+        },
+        {
+          ...createBudgetLine(6000, 'Salary', 'income', 'bl-income-fixed'),
+          recurrence: 'fixed',
+        },
+        {
+          ...createBudgetLine(
+            500,
+            'Emergency Fund',
+            'saving',
+            'bl-saving-fixed',
+          ),
+          recurrence: 'fixed',
+        },
+        {
+          ...createBudgetLine(200, 'Bonus', 'income', 'bl-income-one-off'),
+          recurrence: 'one_off',
+        },
+        {
+          ...createBudgetLine(
+            100,
+            'Gift Money',
+            'expense',
+            'bl-expense-one-off',
+          ),
+          recurrence: 'one_off',
+        },
+      ];
+
+      const transactions: Transaction[] = [
+        createTransaction(50, 'Groceries', 'expense', 'tx-expense-1'),
+        createTransaction(300, 'Side Job', 'income', 'tx-income-1'),
+      ];
+
+      // Act
+      const result = calculator.composeBudgetItemsWithBalanceGrouped(
+        budgetLines,
+        transactions,
+      );
+
+      // Assert
+      expect(result).toHaveLength(7);
+
+      // Check grouped order:
+      // 1. Fixed budget lines (income → saving → expense)
+      // 2. One-off budget lines (income → expense)
+      // 3. Transactions (income → expense)
+      const expectedOrder = [
+        'bl-income-fixed', // Fixed income
+        'bl-saving-fixed', // Fixed saving
+        'bl-expense-fixed', // Fixed expense
+        'bl-income-one-off', // One-off income
+        'bl-expense-one-off', // One-off expense
+        'tx-income-1', // Transaction income
+        'tx-expense-1', // Transaction expense
+      ];
+
+      result.forEach((item, index) => {
+        expect(item.item.id).toBe(expectedOrder[index]);
+      });
+    });
+
+    it('should handle mixed recurrence types and calculate cumulative balance correctly', () => {
+      // Arrange
+      const budgetLines: BudgetLine[] = [
+        {
+          ...createBudgetLine(5000, 'Monthly Salary', 'income'),
+          recurrence: 'fixed',
+        },
+        {
+          ...createBudgetLine(1000, 'Monthly Savings', 'saving'),
+          recurrence: 'fixed',
+        },
+        {
+          ...createBudgetLine(500, 'One-time Bonus', 'income'),
+          recurrence: 'one_off',
+        },
+        {
+          ...createBudgetLine(200, 'Gift Purchase', 'expense'),
+          recurrence: 'one_off',
+        },
+      ];
+
+      const transactions: Transaction[] = [
+        createTransaction(100, 'Extra Income', 'income'),
+        createTransaction(300, 'Unexpected Expense', 'expense'),
+      ];
+
+      // Act
+      const result = calculator.composeBudgetItemsWithBalanceGrouped(
+        budgetLines,
+        transactions,
+      );
+
+      // Assert
+      const balances = result.map((item) => item.cumulativeBalance);
+
+      // Expected progression:
+      // Fixed: 5000 (income) - 1000 (saving) = 4000
+      // One-off: 4000 + 500 (income) - 200 (expense) = 4300
+      // Transactions: 4300 + 100 (income) - 300 (expense) = 4100
+      expect(balances).toEqual([5000, 4000, 4500, 4300, 4400, 4100]);
+    });
+
+    it('should handle empty recurrence groups correctly', () => {
+      // Arrange - only one_off budget lines
+      const budgetLines: BudgetLine[] = [
+        {
+          ...createBudgetLine(1000, 'One-time Income', 'income'),
+          recurrence: 'one_off',
+        },
+        {
+          ...createBudgetLine(300, 'One-time Expense', 'expense'),
+          recurrence: 'one_off',
+        },
+      ];
+
+      const transactions: Transaction[] = [
+        createTransaction(200, 'Transaction Income', 'income'),
+      ];
+
+      // Act
+      const result = calculator.composeBudgetItemsWithBalanceGrouped(
+        budgetLines,
+        transactions,
+      );
+
+      // Assert
+      expect(result).toHaveLength(3);
+
+      // Should be: one-off income, one-off expense, transaction income
+      const ids = result.map((item) => item.item.id);
+      expect(ids[0]).toContain('income');
+      expect(ids[1]).toContain('expense');
+      expect(ids[2]).toContain('income');
+
+      // Check item types
+      expect(result[0].itemType).toBe('budget_line');
+      expect(result[1].itemType).toBe('budget_line');
+      expect(result[2].itemType).toBe('transaction');
+    });
+
+    it('should treat variable recurrence as fixed for grouping', () => {
+      // Arrange
+      const budgetLines: BudgetLine[] = [
+        {
+          ...createBudgetLine(3000, 'Variable Income', 'income'),
+          recurrence: 'variable',
+        },
+        {
+          ...createBudgetLine(2000, 'Fixed Expense', 'expense'),
+          recurrence: 'fixed',
+        },
+      ];
+
+      // Act
+      const result = calculator.composeBudgetItemsWithBalanceGrouped(
+        budgetLines,
+        [],
+      );
+
+      // Assert - variable should be grouped with fixed (come first)
+      expect(result).toHaveLength(2);
+      expect(result[0].item.kind).toBe('income'); // Variable income comes first
+      expect(result[1].item.kind).toBe('expense'); // Fixed expense comes second
+    });
+  });
 });

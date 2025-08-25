@@ -3,19 +3,21 @@ import {
   type Transaction,
   type BudgetLine,
   type TransactionKind,
+  type TransactionRecurrence,
 } from '@pulpe/shared';
 
 /**
- * Interface pour l'affichage des éléments de budget avec solde cumulatif
+ * Interface for budget items with cumulative balance calculation
+ * Used internally for financial calculations
  */
-export interface BudgetItemDisplay {
-  /** Données originales (budget line OU transaction) */
+export interface BudgetItemWithBalance {
+  /** Original data (budget line OR transaction) */
   item: BudgetLine | Transaction;
-  /** Solde cumulatif calculé en CHF francs */
+  /** Cumulative balance calculated in CHF */
   cumulativeBalance: number;
-  /** Ordre d'affichage selon les règles métier */
+  /** Display order according to business rules */
   displayOrder: number;
-  /** Type d'élément pour différencier budget lines et transactions */
+  /** Item type to differentiate budget lines and transactions */
   itemType: 'budget_line' | 'transaction';
 }
 
@@ -67,23 +69,47 @@ export class BudgetCalculator {
   // Configuration des ordres d'affichage pour éviter les magic numbers
   readonly #DISPLAY_ORDER_CONFIG = {
     KIND_MULTIPLIER: 1000,
-    TRANSACTION_OFFSET: 500,
+    RECURRENCE_MULTIPLIER: 10000,
+    TRANSACTION_OFFSET: 500, // Valeur originale pour compatibilité avec ancienne méthode
+    TRANSACTION_OFFSET_GROUPED: 20000, // Nouvelle valeur pour méthode groupée
     INCOME: 1,
     SAVING: 2,
     EXPENSE: 3,
     DEFAULT: 4,
+    RECURRENCE_FIXED: 1,
+    RECURRENCE_ONE_OFF: 2,
+    RECURRENCE_DEFAULT: 3,
   } as const;
 
   /**
-   * Combine et trie les budget lines et transactions avec calcul du solde cumulatif
-   * Ordre: revenus → épargnes → dépenses (budget lines en premier, puis transactions)
+   * Combines and sorts budget lines and transactions with cumulative balance calculation
+   * Order: income → savings → expenses (budget lines first, then transactions)
+   * @deprecated Use composeBudgetItemsWithBalanceGrouped instead for better organization
    */
   composeBudgetItemsWithBalance(
     budgetLines: BudgetLine[],
     transactions: Transaction[],
-  ): BudgetItemDisplay[] {
+  ): BudgetItemWithBalance[] {
     const items = this.#createDisplayItems(budgetLines, transactions);
     this.#sortItemsByBusinessRules(items);
+    this.#calculateCumulativeBalances(items);
+
+    return items;
+  }
+
+  /**
+   * Combines and sorts budget lines (grouped by recurrence) and transactions with cumulative balance calculation
+   * Order:
+   * 1. Budget lines "fixed" (income → savings → expenses)
+   * 2. Budget lines "one_off" (income → savings → expenses)
+   * 3. Transactions (income → savings → expenses)
+   */
+  composeBudgetItemsWithBalanceGrouped(
+    budgetLines: BudgetLine[],
+    transactions: Transaction[],
+  ): BudgetItemWithBalance[] {
+    const items = this.#createDisplayItemsGrouped(budgetLines, transactions);
+    this.#sortItemsByBusinessRulesGrouped(items);
     this.#calculateCumulativeBalances(items);
 
     return items;
@@ -95,8 +121,8 @@ export class BudgetCalculator {
   #createDisplayItems(
     budgetLines: BudgetLine[],
     transactions: Transaction[],
-  ): BudgetItemDisplay[] {
-    const items: BudgetItemDisplay[] = [];
+  ): BudgetItemWithBalance[] {
+    const items: BudgetItemWithBalance[] = [];
 
     // Ajouter les budget lines avec ordre
     budgetLines.forEach((line, index) => {
@@ -148,6 +174,31 @@ export class BudgetCalculator {
   }
 
   /**
+   * Calcule l'ordre d'affichage groupé par récurrence selon les règles métier
+   */
+  #calculateDisplayOrderGrouped(
+    kind: TransactionKind,
+    recurrence: TransactionRecurrence,
+    index: number,
+    itemType: 'budget_line' | 'transaction',
+  ): number {
+    const recurrenceOrder = this.#getRecurrenceOrder(recurrence);
+    const kindOrder = this.#getKindOrder(kind);
+
+    // Structure de l'ordre: [RÉCURRENCE][KIND][TYPE][INDEX]
+    const baseOrder =
+      recurrenceOrder * this.#DISPLAY_ORDER_CONFIG.RECURRENCE_MULTIPLIER +
+      kindOrder * this.#DISPLAY_ORDER_CONFIG.KIND_MULTIPLIER;
+
+    const typeOffset =
+      itemType === 'transaction'
+        ? this.#DISPLAY_ORDER_CONFIG.TRANSACTION_OFFSET_GROUPED
+        : 0;
+
+    return baseOrder + typeOffset + index;
+  }
+
+  /**
    * Détermine l'ordre de tri par type selon les règles métier
    */
   #getKindOrder(kind: TransactionKind): number {
@@ -164,16 +215,81 @@ export class BudgetCalculator {
   }
 
   /**
+   * Détermine l'ordre de tri par récurrence selon les règles métier
+   */
+  #getRecurrenceOrder(recurrence: TransactionRecurrence): number {
+    switch (recurrence) {
+      case 'fixed':
+        return this.#DISPLAY_ORDER_CONFIG.RECURRENCE_FIXED;
+      case 'one_off':
+        return this.#DISPLAY_ORDER_CONFIG.RECURRENCE_ONE_OFF;
+      case 'variable':
+        return this.#DISPLAY_ORDER_CONFIG.RECURRENCE_FIXED; // Traiter comme fixed
+      default:
+        return this.#DISPLAY_ORDER_CONFIG.RECURRENCE_DEFAULT;
+    }
+  }
+
+  /**
    * Trie les éléments selon les règles métier
    */
-  #sortItemsByBusinessRules(items: BudgetItemDisplay[]): void {
+  #sortItemsByBusinessRules(items: BudgetItemWithBalance[]): void {
+    items.sort((a, b) => a.displayOrder - b.displayOrder);
+  }
+
+  /**
+   * Crée les éléments d'affichage groupés par récurrence avec leurs ordres de tri
+   */
+  #createDisplayItemsGrouped(
+    budgetLines: BudgetLine[],
+    transactions: Transaction[],
+  ): BudgetItemWithBalance[] {
+    const items: BudgetItemWithBalance[] = [];
+
+    // Ajouter les budget lines avec ordre groupé par récurrence
+    budgetLines.forEach((line, index) => {
+      items.push({
+        item: line,
+        cumulativeBalance: 0, // Sera calculé après tri
+        displayOrder: this.#calculateDisplayOrderGrouped(
+          line.kind,
+          line.recurrence,
+          index,
+          'budget_line',
+        ),
+        itemType: 'budget_line',
+      });
+    });
+
+    // Ajouter les transactions avec ordre
+    transactions.forEach((transaction, index) => {
+      items.push({
+        item: transaction,
+        cumulativeBalance: 0, // Sera calculé après tri
+        displayOrder: this.#calculateDisplayOrderGrouped(
+          transaction.kind,
+          'one_off', // Les transactions n'ont pas de récurrence, on les traite comme one_off
+          index,
+          'transaction',
+        ),
+        itemType: 'transaction',
+      });
+    });
+
+    return items;
+  }
+
+  /**
+   * Trie les éléments selon les règles métier groupées
+   */
+  #sortItemsByBusinessRulesGrouped(items: BudgetItemWithBalance[]): void {
     items.sort((a, b) => a.displayOrder - b.displayOrder);
   }
 
   /**
    * Calcule les soldes cumulatifs pour tous les éléments
    */
-  #calculateCumulativeBalances(items: BudgetItemDisplay[]): void {
+  #calculateCumulativeBalances(items: BudgetItemWithBalance[]): void {
     let runningBalance = 0;
     items.forEach((item) => {
       const signedAmount = this.#getSignedAmount(
