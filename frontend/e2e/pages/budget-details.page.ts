@@ -1,4 +1,4 @@
-import { Locator, Page, expect } from '@playwright/test';
+import { type Locator, type Page, expect } from '@playwright/test';
 
 export class BudgetDetailsPage {
   constructor(private readonly page: Page) {}
@@ -18,10 +18,10 @@ export class BudgetDetailsPage {
     await expect(this.page.locator('pulpe-root')).toBeVisible({
       timeout: 10000,
     });
-    
+
     // Wait for content to render
     await this.page.waitForTimeout(2000);
-    
+
     // Verify meaningful content is present
     const hasContent = await this.page.locator('body *').first().isVisible();
     if (!hasContent) {
@@ -38,7 +38,9 @@ export class BudgetDetailsPage {
   async clickDeleteBudgetLine(lineIndex = 0): Promise<void> {
     // Use a more specific selector to avoid CSS parsing issues
     const deleteButton = this.page
-      .locator('button[aria-label*="delete"], button[aria-label*="Delete"], button[aria-label*="supprimer"], button[aria-label*="Supprimer"]')
+      .locator(
+        'button[aria-label*="delete"], button[aria-label*="Delete"], button[aria-label*="supprimer"], button[aria-label*="Supprimer"]',
+      )
       .nth(lineIndex);
     await expect(deleteButton).toBeVisible({ timeout: 5000 });
     await deleteButton.click();

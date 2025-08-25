@@ -6,6 +6,7 @@ import {
   computed,
   inject,
   ChangeDetectionStrategy,
+  DestroyRef,
 } from '@angular/core';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { MatTableModule } from '@angular/material/table';
@@ -15,8 +16,9 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatDialog } from '@angular/material/dialog';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CurrencyPipe } from '@angular/common';
 import {
   type BudgetLine,
@@ -25,6 +27,7 @@ import {
   type TransactionKind,
   type TransactionRecurrence,
 } from '@pulpe/shared';
+import { EditBudgetLineDialog } from './edit-budget-line-dialog';
 
 interface BudgetItemViewModel {
   id: string;
@@ -301,6 +304,8 @@ export class BudgetItemsTable {
 
   #breakpointObserver = inject(BreakpointObserver);
   #fb = inject(FormBuilder);
+  #dialog = inject(MatDialog);
+  #destroyRef = inject(DestroyRef);
 
   displayedColumns = ['type', 'name', 'recurrence', 'amount', 'actions'];
   displayedColumnsMobile = ['name', 'amount', 'actions'];
@@ -419,11 +424,43 @@ export class BudgetItemsTable {
     // Only allow editing budget lines, not transactions
     if (item.itemType !== 'budget_line') return;
 
-    this.editingLineId.set(item.id);
-    this.editForm.patchValue({
-      name: item.name,
-      amount: item.amount,
-    });
+    // On mobile, open dialog for editing
+    if (this.isMobile()?.matches) {
+      const budgetLine = this.budgetLines().find((l) => l.id === item.id);
+      if (!budgetLine) return;
+
+      try {
+        const dialogRef = this.#dialog.open(EditBudgetLineDialog, {
+          data: { budgetLine },
+          width: '400px',
+          maxWidth: '90vw',
+        });
+
+        dialogRef
+          .afterClosed()
+          .pipe(takeUntilDestroyed(this.#destroyRef))
+          .subscribe((update: BudgetLineUpdate | undefined) => {
+            if (update) {
+              this.updateClicked.emit({ id: item.id, update });
+            }
+          });
+      } catch (error) {
+        console.error('Failed to open edit dialog:', error);
+        // Fallback to inline editing
+        this.editingLineId.set(item.id);
+        this.editForm.patchValue({
+          name: item.name,
+          amount: item.amount,
+        });
+      }
+    } else {
+      // Desktop: inline editing
+      this.editingLineId.set(item.id);
+      this.editForm.patchValue({
+        name: item.name,
+        amount: item.amount,
+      });
+    }
   }
 
   cancelEdit(): void {

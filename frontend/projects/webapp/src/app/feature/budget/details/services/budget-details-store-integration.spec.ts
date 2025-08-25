@@ -214,7 +214,7 @@ describe('BudgetDetailsStore - Integration Tests', () => {
       // Success - no snackbar calls (moved to component responsibility)
     });
 
-    it('should handle creation errors and reload data', async () => {
+    it('should handle creation errors and rollback data', async () => {
       const newBudgetLine: BudgetLineCreate = {
         budgetId: mockBudgetId,
         name: 'Failed Line',
@@ -229,14 +229,58 @@ describe('BudgetDetailsStore - Integration Tests', () => {
         .fn()
         .mockReturnValue(throwError(() => new Error('Creation failed')));
 
-      // Spy on the resource's reload method
+      const originalData = service.budgetData();
+      const originalLineCount = originalData?.budgetLines.length || 0;
+
+      // Attempt to create budget line
+      await service.createBudgetLine(newBudgetLine);
+
+      // Check rollback - data should be restored to original state
+      const rolledBackData = service.budgetData();
+      expect(rolledBackData?.budgetLines.length).toBe(originalLineCount);
+
+      // Verify no temporary line remains
+      const tempLine = rolledBackData?.budgetLines.find((l) =>
+        l.id.startsWith('temp-'),
+      );
+      expect(tempLine).toBeUndefined();
+    });
+
+    it('should reload data when creation fails with no initial data', async () => {
+      // Reset the service to have no initial data
+      service = TestBed.inject(BudgetDetailsStore);
+      service.initializeBudgetId(mockBudgetId);
+      // Do NOT call setResourceData() - simulating no data loaded yet
+
+      const newBudgetLine: BudgetLineCreate = {
+        budgetId: mockBudgetId,
+        name: 'Failed Line',
+        description: '',
+        amount: 100,
+        kind: 'expense',
+        recurrence: 'fixed',
+        isManuallyAdjusted: false,
+      };
+
+      mockBudgetLineApi.createBudgetLine$ = vi
+        .fn()
+        .mockReturnValue(throwError(() => new Error('Creation failed')));
+
+      // Clear any existing resource data to simulate no initial load
       const resource = service.budgetDetails();
+      if (resource && 'set' in resource) {
+        // Force the resource to have undefined value
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (resource as any).set(undefined);
+      }
+
+      // Spy on the resource's reload method
       const reloadSpy = vi.spyOn(resource, 'reload');
 
       // Attempt to create budget line
       await service.createBudgetLine(newBudgetLine);
 
-      // Check error handling
+      // Check that reload was called since there was no original data
       expect(reloadSpy).toHaveBeenCalled();
     });
   });
