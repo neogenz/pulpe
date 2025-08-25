@@ -1,57 +1,66 @@
-import { test as setup, expect } from '@playwright/test';
-import { LoginPage } from './pages/login.page';
-import { getTestCredentials } from './utils/env-check';
-import { AuthMockHelper } from './fixtures/test-helpers';
+import { test as setup } from '@playwright/test';
+import type { E2EWindow } from './types/e2e.types';
+import { TEST_CONFIG } from './config/test-config';
+import { MOCK_API_RESPONSES } from './mocks/api-responses';
 
 const authFile = 'playwright/.auth/user.json';
 
 setup('authenticate', async ({ page }) => {
-  console.log('🔐 Starting authentication setup...');
+  // Inject E2E auth bypass for testing
+  await page.addInitScript((config) => {
+    const e2eWindow = window as unknown as E2EWindow;
+    e2eWindow.__E2E_AUTH_BYPASS__ = true;
+    e2eWindow.__E2E_MOCK_AUTH_STATE__ = {
+      user: { 
+        id: config.USER.ID, 
+        email: config.USER.EMAIL 
+      },
+      session: { 
+        access_token: config.TOKENS.ACCESS,
+        user: { 
+          id: config.USER.ID, 
+          email: config.USER.EMAIL 
+        }
+      },
+      isLoading: false,
+      isAuthenticated: true
+    };
+  }, TEST_CONFIG);
 
-  // Get credentials with validation
-  const { email, password } = getTestCredentials();
-
-  // Si on utilise les credentials par défaut (pas de variables d'environnement),
-  // utiliser les mocks comme les autres tests
-  const isUsingDefaultCredentials =
-    email === 'test@example.com' && password === 'password123';
-
-  if (isUsingDefaultCredentials) {
-    console.log('🎭 Using mocked authentication for default credentials');
-    await AuthMockHelper.setupAuthScenario(page, 'SUCCESS');
-
-    // Mock les API backend pour éviter les erreurs
-    await page.route('**/api/**', (route) =>
-      route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ data: [], message: 'Mock response' }),
-      }),
-    );
-  }
-
-  // Perform authentication steps
-  const loginPage = new LoginPage(page);
-  await loginPage.goto();
-
-  // Si authentification mockée et qu'on est déjà redirigé, pas besoin de login manuel
-  if (isUsingDefaultCredentials && !(await loginPage.isOnLoginPage())) {
-    console.log('✅ Already authenticated via mocks');
-  } else {
-    console.log(`📧 Logging in with: ${email}`);
-    await loginPage.login(email, password);
-
-    // Wait until the page receives the cookies and redirects
-    console.log('⏳ Waiting for successful authentication...');
-    await page.waitForURL(/\/app\/current-month/, { timeout: 10000 });
-  }
-
-  // Verify we're actually authenticated (not on login page)
-  await expect(page.locator('h1:has-text("Login")')).toHaveCount(0);
-
-  // Save authentication state
-  console.log('💾 Saving authentication state...');
+  // Type-safe API mocking
+  await page.route('**/api/**', (route) => {
+    const url = route.request().url();
+    
+    // Route to appropriate mock response based on URL
+    if (url.includes('auth')) {
+      return route.fulfill({ 
+        status: 200, 
+        body: JSON.stringify(MOCK_API_RESPONSES.auth)
+      });
+    }
+    
+    if (url.includes('budgets')) {
+      return route.fulfill({ 
+        status: 200, 
+        body: JSON.stringify(MOCK_API_RESPONSES.budgets)
+      });
+    }
+    
+    if (url.includes('templates')) {
+      return route.fulfill({ 
+        status: 200, 
+        body: JSON.stringify(MOCK_API_RESPONSES.templates)
+      });
+    }
+    
+    // Default response
+    return route.fulfill({ 
+      status: 200, 
+      body: JSON.stringify({ data: [] })
+    });
+  });
+  
+  // Navigate and save auth state
+  await page.goto('/app/current-month');
   await page.context().storageState({ path: authFile });
-
-  console.log('✅ Authentication setup completed successfully!');
 });

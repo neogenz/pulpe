@@ -7,7 +7,12 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import {
+  FormBuilder,
+  FormControl,
+  type FormGroup,
+  ReactiveFormsModule,
+} from '@angular/forms';
 import { MatBottomSheetRef } from '@angular/material/bottom-sheet';
 import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
@@ -21,6 +26,15 @@ type TransactionFormData = Pick<
   TransactionCreate,
   'name' | 'amount' | 'kind' | 'category'
 >;
+
+// Define the form structure type
+interface TransactionFormControls {
+  name: FormControl<string | null>;
+  amount: FormControl<number | null>;
+  kind: FormControl<'expense' | 'income' | 'saving' | null>;
+  category: FormControl<string | null>;
+}
+
 import { TransactionValidators } from '../utils/transaction-form-validators';
 
 @Component({
@@ -69,6 +83,7 @@ import { TransactionValidators } from '../utils/transaction-form-validators';
             inputmode="decimal"
             placeholder="0.00"
             formControlName="amount"
+            data-testid="transaction-amount-input"
             step="0.01"
             min="0.01"
             max="999999.99"
@@ -118,6 +133,7 @@ import { TransactionValidators } from '../utils/transaction-form-validators';
           <input
             matInput
             formControlName="name"
+            data-testid="transaction-description-input"
             placeholder="Ex: Courses chez Migros"
           />
           @if (
@@ -141,7 +157,11 @@ import { TransactionValidators } from '../utils/transaction-form-validators';
         <!-- Type Field -->
         <mat-form-field class="w-full" subscriptSizing="dynamic">
           <mat-label>Type de transaction</mat-label>
-          <mat-select formControlName="kind" aria-label="Type de transaction">
+          <mat-select
+            formControlName="kind"
+            aria-label="Type de transaction"
+            data-testid="transaction-type-select"
+          >
             <mat-option value="expense">
               <mat-icon class="mr-2 icon-filled">remove_circle</mat-icon>
               Dépense
@@ -197,6 +217,7 @@ import { TransactionValidators } from '../utils/transaction-form-validators';
           matButton="outlined"
           (click)="onSubmit()"
           [disabled]="transactionForm.invalid"
+          data-testid="transaction-submit-button"
           class="flex-2"
         >
           Ajouter
@@ -220,15 +241,23 @@ export class AddTransactionBottomSheet implements AfterViewInit {
   protected readonly predefinedAmounts = signal([10, 15, 20, 30]);
 
   // Reactive form with shared validators for consistency
-  readonly transactionForm = this.#fb.group({
-    name: ['Dépense', TransactionValidators.name],
-    amount: [null as number | null, TransactionValidators.amount],
-    kind: [
-      'expense' as 'expense' | 'income' | 'saving',
-      TransactionValidators.kind,
-    ],
-    category: ['', TransactionValidators.category],
-  });
+  readonly transactionForm: FormGroup<TransactionFormControls> = this.#fb.group(
+    {
+      name: new FormControl<string | null>('Dépense', [
+        ...TransactionValidators.name,
+      ]),
+      amount: new FormControl<number | null>(null, [
+        ...TransactionValidators.amount,
+      ]),
+      kind: new FormControl<'expense' | 'income' | 'saving' | null>(
+        'expense',
+        TransactionValidators.kind,
+      ),
+      category: new FormControl<string | null>('', [
+        ...TransactionValidators.category,
+      ]),
+    },
+  );
 
   ngAfterViewInit(): void {
     // Auto-focus on amount field for immediate input
@@ -249,11 +278,17 @@ export class AddTransactionBottomSheet implements AfterViewInit {
 
     const formValue = this.transactionForm.value;
 
+    // Explicit validation for required fields
+    if (!formValue.name || !formValue.amount || !formValue.kind) {
+      this.transactionForm.markAllAsTouched();
+      return;
+    }
+
     const transaction: TransactionFormData = {
-      name: formValue.name as string,
-      amount: formValue.amount as number,
-      kind: formValue.kind as 'expense' | 'income' | 'saving',
-      category: (formValue.category as string) || null,
+      name: formValue.name,
+      amount: formValue.amount,
+      kind: formValue.kind,
+      category: formValue.category || null,
     };
 
     this.#bottomSheetRef.dismiss(transaction);

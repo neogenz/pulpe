@@ -51,7 +51,7 @@ import {
   ],
   providers: [BudgetDetailsStore, BudgetLineApi],
   template: `
-    <div class="flex flex-col gap-6">
+    <div class="flex flex-col gap-6" data-testid="budget-detail-page">
       @if (budgetDetailsStore.isLoading()) {
         <pulpe-base-loading
           message="Chargement des détails du budget..."
@@ -282,25 +282,5 @@ export default class DetailsPage implements OnInit {
         panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
       });
     }
-  }
-
-  async handleDeleteBudgetLine(id: string): Promise<void> {
-    const dialogRef = this.#dialog.open(ConfirmationDialog, {
-      data: {
-        title: 'Supprimer la prévision',
-        message: 'Êtes-vous sûr de vouloir supprimer cette prévision ?',
-        confirmText: 'Supprimer',
-        confirmColor: 'warn',
-      } satisfies ConfirmationDialogData,
-      width: '400px',
-    });
-
-    const confirmed = await firstValueFrom(dialogRef.afterClosed());
-
-    if (!confirmed) {
-      return;
-    }
-
-    await this.budgetDetailsStore.deleteBudgetLine(id);
   }
 }
