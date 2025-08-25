@@ -59,9 +59,9 @@ interface SectionHeaderRow {
   title: string;
 }
 
-interface DataRow extends BudgetItemViewModel {
+type DataRow = BudgetItemViewModel & {
   type: 'data_row';
-}
+};
 
 type TableRow = SectionHeaderRow | DataRow;
 
