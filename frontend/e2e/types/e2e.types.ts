@@ -1,4 +1,4 @@
-import type { Page, Request, Route } from '@playwright/test';
+import type { Request, Route } from '@playwright/test';
 
 /**
  * Extended Window interface for E2E testing

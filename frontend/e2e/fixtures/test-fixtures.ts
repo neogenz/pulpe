@@ -1,5 +1,4 @@
 import { test as base, type Page, type Route } from '@playwright/test';
-import type { E2EWindow } from '../types/e2e.types';
 import { LoginPage } from '../pages/auth/login.page';
 import { OnboardingPage } from '../pages/onboarding.page';
 import { CurrentMonthPage } from '../pages/current-month.page';
@@ -57,7 +56,15 @@ export const test = base.extend<AppFixtures>({
         throw new Error('E2E auth bypass cannot be used in production');
       }
       
-      const e2eWindow = window as unknown as import('../types/e2e.types').E2EWindow;
+      const e2eWindow = window as typeof window & {
+        __E2E_AUTH_BYPASS__: boolean;
+        __E2E_MOCK_AUTH_STATE__: {
+          user: { id: string; email: string };
+          session: { access_token: string; user: { id: string; email: string } };
+          isLoading: boolean;
+          isAuthenticated: boolean;
+        };
+      };
       e2eWindow.__E2E_AUTH_BYPASS__ = true;
       e2eWindow.__E2E_MOCK_AUTH_STATE__ = {
         user: { id: config.USER.ID, email: config.USER.EMAIL },
