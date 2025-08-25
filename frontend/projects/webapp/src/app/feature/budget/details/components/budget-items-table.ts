@@ -15,6 +15,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { CurrencyPipe } from '@angular/common';
@@ -22,26 +23,13 @@ import {
   type BudgetLine,
   type Transaction,
   type BudgetLineUpdate,
-  type TransactionKind,
-  type TransactionRecurrence,
 } from '@pulpe/shared';
-
-interface BudgetItemViewModel {
-  id: string;
-  name: string;
-  amount: number;
-  kind: TransactionKind;
-  recurrence: TransactionRecurrence;
-  itemType: 'budget_line' | 'transaction';
-  kindIcon: string;
-  kindLabel: string;
-  kindIconClass: string;
-  amountClass: string;
-  recurrenceLabel: string;
-  recurrenceChipClass: string;
-  isEditing: boolean;
-  isLoading: boolean;
-}
+import {
+  BudgetTableMapper,
+  type TableRow,
+  type SectionHeaderRow,
+  type DataRow,
+} from '../../services/budget-table-mapper';
 
 @Component({
   selector: 'pulpe-budget-items-table',
@@ -53,6 +41,7 @@ interface BudgetItemViewModel {
     MatFormFieldModule,
     MatInputModule,
     MatChipsModule,
+    MatTooltipModule,
     ReactiveFormsModule,
     CurrencyPipe,
   ],
@@ -73,19 +62,6 @@ interface BudgetItemViewModel {
           [dataSource]="budgetItemViewModels()"
           class="w-full min-w-[600px]"
         >
-          <!-- Type Column -->
-          <ng-container matColumnDef="type">
-            <th mat-header-cell *matHeaderCellDef>Type</th>
-            <td mat-cell *matCellDef="let line">
-              <div class="flex items-center gap-2">
-                <mat-icon [class]="line.kindIconClass">
-                  {{ line.kindIcon }}
-                </mat-icon>
-                <span class="text-body-medium">{{ line.kindLabel }}</span>
-              </div>
-            </td>
-          </ng-container>
-
           <!-- Name Column -->
           <ng-container matColumnDef="name">
             <th mat-header-cell *matHeaderCellDef>Description</th>
@@ -113,7 +89,23 @@ interface BudgetItemViewModel {
                   </mat-form-field>
                 </form>
               } @else {
-                <span class="text-body-medium">{{ line.name }}</span>
+                <div class="flex items-center gap-2">
+                  <span
+                    class="inline-flex items-center gap-2 cursor-help"
+                    [matTooltip]="line.kindLabel"
+                    matTooltipPosition="above"
+                    [attr.aria-describedby]="'type-tooltip-' + line.id"
+                    [attr.aria-label]="'Type de transaction: ' + line.kindLabel"
+                    tabindex="0"
+                  >
+                    <mat-icon [class]="line.kindIconClass">
+                      {{ line.kindIcon }}
+                    </mat-icon>
+                    <span class="text-body-medium font-semibold">{{
+                      line.name
+                    }}</span>
+                  </span>
+                </div>
               }
             </td>
           </ng-container>
@@ -174,6 +166,24 @@ interface BudgetItemViewModel {
             </td>
           </ng-container>
 
+          <!-- Remaining Balance Column -->
+          <ng-container matColumnDef="remaining">
+            <th mat-header-cell *matHeaderCellDef class="text-right">
+              Solde restant
+            </th>
+            <td mat-cell *matCellDef="let line" class="text-right">
+              <span
+                class="text-body-medium font-medium"
+                [class]="line.cumulativeBalanceClass"
+              >
+                {{
+                  line.cumulativeBalance
+                    | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH'
+                }}
+              </span>
+            </td>
+          </ng-container>
+
           <!-- Actions Column -->
           <ng-container matColumnDef="actions">
             <th mat-header-cell *matHeaderCellDef></th>
@@ -231,10 +241,42 @@ interface BudgetItemViewModel {
             </td>
           </ng-container>
 
-          <tr mat-header-row *matHeaderRowDef="currentColumns()"></tr>
+          <!-- Section Header Column -->
+          <ng-container matColumnDef="section-header">
+            <td
+              mat-cell
+              *matCellDef="let row"
+              [attr.colspan]="currentColumns().length"
+              class=""
+            >
+              <h3 class="text-title-medium font-bold text-on-surface m-0">
+                {{ row.title }}
+              </h3>
+            </td>
+          </ng-container>
+
+          <tr
+            mat-header-row
+            *matHeaderRowDef="currentColumns(); sticky: true"
+          ></tr>
           <tr
             mat-row
-            *matRowDef="let row; columns: currentColumns()"
+            *matRowDef="
+              let row;
+              columns: ['section-header'];
+              when: isSectionHeader;
+              trackBy: trackByRow
+            "
+            class="!hover:bg-transparent"
+          ></tr>
+          <tr
+            mat-row
+            *matRowDef="
+              let row;
+              columns: currentColumns();
+              when: isDataRow;
+              trackBy: trackByRow
+            "
             class="hover:bg-surface-container-low transition-opacity"
             [class.opacity-50]="row.isLoading"
             [class.pointer-events-none]="row.isLoading"
@@ -292,21 +334,28 @@ interface BudgetItemViewModel {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BudgetItemsTable {
+  // Inputs - pure data
   budgetLines = input.required<BudgetLine[]>();
   transactions = input.required<Transaction[]>();
   operationsInProgress = input<Set<string>>(new Set());
+
+  // Outputs - events only
   updateClicked = output<{ id: string; update: BudgetLineUpdate }>();
   deleteClicked = output<string>();
   addClicked = output<void>();
 
-  #breakpointObserver = inject(BreakpointObserver);
-  #fb = inject(FormBuilder);
+  // Services
+  readonly #breakpointObserver = inject(BreakpointObserver);
+  readonly #fb = inject(FormBuilder);
+  readonly #budgetTableMapper = inject(BudgetTableMapper);
 
-  displayedColumns = ['type', 'name', 'recurrence', 'amount', 'actions'];
-  displayedColumnsMobile = ['name', 'amount', 'actions'];
+  // UI configuration
+  displayedColumns = ['name', 'recurrence', 'amount', 'remaining', 'actions'];
+  displayedColumnsMobile = ['name', 'amount', 'remaining', 'actions'];
 
+  // UI state
   editingLineId = signal<string | null>(null);
-  editForm = this.#fb.group({
+  readonly editForm = this.#fb.group({
     name: ['', [Validators.required, Validators.minLength(1)]],
     amount: [0, [Validators.required, Validators.min(0.01)]],
   });
@@ -322,100 +371,38 @@ export class BudgetItemsTable {
       : this.displayedColumns,
   );
 
-  // View models with pre-computed display values
-  budgetItemViewModels = computed(() => {
+  // View Model - single computed that delegates to service
+  tableViewModel = computed(() => {
     const budgetLines = this.budgetLines();
     const transactions = this.transactions();
-    const inProgress = this.operationsInProgress();
-    const editingId = this.editingLineId();
+    const operationsInProgress = this.operationsInProgress();
+    const editingLineId = this.editingLineId();
 
-    // Map budget lines
-    const budgetLineViewModels: BudgetItemViewModel[] = budgetLines.map(
-      (line) => ({
-        id: line.id,
-        name: line.name,
-        amount: line.amount,
-        kind: line.kind,
-        recurrence: line.recurrence,
-        itemType: 'budget_line' as const,
-        kindIcon: this.#kindIcons[line.kind],
-        kindLabel: this.#kindLabels[line.kind],
-        kindIconClass: this.#kindIconClasses[line.kind],
-        amountClass: this.#amountClasses[line.kind],
-        recurrenceLabel: this.#recurrenceLabels[line.recurrence],
-        recurrenceChipClass: this.#recurrenceChipClasses[line.recurrence],
-        isEditing: editingId === line.id,
-        isLoading: inProgress.has(line.id),
-      }),
+    // Component is now logic-free - just passes data to service
+    return this.#budgetTableMapper.prepareBudgetTableData(
+      budgetLines,
+      transactions,
+      operationsInProgress,
+      editingLineId,
     );
-
-    // Map transactions (always one-off)
-    const transactionViewModels: BudgetItemViewModel[] = transactions.map(
-      (transaction) => ({
-        id: transaction.id,
-        name: transaction.name,
-        amount: transaction.amount,
-        kind: transaction.kind,
-        recurrence: 'one_off' as const, // Transactions are always one-off
-        itemType: 'transaction' as const,
-        kindIcon: this.#kindIcons[transaction.kind],
-        kindLabel: this.#kindLabels[transaction.kind],
-        kindIconClass: this.#kindIconClasses[transaction.kind],
-        amountClass: this.#amountClasses[transaction.kind],
-        recurrenceLabel: this.#recurrenceLabels['one_off'],
-        recurrenceChipClass: this.#recurrenceChipClasses['one_off'],
-        isEditing: false, // Transactions cannot be edited in this view
-        isLoading: inProgress.has(transaction.id),
-      }),
-    );
-
-    // Combine and sort by amount (descending) then by name
-    return [...budgetLineViewModels, ...transactionViewModels].sort((a, b) => {
-      if (a.amount !== b.amount) {
-        return b.amount - a.amount;
-      }
-      return a.name.localeCompare(b.name);
-    });
   });
 
-  // Mapping constants
-  #kindIcons: Record<TransactionKind, string> = {
-    income: 'trending_up',
-    expense: 'trending_down',
-    saving: 'savings',
-  };
+  // Direct binding properties for template
+  budgetItemViewModels = computed(() => this.tableViewModel().rows);
 
-  #kindLabels: Record<TransactionKind, string> = {
-    income: 'Revenu',
-    expense: 'Dépense',
-    saving: 'Épargne',
-  };
+  // Predicate functions for row types
+  readonly isSectionHeader = (
+    _: number,
+    row: TableRow,
+  ): row is SectionHeaderRow => row.type === 'section_header';
 
-  #kindIconClasses: Record<TransactionKind, string> = {
-    income: 'text-financial-income',
-    expense: 'text-financial-negative',
-    saving: 'text-primary',
-  };
+  readonly isDataRow = (_: number, row: TableRow): row is DataRow =>
+    row.type === 'data_row';
 
-  #amountClasses: Record<TransactionKind, string> = {
-    income: 'text-financial-income',
-    expense: 'text-financial-negative',
-    saving: 'text-primary',
-  };
+  // Track function for performance optimization
+  readonly trackByRow = (_: number, row: TableRow): string => row.id;
 
-  #recurrenceLabels: Record<TransactionRecurrence, string> = {
-    fixed: 'Tous les mois',
-    variable: 'Variable',
-    one_off: 'Une seule fois',
-  };
-
-  #recurrenceChipClasses: Record<TransactionRecurrence, string> = {
-    fixed: 'bg-primary-container text-on-primary-container',
-    variable: 'bg-tertiary-container text-on-tertiary-container',
-    one_off: 'bg-secondary-container text-on-secondary-container',
-  };
-
-  startEdit(item: BudgetItemViewModel): void {
+  startEdit(item: DataRow): void {
     // Only allow editing budget lines, not transactions
     if (item.itemType !== 'budget_line') return;
 
