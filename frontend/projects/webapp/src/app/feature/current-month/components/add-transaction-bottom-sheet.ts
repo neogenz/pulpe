@@ -278,10 +278,16 @@ export class AddTransactionBottomSheet implements AfterViewInit {
 
     const formValue = this.transactionForm.value;
 
+    // Explicit validation for required fields
+    if (!formValue.name || !formValue.amount || !formValue.kind) {
+      this.transactionForm.markAllAsTouched();
+      return;
+    }
+
     const transaction: TransactionFormData = {
-      name: formValue.name || 'Dépense',
-      amount: formValue.amount || 0,
-      kind: formValue.kind || 'expense',
+      name: formValue.name,
+      amount: formValue.amount,
+      kind: formValue.kind,
       category: formValue.category || null,
     };
 
