@@ -3,7 +3,6 @@ import { test, expect } from '../../fixtures/test-fixtures';
 test.describe('Template Selection', () => {
   test('should select template for budget creation', async ({
     authenticatedPage,
-    budgetDetailsPage,
   }) => {
     // Mock templates response with default template
     await authenticatedPage.route('**/budget-templates', async (route) => {

@@ -37,7 +37,7 @@ export class BudgetTemplatesPage {
     await this.page.waitForLoadState('networkidle');
   }
 
-  async navigateToTemplateDetails(templateName: string) {
+  async navigateToTemplateDetails(_templateName: string) {
     // Direct navigation is more reliable
     await this.page.goto('/app/budget-templates/details/test-template-id');
   }

@@ -30,7 +30,6 @@ test.describe('Core Application Navigation (Unauthenticated)', () => {
 
   test('should allow new users to access onboarding welcome', async ({
     page,
-    onboardingPage,
   }) => {
     await test.step('Navigate to onboarding welcome', async () => {
       await page.goto('/onboarding/welcome');

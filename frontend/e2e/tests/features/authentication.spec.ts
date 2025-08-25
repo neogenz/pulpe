@@ -55,7 +55,7 @@ test.describe('Authentication', () => {
     await expect(submitButton).toBeVisible();
   });
 
-  test.skip('should validate email format', async ({ page, loginPage }) => {
+  test.skip('should validate email format', async () => {
     // Skip this test as it requires actual form validation implementation
     // which may vary based on the application's current state
   });
