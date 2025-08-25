@@ -116,7 +116,7 @@ import { Logger } from '@core/logging/logger';
           }
 
           <button
-            mat-flat-button
+            matButton="filled"
             color="primary"
             type="submit"
             class="w-full h-12"

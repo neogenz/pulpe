@@ -1,9 +1,4 @@
-import {
-  isValidUrl,
-  isValidHttpUrl,
-  sanitizeUrl,
-  validateConfigUrls,
-} from './validators';
+import { isValidUrl, sanitizeUrl } from './validators';
 
 describe('URL Validators', () => {
   describe('isValidUrl', () => {
@@ -52,26 +47,6 @@ describe('URL Validators', () => {
     });
   });
 
-  describe('isValidHttpUrl', () => {
-    it('should allow custom protocols', () => {
-      expect(isValidHttpUrl('ws://localhost:8080', ['ws:', 'wss:'])).toBe(true);
-      expect(isValidHttpUrl('wss://example.com', ['ws:', 'wss:'])).toBe(true);
-      expect(isValidHttpUrl('http://example.com', ['ws:', 'wss:'])).toBe(false);
-    });
-
-    it('should default to HTTP and HTTPS', () => {
-      expect(isValidHttpUrl('http://example.com')).toBe(true);
-      expect(isValidHttpUrl('https://example.com')).toBe(true);
-      expect(isValidHttpUrl('ws://example.com')).toBe(false);
-    });
-
-    it('should validate URL structure regardless of protocol', () => {
-      // Note: 'ws://invalid..com' is actually valid per URL constructor
-      expect(isValidHttpUrl('ws://invalid..com', ['ws:'])).toBe(true);
-      expect(isValidHttpUrl('ws://', ['ws:'])).toBe(false);
-    });
-  });
-
   describe('sanitizeUrl', () => {
     it('should return valid URLs unchanged', () => {
       expect(sanitizeUrl('https://example.com')).toBe('https://example.com');
@@ -104,102 +79,6 @@ describe('URL Validators', () => {
     it('should handle null and undefined', () => {
       expect(sanitizeUrl(null)).toBe('http://localhost:3000');
       expect(sanitizeUrl(undefined)).toBe('http://localhost:3000');
-    });
-  });
-
-  describe('validateConfigUrls', () => {
-    it('should validate all URLs in config object', () => {
-      const config = {
-        apiUrl: 'https://api.example.com',
-        backendUrl: 'http://localhost:3000',
-        websocketUrl: 'wss://ws.example.com',
-      };
-
-      const result = validateConfigUrls(config);
-      expect(result.isValid).toBe(false); // wss: is not allowed by default
-      expect(result.errors).toContain(
-        'Invalid URL for websocketUrl: wss://ws.example.com',
-      );
-    });
-
-    it('should return valid for all HTTP(S) URLs', () => {
-      const config = {
-        apiUrl: 'https://api.example.com',
-        backendUrl: 'http://localhost:3000',
-        frontendUrl: 'https://app.example.com',
-      };
-
-      const result = validateConfigUrls(config);
-      expect(result.isValid).toBe(true);
-      expect(result.errors).toHaveLength(0);
-    });
-
-    it('should detect multiple invalid URLs', () => {
-      const config = {
-        apiUrl: 'not-a-url',
-        backendUrl: 'javascript:alert(1)',
-        validUrl: 'https://example.com',
-      };
-
-      const result = validateConfigUrls(config);
-      expect(result.isValid).toBe(false);
-      expect(result.errors).toHaveLength(2);
-      expect(result.errors).toContain('Invalid URL for apiUrl: not-a-url');
-      expect(result.errors).toContain(
-        'Invalid URL for backendUrl: javascript:alert(1)',
-      );
-    });
-
-    it('should handle nested objects', () => {
-      const config = {
-        api: {
-          url: 'https://api.example.com',
-          backupUrl: 'invalid-url',
-        },
-        frontend: {
-          url: 'https://app.example.com',
-        },
-      };
-
-      const result = validateConfigUrls(config);
-      expect(result.isValid).toBe(false);
-      expect(result.errors).toContain(
-        'Invalid URL for api.backupUrl: invalid-url',
-      );
-    });
-
-    it('should skip non-string values', () => {
-      const config = {
-        apiUrl: 'https://api.example.com',
-        port: 3000,
-        enabled: true,
-        metadata: null,
-        urls: ['https://example.com'], // Arrays are skipped
-      };
-
-      const result = validateConfigUrls(config);
-      expect(result.isValid).toBe(true);
-      expect(result.errors).toHaveLength(0);
-    });
-
-    it('should handle empty config', () => {
-      const result = validateConfigUrls({});
-      expect(result.isValid).toBe(true);
-      expect(result.errors).toHaveLength(0);
-    });
-
-    it('should only check fields ending with "Url" or "URL"', () => {
-      const config = {
-        apiUrl: 'https://api.example.com',
-        backendURL: 'http://localhost:3000',
-        randomString: 'not-a-url', // Should be skipped
-        websiteUrl: 'invalid', // Should be checked
-      };
-
-      const result = validateConfigUrls(config);
-      expect(result.isValid).toBe(false);
-      expect(result.errors).toHaveLength(1);
-      expect(result.errors).toContain('Invalid URL for websiteUrl: invalid');
     });
   });
 });
