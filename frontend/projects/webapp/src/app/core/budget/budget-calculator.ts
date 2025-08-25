@@ -70,6 +70,16 @@ export class BudgetCalculator {
     }, 0);
   }
 
+  // Configuration des ordres d'affichage pour éviter les magic numbers
+  readonly #DISPLAY_ORDER_CONFIG = {
+    KIND_MULTIPLIER: 1000,
+    TRANSACTION_OFFSET: 500,
+    INCOME: 1,
+    SAVING: 2,
+    EXPENSE: 3,
+    DEFAULT: 4,
+  } as const;
+
   /**
    * Combine et trie les budget lines et transactions avec calcul du solde cumulatif
    * Ordre: revenus → épargnes → dépenses (budget lines en premier, puis transactions)
@@ -78,52 +88,32 @@ export class BudgetCalculator {
     budgetLines: BudgetLine[],
     transactions: Transaction[],
   ): BudgetItemDisplay[] {
-    // Constants pour éviter les magic numbers
-    const DISPLAY_ORDER = {
-      KIND_MULTIPLIER: 1000,
-      TRANSACTION_OFFSET: 500,
-      INCOME: 1,
-      SAVING: 2,
-      EXPENSE: 3,
-      DEFAULT: 4,
-    } as const;
+    const items = this.#createDisplayItems(budgetLines, transactions);
+    this.#sortItemsByBusinessRules(items);
+    this.#calculateCumulativeBalances(items);
 
+    return items;
+  }
+
+  /**
+   * Crée les éléments d'affichage avec leurs ordres de tri
+   */
+  #createDisplayItems(
+    budgetLines: BudgetLine[],
+    transactions: Transaction[],
+  ): BudgetItemDisplay[] {
     const items: BudgetItemDisplay[] = [];
-
-    // Helper pour déterminer l'ordre de tri par type
-    const getKindOrder = (kind: TransactionKind): number => {
-      switch (kind) {
-        case 'income':
-          return DISPLAY_ORDER.INCOME;
-        case 'saving':
-          return DISPLAY_ORDER.SAVING;
-        case 'expense':
-          return DISPLAY_ORDER.EXPENSE;
-        default:
-          return DISPLAY_ORDER.DEFAULT;
-      }
-    };
-
-    // Helper pour déterminer la valeur avec signe selon les règles métier
-    const getSignedAmount = (kind: string, amount: number): number => {
-      switch (kind) {
-        case 'income':
-          return amount; // Positif
-        case 'expense':
-        case 'saving':
-          return -amount; // Négatif
-        default:
-          return 0;
-      }
-    };
 
     // Ajouter les budget lines avec ordre
     budgetLines.forEach((line, index) => {
       items.push({
         item: line,
         cumulativeBalance: 0, // Sera calculé après tri
-        displayOrder:
-          getKindOrder(line.kind) * DISPLAY_ORDER.KIND_MULTIPLIER + index,
+        displayOrder: this.#calculateDisplayOrder(
+          line.kind,
+          index,
+          'budget_line',
+        ),
         itemType: 'budget_line',
       });
     });
@@ -133,25 +123,86 @@ export class BudgetCalculator {
       items.push({
         item: transaction,
         cumulativeBalance: 0, // Sera calculé après tri
-        displayOrder:
-          getKindOrder(transaction.kind) * DISPLAY_ORDER.KIND_MULTIPLIER +
-          DISPLAY_ORDER.TRANSACTION_OFFSET +
+        displayOrder: this.#calculateDisplayOrder(
+          transaction.kind,
           index,
+          'transaction',
+        ),
         itemType: 'transaction',
       });
     });
 
-    // Trier selon les règles métier
-    items.sort((a, b) => a.displayOrder - b.displayOrder);
+    return items;
+  }
 
-    // Calculer les soldes cumulatifs
+  /**
+   * Calcule l'ordre d'affichage selon les règles métier
+   */
+  #calculateDisplayOrder(
+    kind: TransactionKind,
+    index: number,
+    itemType: 'budget_line' | 'transaction',
+  ): number {
+    const kindOrder = this.#getKindOrder(kind);
+    const baseOrder = kindOrder * this.#DISPLAY_ORDER_CONFIG.KIND_MULTIPLIER;
+    const typeOffset =
+      itemType === 'transaction'
+        ? this.#DISPLAY_ORDER_CONFIG.TRANSACTION_OFFSET
+        : 0;
+
+    return baseOrder + typeOffset + index;
+  }
+
+  /**
+   * Détermine l'ordre de tri par type selon les règles métier
+   */
+  #getKindOrder(kind: TransactionKind): number {
+    switch (kind) {
+      case 'income':
+        return this.#DISPLAY_ORDER_CONFIG.INCOME;
+      case 'saving':
+        return this.#DISPLAY_ORDER_CONFIG.SAVING;
+      case 'expense':
+        return this.#DISPLAY_ORDER_CONFIG.EXPENSE;
+      default:
+        return this.#DISPLAY_ORDER_CONFIG.DEFAULT;
+    }
+  }
+
+  /**
+   * Trie les éléments selon les règles métier
+   */
+  #sortItemsByBusinessRules(items: BudgetItemDisplay[]): void {
+    items.sort((a, b) => a.displayOrder - b.displayOrder);
+  }
+
+  /**
+   * Calcule les soldes cumulatifs pour tous les éléments
+   */
+  #calculateCumulativeBalances(items: BudgetItemDisplay[]): void {
     let runningBalance = 0;
     items.forEach((item) => {
-      const signedAmount = getSignedAmount(item.item.kind, item.item.amount);
+      const signedAmount = this.#getSignedAmount(
+        item.item.kind,
+        item.item.amount,
+      );
       runningBalance += signedAmount;
       item.cumulativeBalance = runningBalance;
     });
+  }
 
-    return items;
+  /**
+   * Détermine la valeur avec signe selon les règles métier
+   */
+  #getSignedAmount(kind: TransactionKind, amount: number): number {
+    switch (kind) {
+      case 'income':
+        return amount; // Positif
+      case 'expense':
+      case 'saving':
+        return -amount; // Négatif
+      default:
+        return 0;
+    }
   }
 }
