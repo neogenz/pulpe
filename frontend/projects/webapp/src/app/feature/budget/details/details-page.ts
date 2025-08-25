@@ -52,7 +52,7 @@ import {
   providers: [BudgetDetailsStore, BudgetLineApi],
   template: `
     <div class="flex flex-col gap-6">
-      @if (budgetDetailsStore.isLoading()) {
+      @if (budgetDetailsStore.isInitialLoading()) {
         <pulpe-base-loading
           message="Chargement des détails du budget..."
           size="large"
