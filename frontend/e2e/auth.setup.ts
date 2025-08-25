@@ -8,9 +8,15 @@ const authFile = 'playwright/.auth/user.json';
 setup('authenticate', async ({ page }) => {
   // Security check: Only inject auth bypass in non-production environments
   await page.addInitScript((config) => {
-    // Runtime environment check
-    if (window.location.hostname === 'production.pulpe.com') {
-      throw new Error('E2E auth bypass cannot be used in production');
+    // Runtime environment check - multiple production indicators
+    const hostname = window.location.hostname;
+    const isProduction = 
+      hostname.includes('.vercel.app') ||  // Vercel production deployments
+      hostname.includes('pulpe.com') ||    // Any pulpe.com domain
+      !hostname.includes('localhost') && !hostname.includes('127.0.0.1'); // Not local dev
+    
+    if (isProduction) {
+      throw new Error('E2E auth bypass cannot be used in production environment');
     }
     
     const e2eWindow = window as unknown as E2EWindow;

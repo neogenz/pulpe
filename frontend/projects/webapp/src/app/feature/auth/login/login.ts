@@ -209,8 +209,15 @@ export default class Login {
 
     const { email, password } = this.loginForm.value;
 
+    // Explicit null checks for safety
+    if (!email || !password) {
+      this.errorMessage.set('Email et mot de passe requis.');
+      this.isSubmitting.set(false);
+      return;
+    }
+
     try {
-      const result = await this.#authService.signInWithEmail(email!, password!);
+      const result = await this.#authService.signInWithEmail(email, password);
 
       if (result.success) {
         this.#router.navigate(['/', ROUTES.APP, ROUTES.CURRENT_MONTH]);

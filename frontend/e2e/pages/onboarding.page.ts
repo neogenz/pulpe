@@ -36,10 +36,6 @@ export class OnboardingPage {
   }
 
   // Helper method to fill personal info
-  private async fillPersonalInfo(name: string = 'Test User') {
-    await this.page.locator('input').first().fill(name);
-    await this.clickNext();
-  }
 
   // Helper method to handle registration
   private async completeRegistration(email?: string, password?: string) {
