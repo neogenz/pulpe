@@ -29,65 +29,82 @@ export class OnboardingPage {
     await this.clickNext();
   }
 
-  async completeOnboardingFlow() {
+  // Helper method to fill a numeric input step
+  private async fillNumericStep(amount: string) {
+    await this.page.locator('input[type="number"]').fill(amount);
+    await this.clickNext();
+  }
+
+  // Helper method to fill personal info
+  private async fillPersonalInfo(name: string = 'Test User') {
+    await this.page.locator('input').first().fill(name);
+    await this.clickNext();
+  }
+
+  // Helper method to handle registration
+  private async completeRegistration(email?: string, password?: string) {
+    await this.page.waitForLoadState('domcontentloaded');
+    
+    const emailInput = this.page.locator('input[type="email"]');
+    const passwordInput = this.page.locator('input[type="password"]');
+    
+    if (await emailInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+      const testEmail = email || `e2e-test-${Date.now()}@pulpe.local`;
+      const testPassword = password || 'TestPassword123!';
+      
+      await emailInput.fill(testEmail);
+      await passwordInput.fill(testPassword);
+      
+      const createButton = this.page.getByRole('button', { name: /créer|create|s'inscrire|register/i });
+      await createButton.click();
+      
+      await this.page.waitForURL(/\/app|\/current-month/, { timeout: 10000 }).catch(() => {
+        // Registration might have different redirect
+      });
+    }
+  }
+
+  // Main flow with configurable amounts
+  async completeOnboardingFlow(config?: {
+    name?: string;
+    income?: string;
+    housing?: string;
+    healthInsurance?: string;
+    phonePlan?: string;
+    transport?: string;
+    leasingCredit?: string;
+    email?: string;
+    password?: string;
+  }) {
+    const defaults = {
+      name: 'Test User',
+      income: '5000',
+      housing: '1500',
+      healthInsurance: '300',
+      phonePlan: '50',
+      transport: '100',
+      leasingCredit: '0'
+    };
+    
+    const values = { ...defaults, ...config };
+    
     // Start at welcome
     await this.goto();
     
     // Click start button
     await this.page.getByRole('button', { name: /commencer|start/i }).click();
     
-    // Personal info - fill name
-    await this.page.locator('input').first().fill('Test User');
-    await this.clickNext();
+    // Fill all steps using helper methods
+    await this.fillPersonalInfo(values.name);
+    await this.fillNumericStep(values.income);        // Income
+    await this.fillNumericStep(values.housing);       // Housing
+    await this.fillNumericStep(values.healthInsurance); // Health insurance
+    await this.fillNumericStep(values.phonePlan);     // Phone plan
+    await this.fillNumericStep(values.transport);     // Transport
+    await this.fillNumericStep(values.leasingCredit); // Leasing/Credit
     
-    // Income - fill amount
-    await this.page.locator('input[type="number"]').fill('5000');
-    await this.clickNext();
-    
-    // Housing - fill amount
-    await this.page.locator('input[type="number"]').fill('1500');
-    await this.clickNext();
-    
-    // Health insurance - fill amount
-    await this.page.locator('input[type="number"]').fill('300');
-    await this.clickNext();
-    
-    // Phone plan - fill amount
-    await this.page.locator('input[type="number"]').fill('50');
-    await this.clickNext();
-    
-    // Transport - fill amount
-    await this.page.locator('input[type="number"]').fill('100');
-    await this.clickNext();
-    
-    // Leasing/Credit - fill amount
-    await this.page.locator('input[type="number"]').fill('0');
-    await this.clickNext();
-    
-    // Registration step - wait for registration page
-    await this.page.waitForTimeout(1000); // Small wait for page transition
-    
-    // Check if we're on registration page by looking for email input
-    const emailInput = this.page.locator('input[type="email"]');
-    const passwordInput = this.page.locator('input[type="password"]');
-    
-    if (await emailInput.isVisible({ timeout: 2000 }).catch(() => false)) {
-      // Fill registration form
-      const testEmail = `e2e-test-${Date.now()}@pulpe.local`;
-      const testPassword = 'TestPassword123!';
-      
-      await emailInput.fill(testEmail);
-      await passwordInput.fill(testPassword);
-      
-      // Click the create button
-      const createButton = this.page.getByRole('button', { name: /créer|create|s'inscrire|register/i });
-      await createButton.click();
-      
-      // Wait for navigation after registration
-      await this.page.waitForURL(/\/app|\/current-month/, { timeout: 10000 }).catch(() => {
-        // Registration might have different redirect
-      });
-    }
+    // Complete registration if needed
+    await this.completeRegistration(config?.email, config?.password);
   }
 
   async expectRedirectToCurrentMonth() {
