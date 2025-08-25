@@ -55,6 +55,15 @@ export class BudgetDetailsStore {
     () => this.#budgetDetailsResource.error() || this.#state().error,
   );
 
+  // New computed to distinguish initial load from updates
+  // Only show spinner if loading AND no data available yet (initial load)
+  readonly isInitialLoading = computed(() => {
+    const status = this.#budgetDetailsResource.status();
+    const hasValue = !!this.#budgetDetailsResource.value();
+    // Only show spinner during initial load (loading with no data)
+    return status === 'loading' && !hasValue;
+  });
+
   // Derived selectors for convenience
   readonly hasOperationsInProgress = computed(
     () => this.operationsInProgress().size > 0,

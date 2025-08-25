@@ -10,7 +10,6 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { toSignal } from '@angular/core/rxjs-interop';
 import {
   type BudgetLine,
   type BudgetLineUpdate,
@@ -47,6 +46,18 @@ export interface EditBudgetLineDialogData {
               placeholder="Ex: Salaire, Loyer, Épargne..."
               data-testid="edit-line-name"
             />
+            @if (
+              form.get('name')?.hasError('required') &&
+              form.get('name')?.touched
+            ) {
+              <mat-error>Le nom est requis</mat-error>
+            }
+            @if (
+              form.get('name')?.hasError('minlength') &&
+              form.get('name')?.touched
+            ) {
+              <mat-error>Le nom doit contenir au moins 1 caractère</mat-error>
+            }
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="w-full">
@@ -61,6 +72,17 @@ export interface EditBudgetLineDialogData {
               data-testid="edit-line-amount"
             />
             <span matTextSuffix>CHF</span>
+            @if (
+              form.get('amount')?.hasError('required') &&
+              form.get('amount')?.touched
+            ) {
+              <mat-error>Le montant est requis</mat-error>
+            }
+            @if (
+              form.get('amount')?.hasError('min') && form.get('amount')?.touched
+            ) {
+              <mat-error>Le montant doit être supérieur à 0</mat-error>
+            }
           </mat-form-field>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -82,6 +104,12 @@ export interface EditBudgetLineDialogData {
                   <span>Épargne</span>
                 </mat-option>
               </mat-select>
+              @if (
+                form.get('kind')?.hasError('required') &&
+                form.get('kind')?.touched
+              ) {
+                <mat-error>Le type est requis</mat-error>
+              }
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="w-full">
@@ -93,6 +121,12 @@ export interface EditBudgetLineDialogData {
                 <mat-option value="fixed">Tous les mois</mat-option>
                 <mat-option value="one_off">Une seule fois</mat-option>
               </mat-select>
+              @if (
+                form.get('recurrence')?.hasError('required') &&
+                form.get('recurrence')?.touched
+              ) {
+                <mat-error>La fréquence est requise</mat-error>
+              }
             </mat-form-field>
           </div>
         </form>
@@ -136,10 +170,6 @@ export class EditBudgetLineDialog {
       this.#data.budgetLine.recurrence as TransactionRecurrence,
       Validators.required,
     ],
-  });
-
-  formValue = toSignal(this.form.valueChanges, {
-    initialValue: this.form.getRawValue(),
   });
 
   handleSubmit(): void {

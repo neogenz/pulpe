@@ -6,6 +6,7 @@ import {
   computed,
   inject,
   ChangeDetectionStrategy,
+  DestroyRef,
 } from '@angular/core';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { MatTableModule } from '@angular/material/table';
@@ -17,7 +18,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog } from '@angular/material/dialog';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CurrencyPipe } from '@angular/common';
 import {
   type BudgetLine,
@@ -304,6 +305,7 @@ export class BudgetItemsTable {
   #breakpointObserver = inject(BreakpointObserver);
   #fb = inject(FormBuilder);
   #dialog = inject(MatDialog);
+  #destroyRef = inject(DestroyRef);
 
   displayedColumns = ['type', 'name', 'recurrence', 'amount', 'actions'];
   displayedColumnsMobile = ['name', 'amount', 'actions'];
@@ -427,19 +429,30 @@ export class BudgetItemsTable {
       const budgetLine = this.budgetLines().find((l) => l.id === item.id);
       if (!budgetLine) return;
 
-      const dialogRef = this.#dialog.open(EditBudgetLineDialog, {
-        data: { budgetLine },
-        width: '400px',
-        maxWidth: '90vw',
-      });
-
-      dialogRef
-        .afterClosed()
-        .subscribe((update: BudgetLineUpdate | undefined) => {
-          if (update) {
-            this.updateClicked.emit({ id: item.id, update });
-          }
+      try {
+        const dialogRef = this.#dialog.open(EditBudgetLineDialog, {
+          data: { budgetLine },
+          width: '400px',
+          maxWidth: '90vw',
         });
+
+        dialogRef
+          .afterClosed()
+          .pipe(takeUntilDestroyed(this.#destroyRef))
+          .subscribe((update: BudgetLineUpdate | undefined) => {
+            if (update) {
+              this.updateClicked.emit({ id: item.id, update });
+            }
+          });
+      } catch (error) {
+        console.error('Failed to open edit dialog:', error);
+        // Fallback to inline editing
+        this.editingLineId.set(item.id);
+        this.editForm.patchValue({
+          name: item.name,
+          amount: item.amount,
+        });
+      }
     } else {
       // Desktop: inline editing
       this.editingLineId.set(item.id);
