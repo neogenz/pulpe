@@ -25,45 +25,14 @@ import {
   type BudgetLine,
   type Transaction,
   type BudgetLineUpdate,
-  type TransactionKind,
-  type TransactionRecurrence,
 } from '@pulpe/shared';
 import { EditBudgetLineDialog } from './edit-budget-line-dialog';
 import {
-  BudgetCalculator,
-  type BudgetItemDisplay,
-} from '@core/budget/budget-calculator';
-
-interface BudgetItemViewModel {
-  id: string;
-  name: string;
-  amount: number;
-  kind: TransactionKind;
-  recurrence: TransactionRecurrence;
-  itemType: 'budget_line' | 'transaction';
-  kindIcon: string;
-  kindLabel: string;
-  kindIconClass: string;
-  amountClass: string;
-  recurrenceLabel: string;
-  recurrenceChipClass: string;
-  isEditing: boolean;
-  isLoading: boolean;
-  cumulativeBalance: number;
-  cumulativeBalanceClass: string;
-}
-
-interface SectionHeaderRow {
-  type: 'section_header';
-  id: string;
-  title: string;
-}
-
-type DataRow = BudgetItemViewModel & {
-  type: 'data_row';
-};
-
-type TableRow = SectionHeaderRow | DataRow;
+  BudgetTableMapper,
+  type TableRow,
+  type SectionHeaderRow,
+  type DataRow,
+} from '../../services/budget-table-mapper';
 
 @Component({
   selector: 'pulpe-budget-items-table',
@@ -369,22 +338,28 @@ type TableRow = SectionHeaderRow | DataRow;
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BudgetItemsTable {
+  // Inputs - pure data
   budgetLines = input.required<BudgetLine[]>();
   transactions = input.required<Transaction[]>();
   operationsInProgress = input<Set<string>>(new Set());
+
+  // Outputs - events only
   updateClicked = output<{ id: string; update: BudgetLineUpdate }>();
   deleteClicked = output<string>();
   addClicked = output<void>();
 
-  #breakpointObserver = inject(BreakpointObserver);
-  #fb = inject(FormBuilder);
-  #dialog = inject(MatDialog);
-  #destroyRef = inject(DestroyRef);
-  #budgetCalculator = inject(BudgetCalculator);
+  // Services
+  readonly #breakpointObserver = inject(BreakpointObserver);
+  readonly #fb = inject(FormBuilder);
+  readonly #dialog = inject(MatDialog);
+  readonly #destroyRef = inject(DestroyRef);
+  readonly #budgetTableMapper = inject(BudgetTableMapper);
 
+  // UI configuration
   displayedColumns = ['name', 'recurrence', 'amount', 'remaining', 'actions'];
   displayedColumnsMobile = ['name', 'amount', 'remaining', 'actions'];
 
+  // UI state
   editingLineId = signal<string | null>(null);
   readonly editForm = this.#fb.group({
     name: ['', [Validators.required, Validators.minLength(1)]],
@@ -402,113 +377,24 @@ export class BudgetItemsTable {
       : this.displayedColumns,
   );
 
-  // View models with pre-computed display values and cumulative balance
-  budgetItemViewModels = computed((): TableRow[] => {
+  // View Model - single computed that delegates to service
+  tableViewModel = computed(() => {
     const budgetLines = this.budgetLines();
     const transactions = this.transactions();
-    const inProgress = this.operationsInProgress();
-    const editingId = this.editingLineId();
+    const operationsInProgress = this.operationsInProgress();
+    const editingLineId = this.editingLineId();
 
-    // Use budget calculator to get sorted items with cumulative balance
-    const itemsWithBalance =
-      this.#budgetCalculator.composeBudgetItemsWithBalance(
-        budgetLines,
-        transactions,
-      );
-
-    const result: TableRow[] = [];
-    const budgetLineRows: DataRow[] = [];
-    const transactionRows: DataRow[] = [];
-
-    // Separate items by type and convert to DataRow
-    itemsWithBalance.forEach((itemDisplay: BudgetItemDisplay) => {
-      const item = itemDisplay.item;
-      const recurrence: TransactionRecurrence =
-        'recurrence' in item ? item.recurrence : 'one_off';
-
-      const dataRow: DataRow = {
-        type: 'data_row',
-        id: item.id,
-        name: item.name,
-        amount: item.amount,
-        kind: item.kind as TransactionKind,
-        recurrence: recurrence,
-        itemType: itemDisplay.itemType,
-        kindIcon: this.#kindIcons[item.kind as TransactionKind],
-        kindLabel: this.#kindLabels[item.kind as TransactionKind],
-        kindIconClass: this.#kindIconClasses[item.kind as TransactionKind],
-        amountClass: this.#amountClasses[item.kind as TransactionKind],
-        recurrenceLabel: this.#recurrenceLabels[recurrence],
-        recurrenceChipClass: this.#recurrenceChipClasses[recurrence],
-        isEditing:
-          itemDisplay.itemType === 'budget_line' && editingId === item.id,
-        isLoading: inProgress.has(item.id),
-        cumulativeBalance: itemDisplay.cumulativeBalance,
-        cumulativeBalanceClass:
-          itemDisplay.cumulativeBalance >= 0
-            ? 'text-financial-income'
-            : 'text-financial-negative',
-      };
-
-      if (itemDisplay.itemType === 'budget_line') {
-        budgetLineRows.push(dataRow);
-      } else {
-        transactionRows.push(dataRow);
-      }
-    });
-
-    // Add budget lines first
-    result.push(...budgetLineRows);
-
-    // Add section header if there are transactions
-    if (transactionRows.length > 0) {
-      result.push({
-        type: 'section_header',
-        id: 'transactions-header',
-        title: 'Ajouté durant le mois',
-      });
-      result.push(...transactionRows);
-    }
-
-    return result;
+    // Component is now logic-free - just passes data to service
+    return this.#budgetTableMapper.prepareBudgetTableData(
+      budgetLines,
+      transactions,
+      operationsInProgress,
+      editingLineId,
+    );
   });
 
-  // Mapping constants
-  #kindIcons: Record<TransactionKind, string> = {
-    income: 'trending_up',
-    expense: 'trending_down',
-    saving: 'savings',
-  };
-
-  #kindLabels: Record<TransactionKind, string> = {
-    income: 'Revenu',
-    expense: 'Dépense',
-    saving: 'Épargne',
-  };
-
-  #kindIconClasses: Record<TransactionKind, string> = {
-    income: 'text-financial-income',
-    expense: 'text-financial-negative',
-    saving: 'text-primary',
-  };
-
-  #amountClasses: Record<TransactionKind, string> = {
-    income: 'text-financial-income',
-    expense: 'text-financial-negative',
-    saving: 'text-primary',
-  };
-
-  #recurrenceLabels: Record<TransactionRecurrence, string> = {
-    fixed: 'Tous les mois',
-    variable: 'Variable',
-    one_off: 'Une seule fois',
-  };
-
-  #recurrenceChipClasses: Record<TransactionRecurrence, string> = {
-    fixed: 'bg-primary-container text-on-primary-container',
-    variable: 'bg-tertiary-container text-on-tertiary-container',
-    one_off: 'bg-secondary-container text-on-secondary-container',
-  };
+  // Direct binding properties for template
+  budgetItemViewModels = computed(() => this.tableViewModel().rows);
 
   // Predicate functions for row types
   readonly isSectionHeader = (
