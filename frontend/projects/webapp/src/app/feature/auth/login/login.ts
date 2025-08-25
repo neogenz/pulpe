@@ -4,22 +4,15 @@ import {
   signal,
   inject,
   computed,
-  DestroyRef,
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import {
-  ReactiveFormsModule,
-  FormBuilder,
-  type FormGroup,
-  Validators,
-} from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthApi } from '@core/auth/auth-api';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ROUTES } from '@core/routing/routes-constants';
 import { Logger } from '@core/logging/logger';
 
@@ -68,11 +61,13 @@ import { Logger } from '@core/logging/logger';
               [disabled]="isSubmitting()"
             />
             <mat-icon matPrefix>email</mat-icon>
-            @if (emailControl?.invalid && emailControl?.touched) {
+            @if (
+              loginForm.get('email')?.invalid && loginForm.get('email')?.touched
+            ) {
               <mat-error>
-                @if (emailControl?.hasError('required')) {
+                @if (loginForm.get('email')?.hasError('required')) {
                   L'email est requis.
-                } @else if (emailControl?.hasError('email')) {
+                } @else if (loginForm.get('email')?.hasError('email')) {
                   Une adresse email valide est requise.
                 }
               </mat-error>
@@ -102,11 +97,14 @@ import { Logger } from '@core/logging/logger';
                 hidePassword() ? 'visibility_off' : 'visibility'
               }}</mat-icon>
             </button>
-            @if (passwordControl?.invalid && passwordControl?.touched) {
+            @if (
+              loginForm.get('password')?.invalid &&
+              loginForm.get('password')?.touched
+            ) {
               <mat-error>
-                @if (passwordControl?.hasError('required')) {
+                @if (loginForm.get('password')?.hasError('required')) {
                   Le mot de passe est requis.
-                } @else if (passwordControl?.hasError('minlength')) {
+                } @else if (loginForm.get('password')?.hasError('minlength')) {
                   Le mot de passe doit contenir au moins 6 caractères.
                 }
               </mat-error>
@@ -170,41 +168,23 @@ import { Logger } from '@core/logging/logger';
 export default class Login {
   readonly #authService = inject(AuthApi);
   readonly #formBuilder = inject(FormBuilder);
-  readonly #destroyRef = inject(DestroyRef);
   readonly #router = inject(Router);
   readonly #logger = inject(Logger);
 
   protected hidePassword = signal<boolean>(true);
   protected isSubmitting = signal<boolean>(false);
   protected errorMessage = signal<string>('');
-  protected formValid = signal<boolean>(false);
-
-  protected loginForm: FormGroup = this.#formBuilder.group({
+  protected loginForm = this.#formBuilder.group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(6)]],
   });
 
   protected canSubmit = computed(() => {
-    return this.formValid() && !this.isSubmitting();
+    return this.loginForm.valid && !this.isSubmitting();
   });
 
   constructor() {
-    // Écouter les changements du formulaire pour mettre à jour le signal
-    this.loginForm.valueChanges
-      .pipe(takeUntilDestroyed(this.#destroyRef))
-      .subscribe(() => {
-        this.formValid.set(this.loginForm.valid);
-      });
-
-    // Écouter les changements de statut du formulaire
-    this.loginForm.statusChanges
-      .pipe(takeUntilDestroyed(this.#destroyRef))
-      .subscribe(() => {
-        this.formValid.set(this.loginForm.valid);
-      });
-
-    // Initialiser l'état du formulaire
-    this.formValid.set(this.loginForm.valid);
+    // No form tracking needed - using loginForm.valid directly
   }
 
   protected togglePasswordVisibility(): void {
@@ -213,14 +193,6 @@ export default class Login {
 
   protected clearMessages(): void {
     this.errorMessage.set('');
-  }
-
-  protected get emailControl() {
-    return this.loginForm.get('email');
-  }
-
-  protected get passwordControl() {
-    return this.loginForm.get('password');
   }
 
   protected async signIn(): Promise<void> {

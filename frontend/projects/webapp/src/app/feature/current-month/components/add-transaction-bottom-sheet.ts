@@ -229,7 +229,7 @@ export class AddTransactionBottomSheet implements AfterViewInit {
   // Reactive form with shared validators for consistency
   readonly transactionForm = this.#fb.group({
     name: ['Dépense', TransactionValidators.name],
-    amount: [null as number | null, TransactionValidators.amount],
+    amount: [null, TransactionValidators.amount],
     kind: [
       'expense' as 'expense' | 'income' | 'saving',
       TransactionValidators.kind,
