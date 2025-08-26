@@ -28,8 +28,11 @@ for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
             exit $exit_code
         fi
         
-        # Calcul du délai avec exponential backoff
-        delay=$((BASE_DELAY ** attempt))
+        # Calcul du délai avec exponential backoff (compatible avec tous les shells)
+        delay=$BASE_DELAY
+        for ((i=1; i<attempt; i++)); do
+            delay=$((delay * BASE_DELAY))
+        done
         # Limite max à 60 secondes
         if [ "$delay" -gt 60 ]; then
             delay=60
