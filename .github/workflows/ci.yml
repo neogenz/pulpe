@@ -36,11 +36,18 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 📦 Setup pnpm (Standalone)
-        uses: pnpm/action-setup@v4
+      - name: 💾 Cache pnpm binary
+        uses: actions/cache@v4
+        id: pnpm-cache
         with:
-          version: ${{ env.PNPM_VERSION }}
-          standalone: true
+          path: ~/setup-pnpm
+          key: ${{ runner.os }}-pnpm-binary-${{ env.PNPM_VERSION }}
+
+      - name: 🚀 Setup pnpm (Smart Fallbacks)
+        run: |
+          chmod +x .github/scripts/smart-pnpm-setup.sh
+          ./.github/scripts/smart-pnpm-setup.sh ${{ env.PNPM_VERSION }}
+          echo "$HOME/setup-pnpm" >> $GITHUB_PATH
 
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
@@ -171,11 +178,18 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 📦 Setup pnpm (Standalone)
-        uses: pnpm/action-setup@v4
+      - name: 💾 Cache pnpm binary
+        uses: actions/cache@v4
+        id: pnpm-cache
         with:
-          version: ${{ env.PNPM_VERSION }}
-          standalone: true
+          path: ~/setup-pnpm
+          key: ${{ runner.os }}-pnpm-binary-${{ env.PNPM_VERSION }}
+
+      - name: 🚀 Setup pnpm (Smart Fallbacks)
+        run: |
+          chmod +x .github/scripts/smart-pnpm-setup.sh
+          ./.github/scripts/smart-pnpm-setup.sh ${{ env.PNPM_VERSION }}
+          echo "$HOME/setup-pnpm" >> $GITHUB_PATH
 
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
@@ -264,11 +278,18 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 📦 Setup pnpm (Standalone)
-        uses: pnpm/action-setup@v4
+      - name: 💾 Cache pnpm binary
+        uses: actions/cache@v4
+        id: pnpm-cache
         with:
-          version: ${{ env.PNPM_VERSION }}
-          standalone: true
+          path: ~/setup-pnpm
+          key: ${{ runner.os }}-pnpm-binary-${{ env.PNPM_VERSION }}
+
+      - name: 🚀 Setup pnpm (Smart Fallbacks)
+        run: |
+          chmod +x .github/scripts/smart-pnpm-setup.sh
+          ./.github/scripts/smart-pnpm-setup.sh ${{ env.PNPM_VERSION }}
+          echo "$HOME/setup-pnpm" >> $GITHUB_PATH
 
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
@@ -369,11 +390,18 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 📦 Setup pnpm (Standalone)
-        uses: pnpm/action-setup@v4
+      - name: 💾 Cache pnpm binary
+        uses: actions/cache@v4
+        id: pnpm-cache
         with:
-          version: ${{ env.PNPM_VERSION }}
-          standalone: true
+          path: ~/setup-pnpm
+          key: ${{ runner.os }}-pnpm-binary-${{ env.PNPM_VERSION }}
+
+      - name: 🚀 Setup pnpm (Smart Fallbacks)
+        run: |
+          chmod +x .github/scripts/smart-pnpm-setup.sh
+          ./.github/scripts/smart-pnpm-setup.sh ${{ env.PNPM_VERSION }}
+          echo "$HOME/setup-pnpm" >> $GITHUB_PATH
 
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
@@ -456,11 +484,18 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 📦 Setup pnpm (Standalone)
-        uses: pnpm/action-setup@v4
+      - name: 💾 Cache pnpm binary
+        uses: actions/cache@v4
+        id: pnpm-cache
         with:
-          version: ${{ env.PNPM_VERSION }}
-          standalone: true
+          path: ~/setup-pnpm
+          key: ${{ runner.os }}-pnpm-binary-${{ env.PNPM_VERSION }}
+
+      - name: 🚀 Setup pnpm (Smart Fallbacks)
+        run: |
+          chmod +x .github/scripts/smart-pnpm-setup.sh
+          ./.github/scripts/smart-pnpm-setup.sh ${{ env.PNPM_VERSION }}
+          echo "$HOME/setup-pnpm" >> $GITHUB_PATH
 
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
@@ -510,11 +545,18 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 📦 Setup pnpm (Standalone)
-        uses: pnpm/action-setup@v4
+      - name: 💾 Cache pnpm binary
+        uses: actions/cache@v4
+        id: pnpm-cache
         with:
-          version: ${{ env.PNPM_VERSION }}
-          standalone: true
+          path: ~/setup-pnpm
+          key: ${{ runner.os }}-pnpm-binary-${{ env.PNPM_VERSION }}
+
+      - name: 🚀 Setup pnpm (Smart Fallbacks)
+        run: |
+          chmod +x .github/scripts/smart-pnpm-setup.sh
+          ./.github/scripts/smart-pnpm-setup.sh ${{ env.PNPM_VERSION }}
+          echo "$HOME/setup-pnpm" >> $GITHUB_PATH
 
       - name: 📦 Setup Bun
         uses: oven-sh/setup-bun@v2
