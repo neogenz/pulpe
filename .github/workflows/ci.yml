@@ -36,10 +36,11 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 📦 Enable pnpm via Corepack
-        run: |
-          corepack enable
-          corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
+      - name: 📦 Setup pnpm (Standalone)
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          standalone: true
 
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
@@ -170,10 +171,11 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 📦 Enable pnpm via Corepack
-        run: |
-          corepack enable
-          corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
+      - name: 📦 Setup pnpm (Standalone)
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          standalone: true
 
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
@@ -262,10 +264,11 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 📦 Enable pnpm via Corepack
-        run: |
-          corepack enable
-          corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
+      - name: 📦 Setup pnpm (Standalone)
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          standalone: true
 
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
@@ -366,10 +369,11 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 📦 Enable pnpm via Corepack
-        run: |
-          corepack enable
-          corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
+      - name: 📦 Setup pnpm (Standalone)
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          standalone: true
 
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
@@ -452,10 +456,11 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 📦 Enable pnpm via Corepack
-        run: |
-          corepack enable
-          corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
+      - name: 📦 Setup pnpm (Standalone)
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          standalone: true
 
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
@@ -505,10 +510,11 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 📦 Enable pnpm via Corepack
-        run: |
-          corepack enable
-          corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
+      - name: 📦 Setup pnpm (Standalone)
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          standalone: true
 
       - name: 📦 Setup Bun
         uses: oven-sh/setup-bun@v2
