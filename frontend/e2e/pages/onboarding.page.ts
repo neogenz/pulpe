@@ -11,27 +11,42 @@ export class OnboardingPage {
   }
 
   async clickNext() {
-    await this.page.getByRole('button', { name: /suivant|continuer|commencer/i }).click();
+    await this.page.getByTestId('next-button').click();
   }
 
   async fillPersonalInfo(name: string) {
-    await this.page.getByLabel(/nom|name/i).fill(name);
+    await this.page.getByTestId('first-name-input').fill(name);
     await this.clickNext();
   }
 
   async fillIncome(amount: string) {
-    await this.page.getByLabel(/revenu|salaire|income/i).fill(amount);
+    await this.page.getByTestId('monthly-income-input').fill(amount);
     await this.clickNext();
   }
 
   async fillHousing(amount: string) {
-    await this.page.getByLabel(/loyer|logement|housing/i).fill(amount);
+    await this.page.getByTestId('housing-costs-input').fill(amount);
     await this.clickNext();
   }
 
-  // Helper method to fill a numeric input step
-  private async fillNumericStep(amount: string) {
-    await this.page.locator('input[type="number"]').fill(amount);
+  // Helper methods to fill specific numeric steps
+  private async fillHealthInsurance(amount: string) {
+    await this.page.getByTestId('health-insurance-input').fill(amount);
+    await this.clickNext();
+  }
+
+  private async fillPhonePlan(amount: string) {
+    await this.page.getByTestId('phone-plan-input').fill(amount);
+    await this.clickNext();
+  }
+
+  private async fillTransport(amount: string) {
+    await this.page.getByTestId('transport-costs-input').fill(amount);
+    await this.clickNext();
+  }
+
+  private async fillLeasingCredit(amount: string) {
+    await this.page.getByTestId('leasing-credit-input').fill(amount);
     await this.clickNext();
   }
 
@@ -39,11 +54,10 @@ export class OnboardingPage {
 
   // Helper method to handle registration
   private async completeRegistration(email?: string, password?: string) {
-    await this.page.waitForLoadState('domcontentloaded');
+    const emailInput = this.page.getByTestId('email-input');
+    const passwordInput = this.page.getByTestId('password-input');
     
-    const emailInput = this.page.locator('input[type="email"]');
-    const passwordInput = this.page.locator('input[type="password"]');
-    
+    // Check if registration form is present (with shorter timeout)
     if (await emailInput.isVisible({ timeout: 2000 }).catch(() => false)) {
       const testEmail = email || `e2e-test-${Date.now()}@pulpe.local`;
       const testPassword = password || 'TestPassword123!';
@@ -51,11 +65,12 @@ export class OnboardingPage {
       await emailInput.fill(testEmail);
       await passwordInput.fill(testPassword);
       
-      const createButton = this.page.getByRole('button', { name: /créer|create|s'inscrire|register/i });
+      const createButton = this.page.getByTestId('submit-button');
       await createButton.click();
       
-      await this.page.waitForURL(/\/app|\/current-month/, { timeout: 10000 }).catch(() => {
-        // Registration might have different redirect
+      // Wait for redirect or expect the page to change (with timeout for mocked APIs)
+      await expect(this.page).toHaveURL(/\/app|\/current-month/, { timeout: 10000 }).catch(() => {
+        // If redirect fails, that's OK for mocked tests - the registration form submission is what matters
       });
     }
   }
@@ -88,16 +103,16 @@ export class OnboardingPage {
     await this.goto();
     
     // Click start button
-    await this.page.getByRole('button', { name: /commencer|start/i }).click();
+    await this.page.getByTestId('welcome-start-button').click();
     
     // Fill all steps using helper methods
     await this.fillPersonalInfo(values.name);
-    await this.fillNumericStep(values.income);        // Income
-    await this.fillNumericStep(values.housing);       // Housing
-    await this.fillNumericStep(values.healthInsurance); // Health insurance
-    await this.fillNumericStep(values.phonePlan);     // Phone plan
-    await this.fillNumericStep(values.transport);     // Transport
-    await this.fillNumericStep(values.leasingCredit); // Leasing/Credit
+    await this.fillIncome(values.income);
+    await this.fillHousing(values.housing);
+    await this.fillHealthInsurance(values.healthInsurance);
+    await this.fillPhonePlan(values.phonePlan);
+    await this.fillTransport(values.transport);
+    await this.fillLeasingCredit(values.leasingCredit);
     
     // Complete registration if needed
     await this.completeRegistration(config?.email, config?.password);

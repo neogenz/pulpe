@@ -20,24 +20,31 @@ export interface ConfirmationDialogData {
   standalone: true,
   imports: [MatDialogModule, MatButtonModule, MatIconModule],
   template: `
-    <h2 mat-dialog-title class="text-headline-small">{{ data.title }}</h2>
+    <div data-testid="delete-confirmation-dialog">
+      <h2 mat-dialog-title class="text-headline-small">{{ data.title }}</h2>
 
-    <mat-dialog-content>
-      <p class="text-body-large text-on-surface">{{ data.message }}</p>
-    </mat-dialog-content>
+      <mat-dialog-content>
+        <p class="text-body-large text-on-surface">{{ data.message }}</p>
+      </mat-dialog-content>
 
-    <mat-dialog-actions align="end">
-      <button matButton (click)="onCancel()">
-        {{ data.cancelText || 'Annuler' }}
-      </button>
-      <button
-        matButton="filled"
-        [attr.color]="data.confirmColor || 'primary'"
-        (click)="onConfirm()"
-      >
-        {{ data.confirmText || 'Confirmer' }}
-      </button>
-    </mat-dialog-actions>
+      <mat-dialog-actions align="end">
+        <button
+          matButton
+          (click)="onCancel()"
+          data-testid="cancel-delete-button"
+        >
+          {{ data.cancelText || 'Annuler' }}
+        </button>
+        <button
+          matButton="filled"
+          [attr.color]="data.confirmColor || 'primary'"
+          (click)="onConfirm()"
+          data-testid="confirm-delete-button"
+        >
+          {{ data.confirmText || 'Confirmer' }}
+        </button>
+      </mat-dialog-actions>
+    </div>
   `,
   styles: [
     `

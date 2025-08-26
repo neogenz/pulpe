@@ -55,15 +55,11 @@ test.describe('Authentication', () => {
     await expect(submitButton).toBeVisible();
   });
 
-  test.skip('should validate email format', async () => {
-    // Skip this test as it requires actual form validation implementation
-    // which may vary based on the application's current state
-  });
 
   test('should maintain session after refresh', async ({ authenticatedPage }) => {
     // Navigate to protected route
     await authenticatedPage.goto('/app/current-month');
-    await authenticatedPage.waitForLoadState('networkidle');
+    await authenticatedPage.waitForLoadState('domcontentloaded');
     
     // Refresh the page
     await authenticatedPage.reload();
@@ -75,7 +71,7 @@ test.describe('Authentication', () => {
   test('should handle logout properly', async ({ authenticatedPage, mainLayoutPage }) => {
     // Navigate to app
     await authenticatedPage.goto('/app/current-month');
-    await authenticatedPage.waitForLoadState('networkidle');
+    await authenticatedPage.waitForLoadState('domcontentloaded');
     
     // Perform logout
     await mainLayoutPage.performLogout();

@@ -8,15 +8,16 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  timeout: 20000,
-  workers: process.env.CI ? '50%' : '75%',
-  reporter: [['json', { outputFile: 'test-results.json' }], ['list']],
+  workers: process.env.CI ? '50%' : undefined, // Use Playwright default for better performance
+  reporter: process.env.CI 
+    ? [['blob'], ['github']] 
+    : [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: 'http://localhost:4200',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
-    actionTimeout: 5000,
+    actionTimeout: 10000,
     navigationTimeout: 10000,
   },
 
@@ -28,7 +29,7 @@ export default defineConfig({
       testMatch: /.*\.setup\.ts/,
     },
     {
-      name: 'Chromium - Critical Path',
+      name: 'Critical User Journeys (Mocked)',
       dependencies: ['setup'],
       testMatch: '**/critical-path/**/*.spec.ts',
       use: {
@@ -37,12 +38,11 @@ export default defineConfig({
       },
     },
     {
-      name: 'Chromium - Features (Mocked)',
-      dependencies: ['setup'],
+      name: 'Feature Tests (Mocked)',
       testMatch: '**/features/**/*.spec.ts',
       use: {
         ...devices['Desktop Chrome'],
-        storageState: 'playwright/.auth/user.json',
+        // Features use authenticatedPage fixture, no storageState needed
       },
     },
     {

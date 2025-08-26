@@ -218,7 +218,7 @@ import {
               matButton="filled"
               type="submit"
               [disabled]="!isFormValidForSubmission()"
-              data-testid="submit-button"
+              data-testid="template-submit-button"
             >
               {{ submitButtonText() }}
             </button>

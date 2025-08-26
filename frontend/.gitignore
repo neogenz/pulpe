@@ -1,10 +1,11 @@
 # Playwright Test Results
 test-results/
+test-results.json
+test_count.txt
 playwright-report/
 playwright/.cache/
 
 # Screenshots and videos from failed tests
-test-results/
 screenshots/
 videos/
 
@@ -12,6 +13,7 @@ videos/
 traces/
 
 # Browser downloads
-browsers/ playwright/.auth
+browsers/ 
+playwright/.auth
 
 light_angular-architecture-for-enterprise.md

@@ -15,7 +15,10 @@ import { ROUTES } from '@core/routing';
   imports: [MatButtonModule, LottieComponent, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="flex flex-col items-center justify-center h-full gap-10">
+    <div
+      class="flex flex-col items-center justify-center h-full gap-10"
+      data-testid="onboarding-welcome-page"
+    >
       <div class="text-center">
         <h1 class="text-headline-large text-on-surface">
           Bienvenue dans Pulpe

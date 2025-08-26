@@ -21,7 +21,10 @@ import { type BudgetTemplate } from '@pulpe/shared';
     MatMenuModule,
   ],
   template: `
-    <mat-card appearance="outlined">
+    <mat-card
+      appearance="outlined"
+      [attr.data-testid]="'template-' + template().name"
+    >
       <mat-card-header>
         <div mat-card-avatar>
           <div
@@ -70,7 +73,11 @@ import { type BudgetTemplate } from '@pulpe/shared';
         }
       </mat-card-content>
       <mat-card-actions align="end">
-        <button matButton [routerLink]="['details', template().id]">
+        <button
+          matButton
+          [routerLink]="['details', template().id]"
+          data-testid="view-details-button"
+        >
           <mat-icon>visibility</mat-icon>
           Détails
         </button>

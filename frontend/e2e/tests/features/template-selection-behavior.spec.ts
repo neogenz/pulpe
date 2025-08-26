@@ -5,7 +5,7 @@ test.describe('Template Selection', () => {
     authenticatedPage,
   }) => {
     // Mock templates response with default template
-    await authenticatedPage.route('**/budget-templates', async (route) => {
+    await authenticatedPage.route('**/api/v1/budget-templates', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -36,7 +36,7 @@ test.describe('Template Selection', () => {
     });
 
     // Mock template lines for calculations
-    await authenticatedPage.route('**/budget-templates/*/lines', async (route) => {
+    await authenticatedPage.route('**/api/v1/budget-templates/*/lines', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -60,7 +60,7 @@ test.describe('Template Selection', () => {
     });
 
     // Mock budget creation endpoint
-    await authenticatedPage.route('**/budgets', async (route) => {
+    await authenticatedPage.route('**/api/v1/budgets', async (route) => {
       if (route.request().method() === 'POST') {
         await route.fulfill({
           status: 201,

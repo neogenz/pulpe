@@ -71,6 +71,7 @@ import { TransactionValidators } from '../utils/transaction-form-validators';
         (ngSubmit)="onSubmit()"
         class="flex flex-col gap-4"
         novalidate
+        data-testid="transaction-form"
       >
         <!-- Amount Field -->
         <mat-form-field appearance="outline" subscriptSizing="dynamic">
@@ -212,7 +213,14 @@ import { TransactionValidators } from '../utils/transaction-form-validators';
 
       <!-- Action Buttons -->
       <div class="flex gap-3 pt-4 pb-6 px-6 border-t border-outline-variant">
-        <button matButton (click)="close()" class="flex-1">Annuler</button>
+        <button
+          matButton
+          (click)="close()"
+          class="flex-1"
+          data-testid="transaction-cancel-button"
+        >
+          Annuler
+        </button>
         <button
           matButton="outlined"
           (click)="onSubmit()"
