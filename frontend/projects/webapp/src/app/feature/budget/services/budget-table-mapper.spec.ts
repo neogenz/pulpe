@@ -1,17 +1,23 @@
 import { describe, beforeEach, it, expect } from 'vitest';
+import { TestBed } from '@angular/core/testing';
+import { provideZonelessChangeDetection } from '@angular/core';
 import { BudgetTableMapper } from './budget-table-mapper';
 import { BudgetCalculator } from '@core/budget/budget-calculator';
 import type { BudgetLine, Transaction } from '@pulpe/shared';
 
 describe('BudgetTableMapper', () => {
   let service: BudgetTableMapper;
-  let budgetCalculator: BudgetCalculator;
 
   beforeEach(() => {
-    // Create instances directly without TestBed
-    budgetCalculator = new BudgetCalculator();
-    // Pass the calculator via constructor
-    service = new BudgetTableMapper(budgetCalculator);
+    TestBed.configureTestingModule({
+      providers: [
+        BudgetTableMapper,
+        BudgetCalculator,
+        provideZonelessChangeDetection(),
+      ],
+    });
+
+    service = TestBed.inject(BudgetTableMapper);
   });
 
   it('should be created', () => {
