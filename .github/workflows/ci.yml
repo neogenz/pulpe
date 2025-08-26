@@ -76,7 +76,7 @@ jobs:
           echo "🚀 Starting Supabase local instance..."
           # Exclure les services non nécessaires pour gain de performance
           supabase start --exclude studio,inbucket,imgproxy
-          
+
           echo "⏳ Health check robuste..."
           timeout=180
           counter=0
@@ -108,12 +108,12 @@ jobs:
         run: |
           echo "📝 Creating CI environment file..."
           cp .env.ci .env
-          
+
           # Inject secrets into .env file
           echo "SUPABASE_URL=${SUPABASE_URL}" >> .env
           echo "SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}" >> .env
           echo "SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}" >> .env
-          
+
           echo "✅ Environment ready"
 
       - name: 💾 Save Supabase State
@@ -168,7 +168,7 @@ jobs:
         working-directory: backend-nest
         run: |
           supabase start --exclude studio,inbucket,imgproxy
-          
+
           # Health check rapide pour restore
           timeout=60
           counter=0
@@ -245,7 +245,7 @@ jobs:
         working-directory: backend-nest
         run: |
           supabase start --exclude studio,inbucket,imgproxy
-          
+
           # Health check pour tests
           timeout=60
           counter=0
@@ -285,8 +285,8 @@ jobs:
       fail-fast: false
       matrix:
         project:
-          - "Chromium - Critical Path"
-          - "Chromium - Features (Mocked)"
+          - "Critical User Journeys (Mocked)"
+          - "Feature Tests (Mocked)"
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@v4
@@ -420,7 +420,7 @@ jobs:
         working-directory: backend-nest
         run: |
           supabase start --exclude studio,inbucket,imgproxy
-          
+
           # Health check pour tests
           timeout=60
           counter=0
