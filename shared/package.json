@@ -1,7 +1,7 @@
 {
   "name": "@pulpe/shared",
   "version": "0.1.0",
-  "packageManager": "pnpm@10.12.1",
+  "packageManager": "pnpm@10",
   "description": "Shared models and types for Pulpe application",
   "type": "module",
   "main": "./dist/esm/index.js",
