@@ -43,6 +43,7 @@ export interface DataRow extends BudgetItemViewModel {
   type: 'data_row';
   isEditing: boolean;
   isLoading: boolean;
+  isRollover: boolean;
 }
 
 /**
@@ -202,6 +203,8 @@ export class BudgetTableMapper {
     operationsInProgress: Set<string>,
     editingLineId: string | null,
   ): DataRow {
+    const isRollover = item.id.startsWith('rollover-');
+
     return {
       type: 'data_row',
       id: item.id,
@@ -217,8 +220,11 @@ export class BudgetTableMapper {
       recurrenceLabel: this.#RECURRENCE_LABELS[recurrence],
       recurrenceChipClass: this.#RECURRENCE_CHIP_CLASSES[recurrence],
       isEditing:
-        itemDisplay.itemType === 'budget_line' && editingLineId === item.id,
+        itemDisplay.itemType === 'budget_line' &&
+        editingLineId === item.id &&
+        !isRollover,
       isLoading: operationsInProgress.has(item.id),
+      isRollover,
       cumulativeBalance: itemDisplay.cumulativeBalance,
       cumulativeBalanceClass:
         itemDisplay.cumulativeBalance >= 0
@@ -237,8 +243,14 @@ export class BudgetTableMapper {
   ): TableRow[] {
     const result: TableRow[] = [];
 
-    // 1. Add "Tous les mois" budget lines (fixed + variable)
-    result.push(...fixedBudgetLineRows);
+    // Separate rollover line from other fixed budget lines
+    const rolloverLine = fixedBudgetLineRows.find((row) => row.isRollover);
+    const nonRolloverFixedLines = fixedBudgetLineRows.filter(
+      (row) => !row.isRollover,
+    );
+
+    // 1. Add "Tous les mois" budget lines (fixed + variable) excluding rollover
+    result.push(...nonRolloverFixedLines);
 
     // 2. Add "Une seule fois" budget lines with header if they exist
     if (oneOffBudgetLineRows.length > 0) {
@@ -247,10 +259,27 @@ export class BudgetTableMapper {
         id: 'one-off-header',
         title: 'Une seule fois',
       });
-      result.push(...oneOffBudgetLineRows);
+
+      // Separate rollover from regular one-off items
+      const rolloverOneOff = oneOffBudgetLineRows.find((row) => row.isRollover);
+      const nonRolloverOneOff = oneOffBudgetLineRows.filter(
+        (row) => !row.isRollover,
+      );
+
+      result.push(...nonRolloverOneOff);
+
+      // Add rollover if it's a one-off item
+      if (rolloverOneOff) {
+        result.push(rolloverOneOff);
+      }
     }
 
-    // 3. Add transactions with header if they exist
+    // 3. Add rollover line at the end of budget lines (if it's a fixed item)
+    if (rolloverLine) {
+      result.push(rolloverLine);
+    }
+
+    // 4. Add transactions with header if they exist
     if (transactionRows.length > 0) {
       result.push({
         type: 'section_header',

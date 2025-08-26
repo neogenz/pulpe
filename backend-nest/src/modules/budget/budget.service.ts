@@ -11,6 +11,7 @@ import {
   type BudgetResponse,
   type BudgetUpdate,
   type BudgetDetailsResponse,
+  type BudgetLine,
 } from '@pulpe/shared';
 import * as budgetMappers from './budget.mappers';
 import { type Tables } from '../../types/database.types';
@@ -438,6 +439,17 @@ export class BudgetService {
 
       const mappedData = this.mapBudgetDetailsData(results);
 
+      // Add rollover from previous month
+      const rolloverLine = await this.calculateRolloverLine(
+        results.budgetResult.data as Tables<'monthly_budget'>,
+        user,
+        supabase,
+      );
+
+      if (rolloverLine) {
+        mappedData.budgetLines.push(rolloverLine);
+      }
+
       this.logBudgetDetailsFetchSuccess(id, mappedData);
 
       return {
@@ -749,5 +761,204 @@ export class BudgetService {
         { month, year },
       );
     }
+  }
+
+  /**
+   * Calculates the rollover line from the previous month's Living Allowance
+   * Returns null if this is the first budget month for the user
+   */
+  private async calculateRolloverLine(
+    currentBudget: Tables<'monthly_budget'>,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<BudgetLine | null> {
+    const { month: prevMonth, year: prevYear } = this.getPreviousMonthYear(
+      currentBudget.month,
+      currentBudget.year,
+    );
+
+    const previousBudget = await this.fetchPreviousBudget(
+      prevMonth,
+      prevYear,
+      user,
+      supabase,
+    );
+
+    if (!previousBudget) {
+      this.logNoPreviousBudget(user.id, currentBudget);
+      return null;
+    }
+
+    const livingAllowance = await this.calculateLivingAllowance(
+      previousBudget.id,
+      supabase,
+    );
+
+    const rolloverLine = this.createRolloverBudgetLine(
+      currentBudget,
+      prevMonth,
+      prevYear,
+      livingAllowance,
+    );
+
+    this.logRolloverCalculation(
+      user.id,
+      currentBudget.id,
+      previousBudget.id,
+      livingAllowance,
+      rolloverLine.kind as string,
+    );
+
+    return rolloverLine;
+  }
+
+  private logNoPreviousBudget(
+    userId: string,
+    currentBudget: Tables<'monthly_budget'>,
+  ): void {
+    this.logger.info(
+      {
+        userId,
+        currentMonth: currentBudget.month,
+        currentYear: currentBudget.year,
+      },
+      'No previous budget found - first month for user',
+    );
+  }
+
+  private createRolloverBudgetLine(
+    currentBudget: Tables<'monthly_budget'>,
+    prevMonth: number,
+    prevYear: number,
+    livingAllowance: number,
+  ): BudgetLine {
+    return {
+      id: `rollover-${currentBudget.id}`,
+      budgetId: currentBudget.id,
+      templateLineId: null,
+      savingsGoalId: null,
+      name: `Report ${this.getMonthName(prevMonth)} ${prevYear}`,
+      amount: livingAllowance === 0 ? 0 : Math.abs(livingAllowance),
+      kind: livingAllowance >= 0 ? 'income' : 'expense',
+      recurrence: 'one_off',
+      isManuallyAdjusted: false,
+      createdAt: currentBudget.created_at,
+      updatedAt: currentBudget.updated_at,
+    };
+  }
+
+  private logRolloverCalculation(
+    userId: string,
+    currentBudgetId: string,
+    previousBudgetId: string,
+    rolloverAmount: number,
+    rolloverKind: string,
+  ): void {
+    this.logger.info(
+      {
+        userId,
+        currentBudgetId,
+        previousBudgetId,
+        rolloverAmount,
+        rolloverKind,
+      },
+      'Calculated rollover from previous month',
+    );
+  }
+
+  /**
+   * Calculates the Living Allowance for a specific budget
+   * Living Allowance = Planned Income - Fixed Block - Actual Transactions
+   */
+  private async calculateLivingAllowance(
+    budgetId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<number> {
+    // Fetch budget lines and transactions in parallel
+    const [budgetLinesResult, transactionsResult] = await Promise.all([
+      supabase.from('budget_line').select('*').eq('budget_id', budgetId),
+      supabase.from('transaction').select('*').eq('budget_id', budgetId),
+    ]);
+
+    const budgetLines = budgetLinesResult.data || [];
+    const transactions = transactionsResult.data || [];
+
+    // Calculate components
+    const plannedIncome = budgetLines
+      .filter((line) => line.kind === 'income')
+      .reduce((total, line) => total + line.amount, 0);
+
+    const fixedBlock = budgetLines
+      .filter((line) => line.kind === 'expense' || line.kind === 'saving')
+      .reduce((total, line) => total + line.amount, 0);
+
+    // Calculate transaction impact
+    const transactionImpact = transactions.reduce((total, transaction) => {
+      // Income increases Living Allowance, expenses/savings decrease it
+      const amount =
+        transaction.kind === 'income'
+          ? transaction.amount
+          : -transaction.amount;
+      return total + amount;
+    }, 0);
+
+    // Living Allowance = Income - Fixed Block + Transaction Impact
+    const livingAllowance = plannedIncome - fixedBlock + transactionImpact;
+
+    return livingAllowance;
+  }
+
+  /**
+   * Fetches the previous month's budget for a user
+   */
+  private async fetchPreviousBudget(
+    month: number,
+    year: number,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<Tables<'monthly_budget'> | null> {
+    const { data: previousBudget } = await supabase
+      .from('monthly_budget')
+      .select('*')
+      .eq('month', month)
+      .eq('year', year)
+      .eq('user_id', user.id)
+      .single();
+
+    return previousBudget;
+  }
+
+  /**
+   * Gets the previous month and year from a given month/year
+   */
+  private getPreviousMonthYear(
+    month: number,
+    year: number,
+  ): { month: number; year: number } {
+    if (month === 1) {
+      return { month: 12, year: year - 1 };
+    }
+    return { month: month - 1, year };
+  }
+
+  /**
+   * Gets the French month name
+   */
+  private getMonthName(month: number): string {
+    const monthNames = [
+      'janvier',
+      'février',
+      'mars',
+      'avril',
+      'mai',
+      'juin',
+      'juillet',
+      'août',
+      'septembre',
+      'octobre',
+      'novembre',
+      'décembre',
+    ];
+    return monthNames[month - 1];
   }
 }

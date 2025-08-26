@@ -95,6 +95,8 @@ import {
                 <div class="flex items-center gap-2">
                   <span
                     class="inline-flex items-center gap-2 cursor-help"
+                    [class.font-bold]="line.isRollover"
+                    [class.italic]="line.isRollover"
                     [matTooltip]="line.kindLabel"
                     matTooltipPosition="above"
                     [attr.aria-describedby]="'type-tooltip-' + line.id"
@@ -162,6 +164,8 @@ import {
                 <span
                   class="text-body-medium font-medium"
                   [class]="line.amountClass"
+                  [class.font-bold]="line.isRollover"
+                  [class.italic]="line.isRollover"
                 >
                   {{ line.amount | currency: 'CHF' }}
                 </span>
@@ -217,7 +221,7 @@ import {
                     </button>
                   </div>
                 } @else {
-                  @if (line.itemType === 'budget_line') {
+                  @if (line.itemType === 'budget_line' && !line.isRollover) {
                     <button
                       matIconButton
                       (click)="startEdit(line)"
@@ -229,16 +233,18 @@ import {
                       <mat-icon>edit</mat-icon>
                     </button>
                   }
-                  <button
-                    matIconButton
-                    (click)="deleteClicked.emit(line.id)"
-                    [attr.aria-label]="'Delete ' + line.name"
-                    data-testid="delete-button"
-                    [disabled]="line.isLoading"
-                    class="!w-10 !h-10 text-error"
-                  >
-                    <mat-icon>delete</mat-icon>
-                  </button>
+                  @if (!line.isRollover) {
+                    <button
+                      matIconButton
+                      (click)="deleteClicked.emit(line.id)"
+                      [attr.aria-label]="'Delete ' + line.name"
+                      data-testid="delete-button"
+                      [disabled]="line.isLoading"
+                      class="!w-10 !h-10 text-error"
+                    >
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  }
                 }
               </div>
             </td>
