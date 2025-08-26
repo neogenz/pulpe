@@ -24,13 +24,14 @@ env:
   BUN_VERSION: "1.2.17"
 
 jobs:
-  # 📦 INSTALL & CACHE
+  # 📦 INSTALL & CACHE (Optimisé pour éviter 429)
   install:
     name: 📦 Install Dependencies
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     outputs:
-      pnpm-cache-hit: ${{ steps.pnpm-cache.outputs.cache-hit }}
+      cache-hit: ${{ steps.node-modules-cache.outputs.cache-hit }}
+      cache-key: ${{ steps.cache-keys.outputs.node-modules }}
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@v4
@@ -44,7 +45,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "pnpm" # 🚀 Cache automatique intégré
+          cache: "pnpm" # Cache pnpm store en backup
           cache-dependency-path: "**/pnpm-lock.yaml"
 
       - name: 📦 Setup Bun
@@ -52,8 +53,44 @@ jobs:
         with:
           bun-version: ${{ env.BUN_VERSION }}
 
-      - name: 📥 Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: 🔑 Generate cache keys
+        id: cache-keys
+        run: |
+          echo "node-modules=${{ runner.os }}-node-modules-${{ hashFiles('**/pnpm-lock.yaml') }}" >> $GITHUB_OUTPUT
+          echo "pnpm-store=${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}" >> $GITHUB_OUTPUT
+
+      - name: 💾 Cache node_modules (Primary Cache)
+        id: node-modules-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules/
+            frontend/node_modules/
+            backend-nest/node_modules/
+            shared/node_modules/
+            .pnpm-store/
+          key: ${{ steps.cache-keys.outputs.node-modules }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
+            ${{ runner.os }}-pnpm-store-
+
+      - name: 📥 Install dependencies with retry
+        if: steps.node-modules-cache.outputs.cache-hit != 'true'
+        run: |
+          chmod +x .github/scripts/npm-install-retry.sh
+          ./.github/scripts/npm-install-retry.sh "pnpm install --frozen-lockfile --prefer-offline"
+
+      - name: 📤 Create dependencies artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-modules-${{ github.run_id }}
+          path: |
+            node_modules/
+            frontend/node_modules/
+            backend-nest/node_modules/
+            shared/node_modules/
+            .pnpm-store/
+          retention-days: 1
 
   # 🗄️ SUPABASE SETUP (Approche officielle 2025)
   supabase-setup:
@@ -182,8 +219,29 @@ jobs:
           done
           echo "✅ Supabase restored"
 
-      - name: 📥 Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: 💾 Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules/
+            frontend/node_modules/
+            backend-nest/node_modules/
+            shared/node_modules/
+            .pnpm-store/
+          key: ${{ needs.install.outputs.cache-key }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
+
+      - name: 📥 Download dependencies artifact
+        if: needs.install.outputs.cache-hit != 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: node-modules-${{ github.run_id }}
+
+      - name: 🔄 Restore dependencies
+        run: |
+          chmod +x .github/scripts/restore-dependencies.sh
+          ./.github/scripts/restore-dependencies.sh "${{ needs.install.outputs.cache-hit }}" "${{ github.run_id }}"
 
       - name: 🏗️ Build all projects
         run: pnpm build
@@ -203,7 +261,7 @@ jobs:
     name: 🧪 Unit Tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: build
+    needs: [install, build]
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@v4
@@ -259,8 +317,29 @@ jobs:
           done
           echo "✅ Supabase ready for tests"
 
-      - name: 📥 Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: 💾 Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules/
+            frontend/node_modules/
+            backend-nest/node_modules/
+            shared/node_modules/
+            .pnpm-store/
+          key: ${{ needs.install.outputs.cache-key }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
+
+      - name: 📥 Download dependencies artifact
+        if: needs.install.outputs.cache-hit != 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: node-modules-${{ github.run_id }}
+
+      - name: 🔄 Restore dependencies
+        run: |
+          chmod +x .github/scripts/restore-dependencies.sh
+          ./.github/scripts/restore-dependencies.sh "${{ needs.install.outputs.cache-hit }}" "${{ github.run_id }}"
 
       - name: 🧪 Run unit tests
         run: pnpm test:unit
@@ -280,7 +359,7 @@ jobs:
     name: 🎭 E2E Tests (${{ matrix.project }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: build
+    needs: [install, build]
     strategy:
       fail-fast: false
       matrix:
@@ -303,8 +382,29 @@ jobs:
           cache: "pnpm"
           cache-dependency-path: "**/pnpm-lock.yaml"
 
-      - name: 📥 Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: 💾 Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules/
+            frontend/node_modules/
+            backend-nest/node_modules/
+            shared/node_modules/
+            .pnpm-store/
+          key: ${{ needs.install.outputs.cache-key }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
+
+      - name: 📥 Download dependencies artifact
+        if: needs.install.outputs.cache-hit != 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: node-modules-${{ github.run_id }}
+
+      - name: 🔄 Restore dependencies
+        run: |
+          chmod +x .github/scripts/restore-dependencies.sh
+          ./.github/scripts/restore-dependencies.sh "${{ needs.install.outputs.cache-hit }}" "${{ github.run_id }}"
 
       - name: 📥 Download build artifacts
         uses: actions/download-artifact@v4
@@ -349,7 +449,7 @@ jobs:
     name: 🔍 Quality Checks
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: build
+    needs: [install, build]
     strategy:
       matrix:
         check: [lint, format:check, quality, deps:check]
@@ -374,8 +474,29 @@ jobs:
         with:
           bun-version: ${{ env.BUN_VERSION }}
 
-      - name: 📥 Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: 💾 Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules/
+            frontend/node_modules/
+            backend-nest/node_modules/
+            shared/node_modules/
+            .pnpm-store/
+          key: ${{ needs.install.outputs.cache-key }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
+
+      - name: 📥 Download dependencies artifact
+        if: needs.install.outputs.cache-hit != 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: node-modules-${{ github.run_id }}
+
+      - name: 🔄 Restore dependencies
+        run: |
+          chmod +x .github/scripts/restore-dependencies.sh
+          ./.github/scripts/restore-dependencies.sh "${{ needs.install.outputs.cache-hit }}" "${{ github.run_id }}"
 
       - name: 🔍 Run ${{ matrix.check }}
         run: pnpm ${{ matrix.check }}
@@ -385,7 +506,7 @@ jobs:
     name: 🚀 Performance Tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: build
+    needs: [install, build]
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@v4
@@ -434,8 +555,29 @@ jobs:
           done
           echo "✅ Supabase ready for performance tests"
 
-      - name: 📥 Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: 💾 Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules/
+            frontend/node_modules/
+            backend-nest/node_modules/
+            shared/node_modules/
+            .pnpm-store/
+          key: ${{ needs.install.outputs.cache-key }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
+
+      - name: 📥 Download dependencies artifact
+        if: needs.install.outputs.cache-hit != 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: node-modules-${{ github.run_id }}
+
+      - name: 🔄 Restore dependencies
+        run: |
+          chmod +x .github/scripts/restore-dependencies.sh
+          ./.github/scripts/restore-dependencies.sh "${{ needs.install.outputs.cache-hit }}" "${{ github.run_id }}"
 
       - name: 🚀 Run performance tests
         run: pnpm test:performance
