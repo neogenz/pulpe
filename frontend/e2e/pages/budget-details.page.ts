@@ -1,93 +1,34 @@
-import { type Locator, type Page, expect } from '@playwright/test';
+import { type Page, expect } from '@playwright/test';
 
 export class BudgetDetailsPage {
   constructor(private readonly page: Page) {}
 
   async goto(budgetId = 'test-budget-123'): Promise<void> {
     await this.page.goto(`/app/budget/${budgetId}`);
-    await this.page.waitForLoadState('networkidle');
-  }
-
-  async gotoBudgetList(): Promise<void> {
-    await this.page.goto('/app/budget');
-    await this.page.waitForLoadState('networkidle');
+    await this.expectPageLoaded();
   }
 
   async expectPageLoaded(): Promise<void> {
-    // Wait for Angular app to load
-    await expect(this.page.locator('pulpe-root')).toBeVisible({
-      timeout: 10000,
-    });
-
-    // Wait for content to render
-    await this.page.waitForTimeout(2000);
-
-    // Verify meaningful content is present
-    const hasContent = await this.page.locator('body *').first().isVisible();
-    if (!hasContent) {
-      throw new Error('No content found on page');
-    }
+    await expect(this.page.getByTestId('budget-detail-page')).toBeVisible();
   }
 
   async expectBudgetLineVisible(lineName: string): Promise<void> {
     await expect(
-      this.page.locator('tbody tr').filter({ hasText: lineName }),
-    ).toBeVisible({ timeout: 5000 });
+      this.page.getByTestId(`budget-line-${lineName}`),
+    ).toBeVisible();
   }
 
-  async clickDeleteBudgetLine(
-    lineNameOrIndex: string | number = 0,
-  ): Promise<void> {
-    let deleteButton: Locator;
-
-    if (typeof lineNameOrIndex === 'string') {
-      // Find delete button in the row containing the line name
-      const row = this.page
-        .locator('tbody tr')
-        .filter({ hasText: lineNameOrIndex });
-      deleteButton = row.locator(
-        'button[aria-label*="delete"], button[aria-label*="Delete"], button[aria-label*="supprimer"], button[aria-label*="Supprimer"]',
-      );
-    } else {
-      // Use index-based approach
-      deleteButton = this.page
-        .locator(
-          'button[aria-label*="delete"], button[aria-label*="Delete"], button[aria-label*="supprimer"], button[aria-label*="Supprimer"]',
-        )
-        .nth(lineNameOrIndex);
-    }
-
-    await expect(deleteButton).toBeVisible({ timeout: 5000 });
-    await deleteButton.click();
-  }
-
-  getDialog(): Locator {
-    return this.page.locator('mat-dialog-container');
-  }
-
-  getDialogTitle(): Locator {
-    return this.getDialog().locator('h2[mat-dialog-title]');
-  }
-
-  getDialogMessage(): Locator {
-    return this.getDialog().locator('mat-dialog-content p');
-  }
-
-  getCancelButton(): Locator {
-    const dialog = this.page.locator('mat-dialog-container');
-    return dialog.locator('button').filter({ hasText: 'Annuler' });
-  }
-
-  getConfirmDeleteButton(): Locator {
-    const dialog = this.page.locator('mat-dialog-container');
-    return dialog.locator('button').filter({ hasText: 'Supprimer' });
+  async clickDeleteBudgetLine(lineName: string): Promise<void> {
+    // Find the row with the budget line, then click its delete button
+    const row = this.page.getByTestId(`budget-line-${lineName}`);
+    await row.getByTestId('delete-button').click();
   }
 
   async confirmDelete(): Promise<void> {
-    await this.getConfirmDeleteButton().click();
+    await this.page.getByTestId('confirm-delete-button').click();
   }
 
   async cancelDelete(): Promise<void> {
-    await this.getCancelButton().click();
+    await this.page.getByTestId('cancel-delete-button').click();
   }
 }
