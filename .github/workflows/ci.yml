@@ -20,34 +20,29 @@ permissions:
 # Variables globales
 env:
   NODE_VERSION: "22"
-  PNPM_VERSION: "10.12.1"
+  PNPM_VERSION: "10"
   BUN_VERSION: "1.2.17"
 
 jobs:
-  # 📦 INSTALL & CACHE (Optimisé pour éviter 429)
+  # 📦 INSTALL & CACHE
   install:
     name: 📦 Install Dependencies
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    outputs:
-      cache-hit: ${{ steps.node-modules-cache.outputs.cache-hit }}
-      cache-key: ${{ steps.cache-keys.outputs.node-modules }}
+    timeout-minutes: 10
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 💾 Cache pnpm binary
-        uses: actions/cache@v4
-        id: pnpm-cache
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
         with:
-          path: ~/setup-pnpm
-          key: ${{ runner.os }}-pnpm-binary-${{ env.PNPM_VERSION }}
+          version: ${{ env.PNPM_VERSION }}
 
-      - name: 🚀 Setup pnpm (Smart Fallbacks)
+      - name: 🔧 Configure npm retry settings
         run: |
-          chmod +x .github/scripts/smart-pnpm-setup.sh
-          ./.github/scripts/smart-pnpm-setup.sh ${{ env.PNPM_VERSION }}
-          echo "$HOME/setup-pnpm" >> $GITHUB_PATH
+          npm config set fetch-retry-maxtimeout 600000
+          npm config set fetch-retry-mintimeout 120000
+          npm config set fetch-retries 3
 
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
@@ -61,41 +56,8 @@ jobs:
         with:
           bun-version: ${{ env.BUN_VERSION }}
 
-      - name: 🔑 Generate cache keys
-        id: cache-keys
-        run: |
-          echo "node-modules=${{ runner.os }}-node-modules-${{ hashFiles('**/pnpm-lock.yaml') }}" >> $GITHUB_OUTPUT
-          echo "pnpm-store=${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}" >> $GITHUB_OUTPUT
-
-      - name: 💾 Cache node_modules (Primary Cache)
-        id: node-modules-cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            node_modules/
-            frontend/node_modules/
-            backend-nest/node_modules/
-            shared/node_modules/
-          key: ${{ steps.cache-keys.outputs.node-modules }}
-          restore-keys: |
-            ${{ runner.os }}-node-modules-
-
-      - name: 📥 Install dependencies with retry
-        if: steps.node-modules-cache.outputs.cache-hit != 'true'
-        run: |
-          chmod +x .github/scripts/npm-install-retry.sh
-          ./.github/scripts/npm-install-retry.sh "pnpm install --frozen-lockfile --prefer-offline"
-
-      - name: 📤 Create dependencies artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: node-modules-${{ github.run_id }}
-          path: |
-            node_modules/
-            frontend/node_modules/
-            backend-nest/node_modules/
-            shared/node_modules/
-          retention-days: 1
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
 
   # 🗄️ SUPABASE SETUP (Approche officielle 2025)
   supabase-setup:
@@ -178,18 +140,16 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 💾 Cache pnpm binary
-        uses: actions/cache@v4
-        id: pnpm-cache
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
         with:
-          path: ~/setup-pnpm
-          key: ${{ runner.os }}-pnpm-binary-${{ env.PNPM_VERSION }}
+          version: ${{ env.PNPM_VERSION }}
 
-      - name: 🚀 Setup pnpm (Smart Fallbacks)
+      - name: 🔧 Configure npm retry settings
         run: |
-          chmod +x .github/scripts/smart-pnpm-setup.sh
-          ./.github/scripts/smart-pnpm-setup.sh ${{ env.PNPM_VERSION }}
-          echo "$HOME/setup-pnpm" >> $GITHUB_PATH
+          npm config set fetch-retry-maxtimeout 600000
+          npm config set fetch-retry-mintimeout 120000
+          npm config set fetch-retries 3
 
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
@@ -232,28 +192,14 @@ jobs:
           done
           echo "✅ Supabase restored"
 
-      - name: 💾 Cache node_modules
-        uses: actions/cache@v4
-        with:
-          path: |
-            node_modules/
-            frontend/node_modules/
-            backend-nest/node_modules/
-            shared/node_modules/
-          key: ${{ needs.install.outputs.cache-key }}
-          restore-keys: |
-            ${{ runner.os }}-node-modules-
-
-      - name: 📥 Download dependencies artifact
-        if: needs.install.outputs.cache-hit != 'true'
-        uses: actions/download-artifact@v4
-        with:
-          name: node-modules-${{ github.run_id }}
-
-      - name: 🔄 Restore dependencies
+      - name: 🔧 Configure npm retry settings
         run: |
-          chmod +x .github/scripts/restore-dependencies.sh
-          ./.github/scripts/restore-dependencies.sh "${{ needs.install.outputs.cache-hit }}" "${{ github.run_id }}"
+          npm config set fetch-retry-maxtimeout 600000
+          npm config set fetch-retry-mintimeout 120000
+          npm config set fetch-retries 3
+
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: 🏗️ Build all projects
         run: pnpm build
@@ -278,18 +224,16 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 💾 Cache pnpm binary
-        uses: actions/cache@v4
-        id: pnpm-cache
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
         with:
-          path: ~/setup-pnpm
-          key: ${{ runner.os }}-pnpm-binary-${{ env.PNPM_VERSION }}
+          version: ${{ env.PNPM_VERSION }}
 
-      - name: 🚀 Setup pnpm (Smart Fallbacks)
+      - name: 🔧 Configure npm retry settings
         run: |
-          chmod +x .github/scripts/smart-pnpm-setup.sh
-          ./.github/scripts/smart-pnpm-setup.sh ${{ env.PNPM_VERSION }}
-          echo "$HOME/setup-pnpm" >> $GITHUB_PATH
+          npm config set fetch-retry-maxtimeout 600000
+          npm config set fetch-retry-mintimeout 120000
+          npm config set fetch-retries 3
 
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
@@ -338,28 +282,14 @@ jobs:
           done
           echo "✅ Supabase ready for tests"
 
-      - name: 💾 Cache node_modules
-        uses: actions/cache@v4
-        with:
-          path: |
-            node_modules/
-            frontend/node_modules/
-            backend-nest/node_modules/
-            shared/node_modules/
-          key: ${{ needs.install.outputs.cache-key }}
-          restore-keys: |
-            ${{ runner.os }}-node-modules-
-
-      - name: 📥 Download dependencies artifact
-        if: needs.install.outputs.cache-hit != 'true'
-        uses: actions/download-artifact@v4
-        with:
-          name: node-modules-${{ github.run_id }}
-
-      - name: 🔄 Restore dependencies
+      - name: 🔧 Configure npm retry settings
         run: |
-          chmod +x .github/scripts/restore-dependencies.sh
-          ./.github/scripts/restore-dependencies.sh "${{ needs.install.outputs.cache-hit }}" "${{ github.run_id }}"
+          npm config set fetch-retry-maxtimeout 600000
+          npm config set fetch-retry-mintimeout 120000
+          npm config set fetch-retries 3
+
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: 🧪 Run unit tests
         run: pnpm test:unit
@@ -390,18 +320,16 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 💾 Cache pnpm binary
-        uses: actions/cache@v4
-        id: pnpm-cache
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
         with:
-          path: ~/setup-pnpm
-          key: ${{ runner.os }}-pnpm-binary-${{ env.PNPM_VERSION }}
+          version: ${{ env.PNPM_VERSION }}
 
-      - name: 🚀 Setup pnpm (Smart Fallbacks)
+      - name: 🔧 Configure npm retry settings
         run: |
-          chmod +x .github/scripts/smart-pnpm-setup.sh
-          ./.github/scripts/smart-pnpm-setup.sh ${{ env.PNPM_VERSION }}
-          echo "$HOME/setup-pnpm" >> $GITHUB_PATH
+          npm config set fetch-retry-maxtimeout 600000
+          npm config set fetch-retry-mintimeout 120000
+          npm config set fetch-retries 3
 
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
@@ -410,28 +338,14 @@ jobs:
           cache: "pnpm"
           cache-dependency-path: "**/pnpm-lock.yaml"
 
-      - name: 💾 Cache node_modules
-        uses: actions/cache@v4
-        with:
-          path: |
-            node_modules/
-            frontend/node_modules/
-            backend-nest/node_modules/
-            shared/node_modules/
-          key: ${{ needs.install.outputs.cache-key }}
-          restore-keys: |
-            ${{ runner.os }}-node-modules-
-
-      - name: 📥 Download dependencies artifact
-        if: needs.install.outputs.cache-hit != 'true'
-        uses: actions/download-artifact@v4
-        with:
-          name: node-modules-${{ github.run_id }}
-
-      - name: 🔄 Restore dependencies
+      - name: 🔧 Configure npm retry settings
         run: |
-          chmod +x .github/scripts/restore-dependencies.sh
-          ./.github/scripts/restore-dependencies.sh "${{ needs.install.outputs.cache-hit }}" "${{ github.run_id }}"
+          npm config set fetch-retry-maxtimeout 600000
+          npm config set fetch-retry-mintimeout 120000
+          npm config set fetch-retries 3
+
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: 📥 Download build artifacts
         uses: actions/download-artifact@v4
@@ -484,18 +398,16 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 💾 Cache pnpm binary
-        uses: actions/cache@v4
-        id: pnpm-cache
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
         with:
-          path: ~/setup-pnpm
-          key: ${{ runner.os }}-pnpm-binary-${{ env.PNPM_VERSION }}
+          version: ${{ env.PNPM_VERSION }}
 
-      - name: 🚀 Setup pnpm (Smart Fallbacks)
+      - name: 🔧 Configure npm retry settings
         run: |
-          chmod +x .github/scripts/smart-pnpm-setup.sh
-          ./.github/scripts/smart-pnpm-setup.sh ${{ env.PNPM_VERSION }}
-          echo "$HOME/setup-pnpm" >> $GITHUB_PATH
+          npm config set fetch-retry-maxtimeout 600000
+          npm config set fetch-retry-mintimeout 120000
+          npm config set fetch-retries 3
 
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
@@ -509,28 +421,14 @@ jobs:
         with:
           bun-version: ${{ env.BUN_VERSION }}
 
-      - name: 💾 Cache node_modules
-        uses: actions/cache@v4
-        with:
-          path: |
-            node_modules/
-            frontend/node_modules/
-            backend-nest/node_modules/
-            shared/node_modules/
-          key: ${{ needs.install.outputs.cache-key }}
-          restore-keys: |
-            ${{ runner.os }}-node-modules-
-
-      - name: 📥 Download dependencies artifact
-        if: needs.install.outputs.cache-hit != 'true'
-        uses: actions/download-artifact@v4
-        with:
-          name: node-modules-${{ github.run_id }}
-
-      - name: 🔄 Restore dependencies
+      - name: 🔧 Configure npm retry settings
         run: |
-          chmod +x .github/scripts/restore-dependencies.sh
-          ./.github/scripts/restore-dependencies.sh "${{ needs.install.outputs.cache-hit }}" "${{ github.run_id }}"
+          npm config set fetch-retry-maxtimeout 600000
+          npm config set fetch-retry-mintimeout 120000
+          npm config set fetch-retries 3
+
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: 🔍 Run ${{ matrix.check }}
         run: pnpm ${{ matrix.check }}
@@ -545,18 +443,16 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 💾 Cache pnpm binary
-        uses: actions/cache@v4
-        id: pnpm-cache
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
         with:
-          path: ~/setup-pnpm
-          key: ${{ runner.os }}-pnpm-binary-${{ env.PNPM_VERSION }}
+          version: ${{ env.PNPM_VERSION }}
 
-      - name: 🚀 Setup pnpm (Smart Fallbacks)
+      - name: 🔧 Configure npm retry settings
         run: |
-          chmod +x .github/scripts/smart-pnpm-setup.sh
-          ./.github/scripts/smart-pnpm-setup.sh ${{ env.PNPM_VERSION }}
-          echo "$HOME/setup-pnpm" >> $GITHUB_PATH
+          npm config set fetch-retry-maxtimeout 600000
+          npm config set fetch-retry-mintimeout 120000
+          npm config set fetch-retries 3
 
       - name: 📦 Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -598,28 +494,14 @@ jobs:
           done
           echo "✅ Supabase ready for performance tests"
 
-      - name: 💾 Cache node_modules
-        uses: actions/cache@v4
-        with:
-          path: |
-            node_modules/
-            frontend/node_modules/
-            backend-nest/node_modules/
-            shared/node_modules/
-          key: ${{ needs.install.outputs.cache-key }}
-          restore-keys: |
-            ${{ runner.os }}-node-modules-
-
-      - name: 📥 Download dependencies artifact
-        if: needs.install.outputs.cache-hit != 'true'
-        uses: actions/download-artifact@v4
-        with:
-          name: node-modules-${{ github.run_id }}
-
-      - name: 🔄 Restore dependencies
+      - name: 🔧 Configure npm retry settings
         run: |
-          chmod +x .github/scripts/restore-dependencies.sh
-          ./.github/scripts/restore-dependencies.sh "${{ needs.install.outputs.cache-hit }}" "${{ github.run_id }}"
+          npm config set fetch-retry-maxtimeout 600000
+          npm config set fetch-retry-mintimeout 120000
+          npm config set fetch-retries 3
+
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: 🚀 Run performance tests
         run: pnpm test:performance

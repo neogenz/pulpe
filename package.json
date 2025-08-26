@@ -2,7 +2,7 @@
   "name": "pulpe-workspace",
   "private": true,
   "description": "Pulpe monorepo workspace",
-  "packageManager": "pnpm@10.12.1",
+  "packageManager": "pnpm@10",
   "scripts": {
     "postinstall": "lefthook install",
     "dev": "turbo dev",
