@@ -35,13 +35,28 @@ export class BudgetDetailsPage {
     ).toBeVisible({ timeout: 5000 });
   }
 
-  async clickDeleteBudgetLine(lineIndex = 0): Promise<void> {
-    // Use a more specific selector to avoid CSS parsing issues
-    const deleteButton = this.page
-      .locator(
+  async clickDeleteBudgetLine(
+    lineNameOrIndex: string | number = 0,
+  ): Promise<void> {
+    let deleteButton: Locator;
+
+    if (typeof lineNameOrIndex === 'string') {
+      // Find delete button in the row containing the line name
+      const row = this.page
+        .locator('tbody tr')
+        .filter({ hasText: lineNameOrIndex });
+      deleteButton = row.locator(
         'button[aria-label*="delete"], button[aria-label*="Delete"], button[aria-label*="supprimer"], button[aria-label*="Supprimer"]',
-      )
-      .nth(lineIndex);
+      );
+    } else {
+      // Use index-based approach
+      deleteButton = this.page
+        .locator(
+          'button[aria-label*="delete"], button[aria-label*="Delete"], button[aria-label*="supprimer"], button[aria-label*="Supprimer"]',
+        )
+        .nth(lineNameOrIndex);
+    }
+
     await expect(deleteButton).toBeVisible({ timeout: 5000 });
     await deleteButton.click();
   }
@@ -66,5 +81,13 @@ export class BudgetDetailsPage {
   getConfirmDeleteButton(): Locator {
     const dialog = this.page.locator('mat-dialog-container');
     return dialog.locator('button').filter({ hasText: 'Supprimer' });
+  }
+
+  async confirmDelete(): Promise<void> {
+    await this.getConfirmDeleteButton().click();
+  }
+
+  async cancelDelete(): Promise<void> {
+    await this.getCancelButton().click();
   }
 }
