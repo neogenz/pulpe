@@ -5,42 +5,30 @@ export class BudgetTemplatesPage {
 
   async goto() {
     await this.page.goto('/app/budget-templates');
+    await this.expectPageLoaded();
   }
 
   async expectPageLoaded() {
-    await expect(this.page.locator('body')).toBeVisible();
-  }
-
-  async expectTemplatesListVisible() {
-    // Either templates or empty state
-    await this.page.waitForSelector('mat-card, text="Aucun modèle"');
+    await expect(this.page.getByTestId('budget-templates-page')).toBeVisible();
   }
 
   async clickCreateTemplate() {
-    // Navigate directly to create page - simpler and more reliable
-    await this.page.goto('/app/budget-templates/create');
-    await this.page.waitForLoadState('domcontentloaded');
-  }
-
-  async expectFormVisible() {
-    await expect(this.page.locator('form').first()).toBeVisible();
+    await this.page.getByTestId('create-template-button').click();
   }
 
   async fillTemplateName(name: string) {
-    // Use the template name input with its specific test ID
-    await this.page.locator('[data-testid="template-name-input"]').fill(name);
+    await this.page.getByTestId('template-name-input').fill(name);
   }
 
   async submitForm() {
-    // Click submit button and wait for navigation
-    await this.page.getByRole('button', { name: /créer|submit|continuer/i }).click();
-    await this.page.waitForLoadState('networkidle');
+    await this.page.getByTestId('template-submit-button').click();
   }
 
-  async navigateToTemplateDetails(_templateName: string) {
-    // Direct navigation is more reliable
-    await this.page.goto('/app/budget-templates/details/test-template-id');
+  async navigateToTemplateDetails(templateName: string) {
+    await this.page.getByTestId(`template-${templateName}`).getByTestId('view-details-button').click();
+  }
+
+  async expectTemplateVisible(templateName: string) {
+    await expect(this.page.getByTestId(`template-${templateName}`)).toBeVisible();
   }
 }
-
-export { BudgetTemplatesPage as TemplatesPage };

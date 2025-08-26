@@ -1,7 +1,9 @@
 import { test, expect } from '../../fixtures/test-fixtures';
+import { MOCK_API_RESPONSES } from '../../mocks/api-responses';
 
 test.describe('Monthly Budget Management', () => {
   test('should display monthly dashboard with financial overview', async ({
+    authenticatedPage,
     currentMonthPage,
   }) => {
     await currentMonthPage.goto();
@@ -9,20 +11,21 @@ test.describe('Monthly Budget Management', () => {
   });
 
   test('should display expense form or related input elements', async ({
+    authenticatedPage,
     currentMonthPage,
-    page
   }) => {
     await currentMonthPage.goto();
     await currentMonthPage.expectPageLoaded();
     
     // Check if expense form exists
-    const form = page.locator('form, [data-testid="expense-form"]');
+    const form = authenticatedPage.locator('form, [data-testid="expense-form"]');
     if (await form.count() > 0) {
       await expect(form.first()).toBeVisible();
     }
   });
 
   test('should handle expense form interaction gracefully', async ({
+    authenticatedPage,
     currentMonthPage,
   }) => {
     await currentMonthPage.goto();
@@ -42,7 +45,11 @@ test.describe('Monthly Budget Management', () => {
   }) => {
     // Mock error response
     await authenticatedPage.route('**/api/v1/budgets**', route => 
-      route.fulfill({ status: 500, body: 'Server Error' })
+      route.fulfill({ 
+        status: 500, 
+        contentType: 'text/plain',
+        body: 'Server Error' 
+      })
     );
     
     await currentMonthPage.goto();
@@ -54,9 +61,13 @@ test.describe('Monthly Budget Management', () => {
     authenticatedPage,
     currentMonthPage,
   }) => {
-    // Mock empty response
+    // Mock empty response using centralized helper
     await authenticatedPage.route('**/api/v1/budgets**', route => 
-      route.fulfill({ status: 200, body: JSON.stringify({ data: [] }) })
+      route.fulfill({ 
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ data: [] }) 
+      })
     );
     
     await currentMonthPage.goto();
@@ -64,13 +75,13 @@ test.describe('Monthly Budget Management', () => {
   });
 
   test('should maintain page state after browser refresh', async ({
+    authenticatedPage,
     currentMonthPage,
-    page
   }) => {
     await currentMonthPage.goto();
     await currentMonthPage.expectPageLoaded();
     
-    await page.reload();
+    await authenticatedPage.reload();
     await currentMonthPage.expectPageLoaded();
   });
 });

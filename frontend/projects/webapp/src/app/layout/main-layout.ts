@@ -79,7 +79,7 @@ interface NavigationItem {
         <!-- Navigation List -->
         @if (isHandset()) {
           <!-- Mobile: Full navigation list -->
-          <mat-nav-list class="pt-4 !px-2">
+          <mat-nav-list class="pt-4 !px-2" data-testid="mobile-navigation">
             @for (item of navigationItems; track item.route) {
               <a
                 mat-list-item
@@ -98,7 +98,7 @@ interface NavigationItem {
           </mat-nav-list>
         } @else {
           <!-- Desktop: Material 3 Navigation Rail -->
-          <nav class="pt-4 px-3">
+          <nav class="pt-4 px-3" data-testid="desktop-navigation">
             @for (item of navigationItems; track item.route) {
               <a
                 [routerLink]="item.route"
@@ -142,6 +142,7 @@ interface NavigationItem {
       <mat-sidenav-content
         class="flex flex-col h-full overflow-hidden"
         [class.p-2]="!isHandset()"
+        data-testid="main-content"
       >
         <div
           class="flex flex-col h-full bg-surface relative"
@@ -159,6 +160,7 @@ interface NavigationItem {
                 matIconButton
                 (click)="drawer.toggle()"
                 aria-label="Toggle navigation"
+                data-testid="menu-toggle"
               >
                 <mat-icon>menu</mat-icon>
               </button>
@@ -233,6 +235,7 @@ interface NavigationItem {
             [class.p-6]="!isHandset()"
             [class.md:p-8]="!isHandset()"
             [class.p-4]="isHandset()"
+            data-testid="page-content"
           >
             <router-outlet />
           </main>

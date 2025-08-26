@@ -1,30 +1,30 @@
-# E2E Tests avec Playwright - Stratégie Hybride
+# E2E Tests avec Playwright - Stratégie Hybride Simplifiée
 
-Ce dossier contient tous les tests E2E pour l'application Pulpe, organisés selon une **stratégie hybride d'authentification** optimisée pour un développeur solo.
+Ce dossier contient tous les tests E2E pour l'application Pulpe, organisés selon une **stratégie hybride** optimisée pour un développeur solo.
 
 ## Stratégie hybride 90/10
 
-### ⚡ 90% Features (Mocks) - Rapide et fiable
+### ⚡ 90% Features (Mocks) - Rapide et isolé
 
-- **28 tests** avec authentification simulée
+- **Tests** avec authentification simulée via fixture
 - **APIs mockées** pour isolation complète
 - **Exécution rapide** et parallèle
 
-### 🔐 10% Critical Path (Authentification réelle)
+### 🔐 10% Critical User Journeys (Session persistée)
 
-- **6 tests** avec session authentifiée réelle
-- **Chemin critique** validé de bout en bout
+- **Tests** avec session mockée persistée via storageState
+- **Parcours utilisateur critiques** validés de bout en bout
 - **Confiance maximale** sur les fonctionnalités vitales
 
 ## Structure des dossiers
 
 ```
 e2e/
-├── auth.setup.ts          # Setup d'authentification réelle (exécuté une fois)
+├── auth.setup.ts          # Setup de session mockée persistée (exécuté une fois)
 ├── fixtures/               # Fixtures personnalisées et données de test
 ├── pages/                  # Page Objects pour l'encapsulation des pages
 ├── tests/
-│   ├── critical-path/      # Tests avec authentification réelle (6 tests)
+│   ├── critical-path/      # Tests avec session persistée (parcours critiques)
 │   │   ├── session.spec.ts         # Gestion de session
 │   │   └── core-navigation.spec.ts # Navigation principale
 │   └── features/           # Tests avec mocks (28 tests)
@@ -59,20 +59,20 @@ Exécute : Setup → Critical Path → Features
 ### Tests rapides uniquement (développement)
 
 ```bash
-npx playwright test --project="Chromium - Features (Mocked)"
+npx playwright test --project="Feature Tests (Mocked)"
 ```
 
-Exécute seulement les 28 tests mockés (rapide)
+Exécute seulement les tests de features mockés (rapide)
 
 ### Tests critiques uniquement
 
 ```bash
-npx playwright test --project="Chromium - Critical Path"
+npx playwright test --project="Critical User Journeys (Mocked)"
 ```
 
-Exécute le setup + 6 tests avec authentification réelle
+Exécute le setup + tests des parcours utilisateur critiques
 
-### Setup d'authentification uniquement
+### Setup de session uniquement
 
 ```bash
 npx playwright test --project="setup"
@@ -82,11 +82,11 @@ Génère le fichier de session `playwright/.auth/user.json`
 
 ## Projets Playwright configurés
 
-| Projet            | Tests | Authentification    | Utilisation     |
-| ----------------- | ----- | ------------------- | --------------- |
-| **setup**         | 1     | Réelle (LOGIN UI)   | Génère session  |
-| **Critical Path** | 6     | Session sauvegardée | Chemin critique |
-| **Features**      | 28    | Mocks complets      | Développement   |
+| Projet            | Tests | Authentification      | Utilisation     |
+| ----------------- | ----- | --------------------- | --------------- |
+| **setup**         | 1     | Session mockée       | Génère session  |
+| **Critical Path** | 6     | Session sauvegardée  | Chemin critique |
+| **Features**      | 28    | Mocks complets       | Développement   |
 
 ## Bonnes pratiques implémentées
 
@@ -158,6 +158,31 @@ L'authentification est mockée via la fixture `authenticatedPage` qui :
 1. Injecte un flag `__E2E_AUTH_BYPASS__` dans le contexte de la page
 2. Mock les réponses API d'authentification
 3. Simule un état authentifié valide
+
+### Stratégie de mocking d'API
+
+- **Routes par défaut** : Utilisent le pattern `**/api/v1/**` pour toutes les API
+- **Mocks spécifiques** : Les routes enregistrées en dernier sont prioritaires
+- **Content-Type** : Tous les mocks JSON incluent `contentType: 'application/json'`
+
+### Surcharge de mocks par test
+
+Pour surcharger les mocks globaux dans un test spécifique :
+
+```typescript
+test('should handle specific scenario', async ({ authenticatedPage }) => {
+  // Ce mock sera prioritaire sur les mocks globaux
+  await authenticatedPage.route('**/api/v1/budgets', route => 
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ data: [] })
+    })
+  );
+  
+  // Test logic...
+});
+```
 
 ## Conseils pour écrire de bons tests
 

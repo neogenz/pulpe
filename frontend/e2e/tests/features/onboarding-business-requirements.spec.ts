@@ -6,6 +6,28 @@ import { test, expect } from '../../fixtures/test-fixtures';
  */
 test.describe('Onboarding Business Requirements Validation', () => {
   test('BUSINESS REQUIREMENT: Complete 8-step onboarding flow', async ({ page, onboardingPage }) => {
+    // Mock the registration API
+    await page.route('**/api/v1/auth/register', route => 
+      route.fulfill({ 
+        status: 200, 
+        body: JSON.stringify({ 
+          success: true, 
+          data: { user: { id: 'test-user', email: 'test@pulpe.local' } } 
+        }) 
+      })
+    );
+
+    // Mock budget creation API
+    await page.route('**/api/v1/budgets**', route => 
+      route.fulfill({ 
+        status: 200, 
+        body: JSON.stringify({ 
+          success: true, 
+          data: { id: 'test-budget', name: 'Test Budget' } 
+        }) 
+      })
+    );
+
     await onboardingPage.goto();
     await onboardingPage.completeOnboardingFlow();
     // Verify we've navigated away from welcome page

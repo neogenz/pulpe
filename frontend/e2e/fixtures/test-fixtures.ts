@@ -5,6 +5,7 @@ import { CurrentMonthPage } from '../pages/current-month.page';
 import { BudgetTemplatesPage } from '../pages/budget-templates.page';
 import { BudgetDetailsPage } from '../pages/budget-details.page';
 import { MainLayoutPage } from '../pages/main-layout.page';
+import { setupAuthBypass } from '../utils/auth-bypass';
 
 // Simple fixture types - only what we actually use
 interface AppFixtures {
@@ -44,85 +45,12 @@ export const test = base.extend<AppFixtures>({
     await use(new MainLayoutPage(page));
   },
 
-  // Authenticated page - balanced between simplicity and functionality
+  // Authenticated page - for feature tests with mocks
   authenticatedPage: async ({ page }, use) => {
-    // Import test config (injected as parameter to avoid bundling issues)
-    const { TEST_CONFIG } = await import('../config/test-config');
-    
-    // Setup auth bypass with complete mock state
-    await page.addInitScript((config) => {
-      // Security check
-      if (window.location.hostname === 'production.pulpe.com') {
-        throw new Error('E2E auth bypass cannot be used in production');
-      }
-      
-      const e2eWindow = window as typeof window & {
-        __E2E_AUTH_BYPASS__: boolean;
-        __E2E_MOCK_AUTH_STATE__: {
-          user: { id: string; email: string };
-          session: { access_token: string; user: { id: string; email: string } };
-          isLoading: boolean;
-          isAuthenticated: boolean;
-        };
-      };
-      e2eWindow.__E2E_AUTH_BYPASS__ = true;
-      e2eWindow.__E2E_MOCK_AUTH_STATE__ = {
-        user: { id: config.USER.ID, email: config.USER.EMAIL },
-        session: { 
-          access_token: config.TOKENS.ACCESS, 
-          user: { id: config.USER.ID, email: config.USER.EMAIL } 
-        },
-        isLoading: false,
-        isAuthenticated: true
-      };
-      localStorage.setItem('auth_token', config.TOKENS.ACCESS);
-    }, TEST_CONFIG);
-
-    // Import mock responses
-    const { MOCK_API_RESPONSES } = await import('../mocks/api-responses');
-    
-    // API mocks with minimal but complete data for tests
-    await page.route('**/api/**', (route: Route) => {
-      const url = route.request().url();
-      const method = route.request().method();
-      
-      // Auth endpoints
-      if (url.includes('auth')) {
-        return route.fulfill({
-          status: 200,
-          body: JSON.stringify(MOCK_API_RESPONSES.auth)
-        });
-      }
-      
-      // Budget endpoints - complete data for tests
-      if (url.includes('budgets')) {
-        return route.fulfill({
-          status: 200,
-          body: JSON.stringify(MOCK_API_RESPONSES.budgets)
-        });
-      }
-      
-      // Templates for template tests
-      if (url.includes('templates')) {
-        return route.fulfill({
-          status: 200,
-          body: JSON.stringify(MOCK_API_RESPONSES.templates)
-        });
-      }
-      
-      // Success for mutations (POST/PUT/DELETE)
-      if (method !== 'GET') {
-        return route.fulfill({
-          status: 200,
-          body: JSON.stringify(MOCK_API_RESPONSES.success)
-        });
-      }
-      
-      // Default empty array for other GETs
-      return route.fulfill({
-        status: 200,
-        body: JSON.stringify({ data: [] })
-      });
+    // Setup auth bypass with API mocks and localStorage for feature tests
+    await setupAuthBypass(page, { 
+      includeApiMocks: true, 
+      setLocalStorage: true 
     });
 
     await use(page);

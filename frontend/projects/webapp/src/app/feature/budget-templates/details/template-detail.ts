@@ -3,7 +3,6 @@ import {
   Component,
   computed,
   inject,
-  input,
   effect,
   Injector,
   type OnInit,
@@ -245,11 +244,16 @@ export default class TemplateDetail implements OnInit {
   readonly #breakpointObserver = inject(BreakpointObserver);
   readonly #snackBar = inject(MatSnackBar);
 
-  readonly templateId = input.required<string>();
-
   ngOnInit(): void {
-    // Initialize the template ID - input is guaranteed to be available in ngOnInit
-    this.templateDetailsStore.initializeTemplateId(this.templateId());
+    // Get template ID from route parameters
+    const templateId = this.#route.snapshot.paramMap.get('templateId');
+    if (templateId) {
+      this.templateDetailsStore.initializeTemplateId(templateId);
+    }
+  }
+
+  private get templateId(): string | null {
+    return this.#route.snapshot.paramMap.get('templateId');
   }
 
   // Reactive breakpoint detection with proper signal integration
@@ -338,8 +342,9 @@ export default class TemplateDetail implements OnInit {
   editTemplate() {
     const template = this.templateDetailsStore.template();
     const transactions = this.templateDetailsStore.transactions();
+    const templateId = this.templateId;
 
-    if (!template || !transactions) {
+    if (!template || !transactions || !templateId) {
       return;
     }
 
@@ -358,7 +363,7 @@ export default class TemplateDetail implements OnInit {
       data: {
         transactions: transactionData,
         templateName: template.name,
-        templateId: this.templateId(),
+        templateId: templateId,
         originalTemplateLines,
       },
       width: '90vw',
@@ -390,21 +395,22 @@ export default class TemplateDetail implements OnInit {
 
   async deleteTemplate() {
     const template = this.templateDetailsStore.template();
-    if (!template) {
+    const templateId = this.templateId;
+    if (!template || !templateId) {
       return;
     }
 
     try {
       // First check if template is being used
       const usageResponse = await firstValueFrom(
-        this.#budgetTemplatesApi.checkUsage$(this.templateId()),
+        this.#budgetTemplatesApi.checkUsage$(templateId),
       );
 
       if (usageResponse.data.isUsed) {
         // Show dialog with list of budgets using this template
         const dialogRef = this.#dialog.open(TemplateUsageDialogComponent, {
           data: {
-            templateId: this.templateId(),
+            templateId: templateId,
             templateName: template.name,
           },
           width: '90vw',
@@ -440,8 +446,13 @@ export default class TemplateDetail implements OnInit {
   }
 
   async #performDeletion() {
+    const templateId = this.templateId;
+    if (!templateId) {
+      return;
+    }
+
     try {
-      await firstValueFrom(this.#budgetTemplatesApi.delete$(this.templateId()));
+      await firstValueFrom(this.#budgetTemplatesApi.delete$(templateId));
 
       this.#snackBar.open('Modèle supprimé avec succès', undefined, {
         duration: 3000,

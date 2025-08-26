@@ -223,7 +223,7 @@ interface BudgetItemViewModel {
                     matIconButton
                     (click)="deleteClicked.emit(line.id)"
                     [attr.aria-label]="'Delete ' + line.name"
-                    [attr.data-testid]="'delete-' + line.id"
+                    data-testid="delete-button"
                     [disabled]="line.isLoading"
                     class="!w-10 !h-10 text-error"
                   >
@@ -238,6 +238,7 @@ interface BudgetItemViewModel {
           <tr
             mat-row
             *matRowDef="let row; columns: currentColumns()"
+            [attr.data-testid]="'budget-line-' + row.name"
             class="hover:bg-surface-container-low transition-opacity"
             [class.opacity-50]="row.isLoading"
             [class.pointer-events-none]="row.isLoading"

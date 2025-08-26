@@ -16,7 +16,7 @@ test.describe('Budget Line Editing', () => {
     let hasBeenUpdated = false;
     
     // Mock the budget details API with a budget line using typed helper
-    await authenticatedPage.route('**/budgets/*/details', (route) => {
+    await authenticatedPage.route('**/api/v1/budgets/*/details', (route) => {
       // Return updated data if the PATCH has been called
       const mockResponse = hasBeenUpdated
         ? createBudgetDetailsMock(budgetId, {
@@ -132,7 +132,7 @@ test.describe('Budget Line Editing', () => {
       ],
     });
     
-    await authenticatedPage.route('**/budgets/*/details', (route) => {
+    await authenticatedPage.route('**/api/v1/budgets/*/details', (route) => {
       void route.fulfill({
         status: 200,
         contentType: 'application/json',
