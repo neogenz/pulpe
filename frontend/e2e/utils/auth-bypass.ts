@@ -15,11 +15,6 @@ export async function setupAuthBypass(page: Page, options: {
 
   // Inject E2E auth bypass
   await page.addInitScript((config) => {
-    // Security check for production
-    if (window.location.hostname === 'production.pulpe.com') {
-      throw new Error('E2E auth bypass cannot be used in production');
-    }
-    
     const e2eWindow = window as unknown as E2EWindow;
     e2eWindow.__E2E_AUTH_BYPASS__ = true;
     e2eWindow.__E2E_MOCK_AUTH_STATE__ = {
