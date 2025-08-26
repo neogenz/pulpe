@@ -36,10 +36,10 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 📦 Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
+      - name: 📦 Enable pnpm via Corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
 
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
@@ -68,11 +68,9 @@ jobs:
             frontend/node_modules/
             backend-nest/node_modules/
             shared/node_modules/
-            .pnpm-store/
           key: ${{ steps.cache-keys.outputs.node-modules }}
           restore-keys: |
             ${{ runner.os }}-node-modules-
-            ${{ runner.os }}-pnpm-store-
 
       - name: 📥 Install dependencies with retry
         if: steps.node-modules-cache.outputs.cache-hit != 'true'
@@ -89,7 +87,6 @@ jobs:
             frontend/node_modules/
             backend-nest/node_modules/
             shared/node_modules/
-            .pnpm-store/
           retention-days: 1
 
   # 🗄️ SUPABASE SETUP (Approche officielle 2025)
@@ -173,10 +170,10 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 📦 Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
+      - name: 📦 Enable pnpm via Corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
 
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
@@ -227,7 +224,6 @@ jobs:
             frontend/node_modules/
             backend-nest/node_modules/
             shared/node_modules/
-            .pnpm-store/
           key: ${{ needs.install.outputs.cache-key }}
           restore-keys: |
             ${{ runner.os }}-node-modules-
@@ -266,10 +262,10 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 📦 Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
+      - name: 📦 Enable pnpm via Corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
 
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
@@ -300,6 +296,7 @@ jobs:
           name: build-artifacts
 
       - name: 🐳 Start Supabase for Tests
+        id: start-supabase-tests
         working-directory: backend-nest
         run: |
           supabase start --exclude studio,inbucket,imgproxy
@@ -325,7 +322,6 @@ jobs:
             frontend/node_modules/
             backend-nest/node_modules/
             shared/node_modules/
-            .pnpm-store/
           key: ${{ needs.install.outputs.cache-key }}
           restore-keys: |
             ${{ runner.os }}-node-modules-
@@ -350,9 +346,9 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_LOCAL_SERVICE_ROLE_KEY }}
 
       - name: 🧹 Cleanup Supabase
-        if: always()
+        if: always() && steps.start-supabase-tests.outcome == 'success'
         working-directory: backend-nest
-        run: supabase stop
+        run: supabase stop || true
 
   # 🎭 E2E TESTS avec cache Playwright optimisé
   test-e2e:
@@ -370,10 +366,10 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 📦 Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
+      - name: 📦 Enable pnpm via Corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
 
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
@@ -390,7 +386,6 @@ jobs:
             frontend/node_modules/
             backend-nest/node_modules/
             shared/node_modules/
-            .pnpm-store/
           key: ${{ needs.install.outputs.cache-key }}
           restore-keys: |
             ${{ runner.os }}-node-modules-
@@ -457,10 +452,10 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 📦 Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
+      - name: 📦 Enable pnpm via Corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
 
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
@@ -482,7 +477,6 @@ jobs:
             frontend/node_modules/
             backend-nest/node_modules/
             shared/node_modules/
-            .pnpm-store/
           key: ${{ needs.install.outputs.cache-key }}
           restore-keys: |
             ${{ runner.os }}-node-modules-
@@ -511,10 +505,10 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 📦 Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
+      - name: 📦 Enable pnpm via Corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
 
       - name: 📦 Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -538,6 +532,7 @@ jobs:
           name: build-artifacts
 
       - name: 🐳 Start Supabase for Performance Tests
+        id: start-supabase-performance
         working-directory: backend-nest
         run: |
           supabase start --exclude studio,inbucket,imgproxy
@@ -563,7 +558,6 @@ jobs:
             frontend/node_modules/
             backend-nest/node_modules/
             shared/node_modules/
-            .pnpm-store/
           key: ${{ needs.install.outputs.cache-key }}
           restore-keys: |
             ${{ runner.os }}-node-modules-
@@ -588,9 +582,9 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_LOCAL_SERVICE_ROLE_KEY }}
 
       - name: 🧹 Cleanup Supabase
-        if: always()
+        if: always() && steps.start-supabase-performance.outcome == 'success'
         working-directory: backend-nest
-        run: supabase stop
+        run: supabase stop || true
 
   # ✅ SUCCESS JOB pour status checks
   ci-success:
