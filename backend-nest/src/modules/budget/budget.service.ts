@@ -780,12 +780,17 @@ export class BudgetService {
     const previousBudget = await this.fetchPreviousBudget(
       prevMonth,
       prevYear,
-      user,
+      user.id,
       supabase,
     );
 
     if (!previousBudget) {
-      this.logNoPreviousBudget(user.id, currentBudget);
+      this.logNoPreviousBudgetFound(
+        user.id,
+        currentBudget.id,
+        prevMonth,
+        prevYear,
+      );
       return null;
     }
 
@@ -801,59 +806,35 @@ export class BudgetService {
       livingAllowance,
     );
 
-    this.logRolloverCalculation(
+    this.logRolloverCalculated(
       user.id,
       currentBudget.id,
       previousBudget.id,
       livingAllowance,
-      rolloverLine.kind as string,
+      rolloverLine.kind,
     );
-
     return rolloverLine;
   }
 
-  private logNoPreviousBudget(
+  private logNoPreviousBudgetFound = (
     userId: string,
-    currentBudget: Tables<'monthly_budget'>,
-  ): void {
-    this.logger.info(
-      {
-        userId,
-        currentMonth: currentBudget.month,
-        currentYear: currentBudget.year,
-      },
-      'No previous budget found - first month for user',
-    );
-  }
-
-  private createRolloverBudgetLine(
-    currentBudget: Tables<'monthly_budget'>,
+    currentBudgetId: string,
     prevMonth: number,
     prevYear: number,
-    livingAllowance: number,
-  ): BudgetLine {
-    return {
-      id: `rollover-${currentBudget.id}`,
-      budgetId: currentBudget.id,
-      templateLineId: null,
-      savingsGoalId: null,
-      name: `Report ${this.getMonthName(prevMonth)} ${prevYear}`,
-      amount: livingAllowance === 0 ? 0 : Math.abs(livingAllowance),
-      kind: livingAllowance >= 0 ? 'income' : 'expense',
-      recurrence: 'one_off',
-      isManuallyAdjusted: false,
-      createdAt: currentBudget.created_at,
-      updatedAt: currentBudget.updated_at,
-    };
-  }
+  ) => {
+    this.logger.info(
+      { userId, currentBudgetId, prevMonth, prevYear },
+      'No previous budget found for rollover calculation',
+    );
+  };
 
-  private logRolloverCalculation(
+  private logRolloverCalculated = (
     userId: string,
     currentBudgetId: string,
     previousBudgetId: string,
     rolloverAmount: number,
     rolloverKind: string,
-  ): void {
+  ) => {
     this.logger.info(
       {
         userId,
@@ -864,101 +845,102 @@ export class BudgetService {
       },
       'Calculated rollover from previous month',
     );
-  }
+  };
+
+  private createRolloverBudgetLine = (
+    currentBudget: Tables<'monthly_budget'>,
+    prevMonth: number,
+    prevYear: number,
+    livingAllowance: number,
+  ): BudgetLine => ({
+    id: `rollover-${currentBudget.id}`,
+    budgetId: currentBudget.id,
+    templateLineId: null,
+    savingsGoalId: null,
+    name: `rollover_${prevMonth}_${prevYear}`,
+    amount: Math.abs(livingAllowance),
+    kind: livingAllowance >= 0 ? 'income' : 'expense',
+    recurrence: 'one_off',
+    isManuallyAdjusted: false,
+    createdAt: currentBudget.created_at,
+    updatedAt: currentBudget.updated_at,
+  });
 
   /**
    * Calculates the Living Allowance for a specific budget
-   * Living Allowance = Planned Income - Fixed Block - Actual Transactions
+   * Living Allowance = Planned Income - Fixed Block + Transaction Impact
    */
-  private async calculateLivingAllowance(
+  private calculateLivingAllowance = async (
     budgetId: string,
     supabase: AuthenticatedSupabaseClient,
-  ): Promise<number> {
-    // Fetch budget lines and transactions in parallel
+  ): Promise<number> => {
     const [budgetLinesResult, transactionsResult] = await Promise.all([
-      supabase.from('budget_line').select('*').eq('budget_id', budgetId),
-      supabase.from('transaction').select('*').eq('budget_id', budgetId),
+      supabase
+        .from('budget_line')
+        .select('kind, amount')
+        .eq('budget_id', budgetId),
+      supabase
+        .from('transaction')
+        .select('kind, amount')
+        .eq('budget_id', budgetId),
     ]);
 
-    const budgetLines = budgetLinesResult.data || [];
-    const transactions = transactionsResult.data || [];
+    const budgetLines = budgetLinesResult.data ?? [];
+    const transactions = transactionsResult.data ?? [];
 
-    // Calculate components
-    const plannedIncome = budgetLines
-      .filter((line) => line.kind === 'income')
-      .reduce((total, line) => total + line.amount, 0);
+    const { plannedIncome, fixedBlock } = budgetLines.reduce(
+      (acc, line) => {
+        if (line.kind === 'income') {
+          acc.plannedIncome += line.amount;
+        } else {
+          acc.fixedBlock += line.amount;
+        }
+        return acc;
+      },
+      { plannedIncome: 0, fixedBlock: 0 },
+    );
 
-    const fixedBlock = budgetLines
-      .filter((line) => line.kind === 'expense' || line.kind === 'saving')
-      .reduce((total, line) => total + line.amount, 0);
-
-    // Calculate transaction impact
     const transactionImpact = transactions.reduce((total, transaction) => {
-      // Income increases Living Allowance, expenses/savings decrease it
-      const amount =
-        transaction.kind === 'income'
+      return (
+        total +
+        (transaction.kind === 'income'
           ? transaction.amount
-          : -transaction.amount;
-      return total + amount;
+          : -transaction.amount)
+      );
     }, 0);
 
-    // Living Allowance = Income - Fixed Block + Transaction Impact
-    const livingAllowance = plannedIncome - fixedBlock + transactionImpact;
-
-    return livingAllowance;
-  }
+    return plannedIncome - fixedBlock + transactionImpact;
+  };
 
   /**
    * Fetches the previous month's budget for a user
    */
-  private async fetchPreviousBudget(
+  private fetchPreviousBudget = async (
     month: number,
     year: number,
-    user: AuthenticatedUser,
+    userId: string,
     supabase: AuthenticatedSupabaseClient,
-  ): Promise<Tables<'monthly_budget'> | null> {
-    const { data: previousBudget } = await supabase
+  ): Promise<Tables<'monthly_budget'> | null> => {
+    const { data } = await supabase
       .from('monthly_budget')
       .select('*')
       .eq('month', month)
       .eq('year', year)
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .single();
 
-    return previousBudget;
-  }
+    return data;
+  };
 
   /**
    * Gets the previous month and year from a given month/year
    */
-  private getPreviousMonthYear(
+  private getPreviousMonthYear = (
     month: number,
     year: number,
-  ): { month: number; year: number } {
-    if (month === 1) {
-      return { month: 12, year: year - 1 };
-    }
-    return { month: month - 1, year };
-  }
-
-  /**
-   * Gets the French month name
-   */
-  private getMonthName(month: number): string {
-    const monthNames = [
-      'janvier',
-      'février',
-      'mars',
-      'avril',
-      'mai',
-      'juin',
-      'juillet',
-      'août',
-      'septembre',
-      'octobre',
-      'novembre',
-      'décembre',
-    ];
-    return monthNames[month - 1];
-  }
+  ): { month: number; year: number } => {
+    return month === 1
+      ? { month: 12, year: year - 1 }
+      : { month: month - 1, year };
+  };
 }

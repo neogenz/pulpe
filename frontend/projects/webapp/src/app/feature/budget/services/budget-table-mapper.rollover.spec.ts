@@ -27,7 +27,7 @@ describe('BudgetTableMapper - Rollover Functionality', () => {
         budgetId: 'budget-123',
         templateLineId: null,
         savingsGoalId: null,
-        name: 'Report janvier 2025',
+        name: 'rollover_1_2025',
         amount: 500,
         kind: 'income',
         recurrence: 'one_off',
@@ -72,6 +72,7 @@ describe('BudgetTableMapper - Rollover Functionality', () => {
 
       expect(rolloverRow).toBeDefined();
       expect(rolloverRow?.isRollover).toBe(true);
+      expect(rolloverRow?.name).toBe('Report janvier 2025'); // Check formatting
       expect(regularRow?.isRollover).toBe(false);
     });
 
@@ -109,7 +110,7 @@ describe('BudgetTableMapper - Rollover Functionality', () => {
           budgetId: 'budget-123',
           templateLineId: null,
           savingsGoalId: null,
-          name: 'Report février 2025',
+          name: 'rollover_2_2025',
           amount: 350,
           kind: 'income',
           recurrence: 'one_off',
@@ -163,7 +164,7 @@ describe('BudgetTableMapper - Rollover Functionality', () => {
         budgetId: 'budget-123',
         templateLineId: null,
         savingsGoalId: null,
-        name: 'Report mars 2025',
+        name: 'rollover_3_2025',
         amount: 0,
         kind: 'income',
         recurrence: 'one_off',
@@ -201,7 +202,7 @@ describe('BudgetTableMapper - Rollover Functionality', () => {
         budgetId: 'budget-123',
         templateLineId: null,
         savingsGoalId: null,
-        name: 'Report avril 2025',
+        name: 'rollover_4_2025',
         amount: 200,
         kind: 'expense', // Negative rollover
         recurrence: 'one_off',
@@ -240,7 +241,7 @@ describe('BudgetTableMapper - Rollover Functionality', () => {
         budgetId: 'budget-123',
         templateLineId: null,
         savingsGoalId: null,
-        name: 'Report mai 2025',
+        name: 'rollover_5_2025',
         amount: 0,
         kind: 'income', // Zero is considered positive
         recurrence: 'one_off',
@@ -294,7 +295,7 @@ describe('BudgetTableMapper - Rollover Functionality', () => {
           budgetId: 'budget-123',
           templateLineId: null,
           savingsGoalId: null,
-          name: 'Report juin 2025',
+          name: 'rollover_6_2025',
           amount: 500,
           kind: 'income',
           recurrence: 'one_off',
