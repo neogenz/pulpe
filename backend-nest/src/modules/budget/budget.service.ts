@@ -958,7 +958,7 @@ export class BudgetService {
       .eq('month', month)
       .eq('year', year)
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     return data;
   };

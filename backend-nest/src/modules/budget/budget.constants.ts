@@ -15,13 +15,6 @@ export type RolloverName<
   Y extends number,
 > = `rollover_${M}_${Y}`;
 
-// Utility types for extracting parts from rollover strings
-export type ExtractBudgetIdFromRolloverId<T extends string> =
-  T extends `rollover-${infer BudgetId}` ? BudgetId : never;
-
-export type ExtractMonthFromRolloverName<T extends string> =
-  T extends `rollover_${infer M}_${infer _Y}` ? M : never;
-
 // Type guards for runtime validation
 export const isValidMonth = (month: number): month is MonthRange =>
   Number.isInteger(month) && month >= 1 && month <= 12;
