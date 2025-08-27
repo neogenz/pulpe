@@ -71,7 +71,7 @@ export class BudgetTableMapper {
 
   // Display configuration constants
   readonly #ROLLOVER_PREFIX = 'rollover_' as const;
-  readonly #ROLLOVER_PATTERN = /rollover_(\d+)_(\d+)/ as const;
+  readonly #ROLLOVER_PATTERN = /rollover_(\d+)_(\d+)/;
 
   readonly #KIND_ICONS: Record<TransactionKind, string> = {
     income: 'trending_up',
