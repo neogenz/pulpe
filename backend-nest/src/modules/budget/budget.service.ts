@@ -15,7 +15,7 @@ import {
 } from '@pulpe/shared';
 import * as budgetMappers from './budget.mappers';
 import { type Tables } from '../../types/database.types';
-import { BUDGET_CONSTANTS } from './budget.constants';
+import { BUDGET_CONSTANTS, type MonthRange } from './budget.constants';
 import * as transactionMappers from '../transaction/transaction.mappers';
 import * as budgetLineMappers from '../budget-line/budget-line.mappers';
 
@@ -880,11 +880,14 @@ export class BudgetService {
     prevYear: number,
     livingAllowance: number,
   ): BudgetLine => ({
-    id: `rollover-${currentBudget.id}`,
+    id: BUDGET_CONSTANTS.ROLLOVER.formatId(currentBudget.id),
     budgetId: currentBudget.id,
     templateLineId: null,
     savingsGoalId: null,
-    name: `rollover_${prevMonth}_${prevYear}`,
+    name: BUDGET_CONSTANTS.ROLLOVER.formatName(
+      prevMonth as MonthRange,
+      prevYear,
+    ),
     amount: Math.abs(livingAllowance),
     kind: livingAllowance > 0 ? 'income' : 'expense',
     recurrence: 'one_off',
