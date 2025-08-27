@@ -235,7 +235,8 @@ function createPinoLoggerConfig(configService: ConfigService) {
     BudgetTemplateModule,
     TransactionModule,
     UserModule,
-    DebugModule,
+    // Only include DebugModule in non-production environments
+    ...(process.env.NODE_ENV !== 'production' ? [DebugModule] : []),
     FiltersModule,
   ],
   providers: [

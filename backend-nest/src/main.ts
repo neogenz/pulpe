@@ -135,7 +135,7 @@ function setupSwagger(
 
 function setupHealthEndpoints(
   app: import('@nestjs/common').INestApplication,
-  document: import('@nestjs/swagger').OpenAPIObject,
+  document?: import('@nestjs/swagger').OpenAPIObject,
 ): void {
   app.getHttpAdapter().get('/', (req, res) => {
     res.json({
@@ -148,9 +148,12 @@ function setupHealthEndpoints(
     res.json({ status: 'healthy' });
   });
 
-  app.getHttpAdapter().get('/api/openapi', (req, res) => {
-    res.json(document);
-  });
+  // Only expose OpenAPI JSON in non-production environments
+  if (document) {
+    app.getHttpAdapter().get('/api/openapi', (req, res) => {
+      res.json(document);
+    });
+  }
 }
 
 function setupApiVersioning(
@@ -171,11 +174,18 @@ function logApplicationInfo(
   logger: Logger,
   port: number,
   env: Environment,
+  swaggerEnabled: boolean,
 ): void {
   logger.log(`🚀 Application is running on: http://localhost:${port}`);
   logger.log(`🔗 API v1 endpoints: http://localhost:${port}/api/v1`);
-  logger.log(`📚 Swagger documentation: http://localhost:${port}/docs`);
-  logger.log(`📋 OpenAPI JSON: http://localhost:${port}/api/openapi`);
+
+  if (swaggerEnabled) {
+    logger.log(`📚 Swagger documentation: http://localhost:${port}/docs`);
+    logger.log(`📋 OpenAPI JSON: http://localhost:${port}/api/openapi`);
+  } else {
+    logger.log('🔒 Swagger documentation is disabled in production');
+  }
+
   logger.log('🔍 HTTP request/response logging is active');
 
   const debugHttpFull = env.DEBUG_HTTP_FULL === 'true';
@@ -192,8 +202,6 @@ function logApplicationInfo(
 }
 
 async function bootstrap() {
-  patchNestJsSwagger();
-
   const app = await NestFactory.create(AppModule, {
     bufferLogs: true,
   });
@@ -220,14 +228,22 @@ async function bootstrap() {
   // Setup API versioning
   setupApiVersioning(app);
 
-  const document = setupSwagger(app);
+  // Only setup Swagger in non-production environments
+  let document: import('@nestjs/swagger').OpenAPIObject | undefined;
+  const isProduction = env.NODE_ENV === 'production';
+
+  if (!isProduction) {
+    patchNestJsSwagger();
+    document = setupSwagger(app);
+  }
+
   setupHealthEndpoints(app, document);
 
   const logger = app.get(Logger);
 
   await app.listen(env.PORT, '0.0.0.0');
 
-  logApplicationInfo(logger, env.PORT, env);
+  logApplicationInfo(logger, env.PORT, env, !isProduction);
 }
 
 bootstrap();
