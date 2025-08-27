@@ -84,3 +84,4 @@ docs/angular-architecture-doc.md
 .vercel
 
 .pnpm-store/backend-nest/env.development
+**/env.development
