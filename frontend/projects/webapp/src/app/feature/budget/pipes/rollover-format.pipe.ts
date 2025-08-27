@@ -36,14 +36,13 @@ export class RolloverFormatPipe implements PipeTransform {
 
     // Add bounds checking for month index safety
     if (monthIndex < 0 || monthIndex >= 12) {
+      console.warn(
+        `[RolloverFormatPipe] Invalid month index ${monthIndex} in rollover name: ${name}`,
+      );
       return name; // Return original if month is invalid
     }
 
     const monthName = this.#MONTH_NAMES[monthIndex];
-
-    if (!monthName) {
-      return name;
-    }
 
     return `Report ${monthName} ${year}`;
   }
