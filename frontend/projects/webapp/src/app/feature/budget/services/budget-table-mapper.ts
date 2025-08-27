@@ -274,9 +274,6 @@ export class BudgetTableMapper {
   #formatRolloverName(name: string): string {
     const match = name.match(this.#ROLLOVER_PATTERN);
     if (!match) {
-      console.warn(
-        `BudgetTableMapper: Failed to parse rollover name "${name}", expected format "rollover_MM_YYYY"`,
-      );
       return name;
     }
 
@@ -285,9 +282,6 @@ export class BudgetTableMapper {
     const monthName = this.#MONTH_NAMES[monthIndex];
 
     if (!monthName) {
-      console.warn(
-        `BudgetTableMapper: Invalid month index ${monthIndex} for rollover name "${name}"`,
-      );
       return name;
     }
 
