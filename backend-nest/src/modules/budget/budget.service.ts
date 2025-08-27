@@ -876,6 +876,7 @@ export class BudgetService {
     kind: livingAllowance >= 0 ? 'income' : 'expense',
     recurrence: 'one_off',
     isManuallyAdjusted: false,
+    isRollover: true,
     createdAt: currentBudget.created_at,
     updatedAt: currentBudget.updated_at,
   });

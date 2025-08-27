@@ -147,6 +147,7 @@ describe('BudgetService - Rollover Functionality', () => {
         kind: 'income',
         recurrence: 'one_off',
         isManuallyAdjusted: false,
+        isRollover: true,
         createdAt: currentBudget.created_at,
         updatedAt: currentBudget.updated_at,
       };
@@ -156,6 +157,7 @@ describe('BudgetService - Rollover Functionality', () => {
       expect(rolloverLine.kind).toBe('income');
       expect(rolloverLine.recurrence).toBe('one_off');
       expect(rolloverLine.isManuallyAdjusted).toBe(false);
+      expect(rolloverLine.isRollover).toBe(true);
     });
 
     it('should create rollover line with correct properties for negative balance', () => {
@@ -181,12 +183,14 @@ describe('BudgetService - Rollover Functionality', () => {
         kind: 'expense', // Negative becomes expense
         recurrence: 'one_off',
         isManuallyAdjusted: false,
+        isRollover: true,
         createdAt: currentBudget.created_at,
         updatedAt: currentBudget.updated_at,
       };
 
       expect(rolloverLine.kind).toBe('expense');
       expect(rolloverLine.amount).toBe(200); // Should be absolute value
+      expect(rolloverLine.isRollover).toBe(true);
     });
 
     it('should create rollover line with zero amount', () => {
@@ -212,12 +216,14 @@ describe('BudgetService - Rollover Functionality', () => {
         kind: 'income', // Zero is treated as income
         recurrence: 'one_off',
         isManuallyAdjusted: false,
+        isRollover: true,
         createdAt: currentBudget.created_at,
         updatedAt: currentBudget.updated_at,
       };
 
       expect(rolloverLine.amount).toBe(0);
       expect(rolloverLine.kind).toBe('income'); // Zero is positive
+      expect(rolloverLine.isRollover).toBe(true);
     });
   });
 
