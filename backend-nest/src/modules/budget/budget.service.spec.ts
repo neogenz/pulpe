@@ -498,9 +498,8 @@ describe('BudgetService', () => {
       expect(result.success).toBe(true);
       expect(result.data.budget.id).toBe(budgetId);
       expect(result.data.transactions).toEqual([]);
-      // May include rollover line even with empty budget lines
-      expect(result.data.budgetLines).toHaveLength(1);
-      expect(result.data.budgetLines[0].name).toBe('rollover_12_2023');
+      // Should not include rollover line when previous month had zero living allowance
+      expect(result.data.budgetLines).toHaveLength(0);
     });
 
     it('should throw NotFoundException when budget not found', async () => {
@@ -565,9 +564,8 @@ describe('BudgetService', () => {
       expect(result.success).toBe(true);
       expect(result.data.budget.id).toBe(budgetId);
       expect(result.data.transactions).toEqual([]);
-      // May include rollover line even with failed budget_line query
-      expect(result.data.budgetLines).toHaveLength(1);
-      expect(result.data.budgetLines[0].name).toBe('rollover_12_2023');
+      // Should not include rollover line when previous month had zero living allowance
+      expect(result.data.budgetLines).toHaveLength(0);
     });
   });
 });
