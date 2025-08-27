@@ -106,6 +106,14 @@ import {
                     <mat-icon [class]="line.kindIconClass">
                       {{ line.kindIcon }}
                     </mat-icon>
+                    @if (line.isRollover) {
+                      <mat-icon
+                        class="!text-sm text-secondary"
+                        title="Report du mois précédent"
+                      >
+                        redo
+                      </mat-icon>
+                    }
                     <span class="text-body-medium font-semibold">{{
                       line.name
                     }}</span>
@@ -289,6 +297,10 @@ import {
             class="hover:bg-surface-container-low transition-opacity"
             [class.opacity-50]="row.isLoading"
             [class.pointer-events-none]="row.isLoading"
+            [class.bg-secondary-container]="row.isRollover"
+            [class.bg-opacity-20]="row.isRollover"
+            [class.border-l-4]="row.isRollover"
+            [class.border-l-secondary]="row.isRollover"
             [attr.data-testid]="'budget-line-' + row.name"
           ></tr>
 
