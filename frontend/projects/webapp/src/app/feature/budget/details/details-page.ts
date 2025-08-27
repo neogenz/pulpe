@@ -98,7 +98,10 @@ import {
         </header>
 
         <!-- Financial Overview -->
-        <pulpe-budget-financial-overview [budgetLines]="budgetLines" />
+        <pulpe-budget-financial-overview
+          [budgetLines]="budgetLines"
+          [transactions]="transactions"
+        />
 
         <!-- Budget Items Table -->
         <pulpe-budget-items-table

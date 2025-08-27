@@ -2,13 +2,15 @@ import {
   Component,
   input,
   computed,
+  inject,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import {
   FinancialSummary,
   type FinancialSummaryData,
 } from '@ui/financial-summary/financial-summary';
-import { type BudgetLine } from '@pulpe/shared';
+import { type BudgetLine, type Transaction } from '@pulpe/shared';
+import { BudgetCalculator } from '@core/budget/budget-calculator';
 
 @Component({
   selector: 'pulpe-budget-financial-overview',
@@ -27,19 +29,22 @@ import { type BudgetLine } from '@pulpe/shared';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BudgetFinancialOverview {
+  readonly #budgetCalculator = inject(BudgetCalculator);
+
   budgetLines = input.required<BudgetLine[]>();
+  transactions = input.required<Transaction[]>();
 
   totals = computed(() => {
     const lines = this.budgetLines();
-    let income = 0;
+    const transactions = this.transactions();
+
+    // Calculate base amounts from budget lines
+    const income = this.#budgetCalculator.calculatePlannedIncome(lines);
     let expenses = 0;
     let savings = 0;
 
     lines.forEach((line) => {
       switch (line.kind) {
-        case 'income':
-          income += line.amount;
-          break;
         case 'expense':
           expenses += line.amount;
           break;
@@ -49,7 +54,11 @@ export class BudgetFinancialOverview {
       }
     });
 
-    const remaining = income - expenses - savings;
+    // Calculate Living Allowance with transactions impact
+    const initialLivingAllowance = income - expenses - savings;
+    const transactionImpact =
+      this.#budgetCalculator.calculateActualTransactionsAmount(transactions);
+    const remaining = initialLivingAllowance + transactionImpact;
 
     return { income, expenses, savings, remaining };
   });
