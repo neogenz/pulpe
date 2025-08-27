@@ -773,63 +773,19 @@ export class BudgetService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLine | null> {
     try {
-      const { month: prevMonth, year: prevYear } = this.getPreviousMonthYear(
-        currentBudget.month,
-        currentBudget.year,
-      );
-
-      const previousBudget = await this.fetchPreviousBudget(
-        prevMonth,
-        prevYear,
-        user.id,
-        supabase,
-      );
-
-      if (!previousBudget) {
-        this.logNoPreviousBudgetFound(
-          user.id,
-          currentBudget.id,
-          prevMonth,
-          prevYear,
-        );
-        return null;
-      }
-
-      const livingAllowance = await this.calculateLivingAllowance(
-        previousBudget.id,
-        supabase,
-      );
-
-      // Don't create rollover line if amount is zero
-      if (livingAllowance === 0) {
-        this.logger.info(
-          {
-            userId: user.id,
-            currentBudgetId: currentBudget.id,
-            previousBudgetId: previousBudget.id,
-          },
-          'No rollover line created - zero balance',
-        );
-        return null;
-      }
-
-      const rolloverLine = this.createRolloverBudgetLine(
+      const rolloverData = await this.prepareRolloverData(
         currentBudget,
-        prevMonth,
-        prevYear,
-        livingAllowance,
+        user,
+        supabase,
       );
 
-      this.logRolloverCalculated(
-        user.id,
-        currentBudget.id,
-        previousBudget.id,
-        livingAllowance,
-        rolloverLine.kind,
-      );
-      return rolloverLine;
+      if (!rolloverData) {
+        return null;
+      }
+
+      return this.buildRolloverLine(currentBudget, user, rolloverData);
     } catch (error) {
-      // Log the error but don't let rollover calculation failure break budget loading
+      // Inline logging for better readability and fewer methods
       this.logger.error(
         {
           userId: user.id,
@@ -843,36 +799,103 @@ export class BudgetService {
     }
   }
 
-  private logNoPreviousBudgetFound = (
-    userId: string,
-    currentBudgetId: string,
-    prevMonth: number,
-    prevYear: number,
-  ) => {
-    this.logger.info(
-      { userId, currentBudgetId, prevMonth, prevYear },
-      'No previous budget found for rollover calculation',
+  /**
+   * Prepares rollover data by fetching previous budget and calculating living allowance
+   */
+  private async prepareRolloverData(
+    currentBudget: Tables<'monthly_budget'>,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<{
+    previousBudget: Tables<'monthly_budget'>;
+    livingAllowance: number;
+    prevMonth: number;
+    prevYear: number;
+  } | null> {
+    const { month: prevMonth, year: prevYear } = this.getPreviousMonthYear(
+      currentBudget.month,
+      currentBudget.year,
     );
-  };
 
-  private logRolloverCalculated = (
-    userId: string,
-    currentBudgetId: string,
-    previousBudgetId: string,
-    rolloverAmount: number,
-    rolloverKind: string,
-  ) => {
+    const previousBudget = await this.fetchPreviousBudget(
+      prevMonth,
+      prevYear,
+      user.id,
+      supabase,
+    );
+
+    if (!previousBudget) {
+      // Inline logging - no need for separate method
+      this.logger.info(
+        {
+          userId: user.id,
+          currentBudgetId: currentBudget.id,
+          prevMonth,
+          prevYear,
+        },
+        'No previous budget found for rollover calculation',
+      );
+      return null;
+    }
+
+    const livingAllowance = await this.calculateLivingAllowance(
+      previousBudget.id,
+      supabase,
+    );
+
+    return { previousBudget, livingAllowance, prevMonth, prevYear };
+  }
+
+  /**
+   * Builds the rollover line from prepared data
+   */
+  private buildRolloverLine(
+    currentBudget: Tables<'monthly_budget'>,
+    user: AuthenticatedUser,
+    rolloverData: {
+      previousBudget: Tables<'monthly_budget'>;
+      livingAllowance: number;
+      prevMonth: number;
+      prevYear: number;
+    },
+  ): BudgetLine | null {
+    const { previousBudget, livingAllowance, prevMonth, prevYear } =
+      rolloverData;
+
+    // Don't create rollover line if amount is zero
+    if (livingAllowance === 0) {
+      this.logger.info(
+        {
+          userId: user.id,
+          currentBudgetId: currentBudget.id,
+          previousBudgetId: previousBudget.id,
+        },
+        'No rollover line created - zero balance',
+      );
+      return null;
+    }
+
+    const rolloverLine = this.createRolloverBudgetLine(
+      currentBudget,
+      prevMonth,
+      prevYear,
+      livingAllowance,
+    );
+
+    // Inline logging for better code flow
     this.logger.info(
       {
-        userId,
-        currentBudgetId,
-        previousBudgetId,
-        rolloverAmount,
-        rolloverKind,
+        userId: user.id,
+        currentBudgetId: currentBudget.id,
+        previousBudgetId: previousBudget.id,
+        rolloverAmount: livingAllowance,
+        rolloverKind: rolloverLine.kind,
       },
       'Calculated rollover from previous month',
     );
-  };
+
+    return rolloverLine;
+  }
 
   private createRolloverBudgetLine = (
     currentBudget: Tables<'monthly_budget'>,
