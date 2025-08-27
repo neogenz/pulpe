@@ -24,6 +24,7 @@ export function toApi(budgetLineDb: BudgetLineRow): BudgetLine {
     kind: budgetLineDb.kind, // Pas de conversion - les enums sont maintenant unifiés
     recurrence: budgetLineDb.recurrence,
     isManuallyAdjusted: budgetLineDb.is_manually_adjusted,
+    isRollover: false, // Regular budget lines are not rollover lines
     createdAt: budgetLineDb.created_at,
     updatedAt: budgetLineDb.updated_at,
   };
