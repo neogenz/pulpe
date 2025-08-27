@@ -9,6 +9,7 @@ import {
   DestroyRef,
 } from '@angular/core';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
+import { RouterLink } from '@angular/router';
 import { MatTableModule } from '@angular/material/table';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -50,6 +51,7 @@ import { RolloverFormatPipe } from '../../pipes';
     MatChipsModule,
     MatTooltipModule,
     ReactiveFormsModule,
+    RouterLink,
     CurrencyPipe,
     TransactionIconPipe,
     TransactionLabelPipe,
@@ -138,9 +140,26 @@ import { RolloverFormatPipe } from '../../pipes';
                         {{ line.data.kind | transactionIcon }}
                       </mat-icon>
                     }
-                    <span class="text-body-medium font-semibold">
-                      {{ line.data.name | rolloverFormat }}
-                    </span>
+                    @if (
+                      line.metadata.isRollover &&
+                      line.data.rolloverSourceBudgetId
+                    ) {
+                      <a
+                        [routerLink]="[
+                          '/app/budget',
+                          line.data.rolloverSourceBudgetId,
+                        ]"
+                        target="_blank"
+                        matButton
+                        class="text-body-medium font-semibold"
+                      >
+                        {{ line.data.name | rolloverFormat }}
+                      </a>
+                    } @else {
+                      <span class="text-body-medium font-semibold">
+                        {{ line.data.name | rolloverFormat }}
+                      </span>
+                    }
                   </span>
                 </div>
               }

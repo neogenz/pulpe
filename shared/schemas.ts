@@ -120,6 +120,7 @@ export const budgetLineSchema = z.object({
   recurrence: transactionRecurrenceSchema,
   isManuallyAdjusted: z.boolean(),
   isRollover: z.boolean(),
+  rolloverSourceBudgetId: z.string().uuid().nullable().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
