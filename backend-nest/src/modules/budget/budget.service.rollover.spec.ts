@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { BudgetService } from './budget.service';
+import { BUDGET_CONSTANTS } from './budget.constants';
 import {
   createMockSupabaseClient,
   MockSupabaseClient,
@@ -138,11 +139,11 @@ describe('BudgetService - Rollover Functionality', () => {
 
       // Manually create a rollover line to test the structure
       const rolloverLine = {
-        id: `rollover-${currentBudget.id}`,
+        id: BUDGET_CONSTANTS.ROLLOVER.formatId(currentBudget.id),
         budgetId: currentBudget.id,
         templateLineId: null,
         savingsGoalId: null,
-        name: `rollover_1_2025`, // Data format
+        name: BUDGET_CONSTANTS.ROLLOVER.formatName(1, 2025), // Data format
         amount: 500,
         kind: 'income',
         recurrence: 'one_off',
@@ -152,8 +153,12 @@ describe('BudgetService - Rollover Functionality', () => {
         updatedAt: currentBudget.updated_at,
       };
 
-      expect(rolloverLine.id).toBe('rollover-current-budget-id');
-      expect(rolloverLine.name).toBe('rollover_1_2025');
+      expect(rolloverLine.id).toBe(
+        BUDGET_CONSTANTS.ROLLOVER.formatId('current-budget-id'),
+      );
+      expect(rolloverLine.name).toBe(
+        BUDGET_CONSTANTS.ROLLOVER.formatName(1, 2025),
+      );
       expect(rolloverLine.kind).toBe('income');
       expect(rolloverLine.recurrence).toBe('one_off');
       expect(rolloverLine.isManuallyAdjusted).toBe(false);
@@ -174,11 +179,11 @@ describe('BudgetService - Rollover Functionality', () => {
 
       // Manually create a rollover line to test the structure
       const rolloverLine = {
-        id: `rollover-${currentBudget.id}`,
+        id: BUDGET_CONSTANTS.ROLLOVER.formatId(currentBudget.id),
         budgetId: currentBudget.id,
         templateLineId: null,
         savingsGoalId: null,
-        name: `rollover_2_2025`,
+        name: BUDGET_CONSTANTS.ROLLOVER.formatName(2, 2025),
         amount: 200, // Math.abs of -200
         kind: 'expense', // Negative becomes expense
         recurrence: 'one_off',
