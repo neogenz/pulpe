@@ -70,6 +70,9 @@ export class BudgetTableMapper {
   readonly #budgetCalculator = inject(BudgetCalculator);
 
   // Display configuration constants
+  readonly #ROLLOVER_PREFIX = 'rollover_' as const;
+  readonly #ROLLOVER_PATTERN = /rollover_(\d+)_(\d+)/ as const;
+
   readonly #KIND_ICONS: Record<TransactionKind, string> = {
     income: 'trending_up',
     expense: 'trending_down',
@@ -192,6 +195,13 @@ export class BudgetTableMapper {
   }
 
   /**
+   * Type guard to check if a line is a rollover
+   */
+  #isRolloverLine(item: { name: string }): boolean {
+    return item.name.startsWith(this.#ROLLOVER_PREFIX);
+  }
+
+  /**
    * Creates a data row view model from a budget item
    */
   #createDataRow(
@@ -203,12 +213,18 @@ export class BudgetTableMapper {
     operationsInProgress: Set<string>,
     editingLineId: string | null,
   ): DataRow {
-    const isRollover = item.id.startsWith('rollover-');
+    // Check if this is a rollover line using type guard
+    const isRollover = this.#isRolloverLine(item);
+
+    // Format display name for rollover lines
+    const displayName = isRollover
+      ? this.#formatRolloverName(item.name)
+      : item.name;
 
     return {
       type: 'data_row',
       id: item.id,
-      name: item.name,
+      name: displayName,
       amount: item.amount,
       kind: item.kind as TransactionKind,
       recurrence,
@@ -233,64 +249,106 @@ export class BudgetTableMapper {
     };
   }
 
+  readonly #MONTH_NAMES = [
+    'janvier',
+    'février',
+    'mars',
+    'avril',
+    'mai',
+    'juin',
+    'juillet',
+    'août',
+    'septembre',
+    'octobre',
+    'novembre',
+    'décembre',
+  ] as const;
+
+  /**
+   * Formats rollover line name from data format to display format
+   * rollover_12_2024 -> Report décembre 2024
+   */
+  #formatRolloverName = (name: string): string => {
+    const match = name.match(this.#ROLLOVER_PATTERN);
+    if (!match) return name;
+
+    const [, month, year] = match;
+    const monthIndex = parseInt(month, 10) - 1;
+    const monthName = this.#MONTH_NAMES[monthIndex];
+
+    return monthName ? `Report ${monthName} ${year}` : name;
+  };
+
   /**
    * Builds the final table rows with section headers
+   * Simplified logic: rollover always appears last in budget lines
    */
-  #buildTableRows(
+  #buildTableRows = (
     fixedBudgetLineRows: DataRow[],
     oneOffBudgetLineRows: DataRow[],
     transactionRows: DataRow[],
-  ): TableRow[] {
+  ): TableRow[] => {
     const result: TableRow[] = [];
 
-    // Separate rollover line from other fixed budget lines
-    const rolloverLine = fixedBudgetLineRows.find((row) => row.isRollover);
-    const nonRolloverFixedLines = fixedBudgetLineRows.filter(
-      (row) => !row.isRollover,
-    );
-
-    // 1. Add "Tous les mois" budget lines (fixed + variable) excluding rollover
-    result.push(...nonRolloverFixedLines);
-
-    // 2. Add "Une seule fois" budget lines with header if they exist
-    if (oneOffBudgetLineRows.length > 0) {
-      result.push({
-        type: 'section_header',
-        id: 'one-off-header',
-        title: 'Une seule fois',
-      });
-
-      // Separate rollover from regular one-off items
-      const rolloverOneOff = oneOffBudgetLineRows.find((row) => row.isRollover);
-      const nonRolloverOneOff = oneOffBudgetLineRows.filter(
-        (row) => !row.isRollover,
+    // Split regular lines from rollover
+    const { regularFixed, regularOneOff, rolloverLine } =
+      this.#separateRegularFromRollover(
+        fixedBudgetLineRows,
+        oneOffBudgetLineRows,
       );
 
-      result.push(...nonRolloverOneOff);
+    // Add regular fixed lines
+    result.push(...regularFixed);
 
-      // Add rollover if it's a one-off item
-      if (rolloverOneOff) {
-        result.push(rolloverOneOff);
-      }
+    // Add one-off section if needed
+    if (regularOneOff.length > 0) {
+      result.push(
+        {
+          type: 'section_header',
+          id: 'one-off-header',
+          title: 'Une seule fois',
+        },
+        ...regularOneOff,
+      );
     }
 
-    // 3. Add rollover line at the end of budget lines (if it's a fixed item)
+    // Add rollover at the end of budget lines
     if (rolloverLine) {
       result.push(rolloverLine);
     }
 
-    // 4. Add transactions with header if they exist
+    // Add transactions section
     if (transactionRows.length > 0) {
-      result.push({
-        type: 'section_header',
-        id: 'transactions-header',
-        title: 'Ajouté durant le mois',
-      });
-      result.push(...transactionRows);
+      result.push(
+        {
+          type: 'section_header',
+          id: 'transactions-header',
+          title: 'Ajouté durant le mois',
+        },
+        ...transactionRows,
+      );
     }
 
     return result;
-  }
+  };
+
+  /**
+   * Separates regular budget lines from rollover line
+   */
+  #separateRegularFromRollover = (
+    fixedBudgetLineRows: DataRow[],
+    oneOffBudgetLineRows: DataRow[],
+  ) => {
+    const rolloverLine =
+      [...fixedBudgetLineRows, ...oneOffBudgetLineRows].find(
+        (row) => row.isRollover,
+      ) ?? null;
+
+    const regularFixed = fixedBudgetLineRows.filter((row) => !row.isRollover);
+    const regularOneOff = oneOffBudgetLineRows.filter((row) => !row.isRollover);
+
+    return { regularFixed, regularOneOff, rolloverLine };
+  };
 
   /**
    * Calculates summary statistics for the budget

@@ -121,12 +121,6 @@ describe('BudgetService - Rollover Functionality', () => {
       const result = (budgetService as any).getPreviousMonthYear(1, 2025);
       expect(result).toEqual({ month: 12, year: 2024 });
     });
-
-    it('should return correct French month names', () => {
-      expect((budgetService as any).getMonthName(1)).toBe('janvier');
-      expect((budgetService as any).getMonthName(2)).toBe('février');
-      expect((budgetService as any).getMonthName(12)).toBe('décembre');
-    });
   });
 
   describe('Rollover line generation', () => {
@@ -148,7 +142,7 @@ describe('BudgetService - Rollover Functionality', () => {
         budgetId: currentBudget.id,
         templateLineId: null,
         savingsGoalId: null,
-        name: `Report janvier 2025`,
+        name: `rollover_1_2025`, // Data format
         amount: 500,
         kind: 'income',
         recurrence: 'one_off',
@@ -158,7 +152,7 @@ describe('BudgetService - Rollover Functionality', () => {
       };
 
       expect(rolloverLine.id).toBe('rollover-current-budget-id');
-      expect(rolloverLine.name).toBe('Report janvier 2025');
+      expect(rolloverLine.name).toBe('rollover_1_2025');
       expect(rolloverLine.kind).toBe('income');
       expect(rolloverLine.recurrence).toBe('one_off');
       expect(rolloverLine.isManuallyAdjusted).toBe(false);
@@ -182,7 +176,7 @@ describe('BudgetService - Rollover Functionality', () => {
         budgetId: currentBudget.id,
         templateLineId: null,
         savingsGoalId: null,
-        name: `Report février 2025`,
+        name: `rollover_2_2025`,
         amount: 200, // Math.abs of -200
         kind: 'expense', // Negative becomes expense
         recurrence: 'one_off',
@@ -213,7 +207,7 @@ describe('BudgetService - Rollover Functionality', () => {
         budgetId: currentBudget.id,
         templateLineId: null,
         savingsGoalId: null,
-        name: `Report mars 2025`,
+        name: `rollover_3_2025`,
         amount: 0, // Zero amount
         kind: 'income', // Zero is treated as income
         recurrence: 'one_off',
