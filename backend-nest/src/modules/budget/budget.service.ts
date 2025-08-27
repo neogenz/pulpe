@@ -765,55 +765,69 @@ export class BudgetService {
 
   /**
    * Calculates the rollover line from the previous month's Living Allowance
-   * Returns null if this is the first budget month for the user
+   * Returns null if this is the first budget month for the user or if calculation fails
    */
   private async calculateRolloverLine(
     currentBudget: Tables<'monthly_budget'>,
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLine | null> {
-    const { month: prevMonth, year: prevYear } = this.getPreviousMonthYear(
-      currentBudget.month,
-      currentBudget.year,
-    );
+    try {
+      const { month: prevMonth, year: prevYear } = this.getPreviousMonthYear(
+        currentBudget.month,
+        currentBudget.year,
+      );
 
-    const previousBudget = await this.fetchPreviousBudget(
-      prevMonth,
-      prevYear,
-      user.id,
-      supabase,
-    );
-
-    if (!previousBudget) {
-      this.logNoPreviousBudgetFound(
-        user.id,
-        currentBudget.id,
+      const previousBudget = await this.fetchPreviousBudget(
         prevMonth,
         prevYear,
+        user.id,
+        supabase,
+      );
+
+      if (!previousBudget) {
+        this.logNoPreviousBudgetFound(
+          user.id,
+          currentBudget.id,
+          prevMonth,
+          prevYear,
+        );
+        return null;
+      }
+
+      const livingAllowance = await this.calculateLivingAllowance(
+        previousBudget.id,
+        supabase,
+      );
+
+      const rolloverLine = this.createRolloverBudgetLine(
+        currentBudget,
+        prevMonth,
+        prevYear,
+        livingAllowance,
+      );
+
+      this.logRolloverCalculated(
+        user.id,
+        currentBudget.id,
+        previousBudget.id,
+        livingAllowance,
+        rolloverLine.kind,
+      );
+      return rolloverLine;
+    } catch (error) {
+      // Log the error but don't let rollover calculation failure break budget loading
+      this.logger.error(
+        {
+          userId: user.id,
+          currentBudgetId: currentBudget.id,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+        },
+        'Failed to calculate rollover line - budget will load without rollover',
       );
       return null;
     }
-
-    const livingAllowance = await this.calculateLivingAllowance(
-      previousBudget.id,
-      supabase,
-    );
-
-    const rolloverLine = this.createRolloverBudgetLine(
-      currentBudget,
-      prevMonth,
-      prevYear,
-      livingAllowance,
-    );
-
-    this.logRolloverCalculated(
-      user.id,
-      currentBudget.id,
-      previousBudget.id,
-      livingAllowance,
-      rolloverLine.kind,
-    );
-    return rolloverLine;
   }
 
   private logNoPreviousBudgetFound = (

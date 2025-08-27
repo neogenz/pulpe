@@ -220,4 +220,113 @@ describe('BudgetService - Rollover Functionality', () => {
       expect(rolloverLine.kind).toBe('income'); // Zero is positive
     });
   });
+
+  describe('Error handling and resilience', () => {
+    it('should handle database errors gracefully and return null', async () => {
+      const currentBudget = {
+        id: 'current-budget-123',
+        month: 4,
+        year: 2025,
+        user_id: 'user-456',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const user = { id: 'user-456' } as AuthenticatedUser;
+
+      // Mock database error for fetchPreviousBudget
+      mockSupabaseClient
+        .setMockData(null)
+        .setMockError(new Error('Database connection failed'));
+
+      const result = await (budgetService as any).calculateRolloverLine(
+        currentBudget,
+        user,
+        client as AuthenticatedSupabaseClient,
+      );
+
+      // Should return null gracefully instead of throwing
+      expect(result).toBeNull();
+    });
+
+    it('should handle living allowance calculation errors gracefully', async () => {
+      const currentBudget = {
+        id: 'current-budget-123',
+        month: 4,
+        year: 2025,
+        user_id: 'user-456',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const previousBudget = {
+        id: 'prev-budget-789',
+        month: 3,
+        year: 2025,
+        user_id: 'user-456',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const user = { id: 'user-456' } as AuthenticatedUser;
+
+      // First set up successful previous budget fetch, then error on budget lines
+      mockSupabaseClient.setMockData(previousBudget).setMockError(null);
+
+      // Since we can't mock individual queries differently, we'll simulate an error
+      // by setting an error after the first query
+      const originalCalculateLivingAllowance = (budgetService as any)
+        .calculateLivingAllowance;
+      (budgetService as any).calculateLivingAllowance = mock(() => {
+        throw new Error('Failed to fetch budget lines');
+      });
+
+      const result = await (budgetService as any).calculateRolloverLine(
+        currentBudget,
+        user,
+        client as AuthenticatedSupabaseClient,
+      );
+
+      // Restore original method
+      (budgetService as any).calculateLivingAllowance =
+        originalCalculateLivingAllowance;
+
+      // Should return null gracefully instead of throwing
+      expect(result).toBeNull();
+    });
+
+    it('should handle invalid budget data gracefully', async () => {
+      const currentBudget = {
+        id: 'current-budget-123',
+        month: 4,
+        year: 2025,
+        user_id: 'user-456',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const user = { id: 'user-456' } as AuthenticatedUser;
+
+      // Mock malformed data that could cause createRolloverBudgetLine to fail
+      const malformedBudget = {
+        id: null, // Invalid ID that could cause issues
+        month: 3,
+        year: 2025,
+        user_id: 'user-456',
+        created_at: null,
+        updated_at: null,
+      };
+
+      mockSupabaseClient.setMockData(malformedBudget).setMockError(null);
+
+      const result = await (budgetService as any).calculateRolloverLine(
+        currentBudget,
+        user,
+        client as AuthenticatedSupabaseClient,
+      );
+
+      // Should handle malformed data gracefully
+      expect(result).toBeNull();
+    });
+  });
 });
