@@ -122,6 +122,30 @@ describe('BudgetService - Rollover Functionality', () => {
       const result = (budgetService as any).getPreviousMonthYear(1, 2025);
       expect(result).toEqual({ month: 12, year: 2024 });
     });
+
+    it('should handle year boundary rollover from December to January', () => {
+      // Test the complete year transition: Dec 2024 → Jan 2025
+      const decemberResult = (budgetService as any).getPreviousMonthYear(
+        1,
+        2025,
+      );
+      expect(decemberResult).toEqual({ month: 12, year: 2024 });
+
+      // Test rollover name formatting across year boundary
+      const rolloverName = BUDGET_CONSTANTS.ROLLOVER.formatName(12, 2024);
+      expect(rolloverName).toBe('rollover_12_2024');
+
+      // Verify the transition logic works correctly
+      const januaryBudget = { month: 1, year: 2025 };
+      const expectedPreviousMonth = { month: 12, year: 2024 };
+
+      const actualPreviousMonth = (budgetService as any).getPreviousMonthYear(
+        januaryBudget.month,
+        januaryBudget.year,
+      );
+
+      expect(actualPreviousMonth).toEqual(expectedPreviousMonth);
+    });
   });
 
   describe('Rollover line generation', () => {
