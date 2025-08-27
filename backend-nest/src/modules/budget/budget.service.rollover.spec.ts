@@ -193,37 +193,47 @@ describe('BudgetService - Rollover Functionality', () => {
       expect(rolloverLine.isRollover).toBe(true);
     });
 
-    it('should create rollover line with zero amount', () => {
-      const currentBudget: Tables<'monthly_budget'> = {
-        id: 'current-budget-id',
+    it('should not create rollover line when amount is zero', async () => {
+      const currentBudget = {
+        id: 'current-budget-123',
         month: 4,
         year: 2025,
-        user_id: mockUser.id,
-        template_id: 'template-id',
-        description: 'April 2025',
+        user_id: 'user-456',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
 
-      // Manually create a rollover line to test the structure
-      const rolloverLine = {
-        id: `rollover-${currentBudget.id}`,
-        budgetId: currentBudget.id,
-        templateLineId: null,
-        savingsGoalId: null,
-        name: `rollover_3_2025`,
-        amount: 0, // Zero amount
-        kind: 'income', // Zero is treated as income
-        recurrence: 'one_off',
-        isManuallyAdjusted: false,
-        isRollover: true,
-        createdAt: currentBudget.created_at,
-        updatedAt: currentBudget.updated_at,
+      const previousBudget = {
+        id: 'prev-budget-789',
+        month: 3,
+        year: 2025,
+        user_id: 'user-456',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       };
 
-      expect(rolloverLine.amount).toBe(0);
-      expect(rolloverLine.kind).toBe('income'); // Zero is positive
-      expect(rolloverLine.isRollover).toBe(true);
+      const user = { id: 'user-456' } as AuthenticatedUser;
+
+      // Mock previous budget exists
+      mockSupabaseClient.setMockData(previousBudget).setMockError(null);
+
+      // Mock calculateLivingAllowance to return exactly zero
+      const originalCalculateLivingAllowance = (budgetService as any)
+        .calculateLivingAllowance;
+      (budgetService as any).calculateLivingAllowance = mock(() => 0);
+
+      const result = await (budgetService as any).calculateRolloverLine(
+        currentBudget,
+        user,
+        client as AuthenticatedSupabaseClient,
+      );
+
+      // Restore original method
+      (budgetService as any).calculateLivingAllowance =
+        originalCalculateLivingAllowance;
+
+      // Should return null for zero living allowance
+      expect(result).toBeNull();
     });
   });
 

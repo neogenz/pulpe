@@ -800,6 +800,19 @@ export class BudgetService {
         supabase,
       );
 
+      // Don't create rollover line if amount is zero
+      if (livingAllowance === 0) {
+        this.logger.info(
+          {
+            userId: user.id,
+            currentBudgetId: currentBudget.id,
+            previousBudgetId: previousBudget.id,
+          },
+          'No rollover line created - zero balance',
+        );
+        return null;
+      }
+
       const rolloverLine = this.createRolloverBudgetLine(
         currentBudget,
         prevMonth,
@@ -873,7 +886,7 @@ export class BudgetService {
     savingsGoalId: null,
     name: `rollover_${prevMonth}_${prevYear}`,
     amount: Math.abs(livingAllowance),
-    kind: livingAllowance >= 0 ? 'income' : 'expense',
+    kind: livingAllowance > 0 ? 'income' : 'expense',
     recurrence: 'one_off',
     isManuallyAdjusted: false,
     isRollover: true,
