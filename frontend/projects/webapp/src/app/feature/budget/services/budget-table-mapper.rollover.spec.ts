@@ -32,6 +32,7 @@ describe('BudgetTableMapper - Rollover Functionality', () => {
         kind: 'income',
         recurrence: 'one_off',
         isManuallyAdjusted: false,
+        isRollover: true,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -46,6 +47,7 @@ describe('BudgetTableMapper - Rollover Functionality', () => {
         kind: 'income',
         recurrence: 'fixed',
         isManuallyAdjusted: false,
+        isRollover: false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -89,6 +91,7 @@ describe('BudgetTableMapper - Rollover Functionality', () => {
           kind: 'income',
           recurrence: 'fixed',
           isManuallyAdjusted: false,
+          isRollover: false,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         },
@@ -102,6 +105,7 @@ describe('BudgetTableMapper - Rollover Functionality', () => {
           kind: 'expense',
           recurrence: 'fixed',
           isManuallyAdjusted: false,
+          isRollover: false,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         },
@@ -115,6 +119,7 @@ describe('BudgetTableMapper - Rollover Functionality', () => {
           kind: 'income',
           recurrence: 'one_off',
           isManuallyAdjusted: false,
+          isRollover: true,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         },
@@ -128,6 +133,7 @@ describe('BudgetTableMapper - Rollover Functionality', () => {
           kind: 'expense',
           recurrence: 'one_off',
           isManuallyAdjusted: false,
+          isRollover: false,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         },
@@ -169,6 +175,7 @@ describe('BudgetTableMapper - Rollover Functionality', () => {
         kind: 'income',
         recurrence: 'one_off',
         isManuallyAdjusted: false,
+        isRollover: true,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -207,6 +214,7 @@ describe('BudgetTableMapper - Rollover Functionality', () => {
         kind: 'expense', // Negative rollover
         recurrence: 'one_off',
         isManuallyAdjusted: false,
+        isRollover: true,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -246,6 +254,7 @@ describe('BudgetTableMapper - Rollover Functionality', () => {
         kind: 'income', // Zero is considered positive
         recurrence: 'one_off',
         isManuallyAdjusted: false,
+        isRollover: true,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };

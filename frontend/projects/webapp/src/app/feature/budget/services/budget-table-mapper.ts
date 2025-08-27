@@ -70,7 +70,6 @@ export class BudgetTableMapper {
   readonly #budgetCalculator = inject(BudgetCalculator);
 
   // Display configuration constants
-  readonly #ROLLOVER_PREFIX = 'rollover_' as const;
   readonly #ROLLOVER_PATTERN = /rollover_(\d+)_(\d+)/;
 
   readonly #KIND_ICONS: Record<TransactionKind, string> = {
@@ -197,8 +196,8 @@ export class BudgetTableMapper {
   /**
    * Type guard to check if a line is a rollover
    */
-  #isRolloverLine(item: { name: string }): boolean {
-    return item.name.startsWith(this.#ROLLOVER_PREFIX);
+  #isRolloverLine(item: BudgetLine | Transaction): boolean {
+    return 'isRollover' in item && item.isRollover === true;
   }
 
   /**
@@ -268,7 +267,11 @@ export class BudgetTableMapper {
    * Formats rollover line name from data format to display format
    * rollover_12_2024 -> Report décembre 2024
    */
-  #formatRolloverName = (name: string): string => {
+  /**
+   * Formats rollover line name from data format to display format
+   * rollover_12_2024 -> Report décembre 2024
+   */
+  #formatRolloverName(name: string): string {
     const match = name.match(this.#ROLLOVER_PATTERN);
     if (!match) return name;
 
@@ -277,17 +280,17 @@ export class BudgetTableMapper {
     const monthName = this.#MONTH_NAMES[monthIndex];
 
     return monthName ? `Report ${monthName} ${year}` : name;
-  };
+  }
 
   /**
    * Builds the final table rows with section headers
    * Simplified logic: rollover always appears last in budget lines
    */
-  #buildTableRows = (
+  #buildTableRows(
     fixedBudgetLineRows: DataRow[],
     oneOffBudgetLineRows: DataRow[],
     transactionRows: DataRow[],
-  ): TableRow[] => {
+  ): TableRow[] {
     const result: TableRow[] = [];
 
     // Split regular lines from rollover
@@ -330,15 +333,15 @@ export class BudgetTableMapper {
     }
 
     return result;
-  };
+  }
 
   /**
    * Separates regular budget lines from rollover line
    */
-  #separateRegularFromRollover = (
+  #separateRegularFromRollover(
     fixedBudgetLineRows: DataRow[],
     oneOffBudgetLineRows: DataRow[],
-  ) => {
+  ) {
     const rolloverLine =
       [...fixedBudgetLineRows, ...oneOffBudgetLineRows].find(
         (row) => row.isRollover,
@@ -348,7 +351,7 @@ export class BudgetTableMapper {
     const regularOneOff = oneOffBudgetLineRows.filter((row) => !row.isRollover);
 
     return { regularFixed, regularOneOff, rolloverLine };
-  };
+  }
 
   /**
    * Calculates summary statistics for the budget
