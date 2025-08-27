@@ -83,4 +83,4 @@ frontend/projects/webapp/src/environments/build-info.development.ts
 docs/angular-architecture-doc.md
 .vercel
 
-.pnpm-store/
+.pnpm-store/backend-nest/env.development
