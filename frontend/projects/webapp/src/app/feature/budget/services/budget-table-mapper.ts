@@ -273,13 +273,25 @@ export class BudgetTableMapper {
    */
   #formatRolloverName(name: string): string {
     const match = name.match(this.#ROLLOVER_PATTERN);
-    if (!match) return name;
+    if (!match) {
+      console.warn(
+        `BudgetTableMapper: Failed to parse rollover name "${name}", expected format "rollover_MM_YYYY"`,
+      );
+      return name;
+    }
 
     const [, month, year] = match;
     const monthIndex = parseInt(month, 10) - 1;
     const monthName = this.#MONTH_NAMES[monthIndex];
 
-    return monthName ? `Report ${monthName} ${year}` : name;
+    if (!monthName) {
+      console.warn(
+        `BudgetTableMapper: Invalid month index ${monthIndex} for rollover name "${name}"`,
+      );
+      return name;
+    }
+
+    return `Report ${monthName} ${year}`;
   }
 
   /**
