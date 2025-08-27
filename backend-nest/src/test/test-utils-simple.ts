@@ -84,6 +84,7 @@ export class MockSupabaseClient {
       limit: () => chainMethods,
       range: () => chainMethods,
       single: () => Promise.resolve(result),
+      maybeSingle: () => Promise.resolve(result),
       insert: () => ({
         select: () => ({
           single: () =>
