@@ -90,6 +90,7 @@ describe('BudgetLineService', () => {
     kind: 'income' as const,
     recurrence: 'fixed' as const,
     isManuallyAdjusted: false,
+    isRollover: false,
     createdAt: '2024-01-01T00:00:00.000Z',
     updatedAt: '2024-01-01T00:00:00.000Z',
   };
@@ -237,6 +238,7 @@ describe('BudgetLineService', () => {
       templateLineId: '123e4567-e89b-12d3-a456-426614174002',
       savingsGoalId: null,
       isManuallyAdjusted: false,
+      isRollover: false,
     };
 
     it('should create a new budget line', async () => {
@@ -326,6 +328,7 @@ describe('BudgetLineService', () => {
           kind: 'income', // Enums maintenant unifiés - pas de conversion
           recurrence: updatedBudgetLine.recurrence,
           isManuallyAdjusted: updatedBudgetLine.is_manually_adjusted,
+          isRollover: false,
           createdAt: updatedBudgetLine.created_at,
           updatedAt: updatedBudgetLine.updated_at,
         },
