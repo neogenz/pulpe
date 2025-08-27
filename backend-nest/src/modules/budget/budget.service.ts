@@ -880,6 +880,7 @@ export class BudgetService {
       prevMonth,
       prevYear,
       livingAllowance,
+      previousBudget.id,
     );
 
     // Inline logging for better code flow
@@ -902,6 +903,7 @@ export class BudgetService {
     prevMonth: number,
     prevYear: number,
     livingAllowance: number,
+    previousBudgetId: string,
   ): BudgetLine => ({
     id: BUDGET_CONSTANTS.ROLLOVER.formatId(currentBudget.id),
     budgetId: currentBudget.id,
@@ -916,6 +918,7 @@ export class BudgetService {
     recurrence: 'one_off',
     isManuallyAdjusted: false,
     isRollover: true,
+    rolloverSourceBudgetId: previousBudgetId,
     createdAt: currentBudget.created_at,
     updatedAt: currentBudget.updated_at,
   });
