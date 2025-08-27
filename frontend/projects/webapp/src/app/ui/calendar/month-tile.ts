@@ -6,17 +6,17 @@ import {
   computed,
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
-import { CurrencyPipe, DecimalPipe } from '@angular/common';
+import { CurrencyPipe } from '@angular/common';
 import { type CalendarMonth } from './calendar-types';
 
 @Component({
   selector: 'pulpe-month-tile',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatIconModule, CurrencyPipe, DecimalPipe],
+  imports: [MatIconModule, CurrencyPipe],
   template: `
     <button
-      class="month-tile"
+      class="month-tile group"
       [attr.data-status]="month().status"
       [attr.data-current]="isCurrentMonth()"
       [attr.data-has-content]="month().hasContent"
@@ -25,45 +25,59 @@ import { type CalendarMonth } from './calendar-types';
       (click)="handleClick()"
       type="button"
     >
-      <div class="month-tile-header">
-        <span class="month-name">{{ monthName() }}</span>
-        @if (isCurrentMonth()) {
-          <span class="current-indicator" aria-label="Mois actuel">
-            <mat-icon class="text-base">today</mat-icon>
-          </span>
-        }
-      </div>
+      <!-- Material ripple effect overlay -->
+      <div class="state-layer"></div>
 
-      <div class="month-tile-content">
-        @if (month().hasContent) {
-          @if (month().value !== undefined) {
-            <div class="month-value" [attr.data-type]="valueType()">
-              <span class="value-amount">
-                {{
-                  month().value | currency: 'CHF' : 'symbol' : '1.0-0' : 'fr-CH'
-                }}
-              </span>
+      <!-- Content container -->
+      <div class="month-tile-inner">
+        <div class="month-tile-header">
+          <span class="month-name">{{ monthName() }}</span>
+          @if (isCurrentMonth()) {
+            <span class="current-badge" aria-label="Mois actuel">
+              <mat-icon class="icon-filled">event</mat-icon>
+            </span>
+          }
+        </div>
+
+        <div class="month-tile-content">
+          @if (month().hasContent) {
+            @if (month().value !== undefined) {
+              <div class="month-value" [attr.data-type]="valueType()">
+                <span class="value-label">Disponible</span>
+                <span class="value-amount">
+                  {{
+                    month().value
+                      | currency: 'CHF' : 'symbol' : '1.0-0' : 'fr-CH'
+                  }}
+                </span>
+              </div>
+            }
+            @if (month().status) {
+              <div class="status-indicator">
+                @switch (month().status) {
+                  @case ('positive') {
+                    <mat-icon class="status-icon icon-filled">savings</mat-icon>
+                  }
+                  @case ('negative') {
+                    <mat-icon class="status-icon icon-filled"
+                      >trending_down</mat-icon
+                    >
+                  }
+                  @case ('warning') {
+                    <mat-icon class="status-icon icon-filled">warning</mat-icon>
+                  }
+                }
+              </div>
+            }
+          } @else {
+            <div class="empty-month">
+              <div class="empty-icon-wrapper">
+                <mat-icon class="empty-icon">add</mat-icon>
+              </div>
+              <span class="empty-text">Créer</span>
             </div>
           }
-          <div class="month-status">
-            @switch (month().status) {
-              @case ('positive') {
-                <mat-icon class="status-icon positive">trending_up</mat-icon>
-              }
-              @case ('negative') {
-                <mat-icon class="status-icon negative">trending_down</mat-icon>
-              }
-              @case ('warning') {
-                <mat-icon class="status-icon warning">warning</mat-icon>
-              }
-            }
-          </div>
-        } @else {
-          <div class="empty-month">
-            <mat-icon class="empty-icon">add_circle_outline</mat-icon>
-            <span class="empty-text">Créer un budget</span>
-          </div>
-        }
+        </div>
       </div>
     </button>
   `,
@@ -74,89 +88,166 @@ import { type CalendarMonth } from './calendar-types';
     }
 
     .month-tile {
+      position: relative;
       width: 100%;
       height: 100%;
-      min-height: 120px;
-      padding: 1rem;
-      border-radius: var(--mat-sys-corner-medium);
-      background: var(--mat-sys-surface-container-low);
-      border: 1px solid var(--mat-sys-outline-variant);
-      transition: all 0.2s ease;
+      min-height: 140px;
+      padding: 0;
+      border: none;
       cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-      position: relative;
       overflow: hidden;
 
+      /* Material elevation system */
+      border-radius: var(--mat-sys-corner-large);
+      background: var(--mat-sys-surface-container);
+      transition: all 200ms cubic-bezier(0.2, 0, 0, 1);
+
+      /* Elevation levels */
+      box-shadow: var(--mat-sys-level1);
+
       &:hover:not(:disabled) {
-        background: var(--mat-sys-surface-container);
-        transform: translateY(-2px);
-        box-shadow: var(--mat-sys-level2);
+        box-shadow: var(--mat-sys-level3);
+        transform: translateY(-1px);
+
+        .state-layer {
+          opacity: 0.08;
+        }
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--mat-sys-primary);
+        outline-offset: 2px;
+
+        .state-layer {
+          opacity: 0.12;
+        }
       }
 
       &:active:not(:disabled) {
+        box-shadow: var(--mat-sys-level0);
         transform: translateY(0);
-      }
 
-      &[data-has-content='false'] {
-        background: var(--mat-sys-surface-variant);
-        opacity: 0.8;
-        border-style: dashed;
-
-        &:hover:not(:disabled) {
-          opacity: 1;
-          background: var(--mat-sys-surface-container-lowest);
+        .state-layer {
+          opacity: 0.12;
         }
       }
 
+      /* Empty month state */
+      &[data-has-content='false'] {
+        background: var(--mat-sys-surface);
+        box-shadow: none;
+        border: 2px dashed var(--mat-sys-outline-variant);
+
+        &:hover:not(:disabled) {
+          background: var(--mat-sys-surface-container-lowest);
+          border-color: var(--mat-sys-outline);
+          box-shadow: var(--mat-sys-level1);
+        }
+      }
+
+      /* Current month state */
       &[data-current='true'] {
         background: var(--mat-sys-primary-container);
-        border-color: var(--mat-sys-primary);
+        box-shadow: var(--mat-sys-level2);
 
         .month-name {
           color: var(--mat-sys-on-primary-container);
-          font-weight: 600;
+        }
+
+        .value-label,
+        .value-amount {
+          color: var(--mat-sys-on-primary-container);
+        }
+
+        .current-badge {
+          background: var(--mat-sys-primary);
+          color: var(--mat-sys-on-primary);
         }
       }
 
-      &[data-status='negative'] {
-        border-left: 3px solid var(--pulpe-financial-negative);
+      /* Status indicators as subtle accents */
+      &[data-status='positive']::before,
+      &[data-status='negative']::before,
+      &[data-status='warning']::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 4px;
       }
 
-      &[data-status='positive'] {
-        border-left: 3px solid var(--pulpe-financial-savings);
+      &[data-status='positive']::before {
+        background: var(--pulpe-financial-savings);
       }
 
-      &[data-status='warning'] {
-        border-left: 3px solid var(--mat-sys-warning);
+      &[data-status='negative']::before {
+        background: var(--mat-sys-error);
+      }
+
+      &[data-status='warning']::before {
+        background: var(--mat-sys-tertiary);
       }
 
       &:disabled {
-        opacity: 0.5;
+        opacity: 0.38;
         cursor: not-allowed;
+        box-shadow: none;
       }
+    }
+
+    /* State layer for ripple effect */
+    .state-layer {
+      position: absolute;
+      inset: 0;
+      background: var(--mat-sys-on-surface);
+      opacity: 0;
+      transition: opacity 200ms cubic-bezier(0.2, 0, 0, 1);
+      pointer-events: none;
+      border-radius: inherit;
+    }
+
+    /* Content container */
+    .month-tile-inner {
+      position: relative;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      padding: 1rem;
+      gap: 0.75rem;
     }
 
     .month-tile-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 0.5rem;
+      min-height: 28px;
     }
 
     .month-name {
-      font-size: var(--mat-sys-typescale-title-small-size);
-      line-height: var(--mat-sys-typescale-title-small-line-height);
-      font-weight: var(--mat-sys-typescale-title-small-weight);
+      font-size: var(--mat-sys-title-medium-size);
+      line-height: var(--mat-sys-title-medium-line-height);
+      font-weight: var(--mat-sys-title-medium-weight);
+      letter-spacing: var(--mat-sys-title-medium-tracking);
       color: var(--mat-sys-on-surface);
       text-transform: capitalize;
     }
 
-    .current-indicator {
+    .current-badge {
       display: inline-flex;
       align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: var(--mat-sys-corner-full);
+      background: var(--mat-sys-surface-container-highest);
       color: var(--mat-sys-primary);
+
+      mat-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+      }
     }
 
     .month-tile-content {
@@ -164,52 +255,73 @@ import { type CalendarMonth } from './calendar-types';
       display: flex;
       flex-direction: column;
       justify-content: center;
-      align-items: center;
+      align-items: flex-start;
       gap: 0.5rem;
     }
 
     .month-value {
-      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      width: 100%;
 
-      &[data-type='positive'] {
+      &[data-type='positive'] .value-amount {
         color: var(--pulpe-financial-savings);
       }
 
-      &[data-type='negative'] {
-        color: var(--pulpe-financial-negative);
+      &[data-type='negative'] .value-amount {
+        color: var(--mat-sys-error);
       }
 
-      &[data-type='neutral'] {
+      &[data-type='neutral'] .value-amount {
         color: var(--mat-sys-on-surface-variant);
       }
     }
 
-    .value-amount {
-      font-size: var(--mat-sys-typescale-body-large-size);
-      font-weight: 600;
+    .value-label {
+      font-size: var(--mat-sys-label-small-size);
+      line-height: var(--mat-sys-label-small-line-height);
+      font-weight: var(--mat-sys-label-small-weight);
+      letter-spacing: var(--mat-sys-label-small-tracking);
+      color: var(--mat-sys-on-surface-variant);
+      text-transform: uppercase;
     }
 
-    .month-status {
+    .value-amount {
+      font-size: var(--mat-sys-headline-small-size);
+      line-height: var(--mat-sys-headline-small-line-height);
+      font-weight: var(--mat-sys-headline-small-weight);
+      letter-spacing: var(--mat-sys-headline-small-tracking);
+    }
+
+    .status-indicator {
+      position: absolute;
+      bottom: 0.75rem;
+      right: 0.75rem;
       display: flex;
       align-items: center;
-      gap: 0.25rem;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: var(--mat-sys-corner-full);
+      background: var(--mat-sys-surface-container-highest);
     }
 
     .status-icon {
-      font-size: 1.25rem;
-      width: 1.25rem;
-      height: 1.25rem;
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
 
-      &.positive {
+      &[class*='positive'] {
         color: var(--pulpe-financial-savings);
       }
 
-      &.negative {
-        color: var(--pulpe-financial-negative);
+      &[class*='negative'] {
+        color: var(--mat-sys-error);
       }
 
-      &.warning {
-        color: var(--mat-sys-warning);
+      &[class*='warning'] {
+        color: var(--mat-sys-tertiary);
       }
     }
 
@@ -217,42 +329,90 @@ import { type CalendarMonth } from './calendar-types';
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 0.25rem;
-      color: var(--mat-sys-on-surface-variant);
-      opacity: 0.7;
-      transition: opacity 0.2s;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+      height: 100%;
+      min-height: 60px;
+    }
+
+    .empty-icon-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: var(--mat-sys-corner-full);
+      background: var(--mat-sys-primary-container);
+      transition: all 200ms cubic-bezier(0.2, 0, 0, 1);
 
       .month-tile:hover & {
-        opacity: 1;
+        transform: scale(1.1);
+        background: var(--mat-sys-primary);
+
+        .empty-icon {
+          color: var(--mat-sys-on-primary);
+        }
       }
     }
 
     .empty-icon {
-      font-size: 2rem;
-      width: 2rem;
-      height: 2rem;
-      color: var(--mat-sys-primary);
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+      color: var(--mat-sys-on-primary-container);
+      transition: color 200ms cubic-bezier(0.2, 0, 0, 1);
     }
 
     .empty-text {
-      font-size: var(--mat-sys-typescale-label-small-size);
+      font-size: var(--mat-sys-label-medium-size);
+      line-height: var(--mat-sys-label-medium-line-height);
+      font-weight: var(--mat-sys-label-medium-weight);
+      letter-spacing: var(--mat-sys-label-medium-tracking);
+      color: var(--mat-sys-on-surface-variant);
       text-transform: uppercase;
-      letter-spacing: 0.5px;
     }
 
-    /* Mobile adjustments */
+    /* Mobile optimizations */
     @media (max-width: 768px) {
       .month-tile {
-        min-height: 100px;
+        min-height: 120px;
+      }
+
+      .month-tile-inner {
         padding: 0.75rem;
       }
 
-      .value-amount {
-        font-size: var(--mat-sys-typescale-body-medium-size);
+      .month-name {
+        font-size: var(--mat-sys-title-small-size);
+        line-height: var(--mat-sys-title-small-line-height);
       }
 
-      .empty-text {
-        font-size: 0.625rem;
+      .value-amount {
+        font-size: var(--mat-sys-title-large-size);
+        line-height: var(--mat-sys-title-large-line-height);
+      }
+
+      .empty-icon-wrapper {
+        width: 36px;
+        height: 36px;
+      }
+
+      .empty-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
+
+      .status-indicator {
+        width: 28px;
+        height: 28px;
+
+        .status-icon {
+          font-size: 16px;
+          width: 16px;
+          height: 16px;
+        }
       }
     }
   `,

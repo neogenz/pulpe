@@ -42,23 +42,39 @@ import { type CalendarMonth, type CalendarConfig } from './calendar-types';
 
     .year-calendar-container {
       width: 100%;
+      background: var(--mat-sys-surface);
+      border-radius: var(--mat-sys-corner-extra-large);
+      padding: 1.5rem;
+
+      /* Subtle elevation for the container */
+      box-shadow: var(--mat-sys-level0);
+
+      @media (max-width: 768px) {
+        padding: 1rem;
+        border-radius: var(--mat-sys-corner-large);
+      }
     }
 
     .calendar-grid {
       display: grid;
-      gap: 1rem;
       grid-template-columns: repeat(2, minmax(0, 1fr));
 
-      /* Tablet */
+      /* Material spacing system */
+      row-gap: 1rem; /* 16dp */
+      column-gap: 1rem; /* 16dp */
+
+      /* Tablet - 3 columns */
       @media (min-width: 768px) {
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 1.25rem;
+        row-gap: 1.5rem; /* 24dp */
+        column-gap: 1.5rem; /* 24dp */
       }
 
-      /* Desktop */
+      /* Desktop - 4 columns */
       @media (min-width: 1024px) {
         grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 1.5rem;
+        row-gap: 1.5rem; /* 24dp */
+        column-gap: 1.5rem; /* 24dp */
       }
 
       /* Large Desktop - Optional 6 columns */
@@ -70,12 +86,23 @@ import { type CalendarMonth, type CalendarConfig } from './calendar-types';
     }
 
     .calendar-cell {
-      aspect-ratio: 4/3;
-      min-height: 120px;
+      /* Consistent aspect ratio for calendar cells */
+      aspect-ratio: 1;
+      min-height: 140px;
+
+      /* Material standard animation */
+      animation: materialFadeIn 300ms cubic-bezier(0.2, 0, 0, 1) backwards;
 
       @media (max-width: 768px) {
         aspect-ratio: auto;
-        min-height: 100px;
+        min-height: 120px;
+      }
+
+      /* Progressive delay for staggered animation */
+      @for $i from 1 through 12 {
+        &:nth-child(#{$i}) {
+          animation-delay: #{($i - 1) * 0.025}s;
+        }
       }
     }
 
@@ -122,25 +149,15 @@ import { type CalendarMonth, type CalendarConfig } from './calendar-types';
       }
     }
 
-    /* Animations */
-    @keyframes fadeIn {
+    /* Material Design standard animation */
+    @keyframes materialFadeIn {
       from {
         opacity: 0;
-        transform: translateY(10px);
+        transform: translateY(8px) scale(0.96);
       }
       to {
         opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .calendar-cell {
-      animation: fadeIn 0.3s ease-out backwards;
-
-      @for $i from 1 through 12 {
-        &:nth-child(#{$i}) {
-          animation-delay: #{$i * 0.03}s;
-        }
+        transform: translateY(0) scale(1);
       }
     }
   `,
