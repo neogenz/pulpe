@@ -942,8 +942,38 @@ export class BudgetService {
         .eq('budget_id', budgetId),
     ]);
 
-    const budgetLines = budgetLinesResult.data ?? [];
-    const transactions = transactionsResult.data ?? [];
+    if (budgetLinesResult.error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
+        { id: budgetId },
+        {
+          operation: 'calculateLivingAllowance',
+          entityId: budgetId,
+          entityType: 'budget_line',
+        },
+        { cause: budgetLinesResult.error },
+      );
+    }
+
+    if (transactionsResult.error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'calculateLivingAllowance',
+          entityId: budgetId,
+          entityType: 'transaction',
+        },
+        { cause: transactionsResult.error },
+      );
+    }
+
+    const budgetLines = Array.isArray(budgetLinesResult.data)
+      ? budgetLinesResult.data
+      : [];
+    const transactions = Array.isArray(transactionsResult.data)
+      ? transactionsResult.data
+      : [];
 
     const { plannedIncome, fixedBlock } = budgetLines.reduce(
       (acc, line) => {
