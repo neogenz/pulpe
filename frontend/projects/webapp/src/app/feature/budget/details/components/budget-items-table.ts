@@ -28,6 +28,7 @@ import {
   type BudgetLineUpdate,
 } from '@pulpe/shared';
 import { EditBudgetLineDialog } from './edit-budget-line-dialog';
+import { Logger } from '@core/logging/logger';
 import {
   BudgetTableMapper,
   type TableItem,
@@ -115,31 +116,18 @@ import { RolloverFormatPipe } from '../../pipes';
                     "
                     tabindex="0"
                   >
-                    @if (line.metadata.isRollover) {
-                      <div
-                        class="bg-secondary-container text-on-secondary-container rounded-full p-1 flex items-center justify-center"
-                      >
-                        <mat-icon
-                          title="Report du mois précédent"
-                          class="flex-shrink-0"
-                        >
-                          redo
-                        </mat-icon>
-                      </div>
-                    } @else {
-                      <mat-icon
-                        class="flex-shrink-0"
-                        [class.text-financial-income]="
-                          line.data.kind === 'income'
-                        "
-                        [class.text-financial-negative]="
-                          line.data.kind === 'expense'
-                        "
-                        [class.text-primary]="line.data.kind === 'saving'"
-                      >
-                        {{ line.data.kind | transactionIcon }}
-                      </mat-icon>
-                    }
+                    <mat-icon
+                      class="flex-shrink-0"
+                      [class.text-financial-income]="
+                        line.data.kind === 'income'
+                      "
+                      [class.text-financial-negative]="
+                        line.data.kind === 'expense'
+                      "
+                      [class.text-primary]="line.data.kind === 'saving'"
+                    >
+                      {{ line.data.kind | transactionIcon }}
+                    </mat-icon>
                     @if (
                       line.metadata.isRollover &&
                       line.data.rolloverSourceBudgetId
@@ -427,6 +415,7 @@ export class BudgetItemsTable {
   readonly #dialog = inject(MatDialog);
   readonly #destroyRef = inject(DestroyRef);
   readonly #budgetTableMapper = inject(BudgetTableMapper);
+  readonly #logger = inject(Logger);
 
   // UI configuration
   displayedColumns = ['name', 'recurrence', 'amount', 'remaining', 'actions'];
@@ -494,7 +483,10 @@ export class BudgetItemsTable {
             }
           });
       } catch (error) {
-        console.error('Failed to open edit dialog:', error);
+        this.#logger.error('Failed to open edit dialog', {
+          error,
+          itemId: item.data.id,
+        });
         // Fallback to inline editing
         this.editingLineId.set(item.data.id);
         this.editForm.patchValue({
