@@ -458,6 +458,9 @@ describe('BudgetService', () => {
             single: () => Promise.resolve({ data: mockBudget, error: null }),
             order: () => Promise.resolve({ data: [mockBudget], error: null }),
           }),
+          update: (_data: any) => ({
+            eq: () => Promise.resolve({ data: mockBudget, error: null }),
+          }),
         }),
       };
 
@@ -581,7 +584,7 @@ describe('BudgetService', () => {
       );
     });
 
-    it('should still return budget even if transactions or budget lines queries fail', async () => {
+    it('should throw exception when financial data cannot be fetched for rollover calculations', async () => {
       const mockUser = createMockAuthenticatedUser();
       const budgetId = MOCK_BUDGET_ID;
       const mockBudget = createValidBudgetEntity({ id: budgetId });
@@ -613,18 +616,17 @@ describe('BudgetService', () => {
         return originalFrom.call(mockSupabaseClient, table);
       };
 
-      const result = await service.findOneWithDetails(
-        budgetId,
-        mockUser,
-        mockSupabaseClient as any,
+      // Should throw exception because financial calculations require accurate data
+      await expectBusinessExceptionThrown(
+        () =>
+          service.findOneWithDetails(
+            budgetId,
+            mockUser,
+            mockSupabaseClient as any,
+          ),
+        ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
+        { budgetId },
       );
-
-      // Should not throw, but return empty arrays for failed queries
-      expect(result.success).toBe(true);
-      expect(result.data.budget.id).toBe(budgetId);
-      expect(result.data.transactions).toEqual([]);
-      // Should not include rollover line when previous month had zero living allowance
-      expect(result.data.budgetLines).toHaveLength(0);
     });
   });
 });

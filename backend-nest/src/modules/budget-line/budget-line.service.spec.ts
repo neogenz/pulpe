@@ -127,7 +127,7 @@ describe('BudgetLineService', () => {
         {
           provide: BudgetService,
           useValue: {
-            calculateAndPersistEndingBalance: jest.fn().mockResolvedValue(100),
+            recalculateBalances: jest.fn().mockResolvedValue(undefined),
           },
         },
       ],

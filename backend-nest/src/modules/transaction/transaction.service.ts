@@ -391,8 +391,8 @@ export class TransactionService {
         user.id,
       );
 
-      // Recalculate ending balance for the budget immediately
-      await this.budgetService.calculateAndPersistEndingBalance(
+      // Recalculate ending balance and rollover balance for the budget immediately
+      await this.budgetService.recalculateBalances(
         transactionDb.budget_id,
         supabase,
       );
@@ -434,12 +434,9 @@ export class TransactionService {
     try {
       const budgetId = await this.performTransactionDeletion(id, supabase);
 
-      // Recalculate ending balance for the budget immediately
+      // Recalculate ending balance and rollover balance for the budget immediately
       if (budgetId) {
-        await this.budgetService.calculateAndPersistEndingBalance(
-          budgetId,
-          supabase,
-        );
+        await this.budgetService.recalculateBalances(budgetId, supabase);
       }
 
       this.logTransactionDeletionSuccess(user.id, id, startTime);

@@ -364,8 +364,8 @@ export class BudgetLineService {
         user,
       );
 
-      // Recalculate ending balance for the budget immediately
-      await this.budgetService.calculateAndPersistEndingBalance(
+      // Recalculate ending balance and rollover balance for the budget immediately
+      await this.budgetService.recalculateBalances(
         budgetLineDb.budget_id,
         supabase,
       );
@@ -457,10 +457,7 @@ export class BudgetLineService {
   ): Promise<void> {
     // Recalculate ending balance for the budget immediately
     if (budgetId) {
-      await this.budgetService.calculateAndPersistEndingBalance(
-        budgetId,
-        supabase,
-      );
+      await this.budgetService.recalculateBalances(budgetId, supabase);
     }
   }
 
