@@ -7,6 +7,7 @@ import {
 } from '@supabase/supabase-js';
 import { AuthErrorLocalizer } from './auth-error-localizer';
 import { ApplicationConfiguration } from '../config/application-configuration';
+import { Logger } from '../logging/logger';
 
 export interface AuthState {
   readonly user: User | null;
@@ -21,6 +22,7 @@ export interface AuthState {
 export class AuthApi {
   readonly #errorLocalizer = inject(AuthErrorLocalizer);
   readonly #applicationConfig = inject(ApplicationConfiguration);
+  readonly #logger = inject(Logger);
 
   // Supabase client - créé dans initializeAuthState() après le chargement de la config
   #supabaseClient: SupabaseClient | null = null;
@@ -74,7 +76,9 @@ export class AuthApi {
         window as unknown as { __E2E_MOCK_AUTH_STATE__: AuthState }
       ).__E2E_MOCK_AUTH_STATE__;
       if (mockState) {
-        console.log('🎭 Mode test E2E détecté, utilisation des mocks auth');
+        this.#logger.info(
+          '🎭 Mode test E2E détecté, utilisation des mocks auth',
+        );
         this.#sessionSignal.set(mockState.session);
         this.#isLoadingSignal.set(mockState.isLoading);
 
@@ -91,7 +95,10 @@ export class AuthApi {
       } = await this.#supabaseClient.auth.getSession();
 
       if (error) {
-        console.error('Erreur lors de la récupération de la session:', error);
+        this.#logger.error(
+          'Erreur lors de la récupération de la session:',
+          error,
+        );
         this.updateAuthState(null);
         return;
       }
@@ -100,7 +107,10 @@ export class AuthApi {
 
       // Écouter les changements d'authentification
       this.#supabaseClient.auth.onAuthStateChange((event, session) => {
-        console.log('Auth event:', event, session);
+        this.#logger.debug('Auth event:', {
+          event,
+          session: session?.user?.id,
+        });
 
         switch (event) {
           case 'SIGNED_IN':
@@ -117,7 +127,7 @@ export class AuthApi {
         }
       });
     } catch (error) {
-      console.error(
+      this.#logger.error(
         "Erreur lors de l'initialisation de l'authentification:",
         error,
       );
@@ -161,7 +171,7 @@ export class AuthApi {
     try {
       localStorage.removeItem('pulpe-onboarding-completed');
     } catch (error) {
-      console.warn(
+      this.#logger.warn(
         'Failed to clear onboarding status from localStorage:',
         error,
       );
@@ -227,7 +237,7 @@ export class AuthApi {
         (window as unknown as { __E2E_AUTH_BYPASS__: boolean })
           .__E2E_AUTH_BYPASS__
       ) {
-        console.log('🎭 Mode test E2E: Simulation du logout');
+        this.#logger.info('🎭 Mode test E2E: Simulation du logout');
 
         // Réinitialiser l'état mocké
         (
@@ -248,10 +258,10 @@ export class AuthApi {
       // Logout normal avec Supabase
       const { error } = await this.#supabaseClient!.auth.signOut();
       if (error) {
-        console.error('Erreur lors de la déconnexion:', error);
+        this.#logger.error('Erreur lors de la déconnexion:', error);
       }
     } catch (error) {
-      console.error('Erreur inattendue lors de la déconnexion:', error);
+      this.#logger.error('Erreur inattendue lors de la déconnexion:', error);
     }
   }
 
@@ -263,13 +273,16 @@ export class AuthApi {
       } = await this.#supabaseClient!.auth.getSession();
 
       if (error) {
-        console.error('Erreur lors de la récupération de la session:', error);
+        this.#logger.error(
+          'Erreur lors de la récupération de la session:',
+          error,
+        );
         return null;
       }
 
       return session;
     } catch (error) {
-      console.error(
+      this.#logger.error(
         'Erreur inattendue lors de la récupération de la session:',
         error,
       );
@@ -282,13 +295,16 @@ export class AuthApi {
       const { data, error } = await this.#supabaseClient!.auth.refreshSession();
 
       if (error) {
-        console.error('Erreur lors du rafraîchissement de la session:', error);
+        this.#logger.error(
+          'Erreur lors du rafraîchissement de la session:',
+          error,
+        );
         return false;
       }
 
       return !!data.session;
     } catch (error) {
-      console.error(
+      this.#logger.error(
         'Erreur inattendue lors du rafraîchissement de la session:',
         error,
       );
