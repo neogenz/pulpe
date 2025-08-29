@@ -39,10 +39,10 @@ describe('BudgetService - Rollover Functionality', () => {
     );
   });
 
-  describe('Living Allowance calculation logic', () => {
-    it('should correctly calculate Living Allowance with positive balance', async () => {
+  describe('Available to Spend calculation logic', () => {
+    it('should correctly calculate Available to Spend with positive balance', async () => {
       // This test verifies the calculation logic:
-      // Living Allowance = Planned Income - Fixed Block + Transaction Impact
+      // Available to Spend = Planned Income - Fixed Block + Transaction Impact
 
       const budgetLines = [
         { kind: 'income', amount: 5000 }, // +5000
@@ -58,7 +58,7 @@ describe('BudgetService - Rollover Functionality', () => {
         .setMockError(null);
 
       // Calculate using private method directly
-      const result = await (budgetService as any).calculateLivingAllowance(
+      const result = await (budgetService as any).calculateAvailableToSpendInternal(
         'test-budget-id',
         client as AuthenticatedSupabaseClient,
       );
@@ -67,8 +67,8 @@ describe('BudgetService - Rollover Functionality', () => {
       expect(typeof result).toBe('number');
     });
 
-    it('should handle negative Living Allowance (overspent)', async () => {
-      // Living Allowance can go negative when spending exceeds budget
+    it('should handle negative Available to Spend (overspent)', async () => {
+      // Available to Spend can go negative when spending exceeds budget
 
       const budgetLines = [
         { kind: 'income', amount: 5000 },
@@ -81,7 +81,7 @@ describe('BudgetService - Rollover Functionality', () => {
 
       mockSupabaseClient.setMockData(budgetLines).setMockError(null);
 
-      const result = await (budgetService as any).calculateLivingAllowance(
+      const result = await (budgetService as any).calculateAvailableToSpendInternal(
         'test-budget-id',
         client as AuthenticatedSupabaseClient,
       );
@@ -89,8 +89,8 @@ describe('BudgetService - Rollover Functionality', () => {
       expect(typeof result).toBe('number');
     });
 
-    it('should handle zero Living Allowance (exactly spent)', async () => {
-      // When spending exactly matches Living Allowance
+    it('should handle zero Available to Spend (exactly spent)', async () => {
+      // When spending exactly matches Available to Spend
 
       const budgetLines = [
         { kind: 'income', amount: 5000 },
@@ -103,7 +103,7 @@ describe('BudgetService - Rollover Functionality', () => {
 
       mockSupabaseClient.setMockData(budgetLines).setMockError(null);
 
-      const result = await (budgetService as any).calculateLivingAllowance(
+      const result = await (budgetService as any).calculateAvailableToSpendInternal(
         'test-budget-id',
         client as AuthenticatedSupabaseClient,
       );
@@ -248,10 +248,10 @@ describe('BudgetService - Rollover Functionality', () => {
       // Mock previous budget exists
       mockSupabaseClient.setMockData(previousBudget).setMockError(null);
 
-      // Mock calculateLivingAllowance to return exactly zero
+      // Mock calculateAvailableToSpendInternal to return exactly zero
       const originalCalculateLivingAllowance = (budgetService as any)
-        .calculateLivingAllowance;
-      (budgetService as any).calculateLivingAllowance = mock(() => 0);
+        .calculateAvailableToSpendInternal;
+      (budgetService as any).calculateAvailableToSpendInternal = mock(() => 0);
 
       const result = await (budgetService as any).calculateRolloverLine(
         currentBudget,
@@ -260,7 +260,7 @@ describe('BudgetService - Rollover Functionality', () => {
       );
 
       // Restore original method
-      (budgetService as any).calculateLivingAllowance =
+      (budgetService as any).calculateAvailableToSpendInternal =
         originalCalculateLivingAllowance;
 
       // Should return null for zero living allowance
@@ -270,19 +270,19 @@ describe('BudgetService - Rollover Functionality', () => {
 
   describe('Cumulative rollover behavior (TDD tests)', () => {
     it('should calculate cumulative rollover across multiple months', async () => {
-      // ✅ CRITICAL TEST: This is the core business logic that was missing
+      // CRITICAL TEST: This is the core business logic that was missing
       // We need to mock the recursive calls properly to avoid infinite recursion
 
       const user = { id: 'user-456' } as AuthenticatedUser;
 
-      // Mock the Living Allowance calculations at different levels
-      const originalCalculateLivingAllowance = (budgetService as any).calculateLivingAllowance;
+      // Mock the Available to Spend calculations at different levels
+      const originalCalculateLivingAllowance = (budgetService as any).calculateAvailableToSpendInternal;
       const originalGetCurrentBudgetForRollover = (budgetService as any).getCurrentBudgetForRollover;
       const originalFindPreviousBudget = (budgetService as any).findPreviousBudget;
 
       // SCENARIO: March gets rollover from February (150€) which includes January (100€) rollover
       // January: ending_balance = 100€ (no previous rollover)
-      // February: ending_balance = 50€ + rollover 100€ = 150€ total Living Allowance
+      // February: ending_balance = 50€ + rollover 100€ = 150€ total Available to Spend
       // March: should get 150€ rollover
 
       // Mock the budget lookup chain
@@ -301,10 +301,10 @@ describe('BudgetService - Rollover Functionality', () => {
         ending_balance: 50,
       }));
 
-      // Mock calculateLivingAllowance for February to return 150€ (50 + 100 rollover)
-      (budgetService as any).calculateLivingAllowance = mock((budgetId: string, supabase: any, includeRollover: boolean) => {
+      // Mock calculateAvailableToSpendInternal for February to return 150€ (50 + 100 rollover)
+      (budgetService as any).calculateAvailableToSpendInternal = mock((budgetId: string, supabase: any, includeRollover: boolean) => {
         if (budgetId === 'feb-budget' && includeRollover) {
-          return Promise.resolve(150); // February's total Living Allowance (50 + 100 rollover from Jan)
+          return Promise.resolve(150); // February's total Available to Spend (50 + 100 rollover from Jan)
         }
         if (budgetId === 'feb-budget' && !includeRollover) {
           return Promise.resolve(50); // February's ending_balance only
@@ -328,14 +328,14 @@ describe('BudgetService - Rollover Functionality', () => {
         client as AuthenticatedSupabaseClient,
       );
 
-      // ✅ BUSINESS REQUIREMENT: March rollover = February's FULL Living Allowance (150€)
+      // BUSINESS REQUIREMENT: March rollover = February's FULL Available to Spend (150€)
       expect(rolloverLine).not.toBeNull();
       expect(rolloverLine.amount).toBe(150); // Cumulative rollover
       expect(rolloverLine.kind).toBe('income'); // Positive rollover
       expect(rolloverLine.isRollover).toBe(true);
 
       // Restore original methods
-      (budgetService as any).calculateLivingAllowance = originalCalculateLivingAllowance;
+      (budgetService as any).calculateAvailableToSpendInternal = originalCalculateLivingAllowance;
       (budgetService as any).getCurrentBudgetForRollover = originalGetCurrentBudgetForRollover;
       (budgetService as any).findPreviousBudget = originalFindPreviousBudget;
     });
@@ -345,7 +345,7 @@ describe('BudgetService - Rollover Functionality', () => {
       const user = { id: 'user-789' } as AuthenticatedUser;
 
       // Store original methods
-      const originalCalculateLivingAllowance = (budgetService as any).calculateLivingAllowance;
+      const originalCalculateLivingAllowance = (budgetService as any).calculateAvailableToSpendInternal;
       const originalGetCurrentBudgetForRollover = (budgetService as any).getCurrentBudgetForRollover;
       const originalFindPreviousBudget = (budgetService as any).findPreviousBudget;
 
@@ -365,8 +365,8 @@ describe('BudgetService - Rollover Functionality', () => {
         ending_balance: -30,
       }));
 
-      // Mock November's total Living Allowance = -80€ (includes -50€ rollover from October)
-      (budgetService as any).calculateLivingAllowance = mock((budgetId: string, supabase: any, includeRollover: boolean) => {
+      // Mock November's total Available to Spend = -80€ (includes -50€ rollover from October)
+      (budgetService as any).calculateAvailableToSpendInternal = mock((budgetId: string, supabase: any, includeRollover: boolean) => {
         if (budgetId === 'month2-budget' && includeRollover) {
           return Promise.resolve(-80); // November's total deficit (-30 + -50 rollover from Oct)
         }
@@ -388,13 +388,13 @@ describe('BudgetService - Rollover Functionality', () => {
         client as AuthenticatedSupabaseClient,
       );
 
-      // ✅ BUSINESS REQUIREMENT: Cumulative deficit should be carried forward
+      // BUSINESS REQUIREMENT: Cumulative deficit should be carried forward
       expect(rolloverLine).not.toBeNull();
       expect(rolloverLine.amount).toBe(80); // Math.abs(-80)
       expect(rolloverLine.kind).toBe('expense'); // Negative rollover becomes expense
 
       // Restore original methods
-      (budgetService as any).calculateLivingAllowance = originalCalculateLivingAllowance;
+      (budgetService as any).calculateAvailableToSpendInternal = originalCalculateLivingAllowance;
       (budgetService as any).getCurrentBudgetForRollover = originalGetCurrentBudgetForRollover;
       (budgetService as any).findPreviousBudget = originalFindPreviousBudget;
     });
@@ -403,7 +403,7 @@ describe('BudgetService - Rollover Functionality', () => {
       // Real-world scenario: Net out surplus and deficit correctly
       const user = { id: 'user-mixed' } as AuthenticatedUser;
 
-      const originalCalculateLivingAllowance = (budgetService as any).calculateLivingAllowance;
+      const originalCalculateLivingAllowance = (budgetService as any).calculateAvailableToSpendInternal;
       const originalGetCurrentBudgetForRollover = (budgetService as any).getCurrentBudgetForRollover;
       const originalFindPreviousBudget = (budgetService as any).findPreviousBudget;
 
@@ -422,8 +422,8 @@ describe('BudgetService - Rollover Functionality', () => {
         ending_balance: -120,
       }));
 
-      // July total Living Allowance = 80€ (200€ rollover from June - 120€ deficit this month)
-      (budgetService as any).calculateLivingAllowance = mock((budgetId: string, supabase: any, includeRollover: boolean) => {
+      // July total Available to Spend = 80€ (200€ rollover from June - 120€ deficit this month)
+      (budgetService as any).calculateAvailableToSpendInternal = mock((budgetId: string, supabase: any, includeRollover: boolean) => {
         if (budgetId === 'deficit-month' && includeRollover) {
           return Promise.resolve(80); // Net positive after accounting for June surplus
         }
@@ -450,13 +450,13 @@ describe('BudgetService - Rollover Functionality', () => {
       expect(rolloverLine.kind).toBe('income');
 
       // Restore
-      (budgetService as any).calculateLivingAllowance = originalCalculateLivingAllowance;
+      (budgetService as any).calculateAvailableToSpendInternal = originalCalculateLivingAllowance;
       (budgetService as any).getCurrentBudgetForRollover = originalGetCurrentBudgetForRollover;  
       (budgetService as any).findPreviousBudget = originalFindPreviousBudget;
     });
 
-    it('should correctly calculate Living Allowance including rollover for intermediate months', async () => {
-      // Simple test of the core calculateLivingAllowance logic with and without rollover
+    it('should correctly calculate Available to Spend including rollover for intermediate months', async () => {
+      // Simple test of the core calculateAvailableToSpendInternal logic with and without rollover
       
       // This test is more integration-like, so we'll skip it for now and focus on rollover logic
       // The key business logic is tested in the rollover calculation tests above
@@ -521,8 +521,8 @@ describe('BudgetService - Rollover Functionality', () => {
       // Since we can't mock individual queries differently, we'll simulate an error
       // by setting an error after the first query
       const originalCalculateLivingAllowance = (budgetService as any)
-        .calculateLivingAllowance;
-      (budgetService as any).calculateLivingAllowance = mock(() => {
+        .calculateAvailableToSpendInternal;
+      (budgetService as any).calculateAvailableToSpendInternal = mock(() => {
         throw new Error('Failed to fetch budget lines');
       });
 
@@ -533,7 +533,7 @@ describe('BudgetService - Rollover Functionality', () => {
       );
 
       // Restore original method
-      (budgetService as any).calculateLivingAllowance =
+      (budgetService as any).calculateAvailableToSpendInternal =
         originalCalculateLivingAllowance;
 
       // Should return null gracefully instead of throwing
@@ -572,6 +572,203 @@ describe('BudgetService - Rollover Functionality', () => {
 
       // Should handle malformed data gracefully
       expect(result).toBeNull();
+    });
+  });
+
+  describe('Rollover Balance Calculation', () => {
+    it('should calculate rollover_balance correctly for first month', async () => {
+      // January: no previous month, rollover_balance = ending_balance
+      
+      const budgetData = {
+        budgetLines: [
+          { kind: 'income', amount: 5000 },
+          { kind: 'expense', amount: 4000 },
+        ],
+        transactions: [
+          { kind: 'expense', amount: 200 }, 
+        ],
+      };
+
+      // Mock fetchBudgetData
+      (budgetService as any).fetchBudgetData = mock(() => Promise.resolve(budgetData));
+      
+      // Mock getRolloverFromPreviousMonth to return 0 (no previous month)
+      (budgetService as any).getRolloverFromPreviousMonth = mock(() => Promise.resolve(0));
+
+      // Mock propagateToNextMonth to avoid side effects
+      (budgetService as any).propagateToNextMonth = mock(() => Promise.resolve());
+
+      // Mock Supabase update
+      mockSupabaseClient.setMockData(null).setMockError(null);
+
+      const result = await budgetService.calculateAndPersistEndingBalance(
+        'january-budget-id',
+        client as AuthenticatedSupabaseClient,
+      );
+
+      // Verify calculations
+      // ending_balance = 5000 - 4000 - 200 = 800
+      expect(result).toBe(800);
+
+      // Verify Supabase was called with correct values
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('monthly_budget');
+      expect(mockSupabaseClient.update).toHaveBeenCalledWith({
+        ending_balance: 800,
+        rollover_balance: 800, // 0 + 800 = 800 (first month)
+      });
+    });
+
+    it('should calculate rollover_balance correctly with previous month rollover', async () => {
+      // February: has previous rollover_balance from January
+      
+      const budgetData = {
+        budgetLines: [
+          { kind: 'income', amount: 5000 },
+          { kind: 'expense', amount: 4200 },
+        ],
+        transactions: [
+          { kind: 'expense', amount: 100 },
+        ],
+      };
+
+      // Mock fetchBudgetData
+      (budgetService as any).fetchBudgetData = mock(() => Promise.resolve(budgetData));
+      
+      // Mock getRolloverFromPreviousMonth to return January's rollover_balance
+      (budgetService as any).getRolloverFromPreviousMonth = mock(() => Promise.resolve(800));
+
+      // Mock propagateToNextMonth to avoid side effects
+      (budgetService as any).propagateToNextMonth = mock(() => Promise.resolve());
+
+      // Mock Supabase update
+      mockSupabaseClient.setMockData(null).setMockError(null);
+
+      const result = await budgetService.calculateAndPersistEndingBalance(
+        'february-budget-id',
+        client as AuthenticatedSupabaseClient,
+      );
+
+      // Verify calculations
+      // ending_balance = 5000 - 4200 - 100 = 700
+      expect(result).toBe(700);
+
+      // Verify Supabase was called with correct rollover_balance calculation
+      expect(mockSupabaseClient.update).toHaveBeenCalledWith({
+        ending_balance: 700,
+        rollover_balance: 1500, // 800 + 700 = 1500 (cumulative)
+      });
+    });
+
+    it('should handle negative ending_balance correctly in rollover_balance', async () => {
+      // March: overspent, ending_balance negative but rollover_balance continues cumulating
+      
+      const budgetData = {
+        budgetLines: [
+          { kind: 'income', amount: 4000 },
+          { kind: 'expense', amount: 4500 },
+        ],
+        transactions: [
+          { kind: 'expense', amount: 200 }, // Additional spending
+        ],
+      };
+
+      // Mock fetchBudgetData  
+      (budgetService as any).fetchBudgetData = mock(() => Promise.resolve(budgetData));
+      
+      // Mock getRolloverFromPreviousMonth to return February's rollover_balance
+      (budgetService as any).getRolloverFromPreviousMonth = mock(() => Promise.resolve(1500));
+
+      // Mock propagateToNextMonth to avoid side effects
+      (budgetService as any).propagateToNextMonth = mock(() => Promise.resolve());
+
+      // Mock Supabase update
+      mockSupabaseClient.setMockData(null).setMockError(null);
+
+      const result = await budgetService.calculateAndPersistEndingBalance(
+        'march-budget-id',
+        client as AuthenticatedSupabaseClient,
+      );
+
+      // Verify calculations
+      // ending_balance = 4000 - 4500 - 200 = -700 (negative)
+      expect(result).toBe(-700);
+
+      // Verify rollover_balance calculation
+      expect(mockSupabaseClient.update).toHaveBeenCalledWith({
+        ending_balance: -700,
+        rollover_balance: 800, // 1500 + (-700) = 800 (cumulative with deficit)
+      });
+    });
+
+    it('should calculate Available to Spend correctly', async () => {
+      // Test the calculateAvailableToSpend method
+
+      // Mock getCurrentBudgetForRollover
+      (budgetService as any).getCurrentBudgetForRollover = mock(() => 
+        Promise.resolve({
+          id: 'test-budget-id',
+          user_id: 'user-123',
+          month: 3,
+          year: 2025,
+        })
+      );
+
+      // Mock calculateAndPersistEndingBalance
+      (budgetService as any).calculateAndPersistEndingBalance = mock(() => 
+        Promise.resolve(300) // Current month ending balance
+      );
+
+      // Mock getRolloverFromPreviousMonth
+      (budgetService as any).getRolloverFromPreviousMonth = mock(() => 
+        Promise.resolve(800) // Rollover from previous month
+      );
+
+      const result = await budgetService.calculateAvailableToSpend(
+        'test-budget-id',
+        client as AuthenticatedSupabaseClient,
+      );
+
+      expect(result).toEqual({
+        endingBalance: 300,
+        rollover: 800,
+        rolloverBalance: 1100, // 800 + 300 = 1100
+        availableToSpend: 1100, // 300 + 800 = 1100
+      });
+    });
+
+    it('should use rollover_balance from previous month instead of ending_balance', async () => {
+      // Test that getRolloverFromPreviousMonth uses rollover_balance, not ending_balance
+
+      const currentBudgetMock = {
+        id: 'current-budget',
+        user_id: 'user-123',
+        month: 4,
+        year: 2025,
+      };
+
+      const previousBudgetMock = {
+        id: 'previous-budget',
+        ending_balance: 200,
+        rollover_balance: 1200, // This should be used, not ending_balance
+      };
+
+      // Mock getCurrentBudgetForRollover
+      (budgetService as any).getCurrentBudgetForRollover = mock(() => 
+        Promise.resolve(currentBudgetMock)
+      );
+
+      // Mock findPreviousBudget
+      (budgetService as any).findPreviousBudget = mock(() => 
+        Promise.resolve(previousBudgetMock)
+      );
+
+      const result = await (budgetService as any).getRolloverFromPreviousMonth(
+        'current-budget',
+        client as AuthenticatedSupabaseClient,
+      );
+
+      // Should return rollover_balance, not ending_balance
+      expect(result).toBe(1200);
     });
   });
 });

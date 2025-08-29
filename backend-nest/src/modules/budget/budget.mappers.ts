@@ -2,6 +2,7 @@ import {
   type Budget,
   type BudgetCreate,
   type BudgetUpdate,
+  type BudgetSummary,
 } from '@pulpe/shared';
 import { Tables, TablesInsert } from '@/types/database.types';
 
@@ -18,6 +19,8 @@ export function toApi(budgetDb: Tables<'monthly_budget'>): Budget {
     month: budgetDb.month,
     year: budgetDb.year,
     description: budgetDb.description,
+    endingBalance: budgetDb.ending_balance ?? undefined,
+    rolloverBalance: (budgetDb as any).rollover_balance ?? undefined,
   };
 }
 
@@ -63,4 +66,21 @@ export function toUpdate(
   }
 
   return updateData;
+}
+
+/**
+ * Transform rollover calculation result to API BudgetSummary
+ */
+export function toBudgetSummary(rolloverData: {
+  endingBalance: number;
+  rollover: number;
+  rolloverBalance: number;
+  availableToSpend: number;
+}): BudgetSummary {
+  return {
+    endingBalance: rolloverData.endingBalance,
+    rollover: rolloverData.rollover,
+    rolloverBalance: rolloverData.rolloverBalance,
+    availableToSpend: rolloverData.availableToSpend,
+  };
 }
