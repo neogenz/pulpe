@@ -143,8 +143,8 @@ importers:
         specifier: ^5.5.1
         version: 5.5.1(@types/eslint@9.6.1)(eslint-config-prettier@10.1.5(eslint@9.30.0(jiti@2.4.2)))(eslint@9.30.0(jiti@2.4.2))(prettier@3.6.2)
       supabase:
-        specifier: ^2.33.9
-        version: 2.33.9
+        specifier: ^2.39.2
+        version: 2.39.2
       supertest:
         specifier: ^7.1.1
         version: 7.1.1
@@ -5605,8 +5605,8 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
-  supabase@2.33.9:
-    resolution: {integrity: sha512-bjCdzcAzbzmPn5B4FNjsAE32aHDgCHtHngj0eDZdZ1+tVbH1/4TwGeZWy41JeiraNx5VPMG+BUOG2VNBXXcXEA==}
+  supabase@2.39.2:
+    resolution: {integrity: sha512-/LDPMDIDmuDwj3UsKVw+wA+uHF7QhEF8xgJnKpnk1vqVdr+lA6xRSwWQzgaNuwPj5YPt6+78JKp+wzKziTsRVw==}
     engines: {npm: '>=8'}
     hasBin: true
 
@@ -12048,7 +12048,7 @@ snapshots:
     dependencies:
       commander: 12.1.0
 
-  supabase@2.33.9:
+  supabase@2.39.2:
     dependencies:
       bin-links: 5.0.0
       https-proxy-agent: 7.0.6

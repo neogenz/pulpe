@@ -62,14 +62,19 @@ A **Monthly Budget** is an _instance_ of a Template for a specific month.
 - Template amounts become "budgeted amounts".
 - Each line in the budget is independently editable.
 
-### Core Calculation Logic: "Fixed Block" vs. "Living Allowance"
+### Core Calculation Logic: "Fixed Block" vs. "Available to Spend"
 
-1.  **The Plan (Fixed Block):** At the start of the month, the system calculates the **Fixed Block**.
+1.  **The Fixed Block:** At the start of the month, the system calculates the **Fixed Block**.
     `Fixed Block = Sum(All Expenses) + Sum(All Planned Savings)`
-2.  **The Living Allowance:** The system then calculates the **Living Allowance**.
-    `Living Allowance = Planned Income - Fixed Block`
-3.  **Tracking (Transactions):** All manually entered transactions throughout the month decrease _only_ the Living Allowance.
-4.  **Rollover:** Any remaining positive or negative Living Allowance is rolled over to the next month.
+2.  **The Ending Balance:** The system calculates and stores the month's pure balance.
+    `Ending Balance = Income - (Expenses + Savings)` from ALL sources (budget_lines + transactions)
+    - Stored in `monthly_budget.ending_balance`
+    - Does NOT include rollover
+3.  **The Rollover:** Previous month's ending balance becomes current month's rollover.
+    `Rollover = ending_balance of month n-1`
+4.  **Available to Spend (User Display):** What the user sees as spendable amount.
+    `Available to Spend = Ending Balance (current month) + Rollover`
+5.  **Tracking:** Transactions are included in the ending balance calculation, not tracked separately.
 
 ### Savings Mechanism
 
@@ -105,7 +110,7 @@ Savings are treated as a **priority expense**, not a leftover amount.
   1. SELECT SOURCE TEMPLATE: User chooses from their list of templates.
   2. INSTANTIATE FOR TARGET MONTH: All template lines are copied to a new monthly budget, linking the `template_id`.
   3. CUSTOMIZE POST-CREATION: User can edit, add, or delete any line in the newly created budget.
-  4. ACTIVATE & CALCULATE: The system computes the initial "Living Allowance" and sets alert thresholds.
+  4. ACTIVATE & CALCULATE: The system computes the ending_balance and retrieves previous month's rollover to display "Available to Spend".
   ```
 
 ### WF-000: Onboarding & Initial Creation Workflow
@@ -145,13 +150,15 @@ Savings are treated as a **priority expense**, not a leftover amount.
   - Past budgets are immutable historical records and are never modified.
   - The current month's budget can be updated with user confirmation.
 
-### RG-002: Living Allowance Calculation
+### RG-002: Available to Spend Calculation
 
-- **Formula:** `Displayed Balance = (Initial Living Allowance) - (Sum of all transactions for the month)`
+- **Stored Value:** `Ending Balance = Income - (Expenses + Savings)` from all sources
+- **Display Formula:** `Available to Spend = Ending Balance + Rollover from Previous Month`
+- **Update Strategy:** When month N is modified, only ending_balance of N is recalculated
 
 ### RG-003: Overspending Management
 
-- **Alert Thresholds:** System sends notifications at 80%, 90%, 100%, and 110% of the Living Allowance being spent.
+- **Alert Thresholds:** System sends notifications at 80%, 90%, 100%, and 110% of the Available to Spend being spent.
 - **Proposed Actions on Overdraft:**
   1.  **Compensate:** Reduce spending in other variable categories.
   2.  **Rollover (Default):** Carry the negative balance over to the next month.
@@ -179,7 +186,8 @@ Savings are treated as a **priority expense**, not a leftover amount.
 
 - The data model maintains a strict separation between planning and reality.
 - **`budget_lines` (The Plan):** Represent planned, recurring (`'fixed'`) or one-off (`'one_off'`) income/expenses. They constitute the **Fixed Block**.
-- **`transactions` (The Events):** Represent actual, manually entered spending. They are linked to a `monthly_budget` but **never** to a specific `budget_line`. They decrease the **Living Allowance**.
+- **`transactions` (The Events):** Represent actual, manually entered spending. They are linked to a `monthly_budget` but **never** to a specific `budget_line`. They affect the **Ending Balance**.
+- **`ending_balance` (The Result):** Represents the pure month balance including all budget_lines and transactions, stored for rollover purposes.
 
 ### RG-008: Transaction Type Classification (Technical)
 

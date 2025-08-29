@@ -13,12 +13,14 @@ import {
 } from '@pulpe/shared';
 import * as budgetLineMappers from './budget-line.mappers';
 import type { Database } from '../../types/database.types';
+import { BudgetService } from '../budget/budget.service';
 
 @Injectable()
 export class BudgetLineService {
   constructor(
     @InjectPinoLogger(BudgetLineService.name)
     private readonly logger: PinoLogger,
+    private readonly budgetService: BudgetService,
   ) {}
 
   async findAll(
@@ -362,6 +364,12 @@ export class BudgetLineService {
         user,
       );
 
+      // Recalculate ending balance for the budget immediately
+      await this.budgetService.calculateAndPersistEndingBalance(
+        budgetLineDb.budget_id,
+        supabase,
+      );
+
       const apiData = budgetLineMappers.toApi(budgetLineDb);
 
       return {
@@ -395,6 +403,13 @@ export class BudgetLineService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineDeleteResponse> {
     try {
+      // Get budget_id before deletion
+      const { data: budgetLine } = await supabase
+        .from('budget_line')
+        .select('budget_id')
+        .eq('id', id)
+        .single();
+
       const { error } = await supabase
         .from('budget_line')
         .delete()
@@ -412,6 +427,14 @@ export class BudgetLineService {
             supabaseError: error,
           },
           { cause: error },
+        );
+      }
+
+      // Recalculate ending balance for the budget immediately
+      if (budgetLine?.budget_id) {
+        await this.budgetService.calculateAndPersistEndingBalance(
+          budgetLine.budget_id,
+          supabase,
         );
       }
 

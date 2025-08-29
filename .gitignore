@@ -83,5 +83,9 @@ frontend/projects/webapp/src/environments/build-info.development.ts
 docs/angular-architecture-doc.md
 .vercel
 
+# PNPM store should not be versioned
+.pnpm-store/
+**/.pnpm-store/
+
 .pnpm-store/backend-nest/env.development
 **/env.development

@@ -14,12 +14,14 @@ import {
 import * as transactionMappers from './transaction.mappers';
 import { TRANSACTION_CONSTANTS } from './entities';
 import type { Database } from '../../types/database.types';
+import { BudgetService } from '../budget/budget.service';
 
 @Injectable()
 export class TransactionService {
   constructor(
     @InjectPinoLogger(TransactionService.name)
     private readonly logger: PinoLogger,
+    private readonly budgetService: BudgetService,
   ) {}
 
   async findAll(
@@ -389,6 +391,12 @@ export class TransactionService {
         user.id,
       );
 
+      // Recalculate ending balance for the budget immediately
+      await this.budgetService.calculateAndPersistEndingBalance(
+        transactionDb.budget_id,
+        supabase,
+      );
+
       const apiData = transactionMappers.toApi(transactionDb);
 
       return {
@@ -424,7 +432,16 @@ export class TransactionService {
     const startTime = Date.now();
 
     try {
-      await this.performTransactionDeletion(id, supabase);
+      const budgetId = await this.performTransactionDeletion(id, supabase);
+      
+      // Recalculate ending balance for the budget immediately
+      if (budgetId) {
+        await this.budgetService.calculateAndPersistEndingBalance(
+          budgetId,
+          supabase,
+        );
+      }
+      
       this.logTransactionDeletionSuccess(user.id, id, startTime);
 
       return {
@@ -439,7 +456,14 @@ export class TransactionService {
   private async performTransactionDeletion(
     id: string,
     supabase: AuthenticatedSupabaseClient,
-  ): Promise<void> {
+  ): Promise<string | null> {
+    // Get budget_id before deletion
+    const { data: transaction } = await supabase
+      .from('transaction')
+      .select('budget_id')
+      .eq('id', id)
+      .single();
+
     const { error } = await supabase.from('transaction').delete().eq('id', id);
 
     if (error) {
@@ -455,6 +479,8 @@ export class TransactionService {
         { cause: error },
       );
     }
+
+    return transaction?.budget_id || null;
   }
 
   private logTransactionDeletionSuccess(
