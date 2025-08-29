@@ -15,6 +15,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { BaseLoading } from '@ui/loading';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { DatePipe } from '@angular/common';
+import { Logger } from '@core/logging/logger';
 import { formatDate } from 'date-fns';
 import { frCH } from 'date-fns/locale';
 import { BudgetDetailsStore } from './services/budget-details-store';
@@ -98,7 +99,10 @@ import {
         </header>
 
         <!-- Financial Overview -->
-        <pulpe-budget-financial-overview [budgetLines]="budgetLines" />
+        <pulpe-budget-financial-overview
+          [budgetLines]="budgetLines"
+          [transactions]="transactions"
+        />
 
         <!-- Budget Items Table -->
         <pulpe-budget-items-table
@@ -178,6 +182,7 @@ export default class DetailsPage implements OnInit {
   readonly #route = inject(ActivatedRoute);
   readonly #dialog = inject(MatDialog);
   readonly #snackBar = inject(MatSnackBar);
+  readonly #logger = inject(Logger);
 
   id = input.required<string>();
 
@@ -244,7 +249,7 @@ export default class DetailsPage implements OnInit {
     );
 
     if (!budgetLine && !transaction) {
-      console.error('Item not found with id:', id);
+      this.#logger.error('Item not found', { id, budgetId: this.id() });
       return;
     }
 

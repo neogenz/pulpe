@@ -84,19 +84,28 @@ export class MockSupabaseClient {
       limit: () => chainMethods,
       range: () => chainMethods,
       single: () => Promise.resolve(result),
+      maybeSingle: () => Promise.resolve(result),
       insert: () => ({
         select: () => ({
           single: () =>
             Promise.resolve({ data: this.#mockData, error: this.#mockError }),
         }),
       }),
-      update: () => ({
+      update: (_data: any) => ({
         eq: () => ({
           select: () => ({
             single: () =>
               Promise.resolve({ data: this.#mockData, error: this.#mockError }),
           }),
+          then: (resolve: (value: any) => any) => {
+            const result = { data: this.#mockData, error: this.#mockError };
+            return Promise.resolve(result).then(resolve);
+          },
         }),
+        then: (resolve: (value: any) => any) => {
+          const result = { data: this.#mockData, error: this.#mockError };
+          return Promise.resolve(result).then(resolve);
+        },
       }),
       delete: () => ({
         eq: () => Promise.resolve({ error: this.#mockError }),
@@ -131,6 +140,13 @@ export class MockSupabaseClient {
   setMockError(error: unknown) {
     this.#mockError = error;
     return this;
+  }
+
+  update(_data: any) {
+    return {
+      data: this.#mockData,
+      error: this.#mockError,
+    };
   }
 
   reset() {

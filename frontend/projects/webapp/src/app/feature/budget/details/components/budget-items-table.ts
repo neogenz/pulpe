@@ -9,6 +9,7 @@ import {
   DestroyRef,
 } from '@angular/core';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
+import { RouterLink } from '@angular/router';
 import { MatTableModule } from '@angular/material/table';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -27,12 +28,17 @@ import {
   type BudgetLineUpdate,
 } from '@pulpe/shared';
 import { EditBudgetLineDialog } from './edit-budget-line-dialog';
+import { Logger } from '@core/logging/logger';
 import {
   BudgetTableMapper,
-  type TableRow,
-  type SectionHeaderRow,
-  type DataRow,
+  type TableItem,
 } from '../../services/budget-table-mapper';
+import {
+  TransactionIconPipe,
+  TransactionLabelPipe,
+  RecurrenceLabelPipe,
+} from '@ui/transaction-display';
+import { RolloverFormatPipe } from '../../pipes';
 
 @Component({
   selector: 'pulpe-budget-items-table',
@@ -46,7 +52,12 @@ import {
     MatChipsModule,
     MatTooltipModule,
     ReactiveFormsModule,
+    RouterLink,
     CurrencyPipe,
+    TransactionIconPipe,
+    TransactionLabelPipe,
+    RecurrenceLabelPipe,
+    RolloverFormatPipe,
   ],
   host: {
     '[class.mobile-view]': 'isMobile()?.matches',
@@ -62,14 +73,14 @@ import {
       <mat-card-content class="overflow-x-auto">
         <table
           mat-table
-          [dataSource]="budgetItemViewModels()"
+          [dataSource]="budgetTableData().items"
           class="w-full min-w-[600px]"
         >
           <!-- Name Column -->
           <ng-container matColumnDef="name">
             <th mat-header-cell *matHeaderCellDef>Description</th>
             <td mat-cell *matCellDef="let line">
-              @if (line.isEditing) {
+              @if (line.metadata.isEditing) {
                 <form
                   [formGroup]="editForm"
                   (ngSubmit)="saveEdit()"
@@ -84,7 +95,7 @@ import {
                       matInput
                       formControlName="name"
                       placeholder="Nom de la ligne"
-                      [attr.data-testid]="'edit-name-' + line.id"
+                      [attr.data-testid]="'edit-name-' + line.data.id"
                       class="text-body-medium"
                       (keydown.enter)="saveEdit()"
                       (keydown.escape)="cancelEdit()"
@@ -95,18 +106,48 @@ import {
                 <div class="flex items-center gap-2">
                   <span
                     class="inline-flex items-center gap-2 cursor-help"
-                    [matTooltip]="line.kindLabel"
+                    [class.rollover-text]="line.metadata.isRollover"
+                    [matTooltip]="line.data.kind | transactionLabel"
                     matTooltipPosition="above"
-                    [attr.aria-describedby]="'type-tooltip-' + line.id"
-                    [attr.aria-label]="'Type de transaction: ' + line.kindLabel"
+                    [attr.aria-describedby]="'type-tooltip-' + line.data.id"
+                    [attr.aria-label]="
+                      'Type de transaction: ' +
+                      (line.data.kind | transactionLabel)
+                    "
                     tabindex="0"
                   >
-                    <mat-icon [class]="line.kindIconClass">
-                      {{ line.kindIcon }}
+                    <mat-icon
+                      class="flex-shrink-0"
+                      [class.text-financial-income]="
+                        line.data.kind === 'income'
+                      "
+                      [class.text-financial-negative]="
+                        line.data.kind === 'expense'
+                      "
+                      [class.text-primary]="line.data.kind === 'saving'"
+                    >
+                      {{ line.data.kind | transactionIcon }}
                     </mat-icon>
-                    <span class="text-body-medium font-semibold">{{
-                      line.name
-                    }}</span>
+                    @if (
+                      line.metadata.isRollover &&
+                      line.data.rolloverSourceBudgetId
+                    ) {
+                      <a
+                        [routerLink]="[
+                          '/app/budget',
+                          line.data.rolloverSourceBudgetId,
+                        ]"
+                        target="_blank"
+                        matButton
+                        class="text-body-medium font-semibold"
+                      >
+                        {{ line.data.name | rolloverFormat }}
+                      </a>
+                    } @else {
+                      <span class="text-body-medium font-semibold">
+                        {{ line.data.name | rolloverFormat }}
+                      </span>
+                    }
                   </span>
                 </div>
               }
@@ -117,12 +158,37 @@ import {
           <ng-container matColumnDef="recurrence">
             <th mat-header-cell *matHeaderCellDef>Fréquence</th>
             <td mat-cell *matCellDef="let line">
-              <mat-chip
-                [class]="line.recurrenceChipClass"
-                class="text-label-medium font-medium"
-              >
-                {{ line.recurrenceLabel }}
-              </mat-chip>
+              @if ('recurrence' in line.data) {
+                <mat-chip
+                  [class.bg-primary-container]="
+                    line.data.recurrence === 'fixed'
+                  "
+                  [class.text-on-primary-container]="
+                    line.data.recurrence === 'fixed'
+                  "
+                  [class.bg-tertiary-container]="
+                    line.data.recurrence === 'variable'
+                  "
+                  [class.text-on-tertiary-container]="
+                    line.data.recurrence === 'variable'
+                  "
+                  [class.bg-secondary-container]="
+                    line.data.recurrence === 'one_off'
+                  "
+                  [class.text-on-secondary-container]="
+                    line.data.recurrence === 'one_off'
+                  "
+                  class="text-label-medium font-medium"
+                >
+                  {{ line.data.recurrence | recurrenceLabel }}
+                </mat-chip>
+              } @else {
+                <mat-chip
+                  class="bg-secondary-container text-on-secondary-container text-label-medium font-medium"
+                >
+                  Une seule fois
+                </mat-chip>
+              }
             </td>
           </ng-container>
 
@@ -132,7 +198,7 @@ import {
               Montant
             </th>
             <td mat-cell *matCellDef="let line" class="text-right">
-              @if (line.isEditing) {
+              @if (line.metadata.isEditing) {
                 <form
                   [formGroup]="editForm"
                   (ngSubmit)="saveEdit()"
@@ -150,7 +216,7 @@ import {
                       placeholder="0.00"
                       step="0.01"
                       min="0"
-                      [attr.data-testid]="'edit-amount-' + line.id"
+                      [attr.data-testid]="'edit-amount-' + line.data.id"
                       class="text-body-medium text-right"
                       (keydown.enter)="saveEdit()"
                       (keydown.escape)="cancelEdit()"
@@ -161,9 +227,12 @@ import {
               } @else {
                 <span
                   class="text-body-medium font-medium"
-                  [class]="line.amountClass"
+                  [class.text-financial-income]="line.data.kind === 'income'"
+                  [class.text-financial-negative]="line.data.kind === 'expense'"
+                  [class.text-primary]="line.data.kind === 'saving'"
+                  [class.italic]="line.metadata.isRollover"
                 >
-                  {{ line.amount | currency: 'CHF' }}
+                  {{ line.data.amount | currency: 'CHF' }}
                 </span>
               }
             </td>
@@ -177,10 +246,15 @@ import {
             <td mat-cell *matCellDef="let line" class="text-right">
               <span
                 class="text-body-medium font-medium"
-                [class]="line.cumulativeBalanceClass"
+                [class.text-financial-income]="
+                  line.metadata.cumulativeBalance >= 0
+                "
+                [class.text-financial-negative]="
+                  line.metadata.cumulativeBalance < 0
+                "
               >
                 {{
-                  line.cumulativeBalance
+                  line.metadata.cumulativeBalance
                     | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH'
                 }}
               </span>
@@ -192,13 +266,15 @@ import {
             <th mat-header-cell *matHeaderCellDef></th>
             <td mat-cell *matCellDef="let line">
               <div class="flex gap-1 justify-end items-center">
-                @if (line.isEditing) {
+                @if (line.metadata.isEditing) {
                   <div class="flex items-center gap-2">
                     <button
                       matButton
                       (click)="cancelEdit()"
-                      [attr.aria-label]="'Cancel editing ' + line.name"
-                      [attr.data-testid]="'cancel-' + line.id"
+                      [attr.aria-label]="
+                        'Cancel editing ' + (line.data.name | rolloverFormat)
+                      "
+                      [attr.data-testid]="'cancel-' + line.data.id"
                       class="density-3"
                     >
                       <mat-icon class="!text-base mr-1">close</mat-icon>
@@ -207,8 +283,10 @@ import {
                     <button
                       matButton="filled"
                       (click)="saveEdit()"
-                      [attr.aria-label]="'Save ' + line.name"
-                      [attr.data-testid]="'save-' + line.id"
+                      [attr.aria-label]="
+                        'Save ' + (line.data.name | rolloverFormat)
+                      "
+                      [attr.data-testid]="'save-' + line.data.id"
                       [disabled]="!editForm.valid"
                       class="density-3"
                     >
@@ -217,44 +295,39 @@ import {
                     </button>
                   </div>
                 } @else {
-                  @if (line.itemType === 'budget_line') {
+                  @if (
+                    line.metadata.itemType === 'budget_line' &&
+                    !line.metadata.isRollover
+                  ) {
                     <button
                       matIconButton
                       (click)="startEdit(line)"
-                      [attr.aria-label]="'Edit ' + line.name"
-                      [attr.data-testid]="'edit-' + line.id"
-                      [disabled]="line.isLoading"
+                      [attr.aria-label]="
+                        'Edit ' + (line.data.name | rolloverFormat)
+                      "
+                      [attr.data-testid]="'edit-' + line.data.id"
+                      [disabled]="line.metadata.isLoading"
                       class="!w-10 !h-10"
                     >
                       <mat-icon>edit</mat-icon>
                     </button>
                   }
-                  <button
-                    matIconButton
-                    (click)="deleteClicked.emit(line.id)"
-                    [attr.aria-label]="'Delete ' + line.name"
-                    data-testid="delete-button"
-                    [disabled]="line.isLoading"
-                    class="!w-10 !h-10 text-error"
-                  >
-                    <mat-icon>delete</mat-icon>
-                  </button>
+                  @if (!line.metadata.isRollover) {
+                    <button
+                      matIconButton
+                      (click)="deleteClicked.emit(line.data.id)"
+                      [attr.aria-label]="
+                        'Delete ' + (line.data.name | rolloverFormat)
+                      "
+                      data-testid="delete-button"
+                      [disabled]="line.metadata.isLoading"
+                      class="!w-10 !h-10 text-error"
+                    >
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  }
                 }
               </div>
-            </td>
-          </ng-container>
-
-          <!-- Section Header Column -->
-          <ng-container matColumnDef="section-header">
-            <td
-              mat-cell
-              *matCellDef="let row"
-              [attr.colspan]="currentColumns().length"
-              class=""
-            >
-              <h3 class="text-title-medium font-bold text-on-surface m-0">
-                {{ row.title }}
-              </h3>
             </td>
           </ng-container>
 
@@ -264,26 +337,13 @@ import {
           ></tr>
           <tr
             mat-row
-            *matRowDef="
-              let row;
-              columns: ['section-header'];
-              when: isSectionHeader;
-              trackBy: trackByRow
-            "
-            class="!hover:bg-transparent"
-          ></tr>
-          <tr
-            mat-row
-            *matRowDef="
-              let row;
-              columns: currentColumns();
-              when: isDataRow;
-              trackBy: trackByRow
-            "
+            *matRowDef="let row; columns: currentColumns(); trackBy: trackByRow"
             class="hover:bg-surface-container-low transition-opacity"
-            [class.opacity-50]="row.isLoading"
-            [class.pointer-events-none]="row.isLoading"
-            [attr.data-testid]="'budget-line-' + row.name"
+            [class.opacity-50]="row.metadata.isLoading"
+            [class.pointer-events-none]="row.metadata.isLoading"
+            [attr.data-testid]="
+              'budget-line-' + (row.data.name | rolloverFormat)
+            "
           ></tr>
 
           <!-- No data row -->
@@ -308,7 +368,7 @@ import {
           </tr>
         </table>
       </mat-card-content>
-      @if (budgetItemViewModels().length > 0) {
+      @if (budgetTableData().items.length > 0) {
         <mat-card-actions class="flex justify-center mb-2">
           <button
             matButton="outlined"
@@ -323,6 +383,7 @@ import {
     </mat-card>
   `,
   styles: `
+    @reference "tailwindcss";
     :host {
       display: block;
     }
@@ -354,6 +415,7 @@ export class BudgetItemsTable {
   readonly #dialog = inject(MatDialog);
   readonly #destroyRef = inject(DestroyRef);
   readonly #budgetTableMapper = inject(BudgetTableMapper);
+  readonly #logger = inject(Logger);
 
   // UI configuration
   displayedColumns = ['name', 'recurrence', 'amount', 'remaining', 'actions'];
@@ -378,43 +440,31 @@ export class BudgetItemsTable {
   );
 
   // View Model - single computed that delegates to service
-  tableViewModel = computed(() => {
+  budgetTableData = computed(() => {
     const budgetLines = this.budgetLines();
     const transactions = this.transactions();
     const operationsInProgress = this.operationsInProgress();
     const editingLineId = this.editingLineId();
 
     // Component is now logic-free - just passes data to service
-    return this.#budgetTableMapper.prepareBudgetTableData(
+    return this.#budgetTableMapper.prepareBudgetTableData({
       budgetLines,
       transactions,
       operationsInProgress,
       editingLineId,
-    );
+    });
   });
 
-  // Direct binding properties for template
-  budgetItemViewModels = computed(() => this.tableViewModel().rows);
-
-  // Predicate functions for row types
-  readonly isSectionHeader = (
-    _: number,
-    row: TableRow,
-  ): row is SectionHeaderRow => row.type === 'section_header';
-
-  readonly isDataRow = (_: number, row: TableRow): row is DataRow =>
-    row.type === 'data_row';
-
   // Track function for performance optimization
-  readonly trackByRow = (_: number, row: TableRow): string => row.id;
+  readonly trackByRow = (_: number, row: TableItem): string => row.data.id;
 
-  startEdit(item: DataRow): void {
+  startEdit(item: TableItem): void {
     // Only allow editing budget lines, not transactions
-    if (item.itemType !== 'budget_line') return;
+    if (item.metadata.itemType !== 'budget_line') return;
 
     // On mobile, open dialog for editing
     if (this.isMobile()?.matches) {
-      const budgetLine = this.budgetLines().find((l) => l.id === item.id);
+      const budgetLine = this.budgetLines().find((l) => l.id === item.data.id);
       if (!budgetLine) return;
 
       try {
@@ -429,24 +479,27 @@ export class BudgetItemsTable {
           .pipe(takeUntilDestroyed(this.#destroyRef))
           .subscribe((update: BudgetLineUpdate | undefined) => {
             if (update) {
-              this.updateClicked.emit({ id: item.id, update });
+              this.updateClicked.emit({ id: item.data.id, update });
             }
           });
       } catch (error) {
-        console.error('Failed to open edit dialog:', error);
+        this.#logger.error('Failed to open edit dialog', {
+          error,
+          itemId: item.data.id,
+        });
         // Fallback to inline editing
-        this.editingLineId.set(item.id);
+        this.editingLineId.set(item.data.id);
         this.editForm.patchValue({
-          name: item.name,
-          amount: item.amount,
+          name: item.data.name,
+          amount: item.data.amount,
         });
       }
     } else {
       // Desktop: inline editing
-      this.editingLineId.set(item.id);
+      this.editingLineId.set(item.data.id);
       this.editForm.patchValue({
-        name: item.name,
-        amount: item.amount,
+        name: item.data.name,
+        amount: item.data.amount,
       });
     }
   }

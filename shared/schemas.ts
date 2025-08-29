@@ -35,6 +35,8 @@ export const budgetSchema = z.object({
   description: z.string().min(1).max(500),
   userId: z.string().uuid().optional(),
   templateId: z.string().uuid(),
+  endingBalance: z.number().nullable().optional(),
+  rolloverBalance: z.number().nullable().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
@@ -119,6 +121,8 @@ export const budgetLineSchema = z.object({
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,
   isManuallyAdjusted: z.boolean(),
+  isRollover: z.boolean(),
+  rolloverSourceBudgetId: z.string().uuid().nullable().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
@@ -133,6 +137,7 @@ export const budgetLineCreateSchema = z.object({
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,
   isManuallyAdjusted: z.boolean().default(false),
+  isRollover: z.boolean().default(false),
 });
 export type BudgetLineCreate = z.infer<typeof budgetLineCreateSchema>;
 
@@ -321,7 +326,7 @@ export type TemplateLinesBulkOperationsResponse = z.infer<
   typeof templateLinesBulkOperationsResponseSchema
 >;
 
-// Legacy schema for backward compatibility
+// Template transaction update schema for backward compatibility
 export const templateTransactionUpdateSchema = z.object({
   name: z.string().min(1).max(100).trim().optional(),
   amount: z.number().positive().optional(),
@@ -361,6 +366,15 @@ export type BudgetListResponse = z.infer<typeof budgetListResponseSchema>;
 export const budgetDeleteResponseSchema = deleteResponseSchema;
 export type BudgetDeleteResponse = z.infer<typeof budgetDeleteResponseSchema>;
 
+// Budget summary schema with rollover calculations
+export const budgetSummarySchema = z.object({
+  endingBalance: z.number(),
+  rollover: z.number(),
+  rolloverBalance: z.number(),
+  availableToSpend: z.number(),
+});
+export type BudgetSummary = z.infer<typeof budgetSummarySchema>;
+
 // Budget details response schema - aggregates budget with its transactions and budget lines
 export const budgetDetailsResponseSchema = z.object({
   success: z.literal(true),
@@ -368,6 +382,7 @@ export const budgetDetailsResponseSchema = z.object({
     budget: budgetSchema,
     transactions: z.array(transactionSchema),
     budgetLines: z.array(budgetLineSchema),
+    summary: budgetSummarySchema.optional(),
   }),
 });
 export type BudgetDetailsResponse = z.infer<typeof budgetDetailsResponseSchema>;
@@ -491,7 +506,7 @@ export type TemplateLineDeleteResponse = z.infer<
   typeof templateLineDeleteResponseSchema
 >;
 
-// Legacy generic type - prefer operation-specific types above
+// Generic transaction response type - prefer operation-specific types above
 export type TransactionResponse = {
   success: true;
   data?: Transaction | Transaction[];

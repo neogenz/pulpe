@@ -11,6 +11,8 @@ NC='\033[0m' # No Color
 # Chemins sources
 SOURCE_BACKEND_ENV="/Users/maximedesogus/workspace/perso/pulpe-workspace/backend-nest/.env"
 SOURCE_ROOT_ENV="/Users/maximedesogus/workspace/perso/pulpe-workspace/.env"
+SOURCE_BACKEND_ENV_LOCAL="/Users/maximedesogus/workspace/perso/pulpe-workspace/backend-nest/.env.local"
+SOURCE_BACKEND_ENV_DEVELOPMENT="/Users/maximedesogus/workspace/perso/pulpe-workspace/backend-nest/.env.development"
 
 # Répertoire du projet courant (où le script est exécuté)
 CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -18,6 +20,8 @@ CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Chemins de destination
 DEST_BACKEND_ENV="$CURRENT_DIR/backend-nest/.env"
 DEST_ROOT_ENV="$CURRENT_DIR/.env"
+DEST_BACKEND_ENV_LOCAL="$CURRENT_DIR/backend-nest/.env.local"
+DEST_BACKEND_ENV_DEVELOPMENT="$CURRENT_DIR/backend-nest/.env.development"
 
 echo -e "${YELLOW}🔄 Synchronisation des fichiers .env...${NC}"
 
@@ -50,6 +54,12 @@ copy_env_file() {
 
 # Copier le fichier .env du backend
 copy_env_file "$SOURCE_BACKEND_ENV" "$DEST_BACKEND_ENV" "Backend .env"
+
+# Copier le fichier .env.local du backend
+copy_env_file "$SOURCE_BACKEND_ENV_LOCAL" "$DEST_BACKEND_ENV_LOCAL" "Backend .env.local"
+
+# Copier le fichier .env.development du backend
+copy_env_file "$SOURCE_BACKEND_ENV_DEVELOPMENT" "$DEST_BACKEND_ENV_DEVELOPMENT" "Backend .env.development"
 
 echo ""
 
