@@ -433,31 +433,17 @@ export class BudgetService {
   ): Promise<BudgetDetailsResponse> {
     try {
       const results = await this.fetchBudgetDetailsData(id, supabase);
-
       this.validateBudgetAccess(results.budgetResult, id);
       this.logDataFetchErrors(results, id);
 
       const mappedData = this.mapBudgetDetailsData(results);
-
-      // Add rollover from previous month
-      const rolloverLine = await this.calculateRolloverLine(
-        results.budgetResult.data as Tables<'monthly_budget'>,
+      await this.addRolloverToBudgetLines(
+        mappedData,
+        results.budgetResult,
         user,
         supabase,
       );
-
-      if (rolloverLine) {
-        mappedData.budgetLines.push(rolloverLine);
-      }
-
-      // Add budget summary with rollover calculations
-      const summaryData = await this.calculateAvailableToSpend(id, supabase);
-      const summary = {
-        endingBalance: summaryData.endingBalance,
-        rollover: summaryData.rollover,
-        rolloverBalance: summaryData.rolloverBalance,
-        availableToSpend: summaryData.availableToSpend,
-      };
+      const summary = await this.calculateBudgetSummary(id, supabase);
 
       this.logBudgetDetailsFetchSuccess(id, mappedData);
 
@@ -467,26 +453,62 @@ export class BudgetService {
           ...mappedData,
           summary,
         },
-      };
+      } as BudgetDetailsResponse;
     } catch (error) {
-      if (
-        error instanceof BusinessException ||
-        error instanceof HttpException
-      ) {
-        throw error;
-      }
-      throw new BusinessException(
-        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
-        undefined,
-        {
-          operation: 'getBudgetWithDetails',
-          userId: user.id,
-          entityId: id,
-          entityType: 'budget',
-        },
-        { cause: error },
-      );
+      this.handleFindOneWithDetailsError(error, user, id);
     }
+  }
+
+  private async addRolloverToBudgetLines(
+    mappedData: { budgetLines: BudgetLine[] },
+    budgetResult: { data: unknown },
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    // Add rollover from previous month
+    const rolloverLine = await this.calculateRolloverLine(
+      budgetResult.data as Tables<'monthly_budget'>,
+      user,
+      supabase,
+    );
+
+    if (rolloverLine) {
+      mappedData.budgetLines.push(rolloverLine);
+    }
+  }
+
+  private async calculateBudgetSummary(
+    id: string,
+    supabase: AuthenticatedSupabaseClient,
+  ) {
+    const summaryData = await this.calculateAvailableToSpend(id, supabase);
+    return {
+      endingBalance: summaryData.endingBalance,
+      rollover: summaryData.rollover,
+      rolloverBalance: summaryData.rolloverBalance,
+      availableToSpend: summaryData.availableToSpend,
+    };
+  }
+
+  private handleFindOneWithDetailsError(
+    error: unknown,
+    user: AuthenticatedUser,
+    id: string,
+  ): never {
+    if (error instanceof BusinessException || error instanceof HttpException) {
+      throw error;
+    }
+    throw new BusinessException(
+      ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+      undefined,
+      {
+        operation: 'getBudgetWithDetails',
+        userId: user.id,
+        entityId: id,
+        entityType: 'budget',
+      },
+      { cause: error },
+    );
   }
 
   private async fetchBudgetDetailsData(
@@ -795,11 +817,12 @@ export class BudgetService {
         return null;
       }
 
-      const previousBudgetAvailableToSpend = await this.calculateAvailableToSpendInternal(
-        previousBudget.id,
-        supabase,
-        true,
-      );
+      const previousBudgetAvailableToSpend =
+        await this.calculateAvailableToSpendInternal(
+          previousBudget.id,
+          supabase,
+          true,
+        );
 
       return this.buildRolloverLine(currentBudget, user, {
         budget: previousBudget,
@@ -943,6 +966,20 @@ export class BudgetService {
     budgetId: string,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<number> {
+    const endingBalance = await this.calculateMonthlyEndingBalance(
+      budgetId,
+      supabase,
+    );
+    await this.persistBudgetBalances(budgetId, endingBalance, supabase);
+    await this.propagateToNextMonth(budgetId, supabase);
+
+    return endingBalance;
+  }
+
+  private async calculateMonthlyEndingBalance(
+    budgetId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<number> {
     // MÉTIER: Calculate pure month balance (budget_lines + transactions du mois uniquement)
     const { budgetLines, transactions } = await this.fetchBudgetData(
       budgetId,
@@ -963,18 +1000,27 @@ export class BudgetService {
     );
 
     // MÉTIER: ending_balance = revenus - dépenses du mois (sans rollover)
-    const endingBalance = totalMonthlyIncome - totalMonthlyExpenses;
+    return totalMonthlyIncome - totalMonthlyExpenses;
+  }
 
+  private async persistBudgetBalances(
+    budgetId: string,
+    endingBalance: number,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
     // MÉTIER: rollover_balance = rollover_balance_précédent + ending_balance_actuel
-    const previousRolloverBalance = await this.getRolloverFromPreviousMonth(budgetId, supabase);
+    const previousRolloverBalance = await this.getRolloverFromPreviousMonth(
+      budgetId,
+      supabase,
+    );
     const cumulativeRolloverBalance = previousRolloverBalance + endingBalance;
 
     // Persist both values
     const { error } = await supabase
       .from('monthly_budget')
-      .update({ 
+      .update({
         ending_balance: endingBalance,
-        rollover_balance: cumulativeRolloverBalance 
+        rollover_balance: cumulativeRolloverBalance,
       })
       .eq('id', budgetId);
 
@@ -1001,11 +1047,6 @@ export class BudgetService {
       },
       'Ending balance and rollover balance calculated and persisted',
     );
-
-    // N+1 Propagation: Update following month since its rollover changed
-    await this.propagateToNextMonth(budgetId, supabase);
-
-    return endingBalance;
   }
 
   /**
@@ -1019,69 +1060,106 @@ export class BudgetService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<void> {
     try {
-      // Get current budget info for next month calculation
-      const currentBudget = await this.getCurrentBudgetForRollover(
+      const nextBudget = await this.findNextMonthBudget(
         currentBudgetId,
         supabase,
       );
 
-      if (!currentBudget) {
-        return; // No current budget found, nothing to propagate
-      }
-
-      // Find next month budget
-      const { month: nextMonth, year: nextYear } = this.getNextMonthYear(
-        currentBudget.month,
-        currentBudget.year,
-      );
-
-      const nextBudget = await this.fetchBudgetByMonthAndYear(
-        nextMonth,
-        nextYear,
-        currentBudget.user_id,
-        supabase,
-      );
-
-      if (!nextBudget) {
-        // No next month budget exists, nothing to propagate
-        this.logger.info(
-          {
-            currentBudgetId,
-            nextMonth,
-            nextYear,
-            userId: currentBudget.user_id,
-          },
-          'No next month budget found for propagation',
+      if (nextBudget) {
+        await this.recalculateNextMonthBalance(
+          currentBudgetId,
+          nextBudget,
+          supabase,
         );
-        return;
       }
+    } catch (error) {
+      this.logPropagationError(currentBudgetId, error);
+    }
+  }
 
-      // Recalculate next month's ending balance (will include updated rollover)
-      // Use internal method to avoid infinite propagation
-      await this.calculateAndPersistEndingBalanceInternal(
-        nextBudget.id,
-        supabase,
-      );
+  private async findNextMonthBudget(
+    currentBudgetId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ) {
+    // Get current budget info for next month calculation
+    const currentBudget = await this.getCurrentBudgetForRollover(
+      currentBudgetId,
+      supabase,
+    );
 
+    if (!currentBudget) {
+      return null; // No current budget found, nothing to propagate
+    }
+
+    // Find next month budget
+    const { month: nextMonth, year: nextYear } = this.getNextMonthYear(
+      currentBudget.month,
+      currentBudget.year,
+    );
+
+    const nextBudget = await this.fetchBudgetByMonthAndYear(
+      nextMonth,
+      nextYear,
+      currentBudget.user_id,
+      supabase,
+    );
+
+    if (!nextBudget) {
+      // No next month budget exists, nothing to propagate
       this.logger.info(
         {
           currentBudgetId,
-          nextBudgetId: nextBudget.id,
-          currentMonth: `${currentBudget.month}/${currentBudget.year}`,
-          nextMonth: `${nextMonth}/${nextYear}`,
+          nextMonth,
+          nextYear,
+          userId: currentBudget.user_id,
         },
-        'Successfully propagated ending balance to next month',
+        'No next month budget found for propagation',
       );
-    } catch (error) {
-      // Log error but don't throw - propagation failure shouldn't break main operation
-      this.logger.warn(
-        {
-          currentBudgetId,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        },
-        'Failed to propagate to next month - proceeding without propagation',
-      );
+      return null;
     }
+
+    return { currentBudget, nextBudget, nextMonth, nextYear };
+  }
+
+  private async recalculateNextMonthBalance(
+    currentBudgetId: string,
+    budgetInfo: {
+      currentBudget: { id: string; month: number; year: number };
+      nextBudget: { id: string };
+      nextMonth: number;
+      nextYear: number;
+    },
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    const { currentBudget, nextBudget, nextMonth, nextYear } = budgetInfo;
+
+    // Recalculate next month's ending balance (will include updated rollover)
+    // Use internal method to avoid infinite propagation
+    await this.calculateAndPersistEndingBalanceInternal(
+      nextBudget.id,
+      supabase,
+    );
+
+    this.logger.info(
+      {
+        currentBudgetId,
+        nextBudgetId: nextBudget.id,
+        currentMonth: `${currentBudget.month}/${currentBudget.year}`,
+        nextMonth: `${nextMonth}/${nextYear}`,
+      },
+      'Successfully propagated ending balance to next month',
+    );
+  }
+
+  private logPropagationError(currentBudgetId: string, error: unknown): void {
+    // Log error but don't throw - propagation failure shouldn't break main operation
+    this.logger.warn(
+      {
+        currentBudgetId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      },
+      'Failed to propagate to next month - proceeding without propagation',
+    );
   }
 
   /**
@@ -1092,33 +1170,31 @@ export class BudgetService {
     budgetId: string,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<number> {
-    const { budgetLines, transactions } = await this.fetchBudgetData(
+    const endingBalance = await this.calculateMonthlyEndingBalance(
       budgetId,
       supabase,
     );
+    await this.persistEndingBalanceOnly(budgetId, endingBalance, supabase);
 
-    const allItems = [...budgetLines, ...transactions];
-    const { totalIncome, totalExpenses } = allItems.reduce(
-      (acc, item) => {
-        if (item.kind === 'income') {
-          acc.totalIncome += item.amount;
-        } else {
-          acc.totalExpenses += item.amount;
-        }
-        return acc;
-      },
-      { totalIncome: 0, totalExpenses: 0 },
+    return endingBalance;
+  }
+
+  private async persistEndingBalanceOnly(
+    budgetId: string,
+    endingBalance: number,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    const previousRolloverBalance = await this.getRolloverFromPreviousMonth(
+      budgetId,
+      supabase,
     );
-
-    const endingBalance = totalIncome - totalExpenses; // Pure month balance
-    const previousRolloverBalance = await this.getRolloverFromPreviousMonth(budgetId, supabase);
     const cumulativeRolloverBalance = previousRolloverBalance + endingBalance;
 
     const { error } = await supabase
       .from('monthly_budget')
-      .update({ 
+      .update({
         ending_balance: endingBalance,
-        rollover_balance: cumulativeRolloverBalance 
+        rollover_balance: cumulativeRolloverBalance,
       })
       .eq('id', budgetId);
 
@@ -1134,8 +1210,6 @@ export class BudgetService {
         { cause: error },
       );
     }
-
-    return endingBalance;
   }
 
   /**
@@ -1242,7 +1316,7 @@ export class BudgetService {
 
   /**
    * Gets the rollover amount from the previous month's rollover_balance
-   * MÉTIER: Le rollover = rollover_balance du mois N-1 
+   * MÉTIER: Le rollover = rollover_balance du mois N-1
    * @param currentBudgetId - Current budget ID
    * @param supabase - Authenticated Supabase client
    * @returns The rollover amount from previous month, or 0 if no previous budget exists
@@ -1371,23 +1445,31 @@ export class BudgetService {
     availableToSpend: number;
   }> {
     // Get current budget info
-    const currentBudget = await this.getCurrentBudgetForRollover(budgetId, supabase);
+    const currentBudget = await this.getCurrentBudgetForRollover(
+      budgetId,
+      supabase,
+    );
     if (!currentBudget) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
-        { id: budgetId },
-      );
+      throw new BusinessException(ERROR_DEFINITIONS.BUDGET_NOT_FOUND, {
+        id: budgetId,
+      });
     }
 
     // Calculate current month's ending balance (and update rollover_balance)
-    const endingBalance = await this.calculateAndPersistEndingBalance(budgetId, supabase);
-    
+    const endingBalance = await this.calculateAndPersistEndingBalance(
+      budgetId,
+      supabase,
+    );
+
     // Get rollover from previous month (rollover_balance from N-1)
-    const rollover = await this.getRolloverFromPreviousMonth(budgetId, supabase);
-    
+    const rollover = await this.getRolloverFromPreviousMonth(
+      budgetId,
+      supabase,
+    );
+
     // Calculate current rollover_balance (cumulative total)
     const rolloverBalance = rollover + endingBalance;
-    
+
     // Available to Spend = ending balance + rollover (MÉTIER: Disponible à Dépenser)
     const availableToSpend = endingBalance + rollover;
 

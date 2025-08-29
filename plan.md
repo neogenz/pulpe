@@ -5,11 +5,11 @@
 La documentation actuelle contient une erreur logique fondamentale : le rollover n'est pas simplement l'ending_balance du mois précédent, mais le **cumul total** de tous les soldes précédents. L'exemple actuel perd la "mémoire" du rollover cumulé, ce qui créerait un bug majeur dans l'implémentation.
 
 ### Exemple du Bug
-- **Janvier** : ending_balance = 1000€ → disponible = 1000€
-- **Février** : ending_balance = 2000€ + rollover 1000€ → disponible = 3000€
-- **Mars** : ending_balance = 300€ + rollover **2000€** ❌ → disponible = 2300€
+- **Janvier** : ending_balance = 1000 CHF → disponible = 1000 CHF
+- **Février** : ending_balance = 2000 CHF + rollover 1000 CHF → disponible = 3000 CHF
+- **Mars** : ending_balance = 300 CHF + rollover **2000 CHF** ❌ → disponible = 2300 CHF
 
-**Problème** : En Mars, prendre uniquement l'ending_balance de Février (2000€) fait perdre les 1000€ de Janvier qui étaient disponibles en Février.
+**Problème** : En Mars, prendre uniquement l'ending_balance de Février (2000 CHF) fait perdre les 1000 CHF de Janvier qui étaient disponibles en Février.
 
 ## Solution : Architecture avec `rollover_balance`
 
@@ -241,9 +241,9 @@ static toBudgetSummary(
 ```typescript
 describe('Rollover Balance Calculation', () => {
   it('should calculate cumulative rollover balance correctly', async () => {
-    // Janvier : ending_balance = 500
-    // Février : ending_balance = -200
-    // Résultat attendu : rollover_balance_février = 500 + (-200) = 300
+    // Janvier : ending_balance = 500 CHF
+    // Février : ending_balance = -200 CHF
+    // Résultat attendu : rollover_balance_février = 500 + (-200) = 300 CHF
     
     const janBudget = await service.createBudget(userId, { year: 2025, month: 1 });
     await service.updateEndingBalance(janBudget.id, 500);
@@ -304,31 +304,31 @@ Disponible à Dépenser = Ending Balance(mois actuel) + Rollover Balance(mois pr
 #### Section "Exemple Concret" Corrigé
 ```markdown
 **Janvier :**
-- Revenus (budget_lines) : 5000€
-- Dépenses + Épargnes (budget_lines) : 4000€
-- Transactions : 0€
-- **Ending Balance Janvier (stocké) : 1000€**
-- **Rollover Balance Janvier (stocké) : 1000€** (premier mois)
-- Rollover reçu : 0€ (premier mois)
-- **Disponible à Dépenser affiché : 1000€**
+- Revenus (budget_lines) : 5000 CHF
+- Dépenses + Épargnes (budget_lines) : 4000 CHF
+- Transactions : 0 CHF
+- **Ending Balance Janvier (stocké) : 1000 CHF**
+- **Rollover Balance Janvier (stocké) : 1000 CHF** (premier mois)
+- Rollover reçu : 0 CHF (premier mois)
+- **Disponible à Dépenser affiché : 1000 CHF**
 
 **Février :**
-- Revenus (budget_lines) : 5000€
-- Dépenses + Épargnes (budget_lines) : 3000€
-- Transactions : 0€
-- **Ending Balance Février (stocké) : 2000€**
-- **Rollover Balance Février (stocké) : 3000€** (1000 + 2000)
-- Rollover reçu (= Rollover Balance Janvier) : 1000€
-- **Disponible à Dépenser affiché : 3000€**
+- Revenus (budget_lines) : 5000 CHF
+- Dépenses + Épargnes (budget_lines) : 3000 CHF
+- Transactions : 0 CHF
+- **Ending Balance Février (stocké) : 2000 CHF**
+- **Rollover Balance Février (stocké) : 3000 CHF** (1000 + 2000)
+- Rollover reçu (= Rollover Balance Janvier) : 1000 CHF
+- **Disponible à Dépenser affiché : 3000 CHF**
 
 **Mars :**
-- Revenus (budget_lines) : 5000€
-- Dépenses + Épargnes (budget_lines) : 4500€
-- Transactions : -200€ (dépense réelle)
-- **Ending Balance Mars (stocké) : 300€** (5000 - 4500 - 200)
-- **Rollover Balance Mars (stocké) : 3300€** (3000 + 300)
-- Rollover reçu (= Rollover Balance Février) : 3000€
-- **Disponible à Dépenser affiché : 3300€**
+- Revenus (budget_lines) : 5000 CHF
+- Dépenses + Épargnes (budget_lines) : 4500 CHF
+- Transactions : -200 CHF (dépense réelle)
+- **Ending Balance Mars (stocké) : 300 CHF** (5000 - 4500 - 200)
+- **Rollover Balance Mars (stocké) : 3300 CHF** (3000 + 300)
+- Rollover reçu (= Rollover Balance Février) : 3000 CHF
+- **Disponible à Dépenser affiché : 3300 CHF**
 ```
 
 #### Nouveau Tableau Comparatif
@@ -338,9 +338,9 @@ Disponible à Dépenser = Ending Balance(mois actuel) + Rollover Balance(mois pr
 | Mois | Ending Balance | Rollover | Rollover Balance | Available to Spend |
 |------|---------------|----------|------------------|-------------------|
 |      | (solde du mois) | (héritage N-1) | (cumul total) | (affiché user) |
-| Jan  | +1000€        | 0€       | +1000€           | 1000€             |
-| Fév  | +2000€        | +1000€   | +3000€           | 3000€             |
-| Mar  | +300€         | +3000€   | +3300€           | 3300€             |
+| Jan  | +1000 CHF     | 0 CHF    | +1000 CHF        | 1000 CHF          |
+| Fév  | +2000 CHF     | +1000 CHF| +3000 CHF        | 3000 CHF          |
+| Mar  | +300 CHF      | +3000 CHF| +3300 CHF        | 3300 CHF          |
 
 **Formules :**
 - `rollover_balance_N = rollover_balance_(N-1) + ending_balance_N`
