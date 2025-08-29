@@ -102,6 +102,7 @@ export type Database = {
         Row: {
           created_at: string;
           description: string;
+          ending_balance: number | null;
           id: string;
           month: number;
           template_id: string;
@@ -112,6 +113,7 @@ export type Database = {
         Insert: {
           created_at?: string;
           description: string;
+          ending_balance?: number | null;
           id?: string;
           month: number;
           template_id: string;
@@ -122,6 +124,7 @@ export type Database = {
         Update: {
           created_at?: string;
           description?: string;
+          ending_balance?: number | null;
           id?: string;
           month?: number;
           template_id?: string;
@@ -304,15 +307,15 @@ export type Database = {
       bulk_update_template_lines: {
         Args: { line_updates: Json; p_template_id: string };
         Returns: {
-          description: string;
-          created_at: string;
-          updated_at: string;
-          template_id: string;
-          name: string;
           amount: number;
-          kind: Database['public']['Enums']['transaction_kind'];
-          recurrence: Database['public']['Enums']['transaction_recurrence'];
+          created_at: string;
+          description: string;
           id: string;
+          kind: Database['public']['Enums']['transaction_kind'];
+          name: string;
+          recurrence: Database['public']['Enums']['transaction_recurrence'];
+          template_id: string;
+          updated_at: string;
         }[];
       };
       create_budget_from_template: {
@@ -334,6 +337,10 @@ export type Database = {
           p_user_id: string;
         };
         Returns: Json;
+      };
+      recalculate_ending_balance: {
+        Args: { budget_id: string };
+        Returns: number;
       };
     };
     Enums: {

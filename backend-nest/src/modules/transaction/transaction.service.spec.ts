@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { TransactionService } from './transaction.service';
+import { BudgetService } from '../budget/budget.service';
 import { PinoLogger } from 'nestjs-pino';
 import type { TransactionCreate, TransactionUpdate } from '@pulpe/shared';
 import {
@@ -17,6 +18,7 @@ const MOCK_TRANSACTION_ID = 'transaction-456';
 describe('TransactionService', () => {
   let service: TransactionService;
   let mockLogger: Partial<PinoLogger>;
+  let mockBudgetService: Partial<BudgetService>;
   let mockSupabaseClient: MockSupabaseClient;
 
   beforeEach(() => {
@@ -28,7 +30,13 @@ describe('TransactionService', () => {
       info: mock(() => {}),
       debug: mock(() => {}),
     };
-    service = new TransactionService(mockLogger as PinoLogger);
+    mockBudgetService = {
+      calculateAndPersistEndingBalance: mock(() => Promise.resolve(100)),
+    };
+    service = new TransactionService(
+      mockLogger as PinoLogger,
+      mockBudgetService as BudgetService,
+    );
   });
 
   describe('findAll', () => {

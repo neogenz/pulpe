@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, jest } from 'bun:test';
 import { Test, TestingModule } from '@nestjs/testing';
 import { BudgetLineService } from './budget-line.service';
+import { BudgetService } from '../budget/budget.service';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { PinoLogger } from 'nestjs-pino';
 import type { BudgetLineCreate, BudgetLineUpdate } from '@pulpe/shared';
@@ -122,6 +123,12 @@ describe('BudgetLineService', () => {
         {
           provide: `PinoLogger:${BudgetLineService.name}`,
           useValue: mockLoggerInstance,
+        },
+        {
+          provide: BudgetService,
+          useValue: {
+            calculateAndPersistEndingBalance: jest.fn().mockResolvedValue(100),
+          },
         },
       ],
     }).compile();
