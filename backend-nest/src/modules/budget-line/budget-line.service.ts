@@ -403,64 +403,86 @@ export class BudgetLineService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineDeleteResponse> {
     try {
-      // Get budget_id before deletion
-      const { data: budgetLine } = await supabase
-        .from('budget_line')
-        .select('budget_id')
-        .eq('id', id)
-        .single();
-
-      const { error } = await supabase
-        .from('budget_line')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND,
-          { id },
-          {
-            operation: 'deleteBudgetLine',
-            userId: user.id,
-            entityId: id,
-            entityType: 'budget_line',
-            supabaseError: error,
-          },
-          { cause: error },
-        );
-      }
-
-      // Recalculate ending balance for the budget immediately
-      if (budgetLine?.budget_id) {
-        await this.budgetService.calculateAndPersistEndingBalance(
-          budgetLine.budget_id,
-          supabase,
-        );
-      }
+      const budgetId = await this.deleteBudgetLineAndGetBudgetId(
+        id,
+        user,
+        supabase,
+      );
+      await this.recalculateBudgetAfterDeletion(budgetId, supabase);
 
       return {
         success: true,
         message: 'Budget line deleted successfully',
       };
     } catch (error) {
-      if (
-        error instanceof BusinessException ||
-        error instanceof HttpException
-      ) {
-        throw error;
-      }
+      this.handleRemovalError(error, id, user);
+    }
+  }
+
+  private async deleteBudgetLineAndGetBudgetId(
+    id: string,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<string | null> {
+    // Get budget_id before deletion
+    const { data: budgetLine } = await supabase
+      .from('budget_line')
+      .select('budget_id')
+      .eq('id', id)
+      .single();
+
+    const { error } = await supabase.from('budget_line').delete().eq('id', id);
+
+    if (error) {
       throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_LINE_DELETE_FAILED,
+        ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND,
         { id },
         {
           operation: 'deleteBudgetLine',
           userId: user.id,
           entityId: id,
           entityType: 'budget_line',
+          supabaseError: error,
         },
         { cause: error },
       );
     }
+
+    return budgetLine?.budget_id || null;
+  }
+
+  private async recalculateBudgetAfterDeletion(
+    budgetId: string | null,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    // Recalculate ending balance for the budget immediately
+    if (budgetId) {
+      await this.budgetService.calculateAndPersistEndingBalance(
+        budgetId,
+        supabase,
+      );
+    }
+  }
+
+  private handleRemovalError(
+    error: unknown,
+    id: string,
+    user: AuthenticatedUser,
+  ): never {
+    if (error instanceof BusinessException || error instanceof HttpException) {
+      throw error;
+    }
+    throw new BusinessException(
+      ERROR_DEFINITIONS.BUDGET_LINE_DELETE_FAILED,
+      { id },
+      {
+        operation: 'deleteBudgetLine',
+        userId: user.id,
+        entityId: id,
+        entityType: 'budget_line',
+      },
+      { cause: error },
+    );
   }
 
   async findByBudgetId(

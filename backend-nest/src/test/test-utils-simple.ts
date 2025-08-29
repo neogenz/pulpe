@@ -91,7 +91,7 @@ export class MockSupabaseClient {
             Promise.resolve({ data: this.#mockData, error: this.#mockError }),
         }),
       }),
-      update: () => ({
+      update: (_data: any) => ({
         eq: () => ({
           select: () => ({
             single: () =>
@@ -132,6 +132,13 @@ export class MockSupabaseClient {
   setMockError(error: unknown) {
     this.#mockError = error;
     return this;
+  }
+
+  update(_data: any) {
+    return {
+      data: this.#mockData,
+      error: this.#mockError,
+    };
   }
 
   reset() {

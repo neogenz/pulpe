@@ -101,22 +101,22 @@ The dual-storage approach (`ending_balance` + `rollover_balance`) eliminates rec
 
 ```
 January:
-  Income: 5000€, Expenses: 4000€
-  → ending_balance: 1000€
-  → rollover_balance: 1000€ (0 + 1000)
-  → Available to Spend: 1000€
+  Income: 5000 CHF, Expenses: 4000 CHF
+  → ending_balance: 1000 CHF
+  → rollover_balance: 1000 CHF (0 + 1000)
+  → Available to Spend: 1000 CHF
 
 February:
-  Income: 5000€, Expenses: 3000€
-  → ending_balance: 2000€
-  → rollover_balance: 3000€ (1000 + 2000)
-  → Available to Spend: 3000€ (2000 + 1000 rollover)
+  Income: 5000 CHF, Expenses: 3000 CHF
+  → ending_balance: 2000 CHF
+  → rollover_balance: 3000 CHF (1000 + 2000)
+  → Available to Spend: 3000 CHF (2000 + 1000 rollover)
 
 March:
-  Income: 5000€, Expenses: 4700€
-  → ending_balance: 300€
-  → rollover_balance: 3300€ (3000 + 300)
-  → Available to Spend: 3300€ (300 + 3000 rollover)
+  Income: 5000 CHF, Expenses: 4700 CHF
+  → ending_balance: 300 CHF
+  → rollover_balance: 3300 CHF (3000 + 300)
+  → Available to Spend: 3300 CHF (300 + 3000 rollover)
 ```
 
 ### Savings Mechanism

@@ -105,6 +105,7 @@ export type Database = {
           ending_balance: number | null;
           id: string;
           month: number;
+          rollover_balance: number | null;
           template_id: string;
           updated_at: string;
           user_id: string | null;
@@ -116,6 +117,7 @@ export type Database = {
           ending_balance?: number | null;
           id?: string;
           month: number;
+          rollover_balance?: number | null;
           template_id: string;
           updated_at?: string;
           user_id?: string | null;
@@ -127,6 +129,7 @@ export type Database = {
           ending_balance?: number | null;
           id?: string;
           month?: number;
+          rollover_balance?: number | null;
           template_id?: string;
           updated_at?: string;
           user_id?: string | null;

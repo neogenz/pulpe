@@ -20,7 +20,7 @@ export function toApi(budgetDb: Tables<'monthly_budget'>): Budget {
     year: budgetDb.year,
     description: budgetDb.description,
     endingBalance: budgetDb.ending_balance ?? undefined,
-    rolloverBalance: (budgetDb as any).rollover_balance ?? undefined,
+    rolloverBalance: budgetDb.rollover_balance ?? undefined,
   };
 }
 
