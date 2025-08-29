@@ -12,6 +12,7 @@ import {
 import { type Observable, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { ApplicationConfiguration } from '../config/application-configuration';
+import { Logger } from '../logging/logger';
 
 export interface CreateBudgetApiResponse {
   readonly budget: Budget;
@@ -31,6 +32,7 @@ const CURRENT_BUDGET_STORAGE_KEY = 'pulpe-current-budget';
 export class BudgetApi {
   readonly #httpClient = inject(HttpClient);
   readonly #applicationConfig = inject(ApplicationConfiguration);
+  readonly #logger = inject(Logger);
 
   get #apiUrl(): string {
     return `${this.#applicationConfig.backendApiUrl()}/budgets`;
@@ -220,13 +222,13 @@ export class BudgetApi {
         return result.data;
       }
 
-      console.warn(
+      this.#logger.warn(
         'Données de budget invalides dans localStorage, suppression',
       );
       localStorage.removeItem(CURRENT_BUDGET_STORAGE_KEY);
       return null;
     } catch (error) {
-      console.error(
+      this.#logger.error(
         'Erreur lors de la lecture du budget depuis localStorage:',
         error,
       );
@@ -239,7 +241,7 @@ export class BudgetApi {
     try {
       localStorage.setItem(CURRENT_BUDGET_STORAGE_KEY, JSON.stringify(budget));
     } catch (error) {
-      console.error(
+      this.#logger.error(
         'Erreur lors de la sauvegarde du budget dans localStorage:',
         error,
       );
@@ -253,7 +255,7 @@ export class BudgetApi {
         localStorage.removeItem(CURRENT_BUDGET_STORAGE_KEY);
       }
     } catch (error) {
-      console.error(
+      this.#logger.error(
         'Erreur lors de la suppression du budget du localStorage:',
         error,
       );
@@ -261,7 +263,7 @@ export class BudgetApi {
   }
 
   #handleApiError(error: unknown, defaultMessage: string): Observable<never> {
-    console.error('Erreur API Budget:', error);
+    this.#logger.error('Erreur API Budget:', error);
 
     let budgetError: BudgetApiError = { message: defaultMessage };
 
