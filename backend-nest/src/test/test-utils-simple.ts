@@ -97,7 +97,15 @@ export class MockSupabaseClient {
             single: () =>
               Promise.resolve({ data: this.#mockData, error: this.#mockError }),
           }),
+          then: (resolve: (value: any) => any) => {
+            const result = { data: this.#mockData, error: this.#mockError };
+            return Promise.resolve(result).then(resolve);
+          },
         }),
+        then: (resolve: (value: any) => any) => {
+          const result = { data: this.#mockData, error: this.#mockError };
+          return Promise.resolve(result).then(resolve);
+        },
       }),
       delete: () => ({
         eq: () => Promise.resolve({ error: this.#mockError }),

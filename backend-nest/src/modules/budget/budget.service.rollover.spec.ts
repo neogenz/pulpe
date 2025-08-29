@@ -32,65 +32,75 @@ describe('BudgetService - Rollover Functionality', () => {
     };
 
     budgetService = new BudgetService(mockPinoLogger as any);
-
-    // Spy on private methods to verify behavior
-    (budgetService as any).calculateRolloverLine = mock(
-      (budgetService as any).calculateRolloverLine.bind(budgetService),
-    );
   });
 
   describe('Available to Spend calculation logic', () => {
     it('should correctly calculate Available to Spend with positive balance', async () => {
-      // This test verifies the calculation logic:
-      // Available to Spend = Planned Income - Fixed Block + Transaction Impact
+      // This test verifies the calculation logic using the new optimized architecture
+      // Available to Spend = Ending Balance + Rollover
 
-      const budgetLines = [
-        { kind: 'income', amount: 5000 }, // +5000
-        { kind: 'expense', amount: 2000 }, // -2000
-        { kind: 'saving', amount: 500 }, // -500
-      ];
-      // Transactions would be: { kind: 'expense', amount: 1000 } // -1000
+      // Mock getCurrentBudgetForRollover to avoid database calls
+      (budgetService as any).getCurrentBudgetForRollover = mock(() =>
+        Promise.resolve({
+          id: 'test-budget-id',
+          month: 8,
+          year: 2025,
+          user_id: 'test-user',
+        }),
+      );
 
-      // Expected: 5000 - 2000 - 500 - 1000 = 1500
+      // Mock getRolloverFromPreviousMonth to return 0 (first month)
+      (budgetService as any).getRolloverFromPreviousMonth = mock(() =>
+        Promise.resolve(0),
+      );
 
-      mockSupabaseClient
-        .setMockData(budgetLines) // First call for budget_line
-        .setMockError(null);
+      // Mock calculateMonthlyEndingBalance to return expected value (5000 - 2000 - 500 = 2500)
+      (budgetService as any).calculateMonthlyEndingBalance = mock(() =>
+        Promise.resolve(2500),
+      );
 
-      // Calculate using private method directly
-      const result = await (
-        budgetService as any
-      ).calculateAvailableToSpendInternal(
+      // Calculate using public method
+      const result = await budgetService.calculateAvailableToSpend(
         'test-budget-id',
         client as AuthenticatedSupabaseClient,
       );
 
-      // We can't test directly due to chaining, but we verify the concept
-      expect(typeof result).toBe('number');
+      expect(result.endingBalance).toBe(2500); // Mocked ending balance
+      expect(result.rollover).toBe(0); // No previous month
+      expect(result.availableToSpend).toBe(2500); // 2500 + 0
     });
 
     it('should handle negative Available to Spend (overspent)', async () => {
       // Available to Spend can go negative when spending exceeds budget
 
-      const budgetLines = [
-        { kind: 'income', amount: 5000 },
-        { kind: 'expense', amount: 3000 },
-        { kind: 'saving', amount: 1000 },
-      ];
-      // Transactions would be: { kind: 'expense', amount: 2000 } // Overspent by 1000
+      // Mock getCurrentBudgetForRollover to avoid database calls
+      (budgetService as any).getCurrentBudgetForRollover = mock(() =>
+        Promise.resolve({
+          id: 'test-budget-id',
+          month: 8,
+          year: 2025,
+          user_id: 'test-user',
+        }),
+      );
 
-      // Expected: 5000 - 3000 - 1000 - 2000 = -1000
+      // Mock getRolloverFromPreviousMonth to return 0 (first month)
+      (budgetService as any).getRolloverFromPreviousMonth = mock(() =>
+        Promise.resolve(0),
+      );
 
-      mockSupabaseClient.setMockData(budgetLines).setMockError(null);
+      // Mock calculateMonthlyEndingBalance to return expected value (3000 - 4000 - 1000 = -2000)
+      (budgetService as any).calculateMonthlyEndingBalance = mock(() =>
+        Promise.resolve(-2000),
+      );
 
-      const result = await (
-        budgetService as any
-      ).calculateAvailableToSpendInternal(
+      const result = await budgetService.calculateAvailableToSpend(
         'test-budget-id',
         client as AuthenticatedSupabaseClient,
       );
 
-      expect(typeof result).toBe('number');
+      expect(result.endingBalance).toBe(-2000); // Mocked negative ending balance
+      expect(result.rollover).toBe(0); // No previous month
+      expect(result.availableToSpend).toBe(-2000); // -2000 + 0
     });
 
     it('should handle zero Available to Spend (exactly spent)', async () => {
@@ -99,22 +109,39 @@ describe('BudgetService - Rollover Functionality', () => {
       const budgetLines = [
         { kind: 'income', amount: 5000 },
         { kind: 'expense', amount: 3500 },
-        { kind: 'saving', amount: 500 },
+        { kind: 'saving', amount: 1500 },
       ];
-      // Transactions would be: { kind: 'expense', amount: 1000 } // Exactly spent the remaining
+      // Expected ending balance: 5000 - 3500 - 1500 = 0
 
-      // Expected: 5000 - 3500 - 500 - 1000 = 0
+      // Mock separate responses for budget_line and transaction queries
+      mockSupabaseClient
+        .setMockData(budgetLines) // First query (budget_line)
+        .setMockData([]) // Second query (transaction) - empty array
+        .setMockError(null);
 
-      mockSupabaseClient.setMockData(budgetLines).setMockError(null);
+      // Mock getCurrentBudgetForRollover to avoid database calls
+      (budgetService as any).getCurrentBudgetForRollover = mock(() =>
+        Promise.resolve({
+          id: 'test-budget-id',
+          month: 8,
+          year: 2025,
+          user_id: 'test-user',
+        }),
+      );
 
-      const result = await (
-        budgetService as any
-      ).calculateAvailableToSpendInternal(
+      // Mock getRolloverFromPreviousMonth to return 0 (first month)
+      (budgetService as any).getRolloverFromPreviousMonth = mock(() =>
+        Promise.resolve(0),
+      );
+
+      const result = await budgetService.calculateAvailableToSpend(
         'test-budget-id',
         client as AuthenticatedSupabaseClient,
       );
 
-      expect(typeof result).toBe('number');
+      expect(result.endingBalance).toBe(0); // Exactly balanced
+      expect(result.rollover).toBe(0); // No previous month
+      expect(result.availableToSpend).toBe(0); // 0 + 0
     });
   });
 
@@ -256,10 +283,12 @@ describe('BudgetService - Rollover Functionality', () => {
       // Mock previous budget exists
       mockSupabaseClient.setMockData(previousBudget).setMockError(null);
 
-      // Mock calculateAvailableToSpendInternal to return exactly zero
-      const originalCalculateLivingAllowance = (budgetService as any)
-        .calculateAvailableToSpendInternal;
-      (budgetService as any).calculateAvailableToSpendInternal = mock(() => 0);
+      // Mock getRolloverFromPreviousMonth to return exactly zero
+      const originalGetRolloverFromPreviousMonth = (budgetService as any)
+        .getRolloverFromPreviousMonth;
+      (budgetService as any).getRolloverFromPreviousMonth = mock(() =>
+        Promise.resolve(0),
+      );
 
       const result = await (budgetService as any).calculateRolloverLine(
         currentBudget,
@@ -268,8 +297,8 @@ describe('BudgetService - Rollover Functionality', () => {
       );
 
       // Restore original method
-      (budgetService as any).calculateAvailableToSpendInternal =
-        originalCalculateLivingAllowance;
+      (budgetService as any).getRolloverFromPreviousMonth =
+        originalGetRolloverFromPreviousMonth;
 
       // Should return null for zero living allowance
       expect(result).toBeNull();
@@ -312,14 +341,11 @@ describe('BudgetService - Rollover Functionality', () => {
         ending_balance: 50,
       }));
 
-      // Mock calculateAvailableToSpendInternal for February to return 150€ (50 + 100 rollover)
-      (budgetService as any).calculateAvailableToSpendInternal = mock(
-        (budgetId: string, _supabase: any, includeRollover: boolean) => {
-          if (budgetId === 'feb-budget' && includeRollover) {
-            return Promise.resolve(150); // February's total Available to Spend (50 + 100 rollover from Jan)
-          }
-          if (budgetId === 'feb-budget' && !includeRollover) {
-            return Promise.resolve(50); // February's ending_balance only
+      // Mock getRolloverFromPreviousMonth to return February's rollover_balance (150€)
+      (budgetService as any).getRolloverFromPreviousMonth = mock(
+        (budgetId: string) => {
+          if (budgetId === 'mar-budget') {
+            return Promise.resolve(150); // February's rollover_balance (50 + 100 from Jan)
           }
           return Promise.resolve(0);
         },
@@ -383,13 +409,13 @@ describe('BudgetService - Rollover Functionality', () => {
         ending_balance: -30,
       }));
 
-      // Mock November's total Available to Spend = -80€ (includes -50€ rollover from October)
-      (budgetService as any).calculateAvailableToSpendInternal = mock(
-        (budgetId: string, _supabase: any, includeRollover: boolean) => {
-          if (budgetId === 'month2-budget' && includeRollover) {
-            return Promise.resolve(-80); // November's total deficit (-30 + -50 rollover from Oct)
+      // Mock getRolloverFromPreviousMonth to return November's rollover_balance (-80€)
+      (budgetService as any).getRolloverFromPreviousMonth = mock(
+        (budgetId: string) => {
+          if (budgetId === 'month3-budget') {
+            return Promise.resolve(-80); // November's rollover_balance (includes -50€ rollover from October)
           }
-          return Promise.resolve(-30); // Just November's ending_balance
+          return Promise.resolve(0);
         },
       );
 
@@ -447,13 +473,13 @@ describe('BudgetService - Rollover Functionality', () => {
         ending_balance: -120,
       }));
 
-      // July total Available to Spend = 80€ (200€ rollover from June - 120€ deficit this month)
-      (budgetService as any).calculateAvailableToSpendInternal = mock(
-        (budgetId: string, _supabase: any, includeRollover: boolean) => {
-          if (budgetId === 'deficit-month' && includeRollover) {
-            return Promise.resolve(80); // Net positive after accounting for June surplus
+      // Mock getRolloverFromPreviousMonth to return July's rollover_balance (80€)
+      (budgetService as any).getRolloverFromPreviousMonth = mock(
+        (budgetId: string) => {
+          if (budgetId === 'result-month') {
+            return Promise.resolve(80); // July's rollover_balance: 200€ from June - 120€ deficit = 80€
           }
-          return Promise.resolve(-120);
+          return Promise.resolve(0);
         },
       );
 
@@ -549,10 +575,10 @@ describe('BudgetService - Rollover Functionality', () => {
 
       // Since we can't mock individual queries differently, we'll simulate an error
       // by setting an error after the first query
-      const originalCalculateLivingAllowance = (budgetService as any)
-        .calculateAvailableToSpendInternal;
-      (budgetService as any).calculateAvailableToSpendInternal = mock(() => {
-        throw new Error('Failed to fetch budget lines');
+      const originalGetRolloverFromPreviousMonth = (budgetService as any)
+        .getRolloverFromPreviousMonth;
+      (budgetService as any).getRolloverFromPreviousMonth = mock(() => {
+        throw new Error('Failed to fetch rollover from previous month');
       });
 
       const result = await (budgetService as any).calculateRolloverLine(
@@ -562,8 +588,8 @@ describe('BudgetService - Rollover Functionality', () => {
       );
 
       // Restore original method
-      (budgetService as any).calculateAvailableToSpendInternal =
-        originalCalculateLivingAllowance;
+      (budgetService as any).getRolloverFromPreviousMonth =
+        originalGetRolloverFromPreviousMonth;
 
       // Should return null gracefully instead of throwing
       expect(result).toBeNull();
@@ -634,14 +660,28 @@ describe('BudgetService - Rollover Functionality', () => {
       // Mock Supabase update
       mockSupabaseClient.setMockData(null).setMockError(null);
 
-      const result = await budgetService.calculateAndPersistEndingBalance(
+      // Test the complete workflow: calculate + persist + propagate
+      const endingBalance = await (
+        budgetService as any
+      ).calculateMonthlyEndingBalance(
+        'january-budget-id',
+        client as AuthenticatedSupabaseClient,
+      );
+
+      await (budgetService as any).persistBudgetBalances(
+        'january-budget-id',
+        endingBalance,
+        client as AuthenticatedSupabaseClient,
+      );
+
+      await (budgetService as any).propagateToNextMonth(
         'january-budget-id',
         client as AuthenticatedSupabaseClient,
       );
 
       // Verify calculations
       // ending_balance = 5000 - 4000 - 200 = 800
-      expect(result).toBe(800);
+      expect(endingBalance).toBe(800);
     });
 
     it('should calculate rollover_balance correctly with previous month rollover', async () => {
@@ -673,14 +713,28 @@ describe('BudgetService - Rollover Functionality', () => {
       // Mock Supabase update
       mockSupabaseClient.setMockData(null).setMockError(null);
 
-      const result = await budgetService.calculateAndPersistEndingBalance(
+      // Test the complete workflow: calculate + persist + propagate
+      const endingBalance = await (
+        budgetService as any
+      ).calculateMonthlyEndingBalance(
+        'february-budget-id',
+        client as AuthenticatedSupabaseClient,
+      );
+
+      await (budgetService as any).persistBudgetBalances(
+        'february-budget-id',
+        endingBalance,
+        client as AuthenticatedSupabaseClient,
+      );
+
+      await (budgetService as any).propagateToNextMonth(
         'february-budget-id',
         client as AuthenticatedSupabaseClient,
       );
 
       // Verify calculations
       // ending_balance = 5000 - 4200 - 100 = 700
-      expect(result).toBe(700);
+      expect(endingBalance).toBe(700);
 
       // Verify result represents the ending balance calculation correctly
     });
@@ -716,14 +770,28 @@ describe('BudgetService - Rollover Functionality', () => {
       // Mock Supabase update
       mockSupabaseClient.setMockData(null).setMockError(null);
 
-      const result = await budgetService.calculateAndPersistEndingBalance(
+      // Test the complete workflow: calculate + persist + propagate
+      const endingBalance = await (
+        budgetService as any
+      ).calculateMonthlyEndingBalance(
+        'march-budget-id',
+        client as AuthenticatedSupabaseClient,
+      );
+
+      await (budgetService as any).persistBudgetBalances(
+        'march-budget-id',
+        endingBalance,
+        client as AuthenticatedSupabaseClient,
+      );
+
+      await (budgetService as any).propagateToNextMonth(
         'march-budget-id',
         client as AuthenticatedSupabaseClient,
       );
 
       // Verify calculations
       // ending_balance = 4000 - 4500 - 200 = -700 (negative)
-      expect(result).toBe(-700);
+      expect(endingBalance).toBe(-700);
 
       // Verify negative balance calculation
     });
@@ -741,9 +809,17 @@ describe('BudgetService - Rollover Functionality', () => {
         }),
       );
 
-      // Mock calculateAndPersistEndingBalance
-      (budgetService as any).calculateAndPersistEndingBalance = mock(
+      // Mock calculateMonthlyEndingBalance
+      (budgetService as any).calculateMonthlyEndingBalance = mock(
         () => Promise.resolve(300), // Current month ending balance
+      );
+
+      // Mock persistBudgetBalances and propagateToNextMonth
+      (budgetService as any).persistBudgetBalances = mock(() =>
+        Promise.resolve(),
+      );
+      (budgetService as any).propagateToNextMonth = mock(() =>
+        Promise.resolve(),
       );
 
       // Mock getRolloverFromPreviousMonth

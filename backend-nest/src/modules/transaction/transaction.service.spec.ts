@@ -31,7 +31,7 @@ describe('TransactionService', () => {
       debug: mock(() => {}),
     };
     mockBudgetService = {
-      calculateAndPersistEndingBalance: mock(() => Promise.resolve(100)),
+      recalculateBalances: mock(() => Promise.resolve()),
     };
     service = new TransactionService(
       mockLogger as PinoLogger,
