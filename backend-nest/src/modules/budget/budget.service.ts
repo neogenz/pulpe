@@ -450,11 +450,23 @@ export class BudgetService {
         mappedData.budgetLines.push(rolloverLine);
       }
 
+      // Add budget summary with rollover calculations
+      const summaryData = await this.calculateAvailableToSpend(id, supabase);
+      const summary = {
+        endingBalance: summaryData.endingBalance,
+        rollover: summaryData.rollover,
+        rolloverBalance: summaryData.rolloverBalance,
+        availableToSpend: summaryData.availableToSpend,
+      };
+
       this.logBudgetDetailsFetchSuccess(id, mappedData);
 
       return {
         success: true,
-        data: mappedData,
+        data: {
+          ...mappedData,
+          summary,
+        },
       };
     } catch (error) {
       if (
@@ -764,7 +776,7 @@ export class BudgetService {
   }
 
   /**
-   * Calculates the rollover line from the previous month's Living Allowance
+   * Calculates the rollover line from the previous month's Available to Spend
    * Returns null if this is the first budget month for the user or if calculation fails
    */
   private async calculateRolloverLine(
@@ -783,15 +795,15 @@ export class BudgetService {
         return null;
       }
 
-      const previousBudgetLivingAllowance = await this.calculateLivingAllowance(
+      const previousBudgetAvailableToSpend = await this.calculateAvailableToSpendInternal(
         previousBudget.id,
         supabase,
-        true, // ✅ FIXED: Include rollover for cumulative behavior (was false)
+        true,
       );
 
       return this.buildRolloverLine(currentBudget, user, {
         budget: previousBudget,
-        livingAllowance: previousBudgetLivingAllowance,
+        availableToSpend: previousBudgetAvailableToSpend,
       });
     } catch (error) {
       // Inline logging for better readability and fewer methods
@@ -809,7 +821,7 @@ export class BudgetService {
   }
 
   /**
-   * Prepares rollover data by fetching previous budget and calculating living allowance
+   * Prepares rollover data by fetching previous budget and calculating available to spend
    */
   private async findPreviousBudget(
     currentBudget: Tables<'monthly_budget'>,
@@ -853,13 +865,13 @@ export class BudgetService {
     user: AuthenticatedUser,
     rolloverData: {
       budget: Tables<'monthly_budget'>;
-      livingAllowance: number;
+      availableToSpend: number;
     },
   ): BudgetLine | null {
-    const { budget, livingAllowance } = rolloverData;
+    const { budget, availableToSpend } = rolloverData;
 
     // Don't create rollover line if amount is zero
-    if (livingAllowance === 0) {
+    if (availableToSpend === 0) {
       this.logger.info(
         {
           userId: user.id,
@@ -874,7 +886,7 @@ export class BudgetService {
     const rolloverLine = this.createRolloverBudgetLine(
       currentBudget,
       budget,
-      livingAllowance,
+      availableToSpend,
     );
 
     // Inline logging for better code flow
@@ -883,7 +895,7 @@ export class BudgetService {
         userId: user.id,
         currentBudgetId: currentBudget.id,
         previousBudgetId: budget.id,
-        rolloverAmount: livingAllowance,
+        rolloverAmount: availableToSpend,
         rolloverKind: rolloverLine.kind,
       },
       'Calculated rollover from previous month',
@@ -895,7 +907,7 @@ export class BudgetService {
   private createRolloverBudgetLine(
     nextBudget: Tables<'monthly_budget'>,
     rolloverBudget: Tables<'monthly_budget'>,
-    livingAllowanceOfRollover: number,
+    availableToSpendAmount: number,
   ): BudgetLine {
     const id = BUDGET_CONSTANTS.ROLLOVER.formatId(nextBudget.id);
     const name = BUDGET_CONSTANTS.ROLLOVER.formatName(
@@ -908,8 +920,8 @@ export class BudgetService {
       templateLineId: null,
       savingsGoalId: null,
       name,
-      amount: Math.abs(livingAllowanceOfRollover),
-      kind: livingAllowanceOfRollover > 0 ? 'income' : 'expense',
+      amount: Math.abs(availableToSpendAmount),
+      kind: availableToSpendAmount > 0 ? 'income' : 'expense',
       recurrence: 'one_off',
       isManuallyAdjusted: false,
       isRollover: true,
@@ -920,9 +932,9 @@ export class BudgetService {
   }
 
   /**
-   * Calculates and persists the ending balance for a budget month with N+1 propagation
-   * Ending Balance = Income - Expenses - Transactions + Rollover (COMPLETE final balance)
-   * Also updates the following month's ending_balance since it depends on this month's rollover
+   * Calculates and persists both ending_balance and rollover_balance
+   * ending_balance = Income - Expenses - Transactions (pure month balance, no rollover)
+   * rollover_balance = previous rollover_balance + ending_balance (cumulative total)
    * @param budgetId - The budget ID to calculate for
    * @param supabase - Authenticated Supabase client
    * @returns The ending balance calculated and saved
@@ -931,35 +943,39 @@ export class BudgetService {
     budgetId: string,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<number> {
-    // Calculate the month balance (income - expenses - transactions)
+    // MÉTIER: Calculate pure month balance (budget_lines + transactions du mois uniquement)
     const { budgetLines, transactions } = await this.fetchBudgetData(
       budgetId,
       supabase,
     );
 
-    const allItems = [...budgetLines, ...transactions];
-    const { totalIncome, totalExpenses } = allItems.reduce(
+    const allMonthlyItems = [...budgetLines, ...transactions];
+    const { totalMonthlyIncome, totalMonthlyExpenses } = allMonthlyItems.reduce(
       (acc, item) => {
         if (item.kind === 'income') {
-          acc.totalIncome += item.amount;
+          acc.totalMonthlyIncome += item.amount;
         } else {
-          acc.totalExpenses += item.amount;
+          acc.totalMonthlyExpenses += item.amount;
         }
         return acc;
       },
-      { totalIncome: 0, totalExpenses: 0 },
+      { totalMonthlyIncome: 0, totalMonthlyExpenses: 0 },
     );
 
-    const monthBalance = totalIncome - totalExpenses;
+    // MÉTIER: ending_balance = revenus - dépenses du mois (sans rollover)
+    const endingBalance = totalMonthlyIncome - totalMonthlyExpenses;
 
-    // Add rollover from previous month (encapsulated historical cumul)
-    const rollover = await this.getRolloverFromPreviousMonth(budgetId, supabase);
-    const endingBalance = monthBalance + rollover;
+    // MÉTIER: rollover_balance = rollover_balance_précédent + ending_balance_actuel
+    const previousRolloverBalance = await this.getRolloverFromPreviousMonth(budgetId, supabase);
+    const cumulativeRolloverBalance = previousRolloverBalance + endingBalance;
 
-    // Persist the COMPLETE ending balance (including rollover)
+    // Persist both values
     const { error } = await supabase
       .from('monthly_budget')
-      .update({ ending_balance: endingBalance })
+      .update({ 
+        ending_balance: endingBalance,
+        rollover_balance: cumulativeRolloverBalance 
+      })
       .eq('id', budgetId);
 
     if (error) {
@@ -978,12 +994,12 @@ export class BudgetService {
     this.logger.info(
       {
         budgetId,
-        monthBalance,
-        rollover,
         endingBalance,
+        previousRolloverBalance,
+        cumulativeRolloverBalance,
         operation: 'calculateAndPersistEndingBalance',
       },
-      'Complete ending balance calculated and persisted',
+      'Ending balance and rollover balance calculated and persisted',
     );
 
     // N+1 Propagation: Update following month since its rollover changed
@@ -1069,7 +1085,7 @@ export class BudgetService {
   }
 
   /**
-   * Internal method to calculate ending balance without N+1 propagation
+   * Internal method to calculate ending balance and rollover balance without N+1 propagation
    * Used by propagateToNextMonth to avoid infinite recursion
    */
   private async calculateAndPersistEndingBalanceInternal(
@@ -1094,13 +1110,16 @@ export class BudgetService {
       { totalIncome: 0, totalExpenses: 0 },
     );
 
-    const monthBalance = totalIncome - totalExpenses;
-    const rollover = await this.getRolloverFromPreviousMonth(budgetId, supabase);
-    const endingBalance = monthBalance + rollover;
+    const endingBalance = totalIncome - totalExpenses; // Pure month balance
+    const previousRolloverBalance = await this.getRolloverFromPreviousMonth(budgetId, supabase);
+    const cumulativeRolloverBalance = previousRolloverBalance + endingBalance;
 
     const { error } = await supabase
       .from('monthly_budget')
-      .update({ ending_balance: endingBalance })
+      .update({ 
+        ending_balance: endingBalance,
+        rollover_balance: cumulativeRolloverBalance 
+      })
       .eq('id', budgetId);
 
     if (error) {
@@ -1120,18 +1139,18 @@ export class BudgetService {
   }
 
   /**
-   * Calculates the Living Allowance for a specific budget
-   * Living Allowance = Ending Balance + Optional Rollover
+   * Calculates the Available to Spend for a specific budget
+   * Available to Spend = Ending Balance + Rollover from previous month
    * @param budgetId - The budget ID to calculate for
    * @param supabase - Authenticated Supabase client
    * @param includeRollover - Whether to include rollover from previous month (default: true)
    */
-  private async calculateLivingAllowance(
+  private async calculateAvailableToSpendInternal(
     budgetId: string,
     supabase: AuthenticatedSupabaseClient,
     includeRollover = true,
   ): Promise<number> {
-    // Current month ending balance (persisted)
+    // Current month ending balance (persisted, pure month balance)
     const endingBalance = await this.calculateAndPersistEndingBalance(
       budgetId,
       supabase,
@@ -1141,7 +1160,7 @@ export class BudgetService {
       return endingBalance;
     }
 
-    // Add rollover from previous month
+    // Add rollover from previous month (rollover_balance from previous month)
     const rollover = await this.getRolloverFromPreviousMonth(
       budgetId,
       supabase,
@@ -1199,7 +1218,7 @@ export class BudgetService {
         ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
         { budgetId },
         {
-          operation: 'calculateLivingAllowance',
+          operation: 'calculateAvailableToSpend',
           entityId: budgetId,
           entityType: 'budget_line',
         },
@@ -1212,7 +1231,7 @@ export class BudgetService {
         ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
         { budgetId },
         {
-          operation: 'calculateLivingAllowance',
+          operation: 'calculateAvailableToSpend',
           entityId: budgetId,
           entityType: 'transaction',
         },
@@ -1222,44 +1241,44 @@ export class BudgetService {
   }
 
   /**
-   * Gets the rollover amount from the previous month's ending_balance
-   * Simple and efficient: ending_balance already encapsulates all historical cumul
-   * @param budgetId - Current budget ID
+   * Gets the rollover amount from the previous month's rollover_balance
+   * MÉTIER: Le rollover = rollover_balance du mois N-1 
+   * @param currentBudgetId - Current budget ID
    * @param supabase - Authenticated Supabase client
-   * @returns The rollover amount, or 0 if no previous budget exists
+   * @returns The rollover amount from previous month, or 0 if no previous budget exists
    */
   private async getRolloverFromPreviousMonth(
-    budgetId: string,
+    currentBudgetId: string,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<number> {
     try {
-      const currentBudget = await this.getCurrentBudgetForRollover(
-        budgetId,
+      const currentBudgetInfo = await this.getCurrentBudgetForRollover(
+        currentBudgetId,
         supabase,
       );
-      if (!currentBudget) {
+      if (!currentBudgetInfo) {
         return 0;
       }
 
-      const user = { id: currentBudget.user_id } as AuthenticatedUser;
-      const previousBudget = await this.findPreviousBudget(
-        currentBudget as Tables<'monthly_budget'>,
+      const user = { id: currentBudgetInfo.user_id } as AuthenticatedUser;
+      const previousMonthBudget = await this.findPreviousBudget(
+        currentBudgetInfo as Tables<'monthly_budget'>,
         user,
         supabase,
       );
 
-      if (!previousBudget) {
-        return 0;
+      if (!previousMonthBudget) {
+        return 0; // First month for this user
       }
 
-      // ✅ SIMPLE: Just read the ending_balance (which already includes all historical cumul)
-      // No recursion needed - the previous month's ending_balance IS the rollover
-      return previousBudget.ending_balance ?? 0;
+      // MÉTIER: rollover_N = rollover_balance_(N-1)
+      // rollover_balance contains the cumulative total available for rollover
+      return previousMonthBudget.rollover_balance ?? 0;
     } catch (error) {
       // Log error but don't throw - return 0 to gracefully handle rollover failures
       this.logger.warn(
         {
-          budgetId,
+          budgetId: currentBudgetId,
           error: error instanceof Error ? error.message : 'Unknown error',
         },
         'Failed to get rollover from previous month - proceeding without rollover',
@@ -1333,5 +1352,62 @@ export class BudgetService {
     return month === 12
       ? { month: 1, year: year + 1 }
       : { month: month + 1, year };
+  }
+
+  /**
+   * Calculates the Available to Spend for a budget using rollover_balance
+   * Available to Spend = Ending Balance (current month) + Rollover (from previous month)
+   * @param budgetId - The budget ID to calculate for
+   * @param supabase - Authenticated Supabase client
+   * @returns Complete breakdown of Available to Spend calculation
+   */
+  async calculateAvailableToSpend(
+    budgetId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<{
+    endingBalance: number;
+    rollover: number;
+    rolloverBalance: number;
+    availableToSpend: number;
+  }> {
+    // Get current budget info
+    const currentBudget = await this.getCurrentBudgetForRollover(budgetId, supabase);
+    if (!currentBudget) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
+        { id: budgetId },
+      );
+    }
+
+    // Calculate current month's ending balance (and update rollover_balance)
+    const endingBalance = await this.calculateAndPersistEndingBalance(budgetId, supabase);
+    
+    // Get rollover from previous month (rollover_balance from N-1)
+    const rollover = await this.getRolloverFromPreviousMonth(budgetId, supabase);
+    
+    // Calculate current rollover_balance (cumulative total)
+    const rolloverBalance = rollover + endingBalance;
+    
+    // Available to Spend = ending balance + rollover (MÉTIER: Disponible à Dépenser)
+    const availableToSpend = endingBalance + rollover;
+
+    return {
+      endingBalance,
+      rollover,
+      rolloverBalance,
+      availableToSpend,
+    };
+  }
+
+  /**
+   * Triggers recalculation when budget lines or transactions change
+   * @param budgetId - The budget ID that was modified
+   * @param supabase - Authenticated Supabase client
+   */
+  async onBudgetDataChanged(
+    budgetId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    await this.calculateAndPersistEndingBalance(budgetId, supabase);
   }
 }

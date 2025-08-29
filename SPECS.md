@@ -64,17 +64,60 @@ A **Monthly Budget** is an _instance_ of a Template for a specific month.
 
 ### Core Calculation Logic: "Fixed Block" vs. "Available to Spend"
 
+#### Key Concepts
+
 1.  **The Fixed Block:** At the start of the month, the system calculates the **Fixed Block**.
     `Fixed Block = Sum(All Expenses) + Sum(All Planned Savings)`
-2.  **The Ending Balance:** The system calculates and stores the month's pure balance.
+
+2.  **The Ending Balance:** The month's pure balance (without any rollover).
     `Ending Balance = Income - (Expenses + Savings)` from ALL sources (budget_lines + transactions)
     - Stored in `monthly_budget.ending_balance`
-    - Does NOT include rollover
-3.  **The Rollover:** Previous month's ending balance becomes current month's rollover.
-    `Rollover = ending_balance of month n-1`
-4.  **Available to Spend (User Display):** What the user sees as spendable amount.
+    - Represents ONLY the current month's financial result
+    - Does NOT include rollover from previous months
+
+3.  **The Rollover Balance:** The cumulative total balance since the beginning.
+    `Rollover Balance = Previous Rollover Balance + Current Ending Balance`
+    - Stored in `monthly_budget.rollover_balance` 
+    - **Performance optimization**: Avoids recursive calculations by storing the cumulative value
+    - This is what gets passed to the next month as rollover
+
+4.  **The Rollover:** The amount inherited from the previous month.
+    `Rollover = rollover_balance of month n-1`
+    - Simply a read operation from the database (no calculation needed)
+
+5.  **Available to Spend (User Display):** The final amount the user sees.
     `Available to Spend = Ending Balance (current month) + Rollover`
-5.  **Tracking:** Transactions are included in the ending balance calculation, not tracked separately.
+    - This is the primary value shown to users
+    - Combines current month performance with historical accumulation
+
+#### Why Two Stored Values?
+
+The dual-storage approach (`ending_balance` + `rollover_balance`) eliminates recursion:
+- **ending_balance**: Local month result, independent calculation
+- **rollover_balance**: Cumulative total, updated incrementally
+- **Result**: O(1) performance for any month's calculation instead of O(n) recursive traversal
+
+#### Simple Example
+
+```
+January:
+  Income: 5000€, Expenses: 4000€
+  → ending_balance: 1000€
+  → rollover_balance: 1000€ (0 + 1000)
+  → Available to Spend: 1000€
+
+February:
+  Income: 5000€, Expenses: 3000€
+  → ending_balance: 2000€
+  → rollover_balance: 3000€ (1000 + 2000)
+  → Available to Spend: 3000€ (2000 + 1000 rollover)
+
+March:
+  Income: 5000€, Expenses: 4700€
+  → ending_balance: 300€
+  → rollover_balance: 3300€ (3000 + 300)
+  → Available to Spend: 3300€ (300 + 3000 rollover)
+```
 
 ### Savings Mechanism
 
@@ -152,9 +195,14 @@ Savings are treated as a **priority expense**, not a leftover amount.
 
 ### RG-002: Available to Spend Calculation
 
-- **Stored Value:** `Ending Balance = Income - (Expenses + Savings)` from all sources
+- **Stored Values:** 
+  - `ending_balance = Income - (Expenses + Savings)` from current month sources only
+  - `rollover_balance = Previous Rollover Balance + Current Ending Balance` (cumulative total)
 - **Display Formula:** `Available to Spend = Ending Balance + Rollover from Previous Month`
-- **Update Strategy:** When month N is modified, only ending_balance of N is recalculated
+- **Update Strategy:** 
+  - When month N is modified: recalculate both `ending_balance_N` and `rollover_balance_N`
+  - Future months (N+1, N+2...) keep their stored values unchanged
+  - No cascade effect: each month's rollover_balance remains valid until that specific month is modified
 
 ### RG-003: Overspending Management
 
@@ -187,7 +235,8 @@ Savings are treated as a **priority expense**, not a leftover amount.
 - The data model maintains a strict separation between planning and reality.
 - **`budget_lines` (The Plan):** Represent planned, recurring (`'fixed'`) or one-off (`'one_off'`) income/expenses. They constitute the **Fixed Block**.
 - **`transactions` (The Events):** Represent actual, manually entered spending. They are linked to a `monthly_budget` but **never** to a specific `budget_line`. They affect the **Ending Balance**.
-- **`ending_balance` (The Result):** Represents the pure month balance including all budget_lines and transactions, stored for rollover purposes.
+- **`ending_balance` (The Pure Result):** The month's standalone balance including all budget_lines and transactions, excluding any rollover. This represents the month's financial performance in isolation.
+- **`rollover_balance` (The Cumulative Result):** The total accumulated balance from the beginning of history up to this month. This value becomes the rollover for the next month.
 
 ### RG-008: Transaction Type Classification (Technical)
 
@@ -201,6 +250,32 @@ Savings are treated as a **priority expense**, not a leftover amount.
   - `'income'` → "Revenu" (user-facing label)
   - `'expense'` → "Dépense" (user-facing label) 
   - `'saving'` → "Épargne" (user-facing label)
+
+### RG-009: Rollover Balance Persistence Strategy
+
+- **Rule:** The system MUST persist both `ending_balance` and `rollover_balance` to avoid recursive calculations.
+- **Architecture Benefits:**
+  - **No Recursion**: Each month's values are calculated once and stored
+  - **O(1) Performance**: Reading any month's balance is a simple database lookup
+  - **Fault Tolerance**: If a month's rollover_balance is missing, it can be reconstructed from the previous month's rollover_balance + current ending_balance
+  - **Audit Trail**: Both values provide clear financial tracking
+
+- **Calculation Flow:**
+  ```
+  1. Calculate: ending_balance_N = Σ(income) - Σ(expenses + savings) [month N only]
+  2. Retrieve: rollover_balance_(N-1) from database
+  3. Calculate: rollover_balance_N = rollover_balance_(N-1) + ending_balance_N
+  4. Store both values in monthly_budget table
+  ```
+
+- **Update Strategy:** 
+  - When month N is modified:
+    1. Recalculate `ending_balance_N` from all budget_lines + transactions of month N
+    2. Update `rollover_balance_N = rollover_balance_(N-1) + ending_balance_N`
+    3. **Critical**: Do NOT cascade updates to future months
+  - When accessing month N+1:
+    - It will automatically use the updated `rollover_balance_N` as its rollover
+    - No recalculation needed thanks to the stored values
 
 ## 5. Functional Behaviors (CF)
 
@@ -224,6 +299,15 @@ Savings are treated as a **priority expense**, not a leftover amount.
   - **Beginner (0-3 months):** Simple templates, heavy guidance, focus on core concepts.
   - **Intermediate (3-12 months):** More granular categories, longer-term projections, optimization suggestions.
   - **Expert (12+ months):** Complex seasonal templates, advanced trend analysis, hypothetical simulations.
+
+### RG-010: Handling Missing or NULL Values
+
+- **First Month**: When no previous month exists, `rollover_balance_(N-1) = 0`
+- **Missing Month**: If month N-1 doesn't exist, treat its rollover_balance as 0
+- **NULL ending_balance**: If a month's ending_balance is NULL, calculate it on-demand and persist it
+- **Data Recovery**: If rollover_balance is corrupted/missing, it can be reconstructed by:
+  - Finding the last valid rollover_balance
+  - Adding subsequent ending_balances sequentially
 
 ## 6. Specific Use Cases (CU)
 
