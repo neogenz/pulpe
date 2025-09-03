@@ -64,7 +64,7 @@ A **Monthly Budget** is an _instance_ of a Template for a specific month.
 
 ### Core Calculation Logic: "Fixed Block" vs. "Available to Spend"
 
-#### Key Concepts
+#### Key Concepts (Simplified Architecture)
 
 1.  **The Fixed Block:** At the start of the month, the system calculates the **Fixed Block**.
     `Fixed Block = Sum(All Expenses) + Sum(All Planned Savings)`
@@ -75,48 +75,44 @@ A **Monthly Budget** is an _instance_ of a Template for a specific month.
     - Represents ONLY the current month's financial result
     - Does NOT include rollover from previous months
 
-3.  **The Rollover Balance:** The cumulative total balance since the beginning.
-    `Rollover Balance = Previous Rollover Balance + Current Ending Balance`
-    - Stored in `monthly_budget.rollover_balance` 
-    - **Performance optimization**: Avoids recursive calculations by storing the cumulative value
-    - This is what gets passed to the next month as rollover
+3.  **The Rollover:** The amount inherited from the previous month.
+    `Rollover = Available to Spend of month n-1`
+    - Calculated dynamically by recursively calling previous months
+    - Formula: `rollover_N = ending_balance_(N-1) + rollover_(N-1)`
 
-4.  **The Rollover:** The amount inherited from the previous month.
-    `Rollover = rollover_balance of month n-1`
-    - Simply a read operation from the database (no calculation needed)
-
-5.  **Available to Spend (User Display):** The final amount the user sees.
+4.  **Available to Spend (User Display):** The final amount the user sees.
     `Available to Spend = Ending Balance (current month) + Rollover`
     - This is the primary value shown to users
-    - Combines current month performance with historical accumulation
+    - Combines current month performance with cumulative historical accumulation
+    - Calculated dynamically, not stored
 
-#### Why Two Stored Values?
+#### Simplified Single-Value Approach
 
-The dual-storage approach (`ending_balance` + `rollover_balance`) eliminates recursion:
+The new architecture uses only `ending_balance` with dynamic calculation:
 - **ending_balance**: Local month result, independent calculation
-- **rollover_balance**: Cumulative total, updated incrementally
-- **Result**: O(1) performance for any month's calculation instead of O(n) recursive traversal
+- **rollover**: Calculated dynamically by recursively summing previous months
+- **Result**: Simpler maintenance, auto-coherent data, KISS principle respected
 
-#### Simple Example
+#### Simple Example (Simplified Architecture)
 
 ```
 January:
-  Income: 5000 CHF, Expenses: 4000 CHF
-  → ending_balance: 1000 CHF
-  → rollover_balance: 1000 CHF (0 + 1000)
-  → Available to Spend: 1000 CHF
+  Income: 5000 CHF, Expenses: 4500 CHF
+  → ending_balance: 500 CHF (stored)
+  → rollover: 0 CHF (first month)
+  → Available to Spend: 500 CHF (calculated: 500 + 0)
 
 February:
-  Income: 5000 CHF, Expenses: 3000 CHF
-  → ending_balance: 2000 CHF
-  → rollover_balance: 3000 CHF (1000 + 2000)
-  → Available to Spend: 3000 CHF (2000 + 1000 rollover)
+  Income: 5200 CHF, Expenses: 4800 CHF
+  → ending_balance: 400 CHF (stored)
+  → rollover: 500 CHF (calculated: available_to_spend of January)
+  → Available to Spend: 900 CHF (calculated: 400 + 500)
 
 March:
-  Income: 5000 CHF, Expenses: 4700 CHF
-  → ending_balance: 300 CHF
-  → rollover_balance: 3300 CHF (3000 + 300)
-  → Available to Spend: 3300 CHF (300 + 3000 rollover)
+  Income: 5100 CHF, Expenses: 5200 CHF
+  → ending_balance: -100 CHF (stored)
+  → rollover: 900 CHF (calculated: available_to_spend of February)
+  → Available to Spend: 800 CHF (calculated: -100 + 900)
 ```
 
 ### Savings Mechanism
@@ -251,31 +247,29 @@ Savings are treated as a **priority expense**, not a leftover amount.
   - `'expense'` → "Dépense" (user-facing label) 
   - `'saving'` → "Épargne" (user-facing label)
 
-### RG-009: Rollover Balance Persistence Strategy
+### RG-009: Simplified Rollover Calculation Strategy
 
-- **Rule:** The system MUST persist both `ending_balance` and `rollover_balance` to avoid recursive calculations.
+- **Rule:** The system calculates rollover dynamically using only `ending_balance` values.
 - **Architecture Benefits:**
-  - **No Recursion**: Each month's values are calculated once and stored
-  - **O(1) Performance**: Reading any month's balance is a simple database lookup
-  - **Fault Tolerance**: If a month's rollover_balance is missing, it can be reconstructed from the previous month's rollover_balance + current ending_balance
-  - **Audit Trail**: Both values provide clear financial tracking
+  - **KISS Principle**: Only one field to maintain (`ending_balance`)
+  - **Auto-Coherent**: No risk of data inconsistency between stored values
+  - **Self-Healing**: Modifying old months automatically impacts future calculations
+  - **Maintenance Simplicity**: No manual propagation or synchronization needed
 
 - **Calculation Flow:**
   ```
-  1. Calculate: ending_balance_N = Σ(income) - Σ(expenses + savings) [month N only]
-  2. Retrieve: rollover_balance_(N-1) from database
-  3. Calculate: rollover_balance_N = rollover_balance_(N-1) + ending_balance_N
-  4. Store both values in monthly_budget table
+  1. Store: ending_balance_N = Σ(income) - Σ(expenses + savings) [month N only]
+  2. Calculate dynamically: rollover_N = available_to_spend_(N-1)
+  3. Display: available_to_spend_N = ending_balance_N + rollover_N
   ```
 
 - **Update Strategy:** 
   - When month N is modified:
-    1. Recalculate `ending_balance_N` from all budget_lines + transactions of month N
-    2. Update `rollover_balance_N = rollover_balance_(N-1) + ending_balance_N`
-    3. **Critical**: Do NOT cascade updates to future months
-  - When accessing month N+1:
-    - It will automatically use the updated `rollover_balance_N` as its rollover
-    - No recalculation needed thanks to the stored values
+    1. Recalculate and store `ending_balance_N` from all budget_lines + transactions of month N
+    2. **No propagation needed**: Future months will automatically get updated values when accessed
+  - When displaying month N+1:
+    - The system recursively calculates rollover from previous months' ending_balance
+    - Always up-to-date, no cache invalidation needed
 
 ## 5. Functional Behaviors (CF)
 

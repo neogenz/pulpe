@@ -20,7 +20,6 @@ export function toApi(budgetDb: Tables<'monthly_budget'>): Budget {
     year: budgetDb.year,
     description: budgetDb.description,
     endingBalance: budgetDb.ending_balance ?? undefined,
-    rolloverBalance: budgetDb.rollover_balance ?? undefined,
   };
 }
 
@@ -69,18 +68,16 @@ export function toUpdate(
 }
 
 /**
- * Transform rollover calculation result to API BudgetSummary
+ * Transform rollover calculation result to API BudgetSummary (simplified)
  */
 export function toBudgetSummary(rolloverData: {
   endingBalance: number;
   rollover: number;
-  rolloverBalance: number;
   availableToSpend: number;
 }): BudgetSummary {
   return {
     endingBalance: rolloverData.endingBalance,
     rollover: rolloverData.rollover,
-    rolloverBalance: rolloverData.rolloverBalance,
     availableToSpend: rolloverData.availableToSpend,
   };
 }
