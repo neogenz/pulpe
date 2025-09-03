@@ -36,7 +36,6 @@ export const budgetSchema = z.object({
   userId: z.string().uuid().optional(),
   templateId: z.string().uuid(),
   endingBalance: z.number().nullable().optional(),
-  rolloverBalance: z.number().nullable().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
@@ -370,7 +369,6 @@ export type BudgetDeleteResponse = z.infer<typeof budgetDeleteResponseSchema>;
 export const budgetSummarySchema = z.object({
   endingBalance: z.number(),
   rollover: z.number(),
-  rolloverBalance: z.number(),
   availableToSpend: z.number(),
 });
 export type BudgetSummary = z.infer<typeof budgetSummarySchema>;
