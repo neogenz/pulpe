@@ -437,11 +437,8 @@ export class BudgetService {
 
       const responseData = this.mapBudgetDetailsData(results);
 
-      // Récupérer le rollover et s'assurer que l'ending_balance est à jour
-      await this.recalculateBalances(budgetId, supabase);
       const rollover = await this.getBudgetRollover(budgetId, supabase);
 
-      // Récupérer l'ending_balance depuis la base (fraîchement calculé)
       const { data: budgetData } = await supabase
         .from('monthly_budget')
         .select('ending_balance')
@@ -948,19 +945,21 @@ export class BudgetService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<number> {
     try {
-      const result = await supabase.rpc(
-        'get_budget_with_rollover' as never,
-        {
-          p_budget_id: budgetId,
-        } as never,
-      );
+      const result = await supabase
+        .rpc(
+          'get_budget_with_rollover' as never,
+          {
+            p_budget_id: budgetId,
+          } as never,
+        )
+        .single();
 
       const { data, error } = result as {
-        data: Array<{
+        data: {
           ending_balance: number;
           rollover: number;
           available_to_spend: number;
-        }> | null;
+        } | null;
         error: { message?: string } | null;
       };
 
@@ -978,13 +977,13 @@ export class BudgetService {
         );
       }
 
-      if (!data || data.length === 0) {
+      if (!data) {
         throw new BusinessException(ERROR_DEFINITIONS.BUDGET_NOT_FOUND, {
           id: budgetId,
         });
       }
 
-      return data[0].rollover ?? 0;
+      return data.rollover ?? 0;
     } catch (error) {
       if (
         error instanceof BusinessException ||
