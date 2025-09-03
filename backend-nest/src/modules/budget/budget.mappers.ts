@@ -2,7 +2,6 @@ import {
   type Budget,
   type BudgetCreate,
   type BudgetUpdate,
-  type BudgetSummary,
 } from '@pulpe/shared';
 import { Tables, TablesInsert } from '@/types/database.types';
 
@@ -65,19 +64,4 @@ export function toUpdate(
   }
 
   return updateData;
-}
-
-/**
- * Transform rollover calculation result to API BudgetSummary (simplified)
- */
-export function toBudgetSummary(rolloverData: {
-  endingBalance: number;
-  rollover: number;
-  availableToSpend: number;
-}): BudgetSummary {
-  return {
-    endingBalance: rolloverData.endingBalance,
-    rollover: rolloverData.rollover,
-    availableToSpend: rolloverData.availableToSpend,
-  };
 }
