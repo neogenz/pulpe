@@ -379,8 +379,6 @@ export const budgetDetailsResponseSchema = z.object({
     budget: budgetSchema,
     transactions: z.array(transactionSchema),
     budgetLines: z.array(budgetLineSchema),
-    endingBalance: z.number(),
-    rollover: z.number(),
   }),
 });
 export type BudgetDetailsResponse = z.infer<typeof budgetDetailsResponseSchema>;

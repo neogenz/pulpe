@@ -439,14 +439,6 @@ export class BudgetService {
 
       const rollover = await this.getBudgetRollover(budgetId, supabase);
 
-      const { data: budgetData } = await supabase
-        .from('monthly_budget')
-        .select('ending_balance')
-        .eq('id', budgetId)
-        .single();
-
-      const endingBalance = budgetData?.ending_balance ?? 0;
-
       // Construire rollover line si nécessaire
       if (rollover !== 0) {
         const rolloverLine = this.buildRolloverLineFromData(
@@ -462,8 +454,6 @@ export class BudgetService {
         success: true,
         data: {
           ...responseData,
-          endingBalance,
-          rollover,
         },
       } as BudgetDetailsResponse;
     } catch (error) {
@@ -928,14 +918,7 @@ export class BudgetService {
   }
 
   /**
-   * Gets the rollover amount from the previous month's available_to_spend
-   * MÉTIER: rollover_N = available_to_spend_(N-1)
-   * @param currentBudgetId - Current budget ID
-   * @param supabase - Authenticated Supabase client
-   * @returns The rollover amount from previous month, or 0 if no previous budget exists
-   */
-  /**
-   * Récupère le rollover pour un budget donné
+   * Gets rollover amount from previous months
    * @param budgetId - Budget ID to get rollover for
    * @param supabase - Authenticated Supabase client
    * @returns Rollover amount from previous months
@@ -945,23 +928,9 @@ export class BudgetService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<number> {
     try {
-      const result = await supabase
-        .rpc(
-          'get_budget_with_rollover' as never,
-          {
-            p_budget_id: budgetId,
-          } as never,
-        )
+      const { data, error } = await supabase
+        .rpc('get_budget_with_rollover', { p_budget_id: budgetId })
         .single();
-
-      const { data, error } = result as {
-        data: {
-          ending_balance: number;
-          rollover: number;
-          available_to_spend: number;
-        } | null;
-        error: { message?: string } | null;
-      };
 
       if (error) {
         throw new BusinessException(
@@ -983,7 +952,7 @@ export class BudgetService {
         });
       }
 
-      return data.rollover ?? 0;
+      return (data as { rollover?: number }).rollover ?? 0;
     } catch (error) {
       if (
         error instanceof BusinessException ||
