@@ -18,20 +18,22 @@ RETURNS TABLE (
     -- Get ALL budgets for this user with rollover calculations
     SELECT 
       mb.id,
-      mb.ending_balance,
+      COALESCE(mb.ending_balance, 0) as ending_balance,
       -- Rollover = Sum of all previous months' ending_balance for this user
       COALESCE(
-        SUM(mb.ending_balance) OVER (
+        SUM(COALESCE(mb.ending_balance, 0)) OVER (
           PARTITION BY mb.user_id 
           ORDER BY mb.year, mb.month 
           ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
         ), 0
       ) as rollover,
       -- Available to spend = Sum of ALL months (including current) ending_balance
-      SUM(mb.ending_balance) OVER (
-        PARTITION BY mb.user_id 
-        ORDER BY mb.year, mb.month 
-        ROWS UNBOUNDED PRECEDING
+      COALESCE(
+        SUM(COALESCE(mb.ending_balance, 0)) OVER (
+          PARTITION BY mb.user_id 
+          ORDER BY mb.year, mb.month 
+          ROWS UNBOUNDED PRECEDING
+        ), 0
       ) as available_to_spend
     FROM monthly_budget mb
     CROSS JOIN user_budget ub
