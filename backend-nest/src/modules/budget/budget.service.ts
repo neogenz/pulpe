@@ -19,13 +19,6 @@ import { BUDGET_CONSTANTS, type MonthRange } from './budget.constants';
 import * as transactionMappers from '../transaction/transaction.mappers';
 import * as budgetLineMappers from '../budget-line/budget-line.mappers';
 
-// Type pour la fonction RPC get_budget_with_rollover
-type BudgetRolloverResult = {
-  ending_balance: number;
-  rollover: number;
-  available_to_spend: number;
-};
-
 @Injectable()
 export class BudgetService {
   constructor(
@@ -441,18 +434,27 @@ export class BudgetService {
     try {
       const results = await this.fetchBudgetDetailsData(budgetId, supabase);
       this.validateBudgetAccess(results.budgetResult, budgetId);
-      this.logDataFetchErrors(results, budgetId);
 
       const responseData = this.mapBudgetDetailsData(results);
 
-      // MÉTIER: UN SEUL appel RPC pour rollover + summary (performance optimisée)
-      const rolloverData = await this.getBudgetRolloverData(budgetId, supabase);
+      // Récupérer le rollover et s'assurer que l'ending_balance est à jour
+      await this.recalculateBalances(budgetId, supabase);
+      const rollover = await this.getBudgetRollover(budgetId, supabase);
+
+      // Récupérer l'ending_balance depuis la base (fraîchement calculé)
+      const { data: budgetData } = await supabase
+        .from('monthly_budget')
+        .select('ending_balance')
+        .eq('id', budgetId)
+        .single();
+
+      const endingBalance = budgetData?.ending_balance ?? 0;
 
       // Construire rollover line si nécessaire
-      if (rolloverData.rollover !== 0) {
+      if (rollover !== 0) {
         const rolloverLine = this.buildRolloverLineFromData(
           responseData.budget,
-          rolloverData.rollover,
+          rollover,
         );
         responseData.budgetLines.push(rolloverLine);
       }
@@ -463,9 +465,8 @@ export class BudgetService {
         success: true,
         data: {
           ...responseData,
-          endingBalance: rolloverData.ending_balance ?? 0,
-          rollover: rolloverData.rollover ?? 0,
-          availableToSpend: rolloverData.available_to_spend ?? 0,
+          endingBalance,
+          rollover,
         },
       } as BudgetDetailsResponse;
     } catch (error) {
@@ -489,9 +490,10 @@ export class BudgetService {
     },
     rolloverAmount: number,
   ): BudgetLine {
-    const { month: prevMonth, year: prevYear } = budget.month === 1
-      ? { month: 12, year: budget.year - 1 }
-      : { month: budget.month - 1, year: budget.year };
+    const { month: prevMonth, year: prevYear } =
+      budget.month === 1
+        ? { month: 12, year: budget.year - 1 }
+        : { month: budget.month - 1, year: budget.year };
 
     return {
       id: BUDGET_CONSTANTS.ROLLOVER.formatId(budget.id),
@@ -570,31 +572,6 @@ export class BudgetService {
           entityType: 'budget',
           supabaseError: budgetResult.error,
         },
-      );
-    }
-  }
-
-  private logDataFetchErrors(
-    results: ReturnType<typeof this.fetchBudgetDetailsData> extends Promise<
-      infer T
-    >
-      ? T
-      : never,
-    id: string,
-  ): void {
-    // Ces erreurs sont non-bloquantes, on les log seulement
-    // (la fonction continue même si certaines données manquent)
-    if (results.transactionsResult.error) {
-      this.logger.error(
-        { err: results.transactionsResult.error, budgetId: id },
-        'Failed to fetch transactions for budget',
-      );
-    }
-
-    if (results.budgetLinesResult.error) {
-      this.logger.error(
-        { err: results.budgetLinesResult.error, budgetId: id },
-        'Failed to fetch budget lines for budget',
       );
     }
   }
@@ -824,7 +801,6 @@ export class BudgetService {
     budgetId: string,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<number> {
-    // MÉTIER: Calculate pure month balance (budget_lines + transactions du mois uniquement)
     const { budgetLines, transactions } = await this.fetchBudgetData(
       budgetId,
       supabase,
@@ -962,20 +938,16 @@ export class BudgetService {
    * @returns The rollover amount from previous month, or 0 if no previous budget exists
    */
   /**
-   * Récupère les données rollover en un seul appel RPC optimisé
-   * @param budgetId - Budget ID to get rollover data for
+   * Récupère le rollover pour un budget donné
+   * @param budgetId - Budget ID to get rollover for
    * @param supabase - Authenticated Supabase client
-   * @returns Complete rollover data (ending_balance, rollover, available_to_spend)
+   * @returns Rollover amount from previous months
    */
-  private async getBudgetRolloverData(
+  private async getBudgetRollover(
     budgetId: string,
     supabase: AuthenticatedSupabaseClient,
-  ): Promise<BudgetRolloverResult> {
+  ): Promise<number> {
     try {
-      // S'assurer que ending_balance est à jour
-      await this.recalculateBalances(budgetId, supabase);
-
-      // MÉTIER: UN SEUL appel RPC pour tout récupérer (window functions)
       const result = await supabase.rpc(
         'get_budget_with_rollover' as never,
         {
@@ -984,7 +956,11 @@ export class BudgetService {
       );
 
       const { data, error } = result as {
-        data: BudgetRolloverResult[] | null;
+        data: Array<{
+          ending_balance: number;
+          rollover: number;
+          available_to_spend: number;
+        }> | null;
         error: { message?: string } | null;
       };
 
@@ -993,7 +969,7 @@ export class BudgetService {
           ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
           undefined,
           {
-            operation: 'getRolloverDataOnce',
+            operation: 'getBudgetRollover',
             entityId: budgetId,
             entityType: 'budget',
             supabaseError: error,
@@ -1008,7 +984,7 @@ export class BudgetService {
         });
       }
 
-      return data[0];
+      return data[0].rollover ?? 0;
     } catch (error) {
       if (
         error instanceof BusinessException ||
@@ -1020,87 +996,7 @@ export class BudgetService {
         ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
         undefined,
         {
-          operation: 'getRolloverDataOnce',
-          entityId: budgetId,
-          entityType: 'budget',
-        },
-        { cause: error },
-      );
-    }
-  }
-
-
-
-  /**
-   * Calculates the Available to Spend using simplified architecture
-   * MÉTIER: Available to Spend = Ending Balance (current month) + Available to Spend (previous month)
-   * @param budgetId - The budget ID to calculate for
-   * @param supabase - Authenticated Supabase client
-   * @returns Complete breakdown of Available to Spend calculation
-   */
-  async calculateAvailableToSpend(
-    budgetId: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<{
-    endingBalance: number;
-    rollover: number;
-    availableToSpend: number;
-  }> {
-    try {
-      // First, ensure ending_balance is up-to-date for this budget
-      await this.recalculateBalances(budgetId, supabase);
-
-      // MÉTIER: Utiliser fonction SQL optimisée (window functions) pour tout calculer
-      const result = await supabase.rpc(
-        'get_budget_with_rollover' as never,
-        {
-          p_budget_id: budgetId,
-        } as never,
-      );
-
-      const { data, error } = result as {
-        data: BudgetRolloverResult[] | null;
-        error: { message?: string } | null;
-      };
-
-      if (error) {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
-          undefined,
-          {
-            operation: 'calculateAvailableToSpend',
-            entityId: budgetId,
-            entityType: 'budget',
-            supabaseError: error,
-          },
-          { cause: error },
-        );
-      }
-
-      if (!data || data.length === 0) {
-        throw new BusinessException(ERROR_DEFINITIONS.BUDGET_NOT_FOUND, {
-          id: budgetId,
-        });
-      }
-
-      const budgetResult = data[0];
-      return {
-        endingBalance: budgetResult.ending_balance ?? 0,
-        rollover: budgetResult.rollover ?? 0,
-        availableToSpend: budgetResult.available_to_spend ?? 0,
-      };
-    } catch (error) {
-      if (
-        error instanceof BusinessException ||
-        error instanceof HttpException
-      ) {
-        throw error;
-      }
-      throw new BusinessException(
-        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
-        undefined,
-        {
-          operation: 'calculateAvailableToSpend',
+          operation: 'getBudgetRollover',
           entityId: budgetId,
           entityType: 'budget',
         },

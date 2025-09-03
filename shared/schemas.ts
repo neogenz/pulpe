@@ -369,7 +369,6 @@ export type BudgetDeleteResponse = z.infer<typeof budgetDeleteResponseSchema>;
 export const budgetSummarySchema = z.object({
   endingBalance: z.number(),
   rollover: z.number(),
-  availableToSpend: z.number(),
 });
 export type BudgetSummary = z.infer<typeof budgetSummarySchema>;
 
@@ -380,7 +379,8 @@ export const budgetDetailsResponseSchema = z.object({
     budget: budgetSchema,
     transactions: z.array(transactionSchema),
     budgetLines: z.array(budgetLineSchema),
-    summary: budgetSummarySchema.optional(),
+    endingBalance: z.number(),
+    rollover: z.number(),
   }),
 });
 export type BudgetDetailsResponse = z.infer<typeof budgetDetailsResponseSchema>;

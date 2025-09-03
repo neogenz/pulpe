@@ -240,11 +240,11 @@ export function toBudgetSummary(rolloverData: {
 **Fichier** : `backend-nest/src/modules/budget/budget.service.spec.ts`
 
 ```typescript
-describe('Rollover Balance Calculation', () => {
-  it('should calculate cumulative rollover balance correctly', async () => {
-    // Janvier : ending_balance = 500 CHF
+describe('Rollover Calculation', () => {
+  it('should calculate rollover correctly', async () => {
+    // Janvier : ending_balance = 500 CHF, available_to_spend = 500 CHF
     // Février : ending_balance = -200 CHF
-    // Résultat attendu : rollover_balance_février = 500 + (-200) = 300 CHF
+    // Résultat attendu : rollover_février = available_to_spend_janvier = 500 CHF
     
     const janBudget = await service.createBudget(userId, { year: 2025, month: 1 });
     await service.updateEndingBalance(janBudget.id, 500);
@@ -252,23 +252,65 @@ describe('Rollover Balance Calculation', () => {
     const febBudget = await service.createBudget(userId, { year: 2025, month: 2 });
     await service.updateEndingBalance(febBudget.id, -200);
     
-    const rolloverBalance = await service.getRolloverBalance(febBudget.id);
-    expect(rolloverBalance).toBe(300);
+    const febData = await service.calculateAvailableToSpend(febBudget.id);
+    expect(febData.rollover).toBe(500); // = available_to_spend de janvier
+    expect(febData.availableToSpend).toBe(300); // 500 + (-200)
   });
   
   it('should handle first month with zero rollover', async () => {
     const budget = await service.createBudget(userId, { year: 2025, month: 1 });
-    const rollover = await service.getPreviousRolloverBalance(userId, 2025, 1);
-    expect(rollover).toBe(0);
+    const data = await service.calculateAvailableToSpend(budget.id);
+    expect(data.rollover).toBe(0);
   });
 });
 ```
 
 ---
 
-## Phase 3 : Tests et Validation
+## Phase 3 : Mise à Jour des Documentations
 
-### 3.1 Tests Backend
+### 3.1 SPECS.md - Business Rules Update
+
+**Section à Mettre à Jour :** RG-009 Simplified Rollover Calculation Strategy
+
+```markdown
+### RG-009: Simplified Rollover Calculation Strategy
+
+- **Rule:** The system calculates rollover dynamically using only `ending_balance` values.
+- **Architecture Benefits:**
+  - **KISS Principle**: Only one field to maintain (`ending_balance`)
+  - **Auto-Coherent**: No risk of data inconsistency between stored values
+  - **Self-Healing**: Modifying old months automatically impacts future calculations
+  - **Maintenance Simplicity**: No manual propagation or synchronization needed
+
+- **Calculation Flow:**
+  ```
+  1. Store: ending_balance_N = Σ(income) - Σ(expenses + savings) [month N only]
+  2. Calculate dynamically: rollover_N = available_to_spend_(N-1)
+  3. Display: available_to_spend_N = ending_balance_N + rollover_N
+  ```
+
+- **Update Strategy:** 
+  - When month N is modified:
+    1. Recalculate and store `ending_balance_N` from all budget_lines + transactions of month N
+    2. **No propagation needed**: Future months will automatically get updated values when accessed
+  - When displaying month N+1:
+    - The system recursively calculates rollover from previous months' ending_balance
+    - Always up-to-date, no cache invalidation needed
+```
+
+### 3.2 Business Documentation Alignment
+
+**Objectif :** Aligner toute la documentation métier avec le principe fondamental :
+- **Rollover = Available to Spend du mois précédent**
+- **Calcul dynamique uniquement**
+- **Seul `ending_balance` persisté**
+
+---
+
+## Phase 4 : Tests et Validation
+
+### 4.1 Tests Backend
 
 **Commandes :**
 ```bash
@@ -280,10 +322,10 @@ bun test budget.service.spec.ts
 bun test:e2e budget
 ```
 
-### 3.2 Tests de Migration
+### 4.2 Tests de Migration
 
 
-### 3.3 Tests de Régression
+### 4.3 Tests de Régression
 
 - Vérifier que les calculs existants ne sont pas cassés
 - Valider que la performance n'est pas dégradée
@@ -291,7 +333,7 @@ bun test:e2e budget
 
 ---
 
-## Phase 4 : Déploiement
+## Phase 5 : Déploiement
 
 ### 5.1 Checklist Pré-déploiement
 
@@ -318,10 +360,11 @@ bun test:e2e budget
 |-------|--------------|-------------|
 | Phase 1: Migration BDD | 2h | - |
 | Phase 2: Code Backend | 4h | Phase 1 |
-| Phase 3: Tests | 3h | Phase 1-2 |
-| Phase 4: Déploiement | 1h | Phase 1-3 |
+| Phase 3: Documentation | 2h | Phase 1-2 |
+| Phase 4: Tests | 3h | Phase 1-3 |
+| Phase 5: Déploiement | 1h | Phase 1-4 |
 
-**Total Estimé :** 10 heures
+**Total Estimé :** 12 heures
 
 ---
 
