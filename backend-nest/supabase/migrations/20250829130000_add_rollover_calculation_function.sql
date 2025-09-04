@@ -6,7 +6,8 @@ CREATE OR REPLACE FUNCTION get_budget_with_rollover(p_budget_id UUID)
 RETURNS TABLE (
   ending_balance NUMERIC,
   rollover NUMERIC,
-  available_to_spend NUMERIC
+  available_to_spend NUMERIC,
+  previous_budget_id UUID
 ) AS $$
   WITH user_budget AS (
     -- Get the user and date info for the target budget
@@ -19,6 +20,11 @@ RETURNS TABLE (
     SELECT 
       mb.id,
       COALESCE(mb.ending_balance, 0) as ending_balance,
+      -- Previous budget ID using LAG() to get the previous row's id
+      LAG(mb.id) OVER (
+        PARTITION BY mb.user_id 
+        ORDER BY mb.year, mb.month
+      ) as previous_budget_id,
       -- Rollover = Sum of all previous months' ending_balance for this user
       COALESCE(
         SUM(COALESCE(mb.ending_balance, 0)) OVER (
@@ -41,7 +47,8 @@ RETURNS TABLE (
   SELECT 
     ubwr.ending_balance,
     ubwr.rollover,
-    ubwr.available_to_spend
+    ubwr.available_to_spend,
+    ubwr.previous_budget_id
   FROM user_budgets_with_rollover ubwr
   WHERE ubwr.id = p_budget_id;
 $$ LANGUAGE sql STABLE;

@@ -426,13 +426,14 @@ export class BudgetService {
 
       const responseData = this.mapBudgetDetailsData(results);
 
-      const rollover = await this.getBudgetRollover(budgetId, supabase);
+      const rolloverData = await this.getBudgetRollover(budgetId, supabase);
 
       // Construire rollover line si nécessaire
-      if (rollover !== 0) {
+      if (rolloverData.rollover !== 0) {
         const rolloverLine = this.buildRolloverLineFromData(
           responseData.budget,
-          rollover,
+          rolloverData.rollover,
+          rolloverData.previousBudgetId,
         );
         responseData.budgetLines.push(rolloverLine);
       }
@@ -454,6 +455,7 @@ export class BudgetService {
    * Construit une ligne de rollover depuis les données pré-calculées
    * @param budget - Budget courant
    * @param rolloverAmount - Montant du rollover (déjà calculé par RPC)
+   * @param previousBudgetId - ID du budget précédent d'où provient le rollover
    * @returns BudgetLine de rollover
    */
   private buildRolloverLineFromData(
@@ -465,6 +467,7 @@ export class BudgetService {
       updatedAt: string;
     },
     rolloverAmount: number,
+    previousBudgetId: string | null,
   ): BudgetLine {
     const { month: prevMonth, year: prevYear } =
       budget.month === 1
@@ -485,7 +488,7 @@ export class BudgetService {
       recurrence: 'one_off',
       isManuallyAdjusted: false,
       isRollover: true,
-      rolloverSourceBudgetId: null,
+      rolloverSourceBudgetId: previousBudgetId,
       createdAt: budget.createdAt,
       updatedAt: budget.updatedAt,
     };
@@ -892,15 +895,15 @@ export class BudgetService {
   }
 
   /**
-   * Gets rollover amount from previous months
+   * Gets rollover amount and previous budget ID from previous months
    * @param budgetId - Budget ID to get rollover for
    * @param supabase - Authenticated Supabase client
-   * @returns Rollover amount from previous months
+   * @returns Rollover amount and previous budget ID from previous months
    */
   private async getBudgetRollover(
     budgetId: string,
     supabase: AuthenticatedSupabaseClient,
-  ): Promise<number> {
+  ): Promise<{ rollover: number; previousBudgetId: string | null }> {
     try {
       const { data, error } = await supabase
         .rpc('get_budget_with_rollover', { p_budget_id: budgetId })
@@ -926,7 +929,11 @@ export class BudgetService {
         });
       }
 
-      return (data as { rollover?: number }).rollover ?? 0;
+      return {
+        rollover: (data as { rollover?: number }).rollover ?? 0,
+        previousBudgetId:
+          (data as { previous_budget_id?: string }).previous_budget_id ?? null,
+      };
     } catch (error) {
       handleServiceError(
         error,
