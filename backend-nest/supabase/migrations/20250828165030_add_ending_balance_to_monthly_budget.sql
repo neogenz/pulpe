@@ -59,32 +59,3 @@ SET ending_balance = bc.calculated_balance
 FROM budget_calculations bc
 WHERE monthly_budget.id = bc.id
 AND monthly_budget.ending_balance IS NULL;
-
--- Step 5: Create helper function for recalculating ending balance
-CREATE OR REPLACE FUNCTION recalculate_ending_balance(budget_id UUID)
-RETURNS NUMERIC AS $$
-DECLARE
-  balance NUMERIC;
-BEGIN
-  SELECT 
-    COALESCE(SUM(CASE 
-      WHEN kind = 'income' THEN amount 
-      ELSE -amount 
-    END), 0)
-  INTO balance
-  FROM (
-    SELECT kind, amount FROM budget_line WHERE budget_id = $1
-    UNION ALL
-    SELECT kind, amount FROM transaction WHERE budget_id = $1
-  ) combined;
-  
-  UPDATE monthly_budget 
-  SET ending_balance = balance 
-  WHERE id = $1;
-  
-  RETURN balance;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Grant execute permission to authenticated users
-GRANT EXECUTE ON FUNCTION recalculate_ending_balance(UUID) TO authenticated;

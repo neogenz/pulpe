@@ -364,7 +364,6 @@ export class BudgetLineService {
         user,
       );
 
-      // Recalculate ending balance and rollover balance for the budget immediately
       await this.budgetService.recalculateBalances(
         budgetLineDb.budget_id,
         supabase,
