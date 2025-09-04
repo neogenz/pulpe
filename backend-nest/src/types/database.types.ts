@@ -343,12 +343,9 @@ export type Database = {
         Returns: {
           available_to_spend: number;
           ending_balance: number;
+          previous_budget_id: string;
           rollover: number;
         }[];
-      };
-      recalculate_ending_balance: {
-        Args: { budget_id: string };
-        Returns: number;
       };
     };
     Enums: {
