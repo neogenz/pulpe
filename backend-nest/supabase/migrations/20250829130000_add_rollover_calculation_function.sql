@@ -36,8 +36,7 @@ RETURNS TABLE (
         ), 0
       ) as available_to_spend
     FROM monthly_budget mb
-    CROSS JOIN user_budget ub
-    WHERE mb.user_id = ub.user_id
+    INNER JOIN user_budget ub ON mb.user_id = ub.user_id
   )
   SELECT 
     ubwr.ending_balance,
