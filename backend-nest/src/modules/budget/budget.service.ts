@@ -1,9 +1,10 @@
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import { Injectable, HttpException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import { handleServiceError } from '@common/utils/error-handler';
 import {
   type BudgetCreate,
   type BudgetDeleteResponse,
@@ -58,13 +59,8 @@ export class BudgetService {
         data: apiData,
       } as BudgetListResponse;
     } catch (error) {
-      if (
-        error instanceof BusinessException ||
-        error instanceof HttpException
-      ) {
-        throw error;
-      }
-      throw new BusinessException(
+      handleServiceError(
+        error,
         ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
         undefined,
         {
@@ -72,7 +68,6 @@ export class BudgetService {
           userId: user.id,
           entityType: 'budget',
         },
-        { cause: error },
       );
     }
   }
@@ -211,10 +206,8 @@ export class BudgetService {
   }
 
   private handleCreateError(error: unknown, userId: string): never {
-    if (error instanceof BusinessException || error instanceof HttpException) {
-      throw error;
-    }
-    throw new BusinessException(
+    handleServiceError(
+      error,
       ERROR_DEFINITIONS.BUDGET_CREATE_FAILED,
       undefined,
       {
@@ -222,7 +215,6 @@ export class BudgetService {
         userId,
         entityType: 'budget',
       },
-      { cause: error },
     );
   }
 
@@ -410,10 +402,8 @@ export class BudgetService {
     id: string,
     user: AuthenticatedUser,
   ): never {
-    if (error instanceof BusinessException || error instanceof HttpException) {
-      throw error;
-    }
-    throw new BusinessException(
+    handleServiceError(
+      error,
       ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
       undefined,
       {
@@ -422,7 +412,6 @@ export class BudgetService {
         entityId: id,
         entityType: 'budget',
       },
-      { cause: error },
     );
   }
 
@@ -507,10 +496,8 @@ export class BudgetService {
     user: AuthenticatedUser,
     id: string,
   ): never {
-    if (error instanceof BusinessException || error instanceof HttpException) {
-      throw error;
-    }
-    throw new BusinessException(
+    handleServiceError(
+      error,
       ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
       undefined,
       {
@@ -519,7 +506,6 @@ export class BudgetService {
         entityId: id,
         entityType: 'budget',
       },
-      { cause: error },
     );
   }
 
@@ -691,13 +677,8 @@ export class BudgetService {
         data: apiData,
       };
     } catch (error) {
-      if (
-        error instanceof BusinessException ||
-        error instanceof HttpException
-      ) {
-        throw error;
-      }
-      throw new BusinessException(
+      handleServiceError(
+        error,
         ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
         undefined,
         {
@@ -706,7 +687,6 @@ export class BudgetService {
           entityId: id,
           entityType: 'budget',
         },
-        { cause: error },
       );
     }
   }
@@ -742,13 +722,8 @@ export class BudgetService {
         message: 'Budget deleted successfully',
       };
     } catch (error) {
-      if (
-        error instanceof BusinessException ||
-        error instanceof HttpException
-      ) {
-        throw error;
-      }
-      throw new BusinessException(
+      handleServiceError(
+        error,
         ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
         undefined,
         {
@@ -757,7 +732,6 @@ export class BudgetService {
           entityId: id,
           entityType: 'budget',
         },
-        { cause: error },
       );
     }
   }
@@ -935,7 +909,7 @@ export class BudgetService {
       if (error) {
         throw new BusinessException(
           ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
-          undefined,
+          { budgetId },
           {
             operation: 'getBudgetRollover',
             entityId: budgetId,
@@ -954,13 +928,8 @@ export class BudgetService {
 
       return (data as { rollover?: number }).rollover ?? 0;
     } catch (error) {
-      if (
-        error instanceof BusinessException ||
-        error instanceof HttpException
-      ) {
-        throw error;
-      }
-      throw new BusinessException(
+      handleServiceError(
+        error,
         ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
         undefined,
         {
@@ -968,7 +937,6 @@ export class BudgetService {
           entityId: budgetId,
           entityType: 'budget',
         },
-        { cause: error },
       );
     }
   }

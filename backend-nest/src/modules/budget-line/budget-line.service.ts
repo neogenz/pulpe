@@ -1,9 +1,10 @@
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import { Injectable, HttpException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { BusinessException } from '@common/exceptions/business.exception';
+import { handleServiceError } from '@common/utils/error-handler';
 import {
   type BudgetLineCreate,
   type BudgetLineListResponse,
@@ -52,20 +53,14 @@ export class BudgetLineService {
         data: apiData,
       } as BudgetLineListResponse;
     } catch (error) {
-      if (
-        error instanceof BusinessException ||
-        error instanceof HttpException
-      ) {
-        throw error;
-      }
-      throw new BusinessException(
+      handleServiceError(
+        error,
         ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
         undefined,
         {
           operation: 'listBudgetLines',
           entityType: 'budget_line',
         },
-        { cause: error },
       );
     }
   }
@@ -180,13 +175,8 @@ export class BudgetLineService {
         data: apiData,
       };
     } catch (error) {
-      if (
-        error instanceof BusinessException ||
-        error instanceof HttpException
-      ) {
-        throw error;
-      }
-      throw new BusinessException(
+      handleServiceError(
+        error,
         ERROR_DEFINITIONS.BUDGET_LINE_CREATE_FAILED,
         undefined,
         {
@@ -194,7 +184,6 @@ export class BudgetLineService {
           userId: user.id,
           entityType: 'budget_line',
         },
-        { cause: error },
       );
     }
   }
@@ -250,10 +239,8 @@ export class BudgetLineService {
     id: string,
     user: AuthenticatedUser,
   ): never {
-    if (error instanceof BusinessException || error instanceof HttpException) {
-      throw error;
-    }
-    throw new BusinessException(
+    handleServiceError(
+      error,
       ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
       undefined,
       {
@@ -262,7 +249,6 @@ export class BudgetLineService {
         entityId: id,
         entityType: 'budget_line',
       },
-      { cause: error },
     );
   }
 
@@ -376,13 +362,8 @@ export class BudgetLineService {
         data: apiData,
       };
     } catch (error) {
-      if (
-        error instanceof BusinessException ||
-        error instanceof HttpException
-      ) {
-        throw error;
-      }
-      throw new BusinessException(
+      handleServiceError(
+        error,
         ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,
         { id },
         {
@@ -391,7 +372,6 @@ export class BudgetLineService {
           entityId: id,
           entityType: 'budget_line',
         },
-        { cause: error },
       );
     }
   }
@@ -465,10 +445,8 @@ export class BudgetLineService {
     id: string,
     user: AuthenticatedUser,
   ): never {
-    if (error instanceof BusinessException || error instanceof HttpException) {
-      throw error;
-    }
-    throw new BusinessException(
+    handleServiceError(
+      error,
       ERROR_DEFINITIONS.BUDGET_LINE_DELETE_FAILED,
       { id },
       {
@@ -477,7 +455,6 @@ export class BudgetLineService {
         entityId: id,
         entityType: 'budget_line',
       },
-      { cause: error },
     );
   }
 
@@ -513,13 +490,8 @@ export class BudgetLineService {
         data: apiData,
       } as BudgetLineListResponse;
     } catch (error) {
-      if (
-        error instanceof BusinessException ||
-        error instanceof HttpException
-      ) {
-        throw error;
-      }
-      throw new BusinessException(
+      handleServiceError(
+        error,
         ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
         undefined,
         {
@@ -527,7 +499,6 @@ export class BudgetLineService {
           entityId: budgetId,
           entityType: 'budget_line',
         },
-        { cause: error },
       );
     }
   }

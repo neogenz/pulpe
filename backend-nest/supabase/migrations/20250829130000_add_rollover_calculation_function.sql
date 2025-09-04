@@ -49,3 +49,6 @@ $$ LANGUAGE sql STABLE;
 -- Add comment for the only useful function
 COMMENT ON FUNCTION get_budget_with_rollover(UUID) IS 
 'Calculate budget rollover (previous month''s available_to_spend, which is the cumulative sum of all previous months'' ending_balance) and available_to_spend (cumulative balance) for a specific budget using window functions.';
+
+-- Set search_path to empty string for security (prevents schema hijacking)
+ALTER FUNCTION public.get_budget_with_rollover(UUID) SET search_path = '';

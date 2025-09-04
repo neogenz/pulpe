@@ -7,7 +7,7 @@ import {
   expectBusinessExceptionThrown,
   MOCK_BUDGET_ID,
   MockSupabaseClient,
-} from '../../test/test-utils-simple';
+} from '../../test/test-mocks';
 import type { BudgetCreate, BudgetUpdate } from '@pulpe/shared';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 
@@ -147,11 +147,23 @@ describe('BudgetService', () => {
       };
 
       mockSupabaseClient.setMockData(null).setMockError(null);
-      mockSupabaseClient.rpc = () =>
-        Promise.resolve({
-          data: mockRpcResult,
-          error: null,
-        });
+      (mockSupabaseClient.rpc as any) = () => {
+        const result = { data: mockRpcResult, error: null };
+        return {
+          single: () => Promise.resolve(result),
+          eq: () => ({ single: () => Promise.resolve(result) }),
+          neq: () => ({ single: () => Promise.resolve(result) }),
+          gte: () => ({ single: () => Promise.resolve(result) }),
+          lte: () => ({ single: () => Promise.resolve(result) }),
+          gt: () => ({ single: () => Promise.resolve(result) }),
+          lt: () => ({ single: () => Promise.resolve(result) }),
+          in: () => ({ single: () => Promise.resolve(result) }),
+          limit: () => ({ single: () => Promise.resolve(result) }),
+          range: () => ({ single: () => Promise.resolve(result) }),
+          then: (resolve: (value: typeof result) => any) =>
+            Promise.resolve(result).then(resolve),
+        };
+      };
 
       const result = await service.create(
         createBudgetDto,
@@ -467,6 +479,21 @@ describe('BudgetService', () => {
       mockTransactionClient.setMockData(mockTransactions).setMockError(null);
       mockBudgetLineClient.setMockData(mockBudgetLines).setMockError(null);
 
+      // Mock the get_budget_with_rollover RPC call
+      const originalRpc = mockSupabaseClient.rpc;
+      mockSupabaseClient.rpc = ((functionName: string, params: any) => {
+        if (functionName === 'get_budget_with_rollover') {
+          return {
+            single: () =>
+              Promise.resolve({
+                data: { rollover: 150 }, // Match the previous budget ending_balance
+                error: null,
+              }),
+          };
+        }
+        return originalRpc.call(mockSupabaseClient, functionName, params);
+      }) as typeof mockSupabaseClient.rpc;
+
       // Override the from method to return the appropriate client
       const originalFrom = mockSupabaseClient.from;
       mockSupabaseClient.from = ((table: string) => {
@@ -538,6 +565,21 @@ describe('BudgetService', () => {
       mockTransactionClient.setMockData([]).setMockError(null);
       mockBudgetLineClient.setMockData([]).setMockError(null);
 
+      // Mock the get_budget_with_rollover RPC call
+      const originalRpc = mockSupabaseClient.rpc;
+      mockSupabaseClient.rpc = ((functionName: string, params: any) => {
+        if (functionName === 'get_budget_with_rollover') {
+          return {
+            single: () =>
+              Promise.resolve({
+                data: { rollover: 0 }, // No previous rollover for empty case
+                error: null,
+              }),
+          };
+        }
+        return originalRpc.call(mockSupabaseClient, functionName, params);
+      }) as typeof mockSupabaseClient.rpc;
+
       // Override the from method to return the appropriate client
       const originalFrom = mockSupabaseClient.from;
       mockSupabaseClient.from = (table: string) => {
@@ -602,6 +644,21 @@ describe('BudgetService', () => {
       mockBudgetLineClient
         .setMockData(null)
         .setMockError({ message: 'Permission denied' });
+
+      // Mock the get_budget_with_rollover RPC call to return an error
+      const originalRpc = mockSupabaseClient.rpc;
+      mockSupabaseClient.rpc = ((functionName: string, params: any) => {
+        if (functionName === 'get_budget_with_rollover') {
+          return {
+            single: () =>
+              Promise.resolve({
+                data: null,
+                error: { message: 'Permission denied', code: 'PGRST116' },
+              }),
+          };
+        }
+        return originalRpc.call(mockSupabaseClient, functionName, params);
+      }) as typeof mockSupabaseClient.rpc;
 
       // Override the from method to return the appropriate client
       const originalFrom = mockSupabaseClient.from;

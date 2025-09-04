@@ -9,7 +9,7 @@ import {
   createMockAuthenticatedUser,
   createMockTransactionEntity,
   MockSupabaseClient,
-} from '../../test/test-utils-simple';
+} from '../../test/test-mocks';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 
 const MOCK_BUDGET_ID = 'budget-123';
