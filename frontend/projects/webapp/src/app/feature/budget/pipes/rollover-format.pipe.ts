@@ -1,4 +1,6 @@
 import { Pipe, type PipeTransform, inject } from '@angular/core';
+import { format } from 'date-fns';
+import { frCH } from 'date-fns/locale';
 import { Logger } from '@core/logging/logger';
 
 @Pipe({
@@ -8,20 +10,6 @@ import { Logger } from '@core/logging/logger';
 export class RolloverFormatPipe implements PipeTransform {
   readonly #logger = inject(Logger);
   readonly #ROLLOVER_PATTERN = /rollover_(\d+)_(\d+)/;
-  readonly #MONTH_NAMES = [
-    'janvier',
-    'février',
-    'mars',
-    'avril',
-    'mai',
-    'juin',
-    'juillet',
-    'août',
-    'septembre',
-    'octobre',
-    'novembre',
-    'décembre',
-  ] as const;
 
   transform(name: string): string {
     if (!name?.startsWith('rollover_')) {
@@ -45,7 +33,8 @@ export class RolloverFormatPipe implements PipeTransform {
       return name; // Return original if month is invalid
     }
 
-    const monthName = this.#MONTH_NAMES[monthIndex];
+    const date = new Date(parseInt(year, 10), monthIndex, 1);
+    const monthName = format(date, 'MMMM', { locale: frCH });
 
     return `Report ${monthName} ${year}`;
   }

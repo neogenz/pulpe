@@ -39,10 +39,10 @@ export class BudgetTableMapper {
   /**
    * Type guard to check if a budget item is a rollover line
    */
-  static isRolloverBudgetLine(
+  #isRolloverBudgetLine(
     item: BudgetLine | Transaction,
   ): item is BudgetLine & { isRollover: true } {
-    return item != null && 'isRollover' in item && item.isRollover === true;
+    return 'isRollover' in item && item.isRollover === true;
   }
 
   /**
@@ -61,7 +61,7 @@ export class BudgetTableMapper {
       );
 
     const items: TableItem[] = itemsWithBalance.map((item) => {
-      const isRollover = BudgetTableMapper.isRolloverBudgetLine(item.item);
+      const isRollover = this.#isRolloverBudgetLine(item.item);
       return {
         data: item.item,
         metadata: {
