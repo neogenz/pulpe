@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { BudgetTemplateService } from './budget-template.service';
-import { createMockSupabaseClient } from '@/test/test-utils-simple';
+import { createMockSupabaseClient } from '@/test/test-mocks';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { Tables } from '@/types/database.types';
 import {

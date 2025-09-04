@@ -4,6 +4,7 @@ import { Injectable, HttpException } from '@nestjs/common';
 import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { BusinessException } from '@common/exceptions/business.exception';
+import { handleServiceError } from '@common/utils/error-handler';
 import {
   type TransactionCreate,
   type TransactionDeleteResponse,
@@ -53,20 +54,14 @@ export class TransactionService {
         data: apiData,
       } as TransactionListResponse;
     } catch (error) {
-      if (
-        error instanceof BusinessException ||
-        error instanceof HttpException
-      ) {
-        throw error;
-      }
-      throw new BusinessException(
+      handleServiceError(
+        error,
         ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
         undefined,
         {
           operation: 'listTransactions',
           entityType: 'transaction',
         },
-        { cause: error },
       );
     }
   }
@@ -192,13 +187,8 @@ export class TransactionService {
         data: apiData,
       };
     } catch (error) {
-      if (
-        error instanceof BusinessException ||
-        error instanceof HttpException
-      ) {
-        throw error;
-      }
-      throw new BusinessException(
+      handleServiceError(
+        error,
         ERROR_DEFINITIONS.TRANSACTION_CREATE_FAILED,
         undefined,
         {
@@ -206,7 +196,6 @@ export class TransactionService {
           userId: user.id,
           entityType: 'transaction',
         },
-        { cause: error },
       );
     }
   }
@@ -262,10 +251,8 @@ export class TransactionService {
     id: string,
     user: AuthenticatedUser,
   ): never {
-    if (error instanceof BusinessException || error instanceof HttpException) {
-      throw error;
-    }
-    throw new BusinessException(
+    handleServiceError(
+      error,
       ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
       undefined,
       {
@@ -274,7 +261,6 @@ export class TransactionService {
         entityId: id,
         entityType: 'transaction',
       },
-      { cause: error },
     );
   }
 
@@ -403,13 +389,8 @@ export class TransactionService {
         data: apiData,
       };
     } catch (error) {
-      if (
-        error instanceof BusinessException ||
-        error instanceof HttpException
-      ) {
-        throw error;
-      }
-      throw new BusinessException(
+      handleServiceError(
+        error,
         ERROR_DEFINITIONS.TRANSACTION_UPDATE_FAILED,
         { id },
         {
@@ -418,7 +399,6 @@ export class TransactionService {
           entityId: id,
           entityType: 'transaction',
         },
-        { cause: error },
       );
     }
   }
@@ -501,10 +481,12 @@ export class TransactionService {
     entityId: string,
     startTime: number,
   ): never {
+    // Use the error handler for consistency (it will re-throw known exceptions)
     if (error instanceof BusinessException || error instanceof HttpException) {
       throw error;
     }
 
+    // Log unexpected errors before wrapping
     this.logger.error(
       {
         operation: 'deleteTransaction',
@@ -516,7 +498,9 @@ export class TransactionService {
       'Unexpected error during transaction deletion',
     );
 
-    throw new BusinessException(
+    // Use error handler for the wrapping logic
+    handleServiceError(
+      error,
       ERROR_DEFINITIONS.TRANSACTION_DELETE_FAILED,
       { id: entityId },
       {
@@ -525,7 +509,6 @@ export class TransactionService {
         entityId,
         entityType: 'transaction',
       },
-      { cause: error },
     );
   }
 
@@ -561,13 +544,8 @@ export class TransactionService {
         data: apiData,
       } as TransactionListResponse;
     } catch (error) {
-      if (
-        error instanceof BusinessException ||
-        error instanceof HttpException
-      ) {
-        throw error;
-      }
-      throw new BusinessException(
+      handleServiceError(
+        error,
         ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
         undefined,
         {
@@ -575,7 +553,6 @@ export class TransactionService {
           entityId: budgetId,
           entityType: 'budget',
         },
-        { cause: error },
       );
     }
   }

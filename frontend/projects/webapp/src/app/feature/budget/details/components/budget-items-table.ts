@@ -271,9 +271,7 @@ import { RolloverFormatPipe } from '../../pipes';
                     <button
                       matButton
                       (click)="cancelEdit()"
-                      [attr.aria-label]="
-                        'Cancel editing ' + (line.data.name | rolloverFormat)
-                      "
+                      [attr.aria-label]="'Cancel editing ' + line.data.name"
                       [attr.data-testid]="'cancel-' + line.data.id"
                       class="density-3"
                     >
@@ -283,9 +281,7 @@ import { RolloverFormatPipe } from '../../pipes';
                     <button
                       matButton="filled"
                       (click)="saveEdit()"
-                      [attr.aria-label]="
-                        'Save ' + (line.data.name | rolloverFormat)
-                      "
+                      [attr.aria-label]="'Save ' + line.data.name"
                       [attr.data-testid]="'save-' + line.data.id"
                       [disabled]="!editForm.valid"
                       class="density-3"
@@ -316,9 +312,7 @@ import { RolloverFormatPipe } from '../../pipes';
                     <button
                       matIconButton
                       (click)="deleteClicked.emit(line.data.id)"
-                      [attr.aria-label]="
-                        'Delete ' + (line.data.name | rolloverFormat)
-                      "
+                      [attr.aria-label]="'Delete ' + line.data.name"
                       data-testid="delete-button"
                       [disabled]="line.metadata.isLoading"
                       class="!w-10 !h-10 text-error"

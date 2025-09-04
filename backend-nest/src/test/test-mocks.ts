@@ -118,10 +118,25 @@ export class MockSupabaseClient {
   }
 
   rpc(_functionName: string, _params: unknown) {
-    return Promise.resolve({
-      data: this.#mockData,
-      error: this.#mockError,
-    });
+    const result = { data: this.#mockData, error: this.#mockError };
+
+    const chainMethods = {
+      single: () => Promise.resolve(result),
+      eq: () => chainMethods,
+      neq: () => chainMethods,
+      gte: () => chainMethods,
+      lte: () => chainMethods,
+      gt: () => chainMethods,
+      lt: () => chainMethods,
+      in: () => chainMethods,
+      limit: () => chainMethods,
+      range: () => chainMethods,
+      then: (resolve: (value: typeof result) => any) => {
+        return Promise.resolve(result).then(resolve);
+      },
+    };
+
+    return chainMethods;
   }
 
   auth = {

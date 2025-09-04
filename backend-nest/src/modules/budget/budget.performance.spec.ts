@@ -7,7 +7,7 @@ import {
   createMockSupabaseClient,
   createMockBudgetEntity,
   MockSupabaseClient,
-} from '../../test/test-utils-simple';
+} from '../../test/test-mocks';
 import type { BudgetCreate } from '@pulpe/shared';
 
 describe('BudgetService (Performance)', () => {
@@ -162,15 +162,30 @@ describe('BudgetService (Performance)', () => {
       });
 
       // Mock RPC function to always succeed
-      mockSupabaseClient.rpc = () =>
-        Promise.resolve({
+      (mockSupabaseClient.rpc as any) = () => {
+        const result = {
           data: {
             budget: mockCreatedBudget,
             transactions_created: 5,
             template_name: 'Test Template',
           },
           error: null,
-        });
+        };
+        return {
+          single: () => Promise.resolve(result),
+          eq: () => ({ single: () => Promise.resolve(result) }),
+          neq: () => ({ single: () => Promise.resolve(result) }),
+          gte: () => ({ single: () => Promise.resolve(result) }),
+          lte: () => ({ single: () => Promise.resolve(result) }),
+          gt: () => ({ single: () => Promise.resolve(result) }),
+          lt: () => ({ single: () => Promise.resolve(result) }),
+          in: () => ({ single: () => Promise.resolve(result) }),
+          limit: () => ({ single: () => Promise.resolve(result) }),
+          range: () => ({ single: () => Promise.resolve(result) }),
+          then: (resolve: (value: typeof result) => any) =>
+            Promise.resolve(result).then(resolve),
+        };
+      };
 
       // Setup simple mocks for concurrent operations
       const originalFrom = mockSupabaseClient.from;

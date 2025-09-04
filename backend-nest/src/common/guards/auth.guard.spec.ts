@@ -9,7 +9,7 @@ import {
   createMockSupabaseClient,
   expectErrorThrown,
   MockSupabaseClient,
-} from '../../test/test-utils-simple';
+} from '../../test/test-mocks';
 
 describe('AuthGuard', () => {
   let authGuard: AuthGuard;
