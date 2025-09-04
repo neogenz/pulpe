@@ -411,10 +411,19 @@ export class TransactionService {
     const startTime = Date.now();
 
     try {
-      const budgetId = await this.performTransactionDeletion(id, supabase);
+      const { data: transaction } = await supabase
+        .from('transaction')
+        .select('budget_id')
+        .eq('id', id)
+        .single();
 
-      if (budgetId) {
-        await this.budgetService.recalculateBalances(budgetId, supabase);
+      await this.performTransactionDeletion(id, supabase);
+
+      if (transaction?.budget_id) {
+        await this.budgetService.recalculateBalances(
+          transaction.budget_id,
+          supabase,
+        );
       }
 
       this.logTransactionDeletionSuccess(user.id, id, startTime);
@@ -431,14 +440,7 @@ export class TransactionService {
   private async performTransactionDeletion(
     id: string,
     supabase: AuthenticatedSupabaseClient,
-  ): Promise<string | null> {
-    // Get budget_id before deletion
-    const { data: transaction } = await supabase
-      .from('transaction')
-      .select('budget_id')
-      .eq('id', id)
-      .single();
-
+  ): Promise<void> {
     const { error } = await supabase.from('transaction').delete().eq('id', id);
 
     if (error) {
@@ -454,8 +456,6 @@ export class TransactionService {
         { cause: error },
       );
     }
-
-    return transaction?.budget_id || null;
   }
 
   private logTransactionDeletionSuccess(

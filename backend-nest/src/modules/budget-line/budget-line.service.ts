@@ -382,12 +382,19 @@ export class BudgetLineService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineDeleteResponse> {
     try {
-      const budgetId = await this.deleteBudgetLineAndGetBudgetId(
-        id,
-        user,
-        supabase,
-      );
-      await this.recalculateBudgetAfterDeletion(budgetId, supabase);
+      const { data: budgetLine } = await supabase
+        .from('budget_line')
+        .select('budget_id')
+        .eq('id', id)
+        .single();
+      await this.deleteBudgetLine(id, user, supabase);
+
+      if (budgetLine?.budget_id) {
+        await this.budgetService.recalculateBalances(
+          budgetLine.budget_id,
+          supabase,
+        );
+      }
 
       return {
         success: true,
@@ -398,18 +405,11 @@ export class BudgetLineService {
     }
   }
 
-  private async deleteBudgetLineAndGetBudgetId(
+  private async deleteBudgetLine(
     id: string,
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
-  ): Promise<string | null> {
-    // Get budget_id before deletion
-    const { data: budgetLine } = await supabase
-      .from('budget_line')
-      .select('budget_id')
-      .eq('id', id)
-      .single();
-
+  ): Promise<void> {
     const { error } = await supabase.from('budget_line').delete().eq('id', id);
 
     if (error) {
@@ -427,17 +427,7 @@ export class BudgetLineService {
       );
     }
 
-    return budgetLine?.budget_id || null;
-  }
-
-  private async recalculateBudgetAfterDeletion(
-    budgetId: string | null,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<void> {
-    // Recalculate ending balance for the budget immediately
-    if (budgetId) {
-      await this.budgetService.recalculateBalances(budgetId, supabase);
-    }
+    return;
   }
 
   private handleRemovalError(
