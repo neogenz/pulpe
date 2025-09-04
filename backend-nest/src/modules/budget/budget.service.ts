@@ -783,7 +783,6 @@ export class BudgetService {
       { totalMonthlyIncome: 0, totalMonthlyExpenses: 0 },
     );
 
-    // MÉTIER: ending_balance = revenus - dépenses du mois (sans rollover)
     return totalMonthlyIncome - totalMonthlyExpenses;
   }
 
@@ -792,7 +791,6 @@ export class BudgetService {
     endingBalance: number,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<void> {
-    // MÉTIER: Persister uniquement ending_balance (architecture simplifiée)
     const { error } = await supabase
       .from('monthly_budget')
       .update({
@@ -962,6 +960,5 @@ export class BudgetService {
       supabase,
     );
     await this.persistEndingBalanceOnly(budgetId, endingBalance, supabase);
-    // MÉTIER: Plus de propagation nécessaire - les calculs se font dynamiquement à la lecture
   }
 }

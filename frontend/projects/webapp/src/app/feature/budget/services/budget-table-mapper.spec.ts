@@ -204,4 +204,83 @@ describe('BudgetTableMapper', () => {
       expect(result.items[0].metadata.isRollover).toBe(true);
     });
   });
+
+  describe('isRolloverBudgetLine', () => {
+    it('should return true for rollover budget lines', () => {
+      const rolloverBudgetLine: BudgetLine = {
+        id: '1',
+        name: 'rollover_12_2024',
+        amount: 150,
+        kind: 'income',
+        recurrence: 'one_off',
+        templateId: 'template-1',
+        budgetId: 'budget-1',
+        templateLineId: 'line-1',
+        isRollover: true,
+      };
+
+      const result = BudgetTableMapper.isRolloverBudgetLine(rolloverBudgetLine);
+      expect(result).toBe(true);
+    });
+
+    it('should return false for regular budget lines', () => {
+      const regularBudgetLine: BudgetLine = {
+        id: '1',
+        name: 'Salary',
+        amount: 5000,
+        kind: 'income',
+        recurrence: 'fixed',
+        templateId: 'template-1',
+        budgetId: 'budget-1',
+        templateLineId: 'line-1',
+        isRollover: false,
+      };
+
+      const result = BudgetTableMapper.isRolloverBudgetLine(regularBudgetLine);
+      expect(result).toBe(false);
+    });
+
+    it('should return false for budget lines without isRollover property', () => {
+      const budgetLineWithoutRollover: Partial<BudgetLine> = {
+        id: '1',
+        name: 'Salary',
+        amount: 5000,
+        kind: 'income',
+        recurrence: 'fixed',
+      };
+
+      const result = BudgetTableMapper.isRolloverBudgetLine(
+        budgetLineWithoutRollover as BudgetLine,
+      );
+      expect(result).toBe(false);
+    });
+
+    it('should return false for transactions', () => {
+      const transaction: Transaction = {
+        id: 'trans-1',
+        name: 'Coffee',
+        amount: 5,
+        kind: 'expense',
+        date: '2024-01-15',
+        budgetId: 'budget-1',
+        userId: 'user-1',
+      };
+
+      const result = BudgetTableMapper.isRolloverBudgetLine(transaction);
+      expect(result).toBe(false);
+    });
+
+    it('should handle undefined/null safely', () => {
+      expect(
+        BudgetTableMapper.isRolloverBudgetLine(
+          undefined as unknown as BudgetLineRead,
+        ),
+      ).toBe(false);
+      expect(
+        BudgetTableMapper.isRolloverBudgetLine(
+          null as unknown as BudgetLineRead,
+        ),
+      ).toBe(false);
+    });
+  });
 });

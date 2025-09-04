@@ -1,11 +1,18 @@
 import { describe, beforeEach, it, expect } from 'vitest';
+import { TestBed } from '@angular/core/testing';
+import { provideZonelessChangeDetection } from '@angular/core';
 import { RolloverFormatPipe } from './rollover-format.pipe';
+import { Logger } from '@core/logging/logger';
 
 describe('RolloverFormatPipe', () => {
   let pipe: RolloverFormatPipe;
 
   beforeEach(() => {
-    pipe = new RolloverFormatPipe();
+    TestBed.configureTestingModule({
+      providers: [provideZonelessChangeDetection(), Logger],
+    });
+
+    pipe = TestBed.runInInjectionContext(() => new RolloverFormatPipe());
   });
 
   it('should create', () => {
