@@ -73,6 +73,31 @@ Mettre à jour `frontend/projects/webapp/public/environments/production/config.j
 vercel --prod
 ```
 
+## 4. Branches de preview (Vercel)
+
+### Configuration pour les branches de preview
+
+Pour tester avec un backend de preview différent (ex: branch preview sur Railway), vous pouvez configurer la variable d'environnement dans Vercel :
+
+1. **Dans Vercel Dashboard** → Project Settings → Environment Variables
+2. **Ajouter la variable** :
+   - **Name** : `VITE_BACKEND_API_URL`
+   - **Value** : URL de votre backend de preview (ex: `https://api-preview.railway.app/api/v1`)
+   - **Environment** : Preview (ou Development selon vos besoins)
+
+### Comment ça fonctionne
+
+Le build Vercel exécute automatiquement le script `frontend/scripts/generate-config.js` qui :
+- Lit la configuration de production comme base
+- Remplace `backend.apiUrl` si `VITE_BACKEND_API_URL` est définie
+- Génère le `config.json` final utilisé par l'application
+
+### Variables disponibles
+
+- `VITE_BACKEND_API_URL` : URL du backend (remplace `backend.apiUrl`)
+
+*Note : Les autres valeurs (Supabase URL/keys) restent celles de la config de production pour éviter les risques de sécurité.*
+
 ## Checklist
 
 - [ ] Supabase : projet créé + DB migrée
