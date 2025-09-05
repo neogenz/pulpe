@@ -3,20 +3,12 @@ import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { handleServiceError } from '@common/utils/error-handler';
+import { ZodError } from 'zod';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import type { BudgetLine } from '@pulpe/shared';
 import { BUDGET_CONSTANTS, type MonthRange } from './budget.constants';
 import { BudgetRepository } from './budget.repository';
-
-/**
- * Response interface for the get_budget_with_rollover RPC function
- */
-interface BudgetWithRolloverResponse {
-  ending_balance: number;
-  rollover: number;
-  available_to_spend: number;
-  previous_budget_id: string | null;
-}
+import { validateBudgetWithRolloverResponse } from './schemas/rpc-responses.schema';
 
 /**
  * Handles all financial calculations for budgets
@@ -90,17 +82,7 @@ export class BudgetCalculator {
         .single();
 
       if (error) {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
-          { budgetId },
-          {
-            operation: 'getBudgetRollover',
-            entityId: budgetId,
-            entityType: 'budget',
-            supabaseError: error,
-          },
-          { cause: error },
-        );
+        this.handleRolloverFetchError(error, budgetId);
       }
 
       if (!data) {
@@ -109,23 +91,63 @@ export class BudgetCalculator {
         });
       }
 
-      const rolloverData = data as BudgetWithRolloverResponse;
+      const rolloverData = validateBudgetWithRolloverResponse(data);
       return {
-        rollover: rolloverData.rollover ?? 0,
-        previousBudgetId: rolloverData.previous_budget_id ?? null,
+        rollover: rolloverData.rollover,
+        previousBudgetId: rolloverData.previous_budget_id,
       };
     } catch (error) {
-      handleServiceError(
-        error,
-        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
-        undefined,
+      this.handleRolloverError(error, budgetId);
+    }
+  }
+
+  private handleRolloverFetchError(error: unknown, budgetId: string): never {
+    throw new BusinessException(
+      ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
+      { budgetId },
+      {
+        operation: 'getBudgetRollover',
+        entityId: budgetId,
+        entityType: 'budget',
+        supabaseError: error,
+      },
+      { cause: error },
+    );
+  }
+
+  private handleRolloverError(error: unknown, budgetId: string): never {
+    if (error instanceof ZodError) {
+      this.logger.error(
+        {
+          budgetId,
+          validationErrors: error.errors,
+          operation: 'getBudgetRollover.validation',
+        },
+        'RPC response validation failed for get_budget_with_rollover',
+      );
+
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
+        { budgetId },
         {
           operation: 'getBudgetRollover',
           entityId: budgetId,
           entityType: 'budget',
+          validationErrors: error.errors,
         },
       );
     }
+
+    handleServiceError(
+      error,
+      ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+      undefined,
+      {
+        operation: 'getBudgetRollover',
+        entityId: budgetId,
+        entityType: 'budget',
+      },
+    );
   }
 
   /**

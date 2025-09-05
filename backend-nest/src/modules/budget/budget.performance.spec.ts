@@ -222,7 +222,7 @@ describe('BudgetService (Performance)', () => {
         const result = {
           data: {
             budget: mockCreatedBudget,
-            transactions_created: 5,
+            budget_lines_created: 5,
             template_name: 'Test Template',
           },
           error: null,
