@@ -14,6 +14,7 @@
     "generate:config": "node scripts/generate-config.js",
     "test": "vitest run",
     "test:watch": "vitest",
+    "pretest:e2e": "npm run generate:config",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
