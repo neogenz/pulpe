@@ -4,7 +4,7 @@ import {
   inject,
   input,
   computed,
-  type OnInit,
+  effect,
 } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -176,7 +176,7 @@ import {
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export default class DetailsPage implements OnInit {
+export default class DetailsPage {
   budgetDetailsStore = inject(BudgetDetailsStore);
   readonly #router = inject(Router);
   readonly #route = inject(ActivatedRoute);
@@ -186,9 +186,14 @@ export default class DetailsPage implements OnInit {
 
   id = input.required<string>();
 
-  ngOnInit(): void {
-    // Initialize the budget ID - input is guaranteed to be available in ngOnInit
-    this.budgetDetailsStore.initializeBudgetId(this.id());
+  constructor() {
+    // React to ID changes automatically - this handles route parameter changes
+    effect(() => {
+      const budgetId = this.id();
+      if (budgetId) {
+        this.budgetDetailsStore.initializeBudgetId(budgetId);
+      }
+    });
   }
 
   navigateBack(): void {
