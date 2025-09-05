@@ -5,6 +5,7 @@ import {
   inject,
   computed,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -87,6 +88,7 @@ import { Logger } from '@core/logging/logger';
             />
             <mat-icon matPrefix>lock</mat-icon>
             <button
+              type="button"
               matIconButton
               matSuffix
               (click)="togglePasswordVisibility()"
@@ -179,12 +181,18 @@ export default class Login {
     password: ['', [Validators.required, Validators.minLength(6)]],
   });
 
+  protected formStatus = toSignal(this.loginForm.statusChanges, {
+    initialValue: this.loginForm.status,
+  });
+
   protected canSubmit = computed(() => {
-    return this.loginForm.valid && !this.isSubmitting();
+    const isValid = this.formStatus() === 'VALID';
+    const isNotSubmitting = !this.isSubmitting();
+    return isValid && isNotSubmitting;
   });
 
   constructor() {
-    // No form tracking needed - using loginForm.valid directly
+    // Form validity is now tracked reactively via formStatus signal
   }
 
   protected togglePasswordVisibility(): void {
