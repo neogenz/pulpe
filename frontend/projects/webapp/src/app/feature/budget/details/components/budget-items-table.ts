@@ -138,7 +138,6 @@ import { RolloverFormatPipe } from '../../pipes';
                           '/app/budget',
                           line.data.rolloverSourceBudgetId,
                         ]"
-                        target="_blank"
                         matButton
                         class="text-body-medium font-semibold"
                       >
