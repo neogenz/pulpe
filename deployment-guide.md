@@ -50,22 +50,28 @@ railway domain  # Récupérer l'URL publique
 
 ## 3. Frontend (Vercel)
 
-### Configuration production
+### Configuration des variables d'environnement
 
-Mettre à jour `frontend/projects/webapp/public/environments/production/config.json` :
+Le frontend utilise maintenant un système de configuration dynamique basé sur les variables d'environnement. Plus besoin de modifier manuellement les fichiers de configuration !
 
-```json
-{
-  "supabase": {
-    "url": "https://[PROJECT_REF].supabase.co",
-    "anonKey": "[ANON_KEY]"
-  },
-  "backend": {
-    "apiUrl": "https://[RAILWAY_URL]/api/v1"
-  },
-  "environment": "production"
-}
-```
+#### Variables d'environnement à configurer dans Vercel
+
+1. **Dans Vercel Dashboard** → Project Settings → Environment Variables
+2. **Configurer ces variables pour Production** :
+
+   | Variable | Valeur | Description |
+   |----------|---------|-------------|
+   | `PUBLIC_SUPABASE_URL` | `https://[PROJECT_REF].supabase.co` | URL de votre projet Supabase |
+   | `PUBLIC_SUPABASE_ANON_KEY` | `[ANON_KEY]` | Clé anonyme Supabase |
+   | `PUBLIC_BACKEND_API_URL` | `https://[RAILWAY_URL]/api/v1` | URL de votre backend Railway |
+   | `PUBLIC_ENVIRONMENT` | `production` | Environnement actuel |
+
+#### Comment ça fonctionne
+
+Le build Vercel exécute automatiquement le script `frontend/scripts/generate-config.js` qui :
+- Lit les variables d'environnement `PUBLIC_*`
+- Génère dynamiquement le fichier `config.json`
+- Utilise des valeurs par défaut si aucune variable n'est définie
 
 ### Déployer
 
@@ -77,38 +83,65 @@ vercel --prod
 
 ### Configuration pour les branches de preview
 
-Pour tester avec un backend de preview différent (ex: branch preview sur Railway), vous pouvez configurer la variable d'environnement dans Vercel :
+Pour tester avec un backend de preview différent, configurez uniquement les variables qui diffèrent de la production :
 
-1. **Dans Vercel Dashboard** → Project Settings → Environment Variables
-2. **Ajouter la variable** :
-   - **Name** : `VITE_BACKEND_API_URL`
-   - **Value** : URL de votre backend de preview (ex: `https://api-preview.railway.app/api/v1`)
-   - **Environment** : Preview (ou Development selon vos besoins)
+**Example pour une branch preview** :
+- **Name** : `PUBLIC_BACKEND_API_URL`
+- **Value** : `https://backend-preview-xyz.railway.app/api/v1`
+- **Environment** : Preview
 
-### Comment ça fonctionne
+Les autres variables (Supabase) héritent automatiquement des valeurs de production.
 
-Le build Vercel exécute automatiquement le script `frontend/scripts/generate-config.js` qui :
-- Lit la configuration de production comme base
-- Remplace `backend.apiUrl` si `VITE_BACKEND_API_URL` est définie
-- Génère le `config.json` final utilisé par l'application
+## 5. Développement local
 
-### Variables disponibles
+### Configuration locale avec .env.local
 
-- `VITE_BACKEND_API_URL` : URL du backend (remplace `backend.apiUrl`)
+Pour personnaliser la configuration en local sans modifier le code :
 
-*Note : Les autres valeurs (Supabase URL/keys) restent celles de la config de production pour éviter les risques de sécurité.*
+1. **Créer un fichier `.env.local`** dans `frontend/` :
+   ```env
+   # Configuration locale (optionnel)
+   PUBLIC_SUPABASE_URL=http://localhost:54321
+   PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+   PUBLIC_BACKEND_API_URL=http://localhost:3000/api/v1
+   PUBLIC_ENVIRONMENT=local
+   ```
+
+2. **Le fichier `.env.local`** est ignoré par Git (pas de risque de commit accidentel)
+
+3. **Générer la configuration** :
+   ```bash
+   cd frontend
+   node scripts/generate-config.js
+   ```
+
+**Note** : Si aucun `.env.local` n'existe, le script utilise les valeurs par défaut pour le développement local.
 
 ## Checklist
 
 - [ ] Supabase : projet créé + DB migrée
-- [ ] Railway : backend déployé + URL récupérée
-- [ ] Vercel : config production mise à jour
+- [ ] Railway : backend déployé + URL récupérée  
+- [ ] Vercel : variables d'environnement `PUBLIC_*` configurées
 - [ ] Frontend : déployé et fonctionnel
 
 ## Troubleshooting
 
+### Backend
 **Backend build fail** : Vérifier `RAILWAY_DOCKERFILE_PATH=backend-nest/Dockerfile`
 
 **CORS errors** : Mettre à jour `CORS_ORIGIN` avec la vraie URL Vercel
 
 **DB connection fail** : Vérifier les credentials Supabase dans Railway
+
+### Frontend
+**Config.json non généré** : 
+- Vérifier que le script `frontend/scripts/generate-config.js` s'exécute bien dans les logs Vercel
+- S'assurer que les variables `PUBLIC_*` sont définies dans Vercel
+
+**App utilise mauvaise configuration** :
+- Vérifier dans les logs Vercel que les bonnes variables sont utilisées
+- Dans le navigateur, aller sur `/config.json` pour voir la config générée
+
+**Variables d'environnement non reconnues** :
+- Vérifier que les variables commencent bien par `PUBLIC_`
+- S'assurer qu'elles sont définies pour le bon environnement (Production/Preview/Development)

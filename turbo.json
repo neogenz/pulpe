@@ -5,7 +5,13 @@
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**", "build/**"],
-      "env": ["NODE_ENV"]
+      "env": [
+        "NODE_ENV",
+        "PUBLIC_SUPABASE_URL",
+        "PUBLIC_SUPABASE_ANON_KEY",
+        "PUBLIC_BACKEND_API_URL",
+        "PUBLIC_ENVIRONMENT"
+      ]
     },
     "dev": {
       "cache": false,
