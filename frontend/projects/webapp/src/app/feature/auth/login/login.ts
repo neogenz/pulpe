@@ -107,7 +107,7 @@ import { Logger } from '@core/logging/logger';
                 @if (loginForm.get('password')?.hasError('required')) {
                   Le mot de passe est requis.
                 } @else if (loginForm.get('password')?.hasError('minlength')) {
-                  Le mot de passe doit contenir au moins 6 caractères.
+                  Le mot de passe doit contenir au moins 8 caractères.
                 }
               </mat-error>
             }
@@ -178,7 +178,7 @@ export default class Login {
   protected errorMessage = signal<string>('');
   protected loginForm = this.#formBuilder.group({
     email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(6)]],
+    password: ['', [Validators.required, Validators.minLength(8)]],
   });
 
   protected formStatus = toSignal(this.loginForm.statusChanges, {

@@ -1,0 +1,60 @@
+-- Fix schema prefix in rollover calculation function
+-- This migration corrects the function to use explicit public schema references
+
+CREATE OR REPLACE FUNCTION public.get_budget_with_rollover(p_budget_id UUID)
+RETURNS TABLE (
+  ending_balance NUMERIC,
+  rollover NUMERIC,
+  available_to_spend NUMERIC,
+  previous_budget_id UUID
+) AS $$
+  WITH user_budget AS (
+    -- Get the user and date info for the target budget
+    SELECT user_id, year, month 
+    FROM public.monthly_budget 
+    WHERE id = p_budget_id
+  ),
+  user_budgets_with_rollover AS (
+    -- Get ALL budgets for this user with rollover calculations
+    SELECT 
+      mb.id,
+      COALESCE(mb.ending_balance, 0) as ending_balance,
+      -- Previous budget ID using LAG() to get the previous row's id
+      LAG(mb.id) OVER (
+        PARTITION BY mb.user_id 
+        ORDER BY mb.year, mb.month
+      ) as previous_budget_id,
+      -- Rollover = Sum of all previous months' ending_balance for this user
+      COALESCE(
+        SUM(COALESCE(mb.ending_balance, 0)) OVER (
+          PARTITION BY mb.user_id 
+          ORDER BY mb.year, mb.month 
+          ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
+        ), 0
+      ) as rollover,
+      -- Available to spend = Sum of ALL months (including current) ending_balance
+      COALESCE(
+        SUM(COALESCE(mb.ending_balance, 0)) OVER (
+          PARTITION BY mb.user_id 
+          ORDER BY mb.year, mb.month 
+          ROWS UNBOUNDED PRECEDING
+        ), 0
+      ) as available_to_spend
+    FROM public.monthly_budget mb
+    INNER JOIN user_budget ub ON mb.user_id = ub.user_id
+  )
+  SELECT 
+    ubwr.ending_balance,
+    ubwr.rollover,
+    ubwr.available_to_spend,
+    ubwr.previous_budget_id
+  FROM user_budgets_with_rollover ubwr
+  WHERE ubwr.id = p_budget_id;
+$$ LANGUAGE sql STABLE;
+
+-- Update function comment
+COMMENT ON FUNCTION public.get_budget_with_rollover(UUID) IS 
+'Calculate budget rollover (previous month''s available_to_spend, which is the cumulative sum of all previous months'' ending_balance) and available_to_spend (cumulative balance) for a specific budget using window functions.';
+
+-- Set search_path to empty string for security (prevents schema hijacking)
+ALTER FUNCTION public.get_budget_with_rollover(UUID) SET search_path = '';
