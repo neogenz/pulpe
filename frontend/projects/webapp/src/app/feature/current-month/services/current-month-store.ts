@@ -88,9 +88,22 @@ export class CurrentMonthStore {
   // === FINANCIAL CALCULATIONS ===
 
   /**
-   * Living allowance amount (available to spend)
+   * Budget summary selector
+   */
+  readonly budgetSummary = computed(
+    () => this.dashboardData()?.budgetSummary || null,
+  );
+
+  /**
+   * Living allowance amount (available to spend) - now uses budget summary
    */
   readonly livingAllowanceAmount = computed<number>(() => {
+    const summary = this.budgetSummary();
+    if (summary) {
+      // Use the available to spend from the summary which includes rollover
+      return summary.availableToSpend;
+    }
+    // Fallback to local calculation if summary not available
     const budgetLines = this.budgetLines();
     return this.#budgetCalculator.calculateLivingAllowance(budgetLines);
   });
@@ -99,6 +112,12 @@ export class CurrentMonthStore {
    * Actual transactions amount (spent so far)
    */
   readonly actualTransactionsAmount = computed<number>(() => {
+    const summary = this.budgetSummary();
+    if (summary) {
+      // Use the actual spent from the summary
+      return summary.actualSpent;
+    }
+    // Fallback to local calculation if summary not available
     const transactions = this.dashboardData()?.transactions || [];
     return this.#budgetCalculator.calculateActualTransactionsAmount(
       transactions,
@@ -139,9 +158,22 @@ export class CurrentMonthStore {
       // Optimistically update the resource value to include the new transaction
       const currentData = this.#dashboardResource.value();
       if (currentData && response.data) {
+        // Update the summary if present
+        let updatedSummary = currentData.budgetSummary;
+        if (
+          updatedSummary &&
+          (response.data.kind === 'expense' || response.data.kind === 'saving')
+        ) {
+          updatedSummary = {
+            ...updatedSummary,
+            actualSpent: updatedSummary.actualSpent + response.data.amount,
+          };
+        }
+
         this.#dashboardResource.set({
           ...currentData,
           transactions: [...currentData.transactions, response.data],
+          budgetSummary: updatedSummary,
         });
       }
 
@@ -169,11 +201,34 @@ export class CurrentMonthStore {
       // Optimistically remove the transaction from the UI immediately
       const currentData = this.#dashboardResource.value();
       if (currentData) {
+        // Find the transaction to get its amount for summary update
+        const transactionToDelete = currentData.transactions.find(
+          (t) => t.id === transactionId,
+        );
+
+        // Update the summary if present
+        let updatedSummary = currentData.budgetSummary;
+        if (
+          updatedSummary &&
+          transactionToDelete &&
+          (transactionToDelete.kind === 'expense' ||
+            transactionToDelete.kind === 'saving')
+        ) {
+          updatedSummary = {
+            ...updatedSummary,
+            actualSpent: Math.max(
+              0,
+              updatedSummary.actualSpent - transactionToDelete.amount,
+            ),
+          };
+        }
+
         this.#dashboardResource.set({
           ...currentData,
           transactions: currentData.transactions.filter(
             (t) => t.id !== transactionId,
           ),
+          budgetSummary: updatedSummary,
         });
       }
 
@@ -257,18 +312,25 @@ export class CurrentMonthStore {
       );
 
       if (!budget) {
-        return { budget: null, transactions: [], budgetLines: [] };
+        return {
+          budget: null,
+          transactions: [],
+          budgetLines: [],
+          budgetSummary: null,
+        };
       }
 
-      // Use the budget ID to fetch everything in a single request
-      const detailsResponse = await firstValueFrom(
-        this.#budgetApi.getBudgetWithDetails$(budget.id),
-      );
+      // Fetch budget details and summary in parallel
+      const [detailsResponse, summaryResponse] = await Promise.all([
+        firstValueFrom(this.#budgetApi.getBudgetWithDetails$(budget.id)),
+        firstValueFrom(this.#budgetApi.getBudgetSummary$(budget.id)),
+      ]);
 
       return {
         budget: detailsResponse.data.budget,
         transactions: detailsResponse.data.transactions,
         budgetLines: detailsResponse.data.budgetLines,
+        budgetSummary: summaryResponse.data,
       };
     } catch (error) {
       this.#logger.error('Error loading dashboard data:', error);

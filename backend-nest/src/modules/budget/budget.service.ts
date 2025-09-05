@@ -14,6 +14,7 @@ import {
   type BudgetResponse,
   type BudgetUpdate,
   type BudgetDetailsResponse,
+  type BudgetSummaryResponse,
   type Budget,
   type Transaction,
   type BudgetLine,
@@ -191,6 +192,83 @@ export class BudgetService {
         undefined,
         {
           operation: 'getBudgetWithDetails',
+          userId: user.id,
+          entityId: budgetId,
+          entityType: 'budget',
+        },
+      );
+    }
+  }
+
+  async getSummary(
+    budgetId: string,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<BudgetSummaryResponse> {
+    try {
+      // Validate budget exists
+      const budgetData = await this.validateBudgetExists(budgetId, supabase);
+
+      // Get rollover from previous months
+      const { rollover } = await this.calculator.getRollover(
+        budgetId,
+        supabase,
+      );
+
+      // Get budget lines and transactions
+      const { budgetLines, transactions } =
+        await this.repository.fetchBudgetData(budgetId, supabase, {
+          selectFields: '*',
+        });
+
+      // Calculate financial metrics
+      const fixedBlock = budgetLines
+        .filter((line) => line.kind === 'expense' || line.kind === 'saving')
+        .reduce((total, line) => total + line.amount, 0);
+
+      const plannedIncome = budgetLines
+        .filter((line) => line.kind === 'income')
+        .reduce((total, line) => total + line.amount, 0);
+
+      const actualSpent = transactions
+        .filter((t) => t.kind === 'expense' || t.kind === 'saving')
+        .reduce((total, t) => total + t.amount, 0);
+
+      const endingBalance = budgetData.ending_balance || 0;
+      const availableToSpend = endingBalance + rollover;
+
+      this.logger.info(
+        {
+          budgetId,
+          endingBalance,
+          rollover,
+          availableToSpend,
+          fixedBlock,
+          plannedIncome,
+          actualSpent,
+          operation: 'getBudgetSummary',
+        },
+        'Budget summary calculated',
+      );
+
+      return {
+        success: true,
+        data: {
+          endingBalance,
+          rollover,
+          availableToSpend,
+          fixedBlock,
+          plannedIncome,
+          actualSpent,
+        },
+      };
+    } catch (error) {
+      handleServiceError(
+        error,
+        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+        undefined,
+        {
+          operation: 'getBudgetSummary',
           userId: user.id,
           entityId: budgetId,
           entityType: 'budget',

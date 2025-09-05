@@ -365,12 +365,23 @@ export type BudgetListResponse = z.infer<typeof budgetListResponseSchema>;
 export const budgetDeleteResponseSchema = deleteResponseSchema;
 export type BudgetDeleteResponse = z.infer<typeof budgetDeleteResponseSchema>;
 
-// Budget summary schema with rollover calculations
+// Budget summary schema with complete financial calculations
 export const budgetSummarySchema = z.object({
   endingBalance: z.number(),
   rollover: z.number(),
+  availableToSpend: z.number(),
+  fixedBlock: z.number(),
+  plannedIncome: z.number(),
+  actualSpent: z.number(),
 });
 export type BudgetSummary = z.infer<typeof budgetSummarySchema>;
+
+// Budget summary response schema
+export const budgetSummaryResponseSchema = z.object({
+  success: z.literal(true),
+  data: budgetSummarySchema,
+});
+export type BudgetSummaryResponse = z.infer<typeof budgetSummaryResponseSchema>;
 
 // Budget details response schema - aggregates budget with its transactions and budget lines
 export const budgetDetailsResponseSchema = z.object({

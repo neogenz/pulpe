@@ -799,4 +799,105 @@ describe('BudgetService', () => {
       mockRepository.fetchBudgetData = originalFetchBudgetData;
     });
   });
+
+  describe('getSummary', () => {
+    it('should return budget summary with correct financial calculations', async () => {
+      const mockUser = createMockAuthenticatedUser();
+      const budgetId = MOCK_BUDGET_ID;
+      const mockBudget = createValidBudgetEntity({
+        id: budgetId,
+        ending_balance: 1500,
+      });
+
+      // Mock successful budget existence check
+      mockSupabaseClient.setMockData(mockBudget).setMockError(null);
+
+      // Mock getRollover to return a rollover amount
+      const originalGetRollover = mockCalculator.getRollover;
+      mockCalculator.getRollover = () =>
+        Promise.resolve({ rollover: 500, previousBudgetId: 'prev-budget-id' });
+
+      // Mock repository to return budget lines and transactions
+      const originalFetchBudgetData = mockRepository.fetchBudgetData;
+      mockRepository.fetchBudgetData = () =>
+        Promise.resolve({
+          budget: mockBudget,
+          budgetLines: [
+            { id: '1', kind: 'income', amount: 3000 } as any,
+            { id: '2', kind: 'expense', amount: 1000 } as any,
+            { id: '3', kind: 'saving', amount: 500 } as any,
+          ],
+          transactions: [
+            { id: 't1', kind: 'expense', amount: 300 } as any,
+            { id: 't2', kind: 'saving', amount: 200 } as any,
+          ],
+        });
+
+      const result = await service.getSummary(
+        budgetId,
+        mockUser,
+        mockSupabaseClient as any,
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual({
+        endingBalance: 1500,
+        rollover: 500,
+        availableToSpend: 2000, // 1500 + 500
+        fixedBlock: 1500, // 1000 (expense) + 500 (saving)
+        plannedIncome: 3000,
+        actualSpent: 500, // 300 + 200
+      });
+
+      // Restore the original methods
+      mockRepository.fetchBudgetData = originalFetchBudgetData;
+      mockCalculator.getRollover = originalGetRollover;
+    });
+
+    it('should handle zero ending balance gracefully', async () => {
+      const mockUser = createMockAuthenticatedUser();
+      const budgetId = MOCK_BUDGET_ID;
+      const mockBudget = createValidBudgetEntity({
+        id: budgetId,
+        ending_balance: null,
+      });
+
+      // Mock successful budget existence check
+      mockSupabaseClient.setMockData(mockBudget).setMockError(null);
+
+      // Mock getRollover to return zero rollover
+      const originalGetRollover = mockCalculator.getRollover;
+      mockCalculator.getRollover = () =>
+        Promise.resolve({ rollover: 0, previousBudgetId: null });
+
+      // Mock repository to return empty data
+      const originalFetchBudgetData = mockRepository.fetchBudgetData;
+      mockRepository.fetchBudgetData = () =>
+        Promise.resolve({
+          budget: mockBudget,
+          budgetLines: [],
+          transactions: [],
+        });
+
+      const result = await service.getSummary(
+        budgetId,
+        mockUser,
+        mockSupabaseClient as any,
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual({
+        endingBalance: 0,
+        rollover: 0,
+        availableToSpend: 0,
+        fixedBlock: 0,
+        plannedIncome: 0,
+        actualSpent: 0,
+      });
+
+      // Restore the original methods
+      mockRepository.fetchBudgetData = originalFetchBudgetData;
+      mockCalculator.getRollover = originalGetRollover;
+    });
+  });
 });

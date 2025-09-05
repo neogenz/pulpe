@@ -26,6 +26,7 @@ import {
   type BudgetResponse,
   type BudgetDeleteResponse,
   type BudgetDetailsResponse,
+  type BudgetSummaryResponse,
 } from '@pulpe/shared';
 import { AuthGuard } from '@common/guards/auth.guard';
 import {
@@ -42,6 +43,7 @@ import {
   BudgetResponseDto,
   BudgetDeleteResponseDto,
   BudgetDetailsResponseDto,
+  BudgetSummaryResponseDto,
 } from './dto/budget-swagger.dto';
 import { ErrorResponseDto } from '@common/dto/response.dto';
 
@@ -157,6 +159,36 @@ export class BudgetController {
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetDetailsResponse> {
     return this.budgetService.findOneWithDetails(id, user, supabase);
+  }
+
+  @Get(':id/summary')
+  @ApiOperation({
+    summary: 'Get budget financial summary',
+    description:
+      'Retrieves a comprehensive financial summary for a budget including ending balance, rollover, available to spend, and other key metrics.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Unique budget identifier',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Budget summary retrieved successfully',
+    type: BudgetSummaryResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Budget not found',
+    type: ErrorResponseDto,
+  })
+  async getSummary(
+    @Param('id', ParseUUIDPipe) id: string,
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<BudgetSummaryResponse> {
+    return this.budgetService.getSummary(id, user, supabase);
   }
 
   @Patch(':id')

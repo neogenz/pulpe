@@ -6,6 +6,7 @@ import {
   budgetCreateSchema,
   type BudgetResponse,
   type BudgetDetailsResponse,
+  type BudgetSummaryResponse,
   budgetSchema,
   errorResponseSchema,
 } from '@pulpe/shared';
@@ -133,6 +134,28 @@ export class BudgetApi {
           this.#handleApiError(
             error,
             'Erreur lors de la récupération des détails du budget',
+          ),
+        ),
+      );
+  }
+
+  /**
+   * Récupère le résumé financier d'un budget
+   */
+  getBudgetSummary$(budgetId: string): Observable<BudgetSummaryResponse> {
+    return this.#httpClient
+      .get<BudgetSummaryResponse>(`${this.#apiUrl}/${budgetId}/summary`)
+      .pipe(
+        map((response) => {
+          if (!response.data) {
+            throw new Error('Résumé du budget non trouvé');
+          }
+          return response;
+        }),
+        catchError((error) =>
+          this.#handleApiError(
+            error,
+            'Erreur lors de la récupération du résumé du budget',
           ),
         ),
       );
