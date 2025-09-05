@@ -12,19 +12,29 @@ import {
   type BudgetResponse,
   type BudgetUpdate,
   type BudgetDetailsResponse,
-  type BudgetLine,
 } from '@pulpe/shared';
 import * as budgetMappers from './budget.mappers';
 import { type Tables } from '../../types/database.types';
-import { BUDGET_CONSTANTS, type MonthRange } from './budget.constants';
 import * as transactionMappers from '../transaction/transaction.mappers';
 import * as budgetLineMappers from '../budget-line/budget-line.mappers';
+import { BudgetCalculator } from './budget.calculator';
+import { BudgetValidator } from './budget.validator';
+import { BudgetRepository } from './budget.repository';
+
+interface BudgetDetailsData {
+  budget: ReturnType<typeof budgetMappers.toApi>;
+  transactions: ReturnType<typeof transactionMappers.toApiList>;
+  budgetLines: ReturnType<typeof budgetLineMappers.toApiList>;
+}
 
 @Injectable()
 export class BudgetService {
   constructor(
     @InjectPinoLogger(BudgetService.name)
     private readonly logger: PinoLogger,
+    private readonly calculator: BudgetCalculator,
+    private readonly validator: BudgetValidator,
+    private readonly repository: BudgetRepository,
   ) {}
 
   async findAll(
@@ -72,89 +82,15 @@ export class BudgetService {
     }
   }
 
-  private validateRequiredFields(createBudgetDto: BudgetCreate): void {
-    if (
-      !createBudgetDto.month ||
-      !createBudgetDto.year ||
-      !createBudgetDto.description ||
-      !createBudgetDto.templateId
-    ) {
-      const missingFields = [];
-      if (!createBudgetDto.month) missingFields.push('month');
-      if (!createBudgetDto.year) missingFields.push('year');
-      if (!createBudgetDto.description) missingFields.push('description');
-      if (!createBudgetDto.templateId) missingFields.push('templateId');
-
-      throw new BusinessException(ERROR_DEFINITIONS.REQUIRED_DATA_MISSING, {
-        fields: missingFields,
-      });
-    }
-  }
-
-  private validateMonthAndYear(createBudgetDto: BudgetCreate): void {
-    if (
-      createBudgetDto.month < BUDGET_CONSTANTS.MONTH_MIN ||
-      createBudgetDto.month > BUDGET_CONSTANTS.MONTH_MAX
-    ) {
-      throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED, {
-        reason: `Month must be between ${BUDGET_CONSTANTS.MONTH_MIN} and ${BUDGET_CONSTANTS.MONTH_MAX}`,
-      });
-    }
-
-    if (
-      createBudgetDto.year < BUDGET_CONSTANTS.MIN_YEAR ||
-      createBudgetDto.year > BUDGET_CONSTANTS.MAX_YEAR
-    ) {
-      throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED, {
-        reason: `Year must be between ${BUDGET_CONSTANTS.MIN_YEAR} and ${BUDGET_CONSTANTS.MAX_YEAR}`,
-      });
-    }
-  }
-
-  private validateDescriptionAndFutureDate(
-    createBudgetDto: BudgetCreate,
-  ): void {
-    if (
-      createBudgetDto.description.length >
-      BUDGET_CONSTANTS.DESCRIPTION_MAX_LENGTH
-    ) {
-      throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED, {
-        reason: `Description cannot exceed ${BUDGET_CONSTANTS.DESCRIPTION_MAX_LENGTH} characters`,
-      });
-    }
-
-    // Validation métier : pas plus de 2 ans dans le futur
-    const now = new Date();
-    const budgetDate = new Date(
-      createBudgetDto.year,
-      createBudgetDto.month - 1,
-    );
-    const maxFutureDate = new Date(now.getFullYear() + 2, now.getMonth());
-    if (budgetDate > maxFutureDate) {
-      throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED, {
-        reason: 'Budget date cannot be more than 2 years in the future',
-      });
-    }
-  }
-
-  private validateCreateBudgetDto(createBudgetDto: BudgetCreate): BudgetCreate {
-    // Validation métier basique (Supabase gère les contraintes de DB)
-    this.validateRequiredFields(createBudgetDto);
-    this.validateMonthAndYear(createBudgetDto);
-    this.validateDescriptionAndFutureDate(createBudgetDto);
-
-    return createBudgetDto;
-  }
-
   async create(
     createBudgetDto: BudgetCreate,
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetResponse> {
     try {
-      const validatedDto = this.validateCreateBudgetDto(createBudgetDto);
+      const validatedDto = this.validator.validateBudgetInput(createBudgetDto);
 
-      await this.validateNoDuplicatePeriod(
+      await this.validator.validateNoDuplicatePeriod(
         supabase,
         validatedDto.month,
         validatedDto.year,
@@ -166,7 +102,10 @@ export class BudgetService {
         supabase,
       );
 
-      await this.recalculateBalances(processedResult.budgetData.id, supabase);
+      await this.calculator.recalculateAndPersist(
+        processedResult.budgetData.id,
+        supabase,
+      );
 
       const apiData = budgetMappers.toApi(processedResult.budgetData);
 
@@ -175,182 +114,17 @@ export class BudgetService {
         data: apiData,
       };
     } catch (error) {
-      this.handleCreateError(error, user.id);
-    }
-  }
-
-  private async createBudgetFromTemplate(
-    validatedDto: BudgetCreate,
-    user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
-  ) {
-    this.logBudgetCreationStart(user.id, validatedDto);
-
-    const result = await this.executeBudgetCreationRpc(
-      validatedDto,
-      user,
-      supabase,
-    );
-
-    const processedResult = this.processBudgetCreationResult(
-      result,
-      user.id,
-      validatedDto.templateId!,
-    );
-
-    this.logBudgetCreationSuccess(
-      user.id,
-      processedResult,
-      validatedDto.templateId!,
-    );
-
-    return processedResult;
-  }
-
-  private handleCreateError(error: unknown, userId: string): never {
-    handleServiceError(
-      error,
-      ERROR_DEFINITIONS.BUDGET_CREATE_FAILED,
-      undefined,
-      {
-        operation: 'createBudget',
-        userId,
-        entityType: 'budget',
-      },
-    );
-  }
-
-  private logBudgetCreationStart(
-    userId: string,
-    validatedDto: BudgetCreate,
-  ): void {
-    this.logger.info(
-      {
-        userId,
-        templateId: validatedDto.templateId,
-        month: validatedDto.month,
-        year: validatedDto.year,
-      },
-      'Starting atomic budget creation from template',
-    );
-  }
-
-  private async executeBudgetCreationRpc(
-    validatedDto: BudgetCreate,
-    user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<unknown> {
-    const { data: result, error } = await supabase.rpc(
-      'create_budget_from_template',
-      {
-        p_user_id: user.id,
-        p_template_id: validatedDto.templateId!,
-        p_month: validatedDto.month,
-        p_year: validatedDto.year,
-        p_description: validatedDto.description,
-      },
-    );
-
-    if (error) {
-      this.handleBudgetCreationError(error, user.id, validatedDto.templateId!);
-    }
-
-    return result;
-  }
-
-  private handleBudgetCreationError(
-    error: unknown,
-    userId: string,
-    templateId: string,
-  ): never {
-    // Pattern "Enrichir et Relancer" - log technique + throw métier
-    // Log l'erreur technique de bas niveau (Supabase RPC)
-    this.logger.error(
-      {
-        err: error,
-        userId,
-        templateId,
-        operation: 'create_budget_from_template_rpc',
-        postgresError: error,
-      },
-      'Supabase RPC failed at database level',
-    );
-
-    // Throw erreur métier de haut niveau
-    const errorMessage = (error as { message?: string })?.message;
-    if (
-      errorMessage?.includes('Template not found') ||
-      errorMessage?.includes('access denied')
-    ) {
-      throw new BusinessException(ERROR_DEFINITIONS.TEMPLATE_NOT_FOUND, {
-        id: templateId,
-      });
-    }
-    if (errorMessage?.includes('Budget already exists')) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_ALREADY_EXISTS_FOR_MONTH,
-        undefined,
-        { userId, templateId },
-      );
-    }
-
-    throw new BusinessException(
-      ERROR_DEFINITIONS.BUDGET_CREATE_FAILED,
-      undefined,
-      { userId, templateId },
-      { cause: error },
-    );
-  }
-
-  private processBudgetCreationResult(
-    result: unknown,
-    userId: string,
-    templateId: string,
-  ): {
-    budgetData: Tables<'monthly_budget'>;
-    budgetLinesCreated: number;
-    templateName: string;
-  } {
-    if (!result || typeof result !== 'object' || !('budget' in result)) {
-      throw new BusinessException(
+      handleServiceError(
+        error,
         ERROR_DEFINITIONS.BUDGET_CREATE_FAILED,
-        { reason: 'Invalid result structure from RPC' },
+        undefined,
         {
-          userId,
-          templateId,
-          result,
-          operation: 'processBudgetCreationResult',
+          operation: 'createBudget',
+          userId: user.id,
+          entityType: 'budget',
         },
       );
     }
-
-    const typedResult = result as {
-      budget: Tables<'monthly_budget'>;
-      budget_lines_created: number;
-      template_name: string;
-    };
-    return {
-      budgetData: typedResult.budget as Tables<'monthly_budget'>,
-      budgetLinesCreated: typedResult.budget_lines_created as number,
-      templateName: typedResult.template_name as string,
-    };
-  }
-
-  private logBudgetCreationSuccess(
-    userId: string,
-    processedResult: ReturnType<typeof this.processBudgetCreationResult>,
-    templateId: string,
-  ): void {
-    this.logger.info(
-      {
-        userId,
-        budgetId: processedResult.budgetData.id,
-        templateId,
-        templateName: processedResult.templateName,
-        budgetLinesCreated: processedResult.budgetLinesCreated,
-      },
-      'Successfully created budget from template with atomic transaction',
-    );
   }
 
   async findOne(
@@ -359,7 +133,11 @@ export class BudgetService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetResponse> {
     try {
-      const budgetDb = await this.fetchBudgetById(id, user, supabase);
+      const budgetDb = await this.repository.fetchBudgetById(
+        id,
+        user,
+        supabase,
+      );
       const apiData = budgetMappers.toApi(budgetDb as Tables<'monthly_budget'>);
 
       return {
@@ -367,54 +145,18 @@ export class BudgetService {
         data: apiData,
       };
     } catch (error) {
-      this.handleBudgetFindOneError(error, id, user);
-    }
-  }
-
-  private async fetchBudgetById(
-    id: string,
-    user: AuthenticatedUser,
-    supabase: AuthenticatedSupabaseClient,
-  ) {
-    const { data: budgetDb, error } = await supabase
-      .from('monthly_budget')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (error || !budgetDb) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
-        { id },
+      handleServiceError(
+        error,
+        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+        undefined,
         {
           operation: 'getBudget',
           userId: user.id,
           entityId: id,
           entityType: 'budget',
-          supabaseError: error,
         },
       );
     }
-
-    return budgetDb;
-  }
-
-  private handleBudgetFindOneError(
-    error: unknown,
-    id: string,
-    user: AuthenticatedUser,
-  ): never {
-    handleServiceError(
-      error,
-      ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
-      undefined,
-      {
-        operation: 'getBudget',
-        userId: user.id,
-        entityId: id,
-        entityType: 'budget',
-      },
-    );
   }
 
   async findOneWithDetails(
@@ -423,235 +165,110 @@ export class BudgetService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetDetailsResponse> {
     try {
-      const results = await this.fetchBudgetDetailsData(budgetId, supabase);
-      this.validateBudgetAccess(results.budgetResult, budgetId);
+      const budgetData = await this.validateBudgetExists(budgetId, supabase);
+      const responseData = await this.buildDetailsResponse(
+        budgetId,
+        budgetData,
+        supabase,
+      );
+      await this.addRolloverIfNeeded(budgetId, responseData, supabase);
 
-      const responseData = this.mapBudgetDetailsData(results);
-
-      const rolloverData = await this.getBudgetRollover(budgetId, supabase);
-
-      // Construire rollover line si nécessaire
-      if (rolloverData.rollover !== 0) {
-        const rolloverLine = this.buildRolloverLineFromData(
-          responseData.budget,
-          rolloverData.rollover,
-          rolloverData.previousBudgetId,
-        );
-        responseData.budgetLines.push(rolloverLine);
-      }
-
-      this.logBudgetDetailsFetchSuccess(budgetId, responseData);
+      this.logBudgetDetailsFetch(budgetId, responseData);
 
       return {
         success: true,
-        data: {
-          ...responseData,
-        },
+        data: responseData,
       } as BudgetDetailsResponse;
     } catch (error) {
-      this.handleFindOneWithDetailsError(error, user, budgetId);
+      handleServiceError(
+        error,
+        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+        undefined,
+        {
+          operation: 'getBudgetWithDetails',
+          userId: user.id,
+          entityId: budgetId,
+          entityType: 'budget',
+        },
+      );
     }
   }
 
-  /**
-   * Construit une ligne de rollover depuis les données pré-calculées
-   * @param budget - Budget courant
-   * @param rolloverAmount - Montant du rollover (déjà calculé par RPC)
-   * @param previousBudgetId - ID du budget précédent d'où provient le rollover
-   * @returns BudgetLine de rollover
-   */
-  private buildRolloverLineFromData(
-    budget: {
-      id: string;
-      month: number;
-      year: number;
-      createdAt: string;
-      updatedAt: string;
-    },
-    rolloverAmount: number,
-    previousBudgetId: string | null,
-  ): BudgetLine {
-    const { month: prevMonth, year: prevYear } =
-      budget.month === 1
-        ? { month: 12, year: budget.year - 1 }
-        : { month: budget.month - 1, year: budget.year };
-
-    return {
-      id: BUDGET_CONSTANTS.ROLLOVER.formatId(budget.id),
-      budgetId: budget.id,
-      templateLineId: null,
-      savingsGoalId: null,
-      name: BUDGET_CONSTANTS.ROLLOVER.formatName(
-        prevMonth as MonthRange,
-        prevYear,
-      ),
-      amount: Math.abs(rolloverAmount),
-      kind: rolloverAmount > 0 ? 'income' : 'expense',
-      recurrence: 'one_off',
-      isManuallyAdjusted: false,
-      isRollover: true,
-      rolloverSourceBudgetId: previousBudgetId,
-      createdAt: budget.createdAt,
-      updatedAt: budget.updatedAt,
-    };
-  }
-
-  private handleFindOneWithDetailsError(
-    error: unknown,
-    user: AuthenticatedUser,
-    id: string,
-  ): never {
-    handleServiceError(
-      error,
-      ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
-      undefined,
-      {
-        operation: 'getBudgetWithDetails',
-        userId: user.id,
-        entityId: id,
-        entityType: 'budget',
-      },
-    );
-  }
-
-  private async fetchBudgetDetailsData(
-    id: string,
+  private async validateBudgetExists(
+    budgetId: string,
     supabase: AuthenticatedSupabaseClient,
   ) {
-    const [budgetResult, transactionsResult, budgetLinesResult] =
-      await Promise.all([
-        supabase.from('monthly_budget').select('*').eq('id', id).single(),
-        supabase
-          .from('transaction')
-          .select('*')
-          .eq('budget_id', id)
-          .order('transaction_date', { ascending: false }),
-        supabase
-          .from('budget_line')
-          .select('*')
-          .eq('budget_id', id)
-          .order('created_at', { ascending: false }),
-      ]);
+    const budgetResult = await supabase
+      .from('monthly_budget')
+      .select('*')
+      .eq('id', budgetId)
+      .single();
 
-    return { budgetResult, transactionsResult, budgetLinesResult };
-  }
-
-  private validateBudgetAccess(
-    budgetResult: { error?: unknown; data?: unknown },
-    id: string,
-  ): void {
     if (budgetResult.error || !budgetResult.data) {
       throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
-        { id },
+        { id: budgetId },
         {
-          operation: 'validateBudgetAccess',
-          entityId: id,
+          operation: 'getBudgetWithDetails',
+          entityId: budgetId,
           entityType: 'budget',
           supabaseError: budgetResult.error,
         },
       );
     }
+
+    return budgetResult.data;
   }
 
-  private mapBudgetDetailsData(
-    results: ReturnType<typeof this.fetchBudgetDetailsData> extends Promise<
-      infer T
-    >
-      ? T
-      : never,
+  private async buildDetailsResponse(
+    budgetId: string,
+    budgetData: Tables<'monthly_budget'>,
+    supabase: AuthenticatedSupabaseClient,
   ) {
-    const budget = budgetMappers.toApi(
-      results.budgetResult.data as Tables<'monthly_budget'>,
-    );
+    const results = await this.repository.fetchBudgetData(budgetId, supabase, {
+      selectFields: '*',
+      orderTransactions: true,
+    });
 
-    const transactions = transactionMappers.toApiList(
-      results.transactionsResult.data || [],
-    );
-
-    const budgetLines = budgetLineMappers.toApiList(
-      results.budgetLinesResult.data || [],
-    );
+    results.budget = budgetData;
 
     return {
-      budget,
-      transactions,
-      budgetLines,
+      budget: budgetMappers.toApi(results.budget as Tables<'monthly_budget'>),
+      transactions: transactionMappers.toApiList(results.transactions || []),
+      budgetLines: budgetLineMappers.toApiList(results.budgetLines || []),
     };
   }
 
-  private logBudgetDetailsFetchSuccess(
-    id: string,
-    mappedData: ReturnType<typeof this.mapBudgetDetailsData>,
-  ): void {
+  private async addRolloverIfNeeded(
+    budgetId: string,
+    responseData: BudgetDetailsData,
+    supabase: AuthenticatedSupabaseClient,
+  ) {
+    const rolloverData = await this.calculator.getRollover(budgetId, supabase);
+
+    if (rolloverData.rollover !== 0) {
+      const rolloverLine = this.calculator.buildRolloverLine(
+        responseData.budget,
+        rolloverData.rollover,
+        rolloverData.previousBudgetId,
+      );
+      responseData.budgetLines.push(rolloverLine);
+    }
+  }
+
+  private logBudgetDetailsFetch(
+    budgetId: string,
+    responseData: BudgetDetailsData,
+  ) {
     this.logger.info(
       {
-        budgetId: id,
-        transactionCount: mappedData.transactions.length,
-        budgetLineCount: mappedData.budgetLines.length,
+        budgetId,
+        transactionCount: responseData.transactions.length,
+        budgetLineCount: responseData.budgetLines.length,
+        operation: 'budget.details.fetched',
       },
-      'Successfully fetched budget with details',
+      'Budget avec détails récupéré avec succès',
     );
-  }
-
-  private validateUpdateBudgetDto(updateBudgetDto: BudgetUpdate): BudgetUpdate {
-    // Validation basique pour les champs optionnels
-    if (
-      updateBudgetDto.month !== undefined &&
-      (updateBudgetDto.month < BUDGET_CONSTANTS.MONTH_MIN ||
-        updateBudgetDto.month > BUDGET_CONSTANTS.MONTH_MAX)
-    ) {
-      throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED, {
-        reason: `Month must be between ${BUDGET_CONSTANTS.MONTH_MIN} and ${BUDGET_CONSTANTS.MONTH_MAX}`,
-      });
-    }
-
-    if (
-      updateBudgetDto.year !== undefined &&
-      (updateBudgetDto.year < BUDGET_CONSTANTS.MIN_YEAR ||
-        updateBudgetDto.year > BUDGET_CONSTANTS.MAX_YEAR)
-    ) {
-      throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED, {
-        reason: `Year must be between ${BUDGET_CONSTANTS.MIN_YEAR} and ${BUDGET_CONSTANTS.MAX_YEAR}`,
-      });
-    }
-
-    return updateBudgetDto;
-  }
-
-  private prepareBudgetUpdateData(updateBudgetDto: BudgetUpdate) {
-    return {
-      ...updateBudgetDto,
-    };
-  }
-
-  private async updateBudgetInDb(
-    id: string,
-    updateData: ReturnType<typeof this.prepareBudgetUpdateData>,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<unknown> {
-    const { data: budgetDb, error } = await supabase
-      .from('monthly_budget')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error || !budgetDb) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
-        { id },
-        {
-          operation: 'updateBudgetInDb',
-          entityId: id,
-          entityType: 'budget',
-          supabaseError: error,
-        },
-        { cause: error },
-      );
-    }
-
-    return budgetDb;
   }
 
   async update(
@@ -661,21 +278,14 @@ export class BudgetService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetResponse> {
     try {
-      const validatedDto = this.validateUpdateBudgetDto(updateBudgetDto);
+      await this.validateAndPrepareUpdate(id, updateBudgetDto, supabase);
+      const budgetDb = await this.repository.updateBudgetInDb(
+        id,
+        updateBudgetDto,
+        supabase,
+      );
 
-      if (validatedDto.month && validatedDto.year) {
-        await this.validateNoDuplicatePeriod(
-          supabase,
-          validatedDto.month,
-          validatedDto.year,
-          id,
-        );
-      }
-
-      const updateData = this.prepareBudgetUpdateData(updateBudgetDto);
-      const budgetDb = await this.updateBudgetInDb(id, updateData, supabase);
-
-      await this.recalculateBalances(id, supabase);
+      await this.calculator.recalculateAndPersist(id, supabase);
 
       const apiData = budgetMappers.toApi(budgetDb as Tables<'monthly_budget'>);
 
@@ -694,6 +304,24 @@ export class BudgetService {
           entityId: id,
           entityType: 'budget',
         },
+      );
+    }
+  }
+
+  private async validateAndPrepareUpdate(
+    id: string,
+    updateBudgetDto: BudgetUpdate,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    const validatedDto =
+      this.validator.validateUpdateBudgetDto(updateBudgetDto);
+
+    if (validatedDto.month && validatedDto.year) {
+      await this.validator.validateNoDuplicatePeriod(
+        supabase,
+        validatedDto.month,
+        validatedDto.year,
+        id,
       );
     }
   }
@@ -743,226 +371,180 @@ export class BudgetService {
     }
   }
 
-  private async validateNoDuplicatePeriod(
+  private async createBudgetFromTemplate(
+    validatedDto: BudgetCreate,
+    user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
-    month: number,
-    year: number,
-    excludeId?: string,
-  ): Promise<void> {
-    const { data: existingBudget } = await supabase
-      .from('monthly_budget')
-      .select('id')
-      .eq('month', month)
-      .eq('year', year)
-      .neq('id', excludeId || '')
-      .single();
-
-    if (existingBudget) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_ALREADY_EXISTS_FOR_MONTH,
-        { month, year },
-      );
-    }
-  }
-
-  private async calculateMonthlyEndingBalance(
-    budgetId: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<number> {
-    const { budgetLines, transactions } = await this.fetchBudgetData(
-      budgetId,
-      supabase,
-    );
-
-    const allMonthlyItems = [...budgetLines, ...transactions];
-    const { totalMonthlyIncome, totalMonthlyExpenses } = allMonthlyItems.reduce(
-      (acc, item) => {
-        if (item.kind === 'income') {
-          acc.totalMonthlyIncome += item.amount;
-        } else {
-          acc.totalMonthlyExpenses += item.amount;
-        }
-        return acc;
-      },
-      { totalMonthlyIncome: 0, totalMonthlyExpenses: 0 },
-    );
-
-    return totalMonthlyIncome - totalMonthlyExpenses;
-  }
-
-  private async persistEndingBalanceOnly(
-    budgetId: string,
-    endingBalance: number,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<void> {
-    const { error } = await supabase
-      .from('monthly_budget')
-      .update({
-        ending_balance: endingBalance,
-      })
-      .eq('id', budgetId);
-
-    if (error) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_UPDATE_FAILED,
-        { budgetId },
-        {
-          operation: 'persistEndingBalanceOnly',
-          entityId: budgetId,
-          entityType: 'monthly_budget',
-        },
-        { cause: error },
-      );
-    }
+  ) {
+    const startTime = Date.now();
 
     this.logger.info(
       {
-        budgetId,
-        endingBalance,
-        operation: 'persistEndingBalanceOnly',
+        userId: user.id,
+        templateId: validatedDto.templateId,
+        period: `${validatedDto.month}/${validatedDto.year}`,
+        operation: 'budget.create.start',
       },
-      'Ending balance calculated and persisted',
+      'Starting budget creation from template',
     );
+
+    const result = await this.executeBudgetCreationRpc(
+      validatedDto,
+      user,
+      supabase,
+    );
+
+    const processedResult = this.processBudgetCreationResult(
+      result,
+      user.id,
+      validatedDto.templateId!,
+    );
+
+    this.logger.info(
+      {
+        userId: user.id,
+        budgetId: processedResult.budgetData.id,
+        templateId: validatedDto.templateId,
+        templateName: processedResult.templateName,
+        period: `${validatedDto.month}/${validatedDto.year}`,
+        linesCreated: processedResult.budgetLinesCreated,
+        duration: Date.now() - startTime,
+        operation: 'budget.create.success',
+      },
+      'Budget créé depuis template avec transaction atomique',
+    );
+
+    return processedResult;
   }
 
-  /**
-   * Fetches budget lines and transactions for a given budget
-   * @param budgetId - The budget ID to fetch data for
-   * @param supabase - Authenticated Supabase client
-   * @returns Budget lines and transactions arrays
-   */
-  private async fetchBudgetData(
-    budgetId: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<{
-    budgetLines: Array<{ kind: string; amount: number }>;
-    transactions: Array<{ kind: string; amount: number }>;
-  }> {
-    const [budgetLinesResult, transactionsResult] = await Promise.all([
-      supabase
-        .from('budget_line')
-        .select('kind, amount')
-        .eq('budget_id', budgetId),
-      supabase
-        .from('transaction')
-        .select('kind, amount')
-        .eq('budget_id', budgetId),
-    ]);
-
-    this.validateFetchResults(budgetId, budgetLinesResult, transactionsResult);
-
-    return {
-      budgetLines: Array.isArray(budgetLinesResult.data)
-        ? budgetLinesResult.data
-        : [],
-      transactions: Array.isArray(transactionsResult.data)
-        ? transactionsResult.data
-        : [],
-    };
-  }
-
-  /**
-   * Validates fetch results and throws appropriate exceptions
-   */
-  private validateFetchResults(
-    budgetId: string,
-    budgetLinesResult: { error?: unknown; data?: unknown },
-    transactionsResult: { error?: unknown; data?: unknown },
-  ): void {
-    if (budgetLinesResult.error) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
-        { budgetId },
-        {
-          operation: 'calculateAvailableToSpend',
-          entityId: budgetId,
-          entityType: 'budget_line',
-        },
-        { cause: budgetLinesResult.error },
-      );
-    }
-
-    if (transactionsResult.error) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
-        { budgetId },
-        {
-          operation: 'calculateAvailableToSpend',
-          entityId: budgetId,
-          entityType: 'transaction',
-        },
-        { cause: transactionsResult.error },
-      );
-    }
-  }
-
-  /**
-   * Gets rollover amount and previous budget ID from previous months
-   * @param budgetId - Budget ID to get rollover for
-   * @param supabase - Authenticated Supabase client
-   * @returns Rollover amount and previous budget ID from previous months
-   */
-  private async getBudgetRollover(
-    budgetId: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<{ rollover: number; previousBudgetId: string | null }> {
-    try {
-      const { data, error } = await supabase
-        .rpc('get_budget_with_rollover', { p_budget_id: budgetId })
-        .single();
-
-      if (error) {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
-          { budgetId },
-          {
-            operation: 'getBudgetRollover',
-            entityId: budgetId,
-            entityType: 'budget',
-            supabaseError: error,
-          },
-          { cause: error },
-        );
-      }
-
-      if (!data) {
-        throw new BusinessException(ERROR_DEFINITIONS.BUDGET_NOT_FOUND, {
-          id: budgetId,
-        });
-      }
-
-      return {
-        rollover: (data as { rollover?: number }).rollover ?? 0,
-        previousBudgetId:
-          (data as { previous_budget_id?: string }).previous_budget_id ?? null,
-      };
-    } catch (error) {
-      handleServiceError(
-        error,
-        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
-        undefined,
-        {
-          operation: 'getBudgetRollover',
-          entityId: budgetId,
-          entityType: 'budget',
-        },
-      );
-    }
-  }
-
-  /**
-   * Recalculates and persists ending balance (simplified architecture)
-   * @param budgetId - The budget ID that was modified
-   * @param supabase - Authenticated Supabase client
-   */
   async recalculateBalances(
     budgetId: string,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<void> {
-    const endingBalance = await this.calculateMonthlyEndingBalance(
-      budgetId,
-      supabase,
+    await this.calculator.recalculateAndPersist(budgetId, supabase);
+  }
+
+  private async executeBudgetCreationRpc(
+    validatedDto: BudgetCreate,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<unknown> {
+    const { data: result, error } = await supabase.rpc(
+      'create_budget_from_template',
+      {
+        p_user_id: user.id,
+        p_template_id: validatedDto.templateId!,
+        p_month: validatedDto.month,
+        p_year: validatedDto.year,
+        p_description: validatedDto.description,
+      },
     );
-    await this.persistEndingBalanceOnly(budgetId, endingBalance, supabase);
+
+    if (error) {
+      this.handleBudgetCreationError(error, user.id, validatedDto.templateId!);
+    }
+
+    return result;
+  }
+
+  private handleBudgetCreationError(
+    error: unknown,
+    userId: string,
+    templateId: string,
+  ): never {
+    this.logger.error(
+      {
+        err: error,
+        userId,
+        templateId,
+        operation: 'create_budget_from_template_rpc',
+      },
+      'Supabase RPC failed at database level',
+    );
+
+    const businessException = this.mapPostgreSQLErrorToBusinessException(
+      error,
+      userId,
+      templateId,
+    );
+
+    throw businessException;
+  }
+
+  private mapPostgreSQLErrorToBusinessException(
+    error: unknown,
+    userId: string,
+    templateId: string,
+  ): BusinessException {
+    const errorObj = error as { code?: string; message?: string };
+    const errorCode = errorObj?.code;
+    const errorMessage = errorObj?.message || '';
+
+    // Handle PostgreSQL constraint violations
+    if (errorCode === '23505') {
+      return new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_ALREADY_EXISTS_FOR_MONTH,
+        undefined,
+        { userId, templateId },
+      );
+    }
+
+    if (errorCode === '23503') {
+      return new BusinessException(ERROR_DEFINITIONS.TEMPLATE_NOT_FOUND, {
+        id: templateId,
+      });
+    }
+
+    // Handle custom exceptions or template access issues
+    if (
+      errorCode === 'P0001' ||
+      errorMessage.includes('Template not found') ||
+      errorMessage.includes('access denied')
+    ) {
+      return new BusinessException(ERROR_DEFINITIONS.TEMPLATE_NOT_FOUND, {
+        id: templateId,
+      });
+    }
+
+    return new BusinessException(
+      ERROR_DEFINITIONS.BUDGET_CREATE_FAILED,
+      undefined,
+      { userId, templateId },
+      { cause: error },
+    );
+  }
+
+  private processBudgetCreationResult(
+    result: unknown,
+    userId: string,
+    templateId: string,
+  ): {
+    budgetData: Tables<'monthly_budget'>;
+    budgetLinesCreated: number;
+    templateName: string;
+  } {
+    if (!result || typeof result !== 'object' || !('budget' in result)) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_CREATE_FAILED,
+        { reason: 'Invalid result structure from RPC' },
+        {
+          userId,
+          templateId,
+          result,
+          operation: 'processBudgetCreationResult',
+        },
+      );
+    }
+
+    const typedResult = result as {
+      budget: Tables<'monthly_budget'>;
+      budget_lines_created: number;
+      template_name: string;
+    };
+    return {
+      budgetData: typedResult.budget as Tables<'monthly_budget'>,
+      budgetLinesCreated: typedResult.budget_lines_created as number,
+      templateName: typedResult.template_name as string,
+    };
   }
 }

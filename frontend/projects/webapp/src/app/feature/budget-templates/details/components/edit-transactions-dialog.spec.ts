@@ -89,16 +89,12 @@ describe('EditTransactionsDialog - Component Tests', () => {
     };
 
     TestBed.configureTestingModule({
-      imports: [
-        EditTransactionsDialog,
-        MatDialogModule,
-        NoopAnimationsModule,
-        TransactionLabelPipe,
-      ],
+      imports: [EditTransactionsDialog, MatDialogModule, NoopAnimationsModule],
       providers: [
         provideZonelessChangeDetection(),
         TransactionFormService,
         TemplateLineStore,
+        TransactionLabelPipe,
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: MAT_DIALOG_DATA, useValue: mockDialogData },
         { provide: BudgetTemplatesApi, useValue: mockBudgetTemplatesApi },
