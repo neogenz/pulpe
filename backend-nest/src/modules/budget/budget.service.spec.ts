@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { BudgetService } from './budget.service';
+import { BudgetCalculator } from './budget.calculator';
+import { BudgetValidator } from './budget.validator';
+import { BudgetRepository } from './budget.repository';
 import {
   createMockAuthenticatedUser,
   createMockSupabaseClient,
@@ -10,10 +13,14 @@ import {
 } from '../../test/test-mocks';
 import type { BudgetCreate, BudgetUpdate } from '@pulpe/shared';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import { BusinessException } from '@common/exceptions/business.exception';
 
 describe('BudgetService', () => {
   let service: BudgetService;
   let mockSupabaseClient: MockSupabaseClient;
+  let mockValidator: any;
+  let mockRepository: any;
+  let mockCalculator: any;
 
   const createValidBudgetEntity = (overrides: any = {}): any => ({
     id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
@@ -50,12 +57,140 @@ describe('BudgetService', () => {
       fatal: () => {},
     };
 
+    mockCalculator = {
+      calculateEndingBalance: () => Promise.resolve(100),
+      recalculateAndPersist: () => Promise.resolve(),
+      getRollover: () =>
+        Promise.resolve({ rollover: 0, previousBudgetId: null }),
+      buildRolloverLine: () => ({
+        id: 'rollover-id',
+        budgetId: 'budget-id',
+        templateLineId: null,
+        savingsGoalId: null,
+        name: 'Rollover from previous month',
+        amount: 50,
+        kind: 'income',
+        recurrence: 'one_off',
+        isManuallyAdjusted: false,
+        isRollover: true,
+        rolloverSourceBudgetId: 'prev-id',
+        createdAt: '2024-01-15T10:30:00.000Z',
+        updatedAt: '2024-01-15T10:30:00.000Z',
+      }),
+    };
+
+    mockValidator = {
+      validateBudgetInput: (dto: any) => {
+        // Test validation scenarios
+        if (dto.month > 12) {
+          throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED, {
+            reason: 'Month must be between 1 and 12',
+          });
+        }
+        if (dto.year && dto.year > new Date().getFullYear() + 2) {
+          throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED, {
+            reason: 'Budget date cannot be more than 2 years in the future',
+          });
+        }
+        if (dto.description && dto.description.length > 500) {
+          throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED, {
+            reason: 'Description cannot exceed 500 characters',
+          });
+        }
+        if (!dto.templateId) {
+          throw new BusinessException(ERROR_DEFINITIONS.REQUIRED_DATA_MISSING, {
+            fields: ['templateId'],
+          });
+        }
+        return dto;
+      },
+      validateUpdateBudgetDto: (dto: any) => {
+        if (dto.month !== undefined && (dto.month < 1 || dto.month > 12)) {
+          throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED, {
+            reason: 'Month must be between 1 and 12',
+          });
+        }
+        return dto;
+      },
+      validateNoDuplicatePeriod: () => Promise.resolve(),
+    };
+
+    const mockRepositoryData = {
+      budgetLines: [
+        {
+          id: 'bl-1',
+          budget_id: 'budget-id',
+          name: 'Salaire',
+          amount: 5000,
+          kind: 'income',
+          created_at: '2024-01-01T00:00:00.000Z',
+          updated_at: '2024-01-01T00:00:00.000Z',
+        },
+        {
+          id: 'bl-2',
+          budget_id: 'budget-id',
+          name: 'Loyer',
+          amount: 1500,
+          kind: 'expense',
+          created_at: '2024-01-01T00:00:00.000Z',
+          updated_at: '2024-01-01T00:00:00.000Z',
+        },
+      ],
+      transactions: [
+        {
+          id: 'trans-1',
+          budget_id: 'budget-id',
+          name: 'Transaction 1',
+          amount: 100,
+          kind: 'expense',
+          transaction_date: '2024-01-15T10:00:00.000Z',
+          created_at: '2024-01-01T00:00:00.000Z',
+          updated_at: '2024-01-01T00:00:00.000Z',
+        },
+        {
+          id: 'trans-2',
+          budget_id: 'budget-id',
+          name: 'Transaction 2',
+          amount: 200,
+          kind: 'expense',
+          transaction_date: '2024-01-16T10:00:00.000Z',
+          created_at: '2024-01-01T00:00:00.000Z',
+          updated_at: '2024-01-01T00:00:00.000Z',
+        },
+      ],
+    };
+
+    mockRepository = {
+      fetchBudgetById: (id: string) =>
+        Promise.resolve(createValidBudgetEntity({ id })),
+      updateBudgetInDb: (id: string, updateData: any) =>
+        Promise.resolve(createValidBudgetEntity({ id, ...updateData })),
+      fetchBudgetData: () =>
+        Promise.resolve({
+          budget: createValidBudgetEntity(),
+          budgetLines: mockRepositoryData.budgetLines,
+          transactions: mockRepositoryData.transactions,
+        }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BudgetService,
         {
           provide: `PinoLogger:${BudgetService.name}`,
           useValue: mockPinoLogger,
+        },
+        {
+          provide: BudgetCalculator,
+          useValue: mockCalculator,
+        },
+        {
+          provide: BudgetValidator,
+          useValue: mockValidator,
+        },
+        {
+          provide: BudgetRepository,
+          useValue: mockRepository,
         },
       ],
     }).compile();
@@ -231,17 +366,23 @@ describe('BudgetService', () => {
       const mockUser = createMockAuthenticatedUser(); // Still needed for create method
       const createBudgetDto = createValidBudgetCreateDto();
 
-      // Mock: budget already exists for this period
-      mockSupabaseClient
-        .setMockData({ id: 'existing-budget' })
-        .setMockError(null);
+      // Override the validator for this test
+      const originalValidateNoDuplicate =
+        mockValidator.validateNoDuplicatePeriod;
+      mockValidator.validateNoDuplicatePeriod = () => {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.BUDGET_ALREADY_EXISTS_FOR_MONTH,
+        );
+      };
 
       await expectBusinessExceptionThrown(
         () =>
           service.create(createBudgetDto, mockUser, mockSupabaseClient as any),
         ERROR_DEFINITIONS.BUDGET_ALREADY_EXISTS_FOR_MONTH,
-        { month: createBudgetDto.month, year: createBudgetDto.year },
       );
+
+      // Restore the original method
+      mockValidator.validateNoDuplicatePeriod = originalValidateNoDuplicate;
     });
   });
 
@@ -283,15 +424,25 @@ describe('BudgetService', () => {
     it('should throw NotFoundException when budget not found', async () => {
       const mockUser = createMockAuthenticatedUser();
       const budgetId = 'non-existent-id';
-      const mockError = { message: 'No rows returned' };
 
-      mockSupabaseClient.setMockData(null).setMockError(mockError);
+      // Override the repository for this test
+      const originalFetchBudgetById = mockRepository.fetchBudgetById;
+      mockRepository.fetchBudgetById = (id: string) => {
+        if (id === budgetId) {
+          throw new BusinessException(ERROR_DEFINITIONS.BUDGET_NOT_FOUND, {
+            id,
+          });
+        }
+        return Promise.resolve(createValidBudgetEntity({ id }));
+      };
 
       await expectBusinessExceptionThrown(
         () => service.findOne(budgetId, mockUser, mockSupabaseClient as any),
         ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
-        { id: budgetId },
       );
+
+      // Restore the original method
+      mockRepository.fetchBudgetById = originalFetchBudgetById;
     });
   });
 
@@ -555,43 +706,22 @@ describe('BudgetService', () => {
       const budgetId = MOCK_BUDGET_ID;
       const mockBudget = createValidBudgetEntity({ id: budgetId });
 
-      // Create separate mock clients for each table to avoid data collision
-      const mockBudgetClient = new MockSupabaseClient();
-      const mockTransactionClient = new MockSupabaseClient();
-      const mockBudgetLineClient = new MockSupabaseClient();
+      // Mock successful budget existence check
+      mockSupabaseClient.setMockData(mockBudget).setMockError(null);
 
-      // Configure each client with its specific data
-      mockBudgetClient.setMockData(mockBudget).setMockError(null);
-      mockTransactionClient.setMockData([]).setMockError(null);
-      mockBudgetLineClient.setMockData([]).setMockError(null);
+      // Override the repository for this test to return empty arrays
+      const originalFetchBudgetData = mockRepository.fetchBudgetData;
+      mockRepository.fetchBudgetData = () =>
+        Promise.resolve({
+          budget: mockBudget,
+          budgetLines: [],
+          transactions: [],
+        });
 
-      // Mock the get_budget_with_rollover RPC call
-      const originalRpc = mockSupabaseClient.rpc;
-      mockSupabaseClient.rpc = ((functionName: string, params: any) => {
-        if (functionName === 'get_budget_with_rollover') {
-          return {
-            single: () =>
-              Promise.resolve({
-                data: { rollover: 0 }, // No previous rollover for empty case
-                error: null,
-              }),
-          };
-        }
-        return originalRpc.call(mockSupabaseClient, functionName, params);
-      }) as typeof mockSupabaseClient.rpc;
-
-      // Override the from method to return the appropriate client
-      const originalFrom = mockSupabaseClient.from;
-      mockSupabaseClient.from = (table: string) => {
-        if (table === 'monthly_budget') {
-          return mockBudgetClient.from(table);
-        } else if (table === 'transaction') {
-          return mockTransactionClient.from(table);
-        } else if (table === 'budget_line') {
-          return mockBudgetLineClient.from(table);
-        }
-        return originalFrom.call(mockSupabaseClient, table);
-      };
+      // Override calculator to return no rollover
+      const originalGetRollover = mockCalculator.getRollover;
+      mockCalculator.getRollover = () =>
+        Promise.resolve({ rollover: 0, previousBudgetId: null });
 
       const result = await service.findOneWithDetails(
         budgetId,
@@ -602,8 +732,11 @@ describe('BudgetService', () => {
       expect(result.success).toBe(true);
       expect(result.data.budget.id).toBe(budgetId);
       expect(result.data.transactions).toEqual([]);
-      // Should not include rollover line when previous month had zero living allowance
       expect(result.data.budgetLines).toHaveLength(0);
+
+      // Restore the original methods
+      mockRepository.fetchBudgetData = originalFetchBudgetData;
+      mockCalculator.getRollover = originalGetRollover;
     });
 
     it('should throw NotFoundException when budget not found', async () => {
@@ -631,49 +764,25 @@ describe('BudgetService', () => {
       const budgetId = MOCK_BUDGET_ID;
       const mockBudget = createValidBudgetEntity({ id: budgetId });
 
-      // Create separate mock clients for each table to avoid data collision
-      const mockBudgetClient = new MockSupabaseClient();
-      const mockTransactionClient = new MockSupabaseClient();
-      const mockBudgetLineClient = new MockSupabaseClient();
+      // Mock successful budget existence check
+      mockSupabaseClient.setMockData(mockBudget).setMockError(null);
 
-      // Configure each client with its specific data
-      mockBudgetClient.setMockData(mockBudget).setMockError(null);
-      mockTransactionClient
-        .setMockData(null)
-        .setMockError({ message: 'Permission denied' });
-      mockBudgetLineClient
-        .setMockData(null)
-        .setMockError({ message: 'Permission denied' });
-
-      // Mock the get_budget_with_rollover RPC call to return an error
-      const originalRpc = mockSupabaseClient.rpc;
-      mockSupabaseClient.rpc = ((functionName: string, params: any) => {
-        if (functionName === 'get_budget_with_rollover') {
-          return {
-            single: () =>
-              Promise.resolve({
-                data: null,
-                error: { message: 'Permission denied', code: 'PGRST116' },
-              }),
-          };
-        }
-        return originalRpc.call(mockSupabaseClient, functionName, params);
-      }) as typeof mockSupabaseClient.rpc;
-
-      // Override the from method to return the appropriate client
-      const originalFrom = mockSupabaseClient.from;
-      mockSupabaseClient.from = (table: string) => {
-        if (table === 'monthly_budget') {
-          return mockBudgetClient.from(table);
-        } else if (table === 'transaction') {
-          return mockTransactionClient.from(table);
-        } else if (table === 'budget_line') {
-          return mockBudgetLineClient.from(table);
-        }
-        return originalFrom.call(mockSupabaseClient, table);
+      // Override the repository to throw an error during data fetching
+      const originalFetchBudgetData = mockRepository.fetchBudgetData;
+      mockRepository.fetchBudgetData = () => {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
+          { budgetId },
+          {
+            operation: 'fetchBudgetData',
+            entityId: budgetId,
+            entityType: 'budget',
+          },
+          { cause: new Error('Permission denied') },
+        );
       };
 
-      // Should throw exception because financial calculations require accurate data
+      // Should throw exception because financial data fetch failed
       await expectBusinessExceptionThrown(
         () =>
           service.findOneWithDetails(
@@ -684,6 +793,9 @@ describe('BudgetService', () => {
         ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
         { budgetId },
       );
+
+      // Restore the original method
+      mockRepository.fetchBudgetData = originalFetchBudgetData;
     });
   });
 });

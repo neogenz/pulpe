@@ -2,6 +2,9 @@ import { describe, it, expect, beforeEach } from 'bun:test';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { v4 as uuid } from 'uuid';
 import { BudgetService } from './budget.service';
+import { BudgetCalculator } from './budget.calculator';
+import { BudgetValidator } from './budget.validator';
+import { BudgetRepository } from './budget.repository';
 import {
   createMockAuthenticatedUser,
   createMockSupabaseClient,
@@ -27,12 +30,65 @@ describe('BudgetService (Performance)', () => {
       fatal: () => {},
     };
 
+    const mockCalculator = {
+      calculateEndingBalance: () => Promise.resolve(100),
+      recalculateAndPersist: () => Promise.resolve(),
+      getRollover: () =>
+        Promise.resolve({ rollover: 50, previousBudgetId: 'prev-id' }),
+      buildRolloverLine: () => ({
+        id: 'rollover-id',
+        budgetId: 'budget-id',
+        templateLineId: null,
+        savingsGoalId: null,
+        name: 'Rollover from previous month',
+        amount: 50,
+        kind: 'income',
+        recurrence: 'one_off',
+        isManuallyAdjusted: false,
+        isRollover: true,
+        rolloverSourceBudgetId: 'prev-id',
+        createdAt: '2024-01-15T10:30:00.000Z',
+        updatedAt: '2024-01-15T10:30:00.000Z',
+      }),
+    };
+
+    const mockValidator = {
+      validateBudgetInput: (dto: any) => dto,
+      validateUpdateBudgetDto: (dto: any) => dto,
+      validateNoDuplicatePeriod: () => Promise.resolve(),
+    };
+
+    const mockRepository = {
+      fetchBudgetById: (id: string) =>
+        Promise.resolve(createMockBudgetEntity({ id })),
+      updateBudgetInDb: (id: string, updateData: any) =>
+        Promise.resolve(createMockBudgetEntity({ id, ...updateData })),
+      fetchBudgetData: () =>
+        Promise.resolve({
+          budget: createMockBudgetEntity(),
+          budgetLines: [],
+          transactions: [],
+        }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BudgetService,
         {
           provide: `PinoLogger:${BudgetService.name}`,
           useValue: mockPinoLogger,
+        },
+        {
+          provide: BudgetCalculator,
+          useValue: mockCalculator,
+        },
+        {
+          provide: BudgetValidator,
+          useValue: mockValidator,
+        },
+        {
+          provide: BudgetRepository,
+          useValue: mockRepository,
         },
       ],
     }).compile();
