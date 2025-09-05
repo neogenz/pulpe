@@ -30,7 +30,8 @@ describe('BudgetService', () => {
     month: 1,
     year: 2024,
     description: 'Budget Janvier 2024',
-    template_id: null,
+    template_id: '550e8400-e29b-41d4-a716-446655440004',
+    ending_balance: null,
     ...overrides,
   });
 
@@ -267,7 +268,7 @@ describe('BudgetService', () => {
       const mockUser = createMockAuthenticatedUser();
       const createBudgetDto = createValidBudgetCreateDto();
       const mockCreatedBudget = createValidBudgetEntity({
-        id: 'new-budget-id',
+        id: '550e8400-e29b-41d4-a716-446655440099',
         month: createBudgetDto.month,
         year: createBudgetDto.year,
         description: createBudgetDto.description,
@@ -277,7 +278,7 @@ describe('BudgetService', () => {
       // Mock RPC call for template-based creation
       const mockRpcResult = {
         budget: mockCreatedBudget,
-        transactions_created: 5,
+        budget_lines_created: 5,
         template_name: 'Test Template',
       };
 

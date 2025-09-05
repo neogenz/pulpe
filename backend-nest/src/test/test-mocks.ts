@@ -28,8 +28,11 @@ export const createMockBudgetEntity = (
 ) => ({
   id: MOCK_BUDGET_ID,
   user_id: MOCK_USER_ID,
+  template_id: MOCK_TEMPLATE_ID,
   month: 11,
   year: 2024,
+  description: 'Test Budget',
+  ending_balance: null,
   created_at: '2024-01-01T00:00:00.000Z',
   updated_at: '2024-01-01T00:00:00.000Z',
   ...overrides,

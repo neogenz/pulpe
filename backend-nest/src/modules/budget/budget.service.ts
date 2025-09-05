@@ -5,6 +5,8 @@ import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { handleServiceError } from '@common/utils/error-handler';
+import { ZodError } from 'zod';
+import { validateCreateBudgetResponse } from './schemas/rpc-responses.schema';
 import {
   type BudgetCreate,
   type BudgetDeleteResponse,
@@ -526,28 +528,39 @@ export class BudgetService {
     budgetLinesCreated: number;
     templateName: string;
   } {
-    if (!result || typeof result !== 'object' || !('budget' in result)) {
-      throw new BusinessException(
-        ERROR_DEFINITIONS.BUDGET_CREATE_FAILED,
-        { reason: 'Invalid result structure from RPC' },
-        {
-          userId,
-          templateId,
-          result,
-          operation: 'processBudgetCreationResult',
-        },
-      );
-    }
+    try {
+      const validatedResult = validateCreateBudgetResponse(result);
 
-    const typedResult = result as {
-      budget: Tables<'monthly_budget'>;
-      budget_lines_created: number;
-      template_name: string;
-    };
-    return {
-      budgetData: typedResult.budget as Tables<'monthly_budget'>,
-      budgetLinesCreated: typedResult.budget_lines_created as number,
-      templateName: typedResult.template_name as string,
-    };
+      return {
+        budgetData: validatedResult.budget as Tables<'monthly_budget'>,
+        budgetLinesCreated: validatedResult.budget_lines_created,
+        templateName: validatedResult.template_name,
+      };
+    } catch (error) {
+      if (error instanceof ZodError) {
+        this.logger.error(
+          {
+            userId,
+            templateId,
+            result,
+            validationErrors: error.errors,
+            operation: 'processBudgetCreationResult.validation',
+          },
+          'RPC response validation failed',
+        );
+
+        throw new BusinessException(
+          ERROR_DEFINITIONS.BUDGET_CREATE_FAILED,
+          { reason: 'Invalid result structure from RPC' },
+          {
+            userId,
+            templateId,
+            validationErrors: error.errors,
+            operation: 'processBudgetCreationResult',
+          },
+        );
+      }
+      throw error;
+    }
   }
 }
