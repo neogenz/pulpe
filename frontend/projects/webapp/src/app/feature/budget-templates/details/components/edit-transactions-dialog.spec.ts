@@ -14,6 +14,7 @@ import { TemplateLineStore } from '../services/template-line-store';
 import { TransactionFormService } from '../../services/transaction-form';
 import { BudgetTemplatesApi } from '../../services/budget-templates-api';
 import { MatDialog } from '@angular/material/dialog';
+import { TransactionLabelPipe } from '@ui/transaction-display';
 import type { TransactionFormData } from '../../services/transaction-form';
 import type { TemplateLine } from '@pulpe/shared';
 
@@ -88,7 +89,12 @@ describe('EditTransactionsDialog - Component Tests', () => {
     };
 
     TestBed.configureTestingModule({
-      imports: [EditTransactionsDialog, MatDialogModule, NoopAnimationsModule],
+      imports: [
+        EditTransactionsDialog,
+        MatDialogModule,
+        NoopAnimationsModule,
+        TransactionLabelPipe,
+      ],
       providers: [
         provideZonelessChangeDetection(),
         TransactionFormService,
