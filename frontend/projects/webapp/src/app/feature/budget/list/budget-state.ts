@@ -24,21 +24,47 @@ export class BudgetState {
   async #loadMonthsData(): Promise<MonthInfo[]> {
     try {
       const budgets = await firstValueFrom(this.#budgetApi.getAllBudgets$());
-      return budgets
-        .map((budget) => ({
-          month: budget.month,
-          year: budget.year,
-          budgetId: budget.id,
-          description: budget.description,
-          displayName: this.#formatMonthYear(budget.month, budget.year),
-        }))
-        .sort((a: MonthInfo, b: MonthInfo) => {
-          // Trier par année décroissante puis par mois décroissant
-          if (a.year !== b.year) {
-            return b.year - a.year;
+
+      // Fetch summary for each budget to get the available to spend amount
+      const monthsWithSummary = await Promise.all(
+        budgets.map(async (budget) => {
+          try {
+            const summaryResponse = await firstValueFrom(
+              this.#budgetApi.getBudgetSummary$(budget.id),
+            );
+            return {
+              month: budget.month,
+              year: budget.year,
+              budgetId: budget.id,
+              description: budget.description,
+              displayName: this.#formatMonthYear(budget.month, budget.year),
+              availableToSpend: summaryResponse.data.availableToSpend,
+            };
+          } catch (error) {
+            // If fetching summary fails, return budget without financial data
+            this.#logger.warn(
+              `Failed to fetch summary for budget ${budget.id}:`,
+              error,
+            );
+            return {
+              month: budget.month,
+              year: budget.year,
+              budgetId: budget.id,
+              description: budget.description,
+              displayName: this.#formatMonthYear(budget.month, budget.year),
+              availableToSpend: budget.endingBalance ?? 0,
+            };
           }
-          return b.month - a.month;
-        });
+        }),
+      );
+
+      return monthsWithSummary.sort((a: MonthInfo, b: MonthInfo) => {
+        // Trier par année décroissante puis par mois décroissant
+        if (a.year !== b.year) {
+          return b.year - a.year;
+        }
+        return b.month - a.month;
+      });
     } catch (error) {
       this.#logger.error('Erreur lors du chargement des mois:', error);
       throw error;

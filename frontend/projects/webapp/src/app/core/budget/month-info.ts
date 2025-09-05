@@ -4,4 +4,5 @@ export interface MonthInfo {
   budgetId: string;
   description: string;
   displayName: string;
+  availableToSpend?: number;
 }
