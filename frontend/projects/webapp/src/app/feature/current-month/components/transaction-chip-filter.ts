@@ -5,6 +5,7 @@ import {
 } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 import type { TransactionKind } from '@pulpe/shared';
+import { TransactionLabelPipe } from '@ui/transaction-display';
 
 export interface TransactionFilters {
   transactionTypes: TransactionKind[];
@@ -12,7 +13,7 @@ export interface TransactionFilters {
 
 @Component({
   selector: 'pulpe-transaction-chip-filter',
-  imports: [MatChipsModule, MatIconModule],
+  imports: [MatChipsModule, MatIconModule, TransactionLabelPipe],
   template: `
     <mat-chip-listbox
       class="filter-chips"
@@ -24,21 +25,21 @@ export interface TransactionFilters {
         (selectionChange)="onTransactionTypeToggle('expense', $event)"
       >
         <mat-icon matChipAvatar>payments</mat-icon>
-        Dépenses
+        {{ 'expense' | transactionLabel }}s
       </mat-chip-option>
       <mat-chip-option
         [selected]="filters().transactionTypes.includes('income')"
         (selectionChange)="onTransactionTypeToggle('income', $event)"
       >
         <mat-icon matChipAvatar>trending_up</mat-icon>
-        Revenus
+        {{ 'income' | transactionLabel }}s
       </mat-chip-option>
       <mat-chip-option
         [selected]="filters().transactionTypes.includes('saving')"
         (selectionChange)="onTransactionTypeToggle('saving', $event)"
       >
         <mat-icon matChipAvatar>savings</mat-icon>
-        Épargne
+        {{ 'saving' | transactionLabel }}
       </mat-chip-option>
     </mat-chip-listbox>
   `,

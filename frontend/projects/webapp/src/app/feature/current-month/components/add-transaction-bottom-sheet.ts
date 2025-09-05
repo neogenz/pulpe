@@ -21,6 +21,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import type { TransactionCreate } from '@pulpe/shared';
+import { TransactionLabelPipe } from '@ui/transaction-display';
 
 type TransactionFormData = Pick<
   TransactionCreate,
@@ -47,6 +48,7 @@ import { TransactionValidators } from '../utils/transaction-form-validators';
     MatInputModule,
     MatSelectModule,
     MatChipsModule,
+    TransactionLabelPipe,
   ],
   template: `
     <div class="flex flex-col gap-4">
@@ -165,15 +167,15 @@ import { TransactionValidators } from '../utils/transaction-form-validators';
           >
             <mat-option value="expense">
               <mat-icon class="mr-2 icon-filled">remove_circle</mat-icon>
-              Dépense
+              {{ 'expense' | transactionLabel }}
             </mat-option>
             <mat-option value="income">
               <mat-icon class="mr-2 icon-filled">add_circle</mat-icon>
-              Revenu
+              {{ 'income' | transactionLabel }}
             </mat-option>
             <mat-option value="saving">
               <mat-icon class="mr-2 icon-filled">savings</mat-icon>
-              Épargne
+              {{ 'saving' | transactionLabel }}
             </mat-option>
           </mat-select>
         </mat-form-field>

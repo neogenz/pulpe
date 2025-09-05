@@ -10,6 +10,7 @@ import { MatListModule } from '@angular/material/list';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatRippleModule } from '@angular/material/core';
 import { MatButtonModule } from '@angular/material/button';
+import { TransactionIconPipe } from '@ui/transaction-display';
 
 export interface TransactionItemData {
   id: string;
@@ -30,6 +31,7 @@ export interface TransactionItemData {
     MatCheckboxModule,
     MatRippleModule,
     MatButtonModule,
+    TransactionIconPipe,
   ],
   template: `
     <mat-list-item
@@ -53,28 +55,19 @@ export interface TransactionItemData {
         <div
           class="flex justify-center items-center size-11 bg-surface rounded-full"
         >
-          @switch (data().kind) {
-            @case ('income') {
-              <mat-icon class="!text-(--pulpe-financial-income)">
-                trending_up
-              </mat-icon>
-            }
-            @case ('saving') {
-              <mat-icon class="!text-(--pulpe-financial-savings)">
-                savings
-              </mat-icon>
-            }
-            @case ('expense') {
-              <mat-icon class="!text-(--pulpe-financial-expense)">
-                trending_down
-              </mat-icon>
-            }
-            @default {
-              <mat-icon class="!text-(--pulpe-financial-expense)">
-                trending_down
-              </mat-icon>
-            }
-          }
+          <mat-icon
+            [class]="
+              '!text-(--pulpe-financial-' +
+              (data().kind === 'income'
+                ? 'income'
+                : data().kind === 'saving'
+                  ? 'savings'
+                  : 'expense') +
+              ')'
+            "
+          >
+            {{ data().kind | transactionIcon }}
+          </mat-icon>
         </div>
       </div>
       <div matListItemTitle>{{ data().name }}</div>
