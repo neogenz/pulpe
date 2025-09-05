@@ -1,6 +1,7 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { FormArray, FormControl, FormGroup, Validators } from '@angular/forms';
 import type { TransactionKind } from '@pulpe/shared';
+import { TransactionLabelPipe } from '@ui/transaction-display';
 
 export interface TransactionFormData {
   description: string;
@@ -20,11 +21,14 @@ export const TRANSACTION_VALIDATORS = {
   type: [Validators.required],
 };
 
-export const TRANSACTION_TYPES = [
-  { value: 'income' as const, label: 'Revenu' },
-  { value: 'expense' as const, label: 'Dépense' },
-  { value: 'saving' as const, label: 'Économie' },
-] as const;
+export function getTransactionTypes() {
+  const pipe = inject(TransactionLabelPipe);
+  return [
+    { value: 'income' as const, label: pipe.transform('income') },
+    { value: 'expense' as const, label: pipe.transform('expense') },
+    { value: 'saving' as const, label: pipe.transform('saving') },
+  ] as const;
+}
 
 @Injectable()
 export class TransactionFormService {

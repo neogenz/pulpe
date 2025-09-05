@@ -24,6 +24,7 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { type Transaction, type TransactionCreate } from '@pulpe/shared';
 import { startOfMonth, endOfMonth } from 'date-fns';
 import { TransactionValidators } from '../utils/transaction-form-validators';
+import { TransactionLabelPipe } from '@ui/transaction-display';
 
 type EditTransactionFormData = Pick<
   TransactionCreate,
@@ -43,6 +44,7 @@ type EditTransactionFormData = Pick<
     MatDatepickerModule,
     MatNativeDateModule,
     ReactiveFormsModule,
+    TransactionLabelPipe,
   ],
   standalone: true,
   template: `
@@ -142,15 +144,15 @@ type EditTransactionFormData = Pick<
         <mat-select formControlName="kind" aria-label="Type de transaction">
           <mat-option value="expense">
             <mat-icon class="mr-2 icon-filled">remove_circle</mat-icon>
-            Dépense
+            {{ 'expense' | transactionLabel }}
           </mat-option>
           <mat-option value="income">
             <mat-icon class="mr-2 icon-filled">add_circle</mat-icon>
-            Revenu
+            {{ 'income' | transactionLabel }}
           </mat-option>
           <mat-option value="saving">
             <mat-icon class="mr-2 icon-filled">savings</mat-icon>
-            Épargne
+            {{ 'saving' | transactionLabel }}
           </mat-option>
         </mat-select>
       </mat-form-field>

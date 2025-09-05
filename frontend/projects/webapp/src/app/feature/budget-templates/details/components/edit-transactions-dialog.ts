@@ -27,7 +27,7 @@ import {
   type ConfirmationDialogData,
 } from '@ui/dialogs/confirmation-dialog';
 import {
-  TRANSACTION_TYPES,
+  getTransactionTypes,
   type TransactionFormData,
 } from '../../services/transaction-form';
 import { TemplateLineStore } from '../services/template-line-store';
@@ -363,7 +363,7 @@ export default class EditTransactionsDialog {
     'total',
     'actions',
   ];
-  protected readonly transactionTypes = TRANSACTION_TYPES;
+  protected readonly transactionTypes = getTransactionTypes();
 
   constructor() {
     // Initialize the store

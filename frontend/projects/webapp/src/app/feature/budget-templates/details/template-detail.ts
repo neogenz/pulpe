@@ -35,6 +35,10 @@ import { TemplateUsageDialogComponent } from '../components/dialogs/template-usa
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { getDeleteConfirmationConfig } from '../delete/template-delete-dialog';
 import { TemplateDetailsStore } from './services/template-details-store';
+import {
+  TransactionIconPipe,
+  TransactionLabelPipe,
+} from '@ui/transaction-display';
 
 @Component({
   selector: 'pulpe-template-detail',
@@ -243,6 +247,8 @@ export default class TemplateDetail implements OnInit {
   readonly #injector = inject(Injector);
   readonly #breakpointObserver = inject(BreakpointObserver);
   readonly #snackBar = inject(MatSnackBar);
+  readonly #transactionIconPipe = inject(TransactionIconPipe);
+  readonly #transactionLabelPipe = inject(TransactionLabelPipe);
 
   ngOnInit(): void {
     // Get template ID from route parameters
@@ -293,24 +299,24 @@ export default class TemplateDetail implements OnInit {
   });
 
   readonly incomeData = computed<FinancialSummaryData>(() => ({
-    title: 'Revenus',
+    title: this.#transactionLabelPipe.transform('income') + 's',
     amount: this.#totals().income,
-    icon: 'trending_up',
+    icon: this.#transactionIconPipe.transform('income'),
     type: 'income',
     isClickable: false,
   }));
 
   readonly expenseData = computed<FinancialSummaryData>(() => ({
-    title: 'Dépenses',
+    title: this.#transactionLabelPipe.transform('expense') + 's',
     amount: this.#totals().expense,
-    icon: 'trending_down',
+    icon: this.#transactionIconPipe.transform('expense'),
     type: 'expense',
   }));
 
   readonly savingsData = computed<FinancialSummaryData>(() => ({
-    title: 'Économies',
+    title: this.#transactionLabelPipe.transform('saving') + ' prévue',
     amount: this.#totals().savings,
-    icon: 'savings',
+    icon: this.#transactionIconPipe.transform('saving'),
     type: 'savings',
   }));
 

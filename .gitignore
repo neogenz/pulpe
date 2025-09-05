@@ -89,3 +89,4 @@ docs/angular-architecture-doc.md
 
 .pnpm-store/backend-nest/env.development
 **/env.development
+docs/angular-architecture-for-enterprise.md
