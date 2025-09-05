@@ -180,6 +180,11 @@ export class TransactionService {
         user.id,
       );
 
+      await this.budgetService.recalculateBalances(
+        transactionDb.budget_id,
+        supabase,
+      );
+
       const apiData = transactionMappers.toApi(transactionDb);
 
       return {

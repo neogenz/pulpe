@@ -74,6 +74,7 @@ import { RolloverFormatPipe } from '../../pipes';
         <table
           mat-table
           [dataSource]="budgetTableData().items"
+          [trackBy]="trackByRow"
           class="w-full min-w-[600px]"
         >
           <!-- Name Column -->
@@ -331,7 +332,7 @@ import { RolloverFormatPipe } from '../../pipes';
           ></tr>
           <tr
             mat-row
-            *matRowDef="let row; columns: currentColumns(); trackBy: trackByRow"
+            *matRowDef="let row; columns: currentColumns()"
             class="hover:bg-surface-container-low transition-opacity"
             [class.opacity-50]="row.metadata.isLoading"
             [class.pointer-events-none]="row.metadata.isLoading"

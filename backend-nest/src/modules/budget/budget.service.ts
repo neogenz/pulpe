@@ -166,6 +166,8 @@ export class BudgetService {
         supabase,
       );
 
+      await this.recalculateBalances(processedResult.budgetData.id, supabase);
+
       const apiData = budgetMappers.toApi(processedResult.budgetData);
 
       return {
@@ -672,6 +674,8 @@ export class BudgetService {
 
       const updateData = this.prepareBudgetUpdateData(updateBudgetDto);
       const budgetDb = await this.updateBudgetInDb(id, updateData, supabase);
+
+      await this.recalculateBalances(id, supabase);
 
       const apiData = budgetMappers.toApi(budgetDb as Tables<'monthly_budget'>);
 
