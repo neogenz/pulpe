@@ -5,13 +5,14 @@ import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import type { BudgetUpdate } from '@pulpe/shared';
 import type { Tables } from '../../types/database.types';
+import type { PostgrestError } from '@supabase/supabase-js';
 
 /**
  * Query result interface for typed results
  */
 interface QueryResult<T> {
   data: T | null;
-  error: unknown;
+  error: PostgrestError | null;
   name?: string;
 }
 

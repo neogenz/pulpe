@@ -12,6 +12,9 @@ import {
   type BudgetResponse,
   type BudgetUpdate,
   type BudgetDetailsResponse,
+  type Budget,
+  type Transaction,
+  type BudgetLine,
 } from '@pulpe/shared';
 import * as budgetMappers from './budget.mappers';
 import { type Tables } from '../../types/database.types';
@@ -22,9 +25,9 @@ import { BudgetValidator } from './budget.validator';
 import { BudgetRepository } from './budget.repository';
 
 interface BudgetDetailsData {
-  budget: ReturnType<typeof budgetMappers.toApi>;
-  transactions: ReturnType<typeof transactionMappers.toApiList>;
-  budgetLines: ReturnType<typeof budgetLineMappers.toApiList>;
+  budget: Budget;
+  transactions: Transaction[];
+  budgetLines: BudgetLine[];
 }
 
 @Injectable()
