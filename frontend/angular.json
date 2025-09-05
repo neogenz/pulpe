@@ -86,12 +86,6 @@
                 {
                   "glob": "**/*",
                   "input": "projects/webapp/public",
-                  "output": "/",
-                  "ignore": ["environments/**", "config*.json"]
-                },
-                {
-                  "glob": "config.json",
-                  "input": "projects/webapp/public/environments/production",
                   "output": "/"
                 }
               ]
@@ -110,12 +104,6 @@
                 {
                   "glob": "**/*",
                   "input": "projects/webapp/public",
-                  "output": "/",
-                  "ignore": ["environments/**", "config*.json"]
-                },
-                {
-                  "glob": "config.json",
-                  "input": "projects/webapp/public/environments/development",
                   "output": "/"
                 }
               ]

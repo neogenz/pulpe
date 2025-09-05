@@ -17,3 +17,6 @@ browsers/
 playwright/.auth
 
 light_angular-architecture-for-enterprise.md
+
+# Generated config file
+projects/webapp/public/config.json
