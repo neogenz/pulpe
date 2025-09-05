@@ -82,11 +82,7 @@ import { RolloverFormatPipe } from '../../pipes';
             <th mat-header-cell *matHeaderCellDef>Description</th>
             <td mat-cell *matCellDef="let line">
               @if (line.metadata.isEditing) {
-                <form
-                  [formGroup]="editForm"
-                  (ngSubmit)="saveEdit()"
-                  class="py-2"
-                >
+                <div class="py-2">
                   <mat-form-field
                     appearance="outline"
                     class="w-full"
@@ -102,7 +98,7 @@ import { RolloverFormatPipe } from '../../pipes';
                       (keydown.escape)="cancelEdit()"
                     />
                   </mat-form-field>
-                </form>
+                </div>
               } @else {
                 <div class="flex items-center gap-2">
                   <span
@@ -199,11 +195,7 @@ import { RolloverFormatPipe } from '../../pipes';
             </th>
             <td mat-cell *matCellDef="let line" class="text-right">
               @if (line.metadata.isEditing) {
-                <form
-                  [formGroup]="editForm"
-                  (ngSubmit)="saveEdit()"
-                  class="py-2 flex justify-end"
-                >
+                <div class="py-2 flex justify-end">
                   <mat-form-field
                     appearance="outline"
                     class="w-28 md:w-36"
@@ -223,7 +215,7 @@ import { RolloverFormatPipe } from '../../pipes';
                     />
                     <span matTextSuffix>CHF</span>
                   </mat-form-field>
-                </form>
+                </div>
               } @else {
                 <span
                   class="text-body-medium font-medium"
