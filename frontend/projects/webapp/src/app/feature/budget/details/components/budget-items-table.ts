@@ -90,12 +90,12 @@ import { RolloverFormatPipe } from '../../pipes';
                   >
                     <input
                       matInput
-                      formControlName="name"
+                      [formControl]="$any(editForm.get('name'))"
                       placeholder="Nom de la ligne"
                       [attr.data-testid]="'edit-name-' + line.data.id"
                       class="text-body-medium"
-                      (keydown.enter)="$event.preventDefault(); saveEdit()"
-                      (keydown.escape)="$event.preventDefault(); cancelEdit()"
+                      (keydown.enter)="saveEdit()"
+                      (keydown.escape)="cancelEdit()"
                     />
                   </mat-form-field>
                 </div>
@@ -204,14 +204,14 @@ import { RolloverFormatPipe } from '../../pipes';
                     <input
                       matInput
                       type="number"
-                      formControlName="amount"
+                      [formControl]="$any(editForm.get('amount'))"
                       placeholder="0.00"
                       step="0.01"
                       min="0"
                       [attr.data-testid]="'edit-amount-' + line.data.id"
                       class="text-body-medium text-right"
-                      (keydown.enter)="$event.preventDefault(); saveEdit()"
-                      (keydown.escape)="$event.preventDefault(); cancelEdit()"
+                      (keydown.enter)="saveEdit()"
+                      (keydown.escape)="cancelEdit()"
                     />
                     <span matTextSuffix>CHF</span>
                   </mat-form-field>

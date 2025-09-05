@@ -45,7 +45,10 @@ export interface BudgetLineDialogData {
 
     <mat-dialog-content>
       <div class="flex flex-col gap-4 pt-4">
-        <form [formGroup]="form">
+        <form
+          [formGroup]="form"
+          (ngSubmit)="$event.preventDefault(); handleSubmit()"
+        >
           <mat-form-field appearance="outline" class="w-full">
             <mat-label>Nom</mat-label>
             <input
@@ -115,12 +118,18 @@ export interface BudgetLineDialogData {
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
-      <button matButton (click)="handleCancel()" data-testid="cancel-new-line">
+      <button
+        matButton
+        type="button"
+        (click)="handleCancel()"
+        data-testid="cancel-new-line"
+      >
         Annuler
       </button>
       <button
         matButton="filled"
         color="primary"
+        type="button"
         (click)="handleSubmit()"
         [disabled]="!form.valid"
         data-testid="add-new-line"
