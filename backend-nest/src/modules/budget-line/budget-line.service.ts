@@ -168,6 +168,11 @@ export class BudgetLineService {
         user,
       );
 
+      await this.budgetService.recalculateBalances(
+        budgetLineDb.budget_id,
+        supabase,
+      );
+
       const apiData = budgetLineMappers.toApi(budgetLineDb);
 
       return {
