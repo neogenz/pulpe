@@ -42,25 +42,6 @@ describe('BudgetLinesTable', () => {
     });
   });
 
-  describe('Operations Tracking', () => {
-    it('should track loading operations', () => {
-      const operationsInProgress = new Set<string>();
-
-      // Add loading operations
-      operationsInProgress.add('line-1');
-      operationsInProgress.add('line-2');
-
-      expect(operationsInProgress.has('line-1')).toBe(true);
-      expect(operationsInProgress.has('line-2')).toBe(true);
-      expect(operationsInProgress.has('line-3')).toBe(false);
-
-      // Remove completed operation
-      operationsInProgress.delete('line-1');
-      expect(operationsInProgress.has('line-1')).toBe(false);
-      expect(operationsInProgress.size).toBe(1);
-    });
-  });
-
   // Integration tests would be done in a separate file or E2E tests
   // These would test the component with proper Angular TestBed setup
 });

@@ -49,7 +49,6 @@ describe('BudgetTableMapper - Rollover Functionality', () => {
       const result = service.prepareBudgetTableData({
         budgetLines,
         transactions: [],
-        operationsInProgress: new Set(),
         editingLineId: null,
       });
 
@@ -82,7 +81,6 @@ describe('BudgetTableMapper - Rollover Functionality', () => {
       const result = service.prepareBudgetTableData({
         budgetLines,
         transactions: [],
-        operationsInProgress: new Set(),
         editingLineId: 'rollover-line',
       });
 
@@ -123,7 +121,6 @@ describe('BudgetTableMapper - Rollover Functionality', () => {
       const result = service.prepareBudgetTableData({
         budgetLines,
         transactions: [],
-        operationsInProgress: new Set(),
         editingLineId: null,
       });
 

@@ -11,7 +11,6 @@ export interface TableItem {
     itemType: 'budget_line' | 'transaction';
     cumulativeBalance: number;
     isEditing?: boolean;
-    isLoading?: boolean;
     isRollover?: boolean;
   };
 }
@@ -55,7 +54,6 @@ export class BudgetTableMapper {
   prepareBudgetTableData(params: {
     budgetLines: BudgetLine[];
     transactions: Transaction[];
-    operationsInProgress: Set<string>;
     editingLineId: string | null;
   }): BudgetTableData {
     const itemsWithBalance =
@@ -75,7 +73,6 @@ export class BudgetTableMapper {
             item.itemType === 'budget_line' &&
             params.editingLineId === item.item.id &&
             !isRollover, // Rollover lines cannot be edited
-          isLoading: params.operationsInProgress.has(item.item.id),
           isRollover,
         },
       };

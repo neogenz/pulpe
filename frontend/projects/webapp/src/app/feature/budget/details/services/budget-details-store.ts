@@ -41,9 +41,6 @@ export class BudgetDetailsStore {
 
   // Public selectors (read-only computed signals)
   readonly budgetDetails = computed(() => this.#budgetDetailsResource);
-  readonly operationsInProgress = computed(() =>
-    this.#state.operationsInProgress(),
-  );
   readonly isLoading = computed(() => this.#budgetDetailsResource.isLoading());
   readonly error = computed(() => this.#budgetDetailsResource.error());
 
@@ -64,7 +61,7 @@ export class BudgetDetailsStore {
       budgetLines: data.budgetLines.map((line) => ({
         ...line,
       })),
-      transactions: data.transactions.map((transaction) => ({
+      transactions: (data.transactions || []).map((transaction) => ({
         ...transaction,
       })),
     };
@@ -83,9 +80,6 @@ export class BudgetDetailsStore {
    */
   async createBudgetLine(budgetLine: BudgetLineCreate): Promise<void> {
     const tempId = `temp-${Date.now()}`;
-
-    // Start operation tracking
-    this.#addOperationInProgress(tempId);
 
     // Store original data for rollback
     const originalData = this.#budgetDetailsResource.value();
@@ -146,7 +140,7 @@ export class BudgetDetailsStore {
       this.#setError(errorMessage);
       this.#logger.error('Error creating budget line', error);
     } finally {
-      this.#removeOperationInProgress(tempId);
+      // Operation completed
     }
   }
 
@@ -154,9 +148,6 @@ export class BudgetDetailsStore {
    * Update an existing budget line with optimistic updates and rollback on error
    */
   async updateBudgetLine(data: BudgetLineUpdate): Promise<void> {
-    // Start operation tracking
-    //this.#addOperationInProgress(data.id);
-
     //simulate sleep of 3 seconds
 
     //await firstValueFrom(timer(3000));
@@ -199,8 +190,6 @@ export class BudgetDetailsStore {
       const errorMessage = 'Erreur lors de la modification de la prévision';
       this.#setError(errorMessage);
       this.#logger.error('Error updating budget line', error);
-    } finally {
-      //this.#removeOperationInProgress(data.id);
     }
   }
 
@@ -208,9 +197,6 @@ export class BudgetDetailsStore {
    * Delete a budget line with optimistic updates and rollback on error
    */
   async deleteBudgetLine(id: string): Promise<void> {
-    // Start operation tracking
-    this.#addOperationInProgress(id);
-
     // Store original data for rollback
     const originalData = this.#budgetDetailsResource.value();
 
@@ -244,8 +230,6 @@ export class BudgetDetailsStore {
       const errorMessage = 'Erreur lors de la suppression de la prévision';
       this.#setError(errorMessage);
       this.#logger.error('Error deleting budget line', error);
-    } finally {
-      this.#removeOperationInProgress(id);
     }
   }
 
@@ -253,9 +237,6 @@ export class BudgetDetailsStore {
    * Delete a transaction with optimistic updates and rollback on error
    */
   async deleteTransaction(id: string): Promise<void> {
-    // Start operation tracking
-    this.#addOperationInProgress(id);
-
     // Store original data for rollback
     const originalData = this.#budgetDetailsResource.value();
 
@@ -288,8 +269,6 @@ export class BudgetDetailsStore {
       const errorMessage = 'Erreur lors de la suppression de la transaction';
       this.#setError(errorMessage);
       this.#logger.error('Error deleting transaction', error);
-    } finally {
-      this.#removeOperationInProgress(id);
     }
   }
 
@@ -302,27 +281,6 @@ export class BudgetDetailsStore {
   }
 
   // Private state mutation methods
-
-  /**
-   * Add an operation ID to the in-progress tracking
-   */
-  #addOperationInProgress(operationId: string): void {
-    this.#state.operationsInProgress.update((operationsInProgress) => {
-      operationsInProgress.add(operationId);
-      return operationsInProgress;
-    });
-  }
-
-  /**
-   * Remove an operation ID from the in-progress tracking
-   */
-  #removeOperationInProgress(operationId: string): void {
-    this.#state.operationsInProgress.update((operationsInProgress) => {
-      const newSet = new Set(operationsInProgress);
-      newSet.delete(operationId);
-      return newSet;
-    });
-  }
 
   /**
    * Set an error message in the state

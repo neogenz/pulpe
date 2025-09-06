@@ -148,12 +148,6 @@ describe('BudgetDetailsStore - Integration Tests', () => {
       expect(budgetData?.budget.id).toBe(mockBudgetId);
       expect(budgetData?.budgetLines).toHaveLength(2);
     });
-
-    it('should track operations in progress', () => {
-      const operations = service.operationsInProgress();
-      expect(operations).toBeDefined();
-      expect(operations.size).toBe(0);
-    });
   });
 
   describe('Budget Line Creation', () => {
@@ -302,7 +296,7 @@ describe('BudgetDetailsStore - Integration Tests', () => {
         .mockReturnValue(of(mockUpdatedResponse));
 
       // Update budget line
-      await service.updateBudgetLine('line-2', updateData);
+      await service.updateBudgetLine({ id: 'line-2', ...updateData });
 
       // Check optimistic update
       const updatedData = service.budgetData();
@@ -331,7 +325,7 @@ describe('BudgetDetailsStore - Integration Tests', () => {
       );
 
       // Attempt update
-      await service.updateBudgetLine('line-2', updateData);
+      await service.updateBudgetLine({ id: 'line-2', ...updateData });
 
       // Check rollback
       const rolledBackData = service.budgetData();
@@ -426,11 +420,7 @@ describe('BudgetDetailsStore - Integration Tests', () => {
       // Allow the service to start the operation
       await new Promise((resolve) => setTimeout(resolve, 0));
 
-      // Check that operation is tracked
-      const operationsInProgress = service.operationsInProgress();
-      expect(operationsInProgress.size).toBeGreaterThan(0);
-
-      // Complete the operation
+      // Wait for operation to complete
       subject.next({
         data: {
           id: 'line-new',
@@ -443,10 +433,6 @@ describe('BudgetDetailsStore - Integration Tests', () => {
 
       // Wait for completion
       await createPromise;
-
-      // Check that operation is removed
-      const finalOperations = service.operationsInProgress();
-      expect(finalOperations.size).toBe(0);
     });
 
     it('should track operations during update', async () => {
@@ -459,16 +445,15 @@ describe('BudgetDetailsStore - Integration Tests', () => {
         .mockReturnValue(subject.asObservable());
 
       // Start update (don't await yet)
-      const updatePromise = service.updateBudgetLine('line-1', updateData);
+      const updatePromise = service.updateBudgetLine({
+        id: 'line-1',
+        ...updateData,
+      });
 
       // Allow the service to start the operation
       await new Promise((resolve) => setTimeout(resolve, 0));
 
-      // Check that operation is tracked
-      const operationsInProgress = service.operationsInProgress();
-      expect(operationsInProgress.size).toBeGreaterThan(0);
-
-      // Complete the operation
+      // Wait for operation to complete
       subject.next({
         data: {
           ...mockBudgetDetailsResponse.data.budgetLines[0],
@@ -480,10 +465,6 @@ describe('BudgetDetailsStore - Integration Tests', () => {
 
       // Wait for completion
       await updatePromise;
-
-      // Check that operation is removed
-      const finalOperations = service.operationsInProgress();
-      expect(finalOperations.size).toBe(0);
     });
   });
 
