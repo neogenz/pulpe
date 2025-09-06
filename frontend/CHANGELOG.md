@@ -1,5 +1,11 @@
 # pulpe-frontend
 
+## 2025.9.1
+
+### Patch Changes
+
+- Corrige le rechargement de page lors des modifications du budget. Les prévisions et transactions sont maintenant mises à jour instantanément sans interruption de l'expérience utilisateur grâce aux optimistic updates.
+
 ## 2025.9.0
 
 ### Minor Changes

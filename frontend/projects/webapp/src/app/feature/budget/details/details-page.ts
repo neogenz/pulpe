@@ -69,7 +69,8 @@ import {
             </div>
           </mat-card-content>
         </mat-card>
-      } @else if (store.budgetDetails(); as budget) {
+      } @else if (store.budgetDetails()) {
+        @let budget = store.budgetDetails()!;
         @let budgetLines = budget.budgetLines;
         @let transactions = budget.transactions;
 
