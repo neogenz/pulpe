@@ -1,15 +1,16 @@
-import { inject, Injectable, computed, resource } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
-import { BudgetLineApi } from '../budget-line-api/budget-line-api';
-import { TransactionApi } from '@core/transaction/transaction-api';
+import { computed, inject, Injectable, resource } from '@angular/core';
+import { BudgetApi } from '@core/budget/budget-api';
 import { Logger } from '@core/logging/logger';
-import { createInitialBudgetDetailsState } from './budget-details-state';
+import { TransactionApi } from '@core/transaction/transaction-api';
 import {
+  type BudgetDetailsResponse,
   type BudgetLineCreate,
   type BudgetLineUpdate,
-  type BudgetDetailsResponse,
 } from '@pulpe/shared';
-import { BudgetApi } from '@core/budget/budget-api';
+import { firstValueFrom } from 'rxjs';
+import { BudgetLineApi } from '../budget-line-api/budget-line-api';
+import { type BudgetDetails } from '../models/budget-details-model';
+import { createInitialBudgetDetailsState } from './budget-details-state';
 
 /**
  * Signal-based store for budget details state management
@@ -42,24 +43,17 @@ export class BudgetDetailsStore {
   });
 
   // Public selectors (read-only computed signals)
-  readonly budgetDetails = computed(() => this.#budgetDetailsResource);
-  readonly isLoading = computed(() => this.#budgetDetailsResource.isLoading());
-  readonly error = computed(() => this.#budgetDetailsResource.error());
-
-  readonly budgetData = computed(() => {
+  readonly budgetDetails = computed<BudgetDetails | null>(() => {
     const data = this.#budgetDetailsResource.value()?.data;
     if (!data) return null;
-    const transformedData = {
-      ...data,
-      budgetLines: data.budgetLines.map((line) => ({
-        ...line,
-      })),
-      transactions: (data.transactions || []).map((transaction) => ({
-        ...transaction,
-      })),
+    return {
+      ...data.budget,
+      budgetLines: data.budgetLines,
+      transactions: data.transactions,
     };
-    return transformedData;
   });
+  readonly isLoading = computed(() => this.#budgetDetailsResource.isLoading());
+  readonly error = computed(() => this.#budgetDetailsResource.error());
 
   /**
    * Initialize the budget ID (called once from component)
