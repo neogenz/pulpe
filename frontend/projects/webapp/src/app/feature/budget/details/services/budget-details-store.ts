@@ -1,5 +1,5 @@
 import { inject, Injectable, signal, computed, resource } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, timer } from 'rxjs';
 import { BudgetLineApi } from './budget-line-api';
 import { TransactionApi } from '@core/transaction/transaction-api';
 import { Logger } from '@core/logging/logger';
@@ -64,16 +64,22 @@ export class BudgetDetailsStore {
     return status === 'loading' && !hasValue;
   });
 
-  // Derived selectors for convenience
-  readonly hasOperationsInProgress = computed(
-    () => this.operationsInProgress().size > 0,
-  );
-  readonly budgetData = computed(
-    () => this.#budgetDetailsResource.value()?.data ?? null,
-  );
-  readonly budgetLines = computed(() => this.budgetData()?.budgetLines ?? []);
-
-  // Public Actions
+  readonly budgetData = computed(() => {
+    const data = this.#budgetDetailsResource.value()?.data;
+    if (!data) return null;
+    const transformedData = {
+      ...data,
+      budgetLines: data.budgetLines.map((line) => ({
+        ...line,
+        operationsInProgress: [],
+      })),
+      transactions: data.transactions.map((transaction) => ({
+        ...transaction,
+        operationsInProgress: [],
+      })),
+    };
+    return transformedData;
+  });
 
   /**
    * Initialize the budget ID (called once from component)
@@ -161,15 +167,19 @@ export class BudgetDetailsStore {
   /**
    * Update an existing budget line with optimistic updates and rollback on error
    */
-  async updateBudgetLine(id: string, update: BudgetLineUpdate): Promise<void> {
+  async updateBudgetLine(data: BudgetLineUpdate): Promise<void> {
     // Start operation tracking
-    this.#addOperationInProgress(id);
+    this.#addOperationInProgress(data.id);
+
+    //simulate sleep of 3 seconds
+
+    await firstValueFrom(timer(3000));
 
     // Store original data for rollback
     const originalData = this.#budgetDetailsResource.value();
 
     // Optimistic update
-    this.#budgetDetailsResource.update((details) => {
+    /*this.#budgetDetailsResource.update((details) => {
       if (!details) return details;
 
       return {
@@ -183,11 +193,11 @@ export class BudgetDetailsStore {
           ),
         },
       };
-    });
+    });*/
 
     try {
       // Just persist to server, don't update local state again
-      await firstValueFrom(this.#budgetLineApi.updateBudgetLine$(id, update));
+      //await firstValueFrom(this.#budgetLineApi.updateBudgetLine$(id, update));
 
       // Clear any previous errors
       this.#clearError();
@@ -203,7 +213,7 @@ export class BudgetDetailsStore {
       this.#setError(errorMessage);
       this.#logger.error('Error updating budget line', error);
     } finally {
-      this.#removeOperationInProgress(id);
+      this.#removeOperationInProgress(data.id);
     }
   }
 

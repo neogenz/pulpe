@@ -31,6 +31,7 @@ import { EditBudgetLineDialog } from './edit-budget-line-dialog';
 import { Logger } from '@core/logging/logger';
 import {
   BudgetTableMapper,
+  type BudgetLineTableItem,
   type TableItem,
 } from '../../services/budget-table-mapper';
 import {
@@ -399,7 +400,7 @@ export class BudgetItemsTable {
   operationsInProgress = input<Set<string>>(new Set());
 
   // Outputs - events only
-  updateClicked = output<{ id: string; update: BudgetLineUpdate }>();
+  update = output<BudgetLineUpdate>();
   deleteClicked = output<string>();
   addClicked = output<void>();
 
@@ -415,8 +416,7 @@ export class BudgetItemsTable {
   displayedColumns = ['name', 'recurrence', 'amount', 'remaining', 'actions'];
   displayedColumnsMobile = ['name', 'amount', 'remaining', 'actions'];
 
-  // UI state
-  editingLineId = signal<string | null>(null);
+  protected inlineFormEditingItem = signal<BudgetLineTableItem | null>(null);
   readonly editForm = this.#fb.group({
     name: ['', [Validators.required, Validators.minLength(1)]],
     amount: [0, [Validators.required, Validators.min(0.01)]],
@@ -438,32 +438,29 @@ export class BudgetItemsTable {
     const budgetLines = this.budgetLines();
     const transactions = this.transactions();
     const operationsInProgress = this.operationsInProgress();
-    const editingLineId = this.editingLineId();
+    const editingLine = this.inlineFormEditingItem();
 
     // Component is now logic-free - just passes data to service
     return this.#budgetTableMapper.prepareBudgetTableData({
       budgetLines,
       transactions,
       operationsInProgress,
-      editingLineId,
+      editingLineId: editingLine?.data.id ?? null,
     });
   });
 
   // Track function for performance optimization
   readonly trackByRow = (_: number, row: TableItem): string => row.data.id;
 
-  startEdit(item: TableItem): void {
+  startEdit(item: BudgetLineTableItem): void {
     // Only allow editing budget lines, not transactions
-    if (item.metadata.itemType !== 'budget_line') return;
+    //if (!this.#isBudgetLineItem(item)) return;
 
     // On mobile, open dialog for editing
     if (this.isMobile()?.matches) {
-      const budgetLine = this.budgetLines().find((l) => l.id === item.data.id);
-      if (!budgetLine) return;
-
       try {
         const dialogRef = this.#dialog.open(EditBudgetLineDialog, {
-          data: { budgetLine },
+          data: { budgetLine: item.data },
           width: '400px',
           maxWidth: '90vw',
         });
@@ -472,25 +469,17 @@ export class BudgetItemsTable {
           .afterClosed()
           .pipe(takeUntilDestroyed(this.#destroyRef))
           .subscribe((update: BudgetLineUpdate | undefined) => {
-            if (update) {
-              this.updateClicked.emit({ id: item.data.id, update });
-            }
+            if (update) this.update.emit(update);
           });
       } catch (error) {
         this.#logger.error('Failed to open edit dialog', {
           error,
           itemId: item.data.id,
         });
-        // Fallback to inline editing
-        this.editingLineId.set(item.data.id);
-        this.editForm.patchValue({
-          name: item.data.name,
-          amount: item.data.amount,
-        });
       }
     } else {
       // Desktop: inline editing
-      this.editingLineId.set(item.data.id);
+      this.inlineFormEditingItem.set(item);
       this.editForm.patchValue({
         name: item.data.name,
         amount: item.data.amount,
@@ -499,24 +488,30 @@ export class BudgetItemsTable {
   }
 
   cancelEdit(): void {
-    this.editingLineId.set(null);
+    this.inlineFormEditingItem.set(null);
     this.editForm.reset();
   }
 
   saveEdit(): void {
-    const editingId = this.editingLineId();
+    const editingId = this.inlineFormEditingItem()?.data.id;
     if (editingId && this.editForm.valid) {
       const value = this.editForm.getRawValue();
       const updateData = {
         id: editingId,
-        update: {
-          name: value.name!.trim(),
-          amount: value.amount!,
-        },
+        name: value.name!.trim(),
+        amount: value.amount!,
       };
-      this.editingLineId.set(null);
+      this.inlineFormEditingItem.set(null);
       this.editForm.reset();
-      this.updateClicked.emit(updateData);
+      this.update.emit(updateData);
     }
   }
+
+  /*
+  #isBudgetLineItem(item: TableItem): item is TableItem & {
+    data: BudgetLine;
+    metadata: { itemType: 'budget_line' };
+  } {
+    return item.metadata.itemType === 'budget_line';
+  }*/
 }

@@ -109,7 +109,7 @@ import {
           [budgetLines]="budgetLines"
           [transactions]="transactions"
           [operationsInProgress]="budgetDetailsStore.operationsInProgress()"
-          (updateClicked)="handleUpdateBudgetLine($event.id, $event.update)"
+          (update)="handleUpdateBudgetLine($event)"
           (deleteClicked)="handleDeleteItem($event)"
           (addClicked)="openAddBudgetLineDialog()"
         />
@@ -229,11 +229,8 @@ export default class DetailsPage {
     await this.budgetDetailsStore.createBudgetLine(budgetLine);
   }
 
-  async handleUpdateBudgetLine(
-    id: string,
-    update: BudgetLineUpdate,
-  ): Promise<void> {
-    await this.budgetDetailsStore.updateBudgetLine(id, update);
+  async handleUpdateBudgetLine(data: BudgetLineUpdate): Promise<void> {
+    await this.budgetDetailsStore.updateBudgetLine(data);
 
     this.#snackBar.open('Prévision modifiée.', 'Fermer', {
       duration: 5000,

@@ -142,7 +142,10 @@ export type BudgetLineCreate = z.infer<typeof budgetLineCreateSchema>;
 
 export const budgetLineUpdateSchema = budgetLineCreateSchema
   .omit({ budgetId: true })
-  .partial();
+  .partial()
+  .extend({
+    id: z.string().uuid(),
+  });
 export type BudgetLineUpdate = z.infer<typeof budgetLineUpdateSchema>;
 
 // Transaction schemas (nouvelle structure pour les dépenses du quotidien)
