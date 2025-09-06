@@ -21,7 +21,6 @@ import { ROUTES } from '@core/routing';
 
 @Component({
   selector: 'pulpe-other-months',
-  providers: [BudgetState],
   imports: [
     MatIconModule,
     MatButtonModule,
@@ -71,6 +70,8 @@ import { ROUTES } from '@core/routing';
             mat-stretch-tabs="false"
             mat-align-tabs="start"
             fitInkBarToContent
+            [selectedIndex]="state.selectedYearIndex()"
+            (selectedIndexChange)="onTabChange($event)"
           >
             @for (year of state.availableYears(); track year) {
               <mat-tab [label]="year.toString()">
@@ -155,6 +156,13 @@ export default class OtherMonths implements OnInit {
     // Only refresh data if budget was successfully created
     if (result?.success) {
       this.state.refreshData();
+    }
+  }
+
+  onTabChange(selectedIndex: number): void {
+    const availableYears = this.state.availableYears();
+    if (selectedIndex >= 0 && selectedIndex < availableYears.length) {
+      this.state.setSelectedYear(availableYears[selectedIndex]);
     }
   }
 

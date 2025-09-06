@@ -1,4 +1,10 @@
-import { Injectable, inject, resource, computed } from '@angular/core';
+import {
+  Injectable,
+  inject,
+  resource,
+  computed,
+  linkedSignal,
+} from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { BudgetApi } from '@core/budget/budget-api';
 import { type MonthInfo } from '@core/budget/month-info';
@@ -12,7 +18,7 @@ export class BudgetState {
   #logger = inject(Logger);
 
   monthsData = resource<MonthInfo[], void>({
-    loader: async () => this.#loadMonthsData(),
+    loader: async () => this.#loadAndTransformBudgets(),
   });
 
   availableYears = computed(() => {
@@ -41,13 +47,42 @@ export class BudgetState {
     return groupedByYear;
   });
 
+  selectedYear = linkedSignal<number[], number | null>({
+    source: this.availableYears,
+    computation: (years, previous) => {
+      // Garder la sélection précédente si elle existe encore
+      const currentYear = previous?.value;
+      const yearStillExists = currentYear && years.includes(currentYear);
+
+      if (yearStillExists) {
+        return currentYear;
+      }
+
+      // Fallback sur la première année
+      return years[0] ?? null;
+    },
+  });
+
+  selectedYearIndex = computed(() => {
+    const year = this.selectedYear();
+    const years = this.availableYears();
+
+    if (!year || years.length === 0) return 0;
+
+    return Math.max(0, years.indexOf(year));
+  });
+
   refreshData(): void {
     if (this.monthsData.status() !== 'loading') {
       this.monthsData.reload();
     }
   }
 
-  async #loadMonthsData(): Promise<MonthInfo[]> {
+  setSelectedYear(year: number): void {
+    this.selectedYear.set(year);
+  }
+
+  async #loadAndTransformBudgets(): Promise<MonthInfo[]> {
     try {
       const budgets = await firstValueFrom(this.#budgetApi.getAllBudgets$());
       return budgets

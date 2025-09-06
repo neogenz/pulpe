@@ -1,11 +1,13 @@
 import { type Routes } from '@angular/router';
 import { BudgetLineApi } from './details/budget-line-api/budget-line-api';
 import { BudgetTableDataProvider } from './details/budget-table/budget-table-data-provider';
+import { BudgetState } from './list/budget-state';
 import { PAGE_TITLES } from '@core/routing';
 
 export const budgetRoutes: Routes = [
   {
     path: '',
+    providers: [BudgetState],
     children: [
       {
         path: '',
