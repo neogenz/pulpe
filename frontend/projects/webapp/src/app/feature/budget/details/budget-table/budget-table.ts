@@ -29,7 +29,7 @@ import {
   type BudgetLineTableItem,
   type TableItem,
 } from './budget-table-models';
-import { BudgetTableMapper } from './budget-table-mapper';
+import { BudgetTableDataProvider } from './budget-table-data-provider';
 import {
   TransactionIconPipe,
   TransactionLabelPipe,
@@ -404,7 +404,7 @@ export class BudgetTable {
   readonly #fb = inject(FormBuilder);
   readonly #dialog = inject(MatDialog);
   readonly #destroyRef = inject(DestroyRef);
-  readonly #budgetTableMapper = inject(BudgetTableMapper);
+  readonly #budgetTableDataProvider = inject(BudgetTableDataProvider);
   readonly #logger = inject(Logger);
 
   // UI configuration
@@ -435,7 +435,7 @@ export class BudgetTable {
     const editingLine = this.inlineFormEditingItem();
 
     // Component is now logic-free - just passes data to service
-    return this.#budgetTableMapper.prepareBudgetTableData({
+    return this.#budgetTableDataProvider.provideTableData({
       budgetLines,
       transactions,
       editingLineId: editingLine?.data.id ?? null,
