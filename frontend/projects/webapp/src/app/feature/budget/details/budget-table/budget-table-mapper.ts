@@ -13,13 +13,9 @@ import { type BudgetTableData, type TableItem } from './budget-table-models';
  * Used internally for presentation logic
  */
 interface BudgetItemWithBalance {
-  /** Original data (budget line OR transaction) */
   item: BudgetLine | Transaction;
-  /** Cumulative balance calculated in CHF */
   cumulativeBalance: number;
-  /** Display order according to business rules */
   displayOrder: number;
-  /** Item type to differentiate budget lines and transactions */
   itemType: 'budget_line' | 'transaction';
 }
 
