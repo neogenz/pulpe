@@ -32,7 +32,7 @@ const defaultTransaction: Transaction = {
   name: 'Test Transaction',
   amount: 100,
   kind: 'expense',
-  transactionDate: '2024-01-01T00:00:00Z',
+  transactionDate: '2024-01-01',
   isOutOfBudget: false,
   category: null,
   createdAt: '2024-01-01T00:00:00Z',
@@ -226,4 +226,52 @@ export function createMockOutOfBudgetTransaction(
     isOutOfBudget: true,
     ...overrides,
   });
+}
+
+/**
+ * Creates a complete mock BudgetDetails response structure
+ * @param overrides Properties to override in the response
+ * @returns Complete BudgetDetailsResponse structure
+ */
+export function createMockBudgetDetailsResponse(overrides?: {
+  budget?: Partial<Budget>;
+  budgetLines?: BudgetLine[];
+  transactions?: Transaction[];
+}) {
+  const budget = createMockBudget(overrides?.budget);
+  const budgetLines = overrides?.budgetLines || [
+    createMockBudgetLine({
+      id: 'line-1',
+      budgetId: budget.id,
+      name: 'Salary',
+      amount: 5000,
+      kind: 'income',
+    }),
+    createMockBudgetLine({
+      id: 'line-2',
+      budgetId: budget.id,
+      name: 'Rent',
+      amount: 1500,
+      kind: 'expense',
+    }),
+  ];
+  const transactions = overrides?.transactions || [
+    createMockTransaction({
+      id: 'tx-1',
+      budgetId: budget.id,
+      name: 'Groceries',
+      amount: 50,
+      kind: 'expense',
+      transactionDate: '2024-01-05',
+    }),
+  ];
+
+  return {
+    success: true as const,
+    data: {
+      budget,
+      budgetLines,
+      transactions,
+    },
+  };
 }

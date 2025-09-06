@@ -3,13 +3,14 @@ import { BudgetApi } from '@core/budget/budget-api';
 import { Logger } from '@core/logging/logger';
 import { TransactionApi } from '@core/transaction/transaction-api';
 import {
-  type BudgetDetailsResponse,
+  type BudgetLine,
   type BudgetLineCreate,
   type BudgetLineUpdate,
 } from '@pulpe/shared';
 import { firstValueFrom } from 'rxjs';
+import { v4 as uuidv4 } from 'uuid';
 import { BudgetLineApi } from '../budget-line-api/budget-line-api';
-import { type BudgetDetails } from '../models/budget-details-model';
+import { type BudgetDetailsViewModel } from '../models/budget-details-view-model';
 import { createInitialBudgetDetailsState } from './budget-details-state';
 
 /**
@@ -26,9 +27,8 @@ export class BudgetDetailsStore {
   // Single source of truth - private state signal for non-resource data
   readonly #state = createInitialBudgetDetailsState();
 
-  // Resource for budget details data - managed independently
   readonly #budgetDetailsResource = resource<
-    BudgetDetailsResponse,
+    BudgetDetailsViewModel,
     string | null
   >({
     params: () => this.#state.budgetId(),
@@ -36,45 +36,48 @@ export class BudgetDetailsStore {
       if (!budgetId) {
         throw new Error('Budget ID is required');
       }
-      return await firstValueFrom(
+
+      const response = await firstValueFrom(
         this.#budgetApi.getBudgetWithDetails$(budgetId),
       );
+
+      if (!response.success || !response.data) {
+        this.#logger.error('Failed to fetch budget details', { budgetId });
+        throw new Error('Failed to fetch budget details');
+      }
+
+      return {
+        ...response.data.budget,
+        budgetLines: response.data.budgetLines,
+        transactions: response.data.transactions,
+      };
     },
   });
 
-  // Public selectors (read-only computed signals)
-  readonly budgetDetails = computed<BudgetDetails | null>(() => {
-    const data = this.#budgetDetailsResource.value()?.data;
-    if (!data) return null;
-    return {
-      ...data.budget,
-      budgetLines: data.budgetLines,
-      transactions: data.transactions,
-    };
-  });
+  // Computed pour l'état dérivé
+  readonly budgetDetails = computed(
+    () => this.#budgetDetailsResource.value() ?? null,
+  );
   readonly isLoading = computed(() => this.#budgetDetailsResource.isLoading());
-  readonly error = computed(() => this.#budgetDetailsResource.error());
+  readonly hasError = computed(() => !!this.#budgetDetailsResource.error());
+  readonly error = computed(
+    () => this.#budgetDetailsResource.error() || this.#state.errorMessage(),
+  );
 
-  /**
-   * Initialize the budget ID (called once from component)
-   */
-  initializeBudgetId(id: string): void {
-    this.#state.budgetId.set(id);
+  setBudgetId(budgetId: string): void {
+    this.#state.budgetId.set(budgetId);
   }
 
   /**
    * Create a new budget line with optimistic updates
    */
   async createBudgetLine(budgetLine: BudgetLineCreate): Promise<void> {
-    const tempId = `temp-${Date.now()}`;
-
-    // Store original data for rollback
-    const originalData = this.#budgetDetailsResource.value();
+    const newId = `temp-${uuidv4()}`;
 
     // Create temporary budget line for optimistic update
-    const tempBudgetLine = {
-      id: tempId,
+    const tempBudgetLine: BudgetLine = {
       ...budgetLine,
+      id: newId,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       templateLineId: null,
@@ -87,10 +90,7 @@ export class BudgetDetailsStore {
 
       return {
         ...details,
-        data: {
-          ...details.data,
-          budgetLines: [...details.data.budgetLines, tempBudgetLine],
-        },
+        budgetLines: [...details.budgetLines, tempBudgetLine],
       };
     });
 
@@ -105,44 +105,31 @@ export class BudgetDetailsStore {
 
         return {
           ...details,
-          data: {
-            ...details.data,
-            budgetLines: details.data.budgetLines.map((line) =>
-              line.id === tempId ? response.data : line,
-            ),
-          },
+          budgetLines: details.budgetLines.map((line) =>
+            line.id === newId ? response.data : line,
+          ),
         };
       });
 
       this.#clearError();
     } catch (error) {
-      // Rollback on error
-      if (originalData) {
-        this.#budgetDetailsResource.set(originalData);
-      } else {
-        this.#budgetDetailsResource.reload();
-      }
+      this.reloadBudgetDetails();
 
       const errorMessage = "Erreur lors de l'ajout de la prévision";
       this.#setError(errorMessage);
       this.#logger.error('Error creating budget line', error);
-    } finally {
-      // Operation completed
     }
   }
 
   /**
-   * Update an existing budget line with optimistic updates and rollback on error
+   * Update an existing budget line with optimistic updates
    */
   async updateBudgetLine(data: BudgetLineUpdate): Promise<void> {
-    // Store original data for rollback
-    const originalData = this.#budgetDetailsResource.value();
-
     // Optimistic update
     this.#budgetDetailsResource.update((details) => {
       if (!details) return details;
 
-      const updatedLines = details.data.budgetLines.map((line) =>
+      const updatedLines = details.budgetLines.map((line) =>
         line.id === data.id
           ? { ...line, ...data, updatedAt: new Date().toISOString() }
           : line,
@@ -150,7 +137,7 @@ export class BudgetDetailsStore {
 
       return {
         ...details,
-        data: { ...details.data, budgetLines: updatedLines },
+        budgetLines: updatedLines,
       };
     });
 
@@ -163,12 +150,7 @@ export class BudgetDetailsStore {
       // Clear any previous errors
       this.#clearError();
     } catch (error) {
-      // Rollback on error
-      if (originalData) {
-        this.#budgetDetailsResource.set(originalData);
-      } else {
-        this.#budgetDetailsResource.reload();
-      }
+      this.reloadBudgetDetails();
 
       const errorMessage = 'Erreur lors de la modification de la prévision';
       this.#setError(errorMessage);
@@ -177,24 +159,16 @@ export class BudgetDetailsStore {
   }
 
   /**
-   * Delete a budget line with optimistic updates and rollback on error
+   * Delete a budget line with optimistic updates
    */
   async deleteBudgetLine(id: string): Promise<void> {
-    // Store original data for rollback
-    const originalData = this.#budgetDetailsResource.value();
-
     // Optimistic update - remove the item
     this.#budgetDetailsResource.update((details) => {
       if (!details) return details;
 
       return {
         ...details,
-        data: {
-          ...details.data,
-          budgetLines: details.data.budgetLines.filter(
-            (line) => line.id !== id,
-          ),
-        },
+        budgetLines: details.budgetLines.filter((line) => line.id !== id),
       };
     });
 
@@ -203,12 +177,7 @@ export class BudgetDetailsStore {
 
       this.#clearError();
     } catch (error) {
-      // Rollback on error
-      if (originalData) {
-        this.#budgetDetailsResource.set(originalData);
-      } else {
-        this.#budgetDetailsResource.reload();
-      }
+      this.reloadBudgetDetails();
 
       const errorMessage = 'Erreur lors de la suppression de la prévision';
       this.#setError(errorMessage);
@@ -217,23 +186,16 @@ export class BudgetDetailsStore {
   }
 
   /**
-   * Delete a transaction with optimistic updates and rollback on error
+   * Delete a transaction with optimistic updates
    */
   async deleteTransaction(id: string): Promise<void> {
-    // Store original data for rollback
-    const originalData = this.#budgetDetailsResource.value();
-
     // Optimistic update - remove the transaction
     this.#budgetDetailsResource.update((details) => {
       if (!details) return details;
 
       return {
         ...details,
-        data: {
-          ...details.data,
-          transactions:
-            details.data.transactions?.filter((tx) => tx.id !== id) ?? [],
-        },
+        transactions: details.transactions?.filter((tx) => tx.id !== id) ?? [],
       };
     });
 
@@ -242,12 +204,7 @@ export class BudgetDetailsStore {
 
       this.#clearError();
     } catch (error) {
-      // Rollback on error
-      if (originalData) {
-        this.#budgetDetailsResource.set(originalData);
-      } else {
-        this.#budgetDetailsResource.reload();
-      }
+      this.reloadBudgetDetails();
 
       const errorMessage = 'Erreur lors de la suppression de la transaction';
       this.#setError(errorMessage);
@@ -278,6 +235,4 @@ export class BudgetDetailsStore {
   #clearError(): void {
     this.#state.errorMessage.set(null);
   }
-
-  // Private utility methods
 }

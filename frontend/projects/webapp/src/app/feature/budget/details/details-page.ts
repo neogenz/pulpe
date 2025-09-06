@@ -53,15 +53,15 @@ import {
   providers: [BudgetDetailsStore, BudgetLineApi],
   template: `
     <div class="flex flex-col gap-6" data-testid="budget-detail-page">
-      @if (budgetDetailsStore.isLoading()) {
+      @if (store.isLoading()) {
         <pulpe-base-loading
           message="Chargement des détails du budget..."
           size="large"
           [fullHeight]="true"
           testId="budget-details-loading"
         ></pulpe-base-loading>
-      } @else if (budgetDetailsStore.error()) {
-        <mat-card class="bg-error-container">
+      } @else if (store.hasError()) {
+        <mat-card class="bg-error-container" appearance="outlined">
           <mat-card-content>
             <div class="flex items-center gap-2 text-on-error-container">
               <mat-icon>error</mat-icon>
@@ -69,8 +69,7 @@ import {
             </div>
           </mat-card-content>
         </mat-card>
-      } @else {
-        @let budget = budgetDetailsStore.budgetDetails()!;
+      } @else if (store.budgetDetails(); as budget) {
         @let budgetLines = budget.budgetLines;
         @let transactions = budget.transactions;
 
@@ -164,6 +163,10 @@ import {
             </div>
           </mat-card-content>
         </mat-card>
+      } @else {
+        <div class="flex justify-center items-center h-full">
+          <p class="text-body-large">Aucun budget trouvé</p>
+        </div>
       }
     </div>
   `,
@@ -175,7 +178,7 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class DetailsPage {
-  budgetDetailsStore = inject(BudgetDetailsStore);
+  store = inject(BudgetDetailsStore);
   readonly #router = inject(Router);
   readonly #route = inject(ActivatedRoute);
   readonly #dialog = inject(MatDialog);
@@ -189,7 +192,7 @@ export default class DetailsPage {
     effect(() => {
       const budgetId = this.id();
       if (budgetId) {
-        this.budgetDetailsStore.initializeBudgetId(budgetId);
+        this.store.setBudgetId(budgetId);
       }
     });
   }
@@ -199,14 +202,14 @@ export default class DetailsPage {
   }
 
   displayName = computed(() => {
-    const budget = this.budgetDetailsStore.budgetDetails();
+    const budget = this.store.budgetDetails();
     if (!budget) return '';
     const date = new Date(budget.year, budget.month - 1, 1);
     return formatDate(date, 'MMMM yyyy', { locale: frCH });
   });
 
   async openAddBudgetLineDialog(): Promise<void> {
-    const budget = this.budgetDetailsStore.budgetDetails();
+    const budget = this.store.budgetDetails();
     if (!budget) return;
 
     const dialogRef = this.#dialog.open(AddBudgetLineDialog, {
@@ -224,11 +227,11 @@ export default class DetailsPage {
   }
 
   async handleCreateBudgetLine(budgetLine: BudgetLineCreate): Promise<void> {
-    await this.budgetDetailsStore.createBudgetLine(budgetLine);
+    await this.store.createBudgetLine(budgetLine);
   }
 
   async handleUpdateBudgetLine(data: BudgetLineUpdate): Promise<void> {
-    await this.budgetDetailsStore.updateBudgetLine(data);
+    await this.store.updateBudgetLine(data);
 
     this.#snackBar.open('Prévision modifiée.', 'Fermer', {
       duration: 5000,
@@ -237,7 +240,7 @@ export default class DetailsPage {
   }
 
   async handleDeleteItem(id: string): Promise<void> {
-    const data = this.budgetDetailsStore.budgetDetails();
+    const data = this.store.budgetDetails();
     if (!data) return;
 
     // Find the item to determine if it's a budget line or transaction
@@ -278,9 +281,9 @@ export default class DetailsPage {
     }
 
     if (isBudgetLine) {
-      await this.budgetDetailsStore.deleteBudgetLine(id);
+      await this.store.deleteBudgetLine(id);
     } else {
-      await this.budgetDetailsStore.deleteTransaction(id);
+      await this.store.deleteTransaction(id);
 
       this.#snackBar.open('Transaction supprimée.', 'Fermer', {
         duration: 5000,
