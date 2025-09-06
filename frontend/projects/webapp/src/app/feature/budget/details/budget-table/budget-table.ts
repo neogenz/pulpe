@@ -446,9 +446,6 @@ export class BudgetTable {
   readonly trackByRow = (_: number, row: TableItem): string => row.data.id;
 
   startEdit(item: BudgetLineTableItem): void {
-    // Only allow editing budget lines, not transactions
-    //if (!this.#isBudgetLineItem(item)) return;
-
     // On mobile, open dialog for editing
     if (this.isMobile()?.matches) {
       try {
@@ -499,12 +496,4 @@ export class BudgetTable {
     this.editForm.reset();
     this.update.emit(updateData);
   }
-
-  /*
-  #isBudgetLineItem(item: TableItem): item is TableItem & {
-    data: BudgetLine;
-    metadata: { itemType: 'budget_line' };
-  } {
-    return item.metadata.itemType === 'budget_line';
-  }*/
 }
