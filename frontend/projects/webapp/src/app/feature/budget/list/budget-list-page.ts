@@ -149,6 +149,9 @@ export default class OtherMonths implements OnInit {
       width: '600px',
       maxWidth: '90vw',
       disableClose: false,
+      data: {
+        selectedYear: this.state.selectedYear(),
+      },
     });
 
     const result = await firstValueFrom(dialogRef.afterClosed());

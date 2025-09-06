@@ -14,6 +14,7 @@ import {
   MatDialog,
   MatDialogModule,
   MatDialogRef,
+  MAT_DIALOG_DATA,
 } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -45,6 +46,11 @@ const BUDGET_CREATION_CONSTANTS = {
     BUDGET_CREATED: 'Budget créé avec succès !',
   } as const,
 } as const;
+
+// Interface pour les données du dialog
+interface CreateBudgetDialogData {
+  selectedYear?: number;
+}
 
 // Format personnalisé pour le month/year picker
 const MONTH_YEAR_FORMATS = {
@@ -233,6 +239,9 @@ export class CreateBudgetDialogComponent {
   readonly #snackBar = inject(MatSnackBar);
   readonly #budgetApi = inject(BudgetApi);
   readonly templateStore = inject(TemplateStore);
+  readonly #data = inject<CreateBudgetDialogData | null>(MAT_DIALOG_DATA, {
+    optional: true,
+  });
 
   // Expose constants for template usage
   readonly constants = BUDGET_CREATION_CONSTANTS;
@@ -264,7 +273,7 @@ export class CreateBudgetDialogComponent {
   });
 
   budgetForm = this.#formBuilder.nonNullable.group({
-    monthYear: [startOfMonth(new Date()), Validators.required],
+    monthYear: [this.#getInitialDate(), Validators.required],
     description: [
       '',
       [
@@ -287,6 +296,21 @@ export class CreateBudgetDialogComponent {
     const value = this.#descriptionFormValue();
     return value?.length || 0;
   });
+
+  #getInitialDate(): Date {
+    // Utilise l'année sélectionnée si fournie, sinon l'année actuelle
+    const currentDate = new Date();
+    const year = this.#data?.selectedYear ?? currentDate.getFullYear();
+
+    // Si l'année sélectionnée est différente de l'année actuelle,
+    // utilise le mois actuel dans cette année
+    if (year !== currentDate.getFullYear()) {
+      return startOfMonth(new Date(year, currentDate.getMonth(), 1));
+    }
+
+    // Sinon utilise la date actuelle
+    return startOfMonth(currentDate);
+  }
 
   constructor() {
     // Initialize templates loading
