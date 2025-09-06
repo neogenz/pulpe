@@ -70,10 +70,9 @@ import {
           </mat-card-content>
         </mat-card>
       } @else {
-        @let data = budgetDetailsStore.budgetData()!;
-        @let budget = data.budget;
-        @let budgetLines = data.budgetLines;
-        @let transactions = data.transactions;
+        @let budget = budgetDetailsStore.budgetDetails()!;
+        @let budgetLines = budget.budgetLines;
+        @let transactions = budget.transactions;
 
         <!-- Header -->
         <header class="flex items-start gap-4">
@@ -200,14 +199,14 @@ export default class DetailsPage {
   }
 
   displayName = computed(() => {
-    const budget = this.budgetDetailsStore.budgetDetails().value()?.data.budget;
+    const budget = this.budgetDetailsStore.budgetDetails();
     if (!budget) return '';
     const date = new Date(budget.year, budget.month - 1, 1);
     return formatDate(date, 'MMMM yyyy', { locale: frCH });
   });
 
   async openAddBudgetLineDialog(): Promise<void> {
-    const budget = this.budgetDetailsStore.budgetDetails().value()?.data.budget;
+    const budget = this.budgetDetailsStore.budgetDetails();
     if (!budget) return;
 
     const dialogRef = this.#dialog.open(AddBudgetLineDialog, {
@@ -238,7 +237,7 @@ export default class DetailsPage {
   }
 
   async handleDeleteItem(id: string): Promise<void> {
-    const data = this.budgetDetailsStore.budgetData();
+    const data = this.budgetDetailsStore.budgetDetails();
     if (!data) return;
 
     // Find the item to determine if it's a budget line or transaction
