@@ -1,12 +1,9 @@
-import { inject, Injectable, signal, computed, resource } from '@angular/core';
-import { firstValueFrom, timer } from 'rxjs';
+import { inject, Injectable, computed, resource } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { BudgetLineApi } from './budget-line-api';
 import { TransactionApi } from '@core/transaction/transaction-api';
 import { Logger } from '@core/logging/logger';
-import {
-  type BudgetDetailsState,
-  createInitialBudgetDetailsState,
-} from './budget-details-state';
+import { createInitialBudgetDetailsState } from './budget-details-state';
 import {
   type BudgetLineCreate,
   type BudgetLineUpdate,
@@ -24,16 +21,14 @@ export class BudgetDetailsStore {
   readonly #logger = inject(Logger);
 
   // Single source of truth - private state signal for non-resource data
-  readonly #state = signal<BudgetDetailsState>(
-    createInitialBudgetDetailsState(),
-  );
+  readonly #state = createInitialBudgetDetailsState();
 
   // Resource for budget details data - managed independently
   readonly #budgetDetailsResource = resource<
     BudgetDetailsResponse,
     string | null
   >({
-    params: () => this.#state().budgetId,
+    params: () => this.#state.budgetId(),
     loader: async ({ params: budgetId }) => {
       if (!budgetId) {
         throw new Error('Budget ID is required');
@@ -45,15 +40,12 @@ export class BudgetDetailsStore {
   });
 
   // Public selectors (read-only computed signals)
-  readonly budgetId = computed(() => this.#state().budgetId);
   readonly budgetDetails = computed(() => this.#budgetDetailsResource);
-  readonly operationsInProgress = computed(
-    () => this.#state().operationsInProgress,
+  readonly operationsInProgress = computed(() =>
+    this.#state.operationsInProgress(),
   );
   readonly isLoading = computed(() => this.#budgetDetailsResource.isLoading());
-  readonly error = computed(
-    () => this.#budgetDetailsResource.error() || this.#state().error,
-  );
+  readonly error = computed(() => this.#budgetDetailsResource.error());
 
   // New computed to distinguish initial load from updates
   // Only show spinner if loading AND no data available yet (initial load)
@@ -83,11 +75,7 @@ export class BudgetDetailsStore {
    * Initialize the budget ID (called once from component)
    */
   initializeBudgetId(id: string): void {
-    this.#state.update((state) => ({
-      ...state,
-      budgetId: id,
-      error: null,
-    }));
+    this.#state.budgetId.set(id);
   }
 
   /**
@@ -167,35 +155,36 @@ export class BudgetDetailsStore {
    */
   async updateBudgetLine(data: BudgetLineUpdate): Promise<void> {
     // Start operation tracking
-    this.#addOperationInProgress(data.id);
+    //this.#addOperationInProgress(data.id);
 
     //simulate sleep of 3 seconds
 
-    await firstValueFrom(timer(3000));
+    //await firstValueFrom(timer(3000));
 
     // Store original data for rollback
     const originalData = this.#budgetDetailsResource.value();
 
     // Optimistic update
-    /*this.#budgetDetailsResource.update((details) => {
+    this.#budgetDetailsResource.update((details) => {
       if (!details) return details;
+
+      const updatedLines = details.data.budgetLines.map((line) =>
+        line.id === data.id
+          ? { ...line, ...data, updatedAt: new Date().toISOString() }
+          : line,
+      );
 
       return {
         ...details,
-        data: {
-          ...details.data,
-          budgetLines: details.data.budgetLines.map((line) =>
-            line.id === id
-              ? { ...line, ...update, updatedAt: new Date().toISOString() }
-              : line,
-          ),
-        },
+        data: { ...details.data, budgetLines: updatedLines },
       };
-    });*/
+    });
 
     try {
       // Just persist to server, don't update local state again
-      //await firstValueFrom(this.#budgetLineApi.updateBudgetLine$(id, update));
+      await firstValueFrom(
+        this.#budgetLineApi.updateBudgetLine$(data.id, data),
+      );
 
       // Clear any previous errors
       this.#clearError();
@@ -211,7 +200,7 @@ export class BudgetDetailsStore {
       this.#setError(errorMessage);
       this.#logger.error('Error updating budget line', error);
     } finally {
-      this.#removeOperationInProgress(data.id);
+      //this.#removeOperationInProgress(data.id);
     }
   }
 
@@ -318,25 +307,20 @@ export class BudgetDetailsStore {
    * Add an operation ID to the in-progress tracking
    */
   #addOperationInProgress(operationId: string): void {
-    this.#state.update((state) => ({
-      ...state,
-      operationsInProgress: new Set(state.operationsInProgress).add(
-        operationId,
-      ),
-    }));
+    this.#state.operationsInProgress.update((operationsInProgress) => {
+      operationsInProgress.add(operationId);
+      return operationsInProgress;
+    });
   }
 
   /**
    * Remove an operation ID from the in-progress tracking
    */
   #removeOperationInProgress(operationId: string): void {
-    this.#state.update((state) => {
-      const newSet = new Set(state.operationsInProgress);
+    this.#state.operationsInProgress.update((operationsInProgress) => {
+      const newSet = new Set(operationsInProgress);
       newSet.delete(operationId);
-      return {
-        ...state,
-        operationsInProgress: newSet,
-      };
+      return newSet;
     });
   }
 
@@ -344,20 +328,14 @@ export class BudgetDetailsStore {
    * Set an error message in the state
    */
   #setError(error: string): void {
-    this.#state.update((state) => ({
-      ...state,
-      error,
-    }));
+    this.#state.errorMessage.set(error);
   }
 
   /**
    * Clear the error state
    */
   #clearError(): void {
-    this.#state.update((state) => ({
-      ...state,
-      error: null,
-    }));
+    this.#state.errorMessage.set(null);
   }
 
   // Private utility methods

@@ -147,15 +147,6 @@ describe('BudgetDetailsStore - Integration Tests', () => {
       expect(budgetData).toBeDefined();
       expect(budgetData?.budget.id).toBe(mockBudgetId);
       expect(budgetData?.budgetLines).toHaveLength(2);
-
-      // Verify the budgetId was set
-      expect(service.budgetId()).toBe(mockBudgetId);
-    });
-
-    it('should handle initialization without budget ID', () => {
-      // Don't initialize - budgetId should be null
-      expect(service.budgetId()).toBeNull();
-      expect(service.budgetData()).toBeNull();
     });
 
     it('should track operations in progress', () => {
