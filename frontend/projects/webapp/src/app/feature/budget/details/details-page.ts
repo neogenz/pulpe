@@ -110,8 +110,8 @@ import {
           [transactions]="transactions"
           [operationsInProgress]="budgetDetailsStore.operationsInProgress()"
           (update)="handleUpdateBudgetLine($event)"
-          (deleteClicked)="handleDeleteItem($event)"
-          (addClicked)="openAddBudgetLineDialog()"
+          (delete)="handleDeleteItem($event)"
+          (add)="openAddBudgetLineDialog()"
         />
 
         <!-- Budget Info Card -->
