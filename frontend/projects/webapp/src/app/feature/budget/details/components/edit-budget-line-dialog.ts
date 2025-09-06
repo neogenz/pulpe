@@ -74,8 +74,8 @@ export interface EditBudgetLineDialogData {
               matInput
               type="number"
               formControlName="amount"
-              placeholder="0.00"
-              step="0.01"
+              placeholder="0"
+              step="1"
               min="0"
               data-testid="edit-line-amount"
             />
@@ -189,16 +189,16 @@ export class EditBudgetLineDialog {
   });
 
   handleSubmit(): void {
-    if (this.form.valid) {
-      const value = this.form.getRawValue();
-      const update: BudgetLineUpdate = {
-        name: value.name!.trim(),
-        amount: value.amount!,
-        kind: value.kind!,
-        recurrence: value.recurrence!,
-      };
-      this.#dialogRef.close(update);
-    }
+    if (!this.form.valid) return;
+    const value = this.form.value;
+    const update: BudgetLineUpdate = {
+      ...this.#data.budgetLine,
+      name: value.name!.trim(),
+      amount: value.amount!,
+      kind: value.kind!,
+      recurrence: value.recurrence!,
+    };
+    this.#dialogRef.close(update);
   }
 
   handleCancel(): void {

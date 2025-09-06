@@ -297,6 +297,7 @@ describe('BudgetLineService', () => {
 
   describe('update', () => {
     const mockUpdateDto: BudgetLineUpdate = {
+      id: '123e4567-e89b-12d3-a456-426614174000',
       name: 'Salaire Updated',
       amount: 2600,
     };
@@ -366,6 +367,7 @@ describe('BudgetLineService', () => {
     it('should throw BusinessException for invalid update data', async () => {
       const budgetLineId = '123e4567-e89b-12d3-a456-426614174000';
       const invalidUpdateDto: BudgetLineUpdate = {
+        id: '123e4567-e89b-12d3-a456-426614174000',
         amount: -100, // Invalid negative amount
       };
 

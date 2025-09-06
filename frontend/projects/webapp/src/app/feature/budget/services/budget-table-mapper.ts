@@ -16,6 +16,10 @@ export interface TableItem {
   };
 }
 
+export type BudgetLineTableItem = TableItem & {
+  data: BudgetLine;
+};
+
 /**
  * Simple budget table data using composition
  */
