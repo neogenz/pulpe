@@ -29,7 +29,7 @@ import {
   BudgetTableMapper,
   type BudgetLineTableItem,
   type TableItem,
-} from '../../services/budget-table-mapper';
+} from '../services/budget-table-mapper';
 import {
   TransactionIconPipe,
   TransactionLabelPipe,
