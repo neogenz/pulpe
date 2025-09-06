@@ -95,7 +95,7 @@ import { ROUTES } from '@core/routing';
                       ) {
                         <pulpe-month-card-item
                           [displayName]="month.displayName"
-                          [totalAmount]="0"
+                          [totalAmount]="month.endingBalance"
                           [id]="month.budgetId"
                           (detailsClick)="navigateToDetails($event)"
                         />
