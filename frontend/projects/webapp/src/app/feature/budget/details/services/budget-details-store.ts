@@ -4,8 +4,8 @@ import { BudgetLineApi } from './budget-line-api';
 import { TransactionApi } from '@core/transaction/transaction-api';
 import { Logger } from '@core/logging/logger';
 import {
-  type BudgetDetailsInternalState,
-  createInitialBudgetDetailsInternalState,
+  type BudgetDetailsState,
+  createInitialBudgetDetailsState,
 } from './budget-details-state';
 import {
   type BudgetLineCreate,
@@ -24,8 +24,8 @@ export class BudgetDetailsStore {
   readonly #logger = inject(Logger);
 
   // Single source of truth - private state signal for non-resource data
-  readonly #state = signal<BudgetDetailsInternalState>(
-    createInitialBudgetDetailsInternalState(),
+  readonly #state = signal<BudgetDetailsState>(
+    createInitialBudgetDetailsState(),
   );
 
   // Resource for budget details data - managed independently

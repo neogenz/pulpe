@@ -1,32 +1,8 @@
-import type { ResourceRef } from '@angular/core';
-import type { BudgetDetailsResponse } from '@pulpe/shared';
-
-/**
- * State interface for budget details management (backward compatibility)
- * Represents the combined view with resource data
- */
-export interface BudgetDetailsState {
-  /** Current budget ID being managed */
-  readonly budgetId: string | null;
-
-  /** Resource reference for budget details data */
-  readonly budgetDetails: ResourceRef<BudgetDetailsResponse | undefined> | null;
-
-  /** Set of operation IDs currently in progress */
-  readonly operationsInProgress: ReadonlySet<string>;
-
-  /** Loading state indicator */
-  readonly isLoading: boolean;
-
-  /** Error state from last operation */
-  readonly error: string | null;
-}
-
 /**
  * Internal state interface following the single state signal pattern
  * Contains only the data not managed by the resource
  */
-export interface BudgetDetailsInternalState {
+export interface BudgetDetailsState {
   /** Current budget ID being managed */
   readonly budgetId: string | null;
 
@@ -38,22 +14,9 @@ export interface BudgetDetailsInternalState {
 }
 
 /**
- * Initial state factory for BudgetDetailsState (backward compatibility)
- */
-export function createInitialBudgetDetailsState(): BudgetDetailsState {
-  return {
-    budgetId: null,
-    budgetDetails: null,
-    operationsInProgress: new Set(),
-    isLoading: false,
-    error: null,
-  };
-}
-
-/**
  * Initial state factory for internal state
  */
-export function createInitialBudgetDetailsInternalState(): BudgetDetailsInternalState {
+export function createInitialBudgetDetailsState(): BudgetDetailsState {
   return {
     budgetId: null,
     operationsInProgress: new Set(),
