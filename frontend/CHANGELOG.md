@@ -1,5 +1,16 @@
 # pulpe-frontend
 
+## 2025.10.0
+
+### Minor Changes
+
+- Ajout de la gestion multi-année dans la liste des budgets
+  - Navigation par onglets pour visualiser les budgets par année
+  - Sélection automatique de l'année lors de la création d'un budget
+  - Amélioration de l'organisation et de l'affichage des données budgétaires
+
+  Cette fonctionnalité permet aux utilisateurs de naviguer facilement entre les années et de mieux organiser leur planification budgétaire sur le long terme.
+
 ## 2025.9.1
 
 ### Patch Changes
