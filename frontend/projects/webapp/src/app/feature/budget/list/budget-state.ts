@@ -1,4 +1,4 @@
-import { Injectable, inject, resource } from '@angular/core';
+import { Injectable, inject, resource, computed } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { BudgetApi } from '@core/budget/budget-api';
 import { type MonthInfo } from '@core/budget/month-info';
@@ -13,6 +13,32 @@ export class BudgetState {
 
   monthsData = resource<MonthInfo[], void>({
     loader: async () => this.#loadMonthsData(),
+  });
+
+  availableYears = computed(() => {
+    const months = this.monthsData.value() ?? [];
+    const years = [...new Set(months.map((month) => month.year))];
+    return years.sort((a, b) => a - b); // Tri croissant
+  });
+
+  budgetsByYear = computed(() => {
+    const months = this.monthsData.value() ?? [];
+    const groupedByYear = new Map<number, MonthInfo[]>();
+
+    months.forEach((month) => {
+      const existingMonths = groupedByYear.get(month.year) ?? [];
+      groupedByYear.set(month.year, [...existingMonths, month]);
+    });
+
+    // Trier les mois de chaque année par mois décroissant
+    groupedByYear.forEach((months, year) => {
+      groupedByYear.set(
+        year,
+        months.sort((a, b) => b.month - a.month),
+      );
+    });
+
+    return groupedByYear;
   });
 
   refreshData(): void {

@@ -72,40 +72,55 @@ import { ROUTES } from '@core/routing';
             mat-align-tabs="start"
             fitInkBarToContent
           >
-            <mat-tab label="2025">
-              <div class="pt-4">
-                <div class="flex-1 overflow-auto">
-                  @if (state.monthsData.value()?.length === 0) {
-                    <div class="text-center py-8 text-gray-500">
-                      <mat-icon class="text-display-small mb-4"
-                        >calendar_month</mat-icon
+            @for (year of state.availableYears(); track year) {
+              <mat-tab [label]="year.toString()">
+                <div class="pt-4">
+                  <div class="flex-1 overflow-auto">
+                    @if ((state.budgetsByYear().get(year) ?? []).length === 0) {
+                      <div class="text-center py-8 text-gray-500">
+                        <mat-icon class="text-display-small mb-4"
+                          >calendar_month</mat-icon
+                        >
+                        <p>Aucun mois trouvé pour {{ year }}</p>
+                        <p class="text-body-small">
+                          Créez votre premier budget pour cette année
+                        </p>
+                      </div>
+                    } @else {
+                      <div
+                        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
                       >
-                      <p>Aucun mois trouvé</p>
-                      <p class="text-body-small">
-                        Créez votre premier budget mensuel
-                      </p>
-                    </div>
-                  } @else {
-                    <div
-                      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-                    >
-                      @for (
-                        month of state.monthsData.value();
-                        track month.budgetId
-                      ) {
-                        <pulpe-month-card-item
-                          [displayName]="month.displayName"
-                          [totalAmount]="month.endingBalance"
-                          [id]="month.budgetId"
-                          (detailsClick)="navigateToDetails($event)"
-                        />
-                      }
-                    </div>
-                  }
+                        @for (
+                          month of state.budgetsByYear().get(year) ?? [];
+                          track month.budgetId
+                        ) {
+                          <pulpe-month-card-item
+                            [displayName]="month.displayName"
+                            [totalAmount]="month.endingBalance"
+                            [id]="month.budgetId"
+                            (detailsClick)="navigateToDetails($event)"
+                          />
+                        }
+                      </div>
+                    }
+                  </div>
                 </div>
-              </div>
-            </mat-tab>
-            <mat-tab label="2026"> 2026 </mat-tab>
+              </mat-tab>
+            } @empty {
+              <mat-tab label="Aucun budget">
+                <div class="pt-4">
+                  <div class="text-center py-8 text-gray-500">
+                    <mat-icon class="text-display-small mb-4"
+                      >calendar_month</mat-icon
+                    >
+                    <p>Aucun budget trouvé</p>
+                    <p class="text-body-small">
+                      Créez votre premier budget mensuel
+                    </p>
+                  </div>
+                </div>
+              </mat-tab>
+            }
           </mat-tab-group>
         }
       }
