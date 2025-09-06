@@ -490,17 +490,17 @@ export class BudgetItemsTable {
 
   saveEdit(): void {
     const editingId = this.inlineFormEditingItem()?.data.id;
-    if (editingId && this.editForm.valid) {
-      const value = this.editForm.getRawValue();
-      const updateData = {
-        id: editingId,
-        name: value.name!.trim(),
-        amount: value.amount!,
-      };
-      this.inlineFormEditingItem.set(null);
-      this.editForm.reset();
-      this.update.emit(updateData);
-    }
+    if (!editingId || !this.editForm.valid) return;
+
+    const value = this.editForm.getRawValue();
+    const updateData = {
+      id: editingId,
+      name: value.name!.trim(),
+      amount: value.amount!,
+    };
+    this.inlineFormEditingItem.set(null);
+    this.editForm.reset();
+    this.update.emit(updateData);
   }
 
   /*
