@@ -46,15 +46,6 @@ export class BudgetDetailsStore {
   readonly isLoading = computed(() => this.#budgetDetailsResource.isLoading());
   readonly error = computed(() => this.#budgetDetailsResource.error());
 
-  // New computed to distinguish initial load from updates
-  // Only show spinner if loading AND no data available yet (initial load)
-  readonly isInitialLoading = computed(() => {
-    const status = this.#budgetDetailsResource.status();
-    const hasValue = !!this.#budgetDetailsResource.value();
-    // Only show spinner during initial load (loading with no data)
-    return status === 'loading' && !hasValue;
-  });
-
   readonly budgetData = computed(() => {
     const data = this.#budgetDetailsResource.value()?.data;
     if (!data) return null;
@@ -150,10 +141,6 @@ export class BudgetDetailsStore {
    * Update an existing budget line with optimistic updates and rollback on error
    */
   async updateBudgetLine(data: BudgetLineUpdate): Promise<void> {
-    //simulate sleep of 3 seconds
-
-    //await firstValueFrom(timer(3000));
-
     // Store original data for rollback
     const originalData = this.#budgetDetailsResource.value();
 

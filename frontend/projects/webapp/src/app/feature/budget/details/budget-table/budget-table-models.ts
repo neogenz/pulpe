@@ -16,15 +16,3 @@ export interface TableItem {
 export type BudgetLineTableItem = TableItem & {
   data: BudgetLine;
 };
-
-/**
- * Simple budget table data using composition
- */
-export interface BudgetTableData {
-  items: TableItem[];
-  summary: {
-    hasOneOff: boolean;
-    hasTransactions: boolean;
-    isEmpty: boolean;
-  };
-}
