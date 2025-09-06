@@ -159,22 +159,22 @@ import { type TransactionViewModel } from '../models/transaction-view-model';
             <td mat-cell *matCellDef="let line">
               @if ('recurrence' in line.data) {
                 <mat-chip
-                  [class.bg-primary-container]="
+                  [class.bg-primary-container!]="
                     line.data.recurrence === 'fixed'
                   "
-                  [class.text-on-primary-container]="
+                  [class.text-on-primary-container!]="
                     line.data.recurrence === 'fixed'
                   "
-                  [class.bg-tertiary-container]="
+                  [class.bg-tertiary-container!]="
                     line.data.recurrence === 'variable'
                   "
-                  [class.text-on-tertiary-container]="
+                  [class.text-on-tertiary-container!]="
                     line.data.recurrence === 'variable'
                   "
-                  [class.bg-secondary-container]="
+                  [class.bg-secondary-container!]="
                     line.data.recurrence === 'one_off'
                   "
-                  [class.text-on-secondary-container]="
+                  [class.text-on-secondary-container!]="
                     line.data.recurrence === 'one_off'
                   "
                   class="text-label-medium font-medium"
@@ -408,7 +408,7 @@ export class BudgetTable {
   readonly #logger = inject(Logger);
 
   // UI configuration
-  displayedColumns = ['name', 'recurrence', 'amount', 'remaining', 'actions'];
+  displayedColumns = ['name', 'amount', 'remaining', 'recurrence', 'actions'];
   displayedColumnsMobile = ['name', 'amount', 'remaining', 'actions'];
 
   protected inlineFormEditingItem = signal<BudgetLineTableItem | null>(null);

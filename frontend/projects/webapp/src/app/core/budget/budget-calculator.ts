@@ -51,12 +51,12 @@ export class BudgetCalculator {
   }
 
   /**
-   * Calcule les balances cumulatives pour une liste d'items
+   * Enrichit les items avec leur balance cumulative de manière immutable
    * Logique métier pure : traite chaque item et calcule le cumul
    */
-  calculateRunningBalances<T extends { kind: TransactionKind; amount: number }>(
-    items: T[],
-  ): (T & { cumulativeBalance: number })[] {
+  enrichWithCumulativeBalance<
+    T extends { kind: TransactionKind; amount: number },
+  >(items: T[]): (T & { cumulativeBalance: number })[] {
     let runningBalance = 0;
     return items.map((item) => {
       const signedAmount = this.#getSignedAmount(item.kind, item.amount);

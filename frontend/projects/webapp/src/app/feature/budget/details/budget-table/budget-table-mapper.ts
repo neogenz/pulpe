@@ -15,7 +15,6 @@ import { type BudgetTableData, type TableItem } from './budget-table-models';
 interface BudgetItemWithBalance {
   item: BudgetLine | Transaction;
   cumulativeBalance: number;
-  displayOrder: number;
   itemType: 'budget_line' | 'transaction';
 }
 
@@ -27,18 +26,17 @@ interface BudgetItemWithBalance {
 export class BudgetTableMapper {
   readonly #budgetCalculator = inject(BudgetCalculator);
 
-  // Configuration des ordres d'affichage
-  readonly #DISPLAY_ORDER_CONFIG = {
-    RECURRENCE_MULTIPLIER: 1000,
-    KIND_MULTIPLIER: 100,
-    TRANSACTION_OFFSET: 10000,
-    INCOME: 1,
-    SAVING: 2,
-    EXPENSE: 3,
-    DEFAULT: 4,
-    RECURRENCE_FIXED: 1,
-    RECURRENCE_ONE_OFF: 2,
-    RECURRENCE_DEFAULT: 3,
+  // Constantes pour l'ordre de tri
+  readonly #RECURRENCE_ORDER: Record<TransactionRecurrence, number> = {
+    fixed: 1,
+    variable: 1, // traité comme fixed
+    one_off: 2,
+  } as const;
+
+  readonly #KIND_ORDER: Record<TransactionKind, number> = {
+    income: 1,
+    saving: 2,
+    expense: 3,
   } as const;
 
   /**
@@ -69,64 +67,39 @@ export class BudgetTableMapper {
   }
 
   /**
-   * Calcule l'ordre d'affichage selon les règles métier
-   * Structure: [RÉCURRENCE][KIND][TYPE][INDEX]
+   * Compare deux éléments pour déterminer leur ordre de tri
+   * Règles: 1. budget_lines avant transactions 2. récurrence (fixed → one_off) 3. type (income → saving → expense)
    */
-  #calculateDisplayOrder(
-    kind: TransactionKind,
-    recurrence: TransactionRecurrence,
-    index: number,
-    itemType: 'budget_line' | 'transaction',
-  ): number {
-    const recurrenceOrder = this.#getRecurrenceOrder(recurrence);
-    const kindOrder = this.#getKindOrder(kind);
-
-    const baseOrder =
-      recurrenceOrder * this.#DISPLAY_ORDER_CONFIG.RECURRENCE_MULTIPLIER +
-      kindOrder * this.#DISPLAY_ORDER_CONFIG.KIND_MULTIPLIER;
-
-    const typeOffset =
-      itemType === 'transaction'
-        ? this.#DISPLAY_ORDER_CONFIG.TRANSACTION_OFFSET
-        : 0;
-
-    return baseOrder + typeOffset + index;
-  }
-
-  /**
-   * Détermine l'ordre de tri par type selon les règles métier
-   */
-  #getKindOrder(kind: TransactionKind): number {
-    switch (kind) {
-      case 'income':
-        return this.#DISPLAY_ORDER_CONFIG.INCOME;
-      case 'saving':
-        return this.#DISPLAY_ORDER_CONFIG.SAVING;
-      case 'expense':
-        return this.#DISPLAY_ORDER_CONFIG.EXPENSE;
-      default:
-        return this.#DISPLAY_ORDER_CONFIG.DEFAULT;
+  #compareItems = (
+    a: BudgetItemWithBalance,
+    b: BudgetItemWithBalance,
+  ): number => {
+    // 1. budget_lines avant transactions
+    if (a.itemType !== b.itemType) {
+      return a.itemType === 'budget_line' ? -1 : 1;
     }
-  }
 
-  /**
-   * Détermine l'ordre de tri par récurrence selon les règles métier
-   */
-  #getRecurrenceOrder(recurrence: TransactionRecurrence): number {
-    switch (recurrence) {
-      case 'fixed':
-        return this.#DISPLAY_ORDER_CONFIG.RECURRENCE_FIXED;
-      case 'one_off':
-        return this.#DISPLAY_ORDER_CONFIG.RECURRENCE_ONE_OFF;
-      case 'variable':
-        return this.#DISPLAY_ORDER_CONFIG.RECURRENCE_FIXED; // Traiter comme fixed
-      default:
-        return this.#DISPLAY_ORDER_CONFIG.RECURRENCE_DEFAULT;
+    // 2. Pour les budget_lines : récurrence (fixed/variable avant one_off)
+    if (a.itemType === 'budget_line') {
+      const aRecurrence = (a.item as BudgetLine).recurrence;
+      const bRecurrence = (b.item as BudgetLine).recurrence;
+
+      if (aRecurrence !== bRecurrence) {
+        const aOrder = this.#RECURRENCE_ORDER[aRecurrence] ?? 3;
+        const bOrder = this.#RECURRENCE_ORDER[bRecurrence] ?? 3;
+        return aOrder - bOrder;
+      }
     }
-  }
+
+    // 3. Type de transaction (income → saving → expense)
+    const aKindOrder = this.#KIND_ORDER[a.item.kind] ?? 4;
+    const bKindOrder = this.#KIND_ORDER[b.item.kind] ?? 4;
+
+    return aKindOrder - bKindOrder;
+  };
 
   /**
-   * Crée les éléments d'affichage avec leurs ordres de tri
+   * Crée les éléments d'affichage pour le tri et le calcul des soldes
    */
   #createDisplayItems(
     budgetLines: BudgetLine[],
@@ -134,32 +107,20 @@ export class BudgetTableMapper {
   ): BudgetItemWithBalance[] {
     const items: BudgetItemWithBalance[] = [];
 
-    // Ajouter les budget lines avec ordre groupé par récurrence
-    budgetLines.forEach((line, index) => {
+    // Ajouter les budget lines
+    budgetLines.forEach((line) => {
       items.push({
         item: line,
         cumulativeBalance: 0, // Sera calculé après tri
-        displayOrder: this.#calculateDisplayOrder(
-          line.kind,
-          line.recurrence,
-          index,
-          'budget_line',
-        ),
         itemType: 'budget_line',
       });
     });
 
-    // Ajouter les transactions avec ordre
-    transactions.forEach((transaction, index) => {
+    // Ajouter les transactions
+    transactions.forEach((transaction) => {
       items.push({
         item: transaction,
         cumulativeBalance: 0, // Sera calculé après tri
-        displayOrder: this.#calculateDisplayOrder(
-          transaction.kind,
-          'one_off', // Les transactions n'ont pas de récurrence, on les traite comme one_off
-          index,
-          'transaction',
-        ),
         itemType: 'transaction',
       });
     });
@@ -171,7 +132,7 @@ export class BudgetTableMapper {
    * Trie les éléments selon les règles métier
    */
   #sortItemsByBusinessRules(items: BudgetItemWithBalance[]): void {
-    items.sort((a, b) => a.displayOrder - b.displayOrder);
+    items.sort(this.#compareItems);
   }
 
   /**
@@ -181,7 +142,7 @@ export class BudgetTableMapper {
   #calculateCumulativeBalances(items: BudgetItemWithBalance[]): void {
     const flatItems = items.map((item) => item.item);
     const itemsWithBalance =
-      this.#budgetCalculator.calculateRunningBalances(flatItems);
+      this.#budgetCalculator.enrichWithCumulativeBalance(flatItems);
 
     items.forEach((item, index) => {
       item.cumulativeBalance = itemsWithBalance[index].cumulativeBalance;
