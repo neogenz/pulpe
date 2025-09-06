@@ -291,7 +291,7 @@ describe('BudgetCalculator', () => {
     });
   });
 
-  describe('calculateRunningBalances', () => {
+  describe('enrichWithCumulativeBalance', () => {
     it('should calculate cumulative balance correctly for mixed transactions', () => {
       // Arrange
       const items = [
@@ -308,7 +308,7 @@ describe('BudgetCalculator', () => {
       ];
 
       // Act
-      const result = calculator.calculateRunningBalances(items);
+      const result = calculator.enrichWithCumulativeBalance(items);
 
       // Assert
       expect(result).toHaveLength(5);
@@ -357,7 +357,7 @@ describe('BudgetCalculator', () => {
       }[] = [];
 
       // Act
-      const result = calculator.calculateRunningBalances(items);
+      const result = calculator.enrichWithCumulativeBalance(items);
 
       // Assert
       expect(result).toEqual([]);
@@ -371,7 +371,7 @@ describe('BudgetCalculator', () => {
       ];
 
       // Act
-      const result = calculator.calculateRunningBalances(items);
+      const result = calculator.enrichWithCumulativeBalance(items);
 
       // Assert
       expect(result[0].cumulativeBalance).toBe(1000);
@@ -386,7 +386,7 @@ describe('BudgetCalculator', () => {
       ];
 
       // Act
-      const result = calculator.calculateRunningBalances(items);
+      const result = calculator.enrichWithCumulativeBalance(items);
 
       // Assert
       expect(result[0].cumulativeBalance).toBe(-200);
@@ -406,7 +406,7 @@ describe('BudgetCalculator', () => {
       ];
 
       // Act
-      const result = calculator.calculateRunningBalances(items);
+      const result = calculator.enrichWithCumulativeBalance(items);
 
       // Assert
       expect(result[0]).toEqual({
