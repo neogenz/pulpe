@@ -214,7 +214,7 @@ import { RolloverFormatPipe } from '../../pipes';
                       type="number"
                       formControlName="amount"
                       placeholder="0.00"
-                      step="0.01"
+                      step="1"
                       min="0"
                       [attr.data-testid]="'edit-amount-' + line.data.id"
                       class="text-body-medium text-right"
