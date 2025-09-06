@@ -20,8 +20,8 @@ module.exports = tseslint.config(
         "error",
         {
           prefer: "type-imports",
-          fixStyle: "inline-type-imports"
-        }
+          fixStyle: "inline-type-imports",
+        },
       ],
     },
   },
@@ -139,6 +139,13 @@ module.exports = tseslint.config(
           type: "test-spec",
           mode: "file",
           pattern: "**/*.spec.ts",
+          basePattern: "frontend/projects/**/src",
+          baseCapture: ["app"],
+        },
+        {
+          type: "testing",
+          pattern: "testing/**/*",
+          mode: "file",
           basePattern: "frontend/projects/**/src",
           baseCapture: ["app"],
         },
@@ -273,10 +280,15 @@ module.exports = tseslint.config(
               allow: [["e2e"], ["lib-api"], ["shared"]],
             },
             {
+              from: ["testing"],
+              allow: ["shared"],
+            },
+            {
               from: ["test-spec"],
               allow: [
                 ["shared"],
                 ["lib-api"],
+                ["testing"],
                 ["core", { app: "${from.app}" }],
                 ["ui", { app: "${from.app}" }],
                 ["layout", { app: "${from.app}" }],

@@ -13,7 +13,7 @@ import { MonthsError } from '../ui/budget-error';
 import { BudgetState } from './budget-state';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TitleDisplay } from '@core/routing';
-import { CreateBudgetDialogComponent } from '../details/create/budget-creation-dialog';
+import { CreateBudgetDialogComponent } from './create-budget/budget-creation-dialog';
 import { MatDialog } from '@angular/material/dialog';
 import { firstValueFrom } from 'rxjs';
 import { Router } from '@angular/router';

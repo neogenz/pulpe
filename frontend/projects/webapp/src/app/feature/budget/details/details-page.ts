@@ -18,14 +18,14 @@ import { DatePipe } from '@angular/common';
 import { Logger } from '@core/logging/logger';
 import { formatDate } from 'date-fns';
 import { frCH } from 'date-fns/locale';
-import { BudgetDetailsStore } from './services/budget-details-store';
-import { BudgetLineApi } from './services/budget-line-api';
-import { BudgetItemsTable } from './components/budget-items-table';
-import { BudgetFinancialOverview } from './components/budget-financial-overview';
+import { BudgetDetailsStore } from './store/budget-details-store';
+import { BudgetLineApi } from './budget-line-api/budget-line-api';
+import { BudgetTable } from './budget-table/budget-table';
+import { BudgetFinancialOverview } from './budget-financial-overview';
 import {
-  BudgetLineDialog,
+  AddBudgetLineDialog,
   type BudgetLineDialogData,
-} from './components/budget-line-dialog';
+} from './create-budget-line/add-budget-line-dialog';
 import {
   ConfirmationDialog,
   type ConfirmationDialogData,
@@ -46,7 +46,7 @@ import {
     MatSnackBarModule,
     MatDialogModule,
     DatePipe,
-    BudgetItemsTable,
+    BudgetTable,
     BudgetFinancialOverview,
     BaseLoading,
   ],
@@ -105,7 +105,7 @@ import {
         />
 
         <!-- Budget Items Table -->
-        <pulpe-budget-items-table
+        <pulpe-budget-table
           [budgetLines]="budgetLines"
           [transactions]="transactions"
           (update)="handleUpdateBudgetLine($event)"
@@ -210,7 +210,7 @@ export default class DetailsPage {
     const budget = this.budgetDetailsStore.budgetDetails().value()?.data.budget;
     if (!budget) return;
 
-    const dialogRef = this.#dialog.open(BudgetLineDialog, {
+    const dialogRef = this.#dialog.open(AddBudgetLineDialog, {
       data: {
         budgetId: budget.id,
       } satisfies BudgetLineDialogData,

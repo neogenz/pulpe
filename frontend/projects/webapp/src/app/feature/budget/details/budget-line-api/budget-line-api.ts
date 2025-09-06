@@ -7,7 +7,6 @@ import {
   type BudgetLineDeleteResponse,
   type BudgetLineCreate,
   type BudgetLineUpdate,
-  type BudgetDetailsResponse,
 } from '@pulpe/shared';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { Logger } from '@core/logging/logger';
@@ -20,23 +19,6 @@ export class BudgetLineApi {
 
   get #apiUrl(): string {
     return `${this.#applicationConfig.backendApiUrl()}/budget-lines`;
-  }
-
-  get #budgetsUrl(): string {
-    return `${this.#applicationConfig.backendApiUrl()}/budgets`;
-  }
-
-  getBudgetDetails$(budgetId: string): Observable<BudgetDetailsResponse> {
-    return this.#http
-      .get<BudgetDetailsResponse>(`${this.#budgetsUrl}/${budgetId}/details`)
-      .pipe(
-        catchError((error) => {
-          this.#logger.error('Error fetching budget details:', error);
-          return throwError(
-            () => new Error('Impossible de charger les détails du budget'),
-          );
-        }),
-      );
   }
 
   getBudgetLines$(budgetId: string): Observable<BudgetLineListResponse> {

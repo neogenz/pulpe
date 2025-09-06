@@ -13,9 +13,10 @@ import type {
 } from '@pulpe/shared';
 
 import { BudgetDetailsStore } from './budget-details-store';
-import { BudgetLineApi } from './budget-line-api';
+import { BudgetLineApi } from '../budget-line-api/budget-line-api';
 import { TransactionApi } from '@core/transaction/transaction-api';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
+import { createMockBudgetLine } from '../../../../testing/mock-factories';
 
 // Mock data
 const mockBudgetId = 'budget-123';
@@ -33,32 +34,24 @@ const mockBudgetDetailsResponse = {
       updatedAt: '2024-01-01T00:00:00Z',
     },
     budgetLines: [
-      {
+      createMockBudgetLine({
         id: 'line-1',
         budgetId: mockBudgetId,
         templateLineId: 'tpl-1',
         name: 'Salary',
-        description: 'Monthly salary',
         amount: 5000,
         kind: 'income',
         recurrence: 'fixed',
-        isManuallyAdjusted: false,
-        createdAt: '2024-01-01T00:00:00Z',
-        updatedAt: '2024-01-01T00:00:00Z',
-      },
-      {
+      }),
+      createMockBudgetLine({
         id: 'line-2',
         budgetId: mockBudgetId,
         templateLineId: 'tpl-2',
         name: 'Rent',
-        description: 'Monthly rent',
         amount: 1500,
         kind: 'expense',
         recurrence: 'fixed',
-        isManuallyAdjusted: false,
-        createdAt: '2024-01-01T00:00:00Z',
-        updatedAt: '2024-01-01T00:00:00Z',
-      },
+      }),
     ] as BudgetLine[],
   },
 };
@@ -161,11 +154,11 @@ describe('BudgetDetailsStore - Integration Tests', () => {
       const newBudgetLine: BudgetLineCreate = {
         budgetId: mockBudgetId,
         name: 'Groceries',
-        description: 'Weekly groceries',
         amount: 400,
         kind: 'expense',
         recurrence: 'fixed',
         isManuallyAdjusted: false,
+        isRollover: false,
       };
 
       const mockCreatedResponse = {
@@ -203,11 +196,11 @@ describe('BudgetDetailsStore - Integration Tests', () => {
       const newBudgetLine: BudgetLineCreate = {
         budgetId: mockBudgetId,
         name: 'Failed Line',
-        description: '',
         amount: 100,
         kind: 'expense',
         recurrence: 'fixed',
         isManuallyAdjusted: false,
+        isRollover: false,
       };
 
       mockBudgetLineApi.createBudgetLine$ = vi
@@ -240,11 +233,11 @@ describe('BudgetDetailsStore - Integration Tests', () => {
       const newBudgetLine: BudgetLineCreate = {
         budgetId: mockBudgetId,
         name: 'Failed Line',
-        description: '',
         amount: 100,
         kind: 'expense',
         recurrence: 'fixed',
         isManuallyAdjusted: false,
+        isRollover: false,
       };
 
       mockBudgetLineApi.createBudgetLine$ = vi
@@ -279,6 +272,7 @@ describe('BudgetDetailsStore - Integration Tests', () => {
 
     it('should update budget line optimistically', async () => {
       const updateData: BudgetLineUpdate = {
+        id: 'line-2',
         name: 'Updated Rent',
         amount: 1600,
       };
@@ -296,7 +290,7 @@ describe('BudgetDetailsStore - Integration Tests', () => {
         .mockReturnValue(of(mockUpdatedResponse));
 
       // Update budget line
-      await service.updateBudgetLine({ id: 'line-2', ...updateData });
+      await service.updateBudgetLine(updateData);
 
       // Check optimistic update
       const updatedData = service.budgetData();
@@ -312,6 +306,7 @@ describe('BudgetDetailsStore - Integration Tests', () => {
 
     it('should rollback on update error', async () => {
       const updateData: BudgetLineUpdate = {
+        id: 'line-2',
         name: 'Failed Update',
       };
 
@@ -325,7 +320,7 @@ describe('BudgetDetailsStore - Integration Tests', () => {
       );
 
       // Attempt update
-      await service.updateBudgetLine({ id: 'line-2', ...updateData });
+      await service.updateBudgetLine(updateData);
 
       // Check rollback
       const rolledBackData = service.budgetData();
@@ -401,11 +396,11 @@ describe('BudgetDetailsStore - Integration Tests', () => {
       const newBudgetLine: BudgetLineCreate = {
         budgetId: mockBudgetId,
         name: 'Test Line',
-        description: '',
         amount: 100,
         kind: 'expense',
         recurrence: 'fixed',
         isManuallyAdjusted: false,
+        isRollover: false,
       };
 
       // Create a subject to control the observable timing
@@ -436,7 +431,7 @@ describe('BudgetDetailsStore - Integration Tests', () => {
     });
 
     it('should track operations during update', async () => {
-      const updateData: BudgetLineUpdate = { name: 'Updated' };
+      const updateData: BudgetLineUpdate = { id: 'line-1', name: 'Updated' };
 
       // Create a subject to control the observable timing
       const subject = new Subject();
@@ -445,10 +440,7 @@ describe('BudgetDetailsStore - Integration Tests', () => {
         .mockReturnValue(subject.asObservable());
 
       // Start update (don't await yet)
-      const updatePromise = service.updateBudgetLine({
-        id: 'line-1',
-        ...updateData,
-      });
+      const updatePromise = service.updateBudgetLine(updateData);
 
       // Allow the service to start the operation
       await new Promise((resolve) => setTimeout(resolve, 0));
@@ -484,11 +476,11 @@ describe('BudgetDetailsStore - Integration Tests', () => {
       const newLine: BudgetLineCreate = {
         budgetId: mockBudgetId,
         name: 'Test',
-        description: '',
         amount: 100,
         kind: 'expense',
         recurrence: 'fixed',
         isManuallyAdjusted: false,
+        isRollover: false,
       };
 
       // Should not throw, but handle gracefully

@@ -1,6 +1,6 @@
 import { type Routes } from '@angular/router';
-import { BudgetLineApi } from './details/services/budget-line-api';
-import { BudgetTableMapper } from './details/services/budget-table-mapper';
+import { BudgetLineApi } from './details/budget-line-api/budget-line-api';
+import { BudgetTableMapper } from './details/budget-table/budget-table-mapper';
 import { PAGE_TITLES } from '@core/routing';
 
 export const budgetRoutes: Routes = [

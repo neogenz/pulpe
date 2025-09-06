@@ -132,8 +132,8 @@ export interface BudgetLineDialogData {
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class BudgetLineDialog {
-  #dialogRef = inject(MatDialogRef<BudgetLineDialog>);
+export class AddBudgetLineDialog {
+  #dialogRef = inject(MatDialogRef<AddBudgetLineDialog>);
   #data = inject<BudgetLineDialogData>(MAT_DIALOG_DATA);
   #fb = inject(FormBuilder);
 
