@@ -23,13 +23,13 @@ import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CurrencyPipe } from '@angular/common';
 import { type BudgetLineUpdate } from '@pulpe/shared';
-import { EditBudgetLineDialog } from './edit-budget-line-dialog';
+import { EditBudgetLineDialog } from '../edit-budget-line/edit-budget-line-dialog';
 import { Logger } from '@core/logging/logger';
 import {
-  BudgetTableMapper,
   type BudgetLineTableItem,
   type TableItem,
-} from '../services/budget-table-mapper';
+} from './budget-table-models';
+import { BudgetTableMapper } from './budget-table-mapper';
 import {
   TransactionIconPipe,
   TransactionLabelPipe,
@@ -40,7 +40,7 @@ import { type BudgetLineViewModel } from '../models/budget-line-view-model';
 import { type TransactionViewModel } from '../models/transaction-view-model';
 
 @Component({
-  selector: 'pulpe-budget-items-table',
+  selector: 'pulpe-budget-table',
   imports: [
     MatTableModule,
     MatCardModule,
@@ -391,7 +391,7 @@ import { type TransactionViewModel } from '../models/transaction-view-model';
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class BudgetItemsTable {
+export class BudgetTable {
   budgetLines = input.required<BudgetLineViewModel[]>();
   transactions = input.required<TransactionViewModel[]>();
 

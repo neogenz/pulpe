@@ -1,6 +1,6 @@
 import { inject, Injectable, computed, resource } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { BudgetLineApi } from './budget-line-api';
+import { BudgetLineApi } from '../budget-line-api/budget-line-api';
 import { TransactionApi } from '@core/transaction/transaction-api';
 import { Logger } from '@core/logging/logger';
 import { createInitialBudgetDetailsState } from './budget-details-state';
@@ -9,6 +9,7 @@ import {
   type BudgetLineUpdate,
   type BudgetDetailsResponse,
 } from '@pulpe/shared';
+import { BudgetApi } from '@core/budget/budget-api';
 
 /**
  * Signal-based store for budget details state management
@@ -17,6 +18,7 @@ import {
 @Injectable()
 export class BudgetDetailsStore {
   readonly #budgetLineApi = inject(BudgetLineApi);
+  readonly #budgetApi = inject(BudgetApi);
   readonly #transactionApi = inject(TransactionApi);
   readonly #logger = inject(Logger);
 
@@ -34,7 +36,7 @@ export class BudgetDetailsStore {
         throw new Error('Budget ID is required');
       }
       return await firstValueFrom(
-        this.#budgetLineApi.getBudgetDetails$(budgetId),
+        this.#budgetApi.getBudgetWithDetails$(budgetId),
       );
     },
   });

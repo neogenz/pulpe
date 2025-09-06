@@ -4,6 +4,10 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { BudgetTableMapper } from './budget-table-mapper';
 import { BudgetCalculator } from '@core/budget/budget-calculator';
 import type { BudgetLine, Transaction } from '@pulpe/shared';
+import {
+  createMockBudgetLine,
+  createMockTransaction,
+} from '../../../../testing/mock-factories';
 
 describe('BudgetTableMapper', () => {
   let service: BudgetTableMapper;
@@ -44,16 +48,15 @@ describe('BudgetTableMapper', () => {
 
     it('should prepare table data with budget lines', () => {
       const budgetLines: BudgetLine[] = [
-        {
+        createMockBudgetLine({
           id: '1',
           name: 'Salary',
           amount: 5000,
           kind: 'income',
           recurrence: 'fixed',
-          templateId: 'template-1',
           budgetId: 'budget-1',
           templateLineId: 'line-1',
-        },
+        }),
       ];
 
       const result = service.prepareBudgetTableData({
@@ -83,16 +86,15 @@ describe('BudgetTableMapper', () => {
 
     it('should detect one-off items', () => {
       const budgetLines: BudgetLine[] = [
-        {
+        createMockBudgetLine({
           id: '1',
           name: 'Bonus',
           amount: 1000,
           kind: 'income',
           recurrence: 'one_off',
-          templateId: 'template-1',
           budgetId: 'budget-1',
           templateLineId: 'line-1',
-        },
+        }),
       ];
 
       const result = service.prepareBudgetTableData({
@@ -106,15 +108,14 @@ describe('BudgetTableMapper', () => {
 
     it('should detect transactions', () => {
       const transactions: Transaction[] = [
-        {
+        createMockTransaction({
           id: 'trans-1',
           name: 'Coffee',
           amount: 5,
           kind: 'expense',
-          date: '2024-01-15',
+          transactionDate: '2024-01-15T00:00:00Z',
           budgetId: 'budget-1',
-          userId: 'user-1',
-        },
+        }),
       ];
 
       const result = service.prepareBudgetTableData({
@@ -128,16 +129,15 @@ describe('BudgetTableMapper', () => {
 
     it('should mark item as editing when editingLineId matches', () => {
       const budgetLines: BudgetLine[] = [
-        {
+        createMockBudgetLine({
           id: 'line-1',
           name: 'Salary',
           amount: 5000,
           kind: 'income',
           recurrence: 'fixed',
-          templateId: 'template-1',
           budgetId: 'budget-1',
           templateLineId: 'template-line-1',
-        },
+        }),
       ];
 
       const result = service.prepareBudgetTableData({

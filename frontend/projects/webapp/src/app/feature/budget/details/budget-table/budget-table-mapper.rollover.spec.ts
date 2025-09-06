@@ -4,6 +4,10 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { BudgetTableMapper } from './budget-table-mapper';
 import { BudgetCalculator } from '@core/budget/budget-calculator';
 import type { BudgetLine } from '@pulpe/shared';
+import {
+  createMockBudgetLine,
+  createMockRolloverBudgetLine,
+} from '../../../../testing/mock-factories';
 
 describe('BudgetTableMapper - Rollover Functionality', () => {
   let service: BudgetTableMapper;
@@ -23,27 +27,22 @@ describe('BudgetTableMapper - Rollover Functionality', () => {
   describe('Rollover Line Handling', () => {
     it('should identify and mark rollover lines', () => {
       const budgetLines: BudgetLine[] = [
-        {
+        createMockBudgetLine({
           id: 'regular-line',
           name: 'Rent',
           amount: 1500,
           kind: 'expense',
           recurrence: 'fixed',
-          templateId: 'template-1',
           budgetId: 'budget-1',
           templateLineId: 'line-1',
-        },
-        {
+        }),
+        createMockRolloverBudgetLine({
           id: 'rollover-line',
           name: 'rollover_12_2024',
           amount: 150,
-          kind: 'income',
-          recurrence: 'one_off',
-          templateId: 'template-1',
           budgetId: 'budget-1',
           templateLineId: 'line-2',
-          isRollover: true,
-        },
+        }),
       ];
 
       const result = service.prepareBudgetTableData({
@@ -65,17 +64,13 @@ describe('BudgetTableMapper - Rollover Functionality', () => {
 
     it('should not allow editing of rollover lines', () => {
       const budgetLines: BudgetLine[] = [
-        {
+        createMockRolloverBudgetLine({
           id: 'rollover-line',
           name: 'rollover_12_2024',
           amount: 150,
-          kind: 'income',
-          recurrence: 'one_off',
-          templateId: 'template-1',
           budgetId: 'budget-1',
           templateLineId: 'line-1',
-          isRollover: true,
-        },
+        }),
       ];
 
       const result = service.prepareBudgetTableData({
@@ -94,28 +89,23 @@ describe('BudgetTableMapper - Rollover Functionality', () => {
 
     it('should handle different rollover amounts correctly', () => {
       const budgetLines: BudgetLine[] = [
-        {
+        createMockRolloverBudgetLine({
           id: 'positive-rollover',
           name: 'rollover_11_2024',
           amount: 200,
-          kind: 'income',
-          recurrence: 'one_off',
-          templateId: 'template-1',
           budgetId: 'budget-1',
           templateLineId: 'line-1',
-          isRollover: true,
-        },
-        {
+        }),
+        createMockBudgetLine({
           id: 'negative-rollover',
           name: 'rollover_10_2024',
           amount: 50,
           kind: 'expense',
           recurrence: 'one_off',
-          templateId: 'template-1',
           budgetId: 'budget-1',
           templateLineId: 'line-2',
           isRollover: true,
-        },
+        }),
       ];
 
       const result = service.prepareBudgetTableData({
