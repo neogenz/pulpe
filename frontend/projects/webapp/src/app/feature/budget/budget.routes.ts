@@ -1,12 +1,11 @@
 import { type Routes } from '@angular/router';
 import { BudgetLineApi } from './details/services/budget-line-api';
-import { BudgetTableMapper } from './services/budget-table-mapper';
+import { BudgetTableMapper } from './details/services/budget-table-mapper';
 import { PAGE_TITLES } from '@core/routing';
 
 export const budgetRoutes: Routes = [
   {
     path: '',
-    providers: [BudgetTableMapper],
     children: [
       {
         path: '',
@@ -17,7 +16,7 @@ export const budgetRoutes: Routes = [
         path: ':id',
         title: PAGE_TITLES.BUDGET_DETAILS,
         data: { breadcrumb: 'Détail du budget', icon: 'visibility' },
-        providers: [BudgetLineApi],
+        providers: [BudgetLineApi, BudgetTableMapper],
         loadComponent: () => import('./details/details-page'),
       },
     ],
