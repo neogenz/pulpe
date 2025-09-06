@@ -72,7 +72,7 @@ import { type TransactionViewModel } from '../models/transaction-view-model';
       <mat-card-content class="overflow-x-auto">
         <table
           mat-table
-          [dataSource]="budgetTableData().items"
+          [dataSource]="budgetTableData()"
           [trackBy]="trackByRow"
           class="w-full min-w-[600px]"
         >
@@ -361,7 +361,7 @@ import { type TransactionViewModel } from '../models/transaction-view-model';
           </tr>
         </table>
       </mat-card-content>
-      @if (budgetTableData().items.length > 0) {
+      @if (budgetTableData().length > 0) {
         <mat-card-actions class="flex justify-center mb-2">
           <button
             matButton="outlined"

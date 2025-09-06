@@ -6,7 +6,7 @@ import {
   type TransactionRecurrence,
 } from '@pulpe/shared';
 import { BudgetCalculator } from '@core/budget/budget-calculator';
-import { type BudgetTableData, type TableItem } from './budget-table-models';
+import { type TableItem } from './budget-table-models';
 
 /**
  * Interface for budget items with cumulative balance calculation
@@ -156,13 +156,13 @@ export class BudgetTableDataProvider {
     budgetLines: BudgetLine[];
     transactions: Transaction[];
     editingLineId: string | null;
-  }): BudgetTableData {
+  }): TableItem[] {
     const itemsWithBalance = this.#composeBudgetItemsWithBalanceGrouped(
       params.budgetLines,
       params.transactions,
     );
 
-    const items: TableItem[] = itemsWithBalance.map((item) => {
+    return itemsWithBalance.map((item) => {
       const isRollover = this.#isRolloverBudgetLine(item.item);
       return {
         data: item.item,
@@ -177,21 +177,5 @@ export class BudgetTableDataProvider {
         },
       };
     });
-
-    return {
-      items,
-      summary: {
-        hasOneOff: items.some(
-          (i) =>
-            i.metadata.itemType === 'budget_line' &&
-            'recurrence' in i.data &&
-            i.data.recurrence === 'one_off',
-        ),
-        hasTransactions: items.some(
-          (i) => i.metadata.itemType === 'transaction',
-        ),
-        isEmpty: items.length === 0,
-      },
-    };
   }
 }
