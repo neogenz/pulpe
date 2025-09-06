@@ -23,7 +23,7 @@ interface BudgetItemWithBalance {
  * Handles all presentation logic including grouping, sorting, and view model transformation.
  */
 @Injectable()
-export class BudgetTableMapper {
+export class BudgetTableDataProvider {
   readonly #budgetCalculator = inject(BudgetCalculator);
 
   // Constantes pour l'ordre de tri
@@ -150,9 +150,9 @@ export class BudgetTableMapper {
   }
 
   /**
-   * Prepares simple budget table data
+   * Provides budget table data for display
    */
-  prepareBudgetTableData(params: {
+  provideTableData(params: {
     budgetLines: BudgetLine[];
     transactions: Transaction[];
     editingLineId: string | null;
