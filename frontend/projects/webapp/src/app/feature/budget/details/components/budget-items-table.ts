@@ -310,7 +310,7 @@ import { type TransactionViewModel } from '../models/transaction-view-model';
                   @if (!line.metadata.isRollover) {
                     <button
                       matIconButton
-                      (click)="deleteClicked.emit(line.data.id)"
+                      (click)="delete.emit(line.data.id)"
                       [attr.aria-label]="'Delete ' + line.data.name"
                       data-testid="delete-button"
                       [disabled]="line.metadata.isLoading"
@@ -350,7 +350,7 @@ import { type TransactionViewModel } from '../models/transaction-view-model';
               </p>
               <button
                 matButton="outlined"
-                (click)="addClicked.emit()"
+                (click)="add.emit()"
                 class="mt-4"
                 data-testid="add-first-line"
               >
@@ -365,7 +365,7 @@ import { type TransactionViewModel } from '../models/transaction-view-model';
         <mat-card-actions class="flex justify-center mb-2">
           <button
             matButton="outlined"
-            (click)="addClicked.emit()"
+            (click)="add.emit()"
             data-testid="add-budget-line"
           >
             <mat-icon>add</mat-icon>
@@ -397,8 +397,8 @@ export class BudgetItemsTable {
   operationsInProgress = input<Set<string>>(new Set());
 
   update = output<BudgetLineUpdate>();
-  deleteClicked = output<string>();
-  addClicked = output<void>();
+  delete = output<string>();
+  add = output<void>();
 
   // Services
   readonly #breakpointObserver = inject(BreakpointObserver);
