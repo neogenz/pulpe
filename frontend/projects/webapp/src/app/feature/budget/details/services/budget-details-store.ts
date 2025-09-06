@@ -71,11 +71,9 @@ export class BudgetDetailsStore {
       ...data,
       budgetLines: data.budgetLines.map((line) => ({
         ...line,
-        operationsInProgress: [],
       })),
       transactions: data.transactions.map((transaction) => ({
         ...transaction,
-        operationsInProgress: [],
       })),
     };
     return transformedData;
