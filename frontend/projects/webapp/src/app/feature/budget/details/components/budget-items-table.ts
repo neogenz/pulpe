@@ -394,7 +394,6 @@ import { type TransactionViewModel } from '../models/transaction-view-model';
 export class BudgetItemsTable {
   budgetLines = input.required<BudgetLineViewModel[]>();
   transactions = input.required<TransactionViewModel[]>();
-  operationsInProgress = input<Set<string>>(new Set());
 
   update = output<BudgetLineUpdate>();
   delete = output<string>();
@@ -433,14 +432,12 @@ export class BudgetItemsTable {
   budgetTableData = computed(() => {
     const budgetLines = this.budgetLines();
     const transactions = this.transactions();
-    const operationsInProgress = this.operationsInProgress();
     const editingLine = this.inlineFormEditingItem();
 
     // Component is now logic-free - just passes data to service
     return this.#budgetTableMapper.prepareBudgetTableData({
       budgetLines,
       transactions,
-      operationsInProgress,
       editingLineId: editingLine?.data.id ?? null,
     });
   });

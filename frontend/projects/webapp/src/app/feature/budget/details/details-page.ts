@@ -108,7 +108,6 @@ import {
         <pulpe-budget-items-table
           [budgetLines]="budgetLines"
           [transactions]="transactions"
-          [operationsInProgress]="budgetDetailsStore.operationsInProgress()"
           (update)="handleUpdateBudgetLine($event)"
           (delete)="handleDeleteItem($event)"
           (add)="openAddBudgetLineDialog()"

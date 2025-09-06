@@ -29,7 +29,6 @@ describe('BudgetTableMapper', () => {
       const result = service.prepareBudgetTableData({
         budgetLines: [],
         transactions: [],
-        operationsInProgress: new Set(),
         editingLineId: null,
       });
 
@@ -60,7 +59,6 @@ describe('BudgetTableMapper', () => {
       const result = service.prepareBudgetTableData({
         budgetLines,
         transactions: [],
-        operationsInProgress: new Set(),
         editingLineId: null,
       });
 
@@ -75,7 +73,6 @@ describe('BudgetTableMapper', () => {
         metadata: {
           itemType: 'budget_line',
           isEditing: false,
-          isLoading: false,
           isRollover: false,
         },
       });
@@ -101,7 +98,6 @@ describe('BudgetTableMapper', () => {
       const result = service.prepareBudgetTableData({
         budgetLines,
         transactions: [],
-        operationsInProgress: new Set(),
         editingLineId: null,
       });
 
@@ -124,7 +120,6 @@ describe('BudgetTableMapper', () => {
       const result = service.prepareBudgetTableData({
         budgetLines: [],
         transactions,
-        operationsInProgress: new Set(),
         editingLineId: null,
       });
 
@@ -148,35 +143,10 @@ describe('BudgetTableMapper', () => {
       const result = service.prepareBudgetTableData({
         budgetLines,
         transactions: [],
-        operationsInProgress: new Set(),
         editingLineId: 'line-1',
       });
 
       expect(result.items[0].metadata.isEditing).toBe(true);
-    });
-
-    it('should mark item as loading when in operationsInProgress', () => {
-      const budgetLines: BudgetLine[] = [
-        {
-          id: 'line-1',
-          name: 'Salary',
-          amount: 5000,
-          kind: 'income',
-          recurrence: 'fixed',
-          templateId: 'template-1',
-          budgetId: 'budget-1',
-          templateLineId: 'template-line-1',
-        },
-      ];
-
-      const result = service.prepareBudgetTableData({
-        budgetLines,
-        transactions: [],
-        operationsInProgress: new Set(['line-1']),
-        editingLineId: null,
-      });
-
-      expect(result.items[0].metadata.isLoading).toBe(true);
     });
 
     it('should identify rollover lines', () => {
@@ -187,8 +157,11 @@ describe('BudgetTableMapper', () => {
           amount: 150,
           kind: 'income',
           recurrence: 'one_off',
-          templateId: 'template-1',
           budgetId: 'budget-1',
+          createdAt: '2024-01-01',
+          updatedAt: '2024-01-01',
+          savingsGoalId: null,
+          isManuallyAdjusted: false,
           templateLineId: 'line-1',
           isRollover: true,
         },
@@ -197,7 +170,6 @@ describe('BudgetTableMapper', () => {
       const result = service.prepareBudgetTableData({
         budgetLines,
         transactions: [],
-        operationsInProgress: new Set(),
         editingLineId: null,
       });
 

@@ -8,9 +8,6 @@ export interface BudgetDetailsState {
   /** Current budget ID being managed */
   readonly budgetId: WritableSignal<string | null>;
 
-  /** Set of operation IDs currently in progress */
-  readonly operationsInProgress: WritableSignal<Set<string>>;
-
   /** Error message if any operation fails */
   readonly errorMessage: WritableSignal<string | null>;
 }
@@ -21,7 +18,6 @@ export interface BudgetDetailsState {
 export function createInitialBudgetDetailsState(): BudgetDetailsState {
   return {
     budgetId: signal<string | null>(null),
-    operationsInProgress: signal<Set<string>>(new Set()),
     errorMessage: signal<string | null>(null),
   };
 }
