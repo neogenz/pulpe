@@ -22,11 +22,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CurrencyPipe } from '@angular/common';
-import {
-  type BudgetLine,
-  type Transaction,
-  type BudgetLineUpdate,
-} from '@pulpe/shared';
+import { type BudgetLineUpdate } from '@pulpe/shared';
 import { EditBudgetLineDialog } from './edit-budget-line-dialog';
 import { Logger } from '@core/logging/logger';
 import {
@@ -40,6 +36,8 @@ import {
   RecurrenceLabelPipe,
 } from '@ui/transaction-display';
 import { RolloverFormatPipe } from '../../pipes';
+import { type BudgetLineViewModel } from '../models/budget-line-view-model';
+import { type TransactionViewModel } from '../models/transaction-view-model';
 
 @Component({
   selector: 'pulpe-budget-items-table',
@@ -394,12 +392,10 @@ import { RolloverFormatPipe } from '../../pipes';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BudgetItemsTable {
-  // Inputs - pure data
-  budgetLines = input.required<BudgetLine[]>();
-  transactions = input.required<Transaction[]>();
+  budgetLines = input.required<BudgetLineViewModel[]>();
+  transactions = input.required<TransactionViewModel[]>();
   operationsInProgress = input<Set<string>>(new Set());
 
-  // Outputs - events only
   update = output<BudgetLineUpdate>();
   deleteClicked = output<string>();
   addClicked = output<void>();
