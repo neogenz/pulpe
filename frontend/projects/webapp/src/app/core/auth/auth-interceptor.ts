@@ -33,7 +33,7 @@ export const authInterceptor: HttpInterceptorFn = (
 
 function shouldInterceptRequest(url: string, backendApiUrl: string): boolean {
   // Exclure les requêtes de configuration pour éviter la dépendance circulaire
-  if (url.includes('/config.json') || url.includes('/config.local.json')) {
+  if (url.includes('/config.json')) {
     return false;
   }
 
