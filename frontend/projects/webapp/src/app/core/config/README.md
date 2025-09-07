@@ -28,6 +28,7 @@ The application loads configuration at **runtime** from `/config.json`:
 ```
 
 This file is:
+
 - Loaded via HTTP when the application starts
 - Validated with Zod schemas for type safety
 - Stored in Angular signals for reactive updates
@@ -40,16 +41,17 @@ The `environment.ts` files contain **build optimization flags only**:
 ```typescript
 // environment.ts (production)
 export const environment = {
-  production: true  // Enables minification, tree-shaking, etc.
+  production: true, // Enables minification, tree-shaking, etc.
 };
 
 // environment.development.ts
 export const environment = {
-  production: false  // Disables optimizations for faster builds
+  production: false, // Disables optimizations for faster builds
 };
 ```
 
 These files control:
+
 - Minification and uglification
 - Tree-shaking and dead code elimination
 - Source map generation
@@ -63,6 +65,7 @@ These files control:
 ### 1. Build Once, Deploy Everywhere
 
 With runtime configuration, you can:
+
 - Build a single Docker image
 - Deploy to multiple environments (dev, staging, prod)
 - Change configuration without rebuilding
@@ -71,6 +74,7 @@ With runtime configuration, you can:
 ### 2. Container & Cloud Native
 
 Modern deployment strategies require:
+
 - **Immutable artifacts**: One build, many deployments
 - **Environment parity**: Same code in all environments
 - **Configuration flexibility**: Change settings without code changes
@@ -83,12 +87,14 @@ Modern deployment strategies require:
 **A: Yes, when Row Level Security (RLS) is enabled.**
 
 The Supabase anon key is:
+
 - Designed to be public (like a Firebase API key)
 - Limited by Row Level Security policies
 - Only allows operations explicitly permitted by RLS
 - Cannot bypass database security rules
 
 Our RLS policies ensure:
+
 - Users can only access their own data
 - All tables have `ENABLE ROW LEVEL SECURITY`
 - Policies check `auth.uid()` for user isolation
@@ -97,6 +103,7 @@ Our RLS policies ensure:
 ### 4. Angular Best Practices 2025
 
 The Angular team recommends:
+
 - Use `APP_INITIALIZER` for runtime configuration
 - Keep `environment.ts` for build-time constants only
 - Load configuration before app bootstrap
@@ -110,7 +117,7 @@ graph LR
     B --> C[Validate with Zod]
     C --> D[Store in Signals]
     D --> E[App Ready]
-    
+
     F[environment.ts] --> G[Build Process]
     G --> H[Optimized Bundle]
 ```
@@ -120,6 +127,7 @@ graph LR
 To add new configuration values:
 
 1. **Update the Zod schema** (`config.schema.ts`):
+
 ```typescript
 export const ConfigSchema = z.object({
   // ... existing fields
@@ -128,6 +136,7 @@ export const ConfigSchema = z.object({
 ```
 
 2. **Update the config files**:
+
 ```json
 {
   "myNewConfig": "https://example.com"
@@ -135,6 +144,7 @@ export const ConfigSchema = z.object({
 ```
 
 3. **Use in your service**:
+
 ```typescript
 const myConfig = this.appConfig.rawConfiguration()?.myNewConfig;
 ```
@@ -149,16 +159,10 @@ core/config/
 └── types.ts                        # TypeScript types (generated from Zod)
 ```
 
-## Local Development
-
-For local development:
-1. Copy `config.json` to `config.local.json`
-2. Update with local values
-3. The dev server will use the local file automatically
-
 ## Production Deployment
 
 For production:
+
 1. Build the application once: `pnpm build`
 2. Deploy the dist folder to your server
 3. Provide environment-specific `config.json`
@@ -167,11 +171,13 @@ For production:
 ## Security Notes
 
 ### ✅ Safe to Expose
+
 - Supabase anon key (protected by RLS)
 - Backend API URLs
 - Environment names
 
 ### ❌ Never Expose
+
 - Supabase service role key
 - Private API keys
 - Sensitive credentials
@@ -188,16 +194,19 @@ If migrating from build-time configuration:
 ## Troubleshooting
 
 ### Config Not Loading
+
 - Check browser network tab for 404 on `/config.json`
 - Verify file exists in `public/` directory
 - Check CORS if loading from different domain
 
 ### Validation Errors
+
 - Check browser console for Zod validation errors
 - Verify config matches schema structure
 - Ensure all required fields are present
 
 ### Type Errors
+
 - Run `pnpm type-check` to verify types
 - Types are auto-generated from Zod schema
 - Check imports from `./types`

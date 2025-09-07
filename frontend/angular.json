@@ -72,8 +72,8 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "1.1MB",
-                  "maximumError": "1.1MB"
+                  "maximumWarning": "1MB",
+                  "maximumError": "1.5MB"
                 },
                 {
                   "type": "anyComponentStyle",
@@ -96,6 +96,7 @@
                 "vendor": false
               },
               "outputHashing": "all",
+              "sourceMap": true,
               "assets": [
                 {
                   "glob": "**/*",
