@@ -26,6 +26,17 @@ export class ApplicationConfiguration {
     'development',
   );
 
+  // PostHog configuration signals
+  readonly postHogApiKey = signal<string>('');
+  readonly postHogHost = signal<string>('https://eu.posthog.com');
+  readonly postHogEnabled = signal<boolean>(false);
+  readonly postHogCapturePageviews = signal<boolean>(true);
+  readonly postHogCapturePageleaves = signal<boolean>(true);
+  readonly postHogSessionRecordingEnabled = signal<boolean>(false);
+  readonly postHogSessionRecordingMaskInputs = signal<boolean>(true);
+  readonly postHogSessionRecordingSampleRate = signal<number>(0.1);
+  readonly postHogDebug = signal<boolean>(false);
+
   // Configuration complète en lecture seule
   readonly rawConfiguration = computed<ApplicationConfig | null>(() => {
     const url = this.supabaseUrl();
@@ -38,17 +49,60 @@ export class ApplicationConfiguration {
       return null;
     }
 
-    return {
+    const config: ApplicationConfig = {
       supabase: { url, anonKey: key },
       backend: { apiUrl },
       environment: env,
     };
+
+    // Add PostHog configuration if API key is provided
+    if (this.postHogApiKey()) {
+      config.postHog = {
+        apiKey: this.postHogApiKey(),
+        host: this.postHogHost(),
+        enabled: this.postHogEnabled(),
+        capturePageviews: this.postHogCapturePageviews(),
+        capturePageleaves: this.postHogCapturePageleaves(),
+        sessionRecording: {
+          enabled: this.postHogSessionRecordingEnabled(),
+          maskInputs: this.postHogSessionRecordingMaskInputs(),
+          sampleRate: this.postHogSessionRecordingSampleRate(),
+        },
+        debug: this.postHogDebug(),
+      };
+    }
+
+    return config;
   });
 
   // Signaux dérivés (computed)
   readonly isDevelopment = computed(() => this.environment() === 'development');
   readonly isProduction = computed(() => this.environment() === 'production');
   readonly isLocal = computed(() => this.environment() === 'local');
+
+  // PostHog specific computed signals
+  readonly postHogConfig = computed(() => {
+    const apiKey = this.postHogApiKey();
+
+    // Return null if PostHog is not configured
+    if (!apiKey) {
+      return null;
+    }
+
+    return {
+      apiKey,
+      host: this.postHogHost(),
+      enabled: this.postHogEnabled(),
+      capturePageviews: this.postHogCapturePageviews(),
+      capturePageleaves: this.postHogCapturePageleaves(),
+      sessionRecording: {
+        enabled: this.postHogSessionRecordingEnabled(),
+        maskInputs: this.postHogSessionRecordingMaskInputs(),
+        sampleRate: this.postHogSessionRecordingSampleRate(),
+      },
+      debug: this.postHogDebug() || this.isDevelopment(),
+    };
+  });
 
   /**
    * Initialise la configuration en chargeant le fichier config.json
@@ -125,10 +179,57 @@ export class ApplicationConfiguration {
       });
     }
 
+    // Set core configuration
     this.supabaseUrl.set(supabaseUrl);
     this.supabaseAnonKey.set(config.supabase.anonKey);
     this.backendApiUrl.set(backendApiUrl);
     this.environment.set(config.environment);
+
+    // Set PostHog configuration if provided
+    if (config.postHog) {
+      const postHogHost = sanitizeUrl(
+        config.postHog.host,
+        'https://eu.posthog.com',
+      );
+
+      if (!isValidUrl(config.postHog.host)) {
+        this.#logger.warn(
+          'Invalid PostHog host URL, using sanitized fallback',
+          {
+            original: config.postHog.host,
+            sanitized: postHogHost,
+          },
+        );
+      }
+
+      this.postHogApiKey.set(config.postHog.apiKey);
+      this.postHogHost.set(postHogHost);
+      this.postHogEnabled.set(config.postHog.enabled);
+      this.postHogCapturePageviews.set(config.postHog.capturePageviews);
+      this.postHogCapturePageleaves.set(config.postHog.capturePageleaves);
+      this.postHogDebug.set(config.postHog.debug);
+
+      // Set session recording configuration
+      if (config.postHog.sessionRecording) {
+        this.postHogSessionRecordingEnabled.set(
+          config.postHog.sessionRecording.enabled,
+        );
+        this.postHogSessionRecordingMaskInputs.set(
+          config.postHog.sessionRecording.maskInputs,
+        );
+        this.postHogSessionRecordingSampleRate.set(
+          config.postHog.sessionRecording.sampleRate,
+        );
+      }
+
+      this.#logger.info('PostHog configuration loaded', {
+        enabled: config.postHog.enabled,
+        host: postHogHost,
+        debug: config.postHog.debug,
+      });
+    } else {
+      this.#logger.info('PostHog configuration not provided, using defaults');
+    }
   }
 
   /**
@@ -140,5 +241,29 @@ export class ApplicationConfiguration {
     this.supabaseAnonKey.set(DEFAULT_CONFIG.supabase.anonKey);
     this.backendApiUrl.set(DEFAULT_CONFIG.backend.apiUrl);
     this.environment.set(DEFAULT_CONFIG.environment);
+
+    // Set PostHog defaults
+    if (DEFAULT_CONFIG.postHog) {
+      this.postHogApiKey.set(DEFAULT_CONFIG.postHog.apiKey);
+      this.postHogHost.set(DEFAULT_CONFIG.postHog.host);
+      this.postHogEnabled.set(DEFAULT_CONFIG.postHog.enabled);
+      this.postHogCapturePageviews.set(DEFAULT_CONFIG.postHog.capturePageviews);
+      this.postHogCapturePageleaves.set(
+        DEFAULT_CONFIG.postHog.capturePageleaves,
+      );
+      this.postHogDebug.set(DEFAULT_CONFIG.postHog.debug);
+
+      if (DEFAULT_CONFIG.postHog.sessionRecording) {
+        this.postHogSessionRecordingEnabled.set(
+          DEFAULT_CONFIG.postHog.sessionRecording.enabled,
+        );
+        this.postHogSessionRecordingMaskInputs.set(
+          DEFAULT_CONFIG.postHog.sessionRecording.maskInputs,
+        );
+        this.postHogSessionRecordingSampleRate.set(
+          DEFAULT_CONFIG.postHog.sessionRecording.sampleRate,
+        );
+      }
+    }
   }
 }

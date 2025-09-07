@@ -51,6 +51,50 @@ export const ConfigSchema = z.object({
         },
       ),
   }),
+  postHog: z
+    .object({
+      apiKey: z
+        .string()
+        .min(1, 'PostHog API key is required')
+        .refine(
+          (key) => {
+            // PostHog API keys have a specific format: phc_xxxxx
+            return key.startsWith('phc_') && key.length > 10;
+          },
+          {
+            message: 'PostHog API key must start with "phc_" and be valid',
+          },
+        ),
+      host: z
+        .string()
+        .url('PostHog host must be a valid URL')
+        .refine(
+          (url) => {
+            // Allow common PostHog hosts
+            return (
+              url.includes('posthog.com') ||
+              url.includes('posthog.dev') ||
+              url.includes('localhost')
+            );
+          },
+          {
+            message: 'PostHog host must be a valid PostHog instance URL',
+          },
+        )
+        .default('https://eu.posthog.com'),
+      enabled: z.boolean().default(true),
+      capturePageviews: z.boolean().default(true),
+      capturePageleaves: z.boolean().default(true),
+      sessionRecording: z
+        .object({
+          enabled: z.boolean().default(false),
+          maskInputs: z.boolean().default(true),
+          sampleRate: z.number().min(0).max(1).default(0.1),
+        })
+        .optional(),
+      debug: z.boolean().default(false),
+    })
+    .optional(),
   environment: z.enum(['development', 'production', 'local'], {
     errorMap: () => ({
       message: "Environment must be 'development', 'production', or 'local'",
@@ -97,6 +141,19 @@ export const DEFAULT_CONFIG: ApplicationConfig = {
   },
   backend: {
     apiUrl: 'http://localhost:3000/api/v1',
+  },
+  postHog: {
+    apiKey: '',
+    host: 'https://eu.posthog.com',
+    enabled: false, // Disabled by default in fallback config
+    capturePageviews: true,
+    capturePageleaves: true,
+    sessionRecording: {
+      enabled: false,
+      maskInputs: true,
+      sampleRate: 0.1,
+    },
+    debug: false,
   },
   environment: 'development',
 };

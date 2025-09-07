@@ -15,6 +15,7 @@ export enum LogLevel {
  * Centralized logging service for the application.
  * Provides environment-aware logging with automatic suppression in production.
  * Sanitizes sensitive data before logging.
+ * Optionally forwards critical errors to PostHog for production monitoring.
  *
  * Following Angular 20 naming convention (no .service suffix)
  */
