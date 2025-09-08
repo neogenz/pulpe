@@ -161,6 +161,7 @@ export class AddBudgetLineDialog {
         kind: value.kind!,
         recurrence: value.recurrence!,
         isManuallyAdjusted: true,
+        isRollover: false,
       };
       this.#dialogRef.close(budgetLine);
     }
