@@ -117,8 +117,9 @@ type EditTransactionFormData = Pick<
         ) {
           @if (store.dashboardData()?.budget) {
             <pulpe-budget-progress-bar
-              [totalBudget]="store.livingAllowanceAmount()"
+              [balance]="store.balance()"
               [usedAmount]="store.actualTransactionsAmount()"
+              [totalIncome]="store.totalIncomeAmount()"
             />
             <div class="flex flex-col gap-4" data-testid="dashboard-content">
               <pulpe-transaction-chip-filter

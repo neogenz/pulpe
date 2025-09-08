@@ -27,18 +27,20 @@ export class BudgetCalculator {
   }
 
   /**
-   * Calcule la Living Allowance selon les spécifications métier
-   * Living Allowance = Revenu planifié - Fixed Block
+   * Calcule la balance selon les spécifications métier
+   * Balance = Revenu planifié - Fixed Block
+   *
+   * TODO : voir si le ending_balance ne serait pas plus pertinent
    */
-  calculateLivingAllowance(budgetLines: BudgetLine[]): number {
+  calculateBalance(budgetLines: BudgetLine[]): number {
     const plannedIncome = this.calculatePlannedIncome(budgetLines);
     const fixedBlock = this.calculateFixedBlock(budgetLines);
     return plannedIncome - fixedBlock;
   }
 
   /**
-   * Calcule l'impact des transactions réelles sur la Living Allowance
-   * Note: Selon RG-007, les transactions diminuent la Living Allowance
+   * Calcule l'impact des transactions réelles sur la balance
+   * Note: Selon RG-007, les transactions diminuent la balance
    * - Les revenus (income) l'augmentent (+)
    * - Les dépenses et épargnes (expense, saving) la diminuent (-)
    */

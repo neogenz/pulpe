@@ -90,9 +90,14 @@ export class CurrentMonthStore {
   /**
    * Living allowance amount (available to spend)
    */
-  readonly livingAllowanceAmount = computed<number>(() => {
+  readonly balance = computed<number>(() => {
     const budgetLines = this.budgetLines();
-    return this.#budgetCalculator.calculateLivingAllowance(budgetLines);
+    return this.#budgetCalculator.calculateBalance(budgetLines);
+  });
+
+  readonly totalIncomeAmount = computed<number>(() => {
+    const budgetLines = this.budgetLines();
+    return this.#budgetCalculator.calculatePlannedIncome(budgetLines);
   });
 
   /**
