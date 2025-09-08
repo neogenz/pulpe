@@ -49,9 +49,7 @@ import { type CalendarMonth } from './calendar-types';
         }
       </mat-card-header>
 
-      <mat-card-content
-        class="flex flex-col items-center justify-center h-full"
-      >
+      <mat-card-content>
         @if (month().hasContent) {
           <div class="month-value text-center">
             <p class="text-label-small uppercase text-on-surface-variant mb-1">
@@ -96,6 +94,9 @@ import { type CalendarMonth } from './calendar-types';
     }
 
     .month-tile-card {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
       min-height: 140px;
       transition: transform 200ms cubic-bezier(0.2, 0, 0, 1);
 
@@ -125,10 +126,16 @@ import { type CalendarMonth } from './calendar-types';
     }
 
     mat-card-header {
+      flex-shrink: 0;
       padding-bottom: 0.5rem;
     }
 
     mat-card-content {
+      flex: 1;
+      display: flex !important;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
       padding-top: 0;
       min-height: 80px;
     }
