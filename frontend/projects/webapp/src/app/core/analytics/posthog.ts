@@ -10,6 +10,7 @@ import posthog from 'posthog-js';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
 import { runOutsideAngular } from './global-error-handler';
+import { buildInfo } from '@env/build-info';
 
 /**
  * PostHog service for analytics and error tracking integration.
@@ -210,9 +211,20 @@ export class PostHogService {
           capture_pageview: false, // We'll handle this manually for SPA routing
           capture_pageleave: config.capturePageleaves,
 
-          // Session recording
+          // Session recording with financial data masking
           session_recording: {
             maskAllInputs: config.sessionRecording.maskInputs,
+            maskTextSelector:
+              '.financial-amount, .financial-title, [class*="financial"], [class*="text-financial"]',
+            maskTextFn: (text: string): string => {
+              // Auto-mask financial amounts and CHF patterns
+              return text
+                .replace(/CHF\s*[\d\s',.-]+/gi, 'CHF ***') // CHF 1,234.50
+                .replace(/[\d\s',.-]+\s*CHF/gi, '*** CHF') // 1,234.50 CHF
+                .replace(/\d{1,3}[''\s]?\d{3}[.,]\d{2}/g, '***') // 1'234.50
+                .replace(/€\s*[\d\s',.-]+/gi, '€ ***') // € 1,234.50 (future-proof)
+                .replace(/[\d\s',.-]+\s*€/gi, '*** €'); // 1,234.50 € (future-proof)
+            },
           },
           disable_session_recording: !config.sessionRecording.enabled,
 
@@ -226,11 +238,63 @@ export class PostHogService {
           // Error handling
           loaded: () => {
             this.#logger.debug('PostHog loaded successfully');
+
+            // Register global Super Properties for all PostHog events
+            this.#registerGlobalProperties();
+
             resolve();
           },
         });
       });
     });
+  }
+
+  /**
+   * Register global Super Properties that will be included with all PostHog events
+   * Following PostHog best practices for environment and version tracking
+   */
+  #registerGlobalProperties(): void {
+    try {
+      const environment = this.#applicationConfiguration.environment();
+
+      const globalProperties = {
+        // Environment context
+        environment: environment,
+
+        // Application version info
+        app_version: buildInfo.version,
+        app_commit: buildInfo.shortCommitHash,
+        deployment_date: buildInfo.buildDate,
+
+        // Platform info
+        platform: 'web',
+      };
+
+      posthog.register(globalProperties);
+
+      this.#logger.info('PostHog Super Properties registered', {
+        environment,
+        app_version: buildInfo.version,
+        properties_count: Object.keys(globalProperties).length,
+      });
+
+      // Log financial data masking configuration if session recording is enabled
+      const config = this.#applicationConfiguration.postHogConfig();
+      if (config?.sessionRecording?.enabled) {
+        this.#logger.info('PostHog financial data masking enabled', {
+          maskInputs: config.sessionRecording.maskInputs,
+          maskedSelectors:
+            '.financial-amount, .financial-title, [class*="financial"]',
+          patterns: [
+            'CHF amounts',
+            'formatted numbers',
+            'Euro amounts (future-proof)',
+          ],
+        });
+      }
+    } catch (error) {
+      this.#logger.error('Failed to register PostHog Super Properties', error);
+    }
   }
 
   /**
