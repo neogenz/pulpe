@@ -15,6 +15,8 @@ import {
   provideZonelessChangeDetection,
   provideAppInitializer,
   inject,
+  Injector,
+  runInInjectionContext,
 } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import {
@@ -28,6 +30,7 @@ import { AuthApi } from './auth/auth-api';
 import { PulpeTitleStrategy } from './routing/title-strategy';
 import { ApplicationConfiguration } from './config/application-configuration';
 import { PostHogService } from './analytics/posthog';
+import { AnalyticsService } from './analytics/analytics';
 import { provideGlobalErrorHandler } from './analytics/global-error-handler';
 import { buildInfo } from '@env/build-info';
 import { environment } from '@env/environment';
@@ -113,6 +116,8 @@ export function provideCore({ routes }: CoreOptions) {
       const applicationConfig = inject(ApplicationConfiguration);
       const postHogService = inject(PostHogService);
       const authService = inject(AuthApi);
+      const analyticsService = inject(AnalyticsService);
+      const injector = inject(Injector);
 
       try {
         // 1. Charger la configuration d'abord
@@ -124,6 +129,15 @@ export function provideCore({ routes }: CoreOptions) {
         // 3. Initialiser PostHog (non-blocking, can fail gracefully)
         try {
           await postHogService.initialize();
+
+          // Initialize analytics with proper injection context for effect()
+          runInInjectionContext(injector, async () => {
+            await analyticsService.initialize();
+            console.debug(
+              'Analytics service ready:',
+              analyticsService.isActive,
+            );
+          });
         } catch (postHogError) {
           console.warn(
             'PostHog initialization failed, continuing without analytics',
