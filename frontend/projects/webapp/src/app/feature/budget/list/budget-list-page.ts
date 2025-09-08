@@ -216,12 +216,12 @@ export default class OtherMonths implements OnInit {
         year,
         displayName: `${monthNames[month - 1]} ${year}`,
         hasContent: !!budget,
-        value: budget?.endingBalance,
-        status: budget?.endingBalance 
-          ? budget.endingBalance > 0 
-            ? 'positive' 
-            : budget.endingBalance < 0 
-              ? 'negative' 
+        value: budget?.endingBalance ?? undefined,
+        status: budget?.endingBalance
+          ? budget.endingBalance > 0
+            ? 'positive'
+            : budget.endingBalance < 0
+              ? 'negative'
               : 'neutral'
           : undefined,
         metadata: budget ? { budgetId: budget.budgetId } : undefined,
