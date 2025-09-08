@@ -239,9 +239,10 @@ export class CreateBudgetDialogComponent {
   readonly #snackBar = inject(MatSnackBar);
   readonly #budgetApi = inject(BudgetApi);
   readonly templateStore = inject(TemplateStore);
-  readonly #data = inject<CreateBudgetDialogData | null>(MAT_DIALOG_DATA, {
-    optional: true,
-  });
+  readonly #data = inject<{ month?: number; year?: number } | null>(
+    MAT_DIALOG_DATA,
+    { optional: true },
+  );
 
   // Expose constants for template usage
   readonly constants = BUDGET_CREATION_CONSTANTS;
@@ -298,18 +299,13 @@ export class CreateBudgetDialogComponent {
   });
 
   #getInitialDate(): Date {
-    // Utilise l'année sélectionnée si fournie, sinon l'année actuelle
-    const currentDate = new Date();
-    const year = this.#data?.selectedYear ?? currentDate.getFullYear();
-
-    // Si l'année sélectionnée est différente de l'année actuelle,
-    // utilise le mois actuel dans cette année
-    if (year !== currentDate.getFullYear()) {
-      return startOfMonth(new Date(year, currentDate.getMonth(), 1));
+    // Si month et year sont fournis dans data, les utiliser
+    if (this.#data?.month && this.#data?.year) {
+      return startOfMonth(new Date(this.#data.year, this.#data.month - 1, 1));
     }
-
+    
     // Sinon utilise la date actuelle
-    return startOfMonth(currentDate);
+    return startOfMonth(new Date());
   }
 
   constructor() {
@@ -425,5 +421,14 @@ export class CreateBudgetDialogComponent {
         },
       );
     }
+  }
+
+  #getInitialDate(): Date {
+    if (this.#data?.month && this.#data?.year) {
+      // Créer une date avec le mois et l'année fournis (mois - 1 car JavaScript utilise 0-11)
+      return startOfMonth(new Date(this.#data.year, this.#data.month - 1, 1));
+    }
+    // Par défaut, utiliser la date actuelle
+    return startOfMonth(new Date());
   }
 }
