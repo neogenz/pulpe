@@ -5,7 +5,10 @@ import {
   output,
   computed,
 } from '@angular/core';
+import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { MatRippleModule } from '@angular/material/core';
 import { CurrencyPipe } from '@angular/common';
 import { type CalendarMonth } from './calendar-types';
 
@@ -13,381 +16,167 @@ import { type CalendarMonth } from './calendar-types';
   selector: 'pulpe-month-tile',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatIconModule, CurrencyPipe],
+  imports: [
+    MatCardModule,
+    MatIconModule,
+    MatButtonModule,
+    MatRippleModule,
+    CurrencyPipe,
+  ],
   template: `
-    <button
-      class="month-tile group"
-      [attr.data-status]="month().status"
-      [attr.data-current]="isCurrentMonth()"
-      [attr.data-has-content]="month().hasContent"
+    <mat-card
+      class="month-tile-card cursor-pointer h-full"
+      [class.current-month]="isCurrentMonth()"
+      [class.empty-month]="!month().hasContent"
+      [appearance]="month().hasContent ? 'raised' : 'outlined'"
       [attr.data-testid]="'month-tile-' + month().month"
-      [disabled]="disabled()"
       (click)="handleClick()"
-      type="button"
+      tabindex="0"
+      role="button"
+      [attr.aria-label]="getAriaLabel()"
+      matRipple
     >
-      <!-- Material ripple effect overlay -->
-      <div class="state-layer"></div>
-
-      <!-- Content container -->
-      <div class="month-tile-inner">
-        <div class="month-tile-header">
-          <span class="month-name">{{ monthName() }}</span>
-          @if (isCurrentMonth()) {
-            <span class="current-badge" aria-label="Mois actuel">
+      <mat-card-header>
+        <mat-card-title class="text-title-medium capitalize">
+          {{ monthName() }}
+        </mat-card-title>
+        @if (isCurrentMonth()) {
+          <div mat-card-avatar>
+            <div class="current-badge">
               <mat-icon class="icon-filled">event</mat-icon>
-            </span>
-          }
-        </div>
-
-        <div class="month-tile-content">
-          @if (month().hasContent) {
-            @if (month().value !== undefined) {
-              <div class="month-value" [attr.data-type]="valueType()">
-                <span class="value-label">Disponible</span>
-                <span class="value-amount">
-                  {{
-                    month().value
-                      | currency: 'CHF' : 'symbol' : '1.0-0' : 'fr-CH'
-                  }}
-                </span>
-              </div>
-            }
-            @if (month().status) {
-              <div class="status-indicator">
-                @switch (month().status) {
-                  @case ('positive') {
-                    <mat-icon class="status-icon icon-filled">savings</mat-icon>
-                  }
-                  @case ('negative') {
-                    <mat-icon class="status-icon icon-filled"
-                      >trending_down</mat-icon
-                    >
-                  }
-                  @case ('warning') {
-                    <mat-icon class="status-icon icon-filled">warning</mat-icon>
-                  }
-                }
-              </div>
-            }
-          } @else {
-            <div class="empty-month">
-              <div class="empty-icon-wrapper">
-                <mat-icon class="empty-icon">add</mat-icon>
-              </div>
-              <span class="empty-text">Créer</span>
             </div>
-          }
-        </div>
-      </div>
-    </button>
+          </div>
+        }
+      </mat-card-header>
+
+      <mat-card-content
+        class="flex flex-col items-center justify-center h-full"
+      >
+        @if (month().hasContent) {
+          <div class="month-value text-center">
+            <p class="text-label-small uppercase text-on-surface-variant mb-1">
+              Disponible
+            </p>
+            <p
+              class="text-headline-small font-semibold"
+              [class.text-financial-income]="valueType() === 'positive'"
+              [class.text-financial-negative]="valueType() === 'negative'"
+              [class.text-on-surface-variant]="valueType() === 'neutral'"
+            >
+              {{
+                month().value | currency: 'CHF' : 'symbol' : '1.0-0' : 'fr-CH'
+              }}
+            </p>
+          </div>
+        } @else {
+          <div class="empty-month-content text-center">
+            <button
+              mat-fab
+              color="primary"
+              aria-label="Créer un budget"
+              class="mb-2"
+              (click)="handleClick(); $event.stopPropagation()"
+            >
+              <mat-icon>add</mat-icon>
+            </button>
+            <p class="text-label-medium uppercase text-on-surface-variant">
+              Créer
+            </p>
+          </div>
+        }
+      </mat-card-content>
+    </mat-card>
   `,
   styles: `
+    @use '@angular/material' as mat;
+
     :host {
       display: block;
       height: 100%;
     }
 
-    .month-tile {
-      position: relative;
-      width: 100%;
-      height: 100%;
+    .month-tile-card {
       min-height: 140px;
-      padding: 0;
-      border: none;
-      cursor: pointer;
-      overflow: hidden;
+      transition: transform 200ms cubic-bezier(0.2, 0, 0, 1);
 
-      /* Material elevation system */
-      border-radius: var(--mat-sys-corner-large);
-      background: var(--mat-sys-surface-container);
-      transition: all 200ms cubic-bezier(0.2, 0, 0, 1);
-
-      /* Elevation levels */
-      box-shadow: var(--mat-sys-level1);
-
-      &:hover:not(:disabled) {
-        box-shadow: var(--mat-sys-level3);
-        transform: translateY(-1px);
-
-        .state-layer {
-          opacity: 0.08;
-        }
+      &:hover:not([disabled]) {
+        transform: translateY(-2px);
       }
 
-      &:focus-visible {
-        outline: 2px solid var(--mat-sys-primary);
-        outline-offset: 2px;
-
-        .state-layer {
-          opacity: 0.12;
-        }
-      }
-
-      &:active:not(:disabled) {
-        box-shadow: var(--mat-sys-level0);
+      &:active:not([disabled]) {
         transform: translateY(0);
-
-        .state-layer {
-          opacity: 0.12;
-        }
       }
 
-      /* Empty month state */
-      &[data-has-content='false'] {
-        background: var(--mat-sys-surface);
-        box-shadow: none;
-        border: 2px dashed var(--mat-sys-outline-variant);
+      &.current-month {
+        background-color: var(--mat-sys-primary-container);
 
-        &:hover:not(:disabled) {
-          background: var(--mat-sys-surface-container-lowest);
-          border-color: var(--mat-sys-outline);
-          box-shadow: var(--mat-sys-level1);
-        }
-      }
-
-      /* Current month state */
-      &[data-current='true'] {
-        background: var(--mat-sys-primary-container);
-        box-shadow: var(--mat-sys-level2);
-
-        .month-name {
+        mat-card-title {
           color: var(--mat-sys-on-primary-container);
         }
-
-        .value-label,
-        .value-amount {
-          color: var(--mat-sys-on-primary-container);
-        }
-
-        .current-badge {
-          background: var(--mat-sys-primary);
-          color: var(--mat-sys-on-primary);
-        }
       }
 
-      &:disabled {
-        opacity: 0.38;
-        cursor: not-allowed;
-        box-shadow: none;
+      &.empty-month {
+        opacity: 0.9;
+
+        &:hover {
+          opacity: 1;
+        }
       }
     }
 
-    /* State layer for ripple effect */
-    .state-layer {
-      position: absolute;
-      inset: 0;
-      background: var(--mat-sys-on-surface);
-      opacity: 0;
-      transition: opacity 200ms cubic-bezier(0.2, 0, 0, 1);
-      pointer-events: none;
-      border-radius: inherit;
+    mat-card-header {
+      padding-bottom: 0.5rem;
     }
 
-    /* Content container */
-    .month-tile-inner {
-      position: relative;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      padding: 1rem;
-      gap: 0.75rem;
-    }
-
-    .month-tile-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      min-height: 28px;
-    }
-
-    .month-name {
-      font-size: var(--mat-sys-title-medium-size);
-      line-height: var(--mat-sys-title-medium-line-height);
-      font-weight: var(--mat-sys-title-medium-weight);
-      letter-spacing: var(--mat-sys-title-medium-tracking);
-      color: var(--mat-sys-on-surface);
-      text-transform: capitalize;
+    mat-card-content {
+      padding-top: 0;
+      min-height: 80px;
     }
 
     .current-badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 24px;
-      height: 24px;
-      border-radius: var(--mat-sys-corner-full);
-      background: var(--mat-sys-surface-container-highest);
-      color: var(--mat-sys-primary);
-
-      mat-icon {
-        font-size: 16px;
-        width: 16px;
-        height: 16px;
-      }
-    }
-
-    .month-tile-content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: flex-start;
-      gap: 0.5rem;
-    }
-
-    .month-value {
-      display: flex;
-      flex-direction: column;
-      gap: 0.25rem;
-      width: 100%;
-
-      &[data-type='positive'] .value-amount {
-        color: var(--pulpe-financial-savings);
-      }
-
-      &[data-type='negative'] .value-amount {
-        color: var(--mat-sys-error);
-      }
-
-      &[data-type='neutral'] .value-amount {
-        color: var(--mat-sys-on-surface-variant);
-      }
-    }
-
-    .value-label {
-      font-size: var(--mat-sys-label-small-size);
-      line-height: var(--mat-sys-label-small-line-height);
-      font-weight: var(--mat-sys-label-small-weight);
-      letter-spacing: var(--mat-sys-label-small-tracking);
-      color: var(--mat-sys-on-surface-variant);
-      text-transform: uppercase;
-    }
-
-    .value-amount {
-      font-size: var(--mat-sys-headline-small-size);
-      line-height: var(--mat-sys-headline-small-line-height);
-      font-weight: var(--mat-sys-headline-small-weight);
-      letter-spacing: var(--mat-sys-headline-small-tracking);
-    }
-
-    .status-indicator {
-      position: absolute;
-      bottom: 0.75rem;
-      right: 0.75rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       width: 32px;
       height: 32px;
       border-radius: var(--mat-sys-corner-full);
-      background: var(--mat-sys-surface-container-highest);
-    }
-
-    .status-icon {
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
-
-      &[class*='positive'] {
-        color: var(--pulpe-financial-savings);
-      }
-
-      &[class*='negative'] {
-        color: var(--mat-sys-error);
-      }
-
-      &[class*='warning'] {
-        color: var(--mat-sys-tertiary);
-      }
-    }
-
-    .empty-month {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      width: 100%;
-      height: 100%;
-      min-height: 60px;
-    }
-
-    .empty-icon-wrapper {
+      background: var(--mat-sys-primary);
+      color: var(--mat-sys-on-primary);
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 40px;
-      height: 40px;
-      border-radius: var(--mat-sys-corner-full);
-      background: var(--mat-sys-primary-container);
-      transition: all 200ms cubic-bezier(0.2, 0, 0, 1);
 
-      .month-tile:hover & {
-        transform: scale(1.1);
-        background: var(--mat-sys-primary);
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+    }
 
-        .empty-icon {
-          color: var(--mat-sys-on-primary);
+    .empty-month-content {
+      button[mat-fab] {
+        width: 40px;
+        height: 40px;
+
+        mat-icon {
+          font-size: 24px;
         }
       }
-    }
-
-    .empty-icon {
-      font-size: 24px;
-      width: 24px;
-      height: 24px;
-      color: var(--mat-sys-on-primary-container);
-      transition: color 200ms cubic-bezier(0.2, 0, 0, 1);
-    }
-
-    .empty-text {
-      font-size: var(--mat-sys-label-medium-size);
-      line-height: var(--mat-sys-label-medium-line-height);
-      font-weight: var(--mat-sys-label-medium-weight);
-      letter-spacing: var(--mat-sys-label-medium-tracking);
-      color: var(--mat-sys-on-surface-variant);
-      text-transform: uppercase;
     }
 
     /* Mobile optimizations */
     @media (max-width: 768px) {
-      .month-tile {
+      .month-tile-card {
         min-height: 120px;
       }
 
-      .month-tile-inner {
-        padding: 0.75rem;
+      mat-card-content {
+        min-height: 60px;
       }
 
-      .month-name {
-        font-size: var(--mat-sys-title-small-size);
-        line-height: var(--mat-sys-title-small-line-height);
-      }
-
-      .value-amount {
-        font-size: var(--mat-sys-title-large-size);
-        line-height: var(--mat-sys-title-large-line-height);
-      }
-
-      .empty-icon-wrapper {
+      .empty-month-content button[mat-fab] {
         width: 36px;
         height: 36px;
-      }
 
-      .empty-icon {
-        font-size: 20px;
-        width: 20px;
-        height: 20px;
-      }
-
-      .status-indicator {
-        width: 28px;
-        height: 28px;
-
-        .status-icon {
-          font-size: 16px;
-          width: 16px;
-          height: 16px;
+        mat-icon {
+          font-size: 20px;
         }
       }
     }
@@ -414,6 +203,14 @@ export class MonthTile {
     if (value === undefined) return 'neutral';
     return value > 0 ? 'positive' : value < 0 ? 'negative' : 'neutral';
   });
+
+  getAriaLabel(): string {
+    const month = this.month();
+    if (month.hasContent) {
+      return `Budget de ${month.displayName}, montant disponible: ${month.value} CHF`;
+    }
+    return `Créer un budget pour ${month.displayName}`;
+  }
 
   handleClick(): void {
     if (!this.disabled()) {
