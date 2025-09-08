@@ -7,7 +7,6 @@ import {
 } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
 import { MatRippleModule } from '@angular/material/core';
 import { CurrencyPipe } from '@angular/common';
 import { type CalendarMonth } from './calendar-types';
@@ -16,13 +15,7 @@ import { type CalendarMonth } from './calendar-types';
   selector: 'pulpe-month-tile',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    MatCardModule,
-    MatIconModule,
-    MatButtonModule,
-    MatRippleModule,
-    CurrencyPipe,
-  ],
+  imports: [MatCardModule, MatIconModule, MatRippleModule, CurrencyPipe],
   template: `
     <mat-card
       class="month-tile-card cursor-pointer h-full"
@@ -67,19 +60,9 @@ import { type CalendarMonth } from './calendar-types';
             </p>
           </div>
         } @else {
-          <div class="empty-month-content text-center">
-            <button
-              mat-fab
-              color="primary"
-              aria-label="Créer un budget"
-              class="mb-2"
-              (click)="handleClick(); $event.stopPropagation()"
-            >
-              <mat-icon>add</mat-icon>
-            </button>
-            <p class="text-label-medium uppercase text-on-surface-variant">
-              Créer
-            </p>
+          <div class="empty-month-content">
+            <mat-icon class="empty-icon">add</mat-icon>
+            <span class="empty-text">Créer</span>
           </div>
         }
       </mat-card-content>
@@ -158,12 +141,45 @@ import { type CalendarMonth } from './calendar-types';
     }
 
     .empty-month-content {
-      button[mat-fab] {
-        width: 40px;
-        height: 40px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.5rem 1rem;
+      border-radius: var(--mat-sys-corner-full);
+      border: 1px dashed var(--mat-sys-outline-variant);
+      background: transparent;
+      transition: all 200ms cubic-bezier(0.2, 0, 0, 1);
 
-        mat-icon {
-          font-size: 24px;
+      .empty-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        color: var(--mat-sys-on-surface-variant);
+        opacity: 0.5;
+        transition: all 200ms cubic-bezier(0.2, 0, 0, 1);
+      }
+
+      .empty-text {
+        font-size: var(--mat-sys-label-large-size);
+        line-height: var(--mat-sys-label-large-line-height);
+        font-weight: var(--mat-sys-label-large-weight);
+        color: var(--mat-sys-on-surface-variant);
+        opacity: 0.7;
+        transition: opacity 200ms cubic-bezier(0.2, 0, 0, 1);
+      }
+
+      .month-tile-card:hover & {
+        background: var(--mat-sys-surface-container-highest);
+        border-color: var(--mat-sys-primary);
+
+        .empty-icon {
+          opacity: 0.8;
+          color: var(--mat-sys-primary);
+        }
+
+        .empty-text {
+          opacity: 1;
+          color: var(--mat-sys-primary);
         }
       }
     }
@@ -178,12 +194,17 @@ import { type CalendarMonth } from './calendar-types';
         min-height: 60px;
       }
 
-      .empty-month-content button[mat-fab] {
-        width: 36px;
-        height: 36px;
+      .empty-month-content {
+        padding: 0.375rem 0.75rem;
 
-        mat-icon {
-          font-size: 20px;
+        .empty-icon {
+          font-size: 16px;
+          width: 16px;
+          height: 16px;
+        }
+
+        .empty-text {
+          font-size: var(--mat-sys-label-medium-size);
         }
       }
     }
