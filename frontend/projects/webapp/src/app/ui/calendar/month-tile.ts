@@ -165,30 +165,6 @@ import { type CalendarMonth } from './calendar-types';
         }
       }
 
-      /* Status indicators as subtle accents */
-      &[data-status='positive']::before,
-      &[data-status='negative']::before,
-      &[data-status='warning']::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        bottom: 0;
-        width: 4px;
-      }
-
-      &[data-status='positive']::before {
-        background: var(--pulpe-financial-savings);
-      }
-
-      &[data-status='negative']::before {
-        background: var(--mat-sys-error);
-      }
-
-      &[data-status='warning']::before {
-        background: var(--mat-sys-tertiary);
-      }
-
       &:disabled {
         opacity: 0.38;
         cursor: not-allowed;
