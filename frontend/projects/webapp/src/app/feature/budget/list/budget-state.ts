@@ -92,7 +92,7 @@ export class BudgetState {
           budgetId: budget.id,
           description: budget.description,
           displayName: this.#formatMonthYear(budget.month, budget.year),
-          endingBalance: budget.endingBalance ?? 0,
+          endingBalance: budget.endingBalance ?? null,
         }))
         .sort((a: MonthInfo, b: MonthInfo) => {
           // Trier par année décroissante puis par mois décroissant
