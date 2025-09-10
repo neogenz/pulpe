@@ -39,7 +39,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
             <div
               class="inline-flex items-center gap-2 px-3 py-1 bg-error-container text-on-error-container rounded-lg"
             >
-              <mat-icon class="!size-5 icon-filled">report</mat-icon>
+              <mat-icon class="icon-filled">report</mat-icon>
               <span class="text-label-large">Tu es en hors budget !</span>
             </div>
           }
@@ -86,11 +86,11 @@ export class BudgetProgressBar {
   });
 
   isOverBudget = computed(() => {
-    return this.remainingAmount() < 0;
+    return this.balance() < 0;
   });
 
   budgetUsedPercentage = computed(() => {
-    const total = this.balance();
+    const total = this.totalIncome();
     const used = this.usedAmount();
 
     // Handle edge cases
@@ -103,7 +103,7 @@ export class BudgetProgressBar {
   });
 
   displayPercentage = computed(() => {
-    const total = this.balance();
+    const total = this.totalIncome();
     const used = this.usedAmount();
 
     // Handle edge cases

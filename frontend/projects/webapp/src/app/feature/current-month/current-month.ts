@@ -117,7 +117,7 @@ type EditTransactionFormData = Pick<
         ) {
           @if (store.dashboardData()?.budget) {
             <pulpe-budget-progress-bar
-              [balance]="store.balance()"
+              [balance]="store.availableToSpend()"
               [usedAmount]="store.actualTransactionsAmount()"
               [totalIncome]="store.totalIncomeAmount()"
             />
