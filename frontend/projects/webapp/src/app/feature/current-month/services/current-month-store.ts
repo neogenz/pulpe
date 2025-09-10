@@ -110,7 +110,32 @@ export class CurrentMonthStore {
     );
   });
 
-  // === PUBLIC ACTIONS ===
+  /**
+   * Rollover amount from previous months
+   */
+  readonly rolloverAmount = computed<number>(() => {
+    const budgetLines = this.budgetLines();
+    const rolloverLine = budgetLines.find((line) => line.isRollover === true);
+    return rolloverLine ? rolloverLine.amount : 0;
+  });
+
+  /**
+   * Available to Spend = endingBalance - rollover
+   * This is the corrected calculation based on business requirements
+   */
+  readonly availableToSpend = computed<number>(() => {
+    const budget = this.dashboardData()?.budget;
+    if (
+      !budget ||
+      budget.endingBalance === undefined ||
+      budget.endingBalance === null
+    )
+      return 0;
+
+    const rollover = this.rolloverAmount();
+    return budget.endingBalance - rollover;
+  });
+
   /**
    * Refresh dashboard data by reloading the resource
    */

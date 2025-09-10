@@ -1,15 +1,21 @@
+import '@angular/compiler';
 import { getTestBed } from '@angular/core/testing';
 import {
-  BrowserDynamicTestingModule,
-  platformBrowserDynamicTesting,
-} from '@angular/platform-browser-dynamic/testing';
+  BrowserTestingModule,
+  platformBrowserTesting,
+} from '@angular/platform-browser/testing';
+import { registerLocaleData } from '@angular/common';
+import localeDeChFr from '@angular/common/locales/fr-CH';
+
+// Register Swiss French locale for CurrencyPipe in tests
+registerLocaleData(localeDeChFr, 'fr-CH');
 
 // Initialize Angular testing environment for Vitest
 // Angular v20 modern setup without zone.js (zoneless)
-// TODO: Update to new Angular 20 testing API when available
+// Using platformBrowserTesting for proper signal inputs support
 getTestBed().initTestEnvironment(
-  BrowserDynamicTestingModule,
-  platformBrowserDynamicTesting(),
+  BrowserTestingModule,
+  platformBrowserTesting(),
   {
     errorOnUnknownElements: true,
     errorOnUnknownProperties: true,

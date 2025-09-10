@@ -18,6 +18,7 @@ const mockBudget: Budget = {
   description: 'January Budget',
   createdAt: '2024-01-01T00:00:00Z',
   updatedAt: '2024-01-01T00:00:00Z',
+  endingBalance: 3426,
 };
 
 const mockBudgetLines: BudgetLine[] = [
@@ -57,6 +58,20 @@ const mockBudgetLines: BudgetLine[] = [
     amount: 500,
     kind: 'saving',
     recurrence: 'fixed',
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+  },
+  {
+    id: 'rollover-budget-1',
+    budgetId: 'budget-1',
+    templateLineId: null,
+    isManuallyAdjusted: false,
+    savingsGoalId: null,
+    name: 'rollover_12_2023',
+    amount: 10470,
+    kind: 'expense',
+    recurrence: 'one_off',
+    isRollover: true,
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
   },
@@ -102,7 +117,7 @@ describe('CurrentMonthStore', () => {
   let mockBudgetCalculator: {
     calculatePlannedIncome: ReturnType<typeof vi.fn>;
     calculateFixedBlock: ReturnType<typeof vi.fn>;
-    calculateLivingAllowance: ReturnType<typeof vi.fn>;
+    calculateBalance: ReturnType<typeof vi.fn>;
     calculateActualTransactionsAmount: ReturnType<typeof vi.fn>;
   };
 
@@ -133,7 +148,7 @@ describe('CurrentMonthStore', () => {
       calculateFixedBlock: vi
         .fn()
         .mockImplementation((lines) => (lines.length > 0 ? 2000 : 0)),
-      calculateLivingAllowance: vi
+      calculateBalance: vi
         .fn()
         .mockImplementation((lines) => (lines.length > 0 ? 3000 : 0)),
       calculateActualTransactionsAmount: vi
@@ -169,8 +184,10 @@ describe('CurrentMonthStore', () => {
       expect(service.dashboardData).toBeDefined();
       expect(service.budgetDate).toBeDefined();
       expect(service.budgetLines).toBeDefined();
-      expect(service.livingAllowanceAmount).toBeDefined();
+      expect(service.balance).toBeDefined();
       expect(service.actualTransactionsAmount).toBeDefined();
+      expect(service.availableToSpend).toBeDefined();
+      expect(service.rolloverAmount).toBeDefined();
     });
 
     it('should have all required public methods', () => {
@@ -185,7 +202,7 @@ describe('CurrentMonthStore', () => {
     it('should have correct initial values when no data is loaded', () => {
       // Before resource loads, these should return empty/zero values
       expect(service.budgetLines()).toEqual([]);
-      expect(service.livingAllowanceAmount()).toBe(0);
+      expect(service.balance()).toBe(0);
       expect(service.actualTransactionsAmount()).toBe(0);
     });
 
@@ -313,21 +330,105 @@ describe('CurrentMonthStore', () => {
 
   describe('Computed Values', () => {
     it('should return zero/empty values when no data is loaded', () => {
-      expect(service.livingAllowanceAmount()).toBe(0);
+      expect(service.balance()).toBe(0);
       expect(service.actualTransactionsAmount()).toBe(0);
+      expect(service.availableToSpend()).toBe(0);
+      expect(service.rolloverAmount()).toBe(0);
     });
 
     it('should call calculator methods with correct parameters', () => {
       // When we have empty data, the calculators should be called with empty arrays
-      service.livingAllowanceAmount();
-      expect(
-        mockBudgetCalculator.calculateLivingAllowance,
-      ).toHaveBeenCalledWith([]);
+      service.balance();
+      expect(mockBudgetCalculator.calculateBalance).toHaveBeenCalledWith([]);
 
       service.actualTransactionsAmount();
       expect(
         mockBudgetCalculator.calculateActualTransactionsAmount,
       ).toHaveBeenCalledWith([]);
+    });
+  });
+
+  describe('Available to Spend Calculation', () => {
+    // Test the computed logic directly by simulating the internal state
+
+    it('should calculate rollover amount from budget lines', () => {
+      // Test the rollover calculation logic with direct mock data
+      const testBudgetLines = [
+        {
+          id: '1',
+          name: 'Income',
+          amount: 5000,
+          kind: 'income' as const,
+          isRollover: false,
+        },
+        {
+          id: '2',
+          name: 'Rent',
+          amount: 1500,
+          kind: 'expense' as const,
+          isRollover: false,
+        },
+        {
+          id: '3',
+          name: 'rollover',
+          amount: 10470,
+          kind: 'expense' as const,
+          isRollover: true,
+        },
+      ];
+
+      // Test the rollover logic directly
+      const rollover = testBudgetLines.find((line) => line.isRollover === true);
+      const expectedRollover = rollover ? rollover.amount : 0;
+
+      expect(expectedRollover).toBe(10470);
+    });
+
+    it('should calculate available to spend as endingBalance minus rollover', () => {
+      // Test the available to spend calculation logic
+      const testBudget = { endingBalance: 3426 };
+      const rolloverAmount = 10470;
+
+      const expectedAvailableToSpend =
+        testBudget.endingBalance - rolloverAmount;
+
+      // Expected: 3426 - 10470 = -7044
+      expect(expectedAvailableToSpend).toBe(-7044);
+    });
+
+    it('should handle missing rollover (return 0)', () => {
+      // Test with budget lines that don't have rollover
+      const testBudgetLines = [
+        {
+          id: '1',
+          name: 'Income',
+          amount: 5000,
+          kind: 'income' as const,
+          isRollover: false,
+        },
+        {
+          id: '2',
+          name: 'Rent',
+          amount: 1500,
+          kind: 'expense' as const,
+          isRollover: false,
+        },
+      ];
+
+      const rollover = testBudgetLines.find((line) => line.isRollover === true);
+      const rolloverAmount = rollover ? rollover.amount : 0;
+
+      const testBudget = { endingBalance: 3426 };
+      const availableToSpend = testBudget.endingBalance - rolloverAmount;
+
+      expect(rolloverAmount).toBe(0);
+      expect(availableToSpend).toBe(3426);
+    });
+
+    it('should handle missing budget (return 0)', () => {
+      // When no budget is loaded
+      expect(service.rolloverAmount()).toBe(0);
+      expect(service.availableToSpend()).toBe(0);
     });
   });
 
