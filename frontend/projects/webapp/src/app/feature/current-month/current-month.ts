@@ -122,7 +122,6 @@ type EditTransactionFormData = Pick<
             <pulpe-budget-progress-bar
               [expenses]="store.totalSpentWithoutRollover()"
               [available]="store.totalAvailableWithRollover()"
-              [remaining]="store.availableToSpend()"
             />
             <div class="flex flex-col gap-4" data-testid="dashboard-content">
               <pulpe-transaction-chip-filter
