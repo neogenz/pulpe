@@ -8,7 +8,10 @@ import type { BudgetLine, Transaction } from '@pulpe/shared';
 export function mapBudgetLineToTransaction(
   budgetLine: BudgetLine,
   budgetId: string,
-): Transaction {
+): Transaction & {
+  rolloverSourceBudgetId?: string | null;
+  isRollover?: boolean;
+} {
   return {
     id: budgetLine.id,
     budgetId: budgetId,
@@ -20,6 +23,10 @@ export function mapBudgetLineToTransaction(
     category: null,
     createdAt: budgetLine.createdAt,
     updatedAt: budgetLine.updatedAt,
+    rolloverSourceBudgetId:
+      (budgetLine as unknown as { rolloverSourceBudgetId?: string | null })
+        .rolloverSourceBudgetId ?? null,
+    isRollover: budgetLine.isRollover,
   };
 }
 

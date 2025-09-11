@@ -35,7 +35,7 @@ import {
   TransactionLabelPipe,
   RecurrenceLabelPipe,
 } from '@ui/transaction-display';
-import { RolloverFormatPipe } from '../../pipes';
+import { RolloverFormatPipe } from '@app/ui/rollover-format';
 import { type BudgetLineViewModel } from '../models/budget-line-view-model';
 import { type TransactionViewModel } from '../models/transaction-view-model';
 

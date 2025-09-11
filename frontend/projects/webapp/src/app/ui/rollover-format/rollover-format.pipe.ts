@@ -1,14 +1,12 @@
-import { Pipe, type PipeTransform, inject } from '@angular/core';
+import { Pipe, type PipeTransform } from '@angular/core';
 import { format } from 'date-fns';
 import { frCH } from 'date-fns/locale';
-import { Logger } from '@core/logging/logger';
 
 @Pipe({
   name: 'rolloverFormat',
   standalone: true,
 })
 export class RolloverFormatPipe implements PipeTransform {
-  readonly #logger = inject(Logger);
   readonly #ROLLOVER_PATTERN = /rollover_(\d+)_(\d+)/;
 
   transform(name: string): string {
@@ -24,13 +22,8 @@ export class RolloverFormatPipe implements PipeTransform {
     const [, month, year] = match;
     const monthIndex = parseInt(month, 10) - 1;
 
-    // Add bounds checking for month index safety
     if (monthIndex < 0 || monthIndex >= 12) {
-      this.#logger.warn(
-        `Invalid month index ${monthIndex} in rollover name: ${name}`,
-        { monthIndex, name, operation: 'rollover_format_transform' },
-      );
-      return name; // Return original if month is invalid
+      return name;
     }
 
     const date = new Date(parseInt(year, 10), monthIndex, 1);
