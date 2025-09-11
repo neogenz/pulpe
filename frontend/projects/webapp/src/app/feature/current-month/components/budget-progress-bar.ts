@@ -33,55 +33,44 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
             <div class="flex flex-col">
               <span class="text-body-small md:text-body">Dépenses CHF</span>
               <span class="text-headline-small md:text-headline-large">
-                {{ expenses() | number: '1.2-2' : 'fr-CH' }}
+                {{ expenses() | number: '1.2-2' : 'de-CH' }}
               </span>
             </div>
             <div class="flex flex-col text-right text-outline">
               <span class="text-body-small md:text-body">Disponible CHF</span>
               <span class="text-headline-small md:text-headline-large">
-                {{ available() | number: '1.2-2' : 'fr-CH' }}
+                {{ available() | number: '1.2-2' : 'de-CH' }}
               </span>
             </div>
           </div>
-
-          <!-- Montant restant -->
-          <div class="flex items-baseline gap-2">
-            <span class="text-body-large text-on-surface-variant">
-              @if (!isOverBudget()) {
-                Restant:
-              } @else {
-                Dépassement:
-              }
-            </span>
-            <span
-              class="text-title-medium font-medium"
-              [class.text-primary]="!isOverBudget()"
-              [class.text-error]="isOverBudget()"
-            >
-              {{ remaining() | number: '1.2-2' : 'fr-CH' }}
-            </span>
-          </div>
         </div>
       </mat-card-header>
-      <mat-card-content>
-        <div class="space-y-4">
-          @if (isOverBudget()) {
+      <mat-card-content class="space-y-2">
+        @if (isOverBudget()) {
+          <div class="flex flex-col items-center gap-2">
             <div
-              class="inline-flex items-center gap-2 px-3 py-1 bg-error-container text-on-error-container rounded-lg"
+              class="inline-flex items-center gap-2 px-2 py-1 bg-error-container text-on-error-container rounded-corner-medium"
             >
               <mat-icon class="icon-filled">report</mat-icon>
-              <span class="text-label-large">Tu es en hors budget !</span>
+              <span class="text-body-small md:text-body">Dépassement CHF</span>
             </div>
-          }
-          <div class="space-y-2">
-            <mat-progress-bar
-              mode="determinate"
-              [value]="budgetUsedPercentage()"
-              [color]="isOverBudget() ? 'warn' : 'primary'"
-            />
-            <div class="text-label-small text-on-surface-variant">
+            <span class="text-headline-small md:text-headline-large text-error">
+              {{ remaining() | number: '1.2-2' : 'de-CH' }}
+            </span>
+          </div>
+        }
+        <div class="space-y-2">
+          <mat-progress-bar
+            mode="determinate"
+            [value]="budgetUsedPercentage()"
+            [color]="isOverBudget() ? 'warn' : 'primary'"
+          />
+          <div class="text-label-small text-on-surface-variant">
+            @if (displayPercentage() === -1) {
+              Budget totalement dépassé
+            } @else {
               {{ displayPercentage() }}% du budget dépensé
-            </div>
+            }
           </div>
         </div>
       </mat-card-content>
@@ -137,8 +126,11 @@ export class BudgetProgressBar {
     const available = this.available();
     const expenses = this.expenses();
 
-    // Protection contre les cas limites
-    if (!available || available <= 0) return 0;
+    // Cas spéciaux : disponible <= 0
+    if (available <= 0) {
+      // Si on a des dépenses avec rien de disponible, on est à 100% minimum
+      return expenses > 0 ? 100 : 0;
+    }
 
     // Calcul du pourcentage dépensé
     const percentage = (expenses / available) * 100;
@@ -151,13 +143,18 @@ export class BudgetProgressBar {
    * Pourcentage réel pour l'affichage textuel
    * Peut dépasser 100% en cas de dépassement budget
    * Formule: Dépenses / Disponible * 100
+   * Retourne -1 si disponible <= 0 et dépenses > 0 (cas spécial à gérer dans le template)
    */
   displayPercentage = computed(() => {
     const available = this.available();
     const expenses = this.expenses();
 
-    // Protection contre les cas limites
-    if (!available || available <= 0) return 0;
+    // Cas spéciaux : disponible <= 0
+    if (available <= 0) {
+      // Si on a des dépenses avec rien de disponible, retourner -1 pour indiquer un cas spécial
+      // Sinon 0 si pas de dépenses
+      return expenses > 0 ? -1 : 0;
+    }
 
     // Calcul du pourcentage dépensé
     const percentage = (expenses / available) * 100;
