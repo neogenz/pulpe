@@ -36,7 +36,10 @@ import { getDeleteConfirmationConfig } from '../delete/template-delete-dialog';
         data-testid="page-header"
       >
         <div>
-          <h1 class="text-display-small" data-testid="page-title">
+          <h1
+            class="text-headline-medium md:text-display-small"
+            data-testid="page-title"
+          >
             {{ title.currentTitle() }}
           </h1>
           @if (state.templateCount() > 0) {

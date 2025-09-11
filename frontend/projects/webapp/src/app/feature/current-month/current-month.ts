@@ -80,7 +80,10 @@ type EditTransactionFormData = Pick<
         class="flex justify-between items-center"
         data-testid="page-header"
       >
-        <h1 class="text-display-small" data-testid="page-title">
+        <h1
+          class="text-headline-medium md:text-display-small"
+          data-testid="page-title"
+        >
           {{ titleDisplay.currentTitle() }}
         </h1>
         <button
@@ -117,9 +120,9 @@ type EditTransactionFormData = Pick<
         ) {
           @if (store.dashboardData()?.budget) {
             <pulpe-budget-progress-bar
-              [balance]="store.availableToSpend()"
-              [usedAmount]="store.actualTransactionsAmount()"
-              [totalIncome]="store.totalIncomeAmount()"
+              [expenses]="store.totalSpentWithoutRollover()"
+              [available]="store.totalAvailableWithRollover()"
+              [remaining]="store.availableToSpend()"
             />
             <div class="flex flex-col gap-4" data-testid="dashboard-content">
               <pulpe-transaction-chip-filter

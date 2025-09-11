@@ -152,6 +152,48 @@ Savings are treated as a **priority expense**, not a leftover amount.
   4. ACTIVATE & CALCULATE: The system computes the ending_balance and retrieves previous month's rollover to display "Available to Spend".
   ```
 
+### PM-003: Monthly Budget Progress Tracking
+
+- **Trigger:** User views their current month dashboard.
+- **Purpose:** Provide real-time visibility of budget consumption.
+- **Key Calculations:**
+  
+  #### Dépenses (Expenses)
+  - **Definition:** Total amount spent in the current month, excluding rollover
+  - **Formula:** `Dépenses = Σ(budget_lines where kind ∈ ['expense', 'saving'] AND isRollover = false) + Σ(transactions where kind ∈ ['expense', 'saving'])`
+  - **Important:** The rollover line is EXCLUDED from expenses calculation
+  
+  #### Disponible (Available)
+  - **Definition:** Total amount available to spend for the month
+  - **Formula:** `Disponible = Revenus + Rollover`
+    - `Revenus = Σ(budget_lines where kind = 'income') + Σ(transactions where kind = 'income')`
+    - `Rollover = budget_line where isRollover = true`
+  - **Rollover Sign Convention:**
+    - If stored as `expense`: represents positive rollover (money left from previous month)
+    - If stored as `income`: represents negative rollover (deficit from previous month)
+  
+  #### Restant (Remaining)
+  - **Definition:** Amount left to spend after expenses
+  - **Formula:** `Restant = Disponible - Dépenses`
+  - **Interpretation:**
+    - Positive: budget still available
+    - Negative: over budget situation
+  
+  #### Progress Percentage
+  - **Formula:** `Percentage = (Dépenses ÷ Disponible) × 100%`
+  - **Visual Bar:** Capped at 100% for display
+  - **Text Display:** Shows actual percentage even if > 100%
+
+- **Alert Thresholds:**
+  - **80%:** Warning - budget nearly consumed
+  - **90%:** Alert - approaching limit
+  - **100%:** Budget fully consumed
+  - **>100%:** Over budget situation
+- **Visual Feedback:**
+  - Green (0-79%): Healthy spending
+  - Orange (80-99%): Caution zone
+  - Red (≥100%): Over budget
+
 ### WF-000: Onboarding & Initial Creation Workflow
 
 - **Goal:** Instantly transform the user's initial setup data into a tangible, usable financial plan.
@@ -230,6 +272,10 @@ Savings are treated as a **priority expense**, not a leftover amount.
 
 - The data model maintains a strict separation between planning and reality.
 - **`budget_lines` (The Plan):** Represent planned, recurring (`'fixed'`) or one-off (`'one_off'`) income/expenses. They constitute the **Fixed Block**.
+  - **Special Case - Rollover Line:** A budget line with `isRollover = true` represents the carried-over balance from the previous month
+    - Stored as `expense` with positive amount when previous month had surplus
+    - Would be stored as `income` with positive amount when previous month had deficit
+    - NOT included in expense calculations for budget progress display
 - **`transactions` (The Events):** Represent actual, manually entered spending. They are linked to a `monthly_budget` but **never** to a specific `budget_line`. They affect the **Ending Balance**.
 - **`ending_balance` (The Pure Result):** The month's standalone balance including all budget_lines and transactions, excluding any rollover. This represents the month's financial performance in isolation.
 - **`rollover_balance` (The Cumulative Result):** The total accumulated balance from the beginning of history up to this month. This value becomes the rollover for the next month.
@@ -322,3 +368,21 @@ Savings are treated as a **priority expense**, not a leftover amount.
   2.  System calculates time required to save for a down payment at the current savings rate.
   3.  System generates a "Post-Purchase" template, replacing "Rent" with "Mortgage + Fees" and shows the impact on monthly cash flow.
   4.  The user can interactively adjust variables (price, savings rate) to see the effect in real-time.
+
+### CU-005: Monthly Budget Dashboard Consultation
+
+- **Actor:** User
+- **Trigger:** User opens the application or navigates to current month view.
+- **Context:** User wants to check their financial situation for the current month.
+- **Information Displayed:**
+  - **Primary Value:** "Disponible à dépenser" (Available to Spend)
+    - Shows what remains available after all planned and actual transactions
+    - Can be negative if overspending occurred
+  - **Progress Indicator:** Budget consumption percentage
+    - Visual bar showing percentage of income consumed
+    - Color coding: Green (healthy), Orange (caution), Red (over budget)
+  - **Quick Actions:**
+    - Add new transaction
+    - View transaction history
+    - Adjust current month budget
+- **Business Value:** Provides immediate, actionable financial awareness to guide spending decisions.

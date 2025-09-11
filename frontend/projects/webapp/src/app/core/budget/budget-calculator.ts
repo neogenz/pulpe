@@ -8,34 +8,12 @@ import {
 @Injectable({ providedIn: 'root' })
 export class BudgetCalculator {
   /**
-   * Calcule le Fixed Block selon les spécifications métier
-   * Fixed Block = somme de toutes les dépenses fixes + épargne planifiée (depuis les budget lines)
-   */
-  calculateFixedBlock(budgetLines: BudgetLine[]): number {
-    return budgetLines
-      .filter((line) => line.kind === 'expense' || line.kind === 'saving')
-      .reduce((total, line) => total + line.amount, 0);
-  }
-
-  /**
    * Calcule le revenu planifié depuis les budget lines
    */
   calculatePlannedIncome(budgetLines: BudgetLine[]): number {
     return budgetLines
       .filter((line) => line.kind === 'income')
       .reduce((total, line) => total + line.amount, 0);
-  }
-
-  /**
-   * Calcule la balance selon les spécifications métier
-   * Balance = Revenu planifié - Fixed Block
-   *
-   * TODO : voir si le ending_balance ne serait pas plus pertinent
-   */
-  calculateBalance(budgetLines: BudgetLine[]): number {
-    const plannedIncome = this.calculatePlannedIncome(budgetLines);
-    const fixedBlock = this.calculateFixedBlock(budgetLines);
-    return plannedIncome - fixedBlock;
   }
 
   /**
@@ -50,6 +28,75 @@ export class BudgetCalculator {
         total + this.#getSignedAmount(transaction.kind, transaction.amount),
       0,
     );
+  }
+
+  /**
+   * Calcule le total dépensé (expenses + savings) en INCLUANT les lignes rollover
+   */
+  calculateTotalSpentIncludingRollover(
+    budgetLines: BudgetLine[],
+    transactions: Transaction[],
+  ): number {
+    const budgetSpent = budgetLines
+      .filter((line) => line.kind === 'expense' || line.kind === 'saving')
+      .reduce((total, line) => total + line.amount, 0);
+
+    const transactionsSpent = transactions
+      .filter(
+        (transaction) =>
+          transaction.kind === 'expense' || transaction.kind === 'saving',
+      )
+      .reduce((total, transaction) => total + transaction.amount, 0);
+
+    return budgetSpent + transactionsSpent;
+  }
+
+  /**
+   * Calcule le total dépensé (expenses + savings) en EXCLUANT les lignes rollover
+   */
+  calculateTotalSpentExcludingRollover(
+    budgetLines: BudgetLine[],
+    transactions: Transaction[],
+  ): number {
+    const budgetSpent = budgetLines
+      .filter((line) => line.kind === 'expense' || line.kind === 'saving')
+      .filter((line) => line.isRollover !== true)
+      .reduce((total, line) => total + line.amount, 0);
+
+    const transactionsSpent = transactions
+      .filter(
+        (transaction) =>
+          transaction.kind === 'expense' || transaction.kind === 'saving',
+      )
+      .reduce((total, transaction) => total + transaction.amount, 0);
+
+    return budgetSpent + transactionsSpent;
+  }
+
+  /**
+   * Retourne le montant de rollover à partir des budget lines
+   */
+  calculateRolloverAmount(budgetLines: BudgetLine[]): number {
+    const rolloverLine = budgetLines.find((line) => line.isRollover === true);
+    if (!rolloverLine) return 0;
+    return rolloverLine.kind === 'expense'
+      ? -rolloverLine.amount
+      : rolloverLine.amount;
+  }
+
+  calculateTotalAvailable(
+    budgetLines: BudgetLine[],
+    transactions: Transaction[],
+  ): number {
+    const budgetAvailable = budgetLines
+      .filter((line) => line.kind === 'income')
+      .reduce((total, line) => total + line.amount, 0);
+
+    const transactionsAvailable = transactions
+      .filter((transaction) => transaction.kind === 'income')
+      .reduce((total, transaction) => total + transaction.amount, 0);
+
+    return budgetAvailable + transactionsAvailable;
   }
 
   /**
@@ -68,6 +115,32 @@ export class BudgetCalculator {
         cumulativeBalance: runningBalance,
       };
     });
+  }
+
+  /**
+   * Calcule le ending balance localement selon les spécifications métier
+   * ending_balance = Income - (Expenses + Savings) from ALL sources
+   *
+   * Cette méthode combine:
+   * - Les revenus planifiés (budget lines)
+   * - Les dépenses et épargnes planifiées (budget lines)
+   * - L'impact des transactions réelles
+   *
+   * @param budgetLines Les lignes budgétaires planifiées
+   * @param transactions Les transactions réelles effectuées
+   * @returns Le ending balance calculé localement
+   */
+  calculateLocalEndingBalance(
+    budgetLines: BudgetLine[],
+    transactions: Transaction[],
+  ): number {
+    const available = this.calculateTotalAvailable(budgetLines, transactions);
+    const spent = this.calculateTotalSpentIncludingRollover(
+      budgetLines,
+      transactions,
+    );
+
+    return available - spent;
   }
 
   /**
