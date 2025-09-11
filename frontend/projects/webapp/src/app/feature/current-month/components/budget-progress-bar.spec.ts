@@ -136,6 +136,44 @@ describe('BudgetProgressBar - TDD Approach', () => {
     });
   });
 
+  describe('CSS Class Application for Styling', () => {
+    it('should apply over-budget class to progress bar when over budget', () => {
+      // GIVEN: Over budget scenario
+      const { fixture } = createComponentWithInputs(1200, 1000, -200);
+
+      // WHEN: Component is rendered
+      const progressBar =
+        fixture.nativeElement.querySelector('mat-progress-bar');
+
+      // THEN: Should have over-budget class
+      expect(progressBar.classList.contains('over-budget')).toBe(true);
+    });
+
+    it('should not apply over-budget class to progress bar when under budget', () => {
+      // GIVEN: Under budget scenario
+      const { fixture } = createComponentWithInputs(800, 1000, 200);
+
+      // WHEN: Component is rendered
+      const progressBar =
+        fixture.nativeElement.querySelector('mat-progress-bar');
+
+      // THEN: Should not have over-budget class
+      expect(progressBar.classList.contains('over-budget')).toBe(false);
+    });
+
+    it('should not apply over-budget class when exactly on budget', () => {
+      // GIVEN: Exactly on budget (remaining = 0)
+      const { fixture } = createComponentWithInputs(1000, 1000, 0);
+
+      // WHEN: Component is rendered
+      const progressBar =
+        fixture.nativeElement.querySelector('mat-progress-bar');
+
+      // THEN: Should not have over-budget class
+      expect(progressBar.classList.contains('over-budget')).toBe(false);
+    });
+  });
+
   describe('Edge Cases', () => {
     it('should handle zero available with expenses gracefully', () => {
       // GIVEN: available=0 with expenses=100 (edge case - no budget but spending)
