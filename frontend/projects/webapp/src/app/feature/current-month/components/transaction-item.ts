@@ -3,6 +3,7 @@ import {
   Component,
   input,
   output,
+  computed,
 } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
@@ -10,6 +11,9 @@ import { MatListModule } from '@angular/material/list';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatRippleModule } from '@angular/material/core';
 import { MatButtonModule } from '@angular/material/button';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { RouterLink } from '@angular/router';
+import { RolloverFormatPipe } from '@app/ui/rollover-format';
 import { TransactionIconPipe } from '@ui/transaction-display';
 
 export interface TransactionItemData {
@@ -19,6 +23,7 @@ export interface TransactionItemData {
   kind: 'income' | 'expense' | 'saving';
   category?: string | null;
   isSelected: boolean;
+  isRollover?: boolean;
 }
 
 @Component({
@@ -32,6 +37,9 @@ export interface TransactionItemData {
     MatRippleModule,
     MatButtonModule,
     TransactionIconPipe,
+    MatTooltipModule,
+    RouterLink,
+    RolloverFormatPipe,
   ],
   template: `
     <mat-list-item
@@ -70,14 +78,28 @@ export interface TransactionItemData {
           </mat-icon>
         </div>
       </div>
-      <div matListItemTitle>{{ data().name }}</div>
+      <div matListItemTitle [class.rollover-text]="isRollover()">
+        @if (isRollover() && rolloverSourceBudgetId()) {
+          <a
+            [routerLink]="['/app/budget', rolloverSourceBudgetId()]"
+            matButton
+            class="inline-flex items-center font-semibold"
+            matTooltip="Voir le mois d'origine"
+          >
+            <mat-icon class="!text-base">open_in_new</mat-icon>
+            {{ data().name | rolloverFormat }}
+          </a>
+        } @else {
+          {{ isRollover() ? (data().name | rolloverFormat) : data().name }}
+        }
+      </div>
       @if (data().category) {
         <div matListItemLine class="text-body-small italic">
           {{ data().category }}
         </div>
       }
       <div matListItemMeta class="!flex !h-full !items-center !gap-3">
-        <span>
+        <span [class.italic]="isRollover()">
           {{ data().kind === 'income' ? '+' : '-'
           }}{{ data().amount | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH' }}
         </span>
@@ -179,6 +201,19 @@ export class TransactionItem {
   readonly selectionChange = output<boolean>();
   readonly deleteClick = output<void>();
   readonly editClick = output<void>();
+
+  readonly isRollover = computed<boolean>(() => {
+    const d = this.data();
+    if (typeof d.isRollover === 'boolean') return d.isRollover;
+    return d.name?.startsWith('rollover_');
+  });
+
+  readonly rolloverSourceBudgetId = computed<string | null>(() => {
+    return (
+      (this.data() as unknown as { rolloverSourceBudgetId?: string | null })
+        .rolloverSourceBudgetId ?? null
+    );
+  });
 
   protected handleClick(): void {
     if (this.selectable()) {

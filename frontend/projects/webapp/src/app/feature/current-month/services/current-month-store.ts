@@ -1,14 +1,6 @@
-import {
-  computed,
-  inject,
-  Injectable,
-  linkedSignal,
-  resource,
-  signal,
-} from '@angular/core';
+import { computed, inject, Injectable, resource, signal } from '@angular/core';
 import { BudgetApi, BudgetCalculator } from '@core/budget';
 import { TransactionApi } from '@core/transaction';
-import { Logger } from '@core/logging/logger';
 import {
   type Budget,
   type BudgetLine,
@@ -17,7 +9,7 @@ import {
   type TransactionUpdate,
 } from '@pulpe/shared';
 import { format } from 'date-fns';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, type Observable } from 'rxjs';
 import {
   type CurrentMonthState,
   type DashboardData,
@@ -43,9 +35,7 @@ export class CurrentMonthStore {
   #budgetApi = inject(BudgetApi);
   #transactionApi = inject(TransactionApi);
   #budgetCalculator = inject(BudgetCalculator);
-  #logger = inject(Logger);
 
-  // === PRIVATE STATE ===
   /**
    * Simple state signal for UI feedback during operations
    */
@@ -61,7 +51,7 @@ export class CurrentMonthStore {
     { month: string; year: string }
   >({
     params: () => {
-      const currentDate = this.#state().currentDate;
+      const currentDate = this.budgetDate();
       return {
         month: format(currentDate, 'MM'),
         year: format(currentDate, 'yyyy'),
@@ -70,7 +60,6 @@ export class CurrentMonthStore {
     loader: async ({ params }) => this.#loadDashboardData(params),
   });
 
-  // === PUBLIC SELECTORS ===
   /**
    * Dashboard data selector
    */
@@ -96,8 +85,6 @@ export class CurrentMonthStore {
    * Current date selector
    */
   readonly budgetDate = computed(() => this.#state().currentDate);
-
-  // === FINANCIAL CALCULATIONS ===
 
   /**
    * Total dépensé (expenses + savings) depuis les budget lines ET les transactions
@@ -159,7 +146,7 @@ export class CurrentMonthStore {
    * Available to Spend = Disponible - Dépenses
    * This is the "Restant" shown to users
    */
-  readonly availableToSpend = linkedSignal<number>(() => {
+  readonly availableToSpend = computed<number>(() => {
     const availableWithRollover = this.totalAvailableWithRollover();
     const spentWithoutRollover = this.totalSpentWithoutRollover();
     return availableWithRollover - spentWithoutRollover;
@@ -189,66 +176,16 @@ export class CurrentMonthStore {
    * Uses optimistic update with local calculation + backend sync
    */
   async addTransaction(transactionData: TransactionCreate): Promise<void> {
-    try {
-      // 1. Créer la transaction sur le backend d'abord pour obtenir l'ID
-      const response = await firstValueFrom(
-        this.#transactionApi.create$(transactionData),
-      );
-
-      // 2. Optimistic update avec recalcul local du ending balance
-      const currentData = this.#dashboardResource.value();
-      if (currentData && response.data && currentData.budget) {
-        // Ajouter la nouvelle transaction
-        const updatedTransactions = [
-          ...currentData.transactions,
-          response.data,
-        ];
-
-        // Recalculer le ending balance localement
-        const newEndingBalance =
-          this.#budgetCalculator.calculateLocalEndingBalance(
-            currentData.budgetLines,
-            updatedTransactions,
-          );
-
-        // Appliquer l'optimistic update avec le budget complet
-        this.#dashboardResource.set({
+    return this.#performOptimisticUpdate<Transaction>(
+      () => this.#transactionApi.create$(transactionData),
+      (currentData, response) => {
+        if (!response.data) return currentData;
+        return {
           ...currentData,
-          transactions: updatedTransactions,
-          budget: {
-            ...currentData.budget,
-            endingBalance: newEndingBalance,
-          },
-        });
-
-        // 3. Récupérer le budget mis à jour depuis le backend pour avoir le vrai ending balance
-        const budgetId = currentData.budget?.id;
-        if (budgetId) {
-          const updatedBudget = await firstValueFrom(
-            this.#budgetApi.getBudgetById$(budgetId),
-          );
-
-          // 4. Mettre à jour avec la vraie valeur du backend
-          const latestData = this.#dashboardResource.value();
-          if (latestData && updatedBudget) {
-            this.#dashboardResource.set({
-              ...latestData,
-              budget: updatedBudget,
-            });
-          }
-        }
-      }
-
-      this.#logger.info(
-        'Transaction added successfully with optimistic update and backend sync',
-      );
-    } catch (error) {
-      this.#logger.error('Error adding transaction:', error);
-
-      // On error, reload data to ensure consistency
-      this.refreshData();
-      throw error;
-    }
+          transactions: [...currentData.transactions, response.data],
+        };
+      },
+    );
   }
 
   /**
@@ -256,71 +193,15 @@ export class CurrentMonthStore {
    * Uses optimistic update with local calculation + backend sync
    */
   async deleteTransaction(transactionId: string): Promise<void> {
-    // Store original state for rollback on error
-    const originalData = this.#dashboardResource.value();
-
-    try {
-      // 1. Optimistic update avec recalcul local du ending balance
-      const currentData = this.#dashboardResource.value();
-      if (currentData && currentData.budget) {
-        // Supprimer la transaction localement
-        const updatedTransactions = currentData.transactions.filter(
-          (t) => t.id !== transactionId,
-        );
-
-        // Recalculer le ending balance localement
-        const newEndingBalance =
-          this.#budgetCalculator.calculateLocalEndingBalance(
-            currentData.budgetLines,
-            updatedTransactions,
-          );
-
-        // Appliquer l'optimistic update avec le budget complet
-        this.#dashboardResource.set({
-          ...currentData,
-          transactions: updatedTransactions,
-          budget: {
-            ...currentData.budget,
-            endingBalance: newEndingBalance,
-          },
-        });
-      }
-
-      // 2. Supprimer la transaction sur le backend
-      await firstValueFrom(this.#transactionApi.remove$(transactionId));
-
-      // 3. Récupérer le budget mis à jour depuis le backend pour avoir le vrai ending balance
-      const budgetId = this.#dashboardResource.value()?.budget?.id;
-      if (budgetId) {
-        const updatedBudget = await firstValueFrom(
-          this.#budgetApi.getBudgetById$(budgetId),
-        );
-
-        // 4. Mettre à jour avec la vraie valeur du backend
-        const latestData = this.#dashboardResource.value();
-        if (latestData && updatedBudget) {
-          this.#dashboardResource.set({
-            ...latestData,
-            budget: updatedBudget,
-          });
-        }
-      }
-
-      this.#logger.info(
-        'Transaction deleted successfully with optimistic update and backend sync',
-      );
-    } catch (error) {
-      this.#logger.error('Error deleting transaction:', error);
-
-      // Rollback to original state on error
-      if (originalData) {
-        this.#dashboardResource.set(originalData);
-      } else {
-        // If no original data, reload to ensure consistency
-        this.refreshData();
-      }
-      throw error;
-    }
+    return this.#performOptimisticUpdateDelete(
+      () => this.#transactionApi.remove$(transactionId),
+      (currentData: DashboardData) => ({
+        ...currentData,
+        transactions: currentData.transactions.filter(
+          (t: Transaction) => t.id !== transactionId,
+        ),
+      }),
+    );
   }
 
   /**
@@ -331,57 +212,61 @@ export class CurrentMonthStore {
     transactionId: string,
     transactionData: TransactionUpdate,
   ): Promise<void> {
-    // Store original state for rollback on error
+    return this.#performOptimisticUpdate<Transaction>(
+      () => this.#transactionApi.update$(transactionId, transactionData),
+      (currentData, response) => ({
+        ...currentData,
+        transactions: currentData.transactions.map((t: Transaction) =>
+          t.id === transactionId ? response.data : t,
+        ),
+      }),
+    );
+  }
+
+  /**
+   * Generic optimistic update pattern for operations returning data
+   */
+  async #performOptimisticUpdate<T>(
+    operation: () => Observable<{ data: T }>,
+    updateData: (
+      currentData: DashboardData,
+      response: { data: T },
+    ) => DashboardData,
+  ): Promise<void> {
     const originalData = this.#dashboardResource.value();
 
     try {
-      // 1. Optimistic update avec recalcul local du ending balance
+      // 1. Execute backend operation first
+      const response = await firstValueFrom(operation());
+
+      // 2. Apply optimistic update
       const currentData = this.#dashboardResource.value();
       if (currentData && currentData.budget) {
-        // Mettre à jour la transaction localement
-        const updatedTransactions = currentData.transactions.map((t) =>
-          t.id === transactionId ? { ...t, ...transactionData } : t,
-        );
+        const updatedData = updateData(currentData, response);
 
-        // Recalculer le ending balance localement
+        // Recalculate ending balance locally
         const newEndingBalance =
           this.#budgetCalculator.calculateLocalEndingBalance(
-            currentData.budgetLines,
-            updatedTransactions,
+            updatedData.budgetLines,
+            updatedData.transactions,
           );
 
-        // Appliquer l'optimistic update avec le budget complet
-        this.#dashboardResource.update((state) => {
-          if (!state) return state;
-          const updatedState: DashboardData = {
-            ...state,
-            transactions: updatedTransactions,
-          };
-
-          if (state.budget) {
-            updatedState.budget = {
-              ...state.budget,
-              endingBalance: newEndingBalance,
-            };
-          }
-
-          return updatedState;
+        // Apply optimistic update
+        this.#dashboardResource.set({
+          ...updatedData,
+          budget: {
+            ...currentData.budget,
+            endingBalance: newEndingBalance,
+          },
         });
-      }
 
-      // 2. Mettre à jour la transaction sur le backend
-      await firstValueFrom(
-        this.#transactionApi.update$(transactionId, transactionData),
-      );
-
-      // 3. Récupérer le budget mis à jour depuis le backend pour avoir le vrai ending balance
-      const budgetId = this.#dashboardResource.value()?.budget?.id;
-      if (budgetId) {
+        // 3. Sync with backend for accurate ending balance
+        const budgetId = currentData.budget.id;
         const updatedBudget = await firstValueFrom(
           this.#budgetApi.getBudgetById$(budgetId),
         );
 
-        // 4. Mettre à jour avec la vraie valeur du backend
+        // 4. Update with real backend value
         const latestData = this.#dashboardResource.value();
         if (latestData && updatedBudget) {
           this.#dashboardResource.set({
@@ -390,18 +275,71 @@ export class CurrentMonthStore {
           });
         }
       }
-
-      this.#logger.info(
-        'Transaction updated successfully with optimistic update and backend sync',
-      );
     } catch (error) {
-      this.#logger.error('Error updating transaction:', error);
-
-      // Rollback to original state on error
+      // Rollback on error
       if (originalData) {
         this.#dashboardResource.set(originalData);
       } else {
-        // If no original data, reload to ensure consistency
+        this.refreshData();
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Generic optimistic update pattern for delete operations
+   */
+  async #performOptimisticUpdateDelete(
+    operation: () => Observable<void>,
+    updateData: (currentData: DashboardData) => DashboardData,
+  ): Promise<void> {
+    const originalData = this.#dashboardResource.value();
+
+    try {
+      // 1. Execute backend operation first
+      await firstValueFrom(operation());
+
+      // 2. Apply optimistic update after successful backend operation
+      const currentData = this.#dashboardResource.value();
+      if (currentData && currentData.budget) {
+        const updatedData = updateData(currentData);
+
+        // Recalculate ending balance locally
+        const newEndingBalance =
+          this.#budgetCalculator.calculateLocalEndingBalance(
+            updatedData.budgetLines,
+            updatedData.transactions,
+          );
+
+        // Apply optimistic update
+        this.#dashboardResource.set({
+          ...updatedData,
+          budget: {
+            ...currentData.budget,
+            endingBalance: newEndingBalance,
+          },
+        });
+
+        // 3. Sync with backend for accurate ending balance
+        const budgetId = currentData.budget.id;
+        const updatedBudget = await firstValueFrom(
+          this.#budgetApi.getBudgetById$(budgetId),
+        );
+
+        // 4. Update with real backend value
+        const latestData = this.#dashboardResource.value();
+        if (latestData && updatedBudget) {
+          this.#dashboardResource.set({
+            ...latestData,
+            budget: updatedBudget,
+          });
+        }
+      }
+    } catch (error) {
+      // Rollback on error
+      if (originalData) {
+        this.#dashboardResource.set(originalData);
+      } else {
         this.refreshData();
       }
       throw error;
@@ -416,29 +354,24 @@ export class CurrentMonthStore {
     month: string;
     year: string;
   }): Promise<DashboardData> {
-    try {
-      // Load budget first to get its ID
-      const budget = await firstValueFrom<Budget | null>(
-        this.#budgetApi.getBudgetForMonth$(params.month, params.year),
-      );
+    // Load budget first to get its ID
+    const budget = await firstValueFrom<Budget | null>(
+      this.#budgetApi.getBudgetForMonth$(params.month, params.year),
+    );
 
-      if (!budget) {
-        return { budget: null, transactions: [], budgetLines: [] };
-      }
-
-      // Use the budget ID to fetch everything in a single request
-      const detailsResponse = await firstValueFrom(
-        this.#budgetApi.getBudgetWithDetails$(budget.id),
-      );
-
-      return {
-        budget: detailsResponse.data.budget,
-        transactions: detailsResponse.data.transactions,
-        budgetLines: detailsResponse.data.budgetLines,
-      };
-    } catch (error) {
-      this.#logger.error('Error loading dashboard data:', error);
-      throw error;
+    if (!budget) {
+      return { budget: null, transactions: [], budgetLines: [] };
     }
+
+    // Use the budget ID to fetch everything in a single request
+    const detailsResponse = await firstValueFrom(
+      this.#budgetApi.getBudgetWithDetails$(budget.id),
+    );
+
+    return {
+      budget: detailsResponse.data.budget,
+      transactions: detailsResponse.data.transactions,
+      budgetLines: detailsResponse.data.budgetLines,
+    };
   }
 }

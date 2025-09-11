@@ -52,6 +52,7 @@ describe('Budget Line Mapper Utils', () => {
         transactionDate: '2024-01-15T10:00:00.000Z',
         isOutOfBudget: false,
         category: null,
+        rolloverSourceBudgetId: null,
         createdAt: '2024-01-01T00:00:00.000Z',
         updatedAt: '2024-01-01T00:00:00.000Z',
       });

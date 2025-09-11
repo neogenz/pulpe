@@ -184,6 +184,13 @@ export class TransactionsList {
         ({
           ...transaction,
           isSelected: selectedIds.has(transaction.id),
+          // Prefer propagated flag from budget line mapping; fallback to name check
+          isRollover:
+            (transaction as unknown as { isRollover?: boolean }).isRollover ??
+            (transaction as unknown as { name?: string }).name?.startsWith(
+              'rollover_',
+            ) ??
+            false,
         }) as TransactionItemData,
     );
   });
