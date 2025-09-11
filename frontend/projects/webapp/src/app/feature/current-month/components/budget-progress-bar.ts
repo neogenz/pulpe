@@ -11,16 +11,16 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 /**
- * BudgetProgressBar - Affiche la progression du budget mensuel
+ * BudgetProgressBar - Displays monthly budget progress
  *
- * Concepts métier:
- * - Dépenses: Total dépensé (expenses + savings) SANS le rollover
- * - Disponible: Total des revenus + rollover (peut être négatif)
- * - Restant: Disponible - Dépenses
+ * Business concepts:
+ * - Expenses: Total spent (expenses + savings) WITHOUT rollover
+ * - Available: Total revenue + rollover (can be negative)
+ * - Remaining: Available - Expenses
  *
- * Calculs:
- * - Pourcentage utilisé = Dépenses / Disponible * 100
- * - Dépassement budget si Restant < 0
+ * Calculations:
+ * - Used percentage = Expenses / Available * 100
+ * - Budget exceeded if Remaining < 0
  */
 @Component({
   selector: 'pulpe-budget-progress-bar',
@@ -35,7 +35,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
     <mat-card appearance="outlined">
       <mat-card-header class="mb-4">
         <div class="flex flex-col gap-3 w-full">
-          <!-- Ligne principale: Dépenses sur Disponible -->
+          <!-- Main line: Expenses over Available -->
           <div class="flex justify-between items-baseline gap-2">
             <div class="flex flex-col" [class.text-error]="isOverBudget()">
               <span class="text-body-small md:text-body flex items-center gap-1"
@@ -110,73 +110,73 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 })
 export class BudgetProgressBar {
   /**
-   * Total des dépenses (expenses + savings) SANS le rollover
+   * Total expenses (expenses + savings) WITHOUT rollover
    */
   expenses = input.required<number>();
 
   /**
-   * Montant disponible total (revenus + rollover)
-   * Peut être négatif si rollover négatif important
+   * Total available amount (revenue + rollover)
+   * Can be negative if rollover is significantly negative
    */
   available = input.required<number>();
 
   /**
-   * Montant restant (disponible - dépenses)
-   * Peut être négatif en cas de dépassement
+   * Remaining amount (available - expenses)
+   * Can be negative in case of budget overrun
    */
-  remaining = input.required<number>();
+  remaining = computed(() => this.available() - this.expenses());
 
   /**
-   * Détecte si le budget est dépassé
-   * True si le montant restant < 0
+   * Detects if budget is exceeded
+   * True if remaining amount < 0
    */
   isOverBudget = computed(() => {
     return this.remaining() < 0;
   });
 
   /**
-   * Pourcentage utilisé pour la barre de progression visuelle
-   * Plafonné à 100% pour l'affichage de la barre
-   * Formule: Dépenses / Disponible * 100
+   * Percentage used for visual progress bar
+   * Capped at 100% for bar display
+   * Formula: Expenses / Available * 100
    */
   budgetUsedPercentage = computed(() => {
     const available = this.available();
     const expenses = this.expenses();
 
-    // Cas spéciaux : disponible <= 0
+    // Special cases: available <= 0
     if (available <= 0) {
-      // Si on a des dépenses avec rien de disponible, on est à 100% minimum
+      // If we have expenses with nothing available, we're at 100% minimum
       return expenses > 0 ? 100 : 0;
     }
 
-    // Calcul du pourcentage dépensé
+    // Calculate spent percentage
     const percentage = (expenses / available) * 100;
 
-    // Plafonner à 100% pour la barre visuelle
+    // Cap at 100% for visual bar
     return Math.round(Math.min(Math.max(0, percentage), 100));
   });
 
   /**
-   * Pourcentage réel pour l'affichage textuel
-   * Peut dépasser 100% en cas de dépassement budget
-   * Formule: Dépenses / Disponible * 100
-   * Retourne -1 si disponible <= 0 et dépenses > 0 (cas spécial à gérer dans le template)
+   * Real percentage for text display
+   * Can exceed 100% in case of budget overrun
+   * Formula: Expenses / Available * 100
+   * Returns -1 if available <= 0 and expenses > 0 (special case to handle in template)
    */
   displayPercentage = computed(() => {
     const available = this.available();
     const expenses = this.expenses();
 
-    // Cas spéciaux : disponible <= 0
+    // Special cases: available <= 0
     if (available <= 0) {
-      // Si on a des dépenses avec rien de disponible, retourner -1 pour indiquer un cas spécial
-      // Sinon 0 si pas de dépenses
+      // If we have expenses with nothing available, return -1 to indicate special case
+      // Otherwise 0 if no expenses
       return expenses > 0 ? -1 : 0;
     }
 
-    // Calcul du pourcentage dépensé
+    // Calculate spent percentage
     const percentage = (expenses / available) * 100;
 
-    // Retourner le pourcentage réel, même > 100%
+    // Return real percentage, even > 100%
     return Math.round(percentage);
   });
 }
