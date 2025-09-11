@@ -59,7 +59,10 @@ const SNACKBAR_CONFIG = {
         >
           <mat-icon>arrow_back</mat-icon>
         </button>
-        <h1 class="text-display-small" data-testid="page-title">
+        <h1
+          class="text-headline-medium md:text-display-small"
+          data-testid="page-title"
+        >
           Nouveau modèle de budget
         </h1>
       </header>

@@ -39,72 +39,13 @@ describe('BudgetCalculator', () => {
     templateLineId: 'test-template-id',
     savingsGoalId: null,
     name,
+    isRollover: false,
     amount,
     kind,
     recurrence: 'fixed',
     isManuallyAdjusted: false,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-  });
-
-  describe('calculateFixedBlock', () => {
-    it('should calculate fixed block correctly for expenses only', () => {
-      // Arrange
-      const budgetLines: BudgetLine[] = [
-        createBudgetLine(2200, 'Housing Costs', 'expense'),
-        createBudgetLine(450, 'Health Insurance', 'expense'),
-        createBudgetLine(150, 'Phone Plan', 'expense'),
-        createBudgetLine(8000, 'Monthly Income', 'income'), // Should be ignored
-      ];
-
-      // Act
-      const fixedBlock = calculator.calculateFixedBlock(budgetLines);
-
-      // Assert
-      expect(fixedBlock).toBe(2800);
-    });
-
-    it('should calculate fixed block correctly for expenses and savings', () => {
-      // Arrange
-      const budgetLines: BudgetLine[] = [
-        createBudgetLine(2200, 'Housing Costs', 'expense'),
-        createBudgetLine(450, 'Health Insurance', 'expense'),
-        createBudgetLine(500, 'Emergency Fund', 'saving'),
-        createBudgetLine(1200, 'House Goal', 'saving'),
-        createBudgetLine(8000, 'Monthly Income', 'income'), // Should be ignored
-      ];
-
-      // Act
-      const fixedBlock = calculator.calculateFixedBlock(budgetLines);
-
-      // Assert
-      expect(fixedBlock).toBe(4350); // 2200 + 450 + 500 + 1200
-    });
-
-    it('should return 0 for empty budget lines', () => {
-      // Arrange
-      const budgetLines: BudgetLine[] = [];
-
-      // Act
-      const fixedBlock = calculator.calculateFixedBlock(budgetLines);
-
-      // Assert
-      expect(fixedBlock).toBe(0);
-    });
-
-    it('should return 0 when no relevant budget lines exist', () => {
-      // Arrange
-      const budgetLines: BudgetLine[] = [
-        createBudgetLine(8000, 'Monthly Income', 'income'),
-        createBudgetLine(200, 'Freelance', 'income'),
-      ];
-
-      // Act
-      const fixedBlock = calculator.calculateFixedBlock(budgetLines);
-
-      // Assert
-      expect(fixedBlock).toBe(0);
-    });
   });
 
   describe('calculatePlannedIncome', () => {
@@ -150,54 +91,57 @@ describe('BudgetCalculator', () => {
     });
   });
 
-  describe('calculateLivingAllowance', () => {
-    it('should calculate living allowance correctly', () => {
+  describe('calculateTotalAvailable', () => {
+    it('should calculate total available correctly from budget lines and transactions', () => {
       // Arrange
       const budgetLines: BudgetLine[] = [
         createBudgetLine(8000, 'Monthly Income', 'income'),
         createBudgetLine(2200, 'Housing Costs', 'expense'),
         createBudgetLine(450, 'Health Insurance', 'expense'),
-        createBudgetLine(150, 'Phone Plan', 'expense'),
-        createBudgetLine(1137, 'Leasing/Credit', 'expense'),
-        createBudgetLine(500, 'Emergency Fund', 'saving'),
+      ];
+      const transactions: Transaction[] = [
+        createTransaction(500, 'Freelance', 'income'),
+        createTransaction(100, 'Groceries', 'expense'),
       ];
 
       // Act
-      const livingAllowance = calculator.calculateLivingAllowance(budgetLines);
+      const available = calculator.calculateTotalAvailable(
+        budgetLines,
+        transactions,
+      );
 
       // Assert
-      expect(livingAllowance).toBe(3563); // 8000 - (2200 + 450 + 150 + 1137 + 500)
+      expect(available).toBe(8500); // 8000 (income from budget lines) + 500 (income from transactions)
     });
 
-    it('should handle negative living allowance', () => {
+    it('should handle only budget lines without transactions', () => {
       // Arrange
       const budgetLines: BudgetLine[] = [
         createBudgetLine(5000, 'Monthly Income', 'income'),
-        createBudgetLine(6000, 'Expensive Housing', 'expense'),
-        createBudgetLine(1000, 'Savings', 'saving'),
+        createBudgetLine(1000, 'Bonus', 'income'),
       ];
 
       // Act
-      const livingAllowance = calculator.calculateLivingAllowance(budgetLines);
+      const available = calculator.calculateTotalAvailable(budgetLines, []);
 
       // Assert
-      expect(livingAllowance).toBe(-2000); // 5000 - (6000 + 1000)
+      expect(available).toBe(6000); // 5000 + 1000
     });
 
-    it('should return 0 for empty budget lines', () => {
+    it('should return 0 for empty budget lines and transactions', () => {
       // Arrange
       const budgetLines: BudgetLine[] = [];
 
       // Act
-      const livingAllowance = calculator.calculateLivingAllowance(budgetLines);
+      const available = calculator.calculateTotalAvailable(budgetLines, []);
 
       // Assert
-      expect(livingAllowance).toBe(0);
+      expect(available).toBe(0);
     });
   });
 
   describe('calculateActualTransactionsAmount', () => {
-    it('should calculate actual transactions impact on Living Allowance correctly', () => {
+    it('should calculate actual transactions impact on balance correctly', () => {
       // Arrange
       const transactions: Transaction[] = [
         createTransaction(30, 'Restaurant', 'expense'),
@@ -288,6 +232,322 @@ describe('BudgetCalculator', () => {
 
       // Assert
       expect(actualTransactions).toBe(-500);
+    });
+  });
+
+  describe('calculateTotalSpentIncludingRollover / ExcludingRollover', () => {
+    it('should calculate total spent from budget lines and transactions', () => {
+      // Arrange
+      const budgetLines: BudgetLine[] = [
+        createBudgetLine(8000, 'Salary', 'income'), // Should be ignored
+        createBudgetLine(2000, 'Rent', 'expense'),
+        createBudgetLine(500, 'Insurance', 'expense'),
+        createBudgetLine(1000, 'Savings', 'saving'),
+      ];
+      const transactions: Transaction[] = [
+        createTransaction(200, 'Groceries', 'expense'),
+        createTransaction(100, 'Restaurant', 'expense'),
+        createTransaction(500, 'Freelance', 'income'), // Should be ignored
+        createTransaction(300, 'Extra Savings', 'saving'),
+      ];
+
+      // Act
+      const totalSpent = calculator.calculateTotalSpentIncludingRollover(
+        budgetLines,
+        transactions,
+      );
+
+      // Assert
+      // Budget spent: 2000 + 500 + 1000 = 3500
+      // Transaction spent: 200 + 100 + 300 = 600
+      // Total: 3500 + 600 = 4100
+      expect(totalSpent).toBe(4100);
+    });
+
+    it('should handle budget lines with no transactions', () => {
+      // Arrange
+      const budgetLines: BudgetLine[] = [
+        createBudgetLine(2000, 'Rent', 'expense'),
+        createBudgetLine(500, 'Savings', 'saving'),
+      ];
+      const transactions: Transaction[] = [];
+
+      // Act
+      const totalSpent = calculator.calculateTotalSpentIncludingRollover(
+        budgetLines,
+        transactions,
+      );
+
+      // Assert
+      expect(totalSpent).toBe(2500);
+    });
+
+    it('should handle transactions with no budget lines', () => {
+      // Arrange
+      const budgetLines: BudgetLine[] = [];
+      const transactions: Transaction[] = [
+        createTransaction(300, 'Groceries', 'expense'),
+        createTransaction(200, 'Savings', 'saving'),
+      ];
+
+      // Act
+      const totalSpent = calculator.calculateTotalSpentIncludingRollover(
+        budgetLines,
+        transactions,
+      );
+
+      // Assert
+      expect(totalSpent).toBe(500);
+    });
+
+    it('should return 0 when no expenses or savings exist', () => {
+      // Arrange
+      const budgetLines: BudgetLine[] = [
+        createBudgetLine(5000, 'Salary', 'income'),
+      ];
+      const transactions: Transaction[] = [
+        createTransaction(1000, 'Bonus', 'income'),
+      ];
+
+      // Act
+      const totalSpent = calculator.calculateTotalSpentIncludingRollover(
+        budgetLines,
+        transactions,
+      );
+
+      // Assert
+      expect(totalSpent).toBe(0);
+    });
+
+    it('should return 0 for empty inputs', () => {
+      // Arrange
+      const budgetLines: BudgetLine[] = [];
+      const transactions: Transaction[] = [];
+
+      // Act
+      const totalSpent = calculator.calculateTotalSpentIncludingRollover(
+        budgetLines,
+        transactions,
+      );
+
+      // Assert
+      expect(totalSpent).toBe(0);
+    });
+
+    it('should exclude rollover lines when using ExcludingRollover', () => {
+      // Arrange
+      const budgetLines: BudgetLine[] = [
+        createBudgetLine(2000, 'Rent', 'expense'),
+        createBudgetLine(500, 'Insurance', 'expense'),
+        { ...createBudgetLine(10000, 'Rollover', 'expense'), isRollover: true },
+      ];
+      const transactions: Transaction[] = [
+        createTransaction(200, 'Groceries', 'expense'),
+      ];
+
+      // Act
+      const totalSpentWithRollover =
+        calculator.calculateTotalSpentIncludingRollover(
+          budgetLines,
+          transactions,
+        );
+      const totalSpentWithoutRollover =
+        calculator.calculateTotalSpentExcludingRollover(
+          budgetLines,
+          transactions,
+        );
+
+      // Assert
+      expect(totalSpentWithRollover).toBe(12700); // 2000 + 500 + 10000 + 200
+      expect(totalSpentWithoutRollover).toBe(2700); // 2000 + 500 + 200 (excludes 10000 rollover)
+    });
+
+    it('should correctly handle mixed transaction types', () => {
+      // Arrange
+      const budgetLines: BudgetLine[] = [
+        createBudgetLine(5000, 'Salary', 'income'),
+        createBudgetLine(1500, 'Rent', 'expense'),
+        createBudgetLine(500, 'Emergency Fund', 'saving'),
+      ];
+      const transactions: Transaction[] = [
+        createTransaction(100, 'Coffee', 'expense'),
+        createTransaction(200, 'Freelance', 'income'),
+        createTransaction(150, 'Extra Savings', 'saving'),
+        createTransaction(50, 'Lunch', 'expense'),
+      ];
+
+      // Act
+      const totalSpent = calculator.calculateTotalSpentIncludingRollover(
+        budgetLines,
+        transactions,
+      );
+
+      // Assert
+      // Budget spent: 1500 + 500 = 2000
+      // Transaction spent: 100 + 150 + 50 = 300
+      // Total: 2000 + 300 = 2300
+      expect(totalSpent).toBe(2300);
+    });
+  });
+
+  describe('calculateLocalEndingBalance', () => {
+    it('should calculate ending balance correctly with income, expenses and transactions', () => {
+      // Arrange
+      const budgetLines: BudgetLine[] = [
+        createBudgetLine(8000, 'Salary', 'income'),
+        createBudgetLine(2000, 'Rent', 'expense'),
+        createBudgetLine(500, 'Insurance', 'expense'),
+        createBudgetLine(1000, 'Savings', 'saving'),
+      ];
+      const transactions: Transaction[] = [
+        createTransaction(200, 'Groceries', 'expense'),
+        createTransaction(100, 'Restaurant', 'expense'),
+        createTransaction(500, 'Freelance', 'income'),
+      ];
+
+      // Act
+      const endingBalance = calculator.calculateLocalEndingBalance(
+        budgetLines,
+        transactions,
+      );
+
+      // Assert
+      // Income: 8000 (budget) + 500 (transaction) = 8500
+      // Fixed Block: 2000 + 500 + 1000 = 3500
+      // Transaction expenses: 200 + 100 = 300
+      // Formula: 8000 - 3500 + (500 - 300) = 4700
+      expect(endingBalance).toBe(4700);
+    });
+
+    it('should handle case with no transactions', () => {
+      // Arrange
+      const budgetLines: BudgetLine[] = [
+        createBudgetLine(5000, 'Salary', 'income'),
+        createBudgetLine(2000, 'Rent', 'expense'),
+        createBudgetLine(500, 'Savings', 'saving'),
+      ];
+      const transactions: Transaction[] = [];
+
+      // Act
+      const endingBalance = calculator.calculateLocalEndingBalance(
+        budgetLines,
+        transactions,
+      );
+
+      // Assert
+      // Income: 5000, Fixed Block: 2500, No transactions
+      // Formula: 5000 - 2500 + 0 = 2500
+      expect(endingBalance).toBe(2500);
+    });
+
+    it('should handle negative ending balance when expenses exceed income', () => {
+      // Arrange
+      const budgetLines: BudgetLine[] = [
+        createBudgetLine(3000, 'Salary', 'income'),
+        createBudgetLine(4000, 'Rent', 'expense'),
+        createBudgetLine(500, 'Savings', 'saving'),
+      ];
+      const transactions: Transaction[] = [
+        createTransaction(300, 'Groceries', 'expense'),
+      ];
+
+      // Act
+      const endingBalance = calculator.calculateLocalEndingBalance(
+        budgetLines,
+        transactions,
+      );
+
+      // Assert
+      // Income: 3000, Fixed Block: 4500, Transaction expenses: 300
+      // Formula: 3000 - 4500 + (-300) = -1800
+      expect(endingBalance).toBe(-1800);
+    });
+
+    it('should handle transactions that increase the balance', () => {
+      // Arrange
+      const budgetLines: BudgetLine[] = [
+        createBudgetLine(4000, 'Salary', 'income'),
+        createBudgetLine(3000, 'Expenses', 'expense'),
+      ];
+      const transactions: Transaction[] = [
+        createTransaction(1000, 'Bonus', 'income'),
+        createTransaction(200, 'Extra expense', 'expense'),
+      ];
+
+      // Act
+      const endingBalance = calculator.calculateLocalEndingBalance(
+        budgetLines,
+        transactions,
+      );
+
+      // Assert
+      // Income: 4000, Fixed Block: 3000
+      // Transaction impact: +1000 - 200 = +800
+      // Formula: 4000 - 3000 + 800 = 1800
+      expect(endingBalance).toBe(1800);
+    });
+
+    it('should handle empty budget lines with transactions', () => {
+      // Arrange
+      const budgetLines: BudgetLine[] = [];
+      const transactions: Transaction[] = [
+        createTransaction(1000, 'Income', 'income'),
+        createTransaction(300, 'Expense', 'expense'),
+      ];
+
+      // Act
+      const endingBalance = calculator.calculateLocalEndingBalance(
+        budgetLines,
+        transactions,
+      );
+
+      // Assert
+      // No budget lines, only transactions: 1000 - 300 = 700
+      expect(endingBalance).toBe(700);
+    });
+
+    it('should correctly handle all transaction types', () => {
+      // Arrange
+      const budgetLines: BudgetLine[] = [
+        createBudgetLine(6000, 'Salary', 'income'),
+        createBudgetLine(2000, 'Rent', 'expense'),
+      ];
+      const transactions: Transaction[] = [
+        createTransaction(500, 'Freelance', 'income'),
+        createTransaction(300, 'Groceries', 'expense'),
+        createTransaction(200, 'Emergency Fund', 'saving'),
+      ];
+
+      // Act
+      const endingBalance = calculator.calculateLocalEndingBalance(
+        budgetLines,
+        transactions,
+      );
+
+      // Assert
+      // Income: 6000, Fixed Block: 2000
+      // Transaction impact: +500 - 300 - 200 = 0
+      // Formula: 6000 - 2000 + 0 = 4000
+      expect(endingBalance).toBe(4000);
+    });
+
+    it('should match the business formula: Income - (Expenses + Savings)', () => {
+      // Arrange - Scenario from SPECS.md
+      const budgetLines: BudgetLine[] = [
+        createBudgetLine(5000, 'Income', 'income'),
+        createBudgetLine(4500, 'Total Expenses', 'expense'),
+      ];
+      const transactions: Transaction[] = [];
+
+      // Act
+      const endingBalance = calculator.calculateLocalEndingBalance(
+        budgetLines,
+        transactions,
+      );
+
+      // Assert
+      // According to SPECS: ending_balance = 500 (for January example)
+      expect(endingBalance).toBe(500);
     });
   });
 

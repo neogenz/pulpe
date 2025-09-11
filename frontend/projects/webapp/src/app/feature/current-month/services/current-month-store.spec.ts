@@ -27,6 +27,7 @@ const mockBudgetLines: BudgetLine[] = [
     budgetId: 'budget-1',
     templateLineId: 'tpl-1',
     isManuallyAdjusted: false,
+    isRollover: false,
     savingsGoalId: null,
     name: 'Salary',
     amount: 5000,
@@ -40,6 +41,7 @@ const mockBudgetLines: BudgetLine[] = [
     budgetId: 'budget-1',
     templateLineId: 'tpl-2',
     isManuallyAdjusted: false,
+    isRollover: false,
     savingsGoalId: null,
     name: 'Rent',
     amount: 1500,
@@ -53,6 +55,7 @@ const mockBudgetLines: BudgetLine[] = [
     budgetId: 'budget-1',
     templateLineId: 'tpl-3',
     isManuallyAdjusted: false,
+    isRollover: false,
     savingsGoalId: null,
     name: 'Emergency Fund',
     amount: 500,
@@ -116,9 +119,12 @@ describe('CurrentMonthStore', () => {
   };
   let mockBudgetCalculator: {
     calculatePlannedIncome: ReturnType<typeof vi.fn>;
-    calculateFixedBlock: ReturnType<typeof vi.fn>;
     calculateBalance: ReturnType<typeof vi.fn>;
-    calculateActualTransactionsAmount: ReturnType<typeof vi.fn>;
+    calculateTotalSpentIncludingRollover: ReturnType<typeof vi.fn>;
+    calculateTotalSpentExcludingRollover: ReturnType<typeof vi.fn>;
+    calculateTotalAvailable: ReturnType<typeof vi.fn>;
+    calculateLocalEndingBalance: ReturnType<typeof vi.fn>;
+    calculateRolloverAmount: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
@@ -145,17 +151,30 @@ describe('CurrentMonthStore', () => {
       calculatePlannedIncome: vi
         .fn()
         .mockImplementation((lines) => (lines.length > 0 ? 5000 : 0)),
-      calculateFixedBlock: vi
-        .fn()
-        .mockImplementation((lines) => (lines.length > 0 ? 2000 : 0)),
       calculateBalance: vi
         .fn()
         .mockImplementation((lines) => (lines.length > 0 ? 3000 : 0)),
-      calculateActualTransactionsAmount: vi
+      calculateTotalSpentIncludingRollover: vi
         .fn()
-        .mockImplementation((transactions) =>
-          transactions.length > 0 ? 75 : 0,
+        .mockImplementation((lines, transactions) =>
+          lines.length > 0 || transactions?.length > 0 ? 2075 : 0,
         ),
+      calculateTotalSpentExcludingRollover: vi
+        .fn()
+        .mockImplementation((lines, transactions) =>
+          lines.length > 0 || transactions?.length > 0 ? 1500 : 0,
+        ),
+      calculateTotalAvailable: vi
+        .fn()
+        .mockImplementation((lines, transactions) =>
+          lines.length > 0 || transactions?.length > 0 ? 5000 : 0,
+        ),
+      calculateLocalEndingBalance: vi
+        .fn()
+        .mockImplementation((lines, transactions) =>
+          lines.length > 0 || transactions?.length > 0 ? 3426 : 0,
+        ),
+      calculateRolloverAmount: vi.fn().mockReturnValue(0),
     };
 
     TestBed.configureTestingModule({
@@ -184,8 +203,10 @@ describe('CurrentMonthStore', () => {
       expect(service.dashboardData).toBeDefined();
       expect(service.budgetDate).toBeDefined();
       expect(service.budgetLines).toBeDefined();
-      expect(service.balance).toBeDefined();
-      expect(service.actualTransactionsAmount).toBeDefined();
+      expect(service.totalSpent).toBeDefined();
+      expect(service.totalSpentWithoutRollover).toBeDefined();
+      expect(service.totalAvailable).toBeDefined();
+      expect(service.totalAvailableWithRollover).toBeDefined();
       expect(service.availableToSpend).toBeDefined();
       expect(service.rolloverAmount).toBeDefined();
     });
@@ -202,8 +223,11 @@ describe('CurrentMonthStore', () => {
     it('should have correct initial values when no data is loaded', () => {
       // Before resource loads, these should return empty/zero values
       expect(service.budgetLines()).toEqual([]);
-      expect(service.balance()).toBe(0);
-      expect(service.actualTransactionsAmount()).toBe(0);
+      expect(service.totalSpent()).toBe(0);
+      expect(service.totalSpentWithoutRollover()).toBe(0);
+      expect(service.totalAvailable()).toBe(0);
+      expect(service.totalAvailableWithRollover()).toBe(0);
+      expect(service.availableToSpend()).toBe(0);
     });
 
     it('should have a current date set', () => {
@@ -330,21 +354,25 @@ describe('CurrentMonthStore', () => {
 
   describe('Computed Values', () => {
     it('should return zero/empty values when no data is loaded', () => {
-      expect(service.balance()).toBe(0);
-      expect(service.actualTransactionsAmount()).toBe(0);
+      expect(service.totalSpent()).toBe(0);
+      expect(service.totalSpentWithoutRollover()).toBe(0);
+      expect(service.totalAvailable()).toBe(0);
+      expect(service.totalAvailableWithRollover()).toBe(0);
       expect(service.availableToSpend()).toBe(0);
       expect(service.rolloverAmount()).toBe(0);
     });
 
     it('should call calculator methods with correct parameters', () => {
       // When we have empty data, the calculators should be called with empty arrays
-      service.balance();
-      expect(mockBudgetCalculator.calculateBalance).toHaveBeenCalledWith([]);
-
-      service.actualTransactionsAmount();
+      service.totalSpent();
       expect(
-        mockBudgetCalculator.calculateActualTransactionsAmount,
-      ).toHaveBeenCalledWith([]);
+        mockBudgetCalculator.calculateTotalSpentIncludingRollover,
+      ).toHaveBeenCalledWith([], []);
+
+      service.totalSpentWithoutRollover();
+      expect(
+        mockBudgetCalculator.calculateTotalSpentExcludingRollover,
+      ).toHaveBeenCalledWith([], []);
     });
   });
 
