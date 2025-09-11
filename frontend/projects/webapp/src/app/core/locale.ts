@@ -1,6 +1,8 @@
 import { registerLocaleData } from '@angular/common';
 import localeFrCHExtra from '@angular/common/locales/extra/fr-CH';
 import localeFrCH from '@angular/common/locales/fr-CH';
+import localeDeCHExtra from '@angular/common/locales/extra/de-CH';
+import localeDeCH from '@angular/common/locales/de-CH';
 import { LOCALE_ID } from '@angular/core';
 import {
   MAT_DATE_FNS_FORMATS,
@@ -10,7 +12,7 @@ import { MAT_DATE_FORMATS, MAT_DATE_LOCALE } from '@angular/material/core';
 import { frCH } from 'date-fns/locale';
 
 registerLocaleData(localeFrCH, 'fr-CH', localeFrCHExtra);
-
+registerLocaleData(localeDeCH, 'de-CH', localeDeCHExtra);
 // Format de date étendu pour prendre en charge le timepicker et month/year picker
 const CUSTOM_DATE_FORMATS = {
   ...MAT_DATE_FNS_FORMATS,

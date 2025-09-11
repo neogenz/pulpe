@@ -5,6 +5,11 @@ import { describe, it, expect, beforeEach } from 'vitest';
 // Import the internal API for signal manipulation in tests
 // This is a workaround for the signal inputs testing issue with Vitest
 import { SIGNAL, signalSetFn } from '@angular/core/primitives/signals';
+import { registerLocaleData } from '@angular/common';
+import localeDE from '@angular/common/locales/de-CH';
+
+// Register locale data for Swiss German
+registerLocaleData(localeDE);
 
 describe('BudgetProgressBar - TDD Approach', () => {
   let component: BudgetProgressBar;
@@ -132,22 +137,50 @@ describe('BudgetProgressBar - TDD Approach', () => {
   });
 
   describe('Edge Cases', () => {
-    it('should handle zero available gracefully', () => {
-      // GIVEN: available=0 (edge case)
+    it('should handle zero available with expenses gracefully', () => {
+      // GIVEN: available=0 with expenses=100 (edge case - no budget but spending)
       const { component } = createComponentWithInputs(100, 0, -100);
 
-      // THEN: Should return 0% (no division by zero)
+      // THEN: Should return -1 for display (special case) and 100% for progress bar
+      expect(component.displayPercentage()).toBe(-1); // Special case indicator
+      expect(component.budgetUsedPercentage()).toBe(100); // Progress bar at 100%
+    });
+
+    it('should handle zero available without expenses', () => {
+      // GIVEN: available=0 with expenses=0 (edge case - no budget, no spending)
+      const { component } = createComponentWithInputs(0, 0, 0);
+
+      // THEN: Should return 0% for both
       expect(component.displayPercentage()).toBe(0);
       expect(component.budgetUsedPercentage()).toBe(0);
     });
 
-    it('should handle negative available', () => {
-      // GIVEN: available=-100 (edge case - rollover négatif important)
+    it('should handle negative available with expenses', () => {
+      // GIVEN: available=-100 with expenses=50 (edge case - rollover négatif important)
       const { component } = createComponentWithInputs(50, -100, -150);
 
-      // THEN: Should return 0% (protected against negative available)
+      // THEN: Should return -1 for display (special case) and 100% for progress bar
+      expect(component.displayPercentage()).toBe(-1); // Special case indicator
+      expect(component.budgetUsedPercentage()).toBe(100); // Progress bar at 100%
+    });
+
+    it('should handle negative available without expenses', () => {
+      // GIVEN: available=-100 with expenses=0 (edge case - negative rollover, no spending)
+      const { component } = createComponentWithInputs(0, -100, -100);
+
+      // THEN: Should return 0% for both
       expect(component.displayPercentage()).toBe(0);
       expect(component.budgetUsedPercentage()).toBe(0);
+    });
+
+    it('should handle the specific case from user: 1524 expenses with 0 available', () => {
+      // GIVEN: The exact case from user - expenses=1524, available=0, remaining=-1524
+      const { component } = createComponentWithInputs(1524, 0, -1524);
+
+      // THEN: Should return -1 for display (special case) and 100% for progress bar
+      expect(component.displayPercentage()).toBe(-1); // Special case: "Budget totalement dépassé"
+      expect(component.budgetUsedPercentage()).toBe(100); // Progress bar at 100%
+      expect(component.isOverBudget()).toBe(true); // Over budget status
     });
 
     it('should handle negative expenses', () => {
