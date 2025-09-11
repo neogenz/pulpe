@@ -8,6 +8,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { DecimalPipe } from '@angular/common';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 /**
  * BudgetProgressBar - Affiche la progression du budget mensuel
@@ -23,16 +24,34 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
  */
 @Component({
   selector: 'pulpe-budget-progress-bar',
-  imports: [MatCardModule, MatIconModule, DecimalPipe, MatProgressBarModule],
+  imports: [
+    MatCardModule,
+    MatIconModule,
+    DecimalPipe,
+    MatProgressBarModule,
+    MatTooltipModule,
+  ],
   template: `
     <mat-card appearance="outlined">
       <mat-card-header class="mb-4">
         <div class="flex flex-col gap-3 w-full">
           <!-- Ligne principale: Dépenses sur Disponible -->
           <div class="flex justify-between items-baseline gap-2">
-            <div class="flex flex-col">
-              <span class="text-body-small md:text-body">Dépenses CHF</span>
-              <span class="text-headline-small md:text-headline-large">
+            <div class="flex flex-col" [class.text-error]="isOverBudget()">
+              <span class="text-body-small md:text-body flex items-center gap-1"
+                >Dépenses CHF
+                @if (isOverBudget()) {
+                  <mat-icon
+                    matTooltip="Tu es en dépassement"
+                    class="icon-filled"
+                    >report</mat-icon
+                  >
+                }
+              </span>
+              <span
+                class="text-headline-small md:text-headline-large"
+                [class.text-error]="isOverBudget()"
+              >
                 {{ expenses() | number: '1.2-2' : 'de-CH' }}
               </span>
             </div>
@@ -46,26 +65,16 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
         </div>
       </mat-card-header>
       <mat-card-content class="space-y-2">
-        @if (isOverBudget()) {
-          <div class="flex flex-col items-center gap-2">
-            <div
-              class="inline-flex items-center gap-2 px-2 py-1 bg-error-container text-on-error-container rounded-corner-medium"
-            >
-              <mat-icon class="icon-filled">report</mat-icon>
-              <span class="text-body-small md:text-body">Dépassement CHF</span>
-            </div>
-            <span class="text-headline-small md:text-headline-large text-error">
-              {{ remaining() | number: '1.2-2' : 'de-CH' }}
-            </span>
-          </div>
-        }
         <div class="space-y-2">
           <mat-progress-bar
             mode="determinate"
             [value]="budgetUsedPercentage()"
-            [color]="isOverBudget() ? 'warn' : 'primary'"
+            [class.over-budget]="isOverBudget()"
           />
-          <div class="text-label-small text-on-surface-variant">
+          <div
+            class="text-label-small text-on-surface-variant"
+            [class.text-error!]="isOverBudget()"
+          >
             @if (displayPercentage() === -1) {
               Budget totalement dépassé
             } @else {
@@ -85,6 +94,14 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
         (
           track-height: 10px,
           active-indicator-height: 10px,
+        )
+      );
+    }
+
+    .over-budget {
+      @include mat.progress-bar-overrides(
+        (
+          active-indicator-color: var(--mat-sys-error),
         )
       );
     }

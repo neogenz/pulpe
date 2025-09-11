@@ -166,6 +166,10 @@ feature/[domain]/
 - Page Object Model pattern
 - Comprehensive user flow testing
 
+### Styling
+
+NEVER use ::ng-deep ! It's FORBIDDEN. 
+
 ### Design System - Material Design 3
 
 The application implements **Material Design 3** (Material You) through a dual approach:
@@ -410,10 +414,10 @@ This vocabulary and UX must follows **Nielsen's 10 Usability Heuristics**, **Bas
 - **`createMockResourceRef<T>(initialValue)`**: Mock Angular's ResourceRef for tests
 
 ```typescript
-import { createMockResourceRef } from '../../../core/testing';
+import { createMockResourceRef } from "../../../core/testing";
 
 const mockResource = createMockResourceRef<BudgetTemplate[]>([]);
-mockResource.value.set([{ id: '1', name: 'Template' }]);
+mockResource.value.set([{ id: "1", name: "Template" }]);
 ```
 
 ## State Management Best Practices
