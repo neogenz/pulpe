@@ -143,16 +143,6 @@ export class CurrentMonthStore {
   });
 
   /**
-   * Remaining = Available - Expenses
-   * This is the "Restant" shown to users (SPECS terminology)
-   */
-  readonly remaining = computed<number>(() => {
-    const availableWithRollover = this.totalAvailableWithRollover();
-    const spentWithoutRollover = this.totalSpentWithoutRollover();
-    return availableWithRollover - spentWithoutRollover;
-  });
-
-  /**
    * Refresh dashboard data by reloading the resource
    */
   refreshData(): void {

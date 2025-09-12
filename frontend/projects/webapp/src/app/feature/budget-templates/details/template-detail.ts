@@ -176,7 +176,7 @@ import {
                 id="transactions-heading"
                 class="flex-shrink-0 text-headline-small"
               >
-                Transactions fixes
+                Dépenses récurrentes
               </h2>
               <button
                 matIconButton

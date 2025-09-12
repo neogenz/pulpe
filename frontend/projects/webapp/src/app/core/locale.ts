@@ -12,6 +12,7 @@ import { MAT_DATE_FORMATS, MAT_DATE_LOCALE } from '@angular/material/core';
 import { frCH } from 'date-fns/locale';
 
 registerLocaleData(localeFrCH, 'fr-CH', localeFrCHExtra);
+// Used to format correctly the amount as currency (XX'XXX.xx)
 registerLocaleData(localeDeCH, 'de-CH', localeDeCHExtra);
 // Format de date étendu pour prendre en charge le timepicker et month/year picker
 const CUSTOM_DATE_FORMATS = {

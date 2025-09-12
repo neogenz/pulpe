@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  inject,
   input,
   model,
   output,
@@ -11,6 +12,11 @@ import {
   type TransactionsListConfig,
 } from './transactions-list';
 import { type Transaction } from '@pulpe/shared';
+import { BreakpointObserver } from '@angular/cdk/layout';
+import { Breakpoints } from '@angular/cdk/layout';
+import { map } from 'rxjs';
+import { shareReplay } from 'rxjs';
+import { toSignal } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'pulpe-variable-expenses-list',
@@ -22,6 +28,7 @@ import { type Transaction } from '@pulpe/shared';
       [(selectedTransactions)]="selectedTransactions"
       (deleteTransaction)="deleteTransaction.emit($event)"
       (editTransaction)="editTransaction.emit($event)"
+      [isHandset]="isHandset()"
     />
   `,
   styles: ``,
@@ -32,10 +39,18 @@ export class VariableExpensesList {
   selectedTransactions = model<string[]>([]);
   deleteTransaction = output<string>();
   editTransaction = output<string>();
+  readonly breakpointObserver = inject(BreakpointObserver);
 
+  protected readonly isHandset = toSignal(
+    this.breakpointObserver.observe(Breakpoints.Handset).pipe(
+      map((result) => result.matches),
+      shareReplay(),
+    ),
+    { initialValue: false },
+  );
   config = computed(
     (): TransactionsListConfig => ({
-      title: 'Transactions variables',
+      title: 'Ponctuelles',
       totalAmount: this.transactions().reduce((total, transaction) => {
         switch (transaction.kind) {
           case 'income':
