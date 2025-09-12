@@ -16,18 +16,19 @@ import { RouterLink } from '@angular/router';
 import { RolloverFormatPipe } from '@app/ui/rollover-format';
 import { TransactionIconPipe } from '@ui/transaction-display';
 
-export interface TransactionItemData {
+export interface FinancialEntryData {
   id: string;
   name: string;
   amount: number;
   kind: 'income' | 'expense' | 'saving';
   category?: string | null;
   isSelected: boolean;
-  isRollover?: boolean;
+  isRollover: boolean; // Required property to distinguish rollover items
+  rolloverSourceBudgetId?: string | null;
 }
 
 @Component({
-  selector: 'pulpe-transaction-item',
+  selector: 'pulpe-financial-entry',
   standalone: true,
   imports: [
     CurrencyPipe,
@@ -191,8 +192,8 @@ export interface TransactionItemData {
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class TransactionItem {
-  readonly data = input.required<TransactionItemData>();
+export class FinancialEntry {
+  readonly data = input.required<FinancialEntryData>();
   readonly selectable = input<boolean>(false);
   readonly deletable = input<boolean>(false);
   readonly editable = input<boolean>(false);
@@ -204,15 +205,11 @@ export class TransactionItem {
 
   readonly isRollover = computed<boolean>(() => {
     const d = this.data();
-    if (typeof d.isRollover === 'boolean') return d.isRollover;
-    return d.name?.startsWith('rollover_');
+    return d.isRollover;
   });
 
   readonly rolloverSourceBudgetId = computed<string | null>(() => {
-    return (
-      (this.data() as unknown as { rolloverSourceBudgetId?: string | null })
-        .rolloverSourceBudgetId ?? null
-    );
+    return this.data().rolloverSourceBudgetId ?? null;
   });
 
   protected handleClick(): void {
