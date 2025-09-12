@@ -7,13 +7,36 @@ const MAX_YEAR = CURRENT_YEAR + 10;
 const MONTH_MIN = 1;
 const MONTH_MAX = 12;
 
-// Enums
+/**
+ * ENUMS - Types métier selon SPECS.md section 2
+ */
+
+/**
+ * TRANSACTION RECURRENCE - Fréquence des flux financiers
+ *
+ * UX Labels (CLAUDE.md frontend):
+ * - 'fixed' → "Tous les mois" (récurrent mensuel)
+ * - 'one_off' → "Une seule fois" (ponctuel)
+ * - 'variable' → "Variable" (montant changeant)
+ */
 export const transactionRecurrenceSchema = z.enum([
   'fixed',
   'variable',
   'one_off',
 ]);
 export type TransactionRecurrence = z.infer<typeof transactionRecurrenceSchema>;
+
+/**
+ * TRANSACTION KIND - Types de flux financiers
+ *
+ * Selon SPECS.md section 2 "Types de Flux Financiers":
+ * - 'income' : Entrée d'argent dans le budget mensuel
+ * - 'expense' : Sortie d'argent du budget (hors épargne)
+ * - 'saving' : Épargne - traitée comme expense pour forcer la budgétisation
+ *
+ * Note importante SPECS: "Le saving est volontairement traité comme une expense
+ * dans les calculs pour forcer l'utilisateur à 'budgéter' son épargne"
+ */
 export const transactionKindSchema = z.enum(['income', 'expense', 'saving']);
 export type TransactionKind = z.infer<typeof transactionKindSchema>;
 
@@ -27,7 +50,19 @@ export const savingsGoalStatusSchema = z.enum([
 ]);
 export type SavingsGoalStatus = z.infer<typeof savingsGoalStatusSchema>;
 
-// Budget schemas
+/**
+ * BUDGET - Instance mensuelle d'un template
+ *
+ * Selon SPECS.md section 2 "Concepts Métier":
+ * - **Budget** : Instance mensuelle créée à partir d'un template, modifiable indépendamment
+ * - Contient les Budget Lines (prévisions) et les Transactions (réelles)
+ * - **ending_balance** : Stocké en base, calculé selon la formule SPECS
+ * - Formule: ending_balance = (income + rollover) - (expenses + savings)
+ *
+ * Architecture de chaînage (SPECS section 3):
+ * - Mois M+1 : rollover = ending_balance_from_M
+ * - Premier mois : rollover = 0
+ */
 export const budgetSchema = z.object({
   id: z.string().uuid(),
   month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
@@ -35,6 +70,8 @@ export const budgetSchema = z.object({
   description: z.string().min(1).max(500),
   userId: z.string().uuid().optional(),
   templateId: z.string().uuid(),
+  // ending_balance : STOCKÉ en base selon SPECS.md section 3
+  // Calculé par le backend, pas par le frontend
   endingBalance: z.number().nullable().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
@@ -84,6 +121,16 @@ export const budgetUpdateSchema = z.object({
 export type BudgetUpdate = z.infer<typeof budgetUpdateSchema>;
 
 // Savings Goal schemas
+/**
+ * SAVINGS GOAL - Objectifs d'épargne
+ *
+ * ⚠️ FEATURE FUTURE - PAS DANS SPECS V1:
+ * Cette entité n'est pas mentionnée dans SPECS.md V1.
+ * SPECS indique: "Pas d'objectifs long terme : Focus sur le mois, pas de projections annuelles"
+ *
+ * STATUS: Préparation pour évolution future (hors V1)
+ * IMPACT: Les BudgetLines ont un savingsGoalId pour cette feature future
+ */
 export const savingsGoalSchema = z.object({
   id: z.string().uuid(),
   userId: z.string().uuid(),
@@ -109,17 +156,30 @@ export type SavingsGoalCreate = z.infer<typeof savingsGoalCreateSchema>;
 export const savingsGoalUpdateSchema = savingsGoalCreateSchema.partial();
 export type SavingsGoalUpdate = z.infer<typeof savingsGoalUpdateSchema>;
 
-// Budget Line schemas
+/**
+ * BUDGET LINE - Ligne budgétaire planifiée
+ *
+ * Selon SPECS.md section 2 "Concepts Métier":
+ * - **Budget Line** : Ligne de budget PLANIFIÉE (income, expense ou saving)
+ * - Représente ce qui est prévu/attendu dans le budget (ex: salaire mensuel, loyer)
+ * - S'oppose aux **Transactions** qui sont les opérations RÉELLES saisies
+ * - Peut provenir d'un template (templateLineId) ou être créée manuellement
+ *
+ * UX: Appelé "prévisions" dans l'interface utilisateur (voir CLAUDE.md frontend)
+ */
 export const budgetLineSchema = z.object({
   id: z.string().uuid(),
   budgetId: z.string().uuid(),
   templateLineId: z.string().uuid().nullable(),
+  // NOTE: savingsGoalId pour feature future (pas dans SPECS V1)
   savingsGoalId: z.string().uuid().nullable(),
   name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,
   isManuallyAdjusted: z.boolean(),
+  // NOTE: isRollover = true pour les lignes artificielles de rollover
+  // Alternative à considérer: traiter le rollover comme donnée métier séparée
   isRollover: z.boolean(),
   rolloverSourceBudgetId: z.string().uuid().nullable().optional(),
   createdAt: z.string().datetime(),
@@ -148,7 +208,17 @@ export const budgetLineUpdateSchema = budgetLineCreateSchema
   });
 export type BudgetLineUpdate = z.infer<typeof budgetLineUpdateSchema>;
 
-// Transaction schemas (nouvelle structure pour les dépenses du quotidien)
+/**
+ * TRANSACTION - Opération réelle saisie par l'utilisateur
+ *
+ * Selon SPECS.md section 2 "Concepts Métier":
+ * - **Transaction** : Opération RÉELLE saisie pour ajuster le budget par rapport au plan
+ * - S'AJOUTE aux Budget Lines (ne les remplace pas) - voir RG-005
+ * - Exemple: "Restaurant 45 CHF" vient s'ajouter aux dépenses prévues
+ * - S'oppose aux **Budget Lines** qui sont les montants planifiés
+ *
+ * Formule SPECS: expenses = Σ(budget_lines) + Σ(transactions)
+ */
 export const transactionSchema = z.object({
   id: z.string().uuid(),
   budgetId: z.string().uuid(),
@@ -156,7 +226,9 @@ export const transactionSchema = z.object({
   amount: z.number().positive(),
   kind: transactionKindSchema,
   transactionDate: z.string().datetime(),
+  // NOTE: isOutOfBudget pas mentionné dans SPECS V1 - feature future?
   isOutOfBudget: z.boolean(),
+  // NOTE: category pas définie dans SPECS V1 - "Pas de catégorisation avancée"
   category: z.string().max(100).trim().nullable(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
