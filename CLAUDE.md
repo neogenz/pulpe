@@ -115,7 +115,8 @@ frontend/projects/webapp/src/app/
 └── pattern/    # Reusable stateful components
 ```
 
-Details at @frontend/CLAUDE.md, following rules at @.cursor/rules/00-architecture/0-angular-architecture-structure.mdc
+- Details at @./frontend/CLAUDE.md
+- Follow rules at @.cursor/rules/00-architecture/0-angular-architecture-structure.mdc
 
 #### 3. Backend Architecture (NestJS)
 

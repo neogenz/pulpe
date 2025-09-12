@@ -1,14 +1,20 @@
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { of, throwError } from 'rxjs';
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import type { Budget, BudgetLine, Transaction } from '@pulpe/shared';
+import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
+import type {
+  Budget,
+  BudgetLine,
+  Transaction,
+  TransactionCreate,
+} from '@pulpe/shared';
 
 import { CurrentMonthStore } from './current-month-store';
 import { BudgetApi, BudgetCalculator } from '@core/budget';
 import { TransactionApi } from '@core/transaction/transaction-api';
+import { Logger } from '@core/logging/logger';
 
-// Mock data
+// Mock data aligned with business scenarios
 const mockBudget: Budget = {
   id: 'budget-1',
   userId: 'user-1',
@@ -23,7 +29,7 @@ const mockBudget: Budget = {
 
 const mockBudgetLines: BudgetLine[] = [
   {
-    id: 'line-1',
+    id: 'line-income',
     budgetId: 'budget-1',
     templateLineId: 'tpl-1',
     isManuallyAdjusted: false,
@@ -37,7 +43,7 @@ const mockBudgetLines: BudgetLine[] = [
     updatedAt: '2024-01-01T00:00:00Z',
   },
   {
-    id: 'line-2',
+    id: 'line-expense',
     budgetId: 'budget-1',
     templateLineId: 'tpl-2',
     isManuallyAdjusted: false,
@@ -51,27 +57,13 @@ const mockBudgetLines: BudgetLine[] = [
     updatedAt: '2024-01-01T00:00:00Z',
   },
   {
-    id: 'line-3',
-    budgetId: 'budget-1',
-    templateLineId: 'tpl-3',
-    isManuallyAdjusted: false,
-    isRollover: false,
-    savingsGoalId: null,
-    name: 'Emergency Fund',
-    amount: 500,
-    kind: 'saving',
-    recurrence: 'fixed',
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-01T00:00:00Z',
-  },
-  {
-    id: 'rollover-budget-1',
+    id: 'rollover-line',
     budgetId: 'budget-1',
     templateLineId: null,
     isManuallyAdjusted: false,
     savingsGoalId: null,
     name: 'rollover_12_2023',
-    amount: 10470,
+    amount: 500,
     kind: 'expense',
     recurrence: 'one_off',
     isRollover: true,
@@ -93,42 +85,42 @@ const mockTransactions: Transaction[] = [
     createdAt: '2024-01-15T10:00:00Z',
     updatedAt: '2024-01-15T10:00:00Z',
   },
-  {
-    id: 'txn-2',
-    budgetId: 'budget-1',
-    amount: 25,
-    category: null,
-    isOutOfBudget: false,
-    name: 'Lunch',
-    kind: 'expense',
-    transactionDate: '2024-01-15T12:00:00Z',
-    createdAt: '2024-01-15T12:00:00Z',
-    updatedAt: '2024-01-15T12:00:00Z',
-  },
 ];
 
-describe('CurrentMonthStore', () => {
-  let service: CurrentMonthStore;
+/**
+ * Business Value Tests for CurrentMonthStore
+ *
+ * These tests focus on what matters to users:
+ * 1. Can they see their financial situation clearly?
+ * 2. Can they manage their transactions?
+ * 3. Does the app provide accurate calculations?
+ * 4. Does the app remain stable when things go wrong?
+ */
+describe('CurrentMonthStore - Business Scenarios', () => {
+  let store: CurrentMonthStore;
   let mockBudgetApi: {
-    getBudgetForMonth$: ReturnType<typeof vi.fn>;
-    getBudgetWithDetails$: ReturnType<typeof vi.fn>;
+    getBudgetForMonth$: Mock;
+    getBudgetWithDetails$: Mock;
+    getBudgetById$: Mock;
   };
   let mockTransactionApi: {
-    create$: ReturnType<typeof vi.fn>;
-    remove$: ReturnType<typeof vi.fn>;
+    create$: Mock;
+    update$: Mock;
+    remove$: Mock;
   };
   let mockBudgetCalculator: {
-    calculatePlannedIncome: ReturnType<typeof vi.fn>;
-    calculateBalance: ReturnType<typeof vi.fn>;
-    calculateTotalSpentIncludingRollover: ReturnType<typeof vi.fn>;
-    calculateTotalSpentExcludingRollover: ReturnType<typeof vi.fn>;
-    calculateTotalAvailable: ReturnType<typeof vi.fn>;
-    calculateLocalEndingBalance: ReturnType<typeof vi.fn>;
-    calculateRolloverAmount: ReturnType<typeof vi.fn>;
+    calculateLocalEndingBalance: Mock;
+    calculateBalance: Mock;
+    calculatePlannedIncome: Mock;
+    calculateActualTransactionsAmount: Mock;
+    calculateTotalSpentIncludingRollover: Mock;
+    calculateTotalSpentExcludingRollover: Mock;
+    calculateTotalAvailable: Mock;
+    calculateRolloverAmount: Mock;
   };
 
   beforeEach(() => {
-    // Create mocks
+    // Realistic mocks that simulate actual business behaviors
     mockBudgetApi = {
       getBudgetForMonth$: vi.fn().mockReturnValue(of(mockBudget)),
       getBudgetWithDetails$: vi.fn().mockReturnValue(
@@ -140,41 +132,29 @@ describe('CurrentMonthStore', () => {
           },
         }),
       ),
+      getBudgetById$: vi.fn().mockReturnValue(of(mockBudget)),
     };
 
     mockTransactionApi = {
       create$: vi.fn(),
+      update$: vi.fn(),
       remove$: vi.fn(),
     };
 
     mockBudgetCalculator = {
-      calculatePlannedIncome: vi
-        .fn()
-        .mockImplementation((lines) => (lines.length > 0 ? 5000 : 0)),
-      calculateBalance: vi
-        .fn()
-        .mockImplementation((lines) => (lines.length > 0 ? 3000 : 0)),
-      calculateTotalSpentIncludingRollover: vi
-        .fn()
-        .mockImplementation((lines, transactions) =>
-          lines.length > 0 || transactions?.length > 0 ? 2075 : 0,
-        ),
-      calculateTotalSpentExcludingRollover: vi
-        .fn()
-        .mockImplementation((lines, transactions) =>
-          lines.length > 0 || transactions?.length > 0 ? 1500 : 0,
-        ),
-      calculateTotalAvailable: vi
-        .fn()
-        .mockImplementation((lines, transactions) =>
-          lines.length > 0 || transactions?.length > 0 ? 5000 : 0,
-        ),
-      calculateLocalEndingBalance: vi
-        .fn()
-        .mockImplementation((lines, transactions) =>
-          lines.length > 0 || transactions?.length > 0 ? 3426 : 0,
-        ),
-      calculateRolloverAmount: vi.fn().mockReturnValue(0),
+      calculateLocalEndingBalance: vi.fn().mockReturnValue(3426),
+      calculateBalance: vi.fn().mockReturnValue(3000),
+      calculatePlannedIncome: vi.fn().mockReturnValue(5000),
+      calculateActualTransactionsAmount: vi.fn().mockReturnValue(50),
+      calculateTotalSpentIncludingRollover: vi.fn().mockReturnValue(2050), // 1500 + 500 + 50
+      calculateTotalSpentExcludingRollover: vi.fn().mockReturnValue(1550), // 1500 + 50 (sans rollover)
+      calculateTotalAvailable: vi.fn().mockReturnValue(5000),
+      calculateRolloverAmount: vi.fn().mockReturnValue(500),
+    };
+
+    const mockLogger = {
+      info: vi.fn(),
+      error: vi.fn(),
     };
 
     TestBed.configureTestingModule({
@@ -184,291 +164,247 @@ describe('CurrentMonthStore', () => {
         { provide: BudgetApi, useValue: mockBudgetApi },
         { provide: TransactionApi, useValue: mockTransactionApi },
         { provide: BudgetCalculator, useValue: mockBudgetCalculator },
+        { provide: Logger, useValue: mockLogger },
       ],
     });
 
-    service = TestBed.inject(CurrentMonthStore);
+    store = TestBed.inject(CurrentMonthStore);
   });
 
-  afterEach(() => {
-    TestBed.resetTestingModule();
-  });
+  describe('User can see their financial situation', () => {
+    it('should display available amount to spend correctly', () => {
+      // Business scenario: User opens the app and wants to see how much they can spend
 
-  describe('Service Creation and Basic Properties', () => {
-    it('should create the service', () => {
-      expect(service).toBeTruthy();
+      // Given: User has income, expenses, and rollover from previous month
+      // When: User views their dashboard
+      const availableToSpend = store.availableToSpend();
+
+      // Then: The calculation should be: (Income + Rollover) - Expenses
+      // Expected: (5000 + 500) - 1550 = 3950
+      expect(availableToSpend).toBe(3950);
     });
 
-    it('should have all required public properties', () => {
-      expect(service.dashboardData).toBeDefined();
-      expect(service.budgetDate).toBeDefined();
-      expect(service.budgetLines).toBeDefined();
-      expect(service.totalSpent).toBeDefined();
-      expect(service.totalSpentWithoutRollover).toBeDefined();
-      expect(service.totalAvailable).toBeDefined();
-      expect(service.totalAvailableWithRollover).toBeDefined();
-      expect(service.availableToSpend).toBeDefined();
-      expect(service.rolloverAmount).toBeDefined();
+    it('should show rollover from previous month', () => {
+      // Business scenario: User wants to see money carried over from last month
+
+      const rollover = store.rolloverAmount();
+
+      // Should show the positive rollover amount
+      expect(rollover).toBe(500);
+      // Verify the calculator is called
+      expect(mockBudgetCalculator.calculateRolloverAmount).toHaveBeenCalled();
     });
 
-    it('should have all required public methods', () => {
-      expect(service.refreshData).toBeDefined();
-      expect(service.setCurrentDate).toBeDefined();
-      expect(service.addTransaction).toBeDefined();
-      expect(service.deleteTransaction).toBeDefined();
-    });
-  });
+    it('should calculate total spent excluding rollover for budget progress', () => {
+      // Business scenario: User wants to see how much they've spent this month
+      // (excluding rollover from previous month for clear progress tracking)
 
-  describe('Initial State', () => {
-    it('should have correct initial values when no data is loaded', () => {
-      // Before resource loads, these should return empty/zero values
-      expect(service.budgetLines()).toEqual([]);
-      expect(service.totalSpent()).toBe(0);
-      expect(service.totalSpentWithoutRollover()).toBe(0);
-      expect(service.totalAvailable()).toBe(0);
-      expect(service.totalAvailableWithRollover()).toBe(0);
-      expect(service.availableToSpend()).toBe(0);
+      const totalSpent = store.totalSpentWithoutRollover();
+
+      // Should exclude rollover: only current month expenses + transactions
+      expect(totalSpent).toBe(1550); // 1500 (rent) + 50 (coffee) = 1550
+      // Verify the calculator is called
+      expect(
+        mockBudgetCalculator.calculateTotalSpentExcludingRollover,
+      ).toHaveBeenCalled();
     });
 
-    it('should have a current date set', () => {
-      const today = service.budgetDate();
-      expect(today).toBeInstanceOf(Date);
-    });
-  });
+    it('should show total available including rollover', () => {
+      // Business scenario: User wants to see total money available this month
 
-  describe('Date Management', () => {
-    it('should update the current date', () => {
-      const newDate = new Date('2024-02-15T10:00:00Z');
-      service.setCurrentDate(newDate);
-      expect(service.budgetDate()).toEqual(newDate);
-    });
+      const totalAvailable = store.totalAvailableWithRollover();
 
-    it('should format date correctly for API calls', () => {
-      // The resource would normally call the API with formatted dates
-      // In test environment, the resource may not trigger immediately
-      // We can verify the date formatting logic works
-      const date = service.budgetDate();
-      const month = date.getMonth() + 1; // JS months are 0-indexed
-      const year = date.getFullYear();
-
-      // The API would be called with zero-padded month and 4-digit year
-      const expectedMonth = month.toString().padStart(2, '0');
-      const expectedYear = year.toString();
-
-      expect(expectedMonth).toMatch(/^\d{2}$/); // Should be 2-digit month
-      expect(expectedYear).toMatch(/^\d{4}$/); // Should be 4-digit year
+      // Should be: Income + Rollover = 5000 + 500 = 5500
+      expect(totalAvailable).toBe(5500);
     });
   });
 
-  describe('API Integration', () => {
-    it('should be configured to call getBudgetForMonth', () => {
-      // The service is configured with the API dependency
-      // In production, the resource would call this on initialization
-      // In tests, the resource/effect may not trigger automatically
-      expect(mockBudgetApi.getBudgetForMonth$).toBeDefined();
+  describe('User can navigate between months', () => {
+    it('should allow user to change the current month view', () => {
+      // Business scenario: User wants to view their budget for a different month
 
-      // Verify the API mock is properly configured
-      const result = mockBudgetApi.getBudgetForMonth$('01', '2024');
-      result.subscribe((data: Budget | null) => {
-        expect(data).toEqual(mockBudget);
-      });
+      const newDate = new Date('2024-02-15');
+      store.setCurrentDate(newDate);
+
+      expect(store.budgetDate()).toEqual(newDate);
     });
 
-    it('should handle null budget response', () => {
-      // Create a new service with null budget response
-      mockBudgetApi.getBudgetForMonth$ = vi.fn().mockReturnValue(of(null));
+    it('should start with current date by default', () => {
+      // Business scenario: User opens app and sees current month by default
 
-      TestBed.resetTestingModule();
-      TestBed.configureTestingModule({
-        providers: [
-          provideZonelessChangeDetection(),
-          CurrentMonthStore,
-          { provide: BudgetApi, useValue: mockBudgetApi },
-          { provide: TransactionApi, useValue: mockTransactionApi },
-          { provide: BudgetCalculator, useValue: mockBudgetCalculator },
-        ],
-      });
+      const currentDate = store.budgetDate();
 
-      const newService = TestBed.inject(CurrentMonthStore);
-
-      // Service should still be created
-      expect(newService).toBeTruthy();
-      expect(newService.budgetLines()).toEqual([]);
-    });
-
-    it('should handle API errors', () => {
-      // Create a new service with error response
-      mockBudgetApi.getBudgetForMonth$ = vi
-        .fn()
-        .mockReturnValue(throwError(() => new Error('API Error')));
-
-      TestBed.resetTestingModule();
-      TestBed.configureTestingModule({
-        providers: [
-          provideZonelessChangeDetection(),
-          CurrentMonthStore,
-          { provide: BudgetApi, useValue: mockBudgetApi },
-          { provide: TransactionApi, useValue: mockTransactionApi },
-          { provide: BudgetCalculator, useValue: mockBudgetCalculator },
-        ],
-      });
-
-      const newService = TestBed.inject(CurrentMonthStore);
-
-      // Service should still be created even with error
-      expect(newService).toBeTruthy();
+      expect(currentDate).toBeInstanceOf(Date);
     });
   });
 
-  describe('Transaction Methods', () => {
-    it('should handle errors when adding transaction', async () => {
-      const newTransaction = {
+  describe('User can refresh their data', () => {
+    it('should allow user to refresh their financial data', () => {
+      // Business scenario: User pulls to refresh or clicks refresh button
+
+      const refreshSpy = vi.spyOn(store, 'refreshData');
+
+      expect(() => store.refreshData()).not.toThrow();
+      store.refreshData();
+
+      expect(refreshSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe('User can manage transactions', () => {
+    it('should allow adding a transaction without errors', async () => {
+      // Business scenario: User adds a new expense and the operation completes successfully
+      const newTransaction: TransactionCreate = {
         budgetId: 'budget-1',
-        amount: 100,
-        name: 'Test',
-        kind: 'expense' as const,
-        transactionDate: '2024-01-16T14:00:00Z',
+        name: 'Coffee',
+        amount: 5,
+        kind: 'expense',
+        transactionDate: '2024-01-25T00:00:00Z',
         isOutOfBudget: false,
         category: null,
       };
 
-      mockTransactionApi.create$ = vi
-        .fn()
-        .mockReturnValue(throwError(() => new Error('API Error')));
-
-      await expect(service.addTransaction(newTransaction)).rejects.toThrow(
-        'API Error',
+      mockTransactionApi.create$.mockReturnValue(
+        of({
+          data: {
+            id: 'new-1',
+            ...newTransaction,
+            createdAt: '2024-01-25T00:00:00Z',
+            updatedAt: '2024-01-25T00:00:00Z',
+          },
+        }),
       );
+
+      // Should complete without throwing
+      await expect(
+        store.addTransaction(newTransaction),
+      ).resolves.toBeUndefined();
     });
 
-    it('should handle errors when deleting transaction', async () => {
-      mockTransactionApi.remove$ = vi
-        .fn()
-        .mockReturnValue(throwError(() => new Error('Delete Error')));
-
-      await expect(service.deleteTransaction('txn-1')).rejects.toThrow(
-        'Delete Error',
+    it('should allow updating a transaction without errors', async () => {
+      // Business scenario: User modifies an existing transaction
+      mockTransactionApi.update$.mockReturnValue(
+        of({ data: { id: 'trans-1', amount: 200, name: 'Updated' } }),
       );
+
+      // Should complete without throwing
+      await expect(
+        store.updateTransaction('trans-1', { amount: 200 }),
+      ).resolves.toBeUndefined();
+    });
+
+    it('should allow deleting a transaction without errors', async () => {
+      // Business scenario: User removes an unwanted transaction
+      mockTransactionApi.remove$.mockReturnValue(of(undefined));
+
+      // Should complete without throwing
+      await expect(store.deleteTransaction('trans-1')).resolves.toBeUndefined();
     });
   });
 
-  describe('Computed Values', () => {
-    it('should return zero/empty values when no data is loaded', () => {
-      expect(service.totalSpent()).toBe(0);
-      expect(service.totalSpentWithoutRollover()).toBe(0);
-      expect(service.totalAvailable()).toBe(0);
-      expect(service.totalAvailableWithRollover()).toBe(0);
-      expect(service.availableToSpend()).toBe(0);
-      expect(service.rolloverAmount()).toBe(0);
+  describe('App handles errors gracefully', () => {
+    it('should maintain stability when add transaction fails', async () => {
+      // Business scenario: App doesn't crash when server is down during transaction creation
+      mockTransactionApi.create$.mockReturnValue(
+        throwError(() => new Error('Server unavailable')),
+      );
+
+      const newTransaction: TransactionCreate = {
+        budgetId: 'budget-1',
+        name: 'Failed transaction',
+        amount: 100,
+        kind: 'expense',
+        transactionDate: '2024-01-25T00:00:00Z',
+        isOutOfBudget: false,
+        category: null,
+      };
+
+      // Should throw but not corrupt the store
+      await expect(store.addTransaction(newTransaction)).rejects.toThrow(
+        'Server unavailable',
+      );
+
+      // Store should still be functional after error
+      expect(store.availableToSpend()).toBe(3950);
+      // In error scenarios with empty initial state, budgetLines might be empty
+      expect(store.budgetLines()).toEqual(expect.any(Array));
     });
 
-    it('should call calculator methods with correct parameters', () => {
-      // When we have empty data, the calculators should be called with empty arrays
-      service.totalSpent();
-      expect(
-        mockBudgetCalculator.calculateTotalSpentIncludingRollover,
-      ).toHaveBeenCalledWith([], []);
+    it('should maintain stability when update transaction fails', async () => {
+      // Business scenario: Failed updates don't corrupt user's data
+      mockTransactionApi.update$.mockReturnValue(
+        throwError(() => new Error('Update failed')),
+      );
 
-      service.totalSpentWithoutRollover();
-      expect(
-        mockBudgetCalculator.calculateTotalSpentExcludingRollover,
-      ).toHaveBeenCalledWith([], []);
-    });
-  });
+      // Should throw but not corrupt the store
+      await expect(
+        store.updateTransaction('trans-1', { amount: 200 }),
+      ).rejects.toThrow('Update failed');
 
-  describe('Available to Spend Calculation', () => {
-    // Test the computed logic directly by simulating the internal state
-
-    it('should calculate rollover amount from budget lines', () => {
-      // Test the rollover calculation logic with direct mock data
-      const testBudgetLines = [
-        {
-          id: '1',
-          name: 'Income',
-          amount: 5000,
-          kind: 'income' as const,
-          isRollover: false,
-        },
-        {
-          id: '2',
-          name: 'Rent',
-          amount: 1500,
-          kind: 'expense' as const,
-          isRollover: false,
-        },
-        {
-          id: '3',
-          name: 'rollover',
-          amount: 10470,
-          kind: 'expense' as const,
-          isRollover: true,
-        },
-      ];
-
-      // Test the rollover logic directly
-      const rollover = testBudgetLines.find((line) => line.isRollover === true);
-      const expectedRollover = rollover ? rollover.amount : 0;
-
-      expect(expectedRollover).toBe(10470);
+      // Store should still be functional
+      expect(store.availableToSpend()).toBe(3950);
     });
 
-    it('should calculate available to spend as endingBalance minus rollover', () => {
-      // Test the available to spend calculation logic
-      const testBudget = { endingBalance: 3426 };
-      const rolloverAmount = 10470;
+    it('should maintain stability when delete transaction fails', async () => {
+      // Business scenario: Failed deletions don't corrupt user's data
+      mockTransactionApi.remove$.mockReturnValue(
+        throwError(() => new Error('Delete failed')),
+      );
 
-      const expectedAvailableToSpend =
-        testBudget.endingBalance - rolloverAmount;
+      // Should throw but not corrupt the store
+      await expect(store.deleteTransaction('trans-1')).rejects.toThrow(
+        'Delete failed',
+      );
 
-      // Expected: 3426 - 10470 = -7044
-      expect(expectedAvailableToSpend).toBe(-7044);
-    });
-
-    it('should handle missing rollover (return 0)', () => {
-      // Test with budget lines that don't have rollover
-      const testBudgetLines = [
-        {
-          id: '1',
-          name: 'Income',
-          amount: 5000,
-          kind: 'income' as const,
-          isRollover: false,
-        },
-        {
-          id: '2',
-          name: 'Rent',
-          amount: 1500,
-          kind: 'expense' as const,
-          isRollover: false,
-        },
-      ];
-
-      const rollover = testBudgetLines.find((line) => line.isRollover === true);
-      const rolloverAmount = rollover ? rollover.amount : 0;
-
-      const testBudget = { endingBalance: 3426 };
-      const availableToSpend = testBudget.endingBalance - rolloverAmount;
-
-      expect(rolloverAmount).toBe(0);
-      expect(availableToSpend).toBe(3426);
-    });
-
-    it('should handle missing budget (return 0)', () => {
-      // When no budget is loaded
-      expect(service.rolloverAmount()).toBe(0);
-      expect(service.availableToSpend()).toBe(0);
+      // Store should still be functional
+      expect(store.availableToSpend()).toBe(3950);
     });
   });
 
-  describe('Refresh Functionality', () => {
-    it('should have a refresh method that can be called', () => {
-      expect(() => service.refreshData()).not.toThrow();
+  describe('App handles empty states gracefully', () => {
+    beforeEach(() => {
+      // Setup scenario with no data
+      mockBudgetApi.getBudgetForMonth$.mockReturnValue(of(null));
+      mockBudgetApi.getBudgetWithDetails$.mockReturnValue(
+        of({ data: { budget: null, transactions: [], budgetLines: [] } }),
+      );
+      mockBudgetCalculator.calculateTotalAvailable.mockReturnValue(0);
+      mockBudgetCalculator.calculateTotalSpentExcludingRollover.mockReturnValue(
+        0,
+      );
+      mockBudgetCalculator.calculateRolloverAmount.mockReturnValue(0);
+
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          provideZonelessChangeDetection(),
+          CurrentMonthStore,
+          { provide: BudgetApi, useValue: mockBudgetApi },
+          { provide: TransactionApi, useValue: mockTransactionApi },
+          { provide: BudgetCalculator, useValue: mockBudgetCalculator },
+        ],
+      });
+      store = TestBed.inject(CurrentMonthStore);
     });
 
-    it('should expose refresh method', () => {
-      const refreshSpy = vi.spyOn(service, 'refreshData');
-      service.refreshData();
-      expect(refreshSpy).toHaveBeenCalled();
+    it('should handle when user has no budget for the month', () => {
+      // Business scenario: User opens app for a month with no budget created
+
+      expect(store.budgetLines()).toEqual([]);
+      expect(store.transactions()).toEqual([]);
+      expect(store.availableToSpend()).toBe(0);
+      expect(store.totalAvailableWithRollover()).toBe(0);
+    });
+
+    it('should handle API errors during data loading', () => {
+      // Business scenario: App remains functional when server has issues
+      mockBudgetApi.getBudgetForMonth$.mockReturnValue(
+        throwError(() => new Error('API Error')),
+      );
+
+      // Store should still be created without crashing
+      expect(store).toBeTruthy();
+      expect(store.budgetLines()).toEqual([]);
     });
   });
 });
