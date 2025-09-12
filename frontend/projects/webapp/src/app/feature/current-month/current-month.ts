@@ -30,11 +30,15 @@ import { CurrentMonthStore } from './services/current-month-store';
 import { TitleDisplay } from '@core/routing';
 import { BudgetProgressBar } from './components/budget-progress-bar';
 import { AddTransactionBottomSheet } from './components/add-transaction-bottom-sheet';
-import { mapBudgetLineToFinancialEntry } from './utils/financial-entry-mapper';
+import {
+  mapBudgetLineToFinancialEntry,
+  mapTransactionToFinancialEntry,
+} from './utils/financial-entry-mapper';
 import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
 import { firstValueFrom } from 'rxjs';
-import { type Transaction, type TransactionCreate } from '@pulpe/shared';
+import { type TransactionCreate } from '@pulpe/shared';
 import { EditTransactionDialog } from './components/edit-transaction-dialog';
+import { type FinancialEntryModel } from './models/financial-entry.model';
 
 type TransactionFormData = Pick<
   TransactionCreate,
@@ -147,14 +151,16 @@ type EditTransactionFormData = Pick<
               }
 
               <pulpe-recurring-expenses-list
-                [transactions]="fixedTransactions()"
+                [financialEntries]="recurringFinancialItems()"
                 data-testid="recurring-expenses-list"
               />
               <pulpe-one-time-expenses-list
-                [transactions]="variableTransactions()"
-                [(selectedTransactions)]="selectedTransactions"
-                (deleteTransaction)="deleteTransaction($event)"
-                (editTransaction)="openEditTransactionDialogAndUpdate($event)"
+                [financialEntries]="oneTimeFinancialItems()"
+                [(selectedFinancialEntries)]="selectedTransactions"
+                (deleteFinancialEntry)="deleteTransaction($event)"
+                (editFinancialEntry)="
+                  openEditTransactionDialogAndUpdate($event)
+                "
                 data-testid="one-time-expenses-list"
               />
             </div>
@@ -217,7 +223,7 @@ export default class CurrentMonth implements OnInit {
   #dialog = inject(MatDialog);
   #snackBar = inject(MatSnackBar);
 
-  fixedTransactions = computed(() => {
+  recurringFinancialItems = computed<FinancialEntryModel[]>(() => {
     const budgetLines = this.store.budgetLines();
     const budgetId = this.store.dashboardData()?.budget?.id;
 
@@ -230,10 +236,12 @@ export default class CurrentMonth implements OnInit {
       )
       .map((line) => mapBudgetLineToFinancialEntry(line, budgetId));
   });
-  variableTransactions = computed(() => {
+  oneTimeFinancialItems = computed<FinancialEntryModel[]>(() => {
     // For now, show all transactions as variable expenses
     const transactions = this.store.dashboardData()?.transactions ?? [];
-    return transactions;
+    return transactions.map((transaction) =>
+      mapTransactionToFinancialEntry(transaction),
+    );
   });
 
   /**
@@ -297,8 +305,8 @@ export default class CurrentMonth implements OnInit {
 
   async deleteTransaction(transactionId: string): Promise<void> {
     // Find transaction for the confirmation dialog
-    const transaction = this.variableTransactions().find(
-      (t: Transaction) => t.id === transactionId,
+    const transaction = this.oneTimeFinancialItems().find(
+      (t: FinancialEntryModel) => t.id === transactionId,
     );
 
     if (!transaction) {
@@ -350,9 +358,9 @@ export default class CurrentMonth implements OnInit {
     transactionId: string,
   ): Promise<void> {
     // Find transaction to edit
-    const transaction = this.variableTransactions().find(
-      (transaction) => transaction.id === transactionId,
-    );
+    const transaction = this.store
+      .dashboardData()
+      ?.transactions.find((transaction) => transaction.id === transactionId);
 
     if (!transaction) return;
 
