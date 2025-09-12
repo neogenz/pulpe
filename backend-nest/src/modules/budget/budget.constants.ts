@@ -27,8 +27,6 @@ export const BUDGET_CONSTANTS = {
   MONTH_MAX: 12,
   DESCRIPTION_MAX_LENGTH: 500,
   ROLLOVER: {
-    ID_PREFIX: 'rollover-' as const,
-    NAME_PREFIX: 'rollover_' as const,
     formatId: <T extends string>(budgetId: T): RolloverId<T> =>
       `rollover-${budgetId}`,
     formatName: <M extends MonthRange, Y extends number>(
