@@ -44,30 +44,18 @@ export interface TransactionsListConfig {
       class="flex flex-col rounded-corner-large overflow-hidden bg-surface-container-low"
     >
       <div
-        class="p-4 cursor-pointer"
+        class="p-4 cursor-pointer flex justify-between items-center"
         role="button"
         tabindex="0"
         (click)="toggleExpanded()"
         (keyup.enter)="toggleExpanded()"
         (keyup.space)="toggleExpanded()"
       >
-        <div class="flex justify-between items-center">
-          <div class="flex items-center gap-3">
-            <h2 class="text-headline-small">{{ config().title }}</h2>
-            @if (config().totalAmount !== undefined) {
-              <span
-                class="text-title-medium font-medium"
-                [class.text-pulpe-financial-income]="config().totalAmount! > 0"
-                [class.text-pulpe-financial-expense]="config().totalAmount! < 0"
-                [class.text-on-surface]="config().totalAmount! === 0"
-              >
-                {{ config().totalAmount! > 0 ? '+' : ''
-                }}{{
-                  config().totalAmount!
-                    | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH'
-                }}
-              </span>
-            }
+        <div data-testid="left-side" class="flex items-center gap-3">
+          <h2 class="text-title-small md:text-title-medium">
+            {{ config().title }}
+          </h2>
+          @if (!isHandset()) {
             <mat-chip-set>
               <mat-chip>
                 {{ transactions().length }}
@@ -76,12 +64,27 @@ export interface TransactionsListConfig {
                 }}
               </mat-chip>
             </mat-chip-set>
-          </div>
+          }
+        </div>
+        <div data-testid="right-side" class="flex items-center gap-3">
+          @if (config().totalAmount !== undefined) {
+            <span
+              class="text-title-medium font-medium"
+              [class.text-pulpe-financial-income]="config().totalAmount! > 0"
+              [class.text-pulpe-financial-expense]="config().totalAmount! < 0"
+              [class.text-on-surface]="config().totalAmount! === 0"
+            >
+              {{ config().totalAmount! > 0 ? '+' : ''
+              }}{{
+                config().totalAmount!
+                  | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH'
+              }}
+            </span>
+          }
           <mat-icon
             class="transition-transform duration-200"
             [class.rotate-180]="!isExpanded()"
-          >
-            expand_less
+            >expand_less
           </mat-icon>
         </div>
       </div>
@@ -162,6 +165,7 @@ export class TransactionsList {
   readonly selectedTransactions = model<string[]>([]);
   readonly deleteTransaction = output<string>();
   readonly editTransaction = output<string>();
+  readonly isHandset = input<boolean>(false);
 
   private readonly expandedState = signal<boolean | null>(null);
   protected readonly showAllItems = signal(false);

@@ -27,7 +27,6 @@ import { BaseLoading } from '@ui/loading';
 import { FixedTransactionsList } from './components/fixed-transactions-list';
 import { VariableExpensesList } from './components/variable-expenses-list';
 import { CurrentMonthStore } from './services/current-month-store';
-import { TransactionChipFilter } from './components/transaction-chip-filter';
 import { TitleDisplay } from '@core/routing';
 import { BudgetProgressBar } from './components/budget-progress-bar';
 import { AddTransactionBottomSheet } from './components/add-transaction-bottom-sheet';
@@ -72,7 +71,6 @@ type EditTransactionFormData = Pick<
     DashboardError,
     BaseLoading,
     VariableExpensesList,
-    TransactionChipFilter,
   ],
   template: `
     <div class="flex flex-col gap-4" data-testid="current-month-page">
@@ -125,9 +123,12 @@ type EditTransactionFormData = Pick<
               [availableLimit]="store.totalAvailableWithRollover()"
             />
             <div class="flex flex-col gap-4" data-testid="dashboard-content">
-              <pulpe-transaction-chip-filter
+              <!--<pulpe-transaction-chip-filter
                 data-testid="transaction-chip-filter"
-              />
+              />-->
+              <h3 class="text-title-medium md:text-title-large">
+                Liste des dépenses
+              </h3>
               @if (selectedTransactions().length > 1) {
                 <div class="flex gap-4" data-testid="bulk-actions">
                   <!--<button
@@ -144,6 +145,7 @@ type EditTransactionFormData = Pick<
                   </button>
                 </div>
               }
+
               <pulpe-fixed-transactions-list
                 [transactions]="fixedTransactions()"
                 data-testid="fixed-transactions-list"

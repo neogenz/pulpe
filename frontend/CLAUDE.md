@@ -168,7 +168,7 @@ feature/[domain]/
 
 ### Styling
 
-NEVER use ::ng-deep ! It's FORBIDDEN. 
+NEVER use `::ng-deep` in styles. It's FORBIDDEN. 
 
 ### Design System - Material Design 3
 
