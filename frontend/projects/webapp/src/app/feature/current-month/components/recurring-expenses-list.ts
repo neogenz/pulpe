@@ -5,7 +5,6 @@ import {
   inject,
   input,
 } from '@angular/core';
-import { type Transaction } from '@pulpe/shared';
 import {
   FinancialAccordion,
   type FinancialAccordionConfig,
@@ -15,13 +14,14 @@ import { BreakpointObserver } from '@angular/cdk/layout';
 import { Breakpoints } from '@angular/cdk/layout';
 import { map } from 'rxjs';
 import { shareReplay } from 'rxjs';
+import { type FinancialEntryModel } from '../models/financial-entry.model';
 
 @Component({
   selector: 'pulpe-recurring-expenses-list',
   imports: [FinancialAccordion],
   template: `
     <pulpe-financial-accordion
-      [transactions]="transactions()"
+      [financialEntries]="financialEntries()"
       [config]="config()"
       [isHandset]="isHandset()"
     />
@@ -31,7 +31,7 @@ import { shareReplay } from 'rxjs';
 export class RecurringExpensesList {
   readonly breakpointObserver = inject(BreakpointObserver);
 
-  transactions = input.required<Transaction[]>();
+  financialEntries = input.required<FinancialEntryModel[]>();
 
   protected readonly isHandset = toSignal(
     this.breakpointObserver.observe(Breakpoints.Handset).pipe(
@@ -44,21 +44,21 @@ export class RecurringExpensesList {
   config = computed(
     (): FinancialAccordionConfig => ({
       title: 'Récurrentes',
-      totalAmount: this.transactions().reduce((total, transaction) => {
-        switch (transaction.kind) {
+      totalAmount: this.financialEntries().reduce((total, financialEntry) => {
+        switch (financialEntry.kind) {
           case 'income':
-            return total + transaction.amount;
+            return total + financialEntry.amount;
           case 'expense':
-            return total - transaction.amount;
+            return total - financialEntry.amount;
           case 'saving':
-            return total - transaction.amount;
+            return total - financialEntry.amount;
           default:
             return total;
         }
       }, 0),
       emptyStateIcon: 'event_repeat',
-      emptyStateTitle: 'Aucune transaction fixe',
-      emptyStateSubtitle: 'Vos transactions récurrentes apparaîtront ici',
+      emptyStateTitle: 'Aucune prévision récurrente',
+      emptyStateSubtitle: 'Vos prévisions récurrentes apparaîtront ici',
       defaultExpanded: false,
     }),
   );

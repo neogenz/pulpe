@@ -15,17 +15,12 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 import { RolloverFormatPipe } from '@app/ui/rollover-format';
 import { TransactionIconPipe } from '@ui/transaction-display';
+import { type FinancialEntryModel } from '../models/financial-entry.model';
 
-export interface FinancialEntryData {
-  id: string;
-  name: string;
-  amount: number;
-  kind: 'income' | 'expense' | 'saving';
-  category?: string | null;
+export type FinancialEntryViewModel = FinancialEntryModel & {
   isSelected: boolean;
-  isRollover: boolean; // Required property to distinguish rollover items
-  rolloverSourceBudgetId?: string | null;
-}
+  isRollover: boolean;
+};
 
 @Component({
   selector: 'pulpe-financial-entry',
@@ -94,11 +89,6 @@ export interface FinancialEntryData {
           {{ isRollover() ? (data().name | rolloverFormat) : data().name }}
         }
       </div>
-      @if (data().category) {
-        <div matListItemLine class="text-body-small italic">
-          {{ data().category }}
-        </div>
-      }
       <div matListItemMeta class="!flex !h-full !items-center !gap-3">
         <span [class.italic]="isRollover()">
           {{ data().kind === 'income' ? '+' : '-'
@@ -193,7 +183,7 @@ export interface FinancialEntryData {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FinancialEntry {
-  readonly data = input.required<FinancialEntryData>();
+  readonly data = input.required<FinancialEntryViewModel>();
   readonly selectable = input<boolean>(false);
   readonly deletable = input<boolean>(false);
   readonly editable = input<boolean>(false);
@@ -203,14 +193,13 @@ export class FinancialEntry {
   readonly deleteClick = output<void>();
   readonly editClick = output<void>();
 
-  readonly isRollover = computed<boolean>(() => {
-    const d = this.data();
-    return d.isRollover;
-  });
+  readonly isRollover = computed<boolean>(
+    () => this.data().isRollover ?? false,
+  );
 
-  readonly rolloverSourceBudgetId = computed<string | null>(() => {
-    return this.data().rolloverSourceBudgetId ?? null;
-  });
+  readonly rolloverSourceBudgetId = computed<string | null>(
+    () => this.data().rollover.sourceBudgetId ?? null,
+  );
 
   protected handleClick(): void {
     if (this.selectable()) {

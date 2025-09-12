@@ -13,8 +13,11 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatListModule } from '@angular/material/list';
 import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
-import { type Transaction } from '@pulpe/shared';
-import { FinancialEntry, type FinancialEntryData } from './financial-entry';
+import {
+  FinancialEntry,
+  type FinancialEntryViewModel,
+} from './financial-entry';
+import { type FinancialEntryModel } from '../models/financial-entry.model';
 
 export interface FinancialAccordionConfig {
   readonly title: string;
@@ -58,9 +61,11 @@ export interface FinancialAccordionConfig {
           @if (!isHandset()) {
             <mat-chip-set>
               <mat-chip>
-                {{ transactions().length }}
+                {{ financialEntries().length }}
                 {{
-                  transactions().length === 1 ? 'transaction' : 'transactions'
+                  financialEntries().length === 1
+                    ? 'transaction'
+                    : 'transactions'
                 }}
               </mat-chip>
             </mat-chip-set>
@@ -91,7 +96,7 @@ export interface FinancialAccordionConfig {
 
       @if (isExpanded()) {
         <div>
-          @if (transactions().length === 0) {
+          @if (financialEntries().length === 0) {
             <div
               class="flex flex-col items-center justify-center py-8 text-center"
             >
@@ -114,7 +119,7 @@ export interface FinancialAccordionConfig {
           } @else {
             <mat-list class="!pb-0">
               @for (
-                vm of displayedTransactions().items;
+                vm of displayedFinancialEntries().items;
                 track vm.id;
                 let isLast = $last;
                 let isOdd = $odd
@@ -126,8 +131,8 @@ export interface FinancialAccordionConfig {
                   [editable]="config().editable ?? false"
                   [isOdd]="isOdd"
                   (selectionChange)="toggleSelection(vm.id, $event)"
-                  (deleteClick)="deleteTransaction.emit(vm.id)"
-                  (editClick)="editTransaction.emit(vm.id)"
+                  (deleteClick)="deleteFinancialEntry.emit(vm.id)"
+                  (editClick)="editFinancialEntry.emit(vm.id)"
                 />
                 @if (!isLast) {
                   <mat-divider></mat-divider>
@@ -135,14 +140,14 @@ export interface FinancialAccordionConfig {
               }
             </mat-list>
 
-            @if (displayedTransactions().hasMore) {
+            @if (displayedFinancialEntries().hasMore) {
               <div class="flex justify-center p-4">
                 <button
                   matButton
-                  (click)="showAllTransactions()"
+                  (click)="showAllFinancialEntries()"
                   class="text-primary"
                 >
-                  Voir plus ({{ displayedTransactions().remaining }})
+                  Voir plus ({{ displayedFinancialEntries().remaining }})
                 </button>
               </div>
             }
@@ -160,11 +165,11 @@ export interface FinancialAccordionConfig {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FinancialAccordion {
-  readonly transactions = input.required<Transaction[]>();
+  readonly financialEntries = input.required<FinancialEntryModel[]>();
   readonly config = input.required<FinancialAccordionConfig>();
-  readonly selectedTransactions = model<string[]>([]);
-  readonly deleteTransaction = output<string>();
-  readonly editTransaction = output<string>();
+  readonly selectedFinancialEntries = model<string[]>([]);
+  readonly deleteFinancialEntry = output<string>();
+  readonly editFinancialEntry = output<string>();
   readonly isHandset = input<boolean>(false);
 
   private readonly expandedState = signal<boolean | null>(null);
@@ -179,28 +184,22 @@ export class FinancialAccordion {
     return this.config().defaultExpanded ?? true;
   });
 
-  readonly #transactionViewModels = computed(() => {
-    const transactions = this.transactions();
-    const selectedIds = new Set(this.selectedTransactions());
+  readonly #financialEntriesViewModel = computed(() => {
+    const financialEntries = this.financialEntries();
+    const selectedIds = new Set(this.selectedFinancialEntries());
 
-    return transactions.map(
-      (transaction) =>
+    return financialEntries.map(
+      (financialEntry) =>
         ({
-          ...transaction,
-          isSelected: selectedIds.has(transaction.id),
-          // Prefer propagated flag from budget line mapping; fallback to name check
-          isRollover:
-            (transaction as unknown as { isRollover?: boolean }).isRollover ??
-            (transaction as unknown as { name?: string }).name?.startsWith(
-              'rollover_',
-            ) ??
-            false,
-        }) as FinancialEntryData,
+          ...financialEntry,
+          isSelected: selectedIds.has(financialEntry.id),
+          isRollover: financialEntry.rollover.sourceBudgetId ?? false,
+        }) as FinancialEntryViewModel,
     );
   });
 
-  protected readonly displayedTransactions = computed(() => {
-    const all = this.#transactionViewModels();
+  protected readonly displayedFinancialEntries = computed(() => {
+    const all = this.#financialEntriesViewModel();
     const expanded = this.isExpanded();
     const showAll = this.showAllItems();
 
@@ -226,17 +225,20 @@ export class FinancialAccordion {
     }
   }
 
-  protected showAllTransactions(): void {
+  protected showAllFinancialEntries(): void {
     this.showAllItems.set(true);
   }
 
-  toggleSelection(transactionId: string, selected: boolean): void {
-    const currentSelection = this.selectedTransactions();
+  toggleSelection(financialEntryId: string, selected: boolean): void {
+    const currentSelection = this.selectedFinancialEntries();
     if (selected) {
-      this.selectedTransactions.set([...currentSelection, transactionId]);
+      this.selectedFinancialEntries.set([
+        ...currentSelection,
+        financialEntryId,
+      ]);
     } else {
-      this.selectedTransactions.set(
-        currentSelection.filter((id) => id !== transactionId),
+      this.selectedFinancialEntries.set(
+        currentSelection.filter((id) => id !== financialEntryId),
       );
     }
   }
