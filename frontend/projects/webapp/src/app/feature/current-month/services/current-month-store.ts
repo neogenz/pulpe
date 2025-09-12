@@ -143,10 +143,10 @@ export class CurrentMonthStore {
   });
 
   /**
-   * Available to Spend = Disponible - Dépenses
-   * This is the "Restant" shown to users
+   * Remaining = Available - Expenses
+   * This is the "Restant" shown to users (SPECS terminology)
    */
-  readonly availableToSpend = computed<number>(() => {
+  readonly remaining = computed<number>(() => {
     const availableWithRollover = this.totalAvailableWithRollover();
     const spentWithoutRollover = this.totalSpentWithoutRollover();
     return availableWithRollover - spentWithoutRollover;
