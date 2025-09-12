@@ -8,9 +8,9 @@ import {
   output,
 } from '@angular/core';
 import {
-  TransactionsList,
-  type TransactionsListConfig,
-} from './transactions-list';
+  FinancialAccordion,
+  type FinancialAccordionConfig,
+} from './financial-accordion';
 import { type Transaction } from '@pulpe/shared';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { Breakpoints } from '@angular/cdk/layout';
@@ -19,10 +19,10 @@ import { shareReplay } from 'rxjs';
 import { toSignal } from '@angular/core/rxjs-interop';
 
 @Component({
-  selector: 'pulpe-variable-expenses-list',
-  imports: [TransactionsList],
+  selector: 'pulpe-one-time-expenses-list',
+  imports: [FinancialAccordion],
   template: `
-    <pulpe-transactions-list
+    <pulpe-financial-accordion
       [transactions]="transactions()"
       [config]="config()"
       [(selectedTransactions)]="selectedTransactions"
@@ -34,7 +34,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
   styles: ``,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class VariableExpensesList {
+export class OneTimeExpensesList {
   transactions = input.required<Transaction[]>();
   selectedTransactions = model<string[]>([]);
   deleteTransaction = output<string>();
@@ -49,7 +49,7 @@ export class VariableExpensesList {
     { initialValue: false },
   );
   config = computed(
-    (): TransactionsListConfig => ({
+    (): FinancialAccordionConfig => ({
       title: 'Ponctuelles',
       totalAmount: this.transactions().reduce((total, transaction) => {
         switch (transaction.kind) {

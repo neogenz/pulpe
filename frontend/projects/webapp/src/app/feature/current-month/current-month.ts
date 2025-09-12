@@ -24,13 +24,13 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { DashboardError } from './components/dashboard-error';
 import { BaseLoading } from '@ui/loading';
-import { FixedTransactionsList } from './components/fixed-transactions-list';
-import { VariableExpensesList } from './components/variable-expenses-list';
+import { RecurringExpensesList } from './components/recurring-expenses-list';
+import { OneTimeExpensesList } from './components/one-time-expenses-list';
 import { CurrentMonthStore } from './services/current-month-store';
 import { TitleDisplay } from '@core/routing';
 import { BudgetProgressBar } from './components/budget-progress-bar';
 import { AddTransactionBottomSheet } from './components/add-transaction-bottom-sheet';
-import { mapBudgetLineToTransaction } from './utils/budget-line-mapper';
+import { mapBudgetLineToFinancialEntry } from './utils/financial-entry-mapper';
 import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
 import { firstValueFrom } from 'rxjs';
 import { type Transaction, type TransactionCreate } from '@pulpe/shared';
@@ -67,10 +67,10 @@ type EditTransactionFormData = Pick<
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
-    FixedTransactionsList,
+    RecurringExpensesList,
     DashboardError,
     BaseLoading,
-    VariableExpensesList,
+    OneTimeExpensesList,
   ],
   template: `
     <div class="flex flex-col gap-4" data-testid="current-month-page">
@@ -146,16 +146,16 @@ type EditTransactionFormData = Pick<
                 </div>
               }
 
-              <pulpe-fixed-transactions-list
+              <pulpe-recurring-expenses-list
                 [transactions]="fixedTransactions()"
-                data-testid="fixed-transactions-list"
+                data-testid="recurring-expenses-list"
               />
-              <pulpe-variable-expenses-list
+              <pulpe-one-time-expenses-list
                 [transactions]="variableTransactions()"
                 [(selectedTransactions)]="selectedTransactions"
                 (deleteTransaction)="deleteTransaction($event)"
                 (editTransaction)="openEditTransactionDialogAndUpdate($event)"
-                data-testid="variable-expenses-list"
+                data-testid="one-time-expenses-list"
               />
             </div>
           } @else {
@@ -228,7 +228,7 @@ export default class CurrentMonth implements OnInit {
       .filter(
         (line) => line.recurrence === 'fixed' || line.recurrence === 'one_off',
       )
-      .map((line) => mapBudgetLineToTransaction(line, budgetId));
+      .map((line) => mapBudgetLineToFinancialEntry(line, budgetId));
   });
   variableTransactions = computed(() => {
     // For now, show all transactions as variable expenses

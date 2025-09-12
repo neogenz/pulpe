@@ -7,9 +7,9 @@ import {
 } from '@angular/core';
 import { type Transaction } from '@pulpe/shared';
 import {
-  TransactionsList,
-  type TransactionsListConfig,
-} from './transactions-list';
+  FinancialAccordion,
+  type FinancialAccordionConfig,
+} from './financial-accordion';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { Breakpoints } from '@angular/cdk/layout';
@@ -17,10 +17,10 @@ import { map } from 'rxjs';
 import { shareReplay } from 'rxjs';
 
 @Component({
-  selector: 'pulpe-fixed-transactions-list',
-  imports: [TransactionsList],
+  selector: 'pulpe-recurring-expenses-list',
+  imports: [FinancialAccordion],
   template: `
-    <pulpe-transactions-list
+    <pulpe-financial-accordion
       [transactions]="transactions()"
       [config]="config()"
       [isHandset]="isHandset()"
@@ -28,7 +28,7 @@ import { shareReplay } from 'rxjs';
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class FixedTransactionsList {
+export class RecurringExpensesList {
   readonly breakpointObserver = inject(BreakpointObserver);
 
   transactions = input.required<Transaction[]>();
@@ -42,7 +42,7 @@ export class FixedTransactionsList {
   );
 
   config = computed(
-    (): TransactionsListConfig => ({
+    (): FinancialAccordionConfig => ({
       title: 'Récurrentes',
       totalAmount: this.transactions().reduce((total, transaction) => {
         switch (transaction.kind) {

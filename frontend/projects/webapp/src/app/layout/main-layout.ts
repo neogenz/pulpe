@@ -299,21 +299,21 @@ export class MainLayout {
   protected readonly navigationItems: readonly NavigationItem[] = [
     {
       route: ROUTES.CURRENT_MONTH,
-      label: 'Mois en cours',
+      label: 'Ce mois-ci',
       icon: 'today',
-      tooltip: 'Budget du mois en cours',
+      tooltip: 'Suivez vos dépenses du mois',
     },
     {
       route: ROUTES.BUDGET,
-      label: 'Mes budgets',
+      label: 'Budgets',
       icon: 'calendar_month',
-      tooltip: 'Consulter tous vos budgets',
+      tooltip: 'Planifiez tous vos mois',
     },
     {
       route: ROUTES.BUDGET_TEMPLATES,
       label: 'Modèles',
       icon: 'description',
-      tooltip: 'Modèles de budget',
+      tooltip: 'Préparez vos bases mensuelles',
     },
   ] as const;
 

@@ -14,9 +14,9 @@ import { MatListModule } from '@angular/material/list';
 import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
 import { type Transaction } from '@pulpe/shared';
-import { TransactionItem, type TransactionItemData } from './transaction-item';
+import { FinancialEntry, type FinancialEntryData } from './financial-entry';
 
-export interface TransactionsListConfig {
+export interface FinancialAccordionConfig {
   readonly title: string;
   readonly totalAmount?: number;
   readonly emptyStateIcon?: string;
@@ -29,7 +29,7 @@ export interface TransactionsListConfig {
 }
 
 @Component({
-  selector: 'pulpe-transactions-list',
+  selector: 'pulpe-financial-accordion',
   imports: [
     CurrencyPipe,
     MatIconModule,
@@ -37,7 +37,7 @@ export interface TransactionsListConfig {
     MatListModule,
     MatButtonModule,
     MatChipsModule,
-    TransactionItem,
+    FinancialEntry,
   ],
   template: `
     <div
@@ -119,7 +119,7 @@ export interface TransactionsListConfig {
                 let isLast = $last;
                 let isOdd = $odd
               ) {
-                <pulpe-transaction-item
+                <pulpe-financial-entry
                   [data]="vm"
                   [selectable]="config().selectable ?? false"
                   [deletable]="config().deletable ?? false"
@@ -159,9 +159,9 @@ export interface TransactionsListConfig {
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class TransactionsList {
+export class FinancialAccordion {
   readonly transactions = input.required<Transaction[]>();
-  readonly config = input.required<TransactionsListConfig>();
+  readonly config = input.required<FinancialAccordionConfig>();
   readonly selectedTransactions = model<string[]>([]);
   readonly deleteTransaction = output<string>();
   readonly editTransaction = output<string>();
@@ -195,7 +195,7 @@ export class TransactionsList {
               'rollover_',
             ) ??
             false,
-        }) as TransactionItemData,
+        }) as FinancialEntryData,
     );
   });
 
