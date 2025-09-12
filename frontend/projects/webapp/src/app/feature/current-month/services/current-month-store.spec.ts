@@ -110,7 +110,6 @@ describe('CurrentMonthStore - Business Scenarios', () => {
   };
   let mockBudgetCalculator: {
     calculateLocalEndingBalance: Mock;
-    calculateBalance: Mock;
     calculatePlannedIncome: Mock;
     calculateActualTransactionsAmount: Mock;
     calculateTotalSpentIncludingRollover: Mock;
@@ -143,7 +142,6 @@ describe('CurrentMonthStore - Business Scenarios', () => {
 
     mockBudgetCalculator = {
       calculateLocalEndingBalance: vi.fn().mockReturnValue(3426),
-      calculateBalance: vi.fn().mockReturnValue(3000),
       calculatePlannedIncome: vi.fn().mockReturnValue(5000),
       calculateActualTransactionsAmount: vi.fn().mockReturnValue(50),
       calculateTotalSpentIncludingRollover: vi.fn().mockReturnValue(2050), // 1500 + 500 + 50
@@ -177,7 +175,8 @@ describe('CurrentMonthStore - Business Scenarios', () => {
 
       // Given: User has income, expenses, and rollover from previous month
       // When: User views their dashboard
-      const availableToSpend = store.availableToSpend();
+      const availableToSpend =
+        store.totalAvailableWithRollover() - store.totalSpentWithoutRollover();
 
       // Then: The calculation should be: (Income + Rollover) - Expenses
       // Expected: (5000 + 500) - 1550 = 3950
@@ -325,9 +324,9 @@ describe('CurrentMonthStore - Business Scenarios', () => {
       );
 
       // Store should still be functional after error
-      expect(store.availableToSpend()).toBe(3950);
-      // In error scenarios with empty initial state, budgetLines might be empty
-      expect(store.budgetLines()).toEqual(expect.any(Array));
+      expect(
+        store.totalAvailableWithRollover() - store.totalSpentWithoutRollover(),
+      ).toBe(3950);
     });
 
     it('should maintain stability when update transaction fails', async () => {
@@ -342,7 +341,9 @@ describe('CurrentMonthStore - Business Scenarios', () => {
       ).rejects.toThrow('Update failed');
 
       // Store should still be functional
-      expect(store.availableToSpend()).toBe(3950);
+      expect(
+        store.totalAvailableWithRollover() - store.totalSpentWithoutRollover(),
+      ).toBe(3950);
     });
 
     it('should maintain stability when delete transaction fails', async () => {
@@ -357,7 +358,9 @@ describe('CurrentMonthStore - Business Scenarios', () => {
       );
 
       // Store should still be functional
-      expect(store.availableToSpend()).toBe(3950);
+      expect(
+        store.totalAvailableWithRollover() - store.totalSpentWithoutRollover(),
+      ).toBe(3950);
     });
   });
 
@@ -392,7 +395,6 @@ describe('CurrentMonthStore - Business Scenarios', () => {
 
       expect(store.budgetLines()).toEqual([]);
       expect(store.transactions()).toEqual([]);
-      expect(store.availableToSpend()).toBe(0);
       expect(store.totalAvailableWithRollover()).toBe(0);
     });
 
