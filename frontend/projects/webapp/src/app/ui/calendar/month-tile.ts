@@ -92,11 +92,8 @@ import { type CalendarMonth } from './calendar-types';
       }
 
       &.current-month {
-        background-color: var(--mat-sys-primary-container);
-
-        mat-card-title {
-          color: var(--mat-sys-on-primary-container);
-        }
+        border: 2px solid var(--mat-sys-primary);
+        box-shadow: 0 0 0 1px var(--mat-sys-primary);
       }
 
       &.empty-month {
