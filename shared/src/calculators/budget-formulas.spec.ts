@@ -6,8 +6,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { BudgetFormulas } from './budget-formulas';
-import type { TransactionKind } from '../types';
+import { BudgetFormulas } from './budget-formulas.js';
+import type { TransactionKind } from '../types.js';
 
 /**
  * Helper pour créer des items financiers de test

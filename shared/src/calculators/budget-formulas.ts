@@ -1,5 +1,5 @@
 /**
- * BUDGET FORMULAS - Single Source of Truth pour les calculs métier
+ * @fileoverview BUDGET FORMULAS - Single Source of Truth pour les calculs métier
  *
  * Implémentation des formules SPECS.md section 3 "Modèle de Calcul"
  * Fonctions pures, testables, réutilisables côté frontend ET backend
@@ -9,9 +9,12 @@
  * - expenses_M = Σ(budget_lines WHERE type IN ('expense', 'saving')) + Σ(transactions WHERE type IN ('expense', 'saving'))
  * - ending_balance_M = available_M - expenses_M
  * - remaining_M = available_M - expenses_M
+ *
+ * NOTE: L'import utilise l'extension .js (pas .ts) - exigence ESM Node.js
+ * Voir shared/README.md section "Résolution des Modules ESM"
  */
 
-import type { TransactionKind } from '../types';
+import type { TransactionKind } from '../types.js';
 
 /**
  * Interface d'abstraction pour les entités financières

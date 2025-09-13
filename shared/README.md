@@ -175,6 +175,50 @@ pnpm run format:check
 }
 ```
 
+## ⚠️ Important: Résolution des Modules ESM
+
+### Contrainte Technique Node.js
+
+Ce package utilise **ESM natif** avec `moduleResolution: "NodeNext"` dans TypeScript. Cela impose une contrainte **contre-intuitive mais nécessaire** :
+
+**Les imports dans les fichiers TypeScript DOIVENT utiliser l'extension `.js` (pas `.ts`) :**
+
+```typescript
+// ✅ CORRECT - Extension .js requise pour ESM
+import { BudgetFormulas } from './budget-formulas.js';
+import type { TransactionKind } from '../types.js';
+
+// ❌ INCORRECT - Provoque ERR_MODULE_NOT_FOUND en production
+import { BudgetFormulas } from './budget-formulas';
+import type { TransactionKind } from '../types';
+```
+
+### Pourquoi cette contrainte ?
+
+1. **Node.js ESM exige des extensions explicites** - C'est une règle stricte de la résolution des modules ESM natifs
+2. **TypeScript compile `.ts` → `.js`** - Les imports doivent référencer le fichier final compilé
+3. **Railway/Production** - Sans les extensions, l'application crash avec `ERR_MODULE_NOT_FOUND`
+4. **Différence Dev/Prod** - Les symlinks pnpm masquent le problème en développement
+
+### Configuration TypeScript Requise
+
+```json
+// tsconfig.json
+{
+  "compilerOptions": {
+    "module": "NodeNext",        // Requis pour ESM natif
+    "moduleResolution": "NodeNext"  // Active la résolution Node.js ESM
+  }
+}
+```
+
+**Note:** `moduleResolution: "bundler"` fonctionne en développement mais échoue en production car il est destiné aux bundlers (Webpack, Vite), pas à Node.js direct.
+
+### Références
+
+- [TypeScript ESM Support](https://www.typescriptlang.org/docs/handbook/esm-node.html)
+- [Node.js ESM Documentation](https://nodejs.org/api/esm.html#mandatory-file-extensions)
+
 ## 📏 Conventions
 
 ### Naming des schémas
