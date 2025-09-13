@@ -9,7 +9,6 @@ import { isPlatformBrowser } from '@angular/common';
 import posthog from 'posthog-js';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
-import { runOutsideAngular } from './global-error-handler';
 import { buildInfo } from '@env/build-info';
 
 /**
@@ -101,19 +100,17 @@ export class PostHogService {
       return;
     }
 
-    runOutsideAngular(() => {
-      try {
-        const sanitizedProperties = this.#sanitizeProperties(properties);
-        posthog.capture(event, sanitizedProperties);
+    try {
+      const sanitizedProperties = this.#sanitizeProperties(properties);
+      posthog.capture(event, sanitizedProperties);
 
-        this.#logger.debug('PostHog event captured', {
-          event,
-          propertiesCount: Object.keys(sanitizedProperties || {}).length,
-        });
-      } catch (error) {
-        this.#logger.error('Failed to capture PostHog event', error);
-      }
-    });
+      this.#logger.debug('PostHog event captured', {
+        event,
+        propertiesCount: Object.keys(sanitizedProperties || {}).length,
+      });
+    } catch (error) {
+      this.#logger.error('Failed to capture PostHog event', error);
+    }
   }
 
   /**
@@ -124,27 +121,25 @@ export class PostHogService {
       return;
     }
 
-    runOutsideAngular(() => {
-      try {
-        const sanitizedContext = this.#sanitizeProperties(context);
-        const errorInfo = this.#extractErrorInfo(error);
+    try {
+      const sanitizedContext = this.#sanitizeProperties(context);
+      const errorInfo = this.#extractErrorInfo(error);
 
-        posthog.capture('$exception', {
-          ...errorInfo,
-          ...sanitizedContext,
-          timestamp: new Date().toISOString(),
-          url: window.location.href,
-          user_agent: navigator.userAgent,
-        });
+      posthog.capture('$exception', {
+        ...errorInfo,
+        ...sanitizedContext,
+        timestamp: new Date().toISOString(),
+        url: window.location.href,
+        user_agent: navigator.userAgent,
+      });
 
-        this.#logger.debug('PostHog exception captured', {
-          errorMessage: errorInfo['error_message'],
-          errorType: errorInfo['error_type'],
-        });
-      } catch (captureError) {
-        this.#logger.error('Failed to capture PostHog exception', captureError);
-      }
-    });
+      this.#logger.debug('PostHog exception captured', {
+        errorMessage: errorInfo['error_message'],
+        errorType: errorInfo['error_type'],
+      });
+    } catch (captureError) {
+      this.#logger.error('Failed to capture PostHog exception', captureError);
+    }
   }
 
   /**
@@ -155,16 +150,14 @@ export class PostHogService {
       return;
     }
 
-    runOutsideAngular(() => {
-      try {
-        const sanitizedProperties = this.#sanitizeProperties(properties);
-        posthog.identify(userId, sanitizedProperties);
+    try {
+      const sanitizedProperties = this.#sanitizeProperties(properties);
+      posthog.identify(userId, sanitizedProperties);
 
-        this.#logger.debug('PostHog user identified', { userId });
-      } catch (error) {
-        this.#logger.error('Failed to identify PostHog user', error);
-      }
-    });
+      this.#logger.debug('PostHog user identified', { userId });
+    } catch (error) {
+      this.#logger.error('Failed to identify PostHog user', error);
+    }
   }
 
   /**
@@ -175,14 +168,12 @@ export class PostHogService {
       return;
     }
 
-    runOutsideAngular(() => {
-      try {
-        posthog.reset();
-        this.#logger.debug('PostHog state reset');
-      } catch (error) {
-        this.#logger.error('Failed to reset PostHog state', error);
-      }
-    });
+    try {
+      posthog.reset();
+      this.#logger.debug('PostHog state reset');
+    } catch (error) {
+      this.#logger.error('Failed to reset PostHog state', error);
+    }
   }
 
   /**
@@ -202,49 +193,47 @@ export class PostHogService {
     debug: boolean;
   }): Promise<void> {
     return new Promise<void>((resolve) => {
-      runOutsideAngular(() => {
-        posthog.init(config.apiKey, {
-          api_host: config.host,
-          debug: config.debug,
+      posthog.init(config.apiKey, {
+        api_host: config.host,
+        debug: config.debug,
 
-          // Page tracking
-          capture_pageview: false, // We'll handle this manually for SPA routing
-          capture_pageleave: config.capturePageleaves,
+        // Page tracking
+        capture_pageview: false, // We'll handle this manually for SPA routing
+        capture_pageleave: config.capturePageleaves,
 
-          // Session recording with financial data masking
-          session_recording: {
-            maskAllInputs: config.sessionRecording.maskInputs,
-            maskTextSelector:
-              '.financial-amount, .financial-title, [class*="financial"], [class*="text-financial"]',
-            maskTextFn: (text: string): string => {
-              // Auto-mask financial amounts and CHF patterns
-              return text
-                .replace(/CHF\s*[\d\s',.-]+/gi, 'CHF ***') // CHF 1,234.50
-                .replace(/[\d\s',.-]+\s*CHF/gi, '*** CHF') // 1,234.50 CHF
-                .replace(/\d{1,3}[''\s]?\d{3}[.,]\d{2}/g, '***') // 1'234.50
-                .replace(/€\s*[\d\s',.-]+/gi, '€ ***') // € 1,234.50 (future-proof)
-                .replace(/[\d\s',.-]+\s*€/gi, '*** €'); // 1,234.50 € (future-proof)
-            },
+        // Session recording with financial data masking
+        session_recording: {
+          maskAllInputs: config.sessionRecording.maskInputs,
+          maskTextSelector:
+            '.financial-amount, .financial-title, [class*="financial"], [class*="text-financial"]',
+          maskTextFn: (text: string): string => {
+            // Auto-mask financial amounts and CHF patterns
+            return text
+              .replace(/CHF\s*[\d\s',.-]+/gi, 'CHF ***') // CHF 1,234.50
+              .replace(/[\d\s',.-]+\s*CHF/gi, '*** CHF') // 1,234.50 CHF
+              .replace(/\d{1,3}[''\s]?\d{3}[.,]\d{2}/g, '***') // 1'234.50
+              .replace(/€\s*[\d\s',.-]+/gi, '€ ***') // € 1,234.50 (future-proof)
+              .replace(/[\d\s',.-]+\s*€/gi, '*** €'); // 1,234.50 € (future-proof)
           },
-          disable_session_recording: !config.sessionRecording.enabled,
+        },
+        disable_session_recording: !config.sessionRecording.enabled,
 
-          // Privacy and security
-          person_profiles: 'identified_only',
-          persistence: 'localStorage+cookie',
+        // Privacy and security
+        person_profiles: 'identified_only',
+        persistence: 'localStorage+cookie',
 
-          // Data sanitization
-          // before_send: this.#sanitizeEvent.bind(this), // TODO: Fix type compatibility
+        // Data sanitization
+        // before_send: this.#sanitizeEvent.bind(this), // TODO: Fix type compatibility
 
-          // Error handling
-          loaded: () => {
-            this.#logger.debug('PostHog loaded successfully');
+        // Error handling
+        loaded: () => {
+          this.#logger.debug('PostHog loaded successfully');
 
-            // Register global Super Properties for all PostHog events
-            this.#registerGlobalProperties();
+          // Register global Super Properties for all PostHog events
+          this.#registerGlobalProperties();
 
-            resolve();
-          },
-        });
+          resolve();
+        },
       });
     });
   }
