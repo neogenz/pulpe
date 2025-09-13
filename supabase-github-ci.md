@@ -717,7 +717,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'backend-nest/supabase/migrations/**'
+      - "backend-nest/supabase/migrations/**"
   workflow_dispatch: # Déclenchement manuel
 ```
 
@@ -727,11 +727,11 @@ on:
 
 Dans **Settings → Secrets and variables → Actions** :
 
-| Secret | Description | Où le trouver |
-|--------|-------------|---------------|
-| `SUPABASE_ACCESS_TOKEN` | Token d'accès personnel | `supabase login` ou [Dashboard](https://supabase.com/dashboard/account/tokens) |
-| `PRODUCTION_PROJECT_ID` | ID du projet production | URL: `https://supabase.com/dashboard/project/[ID_ICI]` |
-| `PRODUCTION_DB_PASSWORD` | Mot de passe DB | Dashboard → Settings → Database → Connection string |
+| Secret                   | Description             | Où le trouver                                                                  |
+| ------------------------ | ----------------------- | ------------------------------------------------------------------------------ |
+| `SUPABASE_ACCESS_TOKEN`  | Token d'accès personnel | `supabase login` ou [Dashboard](https://supabase.com/dashboard/account/tokens) |
+| `PRODUCTION_PROJECT_ID`  | ID du projet production | URL: `https://supabase.com/dashboard/project/[ID_ICI]`                         |
+| `PRODUCTION_DB_PASSWORD` | Mot de passe DB         | Dashboard → Settings → Database → Connection string                            |
 
 ### Workflow post-déploiement
 
@@ -752,16 +752,13 @@ git commit -m "chore: update database types after production deployment"
 git push
 ```
 
-### Migrations en attente
-
-| Date | Fichier | Description | Status |
-|------|---------|-------------|--------|
-| 2025-09-13 | `20250913161355_remove_is_out_of_budget_column.sql` | DROP COLUMN is_out_of_budget | ⏳ En attente |
-
 ### Points d'attention
 
 - Les migrations sont **irréversibles** (notamment DROP COLUMN)
-- Toujours tester avec `supabase stop` / `supabase start` en local
+- Lancer la migration locale d'abord :
+  - Vérifier que la stack locale tourne et que la migration est dans supabase/migrations/<timestamp>\_nom.sql.
+  - Appliquer la migration sur localhost sans reset: supabase migration up (depuis la racine du repo, où se trouve supabase/).
+  - Optionnel: si besoin de repartir propre pour retester, utiliser supabase db reset pour drop/rejouer toutes les migrations et seed local.
 - Les types doivent être mis à jour manuellement pour respecter le quality gate
 - Pas de commit automatique depuis le workflow (par design)
 

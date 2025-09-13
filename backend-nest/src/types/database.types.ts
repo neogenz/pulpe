@@ -259,7 +259,6 @@ export type Database = {
           category: string | null;
           created_at: string;
           id: string;
-          is_out_of_budget: boolean;
           kind: Database['public']['Enums']['transaction_kind'];
           name: string;
           transaction_date: string;
@@ -271,7 +270,6 @@ export type Database = {
           category?: string | null;
           created_at?: string;
           id?: string;
-          is_out_of_budget?: boolean;
           kind: Database['public']['Enums']['transaction_kind'];
           name: string;
           transaction_date?: string;
@@ -283,7 +281,6 @@ export type Database = {
           category?: string | null;
           created_at?: string;
           id?: string;
-          is_out_of_budget?: boolean;
           kind?: Database['public']['Enums']['transaction_kind'];
           name?: string;
           transaction_date?: string;
