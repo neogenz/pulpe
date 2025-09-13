@@ -226,8 +226,6 @@ export const transactionSchema = z.object({
   amount: z.number().positive(),
   kind: transactionKindSchema,
   transactionDate: z.string().datetime(),
-  // NOTE: isOutOfBudget pas mentionné dans SPECS V1 - feature future?
-  isOutOfBudget: z.boolean(),
   // NOTE: category pas définie dans SPECS V1 - "Pas de catégorisation avancée"
   category: z.string().max(100).trim().nullable(),
   createdAt: z.string().datetime(),
@@ -241,7 +239,6 @@ export const transactionCreateSchema = z.object({
   amount: z.number().positive(),
   kind: transactionKindSchema,
   transactionDate: z.string().datetime().optional(),
-  isOutOfBudget: z.boolean().default(false),
   category: z.string().max(100).trim().nullable().optional(),
 });
 export type TransactionCreate = z.infer<typeof transactionCreateSchema>;
@@ -251,7 +248,6 @@ export const transactionUpdateSchema = z.object({
   amount: z.number().positive().optional(),
   kind: transactionKindSchema.optional(),
   transactionDate: z.string().datetime().optional(),
-  isOutOfBudget: z.boolean().optional(),
   category: z.string().max(100).trim().nullable().optional(),
 });
 export type TransactionUpdate = z.infer<typeof transactionUpdateSchema>;

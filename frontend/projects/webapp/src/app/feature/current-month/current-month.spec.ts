@@ -28,7 +28,6 @@ const createTransaction = (
   amount: 50,
   kind: 'expense',
   transactionDate: '2024-01-15T10:00:00.000Z',
-  isOutOfBudget: false,
   category: null,
   createdAt: '2024-01-01T00:00:00.000Z',
   updatedAt: '2024-01-01T00:00:00.000Z',
@@ -379,7 +378,6 @@ describe('CurrentMonth Component', () => {
                 ? 'saving'
                 : 'expense',
           transactionDate: new Date().toISOString(),
-          isOutOfBudget: false,
           category: formData.category,
         };
       };
@@ -392,7 +390,6 @@ describe('CurrentMonth Component', () => {
         name: 'Test Transaction',
         kind: 'expense',
         transactionDate: expect.any(String),
-        isOutOfBudget: false,
         category: 'food',
       });
     });

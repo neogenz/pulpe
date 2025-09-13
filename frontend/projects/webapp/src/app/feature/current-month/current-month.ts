@@ -293,7 +293,6 @@ export default class CurrentMonth implements OnInit {
         name: transaction.name,
         kind: transaction.kind,
         transactionDate: new Date().toISOString(),
-        isOutOfBudget: false,
         category: transaction.category ?? null,
       });
     } catch (error) {

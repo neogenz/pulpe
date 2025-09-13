@@ -66,7 +66,6 @@ const mockTransactions: Transaction[] = [
     budgetId: 'budget-1',
     amount: 50,
     category: null,
-    isOutOfBudget: false,
     name: 'Coffee',
     kind: 'expense',
     transactionDate: '2024-01-15T10:00:00Z',
@@ -254,7 +253,6 @@ describe('CurrentMonthStore - Business Scenarios', () => {
         amount: 5,
         kind: 'expense',
         transactionDate: '2024-01-25T00:00:00Z',
-        isOutOfBudget: false,
         category: null,
       };
 
@@ -309,7 +307,6 @@ describe('CurrentMonthStore - Business Scenarios', () => {
         amount: 100,
         kind: 'expense',
         transactionDate: '2024-01-25T00:00:00Z',
-        isOutOfBudget: false,
         category: null,
       };
 

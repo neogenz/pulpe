@@ -23,7 +23,6 @@ export function toApi(transactionDb: TransactionRow): Transaction {
     name: transactionDb.name,
     kind: transactionDb.kind, // Pas de conversion - les enums sont maintenant unifiés
     transactionDate: transactionDb.transaction_date,
-    isOutOfBudget: transactionDb.is_out_of_budget,
     category: transactionDb.category,
   };
 }
@@ -69,7 +68,6 @@ export function toInsert(
     name: createDto.name,
     kind: createDto.kind, // Pas de conversion - les enums sont maintenant unifiés
     transaction_date: createDto.transactionDate || new Date().toISOString(),
-    is_out_of_budget: createDto.isOutOfBudget || false,
     category: createDto.category ?? null,
   };
 }
@@ -93,9 +91,6 @@ export function toUpdate(
   }
   if (updateDto.transactionDate !== undefined) {
     updateData.transaction_date = updateDto.transactionDate;
-  }
-  if (updateDto.isOutOfBudget !== undefined) {
-    updateData.is_out_of_budget = updateDto.isOutOfBudget;
   }
   if (updateDto.category !== undefined) {
     updateData.category = updateDto.category;

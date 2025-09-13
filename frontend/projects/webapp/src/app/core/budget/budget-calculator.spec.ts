@@ -21,7 +21,6 @@ describe('BudgetCalculator', () => {
     kind,
     budgetId: 'test-budget-id',
     transactionDate: new Date().toISOString(),
-    isOutOfBudget: false,
     category: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),

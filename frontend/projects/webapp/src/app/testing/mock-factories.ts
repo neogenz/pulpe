@@ -31,7 +31,6 @@ const defaultTransaction: Transaction = {
   amount: 100,
   kind: 'expense',
   transactionDate: '2024-01-01',
-  isOutOfBudget: false,
   category: null,
   createdAt: '2024-01-01T00:00:00Z',
   updatedAt: '2024-01-01T00:00:00Z',
@@ -225,7 +224,6 @@ export function createMockOutOfBudgetTransaction(
 ): Transaction {
   return createMockTransaction({
     name: 'Emergency Expense',
-    isOutOfBudget: true,
     ...overrides,
   });
 }
