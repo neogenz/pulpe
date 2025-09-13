@@ -251,7 +251,6 @@ export class BudgetService {
   ) {
     const rolloverData = await this.calculator.getRollover(budgetId, supabase);
 
-    // Intégrer rollover directement dans l'objet Budget (plus de BudgetLine artificielle)
     responseData.budget = {
       ...responseData.budget,
       rollover: rolloverData.rollover,
