@@ -204,7 +204,8 @@ export default class OtherMonths implements OnInit {
       'décembre',
     ];
 
-    const year = targetYear || this.state.selectedYear() || new Date().getFullYear();
+    const year =
+      targetYear || this.state.selectedYear() || new Date().getFullYear();
     const allMonths: CalendarMonth[] = [];
 
     for (let month = 1; month <= 12; month++) {
