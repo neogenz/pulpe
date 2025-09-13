@@ -8,6 +8,7 @@ import {
 import { AuthErrorLocalizer } from './auth-error-localizer';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
+import { DemoModeService } from '../demo/demo-mode.service';
 
 export interface AuthState {
   readonly user: User | null;
@@ -23,6 +24,7 @@ export class AuthApi {
   readonly #errorLocalizer = inject(AuthErrorLocalizer);
   readonly #applicationConfig = inject(ApplicationConfiguration);
   readonly #logger = inject(Logger);
+  readonly #demoMode = inject(DemoModeService);
 
   // Supabase client - créé dans initializeAuthState() après le chargement de la config
   #supabaseClient: SupabaseClient | null = null;
@@ -55,6 +57,54 @@ export class AuthApi {
   }));
 
   async initializeAuthState(): Promise<void> {
+    // Vérifier si on est en mode démo
+    if (this.#demoMode.isDemoMode()) {
+      this.#logger.info(
+        "🎭 Mode démo détecté, utilisation de l'authentification simulée",
+      );
+
+      // Récupérer la session démo depuis localStorage
+      const demoSession = this.#demoMode.getDemoData<any>('session');
+      const demoUser = this.#demoMode.getDemoData<any>('user');
+
+      if (demoSession && demoUser) {
+        // Créer une session compatible avec Supabase
+        const mockSession: Session = {
+          access_token: demoSession.access_token,
+          token_type: demoSession.token_type,
+          expires_in: demoSession.expires_in,
+          expires_at: demoSession.expires_at,
+          refresh_token: demoSession.refresh_token,
+          user: {
+            id: demoUser.id,
+            aud: 'authenticated',
+            role: 'authenticated',
+            email: demoUser.email,
+            email_confirmed_at: demoUser.created_at,
+            phone: '',
+            confirmed_at: demoUser.created_at,
+            last_sign_in_at: new Date().toISOString(),
+            app_metadata: {
+              provider: 'demo',
+              providers: ['demo'],
+            },
+            user_metadata: {
+              name: demoUser.name,
+            },
+            identities: [],
+            created_at: demoUser.created_at,
+            updated_at: demoUser.created_at,
+          },
+        };
+
+        this.updateAuthState(mockSession);
+      } else {
+        this.updateAuthState(null);
+      }
+
+      return;
+    }
+
     // À ce point, applicationConfig.initialize() a déjà été appelé
     // Les valeurs sont garanties d'être disponibles
     const url = this.#applicationConfig.supabaseUrl();
@@ -232,6 +282,19 @@ export class AuthApi {
 
   async signOut(): Promise<void> {
     try {
+      // Gérer le logout en mode démo
+      if (this.#demoMode.isDemoMode()) {
+        this.#logger.info('🎭 Mode démo: Sortie du mode démo');
+
+        // Désactiver le mode démo et nettoyer toutes les données
+        this.#demoMode.disableDemoMode();
+
+        // Mettre à jour l'état d'authentification
+        this.updateAuthState(null);
+        this.handleSignOut();
+        return;
+      }
+
       // Gérer le logout en mode test E2E mocké
       if (
         (window as unknown as { __E2E_AUTH_BYPASS__: boolean })
@@ -266,6 +329,11 @@ export class AuthApi {
   }
 
   async getCurrentSession(): Promise<Session | null> {
+    // En mode démo, retourner la session depuis le signal local
+    if (this.#demoMode.isDemoMode()) {
+      return this.#sessionSignal();
+    }
+
     try {
       const {
         data: { session },
@@ -291,6 +359,11 @@ export class AuthApi {
   }
 
   async refreshSession(): Promise<boolean> {
+    // En mode démo, la session n'expire jamais
+    if (this.#demoMode.isDemoMode()) {
+      return true;
+    }
+
     try {
       const { data, error } = await this.#supabaseClient!.auth.refreshSession();
 

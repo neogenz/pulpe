@@ -196,6 +196,9 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4.1.8
         version: 4.1.11
+      '@types/uuid':
+        specifier: ^10.0.0
+        version: 10.0.0
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0

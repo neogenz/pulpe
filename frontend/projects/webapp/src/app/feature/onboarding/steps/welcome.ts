@@ -7,12 +7,14 @@ import {
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { LottieComponent, type AnimationOptions } from 'ngx-lottie';
 import { ROUTES } from '@core/routing';
+import { DemoInitializerService } from '@core/demo';
 
 @Component({
   selector: 'pulpe-welcome',
-  imports: [MatButtonModule, LottieComponent, RouterLink],
+  imports: [MatButtonModule, MatIconModule, LottieComponent, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
@@ -62,6 +64,28 @@ import { ROUTES } from '@core/routing';
         </p>
       </div>
       <div class="flex gap-4 flex-col items-center justify-center w-full">
+        <!-- Bouton Mode Démo avec style distinctif -->
+        <button
+          matButton="filled"
+          class="w-full max-w-sm bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg transform transition-all hover:scale-105"
+          data-testid="welcome-demo-button"
+          (click)="onStartDemo()"
+          [disabled]="isLoadingDemo()"
+        >
+          <mat-icon class="mr-2">play_circle</mat-icon>
+          @if (isLoadingDemo()) {
+            <span>Préparation de la démo...</span>
+          } @else {
+            <span>Essayer la démo</span>
+          }
+        </button>
+
+        <div class="flex items-center gap-2 w-full max-w-sm">
+          <div class="flex-1 h-px bg-outline-variant"></div>
+          <span class="text-label-medium text-on-surface-variant px-2">ou</span>
+          <div class="flex-1 h-px bg-outline-variant"></div>
+        </div>
+
         <button
           matButton="filled"
           color="primary"
@@ -69,8 +93,9 @@ import { ROUTES } from '@core/routing';
           data-testid="welcome-start-button"
           (click)="onContinue()"
         >
-          Commencer
+          Créer mon compte
         </button>
+
         <button
           matButton
           [routerLink]="['/', ROUTES.LOGIN]"
@@ -84,7 +109,9 @@ import { ROUTES } from '@core/routing';
 })
 export default class Welcome {
   readonly #router = inject(Router);
+  readonly #demoInitializer = inject(DemoInitializerService);
   protected readonly ROUTES = ROUTES;
+  protected readonly isLoadingDemo = signal(false);
 
   protected readonly lottieOptions = signal<AnimationOptions>({
     path: '/lottie/welcome-animation.json',
@@ -114,5 +141,15 @@ export default class Welcome {
       ROUTES.ONBOARDING,
       ROUTES.ONBOARDING_PERSONAL_INFO,
     ]);
+  }
+
+  async onStartDemo(): Promise<void> {
+    this.isLoadingDemo.set(true);
+    try {
+      await this.#demoInitializer.initializeDemoMode();
+    } catch (error) {
+      console.error('Erreur lors du démarrage du mode démo:', error);
+      this.isLoadingDemo.set(false);
+    }
   }
 }

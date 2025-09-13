@@ -10,9 +10,11 @@ import {
   errorResponseSchema,
 } from '@pulpe/shared';
 import { type Observable, throwError } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, map, switchMap } from 'rxjs/operators';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
+import { DemoModeService } from '../demo/demo-mode.service';
+import { DemoStorageAdapter } from '../demo/demo-storage-adapter';
 
 export interface CreateBudgetApiResponse {
   readonly budget: Budget;
@@ -33,6 +35,8 @@ export class BudgetApi {
   readonly #httpClient = inject(HttpClient);
   readonly #applicationConfig = inject(ApplicationConfiguration);
   readonly #logger = inject(Logger);
+  readonly #demoMode = inject(DemoModeService);
+  readonly #demoStorage = inject(DemoStorageAdapter);
 
   get #apiUrl(): string {
     return `${this.#applicationConfig.backendApiUrl()}/budgets`;
@@ -46,6 +50,31 @@ export class BudgetApi {
   ): Observable<CreateBudgetApiResponse> {
     // Valider les données avec le schéma partagé
     const validatedRequest = budgetCreateSchema.parse(templateData);
+
+    // Si en mode démo, utiliser le DemoStorageAdapter
+    if (this.#demoMode.isDemoMode()) {
+      return this.#demoStorage.createBudget$(validatedRequest).pipe(
+        map((response) => {
+          if (!response.data || Array.isArray(response.data)) {
+            throw new Error('Réponse invalide: budget manquant');
+          }
+
+          const result: CreateBudgetApiResponse = {
+            budget: response.data,
+            message: 'Budget créé avec succès à partir du template',
+          };
+
+          this.#saveBudgetToStorage(response.data);
+          return result;
+        }),
+        catchError((error) =>
+          this.#handleApiError(
+            error,
+            'Erreur lors de la création du budget à partir du template',
+          ),
+        ),
+      );
+    }
 
     return this.#httpClient
       .post<BudgetResponse>(`${this.#apiUrl}`, validatedRequest)
@@ -76,6 +105,21 @@ export class BudgetApi {
    * Récupère tous les budgets de l'utilisateur
    */
   getAllBudgets$(): Observable<Budget[]> {
+    // Si en mode démo, utiliser le DemoStorageAdapter
+    if (this.#demoMode.isDemoMode()) {
+      return this.#demoStorage.getAllBudgets$().pipe(
+        map((response) => {
+          return Array.isArray(response.data) ? response.data : [];
+        }),
+        catchError((error) =>
+          this.#handleApiError(
+            error,
+            'Erreur lors de la récupération des budgets',
+          ),
+        ),
+      );
+    }
+
     return this.#httpClient.get<BudgetResponse>(this.#apiUrl).pipe(
       map((response) => {
         return Array.isArray(response.data) ? response.data : [];
@@ -93,6 +137,25 @@ export class BudgetApi {
    * Récupère un budget spécifique par ID
    */
   getBudgetById$(budgetId: string): Observable<Budget> {
+    // Si en mode démo, utiliser le DemoStorageAdapter
+    if (this.#demoMode.isDemoMode()) {
+      return this.#demoStorage.getBudgetById$(budgetId).pipe(
+        map((response) => {
+          if (!response.data || Array.isArray(response.data)) {
+            throw new Error('Budget non trouvé');
+          }
+
+          return response.data;
+        }),
+        catchError((error) =>
+          this.#handleApiError(
+            error,
+            'Erreur lors de la récupération du budget',
+          ),
+        ),
+      );
+    }
+
     return this.#httpClient
       .get<BudgetResponse>(`${this.#apiUrl}/${budgetId}`)
       .pipe(
@@ -116,6 +179,28 @@ export class BudgetApi {
    * Récupère un budget avec toutes ses données associées (transactions et lignes budgétaires)
    */
   getBudgetWithDetails$(budgetId: string): Observable<BudgetDetailsResponse> {
+    // Si en mode démo, utiliser le DemoStorageAdapter
+    if (this.#demoMode.isDemoMode()) {
+      return this.#demoStorage.getBudgetWithDetails$(budgetId).pipe(
+        map((response) => {
+          if (!response.data) {
+            throw new Error('Données du budget non trouvées');
+          }
+
+          // Sauvegarder le budget principal dans le localStorage
+          this.#saveBudgetToStorage(response.data.budget);
+
+          return response;
+        }),
+        catchError((error) =>
+          this.#handleApiError(
+            error,
+            'Erreur lors de la récupération des détails du budget',
+          ),
+        ),
+      );
+    }
+
     return this.#httpClient
       .get<BudgetDetailsResponse>(`${this.#apiUrl}/${budgetId}/details`)
       .pipe(

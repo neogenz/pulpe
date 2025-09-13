@@ -29,6 +29,8 @@ import { AuthApi } from '@core/auth/auth-api';
 import { ROUTES } from '@core/routing/routes-constants';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { Logger } from '@core/logging/logger';
+import { DemoModeService } from '@core/demo/demo-mode.service';
+import { MatChipsModule } from '@angular/material/chips';
 
 interface NavigationItem {
   readonly route: string;
@@ -47,6 +49,7 @@ interface NavigationItem {
     MatSidenavModule,
     MatToolbarModule,
     MatTooltipModule,
+    MatChipsModule,
     RouterLink,
     RouterLinkActive,
     RouterOutlet,
@@ -166,6 +169,27 @@ interface NavigationItem {
                 <mat-icon>menu</mat-icon>
               </button>
             }
+
+            <!-- Badge Mode Démo -->
+            @if (demoMode.isDemoMode()) {
+              <mat-chip-set class="mr-4">
+                <mat-chip
+                  class="!bg-gradient-to-r !from-purple-600 !to-pink-600 !text-white"
+                  highlighted
+                >
+                  <mat-icon matChipAvatar>play_circle</mat-icon>
+                  Mode Démo
+                  <button
+                    matChipRemove
+                    (click)="exitDemoMode()"
+                    aria-label="Quitter le mode démo"
+                  >
+                    <mat-icon>cancel</mat-icon>
+                  </button>
+                </mat-chip>
+              </mat-chip-set>
+            }
+
             <span class="flex-1"></span>
 
             <!-- Toolbar Actions -->
@@ -294,6 +318,7 @@ export class MainLayout {
   private readonly applicationConfig = inject(ApplicationConfiguration);
   readonly breadcrumbState = inject(BreadcrumbState);
   readonly #logger = inject(Logger);
+  readonly demoMode = inject(DemoModeService);
   readonly userEmail = computed(() => this.authApi.authState().user?.email);
 
   // Navigation items configuration
@@ -401,6 +426,18 @@ export class MainLayout {
       }
     } finally {
       this.#isLoggingOut.set(false);
+    }
+  }
+
+  async exitDemoMode(): Promise<void> {
+    try {
+      // Désactiver le mode démo et nettoyer les données
+      this.demoMode.disableDemoMode();
+
+      // Naviguer vers la page d'accueil
+      await this.router.navigate(['/']);
+    } catch (error) {
+      console.error('Erreur lors de la sortie du mode démo:', error);
     }
   }
 }

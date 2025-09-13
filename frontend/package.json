@@ -50,6 +50,7 @@
     "@pulpe/shared": "workspace:*",
     "@supabase/supabase-js": "^2.49.10",
     "@tailwindcss/postcss": "^4.1.8",
+    "@types/uuid": "^10.0.0",
     "date-fns": "^4.1.0",
     "lottie-web": "^5.13.0",
     "ngx-lottie": "^20.0.0",
