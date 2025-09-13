@@ -54,7 +54,7 @@ import {
     TransactionsTable,
     BaseLoading,
   ],
-  providers: [TemplateDetailsStore],
+  providers: [TemplateDetailsStore, TransactionIconPipe, TransactionLabelPipe],
   template: `
     <!-- Main container with proper surface container background -->
     <div
