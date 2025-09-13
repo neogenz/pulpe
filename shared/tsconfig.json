@@ -12,6 +12,6 @@
     "forceConsistentCasingInFileNames": true,
     "allowSyntheticDefaultImports": true
   },
-  "include": ["index.ts", "schemas.ts"],
+  "include": ["index.ts", "schemas.ts", "src/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }
