@@ -306,6 +306,103 @@ describe('BudgetFormulas', () => {
       expect(metrics.totalExpenses).toBe(4000); // 3000 + 1000 (saving inclus)
       expect(metrics.endingBalance).toBe(1000); // 5000 - 4000
     });
+
+    it('should follow SPECS example: Mars with rollover from Février', () => {
+      // Exemple SPECS: "Mars : income=5100 CHF, expenses=5200 CHF, rollover=900 CHF → ending_balance=800 CHF"
+      const budgetLines = [
+        createFinancialItem('income', 5100),
+        createFinancialItem('expense', 5200),
+      ];
+      const rollover = 900; // Depuis février
+
+      const metrics = BudgetFormulas.calculateAllMetrics(
+        budgetLines,
+        [],
+        rollover,
+      );
+
+      expect(metrics.totalIncome).toBe(5100);
+      expect(metrics.totalExpenses).toBe(5200);
+      expect(metrics.available).toBe(6000); // 5100 + 900
+      expect(metrics.endingBalance).toBe(800); // 6000 - 5200
+      expect(metrics.rollover).toBe(900);
+    });
+
+    it('should follow SPECS example: Avril with rollover from Mars', () => {
+      // Exemple SPECS: "Avril : income=5000 CHF, expenses=5500 CHF, rollover=800 CHF → ending_balance=300 CHF"
+      const budgetLines = [
+        createFinancialItem('income', 5000),
+        createFinancialItem('expense', 5500),
+      ];
+      const rollover = 800; // Depuis mars
+
+      const metrics = BudgetFormulas.calculateAllMetrics(
+        budgetLines,
+        [],
+        rollover,
+      );
+
+      expect(metrics.totalIncome).toBe(5000);
+      expect(metrics.totalExpenses).toBe(5500);
+      expect(metrics.available).toBe(5800); // 5000 + 800
+      expect(metrics.endingBalance).toBe(300); // 5800 - 5500
+      expect(metrics.rollover).toBe(800);
+    });
+
+    it('should validate complete SPECS chaining example (January to April)', () => {
+      // Test complet du chaînage sur 4 mois selon SPECS lignes 93-98
+      const months = [
+        {
+          name: 'Janvier',
+          income: 5000,
+          expenses: 4500,
+          rollover: 0,
+          expectedEndingBalance: 500,
+        },
+        {
+          name: 'Février',
+          income: 5200,
+          expenses: 4800,
+          rollover: 500,
+          expectedEndingBalance: 900,
+        },
+        {
+          name: 'Mars',
+          income: 5100,
+          expenses: 5200,
+          rollover: 900,
+          expectedEndingBalance: 800,
+        },
+        {
+          name: 'Avril',
+          income: 5000,
+          expenses: 5500,
+          rollover: 800,
+          expectedEndingBalance: 300,
+        },
+      ];
+
+      months.forEach((month, index) => {
+        const budgetLines = [
+          createFinancialItem('income', month.income),
+          createFinancialItem('expense', month.expenses),
+        ];
+
+        const metrics = BudgetFormulas.calculateAllMetrics(
+          budgetLines,
+          [],
+          month.rollover,
+        );
+
+        // Vérifier que le ending_balance correspond exactement aux SPECS
+        expect(metrics.endingBalance).toBe(month.expectedEndingBalance);
+
+        // Vérifier le chaînage: ending_balance de ce mois = rollover du mois suivant
+        if (index < months.length - 1) {
+          expect(metrics.endingBalance).toBe(months[index + 1].rollover);
+        }
+      });
+    });
   });
 
   describe('Performance Tests', () => {

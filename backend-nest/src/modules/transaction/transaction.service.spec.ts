@@ -92,14 +92,12 @@ describe('TransactionService', () => {
         name: 'Test Transaction',
         amount: 100,
         kind: 'expense',
-        isOutOfBudget: false,
       };
       const mockCreatedTransaction = createMockTransactionEntity({
         budget_id: createTransactionDto.budgetId,
         name: createTransactionDto.name,
         amount: createTransactionDto.amount,
         kind: 'expense', // DB uses new enum
-        is_out_of_budget: createTransactionDto.isOutOfBudget,
       });
 
       mockSupabaseClient.reset().setMockData(mockCreatedTransaction);
@@ -128,7 +126,6 @@ describe('TransactionService', () => {
         name: 'Test',
         amount: 100,
         kind: 'expense',
-        isOutOfBudget: false,
       };
 
       // Act & Assert
@@ -147,7 +144,6 @@ describe('TransactionService', () => {
         name: 'Test',
         amount: -50,
         kind: 'expense',
-        isOutOfBudget: false,
       };
 
       // Act & Assert
@@ -166,7 +162,6 @@ describe('TransactionService', () => {
         name: 'Test Transaction',
         amount: 100,
         kind: 'expense',
-        isOutOfBudget: false,
       };
       const mockError = { message: 'Database insert failed' };
 
@@ -192,7 +187,6 @@ describe('TransactionService', () => {
         name: 'Test Transaction',
         amount: 150,
         kind: 'expense',
-        isOutOfBudget: false,
       };
 
       // Mock a rejected promise to simulate unexpected error

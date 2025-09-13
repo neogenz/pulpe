@@ -9,13 +9,21 @@
  * - expenses_M = Σ(budget_lines WHERE type IN ('expense', 'saving')) + Σ(transactions WHERE type IN ('expense', 'saving'))
  * - ending_balance_M = available_M - expenses_M
  * - remaining_M = available_M - expenses_M
- * - progress_M = (expenses_M ÷ available_M) × 100
  */
 
 import type { TransactionKind } from '../types';
 
 /**
- * Interface pour les entités avec kind et amount
+ * Interface d'abstraction pour les entités financières
+ * Utilisée pour unifier budget_lines et transactions dans les calculs
+ *
+ * @example
+ * // Pour une ligne budgétaire (prévision)
+ * { kind: 'income', amount: 5000 }  // Salaire prévu
+ *
+ * @example
+ * // Pour une transaction (réalisation)
+ * { kind: 'expense', amount: 150 }  // Restaurant saisi
  */
 interface FinancialItem {
   kind: TransactionKind;
@@ -158,30 +166,33 @@ export class BudgetFormulas {
   static validateMetricsCoherence(
     metrics: ReturnType<typeof BudgetFormulas.calculateAllMetrics>,
   ): boolean {
-    // Vérifications de base
-    if (metrics.totalIncome < 0 || metrics.totalExpenses < 0) {
+    // Tolérance epsilon pour les comparaisons de nombres décimaux
+    const EPSILON = 0.01;
+
+    // Vérifications de base : revenus et dépenses ne peuvent pas être négatifs
+    // Note: endingBalance et rollover peuvent être négatifs (déficit autorisé)
+    if (metrics.totalIncome < 0) {
+      return false; // Les revenus ne peuvent pas être négatifs
+    }
+
+    if (metrics.totalExpenses < 0) {
+      return false; // Les dépenses ne peuvent pas être négatives
+    }
+
+    // Vérification formule SPECS: available = totalIncome + rollover
+    const expectedAvailable = metrics.totalIncome + metrics.rollover;
+    if (Math.abs(metrics.available - expectedAvailable) > EPSILON) {
       return false;
     }
 
-    // available = totalIncome + rollover
-    if (
-      Math.abs(metrics.available - (metrics.totalIncome + metrics.rollover)) >
-      0.01
-    ) {
+    // Vérification formule SPECS: endingBalance = available - totalExpenses
+    const expectedEndingBalance = metrics.available - metrics.totalExpenses;
+    if (Math.abs(metrics.endingBalance - expectedEndingBalance) > EPSILON) {
       return false;
     }
 
-    // endingBalance = available - totalExpenses
-    if (
-      Math.abs(
-        metrics.endingBalance - (metrics.available - metrics.totalExpenses),
-      ) > 0.01
-    ) {
-      return false;
-    }
-
-    // remaining = endingBalance
-    if (Math.abs(metrics.remaining - metrics.endingBalance) > 0.01) {
+    // Vérification formule SPECS: remaining = endingBalance
+    if (Math.abs(metrics.remaining - metrics.endingBalance) > EPSILON) {
       return false;
     }
 

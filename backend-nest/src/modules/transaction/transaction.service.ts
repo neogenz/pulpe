@@ -120,7 +120,6 @@ export class TransactionService {
       kind: createTransactionDto.kind as Database['public']['Enums']['transaction_kind'],
       transaction_date:
         createTransactionDto.transactionDate || new Date().toISOString(),
-      is_out_of_budget: createTransactionDto.isOutOfBudget || false,
       category: createTransactionDto.category ?? null,
     };
   }
@@ -322,9 +321,6 @@ export class TransactionService {
       }),
       ...(updateTransactionDto.transactionDate !== undefined && {
         transaction_date: updateTransactionDto.transactionDate,
-      }),
-      ...(updateTransactionDto.isOutOfBudget !== undefined && {
-        is_out_of_budget: updateTransactionDto.isOutOfBudget,
       }),
       ...(updateTransactionDto.category !== undefined && {
         category: updateTransactionDto.category,
