@@ -42,7 +42,11 @@ import { MatTooltipModule } from '@angular/material/tooltip';
                 >Dépenses CHF
                 @if (isOverBudget()) {
                   <mat-icon
-                    [matTooltip]="overBudgetTooltip()"
+                    [matTooltip]="
+                      'Tu es en dépassement de ' +
+                      (overBudgetAmount() | number: '1.2-2' : 'de-CH') +
+                      ' CHF'
+                    "
                     class="icon-filled"
                     >report</mat-icon
                   >
@@ -181,10 +185,9 @@ export class BudgetProgressBar {
   });
 
   /**
-   * Tooltip text for over budget situation
+   * Absolute value of remaining for over budget situation
    */
-  overBudgetTooltip = computed(() => {
-    const remainingAmount = Math.abs(this.remaining());
-    return `Tu es en dépassement de ${remainingAmount.toLocaleString('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} CHF`;
+  overBudgetAmount = computed(() => {
+    return Math.abs(this.remaining());
   });
 }
