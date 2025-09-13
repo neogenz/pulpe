@@ -24,9 +24,6 @@ export interface CalendarMonth {
 
   /** Visual status for styling purposes */
   status?: 'positive' | 'negative' | 'neutral' | 'warning';
-
-  /** Additional metadata that can be used by consuming features */
-  metadata?: Record<string, unknown>;
 }
 
 export interface CalendarYear {
@@ -58,5 +55,19 @@ export interface CalendarConfig {
     mobile?: number; // default: 2
     tablet?: number; // default: 3
     desktop?: number; // default: 4
+  };
+}
+
+export function createEmptyCalendarMonth(
+  month: number,
+  year: number,
+  displayName: string,
+): CalendarMonth {
+  return {
+    id: `${month}-${year}`,
+    month,
+    year,
+    displayName,
+    hasContent: false,
   };
 }

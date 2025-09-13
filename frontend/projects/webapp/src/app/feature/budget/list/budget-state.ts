@@ -1,35 +1,41 @@
 import {
   Injectable,
-  inject,
-  resource,
   computed,
+  inject,
   linkedSignal,
+  resource,
 } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
 import { BudgetApi } from '@core/budget/budget-api';
-import { type MonthInfo } from '@core/budget/month-info';
-import { format } from 'date-fns';
-import { frCH } from 'date-fns/locale';
 import { Logger } from '@core/logging/logger';
+import { type Budget } from '@pulpe/shared';
+import { firstValueFrom } from 'rxjs';
+
+export interface BudgetPlaceholder {
+  month: number;
+  year: number;
+}
 
 @Injectable()
 export class BudgetState {
   #budgetApi = inject(BudgetApi);
   #logger = inject(Logger);
 
-  monthsData = resource<MonthInfo[], void>({
-    loader: async () => this.#loadAndTransformBudgets(),
+  budgets = resource<Budget[], void>({
+    loader: async () => this.#loadBudgets(),
   });
 
-  availableYears = computed(() => {
-    const months = this.monthsData.value() ?? [];
+  plannedYears = computed(() => {
+    const months = this.budgets.value() ?? [];
     const years = [...new Set(months.map((month) => month.year))];
     return years.sort((a, b) => a - b); // Tri croissant
   });
 
-  budgetsByYear = computed(() => {
-    const months = this.monthsData.value() ?? [];
-    const groupedByYear = new Map<number, MonthInfo[]>();
+  /**
+   * Mensual budget planned, grouped by year
+   */
+  plannedBudgetsGroupedByYears = computed(() => {
+    const months = this.budgets.value() ?? [];
+    const groupedByYear = new Map<number, Budget[]>();
 
     months.forEach((month) => {
       const existingMonths = groupedByYear.get(month.year) ?? [];
@@ -47,8 +53,39 @@ export class BudgetState {
     return groupedByYear;
   });
 
+  /**
+   * All months grouped by year, with empty months for years with unplanned budgets
+   */
+  allMonthsGroupedByYears = computed<
+    Map<number, (Budget | BudgetPlaceholder)[]>
+  >(() => {
+    const allMonths = Array.from({ length: 12 }, (_, i) => i + 1);
+    const plannedYears = this.plannedBudgetsGroupedByYears();
+    const allMonthsGroupedByYears = new Map<
+      number,
+      (Budget | BudgetPlaceholder)[]
+    >();
+    for (const year of plannedYears.keys()) {
+      const plannedBudgets = plannedYears.get(year) ?? [];
+      const allMonthsForYear = allMonths.map((month) => {
+        const plannedBudget = plannedBudgets.find(
+          (budget) => budget.month === month,
+        );
+        if (plannedBudget) {
+          return plannedBudget;
+        }
+        return {
+          month,
+          year,
+        };
+      });
+      allMonthsGroupedByYears.set(year, allMonthsForYear);
+    }
+    return allMonthsGroupedByYears;
+  });
+
   selectedYear = linkedSignal<number[], number | null>({
-    source: this.availableYears,
+    source: this.plannedYears,
     computation: (years, previous) => {
       // Garder la sélection précédente si elle existe encore
       const currentYear = previous?.value;
@@ -65,7 +102,7 @@ export class BudgetState {
 
   selectedYearIndex = computed(() => {
     const year = this.selectedYear();
-    const years = this.availableYears();
+    const years = this.plannedYears();
 
     if (!year || years.length === 0) return 0;
 
@@ -73,8 +110,8 @@ export class BudgetState {
   });
 
   refreshData(): void {
-    if (this.monthsData.status() !== 'loading') {
-      this.monthsData.reload();
+    if (this.budgets.status() !== 'loading') {
+      this.budgets.reload();
     }
   }
 
@@ -82,33 +119,19 @@ export class BudgetState {
     this.selectedYear.set(year);
   }
 
-  async #loadAndTransformBudgets(): Promise<MonthInfo[]> {
+  async #loadBudgets(): Promise<Budget[]> {
     try {
       const budgets = await firstValueFrom(this.#budgetApi.getAllBudgets$());
-      return budgets
-        .map((budget) => ({
-          month: budget.month,
-          year: budget.year,
-          budgetId: budget.id,
-          description: budget.description,
-          displayName: this.#formatMonthYear(budget.month, budget.year),
-          endingBalance: budget.endingBalance ?? null,
-        }))
-        .sort((a: MonthInfo, b: MonthInfo) => {
-          // Trier par année décroissante puis par mois décroissant
-          if (a.year !== b.year) {
-            return b.year - a.year;
-          }
-          return b.month - a.month;
-        });
+      return budgets.sort((a: Budget, b: Budget) => {
+        // Trier par année décroissante puis par mois décroissant
+        if (a.year !== b.year) {
+          return a.year - b.year;
+        }
+        return a.month - b.month;
+      });
     } catch (error) {
       this.#logger.error('Erreur lors du chargement des mois:', error);
       throw error;
     }
-  }
-
-  #formatMonthYear(month: number, year: number): string {
-    const date = new Date(year, month - 1, 1);
-    return format(date, 'MMMM yyyy', { locale: frCH });
   }
 }
