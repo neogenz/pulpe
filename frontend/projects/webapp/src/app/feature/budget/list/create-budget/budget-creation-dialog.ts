@@ -47,11 +47,6 @@ const BUDGET_CREATION_CONSTANTS = {
   } as const,
 } as const;
 
-// Interface pour les données du dialog
-interface CreateBudgetDialogData {
-  selectedYear?: number;
-}
-
 // Format personnalisé pour le month/year picker
 const MONTH_YEAR_FORMATS = {
   ...MAT_DATE_FNS_FORMATS,
@@ -303,7 +298,7 @@ export class CreateBudgetDialogComponent {
     if (this.#data?.month && this.#data?.year) {
       return startOfMonth(new Date(this.#data.year, this.#data.month - 1, 1));
     }
-    
+
     // Sinon utilise la date actuelle
     return startOfMonth(new Date());
   }
@@ -421,14 +416,5 @@ export class CreateBudgetDialogComponent {
         },
       );
     }
-  }
-
-  #getInitialDate(): Date {
-    if (this.#data?.month && this.#data?.year) {
-      // Créer une date avec le mois et l'année fournis (mois - 1 car JavaScript utilise 0-11)
-      return startOfMonth(new Date(this.#data.year, this.#data.month - 1, 1));
-    }
-    // Par défaut, utiliser la date actuelle
-    return startOfMonth(new Date());
   }
 }
