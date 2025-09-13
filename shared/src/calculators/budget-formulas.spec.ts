@@ -158,24 +158,6 @@ describe('BudgetFormulas', () => {
     });
   });
 
-  describe('calculateProgress', () => {
-    it('should implement SPECS formula: progress = (expenses / available) × 100', () => {
-      expect(BudgetFormulas.calculateProgress(4000, 5000)).toBe(80);
-      expect(BudgetFormulas.calculateProgress(5000, 5000)).toBe(100);
-      expect(BudgetFormulas.calculateProgress(5500, 5000)).toBe(110); // Dépassement
-    });
-
-    it('should handle division by zero', () => {
-      expect(BudgetFormulas.calculateProgress(0, 0)).toBe(0);
-      expect(BudgetFormulas.calculateProgress(1000, 0)).toBe(100); // Dépense sans budget
-    });
-
-    it('should handle edge cases', () => {
-      expect(BudgetFormulas.calculateProgress(0, 5000)).toBe(0);
-      expect(BudgetFormulas.calculateProgress(2500, 5000)).toBe(50);
-    });
-  });
-
   describe('calculateAllMetrics', () => {
     it('should calculate all metrics coherently with complex data', () => {
       const { budgetLines, transactions, rollover } = complexTestData;
@@ -192,7 +174,6 @@ describe('BudgetFormulas', () => {
       expect(metrics.available).toBe(5550); // 5300 + 250
       expect(metrics.endingBalance).toBe(2300); // 5550 - 3250
       expect(metrics.remaining).toBe(2300); // Same as ending balance
-      expect(metrics.progress).toBeCloseTo(58.56, 2); // (3250 / 5550) * 100
       expect(metrics.rollover).toBe(250);
     });
 
@@ -209,7 +190,6 @@ describe('BudgetFormulas', () => {
       expect(metrics.available).toBe(5000);
       expect(metrics.endingBalance).toBe(3000);
       expect(metrics.remaining).toBe(3000);
-      expect(metrics.progress).toBe(40);
       expect(metrics.rollover).toBe(0);
     });
 
@@ -231,7 +211,6 @@ describe('BudgetFormulas', () => {
       expect(metrics.available).toBe(2500); // 3000 - 500
       expect(metrics.endingBalance).toBe(-1500); // 2500 - 4000 (déficit)
       expect(metrics.remaining).toBe(-1500);
-      expect(metrics.progress).toBe(160); // Dépassement
       expect(metrics.rollover).toBe(-500);
     });
   });
@@ -256,7 +235,6 @@ describe('BudgetFormulas', () => {
         available: 4000, // Incorrecte: devrait être 5000 + rollover
         endingBalance: 2000,
         remaining: 2000,
-        progress: 50,
         rollover: 0,
       };
 
@@ -270,7 +248,6 @@ describe('BudgetFormulas', () => {
         available: 4000,
         endingBalance: 2000,
         remaining: 2000,
-        progress: 50,
         rollover: 0,
       };
 

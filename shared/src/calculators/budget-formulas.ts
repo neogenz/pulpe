@@ -116,21 +116,6 @@ export class BudgetFormulas {
   }
 
   /**
-   * Calcule la progression du budget (pourcentage consommé)
-   * Formule SPECS: progress_M = (expenses_M ÷ available_M) × 100
-   *
-   * @param totalExpenses - Dépenses totales calculées
-   * @param available - Montant disponible total
-   * @returns Pourcentage de progression (0-100, peut dépasser 100%)
-   */
-  static calculateProgress(totalExpenses: number, available: number): number {
-    if (available === 0) {
-      return totalExpenses > 0 ? 100 : 0;
-    }
-    return (totalExpenses / available) * 100;
-  }
-
-  /**
    * Calcule toutes les métriques en une seule fois
    * Optimisation pour éviter les calculs redondants
    *
@@ -152,7 +137,6 @@ export class BudgetFormulas {
     const available = this.calculateAvailable(totalIncome, rollover);
     const endingBalance = this.calculateEndingBalance(available, totalExpenses);
     const remaining = endingBalance; // Same as ending balance per SPECS
-    const progress = this.calculateProgress(totalExpenses, available);
 
     return {
       totalIncome,
@@ -160,7 +144,6 @@ export class BudgetFormulas {
       available,
       endingBalance,
       remaining,
-      progress,
       rollover,
     };
   }

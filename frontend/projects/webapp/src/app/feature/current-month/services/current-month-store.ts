@@ -159,27 +159,6 @@ export class CurrentMonthStore {
   });
 
   /**
-   * Progression en pourcentage selon formules SPECS
-   */
-  readonly progress = computed<number>(() => {
-    const expenses = this.totalExpenses();
-    const available = this.totalAvailable();
-    return BudgetFormulas.calculateProgress(expenses, available);
-  });
-
-  /**
-   * @deprecated Utilise totalExpenses à la place
-   */
-  readonly totalSpent = computed<number>(() => this.totalExpenses());
-
-  /**
-   * @deprecated Utilise totalAvailable à la place
-   */
-  readonly totalAvailableWithRollover = computed<number>(() =>
-    this.totalAvailable(),
-  );
-
-  /**
    * Refresh dashboard data by reloading the resource
    */
   refreshData(): void {
