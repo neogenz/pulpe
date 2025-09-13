@@ -25,6 +25,7 @@ const mockBudget: Budget = {
   createdAt: '2024-01-01T00:00:00Z',
   updatedAt: '2024-01-01T00:00:00Z',
   endingBalance: 3426,
+  rollover: 500, // Rollover from previous month (December 2023)
 };
 
 const mockBudgetLines: BudgetLine[] = [
@@ -56,20 +57,7 @@ const mockBudgetLines: BudgetLine[] = [
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
   },
-  {
-    id: 'rollover-line',
-    budgetId: 'budget-1',
-    templateLineId: null,
-    isManuallyAdjusted: false,
-    savingsGoalId: null,
-    name: 'rollover_12_2023',
-    amount: 500,
-    kind: 'expense',
-    recurrence: 'one_off',
-    isRollover: true,
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-01T00:00:00Z',
-  },
+  // Note: Rollover is now stored on Budget.rollover, not as a budget line
 ];
 
 const mockTransactions: Transaction[] = [
@@ -112,10 +100,7 @@ describe('CurrentMonthStore - Business Scenarios', () => {
     calculateLocalEndingBalance: Mock;
     calculatePlannedIncome: Mock;
     calculateActualTransactionsAmount: Mock;
-    calculateTotalSpentIncludingRollover: Mock;
-    calculateTotalSpentExcludingRollover: Mock;
     calculateTotalAvailable: Mock;
-    calculateRolloverAmount: Mock;
   };
 
   beforeEach(() => {
@@ -144,10 +129,7 @@ describe('CurrentMonthStore - Business Scenarios', () => {
       calculateLocalEndingBalance: vi.fn().mockReturnValue(3426),
       calculatePlannedIncome: vi.fn().mockReturnValue(5000),
       calculateActualTransactionsAmount: vi.fn().mockReturnValue(50),
-      calculateTotalSpentIncludingRollover: vi.fn().mockReturnValue(2050), // 1500 + 500 + 50
-      calculateTotalSpentExcludingRollover: vi.fn().mockReturnValue(1550), // 1500 + 50 (sans rollover)
       calculateTotalAvailable: vi.fn().mockReturnValue(5000),
-      calculateRolloverAmount: vi.fn().mockReturnValue(500),
     };
 
     const mockLogger = {
@@ -170,48 +152,61 @@ describe('CurrentMonthStore - Business Scenarios', () => {
   });
 
   describe('User can see their financial situation', () => {
-    it('should display available amount to spend correctly', () => {
+    it('should display available amount to spend correctly', async () => {
       // Business scenario: User opens the app and wants to see how much they can spend
+
+      // Wait for resource to load (async operations in the store)
+      await vi.waitFor(() => {
+        expect(store.dashboardData()).toBeTruthy();
+      });
 
       // Given: User has income, expenses, and rollover from previous month
       // When: User views their dashboard
-      const availableToSpend =
-        store.totalAvailableWithRollover() - store.totalSpentWithoutRollover();
+      const availableToSpend = store.totalAvailable() - store.totalExpenses();
 
       // Then: The calculation should be: (Income + Rollover) - Expenses
       // Expected: (5000 + 500) - 1550 = 3950
       expect(availableToSpend).toBe(3950);
     });
 
-    it('should show rollover from previous month', () => {
+    it('should show rollover from previous month', async () => {
       // Business scenario: User wants to see money carried over from last month
+
+      // Wait for resource to load
+      await vi.waitFor(() => {
+        expect(store.dashboardData()).toBeTruthy();
+      });
 
       const rollover = store.rolloverAmount();
 
       // Should show the positive rollover amount
       expect(rollover).toBe(500);
-      // Verify the calculator is called
-      expect(mockBudgetCalculator.calculateRolloverAmount).toHaveBeenCalled();
     });
 
-    it('should calculate total spent excluding rollover for budget progress', () => {
+    it('should calculate total spent excluding rollover for budget progress', async () => {
       // Business scenario: User wants to see how much they've spent this month
       // (excluding rollover from previous month for clear progress tracking)
 
-      const totalSpent = store.totalSpentWithoutRollover();
+      // Wait for resource to load
+      await vi.waitFor(() => {
+        expect(store.dashboardData()).toBeTruthy();
+      });
+
+      const totalSpent = store.totalExpenses();
 
       // Should exclude rollover: only current month expenses + transactions
       expect(totalSpent).toBe(1550); // 1500 (rent) + 50 (coffee) = 1550
-      // Verify the calculator is called
-      expect(
-        mockBudgetCalculator.calculateTotalSpentExcludingRollover,
-      ).toHaveBeenCalled();
     });
 
-    it('should show total available including rollover', () => {
+    it('should show total available including rollover', async () => {
       // Business scenario: User wants to see total money available this month
 
-      const totalAvailable = store.totalAvailableWithRollover();
+      // Wait for resource to load
+      await vi.waitFor(() => {
+        expect(store.dashboardData()).toBeTruthy();
+      });
+
+      const totalAvailable = store.totalAvailable();
 
       // Should be: Income + Rollover = 5000 + 500 = 5500
       expect(totalAvailable).toBe(5500);
@@ -323,10 +318,13 @@ describe('CurrentMonthStore - Business Scenarios', () => {
         'Server unavailable',
       );
 
+      // Wait for resource to load
+      await vi.waitFor(() => {
+        expect(store.dashboardData()).toBeTruthy();
+      });
+
       // Store should still be functional after error
-      expect(
-        store.totalAvailableWithRollover() - store.totalSpentWithoutRollover(),
-      ).toBe(3950);
+      expect(store.totalAvailable() - store.totalExpenses()).toBe(3950);
     });
 
     it('should maintain stability when update transaction fails', async () => {
@@ -340,10 +338,13 @@ describe('CurrentMonthStore - Business Scenarios', () => {
         store.updateTransaction('trans-1', { amount: 200 }),
       ).rejects.toThrow('Update failed');
 
+      // Wait for resource to load
+      await vi.waitFor(() => {
+        expect(store.dashboardData()).toBeTruthy();
+      });
+
       // Store should still be functional
-      expect(
-        store.totalAvailableWithRollover() - store.totalSpentWithoutRollover(),
-      ).toBe(3950);
+      expect(store.totalAvailable() - store.totalExpenses()).toBe(3950);
     });
 
     it('should maintain stability when delete transaction fails', async () => {
@@ -357,10 +358,13 @@ describe('CurrentMonthStore - Business Scenarios', () => {
         'Delete failed',
       );
 
+      // Wait for resource to load
+      await vi.waitFor(() => {
+        expect(store.dashboardData()).toBeTruthy();
+      });
+
       // Store should still be functional
-      expect(
-        store.totalAvailableWithRollover() - store.totalSpentWithoutRollover(),
-      ).toBe(3950);
+      expect(store.totalAvailable() - store.totalExpenses()).toBe(3950);
     });
   });
 
@@ -372,10 +376,6 @@ describe('CurrentMonthStore - Business Scenarios', () => {
         of({ data: { budget: null, transactions: [], budgetLines: [] } }),
       );
       mockBudgetCalculator.calculateTotalAvailable.mockReturnValue(0);
-      mockBudgetCalculator.calculateTotalSpentExcludingRollover.mockReturnValue(
-        0,
-      );
-      mockBudgetCalculator.calculateRolloverAmount.mockReturnValue(0);
 
       TestBed.resetTestingModule();
       TestBed.configureTestingModule({
@@ -390,12 +390,17 @@ describe('CurrentMonthStore - Business Scenarios', () => {
       store = TestBed.inject(CurrentMonthStore);
     });
 
-    it('should handle when user has no budget for the month', () => {
+    it('should handle when user has no budget for the month', async () => {
       // Business scenario: User opens app for a month with no budget created
+
+      // Wait for resource to load (will be empty)
+      await vi.waitFor(() => {
+        expect(store.dashboardStatus()).not.toBe('loading');
+      });
 
       expect(store.budgetLines()).toEqual([]);
       expect(store.transactions()).toEqual([]);
-      expect(store.totalAvailableWithRollover()).toBe(0);
+      expect(store.totalAvailable()).toBe(0);
     });
 
     it('should handle API errors during data loading', () => {

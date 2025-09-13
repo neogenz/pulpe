@@ -38,7 +38,7 @@ import {
 } from '@pulpe/shared';
 
 @Component({
-  selector: 'pulpe-details-page',
+  selector: 'pulpe-budget-details-page',
   imports: [
     MatCardModule,
     MatIconModule,
@@ -71,7 +71,7 @@ import {
         </mat-card>
       } @else if (store.budgetDetails()) {
         @let budget = store.budgetDetails()!;
-        @let budgetLines = budget.budgetLines;
+        @let budgetLines = store.displayBudgetLines();
         @let transactions = budget.transactions;
 
         <!-- Header -->
@@ -178,7 +178,7 @@ import {
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export default class DetailsPage {
+export default class BudgetDetailsPage {
   store = inject(BudgetDetailsStore);
   readonly #router = inject(Router);
   readonly #route = inject(ActivatedRoute);

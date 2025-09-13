@@ -6,6 +6,7 @@ import {
   type TransactionRecurrence,
 } from '@pulpe/shared';
 import { BudgetCalculator } from '@core/budget/budget-calculator';
+import { isRolloverLine } from '@core/rollover/rollover-types';
 import { type TableItem } from './budget-table-models';
 
 /**
@@ -38,15 +39,6 @@ export class BudgetTableDataProvider {
     saving: 2,
     expense: 3,
   } as const;
-
-  /**
-   * Type guard to check if a budget item is a rollover line
-   */
-  #isRolloverBudgetLine(
-    item: BudgetLine | Transaction,
-  ): item is BudgetLine & { isRollover: true } {
-    return 'isRollover' in item && item.isRollover === true;
-  }
 
   /**
    * Combines and sorts budget lines and transactions with cumulative balance calculation
@@ -163,7 +155,7 @@ export class BudgetTableDataProvider {
     );
 
     return itemsWithBalance.map((item) => {
-      const isRollover = this.#isRolloverBudgetLine(item.item);
+      const isRollover = isRolloverLine(item.item);
       return {
         data: item.item,
         metadata: {

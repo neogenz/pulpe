@@ -48,10 +48,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
                   >
                 }
               </span>
-              <span
-                class="text-headline-small md:text-headline-large"
-                [class.text-error]="isOverBudget()"
-              >
+              <span class="text-headline-small md:text-headline-large">
                 <div class="flex flex-col">
                   {{ expenses() | number: '1.2-2' : 'de-CH' }}
                 </div>

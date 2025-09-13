@@ -1,12 +1,14 @@
 import { computed, inject, Injectable, resource, signal } from '@angular/core';
-import { BudgetApi, BudgetCalculator } from '@core/budget';
+import { BudgetApi } from '@core/budget';
 import { TransactionApi } from '@core/transaction';
+import { createRolloverLine } from '@core/rollover/rollover-types';
 import {
   type Budget,
   type BudgetLine,
   type Transaction,
   type TransactionCreate,
   type TransactionUpdate,
+  BudgetFormulas,
 } from '@pulpe/shared';
 import { format } from 'date-fns';
 import { firstValueFrom, type Observable } from 'rxjs';
@@ -34,7 +36,6 @@ import { createInitialCurrentMonthInternalState } from './current-month-state';
 export class CurrentMonthStore {
   #budgetApi = inject(BudgetApi);
   #transactionApi = inject(TransactionApi);
-  #budgetCalculator = inject(BudgetCalculator);
 
   /**
    * Simple state signal for UI feedback during operations
@@ -70,11 +71,37 @@ export class CurrentMonthStore {
   );
 
   /**
-   * Budget lines selector
+   * Budget lines selector - raw data from API
    */
   readonly budgetLines = computed<BudgetLine[]>(
     () => this.dashboardData()?.budgetLines || [],
   );
+
+  /**
+   * Budget lines for display - includes virtual rollover line when applicable
+   * Transforms rollover from Budget into a display line for UI consistency
+   */
+  readonly displayBudgetLines = computed<BudgetLine[]>(() => {
+    const lines = [...this.budgetLines()];
+    const rollover = this.rolloverAmount();
+    const budget = this.dashboardData()?.budget;
+
+    // Add virtual rollover line for display if rollover exists
+    if (rollover !== 0 && budget) {
+      const rolloverLine = createRolloverLine({
+        budgetId: budget.id,
+        amount: rollover,
+        month: budget.month,
+        year: budget.year,
+        previousBudgetId: budget.previousBudgetId,
+      });
+
+      // Add rollover at the beginning of the list
+      lines.unshift(rolloverLine);
+    }
+
+    return lines;
+  });
 
   /**
    * Dashboard resource status
@@ -87,60 +114,70 @@ export class CurrentMonthStore {
   readonly budgetDate = computed(() => this.#state().currentDate);
 
   /**
-   * Total dépensé (expenses + savings) depuis les budget lines ET les transactions
-   * INCLUANT le rollover - utilisé pour les calculs internes
-   */
-  readonly totalSpent = computed<number>(() => {
-    const budgetLines = this.budgetLines();
-    const transactions = this.transactions();
-    return this.#budgetCalculator.calculateTotalSpentIncludingRollover(
-      budgetLines,
-      transactions,
-    );
-  });
-
-  /**
-   * Total dépensé SANS le rollover
-   * Pour affichage dans la barre de progression
-   */
-  readonly totalSpentWithoutRollover = computed<number>(() => {
-    const budgetLines = this.budgetLines();
-    const transactions = this.transactions();
-    return this.#budgetCalculator.calculateTotalSpentExcludingRollover(
-      budgetLines,
-      transactions,
-    );
-  });
-
-  // Montant disponible sur le mois sans compter les dépenses : Total income
-  readonly totalAvailable = computed<number>(() => {
-    const budgetLines = this.budgetLines();
-    const transactions = this.transactions();
-    return this.#budgetCalculator.calculateTotalAvailable(
-      budgetLines,
-      transactions,
-    );
-  });
-
-  /**
-   * Montant disponible AVEC le rollover
-   * Disponible = Total Income + Rollover réel
-   */
-  readonly totalAvailableWithRollover = computed<number>(() => {
-    const available = this.totalAvailable();
-    const rollover = this.rolloverAmount();
-    return available + rollover;
-  });
-
-  /**
-   * Rollover amount from previous months
-   * Si le rollover est une expense, on l'inverse pour obtenir la valeur positive
-   * Si le rollover est un income, on le garde tel quel
+   * Rollover amount depuis le Budget (plus de calcul depuis BudgetLines)
    */
   readonly rolloverAmount = computed<number>(() => {
-    const budgetLines = this.budgetLines();
-    return this.#budgetCalculator.calculateRolloverAmount(budgetLines);
+    const budget = this.dashboardData()?.budget;
+    return budget?.rollover || 0;
   });
+
+  /**
+   * Total des revenus (budget lines + transactions)
+   */
+  readonly totalIncome = computed<number>(() => {
+    const budgetLines = this.budgetLines();
+    const transactions = this.transactions();
+    return BudgetFormulas.calculateTotalIncome(budgetLines, transactions);
+  });
+
+  /**
+   * Total dépensé (expenses + savings) depuis les budget lines ET transactions
+   * Utilise les formules partagées
+   */
+  readonly totalExpenses = computed<number>(() => {
+    const budgetLines = this.budgetLines();
+    const transactions = this.transactions();
+    return BudgetFormulas.calculateTotalExpenses(budgetLines, transactions);
+  });
+
+  /**
+   * Montant total disponible = revenu + rollover (formule SPECS)
+   */
+  readonly totalAvailable = computed<number>(() => {
+    const totalIncome = this.totalIncome();
+    const rollover = this.rolloverAmount();
+    return BudgetFormulas.calculateAvailable(totalIncome, rollover);
+  });
+
+  /**
+   * Montant restant à dépenser (ending balance)
+   */
+  readonly remaining = computed<number>(() => {
+    const available = this.totalAvailable();
+    const expenses = this.totalExpenses();
+    return BudgetFormulas.calculateRemaining(available, expenses);
+  });
+
+  /**
+   * Progression en pourcentage selon formules SPECS
+   */
+  readonly progress = computed<number>(() => {
+    const expenses = this.totalExpenses();
+    const available = this.totalAvailable();
+    return BudgetFormulas.calculateProgress(expenses, available);
+  });
+
+  /**
+   * @deprecated Utilise totalExpenses à la place
+   */
+  readonly totalSpent = computed<number>(() => this.totalExpenses());
+
+  /**
+   * @deprecated Utilise totalAvailable à la place
+   */
+  readonly totalAvailableWithRollover = computed<number>(() =>
+    this.totalAvailable(),
+  );
 
   /**
    * Refresh dashboard data by reloading the resource
@@ -234,12 +271,14 @@ export class CurrentMonthStore {
       if (currentData && currentData.budget) {
         const updatedData = updateData(currentData, response);
 
-        // Recalculate ending balance locally
-        const newEndingBalance =
-          this.#budgetCalculator.calculateLocalEndingBalance(
-            updatedData.budgetLines,
-            updatedData.transactions,
-          );
+        // Recalculate ending balance locally avec les formules partagées
+        const rollover = updatedData.budget?.rollover || 0;
+        const metrics = BudgetFormulas.calculateAllMetrics(
+          updatedData.budgetLines,
+          updatedData.transactions,
+          rollover,
+        );
+        const newEndingBalance = metrics.endingBalance;
 
         // Apply optimistic update
         this.#dashboardResource.set({
@@ -258,10 +297,14 @@ export class CurrentMonthStore {
 
         // 4. Update with real backend value
         const latestData = this.#dashboardResource.value();
-        if (latestData && updatedBudget) {
+        if (latestData && latestData.budget && updatedBudget) {
           this.#dashboardResource.set({
             ...latestData,
-            budget: updatedBudget,
+            budget: {
+              ...updatedBudget,
+              rollover: latestData.budget.rollover, // Préserver le rollover existant
+              previousBudgetId: latestData.budget.previousBudgetId, // Préserver aussi
+            },
           });
         }
       }
@@ -294,12 +337,14 @@ export class CurrentMonthStore {
       if (currentData && currentData.budget) {
         const updatedData = updateData(currentData);
 
-        // Recalculate ending balance locally
-        const newEndingBalance =
-          this.#budgetCalculator.calculateLocalEndingBalance(
-            updatedData.budgetLines,
-            updatedData.transactions,
-          );
+        // Recalculate ending balance locally avec les formules partagées
+        const rollover = updatedData.budget?.rollover || 0;
+        const metrics = BudgetFormulas.calculateAllMetrics(
+          updatedData.budgetLines,
+          updatedData.transactions,
+          rollover,
+        );
+        const newEndingBalance = metrics.endingBalance;
 
         // Apply optimistic update
         this.#dashboardResource.set({
@@ -318,10 +363,14 @@ export class CurrentMonthStore {
 
         // 4. Update with real backend value
         const latestData = this.#dashboardResource.value();
-        if (latestData && updatedBudget) {
+        if (latestData && latestData.budget && updatedBudget) {
           this.#dashboardResource.set({
             ...latestData,
-            budget: updatedBudget,
+            budget: {
+              ...updatedBudget,
+              rollover: latestData.budget.rollover, // Préserver le rollover existant
+              previousBudgetId: latestData.budget.previousBudgetId, // Préserver aussi
+            },
           });
         }
       }

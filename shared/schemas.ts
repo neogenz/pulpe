@@ -73,6 +73,11 @@ export const budgetSchema = z.object({
   // ending_balance : STOCKÉ en base selon SPECS.md section 3
   // Calculé par le backend, pas par le frontend
   endingBalance: z.number().nullable().optional(),
+  // rollover : CALCULÉ par le backend, pas persisté en base
+  // Report du mois précédent selon formule SPECS rollover_M = ending_balance_M-1
+  rollover: z.number().optional(),
+  // previousBudgetId : Budget source du rollover pour traçabilité
+  previousBudgetId: z.string().uuid().nullable().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
@@ -178,10 +183,6 @@ export const budgetLineSchema = z.object({
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,
   isManuallyAdjusted: z.boolean(),
-  // NOTE: isRollover = true pour les lignes artificielles de rollover
-  // Alternative à considérer: traiter le rollover comme donnée métier séparée
-  isRollover: z.boolean(),
-  rolloverSourceBudgetId: z.string().uuid().nullable().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
@@ -196,7 +197,6 @@ export const budgetLineCreateSchema = z.object({
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,
   isManuallyAdjusted: z.boolean().default(false),
-  isRollover: z.boolean().default(false),
 });
 export type BudgetLineCreate = z.infer<typeof budgetLineCreateSchema>;
 

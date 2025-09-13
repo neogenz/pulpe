@@ -140,6 +140,7 @@ import { type TransactionViewModel } from '../models/transaction-view-model';
                         matButton
                         class="text-body-medium font-semibold"
                       >
+                        <mat-icon class="!text-base">open_in_new</mat-icon>
                         {{ line.data.name | rolloverFormat }}
                       </a>
                     } @else {

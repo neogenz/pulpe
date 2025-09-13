@@ -19,7 +19,7 @@ export const budgetRoutes: Routes = [
         title: PAGE_TITLES.BUDGET_DETAILS,
         data: { breadcrumb: 'Détail du budget', icon: 'visibility' },
         providers: [BudgetLineApi, BudgetTableDataProvider],
-        loadComponent: () => import('./details/details-page'),
+        loadComponent: () => import('./details/budget-details-page'),
       },
     ],
   },

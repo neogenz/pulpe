@@ -166,9 +166,15 @@ feature/[domain]/
 - Page Object Model pattern
 - Comprehensive user flow testing
 
+#### Testing Philosophy │ │
+
+- Test WHAT, not HOW: Focus on observable business outcomes, not internal method names │ │
+- Tests as Documentation: Each test should describe a business requirement │ │
+- Resilient to Refactoring: Tests shouldn't break when implementation changes
+
 ### Styling
 
-NEVER use `::ng-deep` in styles. It's FORBIDDEN. 
+NEVER use `::ng-deep` in styles. It's FORBIDDEN.
 
 ### Design System - Material Design 3
 

@@ -89,6 +89,9 @@ export {
   authErrorResponseSchema,
 } from './schemas.js';
 
+// Export calculators
+export { BudgetFormulas } from './src/calculators/index.js';
+
 // Export all types from types.ts
 export type {
   // Enum Types

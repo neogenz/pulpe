@@ -176,7 +176,7 @@ export class BudgetService {
         budgetData,
         supabase,
       );
-      await this.addRolloverIfNeeded(budgetId, responseData, supabase);
+      await this.addRolloverToBudget(budgetId, responseData, supabase);
 
       this.logBudgetDetailsFetch(budgetId, responseData);
 
@@ -244,21 +244,19 @@ export class BudgetService {
     };
   }
 
-  private async addRolloverIfNeeded(
+  private async addRolloverToBudget(
     budgetId: string,
     responseData: BudgetDetailsData,
     supabase: AuthenticatedSupabaseClient,
   ) {
     const rolloverData = await this.calculator.getRollover(budgetId, supabase);
 
-    if (rolloverData.rollover !== 0) {
-      const rolloverLine = this.calculator.buildRolloverLine(
-        responseData.budget,
-        rolloverData.rollover,
-        rolloverData.previousBudgetId,
-      );
-      responseData.budgetLines.push(rolloverLine);
-    }
+    // Intégrer rollover directement dans l'objet Budget (plus de BudgetLine artificielle)
+    responseData.budget = {
+      ...responseData.budget,
+      rollover: rolloverData.rollover,
+      previousBudgetId: rolloverData.previousBudgetId,
+    };
   }
 
   private logBudgetDetailsFetch(
