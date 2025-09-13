@@ -78,7 +78,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
               Budget totalement dépassé
             } @else {
               {{ displayPercentage() }}% du budget dépensé (Limite CHF :
-              {{ availableLimit() | number: '1.2-2' : 'de-CH' }})
+              {{ available() | number: '1.2-2' : 'de-CH' }})
             }
           </div>
         </div>
@@ -119,12 +119,6 @@ export class BudgetProgressBar {
    * Can be negative if rollover is significantly negative
    */
   available = input.required<number>();
-
-  /**
-   * Available limit - total amount available for the month (for display purposes)
-   * Represents the spending limit (revenue + rollover)
-   */
-  availableLimit = input<number>();
 
   /**
    * Remaining amount (available - expenses)
