@@ -1,0 +1,74 @@
+name: 🚀 Deploy Supabase Migrations
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend-nest/supabase/migrations/**'
+  workflow_dispatch: # Permet le déclenchement manuel
+
+# Éviter les runs multiples pour la même ref
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false # Ne pas annuler les déploiements en cours
+
+# Sécurité : permissions minimales
+permissions:
+  contents: read # Read-only, pas de commit automatique
+
+# Variables globales (cohérent avec le CI existant)
+env:
+  NODE_VERSION: "22"
+  PNPM_VERSION: "10.12.1"
+  BUN_VERSION: "1.2.17"
+
+jobs:
+  deploy-migrations:
+    name: 🗄️ Deploy Database Migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🗄️ Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: 🔗 Link to Production Project
+        working-directory: backend-nest
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_ID: ${{ secrets.PRODUCTION_PROJECT_ID }}
+        run: |
+          echo "🔗 Linking to production project..."
+          supabase link --project-ref $SUPABASE_PROJECT_ID
+
+      - name: 🚀 Deploy Migrations to Production
+        working-directory: backend-nest
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.PRODUCTION_DB_PASSWORD }}
+        run: |
+          echo "🚀 Deploying migrations to production..."
+          # Workaround pour le problème de prompt interactif (issue connue)
+          yes | supabase db push
+          echo "✅ Migrations deployed successfully"
+
+      - name: 📊 Deployment Summary
+        if: always()
+        run: |
+          echo "======================================"
+          echo "📊 Migration Deployment Summary"
+          echo "======================================"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Time: $(date)"
+          echo "======================================"
+          echo ""
+          echo "⚠️  REMINDER: Update your local types with:"
+          echo "    cd backend-nest && bun run generate-types"
+          echo "    cd .. && pnpm quality:fix"
+          echo "======================================"

@@ -151,9 +151,14 @@ Details at @backend-nest/CLAUDE.md
 
 #### 2. Database Changes
 
-1. Apply migrations: `cd backend-nest && bun run supabase:push`
-2. Generate types: `cd backend-nest && bun run generate-types:local`
-3. Update DTOs in shared package if needed
+1. Create migrations locally: `supabase migration new [name]`
+2. Test locally: `supabase stop && supabase start`
+3. Generate types: `cd backend-nest && bun run generate-types:local`
+4. Update DTOs in shared package if needed
+
+**For CI/CD with GitHub Actions**: See `supabase-github-ci.md` for:
+- Automated testing with local Supabase in CI
+- Automated production deployment of migrations
 
 #### 3. Testing Strategy
 
