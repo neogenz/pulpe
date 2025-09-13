@@ -124,7 +124,6 @@ type EditTransactionFormData = Pick<
             <pulpe-budget-progress-bar
               [expenses]="store.totalExpenses()"
               [available]="store.totalAvailable()"
-              [availableLimit]="store.totalAvailable()"
             />
             <div class="flex flex-col gap-4" data-testid="dashboard-content">
               <!--<pulpe-transaction-chip-filter
