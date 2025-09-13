@@ -695,12 +695,85 @@ steps:
 
 ---
 
+## 🚀 Partie 2 : CD - Déploiement Automatique des Migrations Production
+
+### Vue d'ensemble
+
+Cette section décrit le déploiement automatique des migrations Supabase vers la production via GitHub Actions.
+
+### Workflow de déploiement
+
+Le workflow `.github/workflows/supabase-deploy.yml` se déclenche :
+
+1. **Automatiquement** : Push sur `main` avec modifications dans `backend-nest/supabase/migrations/`
+2. **Manuellement** : Via GitHub Actions UI → "Run workflow"
+
+Configuration du workflow :
+
+```yaml
+name: 🚀 Deploy Supabase Migrations
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend-nest/supabase/migrations/**'
+  workflow_dispatch: # Déclenchement manuel
+```
+
+**Note** : Utilise `yes | supabase db push` pour contourner le prompt interactif (issue connue).
+
+### Configuration des secrets GitHub
+
+Dans **Settings → Secrets and variables → Actions** :
+
+| Secret | Description | Où le trouver |
+|--------|-------------|---------------|
+| `SUPABASE_ACCESS_TOKEN` | Token d'accès personnel | `supabase login` ou [Dashboard](https://supabase.com/dashboard/account/tokens) |
+| `PRODUCTION_PROJECT_ID` | ID du projet production | URL: `https://supabase.com/dashboard/project/[ID_ICI]` |
+| `PRODUCTION_DB_PASSWORD` | Mot de passe DB | Dashboard → Settings → Database → Connection string |
+
+### Workflow post-déploiement
+
+Après déploiement automatique, mettre à jour les types localement :
+
+```bash
+# 1. Générer les types depuis production
+cd backend-nest
+bun run generate-types
+
+# 2. Appliquer le formatting
+cd ..
+pnpm quality:fix
+
+# 3. Commit et push
+git add backend-nest/src/types/database.types.ts
+git commit -m "chore: update database types after production deployment"
+git push
+```
+
+### Migrations en attente
+
+| Date | Fichier | Description | Status |
+|------|---------|-------------|--------|
+| 2025-09-13 | `20250913161355_remove_is_out_of_budget_column.sql` | DROP COLUMN is_out_of_budget | ⏳ En attente |
+
+### Points d'attention
+
+- Les migrations sont **irréversibles** (notamment DROP COLUMN)
+- Toujours tester avec `supabase stop` / `supabase start` en local
+- Les types doivent être mis à jour manuellement pour respecter le quality gate
+- Pas de commit automatique depuis le workflow (par design)
+
+---
+
 ## 📚 Ressources
 
 - [Supabase CLI Documentation](https://supabase.com/docs/guides/cli)
 - [GitHub Actions avec Supabase](https://supabase.com/docs/guides/cli/github-action)
 - [Setup CLI Action](https://github.com/supabase/setup-cli)
 - [Docker in GitHub Actions](https://docs.github.com/en/actions/using-containerized-services)
+- [Managing Environments](https://supabase.com/docs/guides/deployment/managing-environments)
 
 ---
 
