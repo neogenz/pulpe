@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   inject,
   type OnInit,
   signal,
@@ -9,7 +10,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { BaseLoading } from '@ui/loading';
 import { MonthsError } from '../ui/budget-error';
-import { BudgetState } from './budget-state';
+import { type BudgetPlaceholder, BudgetState } from './budget-state';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TitleDisplay } from '@core/routing';
 import { CreateBudgetDialogComponent } from './create-budget/budget-creation-dialog';
@@ -19,10 +20,16 @@ import { Router } from '@angular/router';
 import { ROUTES } from '@core/routing';
 import { YearCalendar } from '@ui/calendar';
 import { type CalendarMonth } from '@ui/calendar';
-import { type MonthInfo } from '@core/budget/month-info';
+import { type Budget } from '@pulpe/shared';
+import {
+  type CalendarYear,
+  createEmptyCalendarMonth,
+} from '@ui/calendar/calendar-types';
+import { format } from 'date-fns';
+import { frCH } from 'date-fns/locale';
 
 @Component({
-  selector: 'pulpe-other-months',
+  selector: 'pulpe-budget-list',
   imports: [
     MatIconModule,
     MatButtonModule,
@@ -40,7 +47,7 @@ import { type MonthInfo } from '@core/budget/month-info';
         <button
           matButton="filled"
           (click)="openCreateBudgetDialog()"
-          [disabled]="state.monthsData.isLoading()"
+          [disabled]="state.budgets.isLoading()"
           data-testid="create-budget-btn"
         >
           <mat-icon class="md:inline hidden">add_circle</mat-icon>
@@ -51,8 +58,8 @@ import { type MonthInfo } from '@core/budget/month-info';
 
       @switch (true) {
         @case (
-          state.monthsData.status() === 'loading' ||
-          state.monthsData.status() === 'reloading'
+          state.budgets.status() === 'loading' ||
+          state.budgets.status() === 'reloading'
         ) {
           <pulpe-base-loading
             message="Chargement des données mensuelles..."
@@ -60,12 +67,12 @@ import { type MonthInfo } from '@core/budget/month-info';
             testId="months-loading"
           />
         }
-        @case (state.monthsData.status() === 'error') {
+        @case (state.budgets.status() === 'error') {
           <pulpe-months-error (reload)="state.refreshData()" />
         }
         @case (
-          state.monthsData.status() === 'resolved' ||
-          state.monthsData.status() === 'local'
+          state.budgets.status() === 'resolved' ||
+          state.budgets.status() === 'local'
         ) {
           <mat-tab-group
             mat-stretch-tabs="false"
@@ -74,12 +81,12 @@ import { type MonthInfo } from '@core/budget/month-info';
             [selectedIndex]="state.selectedYearIndex()"
             (selectedIndexChange)="onTabChange($event)"
           >
-            @for (year of state.availableYears(); track year) {
-              <mat-tab [label]="year.toString()">
+            @for (budgetsOfYear of calendarYears(); track budgetsOfYear.year) {
+              <mat-tab [label]="budgetsOfYear.year.toString()">
                 <div class="pt-6">
                   <pulpe-year-calendar
-                    [year]="year"
-                    [months]="getCalendarMonths(year)"
+                    [year]="budgetsOfYear.year"
+                    [months]="budgetsOfYear.months"
                     [currentDate]="currentDate()"
                     [config]="calendarConfig"
                     (monthClick)="onMonthClick($event)"
@@ -100,11 +107,18 @@ import { type MonthInfo } from '@core/budget/month-info';
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export default class OtherMonths implements OnInit {
+export default class BudgetListPage implements OnInit {
   protected readonly state = inject(BudgetState);
   protected readonly titleDisplay = inject(TitleDisplay);
   readonly #dialog = inject(MatDialog);
   readonly #router = inject(Router);
+
+  protected readonly calendarYears = computed<CalendarYear[]>(() => {
+    const budgetsGroupedByYears = this.state.allMonthsGroupedByYears();
+    return Array.from(budgetsGroupedByYears.entries()).map(([year, budgets]) =>
+      this.#mapToCalendarYear(year, budgets),
+    );
+  });
 
   // Calendar-specific signals
   protected readonly currentDate = signal({
@@ -122,15 +136,9 @@ export default class OtherMonths implements OnInit {
     this.state.refreshData();
   }
 
-  getCalendarMonths(year: number): CalendarMonth[] {
-    const budgets = this.state.monthsData.value() || [];
-    const yearBudgets = budgets.filter((b) => b.year === year);
-    return this.#mapBudgetsToCalendar(yearBudgets, year);
-  }
-
   onMonthClick(month: CalendarMonth): void {
-    if (month.hasContent && month.metadata?.['budgetId']) {
-      this.navigateToDetails(month.metadata['budgetId'] as string);
+    if (month.hasContent && month.id) {
+      this.navigateToDetails(month.id);
     }
   }
 
@@ -157,7 +165,7 @@ export default class OtherMonths implements OnInit {
   }
 
   onTabChange(selectedIndex: number): void {
-    const availableYears = this.state.availableYears();
+    const availableYears = this.state.plannedYears();
     if (selectedIndex >= 0 && selectedIndex < availableYears.length) {
       this.state.setSelectedYear(availableYears[selectedIndex]);
     }
@@ -185,50 +193,49 @@ export default class OtherMonths implements OnInit {
     this.#router.navigate([ROUTES.APP, ROUTES.BUDGET, budgetId]);
   }
 
-  #mapBudgetsToCalendar(
-    budgets: MonthInfo[],
-    targetYear?: number,
-  ): CalendarMonth[] {
-    const monthNames = [
-      'janvier',
-      'février',
-      'mars',
-      'avril',
-      'mai',
-      'juin',
-      'juillet',
-      'août',
-      'septembre',
-      'octobre',
-      'novembre',
-      'décembre',
-    ];
+  #formatCalendarMonthDisplayName(month: number, year: number): string {
+    return format(new Date(year, month - 1), 'MMMM yyyy', { locale: frCH });
+  }
 
-    const year =
-      targetYear || this.state.selectedYear() || new Date().getFullYear();
-    const allMonths: CalendarMonth[] = [];
+  #mapToCalendarYear(
+    year: number,
+    budgets: (Budget | BudgetPlaceholder)[],
+  ): CalendarYear {
+    return {
+      year,
+      months: budgets.map((budget) => this.#mapToCalendarMonth(budget)),
+    };
+  }
 
-    for (let month = 1; month <= 12; month++) {
-      const budget = budgets.find((b) => b.month === month && b.year === year);
-
-      allMonths.push({
-        id: budget?.budgetId || `empty-${year}-${month}`,
-        month,
-        year,
-        displayName: `${monthNames[month - 1]} ${year}`,
-        hasContent: !!budget,
-        value: budget?.endingBalance ?? undefined,
-        status: budget?.endingBalance
-          ? budget.endingBalance > 0
-            ? 'positive'
-            : budget.endingBalance < 0
-              ? 'negative'
-              : 'neutral'
-          : undefined,
-        metadata: budget ? { budgetId: budget.budgetId } : undefined,
-      });
+  #mapToCalendarMonth(budget: Budget | BudgetPlaceholder): CalendarMonth {
+    const isPlannedBudget = (
+      budget: Budget | BudgetPlaceholder,
+    ): budget is Budget => {
+      return (
+        budget != null &&
+        typeof budget === 'object' &&
+        'id' in budget &&
+        typeof budget.id === 'string' &&
+        budget.id.trim().length > 0
+      );
+    };
+    if (isPlannedBudget(budget)) {
+      return {
+        id: budget.id,
+        month: budget.month,
+        year: budget.year,
+        hasContent: true,
+        value: budget.endingBalance ?? undefined,
+        displayName: this.#formatCalendarMonthDisplayName(
+          budget.month,
+          budget.year,
+        ),
+      };
     }
-
-    return allMonths;
+    return createEmptyCalendarMonth(
+      budget.month,
+      budget.year,
+      this.#formatCalendarMonthDisplayName(budget.month, budget.year),
+    );
   }
 }
