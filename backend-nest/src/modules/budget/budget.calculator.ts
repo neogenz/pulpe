@@ -5,8 +5,7 @@ import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { handleServiceError } from '@common/utils/error-handler';
 import { ZodError } from 'zod';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import type { BudgetLine } from '@pulpe/shared';
-import { BUDGET_CONSTANTS, type MonthRange } from './budget.constants';
+import { BudgetFormulas } from '@pulpe/shared';
 import { BudgetRepository } from './budget.repository';
 import { validateBudgetWithRolloverResponse } from './schemas/rpc-responses.schema';
 
@@ -23,6 +22,7 @@ export class BudgetCalculator {
 
   /**
    * Calculates the ending balance for a specific month
+   * Uses shared BudgetFormulas for consistency
    * @param budgetId - The budget ID
    * @param supabase - Authenticated Supabase client
    * @returns The calculated ending balance
@@ -37,20 +37,16 @@ export class BudgetCalculator {
       { selectFields: 'kind, amount' },
     );
 
-    const allMonthlyItems = [...budgetLines, ...transactions];
-    const { totalMonthlyIncome, totalMonthlyExpenses } = allMonthlyItems.reduce(
-      (acc, item) => {
-        if (item.kind === 'income') {
-          acc.totalMonthlyIncome += item.amount;
-        } else {
-          acc.totalMonthlyExpenses += item.amount;
-        }
-        return acc;
-      },
-      { totalMonthlyIncome: 0, totalMonthlyExpenses: 0 },
+    const totalIncome = BudgetFormulas.calculateTotalIncome(
+      budgetLines,
+      transactions,
+    );
+    const totalExpenses = BudgetFormulas.calculateTotalExpenses(
+      budgetLines,
+      transactions,
     );
 
-    return totalMonthlyIncome - totalMonthlyExpenses;
+    return totalIncome - totalExpenses;
   }
 
   /**
@@ -148,49 +144,6 @@ export class BudgetCalculator {
         entityType: 'budget',
       },
     );
-  }
-
-  /**
-   * Builds a rollover line from pre-calculated data
-   * @param budget - Current budget
-   * @param rolloverAmount - Rollover amount (already calculated by RPC)
-   * @param previousBudgetId - ID of the previous budget where rollover comes from
-   * @returns BudgetLine for rollover
-   */
-  buildRolloverLine(
-    budget: {
-      id: string;
-      month: number;
-      year: number;
-      createdAt: string;
-      updatedAt: string;
-    },
-    rolloverAmount: number,
-    previousBudgetId: string | null,
-  ): BudgetLine {
-    const { month: prevMonth, year: prevYear } =
-      budget.month === 1
-        ? { month: 12, year: budget.year - 1 }
-        : { month: budget.month - 1, year: budget.year };
-
-    return {
-      id: BUDGET_CONSTANTS.ROLLOVER.formatId(budget.id),
-      budgetId: budget.id,
-      templateLineId: null,
-      savingsGoalId: null,
-      name: BUDGET_CONSTANTS.ROLLOVER.formatName(
-        prevMonth as MonthRange,
-        prevYear,
-      ),
-      amount: Math.abs(rolloverAmount),
-      kind: rolloverAmount > 0 ? 'income' : 'expense',
-      recurrence: 'one_off',
-      isManuallyAdjusted: false,
-      isRollover: true,
-      rolloverSourceBudgetId: previousBudgetId,
-      createdAt: budget.createdAt,
-      updatedAt: budget.updatedAt,
-    };
   }
 
   /**

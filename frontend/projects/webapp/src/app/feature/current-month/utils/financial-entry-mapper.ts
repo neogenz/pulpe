@@ -1,3 +1,4 @@
+import { isRolloverLine } from '@core/rollover/rollover-types';
 import type { BudgetLine, Transaction } from '@pulpe/shared';
 import type { FinancialEntryModel } from '../models/financial-entry.model';
 
@@ -10,6 +11,9 @@ export function mapBudgetLineToFinancialEntry(
   budgetLine: BudgetLine,
   budgetId: string,
 ): FinancialEntryModel {
+  // Check if this is a virtual rollover line
+  const isRollover = isRolloverLine(budgetLine);
+
   return {
     id: budgetLine.id,
     budgetId: budgetId,
@@ -20,7 +24,9 @@ export function mapBudgetLineToFinancialEntry(
     createdAt: budgetLine.createdAt,
     updatedAt: budgetLine.updatedAt,
     rollover: {
-      sourceBudgetId: budgetLine.rolloverSourceBudgetId ?? undefined,
+      sourceBudgetId: isRollover
+        ? budgetLine.rolloverSourceBudgetId
+        : undefined,
     },
   };
 }

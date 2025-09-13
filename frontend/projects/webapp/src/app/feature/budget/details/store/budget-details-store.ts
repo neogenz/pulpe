@@ -1,12 +1,14 @@
 import { computed, inject, Injectable, resource } from '@angular/core';
 import { BudgetApi } from '@core/budget/budget-api';
 import { Logger } from '@core/logging/logger';
+import { createRolloverLine } from '@core/rollover/rollover-types';
 import { TransactionApi } from '@core/transaction/transaction-api';
 import {
   type BudgetLine,
   type BudgetLineCreate,
   type BudgetLineUpdate,
 } from '@pulpe/shared';
+
 import { firstValueFrom } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
 import { BudgetLineApi } from '../budget-line-api/budget-line-api';
@@ -63,6 +65,35 @@ export class BudgetDetailsStore {
   readonly error = computed(
     () => this.#budgetDetailsResource.error() || this.#state.errorMessage(),
   );
+
+  /**
+   * Budget lines for display - includes virtual rollover line when applicable
+   * Similar to current-month-store pattern but for budget details page
+   */
+  readonly displayBudgetLines = computed<BudgetLine[]>(() => {
+    const details = this.budgetDetails();
+    if (!details) return [];
+
+    const lines = [...details.budgetLines];
+    const rollover = details.rollover;
+    const previousBudgetId = details.previousBudgetId;
+
+    // Add virtual rollover line for display if rollover exists
+    if (rollover !== 0 && rollover !== undefined) {
+      const rolloverLine = createRolloverLine({
+        budgetId: details.id,
+        amount: rollover,
+        month: details.month,
+        year: details.year,
+        previousBudgetId: previousBudgetId,
+      });
+
+      // Add rollover at the beginning of the list
+      lines.unshift(rolloverLine);
+    }
+
+    return lines;
+  });
 
   setBudgetId(budgetId: string): void {
     this.#state.budgetId.set(budgetId);

@@ -122,9 +122,9 @@ type EditTransactionFormData = Pick<
         ) {
           @if (store.dashboardData()?.budget) {
             <pulpe-budget-progress-bar
-              [expenses]="store.totalSpentWithoutRollover()"
-              [available]="store.totalAvailableWithRollover()"
-              [availableLimit]="store.totalAvailableWithRollover()"
+              [expenses]="store.totalExpenses()"
+              [available]="store.totalAvailable()"
+              [availableLimit]="store.totalAvailable()"
             />
             <div class="flex flex-col gap-4" data-testid="dashboard-content">
               <!--<pulpe-transaction-chip-filter
@@ -224,17 +224,17 @@ export default class CurrentMonth implements OnInit {
   #snackBar = inject(MatSnackBar);
 
   recurringFinancialItems = computed<FinancialEntryModel[]>(() => {
-    const budgetLines = this.store.budgetLines();
-    const budgetId = this.store.dashboardData()?.budget?.id;
+    const budgetLines = this.store.displayBudgetLines();
+    const budget = this.store.dashboardData()?.budget;
 
-    if (!budgetId) return [];
+    if (!budget?.id) return [];
 
     // Filter budget lines with 'fixed' or 'one_off' recurrence (Fixed Block) and map them to Transaction-like objects
     return budgetLines
       .filter(
         (line) => line.recurrence === 'fixed' || line.recurrence === 'one_off',
       )
-      .map((line) => mapBudgetLineToFinancialEntry(line, budgetId));
+      .map((line) => mapBudgetLineToFinancialEntry(line, budget.id));
   });
   oneTimeFinancialItems = computed<FinancialEntryModel[]>(() => {
     // For now, show all transactions as variable expenses

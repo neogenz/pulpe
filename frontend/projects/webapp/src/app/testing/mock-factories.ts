@@ -20,8 +20,6 @@ const defaultBudgetLine: BudgetLine = {
   kind: 'expense',
   recurrence: 'fixed',
   isManuallyAdjusted: false,
-  isRollover: false,
-  rolloverSourceBudgetId: null,
   createdAt: '2024-01-01T00:00:00Z',
   updatedAt: '2024-01-01T00:00:00Z',
 };
@@ -196,21 +194,25 @@ export function createMockTemplateLines(
 // ============================================================================
 
 /**
- * Creates a mock rollover BudgetLine
+ * Creates a mock rollover BudgetLine with isRollover property
+ * This creates a special rollover line that cannot be edited
  * @param overrides Additional properties to override
- * @returns BudgetLine configured as a rollover line
+ * @returns BudgetLine configured as a rollover line with isRollover flag
  */
 export function createMockRolloverBudgetLine(
-  overrides?: Partial<BudgetLine>,
-): BudgetLine {
-  return createMockBudgetLine({
+  overrides?: Partial<BudgetLine & { isRollover: boolean }>,
+): BudgetLine & { isRollover: true } {
+  const line = createMockBudgetLine({
     name: 'rollover_12_2024',
     kind: 'income',
     recurrence: 'one_off',
-    isRollover: true,
-    rolloverSourceBudgetId: 'previous-budget-id',
     ...overrides,
   });
+
+  return {
+    ...line,
+    isRollover: true as const,
+  };
 }
 
 /**
