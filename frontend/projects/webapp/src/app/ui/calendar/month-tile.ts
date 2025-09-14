@@ -42,12 +42,12 @@ import { type CalendarMonth } from './calendar-types';
         class="flex-1 !flex flex-col items-center justify-center pt-0 min-h-[80px] md:min-h-[80px]"
       >
         @if (month().hasContent) {
-          <div class="text-center">
-            <p class="text-label-small uppercase text-on-surface mb-1">
+          <div class="text-center space-y-1">
+            <p class="text-label-small uppercase text-on-surface">
               Disponible CHF
             </p>
             <p
-              class="text-headline-small font-semibold"
+              class="text-headline-small md:text-headline-large"
               [class.text-[var(--pulpe-financial-savings)]]="
                 valueType() === 'positive'
               "
