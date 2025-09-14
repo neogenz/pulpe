@@ -35,7 +35,7 @@ export interface TemplateDetailsDialogData {
 
     <mat-dialog-content>
       @if (data.template.description) {
-        <p class="text-body-large text-on-surface-variant mb-4">
+        <p class="mb-4">
           {{ data.template.description }}
         </p>
       }
@@ -43,41 +43,57 @@ export interface TemplateDetailsDialogData {
       @let lines = templateLines();
       @if (lines.length > 0) {
         <!-- Summary Section -->
-        <div class="flex justify-between text-label-large mb-4">
-          <span class="text-success">
-            Total revenus:
-            {{ totalIncome() | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH' }}
-          </span>
-          <span class="text-error">
-            Total dépenses:
-            {{
-              totalExpenses() | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
-            }}
-          </span>
+        <div class="flex justify-between mb-4">
+          <div class="flex flex-col">
+            <div>Revenus total:</div>
+            <div class="text-financial-income  text-label-large">
+              {{
+                totalIncome() | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
+              }}
+            </div>
+          </div>
+          <div class="flex flex-col">
+            <div>Dépenses total:</div>
+            <div class="text-financial-negative text-label-large">
+              {{
+                totalExpenses() | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
+              }}
+            </div>
+          </div>
         </div>
 
-        <mat-divider class="mb-4"></mat-divider>
+        <mat-divider></mat-divider>
 
         <!-- Lines List -->
         <mat-list>
           @for (line of lines; track line.id) {
             <mat-list-item>
-              <div class="flex flex-row justify-between items-end">
-                <div class="flex flex-col">
-                  <div class="text-body-medium font-medium">
+              <div class="flex flex-row justify-between items-end gap-4">
+                <div class="flex flex-col flex-1 min-w-0">
+                  <div class="text-body-medium font-medium truncate">
                     {{ line.name }}
                   </div>
                   @if (line.description) {
-                    <div class="text-body-small text-on-surface-variant">
+                    <div
+                      class="text-body-small text-on-surface-variant truncate"
+                    >
                       {{ line.description }}
                     </div>
                   }
                 </div>
                 <div
-                  class="text-body-large font-medium flex-shrink-0"
-                  [class.text-success]="line.kind === 'income'"
-                  [class.text-error]="line.kind === 'expense'"
-                  [class.text-primary]="line.kind === 'saving'"
+                  class="text-body-medium font-medium flex-shrink-0"
+                  [class.text-financial-savings]="line.kind === 'saving'"
+                  [class.text-financial-negative]="line.kind === 'expense'"
+                  [class]="
+                    '!text-(--pulpe-financial-' +
+                    (line.kind === 'income'
+                      ? 'income'
+                      : line.kind === 'saving'
+                        ? 'savings'
+                        : 'expense') +
+                    ')'
+                  "
                 >
                   {{ line.kind === 'income' ? '+' : '-' }}
                   {{
@@ -93,13 +109,10 @@ export interface TemplateDetailsDialogData {
         </mat-list>
 
         <!-- Net Balance -->
-        <mat-divider class="mt-4 mb-2"></mat-divider>
-        <div class="flex justify-between text-title-medium">
+        <mat-divider class="mb-2!"></mat-divider>
+        <div class="flex justify-between text-body-medium font-medium">
           <span>Solde net:</span>
-          <span
-            [class.text-success]="netBalance() >= 0"
-            [class.text-error]="netBalance() < 0"
-          >
+          <span>
             {{ netBalance() | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH' }}
           </span>
         </div>
@@ -109,7 +122,9 @@ export interface TemplateDetailsDialogData {
           class="flex flex-col items-center justify-center min-h-[200px] text-on-surface-variant"
         >
           <mat-icon class="text-display-small mb-2">inbox</mat-icon>
-          <p class="text-label-large">Aucune prévision dans ce modèle</p>
+          <p class="text-body-medium font-medium">
+            Aucune prévision dans ce modèle
+          </p>
         </div>
       }
     </mat-dialog-content>

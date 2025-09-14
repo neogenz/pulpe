@@ -81,7 +81,7 @@ const MONTH_YEAR_FORMATS = {
     { provide: MAT_DATE_FORMATS, useValue: MONTH_YEAR_FORMATS },
   ],
   template: `
-    <h2 mat-dialog-title>Nouveau budget</h2>
+    <h2 mat-dialog-title>Créer un budget</h2>
 
     <mat-dialog-content>
       <form
@@ -236,10 +236,9 @@ export class CreateBudgetDialogComponent {
       const totals = totalsMap[template.id];
       return {
         template,
-        totalIncome: totals?.totalIncome || 0,
-        totalExpenses:
-          (totals?.totalExpenses || 0) + (totals?.totalSavings || 0),
-        remainingLivingAllowance: totals?.remainingLivingAllowance || 0,
+        income: totals?.income || 0,
+        expenses: (totals?.expenses || 0) + (totals?.savings || 0), // Combine for display as per SPECS
+        netBalance: totals?.netBalance || 0,
         loading: totals?.loading || !totals,
       };
     });

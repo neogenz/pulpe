@@ -66,14 +66,14 @@ export class BudgetFinancialOverview {
   incomeData = computed<FinancialSummaryData>(() => ({
     title: 'Revenus',
     amount: this.totals().income,
-    icon: 'trending_up',
+    icon: 'arrow_upward',
     type: 'income',
   }));
 
   expenseData = computed<FinancialSummaryData>(() => ({
     title: 'Dépenses',
     amount: this.totals().expenses,
-    icon: 'trending_down',
+    icon: 'arrow_downward',
     type: 'expense',
   }));
 

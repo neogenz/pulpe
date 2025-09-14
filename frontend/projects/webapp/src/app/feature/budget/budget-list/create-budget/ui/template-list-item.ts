@@ -106,14 +106,14 @@ import { type TemplateViewModel } from './template-view-model';
             <!-- Income -->
             <mat-list-item class="h-auto min-h-0 py-2 !px-0">
               <mat-icon matListItemIcon class="icon-filled !mr-4"
-                >trending_up</mat-icon
+                >arrow_upward</mat-icon
               >
               <span matListItemTitle class="text-body-medium"
                 >Revenus mensuels</span
               >
-              <span matListItemMeta class="text-body-medium font-medium">
+              <span matListItemMeta class="text-body-medium! font-medium!">
                 {{
-                  templateViewModel().totalIncome
+                  templateViewModel().income
                     | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
                 }}
               </span>
@@ -124,14 +124,14 @@ import { type TemplateViewModel } from './template-view-model';
             <!-- Expenses -->
             <mat-list-item class="h-auto min-h-0 py-2 !px-0">
               <mat-icon matListItemIcon class="icon-filled !mr-4"
-                >trending_down</mat-icon
+                >arrow_downward</mat-icon
               >
               <span matListItemTitle class="text-body-medium"
                 >Dépenses prévues</span
               >
-              <span matListItemMeta class="text-body-medium font-medium">
+              <span matListItemMeta class="text-body-medium! font-medium!">
                 {{
-                  templateViewModel().totalExpenses
+                  templateViewModel().expenses
                     | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
                 }}
               </span>
@@ -142,24 +142,12 @@ import { type TemplateViewModel } from './template-view-model';
             <!-- Living allowance -->
             <mat-list-item class="h-auto min-h-0 py-2 !px-0">
               <mat-icon matListItemIcon class="icon-filled !mr-4"
-                >account_balance_wallet</mat-icon
+                >wallet</mat-icon
               >
               <span matListItemTitle class="text-body-medium">Disponible</span>
-              <span
-                matListItemMeta
-                class="text-body-medium font-medium"
-                [class.text-primary]="
-                  templateViewModel().remainingLivingAllowance > 0
-                "
-                [class.text-warning]="
-                  templateViewModel().remainingLivingAllowance === 0
-                "
-                [class.text-error]="
-                  templateViewModel().remainingLivingAllowance < 0
-                "
-              >
+              <span matListItemMeta class="text-body-medium! font-medium!">
                 {{
-                  templateViewModel().remainingLivingAllowance
+                  templateViewModel().netBalance
                     | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
                 }}
               </span>

@@ -2,10 +2,10 @@ import { Injectable } from '@angular/core';
 import { type TemplateLine } from '@pulpe/shared';
 
 export interface TemplateTotals {
-  totalIncome: number;
-  totalExpenses: number;
-  totalSavings: number;
-  remainingLivingAllowance: number;
+  income: number;
+  expenses: number; // Expenses only (not including savings)
+  savings: number; // Kept separate for detailed display
+  netBalance: number; // income - (expenses + savings) as per SPECS
   loading: boolean;
 }
 
@@ -21,20 +21,16 @@ export class TemplateTotalsCalculator {
    * Calculate totals for a single template from its lines
    */
   calculateTemplateTotals(lines: TemplateLine[]): TemplateTotals {
-    const totalIncome = this.#calculateIncome(lines);
-    const totalExpenses = this.#calculateExpenses(lines);
-    const totalSavings = this.#calculateSavings(lines);
-    const remainingLivingAllowance = this.#calculateRemainingAllowance(
-      totalIncome,
-      totalExpenses,
-      totalSavings,
-    );
+    const income = this.#calculateIncome(lines);
+    const expenses = this.#calculateExpenses(lines);
+    const savings = this.#calculateSavings(lines);
+    const netBalance = this.#calculateNetBalance(income, expenses, savings);
 
     return {
-      totalIncome,
-      totalExpenses,
-      totalSavings,
-      remainingLivingAllowance,
+      income,
+      expenses,
+      savings,
+      netBalance,
       loading: false,
     };
   }
@@ -60,10 +56,10 @@ export class TemplateTotalsCalculator {
    */
   createDefaultTotals(loading: boolean): TemplateTotals {
     return {
-      totalIncome: 0,
-      totalExpenses: 0,
-      totalSavings: 0,
-      remainingLivingAllowance: 0,
+      income: 0,
+      expenses: 0,
+      savings: 0,
+      netBalance: 0,
       loading,
     };
   }
@@ -98,11 +94,11 @@ export class TemplateTotalsCalculator {
   }
 
   /**
-   * Calculate remaining living allowance
+   * Calculate net balance as per SPECS
    * Formula: Income - (Expenses + Savings)
-   * This represents the amount available for variable spending
+   * This represents the net balance after all planned outflows
    */
-  #calculateRemainingAllowance(
+  #calculateNetBalance(
     income: number,
     expenses: number,
     savings: number,
