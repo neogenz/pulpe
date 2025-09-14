@@ -39,7 +39,7 @@ import { CurrencyPipe } from '@angular/common';
             [attr.data-type]="totalAmount() >= 0 ? 'positive' : 'negative'"
             data-testid="month-card-amount"
           >
-            {{ totalAmount() | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH' }}
+            {{ totalAmount() | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH' }}
           </p>
         </div>
       </mat-card-content>

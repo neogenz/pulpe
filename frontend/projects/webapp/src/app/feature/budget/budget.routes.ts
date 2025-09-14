@@ -1,7 +1,7 @@
 import { type Routes } from '@angular/router';
-import { BudgetLineApi } from './details/budget-line-api/budget-line-api';
-import { BudgetTableDataProvider } from './details/budget-table/budget-table-data-provider';
-import { BudgetState } from './list/budget-state';
+import { BudgetLineApi } from './budget-details/budget-line-api/budget-line-api';
+import { BudgetTableDataProvider } from './budget-details/budget-table/budget-table-data-provider';
+import { BudgetState } from './budget-list/budget-state';
 import { PAGE_TITLES } from '@core/routing';
 
 export const budgetRoutes: Routes = [
@@ -12,14 +12,14 @@ export const budgetRoutes: Routes = [
       {
         path: '',
         title: PAGE_TITLES.BUDGET,
-        loadComponent: () => import('./list/budget-list-page'),
+        loadComponent: () => import('./budget-list/budget-list-page'),
       },
       {
         path: ':id',
         title: PAGE_TITLES.BUDGET_DETAILS,
         data: { breadcrumb: 'Détail du budget', icon: 'visibility' },
         providers: [BudgetLineApi, BudgetTableDataProvider],
-        loadComponent: () => import('./details/budget-details-page'),
+        loadComponent: () => import('./budget-details/budget-details-page'),
       },
     ],
   },

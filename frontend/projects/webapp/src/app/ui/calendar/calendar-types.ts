@@ -40,24 +40,6 @@ export interface CalendarYear {
   };
 }
 
-export interface CalendarConfig {
-  /** Whether to show empty months */
-  showEmptyMonths?: boolean;
-
-  /** Whether to allow interaction with empty months */
-  allowEmptyMonthClick?: boolean;
-
-  /** Custom CSS classes for the calendar container */
-  containerClass?: string;
-
-  /** Number of columns for different breakpoints */
-  columns?: {
-    mobile?: number; // default: 2
-    tablet?: number; // default: 3
-    desktop?: number; // default: 4
-  };
-}
-
 export function createEmptyCalendarMonth(
   month: number,
   year: number,

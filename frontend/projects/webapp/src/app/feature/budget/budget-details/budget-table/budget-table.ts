@@ -255,7 +255,7 @@ import { type TransactionViewModel } from '../models/transaction-view-model';
               >
                 {{
                   line.metadata.cumulativeBalance
-                    | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH'
+                    | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
                 }}
               </span>
             </td>

@@ -4,8 +4,4 @@
 
 export { YearCalendar } from './year-calendar';
 export { MonthTile } from './month-tile';
-export type {
-  CalendarMonth,
-  CalendarYear,
-  CalendarConfig,
-} from './calendar-types';
+export type { CalendarMonth, CalendarYear } from './calendar-types';
