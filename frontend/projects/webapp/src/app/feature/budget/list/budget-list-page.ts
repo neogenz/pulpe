@@ -7,26 +7,19 @@ import {
   signal,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { BaseLoading } from '@ui/loading';
-import { MonthsError } from '../ui/budget-error';
-import { type BudgetPlaceholder, BudgetState } from './budget-state';
-import { MatTabsModule } from '@angular/material/tabs';
-import { TitleDisplay } from '@core/routing';
-import { CreateBudgetDialogComponent } from './create-budget/budget-creation-dialog';
 import { MatDialog } from '@angular/material/dialog';
-import { firstValueFrom } from 'rxjs';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTabsModule } from '@angular/material/tabs';
 import { Router } from '@angular/router';
-import { ROUTES } from '@core/routing';
-import { YearCalendar } from '@ui/calendar';
-import { type CalendarMonth } from '@ui/calendar';
-import { type Budget } from '@pulpe/shared';
-import {
-  type CalendarYear,
-  createEmptyCalendarMonth,
-} from '@ui/calendar/calendar-types';
-import { format } from 'date-fns';
-import { frCH } from 'date-fns/locale';
+import { ROUTES, TitleDisplay } from '@core/routing';
+import { type CalendarMonth, YearCalendar } from '@ui/calendar';
+import { type CalendarYear } from '@ui/calendar/calendar-types';
+import { BaseLoading } from '@ui/loading';
+import { firstValueFrom } from 'rxjs';
+import { MonthsError } from '../ui/budget-error';
+import { mapToCalendarYear } from './budget-list-mapper/budget-list.mapper';
+import { BudgetState } from './budget-state';
+import { CreateBudgetDialogComponent } from './create-budget/budget-creation-dialog';
 
 @Component({
   selector: 'pulpe-budget-list',
@@ -116,7 +109,7 @@ export default class BudgetListPage implements OnInit {
   protected readonly calendarYears = computed<CalendarYear[]>(() => {
     const budgetsGroupedByYears = this.state.allMonthsGroupedByYears();
     return Array.from(budgetsGroupedByYears.entries()).map(([year, budgets]) =>
-      this.#mapToCalendarYear(year, budgets),
+      mapToCalendarYear(year, budgets),
     );
   });
 
@@ -191,51 +184,5 @@ export default class BudgetListPage implements OnInit {
 
   navigateToDetails(budgetId: string): void {
     this.#router.navigate([ROUTES.APP, ROUTES.BUDGET, budgetId]);
-  }
-
-  #formatCalendarMonthDisplayName(month: number, year: number): string {
-    return format(new Date(year, month - 1), 'MMMM yyyy', { locale: frCH });
-  }
-
-  #mapToCalendarYear(
-    year: number,
-    budgets: (Budget | BudgetPlaceholder)[],
-  ): CalendarYear {
-    return {
-      year,
-      months: budgets.map((budget) => this.#mapToCalendarMonth(budget)),
-    };
-  }
-
-  #mapToCalendarMonth(budget: Budget | BudgetPlaceholder): CalendarMonth {
-    const isPlannedBudget = (
-      budget: Budget | BudgetPlaceholder,
-    ): budget is Budget => {
-      return (
-        budget != null &&
-        typeof budget === 'object' &&
-        'id' in budget &&
-        typeof budget.id === 'string' &&
-        budget.id.trim().length > 0
-      );
-    };
-    if (isPlannedBudget(budget)) {
-      return {
-        id: budget.id,
-        month: budget.month,
-        year: budget.year,
-        hasContent: true,
-        value: budget.endingBalance ?? undefined,
-        displayName: this.#formatCalendarMonthDisplayName(
-          budget.month,
-          budget.year,
-        ),
-      };
-    }
-    return createEmptyCalendarMonth(
-      budget.month,
-      budget.year,
-      this.#formatCalendarMonthDisplayName(budget.month, budget.year),
-    );
   }
 }
