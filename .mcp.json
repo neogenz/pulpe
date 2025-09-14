@@ -14,7 +14,7 @@
     },
     "angular-cli": {
       "command": "npx",
-      "args": ["@angular/cli", "mcp"]
+      "args": ["-y", "@angular/cli", "mcp"]
     },
     "supabase": {
       "command": "npx",
