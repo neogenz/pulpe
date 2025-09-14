@@ -31,7 +31,7 @@ export interface TransactionFilters {
         [selected]="filters().transactionTypes.includes('income')"
         (selectionChange)="onTransactionTypeToggle('income', $event)"
       >
-        <mat-icon matChipAvatar>trending_up</mat-icon>
+        <mat-icon matChipAvatar>arrow_upward</mat-icon>
         {{ 'income' | transactionLabel }}s
       </mat-chip-option>
       <mat-chip-option

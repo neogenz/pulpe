@@ -14,11 +14,11 @@ describe('TransactionIconPipe', () => {
   });
 
   it('should return correct icon for income', () => {
-    expect(pipe.transform('income')).toBe('trending_up');
+    expect(pipe.transform('income')).toBe('arrow_upward');
   });
 
   it('should return correct icon for expense', () => {
-    expect(pipe.transform('expense')).toBe('trending_down');
+    expect(pipe.transform('expense')).toBe('arrow_downward');
   });
 
   it('should return correct icon for saving', () => {

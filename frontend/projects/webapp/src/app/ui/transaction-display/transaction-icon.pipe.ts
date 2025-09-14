@@ -8,8 +8,8 @@ import type { TransactionKind } from '@pulpe/shared';
 export class TransactionIconPipe implements PipeTransform {
   transform(kind: TransactionKind): string {
     const icons: Record<TransactionKind, string> = {
-      income: 'trending_up',
-      expense: 'trending_down',
+      income: 'arrow_upward',
+      expense: 'arrow_downward',
       saving: 'savings',
     };
     return icons[kind];

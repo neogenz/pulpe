@@ -154,7 +154,7 @@ describe('TemplateDetail', () => {
       const incomeData = {
         title: 'Revenus',
         amount: totals.income,
-        icon: 'trending_up',
+        icon: 'arrow_upward',
         type: 'income' as const,
         isClickable: false,
       };
@@ -162,7 +162,7 @@ describe('TemplateDetail', () => {
       expect(incomeData).toEqual({
         title: 'Revenus',
         amount: 5500,
-        icon: 'trending_up',
+        icon: 'arrow_upward',
         type: 'income',
         isClickable: false,
       });
@@ -174,14 +174,14 @@ describe('TemplateDetail', () => {
       const expenseData = {
         title: 'Dépenses',
         amount: totals.expense,
-        icon: 'trending_down',
+        icon: 'arrow_downward',
         type: 'expense' as const,
       };
 
       expect(expenseData).toEqual({
         title: 'Dépenses',
         amount: 1800,
-        icon: 'trending_down',
+        icon: 'arrow_downward',
         type: 'expense',
       });
     });
