@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { mapToCalendarYear } from './budget-list.mapper';
 import type { Budget } from '@pulpe/shared';
-import type { BudgetPlaceholder } from '../budget-state';
+import type { BudgetPlaceholder } from '../budget-list-store';
 
 describe('mapToCalendarYear', () => {
   it('should map empty budgets array to calendar year', () => {

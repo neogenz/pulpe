@@ -93,6 +93,25 @@ export class PostHogService {
   }
 
   /**
+   * Enable full tracking after user has accepted terms
+   * Called after CGU acceptance during registration
+   */
+  enableTracking(): void {
+    if (!this.#isInitialized()) {
+      this.#logger.warn('Cannot enable tracking - PostHog not initialized');
+      return;
+    }
+
+    try {
+      posthog.opt_in_capturing();
+      posthog.capture('$pageview');
+      this.#logger.info('PostHog tracking enabled after terms acceptance');
+    } catch (error) {
+      this.#logger.error('Failed to enable PostHog tracking', error);
+    }
+  }
+
+  /**
    * Capture an event with optional properties
    */
   capture(event: string, properties?: Record<string, unknown>): void {
@@ -197,9 +216,12 @@ export class PostHogService {
         api_host: config.host,
         debug: config.debug,
 
-        // Page tracking - use history change for SPA
-        capture_pageview: 'history_change', // Better for Angular SPA
-        capture_pageleave: config.capturePageleaves,
+        // Page tracking - DISABLED until user accepts terms
+        capture_pageview: false, // Will be enabled after CGU acceptance
+        capture_pageleave: false, // Will be enabled after CGU acceptance
+
+        // Start with tracking disabled by default
+        opt_out_capturing_by_default: true,
 
         // Session recording with financial data masking
         session_recording: {
