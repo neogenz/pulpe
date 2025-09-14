@@ -31,7 +31,7 @@ interface BudgetUsage {
 
 @Component({
   selector: 'pulpe-template-usage-dialog',
-  standalone: true,
+
   imports: [
     CommonModule,
     MatDialogModule,

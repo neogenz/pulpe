@@ -19,7 +19,7 @@ export interface TemplateDetailsDialogData {
 
 @Component({
   selector: 'pulpe-template-details-dialog',
-  standalone: true,
+
   imports: [
     CurrencyPipe,
     MatDialogModule,

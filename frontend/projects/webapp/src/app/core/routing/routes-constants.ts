@@ -6,6 +6,7 @@ export const ROUTES = {
   CURRENT_MONTH: 'current-month',
   BUDGET: 'budget',
   BUDGET_TEMPLATES: 'budget-templates',
+  LEGAL: 'legal',
 
   // Onboarding step paths
   ONBOARDING_WELCOME: 'welcome',
@@ -17,6 +18,10 @@ export const ROUTES = {
   ONBOARDING_TRANSPORT: 'transport',
   ONBOARDING_LEASING_CREDIT: 'leasing-credit',
   ONBOARDING_REGISTRATION: 'registration',
+
+  // Legal paths
+  LEGAL_TERMS: 'cgu',
+  LEGAL_PRIVACY: 'confidentialite',
 } as const;
 
 // Titres de pages pour la TitleStrategy
@@ -42,4 +47,7 @@ export const PAGE_TITLES = {
   NEW_TEMPLATE: 'Nouveau modèle',
   TEMPLATE_DETAIL: 'Détail du modèle',
   TEMPLATE_DETAIL_DYNAMIC: 'Modèle {{templateId}}',
+  LEGAL: 'Mentions légales',
+  LEGAL_TERMS: "Conditions Générales d'Utilisation",
+  LEGAL_PRIVACY: 'Politique de Confidentialité',
 } as const;

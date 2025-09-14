@@ -23,6 +23,11 @@ export const routes: Routes = [
     loadChildren: () => import('./feature/onboarding/onboarding.routes'),
   },
   {
+    path: ROUTES.LEGAL,
+    title: PAGE_TITLES.LEGAL,
+    loadChildren: () => import('./feature/legal/legal.routes'),
+  },
+  {
     path: ROUTES.APP,
     title: PAGE_TITLES.DASHBOARD,
     canActivate: [authGuard],
