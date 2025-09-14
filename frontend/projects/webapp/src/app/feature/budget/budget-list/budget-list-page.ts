@@ -108,10 +108,31 @@ export default class BudgetListPage implements OnInit {
   readonly #breakpointObserver = inject(BreakpointObserver);
 
   protected readonly calendarYears = computed<CalendarYear[]>(() => {
+    const currentYear = new Date().getFullYear();
+    const yearsToDisplay = 8;
     const budgetsGroupedByYears = this.state.allMonthsGroupedByYears();
-    return Array.from(budgetsGroupedByYears.entries()).map(([year, budgets]) =>
-      mapToCalendarYear(year, budgets),
+
+    // Générer la plage d'années (année courante + 7 années suivantes)
+    const years = Array.from(
+      { length: yearsToDisplay },
+      (_, i) => currentYear + i,
     );
+
+    return years.map((year) => {
+      // Récupérer les budgets existants ou créer des placeholders
+      const existingBudgets = budgetsGroupedByYears.get(year);
+
+      if (existingBudgets) {
+        return mapToCalendarYear(year, existingBudgets);
+      } else {
+        // Créer 12 mois vides pour l'année
+        const emptyMonths = Array.from({ length: 12 }, (_, monthIndex) => ({
+          month: monthIndex + 1,
+          year,
+        }));
+        return mapToCalendarYear(year, emptyMonths);
+      }
+    });
   });
 
   // Calendar-specific signals
