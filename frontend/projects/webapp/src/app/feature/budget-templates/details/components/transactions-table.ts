@@ -27,7 +27,7 @@ export interface FinancialEntry {
  */
 @Component({
   selector: 'pulpe-transactions-table',
-  standalone: true,
+
   imports: [MatTableModule, CurrencyPipe],
   template: `
     <div

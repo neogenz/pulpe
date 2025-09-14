@@ -6,7 +6,6 @@ import { ROUTES } from '@core/routing';
 
 @Component({
   selector: 'pulpe-terms-of-service',
-  standalone: true,
   imports: [MatButtonModule, MatIconModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `

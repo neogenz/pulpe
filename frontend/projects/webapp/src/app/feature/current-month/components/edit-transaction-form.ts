@@ -46,7 +46,7 @@ type EditTransactionFormData = Pick<
     ReactiveFormsModule,
     TransactionLabelPipe,
   ],
-  standalone: true,
+
   template: `
     <form
       [formGroup]="transactionForm"

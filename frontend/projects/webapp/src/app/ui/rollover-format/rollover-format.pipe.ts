@@ -4,7 +4,6 @@ import { frCH } from 'date-fns/locale';
 
 @Pipe({
   name: 'rolloverFormat',
-  standalone: true,
 })
 export class RolloverFormatPipe implements PipeTransform {
   readonly #ROLLOVER_PATTERN = /rollover_(\d+)_(\d+)/;

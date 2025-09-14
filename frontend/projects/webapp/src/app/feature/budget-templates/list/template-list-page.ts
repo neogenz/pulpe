@@ -19,7 +19,7 @@ import { getDeleteConfirmationConfig } from '../delete/template-delete-dialog';
 
 @Component({
   selector: 'pulpe-template-list-page',
-  standalone: true,
+
   imports: [
     RouterLink,
     MatButtonModule,

@@ -42,7 +42,7 @@ import {
 
 @Component({
   selector: 'pulpe-template-detail',
-  standalone: true,
+
   imports: [
     CommonModule,
     CurrencyPipe,

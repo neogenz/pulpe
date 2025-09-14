@@ -26,7 +26,6 @@ import { environment } from '../../environments/environment';
 @Component({
   selector: 'pulpe-navigation-menu',
   template: '<div>Mock Navigation Menu</div>',
-  standalone: true,
 })
 class MockNavigationMenuComponent {
   @Output() navItemClick = new Subject<Event>();
@@ -36,7 +35,6 @@ class MockNavigationMenuComponent {
 @Component({
   selector: 'pulpe-breadcrumb',
   template: '<div>Mock Breadcrumb</div>',
-  standalone: true,
 })
 class MockPulpeBreadcrumbComponent {
   @Input() items: unknown[] = [];
