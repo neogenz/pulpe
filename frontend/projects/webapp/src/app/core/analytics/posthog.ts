@@ -197,8 +197,8 @@ export class PostHogService {
         api_host: config.host,
         debug: config.debug,
 
-        // Page tracking
-        capture_pageview: false, // We'll handle this manually for SPA routing
+        // Page tracking - use history change for SPA
+        capture_pageview: 'history_change', // Better for Angular SPA
         capture_pageleave: config.capturePageleaves,
 
         // Session recording with financial data masking
