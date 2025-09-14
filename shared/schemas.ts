@@ -76,6 +76,10 @@ export const budgetSchema = z.object({
   // rollover : CALCULÉ par le backend, pas persisté en base
   // Report du mois précédent selon formule SPECS rollover_M = ending_balance_M-1
   rollover: z.number().optional(),
+  // remaining : CALCULÉ par le backend pour la liste des budgets
+  // Formule: remaining = (totalIncome + rollover) - totalExpenses
+  // Correspond au "Disponible CHF" de la barre de progression
+  remaining: z.number().optional(),
   // previousBudgetId : Budget source du rollover pour traçabilité
   previousBudgetId: z.string().uuid().nullable().optional(),
   createdAt: z.string().datetime(),

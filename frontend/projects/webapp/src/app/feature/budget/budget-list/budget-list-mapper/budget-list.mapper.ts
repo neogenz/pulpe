@@ -40,7 +40,8 @@ function mapToCalendarMonth(budget: Budget | BudgetPlaceholder): CalendarMonth {
       month: budget.month,
       year: budget.year,
       hasContent: true,
-      value: budget.endingBalance ?? undefined,
+      // Display value prioritizes remaining amount, fallback to endingBalance
+      value: budget.remaining ?? budget.endingBalance ?? undefined,
       displayName: formatCalendarMonthDisplayName(budget.month, budget.year),
     };
   }

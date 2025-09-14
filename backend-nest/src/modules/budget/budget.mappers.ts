@@ -8,8 +8,12 @@ import { Tables, TablesInsert } from '@/types/database.types';
 /**
  * Transform database row (snake_case) to API entity (camelCase)
  */
-export function toApi(budgetDb: Tables<'monthly_budget'>): Budget {
-  return {
+export function toApi(
+  budgetDb:
+    | Tables<'monthly_budget'>
+    | (Tables<'monthly_budget'> & { remaining: number }),
+): Budget {
+  const baseEntity: Budget = {
     id: budgetDb.id,
     createdAt: budgetDb.created_at,
     updatedAt: budgetDb.updated_at,
@@ -20,12 +24,25 @@ export function toApi(budgetDb: Tables<'monthly_budget'>): Budget {
     description: budgetDb.description,
     endingBalance: budgetDb.ending_balance ?? undefined,
   };
+
+  // Add remaining if present in enriched budget
+  if ('remaining' in budgetDb) {
+    baseEntity.remaining = budgetDb.remaining;
+  }
+
+  return baseEntity;
 }
 
 /**
  * Transforme plusieurs entités DB vers modèles API
+ * Fonctionne avec des budgets enrichis ou normaux
  */
-export function toApiList(budgetsDb: Tables<'monthly_budget'>[]): Budget[] {
+export function toApiList(
+  budgetsDb: (
+    | Tables<'monthly_budget'>
+    | (Tables<'monthly_budget'> & { remaining: number })
+  )[],
+): Budget[] {
   return budgetsDb.map((budgetDb) => toApi(budgetDb));
 }
 

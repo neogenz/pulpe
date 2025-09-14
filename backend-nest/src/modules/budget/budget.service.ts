@@ -67,7 +67,13 @@ export class BudgetService {
         );
       }
 
-      const apiData = budgetMappers.toApiList(budgets || []);
+      // Enrichir chaque budget avec le calcul du 'remaining'
+      const enrichedBudgets = await this.enrichBudgetsWithRemaining(
+        budgets || [],
+        supabase,
+      );
+
+      const apiData = budgetMappers.toApiList(enrichedBudgets);
 
       return {
         success: true as const,
@@ -559,5 +565,63 @@ export class BudgetService {
       }
       throw error;
     }
+  }
+
+  /**
+   * Enrichit chaque budget avec le calcul du 'remaining'
+   * Calcule remaining = endingBalance + rollover depuis les données stockées
+   */
+  private async enrichBudgetsWithRemaining(
+    budgets: Tables<'monthly_budget'>[],
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<(Tables<'monthly_budget'> & { remaining: number })[]> {
+    const enrichedBudgets = await Promise.all(
+      budgets.map(async (budget) => {
+        try {
+          // Calculer le remaining pour ce budget
+          const remaining = await this.calculateRemainingForBudget(
+            budget,
+            supabase,
+          );
+
+          return {
+            ...budget,
+            remaining,
+          };
+        } catch (error) {
+          this.logger.warn(
+            {
+              budgetId: budget.id,
+              month: budget.month,
+              year: budget.year,
+              error: error instanceof Error ? error.message : String(error),
+              operation: 'enrichBudgetsWithRemaining',
+            },
+            'Failed to calculate remaining for budget, using fallback',
+          );
+
+          // Fallback: utiliser endingBalance ou 0 si pas disponible
+          return {
+            ...budget,
+            remaining: budget.ending_balance ?? 0,
+          };
+        }
+      }),
+    );
+
+    return enrichedBudgets;
+  }
+
+  /**
+   * Calcule le 'remaining' pour un budget spécifique
+   * Formule simple: remaining = endingBalance + rollover
+   */
+  private async calculateRemainingForBudget(
+    budget: Tables<'monthly_budget'>,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<number> {
+    const rolloverData = await this.calculator.getRollover(budget.id, supabase);
+    const endingBalanceStored = budget.ending_balance ?? 0;
+    return endingBalanceStored + rolloverData.rollover;
   }
 }
