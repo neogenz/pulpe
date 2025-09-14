@@ -41,7 +41,7 @@ const SNACKBAR_CONFIG = {
 
 @Component({
   selector: 'pulpe-create-template-page',
-  standalone: true,
+
   imports: [
     MatButtonModule,
     MatIconModule,

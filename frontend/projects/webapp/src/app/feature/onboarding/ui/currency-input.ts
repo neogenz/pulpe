@@ -13,7 +13,7 @@ import { MatInputModule } from '@angular/material/input';
 
 @Component({
   selector: 'pulpe-onboarding-currency-input',
-  standalone: true,
+
   imports: [FormsModule, MatFormFieldModule, MatInputModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `

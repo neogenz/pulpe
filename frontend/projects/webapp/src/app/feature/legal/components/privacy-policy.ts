@@ -6,7 +6,7 @@ import { ROUTES } from '@core/routing';
 
 @Component({
   selector: 'pulpe-privacy-policy',
-  standalone: true,
+
   imports: [MatButtonModule, MatIconModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `

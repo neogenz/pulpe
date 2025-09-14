@@ -24,7 +24,7 @@ export type FinancialEntryViewModel = FinancialEntryModel & {
 
 @Component({
   selector: 'pulpe-financial-entry',
-  standalone: true,
+
   imports: [
     CurrencyPipe,
     MatIconModule,

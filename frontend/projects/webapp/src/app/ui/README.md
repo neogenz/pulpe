@@ -7,6 +7,7 @@ The `ui/` directory contains a library of generic, reusable, and purely presenta
 **Purpose**: Provide a library of generic, reusable UI components that can be consumed by any part of the application.
 
 **Content**:
+
 - **Only standalone components, directives, and pipes** (template context based)
 - Generic, reusable presentational elements
 - Communication exclusively via `@Input()` and `@Output()`
@@ -17,6 +18,7 @@ The `ui/` directory contains a library of generic, reusable, and purely presenta
 ## What Belongs in UI
 
 ### ✅ Include
+
 - Generic UI components (buttons, cards, modals, avatars)
 - Reusable directives (drag, drop, focusTrap)
 - Pure pipes for display formatting
@@ -25,7 +27,8 @@ The `ui/` directory contains a library of generic, reusable, and purely presenta
 - Typography and icon components
 - Custom design system components
 
-### ❌ Exclude  
+### ❌ Exclude
+
 - Components that inject services (use `pattern/`)
 - Components bound to specific state
 - Business logic or API calls
@@ -36,6 +39,7 @@ The `ui/` directory contains a library of generic, reusable, and purely presenta
 ## Core Characteristics
 
 All UI components MUST be:
+
 - **Stateless**: Never inject services or access state directly
 - **Pure**: No side effects, only transform inputs to outputs
 - **Generic**: Reusable across multiple features, patterns, and layouts
@@ -44,6 +48,7 @@ All UI components MUST be:
 - **Decoupled**: Cannot import from `core/`, `feature/`, or `pattern/`
 
 ## Folder Structure
+
 ```
 ui/
 ├── button/
@@ -68,6 +73,7 @@ ui/
 ## Example Implementation
 
 ### Generic UI Component
+
 ```typescript
 // ui/avatar/avatar.model.ts
 export interface AvatarData {
@@ -78,8 +84,8 @@ export interface AvatarData {
 
 // ui/avatar/avatar.component.ts
 @Component({
-  selector: 'app-ui-avatar',
-  standalone: true,
+  selector: "app-ui-avatar",
+
   imports: [CommonModule],
   template: `
     <div class="avatar" [class.avatar--large]="size() === 'large'">
@@ -90,17 +96,24 @@ export interface AvatarData {
       }
     </div>
   `,
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class UiAvatarComponent {
   // Self-contained interface, not importing from core
   readonly data = input.required<AvatarData>();
-  readonly size = input<'small' | 'medium' | 'large'>('medium');
+  readonly size = input<"small" | "medium" | "large">("medium");
   readonly clicked = output<void>();
 
   protected readonly initials = computed(() => {
     const d = this.data();
-    return d.initials || d.name.split(' ').map(n => n[0]).join('').toUpperCase();
+    return (
+      d.initials ||
+      d.name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+    );
   });
 }
 ```
@@ -108,47 +121,49 @@ export class UiAvatarComponent {
 ## Usage Examples
 
 ### In Feature Component
+
 ```typescript
 // feature/users/components/user-list.component.ts
-import { UiAvatarComponent } from '@app/ui/avatar/avatar.component';
-import { UiButtonComponent } from '@app/ui/button/button.component';
+import { UiAvatarComponent } from "@app/ui/avatar/avatar.component";
+import { UiButtonComponent } from "@app/ui/button/button.component";
 
 @Component({
-  standalone: true,
   imports: [UiAvatarComponent, UiButtonComponent, CommonModule],
   template: `
     @for (user of users(); track user.id) {
       <div class="user-item">
         <!-- UI component receives data via input -->
-        <app-ui-avatar 
-          [data]="{ 
-            imageUrl: user.avatarUrl, 
-            name: user.fullName 
+        <app-ui-avatar
+          [data]="{
+            imageUrl: user.avatarUrl,
+            name: user.fullName,
           }"
-          (clicked)="selectUser(user)" />
-        
-        <app-ui-button 
-          variant="primary"
-          (clicked)="editUser(user)">
-          Edit
-        </app-ui-button>
+          (clicked)="selectUser(user)"
+        />
+
+        <app-ui-button variant="primary" (clicked)="editUser(user)"> Edit </app-ui-button>
       </div>
     }
-  `
+  `,
 })
 export class UserListComponent {
   // Feature component handles state and business logic
   private userService = inject(UserService);
   readonly users = this.userService.users;
-  
-  selectUser(user: User) { /* ... */ }
-  editUser(user: User) { /* ... */ }
+
+  selectUser(user: User) {
+    /* ... */
+  }
+  editUser(user: User) {
+    /* ... */
+  }
 }
 ```
 
 ## When to Create UI Components
 
 Create a UI component when:
+
 1. **3+ occurrences**: The same visual pattern appears in 3+ features (isolation > DRY)
 2. **Generic enough**: Component can work with any data via inputs/outputs
 3. **No state dependency**: Component doesn't need services or state management
@@ -187,6 +202,7 @@ export class UserCardComponent {
 ```
 
 **Benefits:**
+
 - Component is self-documenting
 - Describes only needed properties
 - Maintains independence from domain models
@@ -205,11 +221,13 @@ export class UserCardComponent {
 ## Dependency Rules
 
 UI components can import from:
+
 - ✅ Other `ui/` components
 - ✅ Angular framework
 - ✅ Third-party UI libraries (PrimeNG, etc.)
 
 UI components CANNOT import from:
+
 - ❌ `core/` - No services or state
 - ❌ `feature/` - Stay generic
 - ❌ `pattern/` - Patterns use UI, not vice versa

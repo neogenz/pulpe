@@ -5,6 +5,7 @@ The `layout/` directory contains eagerly-loaded application shell components tha
 ## What Belongs in Layout
 
 ### ✅ Include
+
 - Main application shell
 - Navigation components (header, sidebar, footer)
 - Layout containers
@@ -13,12 +14,14 @@ The `layout/` directory contains eagerly-loaded application shell components tha
 - Global notifications area
 
 ### ❌ Exclude
+
 - Feature-specific content (use `feature/`)
 - Reusable UI components (use `ui/` or `pattern/`)
 - Business logic (use `core/`)
 - Page content (use `feature/`)
 
 ## Folder Structure
+
 ```
 layout/
 ├── shell/
@@ -37,65 +40,56 @@ layout/
 
 ```typescript
 @Component({
-  selector: 'app-shell',
-  standalone: true,
-  imports: [
-    RouterOutlet,
-    HeaderComponent,
-    SidebarComponent,
-    FooterComponent
-  ],
+  selector: "app-shell",
+
+  imports: [RouterOutlet, HeaderComponent, SidebarComponent, FooterComponent],
   template: `
     <div class="app-shell">
-      <app-header 
-        [user]="currentUser()"
-        (logout)="onLogout()">
-      </app-header>
-      
+      <app-header [user]="currentUser()" (logout)="onLogout()"> </app-header>
+
       <div class="app-body">
-        <app-sidebar 
-          [collapsed]="sidebarCollapsed()"
-          (toggle)="toggleSidebar()">
-        </app-sidebar>
-        
+        <app-sidebar [collapsed]="sidebarCollapsed()" (toggle)="toggleSidebar()"> </app-sidebar>
+
         <main class="app-content">
           <router-outlet></router-outlet>
         </main>
       </div>
-      
+
       <app-footer></app-footer>
     </div>
   `,
-  styles: [`
-    .app-shell {
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-    }
-    
-    .app-body {
-      display: flex;
-      flex: 1;
-    }
-    
-    .app-content {
-      flex: 1;
-      padding: 1rem;
-      overflow-y: auto;
-    }
-  `],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  styles: [
+    `
+      .app-shell {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+
+      .app-body {
+        display: flex;
+        flex: 1;
+      }
+
+      .app-content {
+        flex: 1;
+        padding: 1rem;
+        overflow-y: auto;
+      }
+    `,
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ShellComponent {
   private readonly authService = inject(AuthService);
-  
+
   protected readonly currentUser = this.authService.currentUser;
   protected readonly sidebarCollapsed = signal(false);
-  
+
   protected toggleSidebar(): void {
-    this.sidebarCollapsed.update(v => !v);
+    this.sidebarCollapsed.update((v) => !v);
   }
-  
+
   protected onLogout(): void {
     this.authService.logout();
   }
@@ -105,6 +99,7 @@ export class ShellComponent {
 ## Layout Loading Strategy
 
 Layout components are eagerly loaded because:
+
 - They're needed immediately on app start
 - They provide the structural framework
 - They rarely change after initial load
@@ -115,9 +110,9 @@ Layout components are eagerly loaded because:
 ```typescript
 // app.component.ts
 @Component({
-  selector: 'app-root',
+  selector: "app-root",
   imports: [ShellComponent],
-  template: `<app-shell></app-shell>`
+  template: `<app-shell></app-shell>`,
 })
 export class AppComponent {}
 ```
@@ -138,15 +133,15 @@ export interface NavItem {
 
 export const navigationConfig: NavItem[] = [
   {
-    label: 'Dashboard',
-    route: '/dashboard',
-    icon: 'pi pi-home'
+    label: "Dashboard",
+    route: "/dashboard",
+    icon: "pi pi-home",
   },
   {
-    label: 'Profile',
-    route: '/profile',
-    icon: 'pi pi-user'
-  }
+    label: "Profile",
+    route: "/profile",
+    icon: "pi pi-user",
+  },
 ];
 ```
 
@@ -171,11 +166,11 @@ Use CSS Grid and Flexbox for responsive layouts:
         "nav main";
       grid-template-columns: 250px 1fr;
     }
-    
+
     .layout-container.mobile {
       grid-template-columns: 1fr;
     }
-    
+
     .layout-nav.collapsed {
       width: 60px;
     }

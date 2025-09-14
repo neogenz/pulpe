@@ -14,7 +14,7 @@ import { type CalendarMonth } from './calendar-types';
 
 @Component({
   selector: 'pulpe-month-tile',
-  standalone: true,
+
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [MatCardModule, MatIconModule, MatRippleModule, DecimalPipe],
   template: `

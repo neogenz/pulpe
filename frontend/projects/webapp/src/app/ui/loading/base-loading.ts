@@ -10,7 +10,7 @@ export type LoadingSize = 'small' | 'medium' | 'large';
 
 @Component({
   selector: 'pulpe-base-loading',
-  standalone: true,
+
   imports: [MatProgressSpinnerModule],
   template: `
     <div
