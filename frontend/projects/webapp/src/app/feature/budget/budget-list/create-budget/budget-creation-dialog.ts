@@ -209,22 +209,6 @@ const MONTH_YEAR_FORMATS = {
       </button>
     </mat-dialog-actions>
   `,
-  styles: `
-    :host {
-      display: block;
-    }
-
-    mat-dialog-content {
-      max-height: 80vh;
-      overflow-y: auto;
-    }
-
-    @media (max-width: 640px) {
-      mat-dialog-content {
-        max-height: 75vh;
-      }
-    }
-  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CreateBudgetDialogComponent {

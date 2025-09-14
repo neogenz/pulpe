@@ -114,7 +114,7 @@ import { type TemplateViewModel } from './template-view-model';
               <span matListItemMeta class="text-body-medium font-medium">
                 {{
                   templateViewModel().totalIncome
-                    | currency: 'CHF' : 'symbol' : '1.0-0'
+                    | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
                 }}
               </span>
             </mat-list-item>
@@ -132,7 +132,7 @@ import { type TemplateViewModel } from './template-view-model';
               <span matListItemMeta class="text-body-medium font-medium">
                 {{
                   templateViewModel().totalExpenses
-                    | currency: 'CHF' : 'symbol' : '1.0-0'
+                    | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
                 }}
               </span>
             </mat-list-item>
@@ -160,7 +160,7 @@ import { type TemplateViewModel } from './template-view-model';
               >
                 {{
                   templateViewModel().remainingLivingAllowance
-                    | currency: 'CHF' : 'symbol' : '1.0-0'
+                    | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
                 }}
               </span>
             </mat-list-item>

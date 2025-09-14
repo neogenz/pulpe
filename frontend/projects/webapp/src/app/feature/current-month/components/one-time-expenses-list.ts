@@ -39,10 +39,10 @@ export class OneTimeExpensesList {
   selectedFinancialEntries = model<string[]>([]);
   deleteFinancialEntry = output<string>();
   editFinancialEntry = output<string>();
-  readonly breakpointObserver = inject(BreakpointObserver);
+  readonly #breakpointObserver = inject(BreakpointObserver);
 
   protected readonly isHandset = toSignal(
-    this.breakpointObserver.observe(Breakpoints.Handset).pipe(
+    this.#breakpointObserver.observe(Breakpoints.Handset).pipe(
       map((result) => result.matches),
       shareReplay(),
     ),
