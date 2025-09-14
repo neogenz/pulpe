@@ -46,7 +46,7 @@ export interface TemplateDetailsDialogData {
         <div class="flex justify-between mb-4">
           <div class="flex flex-col">
             <div>Revenus total:</div>
-            <div class="text-financial-income  text-label-large">
+            <div class="text-financial-income text-label-large">
               {{
                 totalIncome() | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
               }}
@@ -85,15 +85,7 @@ export interface TemplateDetailsDialogData {
                   class="text-body-medium font-medium flex-shrink-0"
                   [class.text-financial-savings]="line.kind === 'saving'"
                   [class.text-financial-negative]="line.kind === 'expense'"
-                  [class]="
-                    '!text-(--pulpe-financial-' +
-                    (line.kind === 'income'
-                      ? 'income'
-                      : line.kind === 'saving'
-                        ? 'savings'
-                        : 'expense') +
-                    ')'
-                  "
+                  [class.text-financial-income]="line.kind === 'income'"
                 >
                   {{ line.kind === 'income' ? '+' : '-' }}
                   {{

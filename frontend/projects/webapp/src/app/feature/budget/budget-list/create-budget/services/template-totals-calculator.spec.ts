@@ -57,20 +57,20 @@ describe('TemplateTotalsCalculator', () => {
 
       const result = calculator.calculateTemplateTotals(lines);
 
-      expect(result.totalIncome).toBe(5000);
-      expect(result.totalExpenses).toBe(1500);
-      expect(result.totalSavings).toBe(500);
-      expect(result.remainingLivingAllowance).toBe(3000); // 5000 - (1500 + 500)
+      expect(result.income).toBe(5000);
+      expect(result.expenses).toBe(1500);
+      expect(result.savings).toBe(500);
+      expect(result.netBalance).toBe(3000); // 5000 - (1500 + 500)
       expect(result.loading).toBe(false);
     });
 
     it('should handle empty lines array', () => {
       const result = calculator.calculateTemplateTotals([]);
 
-      expect(result.totalIncome).toBe(0);
-      expect(result.totalExpenses).toBe(0);
-      expect(result.totalSavings).toBe(0);
-      expect(result.remainingLivingAllowance).toBe(0);
+      expect(result.income).toBe(0);
+      expect(result.expenses).toBe(0);
+      expect(result.savings).toBe(0);
+      expect(result.netBalance).toBe(0);
       expect(result.loading).toBe(false);
     });
 
@@ -102,7 +102,7 @@ describe('TemplateTotalsCalculator', () => {
 
       const result = calculator.calculateTemplateTotals(lines);
 
-      expect(result.remainingLivingAllowance).toBe(-500);
+      expect(result.netBalance).toBe(-500);
     });
   });
 
@@ -145,8 +145,8 @@ describe('TemplateTotalsCalculator', () => {
 
       const result = calculator.calculateBatchTotals(templatesWithLines);
 
-      expect(result['template1'].totalIncome).toBe(5000);
-      expect(result['template2'].totalIncome).toBe(2000);
+      expect(result['template1'].income).toBe(5000);
+      expect(result['template2'].income).toBe(2000);
     });
 
     it('should handle empty batch', () => {
@@ -160,10 +160,10 @@ describe('TemplateTotalsCalculator', () => {
     it('should create default totals with loading true', () => {
       const result = calculator.createDefaultTotals(true);
 
-      expect(result.totalIncome).toBe(0);
-      expect(result.totalExpenses).toBe(0);
-      expect(result.totalSavings).toBe(0);
-      expect(result.remainingLivingAllowance).toBe(0);
+      expect(result.income).toBe(0);
+      expect(result.expenses).toBe(0);
+      expect(result.savings).toBe(0);
+      expect(result.netBalance).toBe(0);
       expect(result.loading).toBe(true);
     });
 

@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { type TemplateLine } from '@pulpe/shared';
+import { type TemplateLine, BudgetFormulas } from '@pulpe/shared';
 
 export interface TemplateTotals {
   income: number;
@@ -19,12 +19,29 @@ export interface TemplateTotals {
 export class TemplateTotalsCalculator {
   /**
    * Calculate totals for a single template from its lines
+   * Delegates to BudgetFormulas for consistency (DRY principle)
    */
   calculateTemplateTotals(lines: TemplateLine[]): TemplateTotals {
-    const income = this.#calculateIncome(lines);
-    const expenses = this.#calculateExpenses(lines);
-    const savings = this.#calculateSavings(lines);
-    const netBalance = this.#calculateNetBalance(income, expenses, savings);
+    // Use BudgetFormulas for income calculation (single source of truth)
+    const income = BudgetFormulas.calculateTotalIncome(lines, []);
+
+    // Use BudgetFormulas for total expenses (includes savings per SPECS)
+    const totalExpensesWithSavings = BudgetFormulas.calculateTotalExpenses(
+      lines,
+      [],
+    );
+
+    // Separate expenses and savings for UI display purposes
+    const expenses = lines
+      .filter((line) => line.kind === 'expense')
+      .reduce((sum, line) => sum + line.amount, 0);
+
+    const savings = lines
+      .filter((line) => line.kind === 'saving')
+      .reduce((sum, line) => sum + line.amount, 0);
+
+    // Net balance follows SPECS: income - (expenses + savings)
+    const netBalance = income - totalExpensesWithSavings;
 
     return {
       income,
@@ -64,45 +81,6 @@ export class TemplateTotalsCalculator {
     };
   }
 
-  /**
-   * Calculate total income from template lines
-   */
-  #calculateIncome(lines: TemplateLine[]): number {
-    return lines
-      .filter((line) => line.kind === 'income')
-      .reduce((sum, line) => sum + line.amount, 0);
-  }
-
-  /**
-   * Calculate total expenses from template lines
-   * Note: Expenses are lines with kind 'expense' only
-   */
-  #calculateExpenses(lines: TemplateLine[]): number {
-    return lines
-      .filter((line) => line.kind === 'expense')
-      .reduce((sum, line) => sum + line.amount, 0);
-  }
-
-  /**
-   * Calculate total savings from template lines
-   * Note: Savings are treated separately from expenses
-   */
-  #calculateSavings(lines: TemplateLine[]): number {
-    return lines
-      .filter((line) => line.kind === 'saving')
-      .reduce((sum, line) => sum + line.amount, 0);
-  }
-
-  /**
-   * Calculate net balance as per SPECS
-   * Formula: Income - (Expenses + Savings)
-   * This represents the net balance after all planned outflows
-   */
-  #calculateNetBalance(
-    income: number,
-    expenses: number,
-    savings: number,
-  ): number {
-    return income - (expenses + savings);
-  }
+  // Private methods removed - now delegating to BudgetFormulas (DRY principle)
+  // The separation of expenses and savings is kept inline for UI-specific needs
 }
