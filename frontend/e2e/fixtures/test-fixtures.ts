@@ -1,4 +1,4 @@
-import { test as base, type Page, type Route } from '@playwright/test';
+import { test as base, type Page } from '@playwright/test';
 import { LoginPage } from '../pages/auth/login.page';
 import { OnboardingPage } from '../pages/onboarding.page';
 import { CurrentMonthPage } from '../pages/current-month.page';

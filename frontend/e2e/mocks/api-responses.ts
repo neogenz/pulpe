@@ -38,6 +38,26 @@ export interface MockTemplateResponse {
   }>;
 }
 
+export interface MockTemplateDetailResponse {
+  success: boolean;
+  data: {
+    id: string;
+    name: string;
+    description: string;
+    isDefault: boolean;
+  };
+}
+
+export interface MockTemplateLinesResponse {
+  success: boolean;
+  data: Array<{
+    id: string;
+    name: string;
+    amount: number;
+    kind: 'income' | 'expense' | 'saving';
+  }>;
+}
+
 export interface MockGenericResponse {
   success: boolean;
   data: Record<string, unknown>;
@@ -66,6 +86,27 @@ export const createMockTemplateResponse = (): MockTemplateResponse => ({
   data: [TEST_CONFIG.TEMPLATES.DEFAULT]
 });
 
+export const createMockTemplateDetailResponse = (): MockTemplateDetailResponse => ({
+  success: true,
+  data: {
+    id: TEST_CONFIG.TEMPLATES.DEFAULT.id,
+    name: TEST_CONFIG.TEMPLATES.DEFAULT.name,
+    description: 'Default test template for E2E testing',
+    isDefault: TEST_CONFIG.TEMPLATES.DEFAULT.is_default
+  }
+});
+
+export const createMockTemplateLinesResponse = (): MockTemplateLinesResponse => ({
+  success: true,
+  data: [
+    { id: '1', name: 'Salaire', amount: 5000, kind: 'income' },
+    { id: '2', name: 'Loyer', amount: 1800, kind: 'expense' },
+    { id: '3', name: 'Courses', amount: 600, kind: 'expense' },
+    { id: '4', name: 'Transport', amount: 200, kind: 'expense' },
+    { id: '5', name: 'Épargne', amount: 500, kind: 'saving' }
+  ]
+});
+
 export const createMockSuccessResponse = (): MockGenericResponse => ({
   success: true,
   data: {}
@@ -76,5 +117,7 @@ export const MOCK_API_RESPONSES = {
   auth: createMockAuthResponse(),
   budgets: createMockBudgetResponse(),
   templates: createMockTemplateResponse(),
+  templateDetail: createMockTemplateDetailResponse(),
+  templateLines: createMockTemplateLinesResponse(),
   success: createMockSuccessResponse()
 } as const;

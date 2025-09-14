@@ -71,8 +71,27 @@ export async function setupApiMocks(page: Page) {
       });
     }
     
-    // Template endpoints
-    if (url.includes('templates')) {
+    // Template endpoints - handle different patterns
+    if (url.includes('budget-templates')) {
+      // Template lines endpoint: /api/v1/budget-templates/{id}/lines
+      if (url.match(/budget-templates\/[^/]+\/lines/)) {
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(MOCK_API_RESPONSES.templateLines)
+        });
+      }
+
+      // Single template endpoint: /api/v1/budget-templates/{id}
+      if (url.match(/budget-templates\/[^/]+$/)) {
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(MOCK_API_RESPONSES.templateDetail)
+        });
+      }
+
+      // Template list endpoint: /api/v1/budget-templates
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
