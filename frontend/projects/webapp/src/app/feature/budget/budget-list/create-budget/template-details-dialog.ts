@@ -1,8 +1,8 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   inject,
-  signal,
 } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
@@ -29,7 +29,9 @@ export interface TemplateDetailsDialogData {
     MatDividerModule,
   ],
   template: `
-    <h2 mat-dialog-title>Détails du modèle : {{ data.template.name }}</h2>
+    <h2 mat-dialog-title class="text-headline-small">
+      {{ data.template.name }}
+    </h2>
 
     <mat-dialog-content>
       @if (data.template.description) {
@@ -38,75 +40,78 @@ export interface TemplateDetailsDialogData {
         </p>
       }
 
-      <div class="min-h-[200px]">
-        @let lines = templateLines();
-        @if (lines.length > 0) {
-          <div class="space-y-4">
-            <div class="mb-4">
-              <div class="flex justify-between text-label-large mb-2">
-                <span class="text-success">
-                  Total revenus:
-                  {{ totalIncome() | currency: 'CHF' : 'symbol' : '1.0-2' }}
-                </span>
-                <span class="text-error">
-                  Total dépenses:
-                  {{ totalExpenses() | currency: 'CHF' : 'symbol' : '1.0-2' }}
-                </span>
-              </div>
-              <mat-divider></mat-divider>
-            </div>
+      @let lines = templateLines();
+      @if (lines.length > 0) {
+        <!-- Summary Section -->
+        <div class="flex justify-between text-label-large mb-4">
+          <span class="text-success">
+            Total revenus:
+            {{ totalIncome() | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH' }}
+          </span>
+          <span class="text-error">
+            Total dépenses:
+            {{
+              totalExpenses() | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
+            }}
+          </span>
+        </div>
 
-            <mat-list class="max-h-[400px] overflow-y-auto">
-              @for (line of lines; track line.id) {
-                <mat-list-item class="h-auto py-2">
-                  <div class="flex justify-between items-center w-full">
-                    <div class="flex-1">
-                      <div class="text-body-large font-medium">
-                        {{ line.name }}
-                      </div>
-                      @if (line.description) {
-                        <div class="text-body-small text-on-surface-variant">
-                          {{ line.description }}
-                        </div>
-                      }
-                    </div>
-                    <div
-                      class="ml-4 text-body-large font-medium"
-                      [class.text-success]="line.kind === 'income'"
-                      [class.text-error]="line.kind === 'expense'"
-                      [class.text-primary]="line.kind === 'saving'"
-                    >
-                      {{ line.kind === 'income' ? '+' : '-' }}
-                      {{ line.amount | currency: 'CHF' : 'symbol' : '1.0-2' }}
-                    </div>
+        <mat-divider class="mb-4"></mat-divider>
+
+        <!-- Lines List -->
+        <mat-list>
+          @for (line of lines; track line.id) {
+            <mat-list-item>
+              <div class="flex flex-row justify-between items-end">
+                <div class="flex flex-col">
+                  <div class="text-body-medium font-medium">
+                    {{ line.name }}
                   </div>
-                </mat-list-item>
-                @if (!$last) {
-                  <mat-divider></mat-divider>
-                }
-              }
-            </mat-list>
+                  @if (line.description) {
+                    <div class="text-body-small text-on-surface-variant">
+                      {{ line.description }}
+                    </div>
+                  }
+                </div>
+                <div
+                  class="text-body-large font-medium flex-shrink-0"
+                  [class.text-success]="line.kind === 'income'"
+                  [class.text-error]="line.kind === 'expense'"
+                  [class.text-primary]="line.kind === 'saving'"
+                >
+                  {{ line.kind === 'income' ? '+' : '-' }}
+                  {{
+                    line.amount | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
+                  }}
+                </div>
+              </div>
+            </mat-list-item>
+            @if (!$last) {
+              <mat-divider></mat-divider>
+            }
+          }
+        </mat-list>
 
-            <mat-divider></mat-divider>
-            <div class="flex justify-between text-title-medium pt-2">
-              <span>Solde net:</span>
-              <span
-                [class.text-success]="netBalance() >= 0"
-                [class.text-error]="netBalance() < 0"
-              >
-                {{ netBalance() | currency: 'CHF' : 'symbol' : '1.0-2' }}
-              </span>
-            </div>
-          </div>
-        } @else {
-          <div
-            class="flex flex-col items-center justify-center h-[200px] text-on-surface-variant"
+        <!-- Net Balance -->
+        <mat-divider class="mt-4 mb-2"></mat-divider>
+        <div class="flex justify-between text-title-medium">
+          <span>Solde net:</span>
+          <span
+            [class.text-success]="netBalance() >= 0"
+            [class.text-error]="netBalance() < 0"
           >
-            <mat-icon class="text-display-small mb-2">inbox</mat-icon>
-            <p class="text-label-large">Aucune prévision dans ce modèle</p>
-          </div>
-        }
-      </div>
+            {{ netBalance() | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH' }}
+          </span>
+        </div>
+      } @else {
+        <!-- Empty State -->
+        <div
+          class="flex flex-col items-center justify-center min-h-[200px] text-on-surface-variant"
+        >
+          <mat-icon class="text-display-small mb-2">inbox</mat-icon>
+          <p class="text-label-large">Aucune prévision dans ce modèle</p>
+        </div>
+      }
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
@@ -114,10 +119,6 @@ export interface TemplateDetailsDialogData {
     </mat-dialog-actions>
   `,
   styles: `
-    :host {
-      display: block;
-    }
-
     mat-dialog-content {
       min-width: 400px;
       max-width: 600px;
@@ -135,30 +136,23 @@ export interface TemplateDetailsDialogData {
 export class TemplateDetailsDialog {
   readonly data = inject<TemplateDetailsDialogData>(MAT_DIALOG_DATA);
 
-  readonly templateLines = signal<TemplateLine[]>([]);
+  readonly templateLines = computed(() => this.data.templateLines);
 
-  readonly totalIncome = signal<number>(0);
-  readonly totalExpenses = signal<number>(0);
-  readonly netBalance = signal<number>(0);
-
-  constructor() {
-    // Utiliser directement les templateLines passées
-    this.useProvidedTemplateLines(this.data.templateLines);
-  }
-
-  private useProvidedTemplateLines(lines: TemplateLine[]): void {
-    this.templateLines.set(lines);
-
-    const income = lines
+  readonly totalIncome = computed(() => {
+    const lines = this.templateLines();
+    return lines
       .filter((line) => line.kind === 'income')
       .reduce((sum, line) => sum + line.amount, 0);
+  });
 
-    const expenses = lines
+  readonly totalExpenses = computed(() => {
+    const lines = this.templateLines();
+    return lines
       .filter((line) => line.kind === 'expense' || line.kind === 'saving')
       .reduce((sum, line) => sum + line.amount, 0);
+  });
 
-    this.totalIncome.set(income);
-    this.totalExpenses.set(expenses);
-    this.netBalance.set(income - expenses);
-  }
+  readonly netBalance = computed(() => {
+    return this.totalIncome() - this.totalExpenses();
+  });
 }

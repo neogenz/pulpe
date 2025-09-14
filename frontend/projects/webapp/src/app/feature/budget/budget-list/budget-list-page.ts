@@ -1,3 +1,4 @@
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -6,8 +7,9 @@ import {
   type OnInit,
   signal,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialog } from '@angular/material/dialog';
+import { MatDialog, type MatDialogConfig } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTabsModule } from '@angular/material/tabs';
 import { Router } from '@angular/router';
@@ -15,7 +17,7 @@ import { ROUTES, TitleDisplay } from '@core/routing';
 import { type CalendarMonth, YearCalendar } from '@ui/calendar';
 import { type CalendarYear } from '@ui/calendar/calendar-types';
 import { BaseLoading } from '@ui/loading';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, map, shareReplay } from 'rxjs';
 import { MonthsError } from '../ui/budget-error';
 import { mapToCalendarYear } from './budget-list-mapper/budget-list.mapper';
 import { BudgetState } from './budget-state';
@@ -80,7 +82,7 @@ import { CreateBudgetDialogComponent } from './create-budget/budget-creation-dia
                   <pulpe-year-calendar
                     [calendarYear]="budgetsOfYear"
                     [currentDate]="currentDate()"
-                    (monthClick)="onMonthClick($event)"
+                    (monthClick)="navigateToDetails($event)"
                     (createMonth)="onCreateMonth($event)"
                   />
                 </div>
@@ -103,6 +105,7 @@ export default class BudgetListPage implements OnInit {
   protected readonly titleDisplay = inject(TitleDisplay);
   readonly #dialog = inject(MatDialog);
   readonly #router = inject(Router);
+  readonly #breakpointObserver = inject(BreakpointObserver);
 
   protected readonly calendarYears = computed<CalendarYear[]>(() => {
     const budgetsGroupedByYears = this.state.allMonthsGroupedByYears();
@@ -117,19 +120,34 @@ export default class BudgetListPage implements OnInit {
     year: new Date().getFullYear(),
   });
 
-  // Calendar configuration
-  protected readonly calendarConfig = {
-    showEmptyMonths: true,
-    allowEmptyMonthClick: true,
-  };
+  readonly #isHandset = toSignal(
+    this.#breakpointObserver.observe(Breakpoints.Handset).pipe(
+      map((result) => result.matches),
+      shareReplay(),
+    ),
+    { initialValue: false },
+  );
+
+  #dialogConfig = computed<MatDialogConfig>(() => {
+    const isHandset = this.#isHandset();
+    return {
+      width: '600px',
+      maxWidth: isHandset ? '100dvw' : '90vw',
+      minWidth: isHandset ? '100dvw' : undefined,
+      height: isHandset ? '100dvh' : undefined,
+      maxHeight: isHandset ? '100dvh' : undefined,
+      panelClass: isHandset ? 'full-screen-dialog' : undefined,
+      disableClose: false,
+    };
+  });
 
   ngOnInit(): void {
     this.state.refreshData();
   }
 
-  onMonthClick(month: CalendarMonth): void {
+  navigateToDetails(month: CalendarMonth): void {
     if (month.hasContent && month.id) {
-      this.navigateToDetails(month.id);
+      this.#router.navigate([ROUTES.APP, ROUTES.BUDGET, month.id]);
     }
   }
 
@@ -138,10 +156,9 @@ export default class BudgetListPage implements OnInit {
   }
 
   async openCreateBudgetDialog(): Promise<void> {
+    const dialogConfig = this.#dialogConfig();
     const dialogRef = this.#dialog.open(CreateBudgetDialogComponent, {
-      width: '600px',
-      maxWidth: '90vw',
-      disableClose: false,
+      ...dialogConfig,
       data: {
         selectedYear: this.state.selectedYear(),
       },
@@ -166,10 +183,9 @@ export default class BudgetListPage implements OnInit {
     month: number,
     year: number,
   ): Promise<void> {
+    const dialogConfig = this.#dialogConfig();
     const dialogRef = this.#dialog.open(CreateBudgetDialogComponent, {
-      width: '600px',
-      maxWidth: '90vw',
-      disableClose: false,
+      ...dialogConfig,
       data: { month, year },
     });
 
@@ -178,9 +194,5 @@ export default class BudgetListPage implements OnInit {
     if (result?.success) {
       this.state.refreshData();
     }
-  }
-
-  navigateToDetails(budgetId: string): void {
-    this.#router.navigate([ROUTES.APP, ROUTES.BUDGET, budgetId]);
   }
 }

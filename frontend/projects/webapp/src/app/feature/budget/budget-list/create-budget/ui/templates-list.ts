@@ -117,18 +117,6 @@ import { type TemplateViewModel } from './template-view-model';
       min-height: 250px;
       max-height: 350px;
       overflow-y: auto;
-      padding: 0.375rem;
-      border: 1px solid var(--mat-form-field-outline-color);
-      border-radius: 4px;
-      background-color: var(--mat-app-surface);
-    }
-
-    @media (max-width: 640px) {
-      .template-list {
-        min-height: 200px;
-        max-height: 300px;
-        padding: 0.25rem;
-      }
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
