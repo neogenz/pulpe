@@ -16,7 +16,7 @@ export interface BudgetPlaceholder {
 }
 
 @Injectable()
-export class BudgetState {
+export class BudgetListStore {
   #budgetApi = inject(BudgetApi);
   #logger = inject(Logger);
 

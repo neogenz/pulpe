@@ -1,5 +1,5 @@
 import { type Budget } from '@pulpe/shared';
-import { type BudgetPlaceholder } from '../budget-state';
+import { type BudgetPlaceholder } from '../budget-list-store';
 import { format } from 'date-fns';
 import { frCH } from 'date-fns/locale';
 import {
