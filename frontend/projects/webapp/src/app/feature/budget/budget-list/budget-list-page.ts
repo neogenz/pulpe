@@ -21,7 +21,7 @@ import { BaseLoading } from '@ui/loading';
 import { firstValueFrom, map, shareReplay } from 'rxjs';
 import { MonthsError } from '../ui/budget-error';
 import { mapToCalendarYear } from './budget-list-mapper/budget-list.mapper';
-import { BudgetState } from './budget-state';
+import { BudgetListStore } from './budget-list-store';
 import { CreateBudgetDialogComponent } from './create-budget/budget-creation-dialog';
 import { Logger } from '@core/logging/logger';
 
@@ -105,7 +105,7 @@ const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class BudgetListPage implements OnInit {
-  protected readonly state = inject(BudgetState);
+  protected readonly state = inject(BudgetListStore);
   protected readonly titleDisplay = inject(TitleDisplay);
   readonly #dialog = inject(MatDialog);
   readonly #router = inject(Router);
@@ -117,11 +117,19 @@ export default class BudgetListPage implements OnInit {
     const currentYear = new Date().getFullYear();
     const budgetsGroupedByYears = this.state.allMonthsGroupedByYears();
 
-    // Générer la plage d'années (année courante + 7 années suivantes)
-    const years = Array.from(
+    // Récupérer toutes les années existantes dans budgetsGroupedByYears
+    const existingYears = Array.from(budgetsGroupedByYears.keys());
+
+    // Générer la plage d'années à partir de l'année courante (année courante + 7 années suivantes)
+    const calculatedYears = Array.from(
       { length: YEARS_TO_DISPLAY },
       (_, i) => currentYear + i,
     );
+
+    // Fusionner les années existantes et calculées, puis supprimer les doublons et trier
+    const years = Array.from(
+      new Set([...existingYears, ...calculatedYears]),
+    ).sort((a, b) => a - b);
 
     return years.map((year) => {
       // Récupérer les budgets existants ou créer des placeholders
