@@ -1,5 +1,18 @@
 # pulpe-frontend
 
+## 2025.11.0
+
+### Minor Changes
+
+- Vue calendrier annuel pour la gestion des budgets
+  - Visualisation complète de l'année en une seule vue grille responsive
+  - Navigation intuitive entre les années avec système d'onglets
+  - Indicateurs visuels du statut financier de chaque mois
+  - Création de budget simplifiée directement depuis les mois vides
+  - Amélioration de l'expérience utilisateur avec pré-sélection contextuelle
+
+  Cette fonctionnalité transforme la gestion budgétaire en offrant une vision d'ensemble de l'année, facilitant la planification financière à long terme.
+
 ## 2025.10.0
 
 ### Minor Changes
