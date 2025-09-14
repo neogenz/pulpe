@@ -88,10 +88,9 @@ export class BudgetState {
     source: this.plannedYears,
     computation: (years, previous) => {
       // Garder la sélection précédente si elle existe encore
-      const currentYear = previous?.value;
-      const yearStillExists = currentYear && years.includes(currentYear);
-
-      if (yearStillExists) {
+      const currentYear = previous?.value ?? new Date().getFullYear();
+      const isExistingYear = years.includes(currentYear);
+      if (isExistingYear) {
         return currentYear;
       }
 
