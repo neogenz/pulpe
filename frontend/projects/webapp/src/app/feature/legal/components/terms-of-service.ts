@@ -91,8 +91,14 @@ import { ROUTES } from '@core/routing';
             <li>L'exactitude des calculs (vérifiez toujours vos données)</li>
           </ul>
           <p class="text-body-large mt-4">
-            Pulpe est un outil d'aide à la gestion budgétaire et ne constitue pas un conseil financier.
+            <strong>Avertissement important :</strong>
           </p>
+          <ul class="list-disc pl-6 text-body-large">
+            <li>Pulpe est un outil d'aide à la gestion budgétaire et ne constitue pas un conseil financier professionnel</li>
+            <li><strong>Je décline toute responsabilité en cas de perte financière liée à l'utilisation de Pulpe</strong></li>
+            <li>Vous êtes seul responsable de vos décisions financières</li>
+            <li>En cas de doute, consultez un conseiller financier qualifié</li>
+          </ul>
         </section>
 
         <section class="mb-8">

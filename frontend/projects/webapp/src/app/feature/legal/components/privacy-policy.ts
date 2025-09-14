@@ -61,7 +61,7 @@ import { ROUTES } from '@core/routing';
         <section class="mb-8">
           <h2 class="text-headline-medium mb-4">4. Outils d'analyse</h2>
           <p class="text-body-large">
-            J'utilise <strong>PostHog</strong> (hébergé en Europe) pour analyser l'utilisation
+            J'utilise <strong>PostHog</strong> (hébergé en Europe - eu.posthog.com) pour analyser l'utilisation
             de l'application. Cet outil m'aide à :
           </p>
           <ul class="list-disc pl-6 text-body-large">
@@ -70,10 +70,15 @@ import { ROUTES } from '@core/routing';
             <li>Améliorer l'expérience utilisateur</li>
           </ul>
           <p class="text-body-large mt-4">
-            <strong>Important :</strong> Vos montants financiers sont automatiquement masqués
-            dans toutes les analyses. Je ne vois jamais vos données financières réelles
-            dans les outils d'analyse.
+            <strong>Protection de vos données financières :</strong>
           </p>
+          <ul class="list-disc pl-6 text-body-large">
+            <li>Vos montants financiers sont automatiquement masqués dans toutes les analyses</li>
+            <li>Les données sont pseudonymisées (votre identité n'est pas directement visible)</li>
+            <li>Vos données financières ne sont <strong>jamais transmises à des tiers</strong></li>
+            <li>Aucune utilisation commerciale de vos données</li>
+            <li>Pas de publicité ciblée</li>
+          </ul>
         </section>
 
         <section class="mb-8">
@@ -127,34 +132,43 @@ import { ROUTES } from '@core/routing';
 
         <section class="mb-8">
           <h2 class="text-headline-medium mb-4">9. Vos droits (RGPD/LPD)</h2>
-          <p class="text-body-large">Vous avez le droit de :</p>
+          <p class="text-body-large mb-4">
+            <strong>Conformément au RGPD et à la LPD suisse</strong>, vous disposez des droits suivants :
+          </p>
           <ul class="list-disc pl-6 text-body-large">
-            <li>Accéder à vos données personnelles</li>
-            <li>Corriger vos données</li>
-            <li>Supprimer votre compte et toutes vos données</li>
-            <li>Exporter vos données (format JSON)</li>
-            <li>Vous opposer à certains traitements</li>
+            <li>Droit d'accès à vos données personnelles</li>
+            <li>Droit de rectification de vos données</li>
+            <li>Droit à l'effacement (suppression du compte)</li>
+            <li>Droit à la portabilité (export JSON)</li>
+            <li>Droit d'opposition à certains traitements</li>
+            <li>Droit de retirer votre consentement à tout moment</li>
           </ul>
           <p class="text-body-large mt-4">
-            Pour exercer ces droits, contactez-moi à :
+            Pour exercer ces droits, contactez-moi dans un délai de 30 jours à :
             <a href="mailto:maxime.desogus@gmail.com" class="text-primary">maxime.desogus@gmail.com</a>
+          </p>
+          <p class="text-body-large mt-2">
+            Je suis responsable du traitement de vos données dès la création de votre compte.
           </p>
         </section>
 
         <section class="mb-8">
-          <h2 class="text-headline-medium mb-4">10. Cookies</h2>
+          <h2 class="text-headline-medium mb-4">10. Cookies et tracking</h2>
           <p class="text-body-large">
-            J'utilise des cookies essentiels pour :
+            J'utilise des cookies strictement nécessaires pour :
           </p>
           <ul class="list-disc pl-6 text-body-large">
-            <li>Maintenir votre session connectée</li>
-            <li>Mémoriser vos préférences</li>
-            <li>Assurer la sécurité</li>
+            <li>Maintenir votre session connectée (authentification)</li>
+            <li>Mémoriser vos préférences d'interface</li>
+            <li>Assurer la sécurité du service</li>
           </ul>
           <p class="text-body-large mt-4">
-            Ces cookies sont nécessaires au fonctionnement du service et ne peuvent
-            pas être désactivés.
+            <strong>Cookies d'analyse (PostHog) :</strong>
           </p>
+          <ul class="list-disc pl-6 text-body-large">
+            <li>Activés uniquement après acceptation des CGU lors de l'inscription</li>
+            <li>Données pseudonymisées (pas d'identification directe)</li>
+          </ul>
         </section>
 
         <section class="mb-8">
