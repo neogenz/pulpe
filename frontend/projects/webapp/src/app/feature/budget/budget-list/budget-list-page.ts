@@ -23,6 +23,8 @@ import { mapToCalendarYear } from './budget-list-mapper/budget-list.mapper';
 import { BudgetState } from './budget-state';
 import { CreateBudgetDialogComponent } from './create-budget/budget-creation-dialog';
 
+const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
+
 @Component({
   selector: 'pulpe-budget-list',
   imports: [
@@ -109,12 +111,11 @@ export default class BudgetListPage implements OnInit {
 
   protected readonly calendarYears = computed<CalendarYear[]>(() => {
     const currentYear = new Date().getFullYear();
-    const yearsToDisplay = 8;
     const budgetsGroupedByYears = this.state.allMonthsGroupedByYears();
 
     // Générer la plage d'années (année courante + 7 années suivantes)
     const years = Array.from(
-      { length: yearsToDisplay },
+      { length: YEARS_TO_DISPLAY },
       (_, i) => currentYear + i,
     );
 
