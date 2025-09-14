@@ -24,8 +24,7 @@ import { type CalendarMonth, type CalendarYear } from './calendar-types';
       >
         @for (month of displayMonths(); track month.id; let i = $index) {
           <div
-            class="h-full min-h-[120px] md:min-h-[160px] max-h-[240px] md:max-h-[280px] lg:max-h-[320px] animate-fadeIn"
-            [style.--animation-delay]="i * 25 + 'ms'"
+            class="h-full min-h-[120px] md:min-h-[160px] max-h-[240px] md:max-h-[280px] lg:max-h-[320px]"
           >
             <pulpe-month-tile
               [month]="month"
