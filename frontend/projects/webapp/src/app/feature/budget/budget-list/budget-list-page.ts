@@ -11,6 +11,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, type MatDialogConfig } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { Router } from '@angular/router';
 import { ROUTES, TitleDisplay } from '@core/routing';
@@ -22,6 +23,7 @@ import { MonthsError } from '../ui/budget-error';
 import { mapToCalendarYear } from './budget-list-mapper/budget-list.mapper';
 import { BudgetState } from './budget-state';
 import { CreateBudgetDialogComponent } from './create-budget/budget-creation-dialog';
+import { Logger } from '@core/logging/logger';
 
 const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
 
@@ -108,6 +110,8 @@ export default class BudgetListPage implements OnInit {
   readonly #dialog = inject(MatDialog);
   readonly #router = inject(Router);
   readonly #breakpointObserver = inject(BreakpointObserver);
+  readonly #snackBar = inject(MatSnackBar);
+  readonly #logger = inject(Logger);
 
   protected readonly calendarYears = computed<CalendarYear[]>(() => {
     const currentYear = new Date().getFullYear();
@@ -178,19 +182,30 @@ export default class BudgetListPage implements OnInit {
   }
 
   async openCreateBudgetDialog(): Promise<void> {
-    const dialogConfig = this.#dialogConfig();
-    const dialogRef = this.#dialog.open(CreateBudgetDialogComponent, {
-      ...dialogConfig,
-      data: {
-        selectedYear: this.state.selectedYear(),
-      },
-    });
+    try {
+      const dialogConfig = this.#dialogConfig();
+      const dialogRef = this.#dialog.open(CreateBudgetDialogComponent, {
+        ...dialogConfig,
+        data: {
+          selectedYear: this.state.selectedYear(),
+        },
+      });
 
-    const result = await firstValueFrom(dialogRef.afterClosed());
+      const result = await firstValueFrom(dialogRef.afterClosed());
 
-    // Only refresh data if budget was successfully created
-    if (result?.success) {
-      this.state.refreshData();
+      // Only refresh data if budget was successfully created
+      if (result?.success) {
+        this.state.refreshData();
+      }
+    } catch (error) {
+      this.#logger.error('Error opening create budget dialog', error);
+      this.#snackBar.open(
+        `Une erreur est survenue lors de l'ouverture du dialogue: ${error}`,
+        'Fermer',
+        {
+          duration: 5000,
+        },
+      );
     }
   }
 
@@ -205,16 +220,27 @@ export default class BudgetListPage implements OnInit {
     month: number,
     year: number,
   ): Promise<void> {
-    const dialogConfig = this.#dialogConfig();
-    const dialogRef = this.#dialog.open(CreateBudgetDialogComponent, {
-      ...dialogConfig,
-      data: { month, year },
-    });
+    try {
+      const dialogConfig = this.#dialogConfig();
+      const dialogRef = this.#dialog.open(CreateBudgetDialogComponent, {
+        ...dialogConfig,
+        data: { month, year },
+      });
 
-    const result = await firstValueFrom(dialogRef.afterClosed());
+      const result = await firstValueFrom(dialogRef.afterClosed());
 
-    if (result?.success) {
-      this.state.refreshData();
+      if (result?.success) {
+        this.state.refreshData();
+      }
+    } catch (error) {
+      this.#logger.error('Error opening create budget dialog', error);
+      this.#snackBar.open(
+        `Une erreur est survenue lors de l'ouverture du dialogue: ${error}`,
+        'Fermer',
+        {
+          duration: 5000,
+        },
+      );
     }
   }
 }
