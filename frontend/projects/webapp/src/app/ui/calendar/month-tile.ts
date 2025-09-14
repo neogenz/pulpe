@@ -9,6 +9,7 @@ import {
 import { MatCardModule } from '@angular/material/card';
 import { MatRippleModule } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
+import { isBefore } from 'date-fns';
 import { type CalendarMonth } from './calendar-types';
 
 @Component({
@@ -18,12 +19,13 @@ import { type CalendarMonth } from './calendar-types';
   imports: [MatCardModule, MatIconModule, MatRippleModule, DecimalPipe],
   template: `
     <mat-card
+      [class.opacity-50!]="isPastMonth()"
       class="month-tile-card group cursor-pointer h-full min-h-[140px] md:min-h-[140px] transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0"
       [class.current-month]="isCurrentMonth()"
       [class.empty-month]="!month().hasContent"
       [appearance]="month().hasContent ? 'filled' : 'outlined'"
       [attr.data-testid]="'month-tile-' + month().month"
-      (click)="handleClick()"
+      (click)="tileClick.emit(month())"
       tabindex="0"
       role="button"
       matRipple
@@ -46,7 +48,9 @@ import { type CalendarMonth } from './calendar-types';
             </p>
             <p
               class="text-headline-small font-semibold"
-              [class.text-financial-income]="valueType() === 'positive'"
+              [class.text-[var(--pulpe-financial-savings)]]="
+                valueType() === 'positive'
+              "
               [class.text-financial-negative]="valueType() === 'negative'"
             >
               {{ month().value | number: '1.2-2' : 'de-CH' }}
@@ -82,13 +86,13 @@ import { type CalendarMonth } from './calendar-types';
       flex-direction: column;
       height: 100%;
 
-      &.current-month {
+      /*&.current-month {
         @include mat.card-overrides(
           (
             filled-container-color: var(--mat-sys-secondary-container),
           )
         );
-      }
+      }*/
 
       &.empty-month {
         opacity: 0.9;
@@ -101,12 +105,9 @@ import { type CalendarMonth } from './calendar-types';
   `,
 })
 export class MonthTile {
-  // Inputs
   month = input.required<CalendarMonth>();
   isCurrentMonth = input<boolean>(false);
-  disabled = input<boolean>(false);
 
-  // Outputs
   tileClick = output<CalendarMonth>();
 
   // Computed properties
@@ -122,9 +123,11 @@ export class MonthTile {
     return value > 0 ? 'positive' : value < 0 ? 'negative' : 'neutral';
   });
 
-  handleClick(): void {
-    if (!this.disabled()) {
-      this.tileClick.emit(this.month());
-    }
-  }
+  isPastMonth = computed(() => {
+    const currentDate = new Date();
+    const month = this.month().month;
+    const year = this.month().year;
+    // date-fns isAfter
+    return isBefore(new Date(year, month, 1), currentDate);
+  });
 }
