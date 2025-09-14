@@ -162,15 +162,15 @@ test.describe('Template Details View', () => {
 
     // Based on global mock data: income 5000, expenses 2600, savings 500
     const incomeCard = financialCards.filter({ hasText: 'Revenus' });
-    await expect(incomeCard).toContainText('5 000');
+    await expect(incomeCard.locator('p')).toContainText(/5.000\.00/);
 
     // Total expenses: 1800 + 600 + 200 = 2600
     const expenseCard = financialCards.filter({ hasText: 'Dépenses' });
-    await expect(expenseCard).toContainText('2 600');
+    await expect(expenseCard.locator('p')).toContainText(/2.600\.00/);
 
     // Total savings: 500
     const savingsCard = financialCards.filter({ hasText: 'Épargne prévue' });
-    await expect(savingsCard).toContainText('500');
+    await expect(savingsCard.locator('p')).toContainText(/500\.00/);
 
     // Net balance (5000 - 2600 - 500 = 1900)
     const balanceCard = financialCards.filter({ hasText: 'Solde net' });
