@@ -78,10 +78,8 @@ import { CreateBudgetDialogComponent } from './create-budget/budget-creation-dia
               <mat-tab [label]="budgetsOfYear.year.toString()">
                 <div class="pt-6">
                   <pulpe-year-calendar
-                    [year]="budgetsOfYear.year"
-                    [months]="budgetsOfYear.months"
+                    [calendarYear]="budgetsOfYear"
                     [currentDate]="currentDate()"
-                    [config]="calendarConfig"
                     (monthClick)="onMonthClick($event)"
                     (createMonth)="onCreateMonth($event)"
                   />

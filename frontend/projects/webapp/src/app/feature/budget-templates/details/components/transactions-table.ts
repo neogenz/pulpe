@@ -64,7 +64,7 @@ export interface FinancialEntry {
             </th>
             <td mat-cell *matCellDef="let row" class="text-right px-4 py-2">
               @if (row.spent !== 0) {
-                {{ row.spent | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH' }}
+                {{ row.spent | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH' }}
               }
             </td>
           </ng-container>
@@ -81,7 +81,7 @@ export interface FinancialEntry {
             <td mat-cell *matCellDef="let row" class="text-right px-4 py-2">
               @if (row.earned !== 0) {
                 {{
-                  row.earned | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH'
+                  row.earned | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
                 }}
               }
             </td>
@@ -98,7 +98,7 @@ export interface FinancialEntry {
             </th>
             <td mat-cell *matCellDef="let row" class="text-right px-4 py-2">
               @if (row.saved !== 0) {
-                {{ row.saved | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH' }}
+                {{ row.saved | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH' }}
               }
             </td>
           </ng-container>
@@ -113,7 +113,7 @@ export interface FinancialEntry {
               Total
             </th>
             <td mat-cell *matCellDef="let row" class="text-right px-4 py-2">
-              {{ row.total | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH' }}
+              {{ row.total | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH' }}
             </td>
           </ng-container>
 

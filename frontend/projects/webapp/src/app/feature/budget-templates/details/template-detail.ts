@@ -132,7 +132,7 @@ import {
                 [attr.aria-label]="
                   'Revenus: ' +
                   (incomeData().amount
-                    | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH')
+                    | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH')
                 "
               />
               <pulpe-financial-summary
@@ -141,7 +141,7 @@ import {
                 [attr.aria-label]="
                   'Dépenses: ' +
                   (expenseData().amount
-                    | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH')
+                    | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH')
                 "
               />
               <pulpe-financial-summary
@@ -150,7 +150,7 @@ import {
                 [attr.aria-label]="
                   'Économies: ' +
                   (savingsData().amount
-                    | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH')
+                    | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH')
                 "
               />
               <pulpe-financial-summary
@@ -160,7 +160,7 @@ import {
                   netBalanceData().title +
                   ': ' +
                   (netBalanceData().amount
-                    | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH')
+                    | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH')
                 "
               />
             </div>

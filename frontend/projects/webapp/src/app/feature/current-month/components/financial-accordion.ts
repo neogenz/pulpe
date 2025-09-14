@@ -82,7 +82,7 @@ export interface FinancialAccordionConfig {
               {{ config().totalAmount! > 0 ? '+' : ''
               }}{{
                 config().totalAmount!
-                  | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH'
+                  | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
               }}
             </span>
           }

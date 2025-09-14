@@ -38,7 +38,7 @@ export interface FinancialSummaryData {
               class="text-headline-small financial-amount overflow-hidden text-ellipsis"
             >
               {{
-                data().amount | currency: 'CHF' : 'symbol' : '1.0-2' : 'fr-CH'
+                data().amount | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
               }}
             </p>
           </div>
