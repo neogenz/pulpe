@@ -1,5 +1,14 @@
 # backend-nest
 
+## 0.2.1
+
+### Patch Changes
+
+- Optimisation du calcul des montants restants des budgets
+  - Élimination du problème de requêtes N+1 en calculant les reports localement
+  - Amélioration des performances de l'API de liste des budgets
+  - Réduction de la charge sur la base de données lors de la récupération de plusieurs budgets
+
 ## 0.2.0
 
 ### Minor Changes

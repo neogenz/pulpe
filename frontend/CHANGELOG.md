@@ -1,5 +1,13 @@
 # pulpe-frontend
 
+## 2025.11.1
+
+### Patch Changes
+
+- Correction de l'affichage des montants sur les cartes de budget
+  - Alignement correct entre les montants financiers et la barre de progression
+  - Affichage cohérent des montants disponibles, dépensés et restants
+
 ## 2025.11.0
 
 ### Minor Changes
