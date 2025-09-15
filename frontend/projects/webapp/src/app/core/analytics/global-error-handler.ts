@@ -28,13 +28,11 @@ export class GlobalErrorHandler implements ErrorHandler {
       status: isHttpError ? (error as HttpErrorResponse).status : undefined,
     });
 
-    // Send to PostHog if available
-    if (this.#postHogService.isInitialized()) {
-      this.#postHogService.captureException(error, {
-        message: errorMessage,
-        isHttpError,
-      });
-    }
+    // Let PostHogService decide via #canCapture() internally
+    this.#postHogService.captureException(error, {
+      message: errorMessage,
+      isHttpError,
+    });
   }
 
   #extractMessage(error: unknown): string {
