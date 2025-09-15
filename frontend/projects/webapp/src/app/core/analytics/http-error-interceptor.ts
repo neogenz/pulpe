@@ -9,6 +9,15 @@ import { Logger } from '../logging/logger';
 import { ApplicationConfiguration } from '../config/application-configuration';
 
 /**
+ * Typed HTTP error event names for better type safety and auto-completion
+ */
+type HttpErrorEvent =
+  | 'http_server_error'
+  | 'http_client_error'
+  | 'http_network_error'
+  | 'http_error';
+
+/**
  * HTTP error interceptor that captures HTTP errors and forwards them to PostHog
  * for comprehensive API error monitoring and debugging.
  *
@@ -51,19 +60,6 @@ function captureHttpError(
   applicationConfiguration: ApplicationConfiguration,
 ): void {
   try {
-    // Only capture in production or if explicitly enabled
-    if (
-      !applicationConfiguration.isProduction() &&
-      !applicationConfiguration.isDevelopment()
-    ) {
-      return;
-    }
-
-    // Check if PostHog is available and initialized
-    if (!postHogService.isInitialized() || !postHogService.isEnabled()) {
-      return;
-    }
-
     const errorContext = buildHttpErrorContext(error, requestMethod);
 
     // Log for development debugging
@@ -74,7 +70,7 @@ function captureHttpError(
     // Determine event name based on error status
     const eventName = getHttpErrorEventName(error.status);
 
-    // Capture the error event
+    // Let PostHogService handle all gating logic via #canCapture()
     postHogService.capture(eventName, errorContext);
   } catch (captureError) {
     // Silently fail to avoid breaking the application
@@ -155,7 +151,7 @@ function extractErrorMessage(error: HttpErrorResponse): string {
 /**
  * Get appropriate event name based on HTTP status code
  */
-function getHttpErrorEventName(status: number): string {
+function getHttpErrorEventName(status: number): HttpErrorEvent {
   if (status >= 500) {
     return 'http_server_error';
   }

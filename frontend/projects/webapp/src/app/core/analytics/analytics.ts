@@ -1,4 +1,10 @@
-import { Injectable, inject, effect, computed } from '@angular/core';
+import {
+  Injectable,
+  inject,
+  effect,
+  computed,
+  type EffectRef,
+} from '@angular/core';
 import { AuthApi } from '../auth/auth-api';
 import { PostHogService } from './posthog';
 import { Logger } from '../logging/logger';
@@ -18,6 +24,9 @@ export class AnalyticsService {
   // Track if we've already enabled tracking for the current session
   #trackingEnabledForSession = false;
 
+  // Track the auth synchronization effect to ensure idempotency
+  #authEffect?: EffectRef;
+
   /**
    * Check if analytics is active and ready
    */
@@ -28,14 +37,18 @@ export class AnalyticsService {
   });
 
   initialize(): void {
-    if (!this.#postHogService.isInitialized()) {
+    // Ensure we only create the effect once (idempotent)
+    if (this.#authEffect) {
       return;
     }
 
-    // Auto-identify users when auth state changes
-    effect(() => {
+    // Create a reactive effect that responds to both PostHog state and auth state
+    this.#authEffect = effect(() => {
+      const active = this.isActive();
       const authState = this.#authApi.authState();
-      if (authState.isAuthenticated && authState.user) {
+
+      // Only proceed if PostHog is active
+      if (active && authState.isAuthenticated && authState.user) {
         // Only enable tracking once per session to avoid redundant calls
         // Safe because users must have accepted terms to have an account
         if (!this.#trackingEnabledForSession) {
@@ -59,8 +72,7 @@ export class AnalyticsService {
    * Track custom business events
    */
   track(event: string, properties?: Record<string, unknown>): void {
-    if (this.#postHogService.isInitialized()) {
-      this.#postHogService.capture(event, properties);
-    }
+    // Let PostHogService handle all gating logic via #canCapture()
+    this.#postHogService.capture(event, properties);
   }
 }
