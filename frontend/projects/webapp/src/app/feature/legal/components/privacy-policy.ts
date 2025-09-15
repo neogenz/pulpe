@@ -217,7 +217,7 @@ import { ROUTES } from '@core/routing';
 export default class PrivacyPolicyComponent {
   protected readonly ROUTES = ROUTES;
 
-  currentDate = new Date().toLocaleDateString('fr-FR', {
+  currentDate = new Date().toLocaleDateString('fr-CH', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
