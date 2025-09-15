@@ -11,6 +11,7 @@ import { TemplateApi } from '@core/template/template-api';
 import { OnboardingApi } from './services/onboarding-api';
 import { NavigationEnd, Router } from '@angular/router';
 import { Subject, of, throwError } from 'rxjs'; // Import Subject and observables
+import { provideHttpClient } from '@angular/common/http';
 
 describe('OnboardingStore - Unit Tests', () => {
   // Mock helper to create valid budget API responses
@@ -75,6 +76,7 @@ describe('OnboardingStore - Unit Tests', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
+        provideHttpClient(),
         OnboardingStore,
         { provide: AuthApi, useValue: mockAuthApi },
         { provide: BudgetApi, useValue: mockBudgetApi },
@@ -223,6 +225,7 @@ describe('OnboardingStore - Unit Tests', () => {
       TestBed.configureTestingModule({
         providers: [
           provideZonelessChangeDetection(),
+          provideHttpClient(),
           OnboardingStore,
           { provide: AuthApi, useValue: mockAuthApi },
           { provide: BudgetApi, useValue: mockBudgetApi },
@@ -244,6 +247,7 @@ describe('OnboardingStore - Unit Tests', () => {
       TestBed.configureTestingModule({
         providers: [
           provideZonelessChangeDetection(),
+          provideHttpClient(),
           OnboardingStore,
           { provide: AuthApi, useValue: mockAuthApi },
           { provide: BudgetApi, useValue: mockBudgetApi },
