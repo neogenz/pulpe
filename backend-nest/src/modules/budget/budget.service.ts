@@ -571,41 +571,50 @@ export class BudgetService {
    * Enrichit chaque budget avec le calcul du 'remaining'
    * Calcule remaining = endingBalance + rollover depuis les données stockées
    */
+  /**
+   * Calculate rollover amounts for all budgets based on cumulative ending balances
+   * This avoids N+1 queries by computing rollovers locally
+   */
+  private calculateRolloverMap(
+    budgets: Tables<'monthly_budget'>[],
+  ): Map<string, number> {
+    // Sort budgets chronologically to ensure correct rollover calculation
+    const sortedBudgets = [...budgets].sort((a, b) => {
+      if (a.year !== b.year) return a.year - b.year;
+      return a.month - b.month;
+    });
+
+    // Build a map of budget ID to rollover value (cumulative sum of previous months)
+    const rolloverMap = new Map<string, number>();
+    let cumulativeBalance = 0;
+
+    for (const budget of sortedBudgets) {
+      // Current month's rollover is the cumulative balance from all previous months
+      rolloverMap.set(budget.id, cumulativeBalance);
+      // Add current month's ending balance to cumulative for next month
+      cumulativeBalance += budget.ending_balance ?? 0;
+    }
+
+    return rolloverMap;
+  }
+
   private async enrichBudgetsWithRemaining(
     budgets: Tables<'monthly_budget'>[],
     supabase: AuthenticatedSupabaseClient,
   ): Promise<(Tables<'monthly_budget'> & { remaining: number })[]> {
+    // Calculate all rollovers locally to avoid N+1 queries
+    const rolloverMap = this.calculateRolloverMap(budgets);
+
+    // Enrich each budget with its remaining amount
     const enrichedBudgets = await Promise.all(
-      budgets.map(async (budget) => {
-        try {
-          // Calculer le remaining pour ce budget
-          const remaining = await this.calculateRemainingForBudget(
-            budget,
-            supabase,
-          );
-
-          return {
-            ...budget,
-            remaining,
-          };
-        } catch (error) {
-          this.logger.warn(
-            {
-              budgetId: budget.id,
-              month: budget.month,
-              year: budget.year,
-              error: error instanceof Error ? error.message : String(error),
-              operation: 'enrichBudgetsWithRemaining',
-            },
-            'Failed to calculate remaining for budget, using fallback',
-          );
-
-          // Fallback: utiliser endingBalance ou 0 si pas disponible
-          return {
-            ...budget,
-            remaining: budget.ending_balance ?? 0,
-          };
-        }
+      budgets.map((budget) => {
+        return this.calculateRemainingForBudget(
+          budget,
+          supabase,
+          rolloverMap.get(budget.id) ?? 0,
+        ).then((remaining) => {
+          return { ...budget, remaining };
+        });
       }),
     );
 
@@ -619,9 +628,29 @@ export class BudgetService {
   private async calculateRemainingForBudget(
     budget: Tables<'monthly_budget'>,
     supabase: AuthenticatedSupabaseClient,
+    preCalculatedRollover?: number,
   ): Promise<number> {
-    const rolloverData = await this.calculator.getRollover(budget.id, supabase);
-    const endingBalanceStored = budget.ending_balance ?? 0;
-    return endingBalanceStored + rolloverData.rollover;
+    // Use pre-calculated rollover if provided (avoids N+1 queries)
+    try {
+      const rollover =
+        preCalculatedRollover !== undefined
+          ? preCalculatedRollover
+          : (await this.calculator.getRollover(budget.id, supabase)).rollover;
+
+      const endingBalanceStored = budget.ending_balance ?? 0;
+      return endingBalanceStored + rollover;
+    } catch (error) {
+      this.logger.warn(
+        {
+          budgetId: budget.id,
+          month: budget.month,
+          year: budget.year,
+          error: error instanceof Error ? error.message : String(error),
+          operation: 'calculateRemainingForBudget',
+        },
+        'Failed to calculate remaining for budget, using fallback',
+      );
+      return 0;
+    }
   }
 }
