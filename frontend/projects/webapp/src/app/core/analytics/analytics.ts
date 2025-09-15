@@ -15,6 +15,9 @@ export class AnalyticsService {
   readonly #postHogService = inject(PostHogService);
   readonly #logger = inject(Logger);
 
+  // Track if we've already enabled tracking for the current session
+  #trackingEnabledForSession = false;
+
   /**
    * Check if analytics is active and ready
    */
@@ -33,10 +36,18 @@ export class AnalyticsService {
     effect(() => {
       const authState = this.#authApi.authState();
       if (authState.isAuthenticated && authState.user) {
+        // Only enable tracking once per session to avoid redundant calls
+        // Safe because users must have accepted terms to have an account
+        if (!this.#trackingEnabledForSession) {
+          this.#postHogService.enableTracking();
+          this.#trackingEnabledForSession = true;
+          this.#logger.debug('PostHog tracking enabled for session');
+        }
         this.#postHogService.identify(authState.user.id);
         this.#logger.debug('User identified for analytics');
       } else if (!authState.isAuthenticated && !authState.isLoading) {
         this.#postHogService.reset();
+        this.#trackingEnabledForSession = false; // Reset flag on logout
         this.#logger.debug('Analytics session reset');
       }
     });
