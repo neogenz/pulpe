@@ -16,7 +16,7 @@ export class GlobalErrorHandler implements ErrorHandler {
 
   handleError(error: unknown): void {
     // Always log to console for development
-    console.error('[GlobalError]', error);
+    this.#logger.error('[GlobalError]', error);
 
     // Extract meaningful error message
     const errorMessage = this.#extractMessage(error);

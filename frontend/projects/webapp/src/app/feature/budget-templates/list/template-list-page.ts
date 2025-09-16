@@ -16,6 +16,7 @@ import { TitleDisplay } from '@core/routing';
 import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
 import { TemplateUsageDialogComponent } from '../components/dialogs/template-usage-dialog';
 import { getDeleteConfirmationConfig } from '../delete/template-delete-dialog';
+import { Logger } from '@core/logging/logger';
 
 @Component({
   selector: 'pulpe-template-list-page',
@@ -125,7 +126,7 @@ export default class TemplateListPage {
   readonly #dialog = inject(MatDialog);
   readonly #snackBar = inject(MatSnackBar);
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
-
+  readonly #logger = inject(Logger);
   async onDeleteTemplate(template: BudgetTemplate) {
     try {
       // First check if template is being used
@@ -161,7 +162,7 @@ export default class TemplateListPage {
         }
       }
     } catch (error) {
-      console.error('Error checking template usage:', error);
+      this.#logger.error('Error checking template usage:', error);
       this.#snackBar.open(
         'Une erreur est survenue lors de la vérification',
         'Fermer',
@@ -180,7 +181,7 @@ export default class TemplateListPage {
         duration: 3000,
       });
     } catch (error) {
-      console.error('Error deleting template:', error);
+      this.#logger.error('Error deleting template:', error);
       this.#snackBar.open(
         'Une erreur est survenue lors de la suppression',
         'Fermer',

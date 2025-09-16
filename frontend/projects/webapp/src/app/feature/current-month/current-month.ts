@@ -39,6 +39,7 @@ import { firstValueFrom } from 'rxjs';
 import { type TransactionCreate } from '@pulpe/shared';
 import { EditTransactionDialog } from './components/edit-transaction-dialog';
 import { type FinancialEntryModel } from './models/financial-entry.model';
+import { Logger } from '@core/logging/logger';
 
 type TransactionFormData = Pick<
   TransactionCreate,
@@ -221,7 +222,7 @@ export default class CurrentMonth implements OnInit {
   #bottomSheet = inject(MatBottomSheet);
   #dialog = inject(MatDialog);
   #snackBar = inject(MatSnackBar);
-
+  #logger = inject(Logger);
   recurringFinancialItems = computed<FinancialEntryModel[]>(() => {
     const budgetLines = this.store.displayBudgetLines();
     const budget = this.store.dashboardData()?.budget;
@@ -295,7 +296,7 @@ export default class CurrentMonth implements OnInit {
         category: transaction.category ?? null,
       });
     } catch (error) {
-      console.error(error);
+      this.#logger.error('Error adding transaction:', error);
     } finally {
       this.isCreatingTransaction.set(false);
     }
@@ -338,7 +339,7 @@ export default class CurrentMonth implements OnInit {
           duration: 3000,
         });
       } catch (error) {
-        console.error('Error deleting transaction:', error);
+        this.#logger.error('Error deleting transaction:', error);
 
         // Show specific error message
         this.#snackBar.open(
@@ -394,7 +395,7 @@ export default class CurrentMonth implements OnInit {
         duration: 3000,
       });
     } catch (error) {
-      console.error('Error updating transaction:', error);
+      this.#logger.error('Error updating transaction:', error);
 
       // Show specific error message
       this.#snackBar.open(

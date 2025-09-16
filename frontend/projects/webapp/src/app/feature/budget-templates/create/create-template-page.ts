@@ -11,6 +11,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { type BudgetTemplateCreate } from '@pulpe/shared';
 import { BudgetTemplatesState } from '../services/budget-templates-state';
 import { CreateTemplateForm } from './components/create-template-form';
+import { Logger } from '@core/logging/logger';
 
 // Constants
 const ROUTES = {
@@ -92,7 +93,7 @@ export default class CreateTemplatePage {
   #router = inject(Router);
   #state = inject(BudgetTemplatesState);
   #snackBar = inject(MatSnackBar);
-
+  #logger = inject(Logger);
   // Properties
   isCreatingTemplate = signal(false);
 
@@ -130,7 +131,7 @@ export default class CreateTemplatePage {
 
   private handleError(error: unknown): void {
     // Simple logging - in a real app, this would use a proper logging service
-    console.error('Erreur lors de la création du template:', error);
+    this.#logger.error('Erreur lors de la création du template:', error);
 
     const errorMessage = this.getErrorMessage(error);
     this.#snackBar.open(errorMessage, 'Fermer', SNACKBAR_CONFIG.ERROR);
