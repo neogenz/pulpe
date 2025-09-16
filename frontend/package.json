@@ -5,7 +5,7 @@
   "scripts": {
     "ng": "ng",
     "start": "npm run generate:config && npm run generate:build-info && ng serve --open",
-    "start:ci": "npm run generate:build-info && ng serve",
+    "start:ci": "npm run generate:config && npm run generate:build-info && ng serve",
     "dev": "npm run generate:build-info && ng serve --host 0.0.0.0",
     "prebuild": "npm run generate:config && npm run generate:build-info",
     "build": "ng build",
