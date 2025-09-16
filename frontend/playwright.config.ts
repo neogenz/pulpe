@@ -60,6 +60,8 @@ export default defineConfig({
     command: process.env.CI ? 'pnpm run start:ci' : 'pnpm run start',
     url: 'http://localhost:4200',
     reuseExistingServer: !process.env.CI,
+    stdout: 'pipe',
+    stderr: 'pipe',
     // Explicitly disable PostHog for E2E tests to prevent analytics interference
     env: {
       PUBLIC_POSTHOG_ENABLED: 'false',

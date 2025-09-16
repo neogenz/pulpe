@@ -1,15 +1,16 @@
-import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { environment } from '@env/environment';
 import { firstValueFrom } from 'rxjs';
+import { Logger } from '../logging/logger';
+import { isValidUrl, sanitizeUrl } from '../utils/validators';
 import {
   type ApplicationConfig,
   type ConfigFile,
-  safeValidateConfig,
   DEFAULT_CONFIG,
   formatConfigError,
+  safeValidateConfig,
 } from './config.schema';
-import { isValidUrl, sanitizeUrl } from '../utils/validators';
-import { Logger } from '../logging/logger';
 
 @Injectable({
   providedIn: 'root',
@@ -141,9 +142,29 @@ export class ApplicationConfiguration {
       'Cache-Control': 'no-cache, no-store, max-age=0',
       Pragma: 'no-cache',
     });
-    return firstValueFrom(
-      this.#http.get<ConfigFile>('/config.json', { headers }),
-    );
+
+    try {
+      return await firstValueFrom(
+        this.#http.get<ConfigFile>('/config.json', { headers }),
+      );
+    } catch (error: unknown) {
+      this.#logger.error('Error loading config.json', error);
+      this.#logger.error('❌ CRITICAL: config.json not found or invalid');
+      this.#logger.error('📍 Attempted to load from: /config.json');
+      this.#logger.error('💡 Fix: Run "npm run generate:config" to create it');
+
+      // En développement uniquement, utiliser les defaults
+      if (!environment.production) {
+        this.#logger.warn('⚠️ Using default config for development');
+        this.#logger.warn('Config:', DEFAULT_CONFIG);
+        return DEFAULT_CONFIG;
+      }
+
+      // En production, fail fast
+      throw new Error('config.json is required. Run: npm run generate:config', {
+        cause: error,
+      });
+    }
   }
 
   /**
