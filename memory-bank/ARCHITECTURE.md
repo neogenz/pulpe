@@ -34,17 +34,6 @@ pulpe-workspace/
 - Composants Angular → vont dans frontend/
 - Logique métier → va dans backend/
 
-#### 📁 **Structure @pulpe/shared**
-
-```
-shared/
-├── dto/
-│   ├── budget.dto.ts         # Schemas Zod pour API REST
-│   ├── transaction.dto.ts    # Schemas Zod pour API REST
-│   └── index.ts
-└── index.ts                  # Export tout
-```
-
 #### 📝 **Exemple @pulpe/shared**
 
 ```typescript
@@ -57,15 +46,7 @@ export const createBudgetDto = z.object({
   amount: z.number().positive(),
 });
 
-export const budgetResponseDto = z.object({
-  id: z.string(),
-  name: z.string(),
-  amount: z.number(),
-  createdAt: z.string(),
-});
-
 export type CreateBudgetDto = z.infer<typeof createBudgetDto>;
-export type BudgetResponse = z.infer<typeof budgetResponseDto>;
 ```
 
 ---
@@ -80,6 +61,7 @@ src/
 │   ├── monthly-budgets/
 │   │   ├── monthly-budgets.controller.ts   # Routes HTTP
 │   │   ├── monthly-budgets.service.ts      # Logique métier
+│   │   ├── monthly-budgets.mapper.ts       # Transformation DTO ↔ Entity
 │   │   ├── monthly-budgets.module.ts       # Configuration module
 │   │   └── dto/                    # DTOs NestJS seulement
 │   │       ├── create-budget.dto.ts
@@ -88,26 +70,20 @@ src/
 │   ├── database.types.ts           # Types Supabase (backend SEULEMENT)
 │   └── supabase.types.ts
 ├── common/                         # Code transversal
-│   ├── decorators/
-│   ├── guards/
-│   └── pipes/
-└── app.module.ts                   # ZodValidationPipe global
+│   ├── decorators/                 # @User(), @SupabaseClient()
+│   ├── guards/                     # AuthGuard
+│   ├── filters/                    # Exception handling global
+│   └── pipes/                      # Validation pipes
+└── app.module.ts                   # ZodValidationPipe global + Pino logging
 ```
 
-#### 📝 **Workflow backend : Ajouter une feature**
+#### 🔧 **Patterns Backend Essentiels**
 
-1. **Créer le module** : `nest g module features/ma-feature`
-2. **Créer le controller** : `nest g controller features/ma-feature`
-3. **Créer le service** : `nest g service features/ma-feature`
-4. **Créer les DTOs** à partir de @pulpe/shared :
-
-   ```typescript
-   // dto/create-ma-feature.dto.ts
-   import { createZodDto } from "nestjs-zod";
-   import { createMaFeatureDto } from "@pulpe/shared"; // ✅ DTO REST du package
-
-   export class CreateMaFeatureDto extends createZodDto(createMaFeatureDto) {}
-   ```
+- **Controller Pattern** : Validation HTTP + délégation aux services
+- **Service Pattern** : Logique métier + orchestration
+- **Mapper Pattern** : Transformation DTO ↔ Entity (snake_case ↔ camelCase)
+- **Exception Filter** : Gestion centralisée des erreurs avec format standardisé
+- **Structured Logging** : Pino avec correlation ID et redaction des données sensibles
 
 #### ✅ **Où mettre mon code backend ?**
 
@@ -115,6 +91,7 @@ src/
 | ------------------ | ------------------------- | ---------------------------------------- |
 | Route HTTP         | `*.controller.ts`         | `@Post() create(@Body() dto: CreateDto)` |
 | Logique métier     | `*.service.ts`            | `async create(dto, userId) { ... }`      |
+| Transformation     | `*.mapper.ts`             | `toApi(dbRow)`, `toDbInsert(dto)`        |
 | Validation DTO     | `dto/*.dto.ts`            | `extends createZodDto(dtoFromShared)`    |
 | Guard/Interceptor  | `common/`                 | `auth.guard.ts`                          |
 | **Types Supabase** | `types/database.types.ts` | `Database['public']['Tables']`           |
@@ -124,32 +101,94 @@ src/
 
 ### **Rule #3 : frontend/ - Interface utilisateur**
 
-#### 📁 **Structure frontend/**
+#### 📁 **Structure frontend/ - 5 Types Architecturaux**
 
 ```
 src/app/
-├── features/
+├── core/                    # Services, guards, interceptors (eager-loaded)
+│   ├── auth/               # AuthApi, guards, interceptors
+│   ├── budget/             # Services métier budget
+│   └── config/             # Configuration app
+├── layout/                  # Shell application (header, navigation)
+├── ui/                      # Composants réutilisables stateless
+├── feature/                 # Domaines métier (lazy-loaded)
 │   ├── budget/
-│   │   ├── components/
-│   │   ├── services/
-│   │   └── pages/
-├── shared/
-│   ├── components/
-│   └── services/
-└── core/
-    ├── auth/
-    └── layout/
+│   └── transaction/
+└── pattern/                 # Composants stateful réutilisables
 ```
+
+#### 🎯 **Types Architecturaux & Contraintes**
+
+| **Type**   | **Purpose**                        | **Contraintes**                                   | **Loading**   |
+| ---------- | ---------------------------------- | ------------------------------------------------- | ------------- |
+| `core`     | Services partagés headless         | Pas de composants, seulement des `@Injectable`   | Eager         |
+| `layout`   | Shell application                  | Consomme `core` + `ui`                            | Eager         |
+| `ui`       | Composants stateless réutilisables | Pas d'injection de services, seulement I/O       | Cherry-picked |
+| `feature`  | Domaines métier isolés             | Isolation complète, pas de dépendances entre eux | Lazy-loaded   |
+| `pattern`  | Composants stateful réutilisables  | Peut injecter `core`, consomme `ui`               | Imported      |
+
+#### 🔗 **Règles de Dépendances (Acyclique)**
+
+```
+core     ← layout, feature, pattern
+ui       ← layout, feature, pattern
+pattern  ← feature
+feature  ← (isolé, pas de dépendances siblings)
+```
+
+#### ⚡ **Patterns Frontend Modernes**
+
+- **Standalone Components** : Pas de NgModules, tout est standalone
+- **Signal-based** : Angular signals pour l'état réactif
+- **OnPush Strategy** : Performance avec `ChangeDetectionStrategy.OnPush`
+- **Lazy Loading** : Toutes les features via `loadChildren`
+- **Material Design 3** : Angular Material v20 + Tailwind CSS v4
 
 #### ✅ **Où mettre mon code frontend ?**
 
 | **Quoi**               | **Où**                   | **Exemple**                |
 | ---------------------- | ------------------------ | -------------------------- |
-| Page métier            | `features/*/pages/`      | `budget-list.page.ts`      |
-| Composant métier       | `features/*/components/` | `budget-card.component.ts` |
-| Service API            | `features/*/services/`   | `budget.service.ts`        |
-| Composant réutilisable | `shared/components/`     | `button.component.ts`      |
+| Service d'état global  | `core/[domain]/`         | `core/auth/auth-api.ts`    |
+| Composant métier       | `feature/*/components/`  | `budget-card.component.ts` |
+| Service API feature    | `feature/*/services/`    | `budget.service.ts`        |
+| Composant réutilisable | `ui/`                    | `button.component.ts`      |
+| Shell application      | `layout/`                | `header.component.ts`      |
 | **Types REST**         | `@pulpe/shared`          | `CreateBudgetDto`          |
+
+---
+
+## 🔐 **Authentification & Sécurité**
+
+### **🎯 Principe de sécurité**
+
+**JWT + RLS** • **Authentification Supabase** • **Zero Trust** • **Isolation par utilisateur**
+
+### **🏗️ Architecture sécurisée**
+
+```
+Frontend ←--JWT Bearer--> Backend ←--Auth Client--> Supabase
+   ↓                         ↓                        ↓
+AuthGuard              AuthGuard                   RLS Policies
+AuthAPI               @User() decorator            auth.uid()
+Signals               @SupabaseClient()           row-level filtering
+```
+
+### **🔑 Patterns d'Authentification**
+
+#### Frontend (Angular)
+- **AuthApi** avec signals pour l'état réactif
+- **AuthGuard** avec `toObservable()` pour protection des routes
+- **AuthInterceptor** avec refresh automatique des tokens
+
+#### Backend (NestJS)
+- **AuthGuard** valide JWT avec `supabase.auth.getUser()`
+- **@User() decorator** injecte l'utilisateur authentifié
+- **@SupabaseClient() decorator** fournit le client authentifié
+
+#### Database (Supabase)
+- **Row Level Security (RLS)** activé sur toutes les tables
+- **Policies** basées sur `auth.uid()` pour isolation automatique
+- **SECURITY DEFINER** sur les fonctions sensibles
 
 ---
 
@@ -166,484 +205,41 @@ export const createMaFeatureDto = z.object({
 export type CreateMaFeatureDto = z.infer<typeof createMaFeatureDto>;
 ```
 
-### **2. Backend : Créer le module**
+### **2. Backend : Créer le module complet**
 
 ```typescript
-// backend-nest/src/modules/ma-feature/dto/create-ma-feature.dto.ts
-import { createZodDto } from "nestjs-zod";
-import { createMaFeatureDto } from "@pulpe/shared";
+// Module structure avec mapper
+backend-nest/src/modules/ma-feature/
+├── ma-feature.controller.ts
+├── ma-feature.service.ts
+├── ma-feature.mapper.ts      # ← Pattern de transformation
+├── ma-feature.module.ts
+└── dto/create-ma-feature.dto.ts
 
-export class CreateMaFeatureDto extends createZodDto(createMaFeatureDto) {}
+// Service avec mapper
+async create(dto: CreateMaFeatureDto, user: AuthenticatedUser) {
+  const insertData = this.mapper.toDbInsert(dto, user.id);
+  const result = await supabase.from('ma_features').insert(insertData);
+  return this.mapper.toApi(result);
+}
 ```
 
+### **3. Frontend : Feature isolée**
+
 ```typescript
-// backend-nest/src/modules/ma-feature/ma-feature.service.ts
-import type { Database } from "../../types/database.types"; // ✅ Types Supabase backend
-import { CreateMaFeatureDto } from "@pulpe/shared"; // ✅ Type REST shared
+// feature/ma-feature/ma-feature.routes.ts
+export const routes: Routes = [
+  { path: '', component: MaFeatureComponent }
+];
 
-type MaFeatureInsert = Database["public"]["Tables"]["ma_features"]["Insert"];
-
+// feature/ma-feature/services/ma-feature.service.ts
 @Injectable()
 export class MaFeatureService {
-  async create(dto: CreateMaFeatureDto): Promise<any> {
-    // Mapping DTO REST → Supabase
-    const insertData: MaFeatureInsert = {
-      name: dto.name,
-      user_id: "current-user-id",
-    };
-
-    return this.supabase.from("ma_features").insert(insertData);
+  create(data: CreateMaFeatureDto) {
+    return this.http.post('/api/v1/ma-feature', data);
   }
 }
 ```
-
-### **3. Frontend : Utiliser les types**
-
-```typescript
-// frontend/src/app/features/ma-feature/services/ma-feature.service.ts
-import { CreateMaFeatureDto } from "@pulpe/shared"; // ✅ Type REST partagé
-
-export class MaFeatureService {
-  create(data: CreateMaFeatureDto): Observable<any> {
-    return this.http.post("/api/ma-feature", data);
-  }
-}
-```
-
----
-
-## 🔐 **Authentification & Sécurité**
-
-### **🎯 Principe de sécurité**
-
-**JWT + RLS** • **Authentification Supabase** • **Zero Trust** • **Isolation par utilisateur**
-
-### **🏗️ Architecture sécurisée**
-
-```
-Frontend ←--JWT Bearer--> Backend ←--Auth Client--> Supabase
-   ↓                         ↓                        ↓
-AuthGuard              AuthGuard                   RLS Policies
-AuthAPI               User Decorator               auth.uid()
-Signals               SupabaseClient              row-level filtering
-```
-
----
-
-### **Rule #4 : Frontend - Authentification Angular**
-
-#### 📁 **Structure auth frontend**
-
-```
-core/auth/
-├── auth-api.ts              # Service Supabase + Signals
-├── auth-guard.ts           # Protection routes
-├── auth-interceptor.ts     # Injection JWT automatique
-├── auth-error-localizer.ts # Gestion erreurs i18n
-└── public-guard.ts         # Routes publiques
-```
-
-#### 🔑 **AuthApi avec Signals**
-
-```typescript
-// core/auth/auth-api.ts
-@Injectable({ providedIn: "root" })
-export class AuthApi {
-  #supabaseClient = createClient(
-    environment.supabaseUrl,
-    environment.supabaseAnonKey
-  );
-  #sessionSignal = signal<Session | null>(null);
-  #isLoadingSignal = signal<boolean>(true);
-
-  // Computed signals pour l'état dérivé
-  readonly isAuthenticated = computed(
-    () => !!this.#sessionSignal() && !this.#isLoadingSignal()
-  );
-
-  async signInWithEmail(email: string, password: string) {
-    const { error } = await this.#supabaseClient.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { success: !error, error: error?.message };
-  }
-
-  async getCurrentSession(): Promise<Session | null> {
-    const {
-      data: { session },
-    } = await this.#supabaseClient.auth.getSession();
-    return session;
-  }
-}
-```
-
-#### 🛡️ **AuthGuard réactif**
-
-```typescript
-// core/auth/auth-guard.ts
-export const authGuard: CanActivateFn = () => {
-  const authApi = inject(AuthApi);
-  const router = inject(Router);
-
-  return toObservable(authApi.authState).pipe(
-    filter((state) => !state.isLoading),
-    take(1),
-    map((state) => {
-      if (state.isAuthenticated) return true;
-      return router.createUrlTree([ROUTES.ONBOARDING]);
-    })
-  );
-};
-```
-
-#### 🔧 **AuthInterceptor avec refresh automatique**
-
-```typescript
-// core/auth/auth-interceptor.ts
-export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  const authApi = inject(AuthApi);
-
-  return from(addAuthToken(req, authApi)).pipe(
-    switchMap((authReq) => next(authReq)),
-    catchError((error) => {
-      if (error.status === 401) {
-        // Token expiré, essayer de le rafraîchir
-        return from(authApi.refreshSession()).pipe(
-          switchMap((refreshSuccess) => {
-            if (refreshSuccess) {
-              // Réessayer avec nouveau token
-              return from(addAuthToken(req, authApi)).pipe(
-                switchMap((authReq) => next(authReq))
-              );
-            }
-            // Déconnecter si impossible de rafraîchir
-            authApi.signOut();
-            return throwError(() => new Error("Session expirée"));
-          })
-        );
-      }
-      return throwError(() => error);
-    })
-  );
-};
-
-async function addAuthToken(req: HttpRequest<unknown>, authApi: AuthApi) {
-  const session = await authApi.getCurrentSession();
-  if (session?.access_token) {
-    return req.clone({
-      headers: req.headers.set(
-        "Authorization",
-        `Bearer ${session.access_token}`
-      ),
-    });
-  }
-  return req;
-}
-```
-
----
-
-### **Rule #5 : Backend - Authentification NestJS**
-
-#### 📁 **Structure auth backend**
-
-```
-common/
-├── guards/
-│   ├── auth.guard.ts           # Validation JWT obligatoire
-│   └── optional-auth.guard.ts  # Validation JWT optionnelle
-├── decorators/
-│   └── user.decorator.ts       # Injection User + SupabaseClient
-└── interceptors/
-    └── response.interceptor.ts # Formatage réponses
-```
-
-#### 🛡️ **AuthGuard avec validation JWT**
-
-```typescript
-// common/guards/auth.guard.ts
-@Injectable()
-export class AuthGuard implements CanActivate {
-  constructor(private readonly supabaseService: SupabaseService) {}
-
-  async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest();
-    const accessToken = this.extractTokenFromHeader(request);
-
-    if (!accessToken) {
-      throw new UnauthorizedException("Token d'accès requis");
-    }
-
-    const supabase =
-      this.supabaseService.createAuthenticatedClient(accessToken);
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser();
-
-    if (error || !user) {
-      throw new UnauthorizedException("Token invalide ou expiré");
-    }
-
-    // Injection dans la requête pour les decorators
-    request.user = {
-      id: user.id,
-      email: user.email!,
-      firstName: user.user_metadata?.firstName,
-      lastName: user.user_metadata?.lastName,
-    };
-    request.supabase = supabase;
-
-    return true;
-  }
-
-  private extractTokenFromHeader(request: any): string | undefined {
-    const authHeader = request.headers?.authorization;
-    const [type, token] = authHeader?.split(" ") ?? [];
-    return type === "Bearer" ? token : undefined;
-  }
-}
-```
-
-#### 💉 **User Decorators**
-
-```typescript
-// common/decorators/user.decorator.ts
-export interface AuthenticatedUser {
-  readonly id: string;
-  readonly email: string;
-  readonly firstName?: string;
-  readonly lastName?: string;
-}
-
-export const User = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext): AuthenticatedUser => {
-    const request = ctx.switchToHttp().getRequest();
-    return request.user;
-  }
-);
-
-export const SupabaseClient = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext) => {
-    const request = ctx.switchToHttp().getRequest();
-    return request.supabase;
-  }
-);
-```
-
-#### 🔧 **SupabaseService**
-
-```typescript
-// modules/supabase/supabase.service.ts
-@Injectable()
-export class SupabaseService {
-  createAuthenticatedClient(accessToken: string): AuthenticatedSupabaseClient {
-    return createClient<Database>(this.supabaseUrl, this.supabaseAnonKey, {
-      global: {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      },
-    });
-  }
-}
-```
-
-#### 🎮 **Utilisation dans les Controllers**
-
-```typescript
-// modules/monthly-budgets/monthly-budgets.controller.ts
-@Controller("monthly-budgets")
-@UseGuards(AuthGuard)
-@ApiBearerAuth()
-export class BudgetsController {
-  @Get()
-  async findAll(
-    @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient
-  ): Promise<BudgetListResponse> {
-    return this.monthlyBudgetService.findAll(supabase);
-  }
-
-  @Post()
-  async create(
-    @Body() createBudgetDto: BudgetCreateDto,
-    @User() user: AuthenticatedUser,
-    @SupabaseClient() supabase: AuthenticatedSupabaseClient
-  ): Promise<BudgetResponse> {
-    return this.monthlyBudgetService.create(createBudgetDto, user, supabase);
-  }
-}
-```
-
----
-
-### **Rule #6 : Database - Row Level Security (RLS)**
-
-#### 🗄️ **Tables avec RLS activé**
-
-```sql
--- Activation RLS sur toutes les tables
-ALTER TABLE "public"."monthly_budget" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "public"."transaction" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "public"."template" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "public"."template_line" ENABLE ROW LEVEL SECURITY;
-```
-
-#### 🔐 **Politiques par opération**
-
-```sql
--- SELECT : Utilisateurs voient seulement leurs données
-CREATE POLICY "Utilisateurs peuvent voir leurs budgets"
-ON "public"."monthly_budget" FOR SELECT
-USING (auth.uid() = user_id);
-
--- INSERT : Utilisateurs créent seulement pour eux
-CREATE POLICY "Utilisateurs peuvent créer leurs budgets"
-ON "public"."monthly_budget" FOR INSERT
-WITH CHECK (auth.uid() = user_id);
-
--- UPDATE : Utilisateurs modifient seulement leurs données
-CREATE POLICY "Utilisateurs peuvent modifier leurs budgets"
-ON "public"."monthly_budget" FOR UPDATE
-USING (auth.uid() = user_id)
-WITH CHECK (auth.uid() = user_id);
-
--- DELETE : Utilisateurs suppriment seulement leurs données
-CREATE POLICY "Utilisateurs peuvent supprimer leurs budgets"
-ON "public"."monthly_budget" FOR DELETE
-USING (auth.uid() = user_id);
-```
-
-#### 🔗 **Politiques avec relations**
-
-```sql
--- Templates publics ET privés
-CREATE POLICY "Users can view own templates and public templates"
-ON "public"."template" FOR SELECT
-USING ((auth.uid() = user_id) OR (user_id IS NULL));
-
--- Transactions de templates basées sur l'accès au template
-CREATE POLICY "Users can view template transactions based on template access"
-ON "public"."template_line" FOR SELECT
-USING (EXISTS (
-  SELECT 1 FROM "public"."template"
-  WHERE ("template"."id" = "template_line"."template_id")
-  AND ((auth.uid() = "template"."user_id") OR ("template"."user_id" IS NULL))
-));
-```
-
-#### 🔑 **Fonctions sécurisées**
-
-```sql
--- Fonction pour créer budget à partir d'un template
-CREATE OR REPLACE FUNCTION create_budget_from_template(
-  p_user_id uuid,
-  p_template_id uuid,
-  p_month integer,
-  p_year integer,
-  p_description text
-) RETURNS jsonb
-LANGUAGE plpgsql SECURITY DEFINER  -- ✅ Exécution avec privilèges fonction
-SET search_path TO 'public'        -- ✅ Sécurisation du search_path
-AS $$
-DECLARE
-  new_budget_id uuid;
-  template_lines jsonb;
-BEGIN
-  -- Vérifier que le template appartient à l'utilisateur ou est global
-  IF NOT EXISTS (
-    SELECT 1 FROM template 
-    WHERE id = p_template_id 
-    AND (user_id = p_user_id OR user_id IS NULL)
-  ) THEN
-    RAISE EXCEPTION 'Template not found or access denied';
-  END IF;
-
-  -- Créer le budget
-  INSERT INTO monthly_budget (user_id, month, year, description)
-  VALUES (p_user_id, p_month, p_year, p_description)
-  RETURNING id INTO new_budget_id;
-
-  -- Copier les lignes du template vers le budget
-  INSERT INTO transaction (
-    user_id, monthly_budget_id, name, amount, type, 
-    is_income, category, day_of_month
-  )
-  SELECT 
-    p_user_id, new_budget_id, name, amount, type,
-    is_income, category, day_of_month
-  FROM template_line
-  WHERE template_id = p_template_id;
-
-  RETURN jsonb_build_object(
-    'budget', jsonb_build_object('id', new_budget_id),
-    'transactionCount', (
-      SELECT COUNT(*) FROM transaction 
-      WHERE monthly_budget_id = new_budget_id
-    )
-  );
-END;
-$$;
-```
-
-#### 🔗 **Contraintes d'intégrité**
-
-```sql
--- Foreign keys vers auth.users avec suppression en cascade
-ALTER TABLE "public"."monthly_budget"
-ADD CONSTRAINT "monthly_budget_user_id_fkey"
-FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
-
--- Index pour les performances des politiques RLS
-CREATE INDEX "monthly_budget_user_id_idx" ON "public"."monthly_budget" USING btree ("user_id");
-CREATE INDEX "transaction_user_id_idx" ON "public"."transaction" USING btree ("user_id");
-
--- Contrainte unique par utilisateur
-ALTER TABLE "public"."monthly_budget"
-ADD CONSTRAINT "unique_month_year_per_user"
-UNIQUE ("month", "year", "user_id");
-```
-
----
-
-### **🔒 Checklist Sécurité**
-
-#### **✅ Frontend**
-
-- [ ] **AuthGuard** sur toutes les routes privées
-- [ ] **AuthInterceptor** configuré pour ajouter JWT automatiquement
-- [ ] **Refresh automatique** des tokens expirés
-- [ ] **Signals** pour l'état d'authentification réactif
-- [ ] **Localisation** des erreurs d'authentification
-- [ ] **Nettoyage** du localStorage à la déconnexion
-
-#### **✅ Backend**
-
-- [ ] **AuthGuard** sur tous les controllers privés
-- [ ] **@User()** decorator pour injection utilisateur authentifié
-- [ ] **@SupabaseClient()** decorator pour client authentifié
-- [ ] **Validation JWT** avec `supabase.auth.getUser()`
-- [ ] **Mapping** DTO REST → Types Supabase sécurisé
-- [ ] **Gestion d'erreurs** d'authentification appropriée
-
-#### **✅ Database**
-
-- [ ] **RLS activé** sur toutes les tables
-- [ ] **Politiques** pour chaque opération (SELECT, INSERT, UPDATE, DELETE)
-- [ ] **auth.uid()** dans toutes les politiques
-- [ ] **Foreign keys** vers auth.users avec CASCADE
-- [ ] **Index** sur user_id pour les performances
-- [ ] **SECURITY DEFINER** sur les fonctions sensibles
-
-#### **🎯 Principes de sécurité**
-
-1. **"Zero Trust"** → Valider chaque requête avec JWT
-2. **"Least Privilege"** → RLS isole automatiquement par utilisateur
-3. **"Defense in Depth"** → Frontend + Backend + Database layers
-4. **"Fail Secure"** → Erreur d'auth = accès refusé
-5. **"Audit Trail"** → Logs des tentatives d'authentification
 
 ---
 
@@ -653,18 +249,20 @@ UNIQUE ("month", "year", "user_id");
 
 ```typescript
 // ❌ Types Supabase dans @pulpe/shared
-// shared/types/database.types.ts
-export type Database = { ... }; // ❌ VA DANS BACKEND !
+export type Database = { ... }; // VA DANS BACKEND !
 
-// ❌ DTO NestJS dans @pulpe/shared
-// shared/dto/budget.dto.ts
-export class CreateBudgetDto extends createZodDto(schema) {} // ❌ DÉPENDANCE NESTJS !
+// ❌ Injection de services dans ui/
+@Component({ /* ui component */ })
+export class UiComponent {
+  constructor(private service: SomeService) {} // INTERDIT !
+}
+
+// ❌ Dépendances entre features
+import { FeatureAService } from '../feature-a/'; // INTERDIT !
 
 // ❌ Logique métier dans controller
-@Post()
-async create(@Body() dto) {
-  const result = await this.supabase.insert(...); // ❌ VA DANS SERVICE !
-  return result;
+@Post() create(@Body() dto) {
+  return this.supabase.insert(...); // VA DANS SERVICE !
 }
 ```
 
@@ -672,117 +270,59 @@ async create(@Body() dto) {
 
 ```typescript
 // ✅ DTOs REST dans @pulpe/shared
-// shared/dto/budget.dto.ts
 export const createBudgetDto = z.object({ name: z.string() });
-export type CreateBudgetDto = z.infer<typeof createBudgetDto>;
 
-// ✅ Types Supabase dans backend seulement
-// backend-nest/types/database.types.ts
-export type Database = { ... };
+// ✅ Composant ui stateless
+@Component({ /* ui component */ })
+export class UiComponent {
+  @Input() data: any;
+  @Output() action = new EventEmitter();
+}
 
-// ✅ Service avec mapping DTO → Supabase
-async create(dto: CreateBudgetDto) {
-  const insertData: BudgetInsert = {
-    name: dto.name,
-    user_id: currentUserId
-  };
-  return this.supabase.insert(insertData);
+// ✅ Feature isolée utilisant core services
+@Component({ /* feature component */ })
+export class FeatureComponent {
+  constructor(private coreService: CoreService) {}
 }
 ```
 
 ---
 
-## 📊 **Checklist avant commit**
+## 📊 **Quick Reference**
 
-### **✅ J'ai respecté les règles ?**
-
-- [ ] **DTOs REST SEULEMENT** dans `@pulpe/shared`
-- [ ] **Types Supabase** dans `backend-nest/types/`
-- [ ] DTOs NestJS dans `backend-nest/modules/*/dto/`
-- [ ] Logique métier dans les services, pas les controllers
-- [ ] Validation automatique via `ZodValidationPipe` global
-- [ ] `@pulpe/shared` ne contient AUCUN type Supabase
-
-### **🎯 Questions à se poser**
+### **🎯 Questions de placement**
 
 1. **"Où va mon DTO REST ?"** → `@pulpe/shared`
 2. **"Où vont mes types Supabase ?"** → `backend-nest/types/`
-3. **"Où va ma validation backend ?"** → DTO NestJS créé depuis DTO shared
-4. **"Où va ma logique métier ?"** → `*.service.ts`
+3. **"Mon composant est-il stateless ?"** → `ui/` sinon `feature/` ou `pattern/`
+4. **"Ma feature dépend d'une autre ?"** → Extraire vers `core/` ou `pattern/`
+5. **"Où va ma logique métier ?"** → `*.service.ts` avec mapper pour transformation
 
----
+### **🔒 Checklist Sécurité**
 
-## 📚 **Exemple complet**
+- [ ] **RLS activé** sur toutes les tables
+- [ ] **AuthGuard** sur routes privées (frontend + backend)
+- [ ] **JWT validation** avec `supabase.auth.getUser()`
+- [ ] **Policies** basées sur `auth.uid()`
+- [ ] **Sensitive data redaction** dans les logs
 
-### **Créer une entité "Category"**
+### **⚡ Performance Checklist**
 
-```typescript
-// 1. shared/dto/category.dto.ts
-export const createCategoryDto = z.object({
-  name: z.string().min(1).max(50),
-  color: z.string().regex(/^#[0-9A-F]{6}$/i),
-});
-
-export type CreateCategoryDto = z.infer<typeof createCategoryDto>;
-```
-
-```typescript
-// 2. backend-nest/src/types/database.types.ts
-export type Database = {
-  public: {
-    Tables: {
-      categories: {
-        Row: { id: string; name: string; color: string; user_id: string };
-        Insert: { name: string; color: string; user_id: string };
-      };
-    };
-  };
-};
-```
-
-```typescript
-// 3. backend-nest/src/modules/categories/dto/create-category.dto.ts
-import { createZodDto } from "nestjs-zod";
-import { createCategoryDto } from "@pulpe/shared";
-
-export class CreateCategoryDto extends createZodDto(createCategoryDto) {}
-```
-
-```typescript
-// 4. backend-nest/src/modules/categories/categories.service.ts
-import type { Database } from '../../types/database.types';
-import { CreateCategoryDto } from '@pulpe/shared';
-
-type CategoryInsert = Database['public']['Tables']['categories']['Insert'];
-
-async create(dto: CreateCategoryDto, userId: string) {
-  const insertData: CategoryInsert = {
-    name: dto.name,
-    color: dto.color,
-    user_id: userId
-  };
-
-  return this.supabase.from('categories').insert(insertData);
-}
-```
-
-```typescript
-// 5. frontend/src/app/features/category/services/category.service.ts
-import { CreateCategoryDto } from '@pulpe/shared';
-
-create(data: CreateCategoryDto): Observable<any> {
-  return this.http.post('/api/categories', data);
-}
-```
+- [ ] **OnPush strategy** sur tous les composants
+- [ ] **Lazy loading** pour toutes les features
+- [ ] **Signals** pour l'état réactif
+- [ ] **Tree-shaking** optimisé via standalone components
+- [ ] **Bundle analysis** régulier avec `pnpm analyze`
 
 ---
 
 ## 🎉 **TL;DR**
 
-1. **DTOs REST** → `@pulpe/shared`
-2. **Types Supabase** → `backend-nest/types/`
-3. **DTOs NestJS** → `backend-nest/modules/*/dto/`
-4. **Logique métier** → `*.service.ts`
-5. **JAMAIS de types Supabase dans @pulpe/shared !**
+1. **DTOs REST** → `@pulpe/shared` (Zod schemas uniquement)
+2. **Types Supabase** → `backend-nest/types/` (jamais dans shared !)
+3. **Frontend** → 5 types architecturaux avec isolation stricte
+4. **Backend** → Controller + Service + Mapper pattern
+5. **Sécurité** → JWT + RLS + Zero Trust partout
+6. **Performance** → Standalone + Signals + OnPush + Lazy loading
 
 **@pulpe/shared = contrat REST uniquement, rien d'autre !** ✨

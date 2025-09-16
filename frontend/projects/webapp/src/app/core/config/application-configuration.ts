@@ -26,16 +26,32 @@ export class ApplicationConfiguration {
     'development',
   );
 
-  // PostHog configuration signals
-  readonly postHogApiKey = signal<string>('');
-  readonly postHogHost = signal<string>('https://eu.posthog.com');
-  readonly postHogEnabled = signal<boolean>(false);
-  readonly postHogCapturePageviews = signal<boolean>(true);
-  readonly postHogCapturePageleaves = signal<boolean>(true);
-  readonly postHogSessionRecordingEnabled = signal<boolean>(false);
-  readonly postHogSessionRecordingMaskInputs = signal<boolean>(true);
-  readonly postHogSessionRecordingSampleRate = signal<number>(0.1);
-  readonly postHogDebug = signal<boolean>(false);
+  // PostHog configuration as a single signal object
+  readonly postHog = signal<{
+    apiKey: string;
+    host: string;
+    enabled: boolean;
+    capturePageviews: boolean;
+    capturePageleaves: boolean;
+    sessionRecording: {
+      enabled: boolean;
+      maskInputs: boolean;
+      sampleRate: number;
+    };
+    debug: boolean;
+  }>({
+    apiKey: '',
+    host: 'https://eu.posthog.com',
+    enabled: false,
+    capturePageviews: true,
+    capturePageleaves: true,
+    sessionRecording: {
+      enabled: false,
+      maskInputs: true,
+      sampleRate: 0.1,
+    },
+    debug: false,
+  });
 
   // Configuration complète en lecture seule
   readonly rawConfiguration = computed<ApplicationConfig | null>(() => {
@@ -56,20 +72,9 @@ export class ApplicationConfiguration {
     };
 
     // Add PostHog configuration if API key is provided
-    if (this.postHogApiKey()) {
-      config.postHog = {
-        apiKey: this.postHogApiKey(),
-        host: this.postHogHost(),
-        enabled: this.postHogEnabled(),
-        capturePageviews: this.postHogCapturePageviews(),
-        capturePageleaves: this.postHogCapturePageleaves(),
-        sessionRecording: {
-          enabled: this.postHogSessionRecordingEnabled(),
-          maskInputs: this.postHogSessionRecordingMaskInputs(),
-          sampleRate: this.postHogSessionRecordingSampleRate(),
-        },
-        debug: this.postHogDebug(),
-      };
+    const postHogConfig = this.postHog();
+    if (postHogConfig.apiKey) {
+      config.postHog = postHogConfig;
     }
 
     return config;
@@ -82,25 +87,16 @@ export class ApplicationConfiguration {
 
   // PostHog specific computed signals
   readonly postHogConfig = computed(() => {
-    const apiKey = this.postHogApiKey();
+    const config = this.postHog();
 
     // Return null if PostHog is not configured
-    if (!apiKey) {
+    if (!config.apiKey) {
       return null;
     }
 
     return {
-      apiKey,
-      host: this.postHogHost(),
-      enabled: this.postHogEnabled(),
-      capturePageviews: this.postHogCapturePageviews(),
-      capturePageleaves: this.postHogCapturePageleaves(),
-      sessionRecording: {
-        enabled: this.postHogSessionRecordingEnabled(),
-        maskInputs: this.postHogSessionRecordingMaskInputs(),
-        sampleRate: this.postHogSessionRecordingSampleRate(),
-      },
-      debug: this.postHogDebug() || this.isDevelopment(),
+      ...config,
+      debug: config.debug || this.isDevelopment(),
     };
   });
 
@@ -203,25 +199,20 @@ export class ApplicationConfiguration {
       });
     }
 
-    this.postHogApiKey.set(config.postHog.apiKey);
-    this.postHogHost.set(postHogHost);
-    this.postHogEnabled.set(config.postHog.enabled);
-    this.postHogCapturePageviews.set(config.postHog.capturePageviews);
-    this.postHogCapturePageleaves.set(config.postHog.capturePageleaves);
-    this.postHogDebug.set(config.postHog.debug);
-
-    // Set session recording configuration
-    if (config.postHog.sessionRecording) {
-      this.postHogSessionRecordingEnabled.set(
-        config.postHog.sessionRecording.enabled,
-      );
-      this.postHogSessionRecordingMaskInputs.set(
-        config.postHog.sessionRecording.maskInputs,
-      );
-      this.postHogSessionRecordingSampleRate.set(
-        config.postHog.sessionRecording.sampleRate,
-      );
-    }
+    // Set PostHog configuration as a single update
+    this.postHog.set({
+      apiKey: config.postHog.apiKey,
+      host: postHogHost,
+      enabled: config.postHog.enabled,
+      capturePageviews: config.postHog.capturePageviews,
+      capturePageleaves: config.postHog.capturePageleaves,
+      sessionRecording: config.postHog.sessionRecording || {
+        enabled: false,
+        maskInputs: true,
+        sampleRate: 0.1,
+      },
+      debug: config.postHog.debug,
+    });
 
     this.#logger.info('PostHog configuration loaded', {
       enabled: config.postHog.enabled,
@@ -242,26 +233,19 @@ export class ApplicationConfiguration {
 
     // Set PostHog defaults
     if (DEFAULT_CONFIG.postHog) {
-      this.postHogApiKey.set(DEFAULT_CONFIG.postHog.apiKey);
-      this.postHogHost.set(DEFAULT_CONFIG.postHog.host);
-      this.postHogEnabled.set(DEFAULT_CONFIG.postHog.enabled);
-      this.postHogCapturePageviews.set(DEFAULT_CONFIG.postHog.capturePageviews);
-      this.postHogCapturePageleaves.set(
-        DEFAULT_CONFIG.postHog.capturePageleaves,
-      );
-      this.postHogDebug.set(DEFAULT_CONFIG.postHog.debug);
-
-      if (DEFAULT_CONFIG.postHog.sessionRecording) {
-        this.postHogSessionRecordingEnabled.set(
-          DEFAULT_CONFIG.postHog.sessionRecording.enabled,
-        );
-        this.postHogSessionRecordingMaskInputs.set(
-          DEFAULT_CONFIG.postHog.sessionRecording.maskInputs,
-        );
-        this.postHogSessionRecordingSampleRate.set(
-          DEFAULT_CONFIG.postHog.sessionRecording.sampleRate,
-        );
-      }
+      this.postHog.set({
+        apiKey: DEFAULT_CONFIG.postHog.apiKey,
+        host: DEFAULT_CONFIG.postHog.host,
+        enabled: DEFAULT_CONFIG.postHog.enabled,
+        capturePageviews: DEFAULT_CONFIG.postHog.capturePageviews,
+        capturePageleaves: DEFAULT_CONFIG.postHog.capturePageleaves,
+        sessionRecording: DEFAULT_CONFIG.postHog.sessionRecording || {
+          enabled: false,
+          maskInputs: true,
+          sampleRate: 0.1,
+        },
+        debug: DEFAULT_CONFIG.postHog.debug,
+      });
     }
   }
 }
