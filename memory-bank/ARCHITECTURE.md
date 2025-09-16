@@ -1,328 +1,278 @@
-# Guide d'Architecture - Règles pour Développeurs
+# Pulpe - System Architecture
 
-## 🎯 **Principe fondamental**
+*AI Context Document for AIDD/BMAD Workflow*
 
-**@pulpe/shared = DTOs REST uniquement** • **Types Supabase = backend uniquement** • **Simple > Complexe**
+## Executive Summary
 
----
+**System Purpose**: Personal budget management application for the Swiss market, enabling users to plan their financial year using reusable monthly templates with automatic rollover mechanisms.
 
-## 🏗️ **Structure du monorepo**
+**Core Philosophy**:
+- Planning > Tracking (anticipate rather than react)
+- Simplicity > Completeness (KISS & YAGNI principles)
+- Isolation > DRY (3-5x more valuable for maintainability)
 
+**Technology Stack**:
+- Frontend: Angular 20 (Standalone Components + Signals)
+- Backend: NestJS 11 (Bun runtime)
+- Database: Supabase (PostgreSQL + Auth + RLS)
+- Shared: Zod schemas + TypeScript types
+- Mobile: iOS SwiftUI (future)
+- Orchestration: Turborepo + PNPM workspaces
+
+**Deployment**:
+- Frontend: Vercel
+- Backend: Railway
+- Database: Supabase Cloud
+- CDN/Assets: Vercel Edge Network
+
+## System Architecture
+
+### Monorepo Structure
 ```
 pulpe-workspace/
-├── shared/              # 📡 Package @pulpe/shared - DTOs REST
-├── backend-nest/        # 🚀 API NestJS + Types Supabase
-└── frontend/           # 🎨 Interface Angular
+├── frontend/           # Angular 20 web application
+├── backend-nest/       # NestJS API with Bun runtime
+├── shared/            # Zod schemas and TypeScript types
+├── mobile/            # iOS SwiftUI application (future)
+├── .cursor/           # AI development rules and patterns
+├── turbo.json         # Turborepo orchestration
+└── memory-bank/       # AIDD context files
 ```
 
----
+### Package Dependencies
+- **@pulpe/shared**: Core package with REST DTOs (Zod schemas only)
+- **frontend**: Depends on @pulpe/shared for API contracts
+- **backend-nest**: Depends on @pulpe/shared for DTO validation
+- **mobile**: Future dependency on shared for API consistency
 
-## 📋 **Règles par dossier**
+### Build Orchestration (Turborepo)
+- Cache-first approach with intelligent dependency resolution
+- Automatic build order: `shared → frontend & backend (parallel)`
+- Development mode: Hot reload with shared package watching
+- Commands: `pnpm dev` (full stack), `pnpm build` (production)
 
-### **Rule #1 : @pulpe/shared - DTOs REST UNIQUEMENT**
+### Key Principles
+- **Zero Breaking Changes**: Shared package versioning strategy
+- **Type Safety**: End-to-end TypeScript + Zod validation
+- **Performance First**: Lazy loading, OnPush detection, caching
 
-#### ✅ **CE QUI VA dans @pulpe/shared**
+## Frontend Architecture
 
-- Schemas Zod pour DTOs REST (communication frontend ↔ backend)
-- Types TypeScript inférés des schemas Zod
-- **RIEN D'AUTRE !**
+### Framework Configuration
+- **Angular 20** with strict mode, standalone components
+- **Change Detection**: OnPush strategy for all components
+- **State Management**: Angular signals + direct service access
+- **Styling**: Tailwind CSS v4 + Angular Material v20
+- **Testing**: Vitest (unit) + Playwright (E2E)
 
-#### ❌ **CE QUI NE VA PAS dans @pulpe/shared**
-
-- Types Supabase → vont dans backend/
-- DTOs NestJS (`createZodDto`) → vont dans backend/
-- Composants Angular → vont dans frontend/
-- Logique métier → va dans backend/
-
-#### 📝 **Exemple @pulpe/shared**
-
-```typescript
-// shared/dto/budget.dto.ts
-import { z } from "zod";
-
-// DTOs pour communication REST frontend ↔ backend
-export const createBudgetDto = z.object({
-  name: z.string().min(1).max(100),
-  amount: z.number().positive(),
-});
-
-export type CreateBudgetDto = z.infer<typeof createBudgetDto>;
+### Architectural Types (5-Layer Pattern)
+```
+frontend/projects/webapp/src/app/
+├── core/       # Headless services, guards (eager-loaded)
+├── layout/     # Application shell components (eager-loaded)
+├── ui/         # Stateless reusable components (cherry-picked)
+├── feature/    # Business domains (lazy-loaded)
+└── pattern/    # Stateful reusable components (imported)
 ```
 
----
-
-### **Rule #2 : backend-nest/ - API + Base de données**
-
-#### 📁 **Structure backend/**
-
-```
-src/
-├── modules/
-│   ├── monthly-budgets/
-│   │   ├── monthly-budgets.controller.ts   # Routes HTTP
-│   │   ├── monthly-budgets.service.ts      # Logique métier
-│   │   ├── monthly-budgets.mapper.ts       # Transformation DTO ↔ Entity
-│   │   ├── monthly-budgets.module.ts       # Configuration module
-│   │   └── dto/                    # DTOs NestJS seulement
-│   │       ├── create-budget.dto.ts
-│   │       └── index.ts
-├── types/
-│   ├── database.types.ts           # Types Supabase (backend SEULEMENT)
-│   └── supabase.types.ts
-├── common/                         # Code transversal
-│   ├── decorators/                 # @User(), @SupabaseClient()
-│   ├── guards/                     # AuthGuard
-│   ├── filters/                    # Exception handling global
-│   └── pipes/                      # Validation pipes
-└── app.module.ts                   # ZodValidationPipe global + Pino logging
-```
-
-#### 🔧 **Patterns Backend Essentiels**
-
-- **Controller Pattern** : Validation HTTP + délégation aux services
-- **Service Pattern** : Logique métier + orchestration
-- **Mapper Pattern** : Transformation DTO ↔ Entity (snake_case ↔ camelCase)
-- **Exception Filter** : Gestion centralisée des erreurs avec format standardisé
-- **Structured Logging** : Pino avec correlation ID et redaction des données sensibles
-
-#### ✅ **Où mettre mon code backend ?**
-
-| **Quoi**           | **Où**                    | **Exemple**                              |
-| ------------------ | ------------------------- | ---------------------------------------- |
-| Route HTTP         | `*.controller.ts`         | `@Post() create(@Body() dto: CreateDto)` |
-| Logique métier     | `*.service.ts`            | `async create(dto, userId) { ... }`      |
-| Transformation     | `*.mapper.ts`             | `toApi(dbRow)`, `toDbInsert(dto)`        |
-| Validation DTO     | `dto/*.dto.ts`            | `extends createZodDto(dtoFromShared)`    |
-| Guard/Interceptor  | `common/`                 | `auth.guard.ts`                          |
-| **Types Supabase** | `types/database.types.ts` | `Database['public']['Tables']`           |
-| **DTOs REST**      | `@pulpe/shared`           | `createBudgetDto`                        |
-
----
-
-### **Rule #3 : frontend/ - Interface utilisateur**
-
-#### 📁 **Structure frontend/ - 5 Types Architecturaux**
-
-```
-src/app/
-├── core/                    # Services, guards, interceptors (eager-loaded)
-│   ├── auth/               # AuthApi, guards, interceptors
-│   ├── budget/             # Services métier budget
-│   └── config/             # Configuration app
-├── layout/                  # Shell application (header, navigation)
-├── ui/                      # Composants réutilisables stateless
-├── feature/                 # Domaines métier (lazy-loaded)
-│   ├── budget/
-│   └── transaction/
-└── pattern/                 # Composants stateful réutilisables
-```
-
-#### 🎯 **Types Architecturaux & Contraintes**
-
-| **Type**   | **Purpose**                        | **Contraintes**                                   | **Loading**   |
-| ---------- | ---------------------------------- | ------------------------------------------------- | ------------- |
-| `core`     | Services partagés headless         | Pas de composants, seulement des `@Injectable`   | Eager         |
-| `layout`   | Shell application                  | Consomme `core` + `ui`                            | Eager         |
-| `ui`       | Composants stateless réutilisables | Pas d'injection de services, seulement I/O       | Cherry-picked |
-| `feature`  | Domaines métier isolés             | Isolation complète, pas de dépendances entre eux | Lazy-loaded   |
-| `pattern`  | Composants stateful réutilisables  | Peut injecter `core`, consomme `ui`               | Imported      |
-
-#### 🔗 **Règles de Dépendances (Acyclique)**
-
+### Dependency Rules (Acyclic)
 ```
 core     ← layout, feature, pattern
 ui       ← layout, feature, pattern
 pattern  ← feature
-feature  ← (isolé, pas de dépendances siblings)
+feature  ← (isolated, no sibling dependencies)
 ```
 
-#### ⚡ **Patterns Frontend Modernes**
+### Routing Strategy
+- **Lazy Loading**: All features via `loadChildren`
+- **Feature Isolation**: Complete separation between business domains
+- **Nested Features**: Support for multi-level navigation
 
-- **Standalone Components** : Pas de NgModules, tout est standalone
-- **Signal-based** : Angular signals pour l'état réactif
-- **OnPush Strategy** : Performance avec `ChangeDetectionStrategy.OnPush`
-- **Lazy Loading** : Toutes les features via `loadChildren`
-- **Material Design 3** : Angular Material v20 + Tailwind CSS v4
+### State Management
+- **Angular Signals**: Reactive state primitives
+- **Domain Services**: Feature-specific state in `core/` or `feature/`
+- **No Global Store**: Direct service injection pattern
 
-#### ✅ **Où mettre mon code frontend ?**
+### Key Patterns
+- **Standalone Everything**: No NgModules
+- **OnPush + Signals**: Performance optimization
+- **Feature Black Box**: Throwaway and replaceable architecture
 
-| **Quoi**               | **Où**                   | **Exemple**                |
-| ---------------------- | ------------------------ | -------------------------- |
-| Service d'état global  | `core/[domain]/`         | `core/auth/auth-api.ts`    |
-| Composant métier       | `feature/*/components/`  | `budget-card.component.ts` |
-| Service API feature    | `feature/*/services/`    | `budget.service.ts`        |
-| Composant réutilisable | `ui/`                    | `button.component.ts`      |
-| Shell application      | `layout/`                | `header.component.ts`      |
-| **Types REST**         | `@pulpe/shared`          | `CreateBudgetDto`          |
+## Backend Architecture
+
+### Framework Configuration
+- **NestJS 11** with TypeScript strict mode
+- **Runtime**: Bun for performance and modern JS features
+- **Validation**: Global ZodValidationPipe
+- **Documentation**: Swagger/OpenAPI auto-generation
+- **Logging**: Pino structured logging with request correlation
+
+### Module Structure
+```
+backend-nest/src/modules/[domain]/
+├── [domain].controller.ts    # HTTP routes + validation
+├── [domain].service.ts       # Business logic
+├── [domain].mapper.ts        # DTO ↔ Entity transformation
+├── [domain].module.ts        # DI configuration
+├── dto/                      # NestJS DTOs (createZodDto)
+└── entities/                 # Business entities
+```
+
+### Authentication & Security
+- **JWT Tokens**: Supabase Auth integration
+- **AuthGuard**: Global protection with custom decorators
+- **RLS Policies**: Database-level security (auth.uid())
+- **Zero Trust**: All endpoints protected by default
+
+### API Design
+- **REST**: RESTful endpoints with `/api/v1` prefix
+- **Validation Pipeline**: Zod schemas → DTO validation → Business rules
+- **Error Handling**: Global exception filter with structured responses
+- **Documentation**: Auto-generated Swagger from DTOs
+
+### Key Patterns
+- **Controller → Service → Mapper**: Clear separation of concerns
+- **Dependency Injection**: Constructor injection with decorators
+- **Type Safety**: Supabase generated types + Zod validation
+
+## Data Architecture
+
+### Database Platform
+- **Supabase**: PostgreSQL with built-in auth, real-time, and REST API
+- **Row Level Security (RLS)**: User data isolation at database level
+- **Type Generation**: Automatic TypeScript types from schema
+
+### Core Tables
+```sql
+auth.users                 -- Managed by Supabase Auth
+public.monthly_budget       -- Monthly budget instances
+public.transaction          -- Financial transactions
+public.template            -- Budget templates (reusable)
+public.template_line       -- Template transaction items
+```
+
+### Security Model
+- **RLS Policies**: `WHERE auth.uid() = user_id` on all user tables
+- **JWT Validation**: Backend validates tokens with Supabase
+- **API Layer**: Additional business rule validation
+- **Database**: Final constraint validation and RLS enforcement
+
+### Data Flow
+```
+Frontend DTO (Zod) → Backend DTO (createZodDto) → Service Logic → Supabase Client → RLS → PostgreSQL
+```
+
+### Key Features
+- **Automatic Rollover**: Monthly budget surplus/deficit propagation
+- **Template System**: Reusable budget structures
+- **Financial Calculations**: Server-side computed values
+
+## Shared Package (@pulpe/shared)
+
+### Purpose
+Single source of truth for API contracts between frontend and backend.
+
+### Content Strategy
+- **Zod Schemas**: Runtime validation + type generation
+- **REST DTOs Only**: No Supabase types (backend-only)
+- **ESM Format**: Modern module system with proper exports
+
+### Validation Pipeline
+- **Frontend**: Client-side UX validation
+- **Backend**: Server-side business validation
+- **Database**: Structural validation + RLS
+
+### Key Files
+- `schemas.ts`: All Zod schemas and inferred types
+- `index.ts`: Single export point
+- `calculators/`: Business logic utilities
+
+### Usage Pattern
+```typescript
+// Frontend
+import { budgetCreateSchema, type BudgetCreate } from '@pulpe/shared';
+
+// Backend
+import { budgetCreateSchema } from '@pulpe/shared';
+export class CreateBudgetDto extends createZodDto(budgetCreateSchema) {}
+```
+
+## Key Patterns & Conventions
+
+### Authentication Flow
+1. **Frontend**: Supabase Auth SDK manages JWT tokens
+2. **Backend**: AuthGuard validates tokens with `supabase.auth.getUser()`
+3. **Database**: RLS policies enforce data isolation
+4. **API**: Custom decorators inject authenticated user context
+
+### Error Handling
+- **Global Exception Filter**: Structured error responses
+- **Correlation IDs**: Request tracking across services
+- **Sensitive Data Redaction**: Automatic PII filtering in logs
+- **User-Friendly Messages**: Client-appropriate error formatting
+
+### Testing Strategy
+- **Unit Tests**: Business logic with mocked dependencies
+- **Integration Tests**: API endpoints with real database
+- **E2E Tests**: Critical user flows with Playwright
+- **Performance Tests**: Load testing for API endpoints
+
+### Development Conventions
+- **Naming**: Descriptive, purpose-driven file names
+- **Architecture**: Enforce via `eslint-plugin-boundaries`
+- **Git Flow**: Feature branches with PR reviews
+- **Code Quality**: Automated linting, formatting, type-checking
+G
+
+### API Contracts
+- **REST API**: JSON over HTTP with `/api/v1` prefix
+- **Content-Type**: `application/json` for all endpoints
+- **Authentication**: `Bearer {jwt_token}` in Authorization header
+- **Validation**: Zod schemas enforce contract compliance
+
+### External Services
+- **Supabase Auth**: User management and JWT validation
+- **Supabase Database**: PostgreSQL with RLS and real-time features
+- **Vercel**: Frontend hosting with edge network
+- **Railway**: Backend hosting with automatic deployments
+
+### Real-time Features
+- **Database Changes**: Supabase real-time subscriptions (future)
+- **WebSocket**: Not currently implemented
+- **Server-Sent Events**: Not currently implemented
+
+## Development Guidelines
+
+### Essential Commands
+```bash
+# Full stack development
+pnpm dev                    # Start all services
+pnpm build                  # Build all packages
+pnpm test                   # Run all tests
+
+# Quality assurance
+pnpm quality:fix            # Fix all auto-fixable issues
+pnpm type-check             # TypeScript validation
+```
+
+### Environment Setup
+1. **Node.js**: Bun runtime required for backend
+2. **Database**: Local Supabase or cloud connection
+3. **Auth**: Supabase credentials in environment
+4. **IDE**: VS Code with Angular/NestJS extensions
+
+### Debugging & Monitoring
+- **Frontend**: Angular DevTools + browser console
+- **Backend**: Structured logs with Pino + request correlation
+- **Database**: Supabase dashboard + query performance
+- **API**: Swagger documentation at `/docs`
+
+### Performance Considerations
+- **Bundle Size**: Lazy loading + tree shaking
+- **Database**: RLS policy optimization with proper indexes
+- **Caching**: Turborepo build cache + Vercel edge cache
+- **Change Detection**: OnPush strategy + signals optimization
 
 ---
 
-## 🔐 **Authentification & Sécurité**
-
-### **🎯 Principe de sécurité**
-
-**JWT + RLS** • **Authentification Supabase** • **Zero Trust** • **Isolation par utilisateur**
-
-### **🏗️ Architecture sécurisée**
-
-```
-Frontend ←--JWT Bearer--> Backend ←--Auth Client--> Supabase
-   ↓                         ↓                        ↓
-AuthGuard              AuthGuard                   RLS Policies
-AuthAPI               @User() decorator            auth.uid()
-Signals               @SupabaseClient()           row-level filtering
-```
-
-### **🔑 Patterns d'Authentification**
-
-#### Frontend (Angular)
-- **AuthApi** avec signals pour l'état réactif
-- **AuthGuard** avec `toObservable()` pour protection des routes
-- **AuthInterceptor** avec refresh automatique des tokens
-
-#### Backend (NestJS)
-- **AuthGuard** valide JWT avec `supabase.auth.getUser()`
-- **@User() decorator** injecte l'utilisateur authentifié
-- **@SupabaseClient() decorator** fournit le client authentifié
-
-#### Database (Supabase)
-- **Row Level Security (RLS)** activé sur toutes les tables
-- **Policies** basées sur `auth.uid()` pour isolation automatique
-- **SECURITY DEFINER** sur les fonctions sensibles
-
----
-
-## 🔄 **Workflow : Ajouter une nouvelle feature**
-
-### **1. Définir le contrat REST dans @pulpe/shared**
-
-```typescript
-// shared/dto/ma-feature.dto.ts
-export const createMaFeatureDto = z.object({
-  name: z.string().min(1),
-});
-
-export type CreateMaFeatureDto = z.infer<typeof createMaFeatureDto>;
-```
-
-### **2. Backend : Créer le module complet**
-
-```typescript
-// Module structure avec mapper
-backend-nest/src/modules/ma-feature/
-├── ma-feature.controller.ts
-├── ma-feature.service.ts
-├── ma-feature.mapper.ts      # ← Pattern de transformation
-├── ma-feature.module.ts
-└── dto/create-ma-feature.dto.ts
-
-// Service avec mapper
-async create(dto: CreateMaFeatureDto, user: AuthenticatedUser) {
-  const insertData = this.mapper.toDbInsert(dto, user.id);
-  const result = await supabase.from('ma_features').insert(insertData);
-  return this.mapper.toApi(result);
-}
-```
-
-### **3. Frontend : Feature isolée**
-
-```typescript
-// feature/ma-feature/ma-feature.routes.ts
-export const routes: Routes = [
-  { path: '', component: MaFeatureComponent }
-];
-
-// feature/ma-feature/services/ma-feature.service.ts
-@Injectable()
-export class MaFeatureService {
-  create(data: CreateMaFeatureDto) {
-    return this.http.post('/api/v1/ma-feature', data);
-  }
-}
-```
-
----
-
-## 🚫 **Anti-patterns à éviter**
-
-### ❌ **NE PAS FAIRE**
-
-```typescript
-// ❌ Types Supabase dans @pulpe/shared
-export type Database = { ... }; // VA DANS BACKEND !
-
-// ❌ Injection de services dans ui/
-@Component({ /* ui component */ })
-export class UiComponent {
-  constructor(private service: SomeService) {} // INTERDIT !
-}
-
-// ❌ Dépendances entre features
-import { FeatureAService } from '../feature-a/'; // INTERDIT !
-
-// ❌ Logique métier dans controller
-@Post() create(@Body() dto) {
-  return this.supabase.insert(...); // VA DANS SERVICE !
-}
-```
-
-### ✅ **FAIRE**
-
-```typescript
-// ✅ DTOs REST dans @pulpe/shared
-export const createBudgetDto = z.object({ name: z.string() });
-
-// ✅ Composant ui stateless
-@Component({ /* ui component */ })
-export class UiComponent {
-  @Input() data: any;
-  @Output() action = new EventEmitter();
-}
-
-// ✅ Feature isolée utilisant core services
-@Component({ /* feature component */ })
-export class FeatureComponent {
-  constructor(private coreService: CoreService) {}
-}
-```
-
----
-
-## 📊 **Quick Reference**
-
-### **🎯 Questions de placement**
-
-1. **"Où va mon DTO REST ?"** → `@pulpe/shared`
-2. **"Où vont mes types Supabase ?"** → `backend-nest/types/`
-3. **"Mon composant est-il stateless ?"** → `ui/` sinon `feature/` ou `pattern/`
-4. **"Ma feature dépend d'une autre ?"** → Extraire vers `core/` ou `pattern/`
-5. **"Où va ma logique métier ?"** → `*.service.ts` avec mapper pour transformation
-
-### **🔒 Checklist Sécurité**
-
-- [ ] **RLS activé** sur toutes les tables
-- [ ] **AuthGuard** sur routes privées (frontend + backend)
-- [ ] **JWT validation** avec `supabase.auth.getUser()`
-- [ ] **Policies** basées sur `auth.uid()`
-- [ ] **Sensitive data redaction** dans les logs
-
-### **⚡ Performance Checklist**
-
-- [ ] **OnPush strategy** sur tous les composants
-- [ ] **Lazy loading** pour toutes les features
-- [ ] **Signals** pour l'état réactif
-- [ ] **Tree-shaking** optimisé via standalone components
-- [ ] **Bundle analysis** régulier avec `pnpm analyze`
-
----
-
-## 🎉 **TL;DR**
-
-1. **DTOs REST** → `@pulpe/shared` (Zod schemas uniquement)
-2. **Types Supabase** → `backend-nest/types/` (jamais dans shared !)
-3. **Frontend** → 5 types architecturaux avec isolation stricte
-4. **Backend** → Controller + Service + Mapper pattern
-5. **Sécurité** → JWT + RLS + Zero Trust partout
-6. **Performance** → Standalone + Signals + OnPush + Lazy loading
-
-**@pulpe/shared = contrat REST uniquement, rien d'autre !** ✨
+*This document provides essential context for AI-driven development following BMAD methodology principles.*
