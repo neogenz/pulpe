@@ -73,9 +73,9 @@ function logAppInfo(applicationConfig: ApplicationConfiguration) {
     backendApiUrl: applicationConfig.backendApiUrl(),
 
     // PostHog Configuration (securized)
-    postHogEnabled: applicationConfig.postHogEnabled(),
-    postHogHost: applicationConfig.postHogHost(),
-    postHogApiKey: applicationConfig.postHogApiKey() ? '***' : 'Non configuré',
+    postHogEnabled: applicationConfig.postHog().enabled,
+    postHogHost: applicationConfig.postHog().host,
+    postHogApiKey: applicationConfig.postHog().apiKey ? '***' : 'Non configuré',
   };
 
   console.log('Pulpe Budget - Application Info', appData);

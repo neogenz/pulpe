@@ -6,11 +6,7 @@ import {
   computed,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import posthog, {
-  type Properties,
-  type JsonType,
-  type CaptureResult,
-} from 'posthog-js';
+import posthog, { type Properties, type JsonType } from 'posthog-js';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
 import { buildInfo } from '@env/build-info';
@@ -224,56 +220,77 @@ export class PostHogService {
     };
     debug: boolean;
   }): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      // Timeout to prevent hanging promises
-      const timeoutId = setTimeout(() => {
-        reject(new Error('PostHog initialization timeout after 10 seconds'));
-      }, 10000);
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
-      posthog.init(config.apiKey, {
-        api_host: config.host,
-        debug: config.debug,
+    try {
+      return Promise.race([
+        // Init promise
+        new Promise<void>((resolve) => {
+          posthog.init(config.apiKey, {
+            api_host: config.host,
+            debug: config.debug,
 
-        // Page tracking - DISABLED until user accepts terms
-        capture_pageview: false, // Will be enabled after CGU acceptance
-        capture_pageleave: false, // Will be enabled after CGU acceptance
+            // Page tracking - DISABLED until user accepts terms
+            capture_pageview: false, // Will be enabled after CGU acceptance
+            capture_pageleave: false, // Will be enabled after CGU acceptance
 
-        // Start with tracking disabled by default
-        opt_out_capturing_by_default: true,
+            // Start with tracking disabled by default
+            opt_out_capturing_by_default: true,
 
-        // Session recording with financial data masking
-        session_recording: {
-          maskAllInputs: config.sessionRecording.maskInputs,
-          maskTextSelector: getFinancialMaskSelectors(),
-          maskTextFn: (text: string): string => sanitizeFinancialString(text),
-        },
-        disable_session_recording: !config.sessionRecording.enabled,
+            // Session recording with financial data masking
+            session_recording: {
+              maskAllInputs: config.sessionRecording.maskInputs,
+              maskTextSelector: getFinancialMaskSelectors(),
+              maskTextFn: sanitizeFinancialString,
+            },
+            disable_session_recording: !config.sessionRecording.enabled,
 
-        // Privacy and security
-        person_profiles: 'identified_only',
-        persistence: 'localStorage+cookie',
+            // Privacy and security
+            person_profiles: 'identified_only',
+            persistence: 'localStorage+cookie',
 
-        // Data sanitization
-        before_send: (event: CaptureResult | null): CaptureResult | null => {
-          if (!event) return event;
-          event.properties = deepSanitizeFinancialData(
-            event.properties,
-          ) as Properties;
-          return event;
-        },
+            // Data sanitization
+            before_send: (event) => {
+              if (!event) return null;
 
-        // Error handling
-        loaded: () => {
-          clearTimeout(timeoutId);
-          this.#logger.debug('PostHog loaded successfully');
+              const sanitizedProperties = deepSanitizeFinancialData(
+                event.properties,
+              );
+              if (!sanitizedProperties) return null;
 
-          // Register global Super Properties for all PostHog events
-          this.#registerGlobalProperties();
+              return {
+                ...event,
+                properties: sanitizedProperties as Properties,
+              };
+            },
 
-          resolve();
-        },
-      });
-    });
+            // Error handling
+            loaded: () => {
+              if (timeoutId) clearTimeout(timeoutId);
+              this.#logger.debug('PostHog loaded successfully');
+
+              // Register global Super Properties for all PostHog events
+              this.#registerGlobalProperties();
+
+              resolve();
+            },
+          });
+        }),
+
+        // Timeout promise
+        new Promise<never>((_, reject) => {
+          timeoutId = setTimeout(
+            () =>
+              reject(
+                new Error('PostHog initialization timeout after 10 seconds'),
+              ),
+            10_000,
+          );
+        }),
+      ]);
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+    }
   }
 
   /**

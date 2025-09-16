@@ -76,7 +76,7 @@ test.describe('Template Details View', () => {
 
   // Use base test without global mocks for error handling
   base('should handle template loading errors gracefully', async ({ page }) => {
-
+    // Set up error routes FIRST
     await page.route('**/api/v1/budget-templates/error-template', (route) => {
       return route.fulfill({
         status: 500,
@@ -104,21 +104,23 @@ test.describe('Template Details View', () => {
       },
     );
 
-    // Setup auth bypass without global API mocks AFTER setting up routes
+    // Setup auth bypass AFTER routes (with no API mocks to avoid conflicts)
     await setupAuthBypass(page, {
       includeApiMocks: false,
       setLocalStorage: true,
     });
 
-    // Navigate and wait for the failing network response deterministically
-    await page.goto(
-      'http://localhost:4200/app/budget-templates/details/error-template',
-    );
-    await page.waitForResponse(
+    // Navigate and wait for the error response using Promise-based approach
+    const responsePromise = page.waitForResponse(
       (r) =>
         r.url().includes('/api/v1/budget-templates/error-template') &&
         r.status() === 500,
     );
+
+    await page.goto(
+      'http://localhost:4200/app/budget-templates/details/error-template',
+    );
+    await responsePromise;
 
     const errorContainer = page.getByRole('alert').first();
     const loadingIndicator = page.getByTestId('template-details-loading');

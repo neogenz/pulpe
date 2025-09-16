@@ -9,8 +9,8 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? '50%' : undefined, // Use Playwright default for better performance
-  reporter: process.env.CI 
-    ? [['blob'], ['github']] 
+  reporter: process.env.CI
+    ? [['blob'], ['github']]
     : [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: 'http://localhost:4200',
@@ -22,7 +22,7 @@ export default defineConfig({
   },
 
   testDir: './e2e',
-  
+
   projects: [
     {
       name: 'setup',
@@ -60,5 +60,9 @@ export default defineConfig({
     command: process.env.CI ? 'pnpm run start:ci' : 'pnpm run start',
     url: 'http://localhost:4200',
     reuseExistingServer: !process.env.CI,
+    // Explicitly disable PostHog for E2E tests to prevent analytics interference
+    env: {
+      PUBLIC_POSTHOG_ENABLED: 'false',
+    },
   },
 });
