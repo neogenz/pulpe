@@ -5,6 +5,7 @@ import { filter, map, take } from 'rxjs/operators';
 
 import { AuthApi } from './auth-api';
 import { ROUTES } from '@core/routing/routes-constants';
+import { Logger } from '../logging/logger';
 
 /**
  * Prevents authenticated users from accessing routes.
@@ -16,6 +17,7 @@ import { ROUTES } from '@core/routing/routes-constants';
 export const publicGuard: CanActivateFn = () => {
   const authApi = inject(AuthApi);
   const router = inject(Router);
+  const logger = inject(Logger);
 
   return toObservable(authApi.authState).pipe(
     filter((state) => !state.isLoading),
@@ -25,7 +27,7 @@ export const publicGuard: CanActivateFn = () => {
         router
           .navigate(['/', ROUTES.APP, ROUTES.CURRENT_MONTH])
           .catch((error) => {
-            console.error(
+            logger.error(
               'Navigation to the main application page failed, redirecting to onboarding.',
               error,
             );

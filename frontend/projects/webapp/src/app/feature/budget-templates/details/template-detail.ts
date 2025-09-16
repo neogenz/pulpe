@@ -39,6 +39,7 @@ import {
   TransactionIconPipe,
   TransactionLabelPipe,
 } from '@ui/transaction-display';
+import { Logger } from '@core/logging/logger';
 
 @Component({
   selector: 'pulpe-template-detail',
@@ -249,7 +250,7 @@ export default class TemplateDetail implements OnInit {
   readonly #snackBar = inject(MatSnackBar);
   readonly #transactionIconPipe = inject(TransactionIconPipe);
   readonly #transactionLabelPipe = inject(TransactionLabelPipe);
-
+  readonly #logger = inject(Logger);
   ngOnInit(): void {
     // Get template ID from route parameters
     const templateId = this.#route.snapshot.paramMap.get('templateId');
@@ -393,7 +394,7 @@ export default class TemplateDetail implements OnInit {
           duration: 3000,
         });
       } else if (dialogResult?.error) {
-        console.error('Erreur lors de la sauvegarde:', dialogResult.error);
+        this.#logger.error('Erreur lors de la sauvegarde:', dialogResult.error);
         // Error is already handled by the dialog with user-friendly messages
       }
     });
@@ -440,7 +441,7 @@ export default class TemplateDetail implements OnInit {
         }
       }
     } catch (error) {
-      console.error('Error checking template usage:', error);
+      this.#logger.error('Error checking template usage:', error);
       this.#snackBar.open(
         'Une erreur est survenue lors de la vérification',
         'Fermer',
@@ -467,7 +468,7 @@ export default class TemplateDetail implements OnInit {
       // Navigate back to templates list
       this.#router.navigate(['/app/budget-templates']);
     } catch (error) {
-      console.error('Error deleting template:', error);
+      this.#logger.error('Error deleting template:', error);
       this.#snackBar.open(
         'Une erreur est survenue lors de la suppression',
         'Fermer',
