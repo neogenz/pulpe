@@ -107,7 +107,10 @@ export function provideCore({ routes }: CoreOptions) {
     // Custom title strategy - APRÈS le router
     { provide: TitleStrategy, useClass: PulpeTitleStrategy },
 
-    // Global error handler with PostHog integration
+    // HTTP Client must be provided before anything that uses it
+    ...provideAuth(),
+
+    // Global error handler with PostHog integration (needs HttpClient via PostHogService)
     provideGlobalErrorHandler(),
 
     // perform initialization, has to be last
@@ -157,7 +160,5 @@ export function provideCore({ routes }: CoreOptions) {
     ...provideLocale(),
     ...provideAngularMaterial(),
     ...provideLottie(),
-
-    ...provideAuth(),
   ];
 }

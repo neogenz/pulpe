@@ -95,9 +95,10 @@ export const ConfigSchema = z.object({
       debug: z.boolean().default(false),
     })
     .optional(),
-  environment: z.enum(['development', 'production', 'local'], {
+  environment: z.enum(['development', 'production', 'local', 'test'], {
     errorMap: () => ({
-      message: "Environment must be 'development', 'production', or 'local'",
+      message:
+        "Environment must be 'development', 'production', 'local', or 'test'",
     }),
   }),
 });

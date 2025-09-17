@@ -23,9 +23,9 @@ export class ApplicationConfiguration {
   readonly supabaseUrl = signal<string>('');
   readonly supabaseAnonKey = signal<string>('');
   readonly backendApiUrl = signal<string>('');
-  readonly environment = signal<'development' | 'production' | 'local'>(
-    'development',
-  );
+  readonly environment = signal<
+    'development' | 'production' | 'test' | 'local'
+  >('development');
 
   // PostHog configuration as a single signal object
   readonly postHog = signal<{
