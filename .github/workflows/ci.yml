@@ -202,6 +202,8 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: 🏗️ Build all projects
+        env:
+          DOTENV_CONFIG_PATH: .env.e2e
         run: pnpm build
 
       - name: 📤 Upload build artifacts
