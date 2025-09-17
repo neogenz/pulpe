@@ -1,10 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
-import { config } from 'dotenv';
-import * as path from 'path';
 
-// Load environment variables for E2E tests
-// This ensures variables are available to npm scripts executed by webServer
-config({ path: path.join(__dirname, '.env.e2e') });
 /**
  * Playwright configuration for Angular e2e tests
  * @see https://playwright.dev/docs/test-configuration
@@ -63,8 +58,8 @@ export default defineConfig({
 
   webServer: {
     command: process.env.CI
-      ? 'pnpm run start:ci'
-      : 'PUBLIC_POSTHOG_ENABLED=false PUBLIC_ENVIRONMENT=test pnpm run start',
+      ? 'DOTENV_CONFIG_PATH=.env.e2e pnpm run start:ci'
+      : 'DOTENV_CONFIG_PATH=.env.e2e pnpm run start',
     port: 4200,
     reuseExistingServer: false,
     stdout: 'pipe',
