@@ -138,13 +138,15 @@ import { type TransactionViewModel } from '../models/transaction-view-model';
                           line.data.rolloverSourceBudgetId,
                         ]"
                         matButton
-                        class="text-body-medium font-semibold"
+                        class="ph-no-capture text-body-medium font-semibold"
                       >
                         <mat-icon class="!text-base">open_in_new</mat-icon>
                         {{ line.data.name | rolloverFormat }}
                       </a>
                     } @else {
-                      <span class="text-body-medium font-semibold">
+                      <span
+                        class="ph-no-capture text-body-medium font-semibold"
+                      >
                         {{ line.data.name | rolloverFormat }}
                       </span>
                     }
@@ -226,7 +228,7 @@ import { type TransactionViewModel } from '../models/transaction-view-model';
                 </form>
               } @else {
                 <span
-                  class="text-body-medium font-medium"
+                  class="ph-no-capture text-body-medium font-medium"
                   [class.text-financial-income]="line.data.kind === 'income'"
                   [class.text-financial-negative]="line.data.kind === 'expense'"
                   [class.text-primary]="line.data.kind === 'saving'"
@@ -245,7 +247,7 @@ import { type TransactionViewModel } from '../models/transaction-view-model';
             </th>
             <td mat-cell *matCellDef="let line" class="text-right">
               <span
-                class="text-body-medium font-medium"
+                class="ph-no-capture text-body-medium font-medium"
                 [class.text-financial-income]="
                   line.metadata.cumulativeBalance >= 0
                 "

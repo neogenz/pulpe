@@ -144,7 +144,9 @@ interface EditTransactionsDialogResult {
 
             <!-- Amount Column -->
             <ng-container matColumnDef="amount">
-              <th mat-header-cell *matHeaderCellDef>Montant</th>
+              <th mat-header-cell *matHeaderCellDef>
+                <span class="ph-no-capture">Montant</span>
+              </th>
               <td
                 mat-cell
                 *matCellDef="let transaction; let i = index"
@@ -158,6 +160,7 @@ interface EditTransactionsDialogResult {
                   <input
                     matInput
                     type="number"
+                    class="ph-no-capture"
                     step="0.01"
                     min="0"
                     max="999999"

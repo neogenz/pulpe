@@ -96,7 +96,7 @@ type EditTransactionFormData = Pick<
 
       <!-- Amount Field -->
       <mat-form-field class="w-full" subscriptSizing="dynamic">
-        <mat-label>Montant</mat-label>
+        <mat-label class="ph-no-capture">Montant</mat-label>
         <mat-icon matIconPrefix class="text-on-surface-variant"
           >payments</mat-icon
         >
@@ -111,7 +111,9 @@ type EditTransactionFormData = Pick<
           aria-describedby="amount-hint"
         />
         <span matTextSuffix>CHF</span>
-        <mat-hint id="amount-hint">Montant en francs suisses</mat-hint>
+        <mat-hint id="amount-hint" class="ph-no-capture"
+          >Montant en francs suisses</mat-hint
+        >
         @if (
           transactionForm.get('amount')?.hasError('required') &&
           transactionForm.get('amount')?.touched

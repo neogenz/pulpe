@@ -1,52 +1,51 @@
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
+import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  inject,
   effect,
+  inject,
   Injector,
   type OnInit,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { BaseLoading } from '@ui/loading';
-import { MatMenuModule } from '@angular/material/menu';
 import { MatDialog } from '@angular/material/dialog';
-import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import {
-  type FinancialSummaryData,
-  FinancialSummary,
-} from '@ui/financial-summary/financial-summary';
-import {
-  TransactionsTable,
-  type FinancialEntry,
-  EditTransactionsDialog,
-} from './components';
-import { BudgetTemplatesApi } from '../services/budget-templates-api';
-import { firstValueFrom } from 'rxjs';
-import { map } from 'rxjs/operators';
-import { CommonModule, CurrencyPipe } from '@angular/common';
-import { type TemplateLine } from '@pulpe/shared';
-import { PulpeTitleStrategy } from '@core/routing/title-strategy';
-import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
-import { TemplateUsageDialogComponent } from '../components/dialogs/template-usage-dialog';
+import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { getDeleteConfirmationConfig } from '../delete/template-delete-dialog';
-import { TemplateDetailsStore } from './services/template-details-store';
+import { ActivatedRoute, Router } from '@angular/router';
+import { Logger } from '@core/logging/logger';
+import { PulpeTitleStrategy } from '@core/routing/title-strategy';
+import { type TemplateLine } from '@pulpe/shared';
+import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
+import {
+  FinancialSummary,
+  type FinancialSummaryData,
+} from '@ui/financial-summary/financial-summary';
+import { BaseLoading } from '@ui/loading';
 import {
   TransactionIconPipe,
   TransactionLabelPipe,
 } from '@ui/transaction-display';
-import { Logger } from '@core/logging/logger';
+import { firstValueFrom } from 'rxjs';
+import { map } from 'rxjs/operators';
+import { TemplateUsageDialogComponent } from '../components/dialogs/template-usage-dialog';
+import { getDeleteConfirmationConfig } from '../delete/template-delete-dialog';
+import { BudgetTemplatesApi } from '../services/budget-templates-api';
+import {
+  EditTransactionsDialog,
+  TransactionsTable,
+  type FinancialEntry,
+} from './components';
+import { TemplateDetailsStore } from './services/template-details-store';
 
 @Component({
   selector: 'pulpe-template-detail',
 
   imports: [
     CommonModule,
-    CurrencyPipe,
     MatButtonModule,
     MatIconModule,
     MatMenuModule,
@@ -130,39 +129,22 @@ import { Logger } from '@core/logging/logger';
               <pulpe-financial-summary
                 [data]="incomeData()"
                 role="region"
-                [attr.aria-label]="
-                  'Revenus: ' +
-                  (incomeData().amount
-                    | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH')
-                "
+                [attr.aria-label]="'Revenus'"
               />
               <pulpe-financial-summary
                 [data]="expenseData()"
                 role="region"
-                [attr.aria-label]="
-                  'Dépenses: ' +
-                  (expenseData().amount
-                    | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH')
-                "
+                [attr.aria-label]="'Dépenses'"
               />
               <pulpe-financial-summary
                 [data]="savingsData()"
                 role="region"
-                [attr.aria-label]="
-                  'Économies: ' +
-                  (savingsData().amount
-                    | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH')
-                "
+                [attr.aria-label]="'Économies'"
               />
               <pulpe-financial-summary
                 [data]="netBalanceData()"
                 role="region"
-                [attr.aria-label]="
-                  netBalanceData().title +
-                  ': ' +
-                  (netBalanceData().amount
-                    | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH')
-                "
+                [attr.aria-label]="netBalanceData().title"
               />
             </div>
           </section>

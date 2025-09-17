@@ -46,7 +46,7 @@ export interface TemplateDetailsDialogData {
         <div class="flex justify-between mb-4">
           <div class="flex flex-col">
             <div>Revenus total:</div>
-            <div class="text-financial-income text-label-large">
+            <div class="ph-no-capture text-financial-income text-label-large">
               {{
                 totalIncome() | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
               }}
@@ -54,7 +54,7 @@ export interface TemplateDetailsDialogData {
           </div>
           <div class="flex flex-col">
             <div>Dépenses total:</div>
-            <div class="text-financial-negative text-label-large">
+            <div class="ph-no-capture text-financial-negative text-label-large">
               {{
                 totalExpenses() | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
               }}
@@ -70,7 +70,9 @@ export interface TemplateDetailsDialogData {
             <mat-list-item>
               <div class="flex flex-row justify-between items-end gap-4">
                 <div class="flex flex-col flex-1 min-w-0">
-                  <div class="text-body-medium font-medium truncate">
+                  <div
+                    class="ph-no-capture text-body-medium font-medium truncate"
+                  >
                     {{ line.name }}
                   </div>
                   @if (line.description) {
@@ -82,7 +84,7 @@ export interface TemplateDetailsDialogData {
                   }
                 </div>
                 <div
-                  class="text-body-medium font-medium flex-shrink-0"
+                  class="ph-no-capture text-body-medium font-medium flex-shrink-0"
                   [class.text-financial-savings]="line.kind === 'saving'"
                   [class.text-financial-negative]="line.kind === 'expense'"
                   [class.text-financial-income]="line.kind === 'income'"
@@ -104,7 +106,7 @@ export interface TemplateDetailsDialogData {
         <mat-divider class="mb-2!"></mat-divider>
         <div class="flex justify-between text-body-medium font-medium">
           <span>Solde net:</span>
-          <span>
+          <span class="ph-no-capture">
             {{ netBalance() | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH' }}
           </span>
         </div>

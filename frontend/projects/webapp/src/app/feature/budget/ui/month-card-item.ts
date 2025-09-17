@@ -28,14 +28,16 @@ import { CurrencyPipe } from '@angular/common';
         @if (parentTemplate()) {
           <mat-card-subtitle
             >Créer depuis le template
-            {{ parentTemplate()?.name }}</mat-card-subtitle
+            <span class="ph-no-capture">{{
+              parentTemplate()?.name
+            }}</span></mat-card-subtitle
           >
         }
       </mat-card-header>
       <mat-card-content>
         <div class="flex justify-center gap-2 items-center">
           <p
-            class="text-headline-small financial-amount overflow-hidden text-ellipsis"
+            class="ph-no-capture text-headline-small financial-amount overflow-hidden text-ellipsis"
             [attr.data-type]="totalAmount() >= 0 ? 'positive' : 'negative'"
             data-testid="month-card-amount"
           >

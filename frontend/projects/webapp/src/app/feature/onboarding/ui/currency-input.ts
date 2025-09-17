@@ -18,7 +18,7 @@ import { MatInputModule } from '@angular/material/input';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <mat-form-field class="w-full" appearance="fill">
-      <mat-label>{{ label() }}</mat-label>
+      <mat-label class="ph-no-capture">{{ label() }}</mat-label>
       <input
         matInput
         type="number"
@@ -34,7 +34,7 @@ import { MatInputModule } from '@angular/material/input';
       />
       <span matTextSuffix class="text-gray-600 font-medium">CHF</span>
       @if (ariaDescribedBy()) {
-        <mat-hint [id]="ariaDescribedBy()!"
+        <mat-hint [id]="ariaDescribedBy()!" class="ph-no-capture"
           >Entre le montant en francs suisses (CHF)</mat-hint
         >
       }
