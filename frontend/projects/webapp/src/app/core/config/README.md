@@ -1,219 +1,210 @@
 # Configuration Architecture
 
-This document explains the configuration architecture for the Pulpe frontend application and why we use runtime configuration instead of build-time environment files.
+Configuration management system with build-time generation and runtime validation using Zod schemas.
 
-## TL;DR
+## Quick Start
 
-- ✅ **Runtime configuration** (`config.json`) for API URLs and keys
-- ✅ **Build-time configuration** (`environment.ts`) for optimization flags only
-- ✅ **Supabase anon keys** are safe to expose (protected by Row Level Security)
+```typescript
+// Inject the configuration service
+constructor(private config: ApplicationConfiguration) {}
 
-## Architecture Overview
+// Access configuration values
+const supabaseUrl = this.config.supabaseUrl();
+const apiUrl = this.config.backendApiUrl();
+const environment = this.config.environment();
+```
 
-### Runtime Configuration (`config.json`)
+## Architecture
 
-The application loads configuration at **runtime** from `/config.json`:
+### Build-time Generation
+
+1. **Load environment variables** from `.env` files or `process.env`
+2. **Validate with EnvSchema** (string → native types transformation)
+3. **Transform structure** via `envToConfig()` (flat → nested)
+4. **Validate with ConfigSchema** (final structure verification)
+5. **Generate `config.json`** in public directory
+
+Script: `frontend/scripts/generate-config.ts`
+
+### Runtime Loading
+
+1. **HTTP GET** `/config.json` when application starts
+2. **Validate with ConfigSchema** (integrity protection)
+3. **Store in Angular signals** for reactive access
+4. **Apply configuration** to application services
+
+Service: `ApplicationConfiguration`
+
+## Environment Sources
+
+| Environment | Source | Versioned | Purpose |
+|---|---|---|---|
+| Development | `.env` | No | Local development variables |
+| E2E Tests | `.env.e2e` | Yes | Mock values for reproducible tests |
+| CI/CD | `.env.e2e` | Yes | GitHub Actions automated testing |
+| Production | Vercel Dashboard | No | Production variables injected by platform |
+
+## Configuration Schema
+
+### Required Variables
+
+```bash
+# Supabase
+PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIs...
+
+# Backend API
+PUBLIC_BACKEND_API_URL=https://api.example.com/api/v1
+
+# PostHog Analytics
+PUBLIC_POSTHOG_API_KEY=phc_xxxxx
+PUBLIC_POSTHOG_HOST=https://eu.posthog.com
+PUBLIC_POSTHOG_ENABLED=true
+
+# Environment
+PUBLIC_ENVIRONMENT=production
+```
+
+### Generated Structure
 
 ```json
 {
   "supabase": {
     "url": "https://your-project.supabase.co",
-    "anonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    "anonKey": "eyJhbGciOiJIUzI1NiIs..."
   },
   "backend": {
-    "apiUrl": "https://api.pulpe.app/api/v1"
+    "apiUrl": "https://api.example.com/api/v1"
+  },
+  "postHog": {
+    "apiKey": "phc_xxxxx",
+    "host": "https://eu.posthog.com",
+    "enabled": true,
+    "sessionRecording": {
+      "enabled": false,
+      "maskInputs": true,
+      "sampleRate": 0.1
+    }
   },
   "environment": "production"
 }
 ```
 
-This file is:
+## Usage
 
-- Loaded via HTTP when the application starts
-- Validated with Zod schemas for type safety
-- Stored in Angular signals for reactive updates
-- Can be different per deployment without rebuilding
-
-### Build Configuration (`environment.ts`)
-
-The `environment.ts` files contain **build optimization flags only**:
+### In Services
 
 ```typescript
-// environment.ts (production)
-export const environment = {
-  production: true, // Enables minification, tree-shaking, etc.
-};
+@Injectable()
+export class MyService {
+  constructor(private config: ApplicationConfiguration) {}
 
-// environment.development.ts
-export const environment = {
-  production: false, // Disables optimizations for faster builds
-};
+  async callApi() {
+    const apiUrl = this.config.backendApiUrl();
+    return this.http.get(`${apiUrl}/endpoint`);
+  }
+}
 ```
 
-These files control:
+### In Components
 
-- Minification and uglification
-- Tree-shaking and dead code elimination
-- Source map generation
-- Bundle size optimizations
-- Development vs production Angular behaviors
+```typescript
+@Component({...})
+export class MyComponent {
+  private config = inject(ApplicationConfiguration);
 
-**Note**: All runtime configuration (API URLs, environment names, etc.) comes from `config.json`, NOT from these environment files.
-
-## Why Runtime Configuration?
-
-### 1. Build Once, Deploy Everywhere
-
-With runtime configuration, you can:
-
-- Build a single Docker image
-- Deploy to multiple environments (dev, staging, prod)
-- Change configuration without rebuilding
-- Follow modern CI/CD best practices
-
-### 2. Container & Cloud Native
-
-Modern deployment strategies require:
-
-- **Immutable artifacts**: One build, many deployments
-- **Environment parity**: Same code in all environments
-- **Configuration flexibility**: Change settings without code changes
-- **12-Factor App compliance**: Separate config from code
-
-### 3. Security Considerations
-
-**Q: Is it safe to expose Supabase anon keys in config.json?**
-
-**A: Yes, when Row Level Security (RLS) is enabled.**
-
-The Supabase anon key is:
-
-- Designed to be public (like a Firebase API key)
-- Limited by Row Level Security policies
-- Only allows operations explicitly permitted by RLS
-- Cannot bypass database security rules
-
-Our RLS policies ensure:
-
-- Users can only access their own data
-- All tables have `ENABLE ROW LEVEL SECURITY`
-- Policies check `auth.uid()` for user isolation
-- No public access without authentication
-
-### 4. Angular Best Practices 2025
-
-The Angular team recommends:
-
-- Use `APP_INITIALIZER` for runtime configuration
-- Keep `environment.ts` for build-time constants only
-- Load configuration before app bootstrap
-- Validate configuration with schemas (we use Zod)
-
-## Configuration Flow
-
-```mermaid
-graph LR
-    A[App Starts] --> B[Load config.json]
-    B --> C[Validate with Zod]
-    C --> D[Store in Signals]
-    D --> E[App Ready]
-
-    F[environment.ts] --> G[Build Process]
-    G --> H[Optimized Bundle]
+  readonly isDevelopment = this.config.isDevelopment;
+  readonly postHogConfig = this.config.postHogConfig;
+}
 ```
 
 ## Adding New Configuration
 
-To add new configuration values:
-
-1. **Update the Zod schema** (`config.schema.ts`):
-
+1. **Update EnvSchema** in `config.schema.ts`:
 ```typescript
-export const ConfigSchema = z.object({
+export const EnvSchema = z.object({
   // ... existing fields
-  myNewConfig: z.string().url(), // Add your field
+  PUBLIC_NEW_CONFIG: z.string().url(),
 });
 ```
 
-2. **Update the config files**:
-
-```json
-{
-  "myNewConfig": "https://example.com"
+2. **Update envToConfig** transformation:
+```typescript
+export function envToConfig(env: EnvironmentVariables) {
+  return {
+    // ... existing fields
+    newConfig: env.PUBLIC_NEW_CONFIG,
+  };
 }
 ```
 
-3. **Use in your service**:
+3. **Update ConfigSchema**:
+```typescript
+export const ConfigSchema = z.object({
+  // ... existing fields
+  newConfig: z.string().url(),
+});
+```
+
+4. **Add to ApplicationConfiguration** service if needed.
+
+## E2E Testing
+
+Tests automatically use `.env.e2e` through Playwright configuration:
 
 ```typescript
-const myConfig = this.appConfig.rawConfiguration()?.myNewConfig;
+// playwright.config.ts
+webServer: {
+  command: 'DOTENV_CONFIG_PATH=.env.e2e pnpm run start:ci',
+  // ...
+}
 ```
+
+This ensures isolated test environments with mock configuration values.
+
+## Security
+
+### Safe to Expose
+- Supabase anon key (protected by Row Level Security)
+- Backend API URLs
+- Environment names
+- PostHog configuration
+
+### Never Expose
+- Supabase service role key
+- Private API keys
+- Database passwords
+- JWT secrets
+
+### Validation Features
+- **Triple validation**: Build-time (2x) + Runtime (1x)
+- **URL sanitization** before application use
+- **Type safety** with Zod schemas
+- **Fail-fast** approach without fallbacks
+
+## Troubleshooting
+
+### Config Not Loading
+- Check network tab for 404 on `/config.json`
+- Verify file exists in public directory
+- Run `pnpm run generate:config` manually
+
+### Validation Errors
+- Check console for Zod validation errors
+- Ensure all required environment variables are set
+- Verify variable formats match schema requirements
+
+### Type Errors
+- Run `pnpm run type-check`
+- Types are auto-generated from Zod schemas
+- Check imports from proper modules
 
 ## File Structure
 
 ```
 core/config/
-├── README.md                        # This file
-├── application-configuration.ts    # Main configuration service
-├── config.schema.ts                # Zod validation schemas
-└── types.ts                        # TypeScript types (generated from Zod)
+├── README.md                    # This documentation
+├── application-configuration.ts # Main service
+├── config.schema.ts            # Zod schemas and transformations
+└── types.ts                    # TypeScript types (if needed)
 ```
-
-## Production Deployment
-
-For production:
-
-1. Build the application once: `pnpm build`
-2. Deploy the dist folder to your server
-3. Provide environment-specific `config.json`
-4. No rebuild needed for configuration changes
-
-## Security Notes
-
-### ✅ Safe to Expose
-
-- Supabase anon key (protected by RLS)
-- Backend API URLs
-- Environment names
-
-### ❌ Never Expose
-
-- Supabase service role key
-- Private API keys
-- Sensitive credentials
-
-## Migration from Build-Time Config
-
-If migrating from build-time configuration:
-
-1. Move API URLs and keys to `config.json`
-2. Keep only the `production` flag in `environment.ts`
-3. Update services to use `ApplicationConfiguration` service
-4. Test in all environments
-
-## Troubleshooting
-
-### Config Not Loading
-
-- Check browser network tab for 404 on `/config.json`
-- Verify file exists in `public/` directory
-- Check CORS if loading from different domain
-
-### Validation Errors
-
-- Check browser console for Zod validation errors
-- Verify config matches schema structure
-- Ensure all required fields are present
-
-### Type Errors
-
-- Run `pnpm type-check` to verify types
-- Types are auto-generated from Zod schema
-- Check imports from `./types`
-
-## References
-
-- [Angular Runtime Configuration Best Practices](https://angular.dev/tools/cli/environments)
-- [Supabase Security Documentation](https://supabase.com/docs/guides/database/secure-data)
-- [12-Factor App Configuration](https://12factor.net/config)
-- [Zod Schema Validation](https://zod.dev)

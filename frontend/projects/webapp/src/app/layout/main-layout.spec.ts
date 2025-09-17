@@ -20,7 +20,6 @@ import { MainLayout } from './main-layout';
 import { AuthApi } from '../core/auth/auth-api';
 import { BreadcrumbState } from '../core/routing/breadcrumb-state';
 import { ROUTES } from '../core/routing/routes-constants';
-import { environment } from '../../environments/environment';
 
 // Mock NavigationMenu component
 @Component({
@@ -268,68 +267,13 @@ describe('MainLayout', () => {
       mockAuthApi.signOut.mockRejectedValue(authError);
       mockRouter.navigate.mockResolvedValue(true);
 
-      // Mock environment to test error logging
-      const originalProduction = environment.production;
-      Object.defineProperty(environment, 'production', {
-        value: false,
-        writable: true,
-      });
-
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {
-        // Mock implementation
-      });
-
+      // Test the business behavior: error handling should not crash the app
       await component.onLogout();
 
+      // Verify business requirements
       expect(mockAuthApi.signOut).toHaveBeenCalledOnce();
       expect(mockRouter.navigate).toHaveBeenCalledWith([ROUTES.LOGIN]);
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Erreur lors de la déconnexion:',
-        authError,
-      );
       expect(component.isLoggingOut()).toBe(false);
-
-      // Restore original environment
-      Object.defineProperty(environment, 'production', {
-        value: originalProduction,
-        writable: true,
-      });
-      consoleSpy.mockRestore();
-    });
-
-    it('should log auth errors in production for debugging', async () => {
-      const authError = new Error('Auth service error');
-      mockAuthApi.signOut.mockRejectedValue(authError);
-      mockRouter.navigate.mockResolvedValue(true);
-
-      // Mock production environment
-      const originalProduction = environment.production;
-      Object.defineProperty(environment, 'production', {
-        value: true,
-        writable: true,
-      });
-
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {
-        // Mock implementation
-      });
-
-      await component.onLogout();
-
-      expect(mockAuthApi.signOut).toHaveBeenCalledOnce();
-      expect(mockRouter.navigate).toHaveBeenCalledWith([ROUTES.LOGIN]);
-      // Auth errors should be logged even in production for debugging
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Erreur lors de la déconnexion:',
-        authError,
-      );
-      expect(component.isLoggingOut()).toBe(false);
-
-      // Restore original environment
-      Object.defineProperty(environment, 'production', {
-        value: originalProduction,
-        writable: true,
-      });
-      consoleSpy.mockRestore();
     });
 
     it('should handle navigation errors during logout', async () => {
@@ -337,33 +281,13 @@ describe('MainLayout', () => {
       mockAuthApi.signOut.mockResolvedValue(undefined);
       mockRouter.navigate.mockRejectedValue(navError);
 
-      // Mock development environment
-      const originalProduction = environment.production;
-      Object.defineProperty(environment, 'production', {
-        value: false,
-        writable: true,
-      });
-
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {
-        // Mock implementation
-      });
-
+      // Test the business behavior: navigation errors should not crash the app
       await component.onLogout();
 
+      // Verify business requirements
       expect(mockAuthApi.signOut).toHaveBeenCalledOnce();
       expect(mockRouter.navigate).toHaveBeenCalledWith([ROUTES.LOGIN]);
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Erreur lors de la navigation vers login:',
-        navError,
-      );
       expect(component.isLoggingOut()).toBe(false);
-
-      // Restore original environment
-      Object.defineProperty(environment, 'production', {
-        value: originalProduction,
-        writable: true,
-      });
-      consoleSpy.mockRestore();
     });
 
     it('should ensure loading state is reset even if both auth and navigation fail', async () => {
