@@ -1,5 +1,10 @@
 import { defineConfig, devices } from '@playwright/test';
+import { config } from 'dotenv';
+import * as path from 'path';
 
+// Load environment variables for E2E tests
+// This ensures variables are available to npm scripts executed by webServer
+config({ path: path.join(__dirname, '.env.e2e') });
 /**
  * Playwright configuration for Angular e2e tests
  * @see https://playwright.dev/docs/test-configuration
@@ -14,7 +19,7 @@ export default defineConfig({
     : [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: 'http://localhost:4200',
-    trace: 'on-first-retry',
+    trace: 'retain-on-failure', // Capture trace for all failures, not just retries
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
     actionTimeout: 10000,
@@ -57,14 +62,16 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: process.env.CI ? 'pnpm run start:ci' : 'pnpm run start',
-    url: 'http://localhost:4200',
-    reuseExistingServer: !process.env.CI,
+    command: process.env.CI
+      ? 'pnpm run start:ci'
+      : 'PUBLIC_POSTHOG_ENABLED=false PUBLIC_ENVIRONMENT=test pnpm run start',
+    port: 4200,
+    reuseExistingServer: false,
     stdout: 'pipe',
     stderr: 'pipe',
-    // Explicitly disable PostHog for E2E tests to prevent analytics interference
-    env: {
-      PUBLIC_POSTHOG_ENABLED: 'false',
-    },
+    // Environment variables are now loaded via dotenv from .env.test
+    // This fixes the issue where webServer.env variables weren't passed to npm scripts chained
+    timeout: 120000,
+    cwd: __dirname,
   },
 });
