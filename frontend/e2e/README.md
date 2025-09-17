@@ -1,20 +1,20 @@
-# E2E Tests avec Playwright - Stratégie Hybride Simplifiée
+# E2E Tests avec Playwright
 
-Ce dossier contient tous les tests E2E pour l'application Pulpe, organisés selon une **stratégie hybride** optimisée pour un développeur solo.
+Ce dossier contient tous les tests E2E pour l'application Pulpe, organisés selon une **stratégie hybride 90/10** optimisée pour un développeur solo.
 
-## Stratégie hybride 90/10
+## 📋 Stratégie de test 90/10
 
 ### ⚡ 90% Features (Mocks) - Rapide et isolé
 
-- **Tests** avec authentification simulée via fixture
-- **APIs mockées** pour isolation complète
-- **Exécution rapide** et parallèle
+- **Authentification simulée** via fixture `authenticatedPage`
+- **APIs mockées** pour isolation complète et rapidité
+- **Exécution parallèle** pour performance optimale
 
-### 🔐 10% Critical User Journeys (Session persistée)
+### 🔐 10% Critical User Journeys
 
-- **Tests** avec session mockée persistée via storageState
-- **Parcours utilisateur critiques** validés de bout en bout
-- **Confiance maximale** sur les fonctionnalités vitales
+- **Session persistée** via storageState
+- **Parcours critiques** validés de bout en bout
+- **Tests de non-régression** sur les fonctionnalités vitales
 
 ## Structure des dossiers
 
@@ -37,48 +37,28 @@ e2e/
 └── playwright/.auth/       # Sessions sauvegardées (ignoré par git)
 ```
 
-## Configuration requise
-
-Définir les variables d'environnement pour les tests Critical Path :
+## ⚡ Commandes essentielles
 
 ```bash
-export TEST_EMAIL="votre-email-de-test@example.com"
-export TEST_PASSWORD="votre-mot-de-passe-de-test"
-```
+# Lancer tous les tests (recommandé)
+pnpm test:e2e
 
-## Commandes d'exécution
-
-### Exécution complète (recommandée)
-
-```bash
-npx playwright test
-```
-
-Exécute : Setup → Critical Path → Features
-
-### Tests rapides uniquement (développement)
-
-```bash
+# Tests rapides features uniquement (dev)
 npx playwright test --project="Feature Tests (Mocked)"
+
+# Tests avec UI interactif (dev)
+pnpm test:e2e:ui
+
+# Mode debug
+pnpm test:e2e:debug
 ```
 
-Exécute seulement les tests de features mockés (rapide)
-
-### Tests critiques uniquement
-
+**Variables d'environnement** (optionnel pour critical path) :
 ```bash
-npx playwright test --project="Critical User Journeys (Mocked)"
+# Dans .env.e2e
+TEST_EMAIL="test@example.com"
+TEST_PASSWORD="test-password"
 ```
-
-Exécute le setup + tests des parcours utilisateur critiques
-
-### Setup de session uniquement
-
-```bash
-npx playwright test --project="setup"
-```
-
-Génère le fichier de session `playwright/.auth/user.json`
 
 ## Projets Playwright configurés
 
@@ -88,46 +68,50 @@ Génère le fichier de session `playwright/.auth/user.json`
 | **Critical Path** | 6     | Session sauvegardée  | Chemin critique |
 | **Features**      | 28    | Mocks complets       | Développement   |
 
-## Bonnes pratiques implémentées
+## 🎯 Standards et bonnes pratiques
 
-### 1. Page Object Model (POM)
+### Page Object Model (POM)
 
-Chaque page de l'application a son propre Page Object dans le dossier `pages/` :
-
-- `login.page.ts` - Page de connexion
-- `onboarding.page.ts` - Processus d'onboarding
-- `current-month.page.ts` - Dashboard du mois en cours
-- `budget-templates.page.ts` - Gestion des templates de budget
-
-### 2. Fixtures personnalisées
-
-Dans `fixtures/test-fixtures.ts`, nous avons défini :
-
-- `loginPage`, `onboardingPage`, etc. - Instances des Page Objects
-- `authenticatedPage` - Page avec authentification automatique
-
-### 3. Tests isolés
-
-- Chaque test est complètement indépendant
-- Utilisation de `test.describe.configure({ mode: 'parallel' })` pour l'exécution parallèle
-- Pas de dépendances entre les tests
-
-### 4. Sélecteurs robustes
-
-Ordre de priorité pour les sélecteurs :
-
-1. `data-testid` (recommandé pour les tests)
-2. Sélecteurs par rôle/texte (pour l'accessibilité)
-3. Sélecteurs CSS stables (éviter les classes qui peuvent changer)
-
-### 5. Assertions web-first
-
-Utilisation des assertions Playwright qui attendent automatiquement :
+**Structure** : Chaque page a son Page Object dans `pages/`
+**Règle des 50 lignes** : Maximum 50 lignes par Page Object pour maintenir la simplicité
+**Méthodes métier** : Focus sur les actions utilisateur, pas les détails techniques
 
 ```typescript
-await expect(locator).toBeVisible();
-await expect(page).toHaveURL(/pattern/);
+export class LoginPage {
+  constructor(private page: Page) {}
+
+  async login(email: string, password: string) {
+    await this.page.getByTestId('email-input').fill(email);
+    await this.page.getByTestId('password-input').fill(password);
+    await this.page.getByTestId('login-submit-button').click();
+  }
+}
 ```
+
+### Stratégie de sélecteurs (priorité Playwright 2025)
+
+1. **getByRole()** - Priorité absolue (accessibilité)
+2. **getByTestId()** - Pour les éléments complexes
+3. **getByText()** / **getByLabel()** - Contenu visible
+4. ❌ **Éviter** : Sélecteurs CSS/XPath fragiles
+
+### Naming convention data-testid
+
+Format kebab-case avec hiérarchie descriptive :
+```
+data-testid="component-element-action"
+
+Exemples :
+- data-testid="login-form"
+- data-testid="budget-submit-button"
+- data-testid="month-card-${id}" (dynamique)
+```
+
+### Tests isolés et parallèles
+
+- **Isolation complète** : Chaque test a son propre contexte
+- **Auto-waiting** : Playwright attend automatiquement les éléments
+- **Pas de `waitForTimeout`** : Anti-pattern à éviter absolument
 
 ## Structure d'un test type
 
@@ -151,89 +135,74 @@ test.describe("Feature Name", () => {
 });
 ```
 
-## Mocking et authentification
+## 🔒 Authentification et mocking
 
-L'authentification est mockée via la fixture `authenticatedPage` qui :
+### Fixture authenticatedPage
 
-1. Injecte un flag `__E2E_AUTH_BYPASS__` dans le contexte de la page
-2. Mock les réponses API d'authentification
-3. Simule un état authentifié valide
+La fixture `authenticatedPage` gère automatiquement :
+- Injection du flag `__E2E_AUTH_BYPASS__`
+- Mocking des API d'authentification
+- État authentifié valide pour les tests
 
-### Stratégie de mocking d'API
-
-- **Routes par défaut** : Utilisent le pattern `**/api/v1/**` pour toutes les API
-- **Mocks spécifiques** : Les routes enregistrées en dernier sont prioritaires
-- **Content-Type** : Tous les mocks JSON incluent `contentType: 'application/json'`
-
-### Surcharge de mocks par test
-
-Pour surcharger les mocks globaux dans un test spécifique :
+### Pattern de mocking simplifié
 
 ```typescript
-test('should handle specific scenario', async ({ authenticatedPage }) => {
-  // Ce mock sera prioritaire sur les mocks globaux
-  await authenticatedPage.route('**/api/v1/budgets', route => 
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ data: [] })
-    })
-  );
-  
-  // Test logic...
-});
+// Mock simple avec helpers typés
+await authenticatedPage.route('**/api/v1/budgets/*/details', route =>
+  route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify(createBudgetDetailsMock(budgetId))
+  })
+);
 ```
 
-## Conseils pour écrire de bons tests
+**Priorité** : Les derniers mocks enregistrés sont prioritaires
 
-1. **Tester le comportement visible par l'utilisateur**
+## 💡 Debugging rapide
 
-   - Ne pas tester les détails d'implémentation
-   - Se concentrer sur ce que l'utilisateur voit et fait
+```bash
+# Mode debug interactif
+pnpm test:e2e --debug
 
-2. **Utiliser les Page Objects**
+# Mode headed (voir le navigateur)
+pnpm test:e2e --headed
 
-   - Encapsuler la logique de navigation et d'interaction
-   - Réutiliser les méthodes communes
+# Trace viewer pour analyser les échecs
+pnpm test:e2e --trace on
 
-3. **Éviter les timeouts hardcodés**
+# UI mode pour développement
+pnpm test:e2e --ui
+```
 
-   - Utiliser les assertions web-first qui attendent automatiquement
-   - Si nécessaire, utiliser `waitForLoadState` ou `waitForSelector`
+**Artifacts automatiques** : Screenshots et videos sur échec dans `test-results/`
 
-4. **Gérer les erreurs gracieusement**
+## 🚀 CI/CD avec GitHub Actions
 
-   - Tester les cas d'erreur (API 500, network failure)
-   - Vérifier que l'application reste stable
+- **Exécution parallèle** sur Chromium (Firefox et WebKit désactivés pour rapidité)
+- **Artifacts automatiques** : screenshots, videos, traces sur échec
+- **Stratégie de retry** : 1 retry en CI pour gérer les flaky tests
+- **Performance** : Workers à 50% en CI pour stabilité
 
-5. **Tests responsives**
-   - Tester sur différentes tailles d'écran
-   - Utiliser `page.setViewportSize()` pour simuler
+## 🔧 Dépannage
 
-## CI/CD
+**Tests échouent localement ?**
+```bash
+# Vérifier que l'app tourne
+pnpm run start:ci
 
-Les tests sont configurés pour s'exécuter automatiquement dans GitHub Actions avec :
+# Régénérer la session auth
+rm -rf playwright/.auth && pnpm test:e2e
 
-- Tests sur plusieurs navigateurs (Chromium, Firefox, WebKit)
-- Artifacts (screenshots, videos) en cas d'échec
-- Rapports HTML consultables
+# Mode debug pour investiguer
+pnpm test:e2e --debug
+```
 
-## Dépannage
+**Timeout sur sélecteurs ?**
+- Utiliser `npx playwright codegen` pour générer les bons sélecteurs
+- Vérifier avec l'inspecteur : `pnpm test:e2e --ui`
 
-### Les tests échouent localement
-
-1. Vérifier que l'application est lancée : `npm start`
-2. Vérifier l'URL de base dans `playwright.config.ts`
-3. Consulter les screenshots/videos dans `test-results/`
-
-### Timeout sur les sélecteurs
-
-1. Vérifier que le sélecteur est correct avec l'inspecteur Playwright
-2. Utiliser `npx playwright codegen` pour générer des sélecteurs
-3. Augmenter le timeout si nécessaire dans la config
-
-### Tests flaky
-
-1. Éviter les sélecteurs basés sur l'ordre ou la position
-2. Utiliser des assertions appropriées
-3. S'assurer que les tests sont vraiment isolés
+**Tests flaky ?**
+- Vérifier l'isolation des tests
+- Utiliser l'auto-waiting, pas de `waitForTimeout`
+- Préférer `getByRole()` aux sélecteurs CSS
