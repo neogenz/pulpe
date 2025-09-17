@@ -266,7 +266,10 @@ export class PostHogService {
 
             // Error handling
             loaded: () => {
-              if (timeoutId) clearTimeout(timeoutId);
+              if (timeoutId) {
+                clearTimeout(timeoutId);
+                timeoutId = undefined;
+              }
               this.#logger.debug('PostHog loaded successfully');
 
               // Register global Super Properties for all PostHog events

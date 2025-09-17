@@ -14,7 +14,7 @@ export class GlobalErrorHandler implements ErrorHandler {
   readonly #postHogService = inject(PostHogService);
   readonly #logger = inject(Logger);
 
-  handleError(error: unknown): void {
+  handleError(error: Error | HttpErrorResponse | unknown): void {
     // Always log to console for development
     this.#logger.error('[GlobalError]', error);
 
