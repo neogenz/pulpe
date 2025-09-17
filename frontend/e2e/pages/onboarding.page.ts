@@ -52,26 +52,36 @@ export class OnboardingPage {
 
   // Helper method to fill personal info
 
-  // Helper method to handle registration
+  // Helper method to handle registration with robust mat-checkbox interaction
   private async completeRegistration(email?: string, password?: string) {
     const emailInput = this.page.getByTestId('email-input');
     const passwordInput = this.page.getByTestId('password-input');
-    
+
     // Check if registration form is present (with shorter timeout)
     if (await emailInput.isVisible({ timeout: 2000 }).catch(() => false)) {
       const testEmail = email || `e2e-test-${Date.now()}@pulpe.local`;
       const testPassword = password || 'TestPassword123!';
-      
+
+      // Fill form fields first to trigger initial validation
       await emailInput.fill(testEmail);
       await passwordInput.fill(testPassword);
 
-      // Accept terms and conditions
-      const acceptTermsCheckbox = this.page.getByTestId('accept-terms-checkbox');
-      await acceptTermsCheckbox.check();
+      // Target the actual checkbox input element for reliable interaction
+      const checkboxInput = this.page.locator('[data-testid="accept-terms-checkbox"] input[type="checkbox"]');
 
-      const createButton = this.page.getByTestId('submit-button');
-      await createButton.click();
-      
+      // Use check() method which is specifically designed for checkbox inputs
+      await checkboxInput.check();
+
+      // Verify the checkbox is actually checked
+      await expect(checkboxInput).toBeChecked();
+
+      // Wait for Angular form validation to complete and button to become enabled
+      const submitButton = this.page.getByTestId('submit-button');
+      await expect(submitButton).toBeEnabled({ timeout: 5000 });
+
+      // Click submit button
+      await submitButton.click();
+
       // Wait for redirect or expect the page to change (with timeout for mocked APIs)
       await expect(this.page).toHaveURL(/\/app|\/current-month/, { timeout: 10000 }).catch(() => {
         // If redirect fails, that's OK for mocked tests - the registration form submission is what matters
