@@ -121,14 +121,12 @@ export function provideCore({ routes }: CoreOptions) {
       const authService = inject(AuthApi);
       const analyticsService = inject(AnalyticsService);
       const injector = inject(Injector);
+      // 1. Charger la configuration d'abord
+      await applicationConfig.initialize();
+      // 2. Logger les informations complètes après chargement
+      logAppInfo(applicationConfig);
 
       try {
-        // 1. Charger la configuration d'abord
-        await applicationConfig.initialize();
-
-        // 2. Logger les informations complètes après chargement
-        logAppInfo(applicationConfig);
-
         // 3. Initialiser PostHog (non-blocking, can fail gracefully)
         try {
           await postHogService.initialize();

@@ -1,13 +1,11 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { environment } from '@env/environment';
 import { firstValueFrom } from 'rxjs';
 import { Logger } from '../logging/logger';
 import { isValidUrl, sanitizeUrl } from '../utils/validators';
 import {
   type ApplicationConfig,
   type ConfigFile,
-  DEFAULT_CONFIG,
   formatConfigError,
   safeValidateConfig,
 } from './config.schema';
@@ -107,6 +105,9 @@ export class ApplicationConfiguration {
   async initialize(): Promise<void> {
     try {
       const configData = await this.#loadConfigFile();
+
+      // Runtime validation is critical: config.json could be corrupted,
+      // manually edited, or tampered with. ConfigSchema ensures integrity.
       const validationResult = safeValidateConfig(configData);
 
       if (!validationResult.success) {
@@ -122,7 +123,6 @@ export class ApplicationConfiguration {
         'Erreur lors du chargement de la configuration',
         error,
       );
-      this.#setDefaults();
       throw error;
     }
   }
@@ -153,12 +153,8 @@ export class ApplicationConfiguration {
       this.#logger.error('📍 Attempted to load from: /config.json');
       this.#logger.error('💡 Fix: Run "npm run generate:config" to create it');
 
-      // En développement uniquement, utiliser les defaults
-      if (!environment.production) {
-        this.#logger.warn('⚠️ Using default config for development');
-        this.#logger.warn('Config:', DEFAULT_CONFIG);
-        return DEFAULT_CONFIG;
-      }
+      // En développement et production, config.json est requis
+      // Plus de fallback - l'application doit échouer si pas de config
 
       // En production, fail fast
       throw new Error('config.json is required. Run: npm run generate:config', {
@@ -240,33 +236,5 @@ export class ApplicationConfiguration {
       host: postHogHost,
       debug: config.postHog.debug,
     });
-  }
-
-  /**
-   * Définit les valeurs par défaut en cas d'erreur
-   */
-  #setDefaults(): void {
-    this.#logger.warn('Using default configuration as fallback');
-    this.supabaseUrl.set(DEFAULT_CONFIG.supabase.url);
-    this.supabaseAnonKey.set(DEFAULT_CONFIG.supabase.anonKey);
-    this.backendApiUrl.set(DEFAULT_CONFIG.backend.apiUrl);
-    this.environment.set(DEFAULT_CONFIG.environment);
-
-    // Set PostHog defaults
-    if (DEFAULT_CONFIG.postHog) {
-      this.postHog.set({
-        apiKey: DEFAULT_CONFIG.postHog.apiKey,
-        host: DEFAULT_CONFIG.postHog.host,
-        enabled: DEFAULT_CONFIG.postHog.enabled,
-        capturePageviews: DEFAULT_CONFIG.postHog.capturePageviews,
-        capturePageleaves: DEFAULT_CONFIG.postHog.capturePageleaves,
-        sessionRecording: DEFAULT_CONFIG.postHog.sessionRecording || {
-          enabled: false,
-          maskInputs: true,
-          sampleRate: 0.1,
-        },
-        debug: DEFAULT_CONFIG.postHog.debug,
-      });
-    }
   }
 }
