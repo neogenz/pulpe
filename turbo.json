@@ -5,6 +5,7 @@
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**", "build/**"],
+      "passThroughEnv": ["DOTENV_CONFIG_PATH"],
       "env": [
         "NODE_ENV",
         "PUBLIC_SUPABASE_URL",
