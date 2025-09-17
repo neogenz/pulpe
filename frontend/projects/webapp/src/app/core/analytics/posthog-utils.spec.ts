@@ -200,30 +200,25 @@ describe('PostHog Utils', () => {
       expect(deepSanitizeFinancialData('Total: 999.99')).toBe('Total: ***');
     });
 
-    it('should mask numbers that look like amounts', () => {
-      expect(deepSanitizeFinancialData(123.45)).toBe('***');
-      expect(deepSanitizeFinancialData(999.99)).toBe('***');
-      // 0.5 has only 1 decimal place, so it's not masked
+    it('should preserve all numbers (amounts should not be sent to PostHog)', () => {
+      // New philosophy: Numbers are left as-is because we shouldn't send
+      // financial amounts to PostHog anyway. If amounts are sent, it's an
+      // app-level issue, not a sanitization issue.
+      expect(deepSanitizeFinancialData(123.45)).toBe(123.45);
+      expect(deepSanitizeFinancialData(999.99)).toBe(999.99);
       expect(deepSanitizeFinancialData(0.5)).toBe(0.5);
-    });
-
-    it('should mask very large numbers', () => {
-      // Only very large numbers (> 10,000) are masked to avoid masking years, etc.
-      expect(deepSanitizeFinancialData(1234)).toBe(1234); // Not masked
-      expect(deepSanitizeFinancialData(999999)).toBe('***'); // Masked (> 10,000)
-      expect(deepSanitizeFinancialData(15000)).toBe('***'); // Masked (> 10,000)
-    });
-
-    it('should preserve small numbers', () => {
+      expect(deepSanitizeFinancialData(1234)).toBe(1234);
+      expect(deepSanitizeFinancialData(999999)).toBe(999999);
+      expect(deepSanitizeFinancialData(15000)).toBe(15000);
       expect(deepSanitizeFinancialData(5)).toBe(5);
       expect(deepSanitizeFinancialData(99)).toBe(99);
-      expect(deepSanitizeFinancialData(100)).toBe(100); // Boundary case
+      expect(deepSanitizeFinancialData(2024)).toBe(2024); // Years preserved
     });
 
     it('should sanitize arrays', () => {
       expect(deepSanitizeFinancialData([123.45, 'CHF 999', 5])).toEqual([
-        '***',
-        'CHF ***',
+        123.45, // Numbers are preserved
+        'CHF ***', // Strings with CHF are masked
         5,
       ]);
     });

@@ -132,43 +132,37 @@ export function toJsonType(value: unknown): JsonType {
 }
 
 /**
- * Deep sanitize financial data in nested objects and arrays
+ * Sanitize financial data in nested objects and arrays.
+ *
+ * Philosophy: PostHog is for behavioral analytics, not storing financial amounts.
+ * We only sanitize obvious financial strings (e.g., "CHF 150" → "CHF ***")
+ * to protect against accidental exposure in session recordings or logs.
+ *
+ * Numbers are left as-is because:
+ * - We shouldn't send financial amounts to PostHog anyway
+ * - Impossible to distinguish amounts vs years/IDs without context
+ * - If amounts are sent, it's an app-level issue, not a sanitization issue
  */
 export function deepSanitizeFinancialData(obj: JsonType): JsonType {
   if (obj === null || obj === undefined) {
     return obj;
   }
 
+  // Sanitize strings containing financial info (e.g., "CHF 150" → "CHF ***")
   if (typeof obj === 'string') {
     return sanitizeFinancialString(obj);
   }
 
-  if (typeof obj === 'number') {
-    // Only mask numbers that clearly look like financial amounts
-    const str = obj.toString();
-
-    // Mask numbers with exactly 2 decimal places (typical for CHF amounts)
-    if (str.includes('.') && str.split('.')[1]?.length === 2) {
-      return '***';
-    }
-
-    // Mask very large numbers that are likely amounts (> 10,000)
-    // But preserve reasonable numbers like years (2024), ages, counts, etc.
-    if (obj > 10000) {
-      return '***';
-    }
-
-    return obj;
-  }
-
+  // Recursively sanitize arrays
   if (Array.isArray(obj)) {
     return obj.map((item) => deepSanitizeFinancialData(item));
   }
 
+  // Recursively sanitize objects
   if (typeof obj === 'object') {
     const sanitized: Record<string, JsonType> = {};
     for (const [key, value] of Object.entries(obj)) {
-      // Check if key indicates financial data
+      // Mask values for keys that clearly indicate financial data
       if (isFinancialKey(key)) {
         sanitized[key] = '***';
       } else {
@@ -178,6 +172,9 @@ export function deepSanitizeFinancialData(obj: JsonType): JsonType {
     return sanitized;
   }
 
+  // For all other types (numbers, booleans, etc.) - return as-is
+  // If numbers contain financial data, the issue is sending them to PostHog,
+  // not the sanitization logic
   return obj;
 }
 
