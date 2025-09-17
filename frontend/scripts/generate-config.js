@@ -5,43 +5,77 @@ const path = require("path");
 
 /**
  * Script pour générer dynamiquement config.json à partir des variables d'environnement
- * Utilisé pour Vercel deployment avec environnements multiples
- * Supporte .env.local pour le développement local
+ * Version refactorisée SANS valeurs par défaut magiques
+ * Toutes les variables doivent être explicitement définies dans le fichier .env approprié
  */
 
-// Charger les variables d'environnement depuis .env si présent
-require("dotenv").config();
+// Charger les variables d'environnement
+const envPath = process.env.DOTENV_CONFIG_PATH || ".env";
+console.log(`📁 Loading config from: ${envPath}`);
+require("dotenv").config({ path: envPath });
 
-// Configuration générée à partir des variables d'environnement avec fallbacks
+/**
+ * Fonction pour obtenir une variable d'environnement requise
+ * @param {string} key - Nom de la variable
+ * @param {string} description - Description pour l'erreur
+ * @returns {string} Valeur de la variable
+ * @throws {Error} Si la variable n'est pas définie ou vide
+ */
+function getRequiredEnv(key, description) {
+  const value = process.env[key];
+  if (value === undefined || value === '') {
+    throw new Error(`❌ Missing required environment variable: ${key} (${description})`);
+  }
+  return value;
+}
+
+/**
+ * Fonction pour obtenir une variable booléenne
+ * @param {string} key - Nom de la variable
+ * @param {boolean} defaultValue - Valeur par défaut si non définie
+ * @returns {boolean} Valeur booléenne
+ */
+function getBooleanEnv(key, defaultValue = false) {
+  const value = process.env[key];
+  if (value === undefined) return defaultValue;
+  return value === 'true';
+}
+
+/**
+ * Fonction pour obtenir une variable numérique
+ * @param {string} key - Nom de la variable
+ * @param {number} defaultValue - Valeur par défaut si non définie
+ * @returns {number} Valeur numérique
+ */
+function getNumberEnv(key, defaultValue = 0) {
+  const value = process.env[key];
+  if (value === undefined) return defaultValue;
+  return parseFloat(value) || defaultValue;
+}
+
+// Configuration SANS valeurs par défaut magiques - toutes les variables sont requises
 const config = {
   supabase: {
-    url: process.env.PUBLIC_SUPABASE_URL || "http://localhost:54321",
-    anonKey:
-      process.env.PUBLIC_SUPABASE_ANON_KEY ||
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0",
+    url: getRequiredEnv('PUBLIC_SUPABASE_URL', 'Supabase API URL'),
+    anonKey: getRequiredEnv('PUBLIC_SUPABASE_ANON_KEY', 'Supabase anonymous key'),
   },
   backend: {
-    apiUrl:
-      process.env.PUBLIC_BACKEND_API_URL || "http://localhost:3000/api/v1",
+    apiUrl: getRequiredEnv('PUBLIC_BACKEND_API_URL', 'Backend API URL'),
   },
   postHog: {
-    apiKey: process.env.PUBLIC_POSTHOG_API_KEY || "",
-    host: process.env.PUBLIC_POSTHOG_HOST || "https://eu.posthog.com",
-    enabled: process.env.PUBLIC_POSTHOG_ENABLED === "true" || false,
-    capturePageviews:
-      process.env.PUBLIC_POSTHOG_CAPTURE_PAGEVIEWS === "true" || true,
-    capturePageleaves:
-      process.env.PUBLIC_POSTHOG_CAPTURE_PAGELEAVES === "true" || true,
+    apiKey: getRequiredEnv('PUBLIC_POSTHOG_API_KEY', 'PostHog API key'),
+    host: getRequiredEnv('PUBLIC_POSTHOG_HOST', 'PostHog host URL'),
+    enabled: getBooleanEnv('PUBLIC_POSTHOG_ENABLED'),
+    capturePageviews: getBooleanEnv('PUBLIC_POSTHOG_CAPTURE_PAGEVIEWS', true),
+    capturePageleaves: getBooleanEnv('PUBLIC_POSTHOG_CAPTURE_PAGELEAVES', true),
     sessionRecording: {
-      enabled:
-        process.env.PUBLIC_POSTHOG_SESSION_RECORDING_ENABLED === "true" ||
-        false,
-      maskInputs: process.env.PUBLIC_POSTHOG_MASK_INPUTS === "true" || true,
-      sampleRate: parseFloat(process.env.PUBLIC_POSTHOG_SAMPLE_RATE || "0.1"),
+      enabled: getBooleanEnv('PUBLIC_POSTHOG_SESSION_RECORDING_ENABLED'),
+      maskInputs: getBooleanEnv('PUBLIC_POSTHOG_MASK_INPUTS', true),
+      sampleRate: getNumberEnv('PUBLIC_POSTHOG_SAMPLE_RATE', 0.1),
     },
-    debug: process.env.PUBLIC_POSTHOG_DEBUG === "true" || false,
+    debug: getBooleanEnv('PUBLIC_POSTHOG_DEBUG'),
   },
-  environment: process.env.PUBLIC_ENVIRONMENT || "development",
+  environment: getRequiredEnv('PUBLIC_ENVIRONMENT', 'Application environment'),
 };
 
 const outputPath = path.join(
@@ -62,27 +96,31 @@ function generateConfig() {
     // Écrire le fichier de configuration
     fs.writeFileSync(outputPath, JSON.stringify(config, null, 2));
 
-    // Afficher les valeurs utilisées (masquer les clés sensibles)
-    const safeConfig = {
-      ...config,
-      supabase: {
-        ...config.supabase,
-        anonKey: config.supabase.anonKey ? "***" : "Non configuré",
-      },
-      postHog: {
-        ...config.postHog,
-        apiKey: config.postHog.apiKey ? "***" : "Non configuré",
-      },
-    };
+    // Affichage des informations de configuration (sans exposer les clés sensibles)
+    console.log("✅ config.json généré avec succès");
+    console.log(`📍 Fichier: ${outputPath}`);
+    console.log(`🌍 Environnement: ${config.environment}`);
+    console.log(`🔗 Supabase URL: ${config.supabase.url}`);
+    console.log(`🚀 Backend API: ${config.backend.apiUrl}`);
+    console.log(`📊 PostHog: ${config.postHog.enabled ? 'activé' : 'désactivé'}`);
 
-    console.log("✅ config.json généré avec les variables d'environnement");
-    console.log("📄 Configuration:", JSON.stringify(safeConfig, null, 2));
-    console.log(`📍 Fichier généré: ${outputPath}`);
+    if (config.postHog.enabled) {
+      console.log(`   └─ Host: ${config.postHog.host}`);
+      console.log(`   └─ Recording: ${config.postHog.sessionRecording.enabled ? 'activé' : 'désactivé'}`);
+      console.log(`   └─ Sample rate: ${config.postHog.sessionRecording.sampleRate}`);
+    }
+
   } catch (error) {
-    console.error(
-      "❌ Erreur lors de la génération du config.json:",
-      error.message,
-    );
+    console.error("❌ Erreur lors de la génération du config.json:");
+    console.error(`   ${error.message}`);
+
+    // Si c'est une erreur de variable manquante, afficher un conseil
+    if (error.message.includes('Missing required environment variable')) {
+      console.error("\n💡 Conseil:");
+      console.error(`   Vérifiez que le fichier ${envPath} contient toutes les variables requises`);
+      console.error("   Ou consultez .env.example pour voir les variables nécessaires");
+    }
+
     process.exit(1);
   }
 }
