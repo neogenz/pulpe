@@ -79,18 +79,20 @@ export type FinancialEntryViewModel = FinancialEntryModel & {
           <a
             [routerLink]="['/app/budget', rolloverSourceBudgetId()]"
             matButton
-            class="inline-flex items-center font-semibold"
+            class="ph-no-capture inline-flex items-center font-semibold"
             matTooltip="Voir le mois d'origine"
           >
             <mat-icon class="!text-base">open_in_new</mat-icon>
             {{ data().name | rolloverFormat }}
           </a>
         } @else {
-          {{ isRollover() ? (data().name | rolloverFormat) : data().name }}
+          <span class="ph-no-capture">{{
+            isRollover() ? (data().name | rolloverFormat) : data().name
+          }}</span>
         }
       </div>
       <div matListItemMeta class="!flex !h-full !items-center !gap-3">
-        <span [class.italic]="isRollover()">
+        <span class="ph-no-capture" [class.italic]="isRollover()">
           {{ data().kind === 'income' ? '+' : '-'
           }}{{ data().amount | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH' }}
         </span>

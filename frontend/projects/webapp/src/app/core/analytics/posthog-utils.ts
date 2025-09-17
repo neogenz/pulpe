@@ -191,5 +191,6 @@ export function getFinancialMaskSelectors(): string {
     '[class*="total"]',
     '[data-financial]',
     'input[type="number"]',
+    '.ph-no-capture',
   ].join(', ');
 }

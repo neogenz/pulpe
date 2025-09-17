@@ -49,7 +49,7 @@ export interface FinancialEntry {
               Description
             </th>
             <td mat-cell *matCellDef="let row" class="px-4 py-2">
-              {{ row.description }}
+              <span class="ph-no-capture">{{ row.description }}</span>
             </td>
           </ng-container>
 
@@ -64,7 +64,9 @@ export interface FinancialEntry {
             </th>
             <td mat-cell *matCellDef="let row" class="text-right px-4 py-2">
               @if (row.spent !== 0) {
-                {{ row.spent | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH' }}
+                <span class="ph-no-capture">{{
+                  row.spent | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
+                }}</span>
               }
             </td>
           </ng-container>
@@ -80,9 +82,9 @@ export interface FinancialEntry {
             </th>
             <td mat-cell *matCellDef="let row" class="text-right px-4 py-2">
               @if (row.earned !== 0) {
-                {{
+                <span class="ph-no-capture">{{
                   row.earned | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
-                }}
+                }}</span>
               }
             </td>
           </ng-container>
@@ -98,7 +100,9 @@ export interface FinancialEntry {
             </th>
             <td mat-cell *matCellDef="let row" class="text-right px-4 py-2">
               @if (row.saved !== 0) {
-                {{ row.saved | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH' }}
+                <span class="ph-no-capture">{{
+                  row.saved | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
+                }}</span>
               }
             </td>
           </ng-container>
@@ -113,7 +117,9 @@ export interface FinancialEntry {
               Total
             </th>
             <td mat-cell *matCellDef="let row" class="text-right px-4 py-2">
-              {{ row.total | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH' }}
+              <span class="ph-no-capture">{{
+                row.total | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
+              }}</span>
             </td>
           </ng-container>
 
