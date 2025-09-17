@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "cd frontend && npm run generate:config && cd .. && npx turbo build --filter=pulpe-frontend && cd frontend && npm run upload:sourcemaps",
+  "buildCommand": "pnpm --filter=pulpe-frontend build && pnpm --filter=pulpe-frontend upload:sourcemaps",
   "outputDirectory": "frontend/dist/webapp/browser",
   "installCommand": "pnpm install --frozen-lockfile --filter=pulpe-frontend --filter=@pulpe/shared --ignore-scripts",
   "framework": "angular",
