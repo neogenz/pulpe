@@ -70,6 +70,30 @@ export class AnalyticsService {
 
   /**
    * Track custom business events
+   *
+   * IMPORTANT: PostHog Philosophy for Financial Apps
+   * ==============================================
+   *
+   * ✅ DO track behavioral events:
+   * - User actions: 'transaction_created', 'budget_updated', 'export_clicked'
+   * - User flows: 'onboarding_completed', 'settings_opened'
+   * - Feature usage: 'template_applied', 'category_selected'
+   * - System events: 'sync_completed', 'error_occurred'
+   *
+   * ❌ DO NOT track financial amounts:
+   * - Exact amounts: { amount: 1500.50 }
+   * - Account balances: { balance: 25000 }
+   * - Transaction totals: { total: 999.99 }
+   *
+   * ✅ If needed, use categories instead:
+   * - { transaction_type: 'large' } instead of { amount: 5000 }
+   * - { budget_status: 'over_limit' } instead of { remaining: -200 }
+   * - { account_type: 'savings' } instead of { balance: 15000 }
+   *
+   * Rationale:
+   * - PostHog is for behavioral analytics, not financial data storage
+   * - Impossible to distinguish amounts vs IDs/years without context
+   * - Simpler, more secure, and privacy-compliant approach
    */
   track(event: string, properties?: Record<string, unknown>): void {
     // Let PostHogService handle all gating logic via #canCapture()

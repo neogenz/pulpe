@@ -6,7 +6,7 @@ import {
   computed,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import posthog, { type Properties, type JsonType } from 'posthog-js';
+import posthog, { type Properties } from 'posthog-js';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
 import { buildInfo } from '@env/build-info';
@@ -374,16 +374,16 @@ export class PostHogService {
   #extractErrorInfo(error: unknown): Record<string, unknown> {
     if (error instanceof Error) {
       return {
-        error_message: this.#sanitizeString(error.message),
+        error_message: sanitizeFinancialString(error.message),
         error_name: error.name,
-        error_stack: this.#sanitizeString(error.stack || ''),
+        error_stack: sanitizeFinancialString(error.stack || ''),
         error_type: 'Error',
       };
     }
 
     if (typeof error === 'string') {
       return {
-        error_message: this.#sanitizeString(error),
+        error_message: sanitizeFinancialString(error),
         error_type: 'string',
       };
     }
@@ -391,131 +391,8 @@ export class PostHogService {
     return {
       error_message: 'Unknown error',
       error_type: typeof error,
-      error_value: this.#sanitizeString(String(error)),
+      error_value: sanitizeFinancialString(String(error)),
     };
-  }
-
-  /**
-   * Helper to safely convert unknown to JsonType
-   */
-  #toJsonType(value: unknown): JsonType {
-    if (value === null || value === undefined) return value;
-    if (
-      typeof value === 'string' ||
-      typeof value === 'number' ||
-      typeof value === 'boolean'
-    )
-      return value;
-    if (Array.isArray(value))
-      return value.map((item) => this.#toJsonType(item));
-    if (typeof value === 'object') {
-      const result: Record<string, JsonType> = {};
-      for (const [k, v] of Object.entries(value)) {
-        result[k] = this.#toJsonType(v);
-      }
-      return result;
-    }
-    return String(value);
-  }
-
-  /**
-   * Deep sanitization of financial data in nested objects
-   */
-  #deepSanitizeFinancialData(obj: JsonType): JsonType {
-    if (obj === null || obj === undefined) {
-      return obj;
-    }
-
-    if (typeof obj === 'string') {
-      return this.#sanitizeString(obj);
-    }
-
-    if (typeof obj === 'number') {
-      // Mask numbers that look like amounts (with 2 decimal places)
-      const str = obj.toString();
-      if (str.includes('.') && str.split('.')[1]?.length === 2) {
-        return '***';
-      }
-      // Mask large numbers that might be amounts
-      if (obj > 100) {
-        return '***';
-      }
-      return obj;
-    }
-
-    if (Array.isArray(obj)) {
-      return obj.map((item) => this.#deepSanitizeFinancialData(item));
-    }
-
-    if (typeof obj === 'object') {
-      const sanitized: Record<string, JsonType> = {};
-      for (const [key, value] of Object.entries(obj)) {
-        // Check if key indicates financial data
-        if (this.#isFinancialKey(key)) {
-          sanitized[key] = '***';
-        } else {
-          // Safe type assertion for JSON-compatible values
-          sanitized[key] = this.#deepSanitizeFinancialData(
-            typeof value === 'object' ||
-              Array.isArray(value) ||
-              typeof value === 'string' ||
-              typeof value === 'number' ||
-              typeof value === 'boolean'
-              ? (value as JsonType)
-              : String(value),
-          );
-        }
-      }
-      return sanitized;
-    }
-
-    return obj;
-  }
-
-  /**
-   * Check if a property key indicates financial data
-   */
-  #isFinancialKey(key: string): boolean {
-    const financialPatterns = [
-      /amount/i,
-      /balance/i,
-      /total/i,
-      /price/i,
-      /cost/i,
-      /value/i,
-      /payment/i,
-      /revenue/i,
-      /income/i,
-      /expense/i,
-      /budget/i,
-      /saving/i,
-      /montant/i, // French for amount
-      /solde/i, // French for balance
-      /depense/i, // French for expense
-      /revenu/i, // French for income
-    ];
-
-    return financialPatterns.some((pattern) => pattern.test(key));
-  }
-
-  /**
-   * Sanitize string values to remove financial data
-   */
-  #sanitizeString(text: string): string {
-    return (
-      text
-        // CHF amounts
-        .replace(/CHF\s*[\d\s''',.-]+/gi, 'CHF ***')
-        .replace(/[\d\s''',.-]+\s*CHF/gi, '*** CHF')
-        // Swiss number formatting
-        .replace(/\d{1,3}(?:['''\s]\d{3})*(?:[.,]\d{1,2})?/g, '***')
-        // Decimal amounts
-        .replace(/\d+[.,]\d{2}\b/g, '***')
-        // Percentages
-        .replace(/\d+[.,]?\d*\s*%/g, '***%')
-        // Large numbers
-        .replace(/\b\d{4,}\b/g, '***')
-    );
   }
 
   /**

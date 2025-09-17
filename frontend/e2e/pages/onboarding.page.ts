@@ -64,7 +64,11 @@ export class OnboardingPage {
       
       await emailInput.fill(testEmail);
       await passwordInput.fill(testPassword);
-      
+
+      // Accept terms and conditions
+      const acceptTermsCheckbox = this.page.getByTestId('accept-terms-checkbox');
+      await acceptTermsCheckbox.check();
+
       const createButton = this.page.getByTestId('submit-button');
       await createButton.click();
       
