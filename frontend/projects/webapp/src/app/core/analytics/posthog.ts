@@ -159,11 +159,16 @@ export class PostHogService {
         timestamp: new Date().toISOString(),
         url: window.location.href,
         user_agent: navigator.userAgent,
+        // Additional version info for error tracking
+        release: buildInfo.version,
+        commit: buildInfo.shortCommitHash,
+        build_date: buildInfo.buildDate,
       });
 
       this.#logger.debug('PostHog exception captured', {
         errorMessage: errorInfo['error_message'],
         errorType: errorInfo['error_type'],
+        release: buildInfo.version,
       });
     } catch (captureError) {
       this.#logger.error('Failed to capture PostHog exception', captureError);
@@ -326,6 +331,12 @@ export class PostHogService {
         environment,
         app_version: buildInfo.version,
         properties_count: Object.keys(globalProperties).length,
+      });
+
+      // Set application version as a person property ($set_once to avoid overwriting)
+      posthog.people.set_once({
+        first_app_version: buildInfo.version,
+        first_commit: buildInfo.shortCommitHash,
       });
 
       // Log financial data masking configuration if session recording is enabled

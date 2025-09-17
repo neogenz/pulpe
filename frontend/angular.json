@@ -96,7 +96,6 @@
                 "vendor": false
               },
               "outputHashing": "all",
-              "sourceMap": true,
               "assets": [
                 {
                   "glob": "**/*",
