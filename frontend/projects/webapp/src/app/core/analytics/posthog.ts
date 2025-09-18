@@ -227,78 +227,81 @@ export class PostHogService {
   }): Promise<void> {
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
-    try {
-      return Promise.race([
-        // Init promise
-        new Promise<void>((resolve) => {
-          posthog.init(config.apiKey, {
-            api_host: config.host,
-            debug: config.debug,
+    const initPromise = Promise.race([
+      // Init promise
+      new Promise<void>((resolve) => {
+        posthog.init(config.apiKey, {
+          api_host: config.host,
+          debug: config.debug,
 
-            // Page tracking - DISABLED until user accepts terms
-            capture_pageview: false, // Will be enabled after CGU acceptance
-            capture_pageleave: false, // Will be enabled after CGU acceptance
+          // Page tracking - DISABLED until user accepts terms
+          capture_pageview: false, // Will be enabled after CGU acceptance
+          capture_pageleave: false, // Will be enabled after CGU acceptance
 
-            // Start with tracking disabled by default
-            opt_out_capturing_by_default: true,
+          // Start with tracking disabled by default
+          opt_out_capturing_by_default: true,
 
-            // Session recording with financial data masking
-            session_recording: {
-              maskAllInputs: config.sessionRecording.maskInputs,
-              maskTextSelector: getFinancialMaskSelectors(),
-              maskTextFn: sanitizeFinancialString,
-            },
-            disable_session_recording: !config.sessionRecording.enabled,
+          // Session recording with financial data masking
+          session_recording: {
+            maskAllInputs: config.sessionRecording.maskInputs,
+            maskTextSelector: getFinancialMaskSelectors(),
+            maskTextFn: sanitizeFinancialString,
+          },
+          disable_session_recording: !config.sessionRecording.enabled,
 
-            // Privacy and security
-            person_profiles: 'identified_only',
-            persistence: 'localStorage+cookie',
+          // Privacy and security
+          person_profiles: 'identified_only',
+          persistence: 'localStorage+cookie',
 
-            // Data sanitization
-            before_send: (event) => {
-              if (!event) return null;
+          // Data sanitization
+          before_send: (event) => {
+            if (!event) return null;
 
-              const sanitizedProperties = deepSanitizeFinancialData(
-                event.properties,
-              );
-              if (!sanitizedProperties) return null;
+            const sanitizedProperties = deepSanitizeFinancialData(
+              event.properties,
+            );
+            if (!sanitizedProperties) return null;
 
-              return {
-                ...event,
-                properties: sanitizedProperties as Properties,
-              };
-            },
+            return {
+              ...event,
+              properties: sanitizedProperties as Properties,
+            };
+          },
 
-            // Error handling
-            loaded: () => {
-              if (timeoutId) {
-                clearTimeout(timeoutId);
-                timeoutId = undefined;
-              }
-              this.#logger.debug('PostHog loaded successfully');
+          // Error handling
+          loaded: () => {
+            if (timeoutId) {
+              clearTimeout(timeoutId);
+              timeoutId = undefined;
+            }
+            this.#logger.debug('PostHog loaded successfully');
 
-              // Register global Super Properties for all PostHog events
-              this.#registerGlobalProperties();
+            // Register global Super Properties for all PostHog events
+            this.#registerGlobalProperties();
 
-              resolve();
-            },
-          });
-        }),
+            resolve();
+          },
+        });
+      }),
 
-        // Timeout promise
-        new Promise<never>((_, reject) => {
-          timeoutId = setTimeout(
-            () =>
-              reject(
-                new Error('PostHog initialization timeout after 10 seconds'),
-              ),
-            10_000,
-          );
-        }),
-      ]);
-    } finally {
-      if (timeoutId) clearTimeout(timeoutId);
-    }
+      // Timeout promise
+      new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(
+          () =>
+            reject(
+              new Error('PostHog initialization timeout after 10 seconds'),
+            ),
+          10_000,
+        );
+      }),
+    ]);
+
+    // ✅ Cleanup guaranteed in all cases (success or failure)
+    return initPromise.finally(() => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    });
   }
 
   /**

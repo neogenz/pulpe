@@ -73,8 +73,15 @@ function captureHttpError(
     // Let PostHogService handle all gating logic via #canCapture()
     postHogService.capture(eventName, errorContext);
   } catch (captureError) {
-    // Silently fail to avoid breaking the application
-    logger.debug('Failed to capture HTTP error to PostHog', captureError);
+    // Log with more context for better debugging
+    logger.warn('PostHog HTTP error capture failed', {
+      originalError: error.status,
+      captureError:
+        captureError instanceof Error
+          ? captureError.message
+          : String(captureError),
+      timestamp: new Date().toISOString(),
+    });
   }
 }
 
