@@ -6,10 +6,10 @@
  * This script injects source map metadata and uploads them to PostHog
  * for better error tracking and debugging in production.
  *
- * Environment Variables:
- * - POSTHOG_PERSONAL_API_KEY: Personal API key for PostHog (required in CI)
- * - POSTHOG_HOST: PostHog instance URL (defaults to EU instance)
- * - CI: Detected automatically by CI environments
+ * Environment Variables (required for CI/CD):
+ * - POSTHOG_PERSONAL_API_KEY: Personal API key for PostHog
+ * - POSTHOG_CLI_ENV_ID: PostHog project ID (number)
+ * - POSTHOG_HOST: PostHog instance URL (optional, defaults to EU)
  *
  * Usage: npm run upload:sourcemaps
  */
@@ -24,8 +24,8 @@ const POSTHOG_CLI = 'npx @posthog/cli';
 // Environment detection
 const isCI = !!(process.env.CI || process.env.VERCEL || process.env.GITHUB_ACTIONS);
 const apiKey = process.env.POSTHOG_PERSONAL_API_KEY;
-const host = process.env.POSTHOG_HOST || 'https://eu.i.posthog.com';
 const envId = process.env.POSTHOG_CLI_ENV_ID;
+const host = process.env.POSTHOG_HOST || 'https://eu.i.posthog.com';
 
 function main() {
   console.log('🚀 PostHog Source Maps Upload');
@@ -47,10 +47,12 @@ function main() {
     process.exit(1);
   }
 
-  if (!isCI && !apiKey) {
-    console.log('⚠️  POSTHOG_PERSONAL_API_KEY not configured');
+  if (!isCI && (!apiKey || !envId)) {
+    console.log('⚠️  PostHog credentials not fully configured');
     console.log('Skipping sourcemap upload in local development.');
-    console.log('To test locally, set POSTHOG_PERSONAL_API_KEY and POSTHOG_CLI_ENV_ID environment variables.');
+    console.log('To test locally, set these environment variables:');
+    console.log('- POSTHOG_PERSONAL_API_KEY=phc_your_key_here');
+    console.log('- POSTHOG_CLI_ENV_ID=your_project_id_here');
     return;
   }
 
@@ -63,17 +65,17 @@ function main() {
 
   // Check if source maps exist
   const files = fs.readdirSync(DIST_DIR);
-  const hasSourceMaps = files.some(file => file.endsWith('.js.map'));
+  const sourceMapFiles = files.filter(file => file.endsWith('.js.map'));
   const jsFiles = files.filter(file => file.endsWith('.js') && !file.endsWith('.js.map'));
 
-  if (!hasSourceMaps) {
+  if (sourceMapFiles.length === 0) {
     console.error('❌ No source map files found in dist directory.');
     console.error('Make sure source maps are enabled in your build configuration.');
     console.error('Check angular.json production configuration for sourceMap settings.');
     process.exit(1);
   }
 
-  console.log(`📊 Found ${hasSourceMaps} source map files and ${jsFiles.length} JS bundles`);
+  console.log(`📊 Found ${sourceMapFiles.length} source map files and ${jsFiles.length} JS bundles`);
 
   // Set environment variables for PostHog CLI (official variables)
   const env = {
@@ -86,8 +88,8 @@ function main() {
   // Debug: log env vars visibility in CI
   if (isCI) {
     console.log(`🔍 POSTHOG_PERSONAL_API_KEY: ${apiKey ? 'SET' : 'MISSING'}`);
-    console.log(`🔍 POSTHOG_HOST: ${host}`);
     console.log(`🔍 POSTHOG_CLI_ENV_ID: ${envId ? 'SET' : 'MISSING'}`);
+    console.log(`🔍 POSTHOG_HOST: ${host}`);
   }
 
   try {
