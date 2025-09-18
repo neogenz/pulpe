@@ -20,6 +20,8 @@ POSTHOG_PERSONAL_API_KEY=phc_your_personal_api_key_here
 POSTHOG_HOST=https://eu.i.posthog.com
 ```
 
+**Important :** Ces variables sont déclarées dans `turbo.json` pour être accessibles au CLI PostHog pendant le build.
+
 ### 2. Obtenir la clé API personnelle
 
 1. Connectez-vous à votre dashboard PostHog
