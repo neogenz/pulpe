@@ -1,5 +1,18 @@
 # pulpe-frontend
 
+## 2025.11.1
+
+### Patch Changes
+
+- ### Nouvelles fonctionnalités
+  - **Analyse et suivi des erreurs**: Intégration de PostHog pour le suivi automatique des erreurs et l'analyse d'utilisation avec protection des données sensibles
+  - **Pages légales**: Ajout des pages Conditions d'utilisation et Politique de confidentialité pour la conformité RGPD
+  - **Suivi d'utilisation des modèles**: Amélioration de la gestion des modèles de budget avec un meilleur suivi d'utilisation et retour utilisateur
+
+  ### Améliorations
+  - **Gestion de configuration**: Configuration d'environnement simplifiée pour une meilleure séparation entre développement, tests et production
+  - **Gestion d'état**: Refactorisation de la gestion d'état de la liste des budgets avec BudgetListStore pour plus de clarté et performance
+
 ## 2025.11.0
 
 ### Minor Changes
