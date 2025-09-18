@@ -31,20 +31,17 @@ import {
 export class PostHogService {
   readonly #applicationConfiguration = inject(ApplicationConfiguration);
   readonly #logger = inject(Logger);
+  readonly #platformId = inject(PLATFORM_ID);
 
   // Internal state
   readonly #isInitialized = signal<boolean>(false);
-  readonly #initializationError = signal<string | null>(null);
 
   // Public computed signals
   readonly isInitialized = this.#isInitialized.asReadonly();
-  readonly hasError = computed(() => this.#initializationError() !== null);
   readonly isEnabled = computed(() => {
     const config = this.#applicationConfiguration.postHogConfig();
     return config?.enabled ?? false;
   });
-
-  readonly #platformId = inject(PLATFORM_ID);
 
   /**
    * Initialize PostHog with the current configuration.
@@ -88,13 +85,9 @@ export class PostHogService {
 
       await this.#initializePostHog(config);
       this.#isInitialized.set(true);
-      this.#initializationError.set(null);
 
       this.#logger.info('PostHog initialized successfully');
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-      this.#initializationError.set(errorMessage);
       this.#logger.error('Failed to initialize PostHog', error);
 
       // Don't throw - PostHog initialization failures shouldn't block app startup
@@ -323,9 +316,6 @@ export class PostHogService {
 
         // Platform info
         platform: 'web',
-
-        // Currency context (all amounts are CHF)
-        default_currency: 'CHF',
       };
 
       posthog.register(globalProperties);
