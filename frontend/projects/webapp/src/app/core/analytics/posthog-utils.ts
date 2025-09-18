@@ -51,6 +51,7 @@ export const SENSITIVE_KEY_PATTERNS = [
 
 /**
  * Sanitize financial data in strings by masking amounts and numbers
+ * Uses consistent '***' masking for all financial patterns
  */
 export function sanitizeFinancialString(text: string): string {
   return text
@@ -59,21 +60,35 @@ export function sanitizeFinancialString(text: string): string {
     .replace(FINANCIAL_PATTERNS.LARGE_NUMBER, '***')
     .replace(FINANCIAL_PATTERNS.SWISS_NUMBER, '***')
     .replace(FINANCIAL_PATTERNS.DECIMAL_AMOUNT, '***')
-    .replace(FINANCIAL_PATTERNS.PERCENTAGE, '***%');
+    .replace(FINANCIAL_PATTERNS.PERCENTAGE, '***');
 }
+
+/**
+ * Compiled RegExp patterns for better performance
+ */
+const COMPILED_PATTERNS = {
+  financialKeys: new RegExp(
+    FINANCIAL_KEY_PATTERNS.map((p) => p.source).join('|'),
+    'i',
+  ),
+  sensitiveKeys: new RegExp(
+    SENSITIVE_KEY_PATTERNS.map((p) => p.source).join('|'),
+    'i',
+  ),
+} as const;
 
 /**
  * Check if a property key indicates financial data that should be masked
  */
 export function isFinancialKey(key: string): boolean {
-  return FINANCIAL_KEY_PATTERNS.some((pattern) => pattern.test(key));
+  return COMPILED_PATTERNS.financialKeys.test(key);
 }
 
 /**
  * Check if a property key is sensitive and should be redacted
  */
 export function isSensitiveKey(key: string): boolean {
-  return SENSITIVE_KEY_PATTERNS.some((pattern) => pattern.test(key));
+  return COMPILED_PATTERNS.sensitiveKeys.test(key);
 }
 
 /**
@@ -96,23 +111,53 @@ export function maskEmail(email: string): string {
 }
 
 /**
- * Convert unknown value to JsonType safely for PostHog compatibility
+ * Type guard to check if a value is a plain object (not Date, Array, etc.)
  */
-export function toJsonType(value: unknown): JsonType {
-  if (value === null || value === undefined) return value;
-  if (
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value) &&
+    !(value instanceof Date)
+  );
+}
+
+/**
+ * Type guard to check if a value is a primitive JsonType
+ */
+function isPrimitiveJsonType(
+  value: unknown,
+): value is string | number | boolean | null | undefined {
+  return (
+    value === null ||
+    value === undefined ||
     typeof value === 'string' ||
     typeof value === 'number' ||
     typeof value === 'boolean'
-  )
-    return value;
-  if (Array.isArray(value)) return value.map((item) => toJsonType(item));
-  if (typeof value === 'object') {
-    // Handle Date objects
-    if (value instanceof Date) {
-      return value.toISOString();
-    }
+  );
+}
 
+/**
+ * Convert unknown value to JsonType safely for PostHog compatibility
+ */
+export function toJsonType(value: unknown): JsonType {
+  // Handle primitive types first
+  if (isPrimitiveJsonType(value)) {
+    return value;
+  }
+
+  // Handle arrays
+  if (Array.isArray(value)) {
+    return value.map((item) => toJsonType(item));
+  }
+
+  // Handle Date objects
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  // Handle plain objects
+  if (isPlainObject(value)) {
     const result: Record<string, JsonType> = {};
     for (const [k, v] of Object.entries(value)) {
       result[k] = toJsonType(v);
@@ -122,12 +167,13 @@ export function toJsonType(value: unknown): JsonType {
 
   // Handle special types that need descriptive conversion
   if (typeof value === 'function') {
-    return `[Function]`;
+    return '[Function]';
   }
   if (typeof value === 'symbol') {
     return `[Symbol: ${value.description || 'unknown'}]`;
   }
 
+  // Fallback for any other type
   return String(value);
 }
 
