@@ -25,6 +25,7 @@ const POSTHOG_CLI = 'npx @posthog/cli';
 const isCI = !!(process.env.CI || process.env.VERCEL || process.env.GITHUB_ACTIONS);
 const apiKey = process.env.POSTHOG_PERSONAL_API_KEY;
 const host = process.env.POSTHOG_HOST || 'https://eu.i.posthog.com';
+const envId = process.env.POSTHOG_CLI_ENV_ID;
 
 function main() {
   console.log('🚀 PostHog Source Maps Upload');
@@ -39,10 +40,17 @@ function main() {
     process.exit(1);
   }
 
+  if (isCI && !envId) {
+    console.error('❌ POSTHOG_CLI_ENV_ID environment variable is required in CI/CD');
+    console.error('Get your Project ID from PostHog Dashboard → Settings → Project variables');
+    console.error('Please configure this variable in your Vercel project settings.');
+    process.exit(1);
+  }
+
   if (!isCI && !apiKey) {
     console.log('⚠️  POSTHOG_PERSONAL_API_KEY not configured');
     console.log('Skipping sourcemap upload in local development.');
-    console.log('To test locally, set POSTHOG_PERSONAL_API_KEY environment variable.');
+    console.log('To test locally, set POSTHOG_PERSONAL_API_KEY and POSTHOG_CLI_ENV_ID environment variables.');
     return;
   }
 
@@ -71,8 +79,16 @@ function main() {
   const env = {
     ...process.env,
     POSTHOG_CLI_TOKEN: apiKey,
-    POSTHOG_CLI_HOST: host
+    POSTHOG_CLI_HOST: host,
+    POSTHOG_CLI_ENV_ID: envId
   };
+
+  // Debug: log env vars visibility in CI
+  if (isCI) {
+    console.log(`🔍 POSTHOG_PERSONAL_API_KEY: ${apiKey ? 'SET' : 'MISSING'}`);
+    console.log(`🔍 POSTHOG_HOST: ${host}`);
+    console.log(`🔍 POSTHOG_CLI_ENV_ID: ${envId ? 'SET' : 'MISSING'}`);
+  }
 
   try {
     // Step 1: Inject source map metadata
@@ -115,13 +131,16 @@ function main() {
     if (isCI) {
       console.error('\nCI/CD Environment - Please check:');
       console.error('1. POSTHOG_PERSONAL_API_KEY is set in Vercel environment variables');
-      console.error('2. POSTHOG_HOST is correct for your instance');
-      console.error('3. API key has sourcemap upload permissions');
+      console.error('2. POSTHOG_CLI_ENV_ID is set in Vercel environment variables');
+      console.error('3. POSTHOG_HOST is correct for your instance');
+      console.error('4. API key has sourcemap upload permissions');
+      console.error('5. Project ID corresponds to your PostHog project');
     } else {
       console.error('\nLocal Development - Please check:');
       console.error('1. Set POSTHOG_PERSONAL_API_KEY environment variable');
-      console.error('2. Ensure API key has sourcemap upload permissions');
-      console.error('3. Verify network connectivity to PostHog');
+      console.error('2. Set POSTHOG_CLI_ENV_ID environment variable');
+      console.error('3. Ensure API key has sourcemap upload permissions');
+      console.error('4. Verify network connectivity to PostHog');
     }
 
     // In CI, fail the build. In local, just warn.

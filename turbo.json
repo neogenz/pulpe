@@ -22,7 +22,8 @@
         "PUBLIC_POSTHOG_SAMPLE_RATE",
         "PUBLIC_POSTHOG_DEBUG",
         "POSTHOG_PERSONAL_API_KEY",
-        "POSTHOG_HOST"
+        "POSTHOG_HOST",
+        "POSTHOG_CLI_ENV_ID"
       ]
     },
     "dev": {
