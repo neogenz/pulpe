@@ -16,6 +16,9 @@ Dans le dashboard Vercel de votre projet, configurez ces variables :
 # OBLIGATOIRE: Clé API personnelle PostHog
 POSTHOG_PERSONAL_API_KEY=phc_your_personal_api_key_here
 
+# OBLIGATOIRE: ID du projet PostHog (nombre entier)
+POSTHOG_CLI_ENV_ID=12345
+
 # OPTIONNEL: URL de l'instance PostHog (défaut: EU)
 POSTHOG_HOST=https://eu.i.posthog.com
 ```
@@ -28,6 +31,13 @@ POSTHOG_HOST=https://eu.i.posthog.com
 2. Allez dans **Settings > Personal API Keys**
 3. Créez une nouvelle clé avec les permissions `sourcemap:upload`
 4. Copiez la clé (format: `phc_...`)
+
+### 3. Obtenir le Project ID
+
+1. Dans votre dashboard PostHog
+2. Allez dans **Settings > Project variables**
+3. Trouvez **Project ID** (nombre entier, ex: `12345`)
+4. Copiez cette valeur pour `POSTHOG_CLI_ENV_ID`
 
 ## ⚙️ Fonctionnement
 
@@ -92,6 +102,27 @@ Host: https://eu.i.posthog.com
 1. Vérifiez les variables d'environnement Vercel
 2. Assurez-vous que `POSTHOG_PERSONAL_API_KEY` est définie
 3. Redéployez le projet
+
+### Erreur: "POSTHOG_CLI_ENV_ID environment variable is required"
+
+**Cause** : L'ID du projet PostHog n'est pas configuré dans Vercel
+
+**Solution** :
+1. Récupérez le Project ID depuis PostHog Dashboard > Settings > Project variables
+2. Ajoutez `POSTHOG_CLI_ENV_ID` dans les variables d'environnement Vercel
+3. Redéployez le projet
+
+### Erreur: "Couldn't load credentials... Have you logged in recently?"
+
+**Cause** : Authentification PostHog CLI échouée (variables manquantes)
+
+**Solution** :
+1. Vérifiez que **3 variables** sont configurées dans Vercel :
+   - `POSTHOG_PERSONAL_API_KEY`
+   - `POSTHOG_CLI_ENV_ID`
+   - `POSTHOG_HOST` (optionnel)
+2. Vérifiez que l'API key a les bonnes permissions
+3. Confirmez que le Project ID correspond à votre projet
 
 ### Erreur: "No source map files found"
 
