@@ -1,6 +1,12 @@
 import { z } from 'zod';
 
 /**
+ * PostHog API Key validation pattern
+ * Must start with 'phc_' followed by alphanumeric characters, underscores, or hyphens
+ */
+const POSTHOG_KEY_PATTERN = /^phc_[A-Za-z0-9_-]+$/;
+
+/**
  * Configuration Schema for Pulpe Application
  * ==========================================
  *
@@ -276,11 +282,15 @@ export const ConfigSchema = z.object({
         .min(1, 'PostHog API key is required')
         .refine(
           (key) => {
-            // PostHog API keys have a specific format: phc_xxxxx
-            return key.startsWith('phc_') && key.length > 10;
+            return (
+              key.startsWith('phc_') &&
+              key.length >= 40 &&
+              POSTHOG_KEY_PATTERN.test(key)
+            );
           },
           {
-            message: 'PostHog API key must start with "phc_" and be valid',
+            message:
+              'PostHog API key must be valid format (phc_xxxxx with at least 40 characters)',
           },
         ),
       host: z
