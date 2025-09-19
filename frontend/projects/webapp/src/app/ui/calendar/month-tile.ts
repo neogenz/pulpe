@@ -47,7 +47,7 @@ import { type CalendarMonth } from './calendar-types';
               Disponible CHF
             </p>
             <p
-              class="text-headline-small md:text-headline-medium"
+              class="text-headline-small md:text-headline-medium ph-no-capture"
               [class.text-[var(--pulpe-financial-savings)]]="
                 valueType() === 'positive'
               "
