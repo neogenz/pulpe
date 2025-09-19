@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
-import { provideZonelessChangeDetection, signal } from '@angular/core';
+import {
+  provideZonelessChangeDetection,
+  signal,
+  computed,
+} from '@angular/core';
 import { PostHogService } from './posthog';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
@@ -12,9 +16,9 @@ vi.mock('posthog-js', () => {
   return {
     default: {
       init: vi.fn((_apiKey, options) => {
-        // Immediately call the loaded callback to resolve the promise
+        // Call the loaded callback synchronously to ensure PostHog is marked as initialized
         if (options?.loaded) {
-          setTimeout(() => options.loaded(), 0);
+          options.loaded();
         }
       }),
       opt_in_capturing: vi.fn(),
@@ -49,23 +53,42 @@ describe('User privacy protection and data handling', () => {
     vi.clearAllMocks();
 
     // Mock ApplicationConfiguration
-    const mockAppConfig = {
-      postHogConfig: signal({
-        apiKey: 'test-api-key',
-        host: 'https://posthog.test',
+    const postHogSignal = signal({
+      apiKey: 'test-api-key',
+      host: 'https://posthog.test',
+      enabled: true,
+      capturePageviews: true,
+      capturePageleaves: true,
+      sessionRecording: {
         enabled: true,
-        capturePageviews: true,
-        capturePageleaves: true,
-        sessionRecording: {
-          enabled: true,
-          maskInputs: true,
-          sampleRate: 1.0,
-        },
-        debug: false,
-      }),
+        maskInputs: true,
+        sampleRate: 1.0,
+      },
+      debug: false,
+    });
+
+    const isDevelopmentSignal = signal(false);
+
+    const mockAppConfig = {
+      postHog: postHogSignal,
       environment: signal('test'),
       supabaseUrl: signal('https://test.supabase.co'),
       supabaseAnonKey: signal('test-key'),
+      isDevelopment: isDevelopmentSignal,
+      // Add the computed postHogConfig signal that matches the real implementation
+      postHogConfig: computed(() => {
+        const config = postHogSignal();
+
+        // Return null if PostHog is not configured
+        if (!config.apiKey) {
+          return null;
+        }
+
+        return {
+          ...config,
+          debug: config.debug || isDevelopmentSignal(),
+        };
+      }),
     };
 
     // Mock Logger using helper

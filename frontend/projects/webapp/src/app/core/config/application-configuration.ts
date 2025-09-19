@@ -2,12 +2,11 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { Logger } from '../logging/logger';
-import { isValidUrl, sanitizeUrl } from '../utils/validators';
 import {
   type ApplicationConfig,
   type ConfigFile,
+  ConfigSchema,
   formatConfigError,
-  safeValidateConfig,
 } from './config.schema';
 
 @Injectable({
@@ -108,7 +107,7 @@ export class ApplicationConfiguration {
 
       // Runtime validation is critical: config.json could be corrupted,
       // manually edited, or tampered with. ConfigSchema ensures integrity.
-      const validationResult = safeValidateConfig(configData);
+      const validationResult = ConfigSchema.safeParse(configData);
 
       if (!validationResult.success) {
         const errorMessage = formatConfigError(validationResult.error);
@@ -167,35 +166,10 @@ export class ApplicationConfiguration {
    * Applique la configuration validée aux signaux
    */
   #applyConfiguration(config: ApplicationConfig): void {
-    // Validate and sanitize URLs before setting
-    const supabaseUrl = sanitizeUrl(
-      config.supabase.url,
-      'http://localhost:54321',
-    );
-    const backendApiUrl = sanitizeUrl(
-      config.backend.apiUrl,
-      'http://localhost:3000/api/v1',
-    );
-
-    // Log validation results in development
-    if (!isValidUrl(config.supabase.url)) {
-      this.#logger.warn('Invalid Supabase URL, using sanitized fallback', {
-        original: config.supabase.url,
-        sanitized: supabaseUrl,
-      });
-    }
-
-    if (!isValidUrl(config.backend.apiUrl)) {
-      this.#logger.warn('Invalid Backend API URL, using sanitized fallback', {
-        original: config.backend.apiUrl,
-        sanitized: backendApiUrl,
-      });
-    }
-
     // Set core configuration
-    this.supabaseUrl.set(supabaseUrl);
+    this.supabaseUrl.set(config.supabase.url);
     this.supabaseAnonKey.set(config.supabase.anonKey);
-    this.backendApiUrl.set(backendApiUrl);
+    this.backendApiUrl.set(config.backend.apiUrl);
     this.environment.set(config.environment);
 
     // Set PostHog configuration if provided
@@ -204,22 +178,10 @@ export class ApplicationConfiguration {
       return;
     }
 
-    const postHogHost = sanitizeUrl(
-      config.postHog.host,
-      'https://eu.posthog.com',
-    );
-
-    if (!isValidUrl(config.postHog.host)) {
-      this.#logger.warn('Invalid PostHog host URL, using sanitized fallback', {
-        original: config.postHog.host,
-        sanitized: postHogHost,
-      });
-    }
-
     // Set PostHog configuration as a single update
     this.postHog.set({
       apiKey: config.postHog.apiKey,
-      host: postHogHost,
+      host: config.postHog.host,
       enabled: config.postHog.enabled,
       capturePageviews: config.postHog.capturePageviews,
       capturePageleaves: config.postHog.capturePageleaves,
@@ -233,7 +195,7 @@ export class ApplicationConfiguration {
 
     this.#logger.info('PostHog configuration loaded', {
       enabled: config.postHog.enabled,
-      host: postHogHost,
+      host: config.postHog.host,
       debug: config.postHog.debug,
     });
   }

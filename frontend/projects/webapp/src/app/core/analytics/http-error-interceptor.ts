@@ -18,14 +18,8 @@ type HttpErrorEvent =
   | 'http_error';
 
 /**
- * HTTP error interceptor that captures HTTP errors and forwards them to PostHog
- * for comprehensive API error monitoring and debugging.
- *
- * Features:
- * - Captures all HTTP errors (4xx and 5xx responses)
- * - Provides detailed request and response context
- * - Sanitizes sensitive data before forwarding
- * - Respects environment and PostHog availability
+ * HTTP error interceptor for PostHog error tracking.
+ * Leverages PostHog's built-in data sanitization for security.
  */
 export const httpErrorInterceptor: HttpInterceptorFn = (req, next) => {
   const postHogService = inject(PostHogService);
@@ -99,7 +93,7 @@ function buildHttpErrorContext(
 
     // Request details
     method: requestMethod,
-    url: sanitizeUrl(error.url || 'unknown'),
+    url: error.url || 'unknown',
 
     // Response details
     errorMessage: extractErrorMessage(error),
@@ -173,45 +167,3 @@ function getHttpErrorEventName(status: number): HttpErrorEvent {
 
   return 'http_error';
 }
-
-/**
- * Sanitize URL to remove sensitive query parameters and personal data
- */
-function sanitizeUrl(url: string): string {
-  try {
-    const urlObj = new URL(url, window.location.origin);
-
-    // List of sensitive query parameters to remove or mask
-    const sensitiveParams = [
-      'token',
-      'api_key',
-      'apikey',
-      'password',
-      'secret',
-      'auth',
-      'authorization',
-      'key',
-      'session',
-      'jwt',
-      'bearer',
-    ];
-
-    // Remove or mask sensitive parameters
-    sensitiveParams.forEach((param) => {
-      if (urlObj.searchParams.has(param)) {
-        urlObj.searchParams.set(param, '[REDACTED]');
-      }
-    });
-
-    // Remove user info from URL if present
-    urlObj.username = '';
-    urlObj.password = '';
-
-    return urlObj.toString();
-  } catch {
-    // If URL parsing fails, return a safe fallback
-    return '[REDACTED_URL]';
-  }
-}
-
-// Removed unused shouldCaptureError function to fix ESLint error

@@ -22,6 +22,7 @@ import { MatInputModule } from '@angular/material/input';
       <input
         matInput
         type="number"
+        class="ph-no-capture"
         [(ngModel)]="value"
         (input)="onInput($event)"
         [placeholder]="placeholder()"

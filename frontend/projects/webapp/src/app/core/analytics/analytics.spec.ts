@@ -57,7 +57,7 @@ describe('User consent and tracking behavior', () => {
     it('should start tracking user actions after they accept terms and conditions', () => {
       // Given: Analytics is initialized
       TestBed.runInInjectionContext(() => {
-        analyticsService.initialize();
+        analyticsService.initializeAnalyticsTracking();
       });
 
       // When: A new user completes registration (simulated by auth state change)
@@ -78,7 +78,7 @@ describe('User consent and tracking behavior', () => {
     it('should identify the user for personalized analytics', () => {
       // Given: Analytics is initialized
       TestBed.runInInjectionContext(() => {
-        analyticsService.initialize();
+        analyticsService.initializeAnalyticsTracking();
       });
 
       // When: User authentication is confirmed
@@ -103,7 +103,7 @@ describe('User consent and tracking behavior', () => {
     it('should resume tracking their actions automatically', () => {
       // Given: Analytics is initialized and user was logged out
       TestBed.runInInjectionContext(() => {
-        analyticsService.initialize();
+        analyticsService.initializeAnalyticsTracking();
       });
       mockPostHogService.enableTracking.mockClear();
 
@@ -125,7 +125,7 @@ describe('User consent and tracking behavior', () => {
     it('should remember their identity across sessions', () => {
       // Given: Analytics is initialized
       TestBed.runInInjectionContext(() => {
-        analyticsService.initialize();
+        analyticsService.initializeAnalyticsTracking();
       });
 
       // When: User logs in with their existing account
@@ -150,7 +150,7 @@ describe('User consent and tracking behavior', () => {
     it('should stop tracking and clear their session data', () => {
       // Given: User is logged in and being tracked
       TestBed.runInInjectionContext(() => {
-        analyticsService.initialize();
+        analyticsService.initializeAnalyticsTracking();
       });
       mockAuthState.set({
         user: { id: 'user-111', email: 'user@example.com' },
@@ -182,7 +182,7 @@ describe('User consent and tracking behavior', () => {
     it('should not track any actions until next login', () => {
       // Given: User has logged out
       TestBed.runInInjectionContext(() => {
-        analyticsService.initialize();
+        analyticsService.initializeAnalyticsTracking();
       });
       mockAuthState.set({
         user: null,
@@ -201,7 +201,7 @@ describe('User consent and tracking behavior', () => {
     it('should never track users who have not accepted terms', () => {
       // Given: Analytics is initialized
       TestBed.runInInjectionContext(() => {
-        analyticsService.initialize();
+        analyticsService.initializeAnalyticsTracking();
       });
 
       // When: Auth state indicates no authenticated user
@@ -219,7 +219,7 @@ describe('User consent and tracking behavior', () => {
     it('should only track once per authenticated session', () => {
       // Given: Analytics is initialized
       TestBed.runInInjectionContext(() => {
-        analyticsService.initialize();
+        analyticsService.initializeAnalyticsTracking();
       });
 
       // When: User authenticates
