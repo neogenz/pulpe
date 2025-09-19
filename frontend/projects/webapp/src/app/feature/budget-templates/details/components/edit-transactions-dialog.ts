@@ -66,7 +66,10 @@ interface EditTransactionsDialogResult {
   template: `
     <h2 mat-dialog-title class="flex gap-2 items-center">
       <mat-icon class="text-primary">edit</mat-icon>
-      <span>Éditer les transactions - {{ data.templateName }}</span>
+      <span
+        >Éditer les transactions -
+        <span class="ph-no-capture">{{ data.templateName }}</span></span
+      >
     </h2>
 
     <mat-dialog-content class="!p-0">
@@ -216,7 +219,7 @@ interface EditTransactionsDialogResult {
                 <span
                   [class.text-financial-income]="runningTotals()[i] >= 0"
                   [class.text-financial-negative]="runningTotals()[i] < 0"
-                  class="font-medium"
+                  class="font-medium ph-no-capture"
                 >
                   {{
                     runningTotals()[i]
