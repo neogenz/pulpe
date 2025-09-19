@@ -6,7 +6,7 @@ import {
 import { provideZonelessChangeDetection } from '@angular/core';
 import { vi } from 'vitest';
 import { ApplicationConfiguration } from './application-configuration';
-import type { ApplicationConfig } from './types';
+import type { ApplicationConfig } from './config.schema';
 
 describe('ApplicationConfiguration', () => {
   let service: ApplicationConfiguration;
