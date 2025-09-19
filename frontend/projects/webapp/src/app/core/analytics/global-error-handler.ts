@@ -4,8 +4,8 @@ import { PostHogService } from './posthog';
 import { Logger } from '../logging/logger';
 
 /**
- * Simplified global error handler following KISS principle.
- * Captures errors and sends them to PostHog for monitoring.
+ * Global error handler following Angular best practices.
+ * Leverages PostHog's built-in sanitization for security.
  */
 @Injectable({
   providedIn: 'root',
@@ -15,20 +15,14 @@ export class GlobalErrorHandler implements ErrorHandler {
   readonly #logger = inject(Logger);
 
   handleError(error: Error | HttpErrorResponse | unknown): void {
-    // Always log to console for development
-    this.#logger.error('[GlobalError]', error);
-
-    // Extract meaningful error message
+    // Extract meaningful error message for logging
     const errorMessage = this.#extractMessage(error);
     const isHttpError = error instanceof HttpErrorResponse;
 
-    // Log with our logger
-    this.#logger.error(errorMessage, {
-      isHttpError,
-      status: isHttpError ? (error as HttpErrorResponse).status : undefined,
-    });
+    // Log locally for development
+    this.#logger.error(`[GlobalError] ${errorMessage}`, error);
 
-    // Let PostHogService decide via #canCapture() internally
+    // Send to PostHog (built-in sanitization handles security)
     this.#postHogService.captureException(error, {
       message: errorMessage,
       isHttpError,

@@ -132,8 +132,8 @@ export function provideCore({ routes }: CoreOptions) {
           await postHogService.initialize();
 
           // Initialize analytics with proper injection context for effect()
-          runInInjectionContext(injector, async () => {
-            await analyticsService.initialize();
+          runInInjectionContext(injector, () => {
+            analyticsService.initializeAnalyticsTracking();
             console.debug(
               'Analytics service ready:',
               analyticsService.isActive,

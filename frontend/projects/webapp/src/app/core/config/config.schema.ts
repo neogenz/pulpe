@@ -343,24 +343,6 @@ export type ApplicationConfig = z.infer<typeof ConfigSchema>;
 export type ConfigFile = unknown;
 
 /**
- * Validates a configuration object against the schema
- * @param config - The configuration object to validate
- * @returns Validated configuration or throws ZodError
- */
-export function validateConfig(config: unknown): ApplicationConfig {
-  return ConfigSchema.parse(config);
-}
-
-/**
- * Safely validates a configuration object against the schema
- * @param config - The configuration object to validate
- * @returns SafeParseResult with success status and data/error
- */
-export function safeValidateConfig(config: unknown) {
-  return ConfigSchema.safeParse(config);
-}
-
-/**
  * Get a user-friendly error message from Zod validation errors
  * @param error - The Zod error object
  * @returns Formatted error message

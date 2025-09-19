@@ -36,67 +36,41 @@ export class AnalyticsService {
     );
   });
 
-  initialize(): void {
-    // Ensure we only create the effect once (idempotent)
+  /**
+   * Initialize analytics tracking.
+   * Note: The effect created here is intentionally permanent for a root service
+   * and will be cleaned up when the application shuts down.
+   */
+  initializeAnalyticsTracking(): void {
     if (this.#authEffect) {
       return;
     }
 
-    // Create a reactive effect that responds to both PostHog state and auth state
-    this.#authEffect = effect(() => {
-      const active = this.isActive();
-      const authState = this.#authApi.authState();
+    try {
+      this.#authEffect = effect(() => {
+        const active = this.isActive();
+        const authState = this.#authApi.authState();
 
-      // Only proceed if PostHog is active
-      if (active && authState.isAuthenticated && authState.user) {
-        // Only enable tracking once per session to avoid redundant calls
-        // Safe because users must have accepted terms to have an account
-        if (!this.#trackingEnabledForSession) {
-          this.#postHogService.enableTracking();
-          this.#trackingEnabledForSession = true;
-          this.#logger.debug('PostHog tracking enabled for session');
+        if (active && authState.isAuthenticated && authState.user) {
+          if (!this.#trackingEnabledForSession) {
+            this.#postHogService.enableTracking();
+            this.#trackingEnabledForSession = true;
+            this.#logger.debug('PostHog tracking enabled for session');
+          }
+          this.#postHogService.identify(authState.user.id);
+          this.#logger.debug('User identified for analytics', {
+            userId: authState.user.id,
+          });
+        } else if (!authState.isAuthenticated && !authState.isLoading) {
+          this.#postHogService.reset();
+          this.#trackingEnabledForSession = false;
+          this.#logger.debug('Analytics session reset');
         }
-        this.#postHogService.identify(authState.user.id);
-        this.#logger.debug('User identified for analytics');
-      } else if (!authState.isAuthenticated && !authState.isLoading) {
-        this.#postHogService.reset();
-        this.#trackingEnabledForSession = false; // Reset flag on logout
-        this.#logger.debug('Analytics session reset');
-      }
-    });
+      });
 
-    this.#logger.info('Analytics service initialized');
-  }
-
-  /**
-   * Track custom business events
-   *
-   * IMPORTANT: PostHog Philosophy for Financial Apps
-   * ==============================================
-   *
-   * ✅ DO track behavioral events:
-   * - User actions: 'transaction_created', 'budget_updated', 'export_clicked'
-   * - User flows: 'onboarding_completed', 'settings_opened'
-   * - Feature usage: 'template_applied', 'category_selected'
-   * - System events: 'sync_completed', 'error_occurred'
-   *
-   * ❌ DO NOT track financial amounts:
-   * - Exact amounts: { amount: 1500.50 }
-   * - Account balances: { balance: 25000 }
-   * - Transaction totals: { total: 999.99 }
-   *
-   * ✅ If needed, use categories instead:
-   * - { transaction_type: 'large' } instead of { amount: 5000 }
-   * - { budget_status: 'over_limit' } instead of { remaining: -200 }
-   * - { account_type: 'savings' } instead of { balance: 15000 }
-   *
-   * Rationale:
-   * - PostHog is for behavioral analytics, not financial data storage
-   * - Impossible to distinguish amounts vs IDs/years without context
-   * - Simpler, more secure, and privacy-compliant approach
-   */
-  track(event: string, properties?: Record<string, unknown>): void {
-    // Let PostHogService handle all gating logic via #canCapture()
-    this.#postHogService.capture(event, properties);
+      this.#logger.info('Analytics service initialized');
+    } catch (error) {
+      this.#logger.error('Failed to initialize analytics service', error);
+    }
   }
 }
