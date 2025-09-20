@@ -6,7 +6,7 @@ import {
   computed,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import posthog, { type Properties } from 'posthog-js';
+import posthog, { type Properties, type CaptureResult } from 'posthog-js';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
 import { buildInfo } from '@env/build-info';
@@ -71,6 +71,9 @@ export class PostHogService {
         person_profiles: 'identified_only',
         persistence: 'localStorage+cookie',
 
+        // Sanitize financial data before sending
+        before_send: this.#sanitizeEvent.bind(this),
+
         loaded: () => {
           this.#registerGlobalProperties();
           this.#isInitialized.set(true);
@@ -90,8 +93,16 @@ export class PostHogService {
 
     try {
       posthog.opt_in_capturing();
+
+      // Enable automatic pageview and pageleave tracking for web analytics
+      posthog.set_config({
+        capture_pageview: true,
+        capture_pageleave: true,
+      });
+
+      // Capture the initial pageview
       posthog.capture('$pageview');
-      this.#logger.info('PostHog tracking enabled');
+      this.#logger.info('PostHog tracking enabled with web analytics');
     } catch (error) {
       this.#logger.error('Failed to enable tracking', error);
     }
@@ -112,19 +123,16 @@ export class PostHogService {
   }
 
   /**
-   * Capture exception - PostHog handles sanitization automatically
+   * Capture exception using official PostHog method
+   * PostHog automatically handles: timestamp, url, stack traces, fingerprinting, grouping
    */
   captureException(error: unknown, context?: Properties): void {
     if (!this.#canCapture()) return;
 
     try {
-      const errorInfo = this.#extractErrorInfo(error);
-
-      posthog.capture('$exception', {
-        ...errorInfo,
+      // Use official PostHog method - handles all error processing automatically
+      posthog.captureException(error, {
         ...context,
-        timestamp: new Date().toISOString(),
-        url: window.location.href,
         release: buildInfo.version,
         commit: buildInfo.shortCommitHash,
       });
@@ -146,6 +154,23 @@ export class PostHogService {
       this.#logger.debug('PostHog user identified', { userId });
     } catch (error) {
       this.#logger.error('Failed to identify user', error);
+    }
+  }
+
+  /**
+   * Set person properties (modern method)
+   */
+  setPersonProperties(
+    properties?: Properties,
+    propertiesOnce?: Properties,
+  ): void {
+    if (!this.#canCapture()) return;
+
+    try {
+      posthog.setPersonProperties(properties, propertiesOnce);
+      this.#logger.debug('PostHog person properties set');
+    } catch (error) {
+      this.#logger.error('Failed to set person properties', error);
     }
   }
 
@@ -175,7 +200,8 @@ export class PostHogService {
       posthog.register(globalProperties);
       this.#logger.info('PostHog global properties registered');
 
-      posthog.people.set_once({
+      // Use modern setPersonProperties instead of deprecated people.set_once
+      this.setPersonProperties(undefined, {
         first_app_version: buildInfo.version,
         first_commit: buildInfo.shortCommitHash,
       });
@@ -192,27 +218,98 @@ export class PostHogService {
     );
   }
 
-  #extractErrorInfo(error: unknown): Record<string, unknown> {
-    if (error instanceof Error) {
-      return {
-        error_message: error.message,
-        error_name: error.name,
-        error_stack: error.stack || '',
-        error_type: 'Error',
-      };
-    }
+  /**
+   * Sanitize events to protect financial data
+   */
+  #sanitizeEvent(event: CaptureResult | null): CaptureResult | null {
+    if (!event) return null;
 
-    if (typeof error === 'string') {
-      return {
-        error_message: error,
-        error_type: 'string',
-      };
-    }
+    try {
+      // Sanitize URLs containing sensitive IDs
+      const sanitizeUrl = (url: string): string => {
+        if (typeof url !== 'string') return url;
 
-    return {
-      error_message: 'Unknown error',
-      error_type: typeof error,
-      error_value: String(error),
-    };
+        return (
+          url
+            // Sanitize budget IDs
+            .replace(/\/budgets?\/[a-zA-Z0-9-]+/gi, '/budget/[id]')
+            // Sanitize transaction IDs
+            .replace(/\/transactions?\/[a-zA-Z0-9-]+/gi, '/transaction/[id]')
+            // Sanitize template IDs
+            .replace(/\/templates?\/[a-zA-Z0-9-]+/gi, '/template/[id]')
+            // Sanitize numeric IDs in paths
+            .replace(/\/\d{4,}/g, '/[id]')
+        );
+      };
+
+      // Sanitize properties recursively
+      const sanitizeObject = <T extends Record<string, unknown>>(obj: T): T => {
+        if (!obj || typeof obj !== 'object') return obj;
+        if (Array.isArray(obj)) {
+          return obj.map((item) =>
+            typeof item === 'object' && item !== null
+              ? sanitizeObject(item)
+              : item,
+          ) as unknown as T;
+        }
+
+        const result: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(obj)) {
+          // Skip sensitive financial properties
+          if (
+            key.match(
+              /^(amount|balance|total|budget|transaction|income|expense|saving|credit|debit|price|cost|value|sum|money)/i,
+            )
+          ) {
+            // Mask financial values
+            result[key] = '[REDACTED]';
+          } else if (key.includes('url') || key.includes('href')) {
+            // Sanitize URLs
+            result[key] =
+              typeof value === 'string' ? sanitizeUrl(value) : value;
+          } else if (typeof value === 'object' && value !== null) {
+            // Recursively sanitize nested objects
+            result[key] = sanitizeObject(value as Record<string, unknown>);
+          } else {
+            result[key] = value;
+          }
+        }
+        return result as T;
+      };
+
+      // Sanitize event properties
+      if (event.properties) {
+        // Special handling for current URL
+        if (event.properties['$current_url']) {
+          event.properties['$current_url'] = sanitizeUrl(
+            event.properties['$current_url'] as string,
+          );
+        }
+        // Sanitize all other properties
+        event.properties = sanitizeObject(
+          event.properties as Record<string, unknown>,
+        ) as Properties;
+      }
+
+      // Sanitize $set properties
+      if (event.$set) {
+        event.$set = sanitizeObject(
+          event.$set as Record<string, unknown>,
+        ) as Properties;
+      }
+
+      // Sanitize $set_once properties
+      if (event.$set_once) {
+        event.$set_once = sanitizeObject(
+          event.$set_once as Record<string, unknown>,
+        ) as Properties;
+      }
+
+      return event;
+    } catch (error) {
+      this.#logger.error('Error sanitizing event', error);
+      // Return event as-is if sanitization fails to avoid data loss
+      return event;
+    }
   }
 }
