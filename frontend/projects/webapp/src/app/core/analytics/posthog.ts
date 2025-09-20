@@ -221,7 +221,7 @@ export class PostHogService {
    * Enable tracking after user consent
    */
   enableTracking(): void {
-    if (!this.canCapture()) return;
+    if (!this.#canCapture()) return;
 
     try {
       posthog.opt_in_capturing();
@@ -241,11 +241,25 @@ export class PostHogService {
   }
 
   /**
+   * Capture event - PostHog handles data sanitization automatically
+   */
+  captureEvent(event: string, properties?: Properties): void {
+    if (!this.#canCapture()) return;
+
+    try {
+      posthog.capture(event, properties);
+      this.#logger.debug('PostHog event captured', { event });
+    } catch (error) {
+      this.#logger.error('Failed to capture event', error);
+    }
+  }
+
+  /**
    * Capture exception using official PostHog method
    * PostHog automatically handles: timestamp, url, stack traces, fingerprinting, grouping
    */
   captureException(error: unknown, context?: Properties): void {
-    if (!this.canCapture()) return;
+    if (!this.#canCapture()) return;
 
     try {
       posthog.captureException(error, {
@@ -264,7 +278,7 @@ export class PostHogService {
    * Identify user
    */
   identify(userId: string, properties?: Properties): void {
-    if (!this.canCapture()) return;
+    if (!this.#canCapture()) return;
 
     try {
       posthog.identify(userId, properties);
@@ -281,7 +295,7 @@ export class PostHogService {
     properties?: Properties,
     propertiesOnce?: Properties,
   ): void {
-    if (!this.canCapture()) return;
+    if (!this.#canCapture()) return;
 
     try {
       posthog.setPersonProperties(properties, propertiesOnce);
@@ -295,7 +309,7 @@ export class PostHogService {
    * Reset state (e.g., on logout)
    */
   reset(): void {
-    if (!this.canCapture()) return;
+    if (!this.#canCapture()) return;
 
     try {
       posthog.reset();
@@ -305,7 +319,7 @@ export class PostHogService {
     }
   }
 
-  canCapture(): boolean {
+  #canCapture(): boolean {
     return (
       isPlatformBrowser(this.#platformId) &&
       this.#isInitialized() &&

@@ -51,6 +51,7 @@ describe('PostHogService', () => {
     },
     debug: false,
   } as const;
+  let postHogSignal: ReturnType<typeof signal<typeof defaultConfig>>;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -59,7 +60,7 @@ describe('PostHogService', () => {
     const posthogModule = await import('posthog-js');
     vi.mocked(posthogModule.default.set_config).mockClear();
 
-    const postHogSignal = signal({ ...defaultConfig });
+    postHogSignal = signal({ ...defaultConfig });
     const isDevelopmentSignal = signal(false);
 
     const mockAppConfig = {
@@ -136,11 +137,31 @@ describe('PostHogService', () => {
     const posthog = posthogModule.default;
 
     await service.initialize();
-    expect(service.canCapture()).toBe(true);
 
     service.identify('user-123', { plan: 'pro' });
 
     expect(posthog.identify).toHaveBeenCalledWith('user-123', { plan: 'pro' });
+  });
+
+  it('does not capture events before initialization', async () => {
+    const posthogModule = await import('posthog-js');
+    const posthog = posthogModule.default;
+
+    service.captureEvent('pre_init_event');
+
+    expect(posthog.capture).not.toHaveBeenCalled();
+  });
+
+  it('captures events after initialization', async () => {
+    const posthogModule = await import('posthog-js');
+    const posthog = posthogModule.default;
+
+    await service.initialize();
+    service.captureEvent('user_action', { feature: 'budget' });
+
+    expect(posthog.capture).toHaveBeenCalledWith('user_action', {
+      feature: 'budget',
+    });
   });
 
   it('resets PostHog state', async () => {
