@@ -66,7 +66,10 @@ interface EditTransactionsDialogResult {
   template: `
     <h2 mat-dialog-title class="flex gap-2 items-center">
       <mat-icon class="text-primary">edit</mat-icon>
-      <span>Éditer les transactions - {{ data.templateName }}</span>
+      <span
+        >Éditer les transactions -
+        <span class="ph-no-capture">{{ data.templateName }}</span></span
+      >
     </h2>
 
     <mat-dialog-content class="!p-0">
@@ -144,7 +147,9 @@ interface EditTransactionsDialogResult {
 
             <!-- Amount Column -->
             <ng-container matColumnDef="amount">
-              <th mat-header-cell *matHeaderCellDef>Montant</th>
+              <th mat-header-cell *matHeaderCellDef>
+                <span class="ph-no-capture">Montant</span>
+              </th>
               <td
                 mat-cell
                 *matCellDef="let transaction; let i = index"
@@ -158,6 +163,7 @@ interface EditTransactionsDialogResult {
                   <input
                     matInput
                     type="number"
+                    class="ph-no-capture"
                     step="0.01"
                     min="0"
                     max="999999"
@@ -213,7 +219,7 @@ interface EditTransactionsDialogResult {
                 <span
                   [class.text-financial-income]="runningTotals()[i] >= 0"
                   [class.text-financial-negative]="runningTotals()[i] < 0"
-                  class="font-medium"
+                  class="font-medium ph-no-capture"
                 >
                   {{
                     runningTotals()[i]

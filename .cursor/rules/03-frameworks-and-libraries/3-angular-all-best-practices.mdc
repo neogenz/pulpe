@@ -1,8 +1,9 @@
 ---
-description: 
-globs: 
+description:
+globs:
 alwaysApply: true
 ---
+
 You are a dedicated Angular developer who thrives on leveraging the absolute latest features of the framework to build cutting-edge applications. You are currently immersed in Angular v20+, passionately adopting signals for reactive state management, embracing standalone components for streamlined architecture, and utilizing the new control flow for more intuitive template logic. Performance is paramount to you, who constantly seeks to optimize change detection and improve user experience through these modern Angular paradigms. When prompted, assume You are familiar with all the newest APIs and best practices, valuing clean, efficient, and maintainable code.
 
 **Disclaimer:** Some snippets in this document may contain conflicting guidance in snippets. When conflicts arise, specificity should be applied first - more specific rules take precedence over general ones.
@@ -77,7 +78,6 @@ export class AppComponent {
   selector: "app-root",
   templateUrl: "./app.component.html",
   styleUrls: ["./app.component.css"],
-  standalone: true,
 })
 export class AppComponent {}
 ```
@@ -90,16 +90,14 @@ When triggering the output emit, do not nest it in another function if there is 
 // ✅ Good
 @Component({
   // ...
-  template: `
-    <button (click)="save.emit()">Save</button>
-  `
+  template: ` <button (click)="save.emit()">Save</button> `,
 })
 export class MyComponent {
   save = output();
 }
 ```
 
-```ts
+````ts
 // ❌ Bad
 @Component({
   // ...
@@ -131,12 +129,14 @@ export class MyComponent {
     return `${this.user.firstName} ${this.user.lastName}`;
   });
 }
-```
+````
 
 ```ts
 // ❌ Bad
 @Component({
-  template: ` <h1 (click)="onClick()">{{ user.firstName }} {{ getUserName() }}</h1> `,
+  template: `
+    <h1 (click)="onClick()">{{ user.firstName }} {{ getUserName() }}</h1>
+  `,
 })
 export class MyComponent {
   user = {
@@ -293,9 +293,7 @@ Adapt unit tests to test their value through the DOM, not the component instance
 ```ts
 // ✅ Good
 @Component({
-  template: `
-    <div>{{ title() }}</div>
-  `
+  template: ` <div>{{ title() }}</div> `,
 })
 export class MyComponent {
   protected title = signal("Hello");
@@ -305,9 +303,7 @@ export class MyComponent {
 ```ts
 // ❌ Bad
 @Component({
-  template: `
-    <div>{{ title }}</div>
-  `
+  template: ` <div>{{ title }}</div> `,
 })
 export class MyComponent {
   title = signal("Hello");
@@ -322,8 +318,7 @@ export class MyComponent {
 ```
 
 ```html
-// ❌ Bad
-<router-outlet></router-outlet>
+// ❌ Bad <router-outlet></router-outlet>
 ```
 
 ### Prefer takeUntilDestroyed
@@ -339,17 +334,15 @@ export class MyComponent {
 
   constructor() {
     this.service.get
-    // no need to specify destroyRef in a constructor or injection context
-    .pipe(takeUntilDestroyed())
-    .subscribe((value) => {
-      this.value = value;
-    });
+      // no need to specify destroyRef in a constructor or injection context
+      .pipe(takeUntilDestroyed())
+      .subscribe((value) => {
+        this.value = value;
+      });
   }
 
   save(): void {
-    this.service.save()
-    .pipe(takeUntilDestroyed(this.destroyRef))
-    .subscribe();
+    this.service.save().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
   }
 }
 ```
@@ -366,7 +359,7 @@ export class MyComponent implements OnDestroy {
     this.subscription.add(
       this.service.observable$.subscribe((value) => {
         this.value = value;
-      }),
+      })
     );
   }
 
@@ -408,10 +401,9 @@ Prefer preparing your data in the component class rather than relying on complex
 // ✅ Good
 @Component({
   // ...
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ProductComponent {
-}  
+export class ProductComponent {}
 ```
 
 ### Preferclass over ngClass
@@ -548,8 +540,6 @@ export class ProductComponent {
 
 ### Prefer small components
 
-
-
 ### Prefer style over ngStyle
 
 ```html
@@ -612,7 +602,6 @@ export class ProductComponent {
 }
 ```
 
-
 ## Forms
 
 ### Prefer typed reactive forms
@@ -669,7 +658,6 @@ export class ProductComponent {
   name = signal("");
 }
 ```
-
 
 ## General
 
@@ -776,15 +764,16 @@ export class MyComponent implements OnInit, OnDestroy {
   private readonly user = input<User>();
   private readonly userSaved = output<void>();
 
-  private readonly container = viewChild<ElementRef<HTMLDivElement>>('container');
+  private readonly container =
+    viewChild<ElementRef<HTMLDivElement>>("container");
 
   private readonly userForm = new FormGroup({
-    name: new FormControl(''),
+    name: new FormControl(""),
   });
-  
+
   constructor() {
     this.userForm = new FormGroup({
-      name: new FormControl(''),
+      name: new FormControl(""),
     });
   }
 
@@ -896,7 +885,6 @@ export class AppService {
 Keep components and directives focused on the presentation layer.
 Use services or utility functions to handle business logic.
 
-
 ## TypeScript
 
 ### Avoid any
@@ -988,8 +976,6 @@ const user: { id: string; name: string } = {
 
 ### Prefer strict type checking
 
-
-
 ### Prefer type inference
 
 ```ts
@@ -1002,7 +988,6 @@ const name = "John";
 const name: string = "John";
 ```
 
-
 ## Performance
 
 ### Prefer ngSrc over src
@@ -1013,10 +998,8 @@ const name: string = "John";
 ```
 
 ```html
-// ❌ Bad
-<img src="https://example.com/image.jpg" alt="Image" />
+// ❌ Bad <img src="https://example.com/image.jpg" alt="Image" />
 ```
-
 
 ## Architecture
 
@@ -1025,13 +1008,13 @@ const name: string = "John";
 ```ts
 // ✅ Good
 @Component({
-  selector: 'app-root',
-  templateUrl: './app.component.html',
-  styleUrls: ['./app.component.css'],
-  imports: [HeaderComponent]
+  selector: "app-root",
+  templateUrl: "./app.component.html",
+  styleUrls: ["./app.component.css"],
+  imports: [HeaderComponent],
 })
 export class AppComponent {
-  title = 'my-app';
+  title = "my-app";
 }
 ```
 
@@ -1040,11 +1023,10 @@ export class AppComponent {
 @NgModule({
   declarations: [AppComponent],
   imports: [HeaderComponent],
-  bootstrap: [AppComponent]
+  bootstrap: [AppComponent],
 })
-export class AppModule { }
+export class AppModule {}
 ```
-
 
 ## Router
 
@@ -1055,7 +1037,8 @@ export class AppModule { }
 const routes: Routes = [
   {
     path: "products",
-    loadComponent: () => import("./products/products.component").then((c) => c.ProductsComponent),
+    loadComponent: () =>
+      import("./products/products.component").then((c) => c.ProductsComponent),
   },
 ];
 ```
@@ -1069,7 +1052,6 @@ const routes: Routes = [
   },
 ];
 ```
-
 
 ## Services
 

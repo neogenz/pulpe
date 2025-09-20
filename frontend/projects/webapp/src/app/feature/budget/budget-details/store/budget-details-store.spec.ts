@@ -405,7 +405,7 @@ describe('BudgetDetailsStore - Logique Métier', () => {
     it('should generate unique temporary IDs for optimistic updates', () => {
       // Arrange - Simulate rapid user actions
       const generateTempId = () =>
-        `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        `temp-${Date.now()}-${Math.random().toString(36).substring(2, 13).padEnd(9, '0').slice(0, 9)}`;
       const generatedIds = new Set<string>();
 
       // Act - Generate multiple IDs rapidly

@@ -21,7 +21,7 @@ export interface BreadcrumbItemViewModel {
 
 @Component({
   selector: 'pulpe-breadcrumb',
-  standalone: true,
+
   imports: [NgTemplateOutlet, RouterLink, MatIconModule, MatButtonModule],
   template: `
     @if (hasContentProjection() || showDataDrivenMode()) {

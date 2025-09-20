@@ -28,6 +28,7 @@ import { BreadcrumbState } from '@core/routing/breadcrumb-state';
 import { AuthApi } from '@core/auth/auth-api';
 import { ROUTES } from '@core/routing/routes-constants';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
+import { Logger } from '@core/logging/logger';
 
 interface NavigationItem {
   readonly route: string;
@@ -292,7 +293,7 @@ export class MainLayout {
   private readonly authApi = inject(AuthApi);
   private readonly applicationConfig = inject(ApplicationConfiguration);
   readonly breadcrumbState = inject(BreadcrumbState);
-
+  readonly #logger = inject(Logger);
   readonly userEmail = computed(() => this.authApi.authState().user?.email);
 
   // Navigation items configuration
@@ -384,7 +385,7 @@ export class MainLayout {
     } catch (error) {
       // Only log detailed errors in development
       if (!this.applicationConfig.isProduction()) {
-        console.error('Erreur lors de la déconnexion:', error);
+        this.#logger.error('Erreur lors de la déconnexion:', error);
       }
 
       // Always navigate to login on error to ensure user is signed out
@@ -392,7 +393,10 @@ export class MainLayout {
         await this.router.navigate([ROUTES.LOGIN]);
       } catch (navError) {
         if (!this.applicationConfig.isProduction()) {
-          console.error('Erreur lors de la navigation vers login:', navError);
+          this.#logger.error(
+            'Erreur lors de la navigation vers login:',
+            navError,
+          );
         }
       }
     } finally {

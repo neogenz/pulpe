@@ -17,7 +17,7 @@ export interface ConfirmationDialogData {
 
 @Component({
   selector: 'pulpe-confirmation-dialog',
-  standalone: true,
+
   imports: [MatDialogModule, MatButtonModule, MatIconModule],
   template: `
     <div data-testid="delete-confirmation-dialog">

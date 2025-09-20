@@ -6,7 +6,7 @@ import {
 import { provideZonelessChangeDetection } from '@angular/core';
 import { vi } from 'vitest';
 import { ApplicationConfiguration } from './application-configuration';
-import type { ApplicationConfig } from './types';
+import type { ApplicationConfig } from './config.schema';
 
 describe('ApplicationConfiguration', () => {
   let service: ApplicationConfiguration;
@@ -121,9 +121,9 @@ describe('ApplicationConfiguration', () => {
 
       await expect(promise).rejects.toThrow();
 
-      expect(service.supabaseUrl()).toBe('http://localhost:54321');
+      expect(service.supabaseUrl()).toBe('');
       expect(service.supabaseAnonKey()).toBe('');
-      expect(service.backendApiUrl()).toBe('http://localhost:3000/api/v1');
+      expect(service.backendApiUrl()).toBe('');
       expect(service.environment()).toBe('development');
       expect(consoleSpy).toHaveBeenCalled();
     });

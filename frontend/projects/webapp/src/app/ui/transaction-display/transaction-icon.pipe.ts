@@ -3,7 +3,6 @@ import type { TransactionKind } from '@pulpe/shared';
 
 @Pipe({
   name: 'transactionIcon',
-  standalone: true,
 })
 export class TransactionIconPipe implements PipeTransform {
   transform(kind: TransactionKind): string {

@@ -10,7 +10,7 @@ import { type CalendarMonth, type CalendarYear } from './calendar-types';
 
 @Component({
   selector: 'pulpe-year-calendar',
-  standalone: true,
+
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [MonthTile],
   template: `

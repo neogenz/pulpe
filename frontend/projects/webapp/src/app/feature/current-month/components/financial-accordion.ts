@@ -74,7 +74,7 @@ export interface FinancialAccordionConfig {
         <div data-testid="right-side" class="flex items-center gap-3">
           @if (config().totalAmount !== undefined) {
             <span
-              class="text-title-medium font-medium"
+              class="ph-no-capture text-title-medium font-medium"
               [class.text-pulpe-financial-income]="config().totalAmount! > 0"
               [class.text-pulpe-financial-expense]="config().totalAmount! < 0"
               [class.text-on-surface]="config().totalAmount! === 0"

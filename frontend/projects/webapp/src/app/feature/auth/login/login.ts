@@ -19,7 +19,7 @@ import { Logger } from '@core/logging/logger';
 
 @Component({
   selector: 'pulpe-login',
-  standalone: true,
+
   imports: [
     ReactiveFormsModule,
     MatFormFieldModule,

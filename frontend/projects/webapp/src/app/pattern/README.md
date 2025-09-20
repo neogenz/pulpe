@@ -104,7 +104,7 @@ export class DocumentService {
 // pattern/document-manager/document-manager.component.ts
 @Component({
   selector: "app-pattern-document-manager",
-  standalone: true,
+
   imports: [CommonModule, FileUploadModule, ButtonModule, UiCardComponent],
   providers: [DocumentService], // Pattern-scoped service
   template: `
@@ -180,7 +180,6 @@ import { ApprovalWidgetComponent } from "@app/pattern/approval-widget/approval-w
 import { AuditLogComponent } from "@app/pattern/audit-log/audit-log.component";
 
 @Component({
-  standalone: true,
   imports: [
     CommonModule,
     DocumentManagerComponent, // Pattern drop-in

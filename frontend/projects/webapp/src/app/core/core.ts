@@ -15,6 +15,8 @@ import {
   provideZonelessChangeDetection,
   provideAppInitializer,
   inject,
+  Injector,
+  runInInjectionContext,
 } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import {
@@ -27,8 +29,12 @@ import { provideAuth } from './auth/auth-providers';
 import { AuthApi } from './auth/auth-api';
 import { PulpeTitleStrategy } from './routing/title-strategy';
 import { ApplicationConfiguration } from './config/application-configuration';
+import { PostHogService } from './analytics/posthog';
+import { AnalyticsService } from './analytics/analytics';
+import { provideGlobalErrorHandler } from './analytics/global-error-handler';
 import { buildInfo } from '@env/build-info';
 import { environment } from '@env/environment';
+import { Logger } from './logging/logger';
 
 export interface CoreOptions {
   routes: Routes; // possible to extend options with more props in the future
@@ -47,7 +53,10 @@ function provideLottie() {
  * Logger unifié pour les informations de build et configuration
  * Utilise le service Logger pour un logging approprié selon l'environnement
  */
-function logAppInfo(applicationConfig: ApplicationConfiguration) {
+function logAppInfo(
+  applicationConfig: ApplicationConfiguration,
+  logger: Logger,
+) {
   const appData = {
     // Build Info
     version: buildInfo.version,
@@ -66,9 +75,14 @@ function logAppInfo(applicationConfig: ApplicationConfiguration) {
       ? '***'
       : 'Non configuré',
     backendApiUrl: applicationConfig.backendApiUrl(),
+
+    // PostHog Configuration (securized)
+    postHogEnabled: applicationConfig.postHog().enabled,
+    postHogHost: applicationConfig.postHog().host,
+    postHogApiKey: applicationConfig.postHog().apiKey ? '***' : 'Non configuré',
   };
 
-  console.log('Pulpe Budget - Application Info', appData);
+  logger.info('Pulpe Budget - Application Info', appData);
 }
 
 export function provideCore({ routes }: CoreOptions) {
@@ -97,23 +111,55 @@ export function provideCore({ routes }: CoreOptions) {
     // Custom title strategy - APRÈS le router
     { provide: TitleStrategy, useClass: PulpeTitleStrategy },
 
+    // HTTP Client must be provided before anything that uses it
+    ...provideAuth(),
+
+    // Global error handler with PostHog integration (needs HttpClient via PostHogService)
+    provideGlobalErrorHandler(),
+
     // perform initialization, has to be last
     // Sequential initialization with explicit order
     provideAppInitializer(async () => {
       const applicationConfig = inject(ApplicationConfiguration);
+      const postHogService = inject(PostHogService);
       const authService = inject(AuthApi);
+      const analyticsService = inject(AnalyticsService);
+      const injector = inject(Injector);
+      const logger = inject(Logger);
+      // 1. Charger la configuration d'abord
+      await applicationConfig.initialize();
+      // 2. Logger les informations complètes après chargement
+      logAppInfo(applicationConfig, logger);
 
       try {
-        // 1. Charger la configuration d'abord
-        await applicationConfig.initialize();
+        // 3. Initialiser PostHog (non-blocking, can fail gracefully)
+        try {
+          await postHogService.initialize();
 
-        // 2. Logger les informations complètes après chargement
-        logAppInfo(applicationConfig);
+          // Initialize analytics with proper injection context for effect()
+          runInInjectionContext(injector, () => {
+            analyticsService.initializeAnalyticsTracking();
+            logger.debug('Analytics service ready', {
+              isActive: analyticsService.isActive(),
+            });
+          });
+        } catch (postHogError) {
+          if (applicationConfig.isDevelopment()) {
+            logger.error('PostHog initialization failed', postHogError);
+            throw postHogError;
+          }
 
-        // 3. Initialiser l'auth ensuite (config garantie disponible)
+          logger.warn(
+            'PostHog initialization failed, continuing without analytics',
+            postHogError,
+          );
+          // Don't throw - PostHog failure shouldn't block app startup
+        }
+
+        // 4. Initialiser l'auth ensuite (config garantie disponible)
         await authService.initializeAuthState();
       } catch (error) {
-        console.error("Erreur lors de l'initialisation", error);
+        logger.error("Erreur lors de l'initialisation", error);
         throw error; // Bloquer le démarrage de l'app en cas d'erreur critique
       }
     }),
@@ -121,7 +167,5 @@ export function provideCore({ routes }: CoreOptions) {
     ...provideLocale(),
     ...provideAngularMaterial(),
     ...provideLottie(),
-
-    ...provideAuth(),
   ];
 }

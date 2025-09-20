@@ -42,6 +42,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
                 >Dépenses CHF
                 @if (isOverBudget()) {
                   <mat-icon
+                    class="ph-no-capture"
                     [matTooltip]="
                       'Tu es en dépassement de ' +
                       (overBudgetAmount() | number: '1.2-2' : 'de-CH') +
@@ -53,14 +54,16 @@ import { MatTooltipModule } from '@angular/material/tooltip';
                 }
               </span>
               <span class="text-headline-small md:text-headline-large">
-                <div class="flex flex-col">
+                <div class="flex flex-col ph-no-capture">
                   {{ expenses() | number: '1.2-2' : 'de-CH' }}
                 </div>
               </span>
             </div>
             <div class="flex flex-col text-right text-outline">
               <span class="text-body-small md:text-body">Disponible CHF</span>
-              <span class="text-headline-small md:text-headline-large">
+              <span
+                class="text-headline-small md:text-headline-large ph-no-capture"
+              >
                 {{ remaining() | number: '1.2-2' : 'de-CH' }}
               </span>
             </div>
@@ -75,7 +78,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
             [class.over-budget]="isOverBudget()"
           />
           <div
-            class="text-label-small text-on-surface-variant"
+            class="text-label-small text-on-surface-variant ph-no-capture"
             [class.text-error!]="isOverBudget()"
           >
             @if (displayPercentage() === -1) {

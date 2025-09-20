@@ -7,6 +7,7 @@ import { AuthApi } from '@core/auth/auth-api';
 import { BudgetApi } from '@core/budget';
 import { OnboardingApi } from './services/onboarding-api';
 import { Logger } from '@core/logging/logger';
+import { PostHogService } from '@core/analytics/posthog';
 import {
   type BudgetCreate,
   type BudgetTemplateCreateFromOnboarding,
@@ -57,6 +58,7 @@ export class OnboardingStore {
   readonly #onboardingApi = inject(OnboardingApi);
   readonly #router = inject(Router);
   readonly #logger = inject(Logger);
+  readonly #postHogService = inject(PostHogService);
 
   // Single source of truth - private state signal
   readonly #state = signal<OnboardingState>(createInitialOnboardingState());
@@ -226,7 +228,11 @@ export class OnboardingStore {
 
       await firstValueFrom(this.#budgetApi.createBudget$(budgetRequest));
 
-      // 4. Nettoyer et rediriger
+      // 4. Activer PostHog maintenant que l'utilisateur a accepté les CGU
+      this.#postHogService.enableTracking();
+      this.#logger.info('PostHog tracking enabled after CGU acceptance');
+
+      // 5. Nettoyer et rediriger
       this.#clearStorage();
       return true;
     } catch (error) {

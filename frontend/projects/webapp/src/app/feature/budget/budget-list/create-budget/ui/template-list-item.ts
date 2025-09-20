@@ -111,7 +111,10 @@ import { type TemplateViewModel } from './template-view-model';
               <span matListItemTitle class="text-body-medium"
                 >Revenus mensuels</span
               >
-              <span matListItemMeta class="text-body-medium! font-medium!">
+              <span
+                matListItemMeta
+                class="ph-no-capture text-body-medium! font-medium!"
+              >
                 {{
                   templateViewModel().income
                     | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
@@ -129,7 +132,10 @@ import { type TemplateViewModel } from './template-view-model';
               <span matListItemTitle class="text-body-medium"
                 >Dépenses prévues</span
               >
-              <span matListItemMeta class="text-body-medium! font-medium!">
+              <span
+                matListItemMeta
+                class="ph-no-capture text-body-medium! font-medium!"
+              >
                 {{
                   templateViewModel().expenses
                     | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
@@ -145,7 +151,10 @@ import { type TemplateViewModel } from './template-view-model';
                 >wallet</mat-icon
               >
               <span matListItemTitle class="text-body-medium">Disponible</span>
-              <span matListItemMeta class="text-body-medium! font-medium!">
+              <span
+                matListItemMeta
+                class="ph-no-capture text-body-medium! font-medium!"
+              >
                 {{
                   templateViewModel().netBalance
                     | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'

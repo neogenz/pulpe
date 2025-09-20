@@ -19,7 +19,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { Router } from '@angular/router';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { Router, RouterLink } from '@angular/router';
 import { ROUTES } from '@core/routing';
 import { OnboardingStore } from '../onboarding-store';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -33,6 +34,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     MatIconModule,
     MatButtonModule,
     MatProgressSpinnerModule,
+    MatCheckboxModule,
+    RouterLink,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -89,6 +92,35 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
             >Le mot de passe doit contenir au minimum 8 caractères</mat-hint
           >
         </mat-form-field>
+
+        <div class="mt-6">
+          <mat-checkbox
+            formControlName="acceptTerms"
+            [disabled]="store.isSubmitting()"
+            data-testid="accept-terms-checkbox"
+          >
+            <span class="text-body-medium">
+              J'accepte les
+              <a
+                [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_TERMS]"
+                target="_blank"
+                class="text-primary underline"
+                (click)="$event.stopPropagation()"
+              >
+                Conditions d'Utilisation
+              </a>
+              et la
+              <a
+                [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_PRIVACY]"
+                target="_blank"
+                class="text-primary underline"
+                (click)="$event.stopPropagation()"
+              >
+                Politique de Confidentialité
+              </a>
+            </span>
+          </mat-checkbox>
+        </div>
       </form>
 
       <div class="flex gap-4 p-4 md:p-0 w-full mt-auto">
@@ -128,6 +160,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 export default class Registration implements OnDestroy {
   readonly #router = inject(Router);
   protected readonly store = inject(OnboardingStore);
+  protected readonly ROUTES = ROUTES;
 
   protected readonly registrationForm = new FormGroup({
     email: new FormControl(this.store.data().email, {
@@ -136,6 +169,10 @@ export default class Registration implements OnDestroy {
     }),
     password: new FormControl('', {
       validators: [Validators.required, Validators.minLength(8)],
+      nonNullable: true,
+    }),
+    acceptTerms: new FormControl(false, {
+      validators: [Validators.requiredTrue],
       nonNullable: true,
     }),
   });

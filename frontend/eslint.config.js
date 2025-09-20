@@ -136,6 +136,11 @@ module.exports = tseslint.config(
           pattern: "e2e/**/*.ts",
         },
         {
+          type: "script",
+          mode: "file",
+          pattern: "scripts/**/*.ts",
+        },
+        {
           type: "test-spec",
           mode: "file",
           pattern: "**/*.spec.ts",
@@ -282,6 +287,10 @@ module.exports = tseslint.config(
             {
               from: ["testing"],
               allow: ["shared"],
+            },
+            {
+              from: ["script"],
+              allow: [["shared"], ["core"], ["lib-api"]],
             },
             {
               from: ["test-spec"],

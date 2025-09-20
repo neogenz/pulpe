@@ -1,15 +1,13 @@
-import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+import { Logger } from '../logging/logger';
 import {
   type ApplicationConfig,
   type ConfigFile,
-  safeValidateConfig,
-  DEFAULT_CONFIG,
+  ConfigSchema,
   formatConfigError,
 } from './config.schema';
-import { isValidUrl, sanitizeUrl } from '../utils/validators';
-import { Logger } from '../logging/logger';
 
 @Injectable({
   providedIn: 'root',
@@ -22,9 +20,36 @@ export class ApplicationConfiguration {
   readonly supabaseUrl = signal<string>('');
   readonly supabaseAnonKey = signal<string>('');
   readonly backendApiUrl = signal<string>('');
-  readonly environment = signal<'development' | 'production' | 'local'>(
-    'development',
-  );
+  readonly environment = signal<
+    'development' | 'production' | 'test' | 'local'
+  >('development');
+
+  // PostHog configuration as a single signal object
+  readonly postHog = signal<{
+    apiKey: string;
+    host: string;
+    enabled: boolean;
+    capturePageviews: boolean;
+    capturePageleaves: boolean;
+    sessionRecording: {
+      enabled: boolean;
+      maskInputs: boolean;
+      sampleRate: number;
+    };
+    debug: boolean;
+  }>({
+    apiKey: '',
+    host: 'https://eu.posthog.com',
+    enabled: false,
+    capturePageviews: true,
+    capturePageleaves: true,
+    sessionRecording: {
+      enabled: false,
+      maskInputs: true,
+      sampleRate: 0.1,
+    },
+    debug: false,
+  });
 
   // Configuration complète en lecture seule
   readonly rawConfiguration = computed<ApplicationConfig | null>(() => {
@@ -38,11 +63,19 @@ export class ApplicationConfiguration {
       return null;
     }
 
-    return {
+    const config: ApplicationConfig = {
       supabase: { url, anonKey: key },
       backend: { apiUrl },
       environment: env,
     };
+
+    // Add PostHog configuration if API key is provided
+    const postHogConfig = this.postHog();
+    if (postHogConfig.apiKey) {
+      config.postHog = postHogConfig;
+    }
+
+    return config;
   });
 
   // Signaux dérivés (computed)
@@ -50,13 +83,31 @@ export class ApplicationConfiguration {
   readonly isProduction = computed(() => this.environment() === 'production');
   readonly isLocal = computed(() => this.environment() === 'local');
 
+  // PostHog specific computed signals
+  readonly postHogConfig = computed(() => {
+    const config = this.postHog();
+
+    // Return null if PostHog is not configured
+    if (!config.apiKey) {
+      return null;
+    }
+
+    return {
+      ...config,
+      debug: config.debug || this.isDevelopment(),
+    };
+  });
+
   /**
    * Initialise la configuration en chargeant le fichier config.json
    */
   async initialize(): Promise<void> {
     try {
       const configData = await this.#loadConfigFile();
-      const validationResult = safeValidateConfig(configData);
+
+      // Runtime validation is critical: config.json could be corrupted,
+      // manually edited, or tampered with. ConfigSchema ensures integrity.
+      const validationResult = ConfigSchema.safeParse(configData);
 
       if (!validationResult.success) {
         const errorMessage = formatConfigError(validationResult.error);
@@ -71,7 +122,6 @@ export class ApplicationConfiguration {
         'Erreur lors du chargement de la configuration',
         error,
       );
-      this.#setDefaults();
       throw error;
     }
   }
@@ -91,54 +141,62 @@ export class ApplicationConfiguration {
       'Cache-Control': 'no-cache, no-store, max-age=0',
       Pragma: 'no-cache',
     });
-    return firstValueFrom(
-      this.#http.get<ConfigFile>('/config.json', { headers }),
-    );
+
+    try {
+      return await firstValueFrom(
+        this.#http.get<ConfigFile>('/config.json', { headers }),
+      );
+    } catch (error: unknown) {
+      this.#logger.error('Error loading config.json', error);
+      this.#logger.error('❌ CRITICAL: config.json not found or invalid');
+      this.#logger.error('📍 Attempted to load from: /config.json');
+      this.#logger.error('💡 Fix: Run "npm run generate:config" to create it');
+
+      // En développement et production, config.json est requis
+      // Plus de fallback - l'application doit échouer si pas de config
+
+      // En production, fail fast
+      throw new Error('config.json is required. Run: npm run generate:config', {
+        cause: error,
+      });
+    }
   }
 
   /**
    * Applique la configuration validée aux signaux
    */
   #applyConfiguration(config: ApplicationConfig): void {
-    // Validate and sanitize URLs before setting
-    const supabaseUrl = sanitizeUrl(
-      config.supabase.url,
-      'http://localhost:54321',
-    );
-    const backendApiUrl = sanitizeUrl(
-      config.backend.apiUrl,
-      'http://localhost:3000/api/v1',
-    );
-
-    // Log validation results in development
-    if (!isValidUrl(config.supabase.url)) {
-      this.#logger.warn('Invalid Supabase URL, using sanitized fallback', {
-        original: config.supabase.url,
-        sanitized: supabaseUrl,
-      });
-    }
-
-    if (!isValidUrl(config.backend.apiUrl)) {
-      this.#logger.warn('Invalid Backend API URL, using sanitized fallback', {
-        original: config.backend.apiUrl,
-        sanitized: backendApiUrl,
-      });
-    }
-
-    this.supabaseUrl.set(supabaseUrl);
+    // Set core configuration
+    this.supabaseUrl.set(config.supabase.url);
     this.supabaseAnonKey.set(config.supabase.anonKey);
-    this.backendApiUrl.set(backendApiUrl);
+    this.backendApiUrl.set(config.backend.apiUrl);
     this.environment.set(config.environment);
-  }
 
-  /**
-   * Définit les valeurs par défaut en cas d'erreur
-   */
-  #setDefaults(): void {
-    this.#logger.warn('Using default configuration as fallback');
-    this.supabaseUrl.set(DEFAULT_CONFIG.supabase.url);
-    this.supabaseAnonKey.set(DEFAULT_CONFIG.supabase.anonKey);
-    this.backendApiUrl.set(DEFAULT_CONFIG.backend.apiUrl);
-    this.environment.set(DEFAULT_CONFIG.environment);
+    // Set PostHog configuration if provided
+    if (!config.postHog) {
+      this.#logger.info('PostHog configuration not provided, using defaults');
+      return;
+    }
+
+    // Set PostHog configuration as a single update
+    this.postHog.set({
+      apiKey: config.postHog.apiKey,
+      host: config.postHog.host,
+      enabled: config.postHog.enabled,
+      capturePageviews: config.postHog.capturePageviews,
+      capturePageleaves: config.postHog.capturePageleaves,
+      sessionRecording: config.postHog.sessionRecording || {
+        enabled: false,
+        maskInputs: true,
+        sampleRate: 0.1,
+      },
+      debug: config.postHog.debug,
+    });
+
+    this.#logger.info('PostHog configuration loaded', {
+      enabled: config.postHog.enabled,
+      host: config.postHog.host,
+      debug: config.postHog.debug,
+    });
   }
 }

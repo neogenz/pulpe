@@ -31,11 +31,11 @@ export interface FinancialSummaryData {
             </mat-icon>
           </div>
           <div class="flex-1 min-w-0">
-            <h3 class="mb-1 financial-title">
+            <h3 class="mb-1 financial-title ph-no-capture">
               {{ data().title }}
             </h3>
             <p
-              class="text-headline-small financial-amount overflow-hidden text-ellipsis"
+              class="text-headline-small financial-amount ph-no-capture overflow-hidden text-ellipsis"
             >
               {{
                 data().amount | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'

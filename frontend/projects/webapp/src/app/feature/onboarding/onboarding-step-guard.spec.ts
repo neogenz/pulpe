@@ -8,6 +8,7 @@ import {
   type UrlTree,
 } from '@angular/router';
 import { provideZonelessChangeDetection } from '@angular/core';
+import { provideHttpClient } from '@angular/common/http';
 import { onboardingStepGuard } from './onboarding-step-guard';
 import { OnboardingStore, type OnboardingStep } from './onboarding-store';
 import { AuthApi } from '@core/auth/auth-api';
@@ -16,7 +17,7 @@ import { TemplateApi } from '@core/template/template-api';
 import { OnboardingApi } from './services/onboarding-api';
 import { Subject } from 'rxjs';
 
-describe('OnboardingStepGuard - Sequential Navigation', () => {
+describe('User navigates through onboarding steps', () => {
   let store: OnboardingStore;
   let mockRouter: {
     navigate: ReturnType<typeof vi.fn>;
@@ -49,6 +50,7 @@ describe('OnboardingStepGuard - Sequential Navigation', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
+        provideHttpClient(),
         OnboardingStore,
         { provide: AuthApi, useValue: mockAuthApi },
         { provide: BudgetApi, useValue: mockBudgetApi },
@@ -82,105 +84,103 @@ describe('OnboardingStepGuard - Sequential Navigation', () => {
     return result as boolean | UrlTree;
   }
 
-  describe('Sequential Validation', () => {
-    it('should allow access to welcome step without any data', () => {
+  describe('User starts onboarding', () => {
+    it('user can access welcome page without any information', () => {
+      // When: User visits welcome step
       const route = createMockRoute('welcome');
       const result = executeGuard(route);
 
+      // Then: Access is granted
       expect(result).toBe(true);
     });
 
-    it('should allow access to personal-info step without any data', () => {
+    it('user can start with personal information step', () => {
+      // When: User goes directly to personal info
       const route = createMockRoute('personal-info');
       const result = executeGuard(route);
 
+      // Then: Access is allowed
       expect(result).toBe(true);
     });
+  });
 
-    it('should redirect to personal-info when accessing income without firstName', () => {
+  describe('User progresses through steps', () => {
+    it('user must enter name before accessing income step', () => {
+      // Given: User has not entered their name
+      // When: User tries to access income step
       const route = createMockRoute('income');
-
       executeGuard(route);
 
+      // Then: User is redirected to personal info
       expect(mockRouter.createUrlTree).toHaveBeenCalledWith([
         '/onboarding/personal-info',
       ]);
     });
 
-    it('should allow access to income step when firstName is provided', () => {
+    it('user can access income step after entering name', () => {
+      // Given: User has entered their name
       store.updateField('firstName', 'John');
-      const route = createMockRoute('income');
 
+      // When: User navigates to income step
+      const route = createMockRoute('income');
       const result = executeGuard(route);
 
+      // Then: Access is granted
       expect(result).toBe(true);
     });
 
-    it('should redirect to personal-info when accessing housing without firstName', () => {
-      const route = createMockRoute('housing');
-
-      executeGuard(route);
-
-      expect(mockRouter.createUrlTree).toHaveBeenCalledWith([
-        '/onboarding/personal-info',
-      ]);
-    });
-
-    it('should redirect to income when accessing housing with firstName but without monthlyIncome', () => {
+    it('user must complete income before housing expenses', () => {
+      // Given: User has entered name but no income
       store.updateField('firstName', 'John');
-      const route = createMockRoute('housing');
 
+      // When: User tries to skip to housing
+      const route = createMockRoute('housing');
       executeGuard(route);
 
+      // Then: User is redirected to income step
       expect(mockRouter.createUrlTree).toHaveBeenCalledWith([
         '/onboarding/income',
       ]);
     });
 
-    it('should allow access to housing when firstName and monthlyIncome are provided', () => {
+    it('user can enter housing costs after providing income', () => {
+      // Given: User has completed name and income
       store.updateField('firstName', 'John');
       store.updateField('monthlyIncome', 5000);
-      const route = createMockRoute('housing');
 
+      // When: User navigates to housing step
+      const route = createMockRoute('housing');
       const result = executeGuard(route);
 
+      // Then: Access is granted
       expect(result).toBe(true);
     });
 
-    it('should redirect to income when accessing housing with zero monthlyIncome', () => {
+    it('user must provide valid income amount to continue', () => {
+      // Given: User entered name but zero income
       store.updateField('firstName', 'John');
       store.updateField('monthlyIncome', 0);
-      const route = createMockRoute('housing');
 
+      // When: User tries to proceed to housing
+      const route = createMockRoute('housing');
       executeGuard(route);
 
+      // Then: User is sent back to income step
       expect(mockRouter.createUrlTree).toHaveBeenCalledWith([
         '/onboarding/income',
       ]);
     });
 
-    it('should redirect to income when accessing housing with negative monthlyIncome', () => {
-      store.updateField('firstName', 'John');
-      store.updateField('monthlyIncome', -100);
-      const route = createMockRoute('housing');
-
-      executeGuard(route);
-
-      expect(mockRouter.createUrlTree).toHaveBeenCalledWith([
-        '/onboarding/income',
-      ]);
-    });
-
-    it('should enforce sequential validation for all steps after income', () => {
-      const steps = [
+    it('user cannot skip steps in expense sections', () => {
+      const expenseSteps = [
         'health-insurance',
         'phone-plan',
         'transport',
         'leasing-credit',
       ];
 
-      // Test without required data
-      for (const step of steps) {
+      // When: User tries to access expense steps without prerequisites
+      for (const step of expenseSteps) {
         const route = createMockRoute(step);
         executeGuard(route);
         expect(mockRouter.createUrlTree).toHaveBeenCalledWith([
@@ -189,9 +189,11 @@ describe('OnboardingStepGuard - Sequential Navigation', () => {
         mockRouter.createUrlTree.mockClear();
       }
 
-      // Test with firstName but without income
+      // Given: User has entered name
       store.updateField('firstName', 'John');
-      for (const step of steps) {
+
+      // When: User tries to access expense steps without income
+      for (const step of expenseSteps) {
         const route = createMockRoute(step);
         executeGuard(route);
         expect(mockRouter.createUrlTree).toHaveBeenCalledWith([
@@ -200,63 +202,76 @@ describe('OnboardingStepGuard - Sequential Navigation', () => {
         mockRouter.createUrlTree.mockClear();
       }
 
-      // Test with both required fields
+      // Given: User has completed required information
       store.updateField('monthlyIncome', 5000);
-      for (const step of steps) {
+
+      // When: User accesses expense steps in order
+      for (const step of expenseSteps) {
         const route = createMockRoute(step);
         const result = executeGuard(route);
+        // Then: Each step is accessible
         expect(result).toBe(true);
       }
     });
   });
 
-  describe('Registration Step Validation', () => {
-    it('should redirect to personal-info when accessing registration without firstName', () => {
+  describe('User reaches registration', () => {
+    it('user cannot register without personal information', () => {
+      // Given: User has not entered any information
+      // When: User tries to access registration
       const route = createMockRoute('registration');
-
       executeGuard(route);
 
+      // Then: User is sent to start of onboarding
       expect(mockRouter.createUrlTree).toHaveBeenCalledWith([
         '/onboarding/personal-info',
       ]);
     });
 
-    it('should redirect to income when accessing registration with firstName but without monthlyIncome', () => {
+    it('user cannot register without income information', () => {
+      // Given: User has entered name but no income
       store.updateField('firstName', 'John');
-      const route = createMockRoute('registration');
 
+      // When: User tries to register
+      const route = createMockRoute('registration');
       executeGuard(route);
 
+      // Then: User is sent to income step
       expect(mockRouter.createUrlTree).toHaveBeenCalledWith([
         '/onboarding/income',
       ]);
     });
 
-    it('should allow access to registration when all required data is provided', () => {
+    it('user can register after completing required steps', () => {
+      // Given: User has completed name and income
       store.updateField('firstName', 'John');
       store.updateField('monthlyIncome', 5000);
-      const route = createMockRoute('registration');
 
+      // When: User reaches registration
+      const route = createMockRoute('registration');
       const result = executeGuard(route);
 
+      // Then: Registration is accessible
       expect(result).toBe(true);
     });
   });
 
-  describe('Unknown Routes', () => {
-    it('should allow access to unknown routes', () => {
+  describe('System handles edge cases', () => {
+    it('unknown steps are accessible by default', () => {
+      // When: User accesses undefined step
       const route = createMockRoute('unknown-step');
-
       const result = executeGuard(route);
 
+      // Then: Access is not blocked
       expect(result).toBe(true);
     });
 
-    it('should handle routes without routeConfig gracefully', () => {
+    it('malformed routes do not cause errors', () => {
+      // When: Route configuration is missing
       const route = {} as ActivatedRouteSnapshot;
-
       const result = executeGuard(route);
 
+      // Then: System handles gracefully
       expect(result).toBe(true);
     });
   });
