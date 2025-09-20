@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { AnalyticsService } from './analytics';
@@ -10,22 +10,10 @@ import {
   createMockLogger,
 } from '../../testing/mock-posthog';
 
-vi.mock('posthog-js', () => ({
-  default: {
-    capture: vi.fn(),
-  },
-}));
-
 describe('User consent and tracking behavior', () => {
   let analyticsService: AnalyticsService;
   let mockAuthState: ReturnType<typeof signal>;
-  let mockPostHogService: {
-    isInitialized: ReturnType<typeof signal>;
-    isEnabled: ReturnType<typeof signal>;
-    enableTracking: ReturnType<typeof vi.fn>;
-    identify: ReturnType<typeof vi.fn>;
-    reset: ReturnType<typeof vi.fn>;
-  };
+  let mockPostHogService: ReturnType<typeof createMockPostHogService>;
 
   beforeEach(() => {
     // Create mock auth state signal
@@ -289,12 +277,9 @@ describe('User consent and tracking behavior', () => {
 describe('captureEvent', () => {
   let analyticsService: AnalyticsService;
   let mockPostHogService: ReturnType<typeof createMockPostHogService>;
-  let mockLogger: ReturnType<typeof createMockLogger>;
-  let mockPosthogCapture: ReturnType<typeof vi.fn>;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     mockPostHogService = createMockPostHogService();
-    mockLogger = createMockLogger();
 
     const mockAuthApi = {
       authState: signal({
@@ -311,52 +296,30 @@ describe('captureEvent', () => {
         AnalyticsService,
         { provide: PostHogService, useValue: mockPostHogService },
         { provide: AuthApi, useValue: mockAuthApi },
-        { provide: Logger, useValue: mockLogger },
+        { provide: Logger, useValue: createMockLogger() },
       ],
     });
 
     analyticsService = TestBed.inject(AnalyticsService);
-
-    const posthogModule = await import('posthog-js');
-    mockPosthogCapture = vi.mocked(posthogModule.default.capture);
-    mockPosthogCapture.mockClear();
   });
 
-  it('does not capture events when analytics cannot capture', () => {
-    mockPostHogService.canCapture.mockReturnValue(false);
-
-    analyticsService.captureEvent('test_event');
-
-    expect(mockPosthogCapture).not.toHaveBeenCalled();
-  });
-
-  it('captures events with provided properties', () => {
-    mockPostHogService.canCapture.mockReturnValue(true);
-
+  it('delegates captures to PostHogService', () => {
     const properties = { feature: 'onboarding', step: 'welcome' };
 
     analyticsService.captureEvent('user_action', properties);
 
-    expect(mockPosthogCapture).toHaveBeenCalledTimes(1);
-    expect(mockPosthogCapture).toHaveBeenCalledWith('user_action', properties);
-    expect(mockLogger.debug).toHaveBeenCalledWith('PostHog event captured', {
-      event: 'user_action',
-    });
+    expect(mockPostHogService.captureEvent).toHaveBeenCalledWith(
+      'user_action',
+      properties,
+    );
   });
 
-  it('logs errors when capture throws', () => {
-    mockPostHogService.canCapture.mockReturnValue(true);
-
+  it('handles errors thrown by PostHogService', () => {
     const error = new Error('capture failed');
-    mockPosthogCapture.mockImplementation(() => {
+    mockPostHogService.captureEvent.mockImplementation(() => {
       throw error;
     });
 
-    analyticsService.captureEvent('failing_event');
-
-    expect(mockLogger.error).toHaveBeenCalledWith(
-      'Failed to capture event',
-      error,
-    );
+    expect(() => analyticsService.captureEvent('failing_event')).toThrow(error);
   });
 });
