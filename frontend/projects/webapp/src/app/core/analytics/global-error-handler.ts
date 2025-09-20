@@ -24,7 +24,6 @@ export class GlobalErrorHandler implements ErrorHandler {
 
     // Send to PostHog (built-in sanitization handles security)
     this.#postHogService.captureException(error, {
-      message: errorMessage,
       isHttpError,
     });
   }

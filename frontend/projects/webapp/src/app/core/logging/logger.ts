@@ -31,7 +31,16 @@ export class Logger {
    */
   debug(message: string, data?: unknown): void {
     if (this.#logLevel <= LogLevel.DEBUG && !this.#isProduction) {
-      console.debug(this.#format('DEBUG', message, data));
+      const [formattedMessage, sanitized] = this.#format(
+        'DEBUG',
+        message,
+        data,
+      );
+      if (sanitized !== undefined) {
+        console.debug(formattedMessage, sanitized);
+      } else {
+        console.debug(formattedMessage);
+      }
     }
   }
 
@@ -40,7 +49,12 @@ export class Logger {
    */
   info(message: string, data?: unknown): void {
     if (this.#logLevel <= LogLevel.INFO && !this.#isProduction) {
-      console.info(this.#format('INFO', message, data));
+      const [formattedMessage, sanitized] = this.#format('INFO', message, data);
+      if (sanitized !== undefined) {
+        console.info(formattedMessage, sanitized);
+      } else {
+        console.info(formattedMessage);
+      }
     }
   }
 
@@ -49,7 +63,12 @@ export class Logger {
    */
   warn(message: string, data?: unknown): void {
     if (this.#logLevel <= LogLevel.WARN) {
-      console.warn(this.#format('WARN', message, data));
+      const [formattedMessage, sanitized] = this.#format('WARN', message, data);
+      if (sanitized !== undefined) {
+        console.warn(formattedMessage, sanitized);
+      } else {
+        console.warn(formattedMessage);
+      }
     }
   }
 
@@ -59,8 +78,16 @@ export class Logger {
    */
   error(message: string, error?: unknown): void {
     if (this.#logLevel <= LogLevel.ERROR) {
-      const formatted = this.#format('ERROR', message, error);
-      console.error(formatted);
+      const [formattedMessage, sanitized] = this.#format(
+        'ERROR',
+        message,
+        error,
+      );
+      if (sanitized !== undefined) {
+        console.error(formattedMessage, sanitized);
+      } else {
+        console.error(formattedMessage);
+      }
     }
   }
 
@@ -126,16 +153,14 @@ export class Logger {
   /**
    * Formats the log message with context
    */
-  #format(level: string, message: string, data?: unknown): string {
+  #format(level: string, message: string, data?: unknown): [string, unknown?] {
     const timestamp = new Date().toISOString();
-    const prefix = `[${timestamp}] [${level}]`;
+    const formattedMessage = `[${timestamp}] [${level}] ${message}`;
 
-    const result: unknown[] = [`${prefix} ${message}`];
-
-    if (data !== undefined) {
-      result.push(this.#sanitize(data));
+    if (data === undefined) {
+      return [formattedMessage];
     }
 
-    return result.join(' ');
+    return [formattedMessage, this.#sanitize(data)];
   }
 }

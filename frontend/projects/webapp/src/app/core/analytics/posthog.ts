@@ -11,6 +11,138 @@ import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
 import { buildInfo } from '@env/build-info';
 
+const POSTHOG_SENSITIVE_PROPERTY_KEYS = new Set(
+  [
+    'amount',
+    'balance',
+    'available_amount',
+    'availableamount',
+    'planned_amount',
+    'plannedamount',
+    'budget_amount',
+    'budgetamount',
+    'total',
+    'income',
+    'expense',
+    'expenses',
+    'saving',
+    'savings',
+  ].map((key) => key.toLowerCase()),
+);
+
+const POSTHOG_SECRET_KEYWORDS = [
+  'password',
+  'secret',
+  'token',
+  'key',
+  'auth',
+  'credential',
+];
+
+const POSTHOG_SENSITIVE_QUERY_PARAMS = new Set(
+  ['budgetId', 'transactionId', 'templateId', 'token'].map((param) =>
+    param.toLowerCase(),
+  ),
+);
+
+const DYNAMIC_SEGMENT_REPLACERS: readonly [RegExp, string][] = [
+  [/\/budgets?\/[a-zA-Z0-9-]+/gi, '/budget/[id]'],
+  [/\/transactions?\/[a-zA-Z0-9-]+/gi, '/transaction/[id]'],
+  [/\/templates?\/[a-zA-Z0-9-]+/gi, '/template/[id]'],
+];
+
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  Object.prototype.toString.call(value) === '[object Object]';
+
+const sanitizeUrl = (url: string): string => {
+  if (typeof url !== 'string') return url;
+
+  const applyDynamicSegmentReplacements = (pathname: string): string =>
+    DYNAMIC_SEGMENT_REPLACERS.reduce(
+      (result, [pattern, replacement]) => result.replace(pattern, replacement),
+      pathname,
+    );
+
+  try {
+    const isAbsolute = /^[a-zA-Z][\w+.-]*:/.test(url);
+    const base = isAbsolute
+      ? undefined
+      : typeof window !== 'undefined'
+        ? window.location.origin
+        : 'http://localhost';
+    const parsed = new URL(url, base);
+
+    const sanitizedParams = new URLSearchParams(parsed.searchParams);
+    for (const key of Array.from(sanitizedParams.keys())) {
+      if (POSTHOG_SENSITIVE_QUERY_PARAMS.has(key.toLowerCase())) {
+        sanitizedParams.delete(key);
+      }
+    }
+
+    const sanitizedPath = applyDynamicSegmentReplacements(parsed.pathname);
+    const search = sanitizedParams.toString();
+    const hash = parsed.hash;
+
+    if (isAbsolute) {
+      return `${parsed.protocol}//${parsed.host}${sanitizedPath}${search ? `?${search}` : ''}${hash}`;
+    }
+
+    return `${sanitizedPath}${search ? `?${search}` : ''}${hash}`;
+  } catch {
+    return applyDynamicSegmentReplacements(url);
+  }
+};
+
+function sanitizeValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeValue(item));
+  }
+
+  if (isPlainObject(value)) {
+    return sanitizeObject(value);
+  }
+
+  return value;
+}
+
+function sanitizeObject<T extends Record<string, unknown>>(obj: T): T {
+  if (!isPlainObject(obj)) return obj;
+
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    const normalizedKey = key.toLowerCase();
+
+    if (POSTHOG_SENSITIVE_PROPERTY_KEYS.has(normalizedKey)) {
+      continue;
+    }
+
+    if (
+      POSTHOG_SECRET_KEYWORDS.some((keyword) => normalizedKey.includes(keyword))
+    ) {
+      continue;
+    }
+
+    if (normalizedKey.includes('url') || normalizedKey.includes('href')) {
+      result[key] = typeof value === 'string' ? sanitizeUrl(value) : value;
+      continue;
+    }
+
+    if (Array.isArray(value)) {
+      result[key] = sanitizeValue(value);
+      continue;
+    }
+
+    if (isPlainObject(value)) {
+      result[key] = sanitizeObject(value as Record<string, unknown>);
+      continue;
+    }
+
+    result[key] = value;
+  }
+
+  return result as T;
+}
+
 /**
  * PostHog service for analytics and error tracking.
  * Uses PostHog's built-in privacy protection and minimal configuration.
@@ -89,7 +221,7 @@ export class PostHogService {
    * Enable tracking after user consent
    */
   enableTracking(): void {
-    if (!this.#canCapture()) return;
+    if (!this.canCapture()) return;
 
     try {
       posthog.opt_in_capturing();
@@ -109,28 +241,13 @@ export class PostHogService {
   }
 
   /**
-   * Capture event - PostHog handles data sanitization automatically
-   */
-  capture(event: string, properties?: Properties): void {
-    if (!this.#canCapture()) return;
-
-    try {
-      posthog.capture(event, properties);
-      this.#logger.debug('PostHog event captured', { event });
-    } catch (error) {
-      this.#logger.error('Failed to capture event', error);
-    }
-  }
-
-  /**
    * Capture exception using official PostHog method
    * PostHog automatically handles: timestamp, url, stack traces, fingerprinting, grouping
    */
   captureException(error: unknown, context?: Properties): void {
-    if (!this.#canCapture()) return;
+    if (!this.canCapture()) return;
 
     try {
-      // Use official PostHog method - handles all error processing automatically
       posthog.captureException(error, {
         ...context,
         release: buildInfo.version,
@@ -147,7 +264,7 @@ export class PostHogService {
    * Identify user
    */
   identify(userId: string, properties?: Properties): void {
-    if (!this.#canCapture()) return;
+    if (!this.canCapture()) return;
 
     try {
       posthog.identify(userId, properties);
@@ -164,7 +281,7 @@ export class PostHogService {
     properties?: Properties,
     propertiesOnce?: Properties,
   ): void {
-    if (!this.#canCapture()) return;
+    if (!this.canCapture()) return;
 
     try {
       posthog.setPersonProperties(properties, propertiesOnce);
@@ -178,7 +295,7 @@ export class PostHogService {
    * Reset state (e.g., on logout)
    */
   reset(): void {
-    if (!this.#canCapture()) return;
+    if (!this.canCapture()) return;
 
     try {
       posthog.reset();
@@ -186,6 +303,14 @@ export class PostHogService {
     } catch (error) {
       this.#logger.error('Failed to reset PostHog', error);
     }
+  }
+
+  canCapture(): boolean {
+    return (
+      isPlatformBrowser(this.#platformId) &&
+      this.#isInitialized() &&
+      this.isEnabled()
+    );
   }
 
   #registerGlobalProperties(): void {
@@ -210,14 +335,6 @@ export class PostHogService {
     }
   }
 
-  #canCapture(): boolean {
-    return (
-      isPlatformBrowser(this.#platformId) &&
-      this.#isInitialized() &&
-      this.isEnabled()
-    );
-  }
-
   /**
    * Sanitize events to protect financial data
    */
@@ -225,80 +342,23 @@ export class PostHogService {
     if (!event) return null;
 
     try {
-      // Sanitize URLs containing sensitive IDs
-      const sanitizeUrl = (url: string): string => {
-        if (typeof url !== 'string') return url;
-
-        return (
-          url
-            // Sanitize budget IDs
-            .replace(/\/budgets?\/[a-zA-Z0-9-]+/gi, '/budget/[id]')
-            // Sanitize transaction IDs
-            .replace(/\/transactions?\/[a-zA-Z0-9-]+/gi, '/transaction/[id]')
-            // Sanitize template IDs
-            .replace(/\/templates?\/[a-zA-Z0-9-]+/gi, '/template/[id]')
-            // Sanitize numeric IDs in paths
-            .replace(/\/\d{4,}/g, '/[id]')
-        );
-      };
-
-      // Sanitize properties recursively
-      const sanitizeObject = <T extends Record<string, unknown>>(obj: T): T => {
-        if (!obj || typeof obj !== 'object') return obj;
-        if (Array.isArray(obj)) {
-          return obj.map((item) =>
-            typeof item === 'object' && item !== null
-              ? sanitizeObject(item)
-              : item,
-          ) as unknown as T;
-        }
-
-        const result: Record<string, unknown> = {};
-        for (const [key, value] of Object.entries(obj)) {
-          // Skip sensitive financial properties
-          if (
-            key.match(
-              /^(amount|balance|total|budget|transaction|income|expense|saving|credit|debit|price|cost|value|sum|money)/i,
-            )
-          ) {
-            // Mask financial values
-            result[key] = '[REDACTED]';
-          } else if (key.includes('url') || key.includes('href')) {
-            // Sanitize URLs
-            result[key] =
-              typeof value === 'string' ? sanitizeUrl(value) : value;
-          } else if (typeof value === 'object' && value !== null) {
-            // Recursively sanitize nested objects
-            result[key] = sanitizeObject(value as Record<string, unknown>);
-          } else {
-            result[key] = value;
-          }
-        }
-        return result as T;
-      };
-
-      // Sanitize event properties
       if (event.properties) {
-        // Special handling for current URL
-        if (event.properties['$current_url']) {
-          event.properties['$current_url'] = sanitizeUrl(
-            event.properties['$current_url'] as string,
-          );
+        const currentUrl = event.properties['$current_url'];
+        if (typeof currentUrl === 'string') {
+          event.properties['$current_url'] = sanitizeUrl(currentUrl);
         }
-        // Sanitize all other properties
+
         event.properties = sanitizeObject(
           event.properties as Record<string, unknown>,
         ) as Properties;
       }
 
-      // Sanitize $set properties
       if (event.$set) {
         event.$set = sanitizeObject(
           event.$set as Record<string, unknown>,
         ) as Properties;
       }
 
-      // Sanitize $set_once properties
       if (event.$set_once) {
         event.$set_once = sanitizeObject(
           event.$set_once as Record<string, unknown>,
