@@ -4,6 +4,7 @@ import {
   effect,
   computed,
   type EffectRef,
+  type OnDestroy,
 } from '@angular/core';
 import { AuthApi } from '../auth/auth-api';
 import { PostHogService } from './posthog';
@@ -17,7 +18,7 @@ import posthog, { type Properties } from 'posthog-js';
 @Injectable({
   providedIn: 'root',
 })
-export class AnalyticsService {
+export class AnalyticsService implements OnDestroy {
   readonly #authApi = inject(AuthApi);
   readonly #postHogService = inject(PostHogService);
   readonly #logger = inject(Logger);
@@ -87,5 +88,19 @@ export class AnalyticsService {
     } catch (error) {
       this.#logger.error('Failed to capture event', error);
     }
+  }
+
+  /**
+   * Stop analytics tracking and clean up resources.
+   * Exposed for deterministic cleanup in tests and for lifecycle hooks.
+   */
+  destroy(): void {
+    this.#authEffect?.destroy();
+    this.#authEffect = undefined;
+    this.#trackingEnabledForSession = false;
+  }
+
+  ngOnDestroy(): void {
+    this.destroy();
   }
 }

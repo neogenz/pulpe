@@ -97,15 +97,9 @@ export const EnvSchema = z.object({
     ),
   PUBLIC_POSTHOG_API_KEY: z
     .string()
-    .min(1, 'PostHog API key is required')
-    .refine(
-      (key) => {
-        // PostHog API keys have a specific format: phc_xxxxx
-        return key.startsWith('phc_') && key.length > 10;
-      },
-      {
-        message: 'PostHog API key must start with "phc_" and be valid',
-      },
+    .regex(
+      POSTHOG_KEY_PATTERN,
+      'PostHog API key must match format phc_[A-Za-z0-9_-]+',
     ),
   PUBLIC_POSTHOG_HOST: z
     .string()

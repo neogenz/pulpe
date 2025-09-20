@@ -34,6 +34,7 @@ import { AnalyticsService } from './analytics/analytics';
 import { provideGlobalErrorHandler } from './analytics/global-error-handler';
 import { buildInfo } from '@env/build-info';
 import { environment } from '@env/environment';
+import { Logger } from './logging/logger';
 
 export interface CoreOptions {
   routes: Routes; // possible to extend options with more props in the future
@@ -52,7 +53,10 @@ function provideLottie() {
  * Logger unifié pour les informations de build et configuration
  * Utilise le service Logger pour un logging approprié selon l'environnement
  */
-function logAppInfo(applicationConfig: ApplicationConfiguration) {
+function logAppInfo(
+  applicationConfig: ApplicationConfiguration,
+  logger: Logger,
+) {
   const appData = {
     // Build Info
     version: buildInfo.version,
@@ -78,7 +82,7 @@ function logAppInfo(applicationConfig: ApplicationConfiguration) {
     postHogApiKey: applicationConfig.postHog().apiKey ? '***' : 'Non configuré',
   };
 
-  console.log('Pulpe Budget - Application Info', appData);
+  logger.info('Pulpe Budget - Application Info', appData);
 }
 
 export function provideCore({ routes }: CoreOptions) {
@@ -121,10 +125,11 @@ export function provideCore({ routes }: CoreOptions) {
       const authService = inject(AuthApi);
       const analyticsService = inject(AnalyticsService);
       const injector = inject(Injector);
+      const logger = inject(Logger);
       // 1. Charger la configuration d'abord
       await applicationConfig.initialize();
       // 2. Logger les informations complètes après chargement
-      logAppInfo(applicationConfig);
+      logAppInfo(applicationConfig, logger);
 
       try {
         // 3. Initialiser PostHog (non-blocking, can fail gracefully)
@@ -134,13 +139,17 @@ export function provideCore({ routes }: CoreOptions) {
           // Initialize analytics with proper injection context for effect()
           runInInjectionContext(injector, () => {
             analyticsService.initializeAnalyticsTracking();
-            console.debug(
-              'Analytics service ready:',
-              analyticsService.isActive,
-            );
+            logger.debug('Analytics service ready', {
+              isActive: analyticsService.isActive(),
+            });
           });
         } catch (postHogError) {
-          console.warn(
+          if (applicationConfig.isDevelopment()) {
+            logger.error('PostHog initialization failed', postHogError);
+            throw postHogError;
+          }
+
+          logger.warn(
             'PostHog initialization failed, continuing without analytics',
             postHogError,
           );
@@ -150,7 +159,7 @@ export function provideCore({ routes }: CoreOptions) {
         // 4. Initialiser l'auth ensuite (config garantie disponible)
         await authService.initializeAuthState();
       } catch (error) {
-        console.error("Erreur lors de l'initialisation", error);
+        logger.error("Erreur lors de l'initialisation", error);
         throw error; // Bloquer le démarrage de l'app en cas d'erreur critique
       }
     }),
