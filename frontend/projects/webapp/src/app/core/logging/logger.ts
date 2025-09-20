@@ -27,6 +27,44 @@ export class Logger {
   readonly #logLevel = this.#isProduction ? LogLevel.ERROR : LogLevel.DEBUG;
 
   /**
+   * Debug level logging (suppressed in production)
+   */
+  debug(message: string, data?: unknown): void {
+    if (this.#logLevel <= LogLevel.DEBUG && !this.#isProduction) {
+      console.debug(this.#format('DEBUG', message, data));
+    }
+  }
+
+  /**
+   * Info level logging (suppressed in production)
+   */
+  info(message: string, data?: unknown): void {
+    if (this.#logLevel <= LogLevel.INFO && !this.#isProduction) {
+      console.info(this.#format('INFO', message, data));
+    }
+  }
+
+  /**
+   * Warning level logging
+   */
+  warn(message: string, data?: unknown): void {
+    if (this.#logLevel <= LogLevel.WARN) {
+      console.warn(this.#format('WARN', message, data));
+    }
+  }
+
+  /**
+   * Error level logging
+   * PostHog integration handled by GlobalErrorHandler
+   */
+  error(message: string, error?: unknown): void {
+    if (this.#logLevel <= LogLevel.ERROR) {
+      const formatted = this.#format('ERROR', message, error);
+      console.error(formatted);
+    }
+  }
+
+  /**
    * Sanitizes sensitive data from strings before logging
    */
   #sanitize(data: unknown): unknown {
@@ -88,11 +126,9 @@ export class Logger {
   /**
    * Formats the log message with context
    */
-  #format(level: string, message: string, data?: unknown): unknown[] {
+  #format(level: string, message: string, data?: unknown): string {
     const timestamp = new Date().toISOString();
-    const prefix = this.#isProduction
-      ? `[${level}]`
-      : `[${timestamp}] [${level}]`;
+    const prefix = `[${timestamp}] [${level}]`;
 
     const result: unknown[] = [`${prefix} ${message}`];
 
@@ -100,61 +136,6 @@ export class Logger {
       result.push(this.#sanitize(data));
     }
 
-    return result;
-  }
-
-  /**
-   * Debug level logging (suppressed in production)
-   */
-  debug(message: string, data?: unknown): void {
-    if (this.#logLevel <= LogLevel.DEBUG && !this.#isProduction) {
-      console.debug(...this.#format('DEBUG', message, data));
-    }
-  }
-
-  /**
-   * Info level logging (suppressed in production)
-   */
-  info(message: string, data?: unknown): void {
-    if (this.#logLevel <= LogLevel.INFO && !this.#isProduction) {
-      console.info(...this.#format('INFO', message, data));
-    }
-  }
-
-  /**
-   * Warning level logging
-   */
-  warn(message: string, data?: unknown): void {
-    if (this.#logLevel <= LogLevel.WARN) {
-      const formatted = this.#format('WARN', message, data);
-
-      if (this.#isProduction) {
-        // In production, only log the message without data
-        console.warn(formatted[0]);
-      } else {
-        console.warn(...formatted);
-      }
-    }
-  }
-
-  /**
-   * Error level logging
-   */
-  error(message: string, error?: unknown): void {
-    if (this.#logLevel <= LogLevel.ERROR) {
-      const formatted = this.#format('ERROR', message, error);
-
-      if (this.#isProduction) {
-        // In production, log minimal error info
-        console.error(formatted[0]);
-
-        // Only log error stack in production if it's an actual Error object
-        if (error instanceof Error && error.stack) {
-          console.error('Stack trace:', this.#sanitize(error.stack));
-        }
-      } else {
-        console.error(...formatted);
-      }
-    }
+    return result.join(' ');
   }
 }
