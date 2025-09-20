@@ -255,6 +255,35 @@ describe('User consent and tracking behavior', () => {
       // Note: In real implementation, enableTracking is only called once due to session flag
     });
   });
+
+  describe('cleanup lifecycle', () => {
+    it('should allow reinitialization after destroy', () => {
+      // Given: analytics initialized and then destroyed
+      TestBed.runInInjectionContext(() => {
+        analyticsService.initializeAnalyticsTracking();
+      });
+
+      analyticsService.destroy();
+      mockPostHogService.enableTracking.mockClear();
+
+      // When: service is initialized again and user authenticates
+      TestBed.runInInjectionContext(() => {
+        analyticsService.initializeAnalyticsTracking();
+      });
+
+      mockAuthState.set({
+        user: { id: 'user-reinit', email: 'user@example.com' },
+        session: { access_token: 'token', refresh_token: 'refresh' },
+        isLoading: false,
+        isAuthenticated: true,
+      });
+
+      TestBed.tick();
+
+      // Then: tracking should be enabled for the new session
+      expect(mockPostHogService.enableTracking).toHaveBeenCalledTimes(1);
+    });
+  });
 });
 
 describe('captureEvent', () => {
