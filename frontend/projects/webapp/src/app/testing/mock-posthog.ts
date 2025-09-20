@@ -9,6 +9,7 @@ export function createMockPostHogService() {
   return {
     isInitialized: signal(true),
     isEnabled: signal(true),
+    canCapture: vi.fn().mockReturnValue(true),
     enableTracking: vi.fn(),
     identify: vi.fn(),
     reset: vi.fn(),

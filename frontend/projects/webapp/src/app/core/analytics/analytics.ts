@@ -8,6 +8,7 @@ import {
 import { AuthApi } from '../auth/auth-api';
 import { PostHogService } from './posthog';
 import { Logger } from '../logging/logger';
+import posthog, { type Properties } from 'posthog-js';
 
 /**
  * Simplified analytics service following KISS principle.
@@ -71,6 +72,20 @@ export class AnalyticsService {
       this.#logger.info('Analytics service initialized');
     } catch (error) {
       this.#logger.error('Failed to initialize analytics service', error);
+    }
+  }
+
+  /**
+   * Capture event - PostHog handles data sanitization automatically
+   */
+  captureEvent(event: string, properties?: Properties): void {
+    if (!this.#postHogService.canCapture()) return;
+
+    try {
+      posthog.capture(event, properties);
+      this.#logger.debug('PostHog event captured', { event });
+    } catch (error) {
+      this.#logger.error('Failed to capture event', error);
     }
   }
 }

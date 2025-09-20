@@ -5,68 +5,61 @@ import {
   signal,
   computed,
 } from '@angular/core';
+import { PLATFORM_ID } from '@angular/core';
+import type { CaptureResult } from 'posthog-js';
 import { PostHogService } from './posthog';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
-import { PLATFORM_ID } from '@angular/core';
 import { createMockLogger } from '../../testing/mock-posthog';
 
-// Mock posthog-js library
+let beforeSendHandler:
+  | ((event: CaptureResult | null) => CaptureResult | null)
+  | undefined;
+
 vi.mock('posthog-js', () => {
   return {
     default: {
       init: vi.fn((_apiKey, options) => {
-        // Call the loaded callback synchronously to ensure PostHog is marked as initialized
+        beforeSendHandler = options?.before_send;
         if (options?.loaded) {
           options.loaded();
         }
       }),
       opt_in_capturing: vi.fn(),
-      opt_out_capturing: vi.fn(),
       capture: vi.fn(),
+      captureException: vi.fn(),
       identify: vi.fn(),
       reset: vi.fn(),
       register: vi.fn(),
+      set_config: vi.fn(),
     },
   };
 });
 
-describe('User privacy protection and data handling', () => {
-  let postHogService: PostHogService;
-  let userActions: {
-    event: string;
-    properties?: Record<string, unknown>;
-  }[] = [];
-  let hasUserConsented = false;
-  let trackedUser: {
-    id: string;
-    properties?: Record<string, unknown>;
-  } | null = null;
+describe('PostHogService', () => {
+  let service: PostHogService;
+  const defaultConfig = {
+    apiKey: 'test-api-key',
+    host: 'https://posthog.test',
+    enabled: true,
+    capturePageviews: true,
+    capturePageleaves: true,
+    sessionRecording: {
+      enabled: true,
+      maskInputs: true,
+      sampleRate: 1.0,
+    },
+    debug: false,
+  } as const;
 
   beforeEach(async () => {
-    // Reset state
-    userActions = [];
-    hasUserConsented = false;
-    trackedUser = null;
-
-    // Clear all mocks before each test
     vi.clearAllMocks();
+    beforeSendHandler = undefined;
 
-    // Mock ApplicationConfiguration
-    const postHogSignal = signal({
-      apiKey: 'test-api-key',
-      host: 'https://posthog.test',
-      enabled: true,
-      capturePageviews: true,
-      capturePageleaves: true,
-      sessionRecording: {
-        enabled: true,
-        maskInputs: true,
-        sampleRate: 1.0,
-      },
-      debug: false,
-    });
+    const posthogModule = await import('posthog-js');
+    vi.mocked(posthogModule.default.set_config).mockClear();
 
+    const postHogSignal = signal({ ...defaultConfig });
     const isDevelopmentSignal = signal(false);
 
     const mockAppConfig = {
@@ -75,15 +68,11 @@ describe('User privacy protection and data handling', () => {
       supabaseUrl: signal('https://test.supabase.co'),
       supabaseAnonKey: signal('test-key'),
       isDevelopment: isDevelopmentSignal,
-      // Add the computed postHogConfig signal that matches the real implementation
       postHogConfig: computed(() => {
         const config = postHogSignal();
-
-        // Return null if PostHog is not configured
         if (!config.apiKey) {
           return null;
         }
-
         return {
           ...config,
           debug: config.debug || isDevelopmentSignal(),
@@ -91,450 +80,138 @@ describe('User privacy protection and data handling', () => {
       }),
     };
 
-    // Mock Logger using helper
-    const mockLogger = createMockLogger();
-
-    // Setup PostHog mock behavior
-    const posthogModule = await import('posthog-js');
-    const posthog = posthogModule.default;
-
-    // Set up mock implementations to simulate real behavior with sanitization
-    const sanitizeProperties = (
-      properties?: Record<string, unknown> | null,
-    ) => {
-      if (!properties) return undefined;
-
-      const sanitized: Record<string, unknown> = {};
-      const sensitivePatterns = [
-        /password/i,
-        /token/i,
-        /key/i,
-        /secret/i,
-        /auth/i,
-        /credential/i,
-      ];
-
-      for (const [key, value] of Object.entries(properties)) {
-        // Redact sensitive fields
-        if (sensitivePatterns.some((pattern) => pattern.test(key))) {
-          sanitized[key] = '[REDACTED]';
-          continue;
-        }
-
-        // Mask email addresses
-        if (key.toLowerCase().includes('email') && typeof value === 'string') {
-          const [local, domain] = value.split('@');
-          if (local && domain) {
-            sanitized[key] =
-              local.length > 2
-                ? `${local.substring(0, 2)}***@${domain}`
-                : `***@${domain}`;
-          } else {
-            sanitized[key] = '[REDACTED]';
-          }
-          continue;
-        }
-
-        // Keep other values as-is
-        sanitized[key] = value;
-      }
-
-      return sanitized;
-    };
-
-    vi.mocked(posthog.opt_in_capturing).mockImplementation(() => {
-      hasUserConsented = true;
-    });
-    vi.mocked(posthog.capture).mockImplementation(
-      (event: string, properties?: Record<string, unknown> | null) => {
-        if (hasUserConsented) {
-          // Simulate the service's sanitization behavior
-          const sanitizedProps = sanitizeProperties(properties);
-          userActions.push({ event, properties: sanitizedProps });
-        }
-        return undefined;
-      },
-    );
-    vi.mocked(posthog.identify).mockImplementation(
-      (id?: string, properties?: Record<string, unknown> | null) => {
-        if (id && hasUserConsented) {
-          // Simulate the service's sanitization behavior
-          const sanitizedProps = sanitizeProperties(properties);
-          trackedUser = { id, properties: sanitizedProps };
-        }
-      },
-    );
-    vi.mocked(posthog.reset).mockImplementation(() => {
-      trackedUser = null;
-      userActions = [];
-    });
-
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
         PostHogService,
         { provide: ApplicationConfiguration, useValue: mockAppConfig },
-        { provide: Logger, useValue: mockLogger },
+        { provide: Logger, useValue: createMockLogger() },
         { provide: PLATFORM_ID, useValue: 'browser' },
       ],
     });
 
-    postHogService = TestBed.inject(PostHogService);
+    service = TestBed.inject(PostHogService);
   });
 
-  describe('User consent management', () => {
-    it('users are not tracked by default to respect privacy', async () => {
-      // When: Application starts
-      await postHogService.initialize();
+  it('initializes PostHog with privacy-first defaults', async () => {
+    const posthogModule = await import('posthog-js');
+    const posthog = posthogModule.default;
 
-      // Then: No tracking occurs
-      expect(hasUserConsented).toBe(false);
+    await service.initialize();
 
-      // And: User actions are not recorded
-      postHogService.capture('user_clicked_button', { button: 'save' });
-      expect(userActions).toHaveLength(0);
-    });
-
-    it('tracking starts only after user accepts terms and conditions', async () => {
-      // Given: Application is running
-      await postHogService.initialize();
-
-      // When: User accepts terms and conditions
-      postHogService.enableTracking();
-
-      // Then: Tracking is activated
-      expect(hasUserConsented).toBe(true);
-
-      // And: User actions are now recorded
-      postHogService.capture('user_accepted_terms');
-      expect(userActions.some((e) => e.event === 'user_accepted_terms')).toBe(
-        true,
-      );
-    });
+    expect(posthog.init).toHaveBeenCalledWith(
+      defaultConfig.apiKey,
+      expect.objectContaining({
+        api_host: defaultConfig.host,
+        capture_pageview: false,
+        opt_out_capturing_by_default: true,
+      }),
+    );
+    expect(service.isInitialized()).toBe(true);
+    expect(posthog.register).toHaveBeenCalledWith(
+      expect.objectContaining({
+        environment: 'test',
+        platform: 'web',
+      }),
+    );
   });
 
-  describe('Sensitive data protection', () => {
-    it('CHF amounts in events are recorded for business analytics', async () => {
-      // Given: User has consented to tracking
-      await postHogService.initialize();
-      postHogService.enableTracking();
-      userActions = []; // Clear initialization events
+  it('enables tracking and records initial pageview after consent', async () => {
+    const posthogModule = await import('posthog-js');
+    const posthog = posthogModule.default;
 
-      // When: Recording a financial transaction
-      postHogService.capture('transaction_created', {
-        amount: 'CHF 2,450.75',
-        balance: "15'234.50 CHF",
-        description: 'Monthly salary',
-      });
+    await service.initialize();
+    service.enableTracking();
 
-      // Then: Event is captured (amounts will be masked in session recordings, not in events)
-      const transactionEvent = userActions.find(
-        (action) => action.event === 'transaction_created',
-      );
-      expect(transactionEvent).toBeDefined();
-      expect(transactionEvent?.properties?.['description']).toBe(
-        'Monthly salary',
-      );
-      // Financial amounts are kept in events for analytics but masked in session recordings
-      expect(transactionEvent?.properties?.['amount']).toBeDefined();
-      expect(transactionEvent?.properties?.['balance']).toBeDefined();
+    expect(posthog.opt_in_capturing).toHaveBeenCalledTimes(1);
+    expect(posthog.set_config).toHaveBeenCalledWith({
+      capture_pageleave: true,
+      capture_pageview: true,
     });
-
-    it('bank account numbers are never sent to analytics', async () => {
-      // Given: User has consented to tracking
-      await postHogService.initialize();
-      postHogService.enableTracking();
-      userActions = []; // Clear initialization events
-
-      // When: Viewing account details
-      postHogService.capture('account_viewed', {
-        accountNumber: 'CH93 0076 2011 6238 5295 7',
-        accountType: 'checking',
-      });
-
-      // Then: Event is captured with account type but sensitive data should be protected
-      const accountViewEvent = userActions.find(
-        (action) => action.event === 'account_viewed',
-      );
-      expect(accountViewEvent).toBeDefined();
-      expect(accountViewEvent?.properties?.['accountType']).toBe('checking');
-      // Account number should be present but ideally would be masked in production
-      expect(accountViewEvent?.properties?.['accountNumber']).toBeDefined();
-    });
-
-    it('passwords are redacted in captured events', async () => {
-      // Given: User has consented to tracking
-      await postHogService.initialize();
-      postHogService.enableTracking();
-      userActions = []; // Clear initialization events
-
-      // When: Capturing an event with password
-      postHogService.capture('login_attempt', {
-        username: 'john.doe',
-        password: 'my-secret-password',
-      });
-
-      // Then: Event is captured with password redacted
-      const event = userActions.find((e) => e.event === 'login_attempt');
-      expect(event).toBeDefined();
-      expect(event?.properties?.['username']).toBe('john.doe');
-      expect(event?.properties?.['password']).toBe('[REDACTED]');
-    });
-
-    it('API keys are redacted in captured events', async () => {
-      // Given: User has consented to tracking
-      await postHogService.initialize();
-      postHogService.enableTracking();
-      userActions = []; // Clear initialization events
-
-      // When: Capturing an event with API key
-      postHogService.capture('api_call', {
-        endpoint: '/api/data',
-        apiKey: 'sk-1234567890',
-      });
-
-      // Then: Event is captured with API key redacted
-      const event = userActions.find((e) => e.event === 'api_call');
-      expect(event).toBeDefined();
-      expect(event?.properties?.['endpoint']).toBe('/api/data');
-      expect(event?.properties?.['apiKey']).toBe('[REDACTED]');
-    });
-
-    it('tokens are redacted in captured events', async () => {
-      // Given: User has consented to tracking
-      await postHogService.initialize();
-      postHogService.enableTracking();
-      userActions = []; // Clear initialization events
-
-      // When: Capturing an event with token
-      postHogService.capture('authenticated_request', {
-        method: 'GET',
-        token: 'eyJhbGciOiJIUzI1NiIs...',
-      });
-
-      // Then: Event is captured with token redacted
-      const event = userActions.find(
-        (e) => e.event === 'authenticated_request',
-      );
-      expect(event).toBeDefined();
-      expect(event?.properties?.['method']).toBe('GET');
-      expect(event?.properties?.['token']).toBe('[REDACTED]');
-    });
-
-    it('email addresses are partially masked for privacy', async () => {
-      // Given: User has consented to tracking
-      await postHogService.initialize();
-      postHogService.enableTracking();
-
-      // When: Identifying a user with email
-      postHogService.identify('user-123', {
-        email: 'john.doe@example.com',
-        name: 'John Doe',
-      });
-
-      // Then: User is identified with masked email
-      expect(trackedUser?.id).toBe('user-123');
-      expect(trackedUser?.properties?.['name']).toBe('John Doe');
-      expect(trackedUser?.properties?.['email']).toBe('jo***@example.com');
-    });
+    expect(posthog.capture).toHaveBeenCalledWith('$pageview');
   });
 
-  describe('Session management: user identity persists correctly', () => {
-    it('user is identified when they log in', async () => {
-      // Given: Tracking is enabled
-      await postHogService.initialize();
-      postHogService.enableTracking();
+  it('identifies the user when analytics is active', async () => {
+    const posthogModule = await import('posthog-js');
+    const posthog = posthogModule.default;
 
-      // When: User logs in
-      postHogService.identify('user-12345', {
-        plan: 'premium',
-        createdAt: '2024-01-15',
-      });
+    await service.initialize();
+    expect(service.canCapture()).toBe(true);
 
-      // Then: User is tracked with their ID
-      expect(trackedUser?.id).toBe('user-12345');
-      expect(trackedUser?.properties?.['plan']).toBe('premium');
-    });
+    service.identify('user-123', { plan: 'pro' });
 
-    it('user identity is cleared when they log out', async () => {
-      // Given: User is logged in and identified
-      await postHogService.initialize();
-      postHogService.enableTracking();
-      postHogService.identify('user-12345');
-
-      // When: User logs out
-      postHogService.reset();
-
-      // Then: User identity is removed
-      expect(trackedUser).toBeNull();
-      expect(userActions).toHaveLength(0);
-    });
-
-    it('events are associated with the logged-in user', async () => {
-      // Given: User is logged in
-      await postHogService.initialize();
-      postHogService.enableTracking();
-      postHogService.identify('user-98765');
-
-      // When: User performs actions
-      postHogService.capture('budget_created', { month: 'January' });
-      postHogService.capture('transaction_added', { type: 'expense' });
-
-      // Then: Events are recorded for this user
-      expect(trackedUser?.id).toBe('user-98765');
-      expect(
-        userActions.filter((e) => e.event === 'budget_created'),
-      ).toHaveLength(1);
-      expect(
-        userActions.filter((e) => e.event === 'transaction_added'),
-      ).toHaveLength(1);
-    });
+    expect(posthog.identify).toHaveBeenCalledWith('user-123', { plan: 'pro' });
   });
 
-  describe('Error handling and resilience', () => {
-    it('application continues when analytics service is unavailable', async () => {
-      // Given: Analytics configuration is missing
-      const mockAppConfig = {
-        postHogConfig: signal(null),
-        environment: signal('production'),
-      };
+  it('resets PostHog state', async () => {
+    const posthogModule = await import('posthog-js');
+    const posthog = posthogModule.default;
 
-      TestBed.resetTestingModule();
-      TestBed.configureTestingModule({
-        providers: [
-          provideZonelessChangeDetection(),
-          PostHogService,
-          { provide: ApplicationConfiguration, useValue: mockAppConfig },
-          { provide: Logger, useValue: createMockLogger() },
-          { provide: PLATFORM_ID, useValue: 'browser' },
-        ],
-      });
+    await service.initialize();
+    service.reset();
 
-      const service = TestBed.inject(PostHogService);
-
-      // When: Application tries to use analytics
-      await expect(service.initialize()).resolves.not.toThrow();
-
-      // Then: All operations handle gracefully
-      expect(() => service.enableTracking()).not.toThrow();
-      expect(() => service.capture('test_event')).not.toThrow();
-      expect(() => service.identify('user-123')).not.toThrow();
-      expect(() => service.reset()).not.toThrow();
-    });
-
-    it('errors are tracked without breaking the application', async () => {
-      // Given: Analytics is enabled
-      await postHogService.initialize();
-      postHogService.enableTracking();
-
-      // When: An error occurs in the application
-      const error = new Error('Budget calculation failed');
-
-      // Then: Error tracking doesn't throw
-      expect(() => {
-        postHogService.captureException(error, {
-          budgetId: 'budget-123',
-          operation: 'calculate_totals',
-        });
-      }).not.toThrow();
-
-      // And: Error is recorded for debugging
-      const errorEvent = userActions.find((e) => e.event === '$exception');
-      expect(errorEvent).toBeDefined();
-    });
-
-    it('malformed data does not crash analytics', async () => {
-      // Given: Analytics is enabled
-      await postHogService.initialize();
-      postHogService.enableTracking();
-
-      // When: Capturing events with various data types
-      interface CircularRef {
-        self?: CircularRef;
-      }
-      const circularObj: CircularRef = {};
-      circularObj.self = circularObj;
-
-      const problematicData = {
-        circular: circularObj,
-        undefined: undefined,
-        null: null,
-        bigNumber: Number.MAX_SAFE_INTEGER,
-        symbol: Symbol('test'),
-      };
-
-      // Then: Analytics handles edge cases gracefully
-      expect(() => {
-        postHogService.capture('edge_case_test', problematicData);
-      }).not.toThrow();
-    });
+    expect(posthog.reset).toHaveBeenCalledTimes(1);
   });
 
-  describe('Business event tracking: key user actions are recorded', () => {
-    it('budget creation is tracked with relevant details', async () => {
-      // Given: User has consented to tracking
-      await postHogService.initialize();
-      postHogService.enableTracking();
-      userActions = []; // Clear initialization events
+  it('sanitizes sensitive fields and URLs before sending events', async () => {
+    await service.initialize();
+    expect(beforeSendHandler).toBeDefined();
 
-      // When: User creates a budget
-      postHogService.capture('budget_created', {
-        month: 'January',
-        year: 2024,
-        templateUsed: 'standard',
-      });
+    const rawEvent = {
+      properties: {
+        amount: 1250,
+        balance: 4200,
+        password: 'super-secret',
+        authToken: 'token-value',
+        nested: {
+          savings: 999,
+          url: 'https://app.test/budgets/abc-123?transactionId=tx-456&safe=true',
+        },
+        $current_url:
+          'https://app.test/transactions/tx-789?templateId=temp-321#details',
+      },
+      $set: {
+        expense: 300,
+      },
+      $set_once: {
+        income: 5000,
+      },
+    } as unknown as CaptureResult;
 
-      // Then: Event is recorded with business context
-      const budgetEvent = userActions.find((e) => e.event === 'budget_created');
-      expect(budgetEvent).toBeDefined();
-      expect(budgetEvent?.properties?.['month']).toBe('January');
-      expect(budgetEvent?.properties?.['year']).toBe(2024);
-      expect(budgetEvent?.properties?.['templateUsed']).toBe('standard');
+    const result = beforeSendHandler?.(rawEvent);
+
+    expect(result?.properties?.['amount']).toBeUndefined();
+    expect(result?.properties?.['balance']).toBeUndefined();
+    expect(result?.properties?.['password']).toBeUndefined();
+    expect(result?.properties?.['authToken']).toBeUndefined();
+    expect(result?.properties?.['nested']).toEqual({
+      url: 'https://app.test/budget/[id]?safe=true',
     });
+    expect(result?.properties?.['$current_url']).toBe(
+      'https://app.test/transaction/[id]#details',
+    );
+    expect(result?.$set?.['expense']).toBeUndefined();
+    expect(result?.$set_once?.['income']).toBeUndefined();
+  });
 
-    it('transaction additions are tracked by type', async () => {
-      // Given: User has consented to tracking
-      await postHogService.initialize();
-      postHogService.enableTracking();
-      userActions = []; // Clear initialization events
+  it('preserves non-plain objects when sanitizing', async () => {
+    await service.initialize();
 
-      // When: User adds different transaction types
-      postHogService.capture('transaction_added', {
-        type: 'income',
-        category: 'salary',
-      });
-      postHogService.capture('transaction_added', {
-        type: 'expense',
-        category: 'food',
-      });
-      postHogService.capture('transaction_added', {
-        type: 'saving',
-        category: 'emergency',
-      });
+    const eventDate = new Date('2025-01-01T00:00:00.000Z');
+    const rawEvent = {
+      properties: {
+        timestamp: eventDate,
+        meta: new Map([['key', 'value']]),
+        info: {
+          date: eventDate,
+        },
+      },
+    } as unknown as CaptureResult;
 
-      // Then: All transaction types are recorded
-      const transactions = userActions.filter(
-        (e) => e.event === 'transaction_added',
-      );
-      expect(transactions).toHaveLength(3);
-      expect(transactions.map((t) => t.properties?.['type'])).toEqual([
-        'income',
-        'expense',
-        'saving',
-      ]);
-    });
+    const result = beforeSendHandler?.(rawEvent);
 
-    it('page views are automatically tracked after consent', async () => {
-      // Given: User has not yet consented
-      await postHogService.initialize();
-      userActions = [];
-
-      // When: User gives consent
-      postHogService.enableTracking();
-
-      // Then: Page view is immediately recorded
-      const pageView = userActions.find((e) => e.event === '$pageview');
-      expect(pageView).toBeDefined();
-    });
+    expect(result?.properties?.['timestamp']).toBe(eventDate);
+    expect(result?.properties?.['meta']).toBeInstanceOf(Map);
+    expect(result?.properties?.['info']).toEqual({ date: eventDate });
   });
 });

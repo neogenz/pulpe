@@ -1,5 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import type { vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { AnalyticsService } from './analytics';
@@ -10,6 +9,12 @@ import {
   createMockPostHogService,
   createMockLogger,
 } from '../../testing/mock-posthog';
+
+vi.mock('posthog-js', () => ({
+  default: {
+    capture: vi.fn(),
+  },
+}));
 
 describe('User consent and tracking behavior', () => {
   let analyticsService: AnalyticsService;
@@ -249,5 +254,80 @@ describe('User consent and tracking behavior', () => {
       expect(initialCallCount).toBe(1);
       // Note: In real implementation, enableTracking is only called once due to session flag
     });
+  });
+});
+
+describe('captureEvent', () => {
+  let analyticsService: AnalyticsService;
+  let mockPostHogService: ReturnType<typeof createMockPostHogService>;
+  let mockLogger: ReturnType<typeof createMockLogger>;
+  let mockPosthogCapture: ReturnType<typeof vi.fn>;
+
+  beforeEach(async () => {
+    mockPostHogService = createMockPostHogService();
+    mockLogger = createMockLogger();
+
+    const mockAuthApi = {
+      authState: signal({
+        user: null,
+        session: null,
+        isLoading: false,
+        isAuthenticated: false,
+      }),
+    };
+
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        AnalyticsService,
+        { provide: PostHogService, useValue: mockPostHogService },
+        { provide: AuthApi, useValue: mockAuthApi },
+        { provide: Logger, useValue: mockLogger },
+      ],
+    });
+
+    analyticsService = TestBed.inject(AnalyticsService);
+
+    const posthogModule = await import('posthog-js');
+    mockPosthogCapture = vi.mocked(posthogModule.default.capture);
+    mockPosthogCapture.mockClear();
+  });
+
+  it('does not capture events when analytics cannot capture', () => {
+    mockPostHogService.canCapture.mockReturnValue(false);
+
+    analyticsService.captureEvent('test_event');
+
+    expect(mockPosthogCapture).not.toHaveBeenCalled();
+  });
+
+  it('captures events with provided properties', () => {
+    mockPostHogService.canCapture.mockReturnValue(true);
+
+    const properties = { feature: 'onboarding', step: 'welcome' };
+
+    analyticsService.captureEvent('user_action', properties);
+
+    expect(mockPosthogCapture).toHaveBeenCalledTimes(1);
+    expect(mockPosthogCapture).toHaveBeenCalledWith('user_action', properties);
+    expect(mockLogger.debug).toHaveBeenCalledWith('PostHog event captured', {
+      event: 'user_action',
+    });
+  });
+
+  it('logs errors when capture throws', () => {
+    mockPostHogService.canCapture.mockReturnValue(true);
+
+    const error = new Error('capture failed');
+    mockPosthogCapture.mockImplementation(() => {
+      throw error;
+    });
+
+    analyticsService.captureEvent('failing_event');
+
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      'Failed to capture event',
+      error,
+    );
   });
 });
