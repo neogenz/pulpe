@@ -2,10 +2,6 @@ import type { CaptureResult, Properties } from 'posthog-js';
 
 type DynamicSegmentMask = readonly [RegExp, string];
 
-interface SanitizeOptions {
-  apiKey?: string;
-}
-
 const POSTHOG_SYSTEM_FIELDS = new Set([
   'token',
   'api_key',
@@ -119,13 +115,13 @@ export const sanitizeUrl = (url: string): string => {
   }
 };
 
-const sanitizeValue = (value: unknown, apiKey?: string): unknown => {
+const sanitizeValue = (value: unknown): unknown => {
   if (Array.isArray(value)) {
-    return value.map((item) => sanitizeValue(item, apiKey));
+    return value.map((item) => sanitizeValue(item));
   }
 
   if (isRecord(value)) {
-    return sanitizeRecord(value, apiKey);
+    return sanitizeRecord(value);
   }
 
   return value;
@@ -133,7 +129,6 @@ const sanitizeValue = (value: unknown, apiKey?: string): unknown => {
 
 const sanitizeRecord = (
   obj: Record<string, unknown>,
-  apiKey?: string,
 ): Record<string, unknown> => {
   const result: Record<string, unknown> = {};
 
@@ -149,42 +144,22 @@ const sanitizeRecord = (
       continue;
     }
 
-    result[key] = sanitizeValue(rawValue, apiKey);
+    result[key] = sanitizeValue(rawValue);
   }
 
   return result;
 };
 
-const ensureRequiredFields = (
-  event: Record<string, unknown>,
-  apiKey?: string,
-): void => {
-  if (!apiKey) return;
-
-  if (typeof event['token'] !== 'string' || event['token'] === '') {
-    event['token'] = apiKey;
-  }
-
-  if (typeof event['api_key'] !== 'string' || event['api_key'] === '') {
-    event['api_key'] = apiKey;
-  }
-};
-
-const sanitizeProperties = (
-  properties: Record<string, unknown>,
-  apiKey?: string,
-): Properties => sanitizeRecord(properties, apiKey) as Properties;
+const sanitizeProperties = (properties: Record<string, unknown>): Properties =>
+  sanitizeRecord(properties) as Properties;
 
 /**
  * Nettoie un événement PostHog sans retirer les champs système indispensables.
  */
 export const sanitizeEventPayload = (
   event: CaptureResult | null,
-  options: SanitizeOptions = {},
 ): CaptureResult | null => {
   if (!event) return null;
-
-  const { apiKey } = options;
 
   if (event.properties) {
     const currentUrl = event.properties['$current_url'];
@@ -193,25 +168,18 @@ export const sanitizeEventPayload = (
     }
     event.properties = sanitizeProperties(
       event.properties as Record<string, unknown>,
-      apiKey,
     );
   }
 
   if (event.$set) {
-    event.$set = sanitizeProperties(
-      event.$set as Record<string, unknown>,
-      apiKey,
-    );
+    event.$set = sanitizeProperties(event.$set as Record<string, unknown>);
   }
 
   if (event.$set_once) {
     event.$set_once = sanitizeProperties(
       event.$set_once as Record<string, unknown>,
-      apiKey,
     );
   }
-
-  ensureRequiredFields(event as unknown as Record<string, unknown>, apiKey);
 
   return event;
 };
