@@ -45,11 +45,15 @@ function captureHttpError(
   applicationConfiguration: ApplicationConfiguration,
 ): void {
   try {
+    const posthogError = normalizeHttpError(error);
+
     // Minimal context - PostHog handles most metadata automatically
     const context = {
       httpMethod: requestMethod,
       httpStatus: error.status,
       source: 'http_interceptor',
+      errorName: posthogError.name,
+      errorMessage: posthogError.message,
     };
 
     // Log for development debugging
@@ -58,8 +62,40 @@ function captureHttpError(
     }
 
     // Capture HTTP error as exception for proper error tracking
-    postHogService.captureException(error, context);
+    postHogService.captureException(posthogError, context);
   } catch (captureError) {
     logger.warn('PostHog HTTP error capture failed', captureError);
   }
+}
+
+function normalizeHttpError(error: HttpErrorResponse): Error {
+  if (error instanceof Error) {
+    return error;
+  }
+
+  const backendPayload = error.error;
+
+  const payloadMessage =
+    typeof backendPayload === 'string'
+      ? backendPayload
+      : typeof backendPayload?.message === 'string'
+        ? backendPayload.message
+        : undefined;
+
+  const message =
+    payloadMessage ??
+    error.message ??
+    `HTTP error ${error.status}${error.statusText ? ` - ${error.statusText}` : ''}`;
+
+  const normalizedError = new Error(message, {
+    cause: backendPayload ?? error,
+  });
+  normalizedError.name = error.name ?? 'HttpErrorResponse';
+
+  const stack = (error as Partial<Error>).stack;
+  if (stack) {
+    normalizedError.stack = stack;
+  }
+
+  return normalizedError;
 }
