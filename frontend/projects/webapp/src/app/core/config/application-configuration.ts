@@ -39,7 +39,7 @@ export class ApplicationConfiguration {
     debug: boolean;
   }>({
     apiKey: '',
-    host: 'https://eu.posthog.com',
+    host: 'https://eu.i.posthog.com',
     enabled: false,
     capturePageviews: true,
     capturePageleaves: true,

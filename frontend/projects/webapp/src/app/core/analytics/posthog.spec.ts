@@ -235,4 +235,51 @@ describe('PostHogService', () => {
     expect(result?.properties?.['meta']).toBeInstanceOf(Map);
     expect(result?.properties?.['info']).toEqual({ date: eventDate });
   });
+
+  it('preserves PostHog reserved keys during sanitization', async () => {
+    await service.initialize();
+
+    const rawEvent = {
+      token: defaultConfig.apiKey,
+      api_key: defaultConfig.apiKey,
+      properties: {
+        token: defaultConfig.apiKey,
+        api_key: defaultConfig.apiKey,
+        authToken: 'should-be-removed',
+      },
+    } as unknown as CaptureResult;
+
+    const result = beforeSendHandler?.(rawEvent);
+    type TokenizedCaptureResult = CaptureResult & {
+      token?: string;
+      api_key?: string;
+    };
+    const payload = result as TokenizedCaptureResult | null;
+
+    expect(payload?.token).toBe(defaultConfig.apiKey);
+    expect(payload?.api_key).toBe(defaultConfig.apiKey);
+    expect(payload?.properties?.['token']).toBe(defaultConfig.apiKey);
+    expect(payload?.properties?.['api_key']).toBe(defaultConfig.apiKey);
+    expect(payload?.properties?.['authToken']).toBeUndefined();
+  });
+
+  it('keeps PostHog system fields even when keywords look sensitive', async () => {
+    await service.initialize();
+
+    const rawEvent = {
+      properties: {
+        distinct_id: 'uid-123',
+        $lib: 'posthog-js',
+        $lib_version: '1.260.2',
+        authToken: 'should-be-stripped',
+      },
+    } as unknown as CaptureResult;
+
+    const result = beforeSendHandler?.(rawEvent);
+
+    expect(result?.properties?.['distinct_id']).toBe('uid-123');
+    expect(result?.properties?.['$lib']).toBe('posthog-js');
+    expect(result?.properties?.['$lib_version']).toBe('1.260.2');
+    expect(result?.properties?.['authToken']).toBeUndefined();
+  });
 });

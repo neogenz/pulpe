@@ -24,7 +24,7 @@ const environment = this.config.environment();
 
 ```bash
 PUBLIC_POSTHOG_API_KEY=phc_xxxxx                    # Required if enabled
-PUBLIC_POSTHOG_HOST=https://eu.posthog.com          # PostHog instance
+PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com        # PostHog instance
 PUBLIC_POSTHOG_ENABLED=true                         # Enable/disable analytics
 PUBLIC_POSTHOG_CAPTURE_PAGEVIEWS=true              # Track page views
 PUBLIC_POSTHOG_SESSION_RECORDING_ENABLED=false     # Record sessions
