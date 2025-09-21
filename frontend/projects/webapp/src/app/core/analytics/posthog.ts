@@ -225,8 +225,7 @@ export class PostHogService {
     if (!event) return null;
 
     try {
-      const apiKey = this.#applicationConfiguration.postHogConfig()?.apiKey;
-      return sanitizeEventPayload(event, { apiKey });
+      return sanitizeEventPayload(event);
     } catch (error) {
       this.#logger.error('Error sanitizing event', error);
       // Return event as-is if sanitization fails to avoid data loss
