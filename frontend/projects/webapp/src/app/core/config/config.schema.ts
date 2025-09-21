@@ -303,7 +303,7 @@ export const ConfigSchema = z.object({
             message: 'PostHog host must be a valid PostHog instance URL',
           },
         )
-        .default('https://eu.posthog.com'),
+        .default('https://eu.i.posthog.com'),
       enabled: z.boolean().default(true),
       capturePageviews: z.boolean().default(true),
       capturePageleaves: z.boolean().default(true),
