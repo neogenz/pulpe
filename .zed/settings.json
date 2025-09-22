@@ -2,23 +2,18 @@
   "lsp": {
     "eslint": {
       "settings": {
-        "workingDirectories": [
-          {
-            "pattern": "frontend/"
-          },
-          {
-            "pattern": "backend-nest/"
-          }
+        "workingDirectory": {
+          "mode": "auto"
+        },
+        "validate": [
+          "javascript",
+          "javascriptreact",
+          "typescript",
+          "typescriptreact",
+          "html"
         ],
-        "format": {
-          "enable": true
-        }
+        "format": false
       }
-    }
-  },
-  "formatter": {
-    "language_server": {
-      "name": "eslint"
     }
   }
 }
