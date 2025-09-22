@@ -1,4 +1,4 @@
-import type { CaptureResult, Properties } from 'posthog-js';
+import type { CaptureResult } from 'posthog-js';
 
 type DynamicSegmentMask = readonly [RegExp, string];
 
@@ -127,7 +127,7 @@ const sanitizeValue = (value: unknown): unknown => {
   return value;
 };
 
-const sanitizeRecord = (
+export const sanitizeRecord = (
   obj: Record<string, unknown>,
 ): Record<string, unknown> => {
   const result: Record<string, unknown> = {};
@@ -150,17 +150,6 @@ const sanitizeRecord = (
   return result;
 };
 
-const sanitizeProperties = (properties: Record<string, unknown>): Properties =>
-  sanitizeRecord(properties) as Properties;
-
-/**
- * Sanitize arbitrary analytics properties before sending to PostHog.
- * Re-uses the same filtering rules as event payload sanitization.
- */
-export const sanitizeAnalyticsProperties = (
-  properties: Record<string, unknown>,
-): Properties => sanitizeProperties(properties);
-
 /**
  * Nettoie un événement PostHog sans retirer les champs système indispensables.
  */
@@ -174,17 +163,17 @@ export const sanitizeEventPayload = (
     if (typeof currentUrl === 'string') {
       event.properties['$current_url'] = sanitizeUrl(currentUrl);
     }
-    event.properties = sanitizeProperties(
+    event.properties = sanitizeRecord(
       event.properties as Record<string, unknown>,
     );
   }
 
   if (event.$set) {
-    event.$set = sanitizeProperties(event.$set as Record<string, unknown>);
+    event.$set = sanitizeRecord(event.$set as Record<string, unknown>);
   }
 
   if (event.$set_once) {
-    event.$set_once = sanitizeProperties(
+    event.$set_once = sanitizeRecord(
       event.$set_once as Record<string, unknown>,
     );
   }

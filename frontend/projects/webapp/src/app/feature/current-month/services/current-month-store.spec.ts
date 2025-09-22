@@ -13,6 +13,8 @@ import { CurrentMonthStore } from './current-month-store';
 import { BudgetApi, BudgetCalculator } from '@core/budget';
 import { TransactionApi } from '@core/transaction/transaction-api';
 import { Logger } from '@core/logging/logger';
+import { PostHogService } from '@core/analytics/posthog';
+import { createMockPostHogService } from '../../../testing/mock-posthog';
 
 // Mock data aligned with business scenarios
 const mockBudget: Budget = {
@@ -136,6 +138,8 @@ describe('CurrentMonthStore - Business Scenarios', () => {
       error: vi.fn(),
     };
 
+    const mockPostHogService = createMockPostHogService();
+
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
@@ -144,6 +148,7 @@ describe('CurrentMonthStore - Business Scenarios', () => {
         { provide: TransactionApi, useValue: mockTransactionApi },
         { provide: BudgetCalculator, useValue: mockBudgetCalculator },
         { provide: Logger, useValue: mockLogger },
+        { provide: PostHogService, useValue: mockPostHogService },
       ],
     });
 
@@ -375,6 +380,12 @@ describe('CurrentMonthStore - Business Scenarios', () => {
       mockBudgetCalculator.calculateTotalAvailable.mockReturnValue(0);
 
       TestBed.resetTestingModule();
+      const mockLogger = {
+        info: vi.fn(),
+        error: vi.fn(),
+      };
+      const mockPostHogService = createMockPostHogService();
+
       TestBed.configureTestingModule({
         providers: [
           provideZonelessChangeDetection(),
@@ -382,6 +393,8 @@ describe('CurrentMonthStore - Business Scenarios', () => {
           { provide: BudgetApi, useValue: mockBudgetApi },
           { provide: TransactionApi, useValue: mockTransactionApi },
           { provide: BudgetCalculator, useValue: mockBudgetCalculator },
+          { provide: Logger, useValue: mockLogger },
+          { provide: PostHogService, useValue: mockPostHogService },
         ],
       });
       store = TestBed.inject(CurrentMonthStore);
