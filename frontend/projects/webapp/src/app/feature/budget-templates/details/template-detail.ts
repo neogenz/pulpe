@@ -325,7 +325,7 @@ export default class TemplateDetail implements OnInit {
   }
 
   navigateBack() {
-    this.#router.navigate(['..'], { relativeTo: this.#route });
+    this.#router.navigate(['/app/budget-templates']);
   }
 
   editTemplate() {
@@ -448,7 +448,7 @@ export default class TemplateDetail implements OnInit {
       });
 
       // Navigate back to templates list
-      this.#router.navigate(['/app/budget-templates']);
+      this.navigateBack();
     } catch (error) {
       this.#logger.error('Error deleting template:', error);
       this.#snackBar.open(

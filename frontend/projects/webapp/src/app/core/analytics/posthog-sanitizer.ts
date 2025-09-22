@@ -2,9 +2,18 @@ import type { CaptureResult } from 'posthog-js';
 
 type DynamicSegmentMask = readonly [RegExp, string];
 
+interface SanitizeOptions {
+  preservedExactProperties?: Map<string, unknown>;
+}
+
+// Extended type to handle PostHog internal properties
+type PostHogInternalEvent = CaptureResult & {
+  token?: string;
+  api_key?: string;
+  [key: string]: unknown;
+};
+
 const POSTHOG_SYSTEM_FIELDS = new Set([
-  'token',
-  'api_key',
   'distinct_id',
   '$anon_distinct_id',
   '$lib',
@@ -92,6 +101,48 @@ const applyDynamicSegmentMasks = (pathname: string): string =>
 const ABSOLUTE_URL_PATTERN = /^[a-zA-Z][\w+.-]*:/;
 const PROTOCOL_RELATIVE_PATTERN = /^\/\//;
 
+const sanitizeHashFragment = (hash: string): string => {
+  if (!hash) return '';
+
+  const trimmedHash = hash.startsWith('#') ? hash.slice(1) : hash;
+  if (!trimmedHash) return '';
+
+  // Treat hash fragments that look like query strings (e.g. auth responses)
+  if (trimmedHash.includes('=')) {
+    try {
+      const params = new URLSearchParams(trimmedHash);
+      for (const key of Array.from(params.keys())) {
+        const normalizedKey = key.toLowerCase();
+        if (
+          PROTECTED_QUERY_PARAMETERS.has(normalizedKey) ||
+          shouldFilterProperty(normalizedKey)
+        ) {
+          params.delete(key);
+        }
+      }
+
+      const sanitized = params.toString();
+      return sanitized ? `#${sanitized}` : '';
+    } catch {
+      return '';
+    }
+  }
+
+  const normalizedHash = trimmedHash.toLowerCase();
+  if (
+    shouldFilterProperty(normalizedHash) ||
+    PROTECTED_QUERY_PARAMETERS.has(normalizedHash)
+  ) {
+    return '';
+  }
+
+  if (trimmedHash.startsWith('/')) {
+    return `#${applyDynamicSegmentMasks(trimmedHash)}`;
+  }
+
+  return `#${trimmedHash}`;
+};
+
 /**
  * Supprime les paramètres sensibles et masque les segments dynamiques d'une URL.
  */
@@ -127,7 +178,7 @@ export const sanitizeUrl = (url: string): string => {
 
     const sanitizedPath = applyDynamicSegmentMasks(parsed.pathname);
     const search = sanitizedParams.toString();
-    const hash = parsed.hash;
+    const hash = sanitizeHashFragment(parsed.hash);
     const query = search ? `?${search}` : '';
 
     if (isAbsolute) {
@@ -146,11 +197,20 @@ export const sanitizeUrl = (url: string): string => {
 
 export const sanitizeRecord = (
   obj: Record<string, unknown>,
+  options?: SanitizeOptions,
 ): Record<string, unknown> => {
   const result: Record<string, unknown> = {};
 
   for (const [key, rawValue] of Object.entries(obj)) {
     const normalizedKey = key.toLowerCase();
+
+    const shouldPreserve =
+      options?.preservedExactProperties?.has(normalizedKey) &&
+      options.preservedExactProperties.get(normalizedKey) === rawValue;
+    if (shouldPreserve) {
+      result[key] = rawValue;
+      continue;
+    }
 
     if (shouldFilterProperty(normalizedKey)) {
       continue;
@@ -161,19 +221,19 @@ export const sanitizeRecord = (
       continue;
     }
 
-    result[key] = sanitizeUnknown(rawValue);
+    result[key] = sanitizeUnknown(rawValue, options);
   }
 
   return result;
 };
 
-function sanitizeUnknown(value: unknown): unknown {
+function sanitizeUnknown(value: unknown, options?: SanitizeOptions): unknown {
   if (Array.isArray(value)) {
-    return value.map((item) => sanitizeUnknown(item));
+    return value.map((item) => sanitizeUnknown(item, options));
   }
 
   if (isRecord(value)) {
-    return sanitizeRecord(value);
+    return sanitizeRecord(value, options);
   }
 
   return value;
@@ -187,6 +247,20 @@ export const sanitizeEventPayload = (
 ): CaptureResult | null => {
   if (!event) return null;
 
+  const preservedProperties = new Map<string, unknown>();
+  const eventInternal = event as PostHogInternalEvent;
+  if (typeof eventInternal.token === 'string') {
+    preservedProperties.set('token', eventInternal.token);
+  }
+  if (typeof eventInternal.api_key === 'string') {
+    preservedProperties.set('api_key', eventInternal.api_key);
+  }
+
+  const options: SanitizeOptions | undefined =
+    preservedProperties.size > 0
+      ? { preservedExactProperties: preservedProperties }
+      : undefined;
+
   if (event.properties) {
     const currentUrl = event.properties['$current_url'];
     if (typeof currentUrl === 'string') {
@@ -195,16 +269,18 @@ export const sanitizeEventPayload = (
     // Remplace la map de propriétés par une version nettoyée avant l'envoi PostHog.
     event.properties = sanitizeRecord(
       event.properties as Record<string, unknown>,
+      options,
     );
   }
 
   if (event.$set) {
-    event.$set = sanitizeRecord(event.$set as Record<string, unknown>);
+    event.$set = sanitizeRecord(event.$set as Record<string, unknown>, options);
   }
 
   if (event.$set_once) {
     event.$set_once = sanitizeRecord(
       event.$set_once as Record<string, unknown>,
+      options,
     );
   }
 
