@@ -1,28 +1,18 @@
+/**
+ * IMPORTANT: PostHog SDK does NOT automatically filter authentication tokens.
+ * Currently not filtering tokens because:
+ * 1. We don't send user objects or auth context in events
+ * 2. We control all tracking code (solo developer)
+ *
+ * If we ever start tracking objects that might contain auth_token,
+ * refreshToken, access_token, etc., add filtering here.
+ */
+
 import type { CaptureResult } from 'posthog-js';
 
 type DynamicSegmentMask = readonly [RegExp, string];
 
-interface SanitizeOptions {
-  preservedExactProperties?: Map<string, unknown>;
-}
-
-// Extended type to handle PostHog internal properties
-type PostHogInternalEvent = CaptureResult & {
-  token?: string;
-  api_key?: string;
-  [key: string]: unknown;
-};
-
-const POSTHOG_SYSTEM_FIELDS = new Set([
-  'distinct_id',
-  '$anon_distinct_id',
-  '$lib',
-  '$lib_version',
-  '$user_id',
-  '$current_url',
-  '$pathname',
-]);
-
+// Financial fields we want to remove for privacy
 const FINANCIAL_PROPERTY_NAMES = new Set(
   [
     'amount',
@@ -42,9 +32,21 @@ const FINANCIAL_PROPERTY_NAMES = new Set(
   ].map((key) => key.toLowerCase()),
 );
 
-const SECRET_PROPERTY_KEYWORDS = ['password', 'secret', 'credential'];
+// Specific sensitive keywords to filter
+const SENSITIVE_KEYWORDS = [
+  'password',
+  'secret',
+  'credential',
+  'credit_card',
+  'creditcard',
+  'ssn',
+  'social_security',
+];
 
-const SECRET_PROPERTY_SUFFIXES = ['token', 'tokenid', 'apikey', 'secretkey'];
+// Specific property names to filter (exact match)
+const SENSITIVE_EXACT_KEYS = new Set([
+  'apikey', // Generic API key fields - note: PostHog uses 'api_key' and 'token' which are different
+]);
 
 const PROTECTED_QUERY_PARAMETERS = new Set(
   ['budgetId', 'transactionId', 'templateId', 'token'].map((param) =>
@@ -63,34 +65,23 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' &&
   Object.prototype.toString.call(value) === '[object Object]';
 
-const containsSensitiveKeyword = (normalizedKey: string): boolean => {
-  if (
-    SECRET_PROPERTY_KEYWORDS.some((keyword) => normalizedKey.includes(keyword))
-  ) {
-    return true;
-  }
-
-  const strippedKey = normalizedKey.replace(/[^a-z0-9]/g, '');
-  return SECRET_PROPERTY_SUFFIXES.some(
-    (suffix) =>
-      strippedKey.endsWith(suffix) || normalizedKey.endsWith(`_${suffix}`),
-  );
-};
-
-const isUrlKey = (normalizedKey: string): boolean =>
-  normalizedKey.includes('url') || normalizedKey.includes('href');
-
-const shouldFilterProperty = (normalizedKey: string): boolean => {
-  if (POSTHOG_SYSTEM_FIELDS.has(normalizedKey)) {
-    return false;
-  }
-
+const isSensitiveProperty = (normalizedKey: string): boolean => {
+  // Check if it's a financial property
   if (FINANCIAL_PROPERTY_NAMES.has(normalizedKey)) {
     return true;
   }
 
-  return containsSensitiveKeyword(normalizedKey);
+  // Check exact match for sensitive keys
+  if (SENSITIVE_EXACT_KEYS.has(normalizedKey)) {
+    return true;
+  }
+
+  // Check if it contains sensitive keywords
+  return SENSITIVE_KEYWORDS.some((keyword) => normalizedKey.includes(keyword));
 };
+
+const isUrlKey = (normalizedKey: string): boolean =>
+  normalizedKey.includes('url') || normalizedKey.includes('href');
 
 const applyDynamicSegmentMasks = (pathname: string): string =>
   DYNAMIC_SEGMENT_MASKS.reduce(
@@ -115,7 +106,7 @@ const sanitizeHashFragment = (hash: string): string => {
         const normalizedKey = key.toLowerCase();
         if (
           PROTECTED_QUERY_PARAMETERS.has(normalizedKey) ||
-          shouldFilterProperty(normalizedKey)
+          isSensitiveProperty(normalizedKey)
         ) {
           params.delete(key);
         }
@@ -130,7 +121,7 @@ const sanitizeHashFragment = (hash: string): string => {
 
   const normalizedHash = trimmedHash.toLowerCase();
   if (
-    shouldFilterProperty(normalizedHash) ||
+    isSensitiveProperty(normalizedHash) ||
     PROTECTED_QUERY_PARAMETERS.has(normalizedHash)
   ) {
     return '';
@@ -197,90 +188,70 @@ export const sanitizeUrl = (url: string): string => {
 
 export const sanitizeRecord = (
   obj: Record<string, unknown>,
-  options?: SanitizeOptions,
 ): Record<string, unknown> => {
   const result: Record<string, unknown> = {};
 
   for (const [key, rawValue] of Object.entries(obj)) {
     const normalizedKey = key.toLowerCase();
 
-    const shouldPreserve =
-      options?.preservedExactProperties?.has(normalizedKey) &&
-      options.preservedExactProperties.get(normalizedKey) === rawValue;
-    if (shouldPreserve) {
-      result[key] = rawValue;
+    // Skip sensitive properties (financial data, passwords, etc.)
+    if (isSensitiveProperty(normalizedKey)) {
       continue;
     }
 
-    if (shouldFilterProperty(normalizedKey)) {
-      continue;
-    }
-
+    // Sanitize URLs to remove dynamic segments
     if (isUrlKey(normalizedKey) && typeof rawValue === 'string') {
       result[key] = sanitizeUrl(rawValue);
       continue;
     }
 
-    result[key] = sanitizeUnknown(rawValue, options);
+    // Recursively sanitize nested objects and arrays
+    result[key] = sanitizeUnknown(rawValue);
   }
 
   return result;
 };
 
-function sanitizeUnknown(value: unknown, options?: SanitizeOptions): unknown {
+function sanitizeUnknown(value: unknown): unknown {
   if (Array.isArray(value)) {
-    return value.map((item) => sanitizeUnknown(item, options));
+    return value.map((item) => sanitizeUnknown(item));
   }
 
   if (isRecord(value)) {
-    return sanitizeRecord(value, options);
+    return sanitizeRecord(value);
   }
 
   return value;
 }
 
 /**
- * Nettoie un événement PostHog sans retirer les champs système indispensables.
+ * Nettoie un événement PostHog en retirant les données financières sensibles.
+ * PostHog gère ses propres champs système, on ne touche qu'aux données métier.
  */
 export const sanitizeEventPayload = (
   event: CaptureResult | null,
 ): CaptureResult | null => {
   if (!event) return null;
 
-  const preservedProperties = new Map<string, unknown>();
-  const eventInternal = event as PostHogInternalEvent;
-  if (typeof eventInternal.token === 'string') {
-    preservedProperties.set('token', eventInternal.token);
-  }
-  if (typeof eventInternal.api_key === 'string') {
-    preservedProperties.set('api_key', eventInternal.api_key);
-  }
-
-  const options: SanitizeOptions | undefined =
-    preservedProperties.size > 0
-      ? { preservedExactProperties: preservedProperties }
-      : undefined;
-
   if (event.properties) {
+    // Sanitize the current URL if present
     const currentUrl = event.properties['$current_url'];
     if (typeof currentUrl === 'string') {
       event.properties['$current_url'] = sanitizeUrl(currentUrl);
     }
-    // Remplace la map de propriétés par une version nettoyée avant l'envoi PostHog.
+    // Clean sensitive properties from the event
     event.properties = sanitizeRecord(
       event.properties as Record<string, unknown>,
-      options,
     );
   }
 
   if (event.$set) {
-    event.$set = sanitizeRecord(event.$set as Record<string, unknown>, options);
+    event.$set = sanitizeRecord(event.$set as Record<string, unknown>);
   }
 
   if (event.$set_once) {
     event.$set_once = sanitizeRecord(
       event.$set_once as Record<string, unknown>,
-      options,
     );
   }
 
