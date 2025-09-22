@@ -2,7 +2,6 @@ import { computed, inject, Injectable, resource, signal } from '@angular/core';
 import { BudgetApi } from '@core/budget';
 import { TransactionApi } from '@core/transaction';
 import { createRolloverLine } from '@core/rollover/rollover-types';
-import { PostHogService } from '@core/analytics/posthog';
 import {
   type Budget,
   type BudgetLine,
@@ -37,7 +36,6 @@ import { createInitialCurrentMonthInternalState } from './current-month-state';
 export class CurrentMonthStore {
   #budgetApi = inject(BudgetApi);
   #transactionApi = inject(TransactionApi);
-  #postHogService = inject(PostHogService);
 
   /**
    * Simple state signal for UI feedback during operations
@@ -290,12 +288,6 @@ export class CurrentMonthStore {
         }
       }
     } catch (error) {
-      // Capture exception in PostHog for monitoring
-      this.#postHogService.captureException(error, {
-        source: 'current_month_store',
-        operation: 'transaction_update',
-      });
-
       // Rollback on error
       if (originalData) {
         this.#dashboardResource.set(originalData);
@@ -362,12 +354,6 @@ export class CurrentMonthStore {
         }
       }
     } catch (error) {
-      // Capture exception in PostHog for monitoring
-      this.#postHogService.captureException(error, {
-        source: 'current_month_store',
-        operation: 'transaction_delete',
-      });
-
       // Rollback on error
       if (originalData) {
         this.#dashboardResource.set(originalData);
