@@ -50,7 +50,7 @@ import { type BudgetTemplate } from '@pulpe/shared';
           <mat-icon>more_vert</mat-icon>
         </button>
         <mat-menu #menu="matMenu">
-          <button mat-menu-item [routerLink]="template().id">
+          <button mat-menu-item [routerLink]="['details', template().id]">
             <mat-icon>visibility</mat-icon>
             <span>Voir les détails</span>
           </button>
