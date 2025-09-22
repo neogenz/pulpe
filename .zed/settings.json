@@ -1,0 +1,24 @@
+{
+  "lsp": {
+    "eslint": {
+      "settings": {
+        "workingDirectories": [
+          {
+            "pattern": "frontend/"
+          },
+          {
+            "pattern": "backend-nest/"
+          }
+        ],
+        "format": {
+          "enable": true
+        }
+      }
+    }
+  },
+  "formatter": {
+    "language_server": {
+      "name": "eslint"
+    }
+  }
+}
