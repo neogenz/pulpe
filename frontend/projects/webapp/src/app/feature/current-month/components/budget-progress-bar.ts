@@ -43,6 +43,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
                 @if (isOverBudget()) {
                   <mat-icon
                     class="ph-no-capture"
+                    matTooltipClass="ph-no-capture"
                     [matTooltip]="
                       'Tu es en dépassement de ' +
                       (overBudgetAmount() | number: '1.2-2' : 'de-CH') +

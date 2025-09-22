@@ -180,7 +180,7 @@ interface NavigationItem {
             >
               <div class="flex items-center gap-2">
                 <mat-icon>person</mat-icon>
-                <span>{{ userEmail() }}</span>
+                <span class="ph-no-capture">{{ userEmail() }}</span>
               </div>
             </button>
 
