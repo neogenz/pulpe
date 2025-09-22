@@ -154,6 +154,14 @@ const sanitizeProperties = (properties: Record<string, unknown>): Properties =>
   sanitizeRecord(properties) as Properties;
 
 /**
+ * Sanitize arbitrary analytics properties before sending to PostHog.
+ * Re-uses the same filtering rules as event payload sanitization.
+ */
+export const sanitizeAnalyticsProperties = (
+  properties: Record<string, unknown>,
+): Properties => sanitizeProperties(properties);
+
+/**
  * Nettoie un événement PostHog sans retirer les champs système indispensables.
  */
 export const sanitizeEventPayload = (
