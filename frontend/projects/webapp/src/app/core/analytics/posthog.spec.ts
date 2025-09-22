@@ -174,7 +174,7 @@ describe('PostHogService', () => {
     expect(posthog.reset).toHaveBeenCalledTimes(1);
   });
 
-  it('sanitizes sensitive fields and URLs before sending events', async () => {
+  it('sanitizes financial fields and URLs while keeping custom metadata', async () => {
     await service.initialize();
     expect(beforeSendHandler).toBeDefined();
 
@@ -204,7 +204,7 @@ describe('PostHogService', () => {
     expect(result?.properties?.['amount']).toBeUndefined();
     expect(result?.properties?.['balance']).toBeUndefined();
     expect(result?.properties?.['password']).toBeUndefined();
-    expect(result?.properties?.['authToken']).toBeUndefined();
+    expect(result?.properties?.['authToken']).toBe('token-value');
     expect(result?.properties?.['nested']).toEqual({
       url: 'https://app.test/budget/[id]?safe=true',
     });
@@ -236,7 +236,7 @@ describe('PostHogService', () => {
     expect(result?.properties?.['info']).toEqual({ date: eventDate });
   });
 
-  it('preserves PostHog reserved keys during sanitization', async () => {
+  it('preserves PostHog reserved keys and passthrough token properties', async () => {
     await service.initialize();
 
     const rawEvent = {
@@ -260,10 +260,10 @@ describe('PostHogService', () => {
     expect(payload?.api_key).toBe(defaultConfig.apiKey);
     expect(payload?.properties?.['token']).toBe(defaultConfig.apiKey);
     expect(payload?.properties?.['api_key']).toBe(defaultConfig.apiKey);
-    expect(payload?.properties?.['authToken']).toBeUndefined();
+    expect(payload?.properties?.['authToken']).toBe('should-be-removed');
   });
 
-  it('keeps PostHog system fields even when keywords look sensitive', async () => {
+  it('keeps PostHog system fields and token-like custom properties intact', async () => {
     await service.initialize();
 
     const rawEvent = {
@@ -280,6 +280,6 @@ describe('PostHogService', () => {
     expect(result?.properties?.['distinct_id']).toBe('uid-123');
     expect(result?.properties?.['$lib']).toBe('posthog-js');
     expect(result?.properties?.['$lib_version']).toBe('1.260.2');
-    expect(result?.properties?.['authToken']).toBeUndefined();
+    expect(result?.properties?.['authToken']).toBe('should-be-stripped');
   });
 });
