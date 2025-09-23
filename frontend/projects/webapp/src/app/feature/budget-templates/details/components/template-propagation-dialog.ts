@@ -11,8 +11,8 @@ import {
   MatDialogModule,
   MatDialogRef,
 } from '@angular/material/dialog';
-import { MatRadioModule } from '@angular/material/radio';
 import { MatIconModule } from '@angular/material/icon';
+import { MatRadioModule } from '@angular/material/radio';
 
 export type TemplatePropagationChoice = 'template-only' | 'propagate';
 
@@ -22,7 +22,6 @@ interface TemplatePropagationDialogData {
 
 @Component({
   selector: 'pulpe-template-propagation-dialog',
-  standalone: true,
   imports: [
     CommonModule,
     MatDialogModule,
@@ -31,9 +30,9 @@ interface TemplatePropagationDialogData {
     MatIconModule,
   ],
   template: `
-    <h2 mat-dialog-title class="flex gap-2 items-center">
+    <h2 mat-dialog-title class="flex! gap-2 items-center pt-6!">
       <mat-icon>tune</mat-icon>
-      <span>Comment appliquer ces modifications&nbsp;?</span>
+      <span>Comment appliquer ces modifications ?</span>
     </h2>
 
     <mat-dialog-content class="flex flex-col gap-4">
@@ -74,7 +73,7 @@ interface TemplatePropagationDialogData {
         </mat-radio-button>
       </mat-radio-group>
 
-      <p class="text-body-small text-tertiary">
+      <p class="text-body-small text-tertiary mt-2">
         Vous pourrez toujours ajuster un budget mensuel manuellement après coup.
       </p>
     </mat-dialog-content>
@@ -108,7 +107,7 @@ interface TemplatePropagationDialogData {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TemplatePropagationDialog {
-  private readonly dialogRef = inject(
+  readonly #dialogRef = inject(
     MatDialogRef<TemplatePropagationDialog, TemplatePropagationChoice | null>,
   );
   readonly data = inject<TemplatePropagationDialogData>(MAT_DIALOG_DATA);
@@ -120,10 +119,10 @@ export class TemplatePropagationDialog {
   }
 
   cancel(): void {
-    this.dialogRef.close(null);
+    this.#dialogRef.close(null);
   }
 
   confirm(): void {
-    this.dialogRef.close(this.selectedMode());
+    this.#dialogRef.close(this.selectedMode());
   }
 }
