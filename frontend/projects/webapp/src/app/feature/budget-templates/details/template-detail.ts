@@ -18,7 +18,10 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Logger } from '@core/logging/logger';
 import { PulpeTitleStrategy } from '@core/routing/title-strategy';
-import { type TemplateLine } from '@pulpe/shared';
+import {
+  type TemplateLine,
+  type TemplateLinesPropagationSummary,
+} from '@pulpe/shared';
 import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
 import {
   FinancialSummary,
@@ -367,13 +370,16 @@ export default class TemplateDetail implements OnInit {
 
     dialogRef.afterClosed().subscribe((dialogResult) => {
       if (dialogResult?.saved) {
-        // Simply reload the data from the server to get the latest state
-        // This is simpler and ensures we have the exact server state
-        this.templateDetailsStore.reloadTemplateDetails();
+        const propagation = dialogResult.propagation ?? null;
 
-        // Show success feedback
-        this.#snackBar.open('Modèle mis à jour avec succès', undefined, {
-          duration: 3000,
+        if (propagation) {
+          // Reload to sync with server state when changes were applied
+          this.templateDetailsStore.reloadTemplateDetails();
+        }
+
+        const message = this.#buildSuccessMessage(propagation);
+        this.#snackBar.open(message, undefined, {
+          duration: 4000,
         });
       } else if (dialogResult?.error) {
         this.#logger.error('Erreur lors de la sauvegarde:', dialogResult.error);
@@ -432,6 +438,24 @@ export default class TemplateDetail implements OnInit {
         },
       );
     }
+  }
+
+  #buildSuccessMessage(
+    propagation: TemplateLinesPropagationSummary | null,
+  ): string {
+    if (!propagation) {
+      return 'Aucune modification à enregistrer';
+    }
+
+    if (propagation.mode === 'propagate') {
+      if (propagation.affectedBudgetsCount > 0) {
+        const plural = propagation.affectedBudgetsCount > 1 ? 's' : '';
+        return `Modèle et budgets futurs mis à jour (${propagation.affectedBudgetsCount} budget${plural} ajusté${plural})`;
+      }
+      return 'Modèle mis à jour. Aucun budget futur à ajuster.';
+    }
+
+    return 'Modèle mis à jour (budgets non modifiés).';
   }
 
   async #performDeletion() {

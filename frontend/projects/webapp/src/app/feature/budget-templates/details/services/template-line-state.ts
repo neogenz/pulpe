@@ -1,4 +1,7 @@
-import type { TemplateLine } from '@pulpe/shared';
+import type {
+  TemplateLine,
+  TemplateLinesPropagationSummary,
+} from '@pulpe/shared';
 import type { TransactionFormData } from '../../services/transaction-form';
 
 /**
@@ -51,4 +54,9 @@ export interface SaveResult {
    * Error message if save failed
    */
   error?: string;
+
+  /**
+   * Summary of propagation applied to budgets (if any)
+   */
+  propagation?: TemplateLinesPropagationSummary | null;
 }

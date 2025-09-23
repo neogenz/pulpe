@@ -20,7 +20,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { type TemplateLine } from '@pulpe/shared';
+import {
+  type TemplateLine,
+  type TemplateLinesPropagationSummary,
+} from '@pulpe/shared';
 import { firstValueFrom } from 'rxjs';
 import {
   ConfirmationDialog,
@@ -32,6 +35,10 @@ import {
 } from '../../services/transaction-form';
 import { TemplateLineStore } from '../services/template-line-store';
 import { type EditableLine } from '../services/template-line-state';
+import {
+  TemplatePropagationDialog,
+  type TemplatePropagationChoice,
+} from './template-propagation-dialog';
 
 interface EditTransactionsDialogData {
   transactions: TransactionFormData[];
@@ -45,6 +52,7 @@ interface EditTransactionsDialogResult {
   updatedLines?: TemplateLine[];
   deletedIds?: string[];
   error?: string;
+  propagation?: TemplateLinesPropagationSummary | null;
 }
 
 @Component({
@@ -408,15 +416,44 @@ export default class EditTransactionsDialog {
   async save(): Promise<void> {
     if (this.isLoading() || !this.isValid()) return;
 
+    if (!this.hasUnsavedChanges()) {
+      this.#dialogRef.close({
+        saved: true,
+        updatedLines: [],
+        deletedIds: [],
+        propagation: null,
+      } as EditTransactionsDialogResult);
+      return;
+    }
+
+    const propagationChoice = await this.#askPropagationStrategy();
+    if (!propagationChoice) {
+      return;
+    }
+
+    const propagateToBudgets = propagationChoice === 'propagate';
+
     // Perform save - no sync needed as state is already up-to-date
-    const result = await this.#store.saveChanges(this.data.templateId);
+    const result = await this.#store.saveChanges(
+      this.data.templateId,
+      propagateToBudgets,
+    );
 
     if (!result.success) return;
+
+    const propagationSummary: TemplateLinesPropagationSummary | null =
+      result.propagation ??
+      ({
+        mode: propagateToBudgets ? 'propagate' : 'template-only',
+        affectedBudgetIds: [],
+        affectedBudgetsCount: 0,
+      } as TemplateLinesPropagationSummary);
 
     this.#dialogRef.close({
       saved: true,
       updatedLines: result.updatedLines,
       deletedIds: result.deletedIds,
+      propagation: propagationSummary,
     } as EditTransactionsDialogResult);
   }
 
@@ -485,5 +522,18 @@ export default class EditTransactionsDialog {
 
     const result = await firstValueFrom(dialogRef.afterClosed());
     return result || false;
+  }
+
+  async #askPropagationStrategy(): Promise<TemplatePropagationChoice | null> {
+    const dialogRef = this.#dialog.open(TemplatePropagationDialog, {
+      width: '480px',
+      data: {
+        templateName: this.data.templateName,
+      },
+      disableClose: true,
+    });
+
+    const result = await firstValueFrom(dialogRef.afterClosed());
+    return result ?? null;
   }
 }
