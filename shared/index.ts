@@ -149,6 +149,7 @@ export type {
   TemplateLinesBulkUpdateResponse,
   TemplateLinesBulkOperations,
   TemplateLinesBulkOperationsResponse,
+  TemplateLinesPropagationSummary,
   TransactionResponse,
 
   // Savings Goal types

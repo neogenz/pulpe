@@ -34,9 +34,17 @@ import {
   templateLinesBulkOperationsSchema,
   type TemplateLinesBulkOperations,
   type TemplateLinesBulkOperationsResponse,
+  type TemplateLinesPropagationSummary,
 } from '@pulpe/shared';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import * as budgetTemplateMappers from './budget-template.mappers';
+import { BudgetService } from '@modules/budget/budget.service';
+
+type TemplateBulkOperationsResult = {
+  deletedIds: string[];
+  updatedLines: Tables<'template_line'>[];
+  createdLines: Tables<'template_line'>[];
+};
 
 @Injectable()
 export class BudgetTemplateService {
@@ -45,6 +53,7 @@ export class BudgetTemplateService {
   constructor(
     @InjectPinoLogger(BudgetTemplateService.name)
     private readonly logger: PinoLogger,
+    private readonly budgetService: BudgetService,
   ) {}
 
   // ============ TEMPLATE METHODS ============
@@ -1021,6 +1030,12 @@ export class BudgetTemplateService {
             update: bulkOperationsDto.update?.length || 0,
             delete: bulkOperationsDto.delete?.length || 0,
           },
+          propagateToBudgets: Boolean(bulkOperationsDto.propagateToBudgets),
+          propagationImpact: {
+            mode: data.data.propagation?.mode ?? 'template-only',
+            affectedBudgetsCount:
+              data.data.propagation?.affectedBudgetsCount ?? 0,
+          },
           duration: Date.now() - startTime,
         },
         'Bulk operations on template lines completed successfully',
@@ -1041,7 +1056,40 @@ export class BudgetTemplateService {
     const validated =
       templateLinesBulkOperationsSchema.parse(bulkOperationsDto);
 
-    // Execute operations in order: delete, update, create
+    const operationsResult = await this.performTemplateLineOperations(
+      validated,
+      templateId,
+      supabase,
+    );
+
+    const propagationSummary = await this.handlePropagationStrategy(
+      validated.propagateToBudgets,
+      operationsResult,
+      templateId,
+      user,
+      supabase,
+    );
+
+    return {
+      success: true,
+      data: {
+        created: budgetTemplateMappers.toApiTemplateLineList(
+          operationsResult.createdLines,
+        ),
+        updated: budgetTemplateMappers.toApiTemplateLineList(
+          operationsResult.updatedLines,
+        ),
+        deleted: operationsResult.deletedIds,
+        propagation: propagationSummary,
+      },
+    };
+  }
+
+  private async performTemplateLineOperations(
+    validated: TemplateLinesBulkOperations,
+    templateId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<TemplateBulkOperationsResult> {
     const deletedIds = await this.performBulkDeletes(
       validated.delete,
       templateId,
@@ -1058,14 +1106,238 @@ export class BudgetTemplateService {
       supabase,
     );
 
+    return { deletedIds, updatedLines, createdLines };
+  }
+
+  private async handlePropagationStrategy(
+    propagateToBudgets: boolean,
+    operations: TemplateBulkOperationsResult,
+    templateId: string,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<TemplateLinesPropagationSummary> {
+    if (!propagateToBudgets) {
+      return {
+        mode: 'template-only',
+        affectedBudgetIds: [],
+        affectedBudgetsCount: 0,
+      };
+    }
+
+    return this.propagateTemplateChangesToBudgets(
+      templateId,
+      operations,
+      user,
+      supabase,
+    );
+  }
+
+  private async propagateTemplateChangesToBudgets(
+    templateId: string,
+    operations: TemplateBulkOperationsResult,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<TemplateLinesPropagationSummary> {
+    const budgets = await this.fetchFutureBudgetsForTemplate(
+      templateId,
+      user.id,
+      supabase,
+    );
+
+    if (!budgets.length) {
+      return {
+        mode: 'propagate',
+        affectedBudgetIds: [],
+        affectedBudgetsCount: 0,
+      };
+    }
+
+    const budgetIds = budgets.map((budget) => budget.id);
+    const impactedBudgetIds = await this.applyPropagationOperationsToBudgets(
+      operations,
+      budgetIds,
+      supabase,
+    );
+
+    if (impactedBudgetIds.length) {
+      await this.recalculateImpactedBudgets(impactedBudgetIds, supabase);
+    }
+
     return {
-      success: true,
-      data: {
-        created: budgetTemplateMappers.toApiTemplateLineList(createdLines),
-        updated: budgetTemplateMappers.toApiTemplateLineList(updatedLines),
-        deleted: deletedIds,
-      },
+      mode: 'propagate',
+      affectedBudgetIds: impactedBudgetIds,
+      affectedBudgetsCount: impactedBudgetIds.length,
     };
+  }
+
+  private async applyPropagationOperationsToBudgets(
+    operations: TemplateBulkOperationsResult,
+    budgetIds: string[],
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<string[]> {
+    if (!budgetIds.length) return [];
+
+    const impactedBudgets = new Set<string>();
+    const addImpactedBudgets = (ids: string[]) =>
+      ids.forEach((budgetId) => impactedBudgets.add(budgetId));
+
+    if (operations.deletedIds.length) {
+      const affected = await this.removeTemplateLinesFromBudgets(
+        operations.deletedIds,
+        budgetIds,
+        supabase,
+      );
+      addImpactedBudgets(affected);
+    }
+
+    if (operations.updatedLines.length) {
+      const affected = await this.updateTemplateLinesInBudgets(
+        operations.updatedLines,
+        budgetIds,
+        supabase,
+      );
+      addImpactedBudgets(affected);
+    }
+
+    if (operations.createdLines.length) {
+      const affected = await this.addTemplateLinesToBudgets(
+        operations.createdLines,
+        budgetIds,
+        supabase,
+      );
+      addImpactedBudgets(affected);
+    }
+
+    return Array.from(impactedBudgets);
+  }
+
+  private async fetchFutureBudgetsForTemplate(
+    templateId: string,
+    userId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<Array<Pick<Tables<'monthly_budget'>, 'id' | 'month' | 'year'>>> {
+    const now = new Date();
+    const currentMonth = now.getUTCMonth() + 1;
+    const currentYear = now.getUTCFullYear();
+
+    const futureFilter = `year.gt.${currentYear},and(year.eq.${currentYear},month.gt.${currentMonth})`;
+
+    const { data, error } = await supabase
+      .from('monthly_budget')
+      .select('id, month, year')
+      .eq('template_id', templateId)
+      .eq('user_id', userId)
+      .or(futureFilter);
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  private async removeTemplateLinesFromBudgets(
+    templateLineIds: string[],
+    budgetIds: string[],
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<string[]> {
+    if (!templateLineIds.length || !budgetIds.length) return [];
+
+    const impacted: string[] = [];
+    const CHUNK_SIZE = 50;
+    const lineChunks = this.chunkArray(templateLineIds, CHUNK_SIZE);
+
+    for (const chunk of lineChunks) {
+      const { data, error } = await supabase
+        .from('budget_line')
+        .delete()
+        .in('template_line_id', chunk)
+        .in('budget_id', budgetIds)
+        .eq('is_manually_adjusted', false)
+        .select('budget_id');
+
+      if (error) throw error;
+      if (data) impacted.push(...data.map((row) => row.budget_id));
+    }
+
+    return impacted;
+  }
+
+  private async updateTemplateLinesInBudgets(
+    templateLines: Tables<'template_line'>[],
+    budgetIds: string[],
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<string[]> {
+    if (!templateLines.length || !budgetIds.length) return [];
+
+    const impacted: string[] = [];
+
+    for (const line of templateLines) {
+      const { data, error } = await supabase
+        .from('budget_line')
+        .update({
+          name: line.name,
+          amount: line.amount,
+          kind: line.kind,
+          recurrence: line.recurrence,
+        })
+        .eq('template_line_id', line.id)
+        .eq('is_manually_adjusted', false)
+        .in('budget_id', budgetIds)
+        .select('budget_id');
+
+      if (error) throw error;
+      if (data) impacted.push(...data.map((row) => row.budget_id));
+    }
+
+    return impacted;
+  }
+
+  private async addTemplateLinesToBudgets(
+    templateLines: Tables<'template_line'>[],
+    budgetIds: string[],
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<string[]> {
+    if (!templateLines.length || !budgetIds.length) return [];
+
+    const impacted: string[] = [];
+    const CHUNK_SIZE = 50;
+
+    const inserts = budgetIds.flatMap((budgetId) =>
+      templateLines.map((line) => ({
+        budget_id: budgetId,
+        template_line_id: line.id,
+        name: line.name,
+        amount: line.amount,
+        kind: line.kind,
+        recurrence: line.recurrence,
+        is_manually_adjusted: false,
+      })),
+    );
+
+    if (!inserts.length) return impacted;
+
+    const insertChunks = this.chunkArray(inserts, CHUNK_SIZE);
+
+    for (const chunk of insertChunks) {
+      const { data, error } = await supabase
+        .from('budget_line')
+        .insert(chunk)
+        .select('budget_id');
+
+      if (error) throw error;
+      if (data) impacted.push(...data.map((row) => row.budget_id));
+    }
+
+    return impacted;
+  }
+
+  private async recalculateImpactedBudgets(
+    budgetIds: string[],
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    if (!budgetIds.length) return;
+
+    for (const budgetId of budgetIds) {
+      await this.budgetService.recalculateBalances(budgetId, supabase);
+    }
   }
 
   private async performBulkDeletes(

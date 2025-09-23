@@ -73,7 +73,23 @@ export class MockSupabaseClient {
   from(_table: string) {
     const result = { data: this.#mockData, error: this.#mockError };
 
-    const chainMethods = {
+    const buildMutationChain = () => {
+      const chain: any = {};
+      chain.eq = () => chain;
+      chain.in = () => chain;
+      chain.or = () => chain;
+      chain.select = () => {
+        const promise = Promise.resolve(result) as any;
+        promise.single = () => Promise.resolve(result);
+        return promise;
+      };
+      chain.single = () => Promise.resolve(result);
+      chain.then = (resolve: (value: typeof result) => any) =>
+        Promise.resolve(result).then(resolve);
+      return chain;
+    };
+
+    const chainMethods: any = {
       select: () => chainMethods,
       order: () => chainMethods,
       eq: () => chainMethods,
@@ -83,38 +99,16 @@ export class MockSupabaseClient {
       gt: () => chainMethods,
       lt: () => chainMethods,
       in: () => chainMethods,
+      or: () => chainMethods,
       limit: () => chainMethods,
       range: () => chainMethods,
       single: () => Promise.resolve(result),
       maybeSingle: () => Promise.resolve(result),
-      insert: () => ({
-        select: () => ({
-          single: () =>
-            Promise.resolve({ data: this.#mockData, error: this.#mockError }),
-        }),
-      }),
-      update: (_data: any) => ({
-        eq: () => ({
-          select: () => ({
-            single: () =>
-              Promise.resolve({ data: this.#mockData, error: this.#mockError }),
-          }),
-          then: (resolve: (value: any) => any) => {
-            const result = { data: this.#mockData, error: this.#mockError };
-            return Promise.resolve(result).then(resolve);
-          },
-        }),
-        then: (resolve: (value: any) => any) => {
-          const result = { data: this.#mockData, error: this.#mockError };
-          return Promise.resolve(result).then(resolve);
-        },
-      }),
-      delete: () => ({
-        eq: () => Promise.resolve({ error: this.#mockError }),
-      }),
-      then: (resolve: (value: typeof result) => any) => {
-        return Promise.resolve(result).then(resolve);
-      },
+      insert: () => buildMutationChain(),
+      update: () => buildMutationChain(),
+      delete: () => buildMutationChain(),
+      then: (resolve: (value: typeof result) => any) =>
+        Promise.resolve(result).then(resolve),
     };
     return chainMethods;
   }

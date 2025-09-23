@@ -14,6 +14,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
   let mockSupabase: any;
   let mockUser: AuthenticatedUser;
   let mockLogger: any;
+  let mockBudgetService: { recalculateBalances: ReturnType<typeof mock> };
 
   const mockTemplate: Tables<'template'> = {
     id: 'template-123',
@@ -48,7 +49,14 @@ describe('BudgetTemplateService - Simplified Tests', () => {
       debug: mock(() => {}),
     };
 
-    service = new BudgetTemplateService(mockLogger);
+    mockBudgetService = {
+      recalculateBalances: mock(() => Promise.resolve()),
+    };
+
+    service = new BudgetTemplateService(
+      mockLogger as any,
+      mockBudgetService as any,
+    );
   });
 
   describe('Service Setup', () => {

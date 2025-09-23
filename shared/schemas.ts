@@ -370,6 +370,7 @@ export const templateLinesBulkOperationsSchema = z
       .default([]),
     update: z.array(templateLineUpdateWithIdSchema).max(100).default([]),
     delete: z.array(z.string().uuid()).max(100).default([]),
+    propagateToBudgets: z.boolean().default(false),
   })
   .refine(
     (data) => {
@@ -388,12 +389,22 @@ export type TemplateLinesBulkOperations = z.infer<
 >;
 
 // Response schema for bulk operations
+const templateLinesPropagationSummarySchema = z.object({
+  mode: z.enum(['template-only', 'propagate']),
+  affectedBudgetIds: z.array(z.string().uuid()),
+  affectedBudgetsCount: z.number().int().nonnegative(),
+});
+export type TemplateLinesPropagationSummary = z.infer<
+  typeof templateLinesPropagationSummarySchema
+>;
+
 export const templateLinesBulkOperationsResponseSchema = z.object({
   success: z.boolean(),
   data: z.object({
     created: z.array(templateLineSchema),
     updated: z.array(templateLineSchema),
     deleted: z.array(z.string().uuid()),
+    propagation: templateLinesPropagationSummarySchema.nullable().default(null),
   }),
 });
 export type TemplateLinesBulkOperationsResponse = z.infer<

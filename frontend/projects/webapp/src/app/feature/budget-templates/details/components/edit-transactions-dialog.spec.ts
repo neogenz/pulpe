@@ -13,10 +13,11 @@ import EditTransactionsDialog from './edit-transactions-dialog';
 import { TemplateLineStore } from '../services/template-line-store';
 import { TransactionFormService } from '../../services/transaction-form';
 import { BudgetTemplatesApi } from '../../services/budget-templates-api';
-import { MatDialog } from '@angular/material/dialog';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import type { TransactionFormData } from '../../services/transaction-form';
 import type { TemplateLine } from '@pulpe/shared';
+import { MatDialog } from '@angular/material/dialog';
+import { TemplatePropagationDialog } from './template-propagation-dialog';
 
 describe('EditTransactionsDialog - Component Tests', () => {
   let component: EditTransactionsDialog;
@@ -83,8 +84,15 @@ describe('EditTransactionsDialog - Component Tests', () => {
     };
 
     mockDialog = {
-      open: vi.fn().mockReturnValue({
-        afterClosed: () => of(false),
+      open: vi.fn().mockImplementation((component) => {
+        if (component === TemplatePropagationDialog) {
+          return {
+            afterClosed: () => of<'template-only'>('template-only'),
+          };
+        }
+        return {
+          afterClosed: () => of(true),
+        };
       }),
     };
 
@@ -98,9 +106,10 @@ describe('EditTransactionsDialog - Component Tests', () => {
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: MAT_DIALOG_DATA, useValue: mockDialogData },
         { provide: BudgetTemplatesApi, useValue: mockBudgetTemplatesApi },
-        { provide: MatDialog, useValue: mockDialog },
       ],
     });
+
+    TestBed.overrideProvider(MatDialog, { useValue: mockDialog });
 
     const fixture = TestBed.createComponent(EditTransactionsDialog);
     component = fixture.componentInstance;
@@ -171,6 +180,17 @@ describe('EditTransactionsDialog - Component Tests', () => {
 
   describe('Save Functionality', () => {
     it('should save successfully and close dialog', async () => {
+      component.addNewTransaction();
+      const newTransaction = component.transactions().at(-1);
+      if (!newTransaction) throw new Error('Expected a new transaction');
+
+      component.updateDescription(newTransaction.id, {
+        target: { value: 'Nouvelle ligne' },
+      } as unknown as Event);
+      component.updateAmount(newTransaction.id, {
+        target: { value: '150' },
+      } as unknown as Event);
+
       // Mock successful API response
       mockBudgetTemplatesApi.bulkOperationsTemplateLines$.mockReturnValue(
         of({
@@ -178,6 +198,11 @@ describe('EditTransactionsDialog - Component Tests', () => {
             created: [],
             updated: [],
             deleted: [],
+            propagation: {
+              mode: 'template-only',
+              affectedBudgetIds: [],
+              affectedBudgetsCount: 0,
+            },
           },
         }),
       );
@@ -188,12 +213,34 @@ describe('EditTransactionsDialog - Component Tests', () => {
         saved: true,
         updatedLines: [],
         deletedIds: [],
+        propagation: {
+          mode: 'template-only',
+          affectedBudgetIds: [],
+          affectedBudgetsCount: 0,
+        },
       });
+      expect(
+        mockBudgetTemplatesApi.bulkOperationsTemplateLines$,
+      ).toHaveBeenCalledWith(
+        'template-123',
+        expect.objectContaining({
+          propagateToBudgets: false,
+        }),
+      );
     });
 
     it('should handle save errors gracefully', async () => {
       // Add a transaction to trigger changes
       component.addNewTransaction();
+      const newTransaction = component.transactions().at(-1);
+      if (!newTransaction) throw new Error('Expected a new transaction');
+
+      component.updateDescription(newTransaction.id, {
+        target: { value: 'Nouvelle ligne' },
+      } as unknown as Event);
+      component.updateAmount(newTransaction.id, {
+        target: { value: '150' },
+      } as unknown as Event);
 
       // Mock API error using throwError from rxjs
       const { throwError } = await import('rxjs');
@@ -201,11 +248,81 @@ describe('EditTransactionsDialog - Component Tests', () => {
         throwError(() => new Error('API Error')),
       );
 
+      // Ensure propagation dialog returns template-only by default
+      mockDialog.open = vi.fn().mockImplementation((component) => {
+        if (component === TemplatePropagationDialog) {
+          return {
+            afterClosed: () => of<'template-only'>('template-only'),
+          };
+        }
+        return {
+          afterClosed: () => of(true),
+        };
+      });
+
       await component.save();
 
       // Dialog should not be closed on error
       expect(mockDialogRef.close).not.toHaveBeenCalled();
       // Error handling is complex with state service, so just verify dialog wasn't closed
+    });
+
+    it('should propagate changes when user selects propagate option', async () => {
+      component.addNewTransaction();
+      const newTransaction = component.transactions().at(-1);
+      if (!newTransaction) throw new Error('Expected a new transaction');
+
+      component.updateDescription(newTransaction.id, {
+        target: { value: 'Nouvelle ligne' },
+      } as unknown as Event);
+      component.updateAmount(newTransaction.id, {
+        target: { value: '150' },
+      } as unknown as Event);
+
+      mockDialog.open = vi.fn().mockImplementation((component) => {
+        if (component === TemplatePropagationDialog) {
+          return {
+            afterClosed: () => of<'propagate'>('propagate'),
+          };
+        }
+        return {
+          afterClosed: () => of(true),
+        };
+      });
+
+      mockBudgetTemplatesApi.bulkOperationsTemplateLines$.mockReturnValue(
+        of({
+          data: {
+            created: [],
+            updated: [],
+            deleted: [],
+            propagation: {
+              mode: 'propagate',
+              affectedBudgetIds: ['budget-1'],
+              affectedBudgetsCount: 1,
+            },
+          },
+        }),
+      );
+
+      await component.save();
+
+      expect(
+        mockBudgetTemplatesApi.bulkOperationsTemplateLines$,
+      ).toHaveBeenCalledWith(
+        'template-123',
+        expect.objectContaining({ propagateToBudgets: true }),
+      );
+      expect(mockDialogRef.close).toHaveBeenCalledWith({
+        saved: true,
+        updatedLines: [],
+        deletedIds: [],
+        propagation: {
+          mode: 'propagate',
+          affectedBudgetIds: ['budget-1'],
+          affectedBudgetsCount: 1,
+        },
+      });
     });
   });
 

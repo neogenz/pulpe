@@ -137,16 +137,24 @@ export class TemplateLineStore {
   /**
    * Save all changes via bulk operations API
    */
-  async saveChanges(templateId: string): Promise<SaveResult> {
+  async saveChanges(
+    templateId: string,
+    propagateToBudgets: boolean,
+  ): Promise<SaveResult> {
     if (!this.hasUnsavedChanges()) {
-      return { success: true, updatedLines: [], deletedIds: [] };
+      return {
+        success: true,
+        updatedLines: [],
+        deletedIds: [],
+        propagation: null,
+      };
     }
 
     this.isLoading.set(true);
     this.error.set(null);
 
     try {
-      const operations = this.#generateBulkOperations();
+      const operations = this.#generateBulkOperations(propagateToBudgets);
       const response = await firstValueFrom(
         this.#budgetTemplatesApi.bulkOperationsTemplateLines$(
           templateId,
@@ -161,6 +169,7 @@ export class TemplateLineStore {
         success: true,
         updatedLines,
         deletedIds: response.data.deleted,
+        propagation: response.data.propagation,
       };
     } catch (error) {
       const errorMessage =
@@ -195,7 +204,9 @@ export class TemplateLineStore {
     );
   }
 
-  #generateBulkOperations(): TemplateLinesBulkOperations {
+  #generateBulkOperations(
+    propagateToBudgets: boolean,
+  ): TemplateLinesBulkOperations {
     const currentLines = this.lines();
     const deletedSet = this.#deletedIds();
 
@@ -222,6 +233,7 @@ export class TemplateLineStore {
           const line = currentLines.find((l) => l.id === id);
           return line!.originalLine!.id;
         }),
+      propagateToBudgets,
     };
   }
 

@@ -365,14 +365,20 @@ describe('TemplateLineStore - Unit Tests', () => {
               },
             ],
             deleted: ['line-2'],
+            propagation: {
+              mode: 'template-only',
+              affectedBudgetIds: [],
+              affectedBudgetsCount: 0,
+            },
           },
         }),
       );
 
-      const result = await store.saveChanges(templateId);
+      const result = await store.saveChanges(templateId, false);
 
       expect(result.success).toBe(true);
       expect(result.updatedLines).toHaveLength(2);
+      expect(result.propagation?.mode).toBe('template-only');
       expect(store.isLoading()).toBe(false);
       expect(store.hasUnsavedChanges()).toBe(false);
 
@@ -382,6 +388,7 @@ describe('TemplateLineStore - Unit Tests', () => {
       expect(bulkOps.create).toHaveLength(1);
       expect(bulkOps.update).toHaveLength(1);
       expect(bulkOps.delete).toEqual(['line-2']);
+      expect(bulkOps.propagateToBudgets).toBe(false);
     });
 
     it('should handle save errors gracefully', async () => {
@@ -392,13 +399,39 @@ describe('TemplateLineStore - Unit Tests', () => {
         throwError(() => new Error('API Error')),
       );
 
-      const result = await store.saveChanges(templateId);
+      const result = await store.saveChanges(templateId, false);
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('API Error');
       expect(store.isLoading()).toBe(false);
       expect(store.error()).toBe('API Error');
       expect(store.hasUnsavedChanges()).toBe(true); // Changes preserved
+    });
+
+    it('should forward propagation flag when requested', async () => {
+      const firstLine = store.activeLines()[0];
+      store.updateTransaction(firstLine.id, { amount: 1500 });
+
+      mockBudgetTemplatesApi.bulkOperationsTemplateLines$.mockReturnValue(
+        of({
+          data: {
+            created: [],
+            updated: [],
+            deleted: [],
+            propagation: {
+              mode: 'propagate',
+              affectedBudgetIds: ['budget-1'],
+              affectedBudgetsCount: 1,
+            },
+          },
+        }),
+      );
+
+      await store.saveChanges(templateId, true);
+
+      const bulkOps: TemplateLinesBulkOperations =
+        mockBudgetTemplatesApi.bulkOperationsTemplateLines$.mock.calls[0][1];
+      expect(bulkOps.propagateToBudgets).toBe(true);
     });
 
     it('should set loading state during save', async () => {
@@ -409,21 +442,33 @@ describe('TemplateLineStore - Unit Tests', () => {
       mockBudgetTemplatesApi.bulkOperationsTemplateLines$.mockImplementation(
         () => {
           loadingDuringSave = store.isLoading();
-          return of({ data: { created: [], updated: [], deleted: [] } });
+          return of({
+            data: {
+              created: [],
+              updated: [],
+              deleted: [],
+              propagation: {
+                mode: 'template-only',
+                affectedBudgetIds: [],
+                affectedBudgetsCount: 0,
+              },
+            },
+          });
         },
       );
 
-      await store.saveChanges(templateId);
+      await store.saveChanges(templateId, false);
 
       expect(loadingDuringSave).toBe(true);
       expect(store.isLoading()).toBe(false);
     });
 
     it('should not save when no changes exist', async () => {
-      const result = await store.saveChanges(templateId);
+      const result = await store.saveChanges(templateId, false);
 
       expect(result.success).toBe(true);
       expect(result.updatedLines).toEqual([]);
+      expect(result.propagation).toBeNull();
       expect(
         mockBudgetTemplatesApi.bulkOperationsTemplateLines$,
       ).not.toHaveBeenCalled();
@@ -436,10 +481,21 @@ describe('TemplateLineStore - Unit Tests', () => {
       store.updateTransaction(firstLine.id, { amount: 1500 });
 
       mockBudgetTemplatesApi.bulkOperationsTemplateLines$.mockReturnValue(
-        of({ data: { created: [], updated: [], deleted: [] } }),
+        of({
+          data: {
+            created: [],
+            updated: [],
+            deleted: [],
+            propagation: {
+              mode: 'template-only',
+              affectedBudgetIds: [],
+              affectedBudgetsCount: 0,
+            },
+          },
+        }),
       );
 
-      await store.saveChanges(templateId);
+      await store.saveChanges(templateId, false);
 
       expect(store.error()).toBe(null);
     });
@@ -515,7 +571,7 @@ describe('TemplateLineStore - Unit Tests', () => {
         throwError(() => 'Unknown error type'),
       );
 
-      const result = await store.saveChanges('template-123');
+      const result = await store.saveChanges('template-123', false);
 
       expect(result.success).toBe(false);
       expect(result.error).toBe(
@@ -532,7 +588,7 @@ describe('TemplateLineStore - Unit Tests', () => {
         throwError(() => new Error('Network error')),
       );
 
-      await store.saveChanges('template-123');
+      await store.saveChanges('template-123', false);
 
       // Changes should still be there for retry
       expect(store.hasUnsavedChanges()).toBe(true);
