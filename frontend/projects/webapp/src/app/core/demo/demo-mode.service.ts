@@ -1,6 +1,4 @@
 import { Injectable, signal, computed } from '@angular/core';
-import { Router } from '@angular/router';
-import { ROUTES } from '../routing';
 
 const DEMO_MODE_KEY = 'pulpe-demo-mode';
 const DEMO_MODE_INITIALIZED_KEY = 'pulpe-demo-initialized';

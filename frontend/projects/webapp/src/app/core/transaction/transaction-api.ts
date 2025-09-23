@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import {
+  type Transaction,
   type TransactionCreate,
   type TransactionUpdate,
   type TransactionCreateResponse,
@@ -55,7 +56,7 @@ export class TransactionApi {
     // Si en mode démo, utiliser le DemoStorageAdapter pour récupérer depuis localStorage
     if (this.#demoMode.isDemoMode()) {
       const transactions =
-        this.#demoMode.getDemoData<any[]>('transactions') || [];
+        this.#demoMode.getDemoData<Transaction[]>('transactions') || [];
       const transaction = transactions.find((t) => t.id === id);
 
       if (!transaction) {

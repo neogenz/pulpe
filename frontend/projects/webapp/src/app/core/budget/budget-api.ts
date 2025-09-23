@@ -11,7 +11,7 @@ import {
   errorResponseSchema,
 } from '@pulpe/shared';
 import { type Observable, throwError } from 'rxjs';
-import { catchError, map, switchMap } from 'rxjs/operators';
+import { catchError, map } from 'rxjs/operators';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
 import { DemoModeService } from '../demo/demo-mode.service';

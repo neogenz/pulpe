@@ -9,6 +9,7 @@ import { AuthErrorLocalizer } from './auth-error-localizer';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
 import { DemoModeService } from '../demo/demo-mode.service';
+import type { DemoSession, DemoUser } from '../demo/demo-data-generator';
 
 export interface AuthState {
   readonly user: User | null;
@@ -64,8 +65,8 @@ export class AuthApi {
       );
 
       // Récupérer la session démo depuis localStorage
-      const demoSession = this.#demoMode.getDemoData<any>('session');
-      const demoUser = this.#demoMode.getDemoData<any>('user');
+      const demoSession = this.#demoMode.getDemoData<DemoSession>('session');
+      const demoUser = this.#demoMode.getDemoData<DemoUser>('user');
 
       if (demoSession && demoUser) {
         // Créer une session compatible avec Supabase

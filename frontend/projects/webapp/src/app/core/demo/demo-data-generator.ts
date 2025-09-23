@@ -8,7 +8,7 @@ import {
   type TransactionKind,
   type TransactionRecurrence,
 } from '@pulpe/shared';
-import { addMonths, format, startOfMonth, subMonths } from 'date-fns';
+import { addMonths, startOfMonth, subMonths } from 'date-fns';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface DemoUser {
@@ -590,8 +590,6 @@ export class DemoDataGenerator {
           kind: templateLine.kind,
           recurrence: templateLine.recurrence,
           isManuallyAdjusted: false,
-          isRollover: false,
-          rolloverSourceBudgetId: null,
           createdAt: budget.createdAt,
           updatedAt: budget.updatedAt,
         };
@@ -616,7 +614,6 @@ export class DemoDataGenerator {
     });
 
     pastAndCurrentBudgets.forEach((budget) => {
-      const budgetDate = new Date(budget.year, budget.month - 1);
       const isCurrentMonth =
         budget.month === this.currentMonth && budget.year === this.currentYear;
 
@@ -843,7 +840,6 @@ export class DemoDataGenerator {
           kind: trans.kind as TransactionKind,
           category: trans.category!,
           transactionDate: trans.transactionDate!,
-          isOutOfBudget: false,
           createdAt: trans.transactionDate!,
           updatedAt: trans.transactionDate!,
         });

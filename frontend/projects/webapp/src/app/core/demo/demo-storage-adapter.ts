@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, of, throwError, delay } from 'rxjs';
+import type { Observable } from 'rxjs';
+import { of, throwError, delay } from 'rxjs';
 import { map } from 'rxjs/operators';
 import {
   type Budget,
@@ -113,7 +114,12 @@ export class DemoStorageAdapter {
   /**
    * Crée un nouveau budget à partir d'un template
    */
-  createBudget$(budgetData: any): Observable<BudgetResponse> {
+  createBudget$(budgetData: {
+    month: number;
+    year: number;
+    description?: string;
+    templateId: string;
+  }): Observable<BudgetResponse> {
     const budgets = this.#demoMode.getDemoData<Budget[]>('budgets') || [];
     const templates =
       this.#demoMode.getDemoData<BudgetTemplate[]>('templates') || [];
@@ -179,7 +185,14 @@ export class DemoStorageAdapter {
   /**
    * Met à jour un budget
    */
-  updateBudget$(budgetId: string, updateData: any): Observable<BudgetResponse> {
+  updateBudget$(
+    budgetId: string,
+    updateData: {
+      month?: number;
+      year?: number;
+      description?: string;
+    },
+  ): Observable<BudgetResponse> {
     const budgets = this.#demoMode.getDemoData<Budget[]>('budgets') || [];
     const budgetIndex = budgets.findIndex((b) => b.id === budgetId);
 
@@ -246,7 +259,9 @@ export class DemoStorageAdapter {
   /**
    * Récupère un template par ID
    */
-  getTemplateById$(templateId: string): Observable<{ data: BudgetTemplate }> {
+  getTemplateById$(
+    templateId: string,
+  ): Observable<{ success: true; data: BudgetTemplate }> {
     const templates =
       this.#demoMode.getDemoData<BudgetTemplate[]>('templates') || [];
     const template = templates.find((t) => t.id === templateId);
@@ -300,9 +315,14 @@ export class DemoStorageAdapter {
   /**
    * Crée une nouvelle transaction
    */
-  createTransaction$(
-    transaction: any,
-  ): Observable<{ success: true; data: Transaction }> {
+  createTransaction$(transaction: {
+    budgetId: string;
+    name: string;
+    amount: number;
+    kind: 'income' | 'expense' | 'saving';
+    transactionDate?: string;
+    category?: string | null;
+  }): Observable<{ success: true; data: Transaction }> {
     const transactions =
       this.#demoMode.getDemoData<Transaction[]>('transactions') || [];
 
@@ -330,7 +350,13 @@ export class DemoStorageAdapter {
    */
   updateTransaction$(
     id: string,
-    updateData: any,
+    updateData: {
+      name?: string;
+      amount?: number;
+      kind?: 'income' | 'expense' | 'saving';
+      transactionDate?: string;
+      category?: string | null;
+    },
   ): Observable<{ success: true; data: Transaction }> {
     const transactions =
       this.#demoMode.getDemoData<Transaction[]>('transactions') || [];
@@ -386,7 +412,18 @@ export class DemoStorageAdapter {
   /**
    * Crée une ligne de budget
    */
-  createBudgetLine$(budgetLine: any): Observable<BudgetLineResponse> {
+  createBudgetLine$(budgetLine: {
+    budgetId: string;
+    templateLineId?: string | null;
+    savingsGoalId?: string | null;
+    name: string;
+    amount: number;
+    kind: 'income' | 'expense' | 'saving';
+    recurrence: 'fixed' | 'variable' | 'one_off';
+    isManuallyAdjusted?: boolean;
+    isRollover?: boolean;
+    rolloverSourceBudgetId?: string | null;
+  }): Observable<BudgetLineResponse> {
     const budgetLines =
       this.#demoMode.getDemoData<BudgetLine[]>('budget-lines') || [];
 
@@ -416,7 +453,13 @@ export class DemoStorageAdapter {
    */
   updateBudgetLine$(
     id: string,
-    updateData: any,
+    updateData: {
+      name?: string;
+      amount?: number;
+      kind?: 'income' | 'expense' | 'saving';
+      recurrence?: 'fixed' | 'variable' | 'one_off';
+      isManuallyAdjusted?: boolean;
+    },
   ): Observable<BudgetLineResponse> {
     const budgetLines =
       this.#demoMode.getDemoData<BudgetLine[]>('budget-lines') || [];
@@ -473,24 +516,62 @@ export class DemoStorageAdapter {
   /**
    * Crée un nouveau template
    */
-  createTemplate$(template: any): Observable<BudgetTemplateResponse> {
+  createTemplate$(template: {
+    name: string;
+    description?: string;
+    isDefault?: boolean;
+    lines?: {
+      name: string;
+      amount: number;
+      kind: 'income' | 'expense' | 'saving';
+      recurrence: 'fixed' | 'variable' | 'one_off';
+      description?: string;
+    }[];
+  }): Observable<{
+    success: true;
+    data: { template: BudgetTemplate; lines: TemplateLine[] };
+  }> {
     const templates =
       this.#demoMode.getDemoData<BudgetTemplate[]>('templates') || [];
+    const templateLines =
+      this.#demoMode.getDemoData<TemplateLine[]>('template-lines') || [];
 
     const newTemplate: BudgetTemplate = {
       id: uuidv4(),
-      ...template,
+      name: template.name,
+      description: template.description,
+      isDefault: template.isDefault,
       userId: 'demo-user',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
+
+    // Create template lines if provided
+    const createdLines: TemplateLine[] = [];
+    if (template.lines && template.lines.length > 0) {
+      for (const line of template.lines) {
+        const newLine = {
+          id: uuidv4(),
+          templateId: newTemplate.id,
+          ...line,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        createdLines.push(newLine);
+        templateLines.push(newLine);
+      }
+      this.#demoMode.saveDemoData('template-lines', templateLines);
+    }
 
     templates.push(newTemplate);
     this.#demoMode.saveDemoData('templates', templates);
 
     return this.mockApiResponse({
       success: true,
-      data: newTemplate,
+      data: {
+        template: newTemplate,
+        lines: createdLines,
+      },
     });
   }
 
@@ -499,7 +580,11 @@ export class DemoStorageAdapter {
    */
   updateTemplate$(
     id: string,
-    updates: any,
+    updates: {
+      name?: string;
+      description?: string;
+      isDefault?: boolean;
+    },
   ): Observable<BudgetTemplateResponse> {
     const templates =
       this.#demoMode.getDemoData<BudgetTemplate[]>('templates') || [];
@@ -561,14 +646,23 @@ export class DemoStorageAdapter {
    */
   updateTemplateLines$(
     templateId: string,
-    bulkUpdate: any,
+    bulkUpdate: {
+      lines?: {
+        id: string;
+        name?: string;
+        amount?: number;
+        kind?: 'income' | 'expense' | 'saving';
+        recurrence?: 'fixed' | 'variable' | 'one_off';
+        description?: string;
+      }[];
+    },
   ): Observable<TemplateLinesBulkUpdateResponse> {
     const templateLines =
       this.#demoMode.getDemoData<TemplateLine[]>('template-lines') || [];
 
     // Pour chaque ligne à mettre à jour
     if (bulkUpdate.lines) {
-      bulkUpdate.lines.forEach((lineUpdate: any) => {
+      bulkUpdate.lines.forEach((lineUpdate) => {
         const index = templateLines.findIndex((l) => l.id === lineUpdate.id);
         if (index !== -1) {
           templateLines[index] = {
@@ -598,14 +692,31 @@ export class DemoStorageAdapter {
    */
   bulkOperationsTemplateLines$(
     templateId: string,
-    operations: any,
+    operations: {
+      create?: {
+        name: string;
+        amount: number;
+        kind: 'income' | 'expense' | 'saving';
+        recurrence: 'fixed' | 'variable' | 'one_off';
+        description: string;
+      }[];
+      update?: {
+        id: string;
+        name?: string;
+        amount?: number;
+        kind?: 'income' | 'expense' | 'saving';
+        recurrence?: 'fixed' | 'variable' | 'one_off';
+        description?: string;
+      }[];
+      delete?: string[];
+    },
   ): Observable<TemplateLinesBulkOperationsResponse> {
     let templateLines =
       this.#demoMode.getDemoData<TemplateLine[]>('template-lines') || [];
 
     // Créer de nouvelles lignes
     if (operations.create) {
-      operations.create.forEach((lineData: any) => {
+      operations.create.forEach((lineData) => {
         const newLine: TemplateLine = {
           id: uuidv4(),
           templateId,
@@ -619,7 +730,7 @@ export class DemoStorageAdapter {
 
     // Mettre à jour des lignes existantes
     if (operations.update) {
-      operations.update.forEach((lineUpdate: any) => {
+      operations.update.forEach((lineUpdate) => {
         const index = templateLines.findIndex((l) => l.id === lineUpdate.id);
         if (index !== -1) {
           templateLines[index] = {
@@ -640,13 +751,13 @@ export class DemoStorageAdapter {
 
     this.#demoMode.saveDemoData('template-lines', templateLines);
 
-    const updatedLines = templateLines.filter(
-      (l) => l.templateId === templateId,
-    );
-
     return this.mockApiResponse({
       success: true,
-      data: updatedLines,
+      data: {
+        created: operations.create || [],
+        updated: operations.update || [],
+        deleted: operations.delete || [],
+      },
       message: 'Opérations effectuées avec succès',
     });
   }

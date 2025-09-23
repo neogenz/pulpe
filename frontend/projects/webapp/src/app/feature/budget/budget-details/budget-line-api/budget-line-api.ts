@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { type Observable, catchError, throwError, of } from 'rxjs';
 import { map } from 'rxjs/operators';
 import {
+  type BudgetLine,
   type BudgetLineResponse,
   type BudgetLineListResponse,
   type BudgetLineDeleteResponse,
@@ -30,7 +31,7 @@ export class BudgetLineApi {
     // Si en mode démo, récupérer depuis localStorage
     if (this.#demoMode.isDemoMode()) {
       const budgetLines =
-        this.#demoMode.getDemoData<any[]>('budget-lines') || [];
+        this.#demoMode.getDemoData<BudgetLine[]>('budget-lines') || [];
       const filteredLines = budgetLines.filter(
         (bl) => bl.budgetId === budgetId,
       );

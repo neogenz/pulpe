@@ -2,6 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { type Observable, forkJoin, map, of } from 'rxjs';
 import {
+  type Budget,
   type BudgetTemplateCreate,
   type BudgetTemplateCreateFromOnboarding,
   type BudgetTemplateCreateResponse,
@@ -46,7 +47,12 @@ export class BudgetTemplatesApi {
 
   create$(template: BudgetTemplateCreate): Observable<BudgetTemplateResponse> {
     if (this.#demoMode.isDemoMode()) {
-      return this.#demoStorage.createTemplate$(template);
+      return this.#demoStorage.createTemplate$(template).pipe(
+        map((response) => ({
+          success: true,
+          data: response.data.template,
+        })),
+      );
     }
     return this.#http.post<BudgetTemplateResponse>(this.#apiUrl, template);
   }
@@ -60,14 +66,11 @@ export class BudgetTemplatesApi {
         name: 'Nouveau modèle',
         description: 'Créé depuis onboarding',
         isDefault: false,
+        lines: [],
       };
-      return this.#demoStorage.createTemplate$(template).pipe(
-        map((response) => ({
-          success: true,
-          data: response.data,
-          templateLineIds: [],
-        })),
-      );
+      return this.#demoStorage
+        .createTemplate$(template)
+        .pipe(map((response) => response as BudgetTemplateCreateResponse));
     }
     return this.#http.post<BudgetTemplateCreateResponse>(
       `${this.#apiUrl}/from-onboarding`,
@@ -140,16 +143,21 @@ export class BudgetTemplatesApi {
   checkUsage$(id: string): Observable<TemplateUsageResponse> {
     if (this.#demoMode.isDemoMode()) {
       // En mode démo, on peut simuler une réponse
-      const budgets = this.#demoMode.getDemoData<any[]>('budgets') || [];
-      const usedInBudgets = budgets.filter((b) => b.templateId === id).length;
+      const budgets = this.#demoMode.getDemoData<Budget[]>('budgets') || [];
+      const usedBudgets = budgets.filter((b) => b.templateId === id);
       return of({
         success: true,
         data: {
-          templateId: id,
-          usedInBudgets,
-          canDelete: usedInBudgets === 0,
+          isUsed: usedBudgets.length > 0,
+          budgetCount: usedBudgets.length,
+          budgets: usedBudgets.map((b) => ({
+            id: b.id,
+            month: b.month,
+            year: b.year,
+            description: b.description || '',
+          })),
         },
-      });
+      } as TemplateUsageResponse);
     }
     return this.#http.get<TemplateUsageResponse>(`${this.#apiUrl}/${id}/usage`);
   }
