@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { BudgetTemplateService } from './budget-template.service';
-import { createMockSupabaseClient } from '@/test/test-mocks';
+import {
+  createMockSupabaseClient,
+  createMockTemplateLineEntity,
+} from '@/test/test-mocks';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { Tables } from '@/types/database.types';
 import {
@@ -171,6 +174,123 @@ describe('BudgetTemplateService - Simplified Tests', () => {
       expect(result.success).toBe(true);
       expect(result.data.template.name).toBe('Test Template');
       expect(result.data.lines).toHaveLength(1);
+    });
+  });
+
+  describe('Propagation Handling', () => {
+    const templateId = 'template-123';
+
+    it('should return template-only summary when propagation disabled', async () => {
+      const operations = {
+        deletedIds: [] as string[],
+        updatedLines: [] as Tables<'template_line'>[],
+        createdLines: [] as Tables<'template_line'>[],
+      };
+
+      const summary = await (service as any).handlePropagationStrategy(
+        false,
+        operations,
+        templateId,
+        mockUser,
+        {} as any,
+      );
+
+      expect(summary).toEqual({
+        mode: 'template-only',
+        affectedBudgetIds: [],
+        affectedBudgetsCount: 0,
+      });
+      expect(mockBudgetService.recalculateBalances).not.toHaveBeenCalled();
+    });
+
+    it('should propagate template changes to future budgets and recalculate balances', async () => {
+      const templateLine = createMockTemplateLineEntity({
+        id: 'line-1',
+        template_id: templateId,
+      }) as Tables<'template_line'>;
+
+      const operations = {
+        deletedIds: [] as string[],
+        updatedLines: [templateLine],
+        createdLines: [] as Tables<'template_line'>[],
+      };
+
+      const futureBudgets = [
+        {
+          id: 'budget-1',
+          month: 12,
+          year: new Date().getUTCFullYear() + 1,
+        },
+      ];
+
+      const supabaseStub = {
+        from: (table: string) => {
+          if (table === 'monthly_budget') {
+            return {
+              select: () => ({
+                eq: () => ({
+                  eq: () => ({
+                    or: () =>
+                      Promise.resolve({ data: futureBudgets, error: null }),
+                  }),
+                }),
+              }),
+            };
+          }
+
+          if (table === 'budget_line') {
+            return {
+              update: () => ({
+                eq: () => ({
+                  eq: () => ({
+                    in: () => ({
+                      select: () =>
+                        Promise.resolve({
+                          data: futureBudgets.map((budget) => ({
+                            budget_id: budget.id,
+                          })),
+                          error: null,
+                        }),
+                    }),
+                  }),
+                }),
+              }),
+              delete: () => ({
+                in: () => ({
+                  in: () => ({
+                    eq: () => ({
+                      select: () => Promise.resolve({ data: [], error: null }),
+                    }),
+                  }),
+                }),
+              }),
+              insert: () => ({
+                select: () => Promise.resolve({ data: [], error: null }),
+              }),
+            };
+          }
+
+          throw new Error(`Unexpected table access: ${table}`);
+        },
+      } as any;
+
+      const summary = await (service as any).propagateTemplateChangesToBudgets(
+        templateId,
+        operations,
+        mockUser,
+        supabaseStub,
+      );
+
+      expect(summary).toEqual({
+        mode: 'propagate',
+        affectedBudgetIds: ['budget-1'],
+        affectedBudgetsCount: 1,
+      });
+      expect(mockBudgetService.recalculateBalances).toHaveBeenCalledTimes(1);
+      expect(mockBudgetService.recalculateBalances).toHaveBeenCalledWith(
+        'budget-1',
+        supabaseStub,
+      );
     });
   });
 
