@@ -21,7 +21,13 @@ describe('BudgetTemplateService - Template Deletion', () => {
       warn: mock(() => {}),
       debug: mock(() => {}),
     };
-    service = new BudgetTemplateService(mockLogger as any);
+    const mockBudgetService = {
+      recalculateBalances: mock(() => Promise.resolve()),
+    };
+    service = new BudgetTemplateService(
+      mockLogger as any,
+      mockBudgetService as any,
+    );
   });
 
   describe('remove', () => {

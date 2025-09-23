@@ -15,5 +15,72 @@
         "format": false
       }
     }
+  },
+  "languages": {
+    "TypeScript": {
+      "code_actions_on_format": {
+        "source.organizeImports": true,
+        "source.fixAll.eslint": true,
+        "source.removeUnusedImports": true
+      },
+      "formatter": "prettier"
+    },
+    "JavaScript": {
+      "language_servers": ["typescript-language-service", "eslint"],
+      "code_actions_on_format": {
+        "source.fixAll.eslint": true,
+        "source.removeUnusedImports": true
+      },
+      "formatter": "prettier"
+    },
+    "TSX": {
+      "code_actions_on_format": {
+        "source.organizeImports": true,
+        "source.fixAll.eslint": true,
+        "source.removeUnusedImports": true
+      },
+      "formatter": "prettier"
+    }
+  },
+  "file_scan_exclusions": ["**/.git", "**/node_modules"],
+  "tab_bar": {
+    "show": true,
+    "show_nav_history_buttons": false
+  },
+  "project_panel": {
+    "button": true,
+    "dock": "left",
+    "git_status": true,
+    "indent_size": 16
+  },
+  "collaboration_panel": {
+    "dock": "left",
+    "button": false
+  },
+  "notification_panel": {
+    "dock": "left",
+    "button": false
+  },
+  "terminal": {
+    "dock": "right",
+    "font_size": 14
+  },
+  "diagnostics": {
+    "button": true,
+    "include_warnings": true,
+    "inline": {
+      "enabled": true,
+      "update_debounce_ms": 150,
+      "padding": 4,
+      "min_column": 0,
+      "max_severity": null
+    }
+  },
+  "features": {
+    "edit_prediction_provider": "copilot"
+  },
+  "indent_guides": {
+    "enabled": true,
+    "coloring": "indent_aware"
   }
 }
