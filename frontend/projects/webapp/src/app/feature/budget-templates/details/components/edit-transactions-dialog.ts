@@ -24,17 +24,17 @@ import {
   type TemplateLine,
   type TemplateLinesPropagationSummary,
 } from '@pulpe/shared';
-import { firstValueFrom } from 'rxjs';
 import {
   ConfirmationDialog,
   type ConfirmationDialogData,
 } from '@ui/dialogs/confirmation-dialog';
+import { firstValueFrom } from 'rxjs';
 import {
   getTransactionTypes,
   type TransactionFormData,
 } from '../../services/transaction-form';
-import { TemplateLineStore } from '../services/template-line-store';
 import { type EditableLine } from '../services/template-line-state';
+import { TemplateLineStore } from '../services/template-line-store';
 import {
   TemplatePropagationDialog,
   type TemplatePropagationChoice,
@@ -526,7 +526,8 @@ export default class EditTransactionsDialog {
 
   async #askPropagationStrategy(): Promise<TemplatePropagationChoice | null> {
     const dialogRef = this.#dialog.open(TemplatePropagationDialog, {
-      width: '480px',
+      width: '640px',
+      maxWidth: '95vw',
       data: {
         templateName: this.data.templateName,
       },
