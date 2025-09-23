@@ -23,7 +23,7 @@ Run `pnpm changeset` and for each change:
   - **MAJOR**: Breaking changes that affect the public API
   - **MINOR**: New features or enhancements (backward compatible)
   - **PATCH**: Bug fixes (backward compatible)
-- Write clear, user-focused descriptions explaining the business impact
+- Write clear, user-focused descriptions explaining the business impact. In French.
 
 ## 3. Validation loop
 
