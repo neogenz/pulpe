@@ -1,5 +1,22 @@
 # pulpe-frontend
 
+## 2025.12.0
+
+### Minor Changes
+
+- Nouvelle fonctionnalité : Propagation intelligente des modèles de budget
+
+  Les modifications apportées à vos modèles de budget peuvent maintenant être propagées vers vos budgets futurs. Le système protège automatiquement vos lignes personnalisées pour ne mettre à jour que les éléments non modifiés. Cette amélioration facilite la gestion de vos prévisions sur plusieurs mois.
+  - Dialogue de confirmation lors de la modification d'un modèle
+  - Protection des lignes modifiées manuellement
+  - Propagation uniquement vers les budgets futurs
+  - Préservation de vos ajustements personnalisés
+
+### Patch Changes
+
+- Updated dependencies
+  - @pulpe/shared@0.2.1
+
 ## 2025.11.1
 
 ### Patch Changes
