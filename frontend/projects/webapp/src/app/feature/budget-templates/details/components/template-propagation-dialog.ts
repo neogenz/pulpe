@@ -63,11 +63,11 @@ interface TemplatePropagationDialogData {
         <mat-radio-button value="propagate">
           <div class="flex flex-col">
             <span class="text-title-medium">
-              Mettre à jour le modèle et les budgets futurs
+              Mettre à jour le modèle et les budgets actuels et futurs
             </span>
             <span class="text-body-small text-secondary">
-              Les prochains budgets créés à partir de ce modèle seront ajustés
-              automatiquement (mois en cours et passés inchangés).
+              Les budgets à partir du mois en cours seront ajustés
+              automatiquement (mois passés inchangés).
             </span>
           </div>
         </mat-radio-button>
