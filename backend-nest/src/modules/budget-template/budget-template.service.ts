@@ -1056,12 +1056,33 @@ export class BudgetTemplateService {
     const validated =
       templateLinesBulkOperationsSchema.parse(bulkOperationsDto);
 
-    const operationsResult = await this.performTemplateLineOperations(
-      validated,
+    // For deletes, we need to validate they exist but NOT delete them yet
+    // This allows propagation to work with existing template_line_ids
+    const deleteIds = validated.delete || [];
+    if (deleteIds.length) {
+      await this.validateTemplateLinesExist(deleteIds, templateId, supabase);
+    }
+
+    // First, perform creates and updates (these don't affect existing links)
+    const updatedLines = await this.performBulkUpdates(
+      validated.update,
+      templateId,
+      supabase,
+    );
+    const createdLines = await this.performBulkCreates(
+      validated.create,
       templateId,
       supabase,
     );
 
+    // Build operations result with validated delete IDs (not yet deleted)
+    const operationsResult: TemplateBulkOperationsResult = {
+      deletedIds: deleteIds,
+      updatedLines,
+      createdLines,
+    };
+
+    // Propagate changes BEFORE deleting template lines
     const propagationSummary = await this.handlePropagationStrategy(
       validated.propagateToBudgets,
       operationsResult,
@@ -1069,6 +1090,11 @@ export class BudgetTemplateService {
       user,
       supabase,
     );
+
+    // NOW delete the template lines after propagation is complete
+    if (deleteIds.length) {
+      await this.performBulkDeletes(deleteIds, templateId, supabase);
+    }
 
     return {
       success: true,
@@ -1085,11 +1111,16 @@ export class BudgetTemplateService {
     };
   }
 
+  // This method is now deprecated and replaced by inline logic in executeBulkOperations
+  // to fix the deletion propagation issue
   private async performTemplateLineOperations(
     validated: TemplateLinesBulkOperations,
     templateId: string,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateBulkOperationsResult> {
+    // NOTE: This method is no longer used due to operation order fix
+    // The operations are now performed directly in executeBulkOperations
+    // to ensure propagation happens before template line deletion
     const deletedIds = await this.performBulkDeletes(
       validated.delete,
       templateId,
@@ -1138,6 +1169,19 @@ export class BudgetTemplateService {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateLinesPropagationSummary> {
+    // Log the start of propagation
+    this.logger.info({
+      operation: 'propagateTemplateChangesToBudgets',
+      templateId,
+      userId: user.id,
+      operations: {
+        deletedCount: operations.deletedIds?.length || 0,
+        updatedCount: operations.updatedLines?.length || 0,
+        createdCount: operations.createdLines?.length || 0,
+      },
+      message: 'Starting template propagation to budgets',
+    });
+
     const budgets = await this.fetchFutureBudgetsForTemplate(
       templateId,
       user.id,
@@ -1145,6 +1189,12 @@ export class BudgetTemplateService {
     );
 
     if (!budgets.length) {
+      this.logger.warn({
+        operation: 'propagateTemplateChangesToBudgets',
+        templateId,
+        userId: user.id,
+        message: 'No budgets found for propagation - check if budgets have template_id set',
+      });
       return {
         mode: 'propagate',
         affectedBudgetIds: [],
@@ -1220,8 +1270,50 @@ export class BudgetTemplateService {
     const currentMonth = now.getUTCMonth() + 1;
     const currentYear = now.getUTCFullYear();
 
+    // Debug logging for date calculation
+    this.logger.debug({
+      operation: 'fetchFutureBudgetsForTemplate',
+      templateId,
+      userId,
+      currentMonth,
+      currentYear,
+      currentDate: now.toISOString(),
+      message: 'Calculating future budgets filter',
+    });
+
     const futureFilter = `year.gt.${currentYear},and(year.eq.${currentYear},month.gte.${currentMonth})`;
 
+    // Debug logging for the filter
+    this.logger.debug({
+      operation: 'fetchFutureBudgetsForTemplate',
+      futureFilter,
+      message: 'Generated PostgREST filter for future budgets',
+    });
+
+    // First, check if ANY budgets exist for this template (without date filter)
+    const { data: allBudgets, error: allBudgetsError } = await supabase
+      .from('monthly_budget')
+      .select('id, month, year, template_id')
+      .eq('template_id', templateId)
+      .eq('user_id', userId);
+
+    if (!allBudgetsError && allBudgets) {
+      this.logger.info({
+        operation: 'fetchFutureBudgetsForTemplate',
+        templateId,
+        userId,
+        totalBudgetsForTemplate: allBudgets.length,
+        budgets: allBudgets.map(b => ({
+          id: b.id,
+          month: b.month,
+          year: b.year,
+          template_id: b.template_id,
+        })),
+        message: 'All budgets found for template (without date filter)',
+      });
+    }
+
+    // Now fetch with the future filter
     const { data, error } = await supabase
       .from('monthly_budget')
       .select('id, month, year')
@@ -1229,7 +1321,31 @@ export class BudgetTemplateService {
       .eq('user_id', userId)
       .or(futureFilter);
 
-    if (error) throw error;
+    if (error) {
+      this.logger.error({
+        operation: 'fetchFutureBudgetsForTemplate',
+        error: error.message,
+        templateId,
+        userId,
+        message: 'Failed to fetch future budgets',
+      });
+      throw error;
+    }
+
+    // Log the results
+    this.logger.info({
+      operation: 'fetchFutureBudgetsForTemplate',
+      templateId,
+      userId,
+      futureBudgetsCount: data?.length || 0,
+      futureBudgets: data?.map(b => ({
+        id: b.id,
+        month: b.month,
+        year: b.year,
+      })) || [],
+      message: 'Future budgets query completed',
+    });
+
     return data || [];
   }
 
@@ -1239,6 +1355,37 @@ export class BudgetTemplateService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<string[]> {
     if (!templateLineIds.length || !budgetIds.length) return [];
+
+    // Debug logging for deletion operation
+    this.logger.debug({
+      operation: 'removeTemplateLinesFromBudgets',
+      templateLineIds,
+      budgetIds,
+      budgetCount: budgetIds.length,
+      templateLineCount: templateLineIds.length,
+      message: 'Starting to remove template lines from budgets',
+    });
+
+    // First, check if budget_lines exist for these template_line_ids
+    const { data: existingLines, error: checkError } = await supabase
+      .from('budget_line')
+      .select('id, budget_id, template_line_id, is_manually_adjusted')
+      .in('template_line_id', templateLineIds)
+      .in('budget_id', budgetIds);
+
+    if (!checkError && existingLines) {
+      this.logger.info({
+        operation: 'removeTemplateLinesFromBudgets',
+        existingBudgetLinesCount: existingLines.length,
+        existingBudgetLines: existingLines.map(line => ({
+          id: line.id,
+          budget_id: line.budget_id,
+          template_line_id: line.template_line_id,
+          is_manually_adjusted: line.is_manually_adjusted,
+        })),
+        message: 'Found existing budget lines before deletion',
+      });
+    }
 
     const impacted: string[] = [];
     const CHUNK_SIZE = 50;
@@ -1253,9 +1400,39 @@ export class BudgetTemplateService {
         .eq('is_manually_adjusted', false)
         .select('budget_id');
 
-      if (error) throw error;
-      if (data) impacted.push(...data.map((row) => row.budget_id));
+      if (error) {
+        this.logger.error({
+          operation: 'removeTemplateLinesFromBudgets',
+          error: error.message,
+          chunk,
+          message: 'Failed to delete budget lines',
+        });
+        throw error;
+      }
+
+      if (data) {
+        this.logger.debug({
+          operation: 'removeTemplateLinesFromBudgets',
+          deletedCount: data.length,
+          deletedFromBudgets: data.map((row) => row.budget_id),
+          message: 'Successfully deleted budget lines',
+        });
+        impacted.push(...data.map((row) => row.budget_id));
+      } else {
+        this.logger.warn({
+          operation: 'removeTemplateLinesFromBudgets',
+          chunk,
+          message: 'No budget lines were deleted (data is null)',
+        });
+      }
     }
+
+    this.logger.info({
+      operation: 'removeTemplateLinesFromBudgets',
+      totalImpactedBudgets: impacted.length,
+      impactedBudgetIds: impacted,
+      message: 'Completed removing template lines from budgets',
+    });
 
     return impacted;
   }
@@ -1337,6 +1514,24 @@ export class BudgetTemplateService {
 
     for (const budgetId of budgetIds) {
       await this.budgetService.recalculateBalances(budgetId, supabase);
+    }
+  }
+
+  private async validateTemplateLinesExist(
+    lineIds: string[],
+    templateId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    if (!lineIds.length) return;
+
+    const { data: existingLines } = await supabase
+      .from('template_line')
+      .select('id')
+      .eq('template_id', templateId)
+      .in('id', lineIds);
+
+    if (!existingLines || existingLines.length !== lineIds.length) {
+      throw new NotFoundException('Some template lines to delete not found');
     }
   }
 
