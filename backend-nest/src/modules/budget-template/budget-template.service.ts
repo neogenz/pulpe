@@ -1,12 +1,13 @@
 import { type Database, Tables, TablesInsert } from '@/types/database.types';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
+import { BudgetService } from '@modules/budget/budget.service';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
-  ForbiddenException,
 } from '@nestjs/common';
 import {
   type BudgetTemplateCreate,
@@ -23,22 +24,21 @@ import {
   type TemplateLineResponse,
   type TemplateLineUpdate,
   type TemplateLineUpdateWithId,
+  type TemplateLinesBulkOperations,
+  type TemplateLinesBulkOperationsResponse,
   type TemplateLinesBulkUpdate,
   type TemplateLinesBulkUpdateResponse,
-  budgetTemplateCreateSchema,
+  type TemplateLinesPropagationSummary,
   budgetTemplateCreateFromOnboardingSchema,
+  budgetTemplateCreateSchema,
   budgetTemplateUpdateSchema,
   templateLineCreateWithoutTemplateIdSchema,
   templateLineUpdateSchema,
-  templateLinesBulkUpdateSchema,
   templateLinesBulkOperationsSchema,
-  type TemplateLinesBulkOperations,
-  type TemplateLinesBulkOperationsResponse,
-  type TemplateLinesPropagationSummary,
+  templateLinesBulkUpdateSchema,
 } from '@pulpe/shared';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import * as budgetTemplateMappers from './budget-template.mappers';
-import { BudgetService } from '@modules/budget/budget.service';
 
 type TemplateBulkOperationsResult = {
   deletedIds: string[];
@@ -1030,7 +1030,7 @@ export class BudgetTemplateService {
             update: bulkOperationsDto.update?.length || 0,
             delete: bulkOperationsDto.delete?.length || 0,
           },
-          propagateToBudgets: Boolean(bulkOperationsDto.propagateToBudgets),
+          propagateToBudgets: bulkOperationsDto.propagateToBudgets,
           propagationImpact: {
             mode: data.data.propagation?.mode ?? 'template-only',
             affectedBudgetsCount:
@@ -1220,7 +1220,7 @@ export class BudgetTemplateService {
     const currentMonth = now.getUTCMonth() + 1;
     const currentYear = now.getUTCFullYear();
 
-    const futureFilter = `year.gt.${currentYear},and(year.eq.${currentYear},month.gt.${currentMonth})`;
+    const futureFilter = `year.gt.${currentYear},and(year.eq.${currentYear},month.gte.${currentMonth})`;
 
     const { data, error } = await supabase
       .from('monthly_budget')
