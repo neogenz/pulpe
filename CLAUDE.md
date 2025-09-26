@@ -140,3 +140,7 @@ Details at @backend-nest/CLAUDE.md
 ## References to business specs of project
 
 - You can reference @memory-bank/SPECS.md dynamically to refer at all business data
+
+## Important Notes
+
+- Never use destructive (`db reset` for exemple) commands on supabase
