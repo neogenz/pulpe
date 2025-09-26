@@ -8,6 +8,7 @@ import {
   type BudgetDetailsResponse,
   budgetSchema,
   errorResponseSchema,
+  type ErrorResponse,
 } from '@pulpe/shared';
 import { type Observable, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
@@ -22,9 +23,14 @@ export interface CreateBudgetApiResponse {
 export interface BudgetApiError {
   readonly message: string;
   readonly details?: readonly string[];
+  readonly code?: string;
 }
 
 const CURRENT_BUDGET_STORAGE_KEY = 'pulpe-current-budget';
+
+type NormalizedErrorPayload = Partial<
+  Pick<ErrorResponse, 'message' | 'error' | 'code' | 'details'>
+>;
 
 @Injectable({
   providedIn: 'root',
@@ -262,37 +268,125 @@ export class BudgetApi {
     }
   }
 
+  #getLocalizedErrorMessage(code?: string): string | null {
+    if (!code) return null;
+
+    switch (code) {
+      case 'ERR_BUDGET_ALREADY_EXISTS':
+        return 'Un budget existe déjà pour cette période. Veuillez sélectionner un autre mois.';
+      case 'ERR_TEMPLATE_NOT_FOUND':
+        return "Le modèle sélectionné n'existe plus. Veuillez en choisir un autre.";
+      default:
+        return null; // Pas de mapping pour ce code
+    }
+  }
+
   #handleApiError(error: unknown, defaultMessage: string): Observable<never> {
     this.#logger.error('Erreur API Budget:', error);
 
-    let budgetError: BudgetApiError = { message: defaultMessage };
-
-    if (error instanceof HttpErrorResponse) {
-      const parsedError = errorResponseSchema.safeParse(error.error);
-
-      if (parsedError.success) {
-        budgetError = {
-          message: parsedError.data.error,
-          details: parsedError.data.details
-            ? [parsedError.data.details]
-            : undefined,
-        };
-      } else {
-        // Gérer le cas où error.error?.message peut être un objet
-        const errorMessage = error.error?.message;
-        const message =
-          typeof errorMessage === 'string'
-            ? errorMessage
-            : typeof errorMessage === 'object' && errorMessage?.message
-              ? String(errorMessage.message)
-              : error.message || defaultMessage;
-
-        budgetError = {
-          message,
-        };
-      }
+    if (!this.#isHttpError(error)) {
+      const message = this.#extractFallbackMessage(error, defaultMessage);
+      return throwError(() => ({ message }) satisfies BudgetApiError);
     }
 
+    const rawPayload = error.error;
+    const payload = this.#normalizeErrorPayload(rawPayload);
+    const fallbackMessage = this.#extractFallbackMessage(error, defaultMessage);
+
+    const message =
+      this.#getLocalizedErrorMessage(payload.code) ??
+      payload.message ??
+      payload.error ??
+      (typeof rawPayload === 'string' ? rawPayload : undefined) ??
+      fallbackMessage;
+
+    const budgetError: BudgetApiError = {
+      message,
+      details: this.#normalizeDetails(payload.details),
+      code: payload.code,
+    };
+
     return throwError(() => budgetError);
+  }
+
+  #isHttpError(error: unknown): error is HttpErrorResponse {
+    return error instanceof HttpErrorResponse;
+  }
+
+  #extractFallbackMessage(error: unknown, defaultMessage: string): string {
+    if (error instanceof Error && error.message) {
+      return error.message;
+    }
+
+    if (typeof error === 'string') {
+      return error;
+    }
+
+    return defaultMessage;
+  }
+
+  #normalizeErrorPayload(rawPayload: unknown): NormalizedErrorPayload {
+    const parsedPayload = errorResponseSchema.safeParse(rawPayload);
+
+    if (parsedPayload.success) {
+      return parsedPayload.data;
+    }
+
+    this.#logger.warn('Payload erreur API non conforme au schéma partagé', {
+      issues: parsedPayload.error.issues,
+      payload: rawPayload,
+    });
+
+    if (rawPayload && typeof rawPayload === 'object') {
+      const payloadRecord = rawPayload as Record<string, unknown>;
+
+      return {
+        message:
+          typeof payloadRecord['message'] === 'string'
+            ? (payloadRecord['message'] as string)
+            : undefined,
+        error:
+          typeof payloadRecord['error'] === 'string'
+            ? (payloadRecord['error'] as string)
+            : undefined,
+        code:
+          typeof payloadRecord['code'] === 'string'
+            ? (payloadRecord['code'] as string)
+            : undefined,
+        details: this.#extractDetails(payloadRecord['details']),
+      } satisfies NormalizedErrorPayload;
+    }
+
+    if (typeof rawPayload === 'string') {
+      return { error: rawPayload } satisfies NormalizedErrorPayload;
+    }
+
+    return {} satisfies NormalizedErrorPayload;
+  }
+
+  #extractDetails(value: unknown): NormalizedErrorPayload['details'] {
+    if (typeof value === 'string') {
+      return value;
+    }
+
+    if (value && typeof value === 'object') {
+      return value as Record<string, unknown>;
+    }
+
+    return undefined;
+  }
+
+  #normalizeDetails(
+    details: NormalizedErrorPayload['details'],
+  ): readonly string[] | undefined {
+    if (typeof details === 'string') {
+      return [details];
+    }
+
+    if (details) {
+      return [JSON.stringify(details)];
+    }
+
+    return undefined;
   }
 }
