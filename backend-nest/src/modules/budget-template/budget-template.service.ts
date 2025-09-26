@@ -1193,7 +1193,8 @@ export class BudgetTemplateService {
         operation: 'propagateTemplateChangesToBudgets',
         templateId,
         userId: user.id,
-        message: 'No budgets found for propagation - check if budgets have template_id set',
+        message:
+          'No budgets found for propagation - check if budgets have template_id set',
       });
       return {
         mode: 'propagate',
@@ -1303,7 +1304,7 @@ export class BudgetTemplateService {
         templateId,
         userId,
         totalBudgetsForTemplate: allBudgets.length,
-        budgets: allBudgets.map(b => ({
+        budgets: allBudgets.map((b) => ({
           id: b.id,
           month: b.month,
           year: b.year,
@@ -1338,11 +1339,12 @@ export class BudgetTemplateService {
       templateId,
       userId,
       futureBudgetsCount: data?.length || 0,
-      futureBudgets: data?.map(b => ({
-        id: b.id,
-        month: b.month,
-        year: b.year,
-      })) || [],
+      futureBudgets:
+        data?.map((b) => ({
+          id: b.id,
+          month: b.month,
+          year: b.year,
+        })) || [],
       message: 'Future budgets query completed',
     });
 
@@ -1377,7 +1379,7 @@ export class BudgetTemplateService {
       this.logger.info({
         operation: 'removeTemplateLinesFromBudgets',
         existingBudgetLinesCount: existingLines.length,
-        existingBudgetLines: existingLines.map(line => ({
+        existingBudgetLines: existingLines.map((line) => ({
           id: line.id,
           budget_id: line.budget_id,
           template_line_id: line.template_line_id,
