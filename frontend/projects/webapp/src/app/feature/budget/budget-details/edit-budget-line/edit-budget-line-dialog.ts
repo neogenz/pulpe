@@ -192,11 +192,14 @@ export class EditBudgetLineDialog {
     if (!this.form.valid) return;
     const value = this.form.value;
     const update: BudgetLineUpdate = {
-      ...this.#data.budgetLine,
+      id: this.#data.budgetLine.id,
       name: value.name!.trim(),
       amount: value.amount!,
       kind: value.kind!,
       recurrence: value.recurrence!,
+      templateLineId: this.#data.budgetLine.templateLineId,
+      savingsGoalId: this.#data.budgetLine.savingsGoalId,
+      isManuallyAdjusted: true,
     };
     this.#dialogRef.close(update);
   }
