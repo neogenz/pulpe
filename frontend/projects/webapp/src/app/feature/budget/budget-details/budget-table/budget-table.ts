@@ -494,6 +494,7 @@ export class BudgetTable {
       id: editingId,
       name: value.name!.trim(),
       amount: value.amount!,
+      isManuallyAdjusted: true,
     };
     this.inlineFormEditingItem.set(null);
     this.editForm.reset();

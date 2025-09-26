@@ -12,9 +12,10 @@ test.describe('Budget Line Editing', () => {
     const updatedName = 'Updated Budget Line';
     const updatedAmount = 150;
 
-    // Track whether the update has been called
+    // Track whether the update has been called and validate the payload
     let hasBeenUpdated = false;
-    
+    let updatePayload: any = null;
+
     // Mock the budget details API with a budget line using typed helper
     await authenticatedPage.route('**/api/v1/budgets/*/details', (route) => {
       // Return updated data if the PATCH has been called
@@ -25,6 +26,7 @@ test.describe('Budget Line Editing', () => {
                 name: updatedName,
                 amount: updatedAmount,
                 recurrence: 'fixed',
+                isManuallyAdjusted: true, // Should be true after edit
               }),
             ],
           })
@@ -34,10 +36,11 @@ test.describe('Budget Line Editing', () => {
                 name: originalName,
                 amount: originalAmount,
                 recurrence: 'fixed',
+                isManuallyAdjusted: false, // Initially false
               }),
             ],
           });
-          
+
       void route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -48,16 +51,23 @@ test.describe('Budget Line Editing', () => {
     // Mock the update API endpoint using typed helper
     await authenticatedPage.route('**/api/v1/budget-lines/line-1', (route) => {
       if (route.request().method() === 'PATCH') {
+        // Capture the update payload
+        updatePayload = route.request().postDataJSON();
+
+        // Validate that isManuallyAdjusted is set to true
+        expect(updatePayload).toHaveProperty('isManuallyAdjusted', true);
+
         // Mark that the update has been called
         hasBeenUpdated = true;
-        
+
         const updatedBudgetLine = createBudgetLineMock('line-1', budgetId, {
           name: updatedName,
           amount: updatedAmount,
           recurrence: 'fixed',
+          isManuallyAdjusted: true, // Ensure the response reflects the update
         });
         const updateResponse = createBudgetLineResponseMock(updatedBudgetLine);
-        
+
         void route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -111,6 +121,10 @@ test.describe('Budget Line Editing', () => {
     const updatedRow = authenticatedPage.locator('tr').filter({ hasText: updatedName });
     await expect(updatedRow).toContainText(updatedName);
     await expect(updatedRow).toContainText('150');
+
+    // Verify that the update payload included isManuallyAdjusted: true
+    expect(updatePayload).toBeDefined();
+    expect(updatePayload).toHaveProperty('isManuallyAdjusted', true);
   });
 
   test('should cancel editing without saving changes', async ({
