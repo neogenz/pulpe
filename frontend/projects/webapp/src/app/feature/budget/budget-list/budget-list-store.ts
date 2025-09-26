@@ -20,6 +20,9 @@ export class BudgetListStore {
   #budgetApi = inject(BudgetApi);
   #logger = inject(Logger);
 
+  // Maximum de mois à rechercher dans le futur (3 ans)
+  private static readonly MAX_FUTURE_MONTHS_TO_SEARCH = 36;
+
   budgets = resource<Budget[], void>({
     loader: async () => this.#loadBudgets(),
   });
@@ -106,6 +109,45 @@ export class BudgetListStore {
     if (!year || years.length === 0) return 0;
 
     return Math.max(0, years.indexOf(year));
+  });
+
+  /**
+   * Calcule le prochain mois disponible sans budget existant
+   * Recherche à partir du mois actuel jusqu'à 3 ans dans le futur
+   */
+  nextAvailableMonth = computed(() => {
+    const budgetsValue = this.budgets.value();
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1; // getMonth() retourne 0-11
+    const currentYear = now.getFullYear();
+
+    // Retour immédiat si pas de budgets
+    if (!budgetsValue || budgetsValue.length === 0) {
+      return { month: currentMonth, year: currentYear };
+    }
+
+    // Créer un Set pour une recherche O(1) au lieu de O(n)
+    // Format: "année-mois" pour une clé unique
+    const existingBudgets = new Set(
+      budgetsValue.map((budget) => `${budget.year}-${budget.month}`),
+    );
+
+    // Parcourir les mois futurs pour trouver le premier disponible
+    for (let i = 0; i < BudgetListStore.MAX_FUTURE_MONTHS_TO_SEARCH; i++) {
+      // Calculer le mois et l'année à vérifier
+      const totalMonths = currentYear * 12 + currentMonth - 1 + i;
+      const year = Math.floor(totalMonths / 12);
+      const month = (totalMonths % 12) + 1;
+
+      // Vérifier si un budget existe pour ce mois (recherche O(1))
+      if (!existingBudgets.has(`${year}-${month}`)) {
+        return { month, year };
+      }
+    }
+
+    // Fallback : retourner le mois actuel si tous les mois sont pris
+    // (cas très rare, mais évite une erreur)
+    return { month: currentMonth, year: currentYear };
   });
 
   refreshData(): void {

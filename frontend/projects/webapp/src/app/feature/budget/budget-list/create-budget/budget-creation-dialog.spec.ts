@@ -5,8 +5,10 @@ import {
   NO_ERRORS_SCHEMA,
   Output,
   provideZonelessChangeDetection,
+  signal,
+  type WritableSignal,
 } from '@angular/core';
-import { type ComponentFixture, TestBed } from '@angular/core/testing';
+import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import {
   MAT_DIALOG_DATA,
@@ -15,18 +17,17 @@ import {
 } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { Subject, defer, of, throwError } from 'rxjs';
-import { signal, type WritableSignal } from '@angular/core';
 import { provideLocale } from '@core/locale';
+import { Subject, defer, of, throwError } from 'rxjs';
 
-import { type BudgetTemplate } from '@pulpe/shared';
 import { BudgetApi } from '@core/budget/budget-api';
 import { TemplateApi } from '@core/template/template-api';
+import { type BudgetTemplate } from '@pulpe/shared';
 import { CreateBudgetDialogComponent } from './budget-creation-dialog';
-import { TemplatesList } from './ui/templates-list';
-import { type TemplateViewModel } from './ui/template-view-model';
 import { TemplateStore, type TemplateTotals } from './services/template-store';
 import { TemplateTotalsCalculator } from './services/template-totals-calculator';
+import { type TemplateViewModel } from './ui/template-view-model';
+import { TemplatesList } from './ui/templates-list';
 
 // Type-safe mock interface that includes internal methods
 interface MatDialogMock extends Partial<MatDialog> {
@@ -509,11 +510,15 @@ describe('CreateBudgetDialogComponent', () => {
       expect(component.budgetForm.valid).toBe(true);
       expect(component.templateStore.selectedTemplate()).toBeTruthy();
 
-      // Mock API error with proper structure
-      const errorMessage = 'Network error occurred';
-      const apiError = { message: errorMessage, statusCode: 500 };
+      // Mock API error with proper BudgetApiError structure (as would be returned by the service's error handling)
+      const budgetApiError = {
+        message:
+          'Une erreur est survenue lors de la création du budget. Veuillez réessayer.',
+        code: 'ERR_BUDGET_ALREADY_EXISTS',
+        details: undefined,
+      };
       vi.spyOn(budgetApiService, 'createBudget$').mockReturnValue(
-        throwError(() => apiError),
+        throwError(() => budgetApiError),
       );
 
       // Spy on snackbar to verify error notification
@@ -538,7 +543,7 @@ describe('CreateBudgetDialogComponent', () => {
 
       // Should show error notification with French message
       expect(snackbarSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Erreur lors de la création du budget'),
+        'Une erreur est survenue lors de la création du budget. Veuillez réessayer.',
         'Fermer',
         expect.objectContaining({
           duration: 8000,

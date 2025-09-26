@@ -145,6 +145,7 @@ interface EditTransactionsDialogResult {
                     (input)="updateDescription(transaction.id, $event)"
                     placeholder="Description de la transaction"
                     [attr.id]="'desc-' + transaction.id"
+                    data-testid="edit-line-description"
                   />
                   @if (!transaction.formData.description?.trim()) {
                     <mat-error>La description est requise</mat-error>
@@ -179,6 +180,7 @@ interface EditTransactionsDialogResult {
                     (input)="updateAmount(transaction.id, $event)"
                     placeholder="0.00"
                     [attr.id]="'amount-' + transaction.id"
+                    data-testid="edit-line-amount"
                   />
                   <span matTextSuffix>CHF</span>
                   @if (transaction.formData.amount < 0) {
@@ -205,6 +207,7 @@ interface EditTransactionsDialogResult {
                     [value]="transaction.formData.type"
                     (selectionChange)="updateType(transaction.id, $event.value)"
                     [attr.id]="'type-' + transaction.id"
+                    data-testid="edit-line-type"
                   >
                     @for (type of transactionTypes; track type.value) {
                       <mat-option [value]="type.value">

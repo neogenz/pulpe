@@ -386,18 +386,28 @@ export class CreateBudgetDialogComponent {
           panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
         },
       );
-    } catch (error) {
+    } catch (error: unknown) {
       this.isCreating.set(false);
 
-      // Show error snackbar with centrally processed error message
-      this.#snackBar.open(
-        `Erreur lors de la création du budget : ${(error as BudgetApiError).message}`,
-        'Fermer',
-        {
-          duration: 8000,
-          panelClass: ['bg-[color-error]', 'text-[color-on-error]'],
-        },
-      );
+      // Extract message from BudgetApiError (already localized by the service)
+      const isBudgetApiError = (err: unknown): err is BudgetApiError => {
+        return (
+          typeof err === 'object' &&
+          err !== null &&
+          'message' in err &&
+          typeof (err as BudgetApiError).message === 'string'
+        );
+      };
+
+      const errorMessage = isBudgetApiError(error)
+        ? error.message
+        : 'Une erreur est survenue lors de la création du budget. Veuillez réessayer.';
+
+      // Show error snackbar with the localized message
+      this.#snackBar.open(errorMessage, 'Fermer', {
+        duration: 8000,
+        panelClass: ['bg-[color-error]', 'text-[color-on-error]'],
+      });
     }
   }
 }

@@ -1,39 +1,39 @@
-import { Injectable, computed, inject, signal } from "@angular/core";
-import { toSignal } from "@angular/core/rxjs-interop";
-import { NavigationEnd, Router } from "@angular/router";
-import { PostHogService } from "@core/analytics/posthog";
-import { AuthApi } from "@core/auth/auth-api";
-import { BudgetApi } from "@core/budget";
-import { Logger } from "@core/logging/logger";
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { NavigationEnd, Router } from '@angular/router';
+import { PostHogService } from '@core/analytics/posthog';
+import { AuthApi } from '@core/auth/auth-api';
+import { BudgetApi } from '@core/budget';
+import { Logger } from '@core/logging/logger';
 import {
   type BudgetCreate,
   type BudgetTemplateCreateFromOnboarding,
-} from "@pulpe/shared";
-import { firstValueFrom } from "rxjs";
-import { filter, map } from "rxjs/operators";
+} from '@pulpe/shared';
+import { firstValueFrom } from 'rxjs';
+import { filter, map } from 'rxjs/operators';
 import {
   type OnboardingData,
   type OnboardingState,
   type OnboardingStep,
   createInitialOnboardingState,
-} from "./onboarding-state";
-import { OnboardingApi } from "./services/onboarding-api";
+} from './onboarding-state';
+import { OnboardingApi } from './services/onboarding-api';
 
 // Re-export for external use
-export type { OnboardingStep } from "./onboarding-state";
+export type { OnboardingStep } from './onboarding-state';
 
-const STORAGE_KEY = "pulpe-onboarding-data";
+const STORAGE_KEY = 'pulpe-onboarding-data';
 
 export const STEP_ORDER: readonly OnboardingStep[] = [
-  "welcome",
-  "personal-info",
-  "income",
-  "housing",
-  "health-insurance",
-  "phone-plan",
-  "transport",
-  "leasing-credit",
-  "registration",
+  'welcome',
+  'personal-info',
+  'income',
+  'housing',
+  'health-insurance',
+  'phone-plan',
+  'transport',
+  'leasing-credit',
+  'registration',
 ] as const;
 
 /**
@@ -80,7 +80,7 @@ export class OnboardingStore {
   // Navigation and progress computed selectors
   readonly currentStep = computed(() => {
     const url = this.#currentUrl();
-    const stepName = url.split("/").pop();
+    const stepName = url.split('/').pop();
     const stepIndex = STEP_ORDER.indexOf(stepName as OnboardingStep);
     const result = stepIndex !== -1 ? stepIndex : -1;
     console.log(
@@ -92,7 +92,7 @@ export class OnboardingStore {
   readonly totalSteps = STEP_ORDER.length;
   readonly isFirstStep = computed(() => this.currentStep() === 0);
   readonly currentStepName = computed(
-    () => STEP_ORDER[this.currentStep()] || "welcome",
+    () => STEP_ORDER[this.currentStep()] || 'welcome',
   );
 
   // Progress tracking
@@ -147,7 +147,7 @@ export class OnboardingStore {
   clearError(): void {
     this.#setState((currentState) => ({
       ...currentState,
-      error: "",
+      error: '',
     }));
   }
 
@@ -175,7 +175,7 @@ export class OnboardingStore {
       !currentData.monthlyIncome ||
       currentData.monthlyIncome <= 0
     ) {
-      this.#setError("Données obligatoires manquantes");
+      this.#setError('Données obligatoires manquantes');
       return false;
     }
 
@@ -188,7 +188,7 @@ export class OnboardingStore {
         const authResult = await this.#authApi.signUpWithEmail(email, password);
         if (!authResult.success) {
           this.#setError(
-            authResult.error || "Erreur lors de la création du compte",
+            authResult.error || 'Erreur lors de la création du compte',
           );
           return false;
         }
@@ -204,7 +204,7 @@ export class OnboardingStore {
 
       // 2. Créer le template
       const templateRequest: BudgetTemplateCreateFromOnboarding = {
-        name: "Mois Standard",
+        name: 'Mois Standard',
         description: `Template personnel de ${currentData.firstName}`,
         isDefault: true,
         monthlyIncome: currentData.monthlyIncome,
@@ -233,7 +233,7 @@ export class OnboardingStore {
 
       // 4. Activer PostHog maintenant que l'utilisateur a accepté les CGU
       this.#postHogService.enableTracking();
-      this.#logger.info("PostHog tracking enabled after CGU acceptance");
+      this.#logger.info('PostHog tracking enabled after CGU acceptance');
 
       // 5. Nettoyer et rediriger
       this.#clearStorage();
@@ -242,20 +242,20 @@ export class OnboardingStore {
       this.#logger.error("Erreur lors de l'inscription:", error);
 
       // Déterminer le type d'erreur selon le stack trace ou le message
-      const errorMessage = error?.toString() || "";
+      const errorMessage = error?.toString() || '';
       const errorObj = error as { message?: string };
       if (
-        errorMessage.includes("template") ||
-        errorObj?.message?.includes("template")
+        errorMessage.includes('template') ||
+        errorObj?.message?.includes('template')
       ) {
         this.#setError(
-          "Erreur lors de la création de votre template budgétaire.",
+          'Erreur lors de la création de votre template budgétaire.',
         );
       } else if (
-        errorMessage.includes("budget") ||
-        errorObj?.message?.includes("budget")
+        errorMessage.includes('budget') ||
+        errorObj?.message?.includes('budget')
       ) {
-        this.#setError("Erreur lors de la création de votre budget initial.");
+        this.#setError('Erreur lors de la création de votre budget initial.');
       } else {
         this.#setError("Une erreur inattendue s'est produite");
       }
@@ -293,7 +293,7 @@ export class OnboardingStore {
    * Clear error state
    */
   #clearError(): void {
-    this.#setState((state) => ({ ...state, error: "" }));
+    this.#setState((state) => ({ ...state, error: '' }));
   }
 
   // Private storage methods
@@ -305,7 +305,7 @@ export class OnboardingStore {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch (error) {
-      this.#logger.error("Erreur sauvegarde localStorage:", error);
+      this.#logger.error('Erreur sauvegarde localStorage:', error);
     }
   }
 
@@ -323,7 +323,7 @@ export class OnboardingStore {
         }));
       }
     } catch (error) {
-      this.#logger.error("Erreur chargement localStorage:", error);
+      this.#logger.error('Erreur chargement localStorage:', error);
     }
   }
 
@@ -334,7 +334,7 @@ export class OnboardingStore {
     try {
       localStorage.removeItem(STORAGE_KEY);
     } catch (error) {
-      this.#logger.error("Erreur suppression localStorage:", error);
+      this.#logger.error('Erreur suppression localStorage:', error);
     }
   }
 }

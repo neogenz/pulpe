@@ -425,8 +425,14 @@ export const errorResponseSchema = z.object({
   success: z.literal(false),
   error: z.string(),
   message: z.string().optional(),
-  details: z.string().optional(),
+  details: z.union([z.string(), z.record(z.unknown())]).optional(), // Can be string or object
   code: z.string().optional(),
+  statusCode: z.number().optional(),
+  timestamp: z.string().optional(),
+  path: z.string().optional(),
+  method: z.string().optional(),
+  context: z.record(z.unknown()).optional(),
+  // Note: stack field from backend is intentionally not included as it's only for debugging
 });
 export type ErrorResponse = z.infer<typeof errorResponseSchema>;
 
