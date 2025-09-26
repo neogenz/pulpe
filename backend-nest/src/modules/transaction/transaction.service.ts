@@ -32,7 +32,7 @@ export class TransactionService {
       const { data: transactionsDb, error } = await supabase
         .from('transaction')
         .select('*')
-        .order('transaction_date', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (error) {
         throw new BusinessException(
@@ -522,7 +522,7 @@ export class TransactionService {
         .from('transaction')
         .select('*')
         .eq('budget_id', budgetId)
-        .order('transaction_date', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (error) {
         throw new BusinessException(
