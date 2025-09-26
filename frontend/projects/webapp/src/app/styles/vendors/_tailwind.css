@@ -165,6 +165,10 @@
   color: var(--pulpe-financial-savings);
 }
 
+@utility text-financial-expense {
+  color: var(--pulpe-financial-expense);
+}
+
 /* `.dark-theme` is the class name to enable dark mode in our application */
 @custom-variant dark (&:where(.dark-theme, .dark-theme *));
 
