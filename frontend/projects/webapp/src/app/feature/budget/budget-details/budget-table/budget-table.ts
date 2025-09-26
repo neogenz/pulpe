@@ -27,7 +27,6 @@ import { Logger } from '@core/logging/logger';
 import { type BudgetLineUpdate } from '@pulpe/shared';
 import {
   RecurrenceLabelPipe,
-  TransactionIconPipe,
   TransactionLabelPipe,
 } from '@ui/transaction-display';
 import { EditBudgetLineDialog } from '../edit-budget-line/edit-budget-line-dialog';
@@ -53,7 +52,6 @@ import {
     ReactiveFormsModule,
     RouterLink,
     CurrencyPipe,
-    TransactionIconPipe,
     TransactionLabelPipe,
     RecurrenceLabelPipe,
     RolloverFormatPipe,
@@ -231,7 +229,7 @@ import {
                 <span
                   class="ph-no-capture text-body-medium font-medium"
                   [class.text-financial-income]="line.data.kind === 'income'"
-                  [class.text-financial-negative]="line.data.kind === 'expense'"
+                  [class.text-financial-expense]="line.data.kind === 'expense'"
                   [class.text-primary]="line.data.kind === 'saving'"
                   [class.italic]="line.metadata.isRollover"
                 >
@@ -252,7 +250,7 @@ import {
                 [class.text-financial-income]="
                   line.metadata.cumulativeBalance >= 0
                 "
-                [class.text-financial-negative]="
+                [class.text-financial-expense]="
                   line.metadata.cumulativeBalance < 0
                 "
               >

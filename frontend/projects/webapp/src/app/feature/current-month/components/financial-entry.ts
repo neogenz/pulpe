@@ -1,20 +1,19 @@
+import { CurrencyPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   input,
   output,
-  computed,
 } from '@angular/core';
-import { CurrencyPipe } from '@angular/common';
-import { MatIconModule } from '@angular/material/icon';
-import { MatListModule } from '@angular/material/list';
+import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatRippleModule } from '@angular/material/core';
-import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatListModule } from '@angular/material/list';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 import { RolloverFormatPipe } from '@app/ui/rollover-format';
-import { TransactionIconPipe } from '@ui/transaction-display';
 import { type FinancialEntryModel } from '../models/financial-entry.model';
 
 export type FinancialEntryViewModel = FinancialEntryModel & {
@@ -32,7 +31,6 @@ export type FinancialEntryViewModel = FinancialEntryModel & {
     MatCheckboxModule,
     MatRippleModule,
     MatButtonModule,
-    TransactionIconPipe,
     MatTooltipModule,
     RouterLink,
     RolloverFormatPipe,
@@ -48,6 +46,7 @@ export type FinancialEntryViewModel = FinancialEntryModel & {
       [class.!cursor-pointer]="selectable()"
       (click)="handleClick()"
     >
+      <!--
       <div matListItemAvatar class="flex justify-center items-center gap-4">
         @if (selectable()) {
           <mat-checkbox
@@ -56,24 +55,8 @@ export type FinancialEntryViewModel = FinancialEntryModel & {
             (click)="$event.stopPropagation()"
           />
         }
-        <div
-          class="flex justify-center items-center size-11 bg-surface rounded-full"
-        >
-          <mat-icon
-            [class]="
-              '!text-(--pulpe-financial-' +
-              (data().kind === 'income'
-                ? 'income'
-                : data().kind === 'saving'
-                  ? 'savings'
-                  : 'expense') +
-              ')'
-            "
-          >
-            {{ data().kind | transactionIcon }}
-          </mat-icon>
-        </div>
       </div>
+      -->
       <div matListItemTitle [class.rollover-text]="isRollover()">
         @if (isRollover() && rolloverSourceBudgetId()) {
           <a
