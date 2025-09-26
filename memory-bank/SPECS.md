@@ -165,9 +165,10 @@ Avril    : income=5000 CHF, expenses=5500 CHF, rollover=800 CHF  → ending_bala
 
 ### RG-001: Cohérence Template ↔ Budget
 
-* Un template modifié peut propager ses changements aux budgets **futurs uniquement**
-* Les budgets du mois en cours et passés ne sont jamais modifiés automatiquement
-* Option de propagation proposée à chaque modification de template
+* Lors de la modification d'un template (ajout/édition/suppression de lignes), deux options sont proposées :
+  - **"Ne rien propager"** : Modifie uniquement le template. Les budgets existants ne sont PAS touchés. Seuls les nouveaux budgets créés après utiliseront le template modifié.
+  - **"Propager"** : Modifie le template ET applique les changements aux budgets du mois en cours et futurs (jamais aux mois passés)
+* Les budget lines manuellement ajustées (is_manually_adjusted = true) ne sont jamais modifiées lors de la propagation
 
 ### RG-002: Gestion des Dépassements
 
