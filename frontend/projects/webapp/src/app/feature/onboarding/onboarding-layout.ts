@@ -3,15 +3,15 @@ import {
   Component,
   computed,
   inject,
-} from "@angular/core";
-import { MatButtonModule } from "@angular/material/button";
-import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
-import { RouterOutlet } from "@angular/router";
-import { ErrorCard } from "../../ui";
-import { OnboardingStore } from "./onboarding-store";
+} from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { RouterOutlet } from '@angular/router';
+import { ErrorCard } from '../../ui';
+import { OnboardingStore } from './onboarding-store';
 
 @Component({
-  selector: "pulpe-onboarding-layout",
+  selector: 'pulpe-onboarding-layout',
   imports: [MatButtonModule, RouterOutlet, MatProgressSpinnerModule, ErrorCard],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `

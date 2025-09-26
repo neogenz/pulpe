@@ -503,15 +503,25 @@ export class BudgetService {
       });
     }
 
-    // Handle custom exceptions or template access issues
-    if (
-      errorCode === 'P0001' ||
-      errorMessage.includes('Template not found') ||
-      errorMessage.includes('access denied')
-    ) {
-      return new BusinessException(ERROR_DEFINITIONS.TEMPLATE_NOT_FOUND, {
-        id: templateId,
-      });
+    // Handle custom exceptions from stored procedures
+    if (errorCode === 'P0001') {
+      // Check for specific error messages from the database
+      if (errorMessage.includes('Budget already exists for this period')) {
+        return new BusinessException(
+          ERROR_DEFINITIONS.BUDGET_ALREADY_EXISTS_FOR_MONTH,
+          undefined,
+          { userId, templateId },
+        );
+      }
+
+      if (
+        errorMessage.includes('Template not found') ||
+        errorMessage.includes('access denied')
+      ) {
+        return new BusinessException(ERROR_DEFINITIONS.TEMPLATE_NOT_FOUND, {
+          id: templateId,
+        });
+      }
     }
 
     return new BusinessException(

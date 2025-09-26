@@ -24,7 +24,7 @@ test.describe('Template propagation choices', () => {
   }
 
   async function makeLineAdjustment(page: Page) {
-    const amountInput = page.locator('#amount-1');
+    const amountInput = page.getByTestId('edit-line-amount').first();
     await expect(amountInput).toBeVisible();
     await amountInput.fill('5100');
   }
@@ -150,7 +150,7 @@ test.describe('Template propagation choices', () => {
 
     await propagationDialog
       .getByRole('radio', {
-        name: 'Mettre à jour le modèle et les budgets futurs',
+        name: 'Mettre à jour le modèle et les budgets actuels et futurs',
       })
       .click();
 

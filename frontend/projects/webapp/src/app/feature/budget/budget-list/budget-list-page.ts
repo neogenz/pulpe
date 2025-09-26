@@ -192,10 +192,12 @@ export default class BudgetListPage implements OnInit {
   async openCreateBudgetDialog(): Promise<void> {
     try {
       const dialogConfig = this.#dialogConfig();
+      const nextAvailableMonth = this.state.nextAvailableMonth();
       const dialogRef = this.#dialog.open(CreateBudgetDialogComponent, {
         ...dialogConfig,
         data: {
-          selectedYear: this.state.selectedYear(),
+          month: nextAvailableMonth.month,
+          year: nextAvailableMonth.year,
         },
       });
 
