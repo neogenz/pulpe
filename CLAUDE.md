@@ -1,6 +1,7 @@
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Always apply YAGNI and KISS principles. It is for a modern project, maintained by 1 developer.
 
 ## Quick Start Commands
 
@@ -13,19 +14,12 @@ pnpm dev                        # Start all services with Turborepo orchestratio
 # Targeted development
 pnpm dev:frontend-only          # Frontend + shared only
 pnpm dev:backend-only           # Backend + shared only
-
-# Individual services
-pnpm dev:frontend               # Frontend only (localhost:4200)
-pnpm dev:backend                # Backend only (localhost:3000)
 ```
 
 ### Building
 
 ```bash
 pnpm build                      # Build all projects with Turborepo
-pnpm build:shared               # Build shared package only
-pnpm build:frontend             # Build frontend only
-pnpm build:backend              # Build backend only
 ```
 
 ### Testing
@@ -33,18 +27,9 @@ pnpm build:backend              # Build backend only
 ```bash
 # All tests
 pnpm test                       # Run all tests
-pnpm test:watch                 # Run tests in watch mode
-pnpm test:unit                  # Unit tests only
 pnpm test:e2e                   # E2E tests only (Playwright)
 pnpm test:performance           # Performance tests
 
-# Frontend specific tests
-cd frontend && pnpm test        # Vitest unit tests
-cd frontend && pnpm test:e2e    # Playwright E2E tests
-cd frontend && pnpm test:e2e:ui # Playwright with UI
-
-# Backend specific tests
-cd backend-nest && bun test     # Bun unit tests
 cd backend-nest && bun test:performance # Performance tests
 ```
 
@@ -54,15 +39,8 @@ cd backend-nest && bun test:performance # Performance tests
 # Quality checks
 pnpm quality                    # Run all quality checks (type-check, lint, format)
 pnpm quality:fix                # Fix all auto-fixable issues
-pnpm lint                       # ESLint check
-pnpm lint:fix                   # ESLint auto-fix
-pnpm format                     # Prettier format
-pnpm format:check               # Prettier check
-pnpm type-check                 # TypeScript type checking
 
 # Frontend bundle analysis
-cd frontend && pnpm analyze     # Bundle analyzer with treemap
-cd frontend && pnpm analyze:sme # Source map explorer
 cd frontend && pnpm deps:circular # Check for circular dependencies
 ```
 
@@ -139,32 +117,10 @@ backend-nest/src/modules/[domain]/
 
 Details at @backend-nest/CLAUDE.md
 
-### Development Workflow
-
-#### 1. Adding a New Feature
-
-1. Define shared types in `shared/schemas.ts` if needed
-2. Build shared: `cd shared && pnpm build`
-3. Implement backend API in `backend-nest/src/modules/`
-4. Create frontend feature in `frontend/projects/webapp/src/app/feature/`
-5. Add E2E tests in `frontend/e2e/tests/`
-
-#### 2. Database Changes
-
-1. Create migrations locally: `supabase migration new [name]`
-2. Test locally: `supabase stop && supabase start`
-3. Generate types: `cd backend-nest && bun run generate-types:local`
-4. Update DTOs in shared package if needed
-
-**For CI/CD with GitHub Actions**: See `supabase-github-ci.md` for:
-- Automated testing with local Supabase in CI
-- Automated production deployment of migrations
-
 #### 3. Testing Strategy
 
 - **Unit Tests**: Test business logic and component behavior
 - **E2E Tests**: Critical path tests with real auth, feature tests with mocks
-- **Performance Tests**: Load testing for backend endpoints
 
 ### Authentication Flow
 
@@ -172,55 +128,6 @@ Details at @backend-nest/CLAUDE.md
 2. **Backend**: Validates tokens via `supabase.auth.getUser()`
 3. **Database**: Row Level Security policies enforce data isolation
 4. **Guards**: AuthGuard protects backend routes
-
-### Important Conventions
-
-#### Angular Naming (v20)
-
-- Services: `application-info.ts` (no `.service` suffix)
-- Components: Standalone with `pulpe-` prefix
-- Use private fields with `#fieldName` syntax
-- Angular Material v20 button directives: `matButton="filled"`, `matButton="outlined"`
-
-#### State Management
-
-- Use Angular signals for local state
-- Feature-specific state services in `feature/[domain]/services/`
-- Direct state service access when context is lightweight
-
-#### Material Design 3
-
-- Use Material Design 3 principles strictly
-- Color system via CSS variables in Tailwind config
-- Mobile-first responsive design
-- Typography scale: `text-display-large`, `text-body-medium`, etc.
-
-#### Business Vocabulary (French UI)
-
-- **budget_lines** → "prévisions" (never "lignes budgétaires")
-- **Recurrence**: "Tous les mois" (fixed), "Une seule fois" (one_off)
-- **Financial labels**: "Disponible à dépenser", "Épargne prévue"
-- **Default transaction type**: expense (Dépense)
-
-### Pre-commit Hooks
-
-Lefthook runs quality checks automatically:
-
-```bash
-pnpm run quality --filter="...[HEAD^]"
-```
-
-### Environment Setup
-
-1. **Backend**: Copy `.env.example` to `.env` and configure Supabase
-2. **Frontend**: Configuration in `environment.development.ts`
-3. **E2E Tests**: Set `TEST_EMAIL` and `TEST_PASSWORD` env vars
-
-### Debugging
-
-- Frontend debug route: `/app/debug` (development only)
-- Backend Swagger: `http://localhost:3000/api/docs`
-- Application info service shows version, build info, Git hash
 
 ### Key Files
 
@@ -232,30 +139,4 @@ pnpm run quality --filter="...[HEAD^]"
 
 ## References to business specs of project
 
-- You can reference @SPECS.md dynamically to refer at all business data
-
-## Version Management
-
-- **Frontend** (`pulpe-frontend`): CalVer format `YYYY.M.PATCH` (e.g., `2025.8.0`)
-- **Backend** (`backend-nest`): SemVer format `MAJOR.MINOR.PATCH` (e.g., `0.1.0`)
-- **Shared** (`@pulpe/shared`): SemVer format `MAJOR.MINOR.PATCH` (e.g., `0.1.0`)
-- **Workspace** (`pulpe-workspace`): No versioning (private package)
-
-### Changesets Commands
-
-```bash
-# Create a new changeset (describe your changes)
-pnpm changeset
-
-# Apply version bumps and update changelogs
-pnpm changeset:version
-```
-
-### Workflow
-
-1. **Make your changes** to any package
-2. **Create changeset**: `pnpm changeset` and describe the impact
-3. **Apply versions**: `pnpm changeset:version` bumps versions and updates changelogs
-4. **Commit**: Commit the version changes and updated CHANGELOG.md files
-
-- Always apply YAGNI and KISS principles. It is for a modern project, maintained by 1 developer.
+- You can reference @memory-bank/SPECS.md dynamically to refer at all business data
