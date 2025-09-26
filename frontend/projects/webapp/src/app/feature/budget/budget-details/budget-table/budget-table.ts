@@ -116,18 +116,6 @@ import {
                     "
                     tabindex="0"
                   >
-                    <mat-icon
-                      class="flex-shrink-0"
-                      [class.text-financial-income]="
-                        line.data.kind === 'income'
-                      "
-                      [class.text-financial-negative]="
-                        line.data.kind === 'expense'
-                      "
-                      [class.text-primary]="line.data.kind === 'saving'"
-                    >
-                      {{ line.data.kind | transactionIcon }}
-                    </mat-icon>
                     @if (
                       line.metadata.isRollover &&
                       line.data.rolloverSourceBudgetId
@@ -194,13 +182,12 @@ import {
                   [class.text-on-secondary-container!]="
                     line.data.recurrence === 'one_off'
                   "
-                  class="text-label-medium font-medium"
                 >
                   {{ line.data.recurrence | recurrenceLabel }}
                 </mat-chip>
               } @else {
                 <mat-chip
-                  class="bg-secondary-container text-on-secondary-container text-label-medium font-medium"
+                  class="bg-secondary-container text-on-secondary-container"
                 >
                   Une seule fois
                 </mat-chip>
