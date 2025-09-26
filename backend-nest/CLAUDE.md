@@ -9,21 +9,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 # Start with local Supabase (recommended)
 bun run dev                    # Starts Supabase + watches for changes (port 3000)
-bun run dev:local              # Uses .env.local file configuration
-bun run dev:watch              # Watches + TypeScript type checking
-
-# Supabase management
-bun run supabase:start         # Start local Supabase instance
-bun run supabase:stop          # Stop local Supabase instance
-bun run supabase:status        # Check Supabase status
-bun run supabase:reset         # Reset database to initial state
 ```
 
 ### Building & Production
 
 ```bash
 bun run build                  # Build for production with minification
-bun run start:prod             # Run production build
 ```
 
 ### Testing
@@ -33,8 +24,6 @@ bun run start:prod             # Run production build
 bun test                       # Run all tests
 bun test:unit                  # Unit tests only
 bun test:performance           # Performance tests with metrics
-bun test:coverage              # Generate coverage report
-bun test:watch                 # Watch mode for development
 
 # Specific test patterns
 bun test [file.spec.ts]        # Run specific test file
@@ -47,13 +36,6 @@ DEBUG_PERFORMANCE=true bun test # Enable performance debugging
 # Quality checks (run before committing)
 bun run quality                # Type-check + Lint + Format check
 bun run quality:fix            # Fix all auto-fixable issues
-
-# Individual commands
-bun run lint                   # ESLint check
-bun run lint:fix               # ESLint auto-fix
-bun run format                 # Prettier format
-bun run format:check           # Prettier check
-bun run type-check:full        # Full TypeScript type checking
 ```
 
 ### Database Operations
@@ -62,12 +44,6 @@ bun run type-check:full        # Full TypeScript type checking
 # Type generation
 bun run generate-types:local   # Generate types from local Supabase
 bun run generate-types         # Generate from production
-
-# Database management
-bun run supabase:push          # Push migrations to database
-bun run supabase:pull          # Pull schema from remote
-bun run supabase:diff          # Show schema differences
-bun run dump:db                # Export schema to SQL file
 ```
 
 ## High-level Architecture
@@ -235,36 +211,6 @@ export class MyService {
 - **info**: Important business operations, audit, metrics
 - **debug**: Technical details, validation (dev only)
 
-#### Security & Redaction
-
-Sensitive fields are automatically masked:
-
-- `req.headers.authorization`
-- `req.headers.cookie`
-- `req.body.password`
-- `req.body.token`
-- `res.headers["set-cookie"]`
-
-#### Testing with Logger
-
-```typescript
-// Mock the logger in tests
-const mockPinoLogger = {
-  error: jest.fn(),
-  warn: jest.fn(),
-  info: jest.fn(),
-  debug: jest.fn(),
-};
-
-// Provide with correct token format
-{
-  provide: `PinoLogger:${ServiceName.name}`,
-  useValue: mockPinoLogger,
-}
-```
-
-For detailed logging documentation, see [LOGGING.md](./LOGGING.md).
-
 ### Important Conventions
 
 #### NestJS Best Practices
@@ -288,29 +234,3 @@ For detailed logging documentation, see [LOGGING.md](./LOGGING.md).
 - RLS policies enforce data isolation
 - Input validation at multiple layers
 - No sensitive data in logs or responses
-
-### API Endpoints
-
-All endpoints prefixed with `/api/v1`:
-
-- `/api/v1/auth/*` - Authentication
-- `/api/v1/users/*` - User management
-- `/api/v1/budgets/*` - Budget operations
-- `/api/v1/transactions/*` - Transaction management
-- `/api/v1/budget-templates/*` - Template operations
-
-### Troubleshooting
-
-#### Common Issues
-
-1. **Supabase connection errors**: Check `bun run supabase:status`
-2. **Type errors after DB changes**: Run `bun run generate-types:local`
-3. **Test failures**: Ensure Supabase is running for integration tests
-4. **Permission errors**: Verify RLS policies and user authentication
-
-#### Debug Tools
-
-- Swagger UI: `http://localhost:3000/docs`
-- Supabase Studio: `http://localhost:54323`
-- Request tracking: Check `X-Request-ID` header
-- Performance metrics: Use `DEBUG_PERFORMANCE=true`

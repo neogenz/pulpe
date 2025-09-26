@@ -6,30 +6,17 @@ This file provides specific guidance for Claude Code when working with the Angul
 
 ```bash
 # Development
-pnpm run start                     # Start dev server and open browser (with build info generation)
-pnpm run start:ci                  # Start dev server without opening browser
 pnpm run dev                       # Alias for ng serve with host 0.0.0.0
 pnpm run build                     # Build for production
-pnpm run watch                     # Build in watch mode for development
-pnpm run generate:build-info       # Generate build information
 
 # Testing
 pnpm run test                      # Run unit tests with Vitest
-pnpm run test:watch                # Run unit tests in watch mode
 pnpm run test:e2e                  # Run end-to-end tests with Playwright
-pnpm run test:e2e:ui               # Run Playwright tests with UI
-pnpm run test:e2e:headed           # Run E2E tests in headed mode
-pnpm run test:e2e:debug            # Debug E2E tests
-pnpm run test:e2e:report           # Show E2E test report
-pnpm run test:e2e:codegen          # Generate E2E test code
 
 # Quality & Analysis
 pnpm run lint                      # Run ESLint
 pnpm run format                    # Apply Prettier formatting
 pnpm run format:check              # Check Prettier formatting
-pnpm run analyze                   # Bundle analyzer with treemap
-pnpm run analyze:sme               # Source map explorer analysis
-pnpm run analyze:deps              # Dependency analysis with madge
 pnpm run deps:circular             # Check for circular dependencies
 ```
 
@@ -166,10 +153,10 @@ feature/[domain]/
 - Page Object Model pattern
 - Comprehensive user flow testing
 
-#### Testing Philosophy │ │
+#### Testing Philosophy
 
-- Test WHAT, not HOW: Focus on observable business outcomes, not internal method names │ │
-- Tests as Documentation: Each test should describe a business requirement │ │
+- Test WHAT, not HOW: Focus on observable business outcomes, not internal method names
+- Tests as Documentation: Each test should describe a business requirement
 - Resilient to Refactoring: Tests shouldn't break when implementation changes
 
 ### Styling
