@@ -1,17 +1,17 @@
 import {
-  Component,
   ChangeDetectionStrategy,
-  inject,
+  Component,
   computed,
-} from '@angular/core';
-import { MatButtonModule } from '@angular/material/button';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { RouterOutlet } from '@angular/router';
-import { OnboardingStore } from './onboarding-store';
-import { ErrorCard } from '../../ui';
+  inject,
+} from "@angular/core";
+import { MatButtonModule } from "@angular/material/button";
+import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
+import { RouterOutlet } from "@angular/router";
+import { ErrorCard } from "../../ui";
+import { OnboardingStore } from "./onboarding-store";
 
 @Component({
-  selector: 'pulpe-onboarding-layout',
+  selector: "pulpe-onboarding-layout",
   imports: [MatButtonModule, RouterOutlet, MatProgressSpinnerModule, ErrorCard],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -23,7 +23,7 @@ import { ErrorCard } from '../../ui';
         class="w-full max-w-3xl min-h-[600px] md:h-[800px] bg-surface rounded-2xl md:p-16 p-8 flex flex-col"
       >
         <!-- Progress indicators -->
-        @if (!store.isFirstStep()) {
+        @if (!store.isFirstStep() && store.currentStep() !== -1) {
           <div class="flex gap-2 mb-20">
             @for (step of progressSteps(); track $index; let i = $index) {
               <div
