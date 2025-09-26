@@ -73,6 +73,27 @@ interface TemplatePropagationDialogData {
         </mat-radio-button>
       </mat-radio-group>
 
+      @if (selectedMode() === 'propagate') {
+        <div
+          class="grid grid-cols-[auto_1fr] gap-2 p-3 bg-tertiary-container text-on-tertiary-container! rounded-xl mt-3"
+        >
+          <div class="flex items-center">
+            <mat-icon class="">info</mat-icon>
+          </div>
+          <div>
+            <p class="text-body-small">
+              <strong>Note :</strong> Les saisies modifiées manuellement
+              (marquées avec
+              <mat-icon class="text-sm! h-[auto]! w-[auto]! align-text-bottom"
+                >lock</mat-icon
+              >) sont protégées et ne seront pas affectées par la propagation.
+              Seules les lignes non modifiées seront automatiquement mises à
+              jour.
+            </p>
+          </div>
+        </div>
+      }
+
       <p class="text-body-small text-tertiary mt-2">
         Vous pourrez toujours ajuster un budget mensuel manuellement après coup.
       </p>
