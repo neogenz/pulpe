@@ -1,43 +1,43 @@
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
+import { CurrencyPipe } from '@angular/common';
 import {
+  ChangeDetectionStrategy,
   Component,
+  computed,
+  DestroyRef,
+  inject,
   input,
   output,
   signal,
-  computed,
-  inject,
-  ChangeDetectionStrategy,
-  DestroyRef,
 } from '@angular/core';
-import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { RouterLink } from '@angular/router';
-import { MatTableModule } from '@angular/material/table';
-import { MatIconModule } from '@angular/material/icon';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { CurrencyPipe } from '@angular/common';
-import { type BudgetLineUpdate } from '@pulpe/shared';
-import { EditBudgetLineDialog } from '../edit-budget-line/edit-budget-line-dialog';
+import { RouterLink } from '@angular/router';
+import { RolloverFormatPipe } from '@app/ui/rollover-format';
 import { Logger } from '@core/logging/logger';
+import { type BudgetLineUpdate } from '@pulpe/shared';
+import {
+  RecurrenceLabelPipe,
+  TransactionIconPipe,
+  TransactionLabelPipe,
+} from '@ui/transaction-display';
+import { EditBudgetLineDialog } from '../edit-budget-line/edit-budget-line-dialog';
+import { type BudgetLineViewModel } from '../models/budget-line-view-model';
+import { type TransactionViewModel } from '../models/transaction-view-model';
+import { BudgetTableDataProvider } from './budget-table-data-provider';
 import {
   type BudgetLineTableItem,
   type TableItem,
 } from './budget-table-models';
-import { BudgetTableDataProvider } from './budget-table-data-provider';
-import {
-  TransactionIconPipe,
-  TransactionLabelPipe,
-  RecurrenceLabelPipe,
-} from '@ui/transaction-display';
-import { RolloverFormatPipe } from '@app/ui/rollover-format';
-import { type BudgetLineViewModel } from '../models/budget-line-view-model';
-import { type TransactionViewModel } from '../models/transaction-view-model';
 
 @Component({
   selector: 'pulpe-budget-table',
@@ -145,9 +145,23 @@ import { type TransactionViewModel } from '../models/transaction-view-model';
                       </a>
                     } @else {
                       <span
-                        class="ph-no-capture text-body-medium font-semibold"
+                        class="ph-no-capture text-body-medium font-semibold flex items-center gap-1"
                       >
                         {{ line.data.name | rolloverFormat }}
+                        @if (
+                          line.metadata.itemType === 'budget_line' &&
+                          line.data.isManuallyAdjusted
+                        ) {
+                          <mat-icon
+                            class="!text-base text-outline"
+                            [matTooltip]="
+                              'Montants verrouillés = non affectés par la propagation'
+                            "
+                            matTooltipPosition="above"
+                          >
+                            lock
+                          </mat-icon>
+                        }
                       </span>
                     }
                   </span>
