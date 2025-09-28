@@ -36,6 +36,9 @@ git push origin main      # Déclenche CI/CD automatique
 cd backend-nest
 supabase link --project-ref [PROJECT_REF]
 supabase db push
+Pour la branche preview :
+supabase db push --db-url "postgresql://postgres.uzsgvcwchwqcuwejjtdb:[PASSWORD]@aws-1-us-east-2.pooler.supabase.com:5432/postgres"
+supabase unlink
 ```
 
 - Les migrations se déclenchent automatiquement lors du push sur `main` si des fichiers existent dans `backend-nest/supabase/migrations/`.
