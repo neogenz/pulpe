@@ -1139,14 +1139,6 @@ export class BudgetTemplateService {
       supabase,
     );
 
-    if (operationsResult.deletedIds.length) {
-      await this.performBulkDeletes(
-        operationsResult.deletedIds,
-        templateId,
-        supabase,
-      );
-    }
-
     return propagationSummary;
   }
 
@@ -1169,35 +1161,6 @@ export class BudgetTemplateService {
     };
   }
 
-  // This method is now deprecated and replaced by inline logic in executeBulkOperations
-  // to fix the deletion propagation issue
-  private async performTemplateLineOperations(
-    validated: TemplateLinesBulkOperations,
-    templateId: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<TemplateBulkOperationsResult> {
-    // NOTE: This method is no longer used due to operation order fix
-    // The operations are now performed directly in executeBulkOperations
-    // to ensure propagation happens before template line deletion
-    const deletedIds = await this.performBulkDeletes(
-      validated.delete,
-      templateId,
-      supabase,
-    );
-    const updatedLines = await this.performBulkUpdates(
-      validated.update,
-      templateId,
-      supabase,
-    );
-    const createdLines = await this.performBulkCreates(
-      validated.create,
-      templateId,
-      supabase,
-    );
-
-    return { deletedIds, updatedLines, createdLines };
-  }
-
   private async handlePropagationStrategy(
     propagateToBudgets: boolean,
     operations: TemplateBulkOperationsResult,
@@ -1205,9 +1168,30 @@ export class BudgetTemplateService {
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TemplateLinesPropagationSummary> {
+    const hasDeletes = operations.deletedIds.length > 0;
+    const hasBudgetMutations =
+      operations.updatedLines.length > 0 || operations.createdLines.length > 0;
+
     if (!propagateToBudgets) {
+      if (hasDeletes) {
+        await this.applyTemplateOperationsTransactional(
+          templateId,
+          [],
+          operations,
+          supabase,
+        );
+      }
+
       return {
         mode: 'template-only',
+        affectedBudgetIds: [],
+        affectedBudgetsCount: 0,
+      };
+    }
+
+    if (!hasDeletes && !hasBudgetMutations) {
+      return {
+        mode: 'propagate',
         affectedBudgetIds: [],
         affectedBudgetsCount: 0,
       };
@@ -1235,13 +1219,22 @@ export class BudgetTemplateService {
       supabase,
     );
 
-    if (!budgets.length) {
+    const budgetIds = budgets.map((budget) => budget.id);
+
+    if (!budgetIds.length) {
+      await this.applyTemplateOperationsTransactional(
+        templateId,
+        [],
+        operations,
+        supabase,
+      );
       return this.handleNoBudgetPropagation(templateId, user.id);
     }
 
-    const impactedBudgetIds = await this.applyPropagationOperationsToBudgets(
+    const impactedBudgetIds = await this.applyTemplateOperationsTransactional(
+      templateId,
+      budgetIds,
       operations,
-      budgets.map((budget) => budget.id),
       supabase,
     );
 
@@ -1305,45 +1298,104 @@ export class BudgetTemplateService {
     };
   }
 
-  private async applyPropagationOperationsToBudgets(
+  private mapTemplateLinesForRpc(lines: Tables<'template_line'>[]): Array<{
+    id: string;
+    name: string;
+    amount: string;
+    kind: Tables<'template_line'>['kind'];
+    recurrence: Tables<'template_line'>['recurrence'];
+  }> {
+    return lines.map((line) => ({
+      id: line.id,
+      name: line.name,
+      amount:
+        typeof line.amount === 'number' ? line.amount.toString() : line.amount,
+      kind: line.kind,
+      recurrence: line.recurrence,
+    }));
+  }
+
+  private hasOperationsToApply(
     operations: TemplateBulkOperationsResult,
     budgetIds: string[],
+  ): boolean {
+    const hasDeletes = operations.deletedIds.length > 0;
+    const hasBudgetMutations =
+      budgetIds.length > 0 &&
+      (operations.updatedLines.length > 0 ||
+        operations.createdLines.length > 0);
+
+    return hasDeletes || hasBudgetMutations;
+  }
+
+  private logOperationError(
+    error: unknown,
+    templateId: string,
+    budgetIds: string[],
+    operations: TemplateBulkOperationsResult,
+  ): void {
+    this.logger.error(
+      {
+        operation: 'apply_template_line_operations',
+        templateId,
+        budgetIds,
+        deleteCount: operations.deletedIds.length,
+        updateCount: operations.updatedLines.length,
+        createCount: operations.createdLines.length,
+        err: error,
+      },
+      'Failed to execute template line operations transaction',
+    );
+  }
+
+  private processOperationResponse(data: unknown): string[] {
+    if (!data) {
+      return [];
+    }
+
+    return Array.isArray(data)
+      ? (data.filter((id): id is string => Boolean(id)) as string[])
+      : [];
+  }
+
+  private async applyTemplateOperationsTransactional(
+    templateId: string,
+    budgetIds: string[],
+    operations: TemplateBulkOperationsResult,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<string[]> {
-    if (!budgetIds.length) return [];
-
-    const impactedBudgets = new Set<string>();
-    const addImpactedBudgets = (ids: string[]) =>
-      ids.forEach((budgetId) => impactedBudgets.add(budgetId));
-
-    if (operations.deletedIds.length) {
-      const affected = await this.removeTemplateLinesFromBudgets(
-        operations.deletedIds,
-        budgetIds,
-        supabase,
-      );
-      addImpactedBudgets(affected);
+    if (!this.hasOperationsToApply(operations, budgetIds)) {
+      return [];
     }
 
-    if (operations.updatedLines.length) {
-      const affected = await this.updateTemplateLinesInBudgets(
-        operations.updatedLines,
-        budgetIds,
-        supabase,
-      );
-      addImpactedBudgets(affected);
-    }
+    const hasBudgetMutations =
+      budgetIds.length > 0 &&
+      (operations.updatedLines.length > 0 ||
+        operations.createdLines.length > 0);
 
-    if (operations.createdLines.length) {
-      const affected = await this.addTemplateLinesToBudgets(
-        operations.createdLines,
-        budgetIds,
-        supabase,
+    try {
+      const { data, error } = await supabase.rpc(
+        'apply_template_line_operations',
+        {
+          template_id: templateId,
+          budget_ids: budgetIds,
+          delete_ids: operations.deletedIds,
+          updated_lines: hasBudgetMutations
+            ? this.mapTemplateLinesForRpc(operations.updatedLines)
+            : [],
+          created_lines: hasBudgetMutations
+            ? this.mapTemplateLinesForRpc(operations.createdLines)
+            : [],
+        },
       );
-      addImpactedBudgets(affected);
-    }
 
-    return Array.from(impactedBudgets);
+      if (error) throw error;
+
+      return this.processOperationResponse(data);
+    } catch (error) {
+      this.logOperationError(error, templateId, budgetIds, operations);
+      throw error;
+    }
   }
 
   private async fetchFutureBudgetsForTemplate(
@@ -1500,195 +1552,6 @@ export class BudgetTemplateService {
     });
   }
 
-  private async removeTemplateLinesFromBudgets(
-    templateLineIds: string[],
-    budgetIds: string[],
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<string[]> {
-    if (!templateLineIds.length || !budgetIds.length) return [];
-
-    this.logTemplateLineRemovalStart(templateLineIds, budgetIds);
-
-    await this.logExistingBudgetLines(templateLineIds, budgetIds, supabase);
-
-    const impacted = await this.deleteBudgetLinesInChunks(
-      templateLineIds,
-      budgetIds,
-      supabase,
-    );
-
-    this.logTemplateLineRemovalCompletion(impacted);
-
-    return impacted;
-  }
-
-  private logTemplateLineRemovalStart(
-    templateLineIds: string[],
-    budgetIds: string[],
-  ): void {
-    this.logger.debug({
-      operation: 'removeTemplateLinesFromBudgets',
-      templateLineIds,
-      budgetIds,
-      budgetCount: budgetIds.length,
-      templateLineCount: templateLineIds.length,
-      message: 'Starting to remove template lines from budgets',
-    });
-  }
-
-  private async logExistingBudgetLines(
-    templateLineIds: string[],
-    budgetIds: string[],
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<void> {
-    const { data: existingLines, error } = await supabase
-      .from('budget_line')
-      .select('id, budget_id, template_line_id, is_manually_adjusted')
-      .in('template_line_id', templateLineIds)
-      .in('budget_id', budgetIds);
-
-    if (error || !existingLines) return;
-
-    this.logger.info({
-      operation: 'removeTemplateLinesFromBudgets',
-      existingBudgetLinesCount: existingLines.length,
-      existingBudgetLines: existingLines.map((line) => ({
-        id: line.id,
-        budget_id: line.budget_id,
-        template_line_id: line.template_line_id,
-        is_manually_adjusted: line.is_manually_adjusted,
-      })),
-      message: 'Found existing budget lines before deletion',
-    });
-  }
-
-  private async deleteBudgetLinesInChunks(
-    templateLineIds: string[],
-    budgetIds: string[],
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<string[]> {
-    const impacted: string[] = [];
-    const CHUNK_SIZE = 50;
-
-    for (const chunk of this.chunkArray(templateLineIds, CHUNK_SIZE)) {
-      const { data, error } = await supabase
-        .from('budget_line')
-        .delete()
-        .in('template_line_id', chunk)
-        .in('budget_id', budgetIds)
-        .eq('is_manually_adjusted', false)
-        .select('budget_id');
-
-      if (error) {
-        this.logger.error({
-          operation: 'removeTemplateLinesFromBudgets',
-          error: error.message,
-          chunk,
-          message: 'Failed to delete budget lines',
-        });
-        throw error;
-      }
-
-      if (!data?.length) {
-        this.logger.warn({
-          operation: 'removeTemplateLinesFromBudgets',
-          chunk,
-          message: 'No budget lines were deleted (data is null)',
-        });
-        continue;
-      }
-
-      this.logger.debug({
-        operation: 'removeTemplateLinesFromBudgets',
-        deletedCount: data.length,
-        deletedFromBudgets: data.map((row) => row.budget_id),
-        message: 'Successfully deleted budget lines',
-      });
-
-      impacted.push(...data.map((row) => row.budget_id));
-    }
-
-    return impacted;
-  }
-
-  private logTemplateLineRemovalCompletion(impacted: string[]): void {
-    this.logger.info({
-      operation: 'removeTemplateLinesFromBudgets',
-      totalImpactedBudgets: impacted.length,
-      impactedBudgetIds: impacted,
-      message: 'Completed removing template lines from budgets',
-    });
-  }
-
-  private async updateTemplateLinesInBudgets(
-    templateLines: Tables<'template_line'>[],
-    budgetIds: string[],
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<string[]> {
-    if (!templateLines.length || !budgetIds.length) return [];
-
-    const impacted: string[] = [];
-
-    for (const line of templateLines) {
-      const { data, error } = await supabase
-        .from('budget_line')
-        .update({
-          name: line.name,
-          amount: line.amount,
-          kind: line.kind,
-          recurrence: line.recurrence,
-        })
-        .eq('template_line_id', line.id)
-        .eq('is_manually_adjusted', false)
-        .in('budget_id', budgetIds)
-        .select('budget_id');
-
-      if (error) throw error;
-      if (data) impacted.push(...data.map((row) => row.budget_id));
-    }
-
-    return impacted;
-  }
-
-  private async addTemplateLinesToBudgets(
-    templateLines: Tables<'template_line'>[],
-    budgetIds: string[],
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<string[]> {
-    if (!templateLines.length || !budgetIds.length) return [];
-
-    const impacted: string[] = [];
-    const CHUNK_SIZE = 50;
-
-    const inserts = budgetIds.flatMap((budgetId) =>
-      templateLines.map((line) => ({
-        budget_id: budgetId,
-        template_line_id: line.id,
-        name: line.name,
-        amount: line.amount,
-        kind: line.kind,
-        recurrence: line.recurrence,
-        is_manually_adjusted: false,
-      })),
-    );
-
-    if (!inserts.length) return impacted;
-
-    const insertChunks = this.chunkArray(inserts, CHUNK_SIZE);
-
-    for (const chunk of insertChunks) {
-      const { data, error } = await supabase
-        .from('budget_line')
-        .insert(chunk)
-        .select('budget_id');
-
-      if (error) throw error;
-      if (data) impacted.push(...data.map((row) => row.budget_id));
-    }
-
-    return impacted;
-  }
-
   private async recalculateImpactedBudgets(
     budgetIds: string[],
     supabase: AuthenticatedSupabaseClient,
@@ -1716,53 +1579,6 @@ export class BudgetTemplateService {
     if (!existingLines || existingLines.length !== lineIds.length) {
       throw new NotFoundException('Some template lines to delete not found');
     }
-  }
-
-  private async performBulkDeletes(
-    deleteIds: string[],
-    templateId: string,
-    supabase: AuthenticatedSupabaseClient,
-  ): Promise<string[]> {
-    if (!deleteIds.length) return [];
-
-    // For large operations, process in chunks to prevent memory issues and DB performance degradation
-    const CHUNK_SIZE = 50;
-
-    if (deleteIds.length > CHUNK_SIZE) {
-      const chunks = this.chunkArray(deleteIds, CHUNK_SIZE);
-      const results: string[] = [];
-
-      for (const chunk of chunks) {
-        const chunkResult = await this.performBulkDeletes(
-          chunk,
-          templateId,
-          supabase,
-        );
-        results.push(...chunkResult);
-      }
-
-      return results;
-    }
-
-    // Validate all lines belong to the template
-    const { data: existingLines } = await supabase
-      .from('template_line')
-      .select('id')
-      .eq('template_id', templateId)
-      .in('id', deleteIds);
-
-    if (!existingLines || existingLines.length !== deleteIds.length) {
-      throw new NotFoundException('Some template lines to delete not found');
-    }
-
-    // Delete the lines
-    const { error } = await supabase
-      .from('template_line')
-      .delete()
-      .in('id', deleteIds);
-
-    if (error) throw error;
-    return deleteIds;
   }
 
   private async performBulkUpdates(

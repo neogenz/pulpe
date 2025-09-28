@@ -203,6 +203,41 @@ describe('BudgetTemplateService - Simplified Tests', () => {
       expect(mockBudgetService.recalculateBalances).not.toHaveBeenCalled();
     });
 
+    it('should execute transactional delete when propagation disabled but deletions exist', async () => {
+      const operations = {
+        deletedIds: ['line-1'],
+        updatedLines: [] as Tables<'template_line'>[],
+        createdLines: [] as Tables<'template_line'>[],
+      };
+
+      const rpcMock = mock(() => Promise.resolve({ data: [], error: null }));
+      const supabaseStub = {
+        rpc: rpcMock,
+      } as any;
+
+      const summary = await (service as any).handlePropagationStrategy(
+        false,
+        operations,
+        templateId,
+        mockUser,
+        supabaseStub,
+      );
+
+      expect(summary).toEqual({
+        mode: 'template-only',
+        affectedBudgetIds: [],
+        affectedBudgetsCount: 0,
+      });
+      expect(rpcMock).toHaveBeenCalledWith(
+        'apply_template_line_operations',
+        expect.objectContaining({
+          template_id: templateId,
+          budget_ids: [],
+          delete_ids: ['line-1'],
+        }),
+      );
+    });
+
     it('should propagate template changes to future budgets and recalculate balances', async () => {
       const templateLine = createMockTemplateLineEntity({
         id: 'line-1',
@@ -238,40 +273,9 @@ describe('BudgetTemplateService - Simplified Tests', () => {
             };
           }
 
-          if (table === 'budget_line') {
-            return {
-              update: () => ({
-                eq: () => ({
-                  eq: () => ({
-                    in: () => ({
-                      select: () =>
-                        Promise.resolve({
-                          data: futureBudgets.map((budget) => ({
-                            budget_id: budget.id,
-                          })),
-                          error: null,
-                        }),
-                    }),
-                  }),
-                }),
-              }),
-              delete: () => ({
-                in: () => ({
-                  in: () => ({
-                    eq: () => ({
-                      select: () => Promise.resolve({ data: [], error: null }),
-                    }),
-                  }),
-                }),
-              }),
-              insert: () => ({
-                select: () => Promise.resolve({ data: [], error: null }),
-              }),
-            };
-          }
-
           throw new Error(`Unexpected table access: ${table}`);
         },
+        rpc: mock(() => Promise.resolve({ data: ['budget-1'], error: null })),
       } as any;
 
       const summary = await (service as any).propagateTemplateChangesToBudgets(
@@ -286,11 +290,132 @@ describe('BudgetTemplateService - Simplified Tests', () => {
         affectedBudgetIds: ['budget-1'],
         affectedBudgetsCount: 1,
       });
+      expect(supabaseStub.rpc).toHaveBeenCalledWith(
+        'apply_template_line_operations',
+        expect.objectContaining({
+          template_id: templateId,
+          budget_ids: ['budget-1'],
+        }),
+      );
       expect(mockBudgetService.recalculateBalances).toHaveBeenCalledTimes(1);
       expect(mockBudgetService.recalculateBalances).toHaveBeenCalledWith(
         'budget-1',
         supabaseStub,
       );
+    });
+
+    it('should skip RPC when there are no deletions or budget mutations', async () => {
+      const operations = {
+        deletedIds: [] as string[],
+        updatedLines: [] as Tables<'template_line'>[],
+        createdLines: [] as Tables<'template_line'>[],
+      };
+
+      const rpcMock = mock(() => Promise.resolve({ data: [], error: null }));
+      const supabaseStub = {
+        from: (table: string) => {
+          if (table === 'monthly_budget') {
+            return {
+              select: () => ({
+                eq: () => ({
+                  eq: () => ({
+                    or: () => Promise.resolve({ data: [], error: null }),
+                  }),
+                }),
+              }),
+            };
+          }
+          throw new Error(`Unexpected table access: ${table}`);
+        },
+        rpc: rpcMock,
+      } as any;
+
+      const summary = await (service as any).propagateTemplateChangesToBudgets(
+        templateId,
+        operations,
+        mockUser,
+        supabaseStub,
+      );
+
+      expect(summary).toEqual({
+        mode: 'propagate',
+        affectedBudgetIds: [],
+        affectedBudgetsCount: 0,
+      });
+      expect(rpcMock).not.toHaveBeenCalled();
+    });
+
+    it('should serialize numeric amounts to strings before RPC call', async () => {
+      const operations = {
+        deletedIds: [] as string[],
+        updatedLines: [
+          {
+            id: 'line-1',
+            template_id: templateId,
+            name: 'Salary',
+            amount: 1234.56,
+            kind: 'income',
+            recurrence: 'fixed',
+            description: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          } as Tables<'template_line'>,
+        ],
+        createdLines: [
+          {
+            id: 'line-2',
+            template_id: templateId,
+            name: 'Bonus',
+            amount: 200,
+            kind: 'income',
+            recurrence: 'variable',
+            description: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          } as Tables<'template_line'>,
+        ],
+      };
+
+      const rpcMock = mock(() =>
+        Promise.resolve({ data: ['budget-1'], error: null }),
+      );
+      const supabaseStub = {
+        from: (table: string) => {
+          if (table === 'monthly_budget') {
+            return {
+              select: () => ({
+                eq: () => ({
+                  eq: () => ({
+                    or: () =>
+                      Promise.resolve({
+                        data: [{ id: 'budget-1', month: 1, year: 2026 }],
+                        error: null,
+                      }),
+                  }),
+                }),
+              }),
+            };
+          }
+          throw new Error(`Unexpected table access: ${table}`);
+        },
+        rpc: rpcMock,
+      } as any;
+
+      await (service as any).propagateTemplateChangesToBudgets(
+        templateId,
+        operations,
+        mockUser,
+        supabaseStub,
+      );
+
+      expect(rpcMock).toHaveBeenCalled();
+      const rpcCall = rpcMock.mock.calls[0];
+      if (!rpcCall) {
+        throw new Error('RPC call not recorded');
+      }
+      const [, rpcPayload] = rpcCall as unknown as [string, any];
+      expect(rpcPayload.updated_lines[0].amount).toBe('1234.56');
+      expect(rpcPayload.created_lines[0].amount).toBe('200');
     });
   });
 

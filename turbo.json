@@ -74,7 +74,7 @@
     },
     "test:performance": {
       "dependsOn": ["^build"],
-      "outputs": ["test-results.json", "test-results/**"]
+      "outputs": []
     },
     "test:e2e": {
       "dependsOn": ["^build"],
