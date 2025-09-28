@@ -363,7 +363,6 @@ Follow Tailwind standards breakpoint.
 
 - **"Tous les mois"** (for `fixed` value) - recurring monthly expenses/income
 - **"Une seule fois"** (for `one_off` value) - one-time transactions
-- **"Variable"** (for `variable` value) - when applicable
 
 #### Transaction Types
 

@@ -76,12 +76,6 @@ describe('BudgetTableDataProvider', () => {
           createdAt: '2024-01-01T00:00:00Z',
         }),
         createMockBudgetLine({
-          id: 'variable',
-          name: 'Variable',
-          recurrence: 'variable',
-          createdAt: '2024-03-01T00:00:00Z',
-        }),
-        createMockBudgetLine({
           id: 'fixed-old',
           name: 'Fixed Old',
           recurrence: 'fixed',
@@ -98,7 +92,6 @@ describe('BudgetTableDataProvider', () => {
       expect(result.map((item) => item.data.id)).toEqual([
         'fixed-old',
         'fixed-new',
-        'variable',
         'oneoff',
       ]);
     });
@@ -158,13 +151,6 @@ describe('BudgetTableDataProvider', () => {
           createdAt: '2024-02-01T00:00:00Z',
           kind: 'expense',
         }),
-        createMockBudgetLine({
-          id: 'variable-line',
-          name: 'Variable',
-          recurrence: 'variable',
-          createdAt: '2024-03-01T00:00:00Z',
-          kind: 'saving',
-        }),
       ];
       const transactions: Transaction[] = [
         createMockTransaction({
@@ -192,7 +178,6 @@ describe('BudgetTableDataProvider', () => {
       expect(result.map((item) => item.data.id)).toEqual([
         'fixed-early',
         'fixed-late',
-        'variable-line',
         'transaction-early',
         'transaction-late',
       ]);

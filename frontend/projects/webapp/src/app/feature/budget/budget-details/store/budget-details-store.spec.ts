@@ -15,7 +15,7 @@ describe('BudgetDetailsStore - Logique Métier', () => {
           line.name.trim().length > 0 &&
           line.amount > 0 &&
           ['income', 'expense', 'saving'].includes(line.kind) &&
-          ['fixed', 'variable', 'one_off'].includes(line.recurrence)
+          ['fixed', 'one_off'].includes(line.recurrence)
         );
       };
 
