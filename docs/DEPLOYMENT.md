@@ -48,6 +48,24 @@ supabase migration up
 ```
 Ensuite le `db push` appliquera les nouvelles migrations sur la base de données distante.
 
+#### Exporter les données (optionnel)
+
+```bash
+supabase link --project-ref [PROJECT_REF]
+supabase db dump --linked -f supabase/[timestamp]_data.sql --data-only --use-copy
+supabase unlink
+```
+
+#### Importer des données (optionnel)
+
+```bash
+psql "postgresql://postgres.uzsgvcwchwqcuwejjtdb:[PASSWORD]@aws-1-us-east-2.pooler.supabase.com:5432/postgres" \
+  --single-transaction \
+  --variable=ON_ERROR_STOP=1 \
+  --command 'SET session_replication_role = replica' \
+  --file ./supabase/data.sql
+```
+
 
 ### Backend (Railway)
 
@@ -67,7 +85,7 @@ Déployer :
 
 ```bash
 railway link
-railway up
+railway up --detach
 railway domain  # Récupérer l'URL publique
 ```
 
