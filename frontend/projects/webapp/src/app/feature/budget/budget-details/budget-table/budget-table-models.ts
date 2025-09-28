@@ -10,6 +10,8 @@ export interface TableItem {
     cumulativeBalance: number;
     isEditing?: boolean;
     isRollover?: boolean;
+    isTemplateLinked?: boolean;
+    isPropagationLocked?: boolean;
   };
 }
 

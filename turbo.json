@@ -115,6 +115,10 @@
     "clean": {
       "cache": false,
       "outputs": []
+    },
+    "checks": {
+      "dependsOn": ["build", "quality:fix", "test", "test:e2e", "test:performance"],
+      "cache": false
     }
   }
 }

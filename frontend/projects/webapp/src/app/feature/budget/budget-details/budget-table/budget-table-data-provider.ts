@@ -156,16 +156,23 @@ export class BudgetTableDataProvider {
 
     return itemsWithBalance.map((item) => {
       const isRollover = isRolloverLine(item.item);
+      const isBudgetLine = item.itemType === 'budget_line';
+      const budgetLine = isBudgetLine ? (item.item as BudgetLine) : null;
       return {
         data: item.item,
         metadata: {
           itemType: item.itemType,
           cumulativeBalance: item.cumulativeBalance,
           isEditing:
-            item.itemType === 'budget_line' &&
+            isBudgetLine &&
             params.editingLineId === item.item.id &&
             !isRollover, // Rollover lines cannot be edited
           isRollover,
+          isTemplateLinked: isBudgetLine ? !!budgetLine?.templateLineId : false,
+          isPropagationLocked:
+            isBudgetLine &&
+            !!budgetLine?.templateLineId &&
+            !!budgetLine?.isManuallyAdjusted,
         },
       };
     });
