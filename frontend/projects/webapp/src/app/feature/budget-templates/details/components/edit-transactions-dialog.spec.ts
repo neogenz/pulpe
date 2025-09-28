@@ -353,7 +353,9 @@ describe('EditTransactionsDialog - Component Tests', () => {
 
   describe('Running Totals', () => {
     it('should calculate running totals correctly', () => {
-      const totals = component.runningTotals();
+      const totals = (
+        component as EditTransactionsDialog & { runningTotals(): number[] }
+      ).runningTotals();
 
       // First transaction: -1200 (expense) = -1200
       expect(totals[0]).toBe(-1200);

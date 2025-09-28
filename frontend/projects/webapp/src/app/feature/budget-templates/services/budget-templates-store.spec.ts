@@ -164,6 +164,7 @@ describe('BudgetTemplatesState', () => {
         name: 'New Default Template',
         description: 'This will be default',
         isDefault: true,
+        lines: [],
       };
 
       const createdTemplate: BudgetTemplate = {
@@ -192,6 +193,7 @@ describe('BudgetTemplatesState', () => {
         name: 'Regular Template',
         description: 'Non-default template',
         isDefault: false,
+        lines: [],
       };
 
       const createdTemplate: BudgetTemplate = {
@@ -219,6 +221,7 @@ describe('BudgetTemplatesState', () => {
         name: 'New Default Template',
         description: 'This will fail',
         isDefault: true,
+        lines: [],
       };
 
       mockApi.create$ = vi
@@ -238,6 +241,7 @@ describe('BudgetTemplatesState', () => {
         name: 'New Default Template',
         description: 'Creation will fail',
         isDefault: true,
+        lines: [],
       };
 
       mockApi.create$ = vi
@@ -275,6 +279,7 @@ describe('BudgetTemplatesState', () => {
         name: 'Exceeding Template',
         description: 'This should fail',
         isDefault: false,
+        lines: [],
       };
 
       await expect(state.addTemplate(newTemplate)).rejects.toThrow(
@@ -290,6 +295,7 @@ describe('BudgetTemplatesState', () => {
         name: 'Optimistic Template',
         description: 'Testing optimistic update',
         isDefault: false,
+        lines: [],
       };
 
       const createdTemplate: BudgetTemplate = {
@@ -341,6 +347,7 @@ describe('BudgetTemplatesState', () => {
         name: 'Failing Template',
         description: 'This will fail',
         isDefault: false,
+        lines: [],
       };
 
       mockApi.create$ = vi

@@ -74,9 +74,9 @@ const createTestTemplateViewModel = (
   viewModelOverrides: Partial<Omit<TemplateViewModel, 'template'>> = {},
 ): TemplateViewModel => ({
   template: createTestTemplate(templateOverrides),
-  totalIncome: 5000,
-  totalExpenses: 3000,
-  remainingLivingAllowance: 2000,
+  income: 5000,
+  expenses: 3000,
+  netBalance: 2000,
   loading: false,
   ...viewModelOverrides,
 });
@@ -188,18 +188,18 @@ describe('CreateBudgetDialogComponent', () => {
     // Mock TemplateTotalsCalculator
     mockTemplateTotalsCalculator = {
       calculateTemplateTotals: vi.fn().mockReturnValue({
-        totalIncome: 0,
-        totalExpenses: 0,
-        totalSavings: 0,
-        remainingLivingAllowance: 0,
+        income: 0,
+        expenses: 0,
+        savings: 0,
+        netBalance: 0,
         loading: false,
       }),
       calculateBatchTotals: vi.fn().mockReturnValue({}),
       createDefaultTotals: vi.fn().mockReturnValue({
-        totalIncome: 0,
-        totalExpenses: 0,
-        totalSavings: 0,
-        remainingLivingAllowance: 0,
+        income: 0,
+        expenses: 0,
+        savings: 0,
+        netBalance: 0,
         loading: false,
       }),
     };
@@ -399,10 +399,10 @@ describe('CreateBudgetDialogComponent', () => {
       // Update with new template totals
       const newTotals = {
         'template-1': {
-          totalIncome: 3000,
-          totalExpenses: 2000,
-          totalSavings: 0,
-          remainingLivingAllowance: 1000,
+          income: 3000,
+          expenses: 2000,
+          savings: 0,
+          netBalance: 1000,
           loading: false,
         },
       };
@@ -414,10 +414,10 @@ describe('CreateBudgetDialogComponent', () => {
       totalsSignal.update((current) => ({
         ...current,
         'template-2': {
-          totalIncome: 4000,
-          totalExpenses: 2500,
-          totalSavings: 0,
-          remainingLivingAllowance: 1500,
+          income: 4000,
+          expenses: 2500,
+          savings: 0,
+          netBalance: 1500,
           loading: true,
         },
       }));
@@ -425,10 +425,10 @@ describe('CreateBudgetDialogComponent', () => {
       const updatedTotals = totalsSignal();
       expect(updatedTotals['template-1']).toEqual(newTotals['template-1']);
       expect(updatedTotals['template-2']).toEqual({
-        totalIncome: 4000,
-        totalExpenses: 2500,
-        totalSavings: 0,
-        remainingLivingAllowance: 1500,
+        income: 4000,
+        expenses: 2500,
+        savings: 0,
+        netBalance: 1500,
         loading: true,
       });
     });

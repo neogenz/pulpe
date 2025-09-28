@@ -38,7 +38,6 @@ describe('BudgetCalculator', () => {
     templateLineId: 'test-template-id',
     savingsGoalId: null,
     name,
-    isRollover: false,
     amount,
     kind,
     recurrence: 'fixed',

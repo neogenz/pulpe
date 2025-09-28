@@ -496,7 +496,7 @@ export const Constants = {
       priority_level: ['HIGH', 'MEDIUM', 'LOW'],
       savings_goal_status: ['ACTIVE', 'COMPLETED', 'PAUSED'],
       transaction_kind: ['income', 'expense', 'saving'],
-      transaction_recurrence: ['fixed', 'variable', 'one_off'],
+      transaction_recurrence: ['fixed', 'one_off'],
     },
   },
 } as const;

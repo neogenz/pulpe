@@ -56,13 +56,17 @@ describe('BudgetDetailsStore - Logique Métier', () => {
       };
 
       // Act & Assert
-      expect(isValidUpdate({ name: 'Loyer modifié' })).toBe(true);
-      expect(isValidUpdate({ amount: 150 })).toBe(true);
-      expect(isValidUpdate({ name: 'Mis à jour', amount: 200 })).toBe(true);
-      expect(isValidUpdate({ name: '' })).toBe(false); // Nom vide
-      expect(isValidUpdate({ name: '  ' })).toBe(false); // Espaces seulement
-      expect(isValidUpdate({ amount: 0 })).toBe(false); // Montant zéro
-      expect(isValidUpdate({ amount: -50 })).toBe(false); // Montant négatif
+      expect(isValidUpdate({ id: 'test-id', name: 'Loyer modifié' })).toBe(
+        true,
+      );
+      expect(isValidUpdate({ id: 'test-id', amount: 150 })).toBe(true);
+      expect(
+        isValidUpdate({ id: 'test-id', name: 'Mis à jour', amount: 200 }),
+      ).toBe(true);
+      expect(isValidUpdate({ id: 'test-id', name: '' })).toBe(false); // Nom vide
+      expect(isValidUpdate({ id: 'test-id', name: '  ' })).toBe(false); // Espaces seulement
+      expect(isValidUpdate({ id: 'test-id', amount: 0 })).toBe(false); // Montant zéro
+      expect(isValidUpdate({ id: 'test-id', amount: -50 })).toBe(false); // Montant négatif
     });
 
     it('should enforce rollover budget lines are not editable', () => {
