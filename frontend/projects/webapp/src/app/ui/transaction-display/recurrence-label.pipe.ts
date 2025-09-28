@@ -8,7 +8,6 @@ export class RecurrenceLabelPipe implements PipeTransform {
   transform(recurrence: TransactionRecurrence): string {
     const labels: Record<TransactionRecurrence, string> = {
       fixed: 'Tous les mois',
-      variable: 'Variable',
       one_off: 'Une seule fois',
     };
     return labels[recurrence];

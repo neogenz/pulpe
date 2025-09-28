@@ -17,20 +17,12 @@ describe('RecurrenceLabelPipe', () => {
     expect(pipe.transform('fixed')).toBe('Tous les mois');
   });
 
-  it('should return correct label for variable', () => {
-    expect(pipe.transform('variable')).toBe('Variable');
-  });
-
   it('should return correct label for one_off', () => {
     expect(pipe.transform('one_off')).toBe('Une seule fois');
   });
 
   it('should handle all TransactionRecurrence values', () => {
-    const validRecurrences: TransactionRecurrence[] = [
-      'fixed',
-      'variable',
-      'one_off',
-    ];
+    const validRecurrences: TransactionRecurrence[] = ['fixed', 'one_off'];
 
     validRecurrences.forEach((recurrence) => {
       const result = pipe.transform(recurrence);
@@ -44,6 +36,5 @@ describe('RecurrenceLabelPipe', () => {
     // Verify that labels follow French business vocabulary
     expect(pipe.transform('fixed')).toBe('Tous les mois'); // Not "Fixe" or "Récurrent"
     expect(pipe.transform('one_off')).toBe('Une seule fois'); // Not "Unique" or "Ponctuel"
-    expect(pipe.transform('variable')).toBe('Variable');
   });
 });

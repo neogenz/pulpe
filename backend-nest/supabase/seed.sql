@@ -96,7 +96,7 @@ INSERT INTO public.template_line (template_id, name, amount, kind, recurrence, d
 VALUES
   -- Revenus
   ('aaaa1111-aaaa-1111-aaaa-111111111111', 'Salaire', 3500.00, 'income', 'fixed', 'Salaire mensuel net'),
-  ('aaaa1111-aaaa-1111-aaaa-111111111111', 'Freelance', 800.00, 'income', 'variable', 'Revenus complémentaires'),
+  ('aaaa1111-aaaa-1111-aaaa-111111111111', 'Freelance', 800.00, 'income', 'fixed', 'Revenus complémentaires'),
 
   -- Dépenses fixes
   ('aaaa1111-aaaa-1111-aaaa-111111111111', 'Loyer', 1200.00, 'expense', 'fixed', 'Loyer appartement'),
@@ -107,10 +107,10 @@ VALUES
   ('aaaa1111-aaaa-1111-aaaa-111111111111', 'Transport', 75.00, 'expense', 'fixed', 'Navigo'),
 
   -- Dépenses variables
-  ('aaaa1111-aaaa-1111-aaaa-111111111111', 'Courses', 400.00, 'expense', 'variable', 'Alimentation et produits ménagers'),
-  ('aaaa1111-aaaa-1111-aaaa-111111111111', 'Restaurants', 150.00, 'expense', 'variable', 'Sorties restaurant'),
-  ('aaaa1111-aaaa-1111-aaaa-111111111111', 'Loisirs', 100.00, 'expense', 'variable', 'Cinéma, sorties, etc.'),
-  ('aaaa1111-aaaa-1111-aaaa-111111111111', 'Shopping', 200.00, 'expense', 'variable', 'Vêtements et accessoires'),
+  ('aaaa1111-aaaa-1111-aaaa-111111111111', 'Courses', 400.00, 'expense', 'fixed', 'Alimentation et produits ménagers'),
+  ('aaaa1111-aaaa-1111-aaaa-111111111111', 'Restaurants', 150.00, 'expense', 'fixed', 'Sorties restaurant'),
+  ('aaaa1111-aaaa-1111-aaaa-111111111111', 'Loisirs', 100.00, 'expense', 'fixed', 'Cinéma, sorties, etc.'),
+  ('aaaa1111-aaaa-1111-aaaa-111111111111', 'Shopping', 200.00, 'expense', 'fixed', 'Vêtements et accessoires'),
 
   -- Épargne
   ('aaaa1111-aaaa-1111-aaaa-111111111111', 'Épargne mensuelle', 500.00, 'saving', 'fixed', 'Livret A'),
@@ -131,20 +131,20 @@ INSERT INTO public.template_line (template_id, name, amount, kind, recurrence, d
 VALUES
   -- Revenus
   ('bbbb2222-bbbb-2222-bbbb-222222222222', 'Bourse CROUS', 550.00, 'income', 'fixed', 'Bourse échelon 5'),
-  ('bbbb2222-bbbb-2222-bbbb-222222222222', 'Job étudiant', 400.00, 'income', 'variable', '10h/semaine'),
+  ('bbbb2222-bbbb-2222-bbbb-222222222222', 'Job étudiant', 400.00, 'income', 'fixed', '10h/semaine'),
   ('bbbb2222-bbbb-2222-bbbb-222222222222', 'Aide parents', 200.00, 'income', 'fixed', 'Aide familiale'),
 
   -- Dépenses
   ('bbbb2222-bbbb-2222-bbbb-222222222222', 'Logement CROUS', 250.00, 'expense', 'fixed', 'Chambre universitaire'),
-  ('bbbb2222-bbbb-2222-bbbb-222222222222', 'Resto U', 150.00, 'expense', 'variable', 'Repas universitaires'),
-  ('bbbb2222-bbbb-2222-bbbb-222222222222', 'Courses', 200.00, 'expense', 'variable', 'Alimentation'),
+  ('bbbb2222-bbbb-2222-bbbb-222222222222', 'Resto U', 150.00, 'expense', 'fixed', 'Repas universitaires'),
+  ('bbbb2222-bbbb-2222-bbbb-222222222222', 'Courses', 200.00, 'expense', 'fixed', 'Alimentation'),
   ('bbbb2222-bbbb-2222-bbbb-222222222222', 'Transport', 25.00, 'expense', 'fixed', 'Abonnement bus'),
-  ('bbbb2222-bbbb-2222-bbbb-222222222222', 'Fournitures', 50.00, 'expense', 'variable', 'Matériel scolaire'),
+  ('bbbb2222-bbbb-2222-bbbb-222222222222', 'Fournitures', 50.00, 'expense', 'fixed', 'Matériel scolaire'),
   ('bbbb2222-bbbb-2222-bbbb-222222222222', 'Téléphone', 9.99, 'expense', 'fixed', 'Forfait 20Go'),
-  ('bbbb2222-bbbb-2222-bbbb-222222222222', 'Sorties', 80.00, 'expense', 'variable', 'Loisirs étudiants'),
+  ('bbbb2222-bbbb-2222-bbbb-222222222222', 'Sorties', 80.00, 'expense', 'fixed', 'Loisirs étudiants'),
 
   -- Épargne
-  ('bbbb2222-bbbb-2222-bbbb-222222222222', 'Épargne', 50.00, 'saving', 'variable', 'Économies');
+  ('bbbb2222-bbbb-2222-bbbb-222222222222', 'Épargne', 50.00, 'saving', 'fixed', 'Économies');
 
 -- =====================================================
 -- 3. CREATE SAVINGS GOALS

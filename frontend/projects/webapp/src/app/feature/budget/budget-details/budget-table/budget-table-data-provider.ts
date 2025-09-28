@@ -30,8 +30,7 @@ export class BudgetTableDataProvider {
   // Constantes pour l'ordre de tri
   readonly #RECURRENCE_ORDER: Record<TransactionRecurrence, number> = {
     fixed: 1,
-    variable: 2,
-    one_off: 3,
+    one_off: 2,
   } as const;
 
   readonly #KIND_ORDER: Record<TransactionKind, number> = {
@@ -43,7 +42,7 @@ export class BudgetTableDataProvider {
   /**
    * Combines and sorts budget lines and transactions with cumulative balance calculation
    * Order:
-   * 1. Budget lines grouped by recurrence: fixed → variable → one_off
+   * 1. Budget lines grouped by recurrence: fixed → one_off
    *    Within each group: createdAt ascending, then kind (income → saving → expense)
    * 2. Transactions ordered by transactionDate ascending (fallback createdAt), then kind
    */

@@ -135,7 +135,7 @@ describe('TemplateTotalsCalculator', () => {
               name: 'Freelance',
               description: 'Freelance income',
               amount: 2000,
-              recurrence: 'variable' as const,
+              recurrence: 'one_off' as const,
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
             },

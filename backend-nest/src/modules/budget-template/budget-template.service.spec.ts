@@ -368,7 +368,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
             name: 'Bonus',
             amount: 200,
             kind: 'income',
-            recurrence: 'variable',
+            recurrence: 'one_off',
             description: null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),

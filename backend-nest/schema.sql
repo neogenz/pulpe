@@ -54,7 +54,6 @@ ALTER TYPE "public"."transaction_kind" OWNER TO "postgres";
 
 CREATE TYPE "public"."transaction_recurrence" AS ENUM (
     'fixed',
-    'variable',
     'one_off'
 );
 

@@ -165,12 +165,6 @@ import {
                   [class.text-on-primary-container!]="
                     line.data.recurrence === 'fixed'
                   "
-                  [class.bg-tertiary-container!]="
-                    line.data.recurrence === 'variable'
-                  "
-                  [class.text-on-tertiary-container!]="
-                    line.data.recurrence === 'variable'
-                  "
                   [class.bg-secondary-container!]="
                     line.data.recurrence === 'one_off'
                   "

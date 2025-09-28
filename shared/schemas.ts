@@ -17,13 +17,8 @@ const MONTH_MAX = 12;
  * UX Labels (CLAUDE.md frontend):
  * - 'fixed' → "Tous les mois" (récurrent mensuel)
  * - 'one_off' → "Une seule fois" (ponctuel)
- * - 'variable' → "Variable" (montant changeant)
  */
-export const transactionRecurrenceSchema = z.enum([
-  'fixed',
-  'variable',
-  'one_off',
-]);
+export const transactionRecurrenceSchema = z.enum(['fixed', 'one_off']);
 export type TransactionRecurrence = z.infer<typeof transactionRecurrenceSchema>;
 
 /**
