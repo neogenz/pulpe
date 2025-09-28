@@ -109,7 +109,7 @@ describe('TemplateLineStore - Integration Tests', () => {
         of(mockApiResponse),
       );
 
-      const result = await store.saveChanges(templateId);
+      const result = await store.saveChanges(templateId, false);
 
       expect(result.success).toBe(true);
       expect(result.updatedLines).toHaveLength(1);
@@ -130,6 +130,7 @@ describe('TemplateLineStore - Integration Tests', () => {
         ],
         update: [],
         delete: [],
+        propagateToBudgets: false,
       });
     });
 
@@ -166,7 +167,7 @@ describe('TemplateLineStore - Integration Tests', () => {
         of(mockApiResponse),
       );
 
-      const result = await store.saveChanges(templateId);
+      const result = await store.saveChanges(templateId, false);
 
       expect(result.success).toBe(true);
       expect(result.updatedLines).toHaveLength(1);
@@ -189,6 +190,7 @@ describe('TemplateLineStore - Integration Tests', () => {
           },
         ],
         delete: [],
+        propagateToBudgets: false,
       });
     });
 
@@ -210,7 +212,7 @@ describe('TemplateLineStore - Integration Tests', () => {
         of(mockApiResponse),
       );
 
-      const result = await store.saveChanges(templateId);
+      const result = await store.saveChanges(templateId, false);
 
       expect(result.success).toBe(true);
       expect(result.updatedLines).toHaveLength(0);
@@ -223,6 +225,7 @@ describe('TemplateLineStore - Integration Tests', () => {
         create: [],
         update: [],
         delete: ['line-2'],
+        propagateToBudgets: false,
       });
     });
 
@@ -279,7 +282,7 @@ describe('TemplateLineStore - Integration Tests', () => {
         of(mockApiResponse),
       );
 
-      const result = await store.saveChanges(templateId);
+      const result = await store.saveChanges(templateId, false);
 
       expect(result.success).toBe(true);
       expect(result.updatedLines).toHaveLength(2);
@@ -304,7 +307,7 @@ describe('TemplateLineStore - Integration Tests', () => {
         throwError(() => networkError),
       );
 
-      const result = await store.saveChanges(templateId);
+      const result = await store.saveChanges(templateId, false);
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Network request failed');
@@ -322,7 +325,7 @@ describe('TemplateLineStore - Integration Tests', () => {
         throwError(() => validationError),
       );
 
-      const result = await store.saveChanges(templateId);
+      const result = await store.saveChanges(templateId, false);
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Invalid data provided');
@@ -337,7 +340,7 @@ describe('TemplateLineStore - Integration Tests', () => {
         throwError(() => 'String error'),
       );
 
-      const result = await store.saveChanges(templateId);
+      const result = await store.saveChanges(templateId, false);
 
       expect(result.success).toBe(false);
       expect(result.error).toBe(
@@ -361,7 +364,7 @@ describe('TemplateLineStore - Integration Tests', () => {
 
       expect(store.isLoading()).toBe(false);
 
-      const savePromise = store.saveChanges(templateId);
+      const savePromise = store.saveChanges(templateId, false);
 
       // Should be loading now (synchronous check after calling saveChanges)
       expect(store.isLoading()).toBe(true);
@@ -376,7 +379,7 @@ describe('TemplateLineStore - Integration Tests', () => {
   describe('API Integration - Edge Cases', () => {
     it('should handle empty operations gracefully', async () => {
       // No changes made
-      const result = await store.saveChanges(templateId);
+      const result = await store.saveChanges(templateId, false);
 
       expect(result.success).toBe(true);
       expect(result.updatedLines).toEqual([]);
@@ -400,7 +403,7 @@ describe('TemplateLineStore - Integration Tests', () => {
         }),
       );
 
-      const result = await store.saveChanges(templateId);
+      const result = await store.saveChanges(templateId, false);
 
       expect(result.success).toBe(true);
       expect(result.updatedLines).toEqual([]);
@@ -453,7 +456,7 @@ describe('TemplateLineStore - Integration Tests', () => {
         }),
       );
 
-      const result = await store.saveChanges(templateId);
+      const result = await store.saveChanges(templateId, false);
 
       expect(result.success).toBe(true);
       expect(store.hasUnsavedChanges()).toBe(false);
@@ -502,7 +505,7 @@ describe('TemplateLineStore - Integration Tests', () => {
         }),
       );
 
-      const result = await store.saveChanges(templateId);
+      const result = await store.saveChanges(templateId, false);
 
       expect(result.success).toBe(true);
 
@@ -552,7 +555,7 @@ describe('TemplateLineStore - Integration Tests', () => {
         }),
       );
 
-      const result = await store.saveChanges(templateId);
+      const result = await store.saveChanges(templateId, false);
 
       expect(result.success).toBe(true);
       expect(result.updatedLines).toHaveLength(1);
@@ -598,7 +601,7 @@ describe('TemplateLineStore - Integration Tests', () => {
         of(mockApiResponse),
       );
 
-      await store.saveChanges(templateId);
+      await store.saveChanges(templateId, false);
 
       // Check that new line now has correct original line reference
       const lines = store.lines();
@@ -639,7 +642,7 @@ describe('TemplateLineStore - Integration Tests', () => {
         of(mockApiResponse),
       );
 
-      await store.saveChanges(templateId);
+      await store.saveChanges(templateId, false);
 
       // Check that line was synced with server data
       const lines = store.lines();

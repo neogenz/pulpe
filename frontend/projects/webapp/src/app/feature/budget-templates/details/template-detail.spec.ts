@@ -3,6 +3,29 @@ import type { BudgetTemplateDetailViewModel } from '../services/budget-templates
 import type { TemplateLine } from '@pulpe/shared';
 import { of, throwError, firstValueFrom } from 'rxjs';
 
+// Interface for budget usage data
+interface BudgetUsageItem {
+  id: string;
+  month: number;
+  year: number;
+  description: string;
+}
+
+// Interface for financial entry data
+interface FinancialEntry {
+  description: string;
+  spent: number;
+  earned: number;
+  saved: number;
+  total: number;
+}
+
+// Interface for dialog result
+interface DialogResult {
+  saved: boolean;
+  transactions?: { description: string; amount: number; type: string }[];
+}
+
 // Mock data for testing
 const mockTemplateData: BudgetTemplateDetailViewModel = {
   template: {
@@ -253,7 +276,10 @@ describe('TemplateDetail', () => {
       ];
 
       const totals = entries.reduce(
-        (acc, entry) => ({
+        (
+          acc: { income: number; expense: number; savings: number },
+          entry: FinancialEntry,
+        ) => ({
           income: acc.income + entry.earned,
           expense: acc.expense + entry.spent,
           savings: acc.savings + entry.saved,
@@ -363,10 +389,13 @@ describe('TemplateDetail', () => {
     });
 
     it('should handle empty transactions array', () => {
-      const entries: unknown[] = [];
+      const entries: FinancialEntry[] = [];
 
       const totals = entries.reduce(
-        (acc, entry) => ({
+        (
+          acc: { income: number; expense: number; savings: number },
+          entry: FinancialEntry,
+        ) => ({
           income: acc.income + entry.earned,
           expense: acc.expense + entry.spent,
           savings: acc.savings + entry.saved,
@@ -559,7 +588,7 @@ describe('TemplateDetail', () => {
         ],
       };
 
-      const handleDialogResult = (result: unknown) => {
+      const handleDialogResult = (result: DialogResult | null) => {
         if (result?.saved) {
           return {
             shouldReload: true,
@@ -580,7 +609,7 @@ describe('TemplateDetail', () => {
     it('should handle dialog result correctly when cancelled', () => {
       const mockDialogResult = null; // Dialog was cancelled
 
-      const handleDialogResult = (result: unknown) => {
+      const handleDialogResult = (result: DialogResult | null) => {
         if (result?.saved) {
           return {
             shouldReload: true,
@@ -867,9 +896,9 @@ describe('TemplateDetail', () => {
       // Simulate deleteTemplate method logic
       const deleteTemplate = async () => {
         try {
-          const usageResponse = await firstValueFrom(
+          const usageResponse = (await firstValueFrom(
             mockBudgetTemplatesApi.checkUsage$(templateId),
-          );
+          )) as { data: { isUsed: boolean; budgets: BudgetUsageItem[] } };
 
           if (usageResponse.data.isUsed) {
             // Show usage dialog
@@ -936,9 +965,9 @@ describe('TemplateDetail', () => {
 
       // Simulate deleteTemplate method logic
       const deleteTemplate = async () => {
-        const usageResponse = await firstValueFrom(
+        const usageResponse = (await firstValueFrom(
           mockBudgetTemplatesApi.checkUsage$(templateId),
-        );
+        )) as { data: { isUsed: boolean; budgets: BudgetUsageItem[] } };
 
         if (usageResponse.data.isUsed) {
           const dialogRef = mockDialog.open('TemplateUsageDialog', {

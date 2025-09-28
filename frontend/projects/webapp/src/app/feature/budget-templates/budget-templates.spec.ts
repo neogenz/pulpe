@@ -2,6 +2,14 @@ import { describe, it, expect } from 'vitest';
 import { of, throwError, firstValueFrom } from 'rxjs';
 import type { BudgetTemplate } from '@pulpe/shared';
 
+// Interface for budget usage data
+interface BudgetUsageItem {
+  id: string;
+  month: number;
+  year: number;
+  description: string;
+}
+
 // Mock data for testing
 const mockTemplate: BudgetTemplate = {
   id: 'template-123',
@@ -53,9 +61,9 @@ describe('BudgetTemplates', () => {
       // Simulate onDeleteTemplate method logic
       const onDeleteTemplate = async (template: BudgetTemplate) => {
         try {
-          const usageResponse = await firstValueFrom(
+          const usageResponse = (await firstValueFrom(
             mockBudgetTemplatesApi.checkUsage$(template.id),
-          );
+          )) as { data: { isUsed: boolean; budgets: BudgetUsageItem[] } };
 
           if (usageResponse.data.isUsed) {
             // Show usage dialog
@@ -152,9 +160,9 @@ describe('BudgetTemplates', () => {
 
       // Simulate onDeleteTemplate method logic
       const onDeleteTemplate = async (template: BudgetTemplate) => {
-        const usageResponse = await firstValueFrom(
+        const usageResponse = (await firstValueFrom(
           mockBudgetTemplatesApi.checkUsage$(template.id),
-        );
+        )) as { data: { isUsed: boolean; budgets: BudgetUsageItem[] } };
 
         if (usageResponse.data.isUsed) {
           const dialogRef = mockDialog.open('TemplateUsageDialog', {
@@ -371,9 +379,9 @@ describe('BudgetTemplates', () => {
       // Full onDeleteTemplate simulation with confirmation
       const onDeleteTemplate = async (template: BudgetTemplate) => {
         try {
-          const usageResponse = await firstValueFrom(
+          const usageResponse = (await firstValueFrom(
             mockBudgetTemplatesApi.checkUsage$(template.id),
-          );
+          )) as { data: { isUsed: boolean; budgets: BudgetUsageItem[] } };
 
           if (!usageResponse.data.isUsed) {
             const dialogRef = mockDialog.open('ConfirmationDialog', {
@@ -436,9 +444,9 @@ describe('BudgetTemplates', () => {
 
       // Full onDeleteTemplate simulation with cancellation
       const onDeleteTemplate = async (template: BudgetTemplate) => {
-        const usageResponse = await firstValueFrom(
+        const usageResponse = (await firstValueFrom(
           mockBudgetTemplatesApi.checkUsage$(template.id),
-        );
+        )) as { data: { isUsed: boolean; budgets: BudgetUsageItem[] } };
 
         if (!usageResponse.data.isUsed) {
           const dialogRef = mockDialog.open('ConfirmationDialog', {
