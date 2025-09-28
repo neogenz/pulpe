@@ -301,6 +301,16 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      apply_template_line_operations: {
+        Args: {
+          budget_ids?: string[];
+          created_lines?: Json;
+          delete_ids?: string[];
+          template_id: string;
+          updated_lines?: Json;
+        };
+        Returns: string[];
+      };
       bulk_update_template_lines: {
         Args: { line_updates: Json; p_template_id: string };
         Returns: {

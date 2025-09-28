@@ -43,7 +43,6 @@ bun run quality:fix            # Fix all auto-fixable issues
 ```bash
 # Type generation
 bun run generate-types:local   # Generate types from local Supabase
-bun run generate-types         # Generate from production
 ```
 
 ## High-level Architecture
