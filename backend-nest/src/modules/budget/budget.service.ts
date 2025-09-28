@@ -479,16 +479,11 @@ export class BudgetService {
     throw businessException;
   }
 
-  private mapPostgreSQLErrorToBusinessException(
-    error: unknown,
+  private handleConstraintError(
+    errorCode: string | undefined,
     userId: string,
     templateId: string,
-  ): BusinessException {
-    const errorObj = error as { code?: string; message?: string };
-    const errorCode = errorObj?.code;
-    const errorMessage = errorObj?.message || '';
-
-    // Handle PostgreSQL constraint violations
+  ): BusinessException | null {
     if (errorCode === '23505') {
       return new BusinessException(
         ERROR_DEFINITIONS.BUDGET_ALREADY_EXISTS_FOR_MONTH,
@@ -503,27 +498,66 @@ export class BudgetService {
       });
     }
 
-    // Handle custom exceptions from stored procedures
-    if (errorCode === 'P0001') {
-      // Check for specific error messages from the database
-      if (errorMessage.includes('Budget already exists for this period')) {
-        return new BusinessException(
-          ERROR_DEFINITIONS.BUDGET_ALREADY_EXISTS_FOR_MONTH,
-          undefined,
-          { userId, templateId },
-        );
-      }
+    return null;
+  }
 
-      if (
-        errorMessage.includes('Template not found') ||
-        errorMessage.includes('access denied')
-      ) {
-        return new BusinessException(ERROR_DEFINITIONS.TEMPLATE_NOT_FOUND, {
-          id: templateId,
-        });
-      }
+  private handleStoredProcedureError(
+    errorCode: string | undefined,
+    errorMessage: string,
+    userId: string,
+    templateId: string,
+  ): BusinessException | null {
+    if (errorCode !== 'P0001') {
+      return null;
     }
 
+    if (errorMessage.includes('Budget already exists for this period')) {
+      return new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_ALREADY_EXISTS_FOR_MONTH,
+        undefined,
+        { userId, templateId },
+      );
+    }
+
+    if (
+      errorMessage.includes('Template not found') ||
+      errorMessage.includes('access denied')
+    ) {
+      return new BusinessException(ERROR_DEFINITIONS.TEMPLATE_NOT_FOUND, {
+        id: templateId,
+      });
+    }
+
+    return null;
+  }
+
+  private mapPostgreSQLErrorToBusinessException(
+    error: unknown,
+    userId: string,
+    templateId: string,
+  ): BusinessException {
+    const errorObj = error as { code?: string; message?: string };
+    const errorCode = errorObj?.code;
+    const errorMessage = errorObj?.message || '';
+
+    // Handle PostgreSQL constraint violations
+    const constraintException = this.handleConstraintError(
+      errorCode,
+      userId,
+      templateId,
+    );
+    if (constraintException) return constraintException;
+
+    // Handle stored procedure errors
+    const storedProcException = this.handleStoredProcedureError(
+      errorCode,
+      errorMessage,
+      userId,
+      templateId,
+    );
+    if (storedProcException) return storedProcException;
+
+    // Default error
     return new BusinessException(
       ERROR_DEFINITIONS.BUDGET_CREATE_FAILED,
       undefined,
@@ -624,14 +658,41 @@ export class BudgetService {
 
   /**
    * Calcule le 'remaining' pour un budget spécifique
-   * Formule simple: remaining = endingBalance + rollover
+   * Formule: remaining = (revenus + rollover) - dépenses
    */
   private async calculateRemainingForBudget(
     budget: Tables<'monthly_budget'>,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<number> {
-    const rolloverData = await this.calculator.getRollover(budget.id, supabase);
-    const endingBalanceStored = budget.ending_balance ?? 0;
-    return endingBalanceStored + rolloverData.rollover;
+    try {
+      // Calculer le montant disponible dynamiquement depuis les budget_lines et transactions
+      const currentBalance = await this.calculator.calculateEndingBalance(
+        budget.id,
+        supabase,
+      );
+      const rolloverData = await this.calculator.getRollover(
+        budget.id,
+        supabase,
+      );
+
+      return currentBalance + rolloverData.rollover;
+    } catch (error) {
+      // Fallback vers ending_balance stocké si le calcul échoue
+      this.logger.warn(
+        {
+          budgetId: budget.id,
+          error: error instanceof Error ? error.message : String(error),
+          operation: 'calculateRemainingForBudget.fallback',
+        },
+        'Échec du calcul dynamique, utilisation de ending_balance stocké',
+      );
+
+      const rolloverData = await this.calculator.getRollover(
+        budget.id,
+        supabase,
+      );
+      const endingBalanceStored = budget.ending_balance ?? 0;
+      return endingBalanceStored + rolloverData.rollover;
+    }
   }
 }

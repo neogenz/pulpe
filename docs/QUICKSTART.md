@@ -92,7 +92,6 @@ supabase db pull                       # Sync depuis remote
 
 # Types generation
 bun run generate-types:local           # Types depuis DB locale
-bun run generate-types                 # Types depuis prod
 ```
 
 ## 🎯 Workflows Spécialisés
