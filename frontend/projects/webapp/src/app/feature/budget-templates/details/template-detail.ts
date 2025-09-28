@@ -256,9 +256,28 @@ export default class TemplateDetail implements OnInit {
     { initialValue: false },
   );
 
+  // Define sort order for transaction kinds
+  readonly #KIND_ORDER: Record<string, number> = {
+    income: 1,
+    saving: 2,
+    expense: 3,
+  } as const;
+
   readonly entries = computed<FinancialEntry[]>(() => {
     const transactions = this.templateDetailsStore.transactions();
-    return transactions.map((transaction: TemplateLine) => {
+
+    // Sort transactions by kind first, then by createdAt
+    const sortedTransactions = [...transactions].sort((a, b) => {
+      // First sort by kind (income → saving → expense)
+      const kindDiff =
+        (this.#KIND_ORDER[a.kind] ?? 999) - (this.#KIND_ORDER[b.kind] ?? 999);
+      if (kindDiff !== 0) return kindDiff;
+
+      // Then sort by createdAt (ascending)
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    });
+
+    return sortedTransactions.map((transaction: TemplateLine) => {
       const spent = transaction.kind === 'expense' ? transaction.amount : 0;
       const earned = transaction.kind === 'income' ? transaction.amount : 0;
       const saved = transaction.kind === 'saving' ? transaction.amount : 0;
