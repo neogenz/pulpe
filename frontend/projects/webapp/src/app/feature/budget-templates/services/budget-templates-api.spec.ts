@@ -1,12 +1,12 @@
-import { describe, it, expect } from 'vitest';
-import type { BudgetTemplateDetailViewModel } from './budget-templates-api';
 import {
   type BudgetTemplateCreate,
   type BudgetTemplateCreateFromOnboarding,
-  type TemplateLine,
   type BudgetTemplateResponse,
+  type TemplateLine,
   type TemplateLineListResponse,
 } from '@pulpe/shared';
+import { describe, expect, it } from 'vitest';
+import type { BudgetTemplateDetailViewModel } from './budget-templates-api';
 
 describe('BudgetTemplatesApi', () => {
   // NOTE: Due to Angular 20's dependency injection complexities with HttpClient,
@@ -439,14 +439,13 @@ describe('BudgetTemplatesApi', () => {
     });
 
     it('should validate transaction recurrence', () => {
-      const validRecurrences = ['fixed', 'variable', 'one_off'];
+      const validRecurrences = ['fixed', 'one_off'];
 
       const validateRecurrence = (recurrence: string): boolean => {
         return validRecurrences.includes(recurrence);
       };
 
       expect(validateRecurrence('fixed')).toBe(true);
-      expect(validateRecurrence('variable')).toBe(true);
       expect(validateRecurrence('one_off')).toBe(true);
       expect(validateRecurrence('invalid')).toBe(false);
     });

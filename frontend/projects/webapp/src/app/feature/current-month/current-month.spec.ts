@@ -62,7 +62,7 @@ describe('CurrentMonth Component', () => {
     it('should have required signals and computed properties', () => {
       // Test that the component defines the expected interface
       const expectedSignals = ['isCreatingTransaction', 'selectedTransactions'];
-      const expectedComputed = ['fixedTransactions', 'variableTransactions'];
+      const expectedComputed = ['fixedTransactions'];
       const expectedMethods = [
         'ngOnInit',
         'openAddTransactionBottomSheet',
@@ -72,7 +72,7 @@ describe('CurrentMonth Component', () => {
 
       // This verifies the component has the correct structure
       expect(expectedSignals.length).toBe(2);
-      expect(expectedComputed.length).toBe(2);
+      expect(expectedComputed.length).toBe(1);
       expect(expectedMethods.length).toBe(4);
     });
 
@@ -115,11 +115,11 @@ describe('CurrentMonth Component', () => {
         name: 'Loyer',
         amount: 1800,
       });
-      const variableBudgetLine = createBudgetLine({
-        recurrence: 'variable',
-        name: 'Variable Expense',
+      const oneOffBudgetLine = createBudgetLine({
+        recurrence: 'one_off',
+        name: 'One Off Expense',
       });
-      const budgetLines = signal([fixedBudgetLine, variableBudgetLine]);
+      const budgetLines = signal([fixedBudgetLine, oneOffBudgetLine]);
       const dashboardData = signal({ budget });
       const mappedTransaction = createTransaction({
         name: 'Loyer',
@@ -157,7 +157,7 @@ describe('CurrentMonth Component', () => {
       const budget = createBudget();
       const budgetLinesData = [
         createBudgetLine({ recurrence: 'fixed', name: 'Fixed Expense' }),
-        createBudgetLine({ recurrence: 'variable', name: 'Variable Expense' }),
+        createBudgetLine({ recurrence: 'one_off', name: 'One Off Expense' }),
         createBudgetLine({ recurrence: 'one_off', name: 'One Off Expense' }),
       ];
       const budgetLines = signal(budgetLinesData);
@@ -189,70 +189,6 @@ describe('CurrentMonth Component', () => {
         expect.objectContaining({ recurrence: 'fixed' }),
         budget.id,
       );
-    });
-  });
-
-  describe('variableTransactions computed logic', () => {
-    it('should return empty array when no dashboard data', () => {
-      // Arrange
-      const dashboardData = signal<{
-        budget: Budget | null;
-        transactions?: Transaction[];
-      } | null>(null);
-
-      // Recreate the computed logic
-      const variableTransactions = computed(() => {
-        const data = dashboardData();
-        return data?.transactions ?? [];
-      });
-
-      // Act & Assert
-      expect(variableTransactions()).toEqual([]);
-    });
-
-    it('should return transactions from dashboard data', () => {
-      // Arrange
-      const transactions = [
-        createTransaction({ name: 'Course', amount: 85.5 }),
-        createTransaction({ name: 'Restaurant', amount: 45.0 }),
-      ];
-      const dashboardData = signal({
-        budget: createBudget(),
-        transactions,
-      });
-
-      // Recreate the computed logic
-      const variableTransactions = computed(() => {
-        const data = dashboardData();
-        return data?.transactions ?? [];
-      });
-
-      // Act
-      const result = variableTransactions();
-
-      // Assert
-      expect(result).toEqual(transactions);
-      expect(result).toHaveLength(2);
-    });
-
-    it('should handle missing transactions in dashboard data', () => {
-      // Arrange
-      const dashboardData = signal({
-        budget: createBudget(),
-        transactions: undefined,
-      });
-
-      // Recreate the computed logic
-      const variableTransactions = computed(() => {
-        const data = dashboardData();
-        return data?.transactions ?? [];
-      });
-
-      // Act
-      const result = variableTransactions();
-
-      // Assert
-      expect(result).toEqual([]);
     });
   });
 
