@@ -30,8 +30,8 @@ export class BudgetTableDataProvider {
   // Constantes pour l'ordre de tri
   readonly #RECURRENCE_ORDER: Record<TransactionRecurrence, number> = {
     fixed: 1,
-    variable: 1, // traité comme fixed
-    one_off: 2,
+    variable: 2,
+    one_off: 3,
   } as const;
 
   readonly #KIND_ORDER: Record<TransactionKind, number> = {
@@ -43,9 +43,9 @@ export class BudgetTableDataProvider {
   /**
    * Combines and sorts budget lines and transactions with cumulative balance calculation
    * Order:
-   * 1. Budget lines "fixed" (income → savings → expenses)
-   * 2. Budget lines "one_off" (income → savings → expenses)
-   * 3. Transactions (income → savings → expenses)
+   * 1. Budget lines grouped by recurrence: fixed → variable → one_off
+   *    Within each group: createdAt ascending, then kind (income → saving → expense)
+   * 2. Transactions ordered by transactionDate ascending (fallback createdAt), then kind
    */
   #composeBudgetItemsWithBalanceGrouped(
     budgetLines: BudgetLine[],
@@ -71,24 +71,77 @@ export class BudgetTableDataProvider {
       return a.itemType === 'budget_line' ? -1 : 1;
     }
 
-    // 2. Pour les budget_lines : récurrence (fixed/variable avant one_off)
     if (a.itemType === 'budget_line') {
-      const aRecurrence = (a.item as BudgetLine).recurrence;
-      const bRecurrence = (b.item as BudgetLine).recurrence;
-
-      if (aRecurrence !== bRecurrence) {
-        const aOrder = this.#RECURRENCE_ORDER[aRecurrence] ?? 3;
-        const bOrder = this.#RECURRENCE_ORDER[bRecurrence] ?? 3;
-        return aOrder - bOrder;
-      }
+      return this.#compareBudgetLines(
+        a.item as BudgetLine,
+        b.item as BudgetLine,
+      );
     }
 
-    // 3. Type de transaction (income → saving → expense)
-    const aKindOrder = this.#KIND_ORDER[a.item.kind] ?? 4;
-    const bKindOrder = this.#KIND_ORDER[b.item.kind] ?? 4;
-
-    return aKindOrder - bKindOrder;
+    return this.#compareTransactions(
+      a.item as Transaction,
+      b.item as Transaction,
+    );
   };
+
+  #compareBudgetLines(a: BudgetLine, b: BudgetLine): number {
+    const recurrenceDiff =
+      (this.#RECURRENCE_ORDER[a.recurrence] ?? Number.MAX_SAFE_INTEGER) -
+      (this.#RECURRENCE_ORDER[b.recurrence] ?? Number.MAX_SAFE_INTEGER);
+    if (recurrenceDiff !== 0) return recurrenceDiff;
+
+    const dateDiff = this.#compareDates(
+      this.#getBudgetLineSortTimestamp(a),
+      this.#getBudgetLineSortTimestamp(b),
+    );
+    if (dateDiff !== 0) return dateDiff;
+
+    const kindDiff = this.#compareKinds(a.kind, b.kind);
+    if (kindDiff !== 0) return kindDiff;
+
+    return a.name.localeCompare(b.name);
+  }
+
+  #compareTransactions(a: Transaction, b: Transaction): number {
+    const dateDiff = this.#compareDates(
+      this.#getTransactionSortTimestamp(a),
+      this.#getTransactionSortTimestamp(b),
+    );
+    if (dateDiff !== 0) return dateDiff;
+
+    const kindDiff = this.#compareKinds(a.kind, b.kind);
+    if (kindDiff !== 0) return kindDiff;
+
+    return a.name.localeCompare(b.name);
+  }
+
+  #compareKinds(a: TransactionKind, b: TransactionKind): number {
+    const aOrder = this.#KIND_ORDER[a] ?? Number.MAX_SAFE_INTEGER;
+    const bOrder = this.#KIND_ORDER[b] ?? Number.MAX_SAFE_INTEGER;
+    return aOrder - bOrder;
+  }
+
+  #compareDates(aTimestamp: number, bTimestamp: number): number {
+    if (aTimestamp === bTimestamp) return 0;
+    return aTimestamp - bTimestamp;
+  }
+
+  #getBudgetLineSortTimestamp(line: BudgetLine): number {
+    return this.#safeParseDate(line.createdAt ?? null);
+  }
+
+  #getTransactionSortTimestamp(transaction: Transaction): number {
+    return this.#safeParseDate(
+      transaction.transactionDate ?? transaction.createdAt ?? null,
+    );
+  }
+
+  #safeParseDate(value: string | null | undefined): number {
+    if (!value) return Number.MAX_SAFE_INTEGER;
+    const timestamp = Date.parse(value);
+    if (Number.isNaN(timestamp)) return Number.MAX_SAFE_INTEGER;
+    return timestamp;
+  }
 
   /**
    * Crée les éléments d'affichage pour le tri et le calcul des soldes

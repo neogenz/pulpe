@@ -61,135 +61,141 @@ describe('BudgetTableDataProvider', () => {
       expect(result[1].data.name).toBe('Coffee');
     });
 
-    it('should sort fixed recurrence before one_off within budget lines', () => {
-      // Arrange
+    it('should order budget lines by recurrence then createdAt', () => {
       const budgetLines: BudgetLine[] = [
         createMockBudgetLine({
-          id: 'one-off-income',
-          name: 'Bonus',
-          amount: 2000,
-          kind: 'income',
-          recurrence: 'one_off',
+          id: 'fixed-new',
+          name: 'Fixed New',
+          recurrence: 'fixed',
+          createdAt: '2024-02-01T00:00:00Z',
         }),
         createMockBudgetLine({
-          id: 'fixed-income',
-          name: 'Salary',
-          amount: 5000,
-          kind: 'income',
+          id: 'oneoff',
+          name: 'One Off',
+          recurrence: 'one_off',
+          createdAt: '2024-01-01T00:00:00Z',
+        }),
+        createMockBudgetLine({
+          id: 'variable',
+          name: 'Variable',
+          recurrence: 'variable',
+          createdAt: '2024-03-01T00:00:00Z',
+        }),
+        createMockBudgetLine({
+          id: 'fixed-old',
+          name: 'Fixed Old',
           recurrence: 'fixed',
+          createdAt: '2024-01-01T00:00:00Z',
         }),
       ];
 
-      // Act
       const result = service.provideTableData({
         budgetLines,
         transactions: [],
         editingLineId: null,
       });
 
-      // Assert
-      expect(result).toHaveLength(2);
-      expect(result[0].data.name).toBe('Salary'); // Fixed first
-      expect((result[0].data as BudgetLine).recurrence).toBe('fixed');
-      expect(result[1].data.name).toBe('Bonus'); // One-off second
-      expect((result[1].data as BudgetLine).recurrence).toBe('one_off');
+      expect(result.map((item) => item.data.id)).toEqual([
+        'fixed-old',
+        'fixed-new',
+        'variable',
+        'oneoff',
+      ]);
     });
 
-    it('should sort by kind (income → saving → expense) within same recurrence', () => {
-      // Arrange
+    it('should fall back to kind ordering when budget lines share date and recurrence', () => {
+      const createdAt = '2024-01-01T00:00:00Z';
       const budgetLines: BudgetLine[] = [
         createMockBudgetLine({
-          id: 'expense-1',
-          name: 'Rent',
-          amount: 1500,
-          kind: 'expense',
+          id: 'expense-line',
+          name: 'Expense',
           recurrence: 'fixed',
+          kind: 'expense',
+          createdAt,
         }),
         createMockBudgetLine({
-          id: 'saving-1',
-          name: 'Emergency Fund',
-          amount: 500,
+          id: 'income-line',
+          name: 'Income',
+          recurrence: 'fixed',
+          kind: 'income',
+          createdAt,
+        }),
+        createMockBudgetLine({
+          id: 'saving-line',
+          name: 'Saving',
+          recurrence: 'fixed',
           kind: 'saving',
-          recurrence: 'fixed',
-        }),
-        createMockBudgetLine({
-          id: 'income-1',
-          name: 'Salary',
-          amount: 5000,
-          kind: 'income',
-          recurrence: 'fixed',
+          createdAt,
         }),
       ];
 
-      // Act
       const result = service.provideTableData({
         budgetLines,
         transactions: [],
         editingLineId: null,
       });
 
-      // Assert
-      expect(result).toHaveLength(3);
-      expect(result[0].data.kind).toBe('income'); // Income first
-      expect(result[0].data.name).toBe('Salary');
-      expect(result[1].data.kind).toBe('saving'); // Saving second
-      expect(result[1].data.name).toBe('Emergency Fund');
-      expect(result[2].data.kind).toBe('expense'); // Expense last
-      expect(result[2].data.name).toBe('Rent');
+      expect(result.map((item) => item.data.id)).toEqual([
+        'income-line',
+        'saving-line',
+        'expense-line',
+      ]);
     });
 
-    it('should maintain correct order with mixed data types and recurrences', () => {
-      // Arrange
+    it('should maintain ordering across mixed data types with date priority', () => {
       const budgetLines: BudgetLine[] = [
         createMockBudgetLine({
-          id: 'one-off-expense',
-          name: 'Car Repair',
-          amount: 800,
-          kind: 'expense',
-          recurrence: 'one_off',
-        }),
-        createMockBudgetLine({
-          id: 'fixed-income',
-          name: 'Salary',
-          amount: 5000,
+          id: 'fixed-early',
+          name: 'Fixed Early',
+          recurrence: 'fixed',
+          createdAt: '2024-01-01T00:00:00Z',
           kind: 'income',
-          recurrence: 'fixed',
         }),
         createMockBudgetLine({
-          id: 'fixed-expense',
-          name: 'Rent',
-          amount: 1500,
-          kind: 'expense',
+          id: 'fixed-late',
+          name: 'Fixed Late',
           recurrence: 'fixed',
+          createdAt: '2024-02-01T00:00:00Z',
+          kind: 'expense',
+        }),
+        createMockBudgetLine({
+          id: 'variable-line',
+          name: 'Variable',
+          recurrence: 'variable',
+          createdAt: '2024-03-01T00:00:00Z',
+          kind: 'saving',
         }),
       ];
       const transactions: Transaction[] = [
         createMockTransaction({
-          id: 'transaction-1',
-          name: 'Grocery',
-          amount: 80,
+          id: 'transaction-late',
+          name: 'Transaction Late',
+          amount: 200,
           kind: 'expense',
+          transactionDate: '2024-04-02',
+        }),
+        createMockTransaction({
+          id: 'transaction-early',
+          name: 'Transaction Early',
+          amount: 80,
+          kind: 'income',
+          transactionDate: '2024-04-01',
         }),
       ];
 
-      // Act
       const result = service.provideTableData({
         budgetLines,
         transactions,
         editingLineId: null,
       });
 
-      // Assert
-      expect(result).toHaveLength(4);
-
-      // Budget lines first, ordered by recurrence then kind
-      expect(result[0].data.name).toBe('Salary'); // Fixed income
-      expect(result[1].data.name).toBe('Rent'); // Fixed expense
-      expect(result[2].data.name).toBe('Car Repair'); // One-off expense
-
-      // Transactions last
-      expect(result[3].metadata.itemType).toBe('transaction');
-      expect(result[3].data.name).toBe('Grocery');
+      expect(result.map((item) => item.data.id)).toEqual([
+        'fixed-early',
+        'fixed-late',
+        'variable-line',
+        'transaction-early',
+        'transaction-late',
+      ]);
     });
   });
 
