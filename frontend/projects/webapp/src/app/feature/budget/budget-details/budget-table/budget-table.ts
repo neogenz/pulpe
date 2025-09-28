@@ -134,10 +134,7 @@ import {
                         class="ph-no-capture text-body-medium font-semibold flex items-center gap-1"
                       >
                         {{ line.data.name | rolloverFormat }}
-                        @if (
-                          line.metadata.itemType === 'budget_line' &&
-                          line.data.isManuallyAdjusted
-                        ) {
+                        @if (line.metadata.isPropagationLocked) {
                           <mat-icon
                             class="!text-base text-outline"
                             [matTooltip]="
