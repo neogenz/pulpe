@@ -6,8 +6,8 @@ import { Logger } from 'nestjs-pino';
 import helmet from 'helmet';
 import compression from 'compression';
 import { AppModule } from './app.module';
-import type { Environment } from '@config/environment';
 import { patchNestJsSwagger } from 'nestjs-zod';
+import { isProductionLike, type Environment } from '@config/environment';
 
 // ValidationPipe removed - using ZodValidationPipe from app.module.ts instead
 
@@ -36,7 +36,7 @@ function createOriginValidator(
       return callback(null, true);
     }
 
-    if (nodeEnv === 'production') {
+    if (isProductionLike(nodeEnv)) {
       if (isAllowedOriginProduction(origin, configService)) {
         return callback(null, true);
       }
@@ -183,7 +183,9 @@ function logApplicationInfo(
     logger.log(`📚 Swagger documentation: http://localhost:${port}/docs`);
     logger.log(`📋 OpenAPI JSON: http://localhost:${port}/api/openapi`);
   } else {
-    logger.log('🔒 Swagger documentation is disabled in production');
+    logger.log(
+      '🔒 Swagger documentation is disabled in production-like environments',
+    );
   }
 
   logger.log('🔍 HTTP request/response logging is active');
@@ -228,11 +230,12 @@ async function bootstrap() {
   // Setup API versioning
   setupApiVersioning(app);
 
-  // Only setup Swagger in non-production environments
-  let document: import('@nestjs/swagger').OpenAPIObject | undefined;
-  const isProduction = env.NODE_ENV === 'production';
+  const productionLike = isProductionLike(env.NODE_ENV);
 
-  if (!isProduction) {
+  // Only setup Swagger in non-production-like environments
+  let document: import('@nestjs/swagger').OpenAPIObject | undefined;
+
+  if (!productionLike) {
     patchNestJsSwagger();
     document = setupSwagger(app);
   }
@@ -243,7 +246,7 @@ async function bootstrap() {
 
   await app.listen(env.PORT, '0.0.0.0');
 
-  logApplicationInfo(logger, env.PORT, env, !isProduction);
+  logApplicationInfo(logger, env.PORT, env, !productionLike);
 }
 
 bootstrap();

@@ -447,14 +447,13 @@ export default class TemplateDetail implements OnInit {
       return 'Aucune modification à enregistrer';
     }
 
-    if (propagation.mode === 'propagate') {
-      if (propagation.affectedBudgetsCount > 0) {
-        const plural = propagation.affectedBudgetsCount > 1 ? 's' : '';
-        return `Modèle et budgets futurs mis à jour (${propagation.affectedBudgetsCount} budget${plural} ajusté${plural})`;
-      }
-      return 'Modèle mis à jour. Aucun budget futur à ajuster.';
+    if (propagation.mode !== 'propagate') {
+      return 'Modèle mis à jour (budgets non modifiés).';
     }
-
+    if (propagation.affectedBudgetsCount > 0) {
+      const plural = propagation.affectedBudgetsCount > 1 ? 's' : '';
+      return `Modèle et budgets futurs mis à jour (${propagation.affectedBudgetsCount} budget${plural} ajusté${plural})`;
+    }
     return 'Modèle mis à jour (budgets non modifiés).';
   }
 
