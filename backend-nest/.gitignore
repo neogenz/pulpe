@@ -45,4 +45,7 @@ tmp/
 temp/
 
 # TypeScript traces
-ts-traces/ 
+ts-traces/
+
+.env-branch
+supabase/20250927121800_production_data.sql
