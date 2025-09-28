@@ -700,5 +700,44 @@ describe('BudgetTableDataProvider', () => {
       expect(transactionItem?.metadata.isEditing).toBe(false); // Transactions not editable via this mechanism
       expect(typeof transactionItem?.metadata.cumulativeBalance).toBe('number');
     });
+
+    it('should expose template linkage and propagation lock flags for budget lines', () => {
+      const budgetLines: BudgetLine[] = [
+        createMockBudgetLine({
+          id: 'linked-line',
+          templateLineId: 'tpl-1',
+          isManuallyAdjusted: false,
+        }),
+        createMockBudgetLine({
+          id: 'locked-line',
+          templateLineId: 'tpl-2',
+          isManuallyAdjusted: true,
+        }),
+        createMockBudgetLine({
+          id: 'manual-line',
+          templateLineId: null,
+          isManuallyAdjusted: true,
+        }),
+      ];
+
+      const result = service.provideTableData({
+        budgetLines,
+        transactions: [],
+        editingLineId: null,
+      });
+
+      const linked = result.find((item) => item.data.id === 'linked-line');
+      const locked = result.find((item) => item.data.id === 'locked-line');
+      const manual = result.find((item) => item.data.id === 'manual-line');
+
+      expect(linked?.metadata.isTemplateLinked).toBe(true);
+      expect(linked?.metadata.isPropagationLocked).toBe(false);
+
+      expect(locked?.metadata.isTemplateLinked).toBe(true);
+      expect(locked?.metadata.isPropagationLocked).toBe(true);
+
+      expect(manual?.metadata.isTemplateLinked).toBe(false);
+      expect(manual?.metadata.isPropagationLocked).toBe(false);
+    });
   });
 });
