@@ -26,7 +26,7 @@ import { ResponseLoggerMiddleware } from '@common/middleware/response-logger.mid
 import { PayloadSizeMiddleware } from '@common/middleware/payload-size.middleware';
 
 // Configuration
-import { validateConfig } from '@config/environment';
+import { isProductionLike, validateConfig } from '@config/environment';
 
 // Logger configuration helpers
 function createRequestIdGenerator() {
@@ -53,8 +53,8 @@ function createRequestIdGenerator() {
   };
 }
 
-function createLoggerTransport(isProduction: boolean) {
-  if (!isProduction) {
+function createLoggerTransport(isProdLike: boolean) {
+  if (!isProdLike) {
     return {
       target: 'pino-pretty',
       options: {
@@ -67,7 +67,7 @@ function createLoggerTransport(isProduction: boolean) {
     };
   }
 
-  // En production : logs JSON sur stdout pour collecte par l'infrastructure
+  // En production-like : logs JSON sur stdout pour collecte par l'infrastructure
   return undefined;
 }
 
@@ -158,12 +158,13 @@ function createProductionSerializers() {
 }
 
 function createPinoLoggerConfig(configService: ConfigService) {
-  const isProduction = configService.get<string>('NODE_ENV') === 'production';
+  const nodeEnv = configService.get<string>('NODE_ENV');
+  const productionLike = isProductionLike(nodeEnv);
   const debugHttpFull = configService.get<string>('DEBUG_HTTP_FULL') === 'true';
 
   return {
     pinoHttp: {
-      level: isProduction ? 'info' : 'debug',
+      level: productionLike ? 'info' : 'debug',
       genReqId: createRequestIdGenerator(),
       redact: debugHttpFull
         ? undefined
@@ -177,7 +178,7 @@ function createPinoLoggerConfig(configService: ConfigService) {
             ],
             censor: '[REDACTED]',
           },
-      transport: createLoggerTransport(isProduction),
+      transport: createLoggerTransport(productionLike),
       autoLogging: true,
       customSuccessMessage: (
         req: IncomingMessage & { method?: string; url?: string },
@@ -235,8 +236,8 @@ function createPinoLoggerConfig(configService: ConfigService) {
     BudgetTemplateModule,
     TransactionModule,
     UserModule,
-    // Only include DebugModule in non-production environments
-    ...(process.env.NODE_ENV !== 'production' ? [DebugModule] : []),
+    // Only include DebugModule in non-production-like environments
+    ...(!isProductionLike(process.env.NODE_ENV) ? [DebugModule] : []),
     FiltersModule,
   ],
   providers: [

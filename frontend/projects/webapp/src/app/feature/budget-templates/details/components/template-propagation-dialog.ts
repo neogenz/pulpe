@@ -53,7 +53,7 @@ interface TemplatePropagationDialogData {
             <span class="text-title-medium"
               >Mettre à jour uniquement le modèle</span
             >
-            <span class="text-body-small text-secondary">
+            <span class="text-body-small text-on-surface-variant">
               Les budgets existants ne changent pas. Idéal pour préparer les
               prochains mois sans impacter ceux déjà planifiés.
             </span>
@@ -65,7 +65,7 @@ interface TemplatePropagationDialogData {
             <span class="text-title-medium">
               Mettre à jour le modèle et les budgets actuels et futurs
             </span>
-            <span class="text-body-small text-secondary">
+            <span class="text-body-small text-on-surface-variant">
               Les budgets à partir du mois en cours seront ajustés
               automatiquement (mois passés inchangés).
             </span>
@@ -94,7 +94,7 @@ interface TemplatePropagationDialogData {
         </div>
       }
 
-      <p class="text-body-small text-tertiary mt-2">
+      <p class="text-body-small text-outline mt-2">
         Vous pourrez toujours ajuster un budget mensuel manuellement après coup.
       </p>
     </mat-dialog-content>
@@ -115,14 +115,6 @@ interface TemplatePropagationDialogData {
 
     mat-radio-button:hover {
       background-color: var(--mat-sys-surface-container-highest);
-    }
-
-    .text-secondary {
-      color: var(--mat-sys-on-surface-variant);
-    }
-
-    .text-tertiary {
-      color: var(--mat-sys-outline);
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
