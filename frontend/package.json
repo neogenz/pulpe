@@ -20,6 +20,7 @@
     "test:strict": "npm run typecheck:spec && vitest run",
     "test:watch": "npm run generate:build-info && vitest",
     "typecheck": "npx tsc --noEmit",
+    "pretypecheck:spec": "npm run generate:build-info",
     "typecheck:spec": "npx tsc --noEmit --project projects/webapp/tsconfig.spec.json",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
