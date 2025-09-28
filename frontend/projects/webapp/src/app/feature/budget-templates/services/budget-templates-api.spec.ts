@@ -8,6 +8,41 @@ import {
 import { describe, expect, it } from 'vitest';
 import type { BudgetTemplateDetailViewModel } from './budget-templates-api';
 
+// Interfaces for API response validation
+interface TemplateListResponse {
+  data: BudgetTemplateResponse['data'][];
+  message: string;
+  success: boolean;
+}
+
+interface TemplateDetailResponse {
+  data: BudgetTemplateDetailViewModel;
+  message: string;
+  success: boolean;
+}
+
+interface DeleteResponse {
+  data: null;
+  message: string;
+  success: boolean;
+}
+
+interface UsageResponse {
+  data: {
+    isUsed: boolean;
+    budgets: { id: string; month: number; year: number; description: string }[];
+  };
+  message: string;
+  success: boolean;
+}
+
+interface BudgetUsage {
+  id: string;
+  month: number;
+  year: number;
+  description: string;
+}
+
 describe('BudgetTemplatesApi', () => {
   // NOTE: Due to Angular 20's dependency injection complexities with HttpClient,
   // these tests focus on validating the service's business logic and API integration patterns.
@@ -178,6 +213,7 @@ describe('BudgetTemplatesApi', () => {
         name: 'Nouveau template',
         description: 'Description du template',
         isDefault: false,
+        lines: [],
       };
 
       const validateTemplateCreate = (
@@ -196,6 +232,7 @@ describe('BudgetTemplatesApi', () => {
     it('should validate BudgetTemplateCreateFromOnboarding payload structure', () => {
       const validOnboardingData: BudgetTemplateCreateFromOnboarding = {
         name: 'Template onboarding',
+        isDefault: true,
         monthlyIncome: 5000,
         housingCosts: 1200,
         healthInsurance: 300,
@@ -334,7 +371,9 @@ describe('BudgetTemplatesApi', () => {
         success: true,
       };
 
-      const validateListResponse = (response: unknown): boolean => {
+      const validateListResponse = (
+        response: TemplateListResponse,
+      ): boolean => {
         return (
           response &&
           Array.isArray(response.data) &&
@@ -349,23 +388,30 @@ describe('BudgetTemplatesApi', () => {
     it('should validate response structure for single template', () => {
       const mockSingleResponse = {
         data: {
-          id: 'template-1',
-          name: 'Template 1',
-          userId: 'user-1',
-          isDefault: false,
-          createdAt: '2024-01-01T00:00:00.000Z',
-          updatedAt: '2024-01-01T00:00:00.000Z',
+          template: {
+            id: 'template-1',
+            name: 'Template 1',
+            userId: 'user-1',
+            isDefault: false,
+            createdAt: '2024-01-01T00:00:00.000Z',
+            updatedAt: '2024-01-01T00:00:00.000Z',
+          },
+          transactions: [],
         },
         message: 'Template retrieved successfully',
         success: true,
       };
 
-      const validateSingleResponse = (response: unknown): boolean => {
+      const validateSingleResponse = (
+        response: TemplateDetailResponse,
+      ): boolean => {
         return (
           response &&
           response.data &&
-          typeof response.data.id === 'string' &&
-          typeof response.data.name === 'string' &&
+          response.data.template &&
+          typeof response.data.template.id === 'string' &&
+          typeof response.data.template.name === 'string' &&
+          Array.isArray(response.data.transactions) &&
           typeof response.message === 'string' &&
           typeof response.success === 'boolean'
         );
@@ -382,23 +428,25 @@ describe('BudgetTemplatesApi', () => {
             templateId: 'template-1',
             name: 'Income',
             amount: 5000,
-            kind: 'income',
-            recurrence: 'fixed',
+            kind: 'income' as const,
+            recurrence: 'fixed' as const,
             description: 'Monthly income',
             createdAt: '2024-01-01T00:00:00.000Z',
             updatedAt: '2024-01-01T00:00:00.000Z',
           },
         ],
         message: 'Template lines retrieved successfully',
-        success: true,
+        success: true as const,
       };
 
-      const validateLinesResponse = (response: unknown): boolean => {
+      const validateLinesResponse = (
+        response: TemplateLineListResponse,
+      ): boolean => {
         return (
           response &&
           Array.isArray(response.data) &&
           response.data.every(
-            (line: unknown) =>
+            (line: TemplateLine) =>
               typeof line.id === 'string' &&
               typeof line.templateId === 'string' &&
               typeof line.name === 'string' &&
@@ -458,6 +506,7 @@ describe('BudgetTemplatesApi', () => {
         name: longName,
         description: 'Description',
         isDefault: false,
+        lines: [],
       };
 
       expect(template.name).toHaveLength(100);
@@ -518,7 +567,7 @@ describe('BudgetTemplatesApi', () => {
         success: true,
       };
 
-      const validateDeleteResponse = (response: unknown): boolean => {
+      const validateDeleteResponse = (response: DeleteResponse): boolean => {
         return (
           response &&
           typeof response.message === 'string' &&
@@ -560,7 +609,7 @@ describe('BudgetTemplatesApi', () => {
         success: true,
       };
 
-      const validateUsageResponse = (response: unknown): boolean => {
+      const validateUsageResponse = (response: UsageResponse): boolean => {
         return (
           response &&
           response.data &&
@@ -599,14 +648,14 @@ describe('BudgetTemplatesApi', () => {
         success: true,
       };
 
-      const validateUsageResponse = (response: unknown): boolean => {
+      const validateUsageResponse = (response: UsageResponse): boolean => {
         return (
           response &&
           response.data &&
           typeof response.data.isUsed === 'boolean' &&
           Array.isArray(response.data.budgets) &&
           response.data.budgets.every(
-            (budget: unknown) =>
+            (budget: BudgetUsage) =>
               typeof budget.id === 'string' &&
               typeof budget.month === 'number' &&
               typeof budget.year === 'number',
@@ -627,7 +676,7 @@ describe('BudgetTemplatesApi', () => {
         description: 'December 2024 Budget',
       };
 
-      const validateBudgetUsage = (budget: unknown): boolean => {
+      const validateBudgetUsage = (budget: BudgetUsage): boolean => {
         return (
           budget &&
           typeof budget.id === 'string' &&

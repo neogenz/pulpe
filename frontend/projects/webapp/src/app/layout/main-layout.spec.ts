@@ -21,6 +21,12 @@ import { AuthApi } from '../core/auth/auth-api';
 import { BreadcrumbState } from '../core/routing/breadcrumb-state';
 import { ROUTES } from '../core/routing/routes-constants';
 
+// Type for testing protected members (using unknown cast)
+type MainLayoutWithPrivates = MainLayout & {
+  isHandset(): boolean;
+  closeDrawerOnMobile(drawer: { close: () => void }): void;
+};
+
 // Mock NavigationMenu component
 @Component({
   selector: 'pulpe-navigation-menu',
@@ -51,6 +57,7 @@ describe('MainLayout', () => {
     events: Subject<NavigationEnd>;
     url: string;
     createUrlTree: ReturnType<typeof vi.fn>;
+    serializeUrl: ReturnType<typeof vi.fn>;
   };
   let mockBreakpointObserver: {
     observe: ReturnType<typeof vi.fn>;
@@ -88,7 +95,7 @@ describe('MainLayout', () => {
       events: new Subject<NavigationEnd>(),
       url: ROUTES.CURRENT_MONTH,
       createUrlTree: vi.fn().mockReturnValue({}),
-      serializeUrl: vi.fn().mockReturnValue(''),
+      serializeUrl: vi.fn().mockReturnValue('/test-url'),
     };
     mockBreakpointObserver = {
       observe: vi.fn().mockReturnValue(breakpointSubject.asObservable()),
@@ -166,7 +173,9 @@ describe('MainLayout', () => {
 
     it('should initialize with correct default states', () => {
       expect(component.isLoggingOut()).toBe(false);
-      expect(component.isHandset()).toBe(false); // Default for desktop
+      expect((component as unknown as MainLayoutWithPrivates).isHandset()).toBe(
+        false,
+      ); // Default for desktop
     });
 
     it('should observe breakpoints on initialization', () => {
@@ -181,7 +190,9 @@ describe('MainLayout', () => {
       breakpointSubject.next({ matches: true });
       fixture.detectChanges();
 
-      expect(component.isHandset()).toBe(true);
+      expect((component as unknown as MainLayoutWithPrivates).isHandset()).toBe(
+        true,
+      );
     });
 
     it('should detect desktop breakpoints', () => {
@@ -189,7 +200,9 @@ describe('MainLayout', () => {
       breakpointSubject.next({ matches: false });
       fixture.detectChanges();
 
-      expect(component.isHandset()).toBe(false);
+      expect((component as unknown as MainLayoutWithPrivates).isHandset()).toBe(
+        false,
+      );
     });
 
     it('should observe breakpoint changes', () => {
@@ -200,7 +213,10 @@ describe('MainLayout', () => {
 
   describe('Navigation Interaction', () => {
     it('should have closeDrawerOnMobile method', () => {
-      expect(typeof component.closeDrawerOnMobile).toBe('function');
+      expect(
+        typeof (component as unknown as MainLayoutWithPrivates)
+          .closeDrawerOnMobile,
+      ).toBe('function');
     });
 
     it('should close drawer on mobile when isHandset is true', () => {
@@ -209,7 +225,9 @@ describe('MainLayout', () => {
       fixture.detectChanges();
 
       const mockDrawer = { close: vi.fn() };
-      component.closeDrawerOnMobile(mockDrawer);
+      (component as unknown as MainLayoutWithPrivates).closeDrawerOnMobile(
+        mockDrawer,
+      );
 
       expect(mockDrawer.close).toHaveBeenCalled();
     });
@@ -220,7 +238,9 @@ describe('MainLayout', () => {
       fixture.detectChanges();
 
       const mockDrawer = { close: vi.fn() };
-      component.closeDrawerOnMobile(mockDrawer);
+      (component as unknown as MainLayoutWithPrivates).closeDrawerOnMobile(
+        mockDrawer,
+      );
 
       expect(mockDrawer.close).not.toHaveBeenCalled();
     });
@@ -484,7 +504,9 @@ describe('MainLayout', () => {
       // Test that the component can handle state changes
       // We test the public interface rather than private implementation
       expect(component.isLoggingOut()).toBe(false);
-      expect(component.isHandset()).toBeDefined();
+      expect(
+        (component as unknown as MainLayoutWithPrivates).isHandset(),
+      ).toBeDefined();
     });
   });
 });

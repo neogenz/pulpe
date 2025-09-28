@@ -62,7 +62,6 @@ describe('BudgetListStore', () => {
           description: 'Current month budget',
           endingBalance: 0,
           templateId: 'template1',
-          isManuallyAdjusted: false,
           createdAt: '2024-01-01T00:00:00Z',
           updatedAt: '2024-01-01T00:00:00Z',
         },
@@ -96,7 +95,6 @@ describe('BudgetListStore', () => {
           description: `Month ${month} budget`,
           endingBalance: 0,
           templateId: 'template1',
-          isManuallyAdjusted: false,
           createdAt: '2024-01-01T00:00:00Z',
           updatedAt: '2024-01-01T00:00:00Z',
         });
@@ -127,7 +125,6 @@ describe('BudgetListStore', () => {
         description: `Current month budget`,
         endingBalance: 0,
         templateId: 'template1',
-        isManuallyAdjusted: false,
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T00:00:00Z',
       });
@@ -148,7 +145,6 @@ describe('BudgetListStore', () => {
         description: `Month after gap budget`,
         endingBalance: 0,
         templateId: 'template1',
-        isManuallyAdjusted: false,
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T00:00:00Z',
       });
@@ -181,7 +177,6 @@ describe('BudgetListStore', () => {
           description: `Current year month ${month}`,
           endingBalance: 0,
           templateId: 'template1',
-          isManuallyAdjusted: false,
           createdAt: '2024-01-01T00:00:00Z',
           updatedAt: '2024-01-01T00:00:00Z',
         });
@@ -197,7 +192,6 @@ describe('BudgetListStore', () => {
           description: `Next year month ${month}`,
           endingBalance: 0,
           templateId: 'template1',
-          isManuallyAdjusted: false,
           createdAt: '2024-01-01T00:00:00Z',
           updatedAt: '2024-01-01T00:00:00Z',
         });
@@ -234,7 +228,6 @@ describe('BudgetListStore', () => {
           description: `Year ${year} month ${month}`,
           endingBalance: 0,
           templateId: 'template1',
-          isManuallyAdjusted: false,
           createdAt: '2024-01-01T00:00:00Z',
           updatedAt: '2024-01-01T00:00:00Z',
         });

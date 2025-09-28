@@ -145,9 +145,10 @@ describe('TemplatesList', () => {
       const template = createTestTemplate();
       const templateViewModel = {
         template,
-        totalIncome: 0,
-        totalExpenses: 0,
-        remainingLivingAllowance: 0,
+        income: 0,
+        expenses: 0,
+        savings: 0,
+        netBalance: 0,
         loading: false,
       };
 

@@ -105,11 +105,28 @@
       "outputs": ["*.tsbuildinfo"],
       "inputs": ["**/*.{ts,tsx}", "tsconfig*.json"]
     },
+    "typecheck:spec": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "inputs": ["**/*.{ts,tsx}", "tsconfig*.json"]
+    },
     "quality": {
-      "dependsOn": ["^build", "type-check", "lint", "format:check"]
+      "dependsOn": [
+        "^build",
+        "type-check",
+        "typecheck:spec",
+        "lint",
+        "format:check"
+      ]
     },
     "quality:fix": {
-      "dependsOn": ["^build", "type-check", "lint:fix", "format"],
+      "dependsOn": [
+        "^build",
+        "type-check",
+        "typecheck:spec",
+        "lint:fix",
+        "format"
+      ],
       "cache": false
     },
     "clean": {
@@ -117,7 +134,14 @@
       "outputs": []
     },
     "checks": {
-      "dependsOn": ["build", "quality:fix", "test", "test:e2e", "test:performance"],
+      "dependsOn": [
+        "build",
+        "quality:fix",
+        "quality",
+        "test",
+        "test:e2e",
+        "test:performance"
+      ],
       "cache": false
     }
   }
