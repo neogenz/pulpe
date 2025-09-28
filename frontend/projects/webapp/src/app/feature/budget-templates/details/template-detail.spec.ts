@@ -57,9 +57,28 @@ describe('TemplateDetail', () => {
   // without full component instantiation. Complete integration is tested via E2E tests.
 
   describe('Financial Calculations', () => {
-    it('should correctly transform template transactions to financial entries', () => {
+    it('should correctly sort and transform template transactions to financial entries', () => {
+      const KIND_ORDER: Record<string, number> = {
+        income: 1,
+        saving: 2,
+        expense: 3,
+      } as const;
+
       const transformTransactions = (transactions: TemplateLine[]) => {
-        return transactions.map((transaction) => {
+        // Sort transactions by kind first, then by createdAt
+        const sortedTransactions = [...transactions].sort((a, b) => {
+          // First sort by kind (income → saving → expense)
+          const kindDiff =
+            (KIND_ORDER[a.kind] ?? 999) - (KIND_ORDER[b.kind] ?? 999);
+          if (kindDiff !== 0) return kindDiff;
+
+          // Then sort by createdAt (ascending)
+          return (
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+        });
+
+        return sortedTransactions.map((transaction) => {
           const spent = transaction.kind === 'expense' ? transaction.amount : 0;
           const earned = transaction.kind === 'income' ? transaction.amount : 0;
           const saved = transaction.kind === 'saving' ? transaction.amount : 0;
@@ -77,7 +96,7 @@ describe('TemplateDetail', () => {
 
       expect(entries).toHaveLength(3);
 
-      // Income entry
+      // Income entry (first due to kind sorting)
       expect(entries[0]).toEqual({
         description: 'Salaire',
         spent: 0,
@@ -86,23 +105,124 @@ describe('TemplateDetail', () => {
         total: 5000,
       });
 
-      // Expense entry
+      // Savings entry (second due to kind sorting)
       expect(entries[1]).toEqual({
-        description: 'Loyer',
-        spent: 1200,
-        earned: 0,
-        saved: 0,
-        total: -1200,
-      });
-
-      // Savings entry
-      expect(entries[2]).toEqual({
         description: 'Épargne',
         spent: 0,
         earned: 0,
         saved: 800,
         total: 0,
       });
+
+      // Expense entry (third due to kind sorting)
+      expect(entries[2]).toEqual({
+        description: 'Loyer',
+        spent: 1200,
+        earned: 0,
+        saved: 0,
+        total: -1200,
+      });
+    });
+
+    it('should sort transactions by kind first, then by createdAt', () => {
+      const KIND_ORDER: Record<string, number> = {
+        income: 1,
+        saving: 2,
+        expense: 3,
+      } as const;
+
+      // Create transactions with different kinds and dates
+      const unsortedTransactions: TemplateLine[] = [
+        {
+          id: 'expense-2',
+          templateId: 'template-123',
+          name: 'Groceries',
+          amount: 300,
+          kind: 'expense',
+          recurrence: 'fixed',
+          description: 'Grocery shopping',
+          createdAt: '2024-01-03T00:00:00.000Z', // Later date
+          updatedAt: '2024-01-03T00:00:00.000Z',
+        },
+        {
+          id: 'income-1',
+          templateId: 'template-123',
+          name: 'Salary',
+          amount: 5000,
+          kind: 'income',
+          recurrence: 'fixed',
+          description: 'Monthly salary',
+          createdAt: '2024-01-02T00:00:00.000Z', // Middle date
+          updatedAt: '2024-01-02T00:00:00.000Z',
+        },
+        {
+          id: 'saving-1',
+          templateId: 'template-123',
+          name: 'Emergency Fund',
+          amount: 500,
+          kind: 'saving',
+          recurrence: 'fixed',
+          description: 'Emergency savings',
+          createdAt: '2024-01-01T00:00:00.000Z', // Earlier date
+          updatedAt: '2024-01-01T00:00:00.000Z',
+        },
+        {
+          id: 'expense-1',
+          templateId: 'template-123',
+          name: 'Rent',
+          amount: 1200,
+          kind: 'expense',
+          recurrence: 'fixed',
+          description: 'Monthly rent',
+          createdAt: '2024-01-01T00:00:00.000Z', // Same date as saving
+          updatedAt: '2024-01-01T00:00:00.000Z',
+        },
+        {
+          id: 'income-2',
+          templateId: 'template-123',
+          name: 'Freelance',
+          amount: 800,
+          kind: 'income',
+          recurrence: 'one_off',
+          description: 'Freelance work',
+          createdAt: '2024-01-01T00:00:00.000Z', // Same date as others
+          updatedAt: '2024-01-01T00:00:00.000Z',
+        },
+      ];
+
+      const sortTransactions = (transactions: TemplateLine[]) => {
+        return [...transactions].sort((a, b) => {
+          // First sort by kind (income → saving → expense)
+          const kindDiff =
+            (KIND_ORDER[a.kind] ?? 999) - (KIND_ORDER[b.kind] ?? 999);
+          if (kindDiff !== 0) return kindDiff;
+
+          // Then sort by createdAt (ascending)
+          return (
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+        });
+      };
+
+      const sortedTransactions = sortTransactions(unsortedTransactions);
+
+      // Expected order: incomes first (by date), then savings, then expenses (by date)
+      expect(sortedTransactions.map((t) => t.name)).toEqual([
+        'Freelance', // income, 2024-01-01
+        'Salary', // income, 2024-01-02
+        'Emergency Fund', // saving, 2024-01-01
+        'Rent', // expense, 2024-01-01
+        'Groceries', // expense, 2024-01-03
+      ]);
+
+      // Verify kinds are in correct order
+      expect(sortedTransactions.map((t) => t.kind)).toEqual([
+        'income',
+        'income',
+        'saving',
+        'expense',
+        'expense',
+      ]);
     });
 
     it('should calculate totals correctly from financial entries', () => {
