@@ -1558,9 +1558,11 @@ export class BudgetTemplateService {
   ): Promise<void> {
     if (!budgetIds.length) return;
 
-    for (const budgetId of budgetIds) {
-      await this.budgetService.recalculateBalances(budgetId, supabase);
-    }
+    await Promise.all(
+      budgetIds.map((budgetId) =>
+        this.budgetService.recalculateBalances(budgetId, supabase),
+      ),
+    );
   }
 
   private async validateTemplateLinesExist(
