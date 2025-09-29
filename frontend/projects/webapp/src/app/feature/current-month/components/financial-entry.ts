@@ -1,18 +1,23 @@
 import { CurrencyPipe } from '@angular/common';
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  inject,
   input,
   output,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatRippleModule } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
+import { map, shareReplay } from 'rxjs/operators';
 import { RolloverFormatPipe } from '@app/ui/rollover-format';
 import { type FinancialEntryModel } from '../models/financial-entry.model';
 
@@ -31,6 +36,7 @@ export type FinancialEntryViewModel = FinancialEntryModel & {
     MatCheckboxModule,
     MatRippleModule,
     MatButtonModule,
+    MatMenuModule,
     MatTooltipModule,
     RouterLink,
     RolloverFormatPipe,
@@ -79,27 +85,65 @@ export type FinancialEntryViewModel = FinancialEntryModel & {
           {{ data().kind === 'income' ? '+' : '-'
           }}{{ data().amount | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH' }}
         </span>
-        @if (editable()) {
+        @if (isMobile() && (editable() || deletable())) {
+          <!-- Mobile: Menu button for edit/delete actions -->
           <button
             matIconButton
-            (click)="onEditClick($event)"
-            [attr.aria-label]="'Modifier ' + data().name"
-            [attr.data-testid]="'edit-transaction-' + data().id"
-            class="!w-10 !h-10 text-primary"
+            [matMenuTriggerFor]="actionMenu"
+            [attr.aria-label]="'Actions pour ' + data().name"
+            [attr.data-testid]="'actions-menu-' + data().id"
+            class="!w-10 !h-10 text-on-surface-variant"
+            (click)="$event.stopPropagation()"
           >
-            <mat-icon>edit</mat-icon>
+            <mat-icon>more_vert</mat-icon>
           </button>
-        }
-        @if (deletable()) {
-          <button
-            matIconButton
-            (click)="onDeleteClick($event)"
-            [attr.aria-label]="'Supprimer ' + data().name"
-            [attr.data-testid]="'delete-transaction-' + data().id"
-            class="!w-10 !h-10 text-error"
-          >
-            <mat-icon>delete</mat-icon>
-          </button>
+
+          <mat-menu #actionMenu="matMenu" xPosition="before">
+            @if (editable()) {
+              <button
+                mat-menu-item
+                (click)="onEditClick($event)"
+                [attr.data-testid]="'edit-transaction-' + data().id"
+              >
+                <mat-icon matMenuItemIcon>edit</mat-icon>
+                <span>Éditer</span>
+              </button>
+            }
+            @if (deletable()) {
+              <button
+                mat-menu-item
+                (click)="onDeleteClick($event)"
+                [attr.data-testid]="'delete-transaction-' + data().id"
+              >
+                <mat-icon matMenuItemIcon>delete</mat-icon>
+                <span>Supprimer</span>
+              </button>
+            }
+          </mat-menu>
+        } @else {
+          <!-- Desktop: Separate edit and delete buttons -->
+          @if (editable()) {
+            <button
+              matIconButton
+              (click)="onEditClick($event)"
+              [attr.aria-label]="'Modifier ' + data().name"
+              [attr.data-testid]="'edit-transaction-' + data().id"
+              class="!w-10 !h-10 text-primary"
+            >
+              <mat-icon>edit</mat-icon>
+            </button>
+          }
+          @if (deletable()) {
+            <button
+              matIconButton
+              (click)="onDeleteClick($event)"
+              [attr.aria-label]="'Supprimer ' + data().name"
+              [attr.data-testid]="'delete-transaction-' + data().id"
+              class="!w-10 !h-10 text-error"
+            >
+              <mat-icon>delete</mat-icon>
+            </button>
+          }
         }
       </div>
     </mat-list-item>
@@ -168,6 +212,8 @@ export type FinancialEntryViewModel = FinancialEntryModel & {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FinancialEntry {
+  private readonly breakpointObserver = inject(BreakpointObserver);
+
   readonly data = input.required<FinancialEntryViewModel>();
   readonly selectable = input<boolean>(false);
   readonly deletable = input<boolean>(false);
@@ -177,6 +223,15 @@ export class FinancialEntry {
   readonly selectionChange = output<boolean>();
   readonly deleteClick = output<void>();
   readonly editClick = output<void>();
+
+  // Responsive breakpoint detection for mobile view
+  protected readonly isMobile = toSignal(
+    this.breakpointObserver.observe(Breakpoints.Handset).pipe(
+      map((result) => result.matches),
+      shareReplay(),
+    ),
+    { initialValue: false },
+  );
 
   readonly isRollover = computed<boolean>(
     () => this.data().isRollover ?? false,
