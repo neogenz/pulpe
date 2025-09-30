@@ -265,9 +265,9 @@ test.describe('Financial Entry Mobile Menu', () => {
 
       // Switch to mobile viewport
       await page.setViewportSize({ width: 375, height: 667 });
-      
-      // Wait for responsive changes
-      await page.waitForTimeout(500);
+
+      // Wait for mobile menu button to appear
+      await page.locator('[data-testid^="actions-menu-"]').first().waitFor({ state: 'visible' });
 
       // Check mobile behavior
       actionMenus = await page.locator('[data-testid^="actions-menu-"]').count();
