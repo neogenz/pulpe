@@ -80,6 +80,15 @@ export class DemoDataGenerator {
 
   /**
    * Génère une session de démonstration
+   *
+   * SÉCURITÉ - Mode Démo Uniquement :
+   * Les tokens sont stockés en clair dans localStorage car :
+   * 1. Ce sont des tokens factices (pas de vrai backend)
+   * 2. Aucune donnée utilisateur réelle n'est à risque
+   * 3. Les sessions expirent automatiquement après 1 heure
+   *
+   * ⚠️ NE JAMAIS utiliser ce pattern en production avec de vrais tokens d'authentification !
+   * En production, utilisez httpOnly cookies ou des solutions sécurisées comme le backend Supabase.
    */
   private generateDemoSession(user: DemoUser): DemoSession {
     return {
@@ -159,7 +168,7 @@ export class DemoDataGenerator {
         name: 'Freelance design',
         amount: 800,
         kind: 'income',
-        recurrence: 'variable',
+        recurrence: 'one_off',
       },
 
       // Dépenses fixes
@@ -213,43 +222,43 @@ export class DemoDataGenerator {
         name: 'Courses alimentaires',
         amount: 600,
         kind: 'expense',
-        recurrence: 'variable',
+        recurrence: 'one_off',
       },
       {
         name: 'Restaurants/Sorties',
         amount: 400,
         kind: 'expense',
-        recurrence: 'variable',
+        recurrence: 'one_off',
       },
       {
         name: 'Shopping vêtements',
         amount: 200,
         kind: 'expense',
-        recurrence: 'variable',
+        recurrence: 'one_off',
       },
       {
         name: 'Essence/Parking',
         amount: 150,
         kind: 'expense',
-        recurrence: 'variable',
+        recurrence: 'one_off',
       },
       {
         name: 'Pharmacie/Santé',
         amount: 80,
         kind: 'expense',
-        recurrence: 'variable',
+        recurrence: 'one_off',
       },
       {
         name: 'Coiffeur/Beauté',
         amount: 120,
         kind: 'expense',
-        recurrence: 'variable',
+        recurrence: 'one_off',
       },
       {
         name: 'Divers/Imprévus',
         amount: 150,
         kind: 'expense',
-        recurrence: 'variable',
+        recurrence: 'one_off',
       },
 
       // Épargne
@@ -365,14 +374,14 @@ export class DemoDataGenerator {
         name: 'Courses (budget serré)',
         amount: 400,
         kind: 'expense',
-        recurrence: 'variable',
+        recurrence: 'one_off',
       },
       { name: 'Transport', amount: 185, kind: 'expense', recurrence: 'fixed' },
       {
         name: 'Minimum vital',
         amount: 200,
         kind: 'expense',
-        recurrence: 'variable',
+        recurrence: 'one_off',
       },
 
       // Épargne maximisée
@@ -458,7 +467,7 @@ export class DemoDataGenerator {
         name: 'Sorties festives',
         amount: 500,
         kind: 'expense',
-        recurrence: 'variable',
+        recurrence: 'one_off',
       },
       {
         name: 'Tenue de soirée',
@@ -574,7 +583,7 @@ export class DemoDataGenerator {
       templateLines.forEach((templateLine, index) => {
         // Ajouter des variations pour les mois passés
         let amount = templateLine.amount;
-        if (i < 0 && templateLine.recurrence === 'variable') {
+        if (i < 0 && templateLine.recurrence === 'one_off') {
           // Variations de ±20% sur les dépenses variables
           const variation = 1 + (Math.random() * 0.4 - 0.2);
           amount = Math.round(amount * variation);

@@ -141,4 +141,21 @@ export class DemoModeService {
       return null;
     }
   }
+
+  /**
+   * Vérifie si la session démo a expiré
+   * Retourne true si la session n'existe pas ou si elle a dépassé expires_at
+   */
+  isSessionExpired(): boolean {
+    if (!this.#isDemoMode()) return false;
+
+    const session = this.getDemoData<{
+      expires_at: number;
+    }>('session');
+
+    if (!session) return true;
+
+    const now = Math.floor(Date.now() / 1000);
+    return now > session.expires_at;
+  }
 }

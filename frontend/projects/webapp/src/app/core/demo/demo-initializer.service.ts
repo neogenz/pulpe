@@ -1,5 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
+import { toObservable } from '@angular/core/rxjs-interop';
+import { firstValueFrom, filter, timeout } from 'rxjs';
 import { DemoModeService } from './demo-mode.service';
 import { DemoDataGenerator } from './demo-data-generator';
 import { ROUTES } from '../routing';
@@ -74,17 +76,33 @@ export class DemoInitializerService {
         "🎭 État d'authentification mis à jour pour le mode démo",
       );
 
-      // Naviguer vers le dashboard du mois en cours
-      const currentMonth = new Date().getMonth() + 1;
-      const currentYear = new Date().getFullYear();
+      // Attendre de manière réactive que les signaux d'authentification soient propagés
+      // Pattern: toObservable() + filter() + firstValueFrom() pour synchronisation signal-to-promise
+      try {
+        await firstValueFrom(
+          toObservable(this.#authApi.isAuthenticated).pipe(
+            filter((isAuth) => isAuth === true),
+            timeout({
+              each: 5000,
+              with: () => {
+                throw new Error(
+                  "Timeout: l'authentification démo n'a pas pu être initialisée dans les 5 secondes",
+                );
+              },
+            }),
+          ),
+        );
+        this.#logger.info('🎭 Authentification démo confirmée (signal propagé)');
+      } catch (error) {
+        this.#logger.error(
+          "Erreur lors de l'attente de la propagation du signal d'authentification:",
+          error,
+        );
+        throw error;
+      }
 
-      await this.#router.navigate([
-        '/',
-        ROUTES.APP,
-        ROUTES.BUDGET,
-        currentYear.toString(),
-        currentMonth.toString().padStart(2, '0'),
-      ]);
+      // Naviguer vers le dashboard du mois en cours
+      await this.#router.navigate(['/', ROUTES.APP, ROUTES.CURRENT_MONTH]);
 
       this.#logger.info('🎭 Mode démo activé avec succès');
     } catch (error) {
@@ -108,21 +126,19 @@ export class DemoInitializerService {
    */
   async checkAndRedirectIfDemo(): Promise<boolean> {
     if (this.#demoMode.isDemoMode()) {
+      // Vérifier si la session démo a expiré
+      if (this.#demoMode.isSessionExpired()) {
+        this.#logger.warn('🎭 Session démo expirée, désactivation du mode démo');
+        await this.exitDemoMode();
+        return false;
+      }
+
       if (!this.#demoMode.isInitialized()) {
         // Si le mode démo est actif mais pas initialisé, l'initialiser
         await this.initializeDemoMode();
       } else {
         // Si déjà initialisé, juste rediriger vers le dashboard
-        const currentMonth = new Date().getMonth() + 1;
-        const currentYear = new Date().getFullYear();
-
-        await this.#router.navigate([
-          '/',
-          ROUTES.APP,
-          ROUTES.BUDGET,
-          currentYear.toString(),
-          currentMonth.toString().padStart(2, '0'),
-        ]);
+        await this.#router.navigate(['/', ROUTES.APP, ROUTES.CURRENT_MONTH]);
       }
       return true;
     }

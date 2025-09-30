@@ -162,8 +162,6 @@ export class DemoStorageAdapter {
       kind: tl.kind,
       recurrence: tl.recurrence,
       isManuallyAdjusted: false,
-      isRollover: false,
-      rolloverSourceBudgetId: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }));
@@ -329,6 +327,8 @@ export class DemoStorageAdapter {
     const newTransaction: Transaction = {
       id: uuidv4(),
       ...transaction,
+      transactionDate: transaction.transactionDate || new Date().toISOString(),
+      category: transaction.category || null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -336,8 +336,9 @@ export class DemoStorageAdapter {
     transactions.push(newTransaction);
     this.#demoMode.saveDemoData('transactions', transactions);
 
-    // Mettre à jour l'ending balance du budget
+    // Mettre à jour l'ending balance du budget et propager aux mois suivants
     this.updateBudgetEndingBalance(transaction.budgetId);
+    this.propagateEndingBalanceChanges(transaction.budgetId);
 
     return this.mockApiResponse({
       success: true,
@@ -377,8 +378,9 @@ export class DemoStorageAdapter {
     transactions[index] = updatedTransaction;
     this.#demoMode.saveDemoData('transactions', transactions);
 
-    // Mettre à jour l'ending balance du budget
+    // Mettre à jour l'ending balance du budget et propager aux mois suivants
     this.updateBudgetEndingBalance(updatedTransaction.budgetId);
+    this.propagateEndingBalanceChanges(updatedTransaction.budgetId);
 
     return this.mockApiResponse({
       success: true,
@@ -403,8 +405,9 @@ export class DemoStorageAdapter {
     const filteredTransactions = transactions.filter((t) => t.id !== id);
     this.#demoMode.saveDemoData('transactions', filteredTransactions);
 
-    // Mettre à jour l'ending balance du budget
+    // Mettre à jour l'ending balance du budget et propager aux mois suivants
     this.updateBudgetEndingBalance(transaction.budgetId);
+    this.propagateEndingBalanceChanges(transaction.budgetId);
 
     return this.mockApiResponse(undefined).pipe(map(() => void 0));
   }
@@ -419,7 +422,7 @@ export class DemoStorageAdapter {
     name: string;
     amount: number;
     kind: 'income' | 'expense' | 'saving';
-    recurrence: 'fixed' | 'variable' | 'one_off';
+    recurrence: 'fixed' | 'one_off';
     isManuallyAdjusted?: boolean;
     isRollover?: boolean;
     rolloverSourceBudgetId?: string | null;
@@ -431,6 +434,8 @@ export class DemoStorageAdapter {
       id: uuidv4(),
       ...budgetLine,
       templateLineId: budgetLine.templateLineId || null,
+      savingsGoalId: budgetLine.savingsGoalId || null,
+      isManuallyAdjusted: budgetLine.isManuallyAdjusted || false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -438,8 +443,9 @@ export class DemoStorageAdapter {
     budgetLines.push(newBudgetLine);
     this.#demoMode.saveDemoData('budget-lines', budgetLines);
 
-    // Mettre à jour l'ending balance du budget
+    // Mettre à jour l'ending balance du budget et propager aux mois suivants
     this.updateBudgetEndingBalance(budgetLine.budgetId);
+    this.propagateEndingBalanceChanges(budgetLine.budgetId);
 
     return this.mockApiResponse({
       success: true,
@@ -457,7 +463,7 @@ export class DemoStorageAdapter {
       name?: string;
       amount?: number;
       kind?: 'income' | 'expense' | 'saving';
-      recurrence?: 'fixed' | 'variable' | 'one_off';
+      recurrence?: 'fixed' | 'one_off';
       isManuallyAdjusted?: boolean;
     },
   ): Observable<BudgetLineResponse> {
@@ -480,8 +486,9 @@ export class DemoStorageAdapter {
     budgetLines[index] = updatedBudgetLine;
     this.#demoMode.saveDemoData('budget-lines', budgetLines);
 
-    // Mettre à jour l'ending balance du budget
+    // Mettre à jour l'ending balance du budget et propager aux mois suivants
     this.updateBudgetEndingBalance(updatedBudgetLine.budgetId);
+    this.propagateEndingBalanceChanges(updatedBudgetLine.budgetId);
 
     return this.mockApiResponse({
       success: true,
@@ -507,8 +514,9 @@ export class DemoStorageAdapter {
     const filteredBudgetLines = budgetLines.filter((bl) => bl.id !== id);
     this.#demoMode.saveDemoData('budget-lines', filteredBudgetLines);
 
-    // Mettre à jour l'ending balance du budget
+    // Mettre à jour l'ending balance du budget et propager aux mois suivants
     this.updateBudgetEndingBalance(budgetLine.budgetId);
+    this.propagateEndingBalanceChanges(budgetLine.budgetId);
 
     return this.mockApiResponse(undefined).pipe(map(() => void 0));
   }
@@ -524,7 +532,7 @@ export class DemoStorageAdapter {
       name: string;
       amount: number;
       kind: 'income' | 'expense' | 'saving';
-      recurrence: 'fixed' | 'variable' | 'one_off';
+      recurrence: 'fixed' | 'one_off';
       description?: string;
     }[];
   }): Observable<{
@@ -541,7 +549,7 @@ export class DemoStorageAdapter {
       name: template.name,
       description: template.description,
       isDefault: template.isDefault,
-      userId: 'demo-user',
+      userId: 'demo-user-001',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -550,10 +558,11 @@ export class DemoStorageAdapter {
     const createdLines: TemplateLine[] = [];
     if (template.lines && template.lines.length > 0) {
       for (const line of template.lines) {
-        const newLine = {
+        const newLine: TemplateLine = {
           id: uuidv4(),
           templateId: newTemplate.id,
           ...line,
+          description: line.description || '',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
@@ -652,7 +661,7 @@ export class DemoStorageAdapter {
         name?: string;
         amount?: number;
         kind?: 'income' | 'expense' | 'saving';
-        recurrence?: 'fixed' | 'variable' | 'one_off';
+        recurrence?: 'fixed' | 'one_off';
         description?: string;
       }[];
     },
@@ -697,7 +706,7 @@ export class DemoStorageAdapter {
         name: string;
         amount: number;
         kind: 'income' | 'expense' | 'saving';
-        recurrence: 'fixed' | 'variable' | 'one_off';
+        recurrence: 'fixed' | 'one_off';
         description: string;
       }[];
       update?: {
@@ -705,7 +714,7 @@ export class DemoStorageAdapter {
         name?: string;
         amount?: number;
         kind?: 'income' | 'expense' | 'saving';
-        recurrence?: 'fixed' | 'variable' | 'one_off';
+        recurrence?: 'fixed' | 'one_off';
         description?: string;
       }[];
       delete?: string[];
@@ -714,6 +723,9 @@ export class DemoStorageAdapter {
     let templateLines =
       this.#demoMode.getDemoData<TemplateLine[]>('template-lines') || [];
 
+    const createdLines: TemplateLine[] = [];
+    const updatedLines: TemplateLine[] = [];
+
     // Créer de nouvelles lignes
     if (operations.create) {
       operations.create.forEach((lineData) => {
@@ -721,10 +733,12 @@ export class DemoStorageAdapter {
           id: uuidv4(),
           templateId,
           ...lineData,
+          description: lineData.description || '',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
         templateLines.push(newLine);
+        createdLines.push(newLine);
       });
     }
 
@@ -738,6 +752,7 @@ export class DemoStorageAdapter {
             ...lineUpdate,
             updatedAt: new Date().toISOString(),
           };
+          updatedLines.push(templateLines[index]);
         }
       });
     }
@@ -745,7 +760,7 @@ export class DemoStorageAdapter {
     // Supprimer des lignes
     if (operations.delete) {
       templateLines = templateLines.filter(
-        (l) => !operations.delete.includes(l.id),
+        (l) => !operations.delete!.includes(l.id),
       );
     }
 
@@ -754,16 +769,43 @@ export class DemoStorageAdapter {
     return this.mockApiResponse({
       success: true,
       data: {
-        created: operations.create || [],
-        updated: operations.update || [],
+        created: createdLines,
+        updated: updatedLines,
         deleted: operations.delete || [],
+        propagation: null, // Demo mode doesn't support propagation
       },
       message: 'Opérations effectuées avec succès',
     });
   }
 
   /**
+   * Récupère le rollover pour un budget donné
+   * Le rollover correspond à l'ending balance du mois précédent
+   * Retourne 0 si c'est le premier mois (pas de mois précédent)
+   */
+  private getRolloverForBudget(budget: Budget): number {
+    const budgets = this.#demoMode.getDemoData<Budget[]>('budgets') || [];
+
+    // Calculer le mois précédent (gestion du wrap année)
+    const prevMonth = budget.month === 1 ? 12 : budget.month - 1;
+    const prevYear = budget.month === 1 ? budget.year - 1 : budget.year;
+
+    // Trouver le budget du mois précédent
+    const previousBudget = budgets.find(
+      (b) => b.month === prevMonth && b.year === prevYear,
+    );
+
+    // Retourner l'ending balance du mois précédent (0 si premier mois)
+    return previousBudget?.endingBalance ?? 0;
+  }
+
+  /**
    * Met à jour l'ending balance d'un budget basé sur ses transactions et lignes
+   * Utilise les formules SPECS.md section 3 avec BudgetFormulas du shared
+   *
+   * Formules SPECS:
+   * - available = income + rollover
+   * - ending_balance = available - (expenses + savings)
    */
   private updateBudgetEndingBalance(budgetId: string): void {
     const budgets = this.#demoMode.getDemoData<Budget[]>('budgets') || [];
@@ -779,6 +821,9 @@ export class DemoStorageAdapter {
     const lines = budgetLines.filter((bl) => bl.budgetId === budgetId);
     const trans = transactions.filter((t) => t.budgetId === budgetId);
 
+    // Récupérer le rollover du mois précédent
+    const rollover = this.getRolloverForBudget(budget);
+
     // Calculer le total des revenus
     const incomeFromLines = lines
       .filter((l) => l.kind === 'income')
@@ -788,29 +833,60 @@ export class DemoStorageAdapter {
       .reduce((sum, t) => sum + t.amount, 0);
     const totalIncome = incomeFromLines + incomeFromTransactions;
 
-    // Calculer le total des dépenses
+    // Calculer le montant disponible (SPECS: available = income + rollover)
+    const available = totalIncome + rollover;
+
+    // Calculer le total des dépenses (expenses + savings)
     const expensesFromLines = lines
       .filter((l) => l.kind === 'expense')
       .reduce((sum, l) => sum + l.amount, 0);
     const expensesFromTransactions = trans
       .filter((t) => t.kind === 'expense')
       .reduce((sum, t) => sum + t.amount, 0);
-    const totalExpenses = expensesFromLines + expensesFromTransactions;
 
-    // Calculer le total de l'épargne
     const savingsFromLines = lines
       .filter((l) => l.kind === 'saving')
       .reduce((sum, l) => sum + l.amount, 0);
     const savingsFromTransactions = trans
       .filter((t) => t.kind === 'saving')
       .reduce((sum, t) => sum + t.amount, 0);
-    const totalSavings = savingsFromLines + savingsFromTransactions;
 
-    // Calculer l'ending balance
-    budget.endingBalance = totalIncome - totalExpenses - totalSavings;
+    const totalExpenses =
+      expensesFromLines +
+      expensesFromTransactions +
+      savingsFromLines +
+      savingsFromTransactions;
+
+    // Calculer l'ending balance (SPECS: ending_balance = available - expenses)
+    budget.endingBalance = available - totalExpenses;
     budget.updatedAt = new Date().toISOString();
 
     budgets[budgetIndex] = budget;
     this.#demoMode.saveDemoData('budgets', budgets);
+  }
+
+  /**
+   * Propage les changements d'ending balance aux mois suivants
+   * Recalcule en cascade tous les budgets futurs car leur rollover change
+   */
+  private propagateEndingBalanceChanges(startBudgetId: string): void {
+    const budgets = this.#demoMode.getDemoData<Budget[]>('budgets') || [];
+    const startBudget = budgets.find((b) => b.id === startBudgetId);
+    if (!startBudget) return;
+
+    // Trier les budgets chronologiquement
+    const sortedBudgets = budgets.sort((a, b) => {
+      if (a.year !== b.year) return a.year - b.year;
+      return a.month - b.month;
+    });
+
+    // Trouver l'index du budget modifié
+    const startIndex = sortedBudgets.findIndex((b) => b.id === startBudgetId);
+    if (startIndex === -1) return;
+
+    // Recalculer tous les budgets suivants (i+1 car startBudget est déjà calculé)
+    for (let i = startIndex + 1; i < sortedBudgets.length; i++) {
+      this.updateBudgetEndingBalance(sortedBudgets[i].id);
+    }
   }
 }

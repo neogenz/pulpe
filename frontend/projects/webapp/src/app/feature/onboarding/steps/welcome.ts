@@ -147,6 +147,7 @@ export default class Welcome {
     this.isLoadingDemo.set(true);
     try {
       await this.#demoInitializer.initializeDemoMode();
+      // Note: pas besoin de remettre isLoadingDemo à false ici car on redirige
     } catch (error) {
       console.error('Erreur lors du démarrage du mode démo:', error);
       this.isLoadingDemo.set(false);
