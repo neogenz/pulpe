@@ -257,6 +257,28 @@ describe('FinancialEntry', () => {
       expect(editMenuItem).toBeFalsy();
       expect(deleteMenuItem).toBeTruthy();
     });
+
+    it('should emit editClick when edit menu item is clicked', () => {
+      vi.spyOn(component.editClick, 'emit');
+
+      const editMenuItem = fixture.debugElement.query(
+        By.css('mat-menu [data-testid="edit-transaction-test-id-1"]'),
+      );
+      editMenuItem.nativeElement.click();
+
+      expect(component.editClick.emit).toHaveBeenCalled();
+    });
+
+    it('should emit deleteClick when delete menu item is clicked', () => {
+      vi.spyOn(component.deleteClick, 'emit');
+
+      const deleteMenuItem = fixture.debugElement.query(
+        By.css('mat-menu [data-testid="delete-transaction-test-id-1"]'),
+      );
+      deleteMenuItem.nativeElement.click();
+
+      expect(component.deleteClick.emit).toHaveBeenCalled();
+    });
   });
 
   describe('Responsive behavior', () => {

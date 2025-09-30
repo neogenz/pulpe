@@ -1,4 +1,4 @@
-import { CurrencyPipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import {
   ChangeDetectionStrategy,
@@ -30,7 +30,7 @@ export type FinancialEntryViewModel = FinancialEntryModel & {
   selector: 'pulpe-financial-entry',
 
   imports: [
-    CurrencyPipe,
+    DecimalPipe,
     MatIconModule,
     MatListModule,
     MatCheckboxModule,
@@ -80,10 +80,10 @@ export type FinancialEntryViewModel = FinancialEntryModel & {
           }}</span>
         }
       </div>
-      <div matListItemMeta class="!flex !h-full !items-center !gap-3">
+      <div matListItemMeta class="!flex !h-full !items-center">
         <span class="ph-no-capture" [class.italic]="isRollover()">
           {{ data().kind === 'income' ? '+' : '-'
-          }}{{ data().amount | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH' }}
+          }}{{ data().amount | number: '1.2-2' : 'de-CH' }}
         </span>
         @if (isMobile() && (editable() || deletable())) {
           <!-- Mobile: Menu button for edit/delete actions -->
