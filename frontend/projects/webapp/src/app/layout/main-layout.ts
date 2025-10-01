@@ -29,6 +29,7 @@ import { AuthApi } from '@core/auth/auth-api';
 import { ROUTES } from '@core/routing/routes-constants';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { Logger } from '@core/logging/logger';
+import { DemoInitializerService } from '@core/demo/demo-initializer.service';
 
 interface NavigationItem {
   readonly route: string;
@@ -221,6 +222,30 @@ interface NavigationItem {
             </div>
           </mat-toolbar>
 
+          <!-- Demo Mode Banner -->
+          @if (isDemoMode()) {
+            <div
+              class="bg-tertiary-container text-on-tertiary-container px-4 py-2 flex items-center justify-between"
+              role="alert"
+              aria-live="polite"
+            >
+              <div class="flex items-center gap-2">
+                <mat-icon class="text-base">science</mat-icon>
+                <span class="text-body-small font-medium">
+                  Mode Démo — Vos données seront supprimées après 24h
+                </span>
+              </div>
+              <button
+                matButton
+                class="text-on-tertiary-container"
+                (click)="exitDemoMode()"
+              >
+                <mat-icon class="text-base">close</mat-icon>
+                Quitter
+              </button>
+            </div>
+          }
+
           <!-- Breadcrumb -->
           @if (breadcrumbState.breadcrumbs().length > 1) {
             <pulpe-breadcrumb
@@ -292,6 +317,7 @@ export class MainLayout {
   private readonly scrollDispatcher = inject(ScrollDispatcher);
   private readonly authApi = inject(AuthApi);
   private readonly applicationConfig = inject(ApplicationConfiguration);
+  private readonly demoInitializer = inject(DemoInitializerService);
   readonly breadcrumbState = inject(BreadcrumbState);
   readonly #logger = inject(Logger);
   readonly userEmail = computed(() => this.authApi.authState().user?.email);
@@ -402,5 +428,21 @@ export class MainLayout {
     } finally {
       this.#isLoggingOut.set(false);
     }
+  }
+
+  /**
+   * Check if currently in demo mode
+   */
+  protected isDemoMode(): boolean {
+    return this.demoInitializer.isDemoMode();
+  }
+
+  /**
+   * Exit demo mode and redirect to login
+   */
+  protected async exitDemoMode(): Promise<void> {
+    this.demoInitializer.exitDemoMode();
+    await this.authApi.signOut();
+    await this.router.navigate([ROUTES.LOGIN]);
   }
 }
