@@ -159,6 +159,67 @@ feature/[domain]/
 - Tests as Documentation: Each test should describe a business requirement
 - Resilient to Refactoring: Tests shouldn't break when implementation changes
 
+### Demo Mode Architecture
+
+The application features a **Demo Mode** that allows users to explore the application without authentication, using localStorage for data persistence instead of the backend API.
+
+#### HTTP Interceptor Pattern
+
+Demo mode uses a centralized **HTTP Interceptor** to transparently route API requests:
+
+```
+Component → API Service → HttpClient → DemoHttpInterceptor → DemoRequestRouter → DemoStorageAdapter (localStorage)
+                                                         ↓ (non-demo)
+                                                    Real Backend API
+```
+
+**Key Components**:
+- `demo-http.interceptor.ts`: Functional interceptor that checks `isDemoMode()` and intercepts `/api/*` requests
+- `demo-request-router.ts`: Parses HTTP request URL/method and routes to appropriate DemoStorageAdapter method
+- `demo-storage-adapter.ts`: Simulates backend responses using localStorage with proper delay
+- `demo-mode.service.ts`: Manages demo mode state via signals
+
+**Advantages**:
+- ✅ Zero modifications in API services (budget-api, transaction-api, etc.)
+- ✅ Single point of control for demo behavior
+- ✅ Easy to enable/disable
+- ✅ Clean separation of concerns
+
+**Important Notes**:
+- The interceptor is registered **first** in the HTTP interceptor chain (before authInterceptor)
+- Auth-api.ts retains demo logic in `initializeAuthState()` since it's not HTTP-based
+- All API services are demo-mode agnostic - they only use HttpClient
+
+#### Debugging Demo Requests
+
+Demo requests are logged with 🎭 prefix:
+```typescript
+// In browser console:
+🎭 Demo interceptor: GET /api/budgets
+🎭 Demo interceptor: POST /api/transactions
+```
+
+#### Adding New Endpoints
+
+To support a new API endpoint in demo mode:
+
+1. Add route pattern in `DemoRequestRouter.parseRoute()`:
+```typescript
+if (url.match(/\/api\/my-new-endpoint\/[^/]+$/)) {
+  const id = this.extractIdFromUrl(url, /\/my-new-endpoint\/([^/]+)$/);
+  return { type: 'my-endpoint', method, id };
+}
+```
+
+2. Add method to `DemoStorageAdapter` if needed
+
+3. Map in `DemoRequestRouter.executeRoute()`:
+```typescript
+if (route.type === 'my-endpoint' && route.method === 'GET') {
+  return this.wrapResponse(this.#demoStorage.getMyData$(route.id!));
+}
+```
+
 ### Styling
 
 NEVER use `::ng-deep` in styles. It's FORBIDDEN.

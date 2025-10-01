@@ -18,6 +18,10 @@ export class DemoInitializerService {
   readonly #logger = inject(Logger);
   readonly #authApi = inject(AuthApi);
 
+  // Convert signal to observable at class level (injection context)
+  // This avoids NG0203 error when used in async methods called from event handlers
+  readonly #isAuthenticated$ = toObservable(this.#authApi.isAuthenticated);
+
   /**
    * Initialise le mode démo et redirige vers le dashboard
    */
@@ -77,10 +81,10 @@ export class DemoInitializerService {
       );
 
       // Attendre de manière réactive que les signaux d'authentification soient propagés
-      // Pattern: toObservable() + filter() + firstValueFrom() pour synchronisation signal-to-promise
+      // Pattern: signal → observable (au niveau classe) → filter() → firstValueFrom() pour synchronisation
       try {
         await firstValueFrom(
-          toObservable(this.#authApi.isAuthenticated).pipe(
+          this.#isAuthenticated$.pipe(
             filter((isAuth) => isAuth === true),
             timeout({
               each: 5000,
@@ -92,7 +96,9 @@ export class DemoInitializerService {
             }),
           ),
         );
-        this.#logger.info('🎭 Authentification démo confirmée (signal propagé)');
+        this.#logger.info(
+          '🎭 Authentification démo confirmée (signal propagé)',
+        );
       } catch (error) {
         this.#logger.error(
           "Erreur lors de l'attente de la propagation du signal d'authentification:",
@@ -128,7 +134,9 @@ export class DemoInitializerService {
     if (this.#demoMode.isDemoMode()) {
       // Vérifier si la session démo a expiré
       if (this.#demoMode.isSessionExpired()) {
-        this.#logger.warn('🎭 Session démo expirée, désactivation du mode démo');
+        this.#logger.warn(
+          '🎭 Session démo expirée, désactivation du mode démo',
+        );
         await this.exitDemoMode();
         return false;
       }

@@ -22,6 +22,18 @@ import {
 } from '@pulpe/shared';
 import { DemoModeService } from './demo-mode.service';
 import { v4 as uuidv4 } from 'uuid';
+import type {
+  DemoBudgetCreate,
+  DemoBudgetUpdate,
+  DemoTransactionCreate,
+  DemoTransactionUpdate,
+  DemoBudgetLineCreate,
+  DemoBudgetLineUpdate,
+  DemoTemplateCreate,
+  DemoTemplateUpdate,
+  DemoTemplateLinesBulkUpdate,
+  DemoTemplateLinesBulkOperations,
+} from './demo-storage-adapter.types';
 
 /**
  * Adaptateur qui simule les réponses API en utilisant localStorage
@@ -114,12 +126,7 @@ export class DemoStorageAdapter {
   /**
    * Crée un nouveau budget à partir d'un template
    */
-  createBudget$(budgetData: {
-    month: number;
-    year: number;
-    description?: string;
-    templateId: string;
-  }): Observable<BudgetResponse> {
+  createBudget$(budgetData: DemoBudgetCreate): Observable<BudgetResponse> {
     const budgets = this.#demoMode.getDemoData<Budget[]>('budgets') || [];
     const templates =
       this.#demoMode.getDemoData<BudgetTemplate[]>('templates') || [];
@@ -185,11 +192,7 @@ export class DemoStorageAdapter {
    */
   updateBudget$(
     budgetId: string,
-    updateData: {
-      month?: number;
-      year?: number;
-      description?: string;
-    },
+    updateData: DemoBudgetUpdate,
   ): Observable<BudgetResponse> {
     const budgets = this.#demoMode.getDemoData<Budget[]>('budgets') || [];
     const budgetIndex = budgets.findIndex((b) => b.id === budgetId);
@@ -313,14 +316,9 @@ export class DemoStorageAdapter {
   /**
    * Crée une nouvelle transaction
    */
-  createTransaction$(transaction: {
-    budgetId: string;
-    name: string;
-    amount: number;
-    kind: 'income' | 'expense' | 'saving';
-    transactionDate?: string;
-    category?: string | null;
-  }): Observable<{ success: true; data: Transaction }> {
+  createTransaction$(
+    transaction: DemoTransactionCreate,
+  ): Observable<{ success: true; data: Transaction }> {
     const transactions =
       this.#demoMode.getDemoData<Transaction[]>('transactions') || [];
 
@@ -351,13 +349,7 @@ export class DemoStorageAdapter {
    */
   updateTransaction$(
     id: string,
-    updateData: {
-      name?: string;
-      amount?: number;
-      kind?: 'income' | 'expense' | 'saving';
-      transactionDate?: string;
-      category?: string | null;
-    },
+    updateData: DemoTransactionUpdate,
   ): Observable<{ success: true; data: Transaction }> {
     const transactions =
       this.#demoMode.getDemoData<Transaction[]>('transactions') || [];
@@ -415,18 +407,9 @@ export class DemoStorageAdapter {
   /**
    * Crée une ligne de budget
    */
-  createBudgetLine$(budgetLine: {
-    budgetId: string;
-    templateLineId?: string | null;
-    savingsGoalId?: string | null;
-    name: string;
-    amount: number;
-    kind: 'income' | 'expense' | 'saving';
-    recurrence: 'fixed' | 'one_off';
-    isManuallyAdjusted?: boolean;
-    isRollover?: boolean;
-    rolloverSourceBudgetId?: string | null;
-  }): Observable<BudgetLineResponse> {
+  createBudgetLine$(
+    budgetLine: DemoBudgetLineCreate,
+  ): Observable<BudgetLineResponse> {
     const budgetLines =
       this.#demoMode.getDemoData<BudgetLine[]>('budget-lines') || [];
 
@@ -459,13 +442,7 @@ export class DemoStorageAdapter {
    */
   updateBudgetLine$(
     id: string,
-    updateData: {
-      name?: string;
-      amount?: number;
-      kind?: 'income' | 'expense' | 'saving';
-      recurrence?: 'fixed' | 'one_off';
-      isManuallyAdjusted?: boolean;
-    },
+    updateData: DemoBudgetLineUpdate,
   ): Observable<BudgetLineResponse> {
     const budgetLines =
       this.#demoMode.getDemoData<BudgetLine[]>('budget-lines') || [];
@@ -522,20 +499,28 @@ export class DemoStorageAdapter {
   }
 
   /**
+   * Récupère toutes les lignes de budget pour un budget donné
+   */
+  getBudgetLinesByBudget$(budgetId: string): Observable<{
+    success: true;
+    data: BudgetLine[];
+    message: string;
+  }> {
+    const budgetLines =
+      this.#demoMode.getDemoData<BudgetLine[]>('budget-lines') || [];
+    const filteredLines = budgetLines.filter((bl) => bl.budgetId === budgetId);
+
+    return this.mockApiResponse({
+      success: true,
+      data: filteredLines,
+      message: 'OK',
+    });
+  }
+
+  /**
    * Crée un nouveau template
    */
-  createTemplate$(template: {
-    name: string;
-    description?: string;
-    isDefault?: boolean;
-    lines?: {
-      name: string;
-      amount: number;
-      kind: 'income' | 'expense' | 'saving';
-      recurrence: 'fixed' | 'one_off';
-      description?: string;
-    }[];
-  }): Observable<{
+  createTemplate$(template: DemoTemplateCreate): Observable<{
     success: true;
     data: { template: BudgetTemplate; lines: TemplateLine[] };
   }> {
@@ -589,11 +574,7 @@ export class DemoStorageAdapter {
    */
   updateTemplate$(
     id: string,
-    updates: {
-      name?: string;
-      description?: string;
-      isDefault?: boolean;
-    },
+    updates: DemoTemplateUpdate,
   ): Observable<BudgetTemplateResponse> {
     const templates =
       this.#demoMode.getDemoData<BudgetTemplate[]>('templates') || [];
@@ -655,16 +636,7 @@ export class DemoStorageAdapter {
    */
   updateTemplateLines$(
     templateId: string,
-    bulkUpdate: {
-      lines?: {
-        id: string;
-        name?: string;
-        amount?: number;
-        kind?: 'income' | 'expense' | 'saving';
-        recurrence?: 'fixed' | 'one_off';
-        description?: string;
-      }[];
-    },
+    bulkUpdate: DemoTemplateLinesBulkUpdate,
   ): Observable<TemplateLinesBulkUpdateResponse> {
     const templateLines =
       this.#demoMode.getDemoData<TemplateLine[]>('template-lines') || [];
@@ -701,24 +673,7 @@ export class DemoStorageAdapter {
    */
   bulkOperationsTemplateLines$(
     templateId: string,
-    operations: {
-      create?: {
-        name: string;
-        amount: number;
-        kind: 'income' | 'expense' | 'saving';
-        recurrence: 'fixed' | 'one_off';
-        description: string;
-      }[];
-      update?: {
-        id: string;
-        name?: string;
-        amount?: number;
-        kind?: 'income' | 'expense' | 'saving';
-        recurrence?: 'fixed' | 'one_off';
-        description?: string;
-      }[];
-      delete?: string[];
-    },
+    operations: DemoTemplateLinesBulkOperations,
   ): Observable<TemplateLinesBulkOperationsResponse> {
     let templateLines =
       this.#demoMode.getDemoData<TemplateLine[]>('template-lines') || [];

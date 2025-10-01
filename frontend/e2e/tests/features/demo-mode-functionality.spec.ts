@@ -56,8 +56,11 @@ test.describe('Demo Mode Functionality', () => {
     // Click demo mode button
     await demoButton.click();
 
-    // Wait for loading state
-    await expect(demoButton).toContainText('Préparation de la démo...');
+    // Wait for loading state to appear (with short timeout since it's fast)
+    // Note: button contains Material icon, so we use toContainText() instead of toHaveText()
+    await expect(demoButton).toContainText('Préparation de la démo...', {
+      timeout: 200,
+    });
 
     // Wait for navigation to budget page (current month)
     const currentDate = new Date();
