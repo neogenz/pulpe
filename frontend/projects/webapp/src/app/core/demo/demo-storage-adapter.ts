@@ -57,18 +57,29 @@ export class DemoStorageAdapter {
 
   /**
    * Récupère tous les budgets
+   * Enrichit chaque budget avec les champs calculés (remaining, rollover)
+   * pour correspondre au comportement du backend
    */
   getAllBudgets$(): Observable<BudgetListResponse> {
     const budgets = this.#demoMode.getDemoData<Budget[]>('budgets') || [];
+
+    // Enrichir chaque budget avec remaining et rollover (comme le backend)
+    const enrichedBudgets = budgets.map((budget) => ({
+      ...budget,
+      remaining: this.calculateRemainingForBudget(budget),
+      rollover: this.getRolloverForBudget(budget),
+    }));
+
     return this.mockApiResponse({
       success: true,
-      data: budgets,
+      data: enrichedBudgets,
       message: 'Budgets récupérés avec succès',
     });
   }
 
   /**
    * Récupère un budget par ID
+   * Enrichit le budget avec les champs calculés (remaining, rollover)
    */
   getBudgetById$(budgetId: string): Observable<BudgetResponse> {
     const budgets = this.#demoMode.getDemoData<Budget[]>('budgets') || [];
@@ -80,15 +91,23 @@ export class DemoStorageAdapter {
       }));
     }
 
+    // Enrichir le budget avec remaining et rollover (comme le backend)
+    const enrichedBudget = {
+      ...budget,
+      remaining: this.calculateRemainingForBudget(budget),
+      rollover: this.getRolloverForBudget(budget),
+    };
+
     return this.mockApiResponse({
       success: true,
-      data: budget,
+      data: enrichedBudget,
       message: 'Budget récupéré avec succès',
     });
   }
 
   /**
    * Récupère un budget avec ses détails (lignes et transactions)
+   * Enrichit le budget avec les champs calculés (remaining, rollover)
    */
   getBudgetWithDetails$(budgetId: string): Observable<BudgetDetailsResponse> {
     const budgets = this.#demoMode.getDemoData<Budget[]>('budgets') || [];
@@ -112,10 +131,17 @@ export class DemoStorageAdapter {
       (t) => t.budgetId === budgetId,
     );
 
+    // Enrichir le budget avec remaining et rollover (comme le backend)
+    const enrichedBudget = {
+      ...budget,
+      remaining: this.calculateRemainingForBudget(budget),
+      rollover: this.getRolloverForBudget(budget),
+    };
+
     return this.mockApiResponse({
       success: true,
       data: {
-        budget,
+        budget: enrichedBudget,
         budgetLines: budgetSpecificLines,
         transactions: budgetSpecificTransactions,
       },
@@ -752,6 +778,66 @@ export class DemoStorageAdapter {
 
     // Retourner l'ending balance du mois précédent (0 si premier mois)
     return previousBudget?.endingBalance ?? 0;
+  }
+
+  /**
+   * Calcule le montant remaining (disponible) pour un budget donné
+   * C'est le même calcul que le backend fait pour enrichir les budgets
+   *
+   * Formules SPECS:
+   * - available = income + rollover
+   * - remaining = available - (expenses + savings)
+   *
+   * @param budget Le budget pour lequel calculer le remaining
+   * @returns Le montant remaining (peut être négatif en cas de dépassement)
+   */
+  private calculateRemainingForBudget(budget: Budget): number {
+    const budgetLines =
+      this.#demoMode.getDemoData<BudgetLine[]>('budget-lines') || [];
+    const transactions =
+      this.#demoMode.getDemoData<Transaction[]>('transactions') || [];
+
+    const lines = budgetLines.filter((bl) => bl.budgetId === budget.id);
+    const trans = transactions.filter((t) => t.budgetId === budget.id);
+
+    // Récupérer le rollover du mois précédent
+    const rollover = this.getRolloverForBudget(budget);
+
+    // Calculer le total des revenus
+    const incomeFromLines = lines
+      .filter((l) => l.kind === 'income')
+      .reduce((sum, l) => sum + l.amount, 0);
+    const incomeFromTransactions = trans
+      .filter((t) => t.kind === 'income')
+      .reduce((sum, t) => sum + t.amount, 0);
+    const totalIncome = incomeFromLines + incomeFromTransactions;
+
+    // Calculer le montant disponible (SPECS: available = income + rollover)
+    const available = totalIncome + rollover;
+
+    // Calculer le total des dépenses (expenses + savings)
+    const expensesFromLines = lines
+      .filter((l) => l.kind === 'expense')
+      .reduce((sum, l) => sum + l.amount, 0);
+    const expensesFromTransactions = trans
+      .filter((t) => t.kind === 'expense')
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const savingsFromLines = lines
+      .filter((l) => l.kind === 'saving')
+      .reduce((sum, l) => sum + l.amount, 0);
+    const savingsFromTransactions = trans
+      .filter((t) => t.kind === 'saving')
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const totalExpenses =
+      expensesFromLines +
+      expensesFromTransactions +
+      savingsFromLines +
+      savingsFromTransactions;
+
+    // Calculer le remaining (SPECS: remaining = available - expenses)
+    return available - totalExpenses;
   }
 
   /**
