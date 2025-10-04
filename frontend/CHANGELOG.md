@@ -1,5 +1,13 @@
 # pulpe-frontend
 
+## 2025.13.0
+
+### Minor Changes
+
+- Amélioration de l'expérience mobile avec menus d'actions pour les transactions et lignes budgétaires.
+
+  Les boutons "Éditer" et "Supprimer" sont désormais regroupés dans un menu contextuel (3 points verticaux) sur les appareils mobiles, ce qui réduit l'encombrement visuel et améliore l'ergonomie tactile. Sur desktop, les boutons restent affichés séparément pour un accès rapide.
+
 ## 2025.12.0
 
 ### Minor Changes
