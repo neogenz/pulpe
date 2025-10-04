@@ -9,6 +9,7 @@ import {
 import { AuthApi } from '../auth/auth-api';
 import { PostHogService } from './posthog';
 import { Logger } from '../logging/logger';
+import { DemoModeService } from '../demo/demo-mode.service';
 import type { Properties } from 'posthog-js';
 
 /**
@@ -22,6 +23,7 @@ export class AnalyticsService implements OnDestroy {
   readonly #authApi = inject(AuthApi);
   readonly #postHogService = inject(PostHogService);
   readonly #logger = inject(Logger);
+  readonly #demoModeService = inject(DemoModeService);
 
   // Track if we've already enabled tracking for the current session
   #trackingEnabledForSession = false;
@@ -59,9 +61,15 @@ export class AnalyticsService implements OnDestroy {
             this.#trackingEnabledForSession = true;
             this.#logger.debug('PostHog tracking enabled for session');
           }
-          this.#postHogService.identify(authState.user.id);
+
+          // Identify user with demo mode flag if applicable
+          const isDemoMode = this.#demoModeService.isDemoMode();
+          const identifyProperties = isDemoMode ? { is_demo: true } : undefined;
+
+          this.#postHogService.identify(authState.user.id, identifyProperties);
           this.#logger.debug('User identified for analytics', {
             userId: authState.user.id,
+            isDemoMode,
           });
         } else if (!authState.isAuthenticated && !authState.isLoading) {
           this.#postHogService.reset();

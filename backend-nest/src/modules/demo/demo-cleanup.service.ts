@@ -2,6 +2,16 @@ import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
 import { SupabaseService } from '../supabase/supabase.service';
+import type { SupabaseClient } from '@supabase/supabase-js';
+
+interface DemoUser {
+  id: string;
+  email?: string;
+  created_at: string;
+  user_metadata?: {
+    is_demo?: boolean;
+  };
+}
 
 /**
  * Service responsible for cleaning up expired demo users
@@ -33,96 +43,117 @@ export class DemoCleanupService {
 
     try {
       const adminClient = this.supabaseService.getServiceRoleClient();
+      const cutoffTime = this.calculateCutoffTime(24);
 
-      // Calculate the cutoff timestamp (24 hours ago)
-      const cutoffTime = new Date();
-      cutoffTime.setHours(cutoffTime.getHours() - 24);
-
-      this.logger.info(
-        { cutoffTime: cutoffTime.toISOString() },
-        'Cutoff time calculated',
+      const expiredUsers = await this.findExpiredDemoUsers(
+        adminClient,
+        cutoffTime,
       );
 
-      // Query all users (Admin API doesn't allow direct filtering by metadata)
-      // We need to fetch and filter in application code
-      const { data: allUsers, error: listError } =
-        await adminClient.auth.admin.listUsers({
-          perPage: 1000, // Adjust if you expect more demo users
-        });
-
-      if (listError) {
-        this.logger.error(
-          { error: listError },
-          'Failed to list users for cleanup',
-        );
-        return;
-      }
-
-      // Filter for demo users older than 24 hours
-      const expiredDemoUsers = allUsers.users.filter((user) => {
-        const isDemo = user.user_metadata?.is_demo === true;
-        if (!isDemo) return false;
-
-        const createdAt = new Date(user.created_at);
-        return createdAt < cutoffTime;
-      });
-
-      if (expiredDemoUsers.length === 0) {
+      if (expiredUsers.length === 0) {
         this.logger.info('No expired demo users to cleanup');
         return;
       }
 
-      this.logger.info(
-        { count: expiredDemoUsers.length },
-        'Found expired demo users to delete',
+      const deleteResults = await this.deleteDemoUsers(
+        adminClient,
+        expiredUsers,
       );
-
-      // Delete each expired demo user
-      const deleteResults = await Promise.allSettled(
-        expiredDemoUsers.map(async (user) => {
-          const { error } = await adminClient.auth.admin.deleteUser(user.id);
-
-          if (error) {
-            this.logger.error(
-              { userId: user.id, error },
-              'Failed to delete demo user',
-            );
-            throw error;
-          }
-
-          this.logger.info(
-            { userId: user.id, email: user.email },
-            'Demo user deleted successfully',
-          );
-        }),
-      );
-
-      // Count successes and failures
-      const successCount = deleteResults.filter(
-        (r) => r.status === 'fulfilled',
-      ).length;
-      const failureCount = deleteResults.filter(
-        (r) => r.status === 'rejected',
-      ).length;
-
-      this.logger.info(
-        {
-          total: expiredDemoUsers.length,
-          succeeded: successCount,
-          failed: failureCount,
-          duration: Date.now() - startTime,
-        },
-        'Demo users cleanup job completed',
-      );
+      this.logCleanupResults(deleteResults, expiredUsers.length, startTime);
     } catch (error) {
       this.logger.error(
-        {
-          error,
-          duration: Date.now() - startTime,
-        },
+        { error, duration: Date.now() - startTime },
         'Demo users cleanup job failed',
       );
     }
+  }
+
+  private calculateCutoffTime(hoursAgo: number): Date {
+    const cutoffTime = new Date();
+    cutoffTime.setHours(cutoffTime.getHours() - hoursAgo);
+    this.logger.info(
+      { cutoffTime: cutoffTime.toISOString() },
+      'Cutoff time calculated',
+    );
+    return cutoffTime;
+  }
+
+  private async findExpiredDemoUsers(
+    adminClient: SupabaseClient,
+    cutoffTime: Date,
+  ): Promise<DemoUser[]> {
+    const { data: allUsers, error: listError } =
+      await adminClient.auth.admin.listUsers({ perPage: 1000 });
+
+    if (listError) {
+      this.logger.error(
+        { error: listError },
+        'Failed to list users for cleanup',
+      );
+      return [];
+    }
+
+    const expiredUsers = allUsers.users.filter((user: DemoUser) => {
+      const isDemo = user.user_metadata?.is_demo === true;
+      if (!isDemo) return false;
+
+      const createdAt = new Date(user.created_at);
+      return createdAt < cutoffTime;
+    });
+
+    this.logger.info(
+      { count: expiredUsers.length },
+      'Found expired demo users to delete',
+    );
+
+    return expiredUsers;
+  }
+
+  private async deleteDemoUsers(
+    adminClient: SupabaseClient,
+    users: DemoUser[],
+  ) {
+    return Promise.allSettled(
+      users.map(async (user: DemoUser) => {
+        const { error } = await adminClient.auth.admin.deleteUser(user.id);
+
+        if (error) {
+          this.logger.error(
+            { userId: user.id, error },
+            'Failed to delete demo user',
+          );
+          throw error;
+        }
+
+        this.logger.info(
+          { userId: user.id, email: user.email },
+          'Demo user deleted successfully',
+        );
+      }),
+    );
+  }
+
+  private logCleanupResults(
+    deleteResults: PromiseSettledResult<void>[],
+    total: number,
+    startTime: number,
+  ) {
+    const successCount = deleteResults.filter(
+      (r) => r.status === 'fulfilled',
+    ).length;
+    const failureCount = deleteResults.filter(
+      (r) => r.status === 'rejected',
+    ).length;
+
+    this.logger.info(
+      {
+        total,
+        succeeded: successCount,
+        failed: failureCount,
+        duration: Date.now() - startTime,
+      },
+      'Demo users cleanup job completed',
+    );
   }
 
   /**
@@ -136,30 +167,14 @@ export class DemoCleanupService {
     this.logger.info({ maxAgeHours }, 'Manual cleanup triggered');
 
     const adminClient = this.supabaseService.getServiceRoleClient();
-    const cutoffTime = new Date();
-    cutoffTime.setHours(cutoffTime.getHours() - maxAgeHours);
+    const cutoffTime = this.calculateCutoffTime(maxAgeHours);
 
-    const { data: allUsers, error: listError } =
-      await adminClient.auth.admin.listUsers({ perPage: 1000 });
-
-    if (listError) {
-      throw listError;
-    }
-
-    const expiredDemoUsers = allUsers.users.filter((user) => {
-      const isDemo = user.user_metadata?.is_demo === true;
-      if (!isDemo) return false;
-
-      const createdAt = new Date(user.created_at);
-      return createdAt < cutoffTime;
-    });
-
-    const deleteResults = await Promise.allSettled(
-      expiredDemoUsers.map(async (user) => {
-        const { error } = await adminClient.auth.admin.deleteUser(user.id);
-        if (error) throw error;
-      }),
+    const expiredUsers = await this.findExpiredDemoUsers(
+      adminClient,
+      cutoffTime,
     );
+
+    const deleteResults = await this.deleteDemoUsers(adminClient, expiredUsers);
 
     const deleted = deleteResults.filter(
       (r) => r.status === 'fulfilled',

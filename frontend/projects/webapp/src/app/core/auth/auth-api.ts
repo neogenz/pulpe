@@ -230,6 +230,48 @@ export class AuthApi {
     }
   }
 
+  /**
+   * Set a Supabase session programmatically (e.g., for demo mode)
+   * This allows setting a session obtained from a backend endpoint
+   */
+  async setSession(session: {
+    access_token: string;
+    refresh_token: string;
+  }): Promise<{ success: boolean; error?: string }> {
+    try {
+      if (!this.#supabaseClient) {
+        throw new Error('Supabase client not initialized');
+      }
+
+      const { data, error } = await this.#supabaseClient.auth.setSession({
+        access_token: session.access_token,
+        refresh_token: session.refresh_token,
+      });
+
+      if (error) {
+        return {
+          success: false,
+          error: this.#errorLocalizer.localizeError(error.message),
+        };
+      }
+
+      // Update auth state - this will trigger reactive updates
+      this.updateAuthState(data.session);
+
+      this.#logger.info('Session set successfully', {
+        userId: data.session?.user?.id,
+      });
+
+      return { success: true };
+    } catch (error) {
+      this.#logger.error('Error setting session:', error);
+      return {
+        success: false,
+        error: 'Erreur inattendue lors de la définition de la session',
+      };
+    }
+  }
+
   async signOut(): Promise<void> {
     try {
       // Gérer le logout en mode test E2E mocké

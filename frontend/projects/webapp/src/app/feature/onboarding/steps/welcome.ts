@@ -7,12 +7,24 @@ import {
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { LottieComponent, type AnimationOptions } from 'ngx-lottie';
 import { ROUTES } from '@core/routing';
+import { DemoInitializerService } from '@core/demo/demo-initializer.service';
+import { Logger } from '@core/logging/logger';
 
 @Component({
   selector: 'pulpe-welcome',
-  imports: [MatButtonModule, LottieComponent, RouterLink],
+  imports: [
+    MatButtonModule,
+    MatDividerModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    LottieComponent,
+    RouterLink,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
@@ -71,6 +83,53 @@ import { ROUTES } from '@core/routing';
         >
           Commencer
         </button>
+
+        <!-- Demo Mode Section -->
+        <div class="w-full max-w-sm">
+          <mat-divider class="mb-4"></mat-divider>
+          <div class="text-center">
+            <p class="text-body-small text-on-surface-variant mb-3">
+              Découvrir Pulpe sans créer de compte
+            </p>
+            <button
+              type="button"
+              data-testid="demo-mode-button"
+              class="w-full h-12 demo-mode-gradient text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-shadow duration-300 border-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              [disabled]="isDemoInitializing()"
+              (click)="startDemoMode()"
+            >
+              @if (isDemoInitializing()) {
+                <div class="flex items-center justify-center">
+                  <mat-progress-spinner
+                    mode="indeterminate"
+                    [diameter]="24"
+                    aria-label="Initialisation du mode démo"
+                    role="progressbar"
+                    class="pulpe-loading-indicator pulpe-loading-small mr-2 flex-shrink-0"
+                  ></mat-progress-spinner>
+                  <span aria-live="polite">Préparation de la démo...</span>
+                </div>
+              } @else {
+                <div class="flex items-center justify-center">
+                  <mat-icon>science</mat-icon>
+                  <span class="ml-2">Essayer en mode démo</span>
+                </div>
+              }
+            </button>
+            @if (demoErrorMessage()) {
+              <div
+                class="bg-error-container text-on-error-container p-2 rounded-lg mt-2 text-body-small flex items-center gap-2"
+              >
+                <mat-icon class="flex-shrink-0 text-base"
+                  >error_outline</mat-icon
+                >
+                <span>{{ demoErrorMessage() }}</span>
+              </div>
+            }
+          </div>
+          <mat-divider class="mt-4"></mat-divider>
+        </div>
+
         <button
           matButton
           [routerLink]="['/', ROUTES.LOGIN]"
@@ -84,7 +143,12 @@ import { ROUTES } from '@core/routing';
 })
 export default class Welcome {
   readonly #router = inject(Router);
+  readonly #demoInitializer = inject(DemoInitializerService);
+  readonly #logger = inject(Logger);
   protected readonly ROUTES = ROUTES;
+
+  protected demoErrorMessage = signal<string>('');
+  protected isDemoInitializing = this.#demoInitializer.isInitializing;
 
   protected readonly lottieOptions = signal<AnimationOptions>({
     path: '/lottie/welcome-animation.json',
@@ -106,6 +170,20 @@ export default class Welcome {
 
   onContinue(): void {
     this.#continueToNext();
+  }
+
+  async startDemoMode(): Promise<void> {
+    this.demoErrorMessage.set('');
+
+    try {
+      await this.#demoInitializer.startDemoSession();
+      // Navigation is handled by the service
+    } catch (error) {
+      this.#logger.error('Failed to start demo mode', { error });
+      this.demoErrorMessage.set(
+        'Impossible de démarrer le mode démo. Veuillez réessayer.',
+      );
+    }
   }
 
   #continueToNext(): void {

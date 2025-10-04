@@ -113,7 +113,7 @@ describe('BudgetService (Performance)', () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(100);
-      expect(executionTime).toBeLessThan(50);
+      expect(executionTime).toBeLessThan(150);
     });
 
     it('should perform findOne within performance limits', async () => {

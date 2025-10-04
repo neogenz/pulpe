@@ -2,10 +2,11 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { createClient } from '@supabase/supabase-js';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { ROUTES } from '@core/routing/routes-constants';
 import { Logger } from '@core/logging/logger';
+import { AuthApi } from '@core/auth/auth-api';
+import { DemoModeService } from './demo-mode.service';
 
 interface DemoSessionResponse {
   success: true;
@@ -40,6 +41,8 @@ export class DemoInitializerService {
   readonly #router = inject(Router);
   readonly #config = inject(ApplicationConfiguration);
   readonly #logger = inject(Logger);
+  readonly #authApi = inject(AuthApi);
+  readonly #demoModeService = inject(DemoModeService);
 
   readonly #isInitializing = signal(false);
   readonly isInitializing = this.#isInitializing.asReadonly();
@@ -67,10 +70,7 @@ export class DemoInitializerService {
       // Call backend to create demo user and session
       const backendUrl = this.#config.backendApiUrl();
       const response = await firstValueFrom(
-        this.#http.post<DemoSessionResponse>(
-          `${backendUrl}/api/v1/demo/session`,
-          {},
-        ),
+        this.#http.post<DemoSessionResponse>(`${backendUrl}/demo/session`, {}),
       );
 
       if (!response.success || !response.data.session) {
@@ -84,27 +84,20 @@ export class DemoInitializerService {
         email: session.user.email,
       });
 
-      // Initialize Supabase client and set the session
-      const supabaseUrl = this.#config.supabaseUrl();
-      const supabaseKey = this.#config.supabaseAnonKey();
-
-      const supabase = createClient(supabaseUrl, supabaseKey);
-
-      // Set the session in Supabase client
-      const { error: sessionError } = await supabase.auth.setSession({
+      // Set the session using AuthApi (centralized session management)
+      const sessionResult = await this.#authApi.setSession({
         access_token: session.access_token,
         refresh_token: session.refresh_token,
       });
 
-      if (sessionError) {
+      if (!sessionResult.success) {
         throw new Error(
-          `Failed to set Supabase session: ${sessionError.message}`,
+          sessionResult.error || 'Failed to set authentication session',
         );
       }
 
-      // Mark demo mode as active in localStorage
-      localStorage.setItem('pulpe-demo-mode', 'true');
-      localStorage.setItem('pulpe-demo-user-email', session.user.email);
+      // Activate demo mode (manages localStorage via reactive signals)
+      this.#demoModeService.activateDemoMode(session.user.email);
 
       this.#logger.info('Demo mode activated successfully');
 
@@ -119,18 +112,11 @@ export class DemoInitializerService {
   }
 
   /**
-   * Check if currently in demo mode
+   * Exit demo mode and sign out the user
    */
-  isDemoMode(): boolean {
-    return localStorage.getItem('pulpe-demo-mode') === 'true';
-  }
-
-  /**
-   * Exit demo mode (clears flags, but user remains logged in until session expires)
-   */
-  exitDemoMode(): void {
-    localStorage.removeItem('pulpe-demo-mode');
-    localStorage.removeItem('pulpe-demo-user-email');
-    this.#logger.info('Demo mode exited');
+  async exitDemoMode(): Promise<void> {
+    this.#demoModeService.deactivateDemoMode();
+    await this.#authApi.signOut();
+    this.#logger.info('Demo mode exited and user signed out');
   }
 }

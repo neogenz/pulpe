@@ -58,3 +58,29 @@ body {
     #ffea00 100%
   );
 }
+
+// Demo mode gradient - purple to pink
+.demo-mode-gradient {
+  background: linear-gradient(
+    135deg,
+    #6a11cb 0%,
+    #8e2de2 25%,
+    #c471ed 50%,
+    #f64f59 75%,
+    #ff9a56 100%
+  );
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
