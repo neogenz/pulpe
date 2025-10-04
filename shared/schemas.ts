@@ -714,3 +714,24 @@ export const authErrorResponseSchema = z.object({
   error: z.string(),
 });
 export type AuthErrorResponse = z.infer<typeof authErrorResponseSchema>;
+
+// Demo mode schemas
+export const demoSessionResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    session: z.object({
+      access_token: z.string(),
+      token_type: z.string(),
+      expires_in: z.number(),
+      expires_at: z.number(),
+      refresh_token: z.string(),
+      user: z.object({
+        id: z.string(),
+        email: z.string(),
+        created_at: z.string(),
+      }),
+    }),
+  }),
+  message: z.string(),
+});
+export type DemoSessionResponse = z.infer<typeof demoSessionResponseSchema>;

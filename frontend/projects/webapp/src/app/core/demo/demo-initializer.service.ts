@@ -2,30 +2,12 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
+import type { DemoSessionResponse } from '@pulpe/shared';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { ROUTES } from '@core/routing/routes-constants';
 import { Logger } from '@core/logging/logger';
 import { AuthApi } from '@core/auth/auth-api';
 import { DemoModeService } from './demo-mode.service';
-
-interface DemoSessionResponse {
-  success: true;
-  data: {
-    session: {
-      access_token: string;
-      token_type: string;
-      expires_in: number;
-      expires_at: number;
-      refresh_token: string;
-      user: {
-        id: string;
-        email: string;
-        created_at: string;
-      };
-    };
-  };
-  message: string;
-}
 
 /**
  * Service responsible for initializing demo mode
