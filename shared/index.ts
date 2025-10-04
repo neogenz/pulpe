@@ -87,6 +87,9 @@ export {
   authLoginResponseSchema,
   authValidationResponseSchema,
   authErrorResponseSchema,
+
+  // Demo mode schemas
+  demoSessionResponseSchema,
 } from './schemas.js';
 
 // Export calculators
@@ -182,4 +185,7 @@ export type {
   AuthLoginResponse,
   AuthValidationResponse,
   AuthErrorResponse,
+
+  // Demo mode types
+  DemoSessionResponse,
 } from './schemas.js';
