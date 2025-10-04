@@ -1,26 +1,36 @@
-import { expect, test } from '@playwright/test';
+import { test, expect } from '../../fixtures/test-fixtures';
 
 test.describe('Budget Table Mobile Menu', () => {
-  test.beforeEach(async ({ page }) => {
-    // Login
-    await page.goto('/login');
-    await page.getByTestId('email-input').fill('test@example.com');
-    await page.getByTestId('password-input').fill('password123');
-    await page.getByTestId('login-button').click();
+  test.beforeEach(async ({ authenticatedPage: page }) => {
+    // Mock budget details endpoint with test data
+    await page.route('**/api/v1/budgets/*/details', route =>
+      route.fulfill({
+        status: 200,
+        body: JSON.stringify({
+          success: true,
+          data: {
+            budget: {
+              id: 'test-budget-123',
+              name: 'Test Budget',
+              month: 8,
+              year: 2025
+            },
+            budgetLines: [
+              { id: 'line-1', name: 'Groceries', amount: 400, kind: 'expense', recurrence: 'fixed' },
+              { id: 'line-2', name: 'Salary', amount: 5000, kind: 'income', recurrence: 'fixed' },
+              { id: 'line-3', name: 'Transport', amount: 150, kind: 'expense', recurrence: 'fixed' }
+            ],
+            transactions: [
+              { id: 'txn-1', name: 'Coffee', amount: 5, kind: 'expense', budgetLineId: 'line-1' }
+            ]
+          }
+        })
+      })
+    );
 
-    // Wait for navigation to complete
-    await page.waitForURL('**/app/**');
-
-    // Navigate to a budget details page with budget lines
-    // This assumes there's a budget available - adjust based on your test data setup
-    await page.goto('/app/budget');
-    await page.waitForLoadState('networkidle');
-
-    // Click on first budget to go to details
-    const firstBudget = page.locator('pulpe-budget-card').first();
-    await firstBudget.click();
-    await page.waitForURL('**/app/budget/**');
-    await page.waitForLoadState('networkidle');
+    // Navigate directly to budget details page
+    await page.goto('/app/budget/test-budget-123');
+    await page.waitForLoadState('domcontentloaded');
 
     // Ensure budget table is loaded
     await expect(page.locator('pulpe-budget-table')).toBeVisible();
@@ -29,7 +39,7 @@ test.describe('Budget Table Mobile Menu', () => {
   test.describe('Mobile View', () => {
     test.use({ viewport: { width: 375, height: 667 }, isMobile: true });
 
-    test('shows menu button instead of separate edit/delete buttons', async ({ page }) => {
+    test('shows menu button instead of separate edit/delete buttons', async ({ authenticatedPage: page }) => {
       // Check that menu button exists
       const menuButton = page.locator('[data-testid^="actions-menu-"]').first();
       await expect(menuButton).toBeVisible();
@@ -42,31 +52,31 @@ test.describe('Budget Table Mobile Menu', () => {
       await expect(deleteButton).not.toBeVisible();
     });
 
-    test('opens menu when clicking menu button', async ({ page }) => {
+    test('opens menu when clicking menu button', async ({ authenticatedPage: page }) => {
       const menuButton = page.locator('[data-testid^="actions-menu-"]').first();
       await menuButton.click();
 
-      // Check that mat-menu is visible
-      const menu = page.locator('mat-menu');
+      // Check that menu panel is visible (Angular Material renders menu in overlay)
+      const menu = page.locator('.mat-mdc-menu-panel');
       await expect(menu).toBeVisible();
     });
 
-    test('closes menu when clicking outside', async ({ page }) => {
+    test('closes menu when clicking outside', async ({ authenticatedPage: page }) => {
       const menuButton = page.locator('[data-testid^="actions-menu-"]').first();
       await menuButton.click();
 
-      // Verify menu is open
-      const menu = page.locator('mat-menu');
+      // Verify menu is open (Angular Material renders menu in overlay)
+      const menu = page.locator('.mat-mdc-menu-panel');
       await expect(menu).toBeVisible();
 
-      // Click outside the menu
-      await page.locator('mat-card-title').click();
+      // Click the overlay backdrop to close the menu (Angular Material standard pattern)
+      await page.locator('.cdk-overlay-backdrop').click();
 
       // Verify menu is closed
       await expect(menu).not.toBeVisible();
     });
 
-    test('shows correct menu item text in French', async ({ page }) => {
+    test('shows correct menu item text in French', async ({ authenticatedPage: page }) => {
       const menuButton = page.locator('[data-testid^="actions-menu-"]').first();
       await menuButton.click();
 
@@ -82,7 +92,7 @@ test.describe('Budget Table Mobile Menu', () => {
       await expect(deleteMenuItem).toContainText('Supprimer');
     });
 
-    test('triggers edit action when clicking edit menu item', async ({ page }) => {
+    test('triggers edit action when clicking edit menu item', async ({ authenticatedPage: page }) => {
       const menuButton = page.locator('[data-testid^="actions-menu-"]').first();
       await menuButton.click();
 
@@ -107,7 +117,7 @@ test.describe('Budget Table Mobile Menu', () => {
       }
     });
 
-    test('triggers delete action when clicking delete menu item', async ({ page }) => {
+    test('triggers delete action when clicking delete menu item', async ({ authenticatedPage: page }) => {
       const menuButton = page.locator('[data-testid^="actions-menu-"]').first();
       await menuButton.click();
 
@@ -119,15 +129,15 @@ test.describe('Budget Table Mobile Menu', () => {
       const confirmDialog = page.locator('mat-dialog-container');
       await expect(confirmDialog).toBeVisible({ timeout: 5000 });
 
-      // Verify it's a confirmation dialog
-      await expect(confirmDialog).toContainText('Confirmer');
+      // Verify it's a confirmation dialog (button text is "Supprimer" not "Confirmer")
+      await expect(confirmDialog).toContainText('Supprimer');
 
       // Cancel the deletion
       const cancelButton = page.locator('mat-dialog-container button').filter({ hasText: 'Annuler' });
       await cancelButton.click();
     });
 
-    test('shows only delete option for transaction lines', async ({ page }) => {
+    test('shows only delete option for transaction lines', async ({ authenticatedPage: page }) => {
       // Add a transaction first to ensure we have one
       const addTransactionButton = page.getByTestId('add-transaction-button');
       if (await addTransactionButton.isVisible()) {
@@ -151,7 +161,7 @@ test.describe('Budget Table Mobile Menu', () => {
   test.describe('Desktop View', () => {
     test.use({ viewport: { width: 1280, height: 720 } });
 
-    test('shows separate edit and delete buttons instead of menu', async ({ page }) => {
+    test('shows separate edit and delete buttons instead of menu', async ({ authenticatedPage: page }) => {
       // Check that separate buttons exist
       const editButton = page.locator('[data-testid^="edit-"]:not([mat-menu-item])').first();
       const deleteButton = page.locator('[data-testid^="delete-"]:not([mat-menu-item])').first();
@@ -164,7 +174,7 @@ test.describe('Budget Table Mobile Menu', () => {
       await expect(menuButton).not.toBeVisible();
     });
 
-    test('triggers edit action directly when clicking edit button', async ({ page }) => {
+    test('triggers edit action directly when clicking edit button', async ({ authenticatedPage: page }) => {
       const editButton = page.locator('[data-testid^="edit-"]:not([mat-menu-item])').first();
       await editButton.click();
 
@@ -181,7 +191,7 @@ test.describe('Budget Table Mobile Menu', () => {
       await cancelButton.click();
     });
 
-    test('triggers delete action directly when clicking delete button', async ({ page }) => {
+    test('triggers delete action directly when clicking delete button', async ({ authenticatedPage: page }) => {
       const deleteButton = page.locator('[data-testid^="delete-"]:not([mat-menu-item])').first();
       await deleteButton.click();
 
@@ -194,7 +204,7 @@ test.describe('Budget Table Mobile Menu', () => {
       await cancelButton.click();
     });
 
-    test('has proper aria-labels for desktop buttons', async ({ page }) => {
+    test('has proper aria-labels for desktop buttons', async ({ authenticatedPage: page }) => {
       const editButton = page.locator('[data-testid^="edit-"]:not([mat-menu-item])').first();
       const deleteButton = page.locator('[data-testid^="delete-"]:not([mat-menu-item])').first();
 
@@ -208,7 +218,7 @@ test.describe('Budget Table Mobile Menu', () => {
   });
 
   test.describe('Responsive Behavior', () => {
-    test('switches between menu and separate buttons when viewport changes', async ({ page }) => {
+    test('switches between menu and separate buttons when viewport changes', async ({ authenticatedPage: page }) => {
       // Start with desktop viewport
       await page.setViewportSize({ width: 1280, height: 720 });
       await page.waitForTimeout(500); // Wait for responsive changes
@@ -243,7 +253,7 @@ test.describe('Budget Table Mobile Menu', () => {
   });
 
   test.describe('Accessibility', () => {
-    test('menu button has proper aria-label on mobile', async ({ page }) => {
+    test('menu button has proper aria-label on mobile', async ({ authenticatedPage: page }) => {
       await page.setViewportSize({ width: 375, height: 667 });
       await page.waitForTimeout(500);
 
@@ -253,7 +263,7 @@ test.describe('Budget Table Mobile Menu', () => {
       expect(ariaLabel).toContain('Actions pour');
     });
 
-    test('can navigate menu with keyboard on mobile', async ({ page }) => {
+    test('can navigate menu with keyboard on mobile', async ({ authenticatedPage: page }) => {
       await page.setViewportSize({ width: 375, height: 667 });
       await page.waitForTimeout(500);
 
@@ -263,8 +273,8 @@ test.describe('Budget Table Mobile Menu', () => {
       await menuButton.focus();
       await page.keyboard.press('Enter');
 
-      // Verify menu opened
-      const menu = page.locator('mat-menu');
+      // Verify menu opened (Angular Material renders menu in overlay)
+      const menu = page.locator('.mat-mdc-menu-panel');
       await expect(menu).toBeVisible();
 
       // Navigate with arrow keys

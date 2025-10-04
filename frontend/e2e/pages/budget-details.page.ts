@@ -20,8 +20,10 @@ export class BudgetDetailsPage {
 
   async clickDeleteBudgetLine(lineName: string): Promise<void> {
     // Find the row with the budget line, then click its delete button
+    // The delete button testid is `delete-{id}`, but we need to find it within the row
     const row = this.page.getByTestId(`budget-line-${lineName}`);
-    await row.getByTestId('delete-button').click();
+    // Look for any button with data-testid starting with "delete-" within this row
+    await row.locator('[data-testid^="delete-"]').click();
   }
 
   async confirmDelete(): Promise<void> {
