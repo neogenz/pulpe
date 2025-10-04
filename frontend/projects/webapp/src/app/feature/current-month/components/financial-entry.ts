@@ -214,11 +214,11 @@ export type FinancialEntryViewModel = FinancialEntryModel & {
 export class FinancialEntry {
   private readonly breakpointObserver = inject(BreakpointObserver);
 
-  readonly data = input.required<FinancialEntryViewModel>();
-  readonly selectable = input<boolean>(false);
-  readonly deletable = input<boolean>(false);
-  readonly editable = input<boolean>(false);
-  readonly isOdd = input<boolean>(false);
+  data = input.required<FinancialEntryViewModel>();
+  selectable = input<boolean>(false);
+  deletable = input<boolean>(false);
+  editable = input<boolean>(false);
+  isOdd = input<boolean>(false);
 
   readonly selectionChange = output<boolean>();
   readonly deleteClick = output<void>();

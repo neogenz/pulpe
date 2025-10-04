@@ -241,7 +241,7 @@ type EditTransactionFormData = Pick<
 export class EditTransactionForm implements OnInit {
   readonly #fb = inject(FormBuilder);
 
-  readonly transaction = input.required<Transaction>();
+  transaction = input.required<Transaction>();
   readonly updateTransaction = output<EditTransactionFormData>();
   readonly cancelEdit = output<void>();
   readonly isUpdating = signal(false);

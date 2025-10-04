@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { provideZonelessChangeDetection } from '@angular/core';
+import { registerLocaleData } from '@angular/common';
+import localeDeCH from '@angular/common/locales/de-CH';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { CurrencyPipe } from '@angular/common';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
@@ -12,12 +14,18 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { BehaviorSubject } from 'rxjs';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { By } from '@angular/platform-browser';
+// Import the internal API for signal manipulation in tests
+// This is a workaround for the signal inputs testing issue with Vitest
+import { SIGNAL, signalSetFn } from '@angular/core/primitives/signals';
 
 import {
   FinancialEntry,
   type FinancialEntryViewModel,
 } from './financial-entry';
 import { RolloverFormatPipe } from '@app/ui/rollover-format';
+
+// Register locale for currency formatting
+registerLocaleData(localeDeCH);
 
 // Mock RolloverFormatPipe
 class MockRolloverFormatPipe {
@@ -77,8 +85,8 @@ describe('FinancialEntry', () => {
     fixture = TestBed.createComponent(FinancialEntry);
     component = fixture.componentInstance;
 
-    // Set required inputs
-    fixture.componentRef.setInput('data', mockFinancialEntry);
+    // Set required inputs using signal API workaround for Vitest compatibility
+    signalSetFn(component.data[SIGNAL], mockFinancialEntry);
     fixture.detectChanges();
   });
 
@@ -89,8 +97,8 @@ describe('FinancialEntry', () => {
   describe('Desktop view (non-mobile)', () => {
     beforeEach(() => {
       breakpointSubject.next({ matches: false }); // Desktop
-      fixture.componentRef.setInput('editable', true);
-      fixture.componentRef.setInput('deletable', true);
+      signalSetFn(component.editable[SIGNAL], true);
+      signalSetFn(component.deletable[SIGNAL], true);
       fixture.detectChanges();
     });
 
@@ -133,8 +141,8 @@ describe('FinancialEntry', () => {
     });
 
     it('should not show buttons when not editable or deletable', () => {
-      fixture.componentRef.setInput('editable', false);
-      fixture.componentRef.setInput('deletable', false);
+      signalSetFn(component.editable[SIGNAL], false);
+      signalSetFn(component.deletable[SIGNAL], false);
       fixture.detectChanges();
 
       const editButton = fixture.debugElement.query(
@@ -156,8 +164,8 @@ describe('FinancialEntry', () => {
   describe('Mobile view (handset)', () => {
     beforeEach(() => {
       breakpointSubject.next({ matches: true }); // Mobile
-      fixture.componentRef.setInput('editable', true);
-      fixture.componentRef.setInput('deletable', true);
+      signalSetFn(component.editable[SIGNAL], true);
+      signalSetFn(component.deletable[SIGNAL], true);
       fixture.detectChanges();
     });
 
@@ -182,34 +190,66 @@ describe('FinancialEntry', () => {
     });
 
     it('should have menu items for edit and delete', () => {
-      const editMenuItem = fixture.debugElement.query(
-        By.css('mat-menu [data-testid="edit-transaction-test-id-1"]'),
+      // Open menu first
+      const menuButton = fixture.debugElement.query(
+        By.css('[data-testid="actions-menu-test-id-1"]'),
       );
-      const deleteMenuItem = fixture.debugElement.query(
-        By.css('mat-menu [data-testid="delete-transaction-test-id-1"]'),
-      );
+      expect(menuButton).toBeTruthy();
+      menuButton.nativeElement.click();
+      fixture.detectChanges();
+
+      // Query menu items in both fixture and document (overlay)
+      const editMenuItem =
+        fixture.nativeElement.querySelector(
+          '[data-testid="edit-transaction-test-id-1"][mat-menu-item]',
+        ) ||
+        document.querySelector(
+          '[data-testid="edit-transaction-test-id-1"][mat-menu-item]',
+        );
+      const deleteMenuItem =
+        fixture.nativeElement.querySelector(
+          '[data-testid="delete-transaction-test-id-1"][mat-menu-item]',
+        ) ||
+        document.querySelector(
+          '[data-testid="delete-transaction-test-id-1"][mat-menu-item]',
+        );
 
       expect(editMenuItem).toBeTruthy();
       expect(deleteMenuItem).toBeTruthy();
     });
 
     it('should show correct menu item text', () => {
-      const editMenuItem = fixture.debugElement.query(
-        By.css('mat-menu [data-testid="edit-transaction-test-id-1"]'),
+      // Open menu first
+      const menuButton = fixture.debugElement.query(
+        By.css('[data-testid="actions-menu-test-id-1"]'),
       );
-      const deleteMenuItem = fixture.debugElement.query(
-        By.css('mat-menu [data-testid="delete-transaction-test-id-1"]'),
-      );
+      expect(menuButton).toBeTruthy();
+      menuButton.nativeElement.click();
+      fixture.detectChanges();
 
-      expect(editMenuItem.nativeElement.textContent.trim()).toContain('Éditer');
-      expect(deleteMenuItem.nativeElement.textContent.trim()).toContain(
-        'Supprimer',
-      );
+      // Query menu items in both fixture and document (overlay)
+      const editMenuItem =
+        fixture.nativeElement.querySelector(
+          '[data-testid="edit-transaction-test-id-1"][mat-menu-item]',
+        ) ||
+        document.querySelector(
+          '[data-testid="edit-transaction-test-id-1"][mat-menu-item]',
+        );
+      const deleteMenuItem =
+        fixture.nativeElement.querySelector(
+          '[data-testid="delete-transaction-test-id-1"][mat-menu-item]',
+        ) ||
+        document.querySelector(
+          '[data-testid="delete-transaction-test-id-1"][mat-menu-item]',
+        );
+
+      expect(editMenuItem?.textContent?.trim()).toContain('Éditer');
+      expect(deleteMenuItem?.textContent?.trim()).toContain('Supprimer');
     });
 
     it('should not show menu button when not editable or deletable', () => {
-      fixture.componentRef.setInput('editable', false);
-      fixture.componentRef.setInput('deletable', false);
+      signalSetFn(component.editable[SIGNAL], false);
+      signalSetFn(component.deletable[SIGNAL], false);
       fixture.detectChanges();
 
       const menuButton = fixture.debugElement.query(
@@ -219,41 +259,69 @@ describe('FinancialEntry', () => {
     });
 
     it('should show menu button when only editable', () => {
-      fixture.componentRef.setInput('editable', true);
-      fixture.componentRef.setInput('deletable', false);
+      signalSetFn(component.editable[SIGNAL], true);
+      signalSetFn(component.deletable[SIGNAL], false);
       fixture.detectChanges();
 
       const menuButton = fixture.debugElement.query(
         By.css('[data-testid="actions-menu-test-id-1"]'),
       );
-      const editMenuItem = fixture.debugElement.query(
-        By.css('mat-menu [data-testid="edit-transaction-test-id-1"]'),
-      );
-      const deleteMenuItem = fixture.debugElement.query(
-        By.css('mat-menu [data-testid="delete-transaction-test-id-1"]'),
-      );
-
       expect(menuButton).toBeTruthy();
+
+      // Open menu to check items
+      menuButton.nativeElement.click();
+      fixture.detectChanges();
+
+      // Query in both fixture and document (overlay)
+      const editMenuItem =
+        fixture.nativeElement.querySelector(
+          '[data-testid="edit-transaction-test-id-1"][mat-menu-item]',
+        ) ||
+        document.querySelector(
+          '[data-testid="edit-transaction-test-id-1"][mat-menu-item]',
+        );
+      const deleteMenuItem =
+        fixture.nativeElement.querySelector(
+          '[data-testid="delete-transaction-test-id-1"][mat-menu-item]',
+        ) ||
+        document.querySelector(
+          '[data-testid="delete-transaction-test-id-1"][mat-menu-item]',
+        );
+
       expect(editMenuItem).toBeTruthy();
       expect(deleteMenuItem).toBeFalsy();
     });
 
     it('should show menu button when only deletable', () => {
-      fixture.componentRef.setInput('editable', false);
-      fixture.componentRef.setInput('deletable', true);
+      signalSetFn(component.editable[SIGNAL], false);
+      signalSetFn(component.deletable[SIGNAL], true);
       fixture.detectChanges();
 
       const menuButton = fixture.debugElement.query(
         By.css('[data-testid="actions-menu-test-id-1"]'),
       );
-      const editMenuItem = fixture.debugElement.query(
-        By.css('mat-menu [data-testid="edit-transaction-test-id-1"]'),
-      );
-      const deleteMenuItem = fixture.debugElement.query(
-        By.css('mat-menu [data-testid="delete-transaction-test-id-1"]'),
-      );
-
       expect(menuButton).toBeTruthy();
+
+      // Open menu to check items
+      menuButton.nativeElement.click();
+      fixture.detectChanges();
+
+      // Query in both fixture and document (overlay)
+      const editMenuItem =
+        fixture.nativeElement.querySelector(
+          '[data-testid="edit-transaction-test-id-1"][mat-menu-item]',
+        ) ||
+        document.querySelector(
+          '[data-testid="edit-transaction-test-id-1"][mat-menu-item]',
+        );
+      const deleteMenuItem =
+        fixture.nativeElement.querySelector(
+          '[data-testid="delete-transaction-test-id-1"][mat-menu-item]',
+        ) ||
+        document.querySelector(
+          '[data-testid="delete-transaction-test-id-1"][mat-menu-item]',
+        );
+
       expect(editMenuItem).toBeFalsy();
       expect(deleteMenuItem).toBeTruthy();
     });
@@ -261,10 +329,23 @@ describe('FinancialEntry', () => {
     it('should emit editClick when edit menu item is clicked', () => {
       vi.spyOn(component.editClick, 'emit');
 
-      const editMenuItem = fixture.debugElement.query(
-        By.css('mat-menu [data-testid="edit-transaction-test-id-1"]'),
+      // Open menu first
+      const menuButton = fixture.debugElement.query(
+        By.css('[data-testid="actions-menu-test-id-1"]'),
       );
-      editMenuItem.nativeElement.click();
+      menuButton.nativeElement.click();
+      fixture.detectChanges();
+
+      // Click edit menu item
+      const editMenuItem =
+        fixture.nativeElement.querySelector(
+          '[data-testid="edit-transaction-test-id-1"][mat-menu-item]',
+        ) ||
+        document.querySelector(
+          '[data-testid="edit-transaction-test-id-1"][mat-menu-item]',
+        );
+      expect(editMenuItem).toBeTruthy();
+      editMenuItem?.click();
 
       expect(component.editClick.emit).toHaveBeenCalled();
     });
@@ -272,10 +353,23 @@ describe('FinancialEntry', () => {
     it('should emit deleteClick when delete menu item is clicked', () => {
       vi.spyOn(component.deleteClick, 'emit');
 
-      const deleteMenuItem = fixture.debugElement.query(
-        By.css('mat-menu [data-testid="delete-transaction-test-id-1"]'),
+      // Open menu first
+      const menuButton = fixture.debugElement.query(
+        By.css('[data-testid="actions-menu-test-id-1"]'),
       );
-      deleteMenuItem.nativeElement.click();
+      menuButton.nativeElement.click();
+      fixture.detectChanges();
+
+      // Click delete menu item
+      const deleteMenuItem =
+        fixture.nativeElement.querySelector(
+          '[data-testid="delete-transaction-test-id-1"][mat-menu-item]',
+        ) ||
+        document.querySelector(
+          '[data-testid="delete-transaction-test-id-1"][mat-menu-item]',
+        );
+      expect(deleteMenuItem).toBeTruthy();
+      deleteMenuItem?.click();
 
       expect(component.deleteClick.emit).toHaveBeenCalled();
     });
@@ -283,8 +377,8 @@ describe('FinancialEntry', () => {
 
   describe('Responsive behavior', () => {
     beforeEach(() => {
-      fixture.componentRef.setInput('editable', true);
-      fixture.componentRef.setInput('deletable', true);
+      signalSetFn(component.editable[SIGNAL], true);
+      signalSetFn(component.deletable[SIGNAL], true);
     });
 
     it('should switch from desktop to mobile view when breakpoint changes', () => {
@@ -324,8 +418,8 @@ describe('FinancialEntry', () => {
 
   describe('Accessibility', () => {
     beforeEach(() => {
-      fixture.componentRef.setInput('editable', true);
-      fixture.componentRef.setInput('deletable', true);
+      signalSetFn(component.editable[SIGNAL], true);
+      signalSetFn(component.deletable[SIGNAL], true);
     });
 
     it('should have proper aria-label for menu button on mobile', () => {
