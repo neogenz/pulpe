@@ -450,10 +450,11 @@ export class MainLayout {
   protected async exitDemoMode(): Promise<void> {
     try {
       await this.demoInitializer.exitDemoMode();
-      await this.router.navigate([ROUTES.LOGIN]);
     } catch (error) {
       this.#logger.error('Failed to exit demo mode', { error });
-      // Force navigation even on error
+    } finally {
+      // Always navigate to login, even if exit fails
+      // This ensures user is signed out even on error
       await this.router.navigate([ROUTES.LOGIN]);
     }
   }

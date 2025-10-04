@@ -70,7 +70,16 @@ body {
     #ff9a56 100%
   );
   background-size: 200% 200%;
-  animation: gradient-shift 3s ease infinite;
+
+  // Only animate when user hasn't requested reduced motion
+  @media (prefers-reduced-motion: no-preference) {
+    animation: gradient-shift 3s ease infinite;
+  }
+
+  // Static gradient for users who prefer reduced motion
+  @media (prefers-reduced-motion: reduce) {
+    background-position: 0% 50%;
+  }
 }
 
 @keyframes gradient-shift {
