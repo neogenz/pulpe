@@ -155,391 +155,200 @@ export class DemoDataGeneratorService {
     templateId: string,
   ): Omit<TemplateLineRow, 'id' | 'created_at' | 'updated_at'>[] {
     return [
-      // Income
-      {
-        template_id: templateId,
-        name: 'Salaire net',
-        amount: 6500,
-        kind: 'income',
-        recurrence: 'fixed',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Freelance design',
-        amount: 800,
-        kind: 'income',
-        recurrence: 'one_off',
-        description: '',
-      },
-      // Fixed Expenses
-      {
-        template_id: templateId,
-        name: 'Loyer',
-        amount: 1850,
-        kind: 'expense',
-        recurrence: 'fixed',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Charges',
-        amount: 180,
-        kind: 'expense',
-        recurrence: 'fixed',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Assurance maladie',
-        amount: 385,
-        kind: 'expense',
-        recurrence: 'fixed',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Abonnement mobile',
-        amount: 69,
-        kind: 'expense',
-        recurrence: 'fixed',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Internet & TV',
-        amount: 89,
-        kind: 'expense',
-        recurrence: 'fixed',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Abonnement CFF',
-        amount: 185,
-        kind: 'expense',
-        recurrence: 'fixed',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Assurance RC/Ménage',
-        amount: 35,
-        kind: 'expense',
-        recurrence: 'fixed',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Netflix & Spotify',
-        amount: 38,
-        kind: 'expense',
-        recurrence: 'fixed',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Salle de sport',
-        amount: 99,
-        kind: 'expense',
-        recurrence: 'fixed',
-        description: '',
-      },
-      // Variable Expenses
-      {
-        template_id: templateId,
-        name: 'Courses alimentaires',
-        amount: 600,
-        kind: 'expense',
-        recurrence: 'one_off',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Restaurants/Sorties',
-        amount: 400,
-        kind: 'expense',
-        recurrence: 'one_off',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Shopping vêtements',
-        amount: 200,
-        kind: 'expense',
-        recurrence: 'one_off',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Essence/Parking',
-        amount: 150,
-        kind: 'expense',
-        recurrence: 'one_off',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Pharmacie/Santé',
-        amount: 80,
-        kind: 'expense',
-        recurrence: 'one_off',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Coiffeur/Beauté',
-        amount: 120,
-        kind: 'expense',
-        recurrence: 'one_off',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Divers/Imprévus',
-        amount: 150,
-        kind: 'expense',
-        recurrence: 'one_off',
-        description: '',
-      },
-      // Savings
-      {
-        template_id: templateId,
-        name: 'Épargne logement',
-        amount: 1000,
-        kind: 'saving',
-        recurrence: 'fixed',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: '3ème pilier',
-        amount: 580,
-        kind: 'saving',
-        recurrence: 'fixed',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: "Fonds d'urgence",
-        amount: 300,
-        kind: 'saving',
-        recurrence: 'fixed',
-        description: '',
-      },
+      ...this.getStandardIncomeLines(templateId),
+      ...this.getStandardFixedExpenses(templateId),
+      ...this.getStandardVariableExpenses(templateId),
+      ...this.getStandardSavings(templateId),
     ];
+  }
+
+  private getStandardIncomeLines(templateId: string) {
+    return [
+      this.createLine(templateId, 'Salaire net', 6500, 'income', 'fixed'),
+      this.createLine(templateId, 'Freelance design', 800, 'income', 'one_off'),
+    ];
+  }
+
+  private getStandardFixedExpenses(templateId: string) {
+    return [
+      this.createLine(templateId, 'Loyer', 1850, 'expense', 'fixed'),
+      this.createLine(templateId, 'Charges', 180, 'expense', 'fixed'),
+      this.createLine(templateId, 'Assurance maladie', 385, 'expense', 'fixed'),
+      this.createLine(templateId, 'Abonnement mobile', 69, 'expense', 'fixed'),
+      this.createLine(templateId, 'Internet & TV', 89, 'expense', 'fixed'),
+      this.createLine(templateId, 'Abonnement CFF', 185, 'expense', 'fixed'),
+      this.createLine(
+        templateId,
+        'Assurance RC/Ménage',
+        35,
+        'expense',
+        'fixed',
+      ),
+      this.createLine(templateId, 'Netflix & Spotify', 38, 'expense', 'fixed'),
+      this.createLine(templateId, 'Salle de sport', 99, 'expense', 'fixed'),
+    ];
+  }
+
+  private getStandardVariableExpenses(templateId: string) {
+    return [
+      this.createLine(
+        templateId,
+        'Courses alimentaires',
+        600,
+        'expense',
+        'one_off',
+      ),
+      this.createLine(
+        templateId,
+        'Restaurants/Sorties',
+        400,
+        'expense',
+        'one_off',
+      ),
+      this.createLine(
+        templateId,
+        'Shopping vêtements',
+        200,
+        'expense',
+        'one_off',
+      ),
+      this.createLine(templateId, 'Essence/Parking', 150, 'expense', 'one_off'),
+      this.createLine(templateId, 'Pharmacie/Santé', 80, 'expense', 'one_off'),
+      this.createLine(templateId, 'Coiffeur/Beauté', 120, 'expense', 'one_off'),
+      this.createLine(templateId, 'Divers/Imprévus', 150, 'expense', 'one_off'),
+    ];
+  }
+
+  private getStandardSavings(templateId: string) {
+    return [
+      this.createLine(templateId, 'Épargne logement', 1000, 'saving', 'fixed'),
+      this.createLine(templateId, '3ème pilier', 580, 'saving', 'fixed'),
+      this.createLine(templateId, "Fonds d'urgence", 300, 'saving', 'fixed'),
+    ];
+  }
+
+  private createLine(
+    templateId: string,
+    name: string,
+    amount: number,
+    kind: 'income' | 'expense' | 'saving',
+    recurrence: 'fixed' | 'one_off',
+  ): Omit<TemplateLineRow, 'id' | 'created_at' | 'updated_at'> {
+    return {
+      template_id: templateId,
+      name,
+      amount,
+      kind,
+      recurrence,
+      description: '',
+    };
   }
 
   private getVacationMonthLines(
     templateId: string,
   ): Omit<TemplateLineRow, 'id' | 'created_at' | 'updated_at'>[] {
     return [
-      // Income
-      {
-        template_id: templateId,
-        name: 'Salaire net',
-        amount: 6500,
-        kind: 'income',
-        recurrence: 'fixed',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: '13ème salaire',
-        amount: 2500,
-        kind: 'income',
-        recurrence: 'one_off',
-        description: '',
-      },
-      // Fixed expenses
-      {
-        template_id: templateId,
-        name: 'Loyer',
-        amount: 1850,
-        kind: 'expense',
-        recurrence: 'fixed',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Charges',
-        amount: 180,
-        kind: 'expense',
-        recurrence: 'fixed',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Assurance maladie',
-        amount: 385,
-        kind: 'expense',
-        recurrence: 'fixed',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Abonnements divers',
-        amount: 281,
-        kind: 'expense',
-        recurrence: 'fixed',
-        description: '',
-      },
-      // Vacation expenses
-      {
-        template_id: templateId,
-        name: "Billets d'avion",
-        amount: 800,
-        kind: 'expense',
-        recurrence: 'one_off',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Hôtel (7 nuits)',
-        amount: 1200,
-        kind: 'expense',
-        recurrence: 'one_off',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Budget vacances',
-        amount: 1500,
-        kind: 'expense',
-        recurrence: 'one_off',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Assurance voyage',
-        amount: 85,
-        kind: 'expense',
-        recurrence: 'one_off',
-        description: '',
-      },
-      // Reduced savings
-      {
-        template_id: templateId,
-        name: '3ème pilier',
-        amount: 580,
-        kind: 'saving',
-        recurrence: 'fixed',
-        description: '',
-      },
+      ...this.getVacationIncomeLines(templateId),
+      ...this.getVacationFixedExpenses(templateId),
+      ...this.getVacationSpecificExpenses(templateId),
+      ...this.getVacationSavings(templateId),
     ];
+  }
+
+  private getVacationIncomeLines(templateId: string) {
+    return [
+      this.createLine(templateId, 'Salaire net', 6500, 'income', 'fixed'),
+      this.createLine(templateId, '13ème salaire', 2500, 'income', 'one_off'),
+    ];
+  }
+
+  private getVacationFixedExpenses(templateId: string) {
+    return [
+      this.createLine(templateId, 'Loyer', 1850, 'expense', 'fixed'),
+      this.createLine(templateId, 'Charges', 180, 'expense', 'fixed'),
+      this.createLine(templateId, 'Assurance maladie', 385, 'expense', 'fixed'),
+      this.createLine(
+        templateId,
+        'Abonnements divers',
+        281,
+        'expense',
+        'fixed',
+      ),
+    ];
+  }
+
+  private getVacationSpecificExpenses(templateId: string) {
+    return [
+      this.createLine(templateId, "Billets d'avion", 800, 'expense', 'one_off'),
+      this.createLine(
+        templateId,
+        'Hôtel (7 nuits)',
+        1200,
+        'expense',
+        'one_off',
+      ),
+      this.createLine(
+        templateId,
+        'Budget vacances',
+        1500,
+        'expense',
+        'one_off',
+      ),
+      this.createLine(templateId, 'Assurance voyage', 85, 'expense', 'one_off'),
+    ];
+  }
+
+  private getVacationSavings(templateId: string) {
+    return [this.createLine(templateId, '3ème pilier', 580, 'saving', 'fixed')];
   }
 
   private getSavingsMonthLines(
     templateId: string,
   ): Omit<TemplateLineRow, 'id' | 'created_at' | 'updated_at'>[] {
     return [
-      // Income
-      {
-        template_id: templateId,
-        name: 'Salaire net',
-        amount: 6500,
-        kind: 'income',
-        recurrence: 'fixed',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Vente Anibis',
-        amount: 200,
-        kind: 'income',
-        recurrence: 'one_off',
-        description: '',
-      },
-      // Minimal expenses
-      {
-        template_id: templateId,
-        name: 'Loyer',
-        amount: 1850,
-        kind: 'expense',
-        recurrence: 'fixed',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Charges',
-        amount: 180,
-        kind: 'expense',
-        recurrence: 'fixed',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Assurance maladie',
-        amount: 385,
-        kind: 'expense',
-        recurrence: 'fixed',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Abonnements essentiels',
-        amount: 154,
-        kind: 'expense',
-        recurrence: 'fixed',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Courses (budget serré)',
-        amount: 400,
-        kind: 'expense',
-        recurrence: 'one_off',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Transport',
-        amount: 185,
-        kind: 'expense',
-        recurrence: 'fixed',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Minimum vital',
-        amount: 200,
-        kind: 'expense',
-        recurrence: 'one_off',
-        description: '',
-      },
-      // Maximized savings
-      {
-        template_id: templateId,
-        name: 'Épargne logement',
-        amount: 1800,
-        kind: 'saving',
-        recurrence: 'fixed',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: '3ème pilier',
-        amount: 580,
-        kind: 'saving',
-        recurrence: 'fixed',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Investissement ETF',
-        amount: 500,
-        kind: 'saving',
-        recurrence: 'fixed',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: "Fonds d'urgence",
-        amount: 500,
-        kind: 'saving',
-        recurrence: 'fixed',
-        description: '',
-      },
+      ...this.getSavingsIncomeLines(templateId),
+      ...this.getSavingsMinimalExpenses(templateId),
+      ...this.getSavingsMaximized(templateId),
+    ];
+  }
+
+  private getSavingsIncomeLines(templateId: string) {
+    return [
+      this.createLine(templateId, 'Salaire net', 6500, 'income', 'fixed'),
+      this.createLine(templateId, 'Vente Anibis', 200, 'income', 'one_off'),
+    ];
+  }
+
+  private getSavingsMinimalExpenses(templateId: string) {
+    return [
+      this.createLine(templateId, 'Loyer', 1850, 'expense', 'fixed'),
+      this.createLine(templateId, 'Charges', 180, 'expense', 'fixed'),
+      this.createLine(templateId, 'Assurance maladie', 385, 'expense', 'fixed'),
+      this.createLine(
+        templateId,
+        'Abonnements essentiels',
+        154,
+        'expense',
+        'fixed',
+      ),
+      this.createLine(
+        templateId,
+        'Courses (budget serré)',
+        400,
+        'expense',
+        'one_off',
+      ),
+      this.createLine(templateId, 'Transport', 185, 'expense', 'fixed'),
+      this.createLine(templateId, 'Minimum vital', 200, 'expense', 'one_off'),
+    ];
+  }
+
+  private getSavingsMaximized(templateId: string) {
+    return [
+      this.createLine(templateId, 'Épargne logement', 1800, 'saving', 'fixed'),
+      this.createLine(templateId, '3ème pilier', 580, 'saving', 'fixed'),
+      this.createLine(templateId, 'Investissement ETF', 500, 'saving', 'fixed'),
+      this.createLine(templateId, "Fonds d'urgence", 500, 'saving', 'fixed'),
     ];
   }
 
@@ -547,122 +356,62 @@ export class DemoDataGeneratorService {
     templateId: string,
   ): Omit<TemplateLineRow, 'id' | 'created_at' | 'updated_at'>[] {
     return [
-      // Income with bonus
-      {
-        template_id: templateId,
-        name: 'Salaire net',
-        amount: 6500,
-        kind: 'income',
-        recurrence: 'fixed',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: "Prime de fin d'année",
-        amount: 3000,
-        kind: 'income',
-        recurrence: 'one_off',
-        description: '',
-      },
-      // Fixed expenses
-      {
-        template_id: templateId,
-        name: 'Loyer',
-        amount: 1850,
-        kind: 'expense',
-        recurrence: 'fixed',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Charges',
-        amount: 180,
-        kind: 'expense',
-        recurrence: 'fixed',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Assurances diverses',
-        amount: 420,
-        kind: 'expense',
-        recurrence: 'fixed',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Abonnements',
-        amount: 281,
-        kind: 'expense',
-        recurrence: 'fixed',
-        description: '',
-      },
-      // Holiday expenses
-      {
-        template_id: templateId,
-        name: 'Cadeaux famille',
-        amount: 800,
-        kind: 'expense',
-        recurrence: 'one_off',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Cadeaux amis',
-        amount: 400,
-        kind: 'expense',
-        recurrence: 'one_off',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Repas de fêtes',
-        amount: 600,
-        kind: 'expense',
-        recurrence: 'one_off',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Décorations',
-        amount: 150,
-        kind: 'expense',
-        recurrence: 'one_off',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Sorties festives',
-        amount: 500,
-        kind: 'expense',
-        recurrence: 'one_off',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: 'Tenue de soirée',
-        amount: 350,
-        kind: 'expense',
-        recurrence: 'one_off',
-        description: '',
-      },
-      // Normal savings
-      {
-        template_id: templateId,
-        name: 'Épargne logement',
-        amount: 1000,
-        kind: 'saving',
-        recurrence: 'fixed',
-        description: '',
-      },
-      {
-        template_id: templateId,
-        name: '3ème pilier',
-        amount: 580,
-        kind: 'saving',
-        recurrence: 'fixed',
-        description: '',
-      },
+      ...this.getHolidayIncomeLines(templateId),
+      ...this.getHolidayFixedExpenses(templateId),
+      ...this.getHolidaySpecificExpenses(templateId),
+      ...this.getHolidaySavings(templateId),
+    ];
+  }
+
+  private getHolidayIncomeLines(templateId: string) {
+    return [
+      this.createLine(templateId, 'Salaire net', 6500, 'income', 'fixed'),
+      this.createLine(
+        templateId,
+        "Prime de fin d'année",
+        3000,
+        'income',
+        'one_off',
+      ),
+    ];
+  }
+
+  private getHolidayFixedExpenses(templateId: string) {
+    return [
+      this.createLine(templateId, 'Loyer', 1850, 'expense', 'fixed'),
+      this.createLine(templateId, 'Charges', 180, 'expense', 'fixed'),
+      this.createLine(
+        templateId,
+        'Assurances diverses',
+        420,
+        'expense',
+        'fixed',
+      ),
+      this.createLine(templateId, 'Abonnements', 281, 'expense', 'fixed'),
+    ];
+  }
+
+  private getHolidaySpecificExpenses(templateId: string) {
+    return [
+      this.createLine(templateId, 'Cadeaux famille', 800, 'expense', 'one_off'),
+      this.createLine(templateId, 'Cadeaux amis', 400, 'expense', 'one_off'),
+      this.createLine(templateId, 'Repas de fêtes', 600, 'expense', 'one_off'),
+      this.createLine(templateId, 'Décorations', 150, 'expense', 'one_off'),
+      this.createLine(
+        templateId,
+        'Sorties festives',
+        500,
+        'expense',
+        'one_off',
+      ),
+      this.createLine(templateId, 'Tenue de soirée', 350, 'expense', 'one_off'),
+    ];
+  }
+
+  private getHolidaySavings(templateId: string) {
+    return [
+      this.createLine(templateId, 'Épargne logement', 1000, 'saving', 'fixed'),
+      this.createLine(templateId, '3ème pilier', 580, 'saving', 'fixed'),
     ];
   }
 
@@ -671,44 +420,17 @@ export class DemoDataGeneratorService {
     templates: TemplateRow[],
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetRow[]> {
+    const currentDate = new Date();
     const budgetsToCreate: Omit<
       BudgetRow,
       'id' | 'created_at' | 'updated_at'
     >[] = [];
-    const currentDate = new Date();
 
     // Create 6 past months + 6 future months
     for (let i = -6; i <= 5; i++) {
       const budgetDate = addMonths(startOfMonth(currentDate), i);
-      const month = budgetDate.getMonth() + 1;
-      const year = budgetDate.getFullYear();
-
-      // Select template based on month
-      let template: TemplateRow;
-      let description: string;
-
-      if (month === 12) {
-        template = templates[3]; // Holiday
-        description = "Budget des fêtes de fin d'année 🎄";
-      } else if (month === 7 || month === 8) {
-        template = templates[1]; // Vacation
-        description = "Budget vacances d'été ☀️";
-      } else if (month === 3 || month === 9) {
-        template = templates[2]; // Savings
-        description = "Focus sur l'épargne ce mois-ci 💪";
-      } else {
-        template = templates[0]; // Standard
-        description = `Budget mensuel standard`;
-      }
-
-      budgetsToCreate.push({
-        user_id: userId,
-        month,
-        year,
-        description,
-        template_id: template.id,
-        ending_balance: null, // Will be calculated by backend
-      });
+      const budget = this.createBudgetForMonth(userId, budgetDate, templates);
+      budgetsToCreate.push(budget);
     }
 
     const { data, error } = await supabase
@@ -718,6 +440,54 @@ export class DemoDataGeneratorService {
 
     if (error) throw error;
     return data;
+  }
+
+  private createBudgetForMonth(
+    userId: string,
+    budgetDate: Date,
+    templates: TemplateRow[],
+  ): Omit<BudgetRow, 'id' | 'created_at' | 'updated_at'> {
+    const month = budgetDate.getMonth() + 1;
+    const year = budgetDate.getFullYear();
+
+    const { template, description } = this.selectTemplateForMonth(
+      month,
+      templates,
+    );
+
+    return {
+      user_id: userId,
+      month,
+      year,
+      description,
+      template_id: template.id,
+      ending_balance: null,
+    };
+  }
+
+  private selectTemplateForMonth(month: number, templates: TemplateRow[]) {
+    if (month === 12) {
+      return {
+        template: templates[3],
+        description: "Budget des fêtes de fin d'année 🎄",
+      };
+    }
+    if (month === 7 || month === 8) {
+      return {
+        template: templates[1],
+        description: "Budget vacances d'été ☀️",
+      };
+    }
+    if (month === 3 || month === 9) {
+      return {
+        template: templates[2],
+        description: "Focus sur l'épargne ce mois-ci 💪",
+      };
+    }
+    return {
+      template: templates[0],
+      description: 'Budget mensuel standard',
+    };
   }
 
   private async createBudgetLines(
@@ -762,72 +532,12 @@ export class DemoDataGeneratorService {
     budgets: BudgetRow[],
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionRow[]> {
-    const transactionsToCreate: Omit<
-      TransactionRow,
-      'id' | 'created_at' | 'updated_at'
-    >[] = [];
     const currentDate = new Date();
-
-    // Only create transactions for past and current months
-    const pastBudgets = budgets.filter((b) => {
-      const budgetDate = new Date(b.year, b.month - 1);
-      return budgetDate <= currentDate;
-    });
-
-    for (const budget of pastBudgets) {
-      const isCurrentMonth =
-        budget.month === currentDate.getMonth() + 1 &&
-        budget.year === currentDate.getFullYear();
-
-      const daysInMonth = new Date(budget.year, budget.month, 0).getDate();
-      const maxDay = isCurrentMonth ? currentDate.getDate() : daysInMonth;
-
-      // Add some sample transactions
-      if (maxDay >= 5) {
-        transactionsToCreate.push({
-          budget_id: budget.id,
-          name: 'Migros - Courses',
-          amount: 127.85,
-          kind: 'expense',
-          category: 'Alimentation',
-          transaction_date: new Date(
-            budget.year,
-            budget.month - 1,
-            5,
-          ).toISOString(),
-        });
-      }
-
-      if (maxDay >= 10) {
-        transactionsToCreate.push({
-          budget_id: budget.id,
-          name: 'Restaurant Molino',
-          amount: 78.5,
-          kind: 'expense',
-          category: 'Restaurants',
-          transaction_date: new Date(
-            budget.year,
-            budget.month - 1,
-            10,
-          ).toISOString(),
-        });
-      }
-
-      if (maxDay >= 15) {
-        transactionsToCreate.push({
-          budget_id: budget.id,
-          name: 'Coop - Courses',
-          amount: 94.2,
-          kind: 'expense',
-          category: 'Alimentation',
-          transaction_date: new Date(
-            budget.year,
-            budget.month - 1,
-            15,
-          ).toISOString(),
-        });
-      }
-    }
+    const pastBudgets = this.filterPastBudgets(budgets, currentDate);
+    const transactionsToCreate = this.generateTransactions(
+      pastBudgets,
+      currentDate,
+    );
 
     if (transactionsToCreate.length === 0) {
       return [];
@@ -840,5 +550,108 @@ export class DemoDataGeneratorService {
 
     if (error) throw error;
     return data;
+  }
+
+  private filterPastBudgets(budgets: BudgetRow[], currentDate: Date) {
+    return budgets.filter((b) => {
+      const budgetDate = new Date(b.year, b.month - 1);
+      return budgetDate <= currentDate;
+    });
+  }
+
+  private generateTransactions(
+    pastBudgets: BudgetRow[],
+    currentDate: Date,
+  ): Omit<TransactionRow, 'id' | 'created_at' | 'updated_at'>[] {
+    const transactions: Omit<
+      TransactionRow,
+      'id' | 'created_at' | 'updated_at'
+    >[] = [];
+
+    for (const budget of pastBudgets) {
+      const maxDay = this.calculateMaxDay(budget, currentDate);
+      const budgetTransactions = this.createBudgetTransactions(budget, maxDay);
+      transactions.push(...budgetTransactions);
+    }
+
+    return transactions;
+  }
+
+  private calculateMaxDay(budget: BudgetRow, currentDate: Date): number {
+    const isCurrentMonth =
+      budget.month === currentDate.getMonth() + 1 &&
+      budget.year === currentDate.getFullYear();
+
+    const daysInMonth = new Date(budget.year, budget.month, 0).getDate();
+    return isCurrentMonth ? currentDate.getDate() : daysInMonth;
+  }
+
+  private createBudgetTransactions(
+    budget: BudgetRow,
+    maxDay: number,
+  ): Omit<TransactionRow, 'id' | 'created_at' | 'updated_at'>[] {
+    const transactions: Omit<
+      TransactionRow,
+      'id' | 'created_at' | 'updated_at'
+    >[] = [];
+
+    if (maxDay >= 5) {
+      transactions.push(
+        this.createTransaction(
+          budget,
+          5,
+          'Migros - Courses',
+          127.85,
+          'Alimentation',
+        ),
+      );
+    }
+
+    if (maxDay >= 10) {
+      transactions.push(
+        this.createTransaction(
+          budget,
+          10,
+          'Restaurant Molino',
+          78.5,
+          'Restaurants',
+        ),
+      );
+    }
+
+    if (maxDay >= 15) {
+      transactions.push(
+        this.createTransaction(
+          budget,
+          15,
+          'Coop - Courses',
+          94.2,
+          'Alimentation',
+        ),
+      );
+    }
+
+    return transactions;
+  }
+
+  private createTransaction(
+    budget: BudgetRow,
+    day: number,
+    name: string,
+    amount: number,
+    category: string,
+  ): Omit<TransactionRow, 'id' | 'created_at' | 'updated_at'> {
+    return {
+      budget_id: budget.id,
+      name,
+      amount,
+      kind: 'expense',
+      category,
+      transaction_date: new Date(
+        budget.year,
+        budget.month - 1,
+        day,
+      ).toISOString(),
+    };
   }
 }

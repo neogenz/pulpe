@@ -88,7 +88,10 @@ describe('User consent and tracking behavior', () => {
 
       // Then: User should be identified in analytics
       expect(mockPostHogService.identify).toHaveBeenCalledTimes(1);
-      expect(mockPostHogService.identify).toHaveBeenCalledWith(userId);
+      expect(mockPostHogService.identify).toHaveBeenCalledWith(
+        userId,
+        undefined,
+      );
     });
   });
 
@@ -135,7 +138,10 @@ describe('User consent and tracking behavior', () => {
 
       // Then: Their identity should be restored
       expect(mockPostHogService.identify).toHaveBeenCalledTimes(1);
-      expect(mockPostHogService.identify).toHaveBeenCalledWith(returningUserId);
+      expect(mockPostHogService.identify).toHaveBeenCalledWith(
+        returningUserId,
+        undefined,
+      );
     });
   });
 

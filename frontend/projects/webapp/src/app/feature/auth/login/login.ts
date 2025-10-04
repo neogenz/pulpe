@@ -17,7 +17,6 @@ import { AuthApi } from '@core/auth/auth-api';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ROUTES } from '@core/routing/routes-constants';
 import { Logger } from '@core/logging/logger';
-import { DemoInitializerService } from '@core/demo/demo-initializer.service';
 
 @Component({
   selector: 'pulpe-login',
@@ -153,52 +152,6 @@ import { DemoInitializerService } from '@core/demo/demo-initializer.service';
           </button>
         </form>
 
-        <!-- Demo Mode Section -->
-        <div class="mt-6">
-          <mat-divider class="mb-4"></mat-divider>
-          <div class="text-center">
-            <p class="text-body-small text-on-surface-variant mb-3">
-              Découvrir Pulpe sans créer de compte
-            </p>
-            <button
-              matButton="outlined"
-              type="button"
-              data-testid="demo-mode-button"
-              class="w-full h-12"
-              [disabled]="isDemoInitializing()"
-              (click)="startDemoMode()"
-            >
-              @if (isDemoInitializing()) {
-                <div class="flex items-center justify-center">
-                  <mat-progress-spinner
-                    mode="indeterminate"
-                    [diameter]="24"
-                    aria-label="Initialisation du mode démo"
-                    role="progressbar"
-                    class="pulpe-loading-indicator pulpe-loading-small mr-2 flex-shrink-0"
-                  ></mat-progress-spinner>
-                  <span aria-live="polite">Préparation de la démo...</span>
-                </div>
-              } @else {
-                <div class="flex items-center justify-center">
-                  <mat-icon>science</mat-icon>
-                  <span class="ml-2">Essayer en mode démo</span>
-                </div>
-              }
-            </button>
-            @if (demoErrorMessage()) {
-              <div
-                class="bg-error-container text-on-error-container p-2 rounded-lg mt-2 text-body-small flex items-center gap-2"
-              >
-                <mat-icon class="flex-shrink-0 text-base"
-                  >error_outline</mat-icon
-                >
-                <span>{{ demoErrorMessage() }}</span>
-              </div>
-            }
-          </div>
-        </div>
-
         <div class="text-center mt-6">
           <p class="text-body-medium text-on-surface-variant">
             Nouveau sur Pulpe ?
@@ -221,13 +174,10 @@ export default class Login {
   readonly #formBuilder = inject(FormBuilder);
   readonly #router = inject(Router);
   readonly #logger = inject(Logger);
-  readonly #demoInitializer = inject(DemoInitializerService);
 
   protected hidePassword = signal<boolean>(true);
   protected isSubmitting = signal<boolean>(false);
   protected errorMessage = signal<string>('');
-  protected demoErrorMessage = signal<string>('');
-  protected isDemoInitializing = this.#demoInitializer.isInitializing;
 
   protected loginForm = this.#formBuilder.group({
     email: ['', [Validators.required, Validators.email]],
@@ -254,21 +204,6 @@ export default class Login {
 
   protected clearMessages(): void {
     this.errorMessage.set('');
-    this.demoErrorMessage.set('');
-  }
-
-  protected async startDemoMode(): Promise<void> {
-    this.clearMessages();
-
-    try {
-      await this.#demoInitializer.startDemoSession();
-      // Navigation is handled by the service
-    } catch (error) {
-      this.#logger.error('Failed to start demo mode', { error });
-      this.demoErrorMessage.set(
-        'Impossible de démarrer le mode démo. Veuillez réessayer.',
-      );
-    }
   }
 
   protected async signIn(): Promise<void> {

@@ -29,6 +29,7 @@ import { AuthApi } from '@core/auth/auth-api';
 import { ROUTES } from '@core/routing/routes-constants';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { Logger } from '@core/logging/logger';
+import { DemoModeService } from '@core/demo/demo-mode.service';
 import { DemoInitializerService } from '@core/demo/demo-initializer.service';
 
 interface NavigationItem {
@@ -225,23 +226,30 @@ interface NavigationItem {
           <!-- Demo Mode Banner -->
           @if (isDemoMode()) {
             <div
-              class="bg-tertiary-container text-on-tertiary-container px-4 py-2 flex items-center justify-between"
+              class="demo-mode-gradient text-white px-4 py-3 flex items-center justify-between shadow-md"
               role="alert"
               aria-live="polite"
             >
-              <div class="flex items-center gap-2">
-                <mat-icon class="text-base">science</mat-icon>
-                <span class="text-body-small font-medium">
-                  Mode Démo — Vos données seront supprimées après 24h
-                </span>
+              <div class="flex items-center gap-3">
+                <div class="bg-white/20 backdrop-blur-sm rounded-full p-1.5">
+                  <mat-icon class="text-base">science</mat-icon>
+                </div>
+                <div class="flex flex-col">
+                  <span class="text-label-large font-semibold">
+                    Mode Démo
+                  </span>
+                  <span class="text-body-small opacity-90">
+                    Vos données seront supprimées après 24h
+                  </span>
+                </div>
               </div>
               <button
                 matButton
-                class="text-on-tertiary-container"
+                class="!text-white hover:bg-white/10 transition-colors"
                 (click)="exitDemoMode()"
               >
                 <mat-icon class="text-base">close</mat-icon>
-                Quitter
+                <span class="ml-1">Quitter</span>
               </button>
             </div>
           }
@@ -317,6 +325,7 @@ export class MainLayout {
   private readonly scrollDispatcher = inject(ScrollDispatcher);
   private readonly authApi = inject(AuthApi);
   private readonly applicationConfig = inject(ApplicationConfiguration);
+  private readonly demoModeService = inject(DemoModeService);
   private readonly demoInitializer = inject(DemoInitializerService);
   readonly breadcrumbState = inject(BreadcrumbState);
   readonly #logger = inject(Logger);
@@ -431,18 +440,21 @@ export class MainLayout {
   }
 
   /**
-   * Check if currently in demo mode
+   * Reactive signal for demo mode state
    */
-  protected isDemoMode(): boolean {
-    return this.demoInitializer.isDemoMode();
-  }
+  protected readonly isDemoMode = this.demoModeService.isDemoMode;
 
   /**
    * Exit demo mode and redirect to login
    */
   protected async exitDemoMode(): Promise<void> {
-    this.demoInitializer.exitDemoMode();
-    await this.authApi.signOut();
-    await this.router.navigate([ROUTES.LOGIN]);
+    try {
+      await this.demoInitializer.exitDemoMode();
+      await this.router.navigate([ROUTES.LOGIN]);
+    } catch (error) {
+      this.#logger.error('Failed to exit demo mode', { error });
+      // Force navigation even on error
+      await this.router.navigate([ROUTES.LOGIN]);
+    }
   }
 }
