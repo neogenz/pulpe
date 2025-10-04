@@ -465,6 +465,18 @@ export class DemoDataGeneratorService {
     };
   }
 
+  /**
+   * Selects the appropriate template for a given month
+   *
+   * NOTE: This uses European/Swiss calendar assumptions for demo realism:
+   * - December: Holiday season (Christmas/New Year) → Uses holiday template
+   * - July/August: Summer vacation period → Uses vacation template
+   * - March/September: Financial planning months → Uses savings template
+   * - Other months: Standard monthly template
+   *
+   * These assumptions reflect the target market (Switzerland) and create
+   * realistic demo data variation throughout the year.
+   */
   private selectTemplateForMonth(month: number, templates: TemplateRow[]) {
     if (month === 12) {
       return {

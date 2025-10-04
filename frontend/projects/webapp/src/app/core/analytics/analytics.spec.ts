@@ -1,10 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
+import type { WritableSignal } from '@angular/core';
 import { AnalyticsService } from './analytics';
 import { PostHogService } from './posthog';
 import { AuthApi } from '../auth/auth-api';
 import { Logger } from '../logging/logger';
+import { DemoModeService } from '../demo/demo-mode.service';
 import {
   createMockPostHogService,
   createMockLogger,
@@ -33,6 +35,10 @@ describe('User consent and tracking behavior', () => {
       authState: mockAuthState,
     };
 
+    const mockDemoModeService = {
+      isDemoMode: signal(false),
+    };
+
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
@@ -40,6 +46,7 @@ describe('User consent and tracking behavior', () => {
         { provide: PostHogService, useValue: mockPostHogService },
         { provide: AuthApi, useValue: mockAuthApi },
         { provide: Logger, useValue: mockLogger },
+        { provide: DemoModeService, useValue: mockDemoModeService },
       ],
     });
 
@@ -296,6 +303,10 @@ describe('captureEvent', () => {
       }),
     };
 
+    const mockDemoModeService = {
+      isDemoMode: signal(false),
+    };
+
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
@@ -303,6 +314,7 @@ describe('captureEvent', () => {
         { provide: PostHogService, useValue: mockPostHogService },
         { provide: AuthApi, useValue: mockAuthApi },
         { provide: Logger, useValue: createMockLogger() },
+        { provide: DemoModeService, useValue: mockDemoModeService },
       ],
     });
 
@@ -327,5 +339,217 @@ describe('captureEvent', () => {
     });
 
     expect(() => analyticsService.captureEvent('failing_event')).toThrow(error);
+  });
+});
+
+describe('Demo mode tracking', () => {
+  let analyticsService: AnalyticsService;
+  let mockAuthState: ReturnType<typeof signal>;
+  let mockPostHogService: ReturnType<typeof createMockPostHogService>;
+  let mockDemoModeService: { isDemoMode: WritableSignal<boolean> };
+
+  beforeEach(() => {
+    // Create mock auth state signal
+    mockAuthState = signal({
+      user: null,
+      session: null,
+      isLoading: false,
+      isAuthenticated: false,
+    });
+
+    // Use mock helpers
+    mockPostHogService = createMockPostHogService();
+    const mockLogger = createMockLogger();
+
+    // Mock DemoModeService
+    mockDemoModeService = {
+      isDemoMode: signal(false),
+    };
+
+    // Mock AuthApi
+    const mockAuthApi = {
+      authState: mockAuthState,
+    };
+
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        AnalyticsService,
+        { provide: PostHogService, useValue: mockPostHogService },
+        { provide: AuthApi, useValue: mockAuthApi },
+        { provide: Logger, useValue: mockLogger },
+        { provide: DemoModeService, useValue: mockDemoModeService },
+      ],
+    });
+
+    analyticsService = TestBed.inject(AnalyticsService);
+  });
+
+  describe('User uses demo mode', () => {
+    it('should identify demo users with is_demo flag', () => {
+      // GIVEN: Demo mode is active
+      mockDemoModeService.isDemoMode.set(true);
+
+      // AND: Analytics is initialized
+      TestBed.runInInjectionContext(() => {
+        analyticsService.initializeAnalyticsTracking();
+      });
+
+      // WHEN: User authenticates in demo mode
+      mockAuthState.set({
+        user: { id: 'demo-user-123', email: 'demo@pulpe.app' },
+        session: { access_token: 'token', refresh_token: 'refresh' },
+        isLoading: false,
+        isAuthenticated: true,
+      });
+
+      TestBed.tick();
+
+      // THEN: User is identified with is_demo flag
+      expect(mockPostHogService.identify).toHaveBeenCalledWith(
+        'demo-user-123',
+        { is_demo: true },
+      );
+    });
+
+    it('should NOT add is_demo flag for regular users', () => {
+      // GIVEN: Demo mode is OFF
+      mockDemoModeService.isDemoMode.set(false);
+
+      // AND: Analytics is initialized
+      TestBed.runInInjectionContext(() => {
+        analyticsService.initializeAnalyticsTracking();
+      });
+
+      // WHEN: Regular user authenticates
+      mockAuthState.set({
+        user: { id: 'real-user-456', email: 'user@example.com' },
+        session: { access_token: 'token', refresh_token: 'refresh' },
+        isLoading: false,
+        isAuthenticated: true,
+      });
+
+      TestBed.tick();
+
+      // THEN: User is identified WITHOUT is_demo flag
+      expect(mockPostHogService.identify).toHaveBeenCalledWith(
+        'real-user-456',
+        undefined,
+      );
+    });
+  });
+
+  describe('User switches from demo to regular mode', () => {
+    it('should clear demo flag when user exits demo mode', () => {
+      // GIVEN: User was in demo mode
+      mockDemoModeService.isDemoMode.set(true);
+
+      TestBed.runInInjectionContext(() => {
+        analyticsService.initializeAnalyticsTracking();
+      });
+
+      mockAuthState.set({
+        user: { id: 'demo-user', email: 'demo@pulpe.app' },
+        session: { access_token: 'token', refresh_token: 'refresh' },
+        isLoading: false,
+        isAuthenticated: true,
+      });
+
+      TestBed.tick();
+      expect(mockPostHogService.identify).toHaveBeenCalledWith('demo-user', {
+        is_demo: true,
+      });
+
+      // WHEN: User exits demo mode and logs out
+      mockDemoModeService.isDemoMode.set(false);
+      mockAuthState.set({
+        user: null,
+        session: null,
+        isLoading: false,
+        isAuthenticated: false,
+      });
+
+      TestBed.tick();
+
+      // THEN: Analytics session is reset
+      expect(mockPostHogService.reset).toHaveBeenCalled();
+    });
+
+    it('should identify regular user without demo flag after demo logout', () => {
+      // GIVEN: User was in demo mode and logged out
+      mockDemoModeService.isDemoMode.set(true);
+
+      TestBed.runInInjectionContext(() => {
+        analyticsService.initializeAnalyticsTracking();
+      });
+
+      mockAuthState.set({
+        user: { id: 'demo-user', email: 'demo@pulpe.app' },
+        session: { access_token: 'token', refresh_token: 'refresh' },
+        isLoading: false,
+        isAuthenticated: true,
+      });
+
+      TestBed.tick();
+
+      // User logs out
+      mockDemoModeService.isDemoMode.set(false);
+      mockAuthState.set({
+        user: null,
+        session: null,
+        isLoading: false,
+        isAuthenticated: false,
+      });
+
+      TestBed.tick();
+      mockPostHogService.identify.mockClear();
+
+      // WHEN: Regular user logs in after demo mode was cleared
+      mockAuthState.set({
+        user: { id: 'real-user', email: 'real@example.com' },
+        session: { access_token: 'token', refresh_token: 'refresh' },
+        isLoading: false,
+        isAuthenticated: true,
+      });
+
+      TestBed.tick();
+
+      // THEN: Regular user is identified without demo flag
+      expect(mockPostHogService.identify).toHaveBeenCalledWith(
+        'real-user',
+        undefined,
+      );
+    });
+  });
+
+  describe('Demo mode state changes', () => {
+    it('should re-identify user when demo mode changes while authenticated', () => {
+      // GIVEN: Regular user is authenticated
+      mockDemoModeService.isDemoMode.set(false);
+
+      TestBed.runInInjectionContext(() => {
+        analyticsService.initializeAnalyticsTracking();
+      });
+
+      mockAuthState.set({
+        user: { id: 'user-123', email: 'user@example.com' },
+        session: { access_token: 'token', refresh_token: 'refresh' },
+        isLoading: false,
+        isAuthenticated: true,
+      });
+
+      TestBed.tick();
+      mockPostHogService.identify.mockClear();
+
+      // WHEN: Demo mode is activated (edge case: shouldn't normally happen)
+      mockDemoModeService.isDemoMode.set(true);
+
+      TestBed.tick();
+
+      // THEN: User is re-identified with demo flag
+      expect(mockPostHogService.identify).toHaveBeenCalledWith('user-123', {
+        is_demo: true,
+      });
+    });
   });
 });

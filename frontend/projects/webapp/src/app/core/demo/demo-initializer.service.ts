@@ -1,5 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
@@ -102,9 +102,28 @@ export class DemoInitializerService {
       this.#logger.info('Demo mode activated successfully');
 
       // Redirect to dashboard
-      await this.#router.navigate([ROUTES.CURRENT_MONTH]);
+      await this.#router.navigate([ROUTES.APP, ROUTES.CURRENT_MONTH]);
     } catch (error) {
       this.#logger.error('Failed to start demo session', { error });
+
+      // Provide specific error messages based on error type
+      if (error instanceof HttpErrorResponse) {
+        if (error.status === 0) {
+          throw new Error(
+            'Impossible de contacter le serveur. Vérifiez votre connexion internet.',
+          );
+        } else if (error.status >= 500) {
+          throw new Error(
+            'Le serveur rencontre un problème. Veuillez réessayer dans quelques instants.',
+          );
+        } else if (error.status === 429) {
+          throw new Error(
+            'Trop de tentatives. Veuillez patienter avant de réessayer.',
+          );
+        }
+      }
+
+      // Re-throw original error for other cases
       throw error;
     } finally {
       this.#isInitializing.set(false);

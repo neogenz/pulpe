@@ -28,8 +28,16 @@ export class DemoCleanupService {
   ) {}
 
   /**
-   * Cleanup job that runs every 6 hours
-   * Deletes demo users created more than 24 hours ago
+   * Cleanup job that runs every 6 hours to delete expired demo users
+   *
+   * Schedule: Every 6 hours (00:00, 06:00, 12:00, 18:00 UTC)
+   * Retention: 24 hours from user creation
+   *
+   * Rationale:
+   * - 6-hour interval balances cleanup frequency vs database load
+   * - 24-hour retention gives users ample time to explore demo
+   * - Staggered execution (4x per day) ensures timely cleanup without
+   *   overwhelming the database with delete operations
    *
    * Process:
    * 1. Query auth.users for demo users (raw_user_meta_data->>'is_demo' = 'true')
@@ -48,6 +56,7 @@ export class DemoCleanupService {
       const expiredUsers = await this.findExpiredDemoUsers(
         adminClient,
         cutoffTime,
+        false, // Cron jobs should not crash on transient errors
       );
 
       if (expiredUsers.length === 0) {
@@ -81,6 +90,7 @@ export class DemoCleanupService {
   private async findExpiredDemoUsers(
     adminClient: SupabaseClient,
     cutoffTime: Date,
+    throwOnError = false,
   ): Promise<DemoUser[]> {
     const { data: allUsers, error: listError } =
       await adminClient.auth.admin.listUsers({ perPage: 1000 });
@@ -90,6 +100,11 @@ export class DemoCleanupService {
         { error: listError },
         'Failed to list users for cleanup',
       );
+
+      // Throw for manual cleanups to surface errors, return empty for cron jobs
+      if (throwOnError) {
+        throw listError;
+      }
       return [];
     }
 
@@ -172,6 +187,7 @@ export class DemoCleanupService {
     const expiredUsers = await this.findExpiredDemoUsers(
       adminClient,
       cutoffTime,
+      true, // Manual cleanups should surface errors
     );
 
     const deleteResults = await this.deleteDemoUsers(adminClient, expiredUsers);

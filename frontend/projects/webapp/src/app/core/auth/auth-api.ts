@@ -8,6 +8,7 @@ import {
 import { AuthErrorLocalizer } from './auth-error-localizer';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
+import { DemoModeService } from '../demo/demo-mode.service';
 
 export interface AuthState {
   readonly user: User | null;
@@ -23,6 +24,7 @@ export class AuthApi {
   readonly #errorLocalizer = inject(AuthErrorLocalizer);
   readonly #applicationConfig = inject(ApplicationConfiguration);
   readonly #logger = inject(Logger);
+  readonly #demoModeService = inject(DemoModeService);
 
   // Supabase client - créé dans initializeAuthState() après le chargement de la config
   #supabaseClient: SupabaseClient | null = null;
@@ -167,6 +169,10 @@ export class AuthApi {
   }
 
   private handleSignOut(): void {
+    // Clear demo mode state BEFORE clearing other data
+    // This ensures demo state is reset on ALL logout paths (menu, auth errors, etc.)
+    this.#demoModeService.deactivateDemoMode();
+
     // Nettoyer le localStorage et autres états liés à l'utilisateur
     try {
       localStorage.removeItem('pulpe-onboarding-completed');
