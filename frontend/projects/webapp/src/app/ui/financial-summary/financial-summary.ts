@@ -90,5 +90,5 @@ export interface FinancialSummaryData {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FinancialSummary {
-  readonly data = input.required<FinancialSummaryData>();
+  data = input.required<FinancialSummaryData>();
 }

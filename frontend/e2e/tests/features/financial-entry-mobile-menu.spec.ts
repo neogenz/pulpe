@@ -1,21 +1,19 @@
-import { test, expect } from '@playwright/test';
-import { LoginHelper } from '../../helpers/login-helper';
+import { test, expect } from '../../fixtures/test-fixtures';
 
 test.describe('Financial Entry Mobile Menu', () => {
-  const loginHelper = new LoginHelper();
-
   test.describe('Mobile View', () => {
     test.use({
       viewport: { width: 375, height: 667 }, // iPhone SE viewport
       isMobile: true,
     });
 
-    test.beforeEach(async ({ page }) => {
-      await loginHelper.login(page, '/app/current-month');
+    test.beforeEach(async ({ authenticatedPage: page }) => {
+      await page.goto('/app/current-month');
+      await page.waitForLoadState('domcontentloaded');
     });
 
     test('should show menu button instead of separate edit/delete buttons on mobile', async ({
-      page,
+      authenticatedPage: page,
     }) => {
       // Wait for the current month page to load
       await page.waitForSelector('pulpe-financial-entry', {
@@ -181,12 +179,13 @@ test.describe('Financial Entry Mobile Menu', () => {
       viewport: { width: 1280, height: 720 }, // Desktop viewport
     });
 
-    test.beforeEach(async ({ page }) => {
-      await loginHelper.login(page, '/app/current-month');
+    test.beforeEach(async ({ authenticatedPage: page }) => {
+      await page.goto('/app/current-month');
+      await page.waitForLoadState('domcontentloaded');
     });
 
     test('should show separate edit and delete buttons instead of menu on desktop', async ({
-      page,
+      authenticatedPage: page,
     }) => {
       // Wait for the current month page to load
       await page.waitForSelector('pulpe-financial-entry', {
@@ -210,7 +209,7 @@ test.describe('Financial Entry Mobile Menu', () => {
     });
 
     test('should trigger edit action directly when clicking edit button on desktop', async ({
-      page,
+      authenticatedPage: page,
     }) => {
       // Wait for the page to load
       await page.waitForSelector('pulpe-financial-entry', {
@@ -234,12 +233,13 @@ test.describe('Financial Entry Mobile Menu', () => {
   });
 
   test.describe('Responsive Behavior', () => {
-    test.beforeEach(async ({ page }) => {
-      await loginHelper.login(page, '/app/current-month');
+    test.beforeEach(async ({ authenticatedPage: page }) => {
+      await page.goto('/app/current-month');
+      await page.waitForLoadState('domcontentloaded');
     });
 
     test('should switch between menu and separate buttons when viewport changes', async ({
-      page,
+      authenticatedPage: page,
     }) => {
       // Start with desktop viewport
       await page.setViewportSize({ width: 1280, height: 720 });

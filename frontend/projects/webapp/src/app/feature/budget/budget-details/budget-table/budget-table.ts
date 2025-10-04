@@ -12,6 +12,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { map } from 'rxjs/operators';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
@@ -19,6 +20,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
@@ -48,6 +50,7 @@ import {
     MatFormFieldModule,
     MatInputModule,
     MatChipsModule,
+    MatMenuModule,
     MatTooltipModule,
     ReactiveFormsModule,
     RouterLink,
@@ -56,9 +59,7 @@ import {
     RecurrenceLabelPipe,
     RolloverFormatPipe,
   ],
-  host: {
-    '[class.mobile-view]': 'isMobile()?.matches',
-  },
+  host: {},
   template: `
     <mat-card appearance="outlined">
       <mat-card-header>
@@ -283,29 +284,66 @@ import {
                     </button>
                   </div>
                 } @else {
-                  @if (
-                    line.metadata.itemType === 'budget_line' &&
-                    !line.metadata.isRollover
-                  ) {
+                  @if (isMobile() && !line.metadata.isRollover) {
+                    <!-- Mobile: Menu button for edit/delete actions -->
                     <button
                       matIconButton
-                      (click)="startEdit(line)"
+                      [matMenuTriggerFor]="lineActionMenu"
                       [attr.aria-label]="
-                        'Edit ' + (line.data.name | rolloverFormat)
+                        'Actions pour ' + (line.data.name | rolloverFormat)
                       "
-                      [attr.data-testid]="'edit-' + line.data.id"
+                      [attr.data-testid]="'actions-menu-' + line.data.id"
                       [disabled]="line.metadata.isLoading"
-                      class="!w-10 !h-10"
+                      class="!w-10 !h-10 text-on-surface-variant"
+                      (click)="$event.stopPropagation()"
                     >
-                      <mat-icon>edit</mat-icon>
+                      <mat-icon>more_vert</mat-icon>
                     </button>
-                  }
-                  @if (!line.metadata.isRollover) {
+
+                    <mat-menu #lineActionMenu="matMenu" xPosition="before">
+                      @if (line.metadata.itemType === 'budget_line') {
+                        <button
+                          mat-menu-item
+                          (click)="startEdit(line)"
+                          [attr.data-testid]="'edit-' + line.data.id"
+                        >
+                          <mat-icon matMenuItemIcon>edit</mat-icon>
+                          <span>Éditer</span>
+                        </button>
+                      }
+                      <button
+                        mat-menu-item
+                        (click)="delete.emit(line.data.id)"
+                        [attr.data-testid]="'delete-' + line.data.id"
+                        class="text-error"
+                      >
+                        <mat-icon matMenuItemIcon class="text-error"
+                          >delete</mat-icon
+                        >
+                        <span>Supprimer</span>
+                      </button>
+                    </mat-menu>
+                  } @else if (!line.metadata.isRollover) {
+                    <!-- Desktop: Separate edit and delete buttons -->
+                    @if (line.metadata.itemType === 'budget_line') {
+                      <button
+                        matIconButton
+                        (click)="startEdit(line)"
+                        [attr.aria-label]="
+                          'Edit ' + (line.data.name | rolloverFormat)
+                        "
+                        [attr.data-testid]="'edit-' + line.data.id"
+                        [disabled]="line.metadata.isLoading"
+                        class="!w-10 !h-10"
+                      >
+                        <mat-icon>edit</mat-icon>
+                      </button>
+                    }
                     <button
                       matIconButton
                       (click)="delete.emit(line.data.id)"
                       [attr.aria-label]="'Delete ' + line.data.name"
-                      data-testid="delete-button"
+                      [attr.data-testid]="'delete-' + line.data.id"
                       [disabled]="line.metadata.isLoading"
                       class="!w-10 !h-10 text-error"
                     >
@@ -385,6 +423,7 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BudgetTable {
+  // Signal inputs - modern Angular 20+ pattern
   budgetLines = input.required<BudgetLineViewModel[]>();
   transactions = input.required<TransactionViewModel[]>();
 
@@ -411,14 +450,14 @@ export class BudgetTable {
   });
 
   isMobile = toSignal(
-    this.#breakpointObserver.observe([Breakpoints.XSmall, Breakpoints.Small]),
-    { initialValue: { matches: false, breakpoints: {} } },
+    this.#breakpointObserver
+      .observe(Breakpoints.Handset)
+      .pipe(map((result) => result.matches)),
+    { initialValue: false },
   );
 
   currentColumns = computed(() =>
-    this.isMobile()?.matches
-      ? this.displayedColumnsMobile
-      : this.displayedColumns,
+    this.isMobile() ? this.displayedColumnsMobile : this.displayedColumns,
   );
 
   // View Model - single computed that delegates to service
@@ -440,7 +479,7 @@ export class BudgetTable {
 
   startEdit(item: BudgetLineTableItem): void {
     // On mobile, open dialog for editing
-    if (this.isMobile()?.matches) {
+    if (this.isMobile()) {
       try {
         const dialogRef = this.#dialog.open(EditBudgetLineDialog, {
           data: { budgetLine: item.data },
@@ -462,11 +501,18 @@ export class BudgetTable {
       }
     } else {
       // Desktop: inline editing
-      this.inlineFormEditingItem.set(item);
-      this.editForm.patchValue({
-        name: item.data.name,
-        amount: item.data.amount,
-      });
+      try {
+        this.inlineFormEditingItem.set(item);
+        this.editForm.patchValue({
+          name: item.data.name,
+          amount: item.data.amount,
+        });
+      } catch (error) {
+        this.#logger.error('Failed to start inline edit', {
+          error,
+          itemId: item.data.id,
+        });
+      }
     }
   }
 
