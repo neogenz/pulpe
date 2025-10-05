@@ -107,7 +107,7 @@ export class DemoService {
         user_metadata: {
           is_demo: true,
           created_at: new Date().toISOString(),
-          name: 'Marie Démo',
+          name: 'Utilisateur de test',
         },
       });
 

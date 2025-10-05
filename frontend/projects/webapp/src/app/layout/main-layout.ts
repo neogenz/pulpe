@@ -148,10 +148,44 @@ interface NavigationItem {
         data-testid="main-content"
       >
         <div
-          class="flex flex-col h-full bg-surface relative"
+          class="flex flex-col h-full bg-surface relative overflow-hidden"
           [class.p-2]="!isHandset()"
           [class.rounded-xl]="!isHandset()"
         >
+          <!-- Demo Mode Banner -->
+          @if (isDemoMode()) {
+            <div
+              [class.-mx-2]="!isHandset()"
+              [class.-mt-2]="!isHandset()"
+              class="bg-tertiary-container text-on-tertiary-container px-4 py-3 flex items-center justify-between"
+              role="alert"
+              aria-live="polite"
+            >
+              <div class="flex items-center gap-3">
+                <div
+                  class="bg-tertiary/20 backdrop-blur-sm rounded-full flex justify-center items-center p-2"
+                >
+                  <mat-icon>science</mat-icon>
+                </div>
+                <div class="flex flex-col">
+                  <span class="text-label-large font-semibold">
+                    Mode Démo
+                  </span>
+                  <span class="text-body-small opacity-80">
+                    Vos données seront supprimées après 24h
+                  </span>
+                </div>
+              </div>
+              <button
+                matButton
+                class="hover:bg-tertiary/10! transition-colors"
+                (click)="exitDemoMode()"
+              >
+                <mat-icon>close</mat-icon>
+                <span>Quitter</span>
+              </button>
+            </div>
+          }
           <!-- Top App Bar - Fixed Header -->
           <mat-toolbar
             color="primary"
@@ -222,39 +256,6 @@ interface NavigationItem {
               }
             </div>
           </mat-toolbar>
-
-          <!-- Demo Mode Banner -->
-          @if (isDemoMode()) {
-            <div
-              class="bg-tertiary-container text-on-tertiary-container px-4 py-3 flex items-center justify-between shadow-md"
-              role="alert"
-              aria-live="polite"
-            >
-              <div class="flex items-center gap-3">
-                <div
-                  class="bg-tertiary/20 backdrop-blur-sm rounded-full flex justify-center items-center p-2"
-                >
-                  <mat-icon class="text-base">science</mat-icon>
-                </div>
-                <div class="flex flex-col">
-                  <span class="text-label-large font-semibold">
-                    Mode Démo
-                  </span>
-                  <span class="text-body-small opacity-80">
-                    Vos données seront supprimées après 24h
-                  </span>
-                </div>
-              </div>
-              <button
-                matButton
-                class="hover:bg-tertiary/10 transition-colors"
-                (click)="exitDemoMode()"
-              >
-                <mat-icon class="text-base">close</mat-icon>
-                <span class="ml-1">Quitter</span>
-              </button>
-            </div>
-          }
 
           <!-- Breadcrumb -->
           @if (breadcrumbState.breadcrumbs().length > 1) {
