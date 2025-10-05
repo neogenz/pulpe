@@ -2,7 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import type { DemoSessionResponse } from '@pulpe/shared';
+import type { DemoSessionResponse, DemoSessionCreate } from '@pulpe/shared';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { ROUTES } from '@core/routing/routes-constants';
 import { Logger } from '@core/logging/logger';
@@ -33,12 +33,14 @@ export class DemoInitializerService {
    * Start a demo session
    *
    * Process:
-   * 1. Call backend /api/v1/demo/session endpoint
+   * 1. Call backend /api/v1/demo/session endpoint with Turnstile token
    * 2. Store returned JWT session in Supabase client
    * 3. Set demo mode flag in localStorage
    * 4. Redirect to dashboard
+   *
+   * @param turnstileToken - Cloudflare Turnstile response token for anti-bot verification
    */
-  async startDemoSession(): Promise<void> {
+  async startDemoSession(turnstileToken: string): Promise<void> {
     if (this.#isInitializing()) {
       this.#logger.warn('Demo session initialization already in progress');
       return;
@@ -49,10 +51,14 @@ export class DemoInitializerService {
     try {
       this.#logger.info('Starting demo session...');
 
-      // Call backend to create demo user and session
+      // Call backend to create demo user and session with Turnstile token
       const backendUrl = this.#config.backendApiUrl();
+      const payload: DemoSessionCreate = { turnstileToken };
       const response = await firstValueFrom(
-        this.#http.post<DemoSessionResponse>(`${backendUrl}/demo/session`, {}),
+        this.#http.post<DemoSessionResponse>(
+          `${backendUrl}/demo/session`,
+          payload,
+        ),
       );
 
       if (!response.success || !response.data.session) {

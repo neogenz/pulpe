@@ -19,6 +19,8 @@ describe('DemoInitializerService', () => {
   let mockDemoModeService: { activateDemoMode: Mock; deactivateDemoMode: Mock };
   let mockConfig: { backendApiUrl: Mock };
 
+  const TEST_TURNSTILE_TOKEN = 'XXXX.DUMMY.TOKEN.XXXX';
+
   const mockDemoSession = {
     success: true,
     data: {
@@ -89,7 +91,7 @@ describe('DemoInitializerService', () => {
       mockHttp.post.mockReturnValue(of(mockDemoSession));
 
       // WHEN: User clicks "Try Demo" button
-      await service.startDemoSession();
+      await service.startDemoSession(TEST_TURNSTILE_TOKEN);
 
       // THEN: Session is set via AuthApi
       expect(mockAuthApi.setSession).toHaveBeenCalledWith({
@@ -114,7 +116,7 @@ describe('DemoInitializerService', () => {
       mockHttp.post.mockReturnValue(of(mockDemoSession));
 
       // WHEN: User starts demo session (async operation)
-      const promise = service.startDemoSession();
+      const promise = service.startDemoSession(TEST_TURNSTILE_TOKEN);
 
       // THEN: Loading state should have been true during execution
       // (We can't easily test intermediate states in async code,
@@ -130,12 +132,12 @@ describe('DemoInitializerService', () => {
       mockHttp.post.mockReturnValue(of(mockDemoSession));
 
       // WHEN: User starts demo session
-      await service.startDemoSession();
+      await service.startDemoSession(TEST_TURNSTILE_TOKEN);
 
       // THEN: Correct endpoint is called
       expect(mockHttp.post).toHaveBeenCalledWith(
         'http://localhost:3000/api/v1/demo/session',
-        {},
+        { turnstileToken: TEST_TURNSTILE_TOKEN },
       );
     });
   });
@@ -148,7 +150,9 @@ describe('DemoInitializerService', () => {
       );
 
       // WHEN: User tries to start demo
-      await expect(service.startDemoSession()).rejects.toThrow('Network error');
+      await expect(
+        service.startDemoSession(TEST_TURNSTILE_TOKEN),
+      ).rejects.toThrow('Network error');
 
       // THEN: Auth session is NOT set
       expect(mockAuthApi.setSession).not.toHaveBeenCalled();
@@ -166,9 +170,9 @@ describe('DemoInitializerService', () => {
       mockHttp.post.mockReturnValue(of(errorResponse));
 
       // WHEN: User tries to start demo
-      await expect(service.startDemoSession()).rejects.toThrow(
-        'Invalid demo session response',
-      );
+      await expect(
+        service.startDemoSession(TEST_TURNSTILE_TOKEN),
+      ).rejects.toThrow('Invalid demo session response');
 
       // THEN: Auth session is NOT set
       expect(mockAuthApi.setSession).not.toHaveBeenCalled();
@@ -183,9 +187,9 @@ describe('DemoInitializerService', () => {
       mockHttp.post.mockReturnValue(of(invalidResponse));
 
       // WHEN: User tries to start demo
-      await expect(service.startDemoSession()).rejects.toThrow(
-        'Invalid demo session response',
-      );
+      await expect(
+        service.startDemoSession(TEST_TURNSTILE_TOKEN),
+      ).rejects.toThrow('Invalid demo session response');
     });
 
     it('should handle auth session errors gracefully', async () => {
@@ -197,9 +201,9 @@ describe('DemoInitializerService', () => {
       });
 
       // WHEN: User tries to start demo
-      await expect(service.startDemoSession()).rejects.toThrow(
-        'Session expired',
-      );
+      await expect(
+        service.startDemoSession(TEST_TURNSTILE_TOKEN),
+      ).rejects.toThrow('Session expired');
 
       // THEN: Demo mode is NOT activated
       expect(mockDemoModeService.activateDemoMode).not.toHaveBeenCalled();
@@ -216,7 +220,7 @@ describe('DemoInitializerService', () => {
 
       // WHEN: User tries to start demo
       try {
-        await service.startDemoSession();
+        await service.startDemoSession(TEST_TURNSTILE_TOKEN);
       } catch {
         // Expected error
       }
@@ -232,9 +236,9 @@ describe('DemoInitializerService', () => {
       mockHttp.post.mockReturnValue(of(mockDemoSession));
 
       // WHEN: Multiple requests are made simultaneously
-      const promise1 = service.startDemoSession();
-      const promise2 = service.startDemoSession();
-      const promise3 = service.startDemoSession();
+      const promise1 = service.startDemoSession(TEST_TURNSTILE_TOKEN);
+      const promise2 = service.startDemoSession(TEST_TURNSTILE_TOKEN);
+      const promise3 = service.startDemoSession(TEST_TURNSTILE_TOKEN);
 
       await Promise.all([promise1, promise2, promise3]);
 
@@ -248,12 +252,12 @@ describe('DemoInitializerService', () => {
     it('should allow new request after previous completes', async () => {
       // GIVEN: First request completes successfully
       mockHttp.post.mockReturnValue(of(mockDemoSession));
-      await service.startDemoSession();
+      await service.startDemoSession(TEST_TURNSTILE_TOKEN);
 
       // WHEN: New request is made after completion
       mockHttp.post.mockClear();
       mockAuthApi.setSession.mockClear();
-      await service.startDemoSession();
+      await service.startDemoSession(TEST_TURNSTILE_TOKEN);
 
       // THEN: New request is allowed
       expect(mockHttp.post).toHaveBeenCalledTimes(1);
@@ -266,7 +270,7 @@ describe('DemoInitializerService', () => {
       );
 
       try {
-        await service.startDemoSession();
+        await service.startDemoSession(TEST_TURNSTILE_TOKEN);
       } catch {
         // Expected error
       }
@@ -274,7 +278,7 @@ describe('DemoInitializerService', () => {
       // WHEN: New request is made after failure
       mockHttp.post.mockClear();
       mockHttp.post.mockReturnValue(of(mockDemoSession));
-      await service.startDemoSession();
+      await service.startDemoSession(TEST_TURNSTILE_TOKEN);
 
       // THEN: New request is allowed
       expect(mockHttp.post).toHaveBeenCalledTimes(1);
@@ -325,7 +329,7 @@ describe('DemoInitializerService', () => {
       });
 
       // WHEN: User starts demo
-      await service.startDemoSession();
+      await service.startDemoSession(TEST_TURNSTILE_TOKEN);
 
       // THEN: Calls happen in correct order
       expect(callOrder).toEqual(['setSession', 'activateDemoMode', 'navigate']);
@@ -348,7 +352,7 @@ describe('DemoInitializerService', () => {
       mockHttp.post.mockReturnValue(of(customSession));
 
       // WHEN: User starts demo
-      await service.startDemoSession();
+      await service.startDemoSession(TEST_TURNSTILE_TOKEN);
 
       // THEN: Correct email is activated
       expect(mockDemoModeService.activateDemoMode).toHaveBeenCalledWith(

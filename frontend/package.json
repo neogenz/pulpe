@@ -57,6 +57,7 @@
     "date-fns": "^4.1.0",
     "lottie-web": "^5.13.0",
     "ngx-lottie": "^20.0.0",
+    "ngx-turnstile": "^0.2.5",
     "postcss": "^8.5.4",
     "posthog-js": "^1.260.2",
     "rxjs": "~7.8.0",

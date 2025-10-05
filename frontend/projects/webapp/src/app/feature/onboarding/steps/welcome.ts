@@ -4,6 +4,8 @@ import {
   HostListener,
   inject,
   signal,
+  viewChild,
+  computed,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
@@ -13,7 +15,9 @@ import { Router, RouterLink } from '@angular/router';
 import { DemoInitializerService } from '@core/demo/demo-initializer.service';
 import { Logger } from '@core/logging/logger';
 import { ROUTES } from '@core/routing';
+import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { LottieComponent, type AnimationOptions } from 'ngx-lottie';
+import { type NgxTurnstileComponent, NgxTurnstileModule } from 'ngx-turnstile';
 
 @Component({
   selector: 'pulpe-welcome',
@@ -24,6 +28,7 @@ import { LottieComponent, type AnimationOptions } from 'ngx-lottie';
     MatProgressSpinnerModule,
     LottieComponent,
     RouterLink,
+    NgxTurnstileModule,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -88,6 +93,19 @@ import { LottieComponent, type AnimationOptions } from 'ngx-lottie';
             Commencer
           </button>
 
+          <!-- Turnstile Widget (interaction-only) - Only in production/preview -->
+          @if (shouldUseTurnstile()) {
+            <ngx-turnstile
+              #turnstileWidget
+              [siteKey]="turnstileSiteKey()"
+              [appearance]="'interaction-only'"
+              [theme]="'light'"
+              (resolved)="onTurnstileResolved($event)"
+              (errored)="onTurnstileError()"
+              class="hidden"
+            />
+          }
+
           <button
             matButton="tonal"
             type="button"
@@ -143,10 +161,19 @@ export default class Welcome {
   readonly #router = inject(Router);
   readonly #demoInitializer = inject(DemoInitializerService);
   readonly #logger = inject(Logger);
+  readonly #config = inject(ApplicationConfiguration);
   protected readonly ROUTES = ROUTES;
 
   protected demoErrorMessage = signal<string>('');
   protected isDemoInitializing = this.#demoInitializer.isInitializing;
+
+  protected turnstileSiteKey = computed(() => this.#config.turnstile().siteKey);
+  protected shouldUseTurnstile = computed(() => !this.#config.isLocal());
+
+  #turnstileToken = signal<string | null>(null);
+
+  protected turnstileWidget =
+    viewChild<NgxTurnstileComponent>('turnstileWidget');
 
   protected readonly lottieOptions = signal<AnimationOptions>({
     path: '/lottie/welcome-animation.json',
@@ -170,17 +197,70 @@ export default class Welcome {
     this.#continueToNext();
   }
 
+  onTurnstileResolved(token: string | null): void {
+    if (!token) {
+      this.#logger.error('Turnstile resolved with null token');
+      this.demoErrorMessage.set(
+        'Échec de la vérification de sécurité. Veuillez réessayer.',
+      );
+      return;
+    }
+    this.#logger.debug('Turnstile resolved', { tokenLength: token.length });
+    this.#turnstileToken.set(token);
+    this.#startDemoWithToken(token);
+  }
+
+  onTurnstileError(): void {
+    this.#logger.error('Turnstile verification failed');
+    this.demoErrorMessage.set(
+      'Échec de la vérification de sécurité. Veuillez réessayer.',
+    );
+    const widget = this.turnstileWidget();
+    if (widget) {
+      widget.reset();
+    }
+  }
+
   async startDemoMode(): Promise<void> {
     this.demoErrorMessage.set('');
 
+    // In local environment, bypass Turnstile and call backend directly
+    // Backend already skips Turnstile verification in non-production environments
+    if (!this.shouldUseTurnstile()) {
+      this.#logger.debug('Turnstile skipped in local environment');
+      await this.#startDemoWithToken('');
+      return;
+    }
+
+    // Trigger Turnstile challenge by recreating the widget
+    // This works with appearance="interaction-only" to start a new challenge
+    const widget = this.turnstileWidget();
+    if (widget) {
+      widget.createWidget();
+    }
+  }
+
+  async #startDemoWithToken(token: string): Promise<void> {
     try {
-      await this.#demoInitializer.startDemoSession();
+      await this.#demoInitializer.startDemoSession(token);
       // Navigation is handled by the service
     } catch (error) {
       this.#logger.error('Failed to start demo mode', { error });
-      this.demoErrorMessage.set(
-        'Impossible de démarrer le mode démo. Veuillez réessayer.',
-      );
+
+      if (error instanceof Error && error.message.includes('anti-robot')) {
+        this.demoErrorMessage.set(
+          'Échec de la vérification anti-robot. Veuillez réessayer.',
+        );
+      } else {
+        this.demoErrorMessage.set(
+          'Impossible de démarrer le mode démo. Veuillez réessayer.',
+        );
+      }
+
+      const widget = this.turnstileWidget();
+      if (widget) {
+        widget.reset();
+      }
     }
   }
 

@@ -4,6 +4,9 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  Body,
+  Ip,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
@@ -11,14 +14,17 @@ import { DemoService } from './demo.service';
 import { DemoCleanupService } from './demo-cleanup.service';
 import { DemoSessionResponseDto } from './dto/demo-session-response.dto';
 import { DemoCleanupResponseDto } from './dto/demo-cleanup-response.dto';
+import { CreateDemoSessionDto } from './dto/create-demo-session.dto';
 import { Public } from '@common/decorators/public.decorator';
 import { DevOnlyGuard } from '@common/guards/dev-only.guard';
+import { TurnstileService } from '@common/services/turnstile.service';
 
 /**
  * Controller for demo mode functionality
  *
  * Provides public endpoint for creating demo sessions
  * Rate limited to prevent abuse (10 requests/hour per IP)
+ * Protected by Cloudflare Turnstile anti-bot verification
  */
 @ApiTags('Demo')
 @Controller('demo')
@@ -26,12 +32,14 @@ export class DemoController {
   constructor(
     private readonly demoService: DemoService,
     private readonly demoCleanupService: DemoCleanupService,
+    private readonly turnstileService: TurnstileService,
   ) {}
 
   /**
    * Creates a new demo session with an ephemeral user
    *
    * This endpoint:
+   * - Validates Cloudflare Turnstile token (anti-bot)
    * - Creates a temporary user via Supabase Admin API
    * - Seeds realistic demo data (templates, budgets, transactions)
    * - Returns a real Supabase session (JWT tokens)
@@ -46,12 +54,16 @@ export class DemoController {
   @ApiOperation({
     summary: 'Create a demo session',
     description:
-      'Creates an ephemeral user with pre-seeded demo data and returns authentication tokens',
+      'Creates an ephemeral user with pre-seeded demo data and returns authentication tokens. Requires Cloudflare Turnstile token for anti-bot protection.',
   })
   @ApiResponse({
     status: 201,
     description: 'Demo session created successfully',
     type: DemoSessionResponseDto,
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Turnstile verification failed',
   })
   @ApiResponse({
     status: 429,
@@ -61,7 +73,21 @@ export class DemoController {
     status: 500,
     description: 'Internal server error',
   })
-  async createDemoSession(): Promise<DemoSessionResponseDto> {
+  async createDemoSession(
+    @Body() body: CreateDemoSessionDto,
+    @Ip() ip: string,
+  ): Promise<DemoSessionResponseDto> {
+    const { turnstileToken } = body;
+
+    // Verify Turnstile token (automatically skipped in non-production environments)
+    const isValidToken = await this.turnstileService.verify(turnstileToken, ip);
+
+    if (!isValidToken) {
+      throw new ForbiddenException(
+        'Échec de la vérification anti-robot. Veuillez réessayer.',
+      );
+    }
+
     return await this.demoService.createDemoSession();
   }
 

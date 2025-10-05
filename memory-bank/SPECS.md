@@ -161,12 +161,19 @@ Avril    : income=5000 CHF, expenses=5500 CHF, rollover=800 CHF  → ending_bala
 
 ### WF-003: Mode Démo
 
-**Objectif** : Permettre l'exploration de l'application sans inscription
+**Objectif** : Permettre l'exploration sécurisée de l'application sans inscription
 
 1. Clic sur "Essayer en mode démo" (login ou onboarding)
-2. Création automatique d'un utilisateur éphémère (backend)
-3. Génération de données réalistes (templates, budgets, transactions)
-4. Session active 24h avec auto-cleanup après expiration
+2. **Validation Cloudflare Turnstile** (invisible pour humains, challenge automatique anti-bot)
+3. Création automatique d'un utilisateur éphémère (backend)
+4. Génération de données réalistes (templates, budgets, transactions)
+5. Session active 24h avec auto-cleanup après expiration
+
+**Protection anti-spam** :
+- Rate limiting : 10 sessions/heure/IP (NestJS Throttler)
+- Turnstile : Challenge invisible anti-bot (Cloudflare)
+- Tokens à usage unique (expiration 5 min)
+- Auto-skip en environnements de développement/test
 
 ---
 

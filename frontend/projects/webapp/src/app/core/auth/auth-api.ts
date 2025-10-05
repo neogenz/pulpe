@@ -138,29 +138,11 @@ export class AuthApi {
   }
 
   #setupMockStateObserver(): void {
-    // Surveiller les changements de l'état mocké toutes les 100ms
-    const checkMockState = () => {
-      if (
-        (window as unknown as { __E2E_AUTH_BYPASS__: boolean })
-          .__E2E_AUTH_BYPASS__
-      ) {
-        const mockState = (
-          window as unknown as { __E2E_MOCK_AUTH_STATE__: AuthState }
-        ).__E2E_MOCK_AUTH_STATE__;
-
-        if (mockState) {
-          // Synchroniser avec l'état mocké
-          this.#sessionSignal.set(mockState.session);
-          this.#isLoadingSignal.set(mockState.isLoading);
-        }
-
-        // Continuer à surveiller
-        setTimeout(checkMockState, 100);
-      }
-    };
-
-    // Démarrer la surveillance
-    setTimeout(checkMockState, 100);
+    // E2E mock state is set once at test initialization and doesn't change during the test
+    // No need for continuous polling - this was preventing networkidle state in Playwright tests
+    this.#logger.debug(
+      '🎭 E2E mock auth state applied (one-time setup, no polling)',
+    );
   }
 
   private updateAuthState(session: Session | null): void {
