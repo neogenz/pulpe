@@ -73,70 +73,67 @@ import { Logger } from '@core/logging/logger';
           et des conseils adaptés dès aujourd'hui.
         </p>
       </div>
-      <div class="flex gap-4 flex-col items-center justify-center w-full">
-        <button
-          matButton="filled"
-          color="primary"
-          class="w-full max-w-sm"
-          data-testid="welcome-start-button"
-          (click)="onContinue()"
-        >
-          Commencer
-        </button>
+      <div
+        class="flex gap-4 flex-col items-center justify-between w-full flex-1"
+      >
+        <div class="flex gap-4 flex-col items-center w-full">
+          <button
+            matButton="filled"
+            color="primary"
+            class="w-full max-w-sm"
+            data-testid="welcome-start-button"
+            (click)="onContinue()"
+          >
+            Commencer
+          </button>
 
-        <!-- Demo Mode Section -->
-        <div class="w-full max-w-sm">
-          <mat-divider class="mb-4"></mat-divider>
-          <div class="text-center">
-            <p class="text-body-small text-on-surface-variant mb-3">
-              Découvrir Pulpe sans créer de compte
-            </p>
-            <button
-              type="button"
-              data-testid="demo-mode-button"
-              class="w-full h-12 demo-mode-gradient text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-shadow duration-300 border-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              [disabled]="isDemoInitializing()"
-              (click)="startDemoMode()"
-            >
-              @if (isDemoInitializing()) {
-                <div class="flex items-center justify-center">
-                  <mat-progress-spinner
-                    mode="indeterminate"
-                    [diameter]="24"
-                    aria-label="Initialisation du mode démo"
-                    role="progressbar"
-                    class="pulpe-loading-indicator pulpe-loading-small mr-2 flex-shrink-0"
-                  ></mat-progress-spinner>
-                  <span aria-live="polite">Préparation de la démo...</span>
-                </div>
-              } @else {
-                <div class="flex items-center justify-center">
-                  <mat-icon>science</mat-icon>
-                  <span class="ml-2">Essayer en mode démo</span>
-                </div>
-              }
-            </button>
-            @if (demoErrorMessage()) {
-              <div
-                class="bg-error-container text-on-error-container p-2 rounded-lg mt-2 text-body-small flex items-center gap-2"
-              >
-                <mat-icon class="flex-shrink-0 text-base"
-                  >error_outline</mat-icon
-                >
-                <span>{{ demoErrorMessage() }}</span>
+          <button
+            matButton="tonal"
+            type="button"
+            data-testid="demo-mode-button"
+            class="w-full max-w-sm"
+            [disabled]="isDemoInitializing()"
+            (click)="startDemoMode()"
+          >
+            @if (isDemoInitializing()) {
+              <div class="flex justify-center items-center">
+                <mat-progress-spinner
+                  mode="indeterminate"
+                  [diameter]="20"
+                  aria-label="Initialisation du mode démo"
+                  role="progressbar"
+                  class="pulpe-loading-indicator pulpe-loading-small mr-2"
+                ></mat-progress-spinner>
+                <span aria-live="polite">Préparation...</span>
+              </div>
+            } @else {
+              <div class="flex justify-center items-center gap-2">
+                <mat-icon>science</mat-icon>
+                Essayer le mode démo
               </div>
             }
-          </div>
-          <mat-divider class="mt-4"></mat-divider>
+          </button>
+
+          @if (demoErrorMessage()) {
+            <div
+              class="bg-error-container text-on-error-container p-3 rounded-lg mt-3 text-body-small flex items-center gap-2"
+            >
+              <mat-icon class="flex-shrink-0 text-base">error_outline</mat-icon>
+              <span>{{ demoErrorMessage() }}</span>
+            </div>
+          }
         </div>
 
-        <button
-          matButton
-          [routerLink]="['/', ROUTES.LOGIN]"
-          class="w-full max-w-sm"
-        >
-          Se connecter
-        </button>
+        <div class="w-full flex-col gap-2 flex justify-center items-center">
+          <p class="text-body-small">Tu as déjà un compte ?</p>
+          <button
+            matButton
+            [routerLink]="['/', ROUTES.LOGIN]"
+            class="w-full max-w-sm"
+          >
+            Se connecter
+          </button>
+        </div>
       </div>
     </div>
   `,
