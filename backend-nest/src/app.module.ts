@@ -223,18 +223,23 @@ function createPinoLoggerConfig(configService: ConfigService) {
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => [
-        {
-          name: 'default',
-          ttl: config.get<number>('THROTTLE_TTL', 60000), // Default: 1 minute
-          limit: config.get<number>('THROTTLE_LIMIT', 100), // Default: 100 requests
-        },
-        {
-          name: 'demo',
-          ttl: 3600000, // 1 hour in milliseconds
-          limit: 10, // 10 requests per hour for demo endpoints
-        },
-      ],
+      useFactory: (config: ConfigService) => {
+        const nodeEnv = config.get<string>('NODE_ENV');
+        const isDev = !isProductionLike(nodeEnv);
+
+        return [
+          {
+            name: 'default',
+            ttl: config.get<number>('THROTTLE_TTL', 60000), // Default: 1 minute
+            limit: config.get<number>('THROTTLE_LIMIT', isDev ? 1000 : 100), // 1000 in dev, 100 in prod
+          },
+          {
+            name: 'demo',
+            ttl: 3600000, // 1 hour in milliseconds
+            limit: isDev ? 1000 : 10, // No limit in dev, 10 requests per hour in prod
+          },
+        ];
+      },
     }),
     SupabaseModule,
     AuthModule,
