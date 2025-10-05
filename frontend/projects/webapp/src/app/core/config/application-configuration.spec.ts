@@ -1,9 +1,9 @@
-import { TestBed } from '@angular/core/testing';
 import {
   HttpClientTestingModule,
   HttpTestingController,
 } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
 import { ApplicationConfiguration } from './application-configuration';
 import type { ApplicationConfig } from './config.schema';
@@ -19,6 +19,9 @@ describe('ApplicationConfiguration', () => {
     },
     backend: {
       apiUrl: 'http://localhost:3000/api/v1',
+    },
+    turnstile: {
+      siteKey: '0x4AAAAAAB46FJOy2Xtrp9V6', // Test site key
     },
     environment: 'local',
   };
@@ -89,6 +92,9 @@ describe('ApplicationConfiguration', () => {
         },
         backend: {
           apiUrl: 'http://localhost:3000/api/v1',
+        },
+        turnstile: {
+          siteKey: '',
         },
         environment: 'local',
       });

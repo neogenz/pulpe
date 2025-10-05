@@ -165,6 +165,27 @@ export const EnvSchema = z.object({
       message: 'Must be "true" or "false"',
     })
     .transform((val) => val === 'true'),
+  PUBLIC_TURNSTILE_SITE_KEY: z
+    .string()
+    .min(1, 'Turnstile site key is required')
+    .refine(
+      (key) => {
+        // Allow test keys (start with 1x or 2x or 3x)
+        if (
+          key.startsWith('1x') ||
+          key.startsWith('2x') ||
+          key.startsWith('3x')
+        ) {
+          return true;
+        }
+        // Production keys should be longer
+        return key.length >= 20;
+      },
+      {
+        message:
+          'Turnstile site key must be valid (test key or production key)',
+      },
+    ),
 });
 
 /**
@@ -202,6 +223,9 @@ export function envToConfig(env: EnvironmentVariables): ApplicationConfig {
         sampleRate: env.PUBLIC_POSTHOG_SAMPLE_RATE,
       },
       debug: env.PUBLIC_POSTHOG_DEBUG,
+    },
+    turnstile: {
+      siteKey: env.PUBLIC_TURNSTILE_SITE_KEY,
     },
   };
 }
@@ -317,6 +341,29 @@ export const ConfigSchema = z.object({
       debug: z.boolean().default(false),
     })
     .optional(),
+  turnstile: z.object({
+    siteKey: z
+      .string()
+      .min(1, 'Turnstile site key is required')
+      .refine(
+        (key) => {
+          // Allow test keys (start with 1x or 2x or 3x)
+          if (
+            key.startsWith('1x') ||
+            key.startsWith('2x') ||
+            key.startsWith('3x')
+          ) {
+            return true;
+          }
+          // Production keys should be longer
+          return key.length >= 20;
+        },
+        {
+          message:
+            'Turnstile site key must be valid (test key or production key)',
+        },
+      ),
+  }),
   environment: z.enum(['development', 'production', 'local', 'test'], {
     errorMap: () => ({
       message:

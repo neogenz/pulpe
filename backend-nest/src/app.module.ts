@@ -22,6 +22,9 @@ import { UserModule } from '@modules/user/user.module';
 // Filters
 import { FiltersModule } from '@common/filters/filters.module';
 
+// Common
+import { CommonModule } from '@common/common.module';
+
 // Middleware
 import { ResponseLoggerMiddleware } from '@common/middleware/response-logger.middleware';
 import { PayloadSizeMiddleware } from '@common/middleware/payload-size.middleware';
@@ -215,6 +218,7 @@ function createPinoLoggerConfig(configService: ConfigService) {
       cache: true,
       validate: validateConfig,
     }),
+    CommonModule,
     LoggerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

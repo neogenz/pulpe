@@ -89,6 +89,7 @@ export {
   authErrorResponseSchema,
 
   // Demo mode schemas
+  demoSessionCreateSchema,
   demoSessionResponseSchema,
   demoCleanupResponseSchema,
 } from './schemas.js';
@@ -188,5 +189,6 @@ export type {
   AuthErrorResponse,
 
   // Demo mode types
+  DemoSessionCreate,
   DemoSessionResponse,
 } from './schemas.js';

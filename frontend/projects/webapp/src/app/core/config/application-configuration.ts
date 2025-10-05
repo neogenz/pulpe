@@ -51,6 +51,13 @@ export class ApplicationConfiguration {
     debug: false,
   });
 
+  // Turnstile configuration
+  readonly turnstile = signal<{
+    siteKey: string;
+  }>({
+    siteKey: '',
+  });
+
   // Configuration complète en lecture seule
   readonly rawConfiguration = computed<ApplicationConfig | null>(() => {
     const url = this.supabaseUrl();
@@ -63,9 +70,11 @@ export class ApplicationConfiguration {
       return null;
     }
 
+    const turnstileConfig = this.turnstile();
     const config: ApplicationConfig = {
       supabase: { url, anonKey: key },
       backend: { apiUrl },
+      turnstile: { siteKey: turnstileConfig.siteKey },
       environment: env,
     };
 
@@ -171,6 +180,11 @@ export class ApplicationConfiguration {
     this.supabaseAnonKey.set(config.supabase.anonKey);
     this.backendApiUrl.set(config.backend.apiUrl);
     this.environment.set(config.environment);
+
+    // Set Turnstile configuration
+    this.turnstile.set({
+      siteKey: config.turnstile.siteKey,
+    });
 
     // Set PostHog configuration if provided
     if (!config.postHog) {

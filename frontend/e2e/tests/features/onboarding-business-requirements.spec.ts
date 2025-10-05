@@ -59,8 +59,8 @@ test.describe('Onboarding Business Requirements Validation', () => {
 
   test('BUSINESS REQUIREMENT: End-to-end user journey', async ({ page, onboardingPage }) => {
     await onboardingPage.goto();
-    await page.waitForLoadState('networkidle');
-    
+    await page.waitForLoadState('domcontentloaded');
+
     // Just verify we can navigate onboarding
     await expect(page.locator('body')).toBeVisible();
     expect(page.url()).toContain('/onboarding');
