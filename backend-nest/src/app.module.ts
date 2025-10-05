@@ -225,8 +225,14 @@ function createPinoLoggerConfig(configService: ConfigService) {
       inject: [ConfigService],
       useFactory: (config: ConfigService) => [
         {
+          name: 'default',
           ttl: config.get<number>('THROTTLE_TTL', 60000), // Default: 1 minute
           limit: config.get<number>('THROTTLE_LIMIT', 100), // Default: 100 requests
+        },
+        {
+          name: 'demo',
+          ttl: 3600000, // 1 hour in milliseconds
+          limit: 10, // 10 requests per hour for demo endpoints
         },
       ],
     }),
