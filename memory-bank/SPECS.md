@@ -159,6 +159,15 @@ Avril    : income=5000 CHF, expenses=5500 CHF, rollover=800 CHF  → ending_bala
 3. Réception d'alertes aux seuils (80%, 90%, 100%)
 4. Clôture automatique en fin de mois avec calcul du rollover
 
+### WF-003: Mode Démo
+
+**Objectif** : Permettre l'exploration de l'application sans inscription
+
+1. Clic sur "Essayer en mode démo" (login ou onboarding)
+2. Création automatique d'un utilisateur éphémère (backend)
+3. Génération de données réalistes (templates, budgets, transactions)
+4. Session active 24h avec auto-cleanup après expiration
+
 ---
 
 ## 6. Règles Métier

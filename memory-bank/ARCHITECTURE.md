@@ -98,6 +98,11 @@ feature  ← (isolated, no sibling dependencies)
 - **OnPush + Signals**: Performance optimization
 - **Feature Black Box**: Throwaway and replaceable architecture
 
+### Demo Mode Integration
+- **DemoModeService**: Signal-based state management (localStorage sync)
+- **DemoInitializerService**: API call + Supabase auth session setup
+- **UI Integration**: Welcome screen + login page demo buttons
+
 ## Backend Architecture
 
 ### Framework Configuration
@@ -134,6 +139,12 @@ backend-nest/src/modules/[domain]/
 - **Controller → Service → Mapper**: Clear separation of concerns
 - **Dependency Injection**: Constructor injection with decorators
 - **Type Safety**: Supabase generated types + Zod validation
+
+### Demo Mode System
+- **Ephemeral Users**: Real Supabase users with `is_demo: true` metadata
+- **Auto-cleanup**: Cron job every 6h deletes users > 24h old
+- **Demo Data Generator**: Seeds templates, budgets, transactions
+- **Security**: `@DevOnly()` guard for manual cleanup endpoint
 
 ## Data Architecture
 
