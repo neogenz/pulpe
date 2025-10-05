@@ -1,9 +1,18 @@
-import { Controller, Post, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+} from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { DemoService } from './demo.service';
+import { DemoCleanupService } from './demo-cleanup.service';
 import { DemoSessionResponseDto } from './dto/demo-session-response.dto';
+import { DemoCleanupResponseDto } from './dto/demo-cleanup-response.dto';
 import { Public } from '@common/decorators/public.decorator';
+import { DevOnlyGuard } from '@common/guards/dev-only.guard';
 
 /**
  * Controller for demo mode functionality
@@ -14,7 +23,10 @@ import { Public } from '@common/decorators/public.decorator';
 @ApiTags('Demo')
 @Controller('demo')
 export class DemoController {
-  constructor(private readonly demoService: DemoService) {}
+  constructor(
+    private readonly demoService: DemoService,
+    private readonly demoCleanupService: DemoCleanupService,
+  ) {}
 
   /**
    * Creates a new demo session with an ephemeral user
@@ -51,5 +63,48 @@ export class DemoController {
   })
   async createDemoSession(): Promise<DemoSessionResponseDto> {
     return await this.demoService.createDemoSession();
+  }
+
+  /**
+   * Deletes all demo users (development only)
+   *
+   * This endpoint:
+   * - Only accessible in development/test environments
+   * - Deletes ALL demo users regardless of age
+   * - Returns count of deleted and failed deletions
+   * - Useful for cleaning up test data during development
+   *
+   * Blocked in production and preview environments
+   */
+  @Post('cleanup')
+  @Public() // No authentication required
+  @UseGuards(DevOnlyGuard) // Only accessible in development
+  @HttpCode(HttpStatus.OK)
+  @ApiTags('Demo (Dev Only)')
+  @ApiOperation({
+    summary: 'Delete all demo users (development only)',
+    description:
+      'Deletes all demo users regardless of age. Only accessible in development and test environments.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Demo users cleaned up successfully',
+    type: DemoCleanupResponseDto,
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Only available in development mode',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error',
+  })
+  async cleanupAllDemoUsers(): Promise<DemoCleanupResponseDto> {
+    const result = await this.demoCleanupService.cleanupDemoUsersByAge(0);
+    return {
+      success: true,
+      data: result,
+      message: `${result.deleted} demo user(s) deleted, ${result.failed} failed`,
+    };
   }
 }

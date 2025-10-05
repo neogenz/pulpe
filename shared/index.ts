@@ -90,6 +90,7 @@ export {
 
   // Demo mode schemas
   demoSessionResponseSchema,
+  demoCleanupResponseSchema,
 } from './schemas.js';
 
 // Export calculators

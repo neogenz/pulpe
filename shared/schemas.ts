@@ -735,3 +735,13 @@ export const demoSessionResponseSchema = z.object({
   message: z.string(),
 });
 export type DemoSessionResponse = z.infer<typeof demoSessionResponseSchema>;
+
+export const demoCleanupResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    deleted: z.number().int().nonnegative(),
+    failed: z.number().int().nonnegative(),
+  }),
+  message: z.string(),
+});
+export type DemoCleanupResponse = z.infer<typeof demoCleanupResponseSchema>;
