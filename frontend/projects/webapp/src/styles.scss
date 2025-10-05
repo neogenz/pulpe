@@ -39,22 +39,32 @@ body {
   line-height: var(--mat-sys-typescale-body-medium-line-height);
 }
 
-// Pulpe brand gradient - blue starts from bottom left
+// Pulpe brand gradient - CSS variables for theme support
+:root {
+  // Version SATURÉE à fond de ta palette
+  --pulpe-gradient-0: #0088ff; // bleu survitaminé
+  --pulpe-gradient-33: #00ddaa; // turquoise punch
+  --pulpe-gradient-66: #00ff55; // vert néon
+  --pulpe-gradient-100: #88ff44; // vert lime électrique
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    // Dark theme gradient - gris sombre avec touches de vert
+    --pulpe-gradient-0: #1a1a1a; // gris très sombre
+    --pulpe-gradient-33: #1e2820; // gris-vert foncé
+    --pulpe-gradient-66: #00531a; // vert primary moyen (30)
+    --pulpe-gradient-100: #2b883b; // vert primary plus clair (50)
+  }
+}
+
+// Pulpe brand gradient
 .pulpe-gradient {
   background: linear-gradient(
-    45deg,
-    #000066 0%,
-    #00379e 8%,
-    #0061c2 15%,
-    #0b88cc 22%,
-    #0aadbd 29%,
-    #00d199 36%,
-    #2eef6f 43%,
-    #69f15f 50%,
-    #8df148 58%,
-    #adf137 66%,
-    #caf024 75%,
-    #e6ed12 86%,
-    #ffea00 100%
+    135deg,
+    var(--pulpe-gradient-0) 0%,
+    var(--pulpe-gradient-33) 33%,
+    var(--pulpe-gradient-66) 66%,
+    var(--pulpe-gradient-100) 100%
   );
 }
