@@ -26,7 +26,8 @@ export class DemoModeService {
     const email = this.#demoUserEmailSignal();
     if (!email) return null;
     // Extract name part before @ (e.g., "demo-123@pulpe.app" -> "demo-123")
-    return email.split('@')[0];
+    // const username = email.split('@')[0];
+    return 'demo-user';
   });
 
   constructor() {
