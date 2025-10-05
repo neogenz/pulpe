@@ -717,7 +717,7 @@ export type AuthErrorResponse = z.infer<typeof authErrorResponseSchema>;
 
 // Demo mode schemas
 export const demoSessionCreateSchema = z.object({
-  turnstileToken: z.string().min(1, 'Turnstile token is required'),
+  turnstileToken: z.string(),
 });
 export type DemoSessionCreate = z.infer<typeof demoSessionCreateSchema>;
 
