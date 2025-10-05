@@ -1,19 +1,19 @@
 import {
-  Component,
   ChangeDetectionStrategy,
-  signal,
+  Component,
   HostListener,
   inject,
+  signal,
 } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { LottieComponent, type AnimationOptions } from 'ngx-lottie';
-import { ROUTES } from '@core/routing';
+import { Router, RouterLink } from '@angular/router';
 import { DemoInitializerService } from '@core/demo/demo-initializer.service';
 import { Logger } from '@core/logging/logger';
+import { ROUTES } from '@core/routing';
+import { LottieComponent, type AnimationOptions } from 'ngx-lottie';
 
 @Component({
   selector: 'pulpe-welcome',
@@ -28,7 +28,7 @@ import { Logger } from '@core/logging/logger';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
-      class="flex flex-col items-center justify-center h-full gap-10"
+      class="flex flex-col items-center justify-center h-full md:gap-10 gap-6"
       data-testid="onboarding-welcome-page"
     >
       <div class="text-center">
@@ -37,7 +37,7 @@ import { Logger } from '@core/logging/logger';
         </h1>
 
         @defer (on idle) {
-          <div class="flex justify-center mb-6">
+          <div class="flex justify-center md:mb-6">
             <ng-lottie
               [options]="lottieOptions()"
               class="md:w-80 md:h-80 mt-[-86px] md:mt-[-100px]"
@@ -68,13 +68,14 @@ import { Logger } from '@core/logging/logger';
           </div>
         }
 
-        <p class="text-body-large text-on-surface-variant leading-relaxed px-4">
-          Pulpe regroupe tes revenus et dépenses pour te donner une vision nette
-          et des conseils adaptés dès aujourd'hui.
+        <p
+          class="text-body-large text-on-surface-variant md:leading-relaxed px-4"
+        >
+          Planifie ton année en 5 minutes. Dépense l'esprit tranquille.
         </p>
       </div>
       <div
-        class="flex gap-4 flex-col items-center justify-between w-full flex-1"
+        class="flex gap-4 flex-col items-center justify-center flex-1 w-full"
       >
         <div class="flex gap-4 flex-col items-center w-full">
           <button
@@ -123,17 +124,17 @@ import { Logger } from '@core/logging/logger';
             </div>
           }
         </div>
+      </div>
 
-        <div class="w-full flex-col gap-2 flex justify-center items-center">
-          <p class="text-body-small">Tu as déjà un compte ?</p>
-          <button
-            matButton
-            [routerLink]="['/', ROUTES.LOGIN]"
-            class="w-full max-w-sm"
-          >
-            Se connecter
-          </button>
-        </div>
+      <div class="w-full flex-col gap-2 flex justify-center items-center">
+        <p class="text-body-small">Tu as déjà un compte ?</p>
+        <button
+          matButton
+          [routerLink]="['/', ROUTES.LOGIN]"
+          class="w-full max-w-sm"
+        >
+          Se connecter
+        </button>
       </div>
     </div>
   `,

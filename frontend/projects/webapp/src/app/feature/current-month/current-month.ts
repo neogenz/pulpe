@@ -197,7 +197,8 @@ type EditTransactionFormData = Pick<
     :host {
       display: block;
       position: relative;
-      min-height: 100vh;
+
+      padding-bottom: 100px;
 
       --mat-button-tonal-container-height: 32px;
       --mat-button-tonal-horizontal-padding: 12px;

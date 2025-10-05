@@ -332,7 +332,14 @@ export class MainLayout {
   private readonly demoInitializer = inject(DemoInitializerService);
   readonly breadcrumbState = inject(BreadcrumbState);
   readonly #logger = inject(Logger);
-  readonly userEmail = computed(() => this.authApi.authState().user?.email);
+
+  // Display "Mode Démo" for demo users, otherwise show email
+  readonly userEmail = computed(() => {
+    if (this.demoModeService.isDemoMode()) {
+      return 'demo@gmail.com';
+    }
+    return this.authApi.authState().user?.email;
+  });
 
   // Navigation items configuration
   protected readonly navigationItems: readonly NavigationItem[] = [
