@@ -1,29 +1,15 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
+  "globalEnv": ["NODE_ENV"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**", "build/**"],
       "passThroughEnv": ["DOTENV_CONFIG_PATH"],
       "env": [
-        "NODE_ENV",
-        "PUBLIC_SUPABASE_URL",
-        "PUBLIC_SUPABASE_ANON_KEY",
-        "PUBLIC_BACKEND_API_URL",
-        "PUBLIC_ENVIRONMENT",
-        "PUBLIC_POSTHOG_API_KEY",
-        "PUBLIC_POSTHOG_HOST",
-        "PUBLIC_POSTHOG_ENABLED",
-        "PUBLIC_POSTHOG_CAPTURE_PAGEVIEWS",
-        "PUBLIC_POSTHOG_CAPTURE_PAGELEAVES",
-        "PUBLIC_POSTHOG_SESSION_RECORDING_ENABLED",
-        "PUBLIC_POSTHOG_MASK_INPUTS",
-        "PUBLIC_POSTHOG_SAMPLE_RATE",
-        "PUBLIC_POSTHOG_DEBUG",
-        "POSTHOG_PERSONAL_API_KEY",
-        "POSTHOG_HOST",
-        "POSTHOG_CLI_ENV_ID"
+        "PUBLIC_*",
+        "POSTHOG_*"
       ]
     },
     "dev": {
