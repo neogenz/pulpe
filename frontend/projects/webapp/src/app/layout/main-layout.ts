@@ -226,26 +226,28 @@ interface NavigationItem {
           <!-- Demo Mode Banner -->
           @if (isDemoMode()) {
             <div
-              class="demo-mode-gradient text-white px-4 py-3 flex items-center justify-between shadow-md"
+              class="bg-tertiary-container text-on-tertiary-container px-4 py-3 flex items-center justify-between shadow-md"
               role="alert"
               aria-live="polite"
             >
               <div class="flex items-center gap-3">
-                <div class="bg-white/20 backdrop-blur-sm rounded-full p-1.5">
+                <div
+                  class="bg-tertiary/20 backdrop-blur-sm rounded-full flex justify-center items-center p-2"
+                >
                   <mat-icon class="text-base">science</mat-icon>
                 </div>
                 <div class="flex flex-col">
                   <span class="text-label-large font-semibold">
                     Mode Démo
                   </span>
-                  <span class="text-body-small opacity-90">
+                  <span class="text-body-small opacity-80">
                     Vos données seront supprimées après 24h
                   </span>
                 </div>
               </div>
               <button
                 matButton
-                class="!text-white hover:bg-white/10 transition-colors"
+                class="hover:bg-tertiary/10 transition-colors"
                 (click)="exitDemoMode()"
               >
                 <mat-icon class="text-base">close</mat-icon>
