@@ -71,7 +71,7 @@ export class DemoCleanupService {
       this.logCleanupResults(deleteResults, expiredUsers.length, startTime);
     } catch (error) {
       this.logger.error(
-        { error, duration: Date.now() - startTime },
+        { err: error, duration: Date.now() - startTime },
         'Demo users cleanup job failed',
       );
     }
@@ -96,10 +96,7 @@ export class DemoCleanupService {
       await adminClient.auth.admin.listUsers({ perPage: 1000 });
 
     if (listError) {
-      this.logger.error(
-        { error: listError },
-        'Failed to list users for cleanup',
-      );
+      this.logger.error({ err: listError }, 'Failed to list users for cleanup');
 
       // Throw for manual cleanups to surface errors, return empty for cron jobs
       if (throwOnError) {
@@ -134,7 +131,7 @@ export class DemoCleanupService {
 
         if (error) {
           this.logger.error(
-            { userId: user.id, error },
+            { userId: user.id, err: error },
             'Failed to delete demo user',
           );
           throw error;
