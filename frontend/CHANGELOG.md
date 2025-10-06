@@ -1,5 +1,25 @@
 # pulpe-frontend
 
+## 2025.14.0
+
+### Minor Changes
+
+- Ajout du mode démo avec utilisateurs éphémères et protection anti-bot
+
+  Nouvelle fonctionnalité permettant d'explorer l'application sans créer de compte :
+  - **Mode démo sans inscription** : Bouton "Essayer en mode démo" sur les pages de connexion et d'onboarding
+  - **Utilisateurs éphémères** : Sessions automatiques de 24 heures avec données de démonstration réalistes
+  - **Protection anti-spam** : Intégration de Cloudflare Turnstile (invisible pour les utilisateurs légitimes)
+  - **Nettoyage automatique** : Suppression programmée des comptes de démonstration expirés toutes les 6 heures
+  - **Données pré-remplies** : Templates de budget, budgets mensuels (6 mois passés + 6 mois futurs), et transactions d'exemple
+
+  Cette fonctionnalité améliore l'expérience d'onboarding en permettant aux utilisateurs d'évaluer l'application immédiatement, sans friction.
+
+### Patch Changes
+
+- Updated dependencies
+  - @pulpe/shared@0.3.0
+
 ## 2025.13.0
 
 ### Minor Changes
