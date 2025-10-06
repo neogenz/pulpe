@@ -80,9 +80,11 @@ RAILWAY_DOCKERFILE_PATH=backend-nest/Dockerfile
 PORT=3000
 SUPABASE_URL=https://[PROJECT_REF].supabase.co
 SUPABASE_ANON_KEY=[ANON_KEY]
-SUPABASE_SERVICE_ROLE_KEY=[SERVICE_ROLE_KEY]
+SUPABASE_SERVICE_ROLE_KEY=[SERVICE_ROLE_KEY]  # REQUIRED in production/preview
 CORS_ORIGIN=https://app.pulpe.ch
 ```
+
+> ⚠️ **SUPABASE_SERVICE_ROLE_KEY est obligatoire** en production/preview pour le nettoyage automatique des utilisateurs démo. L'application **ne démarrera pas** sans cette variable.
 
 Déployer :
 
