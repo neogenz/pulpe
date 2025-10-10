@@ -93,8 +93,8 @@ import { type NgxTurnstileComponent, NgxTurnstileModule } from 'ngx-turnstile';
             Commencer
           </button>
 
-          <!-- Turnstile Widget (interaction-only) - Only in production/preview -->
-          @if (shouldUseTurnstile()) {
+          <!-- Turnstile Widget - Rendered on-demand when user clicks demo button -->
+          @if (shouldRenderTurnstile() && shouldUseTurnstile()) {
             <ngx-turnstile
               #turnstileWidget
               [siteKey]="turnstileSiteKey()"
@@ -170,7 +170,8 @@ export default class Welcome {
   protected turnstileSiteKey = computed(() => this.#config.turnstile().siteKey);
   protected shouldUseTurnstile = computed(() => !this.#config.isLocal());
 
-  #turnstileToken = signal<string | null>(null);
+  // Control when to render Turnstile widget (lazy rendering on user click)
+  protected shouldRenderTurnstile = signal<boolean>(false);
 
   protected turnstileWidget =
     viewChild<NgxTurnstileComponent>('turnstileWidget');
@@ -203,10 +204,12 @@ export default class Welcome {
       this.demoErrorMessage.set(
         'Échec de la vérification de sécurité. Veuillez réessayer.',
       );
+      this.shouldRenderTurnstile.set(false); // Reset for retry
       return;
     }
+
     this.#logger.debug('Turnstile resolved', { tokenLength: token.length });
-    this.#turnstileToken.set(token);
+    // Widget was rendered on user request, proceed with demo session creation
     this.#startDemoWithToken(token);
   }
 
@@ -215,10 +218,7 @@ export default class Welcome {
     this.demoErrorMessage.set(
       'Échec de la vérification de sécurité. Veuillez réessayer.',
     );
-    const widget = this.turnstileWidget();
-    if (widget) {
-      widget.reset();
-    }
+    this.shouldRenderTurnstile.set(false); // Reset for retry
   }
 
   async startDemoMode(): Promise<void> {
@@ -232,12 +232,10 @@ export default class Welcome {
       return;
     }
 
-    // Trigger Turnstile challenge by recreating the widget
-    // This works with appearance="interaction-only" to start a new challenge
-    const widget = this.turnstileWidget();
-    if (widget) {
-      widget.createWidget();
-    }
+    // Render the Turnstile widget on-demand
+    // This triggers Cloudflare verification, which will call onTurnstileResolved() when complete
+    this.#logger.debug('Rendering Turnstile widget on user request');
+    this.shouldRenderTurnstile.set(true);
   }
 
   async #startDemoWithToken(token: string): Promise<void> {
@@ -257,10 +255,8 @@ export default class Welcome {
         );
       }
 
-      const widget = this.turnstileWidget();
-      if (widget) {
-        widget.reset();
-      }
+      // Reset widget for retry
+      this.shouldRenderTurnstile.set(false);
     }
   }
 
