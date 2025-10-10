@@ -5,6 +5,7 @@ import {
   HostListener,
   inject,
   signal,
+  viewChild,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
@@ -16,7 +17,7 @@ import { DemoInitializerService } from '@core/demo/demo-initializer.service';
 import { Logger } from '@core/logging/logger';
 import { ROUTES } from '@core/routing';
 import { LottieComponent, type AnimationOptions } from 'ngx-lottie';
-import { NgxTurnstileModule } from 'ngx-turnstile';
+import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
 
 @Component({
   selector: 'pulpe-welcome',
@@ -96,6 +97,7 @@ import { NgxTurnstileModule } from 'ngx-turnstile';
           <!-- Turnstile Widget - Rendered on-demand when user clicks demo button -->
           @if (shouldRenderTurnstile() && shouldUseTurnstile()) {
             <ngx-turnstile
+              #turnstileWidget
               [siteKey]="turnstileSiteKey()"
               [appearance]="'interaction-only'"
               [theme]="'light'"
@@ -185,6 +187,9 @@ export default class Welcome {
   // Control when to render Turnstile widget (lazy rendering on user click)
   protected readonly shouldRenderTurnstile = signal(false);
 
+  protected readonly turnstileWidget =
+    viewChild<NgxTurnstileComponent>('turnstileWidget');
+
   protected readonly lottieOptions: AnimationOptions = {
     path: '/lottie/welcome-animation.json',
     loop: true,
@@ -237,10 +242,15 @@ export default class Welcome {
       return;
     }
 
-    // Render the Turnstile widget on-demand
-    // This triggers Cloudflare verification, which will call onTurnstileResolved() when complete
-    this.#logger.debug('Rendering Turnstile widget on user request');
-    this.shouldRenderTurnstile.set(true);
+    // Try to reset existing widget first, otherwise render new one
+    const widget = this.turnstileWidget();
+    if (widget) {
+      this.#logger.debug('Resetting existing Turnstile widget');
+      widget.reset();
+    } else {
+      this.#logger.debug('Rendering new Turnstile widget');
+      this.shouldRenderTurnstile.set(true);
+    }
   }
 
   async #startDemoWithToken(token: string): Promise<void> {
