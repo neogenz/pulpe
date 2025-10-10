@@ -1,23 +1,22 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   HostListener,
   inject,
   signal,
-  viewChild,
-  computed,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Router, RouterLink } from '@angular/router';
+import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { DemoInitializerService } from '@core/demo/demo-initializer.service';
 import { Logger } from '@core/logging/logger';
 import { ROUTES } from '@core/routing';
-import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { LottieComponent, type AnimationOptions } from 'ngx-lottie';
-import { type NgxTurnstileComponent, NgxTurnstileModule } from 'ngx-turnstile';
+import { NgxTurnstileModule } from 'ngx-turnstile';
 
 @Component({
   selector: 'pulpe-welcome',
@@ -43,8 +42,9 @@ import { type NgxTurnstileComponent, NgxTurnstileModule } from 'ngx-turnstile';
 
         @defer (on idle) {
           <div class="flex justify-center md:mb-6">
+            <!-- Animation offset: Compensates for Lottie container padding (Mobile: -86px, Desktop: -100px) -->
             <ng-lottie
-              [options]="lottieOptions()"
+              [options]="lottieOptions"
               class="md:w-80 md:h-80 mt-[-86px] md:mt-[-100px]"
               style="background: transparent !important;"
             />
@@ -88,7 +88,7 @@ import { type NgxTurnstileComponent, NgxTurnstileModule } from 'ngx-turnstile';
             color="primary"
             class="w-full max-w-sm"
             data-testid="welcome-start-button"
-            (click)="onContinue()"
+            (click)="onNext()"
           >
             Commencer
           </button>
@@ -96,7 +96,6 @@ import { type NgxTurnstileComponent, NgxTurnstileModule } from 'ngx-turnstile';
           <!-- Turnstile Widget - Rendered on-demand when user clicks demo button -->
           @if (shouldRenderTurnstile() && shouldUseTurnstile()) {
             <ngx-turnstile
-              #turnstileWidget
               [siteKey]="turnstileSiteKey()"
               [appearance]="'interaction-only'"
               [theme]="'light'"
@@ -164,19 +163,29 @@ export default class Welcome {
   readonly #config = inject(ApplicationConfiguration);
   protected readonly ROUTES = ROUTES;
 
-  protected demoErrorMessage = signal<string>('');
-  protected isDemoInitializing = this.#demoInitializer.isInitializing;
+  readonly #ERROR_MESSAGES = {
+    TURNSTILE_FAILED:
+      'Échec de la vérification de sécurité. Veuillez réessayer.',
+    ANTI_ROBOT_FAILED:
+      'Échec de la vérification anti-robot. Veuillez réessayer.',
+    DEMO_INIT_FAILED:
+      'Impossible de démarrer le mode démo. Veuillez réessayer.',
+  } as const;
 
-  protected turnstileSiteKey = computed(() => this.#config.turnstile().siteKey);
-  protected shouldUseTurnstile = computed(() => !this.#config.isLocal());
+  protected readonly demoErrorMessage = signal('');
+  protected readonly isDemoInitializing = this.#demoInitializer.isInitializing;
+
+  protected readonly turnstileSiteKey = computed(
+    () => this.#config.turnstile().siteKey,
+  );
+  protected readonly shouldUseTurnstile = computed(
+    () => !this.#config.isLocal(),
+  );
 
   // Control when to render Turnstile widget (lazy rendering on user click)
-  protected shouldRenderTurnstile = signal<boolean>(false);
+  protected readonly shouldRenderTurnstile = signal(false);
 
-  protected turnstileWidget =
-    viewChild<NgxTurnstileComponent>('turnstileWidget');
-
-  protected readonly lottieOptions = signal<AnimationOptions>({
+  protected readonly lottieOptions: AnimationOptions = {
     path: '/lottie/welcome-animation.json',
     loop: true,
     autoplay: true,
@@ -187,23 +196,21 @@ export default class Welcome {
       hideOnTransparent: true,
     },
     assetsPath: '/lottie/',
-  });
+  };
 
   @HostListener('keydown.enter')
   onEnter(): void {
     this.#continueToNext();
   }
 
-  onContinue(): void {
+  onNext(): void {
     this.#continueToNext();
   }
 
   onTurnstileResolved(token: string | null): void {
     if (!token) {
       this.#logger.error('Turnstile resolved with null token');
-      this.demoErrorMessage.set(
-        'Échec de la vérification de sécurité. Veuillez réessayer.',
-      );
+      this.demoErrorMessage.set(this.#ERROR_MESSAGES.TURNSTILE_FAILED);
       this.shouldRenderTurnstile.set(false); // Reset for retry
       return;
     }
@@ -215,9 +222,7 @@ export default class Welcome {
 
   onTurnstileError(): void {
     this.#logger.error('Turnstile verification failed');
-    this.demoErrorMessage.set(
-      'Échec de la vérification de sécurité. Veuillez réessayer.',
-    );
+    this.demoErrorMessage.set(this.#ERROR_MESSAGES.TURNSTILE_FAILED);
     this.shouldRenderTurnstile.set(false); // Reset for retry
   }
 
@@ -246,13 +251,9 @@ export default class Welcome {
       this.#logger.error('Failed to start demo mode', { error });
 
       if (error instanceof Error && error.message.includes('anti-robot')) {
-        this.demoErrorMessage.set(
-          'Échec de la vérification anti-robot. Veuillez réessayer.',
-        );
+        this.demoErrorMessage.set(this.#ERROR_MESSAGES.ANTI_ROBOT_FAILED);
       } else {
-        this.demoErrorMessage.set(
-          'Impossible de démarrer le mode démo. Veuillez réessayer.',
-        );
+        this.demoErrorMessage.set(this.#ERROR_MESSAGES.DEMO_INIT_FAILED);
       }
 
       // Reset widget for retry
