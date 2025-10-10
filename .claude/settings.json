@@ -9,6 +9,7 @@
       "WebFetch(domain:*)",
       "mcp__supabase",
       "mcp__vercel",
+      "mcp__angular-cli",
       "Bash(railway:*)"
     ],
     "deny": [],
