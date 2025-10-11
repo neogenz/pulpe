@@ -92,33 +92,63 @@ export class DemoCleanupService {
     cutoffTime: Date,
     throwOnError = false,
   ): Promise<DemoUser[]> {
-    const { data: allUsers, error: listError } =
-      await adminClient.auth.admin.listUsers({ perPage: 1000 });
+    const perPage = 1000;
+    let page = 1;
+    let pagesProcessed = 0;
+    const expiredUsers: DemoUser[] = [];
 
-    if (listError) {
-      this.logger.error({ err: listError }, 'Failed to list users for cleanup');
+    while (true) {
+      const { data, error } = await adminClient.auth.admin.listUsers({
+        page,
+        perPage,
+      });
 
-      // Throw for manual cleanups to surface errors, return empty for cron jobs
-      if (throwOnError) {
-        throw listError;
+      if (error) {
+        this.logger.error(
+          { err: error, page },
+          'Failed to list users for cleanup',
+        );
+
+        if (throwOnError) {
+          throw error;
+        }
+
+        break;
       }
-      return [];
+
+      const usersOnPage = data?.users ?? [];
+      pagesProcessed += 1;
+      expiredUsers.push(
+        ...this.extractExpiredDemoUsers(usersOnPage, cutoffTime),
+      );
+
+      if (usersOnPage.length < perPage) {
+        break;
+      }
+
+      page += 1;
     }
 
-    const expiredUsers = allUsers.users.filter((user: DemoUser) => {
-      const isDemo = user.user_metadata?.is_demo === true;
-      if (!isDemo) return false;
-
-      const createdAt = new Date(user.created_at);
-      return createdAt < cutoffTime;
-    });
-
     this.logger.info(
-      { count: expiredUsers.length },
+      { count: expiredUsers.length, pagesProcessed },
       'Found expired demo users to delete',
     );
 
     return expiredUsers;
+  }
+
+  private extractExpiredDemoUsers(
+    users: DemoUser[],
+    cutoffTime: Date,
+  ): DemoUser[] {
+    return users.filter((user: DemoUser) => {
+      if (user.user_metadata?.is_demo !== true) {
+        return false;
+      }
+
+      const createdAt = new Date(user.created_at);
+      return createdAt < cutoffTime;
+    });
   }
 
   private async deleteDemoUsers(
