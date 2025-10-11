@@ -345,10 +345,10 @@ export class DemoDataGeneratorService {
 
   private getSavingsMaximized(templateId: string) {
     return [
-      this.createLine(templateId, 'Épargne logement', 1800, 'saving', 'fixed'),
+      this.createLine(templateId, 'Épargne logement', 1700, 'saving', 'fixed'),
       this.createLine(templateId, '3ème pilier', 580, 'saving', 'fixed'),
-      this.createLine(templateId, 'Investissement ETF', 500, 'saving', 'fixed'),
-      this.createLine(templateId, "Fonds d'urgence", 500, 'saving', 'fixed'),
+      this.createLine(templateId, 'Investissement ETF', 400, 'saving', 'fixed'),
+      this.createLine(templateId, "Fonds d'urgence", 400, 'saving', 'fixed'),
     ];
   }
 
