@@ -1,18 +1,18 @@
-import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_PIPE, APP_GUARD } from '@nestjs/core';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD, APP_PIPE } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { randomUUID } from 'crypto';
+import { CurlGenerator } from 'curl-generator';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { LoggerModule } from 'nestjs-pino';
 import { ZodValidationPipe } from 'nestjs-zod';
-import { CurlGenerator } from 'curl-generator';
 
 // Modules
 import { AuthModule } from '@modules/auth/auth.module';
+import { BudgetLineModule } from '@modules/budget-line/budget-line.module';
 import { BudgetTemplateModule } from '@modules/budget-template/budget-template.module';
 import { BudgetModule } from '@modules/budget/budget.module';
-import { BudgetLineModule } from '@modules/budget-line/budget-line.module';
 import { DebugModule } from '@modules/debug/debug.module';
 import { DemoModule } from '@modules/demo/demo.module';
 import { SupabaseModule } from '@modules/supabase/supabase.module';
@@ -26,11 +26,12 @@ import { FiltersModule } from '@common/filters/filters.module';
 import { CommonModule } from '@common/common.module';
 
 // Middleware
-import { ResponseLoggerMiddleware } from '@common/middleware/response-logger.middleware';
 import { PayloadSizeMiddleware } from '@common/middleware/payload-size.middleware';
+import { ResponseLoggerMiddleware } from '@common/middleware/response-logger.middleware';
 
 // Configuration
 import { isProductionLike, validateConfig } from '@config/environment';
+import { ScheduleModule } from '@nestjs/schedule';
 
 // Logger configuration helpers
 function createRequestIdGenerator() {
@@ -245,6 +246,7 @@ function createPinoLoggerConfig(configService: ConfigService) {
         ];
       },
     }),
+    ScheduleModule.forRoot(),
     SupabaseModule,
     AuthModule,
     DemoModule,
