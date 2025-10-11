@@ -112,10 +112,10 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
             type="button"
             data-testid="demo-mode-button"
             class="w-full max-w-sm"
-            [disabled]="isDemoInitializing()"
+            [disabled]="isLoading()"
             (click)="startDemoMode()"
           >
-            @if (isDemoInitializing()) {
+            @if (isLoading()) {
               <div class="flex justify-center items-center">
                 <mat-progress-spinner
                   mode="indeterminate"
@@ -176,6 +176,10 @@ export default class Welcome {
 
   protected readonly demoErrorMessage = signal('');
   protected readonly isDemoInitializing = this.#demoInitializer.isInitializing;
+  protected readonly isTurnstileProcessing = signal(false);
+  protected readonly isLoading = computed(
+    () => this.isTurnstileProcessing() || this.isDemoInitializing(),
+  );
 
   protected readonly turnstileSiteKey = computed(
     () => this.#config.turnstile().siteKey,
@@ -228,11 +232,13 @@ export default class Welcome {
   onTurnstileError(): void {
     this.#logger.error('Turnstile verification failed');
     this.demoErrorMessage.set(this.#ERROR_MESSAGES.TURNSTILE_FAILED);
+    this.isTurnstileProcessing.set(false);
     this.shouldRenderTurnstile.set(false); // Reset for retry
   }
 
   async startDemoMode(): Promise<void> {
     this.demoErrorMessage.set('');
+    this.isTurnstileProcessing.set(true);
 
     // In local environment, bypass Turnstile and call backend directly
     // Backend already skips Turnstile verification in non-production environments
@@ -266,7 +272,8 @@ export default class Welcome {
         this.demoErrorMessage.set(this.#ERROR_MESSAGES.DEMO_INIT_FAILED);
       }
 
-      // Reset widget for retry
+      // Reset processing state and widget for retry
+      this.isTurnstileProcessing.set(false);
       this.shouldRenderTurnstile.set(false);
     }
   }
