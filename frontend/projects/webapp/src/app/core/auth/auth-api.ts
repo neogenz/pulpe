@@ -170,6 +170,15 @@ export class AuthApi {
     email: string,
     password: string,
   ): Promise<{ success: boolean; error?: string }> {
+    // E2E test bypass
+    if (
+      (window as unknown as { __E2E_AUTH_BYPASS__: boolean })
+        .__E2E_AUTH_BYPASS__
+    ) {
+      this.#logger.info('🎭 Mode test E2E: Simulation du signin');
+      return { success: true };
+    }
+
     try {
       const { error } = await this.#supabaseClient!.auth.signInWithPassword({
         email,
@@ -196,6 +205,15 @@ export class AuthApi {
     email: string,
     password: string,
   ): Promise<{ success: boolean; error?: string }> {
+    // E2E test bypass
+    if (
+      (window as unknown as { __E2E_AUTH_BYPASS__: boolean })
+        .__E2E_AUTH_BYPASS__
+    ) {
+      this.#logger.info('🎭 Mode test E2E: Simulation du signup');
+      return { success: true };
+    }
+
     try {
       const { error } = await this.#supabaseClient!.auth.signUp({
         email,
