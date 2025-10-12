@@ -221,6 +221,10 @@ export class AuthApi {
   /**
    * Set a Supabase session programmatically (e.g., for demo mode)
    * This allows setting a session obtained from a backend endpoint
+   *
+   * ⚠️ WARNING: This method does NOT check for __E2E_AUTH_BYPASS__
+   * For E2E tests, auth state must already be mocked via __E2E_MOCK_AUTH_STATE__
+   * in initializeAuthState(). Do not call this method in E2E bypass paths.
    */
   async setSession(session: {
     access_token: string;

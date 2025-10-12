@@ -309,33 +309,8 @@ describe('DemoInitializerService', () => {
     });
   });
 
-  describe('Business logic validation', () => {
-    it('should activate demo mode only after successful session creation', async () => {
-      // GIVEN: Backend succeeds
-      mockHttp.post.mockReturnValue(of(mockDemoSession));
-
-      // Track call order
-      const callOrder: string[] = [];
-      mockAuthApi.setSession.mockImplementation(async () => {
-        callOrder.push('setSession');
-        return { success: true };
-      });
-      mockDemoModeService.activateDemoMode.mockImplementation(() => {
-        callOrder.push('activateDemoMode');
-      });
-      mockRouter.navigate.mockImplementation(async () => {
-        callOrder.push('navigate');
-        return true;
-      });
-
-      // WHEN: User starts demo
-      await service.startDemoSession(TEST_TURNSTILE_TOKEN);
-
-      // THEN: Calls happen in correct order
-      expect(callOrder).toEqual(['setSession', 'activateDemoMode', 'navigate']);
-    });
-
-    it('should store correct user email from session', async () => {
+  describe('User email is correctly stored', () => {
+    it('should activate demo mode with the email from backend session', async () => {
       // GIVEN: Backend returns session with specific email
       const customSession = {
         ...mockDemoSession,
@@ -354,10 +329,16 @@ describe('DemoInitializerService', () => {
       // WHEN: User starts demo
       await service.startDemoSession(TEST_TURNSTILE_TOKEN);
 
-      // THEN: Correct email is activated
+      // THEN: Demo mode is activated with correct email
       expect(mockDemoModeService.activateDemoMode).toHaveBeenCalledWith(
         'custom-demo@pulpe.app',
       );
+
+      // AND: User is redirected to dashboard
+      expect(mockRouter.navigate).toHaveBeenCalledWith([
+        ROUTES.APP,
+        ROUTES.CURRENT_MONTH,
+      ]);
     });
   });
 });

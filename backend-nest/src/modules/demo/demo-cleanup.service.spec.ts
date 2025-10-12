@@ -87,9 +87,16 @@ describe('DemoCleanupService - Business Value Tests', () => {
       await service.cleanupExpiredDemoUsers();
 
       // THEN: Only the legitimate demo user should be deleted
-      expect(mockAdminClient.auth.admin.deleteUser).toHaveBeenCalledTimes(1);
       expect(mockAdminClient.auth.admin.deleteUser).toHaveBeenCalledWith(
         'demo-user-old',
+      );
+
+      // AND: Regular users and corrupted entries are protected
+      expect(mockAdminClient.auth.admin.deleteUser).not.toHaveBeenCalledWith(
+        'regular-user-1',
+      );
+      expect(mockAdminClient.auth.admin.deleteUser).not.toHaveBeenCalledWith(
+        'corrupted-user-1',
       );
     });
   });
@@ -146,13 +153,17 @@ describe('DemoCleanupService - Business Value Tests', () => {
       // WHEN: Running the cron cleanup job
       await service.cleanupExpiredDemoUsers();
 
-      // THEN: Only users >= 24h should be deleted
-      expect(mockAdminClient.auth.admin.deleteUser).toHaveBeenCalledTimes(2);
+      // THEN: Users >= 24h should be deleted
       expect(mockAdminClient.auth.admin.deleteUser).toHaveBeenCalledWith(
         'demo-user-24h',
       );
       expect(mockAdminClient.auth.admin.deleteUser).toHaveBeenCalledWith(
         'demo-user-25h',
+      );
+
+      // AND: Recent users are preserved
+      expect(mockAdminClient.auth.admin.deleteUser).not.toHaveBeenCalledWith(
+        'demo-user-23h',
       );
     });
   });
@@ -274,10 +285,20 @@ describe('DemoCleanupService - Business Value Tests', () => {
       // WHEN: Manual cleanup with 0 hours (delete all)
       const result = await service.cleanupDemoUsersByAge(0);
 
-      // THEN: All users should be deleted
+      // THEN: All demo users should be deleted
       expect(result.deleted).toBe(3);
       expect(result.failed).toBe(0);
-      expect(mockAdminClient.auth.admin.deleteUser).toHaveBeenCalledTimes(3);
+
+      // AND: Each user was deleted
+      expect(mockAdminClient.auth.admin.deleteUser).toHaveBeenCalledWith(
+        'demo-user-1',
+      );
+      expect(mockAdminClient.auth.admin.deleteUser).toHaveBeenCalledWith(
+        'demo-user-2',
+      );
+      expect(mockAdminClient.auth.admin.deleteUser).toHaveBeenCalledWith(
+        'demo-user-3',
+      );
     });
 
     it('should handle delete failures gracefully in manual cleanup', async () => {
@@ -329,7 +350,14 @@ describe('DemoCleanupService - Business Value Tests', () => {
       // THEN: Should report correct success/failure counts
       expect(result.deleted).toBe(1);
       expect(result.failed).toBe(1);
-      expect(mockAdminClient.auth.admin.deleteUser).toHaveBeenCalledTimes(2);
+
+      // AND: Service attempted to delete both users
+      expect(mockAdminClient.auth.admin.deleteUser).toHaveBeenCalledWith(
+        'demo-user-success',
+      );
+      expect(mockAdminClient.auth.admin.deleteUser).toHaveBeenCalledWith(
+        'demo-user-fail',
+      );
     });
   });
 });

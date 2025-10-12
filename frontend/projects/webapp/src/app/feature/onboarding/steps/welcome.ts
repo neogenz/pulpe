@@ -240,6 +240,16 @@ export default class Welcome {
     this.demoErrorMessage.set('');
     this.isTurnstileProcessing.set(true);
 
+    // E2E Test Bypass - skip Turnstile widget entirely
+    if (
+      typeof window !== 'undefined' &&
+      (window as { __E2E_DEMO_BYPASS__?: boolean }).__E2E_DEMO_BYPASS__ === true
+    ) {
+      this.#logger.debug('E2E demo bypass detected, skipping Turnstile');
+      await this.#startDemoWithToken('');
+      return;
+    }
+
     // In local environment, bypass Turnstile and call backend directly
     // Backend already skips Turnstile verification in non-production environments
     if (!this.shouldUseTurnstile()) {

@@ -170,8 +170,9 @@ export const EnvSchema = z.object({
     .min(1, 'Turnstile site key is required')
     .refine(
       (key) => {
-        // Allow test keys (start with 1x or 2x or 3x)
+        // Allow test keys (start with 0x, 1x, 2x, or 3x)
         if (
+          key.startsWith('0x') ||
           key.startsWith('1x') ||
           key.startsWith('2x') ||
           key.startsWith('3x')
@@ -347,8 +348,9 @@ export const ConfigSchema = z.object({
       .min(1, 'Turnstile site key is required')
       .refine(
         (key) => {
-          // Allow test keys (start with 1x or 2x or 3x)
+          // Allow test keys (start with 0x, 1x, 2x, or 3x)
           if (
+            key.startsWith('0x') ||
             key.startsWith('1x') ||
             key.startsWith('2x') ||
             key.startsWith('3x')
