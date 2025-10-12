@@ -139,4 +139,24 @@ export class OnboardingPage {
     const currentUrl = this.page.url();
     expect(currentUrl).not.toContain('/onboarding/welcome');
   }
+
+  /**
+   * Demo Mode Methods
+   */
+
+  async clickDemoButton() {
+    const demoButton = this.page.getByTestId('demo-mode-button');
+    await expect(demoButton).toBeVisible();
+    await demoButton.click();
+  }
+
+  async expectDemoButtonVisible() {
+    const demoButton = this.page.getByTestId('demo-mode-button');
+    await expect(demoButton).toBeVisible();
+  }
+
+  async expectDemoButtonDisabled() {
+    const demoButton = this.page.getByTestId('demo-mode-button');
+    await expect(demoButton).toBeDisabled();
+  }
 }
