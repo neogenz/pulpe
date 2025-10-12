@@ -41,6 +41,15 @@ export class DemoInitializerService {
    * @param turnstileToken - Cloudflare Turnstile response token for anti-bot verification
    */
   async startDemoSession(turnstileToken: string): Promise<void> {
+    // E2E Test Bypass - skip Turnstile & backend call
+    if (
+      typeof window !== 'undefined' &&
+      (window as { __E2E_DEMO_BYPASS__?: boolean }).__E2E_DEMO_BYPASS__ === true
+    ) {
+      await this.#handleE2EDemoBypass();
+      return;
+    }
+
     if (this.#isInitializing()) {
       this.#logger.warn('Demo session initialization already in progress');
       return;
@@ -125,5 +134,43 @@ export class DemoInitializerService {
     this.#demoModeService.deactivateDemoMode();
     await this.#authApi.signOut();
     this.#logger.info('Demo mode exited and user signed out');
+  }
+
+  /**
+   * Handle E2E test bypass
+   *
+   * Used by E2E tests to skip Turnstile verification and backend demo session creation.
+   * Directly sets a mock session and navigates to dashboard.
+   *
+   * @private
+   */
+  async #handleE2EDemoBypass(): Promise<void> {
+    const mockSession = (
+      window as {
+        __E2E_DEMO_SESSION__?: {
+          user: { id: string; email: string };
+          access_token: string;
+          refresh_token: string;
+        };
+      }
+    ).__E2E_DEMO_SESSION__;
+
+    if (!mockSession) {
+      this.#logger.error('E2E bypass enabled but no mock session found');
+      throw new Error('E2E bypass configuration error');
+    }
+
+    this.#logger.info('🎭 E2E Demo Bypass: Skipping Turnstile & backend');
+
+    // Auth state is already mocked by __E2E_AUTH_BYPASS__ via setupAuthBypass()
+    // No need to call setSession() - it would attempt a real Supabase call and fail
+
+    // Activate demo mode
+    this.#demoModeService.activateDemoMode(mockSession.user.email);
+
+    this.#logger.info('E2E Demo mode activated successfully');
+
+    // Navigate to dashboard
+    await this.#router.navigate([ROUTES.APP, ROUTES.CURRENT_MONTH]);
   }
 }

@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
-import { SupabaseService } from '../supabase/supabase.service';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import { SupabaseService } from '../supabase/supabase.service';
 
 interface DemoUser {
   id: string;
@@ -18,6 +18,13 @@ interface DemoUser {
  *
  * Runs every 6 hours to delete demo users older than 24 hours
  * Uses Supabase Admin API to identify and delete demo users
+ *
+ * Tables cleaned via CASCADE when user is deleted:
+ * - template (user_id) → template_line (template_id)
+ * - monthly_budget (user_id) → budget_line (budget_id), transaction (budget_id)
+ * - savings_goal (user_id)
+ *
+ * See: demo-schema-coverage.spec.ts for complete list and verification
  */
 @Injectable()
 export class DemoCleanupService {
