@@ -38,33 +38,52 @@ test.describe('Demo Mode', () => {
     expect(bypassFlags.demoSession.user.email).toBe('demo@test.local');
   });
 
-  test('should show demo data from API', async ({ page }) => {
+  test('should show demo data from API', async ({ authenticatedPage }) => {
+    // Setup demo bypass on authenticated page
+    await setupDemoBypass(authenticatedPage, {
+      userId: 'demo-data-test',
+      userEmail: 'demo-data@test.local',
+    });
+
     // Navigate to dashboard
-    await page.goto('/app/current-month');
-    await page.waitForLoadState('domcontentloaded');
+    await authenticatedPage.goto('/app/current-month');
+    await authenticatedPage.waitForLoadState('domcontentloaded');
+
+    // IMPORTANT: Verify we're actually on the protected route (not redirected)
+    await expect(authenticatedPage).toHaveURL(/\/app\/current-month/, {
+      timeout: 5000,
+    });
 
     // Wait for API calls to complete
-    await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {
+    await authenticatedPage.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {
       // Ignore timeout - networkidle may not be reached with mocks
     });
 
     // Verify page has loaded content (budget data should be visible)
-    // Look for common elements that indicate the page has data
-    const pageContent = page.locator('body');
+    const pageContent = authenticatedPage.locator('body');
     await expect(pageContent).toContainText(/(CHF|budget|disponible|dépens)/i, {
       timeout: 5000,
     });
   });
 
-  test('should navigate to templates page', async ({ page }) => {
+  test('should navigate to templates page', async ({ authenticatedPage }) => {
+    // Setup demo bypass
+    await setupDemoBypass(authenticatedPage, {
+      userId: 'demo-nav-test',
+      userEmail: 'demo-nav@test.local',
+    });
+
     // Start from dashboard
-    await page.goto('/app/current-month');
-    await page.waitForLoadState('domcontentloaded');
+    await authenticatedPage.goto('/app/current-month');
+    await authenticatedPage.waitForLoadState('domcontentloaded');
+
+    // Verify we're on the dashboard (not redirected)
+    await expect(authenticatedPage).toHaveURL(/\/app\/current-month/);
 
     // Navigate to templates (if navigation exists)
-    const templatesLink = page.getByRole('link', { name: /template|modèle/i }).or(
-      page.locator('[routerlink*="template"]').or(
-        page.getByTestId('templates-link')
+    const templatesLink = authenticatedPage.getByRole('link', { name: /template|modèle/i }).or(
+      authenticatedPage.locator('[routerlink*="template"]').or(
+        authenticatedPage.getByTestId('templates-link')
       )
     );
 
@@ -75,10 +94,10 @@ test.describe('Demo Mode', () => {
       await templatesLink.first().click();
 
       // Should navigate to templates page
-      await expect(page).toHaveURL(/\/templates/, { timeout: 5000 });
+      await expect(authenticatedPage).toHaveURL(/\/templates/, { timeout: 5000 });
 
       // Templates page should load
-      await expect(page.locator('body')).toContainText(/(template|modèle)/i);
+      await expect(authenticatedPage.locator('body')).toContainText(/(template|modèle)/i);
     } else {
       // Skip this test if templates link doesn't exist in demo mode
       test.skip();
