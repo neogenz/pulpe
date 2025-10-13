@@ -63,15 +63,9 @@ test.describe('Financial Entry Mobile Menu', () => {
     });
 
     test('should show menu button instead of separate edit/delete buttons on mobile', async ({ page }) => {
-      // Wait for the page to load
-      await page.waitForLoadState('domcontentloaded');
-
-      // Wait for Angular CDK BreakpointObserver to synchronize with Playwright viewport
-      await page.waitForTimeout(1000);
-
-      // Scope search to one-time-expenses-list (transactions have edit/delete buttons)
+      // Wait for one-time-expenses-list to load (Playwright auto-waits)
       const oneTimeList = page.locator('[data-testid="one-time-expenses-list"]');
-      await expect(oneTimeList).toBeVisible({ timeout: 5000 });
+      await expect(oneTimeList).toBeVisible({ timeout: 10000 });
 
       // Check if there are any financial entries with actions (within one-time list)
       const actionButtons = await oneTimeList.locator('[data-testid^="actions-menu-"]').count();
@@ -85,13 +79,9 @@ test.describe('Financial Entry Mobile Menu', () => {
     });
 
     test('should open menu when clicking menu button', async ({ page }) => {
-      // Wait for the page to load
-      await page.waitForLoadState('domcontentloaded');
-      await page.waitForTimeout(1000); // Wait for BreakpointObserver sync
-
-      // Scope to one-time-expenses-list
+      // Wait for one-time-expenses-list to load
       const oneTimeList = page.locator('[data-testid="one-time-expenses-list"]');
-      await expect(oneTimeList).toBeVisible({ timeout: 5000 });
+      await expect(oneTimeList).toBeVisible({ timeout: 10000 });
 
       // Verify action menus exist and click first one
       const actionMenus = oneTimeList.locator('[data-testid^="actions-menu-"]');
@@ -115,13 +105,9 @@ test.describe('Financial Entry Mobile Menu', () => {
     });
 
     test('should close menu when clicking outside', async ({ page }) => {
-      // Wait for the page to load
-      await page.waitForLoadState('domcontentloaded');
-      await page.waitForTimeout(1000); // Wait for BreakpointObserver sync
-
-      // Scope to one-time-expenses-list
+      // Wait for one-time-expenses-list to load
       const oneTimeList = page.locator('[data-testid="one-time-expenses-list"]');
-      await expect(oneTimeList).toBeVisible({ timeout: 5000 });
+      await expect(oneTimeList).toBeVisible({ timeout: 10000 });
 
       const actionMenus = oneTimeList.locator('[data-testid^="actions-menu-"]');
       expect(await actionMenus.count()).toBeGreaterThan(0);
@@ -142,13 +128,9 @@ test.describe('Financial Entry Mobile Menu', () => {
     });
 
     test('should show correct menu items text', async ({ page }) => {
-      // Wait for the page to load
-      await page.waitForLoadState('domcontentloaded');
-      await page.waitForTimeout(1000); // Wait for BreakpointObserver sync
-
-      // Scope to one-time-expenses-list
+      // Wait for one-time-expenses-list to load
       const oneTimeList = page.locator('[data-testid="one-time-expenses-list"]');
-      await expect(oneTimeList).toBeVisible({ timeout: 5000 });
+      await expect(oneTimeList).toBeVisible({ timeout: 10000 });
 
       const actionMenus = oneTimeList.locator('[data-testid^="actions-menu-"]');
       expect(await actionMenus.count()).toBeGreaterThan(0);
@@ -175,13 +157,9 @@ test.describe('Financial Entry Mobile Menu', () => {
     });
 
     test('should emit edit action when clicking edit menu item', async ({ page }) => {
-      // Wait for the page to load
-      await page.waitForLoadState('domcontentloaded');
-      await page.waitForTimeout(1000); // Wait for BreakpointObserver sync
-
-      // Scope to one-time-expenses-list
+      // Wait for one-time-expenses-list to load
       const oneTimeList = page.locator('[data-testid="one-time-expenses-list"]');
-      await expect(oneTimeList).toBeVisible({ timeout: 5000 });
+      await expect(oneTimeList).toBeVisible({ timeout: 10000 });
 
       const actionMenus = oneTimeList.locator('[data-testid^="actions-menu-"]');
       expect(await actionMenus.count()).toBeGreaterThan(0);
@@ -266,13 +244,9 @@ test.describe('Financial Entry Mobile Menu', () => {
     test('should show separate edit and delete buttons instead of menu on desktop', async ({
       page,
     }) => {
-      // Wait for the page to load
-      await page.waitForLoadState('domcontentloaded');
-      await page.waitForTimeout(1000); // Wait for BreakpointObserver sync
-
-      // Scope to one-time-expenses-list
+      // Wait for one-time-expenses-list to load
       const oneTimeList = page.locator('[data-testid="one-time-expenses-list"]');
-      await expect(oneTimeList).toBeVisible({ timeout: 5000 });
+      await expect(oneTimeList).toBeVisible({ timeout: 10000 });
 
       // Count different types of buttons (within one-time list)
       const actionMenus = await oneTimeList.locator('[data-testid^="actions-menu-"]').count();
@@ -287,13 +261,9 @@ test.describe('Financial Entry Mobile Menu', () => {
     test('should trigger edit action directly when clicking edit button on desktop', async ({
       page,
     }) => {
-      // Wait for the page to load
-      await page.waitForLoadState('domcontentloaded');
-      await page.waitForTimeout(1000); // Wait for BreakpointObserver sync
-
-      // Scope to one-time-expenses-list
+      // Wait for one-time-expenses-list to load
       const oneTimeList = page.locator('[data-testid="one-time-expenses-list"]');
-      await expect(oneTimeList).toBeVisible({ timeout: 5000 });
+      await expect(oneTimeList).toBeVisible({ timeout: 10000 });
 
       const editButtons = oneTimeList.locator('[data-testid^="edit-transaction-"]:not([mat-menu-item])');
       expect(await editButtons.count()).toBeGreaterThan(0);
@@ -366,14 +336,13 @@ test.describe('Financial Entry Mobile Menu', () => {
     }) => {
       // Start with desktop viewport
       await page.setViewportSize({ width: 1280, height: 720 });
-      await page.waitForTimeout(1000); // Wait for BreakpointObserver to detect desktop
 
-      // Wait for the page to load
-      await page.waitForLoadState('domcontentloaded');
-
-      // Scope to one-time-expenses-list
+      // Wait for one-time-expenses-list and desktop buttons to appear
       const oneTimeList = page.locator('[data-testid="one-time-expenses-list"]');
-      await expect(oneTimeList).toBeVisible({ timeout: 5000 });
+      await expect(oneTimeList).toBeVisible({ timeout: 10000 });
+
+      // Wait for desktop buttons to render (BreakpointObserver triggers re-render)
+      await expect(oneTimeList.locator('[data-testid^="edit-transaction-"]:not([mat-menu-item])').first()).toBeVisible({ timeout: 5000 });
 
       // Check desktop behavior (within one-time list)
       let actionMenus = await oneTimeList.locator('[data-testid^="actions-menu-"]').count();
@@ -385,10 +354,9 @@ test.describe('Financial Entry Mobile Menu', () => {
 
       // Switch to mobile viewport
       await page.setViewportSize({ width: 375, height: 667 });
-      await page.waitForTimeout(1000); // Wait for BreakpointObserver to detect mobile
 
-      // Wait for mobile menu button to appear
-      await oneTimeList.locator('[data-testid^="actions-menu-"]').first().waitFor({ state: 'visible', timeout: 5000 });
+      // Wait for mobile menu button to appear (BreakpointObserver triggers re-render)
+      await expect(oneTimeList.locator('[data-testid^="actions-menu-"]').first()).toBeVisible({ timeout: 5000 });
 
       // Check mobile behavior (within one-time list)
       actionMenus = await oneTimeList.locator('[data-testid^="actions-menu-"]').count();

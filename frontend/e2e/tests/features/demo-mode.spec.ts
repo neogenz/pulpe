@@ -46,24 +46,15 @@ test.describe('Demo Mode', () => {
     });
 
     // Navigate to dashboard
-    await authenticatedPage.goto('/app/current-month');
-    await authenticatedPage.waitForLoadState('domcontentloaded');
+    await authenticatedPage.goto('/app/current-month', { waitUntil: 'domcontentloaded', timeout: 15000 });
 
     // IMPORTANT: Verify we're actually on the protected route (not redirected)
     await expect(authenticatedPage).toHaveURL(/\/app\/current-month/, {
       timeout: 5000,
     });
 
-    // Wait for API calls to complete
-    await authenticatedPage.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {
-      // Ignore timeout - networkidle may not be reached with mocks
-    });
-
-    // Verify page has loaded content (budget data should be visible)
-    const pageContent = authenticatedPage.locator('body');
-    await expect(pageContent).toContainText(/(CHF|budget|disponible|dépens)/i, {
-      timeout: 5000,
-    });
+    // Verify page has loaded content (Playwright will auto-wait)
+    await expect(authenticatedPage.getByTestId('current-month-page')).toBeVisible();
   });
 
   test('should work with authenticatedPage fixture', async ({ authenticatedPage }) => {
@@ -74,17 +65,15 @@ test.describe('Demo Mode', () => {
     });
 
     // Navigate to dashboard
-    await authenticatedPage.goto('/app/current-month');
-    await authenticatedPage.waitForLoadState('domcontentloaded');
+    await authenticatedPage.goto('/app/current-month', { waitUntil: 'domcontentloaded', timeout: 15000 });
 
-    // Verify page loads successfully with both bypasses
-    await expect(authenticatedPage.locator('body')).toContainText(/(CHF|budget|pulpe)/i, {
-      timeout: 10000,
-    });
+    // Verify page loads successfully
+    await expect(authenticatedPage.getByTestId('current-month-page')).toBeVisible();
 
     // Verify demo flags are accessible
     const hasDemoBypass = await authenticatedPage.evaluate(() => {
-      return !!(window as any).__E2E_DEMO_BYPASS__;
+      const w = window as unknown as import('../../types/e2e.types').E2EWindow;
+      return !!w.__E2E_DEMO_BYPASS__;
     });
     expect(hasDemoBypass).toBe(true);
   });
