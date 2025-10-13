@@ -1,9 +1,10 @@
 import { ConfigModule } from '@nestjs/config';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'bun:test';
+import type { AuthenticatedSupabaseClient } from '../supabase/supabase.service';
 import { DemoDataGeneratorService } from './demo-data-generator.service';
 
-describe('DemoDataGeneratorService - Business Value Tests', () => {
+describe('DemoDataGeneratorService - Integration Tests', () => {
   let service: DemoDataGeneratorService;
   let module: TestingModule;
 
@@ -12,7 +13,7 @@ describe('DemoDataGeneratorService - Business Value Tests', () => {
       imports: [
         ConfigModule.forRoot({
           isGlobal: true,
-          load: [() => ({})], // Empty config for this service
+          load: [() => ({})],
         }),
       ],
       providers: [
@@ -32,259 +33,389 @@ describe('DemoDataGeneratorService - Business Value Tests', () => {
     service = module.get<DemoDataGeneratorService>(DemoDataGeneratorService);
   });
 
-  describe('Template Line Generation - Data Validity', () => {
-    it('should never generate template lines with negative amounts', () => {
-      // Test the private methods that generate template lines
-      // We access them via type assertion for testing
+  describe('Demo user gets complete financial setup', () => {
+    it('should create 4 budget templates with distinct purposes', async () => {
+      // GIVEN: Mock Supabase client that tracks insertions
+      const insertedTemplates: any[] = [];
+      const mockSupabase = createMockSupabaseClient(insertedTemplates);
 
-      const serviceAny = service as any;
+      // WHEN: Seeding demo data for a new user
+      await service.seedDemoData('test-user-123', mockSupabase);
 
-      // Test standard month lines
-      const standardLines = serviceAny.getStandardMonthLines('template-1');
-      const negativeLines = standardLines.filter(
-        (line: any) => line.amount < 0,
-      );
-      expect(negativeLines).toHaveLength(0);
+      // THEN: Should create exactly 4 templates
+      expect(insertedTemplates).toHaveLength(4);
 
-      // Test vacation month lines
-      const vacationLines = serviceAny.getVacationMonthLines('template-2');
-      const negativeVacationLines = vacationLines.filter(
-        (line: any) => line.amount < 0,
-      );
-      expect(negativeVacationLines).toHaveLength(0);
+      // AND: Templates should have distinct names and purposes
+      const templateNames = insertedTemplates.map((t) => t.name);
+      expect(templateNames).toContain('💰 Mois Standard');
+      expect(templateNames).toContain('✈️ Mois Vacances');
+      expect(templateNames).toContain('🎯 Mois Économies Renforcées');
+      expect(templateNames).toContain('🎄 Mois de Fêtes');
 
-      // Test savings month lines
-      const savingsLines = serviceAny.getSavingsMonthLines('template-3');
-      const negativeSavingsLines = savingsLines.filter(
-        (line: any) => line.amount < 0,
-      );
-      expect(negativeSavingsLines).toHaveLength(0);
-
-      // Test holiday month lines
-      const holidayLines = serviceAny.getHolidayMonthLines('template-4');
-      const negativeHolidayLines = holidayLines.filter(
-        (line: any) => line.amount < 0,
-      );
-      expect(negativeHolidayLines).toHaveLength(0);
+      // AND: Exactly one template should be marked as default
+      const defaultTemplates = insertedTemplates.filter((t) => t.is_default);
+      expect(defaultTemplates).toHaveLength(1);
+      expect(defaultTemplates[0].name).toBe('💰 Mois Standard');
     });
 
-    it('should never generate template lines with zero amounts', () => {
-      const serviceAny = service as any;
+    it('should create template lines with valid financial amounts', async () => {
+      // GIVEN: Mock Supabase client that tracks template lines
+      const insertedLines: any[] = [];
+      const mockSupabase = createMockSupabaseClient([], insertedLines);
 
-      // Test all template types
-      const allLines = [
-        ...serviceAny.getStandardMonthLines('template-1'),
-        ...serviceAny.getVacationMonthLines('template-2'),
-        ...serviceAny.getSavingsMonthLines('template-3'),
-        ...serviceAny.getHolidayMonthLines('template-4'),
-      ];
+      // WHEN: Seeding demo data
+      await service.seedDemoData('test-user-123', mockSupabase);
 
-      const zeroLines = allLines.filter((line: any) => line.amount === 0);
-      expect(zeroLines).toHaveLength(0);
+      // THEN: All amounts must be positive
+      const negativeAmounts = insertedLines.filter((line) => line.amount < 0);
+      expect(negativeAmounts).toHaveLength(0);
+
+      // AND: No zero amounts allowed
+      const zeroAmounts = insertedLines.filter((line) => line.amount === 0);
+      expect(zeroAmounts).toHaveLength(0);
+
+      // AND: Each line must have required fields
+      for (const line of insertedLines) {
+        expect(line.name).toBeDefined();
+        expect(line.amount).toBeGreaterThan(0);
+        expect(line.kind).toMatch(/^(income|expense|saving)$/);
+        expect(line.recurrence).toMatch(/^(fixed|one_off)$/);
+      }
     });
-  });
 
-  describe('Template Line Generation - Financial Coherence', () => {
-    it('should generate templates where income >= expenses + savings', () => {
-      const serviceAny = service as any;
+    it('should ensure financial coherence in all templates', async () => {
+      // GIVEN: Mock Supabase client tracking both templates and lines
+      const insertedTemplates: any[] = [];
+      const insertedLines: any[] = [];
+      const mockSupabase = createMockSupabaseClient(
+        insertedTemplates,
+        insertedLines,
+      );
 
-      // Test each template type for financial coherence
-      const templates = [
-        {
-          id: 'standard',
-          lines: serviceAny.getStandardMonthLines('template-1'),
-        },
-        {
-          id: 'vacation',
-          lines: serviceAny.getVacationMonthLines('template-2'),
-        },
-        { id: 'savings', lines: serviceAny.getSavingsMonthLines('template-3') },
-        { id: 'holiday', lines: serviceAny.getHolidayMonthLines('template-4') },
-      ];
+      // WHEN: Seeding demo data
+      await service.seedDemoData('test-user-123', mockSupabase);
 
-      for (const template of templates) {
-        const totalIncome = template.lines
-          .filter((line: any) => line.kind === 'income')
-          .reduce((sum: number, line: any) => sum + line.amount, 0);
+      // THEN: For each template, income must cover expenses + savings
+      const templateIds = insertedTemplates.map((t) => t.id);
 
-        const totalExpenses = template.lines
-          .filter((line: any) => line.kind === 'expense')
-          .reduce((sum: number, line: any) => sum + line.amount, 0);
+      for (const templateId of templateIds) {
+        const templateLines = insertedLines.filter(
+          (l) => l.template_id === templateId,
+        );
 
-        const totalSavings = template.lines
-          .filter((line: any) => line.kind === 'saving')
-          .reduce((sum: number, line: any) => sum + line.amount, 0);
+        const totalIncome = templateLines
+          .filter((l) => l.kind === 'income')
+          .reduce((sum, l) => sum + l.amount, 0);
 
-        // Template must be financially coherent
+        const totalExpenses = templateLines
+          .filter((l) => l.kind === 'expense')
+          .reduce((sum, l) => sum + l.amount, 0);
+
+        const totalSavings = templateLines
+          .filter((l) => l.kind === 'saving')
+          .reduce((sum, l) => sum + l.amount, 0);
+
+        // Financial coherence: can't spend/save more than you earn
         expect(totalIncome).toBeGreaterThanOrEqual(
           totalExpenses + totalSavings,
         );
-      }
-    });
 
-    it('should ensure every template has at least one income source', () => {
-      const serviceAny = service as any;
-
-      const templates = [
-        serviceAny.getStandardMonthLines('template-1'),
-        serviceAny.getVacationMonthLines('template-2'),
-        serviceAny.getSavingsMonthLines('template-3'),
-        serviceAny.getHolidayMonthLines('template-4'),
-      ];
-
-      for (const lines of templates) {
-        const incomeLines = lines.filter((line: any) => line.kind === 'income');
+        // Every template must have at least one income source
+        const incomeLines = templateLines.filter((l) => l.kind === 'income');
         expect(incomeLines.length).toBeGreaterThan(0);
       }
     });
-  });
 
-  describe('Budget Template Selection - Seasonal Logic', () => {
-    it('should assign vacation template for July and August', () => {
-      const serviceAny = service as any;
+    it('should create 12 monthly budgets spanning past and future', async () => {
+      // GIVEN: Mock Supabase client tracking budgets
+      const insertedBudgets: any[] = [];
+      const mockSupabase = createMockSupabaseClient([], [], insertedBudgets);
 
-      // Mock templates array
-      const mockTemplates = [
-        { id: 'standard', name: '💰 Mois Standard' },
-        { id: 'vacation', name: '✈️ Mois Vacances' },
-        { id: 'savings', name: '🎯 Mois Économies Renforcées' },
-        { id: 'holiday', name: '🎄 Mois de Fêtes' },
-      ];
+      // WHEN: Seeding demo data
+      await service.seedDemoData('test-user-123', mockSupabase);
 
-      // Test July (month 7)
-      const julyResult = serviceAny.selectTemplateForMonth(7, mockTemplates);
-      expect(julyResult.template.id).toBe('vacation');
-      expect(julyResult.description).toContain('vacances');
+      // THEN: Should create exactly 12 budgets
+      expect(insertedBudgets).toHaveLength(12);
 
-      // Test August (month 8)
-      const augustResult = serviceAny.selectTemplateForMonth(8, mockTemplates);
-      expect(augustResult.template.id).toBe('vacation');
-      expect(augustResult.description).toContain('vacances');
-    });
+      // AND: Each budget should have valid month/year
+      for (const budget of insertedBudgets) {
+        expect(budget.month).toBeGreaterThanOrEqual(1);
+        expect(budget.month).toBeLessThanOrEqual(12);
+        expect(budget.year).toBeGreaterThan(2020);
+      }
 
-    it('should assign holiday template for December', () => {
-      const serviceAny = service as any;
-
-      const mockTemplates = [
-        { id: 'standard', name: '💰 Mois Standard' },
-        { id: 'vacation', name: '✈️ Mois Vacances' },
-        { id: 'savings', name: '🎯 Mois Économies Renforcées' },
-        { id: 'holiday', name: '🎄 Mois de Fêtes' },
-      ];
-
-      const decemberResult = serviceAny.selectTemplateForMonth(
-        12,
-        mockTemplates,
-      );
-      expect(decemberResult.template.id).toBe('holiday');
-      expect(decemberResult.description).toContain('fêtes');
-    });
-
-    it('should assign savings template for March and September', () => {
-      const serviceAny = service as any;
-
-      const mockTemplates = [
-        { id: 'standard', name: '💰 Mois Standard' },
-        { id: 'vacation', name: '✈️ Mois Vacances' },
-        { id: 'savings', name: '🎯 Mois Économies Renforcées' },
-        { id: 'holiday', name: '🎄 Mois de Fêtes' },
-      ];
-
-      // Test March (month 3)
-      const marchResult = serviceAny.selectTemplateForMonth(3, mockTemplates);
-      expect(marchResult.template.id).toBe('savings');
-      expect(marchResult.description).toContain('épargne');
-
-      // Test September (month 9)
-      const septemberResult = serviceAny.selectTemplateForMonth(
-        9,
-        mockTemplates,
-      );
-      expect(septemberResult.template.id).toBe('savings');
-      expect(septemberResult.description).toContain('épargne');
-    });
-
-    it('should assign standard template for other months', () => {
-      const serviceAny = service as any;
-
-      const mockTemplates = [
-        { id: 'standard', name: '💰 Mois Standard' },
-        { id: 'vacation', name: '✈️ Mois Vacances' },
-        { id: 'savings', name: '🎯 Mois Économies Renforcées' },
-        { id: 'holiday', name: '🎄 Mois de Fêtes' },
-      ];
-
-      // Test January (month 1)
-      const januaryResult = serviceAny.selectTemplateForMonth(1, mockTemplates);
-      expect(januaryResult.template.id).toBe('standard');
-
-      // Test May (month 5)
-      const mayResult = serviceAny.selectTemplateForMonth(5, mockTemplates);
-      expect(mayResult.template.id).toBe('standard');
-    });
-  });
-
-  describe('Transaction Generation - Temporal Constraints', () => {
-    it('should only create transactions for past budgets', () => {
-      const serviceAny = service as any;
-
-      // Create mock budgets: some past, some future
+      // AND: Budgets should be distributed around current date
       const currentDate = new Date();
-      const mockBudgets = [
-        {
-          id: 'past-budget',
-          month: currentDate.getMonth() + 1, // Current month (getMonth() returns 0-based)
-          year: currentDate.getFullYear(),
-        },
-        {
-          id: 'future-budget',
-          month: currentDate.getMonth() + 3, // Future month (2 months ahead)
-          year: currentDate.getFullYear(),
-        },
-      ];
+      const currentYear = currentDate.getFullYear();
+      const currentMonth = currentDate.getMonth() + 1;
 
-      // First filter to past budgets, then generate transactions
-      const pastBudgets = serviceAny.filterPastBudgets(
-        mockBudgets,
-        currentDate,
+      // Should have some past budgets
+      const pastBudgets = insertedBudgets.filter(
+        (b) =>
+          b.year < currentYear ||
+          (b.year === currentYear && b.month < currentMonth),
       );
-      const transactions = serviceAny.generateTransactions(
-        pastBudgets,
-        currentDate,
-      );
+      expect(pastBudgets.length).toBeGreaterThan(0);
 
-      // Should only have transactions for past/current budgets
-      const futureBudgetTransactions = transactions.filter(
-        (t: any) => t.budget_id === 'future-budget',
+      // Should have some future budgets
+      const futureBudgets = insertedBudgets.filter(
+        (b) =>
+          b.year > currentYear ||
+          (b.year === currentYear && b.month > currentMonth),
       );
-
-      expect(futureBudgetTransactions).toHaveLength(0);
-      // Should have transactions for the past budget
-      const pastBudgetTransactions = transactions.filter(
-        (t: any) => t.budget_id === 'past-budget',
-      );
-      expect(pastBudgetTransactions.length).toBeGreaterThan(0);
+      expect(futureBudgets.length).toBeGreaterThan(0);
     });
 
-    it('should create transactions within budget month boundaries', () => {
-      const serviceAny = service as any;
+    it('should apply seasonal template logic to budgets', async () => {
+      // GIVEN: Mock Supabase client tracking templates and budgets
+      const insertedTemplates: any[] = [];
+      const insertedBudgets: any[] = [];
+      const mockSupabase = createMockSupabaseClient(
+        insertedTemplates,
+        [],
+        insertedBudgets,
+      );
 
-      // Test with a specific budget
-      const budget = {
-        id: 'test-budget',
-        month: 3, // March
-        year: 2024,
-      };
+      // WHEN: Seeding demo data
+      await service.seedDemoData('test-user-123', mockSupabase);
 
-      const transactions = serviceAny.createBudgetTransactions(budget, 31); // Max day
+      // THEN: Budgets should use appropriate templates for their month
+      const vacationTemplate = insertedTemplates.find((t) =>
+        t.name.includes('Vacances'),
+      );
+      const holidayTemplate = insertedTemplates.find((t) =>
+        t.name.includes('Fêtes'),
+      );
 
-      for (const transaction of transactions) {
+      // Summer months (7, 8) should use vacation template
+      const summerBudgets = insertedBudgets.filter(
+        (b) => b.month === 7 || b.month === 8,
+      );
+      for (const budget of summerBudgets) {
+        expect(budget.template_id).toBe(vacationTemplate?.id);
+      }
+
+      // December should use holiday template
+      const decemberBudgets = insertedBudgets.filter((b) => b.month === 12);
+      for (const budget of decemberBudgets) {
+        expect(budget.template_id).toBe(holidayTemplate?.id);
+      }
+    });
+
+    it('should create budget lines matching their template structure', async () => {
+      // GIVEN: Mock Supabase client tracking all data
+      const insertedTemplates: any[] = [];
+      const insertedTemplateLines: any[] = [];
+      const insertedBudgets: any[] = [];
+      const insertedBudgetLines: any[] = [];
+      const mockSupabase = createMockSupabaseClient(
+        insertedTemplates,
+        insertedTemplateLines,
+        insertedBudgets,
+        insertedBudgetLines,
+      );
+
+      // WHEN: Seeding demo data
+      await service.seedDemoData('test-user-123', mockSupabase);
+
+      // THEN: Each budget should have budget lines from its template
+      for (const budget of insertedBudgets) {
+        const budgetLines = insertedBudgetLines.filter(
+          (bl) => bl.budget_id === budget.id,
+        );
+        const templateLines = insertedTemplateLines.filter(
+          (tl) => tl.template_id === budget.template_id,
+        );
+
+        // Should have same number of lines
+        expect(budgetLines.length).toBe(templateLines.length);
+
+        // Budget lines should match template structure
+        for (const budgetLine of budgetLines) {
+          const matchingTemplateLine = templateLines.find(
+            (tl) => tl.id === budgetLine.template_line_id,
+          );
+          expect(matchingTemplateLine).toBeDefined();
+          expect(budgetLine.name).toBe(matchingTemplateLine.name);
+          expect(budgetLine.amount).toBe(matchingTemplateLine.amount);
+          expect(budgetLine.kind).toBe(matchingTemplateLine.kind);
+        }
+      }
+    });
+
+    it('should only create transactions for past budgets', async () => {
+      // GIVEN: Mock Supabase client tracking budgets and transactions
+      const insertedBudgets: any[] = [];
+      const insertedTransactions: any[] = [];
+      const mockSupabase = createMockSupabaseClient(
+        [],
+        [],
+        insertedBudgets,
+        [],
+        insertedTransactions,
+      );
+
+      // WHEN: Seeding demo data
+      await service.seedDemoData('test-user-123', mockSupabase);
+
+      // THEN: Transactions should only exist for past/current budgets
+      const currentDate = new Date();
+      const currentYear = currentDate.getFullYear();
+      const currentMonth = currentDate.getMonth() + 1;
+
+      for (const transaction of insertedTransactions) {
+        const budget = insertedBudgets.find(
+          (b) => b.id === transaction.budget_id,
+        );
+        expect(budget).toBeDefined();
+
+        // Transaction's budget must not be in the future
+        const isFuture =
+          budget.year > currentYear ||
+          (budget.year === currentYear && budget.month > currentMonth);
+        expect(isFuture).toBe(false);
+      }
+    });
+
+    it('should create transactions within their budget month boundaries', async () => {
+      // GIVEN: Mock Supabase client tracking budgets and transactions
+      const insertedBudgets: any[] = [];
+      const insertedTransactions: any[] = [];
+      const mockSupabase = createMockSupabaseClient(
+        [],
+        [],
+        insertedBudgets,
+        [],
+        insertedTransactions,
+      );
+
+      // WHEN: Seeding demo data
+      await service.seedDemoData('test-user-123', mockSupabase);
+
+      // THEN: Each transaction must be within its budget's month
+      for (const transaction of insertedTransactions) {
+        const budget = insertedBudgets.find(
+          (b) => b.id === transaction.budget_id,
+        );
+        expect(budget).toBeDefined();
+
         const transactionDate = new Date(transaction.transaction_date);
-        expect(transactionDate.getMonth() + 1).toBe(budget.month); // March = month 3
-        expect(transactionDate.getFullYear()).toBe(budget.year); // 2024
+        expect(transactionDate.getMonth() + 1).toBe(budget.month);
+        expect(transactionDate.getFullYear()).toBe(budget.year);
+
+        // Day must be valid for that month
+        const daysInMonth = new Date(budget.year, budget.month, 0).getDate();
         expect(transactionDate.getDate()).toBeGreaterThan(0);
-        expect(transactionDate.getDate()).toBeLessThanOrEqual(31);
+        expect(transactionDate.getDate()).toBeLessThanOrEqual(daysInMonth);
       }
     });
   });
+
+  describe('Data generation handles edge cases', () => {
+    it('should handle Supabase insert failures gracefully', async () => {
+      // GIVEN: Mock Supabase client that fails on insert
+      const mockSupabase = {
+        from: () => ({
+          insert: () => ({
+            select: async () => ({ data: null, error: new Error('DB error') }),
+          }),
+        }),
+      } as unknown as AuthenticatedSupabaseClient;
+
+      // WHEN: Attempting to seed demo data
+      // THEN: Should propagate error (no silent failures)
+      await expect(
+        service.seedDemoData('test-user-123', mockSupabase),
+      ).rejects.toThrow('DB error');
+    });
+  });
 });
+
+/**
+ * Helper to create a mock Supabase client that tracks insertions
+ * Returns data with generated IDs to simulate real DB behavior
+ */
+function createMockSupabaseClient(
+  insertedTemplates: any[] = [],
+  insertedTemplateLines: any[] = [],
+  insertedBudgets: any[] = [],
+  insertedBudgetLines: any[] = [],
+  insertedTransactions: any[] = [],
+): AuthenticatedSupabaseClient {
+  let templateIdCounter = 1;
+  let templateLineIdCounter = 1;
+  let budgetIdCounter = 1;
+  let budgetLineIdCounter = 1;
+  let transactionIdCounter = 1;
+
+  return {
+    from: (table: string) => {
+      return {
+        insert: (data: any[]) => {
+          return {
+            select: async () => {
+              let insertedData: any[];
+
+              switch (table) {
+                case 'template':
+                  insertedData = data.map((item) => ({
+                    ...item,
+                    id: `template-${templateIdCounter++}`,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                  }));
+                  insertedTemplates.push(...insertedData);
+                  break;
+
+                case 'template_line':
+                  insertedData = data.map((item) => ({
+                    ...item,
+                    id: `template-line-${templateLineIdCounter++}`,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                  }));
+                  insertedTemplateLines.push(...insertedData);
+                  break;
+
+                case 'monthly_budget':
+                  insertedData = data.map((item) => ({
+                    ...item,
+                    id: `budget-${budgetIdCounter++}`,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                  }));
+                  insertedBudgets.push(...insertedData);
+                  break;
+
+                case 'budget_line':
+                  insertedData = data.map((item) => ({
+                    ...item,
+                    id: `budget-line-${budgetLineIdCounter++}`,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                  }));
+                  insertedBudgetLines.push(...insertedData);
+                  break;
+
+                case 'transaction':
+                  insertedData = data.map((item) => ({
+                    ...item,
+                    id: `transaction-${transactionIdCounter++}`,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                  }));
+                  insertedTransactions.push(...insertedData);
+                  break;
+
+                default:
+                  return { data: null, error: new Error('Unknown table') };
+              }
+
+              return { data: insertedData, error: null };
+            },
+          };
+        },
+      };
+    },
+  } as unknown as AuthenticatedSupabaseClient;
+}

@@ -23,4 +23,30 @@ export class CurrentMonthPage {
   async expectPageLoaded() {
     await expect(this.page.getByTestId('current-month-page')).toBeVisible();
   }
+
+  /**
+   * Demo Mode Methods
+   */
+
+  async expectDemoModeActive() {
+    // Check localStorage for demo mode flag
+    const isDemoMode = await this.page.evaluate(() => {
+      return localStorage.getItem('pulpe-demo-mode');
+    });
+    expect(isDemoMode).toBe('true');
+  }
+
+  async expectDemoData() {
+    // Verify page has budget-related content
+    const bodyContent = this.page.locator('body');
+    await expect(bodyContent).toContainText(/(CHF|budget|disponible|dépens)/i, {
+      timeout: 5000,
+    });
+  }
+
+  async getDemoUserEmail(): Promise<string | null> {
+    return this.page.evaluate(() => {
+      return localStorage.getItem('pulpe-demo-user-email');
+    });
+  }
 }

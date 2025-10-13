@@ -20,6 +20,15 @@ export interface E2EWindow extends Window {
     isLoading: boolean;
     isAuthenticated: boolean;
   };
+  __E2E_DEMO_BYPASS__?: boolean;
+  __E2E_DEMO_SESSION__?: {
+    user: {
+      id: string;
+      email: string;
+    };
+    access_token: string;
+    refresh_token: string;
+  };
 }
 
 /**
