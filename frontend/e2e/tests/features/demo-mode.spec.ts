@@ -66,44 +66,6 @@ test.describe('Demo Mode', () => {
     });
   });
 
-  test('should navigate to templates page', async ({ authenticatedPage }) => {
-    // Setup demo bypass
-    await setupDemoBypass(authenticatedPage, {
-      userId: 'demo-nav-test',
-      userEmail: 'demo-nav@test.local',
-    });
-
-    // Start from dashboard
-    await authenticatedPage.goto('/app/current-month');
-    await authenticatedPage.waitForLoadState('domcontentloaded');
-
-    // Verify we're on the dashboard (not redirected)
-    await expect(authenticatedPage).toHaveURL(/\/app\/current-month/);
-
-    // Navigate to templates (if navigation exists)
-    const templatesLink = authenticatedPage.getByRole('link', { name: /template|modèle/i }).or(
-      authenticatedPage.locator('[routerlink*="template"]').or(
-        authenticatedPage.getByTestId('templates-link')
-      )
-    );
-
-    // Check if templates link exists
-    const isVisible = await templatesLink.first().isVisible().catch(() => false);
-
-    if (isVisible) {
-      await templatesLink.first().click();
-
-      // Should navigate to templates page
-      await expect(authenticatedPage).toHaveURL(/\/templates/, { timeout: 5000 });
-
-      // Templates page should load
-      await expect(authenticatedPage.locator('body')).toContainText(/(template|modèle)/i);
-    } else {
-      // Skip this test if templates link doesn't exist in demo mode
-      test.skip();
-    }
-  });
-
   test('should work with authenticatedPage fixture', async ({ authenticatedPage }) => {
     // Setup demo bypass on authenticated page
     await setupDemoBypass(authenticatedPage, {

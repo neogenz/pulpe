@@ -1,4 +1,5 @@
 import { test, expect } from '../../fixtures/test-fixtures';
+import { setupApiMocks } from '../../utils/auth-bypass';
 
 /**
  * E2E Tests for Onboarding Business Requirements
@@ -6,27 +7,14 @@ import { test, expect } from '../../fixtures/test-fixtures';
  */
 test.describe('Onboarding Business Requirements Validation', () => {
   test('BUSINESS REQUIREMENT: Complete 8-step onboarding flow', async ({ page, onboardingPage }) => {
-    // Mock the registration API
-    await page.route('**/api/v1/auth/register', route => 
-      route.fulfill({ 
-        status: 200, 
-        body: JSON.stringify({ 
-          success: true, 
-          data: { user: { id: 'test-user', email: 'test@pulpe.local' } } 
-        }) 
-      })
-    );
+    // Setup E2E auth bypass flag (without mock authenticated state)
+    // This allows onboarding to work while mocking Supabase auth calls
+    await page.addInitScript(() => {
+      (window as any).__E2E_AUTH_BYPASS__ = true;
+    });
 
-    // Mock budget creation API
-    await page.route('**/api/v1/budgets**', route => 
-      route.fulfill({ 
-        status: 200, 
-        body: JSON.stringify({ 
-          success: true, 
-          data: { id: 'test-budget', name: 'Test Budget' } 
-        }) 
-      })
-    );
+    // Setup API mocks for backend calls
+    await setupApiMocks(page);
 
     await onboardingPage.goto();
     await onboardingPage.completeOnboardingFlow();
