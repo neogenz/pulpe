@@ -27,7 +27,7 @@ import { TurnstileService } from '@common/services/turnstile.service';
  * Protected by Cloudflare Turnstile anti-bot verification
  */
 @ApiTags('Demo')
-@Controller('demo')
+@Controller({ path: 'demo', version: '1' })
 export class DemoController {
   constructor(
     private readonly demoService: DemoService,
