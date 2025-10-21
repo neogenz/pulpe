@@ -236,7 +236,7 @@ function createPinoLoggerConfig(configService: ConfigService) {
           {
             name: 'default',
             ttl: config.get<number>('THROTTLE_TTL', 60000), // Default: 1 minute
-            limit: config.get<number>('THROTTLE_LIMIT', isDev ? 1000 : 100), // 1000 in dev, 100 in prod
+            limit: config.get<number>('THROTTLE_LIMIT', 1000), // 1000 requests per minute (same in dev/prod for authenticated users)
           },
           {
             name: 'demo',
