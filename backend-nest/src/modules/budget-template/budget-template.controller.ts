@@ -9,7 +9,6 @@ import {
   UseGuards,
   ParseUUIDPipe,
 } from '@nestjs/common';
-import { Throttle } from '@nestjs/throttler';
 import {
   ApiTags,
   ApiOperation,
@@ -337,7 +336,6 @@ export class BudgetTemplateController {
     description: 'Budget template not found',
     type: ErrorResponseDto,
   })
-  @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 requests per minute for bulk operations
   async bulkOperationsTemplateLines(
     @Param('id', ParseUUIDPipe) templateId: string,
     @Body() bulkOperationsDto: TemplateLinesBulkOperationsDto,
