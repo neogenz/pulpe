@@ -45,13 +45,20 @@ export class DemoController {
    * - Returns a real Supabase session (JWT tokens)
    * - User and data are automatically cleaned up after 24 hours
    *
-   * Rate limited to 30 requests per hour per IP
-   * This allows users to restart demo sessions multiple times while testing
+   * Rate Limit Justification (30 requests/hour):
+   * - Allows 30 demo session creations per hour per IP
+   * - Generous enough for legitimate users to test multiple scenarios
+   * - Tight enough to prevent resource exhaustion attacks
+   * - Typical usage: 1-5 sessions during initial exploration
+   * - Edge case: Developer testing can create ~30 sessions in rapid succession
+   * - Each session is resource-intensive (user creation + data seeding)
+   * - Increased from 10 to 30 based on user feedback about restrictiveness
+   * - Combined with Cloudflare Turnstile for bot protection
    */
   @Post('session')
   @Public() // No authentication required
   @HttpCode(HttpStatus.CREATED)
-  @Throttle({ demo: { limit: 30, ttl: 3600000 } }) // 30 requests per hour
+  @Throttle({ demo: { limit: 30, ttl: 3600000 } }) // 30 req/hour (see justification above)
   @ApiOperation({
     summary: 'Create a demo session',
     description:

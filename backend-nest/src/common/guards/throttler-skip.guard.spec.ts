@@ -7,13 +7,29 @@ describe('SkipAuthenticatedThrottlerGuard', () => {
   let guard: SkipAuthenticatedThrottlerGuard;
   let reflector: Reflector;
 
+  // Proper mocks for ThrottlerGuard dependencies
+  const mockConfigService = {
+    get: (key: string) => {
+      const config: Record<string, any> = {
+        THROTTLE_TTL: 60000,
+        THROTTLE_LIMIT: 1000,
+      };
+      return config[key];
+    },
+  };
+
+  const mockStorageService = {
+    increment: () => Promise.resolve({ totalHits: 0, timeToExpire: 60000, isBlocked: false }),
+    getRecord: () => Promise.resolve([]),
+  };
+
   beforeEach(() => {
     reflector = new Reflector();
     guard = new SkipAuthenticatedThrottlerGuard(
       reflector,
       [],
-      {} as any, // ConfigService mock
-      {} as any, // StorageService mock
+      mockConfigService as any,
+      mockStorageService as any,
     );
   });
 
