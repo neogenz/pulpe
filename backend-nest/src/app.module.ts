@@ -244,7 +244,7 @@ function createPinoLoggerConfig(configService: ConfigService) {
           {
             name: 'demo',
             ttl: 3600000, // 1 hour in milliseconds
-            limit: isDev ? 1000 : 10, // No limit in dev, 10 requests per hour in prod
+            limit: isDev ? 1000 : 30, // No limit in dev, 30 requests per hour in prod
           },
         ];
       },

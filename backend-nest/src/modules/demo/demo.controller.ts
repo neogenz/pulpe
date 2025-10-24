@@ -23,7 +23,7 @@ import { TurnstileService } from '@common/services/turnstile.service';
  * Controller for demo mode functionality
  *
  * Provides public endpoint for creating demo sessions
- * Rate limited to prevent abuse (10 requests/hour per IP)
+ * Rate limited to prevent abuse (30 requests/hour per IP)
  * Protected by Cloudflare Turnstile anti-bot verification
  */
 @ApiTags('Demo')
@@ -45,12 +45,13 @@ export class DemoController {
    * - Returns a real Supabase session (JWT tokens)
    * - User and data are automatically cleaned up after 24 hours
    *
-   * Rate limited to 10 requests per hour per IP
+   * Rate limited to 30 requests per hour per IP
+   * This allows users to restart demo sessions multiple times while testing
    */
   @Post('session')
   @Public() // No authentication required
   @HttpCode(HttpStatus.CREATED)
-  @Throttle({ demo: { limit: 10, ttl: 3600000 } }) // 10 requests per hour
+  @Throttle({ demo: { limit: 30, ttl: 3600000 } }) // 30 requests per hour
   @ApiOperation({
     summary: 'Create a demo session',
     description:
