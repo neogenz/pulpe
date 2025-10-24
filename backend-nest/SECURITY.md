@@ -11,8 +11,8 @@ Pulpe implements a **pragmatic rate limiting strategy** that balances security w
 **Target**: Unauthenticated requests (demo mode, public APIs)
 
 - **Demo endpoint** (`/api/v1/demo/session`):
-  - **Limit**: 10 requests per hour per IP
-  - **Why**: Prevents spam account creation and abuse of demo mode
+  - **Limit**: 30 requests per hour per IP
+  - **Why**: Prevents spam account creation while allowing users to restart demos multiple times
   - **Protected by**: Cloudflare Turnstile + IP-based rate limiting
 
 ### 2. Authenticated Endpoints (No Rate Limiting)
@@ -43,10 +43,10 @@ These layers provide **stronger security than rate limiting** because they:
 
 ### For Public Requests (Strict Rate Limiting)
 
-Public endpoints have aggressive rate limiting:
+Public endpoints have reasonable rate limiting:
 
 1. **IP-based tracking**: Each IP address has its own quota
-2. **Low limits**: 10 requests per hour prevents spam
+2. **Balanced limits**: 30 requests per hour allows testing while preventing spam
 3. **Cloudflare Turnstile**: Anti-bot verification before rate limit check
 
 ## Why No Rate Limiting for Authenticated Users?
@@ -60,7 +60,7 @@ Major SaaS APIs follow this pattern:
 | **GitHub**    | 5,000 req/hour          | 60 req/hour         |
 | **Stripe**    | No limit (fair use)     | N/A (auth required) |
 | **Vercel**    | 20 req/10s (very high)  | N/A (auth required) |
-| **Pulpe**     | **No limit**            | **10 req/hour**     |
+| **Pulpe**     | **No limit**            | **30 req/hour**     |
 
 ### Real-World User Patterns
 
@@ -161,7 +161,7 @@ Legitimate Pulpe users have highly variable usage:
    - Let AuthGuard validate the token
 4. **If no auth header** (public endpoint):
    - Apply IP-based rate limiting
-   - Demo endpoint: 10 req/hour
+   - Demo endpoint: 30 req/hour
 
 ### Storage
 
@@ -185,7 +185,7 @@ For a production multi-instance deployment, consider Redis for rate limiting sto
 ### Expected Behavior
 
 - **Legitimate users**: Should NEVER see 429 errors
-- **Demo mode users**: May hit 429 if exceeding 10 sessions/hour from same IP
+- **Demo mode users**: May hit 429 if exceeding 30 sessions/hour from same IP (allows multiple retries)
 - **Malicious users**: Public endpoints blocked, authenticated endpoints limited by JWT + RLS
 
 ## Cost Controls
