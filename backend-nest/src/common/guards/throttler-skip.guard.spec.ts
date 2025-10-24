@@ -14,7 +14,6 @@ describe('SkipAuthenticatedThrottlerGuard', () => {
       [],
       {} as any, // ConfigService mock
       {} as any, // StorageService mock
-      reflector,
     );
   });
 
