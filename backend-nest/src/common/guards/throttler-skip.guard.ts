@@ -1,46 +1,65 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, type ExecutionContext } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { ThrottlerGuard } from '@nestjs/throttler';
-import type { ExecutionContext } from '@nestjs/common';
+import { IS_PUBLIC_KEY } from '@common/decorators/public.decorator';
 
 /**
- * Custom throttler guard that completely skips rate limiting for authenticated requests
+ * Custom throttler guard that skips rate limiting for authenticated requests
  *
  * Security Strategy:
- * - Public endpoints (no auth): Strict rate limiting (10 req/hour for demo)
- * - Authenticated endpoints: NO rate limiting (JWT + RLS = sufficient protection)
+ * - Public endpoints (@Public decorator): ALWAYS rate limited, even with Bearer token
+ * - Protected endpoints (default): Skip rate limiting if Bearer token present
  *
- * Why skip throttling for authenticated users?
- * 1. JWT authentication + Supabase RLS already provide strong protection
- * 2. Rate limiting on authenticated endpoints causes false positives (blocks legitimate users)
- * 3. Standard industry practice (GitHub, Stripe, Vercel all do this)
- * 4. Legitimate users have highly variable usage patterns (onboarding, bulk ops, etc.)
+ * Why this is secure:
+ * 1. Public endpoints (like /demo/session) are always rate limited
+ * 2. Protected endpoints skip throttling because AuthGuard validates the JWT
+ * 3. Cannot bypass rate limiting on public endpoints with fake Bearer tokens
  *
- * Protection layers for authenticated requests:
- * - Layer 1: JWT validation (ensures user identity)
- * - Layer 2: Supabase RLS policies (ensures data isolation)
- * - Layer 3: Database constraints (ensures data integrity)
- *
- * Rate limiting is ONLY applied to public endpoints (demo mode) to prevent spam.
+ * Protection layers:
+ * - Layer 1: Rate limiting on public endpoints (prevents spam)
+ * - Layer 2: JWT validation on protected endpoints (ensures user identity)
+ * - Layer 3: Supabase RLS policies (ensures data isolation)
  */
 @Injectable()
 export class SkipAuthenticatedThrottlerGuard extends ThrottlerGuard {
+  constructor(
+    protected readonly reflector: Reflector,
+    ...args: ConstructorParameters<typeof ThrottlerGuard>
+  ) {
+    super(...args);
+  }
+
   /**
-   * Skip rate limiting for all authenticated requests
+   * Skip rate limiting for authenticated requests on PROTECTED endpoints only
    *
-   * We detect authentication by checking for the Authorization header.
-   * If present, we skip throttling entirely and let the AuthGuard handle validation.
+   * Security check:
+   * 1. If endpoint is @Public → NEVER skip (always rate limit)
+   * 2. If endpoint is protected AND has Bearer token → Skip (AuthGuard will validate)
+   * 3. Otherwise → Apply rate limiting
    */
   protected async shouldSkip(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
     const authHeader = request.headers?.authorization;
 
-    // If Authorization header is present, skip rate limiting
-    // The AuthGuard will validate the JWT and ensure the user is authentic
+    // Check if the endpoint is marked as @Public
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    // SECURITY: Public endpoints are ALWAYS rate limited, even with Bearer token
+    // This prevents bypassing rate limiting on /demo/session with fake tokens
+    if (isPublic) {
+      return false; // Do NOT skip throttling for public endpoints
+    }
+
+    // For protected endpoints: skip throttling if Bearer token is present
+    // The AuthGuard will validate the token and reject if invalid
     if (authHeader && authHeader.startsWith('Bearer ')) {
       return true; // Skip throttling for authenticated requests
     }
 
-    // No auth header = public endpoint = apply rate limiting
+    // No auth header on protected endpoint → Apply rate limiting
     return false;
   }
 }
