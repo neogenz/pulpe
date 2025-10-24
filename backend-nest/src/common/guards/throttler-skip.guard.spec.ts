@@ -14,128 +14,87 @@ describe('SkipAuthenticatedThrottlerGuard', () => {
     );
   });
 
-  describe('getTracker', () => {
-    it('should return user ID for authenticated requests', async () => {
-      // Create a mock JWT with user ID
-      const userId = '123e4567-e89b-12d3-a456-426614174000';
-      const payload = { sub: userId, email: 'test@example.com' };
-
-      // Create JWT manually (header.payload.signature)
-      const header = Buffer.from(
-        JSON.stringify({ alg: 'HS256', typ: 'JWT' }),
-      ).toString('base64url');
-      const payloadB64 = Buffer.from(JSON.stringify(payload)).toString(
-        'base64url',
-      );
-      const signature = 'fake-signature';
-      const token = `${header}.${payloadB64}.${signature}`;
-
-      const req = {
-        headers: {
-          authorization: `Bearer ${token}`,
-        },
-        ip: '192.168.1.1',
-      };
-
-      const tracker = await guard['getTracker'](req);
-
-      expect(tracker).toBe(`user:${userId}`);
-    });
-
-    it('should return IP for public requests (no auth header)', async () => {
-      const req = {
-        headers: {},
-        ip: '192.168.1.1',
-      };
-
-      const tracker = await guard['getTracker'](req);
-
-      expect(tracker).toBe('192.168.1.1');
-    });
-
-    it('should return IP for invalid JWT tokens', async () => {
-      const req = {
-        headers: {
-          authorization: 'Bearer invalid-token',
-        },
-        ip: '192.168.1.1',
-      };
-
-      const tracker = await guard['getTracker'](req);
-
-      expect(tracker).toBe('192.168.1.1');
-    });
-
-    it('should return unknown if no IP is available', async () => {
-      const req = {
-        headers: {},
-        ip: undefined,
-      };
-
-      const tracker = await guard['getTracker'](req);
-
-      expect(tracker).toBe('unknown');
-    });
-  });
-
-  describe('getThrottlerConfig', () => {
-    it('should return demo config for demo session endpoint', async () => {
+  describe('shouldSkip', () => {
+    it('should skip throttling for authenticated requests (with Bearer token)', async () => {
       const mockContext = {
         switchToHttp: () => ({
           getRequest: () => ({
-            url: '/api/v1/demo/session',
+            headers: {
+              authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+            },
           }),
         }),
       } as ExecutionContext;
 
-      const config = await guard['getThrottlerConfig'](mockContext);
+      const shouldSkip = await guard['shouldSkip'](mockContext);
 
-      expect(config).toEqual({ name: 'demo' });
+      expect(shouldSkip).toBe(true);
     });
 
-    it('should return default config for authenticated endpoints', async () => {
+    it('should NOT skip throttling for public requests (no auth header)', async () => {
       const mockContext = {
         switchToHttp: () => ({
           getRequest: () => ({
-            url: '/api/v1/budgets',
+            headers: {},
           }),
         }),
       } as ExecutionContext;
 
-      const config = await guard['getThrottlerConfig'](mockContext);
+      const shouldSkip = await guard['shouldSkip'](mockContext);
 
-      expect(config).toBeUndefined();
-    });
-  });
-
-  describe('decodeJwtPayload', () => {
-    it('should decode a valid JWT payload', () => {
-      const payload = { sub: 'user-123', email: 'test@example.com' };
-
-      const header = Buffer.from(
-        JSON.stringify({ alg: 'HS256', typ: 'JWT' }),
-      ).toString('base64url');
-      const payloadB64 = Buffer.from(JSON.stringify(payload)).toString(
-        'base64url',
-      );
-      const signature = 'fake-signature';
-      const token = `${header}.${payloadB64}.${signature}`;
-
-      const decoded = guard['decodeJwtPayload'](token);
-
-      expect(decoded).toEqual(payload);
+      expect(shouldSkip).toBe(false);
     });
 
-    it('should return null for malformed tokens', () => {
-      const decoded = guard['decodeJwtPayload']('invalid-token');
+    it('should NOT skip throttling for requests with invalid auth format', async () => {
+      const mockContext = {
+        switchToHttp: () => ({
+          getRequest: () => ({
+            headers: {
+              authorization: 'Basic user:password',
+            },
+          }),
+        }),
+      } as ExecutionContext;
 
-      expect(decoded).toBeNull();
+      const shouldSkip = await guard['shouldSkip'](mockContext);
+
+      expect(shouldSkip).toBe(false);
     });
 
-    it('should return null for tokens with wrong number of parts', () => {
-      const decoded = guard['decodeJwtPayload']('part1.part2');
+    it('should NOT skip throttling if authorization header is malformed', async () => {
+      const mockContext = {
+        switchToHttp: () => ({
+          getRequest: () => ({
+            headers: {
+              authorization: 'Bearer',
+            },
+          }),
+        }),
+      } as ExecutionContext;
 
-      expect(decoded).toBeNull();
+      const shouldSkip = await guard['shouldSkip'](mockContext);
+
+      // "Bearer" without space and token is still considered valid format
+      // The AuthGuard will reject it later
+      expect(shouldSkip).toBe(false);
+    });
+
+    it('should skip throttling even with invalid JWT (AuthGuard will handle validation)', async () => {
+      const mockContext = {
+        switchToHttp: () => ({
+          getRequest: () => ({
+            headers: {
+              authorization: 'Bearer invalid-token-here',
+            },
+          }),
+        }),
+      } as ExecutionContext;
+
+      const shouldSkip = await guard['shouldSkip'](mockContext);
+
+      // We skip throttling for any request with "Bearer <token>"
+      // The AuthGuard will validate the token and reject if invalid
+      expect(shouldSkip).toBe(true);
     });
   });
 });
