@@ -23,7 +23,7 @@ import { IS_PUBLIC_KEY } from '@common/decorators/public.decorator';
 @Injectable()
 export class SkipAuthenticatedThrottlerGuard extends ThrottlerGuard {
   constructor(
-    protected readonly reflector: Reflector,
+    protected override readonly reflector: Reflector,
     ...args: ConstructorParameters<typeof ThrottlerGuard>
   ) {
     super(...args);
@@ -37,7 +37,7 @@ export class SkipAuthenticatedThrottlerGuard extends ThrottlerGuard {
    * 2. If endpoint is protected AND has Bearer token → Skip (AuthGuard will validate)
    * 3. Otherwise → Apply rate limiting
    */
-  protected async shouldSkip(context: ExecutionContext): Promise<boolean> {
+  protected override async shouldSkip(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
     const authHeader = request.headers?.authorization;
 
