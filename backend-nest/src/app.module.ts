@@ -1,7 +1,7 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD, APP_PIPE } from '@nestjs/core';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { randomUUID } from 'crypto';
 import { CurlGenerator } from 'curl-generator';
 import type { IncomingMessage, ServerResponse } from 'http';
@@ -24,6 +24,9 @@ import { FiltersModule } from '@common/filters/filters.module';
 
 // Common
 import { CommonModule } from '@common/common.module';
+
+// Guards
+import { SkipAuthenticatedThrottlerGuard } from '@common/guards/throttler-skip.guard';
 
 // Middleware
 import { PayloadSizeMiddleware } from '@common/middleware/payload-size.middleware';
@@ -266,7 +269,7 @@ function createPinoLoggerConfig(configService: ConfigService) {
     },
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard,
+      useClass: SkipAuthenticatedThrottlerGuard,
     },
     ResponseLoggerMiddleware,
     PayloadSizeMiddleware,
