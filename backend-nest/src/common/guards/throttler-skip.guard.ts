@@ -1,5 +1,4 @@
 import { Injectable, type ExecutionContext, Logger } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { IS_PUBLIC_KEY } from '@common/decorators/public.decorator';
 
@@ -30,13 +29,6 @@ import { IS_PUBLIC_KEY } from '@common/decorators/public.decorator';
 export class SkipAuthenticatedThrottlerGuard extends ThrottlerGuard {
   private readonly logger = new Logger(SkipAuthenticatedThrottlerGuard.name);
 
-  constructor(
-    protected override readonly reflector: Reflector,
-    ...args: ConstructorParameters<typeof ThrottlerGuard>
-  ) {
-    super(...args);
-  }
-
   /**
    * Skip rate limiting for authenticated requests on PROTECTED endpoints only
    *
@@ -48,6 +40,8 @@ export class SkipAuthenticatedThrottlerGuard extends ThrottlerGuard {
    * Error Handling:
    * If any error occurs during the check, we fail SECURELY by applying rate limiting.
    * This prevents bypassing rate limits due to unexpected errors.
+   *
+   * Note: Uses this.reflector from base ThrottlerGuard (correctly injected by NestJS)
    */
   protected override async shouldSkip(context: ExecutionContext): Promise<boolean> {
     try {
