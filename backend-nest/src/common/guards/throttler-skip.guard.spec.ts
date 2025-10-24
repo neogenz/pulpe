@@ -1,7 +1,6 @@
 import { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { SkipAuthenticatedThrottlerGuard } from './throttler-skip.guard';
-import { IS_PUBLIC_KEY } from '@common/decorators/public.decorator';
 import { describe, it, expect, beforeEach } from 'bun:test';
 
 describe('SkipAuthenticatedThrottlerGuard', () => {
