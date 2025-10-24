@@ -43,16 +43,18 @@ export class SkipAuthenticatedThrottlerGuard extends ThrottlerGuard {
    *
    * Note: Uses this.reflector from base ThrottlerGuard (correctly injected by NestJS)
    */
-  protected override async shouldSkip(context: ExecutionContext): Promise<boolean> {
+  protected override async shouldSkip(
+    context: ExecutionContext,
+  ): Promise<boolean> {
     try {
       const request = context.switchToHttp().getRequest();
       const authHeader = request.headers?.authorization;
 
       // Check if the endpoint is marked as @Public
-      const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
-        context.getHandler(),
-        context.getClass(),
-      ]);
+      const isPublic = this.reflector.getAllAndOverride<boolean>(
+        IS_PUBLIC_KEY,
+        [context.getHandler(), context.getClass()],
+      );
 
       // SECURITY: Public endpoints are ALWAYS rate limited, even with Bearer token
       // This prevents bypassing rate limiting on /demo/session with fake tokens
@@ -71,7 +73,10 @@ export class SkipAuthenticatedThrottlerGuard extends ThrottlerGuard {
       return false;
     } catch (error) {
       // SECURITY: If anything goes wrong, fail securely by applying rate limiting
-      this.logger.error('Error in shouldSkip check, applying rate limiting as fallback', error);
+      this.logger.error(
+        'Error in shouldSkip check, applying rate limiting as fallback',
+        error,
+      );
       return false; // Apply rate limiting on error
     }
   }

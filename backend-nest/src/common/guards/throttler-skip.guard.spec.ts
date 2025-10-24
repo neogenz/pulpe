@@ -9,7 +9,8 @@ describe('SkipAuthenticatedThrottlerGuard', () => {
 
   // Proper mocks for ThrottlerGuard dependencies
   const mockStorageService = {
-    increment: () => Promise.resolve({ totalHits: 0, timeToExpire: 60000, isBlocked: false }),
+    increment: () =>
+      Promise.resolve({ totalHits: 0, timeToExpire: 60000, isBlocked: false }),
     getRecord: () => Promise.resolve([]),
   };
 
