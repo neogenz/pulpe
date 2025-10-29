@@ -21,7 +21,6 @@ import {
   ApiInternalServerErrorResponse,
   ApiCreatedResponse,
 } from '@nestjs/swagger';
-import { SkipThrottle } from '@nestjs/throttler';
 import {
   type BudgetTemplateListResponse as _BudgetTemplateListResponse,
   type BudgetTemplateResponse as _BudgetTemplateResponse,
@@ -66,7 +65,6 @@ import { ErrorResponseDto } from '@common/dto/response.dto';
 @ApiBearerAuth()
 @Controller({ path: 'budget-templates', version: '1' })
 @UseGuards(AuthGuard)
-@SkipThrottle()
 @ApiUnauthorizedResponse({
   description: 'Authentication required',
   type: ErrorResponseDto,
