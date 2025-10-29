@@ -7,7 +7,6 @@ import {
   ApiUnauthorizedResponse,
   ApiInternalServerErrorResponse,
 } from '@nestjs/swagger';
-import { SkipThrottle } from '@nestjs/throttler';
 import { AuthGuard } from '@common/guards/auth.guard';
 import {
   User,
@@ -22,7 +21,6 @@ import {
 @ApiBearerAuth()
 @Controller({ path: 'auth', version: '1' })
 @UseGuards(AuthGuard)
-@SkipThrottle()
 @ApiUnauthorizedResponse({
   description: 'Authentication required',
   type: AuthErrorResponseDto,
