@@ -4,6 +4,7 @@ import {
   input,
   output,
   computed,
+  effect,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
@@ -13,9 +14,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { startWith, debounceTime, map } from 'rxjs';
-import {
-  type BudgetLineSearchResult,
-  type TransactionSearchResult,
+import type {
+  BudgetLineSearchResult,
+  TransactionSearchResult,
 } from '@pulpe/shared';
 import { SearchResultItem } from './search-result-item';
 
@@ -198,8 +199,9 @@ export class SearchResultsPanel {
   });
 
   constructor() {
-    // Auto-trigger search when term changes
-    this.searchTerm.subscribe((term) => {
+    // Auto-trigger search when term changes (using effect for signals)
+    effect(() => {
+      const term = this.searchTerm();
       if (term.length >= 2) {
         this.searchRequested.emit(term);
       }
