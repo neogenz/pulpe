@@ -7,7 +7,12 @@ describe('UserThrottlerGuard', () => {
   let guard: UserThrottlerGuard;
 
   beforeEach(() => {
-    guard = new UserThrottlerGuard([] as any, {} as any, {} as any);
+    // ThrottlerGuard constructor parameters: (options, storage, reflector)
+    guard = new UserThrottlerGuard(
+      [] as any, // options: ThrottlerModuleOptions (empty array for tests)
+      {} as any, // storage: ThrottlerStorage (mock - not used in generateKey)
+      {} as any, // reflector: Reflector (mock - not used in generateKey)
+    );
   });
 
   describe('generateKey - User-based tracking', () => {
