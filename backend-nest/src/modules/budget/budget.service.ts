@@ -14,6 +14,7 @@ import {
   type BudgetResponse,
   type BudgetUpdate,
   type BudgetDetailsResponse,
+  type BudgetSearchResponse,
   type Budget,
   type Transaction,
   type BudgetLine,
@@ -374,6 +375,150 @@ export class BudgetService {
           userId: user.id,
           entityId: id,
           entityType: 'budget',
+        },
+      );
+    }
+  }
+
+  /**
+   * Search across budget lines and transactions by name
+   * Returns matching items with their budget context (month, year, description)
+   */
+  async search(
+    query: string,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<BudgetSearchResponse> {
+    try {
+      const searchTerm = `%${query}%`;
+
+      // Search in budget_lines with budget context
+      const { data: budgetLinesData, error: budgetLinesError } = await supabase
+        .from('budget_line')
+        .select(
+          `
+          id,
+          name,
+          amount,
+          kind,
+          recurrence,
+          budget_id,
+          monthly_budget!inner (
+            id,
+            month,
+            year,
+            description
+          )
+        `,
+        )
+        .ilike('name', searchTerm);
+
+      if (budgetLinesError) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
+          undefined,
+          {
+            operation: 'searchBudgetLines',
+            userId: user.id,
+            query,
+            supabaseError: budgetLinesError,
+          },
+          { cause: budgetLinesError },
+        );
+      }
+
+      // Search in transactions with budget context
+      const { data: transactionsData, error: transactionsError } =
+        await supabase
+          .from('transaction')
+          .select(
+            `
+          id,
+          name,
+          amount,
+          kind,
+          transaction_date,
+          category,
+          budget_id,
+          monthly_budget!inner (
+            id,
+            month,
+            year,
+            description
+          )
+        `,
+          )
+          .ilike('name', searchTerm);
+
+      if (transactionsError) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
+          undefined,
+          {
+            operation: 'searchTransactions',
+            userId: user.id,
+            query,
+            supabaseError: transactionsError,
+          },
+          { cause: transactionsError },
+        );
+      }
+
+      // Map results to API format
+      const budgetLines = (budgetLinesData || []).map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        amount: item.amount,
+        kind: item.kind,
+        recurrence: item.recurrence,
+        budgetId: item.budget_id,
+        budgetMonth: item.monthly_budget.month,
+        budgetYear: item.monthly_budget.year,
+        budgetDescription: item.monthly_budget.description,
+      }));
+
+      const transactions = (transactionsData || []).map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        amount: item.amount,
+        kind: item.kind,
+        transactionDate: item.transaction_date,
+        category: item.category,
+        budgetId: item.budget_id,
+        budgetMonth: item.monthly_budget.month,
+        budgetYear: item.monthly_budget.year,
+        budgetDescription: item.monthly_budget.description,
+      }));
+
+      this.logger.info(
+        {
+          userId: user.id,
+          query,
+          resultsCount: {
+            budgetLines: budgetLines.length,
+            transactions: transactions.length,
+          },
+          operation: 'searchBudgets',
+        },
+        'Budget search completed',
+      );
+
+      return {
+        success: true as const,
+        data: {
+          budgetLines,
+          transactions,
+        },
+      };
+    } catch (error) {
+      handleServiceError(
+        error,
+        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+        undefined,
+        {
+          operation: 'searchBudgets',
+          userId: user.id,
+          query,
         },
       );
     }

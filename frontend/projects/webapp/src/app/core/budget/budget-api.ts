@@ -6,6 +6,7 @@ import {
   budgetCreateSchema,
   type BudgetDetailsResponse,
   type BudgetResponse,
+  type BudgetSearchResponse,
   budgetSchema,
   type ErrorResponse,
   errorResponseSchema,
@@ -208,6 +209,37 @@ export class BudgetApi {
         this.#handleApiError(error, 'Erreur lors de la suppression du budget'),
       ),
     );
+  }
+
+  /**
+   * Recherche dans les lignes budgétaires et transactions par nom
+   * Retourne les éléments correspondants avec leur contexte budgétaire (mois, année, description)
+   */
+  search$(query: string): Observable<BudgetSearchResponse> {
+    if (!query || query.trim().length === 0) {
+      return throwError(() => ({
+        message: 'La requête de recherche ne peut pas être vide',
+      }));
+    }
+
+    return this.#httpClient
+      .get<BudgetSearchResponse>(`${this.#apiUrl}/search`, {
+        params: { q: query.trim() },
+      })
+      .pipe(
+        map((response) => {
+          if (!response.data) {
+            throw new Error('Réponse de recherche invalide');
+          }
+          return response;
+        }),
+        catchError((error) =>
+          this.#handleApiError(
+            error,
+            'Erreur lors de la recherche dans les budgets',
+          ),
+        ),
+      );
   }
 
   /**

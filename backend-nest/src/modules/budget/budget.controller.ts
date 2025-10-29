@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
   ParseUUIDPipe,
 } from '@nestjs/common';
@@ -26,6 +27,7 @@ import {
   type BudgetResponse,
   type BudgetDeleteResponse,
   type BudgetDetailsResponse,
+  type BudgetSearchResponse,
 } from '@pulpe/shared';
 import { AuthGuard } from '@common/guards/auth.guard';
 import {
@@ -42,6 +44,7 @@ import {
   BudgetResponseDto,
   BudgetDeleteResponseDto,
   BudgetDetailsResponseDto,
+  BudgetSearchResponseDto,
 } from './dto/budget-swagger.dto';
 import { ErrorResponseDto } from '@common/dto/response.dto';
 
@@ -76,6 +79,38 @@ export class BudgetController {
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetListResponse> {
     return this.budgetService.findAll(user, supabase);
+  }
+
+  @Get('search')
+  @ApiOperation({
+    summary: 'Search across budget lines and transactions',
+    description:
+      'Searches for budget lines and transactions by name across all user budgets. Returns matching items with their budget context (month, year, description).',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Search completed successfully',
+    type: BudgetSearchResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid search query',
+    type: ErrorResponseDto,
+  })
+  async search(
+    @Query('q') query: string,
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<BudgetSearchResponse> {
+    if (!query || query.trim().length === 0) {
+      return {
+        success: true,
+        data: {
+          budgetLines: [],
+          transactions: [],
+        },
+      };
+    }
+    return this.budgetService.search(query.trim(), user, supabase);
   }
 
   @Post()

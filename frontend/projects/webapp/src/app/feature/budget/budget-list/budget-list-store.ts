@@ -4,15 +4,31 @@ import {
   inject,
   linkedSignal,
   resource,
+  signal,
 } from '@angular/core';
 import { BudgetApi } from '@core/budget/budget-api';
 import { Logger } from '@core/logging/logger';
-import { type Budget } from '@pulpe/shared';
+import {
+  type Budget,
+  type BudgetSearchResponse,
+  type BudgetLineSearchResult,
+  type TransactionSearchResult,
+} from '@pulpe/shared';
 import { firstValueFrom } from 'rxjs';
 
 export interface BudgetPlaceholder {
   month: number;
   year: number;
+}
+
+export interface SearchState {
+  readonly results: {
+    readonly budgetLines: readonly BudgetLineSearchResult[];
+    readonly transactions: readonly TransactionSearchResult[];
+  } | null;
+  readonly isLoading: boolean;
+  readonly hasError: boolean;
+  readonly query: string;
 }
 
 @Injectable()
@@ -150,6 +166,14 @@ export class BudgetListStore {
     return { month: currentMonth, year: currentYear };
   });
 
+  // Search state
+  searchState = signal<SearchState>({
+    results: null,
+    isLoading: false,
+    hasError: false,
+    query: '',
+  });
+
   refreshData(): void {
     if (this.budgets.status() !== 'loading') {
       this.budgets.reload();
@@ -158,6 +182,58 @@ export class BudgetListStore {
 
   setSelectedYear(year: number): void {
     this.selectedYear.set(year);
+  }
+
+  /**
+   * Recherche dans les lignes budgétaires et transactions
+   */
+  async search(query: string): Promise<void> {
+    if (!query || query.trim().length < 2) {
+      this.clearSearch();
+      return;
+    }
+
+    const trimmedQuery = query.trim();
+
+    this.searchState.set({
+      results: null,
+      isLoading: true,
+      hasError: false,
+      query: trimmedQuery,
+    });
+
+    try {
+      const response = await firstValueFrom(
+        this.#budgetApi.search$(trimmedQuery),
+      );
+
+      this.searchState.set({
+        results: response.data,
+        isLoading: false,
+        hasError: false,
+        query: trimmedQuery,
+      });
+    } catch (error) {
+      this.#logger.error('Erreur lors de la recherche:', error);
+      this.searchState.set({
+        results: null,
+        isLoading: false,
+        hasError: true,
+        query: trimmedQuery,
+      });
+    }
+  }
+
+  /**
+   * Efface les résultats de recherche
+   */
+  clearSearch(): void {
+    this.searchState.set({
+      results: null,
+      isLoading: false,
+      hasError: false,
+      query: '',
+    });
   }
 
   async #loadBudgets(): Promise<Budget[]> {

@@ -24,6 +24,7 @@ import { mapToCalendarYear } from './budget-list-mapper/budget-list.mapper';
 import { BudgetListStore } from './budget-list-store';
 import { CreateBudgetDialogComponent } from './create-budget/budget-creation-dialog';
 import { Logger } from '@core/logging/logger';
+import { SearchResultsPanel } from './ui/search-results-panel';
 
 const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
 
@@ -36,6 +37,7 @@ const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
     MonthsError,
     MatTabsModule,
     YearCalendar,
+    SearchResultsPanel,
   ],
   template: `
     <div class="flex flex-col 2xl:h-full gap-4 2xl:min-h-0">
@@ -54,6 +56,15 @@ const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
           <span class="hidden md:inline">Ajouter un budget</span>
         </button>
       </header>
+
+      <!-- Search Panel -->
+      <pulpe-search-results-panel
+        [searchResults]="state.searchState().results"
+        [isLoading]="state.searchState().isLoading"
+        [hasError]="state.searchState().hasError"
+        (searchRequested)="onSearchRequested($event)"
+        (resultSelected)="onSearchResultSelected($event)"
+      />
 
       @switch (true) {
         @case (
@@ -252,5 +263,28 @@ export default class BudgetListPage implements OnInit {
         },
       );
     }
+  }
+
+  async onSearchRequested(query: string): Promise<void> {
+    try {
+      await this.state.search(query);
+    } catch (error) {
+      this.#logger.error('Error during search', error);
+      this.#snackBar.open(
+        'Une erreur est survenue lors de la recherche',
+        'Fermer',
+        {
+          duration: 3000,
+        },
+      );
+    }
+  }
+
+  onSearchResultSelected(event: {
+    budgetId: string;
+    type: 'budgetLine' | 'transaction';
+  }): void {
+    // Navigate to the budget details page
+    this.#router.navigate([ROUTES.APP, ROUTES.BUDGET, event.budgetId]);
   }
 }

@@ -251,6 +251,56 @@ export const transactionUpdateSchema = z.object({
 });
 export type TransactionUpdate = z.infer<typeof transactionUpdateSchema>;
 
+/**
+ * BUDGET SEARCH - Recherche globale dans les budgets
+ *
+ * Permet de rechercher dans les noms des budget lines et transactions
+ * pour retrouver rapidement des dépenses, revenus ou épargnes
+ */
+
+// Budget line search result with budget context
+export const budgetLineSearchResultSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  amount: z.number(),
+  kind: transactionKindSchema,
+  recurrence: transactionRecurrenceSchema,
+  budgetId: z.string().uuid(),
+  budgetMonth: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
+  budgetYear: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
+  budgetDescription: z.string(),
+});
+export type BudgetLineSearchResult = z.infer<
+  typeof budgetLineSearchResultSchema
+>;
+
+// Transaction search result with budget context
+export const transactionSearchResultSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  amount: z.number(),
+  kind: transactionKindSchema,
+  transactionDate: z.string().datetime(),
+  category: z.string().nullable(),
+  budgetId: z.string().uuid(),
+  budgetMonth: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
+  budgetYear: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
+  budgetDescription: z.string(),
+});
+export type TransactionSearchResult = z.infer<
+  typeof transactionSearchResultSchema
+>;
+
+// Global search response combining both budget lines and transactions
+export const budgetSearchResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    budgetLines: z.array(budgetLineSearchResultSchema),
+    transactions: z.array(transactionSearchResultSchema),
+  }),
+});
+export type BudgetSearchResponse = z.infer<typeof budgetSearchResponseSchema>;
+
 // Budget template schemas
 export const budgetTemplateSchema = z.object({
   id: z.string().uuid(),
