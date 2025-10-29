@@ -15,7 +15,6 @@ import { DemoCleanupService } from './demo-cleanup.service';
 import { DemoSessionResponseDto } from './dto/demo-session-response.dto';
 import { DemoCleanupResponseDto } from './dto/demo-cleanup-response.dto';
 import { CreateDemoSessionDto } from './dto/create-demo-session.dto';
-import { Public } from '@common/decorators/public.decorator';
 import { DevOnlyGuard } from '@common/guards/dev-only.guard';
 import { TurnstileService } from '@common/services/turnstile.service';
 
@@ -56,7 +55,6 @@ export class DemoController {
    * - Combined with Cloudflare Turnstile for bot protection
    */
   @Post('session')
-  @Public() // No authentication required
   @HttpCode(HttpStatus.CREATED)
   @Throttle({ demo: { limit: 30, ttl: 3600000 } }) // 30 req/hour (see justification above)
   @ApiOperation({
@@ -111,7 +109,6 @@ export class DemoController {
    * Blocked in production and preview environments
    */
   @Post('cleanup')
-  @Public() // No authentication required
   @UseGuards(DevOnlyGuard) // Only accessible in development
   @HttpCode(HttpStatus.OK)
   @ApiTags('Demo (Dev Only)')

@@ -7,6 +7,7 @@ import {
   ApiUnauthorizedResponse,
   ApiInternalServerErrorResponse,
 } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { AuthGuard } from '@common/guards/auth.guard';
 import {
   User,
@@ -18,15 +19,20 @@ import {
 } from './dto/auth-response.dto';
 
 @ApiTags('Auth')
+@ApiBearerAuth()
 @Controller({ path: 'auth', version: '1' })
+@UseGuards(AuthGuard)
+@SkipThrottle()
+@ApiUnauthorizedResponse({
+  description: 'Authentication required',
+  type: AuthErrorResponseDto,
+})
 @ApiInternalServerErrorResponse({
   description: 'Internal server error',
   type: AuthErrorResponseDto,
 })
 export class AuthController {
   @Get('validate')
-  @UseGuards(AuthGuard)
-  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Validate JWT token and retrieve user information',
     description:
@@ -36,10 +42,6 @@ export class AuthController {
     status: 200,
     description: 'Token validated successfully',
     type: AuthValidationResponseDto,
-  })
-  @ApiUnauthorizedResponse({
-    description: 'Invalid or expired token',
-    type: AuthErrorResponseDto,
   })
   async validateToken(
     @User() user: AuthenticatedUser,
