@@ -6,12 +6,12 @@ import {
 } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
-import { DatePipe, CurrencyPipe } from '@angular/common';
-import {
-  type BudgetLineSearchResult,
-  type TransactionSearchResult,
-  type TransactionKind,
-  type TransactionRecurrence,
+import { CurrencyPipe } from '@angular/common';
+import type {
+  BudgetLineSearchResult,
+  TransactionSearchResult,
+  TransactionKind,
+  TransactionRecurrence,
 } from '@pulpe/shared';
 
 type SearchResult = BudgetLineSearchResult | TransactionSearchResult;
@@ -24,7 +24,7 @@ function isTransaction(
 
 @Component({
   selector: 'pulpe-search-result-item',
-  imports: [MatCardModule, MatIconModule, DatePipe, CurrencyPipe],
+  imports: [MatCardModule, MatIconModule, CurrencyPipe],
   template: `
     <mat-card
       class="search-result-card cursor-pointer hover:bg-surface-container-high transition-colors"
