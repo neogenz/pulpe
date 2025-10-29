@@ -26,7 +26,7 @@ import { FiltersModule } from '@common/filters/filters.module';
 import { CommonModule } from '@common/common.module';
 
 // Guards
-import { SkipAuthenticatedThrottlerGuard } from '@common/guards/throttler-skip.guard';
+import { ThrottlerGuard } from '@nestjs/throttler';
 
 // Middleware
 import { PayloadSizeMiddleware } from '@common/middleware/payload-size.middleware';
@@ -269,7 +269,7 @@ function createPinoLoggerConfig(configService: ConfigService) {
     },
     {
       provide: APP_GUARD,
-      useClass: SkipAuthenticatedThrottlerGuard,
+      useClass: ThrottlerGuard,
     },
     ResponseLoggerMiddleware,
     PayloadSizeMiddleware,

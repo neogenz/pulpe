@@ -17,6 +17,7 @@ import {
   ApiUnauthorizedResponse,
   ApiInternalServerErrorResponse,
 } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { AuthGuard } from '@common/guards/auth.guard';
 import {
   User,
@@ -33,7 +34,14 @@ import {
 import { ErrorResponseDto } from '@common/dto/response.dto';
 
 @ApiTags('User')
+@ApiBearerAuth()
 @Controller({ path: 'users', version: '1' })
+@UseGuards(AuthGuard)
+@SkipThrottle()
+@ApiUnauthorizedResponse({
+  description: 'Authentication required',
+  type: ErrorResponseDto,
+})
 @ApiInternalServerErrorResponse({
   description: 'Internal server error',
   type: ErrorResponseDto,
@@ -44,8 +52,6 @@ export class UserController {
     private readonly logger: PinoLogger,
   ) {}
   @Get('me')
-  @UseGuards(AuthGuard)
-  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get current user profile',
     description: 'Retrieves the profile information of the authenticated user',
@@ -54,10 +60,6 @@ export class UserController {
     status: 200,
     description: 'Profile retrieved successfully',
     type: UserProfileResponseDto,
-  })
-  @ApiUnauthorizedResponse({
-    description: 'Authentication required',
-    type: ErrorResponseDto,
   })
   async getProfile(
     @User() user: AuthenticatedUser,
@@ -74,8 +76,6 @@ export class UserController {
   }
 
   @Put('profile')
-  @UseGuards(AuthGuard)
-  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Update user profile',
     description:
@@ -88,10 +88,6 @@ export class UserController {
   })
   @ApiBadRequestResponse({
     description: 'Invalid input data',
-    type: ErrorResponseDto,
-  })
-  @ApiUnauthorizedResponse({
-    description: 'Authentication required',
     type: ErrorResponseDto,
   })
   async updateProfile(
@@ -153,8 +149,6 @@ export class UserController {
   }
 
   @Put('onboarding-completed')
-  @UseGuards(AuthGuard)
-  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Mark onboarding as completed',
     description: 'Updates the user metadata to mark onboarding as completed',
@@ -163,10 +157,6 @@ export class UserController {
     status: 200,
     description: 'Onboarding marked as completed',
     type: SuccessMessageResponseDto,
-  })
-  @ApiUnauthorizedResponse({
-    description: 'Authentication required',
-    type: ErrorResponseDto,
   })
   async completeOnboarding(
     @User() user: AuthenticatedUser,
@@ -219,8 +209,6 @@ export class UserController {
   }
 
   @Get('onboarding-status')
-  @UseGuards(AuthGuard)
-  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get onboarding status',
     description:
@@ -230,10 +218,6 @@ export class UserController {
     status: 200,
     description: 'Onboarding status retrieved successfully',
     type: OnboardingStatusResponseDto,
-  })
-  @ApiUnauthorizedResponse({
-    description: 'Authentication required',
-    type: ErrorResponseDto,
   })
   async getOnboardingStatus(
     @User() user: AuthenticatedUser,
