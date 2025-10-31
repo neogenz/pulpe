@@ -1,5 +1,11 @@
 # backend-nest
 
+## 0.4.1
+
+### Patch Changes
+
+- Protection anti-spam ajoutée sur l'API backend. Un système de limitation de débit basé sur l'identifiant utilisateur a été implémenté pour prévenir les abus d'API. Chaque utilisateur authentifié est maintenant limité à 1000 requêtes par minute, ce qui est largement suffisant pour une utilisation normale tout en empêchant les attaques par spam de création de données.
+
 ## 0.4.0
 
 ### Minor Changes
