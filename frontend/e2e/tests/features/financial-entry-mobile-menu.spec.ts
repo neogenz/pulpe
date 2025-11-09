@@ -1,5 +1,82 @@
 import { test, expect } from '../../fixtures/test-fixtures';
 import { setupAuthBypass } from '../../utils/auth-bypass';
+import type { Page } from '@playwright/test';
+
+/**
+ * Setup budget mocks for financial entry tests with current month/year
+ * This ensures tests don't fail when the calendar month changes
+ */
+async function setupBudgetMocks(page: Page) {
+  // Use current month/year dynamically to avoid test failures when month changes
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1; // getMonth() is 0-indexed
+  const currentYear = now.getFullYear();
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const budgetName = `${monthNames[now.getMonth()]} ${currentYear}`;
+
+  // Mock 1: Budget list endpoint (returns current month budget)
+  await page.route('**/api/v1/budgets', route =>
+    route.fulfill({
+      status: 200,
+      body: JSON.stringify({
+        success: true,
+        data: [{
+          id: 'current-budget-123',
+          name: budgetName,
+          month: currentMonth,
+          year: currentYear
+        }]
+      })
+    })
+  );
+
+  // Mock 2: Budget details endpoint (budgetLines + transactions)
+  await page.route('**/api/v1/budgets/current-budget-123/details', route =>
+    route.fulfill({
+      status: 200,
+      body: JSON.stringify({
+        success: true,
+        data: {
+          budget: {
+            id: 'current-budget-123',
+            name: budgetName,
+            month: currentMonth,
+            year: currentYear
+          },
+          budgetLines: [
+            { id: 'line-1', name: 'Salary', amount: 5000, kind: 'income', recurrence: 'fixed' },
+            { id: 'line-2', name: 'Groceries', amount: 400, kind: 'expense', recurrence: 'fixed' },
+            { id: 'line-3', name: 'Transport', amount: 150, kind: 'expense', recurrence: 'fixed' }
+          ],
+          transactions: [
+            {
+              id: 'txn-1',
+              budgetId: 'current-budget-123',
+              name: 'Coffee',
+              amount: 5,
+              kind: 'expense',
+              transactionDate: new Date().toISOString(),
+              category: null,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            },
+            {
+              id: 'txn-2',
+              budgetId: 'current-budget-123',
+              name: 'Lunch',
+              amount: 12,
+              kind: 'expense',
+              transactionDate: new Date().toISOString(),
+              category: null,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            }
+          ]
+        }
+      })
+    })
+  );
+}
 
 test.describe('Financial Entry Mobile Menu', () => {
   test.describe('Mobile View', () => {
@@ -15,57 +92,18 @@ test.describe('Financial Entry Mobile Menu', () => {
         setLocalStorage: true
       });
 
-      // Mock 1: Budget list endpoint (returns current month budget)
-      await page.route('**/api/v1/budgets', route =>
-        route.fulfill({
-          status: 200,
-          body: JSON.stringify({
-            success: true,
-            data: [{
-              id: 'current-budget-123',
-              name: 'October 2025',
-              month: 10,
-              year: 2025
-            }]
-          })
-        })
-      );
-
-      // Mock 2: Budget details endpoint (budgetLines + transactions)
-      await page.route('**/api/v1/budgets/current-budget-123/details', route =>
-        route.fulfill({
-          status: 200,
-          body: JSON.stringify({
-            success: true,
-            data: {
-              budget: {
-                id: 'current-budget-123',
-                name: 'October 2025',
-                month: 10,
-                year: 2025
-              },
-              budgetLines: [
-                { id: 'line-1', name: 'Salary', amount: 5000, kind: 'income', recurrence: 'fixed' },
-                { id: 'line-2', name: 'Groceries', amount: 400, kind: 'expense', recurrence: 'fixed' },
-                { id: 'line-3', name: 'Transport', amount: 150, kind: 'expense', recurrence: 'fixed' }
-              ],
-              transactions: [
-                { id: 'txn-1', name: 'Coffee', amount: 5, kind: 'expense', budgetLineId: 'line-2' },
-                { id: 'txn-2', name: 'Lunch', amount: 12, kind: 'expense', budgetLineId: 'line-2' }
-              ]
-            }
-          })
-        })
-      );
+      // Setup budget mocks with current month/year (prevents test failures when month changes)
+      await setupBudgetMocks(page);
 
       // Navigate (addInitScript will inject flags before this navigation)
       await page.goto('/app/current-month', { waitUntil: 'domcontentloaded' });
     });
 
     test('should show menu button instead of separate edit/delete buttons on mobile', async ({ page }) => {
-      // Wait for one-time-expenses-list to load (Playwright auto-waits)
-      const oneTimeList = page.locator('[data-testid="one-time-expenses-list"]');
-      await expect(oneTimeList).toBeVisible({ timeout: 10000 });
+      // Wait for financial entries to load by checking for action buttons
+      const oneTimeList = page.locator('pulpe-one-time-expenses-list');
+      const firstActionButton = oneTimeList.locator('[data-testid^="actions-menu-"]').first();
+      await expect(firstActionButton).toBeVisible({ timeout: 10000 });
 
       // Check if there are any financial entries with actions (within one-time list)
       const actionButtons = await oneTimeList.locator('[data-testid^="actions-menu-"]').count();
@@ -79,15 +117,14 @@ test.describe('Financial Entry Mobile Menu', () => {
     });
 
     test('should open menu when clicking menu button', async ({ page }) => {
-      // Wait for one-time-expenses-list to load
-      const oneTimeList = page.locator('[data-testid="one-time-expenses-list"]');
-      await expect(oneTimeList).toBeVisible({ timeout: 10000 });
+      // Wait for financial entries to load
+      const oneTimeList = page.locator('pulpe-one-time-expenses-list');
+      const actionMenus = oneTimeList.locator('[data-testid^="actions-menu-"]');
+      const firstMenuButton = actionMenus.first();
+      await expect(firstMenuButton).toBeVisible({ timeout: 10000 });
 
       // Verify action menus exist and click first one
-      const actionMenus = oneTimeList.locator('[data-testid^="actions-menu-"]');
       expect(await actionMenus.count()).toBeGreaterThan(0);
-
-      const firstMenuButton = actionMenus.first();
       await firstMenuButton.click();
 
       // Verify menu is visible (Angular Material renders menu in overlay)
@@ -105,15 +142,15 @@ test.describe('Financial Entry Mobile Menu', () => {
     });
 
     test('should close menu when clicking outside', async ({ page }) => {
-      // Wait for one-time-expenses-list to load
-      const oneTimeList = page.locator('[data-testid="one-time-expenses-list"]');
-      await expect(oneTimeList).toBeVisible({ timeout: 10000 });
-
+      // Wait for financial entries to load
+      const oneTimeList = page.locator('pulpe-one-time-expenses-list');
       const actionMenus = oneTimeList.locator('[data-testid^="actions-menu-"]');
+      const firstMenuButton = actionMenus.first();
+      await expect(firstMenuButton).toBeVisible({ timeout: 10000 });
+
       expect(await actionMenus.count()).toBeGreaterThan(0);
 
       // Click the first menu button
-      const firstMenuButton = actionMenus.first();
       await firstMenuButton.click();
 
       // Verify menu is visible (Angular Material renders menu in overlay)
@@ -128,15 +165,15 @@ test.describe('Financial Entry Mobile Menu', () => {
     });
 
     test('should show correct menu items text', async ({ page }) => {
-      // Wait for one-time-expenses-list to load
-      const oneTimeList = page.locator('[data-testid="one-time-expenses-list"]');
-      await expect(oneTimeList).toBeVisible({ timeout: 10000 });
-
+      // Wait for financial entries to load
+      const oneTimeList = page.locator('pulpe-one-time-expenses-list');
       const actionMenus = oneTimeList.locator('[data-testid^="actions-menu-"]');
+      const firstMenuButton = actionMenus.first();
+      await expect(firstMenuButton).toBeVisible({ timeout: 10000 });
+
       expect(await actionMenus.count()).toBeGreaterThan(0);
 
       // Click the first menu button
-      const firstMenuButton = actionMenus.first();
       await firstMenuButton.click();
 
       // Verify menu is visible (Angular Material renders menu in overlay)
@@ -157,15 +194,15 @@ test.describe('Financial Entry Mobile Menu', () => {
     });
 
     test('should emit edit action when clicking edit menu item', async ({ page }) => {
-      // Wait for one-time-expenses-list to load
-      const oneTimeList = page.locator('[data-testid="one-time-expenses-list"]');
-      await expect(oneTimeList).toBeVisible({ timeout: 10000 });
-
+      // Wait for financial entries to load
+      const oneTimeList = page.locator('pulpe-one-time-expenses-list');
       const actionMenus = oneTimeList.locator('[data-testid^="actions-menu-"]');
+      const firstMenuButton = actionMenus.first();
+      await expect(firstMenuButton).toBeVisible({ timeout: 10000 });
+
       expect(await actionMenus.count()).toBeGreaterThan(0);
 
       // Click the first menu button
-      const firstMenuButton = actionMenus.first();
       await firstMenuButton.click();
 
       // Verify menu is visible (Angular Material renders menu in overlay)
@@ -194,48 +231,8 @@ test.describe('Financial Entry Mobile Menu', () => {
         setLocalStorage: true
       });
 
-      // Mock 1: Budget list endpoint (returns current month budget)
-      await page.route('**/api/v1/budgets', route =>
-        route.fulfill({
-          status: 200,
-          body: JSON.stringify({
-            success: true,
-            data: [{
-              id: 'current-budget-123',
-              name: 'October 2025',
-              month: 10,
-              year: 2025
-            }]
-          })
-        })
-      );
-
-      // Mock 2: Budget details endpoint (budgetLines + transactions)
-      await page.route('**/api/v1/budgets/current-budget-123/details', route =>
-        route.fulfill({
-          status: 200,
-          body: JSON.stringify({
-            success: true,
-            data: {
-              budget: {
-                id: 'current-budget-123',
-                name: 'October 2025',
-                month: 10,
-                year: 2025
-              },
-              budgetLines: [
-                { id: 'line-1', name: 'Salary', amount: 5000, kind: 'income', recurrence: 'fixed' },
-                { id: 'line-2', name: 'Groceries', amount: 400, kind: 'expense', recurrence: 'fixed' },
-                { id: 'line-3', name: 'Transport', amount: 150, kind: 'expense', recurrence: 'fixed' }
-              ],
-              transactions: [
-                { id: 'txn-1', name: 'Coffee', amount: 5, kind: 'expense', budgetLineId: 'line-2' },
-                { id: 'txn-2', name: 'Lunch', amount: 12, kind: 'expense', budgetLineId: 'line-2' }
-              ]
-            }
-          })
-        })
-      );
+      // Setup budget mocks with current month/year (prevents test failures when month changes)
+      await setupBudgetMocks(page);
 
       // Navigate (addInitScript will inject flags before this navigation)
       await page.goto('/app/current-month', { waitUntil: 'domcontentloaded' });
@@ -244,9 +241,10 @@ test.describe('Financial Entry Mobile Menu', () => {
     test('should show separate edit and delete buttons instead of menu on desktop', async ({
       page,
     }) => {
-      // Wait for one-time-expenses-list to load
-      const oneTimeList = page.locator('[data-testid="one-time-expenses-list"]');
-      await expect(oneTimeList).toBeVisible({ timeout: 10000 });
+      // Wait for financial entries to load
+      const oneTimeList = page.locator('pulpe-one-time-expenses-list');
+      const firstEditButton = oneTimeList.locator('[data-testid^="edit-transaction-"]:not([mat-menu-item])').first();
+      await expect(firstEditButton).toBeVisible({ timeout: 10000 });
 
       // Count different types of buttons (within one-time list)
       const actionMenus = await oneTimeList.locator('[data-testid^="actions-menu-"]').count();
@@ -261,15 +259,16 @@ test.describe('Financial Entry Mobile Menu', () => {
     test('should trigger edit action directly when clicking edit button on desktop', async ({
       page,
     }) => {
-      // Wait for one-time-expenses-list to load
-      const oneTimeList = page.locator('[data-testid="one-time-expenses-list"]');
-      await expect(oneTimeList).toBeVisible({ timeout: 10000 });
-
+      // Wait for financial entries to load
+      const oneTimeList = page.locator('pulpe-one-time-expenses-list');
       const editButtons = oneTimeList.locator('[data-testid^="edit-transaction-"]:not([mat-menu-item])');
+      const firstEditButton = editButtons.first();
+      await expect(firstEditButton).toBeVisible({ timeout: 10000 });
+
       expect(await editButtons.count()).toBeGreaterThan(0);
 
       // Click the first edit button
-      await editButtons.first().click();
+      await firstEditButton.click();
 
       // Should trigger edit behavior directly (no menu)
       // The specific behavior depends on parent component implementation
@@ -284,48 +283,8 @@ test.describe('Financial Entry Mobile Menu', () => {
         setLocalStorage: true
       });
 
-      // Mock 1: Budget list endpoint (returns current month budget)
-      await page.route('**/api/v1/budgets', route =>
-        route.fulfill({
-          status: 200,
-          body: JSON.stringify({
-            success: true,
-            data: [{
-              id: 'current-budget-123',
-              name: 'October 2025',
-              month: 10,
-              year: 2025
-            }]
-          })
-        })
-      );
-
-      // Mock 2: Budget details endpoint (budgetLines + transactions)
-      await page.route('**/api/v1/budgets/current-budget-123/details', route =>
-        route.fulfill({
-          status: 200,
-          body: JSON.stringify({
-            success: true,
-            data: {
-              budget: {
-                id: 'current-budget-123',
-                name: 'October 2025',
-                month: 10,
-                year: 2025
-              },
-              budgetLines: [
-                { id: 'line-1', name: 'Salary', amount: 5000, kind: 'income', recurrence: 'fixed' },
-                { id: 'line-2', name: 'Groceries', amount: 400, kind: 'expense', recurrence: 'fixed' },
-                { id: 'line-3', name: 'Transport', amount: 150, kind: 'expense', recurrence: 'fixed' }
-              ],
-              transactions: [
-                { id: 'txn-1', name: 'Coffee', amount: 5, kind: 'expense', budgetLineId: 'line-2' },
-                { id: 'txn-2', name: 'Lunch', amount: 12, kind: 'expense', budgetLineId: 'line-2' }
-              ]
-            }
-          })
-        })
-      );
+      // Setup budget mocks with current month/year (prevents test failures when month changes)
+      await setupBudgetMocks(page);
 
       // Navigate (addInitScript will inject flags before this navigation)
       await page.goto('/app/current-month', { waitUntil: 'domcontentloaded' });
@@ -337,12 +296,12 @@ test.describe('Financial Entry Mobile Menu', () => {
       // Start with desktop viewport
       await page.setViewportSize({ width: 1280, height: 720 });
 
-      // Wait for one-time-expenses-list and desktop buttons to appear
-      const oneTimeList = page.locator('[data-testid="one-time-expenses-list"]');
-      await expect(oneTimeList).toBeVisible({ timeout: 10000 });
+      // Wait for financial entries to load
+      const oneTimeList = page.locator('pulpe-one-time-expenses-list');
+      const firstEditButton = oneTimeList.locator('[data-testid^="edit-transaction-"]:not([mat-menu-item])').first();
 
       // Wait for desktop buttons to render (BreakpointObserver triggers re-render)
-      await expect(oneTimeList.locator('[data-testid^="edit-transaction-"]:not([mat-menu-item])').first()).toBeVisible({ timeout: 5000 });
+      await expect(firstEditButton).toBeVisible({ timeout: 10000 });
 
       // Check desktop behavior (within one-time list)
       let actionMenus = await oneTimeList.locator('[data-testid^="actions-menu-"]').count();
