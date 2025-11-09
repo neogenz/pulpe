@@ -1,4 +1,9 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import {
+  MiddlewareConsumer,
+  Module,
+  NestModule,
+  type ExecutionContext,
+} from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD, APP_PIPE } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
@@ -235,18 +240,27 @@ function createPinoLoggerConfig(configService: ConfigService) {
         const nodeEnv = config.get<string>('NODE_ENV');
         const isDev = !isProductionLike(nodeEnv);
 
-        return [
-          {
-            name: 'default',
-            ttl: config.get<number>('THROTTLE_TTL', 60000), // Default: 1 minute
-            limit: config.get<number>('THROTTLE_LIMIT', 1000), // 1000 requests per minute (same in dev/prod for authenticated users)
-          },
-          {
-            name: 'demo',
-            ttl: 3600000, // 1 hour in milliseconds
-            limit: isDev ? 1000 : 30, // No limit in dev, 30 requests per hour in prod
-          },
-        ];
+        return {
+          throttlers: [
+            {
+              name: 'default',
+              ttl: config.get<number>('THROTTLE_TTL', 60000), // Default: 1 minute
+              limit: config.get<number>('THROTTLE_LIMIT', 1000), // 1000 requests per minute (same in dev/prod for authenticated users)
+            },
+            {
+              name: 'demo',
+              ttl: 3600000, // 1 hour in milliseconds
+              limit: isDev ? 1000 : 30, // No limit in dev, 30 requests per hour in prod
+              // Only apply demo throttler to /api/v1/demo/* routes
+              skipIf: (context: ExecutionContext) => {
+                const request = context
+                  .switchToHttp()
+                  .getRequest<{ url?: string }>();
+                return !request?.url?.startsWith('/api/v1/demo');
+              },
+            },
+          ],
+        };
       },
     }),
     ScheduleModule.forRoot(),

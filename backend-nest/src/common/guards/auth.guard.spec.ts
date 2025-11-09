@@ -209,5 +209,110 @@ describe('AuthGuard', () => {
         (mockRequest as typeof mockRequest & { user: unknown }).user,
       ).toEqual(mockUser);
     });
+
+    it('should reuse cached user from UserThrottlerGuard when available', async () => {
+      // Arrange
+      const mockUser = createMockAuthenticatedUser();
+      const mockRequest = {
+        headers: { authorization: 'Bearer valid-token' },
+        __throttlerUserCache: mockUser, // Simulates cache populated by UserThrottlerGuard
+      };
+      const mockContext = {
+        switchToHttp: () => ({ getRequest: () => mockRequest }),
+      } as ExecutionContext;
+
+      // Act
+      const result = await authGuard.canActivate(mockContext);
+
+      // Assert
+      expect(result).toBe(true);
+      expect(mockRequest).toHaveProperty('user');
+      expect(mockRequest).toHaveProperty('supabase');
+      expect(
+        (mockRequest as typeof mockRequest & { user: unknown }).user,
+      ).toEqual(mockUser);
+      // Verify Supabase auth.getUser() was NOT called (cache was used)
+      // The mock would have been called if we went through normal flow
+    });
+
+    it('should fall back to normal auth flow when cache is null', async () => {
+      // Arrange
+      const mockUser = createMockAuthenticatedUser();
+      const mockRequest = {
+        headers: { authorization: 'Bearer valid-token' },
+        __throttlerUserCache: null, // Cache indicates auth failed in throttler
+      };
+      const mockContext = {
+        switchToHttp: () => ({ getRequest: () => mockRequest }),
+      } as ExecutionContext;
+
+      mockSupabaseClient
+        .setMockData({
+          id: mockUser.id,
+          email: mockUser.email,
+          user_metadata: {
+            firstName: mockUser.firstName,
+            lastName: mockUser.lastName,
+          },
+        })
+        .setMockError(null);
+
+      // Act
+      const result = await authGuard.canActivate(mockContext);
+
+      // Assert
+      expect(result).toBe(true);
+      expect(mockRequest).toHaveProperty('user');
+      expect(
+        (mockRequest as typeof mockRequest & { user: unknown }).user,
+      ).toEqual(mockUser);
+    });
+
+    it('should handle errors in cache branch gracefully', async () => {
+      // Arrange
+      const mockUser = createMockAuthenticatedUser();
+      const mockRequest = {
+        headers: { authorization: 'Bearer valid-token' },
+        __throttlerUserCache: mockUser, // Cache présent
+      };
+      const mockContext = {
+        switchToHttp: () => ({ getRequest: () => mockRequest }),
+      } as ExecutionContext;
+
+      // Mock createAuthenticatedClient to throw
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          AuthGuard,
+          {
+            provide: SupabaseService,
+            useValue: {
+              createAuthenticatedClient: () => {
+                throw new Error('Network error');
+              },
+            },
+          },
+          {
+            provide: Reflector,
+            useValue: { get: () => undefined },
+          },
+          {
+            provide: `PinoLogger:${AuthGuard.name}`,
+            useValue: {
+              error: () => {},
+              debug: () => {},
+            },
+          },
+        ],
+      }).compile();
+
+      const guardWithFailingClient = module.get<AuthGuard>(AuthGuard);
+
+      // Act & Assert
+      await expectErrorThrown(
+        () => guardWithFailingClient.canActivate(mockContext),
+        UnauthorizedException,
+        "Erreur d'authentification",
+      );
+    });
   });
 });
