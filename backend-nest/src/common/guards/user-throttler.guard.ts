@@ -21,38 +21,38 @@ interface RequestWithThrottlerCache extends Record<string, any> {
 }
 
 /**
- * Custom throttler guard that tracks rate limits by user ID for authenticated requests
- * and falls back to IP for public/unauthenticated requests.
+ * Custom throttler guard with user-based rate limiting.
  *
- * Architecture Decision:
- * This guard is registered as APP_GUARD (global), which means it executes BEFORE
- * controller-scoped guards like AuthGuard. To ensure user-based throttling works,
- * this guard self-resolves authentication by calling Supabase directly.
+ * Tracks rate limits by user ID for authenticated requests and falls back to IP
+ * address for public/unauthenticated endpoints.
  *
- * Execution Flow:
- * 1. UserThrottlerGuard (global) → attempts to resolve user via token
- * 2. Rate limiting decision made (user-based or IP-based)
- * 3. AuthGuard (controller-scoped) → validates token again (or skipped for public endpoints)
+ * @remarks
+ * **Architecture Decision:**
+ * Registered as `APP_GUARD` (global) to execute before controller-scoped guards
+ * like `AuthGuard`. This enables self-resolution of authentication for accurate
+ * user-based throttling.
  *
- * Rate Limiting Strategy:
- * - Authenticated users: Tracked by user.id (1000 req/min default)
+ * **Execution Flow:**
+ * 1. `UserThrottlerGuard` (global) → resolves user via token
+ * 2. Rate limiting decision (user-based or IP-based)
+ * 3. `AuthGuard` (controller-scoped) → reuses cached user
+ *
+ * **Rate Limiting Strategy:**
+ * - Authenticated users: Tracked by `user.id` (1000 req/min default)
  * - Public endpoints: Tracked by IP address (e.g., demo: 30 req/hour)
  *
- * Why user-based tracking:
- * - Prevents false positives from shared IPs (WiFi, VPN, proxies)
- * - Same user gets same limit across different devices/locations
- * - Protects against abuse from compromised accounts
+ * **Performance Optimization:**
+ * Request-scoped caching eliminates redundant Supabase calls:
+ * - Without cache: 3 calls (2 throttler contexts + 1 AuthGuard)
+ * - With cache: 1 call (shared across guards)
+ * - Result: 66% reduction in auth API overhead (~10-20ms improvement)
  *
- * Performance Optimization (v2):
- * - Request-scoped caching prevents multiple Supabase calls per request
- * - NestJS throttler calls getTracker() once per configured context (default + demo)
- * - Without cache: 2 Supabase calls from throttler + 1 from AuthGuard = 3 total
- * - With cache: 1 Supabase call total (cached across throttler contexts)
- * - Result: 66% reduction in auth API calls, ~10-20ms latency improvement
+ * **Design Trade-offs:**
+ * - Graceful degradation: Auth failures fall back to IP-based throttling
+ * - Cache lifetime: Request-scoped (auto-cleaned after response)
  *
- * Design Trade-offs:
- * - Graceful degradation: auth failures fall back to IP-based throttling
- * - Cache stored in request object (cleared after response)
+ * @see https://docs.nestjs.com/faq/request-lifecycle - NestJS guard execution order
+ * @see https://docs.nestjs.com/security/rate-limiting - Official throttling guide
  */
 @Injectable()
 export class UserThrottlerGuard extends ThrottlerGuard {
