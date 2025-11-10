@@ -10,6 +10,7 @@ NC='\033[0m' # No Color
 
 # Chemins sources
 SOURCE_BACKEND_ENV="/Users/maximedesogus/workspace/perso/pulpe-workspace/backend-nest/.env"
+SOURCE_FRONTEND_ENV="/Users/maximedesogus/workspace/perso/pulpe-workspace/frontend/.env"
 SOURCE_ROOT_ENV="/Users/maximedesogus/workspace/perso/pulpe-workspace/.env"
 SOURCE_BACKEND_ENV_LOCAL="/Users/maximedesogus/workspace/perso/pulpe-workspace/backend-nest/.env.local"
 SOURCE_BACKEND_ENV_DEVELOPMENT="/Users/maximedesogus/workspace/perso/pulpe-workspace/backend-nest/.env.development"
@@ -19,6 +20,7 @@ CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Chemins de destination
 DEST_BACKEND_ENV="$CURRENT_DIR/backend-nest/.env"
+DEST_FRONTEND_ENV="$CURRENT_DIR/frontend/.env"
 DEST_ROOT_ENV="$CURRENT_DIR/.env"
 DEST_BACKEND_ENV_LOCAL="$CURRENT_DIR/backend-nest/.env.local"
 DEST_BACKEND_ENV_DEVELOPMENT="$CURRENT_DIR/backend-nest/.env.development"
@@ -30,14 +32,14 @@ copy_env_file() {
     local source=$1
     local dest=$2
     local name=$3
-    
+
     if [ -f "$source" ]; then
         # Créer le répertoire de destination si nécessaire
         mkdir -p "$(dirname "$dest")"
-        
+
         # Copier le fichier
         cp "$source" "$dest"
-        
+
         if [ $? -eq 0 ]; then
             echo -e "${GREEN}✅ $name copié avec succès${NC}"
             echo "   Source: $source"
@@ -60,6 +62,11 @@ copy_env_file "$SOURCE_BACKEND_ENV_LOCAL" "$DEST_BACKEND_ENV_LOCAL" "Backend .en
 
 # Copier le fichier .env.development du backend
 copy_env_file "$SOURCE_BACKEND_ENV_DEVELOPMENT" "$DEST_BACKEND_ENV_DEVELOPMENT" "Backend .env.development"
+
+echo ""
+
+# Copier le fichier .env du frontend
+copy_env_file "$SOURCE_FRONTEND_ENV" "$DEST_FRONTEND_ENV" "Frontend .env"
 
 echo ""
 
