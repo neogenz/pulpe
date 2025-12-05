@@ -40,6 +40,7 @@ import { type TransactionCreate } from '@pulpe/shared';
 import { EditTransactionDialog } from './components/edit-transaction-dialog';
 import { type FinancialEntryModel } from './models/financial-entry.model';
 import { Logger } from '@core/logging/logger';
+import { TutorialService } from '@core/tutorial/tutorial.service';
 
 type TransactionFormData = Pick<
   TransactionCreate,
@@ -224,6 +225,7 @@ export default class CurrentMonth implements OnInit {
   #dialog = inject(MatDialog);
   #snackBar = inject(MatSnackBar);
   #logger = inject(Logger);
+  #tutorialService = inject(TutorialService);
   recurringFinancialItems = computed<FinancialEntryModel[]>(() => {
     const budgetLines = this.store.displayBudgetLines();
     const budget = this.store.dashboardData()?.budget;
@@ -246,21 +248,21 @@ export default class CurrentMonth implements OnInit {
   });
 
   /**
-   * [FEATURE MÉTIER TEMPORAIRE]
-   * Ouvre automatiquement le bottom sheet "Ajouter une transaction" à chaque chargement de la page du mois courant,
-   * après un délai de 300ms. Ce comportement est volontaire pour le moment: il s'agit d'une exigence métier temporaire
-   * visant à encourager l'utilisateur à saisir sa première transaction dès l'arrivée sur la page.
-   *
-   * À retirer ou à conditionner dès que l'on implémente une UX plus évoluée (ex: onboarding, flag utilisateur, etc.).
-   *
-   * [TEMPORAIREMENT DÉSACTIVÉ POUR LES TESTS E2E]
+   * Initialize component and start welcome tutorial on first visit
    */
-  // eslint-disable-next-line @angular-eslint/no-empty-lifecycle-method
   ngOnInit() {
-    // Désactiver temporairement l'ouverture automatique pour éviter les interférences avec les tests E2E
-    // setTimeout(() => {
-    //   this.openAddTransactionBottomSheet();
-    // }, 300);
+    // Start welcome tutorial if not completed and data is loaded
+    setTimeout(() => {
+      const hasLoadedData =
+        this.store.dashboardStatus() !== 'loading' &&
+        this.store.dashboardStatus() !== 'error';
+      const hasNotCompletedTour =
+        !this.#tutorialService.hasCompletedTour('dashboard-welcome');
+
+      if (hasLoadedData && hasNotCompletedTour) {
+        this.#tutorialService.startTour('dashboard-welcome');
+      }
+    }, 800); // Delay to allow page to fully render
   }
 
   /**

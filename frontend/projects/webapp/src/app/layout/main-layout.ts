@@ -31,6 +31,7 @@ import { ApplicationConfiguration } from '@core/config/application-configuration
 import { Logger } from '@core/logging/logger';
 import { DemoModeService } from '@core/demo/demo-mode.service';
 import { DemoInitializerService } from '@core/demo/demo-initializer.service';
+import { TutorialService } from '@core/tutorial/tutorial.service';
 
 interface NavigationItem {
   readonly route: string;
@@ -204,6 +205,17 @@ interface NavigationItem {
             }
             <span class="flex-1"></span>
 
+            <!-- Help Menu -->
+            <button
+              matIconButton
+              [matMenuTriggerFor]="helpMenu"
+              matTooltip="Aide et tutoriels"
+              aria-label="Aide et tutoriels"
+              data-testid="help-menu-trigger"
+            >
+              <mat-icon>help_outline</mat-icon>
+            </button>
+
             <!-- Toolbar Actions -->
             <button
               matButton
@@ -246,6 +258,51 @@ interface NavigationItem {
                     Se déconnecter
                   }
                 </span>
+              </button>
+            </mat-menu>
+
+            <!-- Help Menu -->
+            <mat-menu #helpMenu="matMenu" xPosition="before">
+              <button
+                mat-menu-item
+                (click)="tutorialService.startTour('dashboard-welcome')"
+                data-testid="help-menu-dashboard-tour"
+              >
+                <mat-icon matMenuItemIcon>explore</mat-icon>
+                <span>Tour du tableau de bord</span>
+              </button>
+              <button
+                mat-menu-item
+                (click)="tutorialService.startTour('add-transaction')"
+                data-testid="help-menu-transaction-tour"
+              >
+                <mat-icon matMenuItemIcon>attach_money</mat-icon>
+                <span>Ajouter une transaction</span>
+              </button>
+              <button
+                mat-menu-item
+                (click)="tutorialService.startTour('templates-intro')"
+                data-testid="help-menu-templates-tour"
+              >
+                <mat-icon matMenuItemIcon>description</mat-icon>
+                <span>Introduction aux modèles</span>
+              </button>
+              <button
+                mat-menu-item
+                (click)="tutorialService.startTour('budget-management')"
+                data-testid="help-menu-budget-tour"
+              >
+                <mat-icon matMenuItemIcon>account_balance</mat-icon>
+                <span>Gestion des budgets</span>
+              </button>
+              <mat-divider></mat-divider>
+              <button
+                mat-menu-item
+                (click)="tutorialService.resetAllTours()"
+                data-testid="help-menu-reset-tours"
+              >
+                <mat-icon matMenuItemIcon>refresh</mat-icon>
+                <span>Réinitialiser les tutoriels</span>
               </button>
             </mat-menu>
 
@@ -332,6 +389,7 @@ export class MainLayout {
   private readonly demoInitializer = inject(DemoInitializerService);
   readonly breadcrumbState = inject(BreadcrumbState);
   readonly #logger = inject(Logger);
+  readonly tutorialService = inject(TutorialService);
 
   // Display "Mode Démo" for demo users, otherwise show email
   readonly userEmail = computed(() => {
