@@ -51,6 +51,7 @@
     "@angular/material-date-fns-adapter": "20.2.2",
     "@angular/platform-browser": "^20.2.4",
     "@angular/router": "^20.2.4",
+    "@floating-ui/dom": "^1.7.2",
     "@pulpe/shared": "workspace:*",
     "@supabase/supabase-js": "^2.49.10",
     "@tailwindcss/postcss": "^4.1.8",

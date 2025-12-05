@@ -1,4 +1,5 @@
 import type { StepOptions } from 'shepherd.js';
+import { offset } from '@floating-ui/dom';
 import type { TutorialTour } from './tutorial.types';
 
 /**
@@ -50,6 +51,9 @@ export const defaultStepOptions: Partial<StepOptions> = {
   scrollTo: { behavior: 'smooth', block: 'center' } as ScrollIntoViewOptions,
   modalOverlayOpeningPadding: 10,
   modalOverlayOpeningRadius: 12,
+  floatingUIOptions: {
+    middleware: [offset({ mainAxis: 24 })],
+  },
 };
 
 /**
