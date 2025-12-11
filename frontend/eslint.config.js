@@ -256,7 +256,6 @@ module.exports = tseslint.config(
                 ["core", { app: "${from.app}" }],
                 ["pattern", { app: "${from.app}", feature: "${from.feature}" }],
                 ["feature", { app: "${from.app}", feature: "${from.feature}" }],
-                ["feature", { app: "${from.app}", feature: "*" }],
                 [
                   "feature-routes",
                   { app: "${from.app}", feature: "!${from.feature}" },
