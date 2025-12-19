@@ -174,6 +174,9 @@ export default class Welcome {
       'Impossible de démarrer le mode démo. Veuillez réessayer.',
   } as const;
 
+  readonly #TURNSTILE_TIMEOUT_MS = 5000;
+  #turnstileTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
   protected readonly demoErrorMessage = signal('');
   protected readonly isDemoInitializing = this.#demoInitializer.isInitializing;
   protected readonly isTurnstileProcessing = signal(false);
@@ -217,6 +220,8 @@ export default class Welcome {
   }
 
   onTurnstileResolved(token: string | null): void {
+    this.#clearTurnstileTimeout();
+
     if (!token) {
       this.#logger.error('Turnstile resolved with null token');
       this.demoErrorMessage.set(this.#ERROR_MESSAGES.TURNSTILE_FAILED);
@@ -230,6 +235,7 @@ export default class Welcome {
   }
 
   onTurnstileError(): void {
+    this.#clearTurnstileTimeout();
     this.#logger.error('Turnstile verification failed');
     this.demoErrorMessage.set(this.#ERROR_MESSAGES.TURNSTILE_FAILED);
     this.isTurnstileProcessing.set(false);
@@ -257,6 +263,19 @@ export default class Welcome {
       await this.#startDemoWithToken('');
       return;
     }
+
+    // Safari iOS bypass - Turnstile cross-origin communication is blocked
+    // Protection maintained via backend rate limiting (30 req/h/IP)
+    if (this.#isSafariIOS()) {
+      this.#logger.info('Safari iOS detected, bypassing Turnstile');
+      await this.#startDemoWithToken('');
+      return;
+    }
+
+    // Start timeout - if Turnstile doesn't respond in 5s, bypass it
+    this.#turnstileTimeoutId = setTimeout(() => {
+      this.#handleTurnstileTimeout();
+    }, this.#TURNSTILE_TIMEOUT_MS);
 
     // Try to reset existing widget first, otherwise render new one
     const widget = this.turnstileWidget();
@@ -294,5 +313,29 @@ export default class Welcome {
       ROUTES.ONBOARDING,
       ROUTES.ONBOARDING_PERSONAL_INFO,
     ]);
+  }
+
+  #isSafariIOS(): boolean {
+    if (typeof navigator === 'undefined') return false;
+    const ua = navigator.userAgent;
+    const isIOS =
+      /iPad|iPhone|iPod/.test(ua) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isSafari = /Safari/.test(ua) && !/Chrome|CriOS|FxiOS|EdgiOS/.test(ua);
+    return isIOS && isSafari;
+  }
+
+  #handleTurnstileTimeout(): void {
+    this.#logger.warn('Turnstile timeout (5s) - bypassing verification');
+    this.#clearTurnstileTimeout();
+    this.shouldRenderTurnstile.set(false);
+    this.#startDemoWithToken('');
+  }
+
+  #clearTurnstileTimeout(): void {
+    if (this.#turnstileTimeoutId) {
+      clearTimeout(this.#turnstileTimeoutId);
+      this.#turnstileTimeoutId = null;
+    }
   }
 }
