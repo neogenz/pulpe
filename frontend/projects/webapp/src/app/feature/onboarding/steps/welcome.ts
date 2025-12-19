@@ -176,6 +176,7 @@ export default class Welcome {
 
   readonly #TURNSTILE_TIMEOUT_MS = 5000;
   #turnstileTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  #turnstileResolutionHandled = false;
 
   protected readonly demoErrorMessage = signal('');
   protected readonly isDemoInitializing = this.#demoInitializer.isInitializing;
@@ -222,15 +223,21 @@ export default class Welcome {
   onTurnstileResolved(token: string | null): void {
     this.#clearTurnstileTimeout();
 
+    if (this.#turnstileResolutionHandled) {
+      this.#logger.debug('Turnstile resolution already handled, ignoring');
+      return;
+    }
+    this.#turnstileResolutionHandled = true;
+
     if (!token) {
       this.#logger.error('Turnstile resolved with null token');
       this.demoErrorMessage.set(this.#ERROR_MESSAGES.TURNSTILE_FAILED);
-      this.shouldRenderTurnstile.set(false); // Reset for retry
+      this.shouldRenderTurnstile.set(false);
+      this.#turnstileResolutionHandled = false;
       return;
     }
 
     this.#logger.debug('Turnstile resolved', { tokenLength: token.length });
-    // Widget was rendered on user request, proceed with demo session creation
     this.#startDemoWithToken(token);
   }
 
@@ -239,12 +246,14 @@ export default class Welcome {
     this.#logger.error('Turnstile verification failed');
     this.demoErrorMessage.set(this.#ERROR_MESSAGES.TURNSTILE_FAILED);
     this.isTurnstileProcessing.set(false);
-    this.shouldRenderTurnstile.set(false); // Reset for retry
+    this.shouldRenderTurnstile.set(false);
+    this.#turnstileResolutionHandled = false;
   }
 
   async startDemoMode(): Promise<void> {
     this.demoErrorMessage.set('');
     this.isTurnstileProcessing.set(true);
+    this.#turnstileResolutionHandled = false;
 
     // E2E Test Bypass - skip Turnstile widget entirely
     if (
@@ -317,15 +326,27 @@ export default class Welcome {
 
   #isSafariIOS(): boolean {
     if (typeof navigator === 'undefined') return false;
+
     const ua = navigator.userAgent;
+    const isTouchCapable =
+      'maxTouchPoints' in navigator && navigator.maxTouchPoints > 1;
+
     const isIOS =
-      /iPad|iPhone|iPod/.test(ua) ||
-      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    const isSafari = /Safari/.test(ua) && !/Chrome|CriOS|FxiOS|EdgiOS/.test(ua);
+      /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && isTouchCapable);
+
+    const isSafari =
+      /Safari/.test(ua) && !/Chrome|CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
+
     return isIOS && isSafari;
   }
 
   #handleTurnstileTimeout(): void {
+    if (this.#turnstileResolutionHandled) {
+      this.#logger.debug('Turnstile already resolved, ignoring timeout');
+      return;
+    }
+    this.#turnstileResolutionHandled = true;
+
     this.#logger.warn('Turnstile timeout (5s) - bypassing verification');
     this.#clearTurnstileTimeout();
     this.shouldRenderTurnstile.set(false);
