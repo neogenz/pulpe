@@ -15,6 +15,12 @@
     "deny": [],
     "defaultMode": "acceptEdits"
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": ["supabase", "vercel"],
-  "enableAllProjectMcpServers": true
+  "enabledPlugins": {
+    "typescript-lsp@claude-plugins-official": true,
+    "feature-dev@claude-plugins-official": true,
+    "pr-review-toolkit@claude-plugins-official": true,
+    "figma@claude-plugins-official": true
+  }
 }
