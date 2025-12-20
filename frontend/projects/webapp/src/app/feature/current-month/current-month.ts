@@ -1,10 +1,10 @@
 import { DatePipe } from '@angular/common';
 import {
+  afterRenderEffect,
   ChangeDetectionStrategy,
   Component,
   computed,
   inject,
-  type OnInit,
   signal,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
@@ -41,9 +41,6 @@ import { EditTransactionDialog } from './components/edit-transaction-dialog';
 import { type FinancialEntryModel } from './models/financial-entry.model';
 import { Logger } from '@core/logging/logger';
 import { TutorialService } from '@core/tutorial/tutorial.service';
-
-/** Delay before starting tutorial to allow page to fully render */
-const TUTORIAL_START_DELAY_MS = 800;
 
 type TransactionFormData = Pick<
   TransactionCreate,
@@ -219,16 +216,32 @@ type EditTransactionFormData = Pick<
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export default class CurrentMonth implements OnInit {
+export default class CurrentMonth {
   isCreatingTransaction = signal(false);
   selectedTransactions = signal<string[]>([]);
   protected readonly store = inject(CurrentMonthStore);
   protected readonly titleDisplay = inject(TitleDisplay);
-  #bottomSheet = inject(MatBottomSheet);
-  #dialog = inject(MatDialog);
-  #snackBar = inject(MatSnackBar);
-  #logger = inject(Logger);
-  #tutorialService = inject(TutorialService);
+  readonly #bottomSheet = inject(MatBottomSheet);
+  readonly #dialog = inject(MatDialog);
+  readonly #snackBar = inject(MatSnackBar);
+  readonly #logger = inject(Logger);
+  readonly #tutorialService = inject(TutorialService);
+
+  constructor() {
+    afterRenderEffect(() => {
+      const hasLoadedData =
+        this.store.dashboardStatus() !== 'loading' &&
+        this.store.dashboardStatus() !== 'error';
+
+      if (
+        hasLoadedData &&
+        !this.#tutorialService.hasSeenTour('dashboard-welcome')
+      ) {
+        this.#tutorialService.startTour('dashboard-welcome');
+      }
+    });
+  }
+
   recurringFinancialItems = computed<FinancialEntryModel[]>(() => {
     const budgetLines = this.store.displayBudgetLines();
     const budget = this.store.dashboardData()?.budget;
@@ -250,26 +263,6 @@ export default class CurrentMonth implements OnInit {
     );
   });
 
-  /**
-   * Initialize component and start welcome tutorial on first visit
-   */
-  ngOnInit() {
-    setTimeout(() => {
-      const hasLoadedData =
-        this.store.dashboardStatus() !== 'loading' &&
-        this.store.dashboardStatus() !== 'error';
-      const hasNotCompletedTour =
-        !this.#tutorialService.hasCompletedTour('dashboard-welcome');
-
-      if (hasLoadedData && hasNotCompletedTour) {
-        this.#tutorialService.startTour('dashboard-welcome');
-      }
-    }, TUTORIAL_START_DELAY_MS);
-  }
-
-  /**
-   *
-   */
   openAddTransactionBottomSheet(): void {
     const bottomSheetRef = this.#bottomSheet.open(AddTransactionBottomSheet, {
       disableClose: false,

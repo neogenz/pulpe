@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
+import { Router } from '@angular/router';
 import { ShepherdService } from 'angular-shepherd';
 import { AnalyticsService } from '../analytics/analytics';
 import { Logger } from '../logging/logger';
@@ -30,6 +31,10 @@ describe('TutorialService', () => {
   };
   let mockAnalyticsService: {
     captureEvent: ReturnType<typeof vi.fn>;
+  };
+  let mockRouter: {
+    url: string;
+    navigate: ReturnType<typeof vi.fn>;
   };
 
   const STORAGE_KEY = 'pulpe-tutorial-state';
@@ -74,12 +79,24 @@ describe('TutorialService', () => {
   }
 
   /**
+   * Creates a fresh mock Router
+   * Default URL matches current-month so tours don't trigger navigation
+   */
+  function createMockRouter() {
+    return {
+      url: '/app/current-month',
+      navigate: vi.fn().mockResolvedValue(true),
+    };
+  }
+
+  /**
    * Creates a new TutorialService instance with fresh mocks
    */
   function createService() {
     mockShepherdService = createMockShepherdService();
     mockLogger = createMockLogger();
     mockAnalyticsService = createMockAnalyticsService();
+    mockRouter = createMockRouter();
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
@@ -89,6 +106,7 @@ describe('TutorialService', () => {
         { provide: ShepherdService, useValue: mockShepherdService },
         { provide: Logger, useValue: mockLogger },
         { provide: AnalyticsService, useValue: mockAnalyticsService },
+        { provide: Router, useValue: mockRouter },
       ],
     });
 
@@ -184,9 +202,9 @@ describe('TutorialService', () => {
   });
 
   describe('startTour', () => {
-    it('should start a tour when valid tourId is provided', () => {
+    it('should start a tour when valid tourId is provided', async () => {
       // Act
-      service.startTour('dashboard-welcome');
+      await service.startTour('dashboard-welcome');
 
       // Assert
       expect(mockShepherdService.addSteps).toHaveBeenCalled();
@@ -195,7 +213,7 @@ describe('TutorialService', () => {
       expect(service.state().currentTour).toBe('dashboard-welcome');
     });
 
-    it('should not start a tour that has already been completed', () => {
+    it('should not start a tour that has already been completed', async () => {
       // Arrange: Mark tour as completed
       const persistedState = {
         completedTours: ['dashboard-welcome'],
@@ -206,14 +224,14 @@ describe('TutorialService', () => {
       const newService = createService();
 
       // Act
-      newService.startTour('dashboard-welcome');
+      await newService.startTour('dashboard-welcome');
 
       // Assert
       expect(mockShepherdService.addSteps).not.toHaveBeenCalled();
       expect(newService.state().isActive).toBe(false);
     });
 
-    it('should start a completed tour when force option is true', () => {
+    it('should start a completed tour when force option is true', async () => {
       // Arrange: Mark tour as completed
       const persistedState = {
         completedTours: ['dashboard-welcome'],
@@ -224,7 +242,7 @@ describe('TutorialService', () => {
       const newService = createService();
 
       // Act
-      newService.startTour('dashboard-welcome', { force: true });
+      await newService.startTour('dashboard-welcome', { force: true });
 
       // Assert
       expect(mockShepherdService.addSteps).toHaveBeenCalled();
@@ -232,42 +250,42 @@ describe('TutorialService', () => {
       expect(newService.state().isActive).toBe(true);
     });
 
-    it('should not start any tour when tutorials are disabled', () => {
+    it('should not start any tour when tutorials are disabled', async () => {
       // Arrange
       service.updatePreferences({ enabled: false });
 
       // Act
-      service.startTour('dashboard-welcome');
+      await service.startTour('dashboard-welcome');
 
       // Assert
       expect(mockShepherdService.addSteps).not.toHaveBeenCalled();
       expect(service.state().isActive).toBe(false);
     });
 
-    it('should start tour when disabled but force is true', () => {
+    it('should start tour when disabled but force is true', async () => {
       // Arrange
       service.updatePreferences({ enabled: false });
 
       // Act
-      service.startTour('dashboard-welcome', { force: true });
+      await service.startTour('dashboard-welcome', { force: true });
 
       // Assert
       expect(mockShepherdService.addSteps).toHaveBeenCalled();
       expect(service.state().isActive).toBe(true);
     });
 
-    it('should not start a tour when tourId does not exist', () => {
+    it('should not start a tour when tourId does not exist', async () => {
       // Act
-      service.startTour('non-existent-tour' as TourId);
+      await service.startTour('non-existent-tour' as TourId);
 
       // Assert
       expect(mockShepherdService.addSteps).not.toHaveBeenCalled();
       expect(service.state().isActive).toBe(false);
     });
 
-    it('should register event listeners after adding steps', () => {
+    it('should register event listeners after adding steps', async () => {
       // Act
-      service.startTour('dashboard-welcome');
+      await service.startTour('dashboard-welcome');
 
       // Assert
       expect(mockShepherdService.tourObject?.on).toHaveBeenCalledWith(
@@ -280,14 +298,14 @@ describe('TutorialService', () => {
       );
     });
 
-    it('should handle errors during tour start gracefully', () => {
+    it('should handle errors during tour start gracefully', async () => {
       // Arrange
       mockShepherdService.addSteps.mockImplementation(() => {
         throw new Error('Shepherd error');
       });
 
       // Act
-      service.startTour('dashboard-welcome');
+      await service.startTour('dashboard-welcome');
 
       // Assert
       expect(service.state().isActive).toBe(false);
@@ -296,9 +314,9 @@ describe('TutorialService', () => {
   });
 
   describe('cancelTour', () => {
-    it('should cancel the active tour', () => {
+    it('should cancel the active tour', async () => {
       // Arrange
-      service.startTour('dashboard-welcome');
+      await service.startTour('dashboard-welcome');
 
       // Act
       service.cancelTour();
@@ -315,9 +333,9 @@ describe('TutorialService', () => {
       expect(mockShepherdService.cancel).not.toHaveBeenCalled();
     });
 
-    it('should handle errors during cancellation gracefully', () => {
+    it('should handle errors during cancellation gracefully', async () => {
       // Arrange
-      service.startTour('dashboard-welcome');
+      await service.startTour('dashboard-welcome');
       mockShepherdService.cancel.mockImplementation(() => {
         throw new Error('Cancel error');
       });
@@ -462,16 +480,17 @@ describe('TutorialService', () => {
     it('should return all configured tours', () => {
       const tours = service.getAllTours();
 
-      expect(tours).toHaveLength(4);
+      expect(tours).toHaveLength(5);
       expect(tours.map((t) => t.id)).toContain('dashboard-welcome');
       expect(tours.map((t) => t.id)).toContain('add-transaction');
       expect(tours.map((t) => t.id)).toContain('templates-intro');
       expect(tours.map((t) => t.id)).toContain('budget-management');
+      expect(tours.map((t) => t.id)).toContain('budget-calendar');
     });
   });
 
   describe('event handling', () => {
-    it('should mark tour as completed when complete event fires', () => {
+    it('should mark tour as completed when complete event fires', async () => {
       // Arrange
       let completeHandler: (() => void) | undefined;
       mockShepherdService.tourObject = {
@@ -481,7 +500,7 @@ describe('TutorialService', () => {
         off: vi.fn(),
       };
 
-      service.startTour('dashboard-welcome');
+      await service.startTour('dashboard-welcome');
 
       // Act
       completeHandler?.();
@@ -492,7 +511,7 @@ describe('TutorialService', () => {
       expect(service.state().currentTour).toBeNull();
     });
 
-    it('should mark tour as skipped when cancel event fires', () => {
+    it('should mark tour as skipped when cancel event fires', async () => {
       // Arrange
       let cancelHandler: (() => void) | undefined;
       mockShepherdService.tourObject = {
@@ -502,7 +521,7 @@ describe('TutorialService', () => {
         off: vi.fn(),
       };
 
-      service.startTour('dashboard-welcome');
+      await service.startTour('dashboard-welcome');
 
       // Act
       cancelHandler?.();
@@ -513,9 +532,9 @@ describe('TutorialService', () => {
       expect(service.state().currentTour).toBeNull();
     });
 
-    it('should remove existing listeners before adding new ones', () => {
+    it('should remove existing listeners before adding new ones', async () => {
       // Act
-      service.startTour('dashboard-welcome');
+      await service.startTour('dashboard-welcome');
 
       // Assert
       expect(mockShepherdService.tourObject?.off).toHaveBeenCalledWith(
@@ -535,7 +554,7 @@ describe('TutorialService', () => {
       );
     });
 
-    it('should persist completion to localStorage when tour completes', () => {
+    it('should persist completion to localStorage when tour completes', async () => {
       // Arrange
       let completeHandler: (() => void) | undefined;
       mockShepherdService.tourObject = {
@@ -545,7 +564,7 @@ describe('TutorialService', () => {
         off: vi.fn(),
       };
 
-      service.startTour('dashboard-welcome');
+      await service.startTour('dashboard-welcome');
 
       // Act
       completeHandler?.();
@@ -557,9 +576,9 @@ describe('TutorialService', () => {
   });
 
   describe('analytics tracking', () => {
-    it('should track tutorial_started event when tour starts', () => {
+    it('should track tutorial_started event when tour starts', async () => {
       // Act
-      service.startTour('dashboard-welcome');
+      await service.startTour('dashboard-welcome');
 
       // Assert
       expect(mockAnalyticsService.captureEvent).toHaveBeenCalledWith(
@@ -571,7 +590,7 @@ describe('TutorialService', () => {
       );
     });
 
-    it('should track tutorial_completed event when tour completes', () => {
+    it('should track tutorial_completed event when tour completes', async () => {
       // Arrange
       let completeHandler: (() => void) | undefined;
       mockShepherdService.tourObject = {
@@ -581,7 +600,7 @@ describe('TutorialService', () => {
         off: vi.fn(),
       };
 
-      service.startTour('dashboard-welcome');
+      await service.startTour('dashboard-welcome');
       mockAnalyticsService.captureEvent.mockClear();
 
       // Act
@@ -597,7 +616,7 @@ describe('TutorialService', () => {
       );
     });
 
-    it('should track tutorial_cancelled event when tour is cancelled', () => {
+    it('should track tutorial_cancelled event when tour is cancelled', async () => {
       // Arrange
       let cancelHandler: (() => void) | undefined;
       mockShepherdService.tourObject = {
@@ -607,7 +626,7 @@ describe('TutorialService', () => {
         off: vi.fn(),
       };
 
-      service.startTour('dashboard-welcome');
+      await service.startTour('dashboard-welcome');
       mockAnalyticsService.captureEvent.mockClear();
 
       // Act
@@ -623,14 +642,14 @@ describe('TutorialService', () => {
       );
     });
 
-    it('should continue tour operation when analytics fails', () => {
+    it('should continue tour operation when analytics fails', async () => {
       // Arrange
       mockAnalyticsService.captureEvent.mockImplementation(() => {
         throw new Error('PostHog unavailable');
       });
 
       // Act
-      service.startTour('dashboard-welcome');
+      await service.startTour('dashboard-welcome');
 
       // Assert
       expect(service.state().isActive).toBe(true);

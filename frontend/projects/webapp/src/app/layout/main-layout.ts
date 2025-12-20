@@ -41,6 +41,18 @@ interface NavigationItem {
   readonly tooltip?: string;
 }
 
+interface HelpMenuItem {
+  readonly tourId:
+    | 'dashboard-welcome'
+    | 'add-transaction'
+    | 'templates-intro'
+    | 'budget-management'
+    | 'budget-calendar';
+  readonly label: string;
+  readonly icon: string;
+  readonly testId: string;
+}
+
 @Component({
   selector: 'pulpe-main-layout',
   imports: [
@@ -265,50 +277,25 @@ interface NavigationItem {
 
             <!-- Help Menu -->
             <mat-menu #helpMenu="matMenu" xPosition="before">
-              <button
-                mat-menu-item
-                (click)="
-                  tutorialService.startTour('dashboard-welcome', {
-                    force: true,
-                  })
-                "
-                data-testid="help-menu-dashboard-tour"
-              >
-                <mat-icon matMenuItemIcon>explore</mat-icon>
-                <span>Tour du tableau de bord</span>
-              </button>
-              <button
-                mat-menu-item
-                (click)="
-                  tutorialService.startTour('add-transaction', { force: true })
-                "
-                data-testid="help-menu-transaction-tour"
-              >
-                <mat-icon matMenuItemIcon>attach_money</mat-icon>
-                <span>Ajouter une transaction</span>
-              </button>
-              <button
-                mat-menu-item
-                (click)="
-                  tutorialService.startTour('templates-intro', { force: true })
-                "
-                data-testid="help-menu-templates-tour"
-              >
-                <mat-icon matMenuItemIcon>description</mat-icon>
-                <span>Introduction aux modèles</span>
-              </button>
-              <button
-                mat-menu-item
-                (click)="
-                  tutorialService.startTour('budget-management', {
-                    force: true,
-                  })
-                "
-                data-testid="help-menu-budget-tour"
-              >
-                <mat-icon matMenuItemIcon>account_balance</mat-icon>
-                <span>Gestion des budgets</span>
-              </button>
+              @for (item of helpMenuItems; track item.tourId) {
+                <button
+                  mat-menu-item
+                  (click)="
+                    tutorialService.startTour(item.tourId, { force: true })
+                  "
+                  [attr.data-testid]="item.testId"
+                  class="flex items-center"
+                >
+                  <mat-icon matMenuItemIcon>{{ item.icon }}</mat-icon>
+                  <span class="flex-1">{{ item.label }}</span>
+                  @if (tutorialService.tourRequiresNavigation(item.tourId)) {
+                    <mat-icon
+                      class="!w-4 !h-4 text-sm text-on-surface-variant ml-2"
+                      >open_in_new</mat-icon
+                    >
+                  }
+                </button>
+              }
               <mat-divider></mat-divider>
               <button
                 mat-menu-item
@@ -432,6 +419,40 @@ export class MainLayout {
       label: 'Modèles',
       icon: 'description',
       tooltip: 'Préparez vos bases mensuelles',
+    },
+  ] as const;
+
+  // Help menu items for tutorial tours
+  protected readonly helpMenuItems: readonly HelpMenuItem[] = [
+    {
+      tourId: 'dashboard-welcome',
+      label: 'Tour du tableau de bord',
+      icon: 'explore',
+      testId: 'help-menu-dashboard-tour',
+    },
+    {
+      tourId: 'budget-calendar',
+      label: 'Calendrier des budgets',
+      icon: 'calendar_month',
+      testId: 'help-menu-calendar-tour',
+    },
+    {
+      tourId: 'templates-intro',
+      label: 'Introduction aux modèles',
+      icon: 'description',
+      testId: 'help-menu-templates-tour',
+    },
+    {
+      tourId: 'budget-management',
+      label: 'Gestion des budgets',
+      icon: 'account_balance',
+      testId: 'help-menu-budget-tour',
+    },
+    {
+      tourId: 'add-transaction',
+      label: 'Ajouter une transaction',
+      icon: 'attach_money',
+      testId: 'help-menu-transaction-tour',
     },
   ] as const;
 

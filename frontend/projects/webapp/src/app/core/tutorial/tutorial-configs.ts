@@ -1,6 +1,60 @@
-import type { StepOptions, Tour } from 'shepherd.js';
+import type { Step, StepOptions, Tour } from 'shepherd.js';
 import { offset } from '@floating-ui/dom';
 import type { TutorialTour } from './tutorial.types';
+import { ROUTES } from '../routing/routes-constants';
+
+/**
+ * Injects step counter and progress dots into the step element
+ * Called on each step show event
+ */
+function injectStepUI(this: Step): void {
+  const tour = this.tour;
+  if (!tour || !this.el) return;
+
+  const currentStepIndex = tour.steps.indexOf(this);
+  const totalSteps = tour.steps.length;
+  const header = this.el.querySelector('.shepherd-header');
+  const content = this.el.querySelector('.shepherd-content');
+
+  // Inject step counter if not already present
+  if (header && !header.querySelector('.shepherd-step-counter')) {
+    const counter = document.createElement('span');
+    counter.className = 'shepherd-step-counter';
+    counter.textContent = `Étape ${currentStepIndex + 1} sur ${totalSteps}`;
+    header.insertBefore(counter, header.firstChild);
+  }
+
+  // Inject progress dots if not already present
+  if (content && !this.el.querySelector('.shepherd-progress')) {
+    const progress = document.createElement('div');
+    progress.className = 'shepherd-progress';
+    progress.setAttribute('role', 'progressbar');
+    progress.setAttribute('aria-valuenow', String(currentStepIndex + 1));
+    progress.setAttribute('aria-valuemin', '1');
+    progress.setAttribute('aria-valuemax', String(totalSteps));
+    progress.setAttribute(
+      'aria-label',
+      `Étape ${currentStepIndex + 1} sur ${totalSteps}`,
+    );
+
+    progress.innerHTML = tour.steps
+      .map((_, i) => {
+        const isActive = i === currentStepIndex;
+        const isCompleted = i < currentStepIndex;
+        const classes = [
+          'shepherd-progress__dot',
+          isActive ? 'shepherd-progress__dot--active' : '',
+          isCompleted ? 'shepherd-progress__dot--completed' : '',
+        ]
+          .filter(Boolean)
+          .join(' ');
+        return `<span class="${classes}" aria-hidden="true"></span>`;
+      })
+      .join('');
+
+    this.el.insertBefore(progress, content);
+  }
+}
 
 /**
  * Helper function to wait for an element to exist in the DOM
@@ -95,6 +149,9 @@ export const defaultStepOptions: Partial<StepOptions> = {
   floatingUIOptions: {
     middleware: [offset({ mainAxis: 24 })],
   },
+  when: {
+    show: injectStepUI,
+  },
 };
 
 /**
@@ -135,6 +192,7 @@ export const dashboardWelcomeTour: TutorialTour = {
   name: 'Découverte du tableau de bord',
   description: 'Apprenez à utiliser votre dashboard budgétaire',
   triggerOn: 'first-visit',
+  targetRoute: ROUTES.CURRENT_MONTH,
   steps: [
     {
       id: 'welcome',
@@ -217,6 +275,7 @@ export const addTransactionTour: TutorialTour = {
   name: 'Ajouter une transaction',
   description: 'Apprenez à enregistrer vos dépenses quotidiennes',
   triggerOn: 'manual',
+  targetRoute: ROUTES.CURRENT_MONTH,
   steps: [
     {
       id: 'transaction-form',
@@ -293,7 +352,8 @@ export const templatesIntroTour: TutorialTour = {
   id: 'templates-intro',
   name: 'Introduction aux modèles',
   description: 'Découvrez comment créer et utiliser des modèles de budget',
-  triggerOn: 'manual',
+  triggerOn: 'first-visit',
+  targetRoute: ROUTES.BUDGET_TEMPLATES,
   steps: [
     {
       id: 'templates-intro',
@@ -352,7 +412,7 @@ export const budgetManagementTour: TutorialTour = {
   id: 'budget-management',
   name: 'Gestion des budgets',
   description: 'Apprenez à consulter et modifier vos budgets mensuels',
-  triggerOn: 'manual',
+  triggerOn: 'first-visit',
   steps: [
     {
       id: 'budget-overview',
@@ -397,6 +457,81 @@ export const budgetManagementTour: TutorialTour = {
 };
 
 /**
+ * Budget Calendar Tour - Guide for the budget list/calendar page
+ */
+export const budgetCalendarTour: TutorialTour = {
+  id: 'budget-calendar',
+  name: 'Calendrier des budgets',
+  description: 'Découvrez comment naviguer et créer des budgets mensuels',
+  triggerOn: 'first-visit',
+  targetRoute: ROUTES.BUDGET,
+  steps: [
+    {
+      id: 'calendar-intro',
+      title: 'Votre calendrier budgétaire',
+      text: `
+        <p>Bienvenue dans votre <strong>calendrier de budgets</strong> !</p>
+        <p>Ici, vous pouvez visualiser et gérer tous vos budgets mensuels sur plusieurs années.</p>
+      `,
+      buttons: [buttons.cancel, buttons.next],
+    },
+    {
+      id: 'create-budget',
+      title: 'Créer un nouveau budget',
+      text: `
+        <p>Cliquez sur ce bouton pour créer un budget pour un nouveau mois.</p>
+        <p>Choisissez le mois et le modèle à utiliser comme base.</p>
+      `,
+      attachTo: {
+        element: () =>
+          document.querySelector(
+            '[data-testid="create-budget-btn"]',
+          ) as HTMLElement,
+        on: 'bottom',
+      },
+      beforeShowPromise: createSafeBeforeShowPromise(
+        '[data-testid="create-budget-btn"]',
+      ),
+      buttons: [buttons.cancel, buttons.back, buttons.next],
+    },
+    {
+      id: 'year-tabs',
+      title: 'Navigation par année',
+      text: `
+        <p>Utilisez ces onglets pour naviguer entre les différentes années.</p>
+        <p>Planifiez vos budgets sur le long terme !</p>
+      `,
+      attachTo: {
+        element: () =>
+          document.querySelector(
+            '[data-testid="budget-year-tabs"]',
+          ) as HTMLElement,
+        on: 'bottom',
+      },
+      beforeShowPromise: createSafeBeforeShowPromise(
+        '[data-testid="budget-year-tabs"]',
+      ),
+      buttons: [buttons.cancel, buttons.back, buttons.next],
+    },
+    {
+      id: 'month-calendar',
+      title: 'Vue des mois',
+      text: `
+        <p>Chaque case représente un mois. Les mois avec un budget sont colorés.</p>
+        <p>Cliquez sur un mois existant pour voir ses détails, ou sur un mois vide pour le créer.</p>
+      `,
+      attachTo: {
+        element: () =>
+          document.querySelector('pulpe-year-calendar') as HTMLElement,
+        on: 'top',
+      },
+      beforeShowPromise: createSafeBeforeShowPromise('pulpe-year-calendar'),
+      buttons: [buttons.cancel, buttons.back, buttons.complete],
+    },
+  ],
+};
+
+/**
  * All available tours
  */
 export const ALL_TOURS: TutorialTour[] = [
@@ -404,4 +539,5 @@ export const ALL_TOURS: TutorialTour[] = [
   addTransactionTour,
   templatesIntroTour,
   budgetManagementTour,
+  budgetCalendarTour,
 ];

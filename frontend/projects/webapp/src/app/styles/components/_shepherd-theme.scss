@@ -1,16 +1,33 @@
 /**
- * Shepherd.js Custom Theme - Material Design 3
+ * Shepherd.js Theme - Pulpe Financial Clarity
  *
- * This file contains custom styling for Shepherd.js tutorial overlays
- * following Material Design 3 specifications and Pulpe's design system.
+ * A refined, distinctive tutorial theme for the Pulpe budgeting app.
+ * Integrates with Material Design 3 and Tailwind CSS v4 design system.
+ *
+ * Design Direction: "Refined Financial Clarity"
+ * - Trustworthy & Professional
+ * - Modern but Warm
+ * - Clear & Helpful
+ * - Subtle Sophistication
  */
 
 /* ============================================================================
-   Tour Overlay - Modal Background
+   CSS Custom Properties for Tutorial Theme
+   ========================================================================= */
+
+:root {
+  /* Tutorial-specific tokens */
+  --tutorial-tooltip-max-width: 420px;
+  --tutorial-tooltip-radius: var(--mat-sys-corner-extra-large);
+  --tutorial-animation-duration: 300ms;
+  --tutorial-animation-easing: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============================================================================
+   Modal Overlay - Sophisticated Spotlight Effect
    ========================================================================= */
 
 .shepherd-modal-overlay-container {
-  /* Base positioning (required for overlay to display) */
   position: fixed;
   top: 0;
   left: 0;
@@ -21,21 +38,19 @@
   pointer-events: none;
   opacity: 0;
   transition:
-    all 0.3s ease-out,
-    height 0s 0.3s,
-    opacity 0.3s 0s;
+    opacity var(--tutorial-animation-duration) var(--tutorial-animation-easing),
+    height 0s var(--tutorial-animation-duration);
 
-  /* Custom Material Design 3 styling - use fill for SVG elements */
-  fill: rgb(0 0 0 / 70%);
+  /* Radial gradient for spotlight effect */
+  fill: rgb(0 0 0 / 75%);
 
   &.shepherd-modal-is-visible {
     height: 100vh;
-    opacity: 0.5;
-    transform: translateZ(0);
+    opacity: 1;
     transition:
-      all 0.3s ease-out,
-      height 0s 0s,
-      opacity 0.3s 0s;
+      opacity var(--tutorial-animation-duration)
+        var(--tutorial-animation-easing),
+      height 0s 0s;
 
     path {
       pointer-events: all;
@@ -44,29 +59,37 @@
 }
 
 /* ============================================================================
-   Step Container - Main Popover
+   Step Container - Main Tooltip with Brand Accent
    ========================================================================= */
 
 .shepherd-element {
-  /* Base styles (required for proper display) */
   box-sizing: border-box;
   margin: 0;
   padding: 0;
   outline: none;
   width: 100%;
-  opacity: 0;
-  visibility: hidden;
-  transition:
-    opacity 0.3s,
-    visibility 0.3s;
-
-  /* Material Design 3 styling */
-  background: var(--mat-sys-surface-container);
-  border-radius: var(--mat-sys-corner-extra-large);
-  box-shadow: var(--mat-sys-level3);
-  max-width: 420px;
   z-index: 9999;
   border: none;
+
+  /* Visual styling */
+  background: var(--mat-sys-surface-container);
+  border-radius: var(--tutorial-tooltip-radius);
+  box-shadow:
+    0 8px 32px -4px rgb(0 0 0 / 12%),
+    0 4px 16px -2px rgb(0 0 0 / 8%),
+    0 2px 8px -1px rgb(0 0 0 / 6%);
+  max-width: var(--tutorial-tooltip-max-width);
+
+  /* Initial state for animation */
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(16px);
+  transition:
+    opacity var(--tutorial-animation-duration) var(--tutorial-animation-easing),
+    visibility var(--tutorial-animation-duration)
+      var(--tutorial-animation-easing),
+    transform var(--tutorial-animation-duration)
+      var(--tutorial-animation-easing);
 
   &,
   & *,
@@ -78,6 +101,7 @@
   &.shepherd-enabled {
     opacity: 1;
     visibility: visible;
+    transform: translateY(0);
   }
 
   &[data-popper-reference-hidden]:not(.shepherd-centered) {
@@ -87,45 +111,76 @@
   }
 }
 
+/* Custom class for Pulpe styling */
 .pulpe-tutorial-step {
-  /* Custom class applied to all steps */
-  animation: shepherd-fade-in 0.3s ease-in-out;
+  /* Additional custom styles can be added here */
 }
 
-@keyframes shepherd-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+/* ============================================================================
+   Progress Indicator - Dot Navigation
+   ========================================================================= */
+
+.shepherd-progress {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  padding: 16px 20px 0;
+
+  &__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--mat-sys-surface-container-highest);
+    transition:
+      background var(--tutorial-animation-duration)
+        var(--tutorial-animation-easing),
+      transform var(--tutorial-animation-duration)
+        var(--tutorial-animation-easing);
+
+    &--active {
+      background: var(--mat-sys-primary);
+      transform: scale(1.25);
+    }
+
+    &--completed {
+      background: var(--mat-sys-primary);
+    }
   }
 }
 
 /* ============================================================================
-   Step Header
+   Step Header with Counter
    ========================================================================= */
 
 .shepherd-header {
-  /* Base layout (required for proper alignment) */
   display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  line-height: 2em;
-
-  /* Material Design 3 styling */
+  flex-direction: column;
+  align-items: flex-start;
   background: transparent;
   padding: 20px 20px 0;
   border: none;
+  position: relative;
+  line-height: normal;
+}
+
+/* Step counter - "Étape 1 sur 4" */
+.shepherd-step-counter {
+  font-family: var(--mat-sys-label-medium-font);
+  font-size: var(--mat-sys-label-medium-size);
+  font-weight: var(--mat-sys-label-medium-weight);
+  line-height: var(--mat-sys-label-medium-line-height);
+  letter-spacing: 0.5px;
+  color: var(--mat-sys-on-surface-variant);
+  margin-bottom: 4px;
+  text-transform: uppercase;
 }
 
 .shepherd-title {
-  /* Base layout */
-  display: flex;
+  display: block;
   flex: 1 0 auto;
   margin: 0;
   padding: 0;
+  padding-right: 40px; /* Space for close button */
 
   /* Material Design 3 typography */
   font-family: var(--mat-sys-title-large-font);
@@ -134,29 +189,43 @@
   line-height: var(--mat-sys-title-large-line-height);
   letter-spacing: var(--mat-sys-title-large-tracking);
   color: var(--mat-sys-on-surface);
-  padding-right: 32px; /* Space for close button */
 }
 
+/* Close/Cancel button - Material icon style */
 .shepherd-cancel-icon {
   position: absolute;
   top: 16px;
   right: 16px;
-  width: 24px;
-  height: 24px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   border: none;
+  border-radius: 50%;
   cursor: pointer;
   color: var(--mat-sys-on-surface-variant);
-  transition: color 0.2s ease;
+  font-size: 24px;
+  font-weight: 300;
+  line-height: 1;
+  transition:
+    background var(--tutorial-animation-duration)
+      var(--tutorial-animation-easing),
+    color var(--tutorial-animation-duration) var(--tutorial-animation-easing);
 
   &:hover {
+    background: color-mix(in srgb, var(--mat-sys-on-surface) 8%, transparent);
     color: var(--mat-sys-on-surface);
+  }
+
+  &:active {
+    background: color-mix(in srgb, var(--mat-sys-on-surface) 12%, transparent);
   }
 
   &:focus-visible {
     outline: 2px solid var(--mat-sys-primary);
     outline-offset: 2px;
-    border-radius: var(--mat-sys-corner-small);
   }
 }
 
@@ -165,7 +234,7 @@
    ========================================================================= */
 
 .shepherd-content {
-  border-radius: var(--mat-sys-corner-extra-large);
+  border-radius: var(--tutorial-tooltip-radius);
   outline: none;
   padding: 0;
 }
@@ -190,15 +259,20 @@
   ul,
   ol {
     margin: 12px 0;
-    padding-left: 24px;
+    padding-left: 20px;
 
     li {
       margin-bottom: 8px;
+      position: relative;
 
       &:last-child {
         margin-bottom: 0;
       }
     }
+  }
+
+  ul li::marker {
+    color: var(--mat-sys-primary);
   }
 
   strong {
@@ -208,15 +282,15 @@
 }
 
 /* ============================================================================
-   Step Footer - Buttons
+   Step Footer - Navigation Buttons
    ========================================================================= */
 
 .shepherd-footer {
   background: transparent;
-  padding: 0 20px 20px;
+  padding: 8px 20px 20px;
   border: none;
   display: flex;
-  gap: 8px;
+  gap: 12px;
   justify-content: flex-end;
   align-items: center;
 }
@@ -233,7 +307,14 @@
   border: none;
   border-radius: var(--mat-sys-corner-full);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition:
+    background var(--tutorial-animation-duration)
+      var(--tutorial-animation-easing),
+    box-shadow var(--tutorial-animation-duration)
+      var(--tutorial-animation-easing),
+    transform 150ms var(--tutorial-animation-easing),
+    border-color var(--tutorial-animation-duration)
+      var(--tutorial-animation-easing);
 
   &:focus-visible {
     outline: 2px solid var(--mat-sys-primary);
@@ -243,6 +324,11 @@
   &:disabled {
     opacity: 0.38;
     cursor: not-allowed;
+    transform: none !important;
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.98);
   }
 }
 
@@ -252,48 +338,41 @@
   color: var(--mat-sys-on-primary);
 
   &:hover:not(:disabled) {
-    /* MD3: State layer 8% de on-primary sur primary */
     background: color-mix(
       in srgb,
       var(--mat-sys-on-primary) 8%,
       var(--mat-sys-primary)
     );
-    box-shadow: var(--mat-sys-level1);
+    box-shadow:
+      0 2px 8px -2px rgb(0 0 0 / 20%),
+      0 4px 16px -4px rgb(0 0 0 / 15%);
+    transform: translateY(-1px);
   }
 
   &:active:not(:disabled) {
-    /* MD3: State layer 10% pour pressed */
     background: color-mix(
       in srgb,
-      var(--mat-sys-on-primary) 10%,
+      var(--mat-sys-on-primary) 12%,
       var(--mat-sys-primary)
     );
     box-shadow: none;
+    transform: scale(0.98);
   }
 }
 
-/* Secondary Button (Back, Cancel) */
+/* Secondary Button (Back, Cancel/Skip) */
 .shepherd-button-secondary {
-  background: var(--mat-sys-surface-container-highest);
-  color: var(--mat-sys-on-surface-variant);
+  background: transparent;
+  color: var(--mat-sys-primary);
+  border: 1px solid var(--mat-sys-outline);
 
   &:hover:not(:disabled) {
-    /* MD3: State layer 8% de on-surface sur surface-container-highest */
-    background: color-mix(
-      in srgb,
-      var(--mat-sys-on-surface) 8%,
-      var(--mat-sys-surface-container-highest)
-    );
-    box-shadow: var(--mat-sys-level1);
+    background: color-mix(in srgb, var(--mat-sys-primary) 8%, transparent);
+    border-color: var(--mat-sys-primary);
   }
 
   &:active:not(:disabled) {
-    /* MD3: State layer 10% pour pressed */
-    background: color-mix(
-      in srgb,
-      var(--mat-sys-on-surface) 10%,
-      var(--mat-sys-surface-container-highest)
-    );
+    background: color-mix(in srgb, var(--mat-sys-primary) 12%, transparent);
   }
 }
 
@@ -302,7 +381,6 @@
    ========================================================================= */
 
 .shepherd-arrow {
-  /* Base positioning (required for arrow display) */
   position: absolute;
   width: 16px;
   height: 16px;
@@ -315,6 +393,7 @@
     height: 16px;
     transform: rotate(45deg);
     background: var(--mat-sys-surface-container);
+    box-shadow: -2px -2px 4px -2px rgb(0 0 0 / 6%);
   }
 }
 
@@ -325,6 +404,10 @@
 /* Arrow positioning for different placements */
 .shepherd-element[data-popper-placement^="top"] > .shepherd-arrow {
   bottom: -8px;
+
+  &::before {
+    box-shadow: 2px 2px 4px -2px rgb(0 0 0 / 6%);
+  }
 }
 
 .shepherd-element[data-popper-placement^="bottom"] > .shepherd-arrow {
@@ -333,49 +416,43 @@
 
 .shepherd-element[data-popper-placement^="left"] > .shepherd-arrow {
   right: -8px;
+
+  &::before {
+    box-shadow: 2px -2px 4px -2px rgb(0 0 0 / 6%);
+  }
 }
 
 .shepherd-element[data-popper-placement^="right"] > .shepherd-arrow {
   left: -8px;
-}
 
-/* ============================================================================
-   Highlighted Target Element
-   ========================================================================= */
-
-.shepherd-target {
-  /* Element being highlighted in the tour - no extra border needed, SVG spotlight is sufficient */
-  box-shadow: none !important;
-}
-
-.shepherd-target-click-disabled {
-  /* Disabled pointer events on highlighted element if configured */
-  pointer-events: none;
-}
-
-/* ============================================================================
-   Modal Opening (Spotlight around target)
-   ========================================================================= */
-
-.shepherd-modal-overlay-container.shepherd-modal-is-visible {
-  path {
-    /* The "cut-out" shape around the target element */
-    pointer-events: all;
+  &::before {
+    box-shadow: -2px 2px 4px -2px rgb(0 0 0 / 6%);
   }
 }
 
 /* ============================================================================
-   Page-level class when tour is active
+   Target Element Highlight
+   ========================================================================= */
+
+.shepherd-target {
+  /* Reset any default styling - SVG spotlight handles highlighting */
+  box-shadow: none !important;
+}
+
+.shepherd-target-click-disabled {
+  pointer-events: none;
+}
+
+/* ============================================================================
+   Active Tour State
    ========================================================================= */
 
 .shepherd-active {
-  /* Applied to body/html when shepherd tour is running */
-  /* Prevent scrolling while tour is active */
   overflow: hidden;
 }
 
 /* ============================================================================
-   Responsive Adjustments for Mobile
+   Responsive Design - Mobile First
    ========================================================================= */
 
 @media (max-width: 767px) {
@@ -388,37 +465,63 @@
     padding: 16px 16px 0;
   }
 
+  .shepherd-title {
+    font-size: calc(var(--mat-sys-title-large-size) * 0.9);
+    padding-right: 36px;
+  }
+
   .shepherd-text {
     padding: 12px 16px;
     font-size: 14px;
   }
 
   .shepherd-footer {
-    padding: 0 16px 16px;
-    flex-wrap: wrap;
+    padding: 8px 16px 16px;
+    gap: 8px;
   }
 
   .shepherd-button {
     flex: 1 1 auto;
-    min-width: 100px;
+    min-width: 80px;
+    padding: 10px 16px;
+    min-height: 44px; /* Touch-friendly */
   }
 
   .shepherd-cancel-icon {
     top: 12px;
     right: 12px;
+    width: 44px;
+    height: 44px;
+  }
+
+  .shepherd-progress {
+    padding: 12px 16px 0;
+  }
+
+  .shepherd-step-counter {
+    font-size: 11px;
+  }
+}
+
+/* Very small screens - stack buttons vertically */
+@media (max-width: 359px) {
+  .shepherd-footer {
+    flex-direction: column;
+  }
+
+  .shepherd-button {
+    width: 100%;
   }
 }
 
 /* ============================================================================
-   Accessibility Enhancements
+   Accessibility
    ========================================================================= */
 
-/* Focus trap for keyboard navigation */
 .shepherd-element:focus-within {
   outline: none;
 }
 
-/* Screen reader only text */
 .shepherd-sr-only {
   position: absolute;
   width: 1px;
@@ -433,35 +536,43 @@
 
 /* Reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
-  .pulpe-tutorial-step {
-    animation: none;
-  }
-
   .shepherd-element,
   .shepherd-button,
-  .shepherd-target {
+  .shepherd-cancel-icon,
+  .shepherd-modal-overlay-container,
+  .shepherd-progress__dot {
     transition: none;
+  }
+
+  .shepherd-element.shepherd-enabled {
+    transform: none;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .shepherd-element {
+    border: 2px solid var(--mat-sys-on-surface);
+  }
+
+  .shepherd-button-secondary {
+    border-width: 2px;
   }
 }
 
 /* ============================================================================
-   Dark Theme Support (if implemented in the future)
+   Dark Theme Support
    ========================================================================= */
 
 .dark-theme {
   .shepherd-modal-overlay-container {
-    background-color: rgb(0 0 0 / 85%);
+    fill: rgb(0 0 0 / 85%);
   }
 
   .shepherd-element {
-    background: var(--mat-sys-surface-container);
-  }
-
-  .shepherd-title {
-    color: var(--mat-sys-on-surface);
-  }
-
-  .shepherd-text {
-    color: var(--mat-sys-on-surface-variant);
+    box-shadow:
+      0 8px 32px -4px rgb(0 0 0 / 40%),
+      0 4px 16px -2px rgb(0 0 0 / 30%),
+      0 2px 8px -1px rgb(0 0 0 / 20%);
   }
 }

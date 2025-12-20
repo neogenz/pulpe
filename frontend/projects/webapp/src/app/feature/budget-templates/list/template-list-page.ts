@@ -1,4 +1,9 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import {
+  afterRenderEffect,
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -17,6 +22,7 @@ import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
 import { TemplateUsageDialogComponent } from '../components/dialogs/template-usage-dialog';
 import { getDeleteConfirmationConfig } from '../delete/template-delete-dialog';
 import { Logger } from '@core/logging/logger';
+import { TutorialService } from '@core/tutorial/tutorial.service';
 
 @Component({
   selector: 'pulpe-template-list-page',
@@ -127,6 +133,21 @@ export default class TemplateListPage {
   readonly #snackBar = inject(MatSnackBar);
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
   readonly #logger = inject(Logger);
+  readonly #tutorialService = inject(TutorialService);
+
+  constructor() {
+    afterRenderEffect(() => {
+      const hasLoadedData = this.state.budgetTemplates.status() === 'resolved';
+
+      if (
+        hasLoadedData &&
+        !this.#tutorialService.hasCompletedTour('templates-intro')
+      ) {
+        this.#tutorialService.startTour('templates-intro');
+      }
+    });
+  }
+
   async onDeleteTemplate(template: BudgetTemplate) {
     try {
       // First check if template is being used

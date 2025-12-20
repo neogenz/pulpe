@@ -8,6 +8,7 @@ export const TOUR_IDS = [
   'add-transaction',
   'templates-intro',
   'budget-management',
+  'budget-calendar',
 ] as const;
 
 /**
@@ -27,6 +28,8 @@ export interface TutorialTour {
   description: string;
   /** When to trigger the tour automatically */
   triggerOn?: 'first-visit' | 'manual' | 'condition';
+  /** Target route for this tour (without /app prefix). Used for navigation before starting. */
+  targetRoute?: string;
   /** Array of tour steps */
   steps: StepOptions[];
 }

@@ -1,5 +1,6 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import {
+  afterRenderEffect,
   ChangeDetectionStrategy,
   Component,
   computed,
@@ -14,7 +15,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { Router } from '@angular/router';
+import { Logger } from '@core/logging/logger';
 import { ROUTES, TitleDisplay } from '@core/routing';
+import { TutorialService } from '@core/tutorial/tutorial.service';
 import { type CalendarMonth, YearCalendar } from '@ui/calendar';
 import { type CalendarYear } from '@ui/calendar/calendar-types';
 import { BaseLoading } from '@ui/loading';
@@ -23,7 +26,6 @@ import { MonthsError } from '../ui/budget-error';
 import { mapToCalendarYear } from './budget-list-mapper/budget-list.mapper';
 import { BudgetListStore } from './budget-list-store';
 import { CreateBudgetDialogComponent } from './create-budget/budget-creation-dialog';
-import { Logger } from '@core/logging/logger';
 
 const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
 
@@ -79,6 +81,7 @@ const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
             fitInkBarToContent
             [selectedIndex]="state.selectedYearIndex()"
             (selectedIndexChange)="onTabChange($event)"
+            data-testid="budget-year-tabs"
           >
             @for (budgetsOfYear of calendarYears(); track budgetsOfYear.year) {
               <mat-tab [label]="budgetsOfYear.year.toString()">
@@ -112,6 +115,22 @@ export default class BudgetListPage implements OnInit {
   readonly #breakpointObserver = inject(BreakpointObserver);
   readonly #snackBar = inject(MatSnackBar);
   readonly #logger = inject(Logger);
+  readonly #tutorialService = inject(TutorialService);
+
+  constructor() {
+    afterRenderEffect(() => {
+      const hasLoadedData =
+        this.state.budgets.status() === 'resolved' ||
+        this.state.budgets.status() === 'local';
+
+      if (
+        hasLoadedData &&
+        !this.#tutorialService.hasSeenTour('budget-calendar')
+      ) {
+        this.#tutorialService.startTour('budget-calendar');
+      }
+    });
+  }
 
   protected readonly calendarYears = computed<CalendarYear[]>(() => {
     const currentYear = new Date().getFullYear();

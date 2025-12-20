@@ -1,8 +1,10 @@
 import { inject, Injectable, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { ShepherdService } from 'angular-shepherd';
 import { z } from 'zod';
 import { AnalyticsService } from '../analytics/analytics';
 import { Logger } from '../logging/logger';
+import { ROUTES } from '../routing/routes-constants';
 import { ALL_TOURS, defaultStepOptions } from './tutorial-configs';
 import type {
   TourId,
@@ -48,6 +50,7 @@ const TutorialStateSchema = z.object({
 })
 export class TutorialService {
   readonly #shepherdService = inject(ShepherdService);
+  readonly #router = inject(Router);
   readonly #logger = inject(Logger);
   readonly #analytics = inject(AnalyticsService);
 
@@ -102,19 +105,29 @@ export class TutorialService {
 
   /**
    * Start a specific tour by ID
+   * Navigates to the target page if needed before starting the tour.
    * @param tourId - The ID of the tour to start
-   * @param options - Optional configuration (use force: true to replay completed tours)
+   * @param options - Optional configuration (use force: true to replay completed/skipped tours)
    */
-  startTour(tourId: TourId, options?: StartTourOptions): void {
+  async startTour(tourId: TourId, options?: StartTourOptions): Promise<void> {
     const tour = ALL_TOURS.find((t) => t.id === tourId);
     if (!tour) {
       this.#logger.warn('Tour not found', { tourId });
       return;
     }
 
-    // Check if already completed (skip check if force is true)
-    if (!options?.force && this.hasCompletedTour(tourId)) {
-      this.#logger.info('Tour already completed', { tourId });
+    // Check if a tour is already active (prevents duplicate modals)
+    if (this.#state().isActive) {
+      this.#logger.debug('Tour already active, skipping', {
+        requestedTour: tourId,
+        currentTour: this.#state().currentTour,
+      });
+      return;
+    }
+
+    // Check if already seen (completed OR skipped) - skip check if force is true
+    if (!options?.force && this.hasSeenTour(tourId)) {
+      this.#logger.info('Tour already seen', { tourId });
       return;
     }
 
@@ -124,6 +137,85 @@ export class TutorialService {
       return;
     }
 
+    // Mark as active IMMEDIATELY before any async operations
+    // This prevents concurrent calls from starting multiple tours
+    this.#state.update((state) => ({
+      ...state,
+      isActive: true,
+      currentTour: tourId,
+    }));
+
+    try {
+      // Navigate to target page if needed
+      if (tour.targetRoute && !this.#isOnTargetRoute(tour.targetRoute)) {
+        const navigated = await this.#navigateToTargetRoute(tour.targetRoute);
+        if (!navigated) {
+          this.#logger.error('Failed to navigate to target route', {
+            tourId,
+            targetRoute: tour.targetRoute,
+          });
+          this.#resetActiveState();
+          return;
+        }
+        // Wait for page to render after navigation
+        await this.#waitForNextFrame();
+      }
+
+      this.#executeTour(tour);
+    } catch (error) {
+      this.#logger.error('Failed to start tour', { tourId, error });
+      this.#resetActiveState();
+    }
+  }
+
+  /**
+   * Reset the active state (used on errors or cancellation)
+   */
+  #resetActiveState(): void {
+    this.#state.update((state) => ({
+      ...state,
+      isActive: false,
+      currentTour: null,
+    }));
+  }
+
+  /**
+   * Check if current route matches the target route
+   */
+  #isOnTargetRoute(targetRoute: string): boolean {
+    const currentUrl = this.#router.url;
+    const fullTargetPath = `/${ROUTES.APP}/${targetRoute}`;
+    return currentUrl.startsWith(fullTargetPath);
+  }
+
+  /**
+   * Navigate to the target route
+   */
+  async #navigateToTargetRoute(targetRoute: string): Promise<boolean> {
+    try {
+      return await this.#router.navigate([ROUTES.APP, targetRoute]);
+    } catch (error) {
+      this.#logger.error('Navigation failed', { targetRoute, error });
+      return false;
+    }
+  }
+
+  /**
+   * Wait for the next animation frame to ensure DOM is updated
+   */
+  #waitForNextFrame(): Promise<void> {
+    return new Promise((resolve) => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => resolve());
+      });
+    });
+  }
+
+  /**
+   * Execute the tour after all preconditions are met
+   * Note: isActive state is already set by startTour() before calling this
+   */
+  #executeTour(tour: TutorialTour): void {
     try {
       // Add steps first (creates the tourObject)
       this.#shepherdService.addSteps(tour.steps);
@@ -134,27 +226,15 @@ export class TutorialService {
       // Start the tour
       this.#shepherdService.start();
 
-      // Update state only after successful start
-      this.#state.update((state) => ({
-        ...state,
-        isActive: true,
-        currentTour: tourId,
-      }));
-
       // Track event
       this.#trackEvent({
-        tourId,
+        tourId: tour.id,
         action: 'started',
         timestamp: Date.now(),
       });
     } catch (error) {
-      this.#logger.error('Failed to start tour', { tourId, error });
-      // Reset state on failure
-      this.#state.update((state) => ({
-        ...state,
-        isActive: false,
-        currentTour: null,
-      }));
+      this.#logger.error('Failed to execute tour', { tourId: tour.id, error });
+      this.#resetActiveState();
     }
   }
 
@@ -184,6 +264,18 @@ export class TutorialService {
    */
   hasCompletedTour(tourId: TourId): boolean {
     return this.#state().completedTours.includes(tourId);
+  }
+
+  /**
+   * Check if a tour has been seen (completed OR skipped)
+   * Use this for auto-start logic to prevent re-showing skipped tours
+   */
+  hasSeenTour(tourId: TourId): boolean {
+    const state = this.#state();
+    return (
+      state.completedTours.includes(tourId) ||
+      state.skippedTours.includes(tourId)
+    );
   }
 
   /**
@@ -230,6 +322,15 @@ export class TutorialService {
    */
   getAllTours(): TutorialTour[] {
     return ALL_TOURS;
+  }
+
+  /**
+   * Check if a tour requires navigation from current location
+   */
+  tourRequiresNavigation(tourId: TourId): boolean {
+    const tour = this.getTour(tourId);
+    if (!tour?.targetRoute) return false;
+    return !this.#isOnTargetRoute(tour.targetRoute);
   }
 
   /**

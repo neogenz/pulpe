@@ -1,4 +1,5 @@
 import {
+  afterRenderEffect,
   ChangeDetectionStrategy,
   Component,
   inject,
@@ -36,6 +37,7 @@ import {
   type BudgetLine,
   type Transaction,
 } from '@pulpe/shared';
+import { TutorialService } from '@core/tutorial/tutorial.service';
 
 @Component({
   selector: 'pulpe-budget-details-page',
@@ -185,6 +187,7 @@ export default class BudgetDetailsPage {
   readonly #dialog = inject(MatDialog);
   readonly #snackBar = inject(MatSnackBar);
   readonly #logger = inject(Logger);
+  readonly #tutorialService = inject(TutorialService);
 
   id = input.required<string>();
 
@@ -194,6 +197,18 @@ export default class BudgetDetailsPage {
       const budgetId = this.id();
       if (budgetId) {
         this.store.setBudgetId(budgetId);
+      }
+    });
+
+    // Start tutorial after DOM is ready
+    afterRenderEffect(() => {
+      const hasLoadedData = !this.store.isLoading() && !this.store.hasError();
+
+      if (
+        hasLoadedData &&
+        !this.#tutorialService.hasCompletedTour('budget-management')
+      ) {
+        this.#tutorialService.startTour('budget-management');
       }
     });
   }
