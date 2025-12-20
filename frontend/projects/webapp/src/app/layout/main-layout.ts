@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDivider } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
@@ -44,6 +45,7 @@ interface NavigationItem {
   selector: 'pulpe-main-layout',
   imports: [
     MatButtonModule,
+    MatDivider,
     MatIconModule,
     MatListModule,
     MatMenuModule,
@@ -265,7 +267,11 @@ interface NavigationItem {
             <mat-menu #helpMenu="matMenu" xPosition="before">
               <button
                 mat-menu-item
-                (click)="tutorialService.startTour('dashboard-welcome')"
+                (click)="
+                  tutorialService.startTour('dashboard-welcome', {
+                    force: true,
+                  })
+                "
                 data-testid="help-menu-dashboard-tour"
               >
                 <mat-icon matMenuItemIcon>explore</mat-icon>
@@ -273,7 +279,9 @@ interface NavigationItem {
               </button>
               <button
                 mat-menu-item
-                (click)="tutorialService.startTour('add-transaction')"
+                (click)="
+                  tutorialService.startTour('add-transaction', { force: true })
+                "
                 data-testid="help-menu-transaction-tour"
               >
                 <mat-icon matMenuItemIcon>attach_money</mat-icon>
@@ -281,7 +289,9 @@ interface NavigationItem {
               </button>
               <button
                 mat-menu-item
-                (click)="tutorialService.startTour('templates-intro')"
+                (click)="
+                  tutorialService.startTour('templates-intro', { force: true })
+                "
                 data-testid="help-menu-templates-tour"
               >
                 <mat-icon matMenuItemIcon>description</mat-icon>
@@ -289,7 +299,11 @@ interface NavigationItem {
               </button>
               <button
                 mat-menu-item
-                (click)="tutorialService.startTour('budget-management')"
+                (click)="
+                  tutorialService.startTour('budget-management', {
+                    force: true,
+                  })
+                "
                 data-testid="help-menu-budget-tour"
               >
                 <mat-icon matMenuItemIcon>account_balance</mat-icon>

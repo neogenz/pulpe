@@ -1,4 +1,4 @@
-import type { StepOptions } from 'shepherd.js';
+import type { StepOptions, Tour } from 'shepherd.js';
 import { offset } from '@floating-ui/dom';
 import type { TutorialTour } from './tutorial.types';
 
@@ -16,28 +16,69 @@ function waitForElement(
     const startTime = Date.now();
 
     // Check if element already exists
-    const existingElement = document.querySelector(selector) as HTMLElement;
-    if (existingElement) {
-      resolve(existingElement);
-      return;
+    try {
+      const existingElement = document.querySelector(selector);
+      if (existingElement instanceof HTMLElement) {
+        resolve(existingElement);
+        return;
+      }
+    } catch (error) {
+      console.error('[Tutorial] Error checking existing element:', {
+        selector,
+        error,
+      });
     }
 
     // Poll for element existence
     const checkInterval = setInterval(() => {
-      const element = document.querySelector(selector) as HTMLElement;
+      try {
+        const element = document.querySelector(selector);
 
-      if (element) {
+        if (element instanceof HTMLElement) {
+          clearInterval(checkInterval);
+          resolve(element);
+        } else if (Date.now() - startTime >= timeout) {
+          clearInterval(checkInterval);
+          console.error(
+            `[Tutorial] Element not found within ${timeout}ms: ${selector}`,
+          );
+          reject(
+            new Error(`Element ${selector} not found within ${timeout}ms`),
+          );
+        }
+      } catch (error) {
         clearInterval(checkInterval);
-        resolve(element);
-      } else if (Date.now() - startTime >= timeout) {
-        clearInterval(checkInterval);
-        console.warn(
-          `[Tutorial] Element not found within ${timeout}ms: ${selector}`,
-        );
-        reject(new Error(`Element ${selector} not found within ${timeout}ms`));
+        console.error('[Tutorial] Error in waitForElement:', {
+          selector,
+          error,
+        });
+        reject(error);
       }
     }, 100); // Check every 100ms
   });
+}
+
+/**
+ * Creates a safe beforeShowPromise that handles errors gracefully
+ * If the element is not found, the step will be skipped
+ */
+function createSafeBeforeShowPromise(
+  selector: string,
+  timeout = 10000,
+): () => Promise<HTMLElement | void> {
+  return async function (this: { tour?: Tour }) {
+    try {
+      return await waitForElement(selector, timeout);
+    } catch (error) {
+      console.error('[Tutorial] Step skipped - element not found:', {
+        selector,
+        error,
+      });
+      // Cancel the tour gracefully instead of leaving it in a broken state
+      this.tour?.cancel();
+      throw error; // Re-throw to prevent step from showing
+    }
+  };
 }
 
 /**
@@ -78,8 +119,7 @@ const buttons = {
   complete: {
     text: 'Terminer',
     classes: 'shepherd-button-primary',
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    action(this: any) {
+    action(this: Tour) {
       // Complete the tour when button is clicked
       // Note: 'this' refers to the Shepherd Tour instance
       return this.complete();
@@ -122,10 +162,10 @@ export const dashboardWelcomeTour: TutorialTour = {
           document.querySelector('pulpe-budget-progress-bar') as HTMLElement,
         on: 'bottom',
       },
-      // Wait for element before showing step
-      beforeShowPromise: function () {
-        return waitForElement('pulpe-budget-progress-bar', 10000);
-      },
+      // Wait for element before showing step with error handling
+      beforeShowPromise: createSafeBeforeShowPromise(
+        'pulpe-budget-progress-bar',
+      ),
       buttons: [buttons.cancel, buttons.back, buttons.next],
     },
     {
@@ -142,9 +182,9 @@ export const dashboardWelcomeTour: TutorialTour = {
           ) as HTMLElement,
         on: 'top',
       },
-      beforeShowPromise: function () {
-        return waitForElement('[data-testid="dashboard-content"]', 10000);
-      },
+      beforeShowPromise: createSafeBeforeShowPromise(
+        '[data-testid="dashboard-content"]',
+      ),
       buttons: [buttons.cancel, buttons.back, buttons.next],
     },
     {
@@ -161,9 +201,9 @@ export const dashboardWelcomeTour: TutorialTour = {
           ) as HTMLElement,
         on: 'left',
       },
-      beforeShowPromise: function () {
-        return waitForElement('[data-testid="add-transaction-fab"]', 10000);
-      },
+      beforeShowPromise: createSafeBeforeShowPromise(
+        '[data-testid="add-transaction-fab"]',
+      ),
       buttons: [buttons.cancel, buttons.back, buttons.complete],
     },
   ],
@@ -192,10 +232,11 @@ export const addTransactionTour: TutorialTour = {
           ) as HTMLElement,
         on: 'top',
       },
-      beforeShowPromise: function () {
-        // Wait for bottom sheet to open and render
-        return waitForElement('[data-testid="transaction-form"]', 5000);
-      },
+      // Wait for bottom sheet to open and render
+      beforeShowPromise: createSafeBeforeShowPromise(
+        '[data-testid="transaction-form"]',
+        5000,
+      ),
       buttons: [buttons.cancel, buttons.next],
     },
     {
@@ -212,9 +253,10 @@ export const addTransactionTour: TutorialTour = {
           ) as HTMLElement,
         on: 'bottom',
       },
-      beforeShowPromise: function () {
-        return waitForElement('[data-testid="transaction-amount-input"]', 5000);
-      },
+      beforeShowPromise: createSafeBeforeShowPromise(
+        '[data-testid="transaction-amount-input"]',
+        5000,
+      ),
       buttons: [buttons.cancel, buttons.back, buttons.next],
     },
     {
@@ -235,9 +277,10 @@ export const addTransactionTour: TutorialTour = {
           ) as HTMLElement,
         on: 'top',
       },
-      beforeShowPromise: function () {
-        return waitForElement('[data-testid="transaction-type-select"]', 5000);
-      },
+      beforeShowPromise: createSafeBeforeShowPromise(
+        '[data-testid="transaction-type-select"]',
+        5000,
+      ),
       buttons: [buttons.cancel, buttons.back, buttons.complete],
     },
   ],
@@ -275,9 +318,9 @@ export const templatesIntroTour: TutorialTour = {
           ) as HTMLElement,
         on: 'bottom',
       },
-      beforeShowPromise: function () {
-        return waitForElement('[data-testid="template-counter"]', 10000);
-      },
+      beforeShowPromise: createSafeBeforeShowPromise(
+        '[data-testid="template-counter"]',
+      ),
       buttons: [buttons.cancel, buttons.back, buttons.next],
     },
     {
@@ -294,9 +337,9 @@ export const templatesIntroTour: TutorialTour = {
           ) as HTMLElement,
         on: 'bottom',
       },
-      beforeShowPromise: function () {
-        return waitForElement('[data-testid="create-template-button"]', 10000);
-      },
+      beforeShowPromise: createSafeBeforeShowPromise(
+        '[data-testid="create-template-button"]',
+      ),
       buttons: [buttons.cancel, buttons.back, buttons.complete],
     },
   ],
@@ -330,9 +373,9 @@ export const budgetManagementTour: TutorialTour = {
           ) as HTMLElement,
         on: 'bottom',
       },
-      beforeShowPromise: function () {
-        return waitForElement('pulpe-budget-financial-overview', 10000);
-      },
+      beforeShowPromise: createSafeBeforeShowPromise(
+        'pulpe-budget-financial-overview',
+      ),
       buttons: [buttons.cancel, buttons.next],
     },
     {
@@ -347,9 +390,7 @@ export const budgetManagementTour: TutorialTour = {
           document.querySelector('pulpe-budget-table') as HTMLElement,
         on: 'top',
       },
-      beforeShowPromise: function () {
-        return waitForElement('pulpe-budget-table', 10000);
-      },
+      beforeShowPromise: createSafeBeforeShowPromise('pulpe-budget-table'),
       buttons: [buttons.cancel, buttons.back, buttons.complete],
     },
   ],

@@ -1,8 +1,38 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { ShepherdService } from 'angular-shepherd';
+import { z } from 'zod';
+import { AnalyticsService } from '../analytics/analytics';
+import { Logger } from '../logging/logger';
 import { ALL_TOURS, defaultStepOptions } from './tutorial-configs';
-import type { TourId, TutorialState, TutorialTour } from './tutorial.types';
-import { DEFAULT_TUTORIAL_STATE } from './tutorial.types';
+import type {
+  TourId,
+  TutorialEvent,
+  TutorialState,
+  TutorialTour,
+} from './tutorial.types';
+import { DEFAULT_TUTORIAL_STATE, TOUR_IDS } from './tutorial.types';
+
+/**
+ * Options for starting a tour
+ */
+export interface StartTourOptions {
+  /** Force start even if tour was already completed */
+  force?: boolean;
+}
+
+/**
+ * Zod schema for validating localStorage data
+ */
+const TutorialStateSchema = z.object({
+  completedTours: z.array(z.string()).default([]),
+  skippedTours: z.array(z.string()).default([]),
+  preferences: z
+    .object({
+      enabled: z.boolean().default(true),
+      autoStart: z.boolean().default(true),
+    })
+    .default({}),
+});
 
 /**
  * Service for managing interactive tutorials using Shepherd.js
@@ -18,6 +48,8 @@ import { DEFAULT_TUTORIAL_STATE } from './tutorial.types';
 })
 export class TutorialService {
   readonly #shepherdService = inject(ShepherdService);
+  readonly #logger = inject(Logger);
+  readonly #analytics = inject(AnalyticsService);
 
   /**
    * Current tutorial state (reactive signal)
@@ -40,58 +72,90 @@ export class TutorialService {
     this.#shepherdService.defaultStepOptions = defaultStepOptions;
     this.#shepherdService.modal = true;
     this.#shepherdService.confirmCancel = false;
+    // Note: Event listeners are registered in startTour() after addSteps()
+    // because tourObject is only available after a tour is created
+  }
 
-    // Listen to tour lifecycle events
-    this.#shepherdService.tourObject?.on('complete', () => {
+  /**
+   * Register event listeners on the current tour object
+   * Must be called after addSteps() when tourObject exists
+   */
+  #registerTourEventListeners(): void {
+    const tourObject = this.#shepherdService.tourObject;
+    if (!tourObject) {
+      this.#logger.error('Cannot register events: tourObject is null');
+      return;
+    }
+
+    // Remove existing listeners to prevent duplicates when tour is restarted
+    tourObject.off('complete');
+    tourObject.off('cancel');
+
+    tourObject.on('complete', () => {
       this.#handleTourComplete();
     });
 
-    this.#shepherdService.tourObject?.on('cancel', () => {
+    tourObject.on('cancel', () => {
       this.#handleTourCancel();
     });
   }
 
   /**
    * Start a specific tour by ID
+   * @param tourId - The ID of the tour to start
+   * @param options - Optional configuration (use force: true to replay completed tours)
    */
-  startTour(tourId: TourId): void {
+  startTour(tourId: TourId, options?: StartTourOptions): void {
     const tour = ALL_TOURS.find((t) => t.id === tourId);
     if (!tour) {
-      console.warn(`[TutorialService] Tour not found: ${tourId}`);
+      this.#logger.warn('Tour not found', { tourId });
       return;
     }
 
-    // Check if already completed
-    if (this.hasCompletedTour(tourId)) {
-      console.info(`[TutorialService] Tour already completed: ${tourId}`);
+    // Check if already completed (skip check if force is true)
+    if (!options?.force && this.hasCompletedTour(tourId)) {
+      this.#logger.info('Tour already completed', { tourId });
       return;
     }
 
-    // Check if preferences allow auto-start
-    if (!this.#state().preferences.enabled) {
-      console.info(
-        '[TutorialService] Tutorials are disabled by user preference',
-      );
+    // Check if preferences allow auto-start (skip check if force is true)
+    if (!options?.force && !this.#state().preferences.enabled) {
+      this.#logger.info('Tutorials are disabled by user preference');
       return;
     }
 
-    // Update state
-    this.#state.update((state) => ({
-      ...state,
-      isActive: true,
-      currentTour: tourId,
-    }));
+    try {
+      // Add steps first (creates the tourObject)
+      this.#shepherdService.addSteps(tour.steps);
 
-    // Add steps and start tour
-    this.#shepherdService.addSteps(tour.steps);
-    this.#shepherdService.start();
+      // Register event listeners now that tourObject exists
+      this.#registerTourEventListeners();
 
-    // Track event
-    this.#trackEvent({
-      tourId,
-      action: 'started',
-      timestamp: Date.now(),
-    });
+      // Start the tour
+      this.#shepherdService.start();
+
+      // Update state only after successful start
+      this.#state.update((state) => ({
+        ...state,
+        isActive: true,
+        currentTour: tourId,
+      }));
+
+      // Track event
+      this.#trackEvent({
+        tourId,
+        action: 'started',
+        timestamp: Date.now(),
+      });
+    } catch (error) {
+      this.#logger.error('Failed to start tour', { tourId, error });
+      // Reset state on failure
+      this.#state.update((state) => ({
+        ...state,
+        isActive: false,
+        currentTour: null,
+      }));
+    }
   }
 
   /**
@@ -102,7 +166,17 @@ export class TutorialService {
       return;
     }
 
-    this.#shepherdService.cancel();
+    try {
+      this.#shepherdService.cancel();
+    } catch (error) {
+      this.#logger.error('Error during tour cancellation', error);
+      // Force cleanup of state even if Shepherd fails
+      this.#state.update((state) => ({
+        ...state,
+        isActive: false,
+        currentTour: null,
+      }));
+    }
   }
 
   /**
@@ -209,7 +283,7 @@ export class TutorialService {
   }
 
   /**
-   * Load tutorial state from localStorage
+   * Load tutorial state from localStorage with Zod validation
    */
   #loadState(): TutorialState {
     try {
@@ -218,18 +292,33 @@ export class TutorialService {
         return DEFAULT_TUTORIAL_STATE;
       }
 
-      const parsed = JSON.parse(stored) as TutorialState;
+      const rawData = JSON.parse(stored);
+      const validated = TutorialStateSchema.parse(rawData);
+
+      // Filter only valid tour IDs to prevent stale data
+      const validTourIds = new Set(TOUR_IDS);
+      const completedTours = validated.completedTours.filter((id) =>
+        validTourIds.has(id as TourId),
+      ) as TourId[];
+      const skippedTours = validated.skippedTours.filter((id) =>
+        validTourIds.has(id as TourId),
+      ) as TourId[];
+
       return {
-        ...DEFAULT_TUTORIAL_STATE,
-        ...parsed,
         isActive: false, // Always start inactive
         currentTour: null,
+        completedTours,
+        skippedTours,
+        preferences: validated.preferences,
       };
     } catch (error) {
-      console.error(
-        '[TutorialService] Failed to load state from localStorage',
-        error,
-      );
+      this.#logger.error('Failed to load state from localStorage', error);
+      // Clear corrupted data to prevent repeated failures
+      try {
+        localStorage.removeItem('pulpe-tutorial-state');
+      } catch {
+        // Ignore localStorage errors during cleanup
+      }
       return DEFAULT_TUTORIAL_STATE;
     }
   }
@@ -246,23 +335,26 @@ export class TutorialService {
       };
       localStorage.setItem('pulpe-tutorial-state', JSON.stringify(stateToSave));
     } catch (error) {
-      console.error(
-        '[TutorialService] Failed to save state to localStorage',
-        error,
-      );
+      this.#logger.error('Failed to save state to localStorage', error);
     }
   }
 
   /**
-   * Track tutorial events (placeholder for analytics integration)
+   * Track tutorial events via PostHog analytics
    */
-  #trackEvent(event: {
-    tourId: TourId;
-    action: 'started' | 'completed' | 'cancelled' | 'step_viewed';
-    stepIndex?: number;
-    timestamp: number;
-  }): void {
-    // TODO: Integrate with PostHog or your analytics service
-    console.info('[TutorialService] Event:', event);
+  #trackEvent(event: TutorialEvent): void {
+    try {
+      this.#logger.debug('Tutorial event', event);
+
+      const eventName = `tutorial_${event.action}`;
+      this.#analytics.captureEvent(eventName, {
+        tourId: event.tourId,
+        stepIndex: event.stepIndex,
+        timestamp: event.timestamp,
+      });
+    } catch (error) {
+      // Analytics should never break the application
+      this.#logger.warn('Failed to track event', error);
+    }
   }
 }

@@ -1,13 +1,19 @@
 import type { StepOptions } from 'shepherd.js';
 
 /**
+ * Available tutorial tour identifiers as array (for runtime validation)
+ */
+export const TOUR_IDS = [
+  'dashboard-welcome',
+  'add-transaction',
+  'templates-intro',
+  'budget-management',
+] as const;
+
+/**
  * Available tutorial tour identifiers
  */
-export type TourId =
-  | 'dashboard-welcome'
-  | 'add-transaction'
-  | 'templates-intro'
-  | 'budget-management';
+export type TourId = (typeof TOUR_IDS)[number];
 
 /**
  * Tutorial tour configuration

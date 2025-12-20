@@ -42,6 +42,9 @@ import { type FinancialEntryModel } from './models/financial-entry.model';
 import { Logger } from '@core/logging/logger';
 import { TutorialService } from '@core/tutorial/tutorial.service';
 
+/** Delay before starting tutorial to allow page to fully render */
+const TUTORIAL_START_DELAY_MS = 800;
+
 type TransactionFormData = Pick<
   TransactionCreate,
   'name' | 'amount' | 'kind' | 'category'
@@ -251,7 +254,6 @@ export default class CurrentMonth implements OnInit {
    * Initialize component and start welcome tutorial on first visit
    */
   ngOnInit() {
-    // Start welcome tutorial if not completed and data is loaded
     setTimeout(() => {
       const hasLoadedData =
         this.store.dashboardStatus() !== 'loading' &&
@@ -262,7 +264,7 @@ export default class CurrentMonth implements OnInit {
       if (hasLoadedData && hasNotCompletedTour) {
         this.#tutorialService.startTour('dashboard-welcome');
       }
-    }, 800); // Delay to allow page to fully render
+    }, TUTORIAL_START_DELAY_MS);
   }
 
   /**
