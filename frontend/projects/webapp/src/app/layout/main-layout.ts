@@ -299,6 +299,22 @@ interface HelpMenuItem {
               <mat-divider></mat-divider>
               <button
                 mat-menu-item
+                (click)="toggleAutoStartTutorials()"
+                data-testid="help-menu-toggle-autostart"
+              >
+                <mat-icon matMenuItemIcon>{{
+                  tutorialService.state().preferences.autoStart
+                    ? 'notifications_off'
+                    : 'notifications_active'
+                }}</mat-icon>
+                <span>{{
+                  tutorialService.state().preferences.autoStart
+                    ? 'Désactiver tutoriels automatiques'
+                    : 'Activer tutoriels automatiques'
+                }}</span>
+              </button>
+              <button
+                mat-menu-item
                 (click)="tutorialService.resetAllTours()"
                 data-testid="help-menu-reset-tours"
               >
@@ -423,38 +439,38 @@ export class MainLayout {
   ] as const;
 
   // Help menu items for tutorial tours
-  protected readonly helpMenuItems: readonly HelpMenuItem[] = [
+  protected readonly helpMenuItems = [
     {
-      tourId: 'dashboard-welcome',
+      tourId: 'dashboard-welcome' as const,
       label: 'Tour du tableau de bord',
       icon: 'explore',
       testId: 'help-menu-dashboard-tour',
     },
     {
-      tourId: 'budget-calendar',
+      tourId: 'budget-calendar' as const,
       label: 'Calendrier des budgets',
       icon: 'calendar_month',
       testId: 'help-menu-calendar-tour',
     },
     {
-      tourId: 'templates-intro',
+      tourId: 'templates-intro' as const,
       label: 'Introduction aux modèles',
       icon: 'description',
       testId: 'help-menu-templates-tour',
     },
     {
-      tourId: 'budget-management',
+      tourId: 'budget-management' as const,
       label: 'Gestion des budgets',
       icon: 'account_balance',
       testId: 'help-menu-budget-tour',
     },
     {
-      tourId: 'add-transaction',
+      tourId: 'add-transaction' as const,
       label: 'Ajouter une transaction',
       icon: 'attach_money',
       testId: 'help-menu-transaction-tour',
     },
-  ] as const;
+  ] as const satisfies readonly HelpMenuItem[];
 
   // Responsive breakpoint detection
   protected readonly isHandset = toSignal(
@@ -508,6 +524,14 @@ export class MainLayout {
     if (this.isHandset()) {
       drawer.close();
     }
+  }
+
+  /**
+   * Toggle auto-start tutorials preference
+   */
+  protected toggleAutoStartTutorials(): void {
+    const currentAutoStart = this.tutorialService.state().preferences.autoStart;
+    this.tutorialService.updatePreferences({ autoStart: !currentAutoStart });
   }
 
   async onLogout(): Promise<void> {

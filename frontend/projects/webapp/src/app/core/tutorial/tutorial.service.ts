@@ -15,6 +15,12 @@ import type {
 import { DEFAULT_TUTORIAL_STATE, TOUR_IDS } from './tutorial.types';
 
 /**
+ * Delay in milliseconds before auto-starting a tour on first visit.
+ * Gives user time to scan the page before interruption.
+ */
+const AUTO_START_DELAY_MS = 2000;
+
+/**
  * Options for starting a tour
  */
 export interface StartTourOptions {
@@ -116,15 +122,6 @@ export class TutorialService {
       return;
     }
 
-    // Check if a tour is already active (prevents duplicate modals)
-    if (this.#state().isActive) {
-      this.#logger.debug('Tour already active, skipping', {
-        requestedTour: tourId,
-        currentTour: this.#state().currentTour,
-      });
-      return;
-    }
-
     // Check if already seen (completed OR skipped) - skip check if force is true
     if (!options?.force && this.hasSeenTour(tourId)) {
       this.#logger.info('Tour already seen', { tourId });
@@ -132,18 +129,43 @@ export class TutorialService {
     }
 
     // Check if preferences allow auto-start (skip check if force is true)
-    if (!options?.force && !this.#state().preferences.enabled) {
-      this.#logger.info('Tutorials are disabled by user preference');
-      return;
+    // For first-visit tours, check autoStart; for manual tours, check enabled
+    if (!options?.force) {
+      const { enabled, autoStart } = this.#state().preferences;
+      if (!enabled) {
+        this.#logger.info('Tutorials are disabled by user preference');
+        return;
+      }
+      if (tour.triggerOn === 'first-visit' && !autoStart) {
+        this.#logger.info(
+          'Auto-start tutorials are disabled by user preference',
+        );
+        return;
+      }
     }
 
-    // Mark as active IMMEDIATELY before any async operations
-    // This prevents concurrent calls from starting multiple tours
-    this.#state.update((state) => ({
-      ...state,
-      isActive: true,
-      currentTour: tourId,
-    }));
+    // Atomically check and set active state to prevent race conditions
+    // This ensures only one tour can be active at a time, even with concurrent calls
+    let shouldProceed = false;
+    this.#state.update((state) => {
+      if (state.isActive) {
+        return state; // Already active, don't modify state
+      }
+      shouldProceed = true;
+      return {
+        ...state,
+        isActive: true,
+        currentTour: tourId,
+      };
+    });
+
+    if (!shouldProceed) {
+      this.#logger.debug('Tour already active, skipping', {
+        requestedTour: tourId,
+        currentTour: this.#state().currentTour,
+      });
+      return;
+    }
 
     try {
       // Navigate to target page if needed
@@ -159,6 +181,12 @@ export class TutorialService {
         }
         // Wait for page to render after navigation
         await this.#waitForNextFrame();
+      }
+
+      // Add delay before auto-starting first-visit tours
+      // This gives users time to scan the page before interruption
+      if (!options?.force && tour.triggerOn === 'first-visit') {
+        await this.#delay(AUTO_START_DELAY_MS);
       }
 
       this.#executeTour(tour);
@@ -202,6 +230,13 @@ export class TutorialService {
 
   /**
    * Wait for the next animation frame to ensure DOM is updated
+   *
+   * Uses double requestAnimationFrame to ensure:
+   * 1. First frame: Browser schedules layout/paint
+   * 2. Second frame: DOM changes are fully rendered and interactive
+   *
+   * This is necessary after navigation to ensure tour step elements are present
+   * and positioned correctly before Shepherd.js tries to attach to them.
    */
   #waitForNextFrame(): Promise<void> {
     return new Promise((resolve) => {
@@ -209,6 +244,13 @@ export class TutorialService {
         requestAnimationFrame(() => resolve());
       });
     });
+  }
+
+  /**
+   * Simple delay helper for adding pauses in async flows
+   */
+  #delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
