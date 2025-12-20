@@ -1,7 +1,17 @@
 import type { Step, StepOptions, Tour } from 'shepherd.js';
-import { offset } from '@floating-ui/dom';
+import { offset, flip, shift } from '@floating-ui/dom';
 import type { TutorialTour } from './tutorial.types';
 import { ROUTES } from '../routing/routes-constants';
+
+/**
+ * Constants for tutorial configuration
+ */
+const ELEMENT_WAIT_TIMEOUT_MS = 5000;
+const EXTENDED_WAIT_TIMEOUT_MS = 10000;
+const POLL_INTERVAL_MS = 100;
+const MODAL_OVERLAY_PADDING_PX = 10;
+const MODAL_OVERLAY_RADIUS_PX = 12;
+const STEP_OFFSET_MAIN_AXIS_PX = 24;
 
 /**
  * Injects step counter and progress dots into the step element
@@ -59,12 +69,12 @@ function injectStepUI(this: Step): void {
 /**
  * Helper function to wait for an element to exist in the DOM
  * @param selector CSS selector to wait for
- * @param timeout Maximum time to wait in milliseconds (default: 5000ms)
+ * @param timeout Maximum time to wait in milliseconds
  * @returns Promise that resolves when element is found
  */
 function waitForElement(
   selector: string,
-  timeout = 5000,
+  timeout = ELEMENT_WAIT_TIMEOUT_MS,
 ): Promise<HTMLElement> {
   return new Promise((resolve, reject) => {
     const startTime = Date.now();
@@ -108,7 +118,7 @@ function waitForElement(
         });
         reject(error);
       }
-    }, 100); // Check every 100ms
+    }, POLL_INTERVAL_MS);
   });
 }
 
@@ -118,7 +128,7 @@ function waitForElement(
  */
 function createSafeBeforeShowPromise(
   selector: string,
-  timeout = 10000,
+  timeout = EXTENDED_WAIT_TIMEOUT_MS,
 ): () => Promise<HTMLElement | void> {
   return async function (this: { tour?: Tour }) {
     try {
@@ -144,10 +154,14 @@ export const defaultStepOptions: Partial<StepOptions> = {
   },
   classes: 'pulpe-tutorial-step',
   scrollTo: { behavior: 'smooth', block: 'center' } as ScrollIntoViewOptions,
-  modalOverlayOpeningPadding: 10,
-  modalOverlayOpeningRadius: 12,
+  modalOverlayOpeningPadding: MODAL_OVERLAY_PADDING_PX,
+  modalOverlayOpeningRadius: MODAL_OVERLAY_RADIUS_PX,
   floatingUIOptions: {
-    middleware: [offset({ mainAxis: 24 })],
+    middleware: [
+      offset({ mainAxis: STEP_OFFSET_MAIN_AXIS_PX }),
+      flip(), // Auto-flip tooltip if it would overflow viewport
+      shift(), // Shift tooltip if it still overflows after flip
+    ],
   },
   when: {
     show: injectStepUI,

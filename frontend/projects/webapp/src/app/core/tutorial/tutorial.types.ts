@@ -27,7 +27,7 @@ export interface TutorialTour {
   /** Brief description of what the tour covers */
   description: string;
   /** When to trigger the tour automatically */
-  triggerOn?: 'first-visit' | 'manual' | 'condition';
+  triggerOn?: 'first-visit' | 'manual';
   /** Target route for this tour (without /app prefix). Used for navigation before starting. */
   targetRoute?: string;
   /** Array of tour steps */

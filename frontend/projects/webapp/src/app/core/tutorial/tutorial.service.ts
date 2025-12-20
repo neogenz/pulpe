@@ -21,6 +21,11 @@ import { DEFAULT_TUTORIAL_STATE, TOUR_IDS } from './tutorial.types';
 const AUTO_START_DELAY_MS = 2000;
 
 /**
+ * Additional delay for lazy-loaded components to fully mount.
+ */
+const LAZY_LOAD_MOUNT_DELAY_MS = 200;
+
+/**
  * Options for starting a tour
  */
 export interface StartTourOptions {
@@ -29,9 +34,10 @@ export interface StartTourOptions {
 }
 
 /**
- * Zod schema for validating localStorage data
+ * Zod schema for validating localStorage data (Version 1)
  */
-const TutorialStateSchema = z.object({
+const TutorialStateSchemaV1 = z.object({
+  version: z.literal(1).default(1),
   completedTours: z.array(z.string()).default([]),
   skippedTours: z.array(z.string()).default([]),
   preferences: z
@@ -70,6 +76,30 @@ export class TutorialService {
    */
   readonly state = this.#state.asReadonly();
 
+  /**
+   * TEST ONLY: Update state directly (bypasses normal flow)
+   * Used by tests to simulate edge cases and stuck states
+   */
+  _testOnlyUpdateState(updater: (state: TutorialState) => TutorialState): void {
+    this.#state.update(updater);
+  }
+
+  /**
+   * TEST ONLY: Trigger tour completion handler
+   * Used by tests to simulate completion events
+   */
+  _testOnlyHandleTourComplete(): void {
+    this.#handleTourComplete();
+  }
+
+  /**
+   * TEST ONLY: Trigger tour cancellation handler
+   * Used by tests to simulate cancel events
+   */
+  _testOnlyHandleTourCancel(): void {
+    this.#handleTourCancel();
+  }
+
   constructor() {
     this.#initializeShepherd();
   }
@@ -92,8 +122,10 @@ export class TutorialService {
   #registerTourEventListeners(): void {
     const tourObject = this.#shepherdService.tourObject;
     if (!tourObject) {
-      this.#logger.error('Cannot register events: tourObject is null');
-      return;
+      // THROW instead of silent return to ensure error is caught and state is reset
+      throw new Error(
+        'Cannot register events: tourObject is null after addSteps()',
+      );
     }
 
     // Remove existing listeners to prevent duplicates when tour is restarted
@@ -116,84 +148,119 @@ export class TutorialService {
    * @param options - Optional configuration (use force: true to replay completed/skipped tours)
    */
   async startTour(tourId: TourId, options?: StartTourOptions): Promise<void> {
+    const tour = this.#validateAndGetTour(tourId, options);
+    if (!tour) return;
+
+    if (!this.#acquireActiveLock(tourId)) return;
+
+    try {
+      await this.#prepareAndExecuteTour(tour, options);
+    } catch (error) {
+      this.#handleTourError(tourId, error);
+    }
+  }
+
+  /**
+   * Validate tour existence and check if it should be started
+   * @returns The tour if it should be started, null otherwise
+   */
+  #validateAndGetTour(
+    tourId: TourId,
+    options?: StartTourOptions,
+  ): TutorialTour | null {
     const tour = ALL_TOURS.find((t) => t.id === tourId);
     if (!tour) {
       this.#logger.warn('Tour not found', { tourId });
-      return;
+      return null;
     }
 
-    // Check if already seen (completed OR skipped) - skip check if force is true
     if (!options?.force && this.hasSeenTour(tourId)) {
       this.#logger.info('Tour already seen', { tourId });
-      return;
+      return null;
     }
 
-    // Check if preferences allow auto-start (skip check if force is true)
-    // For first-visit tours, check autoStart; for manual tours, check enabled
-    if (!options?.force) {
-      const { enabled, autoStart } = this.#state().preferences;
-      if (!enabled) {
-        this.#logger.info('Tutorials are disabled by user preference');
-        return;
-      }
-      if (tour.triggerOn === 'first-visit' && !autoStart) {
-        this.#logger.info(
-          'Auto-start tutorials are disabled by user preference',
-        );
-        return;
-      }
+    if (!this.#checkPreferences(tour, options)) {
+      return null;
     }
 
-    // Atomically check and set active state to prevent race conditions
-    // This ensures only one tour can be active at a time, even with concurrent calls
-    let shouldProceed = false;
-    this.#state.update((state) => {
-      if (state.isActive) {
-        return state; // Already active, don't modify state
-      }
-      shouldProceed = true;
-      return {
-        ...state,
-        isActive: true,
-        currentTour: tourId,
-      };
-    });
+    return tour;
+  }
 
-    if (!shouldProceed) {
+  /**
+   * Check if user preferences allow the tour to start
+   */
+  #checkPreferences(tour: TutorialTour, options?: StartTourOptions): boolean {
+    if (options?.force) return true;
+
+    const { enabled, autoStart } = this.#state().preferences;
+    if (!enabled) {
+      this.#logger.info('Tutorials are disabled by user preference');
+      return false;
+    }
+    if (tour.triggerOn === 'first-visit' && !autoStart) {
+      this.#logger.info('Auto-start tutorials are disabled by user preference');
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Acquire lock to ensure only one tour runs at a time
+   * @returns true if lock was acquired, false if another tour is active
+   */
+  #acquireActiveLock(tourId: TourId): boolean {
+    if (this.#state().isActive) {
       this.#logger.debug('Tour already active, skipping', {
         requestedTour: tourId,
         currentTour: this.#state().currentTour,
       });
-      return;
+      return false;
     }
 
-    try {
-      // Navigate to target page if needed
-      if (tour.targetRoute && !this.#isOnTargetRoute(tour.targetRoute)) {
-        const navigated = await this.#navigateToTargetRoute(tour.targetRoute);
-        if (!navigated) {
-          this.#logger.error('Failed to navigate to target route', {
-            tourId,
-            targetRoute: tour.targetRoute,
-          });
-          this.#resetActiveState();
-          return;
-        }
-        // Wait for page to render after navigation
-        await this.#waitForNextFrame();
+    this.#state.update((state) => ({
+      ...state,
+      isActive: true,
+      currentTour: tourId,
+    }));
+
+    return true;
+  }
+
+  /**
+   * Navigate to target route if needed and execute the tour
+   */
+  async #prepareAndExecuteTour(
+    tour: TutorialTour,
+    options?: StartTourOptions,
+  ): Promise<void> {
+    if (tour.targetRoute && !this.#isOnTargetRoute(tour.targetRoute)) {
+      const navigated = await this.#navigateToTargetRoute(tour.targetRoute);
+      if (!navigated) {
+        throw new Error('Navigation failed');
       }
 
-      // Add delay before auto-starting first-visit tours
-      // This gives users time to scan the page before interruption
-      if (!options?.force && tour.triggerOn === 'first-visit') {
-        await this.#delay(AUTO_START_DELAY_MS);
-      }
+      await this.#waitForPageReady();
 
-      this.#executeTour(tour);
-    } catch (error) {
-      this.#logger.error('Failed to start tour', { tourId, error });
-      this.#resetActiveState();
+      const currentRoute = this.#router.url;
+      const expectedRoute = `/${ROUTES.APP}/${tour.targetRoute}`;
+      if (!currentRoute.startsWith(expectedRoute)) {
+        throw new Error('Navigation succeeded but route did not change');
+      }
     }
+
+    if (!options?.force && tour.triggerOn === 'first-visit') {
+      await this.#delay(AUTO_START_DELAY_MS);
+    }
+
+    this.#executeTour(tour);
+  }
+
+  /**
+   * Handle tour start errors
+   */
+  #handleTourError(tourId: TourId, error: unknown): void {
+    this.#logger.error('Failed to start tour', { tourId, error });
+    this.#resetActiveState();
   }
 
   /**
@@ -244,6 +311,21 @@ export class TutorialService {
         requestAnimationFrame(() => resolve());
       });
     });
+  }
+
+  /**
+   * Wait for page to be fully ready after navigation
+   *
+   * Lazy-loaded routes need more time than just 2 RAF (~32ms).
+   * This method ensures components are mounted and rendered before
+   * the tour tries to attach to DOM elements.
+   */
+  async #waitForPageReady(): Promise<void> {
+    // Wait for initial render (2 RAF)
+    await this.#waitForNextFrame();
+
+    // Additional wait for lazy-loaded components to fully mount
+    await this.#delay(LAZY_LOAD_MOUNT_DELAY_MS);
   }
 
   /**
@@ -367,36 +449,36 @@ export class TutorialService {
   }
 
   /**
-   * Check if a tour requires navigation from current location
-   */
-  tourRequiresNavigation(tourId: TourId): boolean {
-    const tour = this.getTour(tourId);
-    if (!tour?.targetRoute) return false;
-    return !this.#isOnTargetRoute(tour.targetRoute);
-  }
-
-  /**
    * Handle tour completion
    */
   #handleTourComplete(): void {
     const currentTourId = this.#state().currentTour;
-    if (!currentTourId) return;
 
+    // ALWAYS reset isActive, even if currentTourId is null
     this.#state.update((state) => ({
       ...state,
       isActive: false,
       currentTour: null,
-      completedTours: [...state.completedTours, currentTourId],
+      completedTours:
+        currentTourId && !state.completedTours.includes(currentTourId)
+          ? [...state.completedTours, currentTourId]
+          : state.completedTours,
+      // Remove from skippedTours if present (data consistency)
+      skippedTours: currentTourId
+        ? state.skippedTours.filter((id) => id !== currentTourId)
+        : state.skippedTours,
     }));
 
     this.#saveState();
 
-    // Track completion
-    this.#trackEvent({
-      tourId: currentTourId,
-      action: 'completed',
-      timestamp: Date.now(),
-    });
+    // Only track if we have a valid tourId
+    if (currentTourId) {
+      this.#trackEvent({
+        tourId: currentTourId,
+        action: 'completed',
+        timestamp: Date.now(),
+      });
+    }
   }
 
   /**
@@ -404,29 +486,33 @@ export class TutorialService {
    */
   #handleTourCancel(): void {
     const currentTourId = this.#state().currentTour;
-    if (!currentTourId) return;
 
+    // ALWAYS reset isActive, even if currentTourId is null
+    // This prevents stuck state when tour crashes before setting currentTourId
     this.#state.update((state) => ({
       ...state,
       isActive: false,
       currentTour: null,
-      skippedTours: state.skippedTours.includes(currentTourId)
-        ? state.skippedTours
-        : [...state.skippedTours, currentTourId],
+      skippedTours:
+        currentTourId && !state.skippedTours.includes(currentTourId)
+          ? [...state.skippedTours, currentTourId]
+          : state.skippedTours,
     }));
 
     this.#saveState();
 
-    // Track cancellation
-    this.#trackEvent({
-      tourId: currentTourId,
-      action: 'cancelled',
-      timestamp: Date.now(),
-    });
+    // Only track if we have a valid tourId
+    if (currentTourId) {
+      this.#trackEvent({
+        tourId: currentTourId,
+        action: 'cancelled',
+        timestamp: Date.now(),
+      });
+    }
   }
 
   /**
-   * Load tutorial state from localStorage with Zod validation
+   * Load tutorial state from localStorage with Zod validation and migration
    */
   #loadState(): TutorialState {
     try {
@@ -436,7 +522,14 @@ export class TutorialService {
       }
 
       const rawData = JSON.parse(stored);
-      const validated = TutorialStateSchema.parse(rawData);
+
+      // Handle legacy data (no version field) - migrate to v1
+      if (!rawData.version || rawData.version < 1) {
+        this.#logger.info('Migrating tutorial state to v1');
+        return this.#migrateToV1(rawData);
+      }
+
+      const validated = TutorialStateSchemaV1.parse(rawData);
 
       // Filter only valid tour IDs to prevent stale data
       const validTourIds = new Set(TOUR_IDS);
@@ -467,11 +560,47 @@ export class TutorialService {
   }
 
   /**
+   * Migrate legacy tutorial state (no version) to v1
+   */
+  #migrateToV1(oldData: unknown): TutorialState {
+    const data = oldData as Record<string, unknown>;
+
+    // Filter invalid tour IDs during migration
+    const validTourIds = new Set(TOUR_IDS);
+    const rawCompletedTours = Array.isArray(data?.['completedTours'])
+      ? data['completedTours']
+      : [];
+    const rawSkippedTours = Array.isArray(data?.['skippedTours'])
+      ? data['skippedTours']
+      : [];
+
+    const preferences = data?.['preferences'] as
+      | Record<string, unknown>
+      | undefined;
+
+    return {
+      isActive: false,
+      currentTour: null,
+      completedTours: rawCompletedTours.filter((id) =>
+        validTourIds.has(id as TourId),
+      ) as TourId[],
+      skippedTours: rawSkippedTours.filter((id) =>
+        validTourIds.has(id as TourId),
+      ) as TourId[],
+      preferences: {
+        enabled: preferences?.['enabled'] === false ? false : true,
+        autoStart: preferences?.['autoStart'] === false ? false : true,
+      },
+    };
+  }
+
+  /**
    * Save tutorial state to localStorage
    */
   #saveState(): void {
     try {
       const stateToSave = {
+        version: 1,
         completedTours: this.#state().completedTours,
         skippedTours: this.#state().skippedTours,
         preferences: this.#state().preferences,

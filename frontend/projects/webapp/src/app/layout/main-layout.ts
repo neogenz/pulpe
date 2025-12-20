@@ -288,12 +288,6 @@ interface HelpMenuItem {
                 >
                   <mat-icon matMenuItemIcon>{{ item.icon }}</mat-icon>
                   <span class="flex-1">{{ item.label }}</span>
-                  @if (tutorialService.tourRequiresNavigation(item.tourId)) {
-                    <mat-icon
-                      class="!w-4 !h-4 text-sm text-on-surface-variant ml-2"
-                      >open_in_new</mat-icon
-                    >
-                  }
                 </button>
               }
               <mat-divider></mat-divider>
