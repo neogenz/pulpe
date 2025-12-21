@@ -13,6 +13,15 @@ const MODAL_OVERLAY_RADIUS_PX = 12;
 const STEP_OFFSET_MAIN_AXIS_PX = 24;
 
 /**
+ * Logger for tutorial configs.
+ * Note: Uses console because this file contains static configurations
+ * without Angular DI context. The service handles structured logging.
+ */
+const logConfigError = (message: string, context?: unknown): void => {
+  console.warn(`[Tutorial] ${message}`, context ?? '');
+};
+
+/**
  * Creates a lazy element query function for Shepherd step attachments.
  * Returns a function that queries the DOM when called (not at definition time).
  */
@@ -90,9 +99,7 @@ function waitForElement(
 
     const timeoutId = setTimeout(() => {
       observer.disconnect();
-      console.error(
-        `[Tutorial] Element not found within ${timeout}ms: ${selector}`,
-      );
+      logConfigError(`Element not found within ${timeout}ms: ${selector}`);
       reject(new Error(`Element ${selector} not found within ${timeout}ms`));
     }, timeout);
 
@@ -124,10 +131,7 @@ function createSafeBeforeShowPromise(
     try {
       return await waitForElement(selector, timeout);
     } catch (error) {
-      console.error('[Tutorial] Step skipped - element not found:', {
-        selector,
-        error,
-      });
+      logConfigError('Step skipped - element not found', { selector, error });
       // Cancel the tour gracefully instead of leaving it in a broken state
       this.tour?.cancel();
       throw error; // Re-throw to prevent step from showing
@@ -399,7 +403,7 @@ export const budgetManagementTour: TutorialTour = {
   id: 'budget-management',
   name: 'Gestion des budgets',
   description: 'Apprenez à consulter et modifier vos budgets mensuels',
-  triggerOn: 'first-visit',
+  triggerOn: 'manual',
   steps: [
     {
       id: 'budget-overview',

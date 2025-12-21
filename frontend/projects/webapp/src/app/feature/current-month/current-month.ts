@@ -7,12 +7,12 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
 import {
   MatBottomSheet,
   MatBottomSheetModule,
 } from '@angular/material/bottom-sheet';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
 import { MatDialog } from '@angular/material/dialog';
 import {
   MAT_FORM_FIELD_DEFAULT_OPTIONS,
@@ -22,25 +22,25 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { DashboardError } from './components/dashboard-error';
-import { BaseLoading } from '@ui/loading';
-import { RecurringExpensesList } from './components/recurring-expenses-list';
-import { OneTimeExpensesList } from './components/one-time-expenses-list';
-import { CurrentMonthStore } from './services/current-month-store';
+import { Logger } from '@core/logging/logger';
 import { TitleDisplay } from '@core/routing';
-import { BudgetProgressBar } from './components/budget-progress-bar';
+import { TutorialService } from '@core/tutorial/tutorial.service';
+import { type TransactionCreate } from '@pulpe/shared';
+import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
+import { BaseLoading } from '@ui/loading';
+import { firstValueFrom } from 'rxjs';
 import { AddTransactionBottomSheet } from './components/add-transaction-bottom-sheet';
+import { BudgetProgressBar } from './components/budget-progress-bar';
+import { DashboardError } from './components/dashboard-error';
+import { EditTransactionDialog } from './components/edit-transaction-dialog';
+import { OneTimeExpensesList } from './components/one-time-expenses-list';
+import { RecurringExpensesList } from './components/recurring-expenses-list';
+import { type FinancialEntryModel } from './models/financial-entry.model';
+import { CurrentMonthStore } from './services/current-month-store';
 import {
   mapBudgetLineToFinancialEntry,
   mapTransactionToFinancialEntry,
 } from './utils/financial-entry-mapper';
-import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
-import { firstValueFrom } from 'rxjs';
-import { type TransactionCreate } from '@pulpe/shared';
-import { EditTransactionDialog } from './components/edit-transaction-dialog';
-import { type FinancialEntryModel } from './models/financial-entry.model';
-import { Logger } from '@core/logging/logger';
-import { TutorialService } from '@core/tutorial/tutorial.service';
 
 type TransactionFormData = Pick<
   TransactionCreate,
@@ -232,7 +232,11 @@ export default class CurrentMonth {
       const hasLoadedData =
         this.store.dashboardStatus() !== 'loading' &&
         this.store.dashboardStatus() !== 'error';
-
+      console.log('hasLoadedData', hasLoadedData);
+      console.log(
+        "this.#tutorialService.hasSeenTour('dashboard-welcome')",
+        this.#tutorialService.hasSeenTour('dashboard-welcome'),
+      );
       if (
         hasLoadedData &&
         !this.#tutorialService.hasSeenTour('dashboard-welcome')

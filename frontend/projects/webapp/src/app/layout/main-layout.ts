@@ -280,9 +280,7 @@ interface HelpMenuItem {
               @for (item of helpMenuItems; track item.tourId) {
                 <button
                   mat-menu-item
-                  (click)="
-                    tutorialService.startTour(item.tourId, { force: true })
-                  "
+                  (click)="tutorialService.startTour(item.tourId)"
                   [attr.data-testid]="item.testId"
                   class="flex items-center"
                 >

@@ -141,7 +141,7 @@ export default class TemplateListPage {
 
       if (
         hasLoadedData &&
-        !this.#tutorialService.hasCompletedTour('templates-intro')
+        !this.#tutorialService.hasSeenTour('templates-intro')
       ) {
         this.#tutorialService.startTour('templates-intro');
       }

@@ -15,23 +15,9 @@ import type {
 import { DEFAULT_TUTORIAL_STATE, TOUR_IDS } from './tutorial.types';
 
 /**
- * Delay in milliseconds before auto-starting a tour on first visit.
- * Gives user time to scan the page before interruption.
- */
-const AUTO_START_DELAY_MS = 2000;
-
-/**
  * Additional delay for lazy-loaded components to fully mount.
  */
 const LAZY_LOAD_MOUNT_DELAY_MS = 200;
-
-/**
- * Options for starting a tour
- */
-export interface StartTourOptions {
-  /** Force start even if tour was already completed */
-  force?: boolean;
-}
 
 /**
  * Zod schema for validating localStorage data (Version 1)
@@ -75,30 +61,6 @@ export class TutorialService {
    * Exposed read-only state
    */
   readonly state = this.#state.asReadonly();
-
-  /**
-   * TEST ONLY: Update state directly (bypasses normal flow)
-   * Used by tests to simulate edge cases and stuck states
-   */
-  _testOnlyUpdateState(updater: (state: TutorialState) => TutorialState): void {
-    this.#state.update(updater);
-  }
-
-  /**
-   * TEST ONLY: Trigger tour completion handler
-   * Used by tests to simulate completion events
-   */
-  _testOnlyHandleTourComplete(): void {
-    this.#handleTourComplete();
-  }
-
-  /**
-   * TEST ONLY: Trigger tour cancellation handler
-   * Used by tests to simulate cancel events
-   */
-  _testOnlyHandleTourCancel(): void {
-    this.#handleTourCancel();
-  }
 
   constructor() {
     this.#initializeShepherd();
@@ -145,16 +107,15 @@ export class TutorialService {
    * Start a specific tour by ID
    * Navigates to the target page if needed before starting the tour.
    * @param tourId - The ID of the tour to start
-   * @param options - Optional configuration (use force: true to replay completed/skipped tours)
    */
-  async startTour(tourId: TourId, options?: StartTourOptions): Promise<void> {
-    const tour = this.#validateAndGetTour(tourId, options);
+  async startTour(tourId: TourId): Promise<void> {
+    const tour = this.#validateAndGetTour(tourId);
     if (!tour) return;
 
     if (!this.#acquireActiveLock(tourId)) return;
 
     try {
-      await this.#prepareAndExecuteTour(tour, options);
+      await this.#prepareAndExecuteTour(tour);
     } catch (error) {
       this.#handleTourError(tourId, error);
     }
@@ -164,22 +125,19 @@ export class TutorialService {
    * Validate tour existence and check if it should be started
    * @returns The tour if it should be started, null otherwise
    */
-  #validateAndGetTour(
-    tourId: TourId,
-    options?: StartTourOptions,
-  ): TutorialTour | null {
+  #validateAndGetTour(tourId: TourId): TutorialTour | null {
     const tour = ALL_TOURS.find((t) => t.id === tourId);
     if (!tour) {
       this.#logger.warn('Tour not found', { tourId });
       return null;
     }
 
-    if (!options?.force && this.hasSeenTour(tourId)) {
+    if (this.hasSeenTour(tourId)) {
       this.#logger.info('Tour already seen', { tourId });
       return null;
     }
 
-    if (!this.#checkPreferences(tour, options)) {
+    if (!this.#checkPreferences(tour)) {
       return null;
     }
 
@@ -189,9 +147,7 @@ export class TutorialService {
   /**
    * Check if user preferences allow the tour to start
    */
-  #checkPreferences(tour: TutorialTour, options?: StartTourOptions): boolean {
-    if (options?.force) return true;
-
+  #checkPreferences(tour: TutorialTour): boolean {
     const { enabled, autoStart } = this.#state().preferences;
     if (!enabled) {
       this.#logger.info('Tutorials are disabled by user preference');
@@ -229,10 +185,7 @@ export class TutorialService {
   /**
    * Navigate to target route if needed and execute the tour
    */
-  async #prepareAndExecuteTour(
-    tour: TutorialTour,
-    options?: StartTourOptions,
-  ): Promise<void> {
+  async #prepareAndExecuteTour(tour: TutorialTour): Promise<void> {
     if (tour.targetRoute && !this.#isOnTargetRoute(tour.targetRoute)) {
       const navigated = await this.#navigateToTargetRoute(tour.targetRoute);
       if (!navigated) {
@@ -246,10 +199,6 @@ export class TutorialService {
       if (!currentRoute.startsWith(expectedRoute)) {
         throw new Error('Navigation succeeded but route did not change');
       }
-    }
-
-    if (!options?.force && tour.triggerOn === 'first-visit') {
-      await this.#delay(AUTO_START_DELAY_MS);
     }
 
     this.#executeTour(tour);

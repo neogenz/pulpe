@@ -46,5 +46,6 @@
   // Configuration spécifique pour les fichiers JSON Lottie
   "files.associations": {
     "**/lottie/**/*.json": "json"
-  }
+  },
+  "vsicons.presets.angular": true
 }

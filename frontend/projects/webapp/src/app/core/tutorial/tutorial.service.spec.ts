@@ -231,25 +231,6 @@ describe('TutorialService', () => {
       expect(newService.state().isActive).toBe(false);
     });
 
-    it('should start a completed tour when force option is true', async () => {
-      // Arrange: Mark tour as completed
-      const persistedState = {
-        completedTours: ['dashboard-welcome'],
-        skippedTours: [],
-        preferences: { enabled: true, autoStart: true },
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(persistedState));
-      const newService = createService();
-
-      // Act
-      await newService.startTour('dashboard-welcome', { force: true });
-
-      // Assert
-      expect(mockShepherdService.addSteps).toHaveBeenCalled();
-      expect(mockShepherdService.start).toHaveBeenCalled();
-      expect(newService.state().isActive).toBe(true);
-    });
-
     it('should not start any tour when tutorials are disabled', async () => {
       // Arrange
       service.updatePreferences({ enabled: false });
@@ -260,18 +241,6 @@ describe('TutorialService', () => {
       // Assert
       expect(mockShepherdService.addSteps).not.toHaveBeenCalled();
       expect(service.state().isActive).toBe(false);
-    });
-
-    it('should start tour when disabled but force is true', async () => {
-      // Arrange
-      service.updatePreferences({ enabled: false });
-
-      // Act
-      await service.startTour('dashboard-welcome', { force: true });
-
-      // Assert
-      expect(mockShepherdService.addSteps).toHaveBeenCalled();
-      expect(service.state().isActive).toBe(true);
     });
 
     it('should not start a tour when tourId does not exist', async () => {
@@ -661,101 +630,73 @@ describe('TutorialService', () => {
     });
   });
 
-  describe('stuck state recovery', () => {
-    it('should reset isActive when handleTourCancel called with null currentTour', async () => {
-      // Arrange: Force stuck state (simulates element timeout crash)
+  describe('concurrent tour prevention', () => {
+    it('should not start a second tour while one is already active', async () => {
+      // Arrange: Start first tour
       await service.startTour('dashboard-welcome');
-      // Manually corrupt state to simulate crash
-      service._testOnlyUpdateState((s) => ({
-        ...s,
-        isActive: true,
-        currentTour: null,
-      }));
-
-      // Verify stuck state
       expect(service.state().isActive).toBe(true);
-      expect(service.state().currentTour).toBeNull();
 
-      // Act: Trigger cancel (simulates Shepherd's cancel event)
-      service._testOnlyHandleTourCancel();
+      // Reset mocks to verify no new calls
+      mockShepherdService.addSteps.mockClear();
+      mockShepherdService.start.mockClear();
 
-      // Assert: State should be reset
-      expect(service.state().isActive).toBe(false);
-      expect(service.state().currentTour).toBeNull();
-      // skippedTours should remain empty (no null pollution)
-      expect(service.state().skippedTours).toEqual([]);
+      // Act: Try to start another tour
+      await service.startTour('add-transaction');
+
+      // Assert: Second tour should not start
+      expect(mockShepherdService.addSteps).not.toHaveBeenCalled();
+      expect(mockShepherdService.start).not.toHaveBeenCalled();
+      expect(service.state().currentTour).toBe('dashboard-welcome');
     });
 
-    it('should reset isActive when handleTourComplete called with null currentTour', async () => {
-      // Arrange: Force stuck state
+    it('should allow starting new tour after previous one completes', async () => {
+      // Arrange: Start and complete first tour
+      let completeHandler: (() => void) | undefined;
+      mockShepherdService.tourObject = {
+        on: vi.fn((event: string, handler: () => void) => {
+          if (event === 'complete') completeHandler = handler;
+        }),
+        off: vi.fn(),
+      };
+
       await service.startTour('dashboard-welcome');
-      // Manually corrupt state to simulate crash
-      service._testOnlyUpdateState((s) => ({
-        ...s,
-        isActive: true,
-        currentTour: null,
-      }));
+      completeHandler?.();
 
-      // Verify stuck state
-      expect(service.state().isActive).toBe(true);
-      expect(service.state().currentTour).toBeNull();
+      // Reset mocks
+      mockShepherdService.addSteps.mockClear();
+      mockShepherdService.start.mockClear();
 
-      // Act: Trigger complete
-      service._testOnlyHandleTourComplete();
+      // Act: Start new tour
+      await service.startTour('add-transaction');
 
-      // Assert: State should be reset
-      expect(service.state().isActive).toBe(false);
-      expect(service.state().currentTour).toBeNull();
-      // completedTours should remain empty (no null pollution)
-      expect(service.state().completedTours).toEqual([]);
+      // Assert: New tour should start
+      expect(mockShepherdService.addSteps).toHaveBeenCalled();
+      expect(service.state().currentTour).toBe('add-transaction');
     });
 
-    it('should not add null to skippedTours when cancelling with null currentTour', async () => {
-      // Arrange: Start tour then corrupt state
+    it('should allow starting new tour after previous one is cancelled', async () => {
+      // Arrange: Start and cancel first tour
+      let cancelHandler: (() => void) | undefined;
+      mockShepherdService.tourObject = {
+        on: vi.fn((event: string, handler: () => void) => {
+          if (event === 'cancel') cancelHandler = handler;
+        }),
+        off: vi.fn(),
+      };
+
       await service.startTour('dashboard-welcome');
-      service._testOnlyUpdateState((s) => ({
-        ...s,
-        currentTour: null,
-        skippedTours: ['templates-intro'], // existing skipped tour
-      }));
+      cancelHandler?.();
 
-      // Act
-      service._testOnlyHandleTourCancel();
+      // Reset mocks
+      mockShepherdService.addSteps.mockClear();
+      mockShepherdService.start.mockClear();
 
-      // Assert: skippedTours unchanged (no null added)
-      expect(service.state().skippedTours).toEqual(['templates-intro']);
-    });
+      // Act: Start new tour (budget-management has no targetRoute, avoids navigation issues)
+      await service.startTour('budget-management');
 
-    it('should not add null to completedTours when completing with null currentTour', async () => {
-      // Arrange: Start tour then corrupt state
-      await service.startTour('dashboard-welcome');
-      service._testOnlyUpdateState((s) => ({
-        ...s,
-        currentTour: null,
-        completedTours: ['dashboard-welcome'], // existing completed tour
-      }));
-
-      // Act
-      service._testOnlyHandleTourComplete();
-
-      // Assert: completedTours unchanged (no null added)
-      expect(service.state().completedTours).toEqual(['dashboard-welcome']);
-    });
-
-    it('should not track analytics event when cancelling with null currentTour', async () => {
-      // Arrange: Start tour then corrupt state
-      await service.startTour('dashboard-welcome');
-      mockAnalyticsService.captureEvent.mockClear();
-      service._testOnlyUpdateState((s) => ({
-        ...s,
-        currentTour: null,
-      }));
-
-      // Act
-      service._testOnlyHandleTourCancel();
-
-      // Assert: No analytics event tracked
-      expect(mockAnalyticsService.captureEvent).not.toHaveBeenCalled();
+      // Assert: New tour should start
+      expect(mockShepherdService.addSteps).toHaveBeenCalled();
+      expect(service.state().currentTour).toBe('budget-management');
     });
   });
 });

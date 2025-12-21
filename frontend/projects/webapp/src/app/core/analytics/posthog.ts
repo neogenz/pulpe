@@ -66,6 +66,7 @@ export class PostHogService {
           maskAllInputs: true, // PostHog handles financial data masking
           recordCrossOriginIframes: false,
         },
+        enable_recording_console_log: false, // Preserve DevTools source attribution
         disable_session_recording: !config.sessionRecording?.enabled,
 
         // Built-in privacy protection

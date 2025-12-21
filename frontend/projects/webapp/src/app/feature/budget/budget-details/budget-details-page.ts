@@ -206,7 +206,7 @@ export default class BudgetDetailsPage {
 
       if (
         hasLoadedData &&
-        !this.#tutorialService.hasCompletedTour('budget-management')
+        !this.#tutorialService.hasSeenTour('budget-management')
       ) {
         this.#tutorialService.startTour('budget-management');
       }
