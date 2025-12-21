@@ -11,6 +11,7 @@ const EXTENDED_WAIT_TIMEOUT_MS = 10000;
 const MODAL_OVERLAY_PADDING_PX = 10;
 const MODAL_OVERLAY_RADIUS_PX = 12;
 const STEP_OFFSET_MAIN_AXIS_PX = 24;
+const VIEWPORT_PADDING_PX = 16;
 
 /**
  * Logger for tutorial configs.
@@ -153,8 +154,8 @@ export const defaultStepOptions: Partial<StepOptions> = {
   floatingUIOptions: {
     middleware: [
       offset({ mainAxis: STEP_OFFSET_MAIN_AXIS_PX }),
-      flip(), // Auto-flip tooltip if it would overflow viewport
-      shift(), // Shift tooltip if it still overflows after flip
+      flip({ fallbackAxisSideDirection: 'end' }),
+      shift({ padding: VIEWPORT_PADDING_PX }),
     ],
   },
   when: {
@@ -417,12 +418,10 @@ export const budgetCalendarTour: TutorialTour = {
         <p>Planifiez vos budgets sur le long terme !</p>
       `,
       attachTo: {
-        element: querySelector('[data-testid="budget-year-tabs"]'),
+        element: querySelector('mat-tab-header'),
         on: 'bottom',
       },
-      beforeShowPromise: createSafeBeforeShowPromise(
-        '[data-testid="budget-year-tabs"]',
-      ),
+      beforeShowPromise: createSafeBeforeShowPromise('mat-tab-header'),
       buttons: [buttons.cancel, buttons.back, buttons.next],
     },
     {
@@ -433,10 +432,10 @@ export const budgetCalendarTour: TutorialTour = {
         <p>Cliquez sur un mois existant pour voir ses détails, ou sur un mois vide pour le créer.</p>
       `,
       attachTo: {
-        element: querySelector('pulpe-year-calendar'),
+        element: querySelector('.calendar-grid'),
         on: 'top',
       },
-      beforeShowPromise: createSafeBeforeShowPromise('pulpe-year-calendar'),
+      beforeShowPromise: createSafeBeforeShowPromise('.calendar-grid'),
       buttons: [buttons.cancel, buttons.back, buttons.complete],
     },
   ],
