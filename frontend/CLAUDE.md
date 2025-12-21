@@ -1,58 +1,104 @@
-# Frontend CLAUDE.md
+# CLAUDE.md - Frontend
 
 ## Commands
 
 ```bash
-pnpm start                  # ng serve --open (localhost:4200)
-pnpm test:watch             # Vitest watch mode
-pnpm test:e2e:ui            # Playwright interactive mode
-pnpm lint                   # ESLint
-pnpm deps:circular          # Check circular dependencies
+pnpm run dev           # ng serve
+pnpm run test          # Vitest unit tests
+pnpm run lint          # BEFORE commit
 ```
 
-## 5-Layer Architecture
+**Angular CLI MCP**: Use when available for creating Angular artifacts.
 
-Located in `projects/webapp/src/app/`:
+## Architecture
 
-| Layer | Content | Loading | Can Import From |
-|-------|---------|---------|-----------------|
-| `core/` | Services, guards, interceptors | Eager | core |
-| `layout/` | App shell, navigation | Eager | core, ui, pattern |
-| `ui/` | Generic reusable components | Cherry-picked | ui |
-| `pattern/` | Stateful components bound to services | Imported | core, ui, pattern |
-| `feature/` | Business domains (isolated) | Lazy | core, ui, pattern |
+| Tech | Details |
+|------|---------|
+| Angular | 20+, standalone, OnPush |
+| Styling | Tailwind v4 + Material v20 |
+| State | Signals (see @STATE-PATTERN.md) |
+| Testing | Vitest + Playwright |
 
-**Key rules**:
-- Features CANNOT import from sibling features
-- All features lazy-loaded via `loadChildren`
-- Group by domain (`core/auth/`), not by type
-- ESLint enforces dependency rules
+## Directory Structure
 
-## Angular Patterns
-
-### Signals & State
-```typescript
-private readonly state = signal<State>(initialState);
-readonly data = computed(() => this.state().data);
-this.state.update(s => ({ ...s, data: newData }));
+```
+projects/webapp/src/app/
+├── core/      # Domain services (auth/, budget/, template/)
+├── layout/    # App shell
+├── ui/        # Stateless components
+├── feature/   # Business domains (lazy-loaded, isolated)
+└── pattern/   # Reusable stateful components
 ```
 
-### Components
-- All standalone (no NgModules)
-- Use `input()`, `output()`, `computed()` signals
-- OnPush change detection everywhere
-- No template functions - use `computed()` instead
+## Dependency Rules
 
-### Services
-- `providedIn: 'root'` only for core services
-- Feature-specific services provided in routes config
+```
+core     ← layout, feature, pattern
+ui       ← layout, feature, pattern
+pattern  ← feature
+feature  ← (isolated, NO sibling imports)
+```
 
-## File Naming (Angular v20)
+## Core Services
 
-- `auth.service.ts` → class `AuthService`
-- `main-layout.ts` → class `MainLayout`
+```
+core/
+├── auth/       # auth-api.ts, auth-guard.ts, auth-interceptor.ts
+├── budget/     # budget-api.ts, budget-calculator.ts
+├── template/   # template-api.ts
+├── tutorial/   # tutorial.service.ts
+├── analytics/  # posthog.ts
+└── testing/    # createMockResourceRef
+```
+
+## Component Rules
+
+- **OnPush**: `changeDetection: ChangeDetectionStrategy.OnPush`
+- **Signals**: Prefer over observables
+- **Private**: Use `#fieldName` syntax
+- **State**: See @STATE-PATTERN.md
+
+## Styling
+
+- **NEVER** `::ng-deep`
+- Material v20 + Tailwind v4
+- Mobile-first: `md:`, `lg:`, `xl:`
+- Colors: `bg-primary`, `text-on-surface`
+- Typography: `text-display-large`, `text-body-medium`
+
+## Material v20 Buttons
+
+```html
+matButton            <!-- text -->
+matButton="filled"   <!-- primary action -->
+matButton="outlined" <!-- secondary -->
+matIconButton        <!-- icon only -->
+```
+
+## Vocabulary
+
+| Technical | User-facing |
+|-----------|-------------|
+| `budget_lines` | **"prévisions"** |
+| `fixed` | "Tous les mois" |
+| `one_off` | "Une seule fois" |
+| `income` | "Revenu" |
+| `expense` | "Dépense" |
+| `saving` | "Épargne" |
+
+**Labels**: "Disponible à dépenser", "Épargne prévue", "Fréquence"
+
+## Testing
+
+See @.claude/rules/testing/vitest.md
+
+- Use `createMockResourceRef<T>()` for Resource mocks
+- `data-testid` for E2E selectors
 
 ## Critical Rules
 
-- **NEVER** use `::ng-deep` in styles
-- Use Angular Material v20 button syntax: `matButton="filled"`, `matButton="outlined"`
+- **NEVER** `::ng-deep`
+- **NEVER** import between sibling features
+- **ALWAYS** OnPush + signals
+- **ALWAYS** `#fieldName` for private
+- **BEFORE** creating: check `ui/` or `pattern/` first

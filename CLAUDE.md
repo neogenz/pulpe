@@ -1,57 +1,65 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-## Project Overview
-
-Pulpe is a personal budget management application for the Swiss market. Users plan their financial year using reusable monthly templates with automatic rollover mechanisms.
-
-**Core Philosophy**: Planning > Tracking, Simplicity > Completeness (KISS & YAGNI), Isolation > DRY
-
-## Tech Stack
-
-- **Monorepo**: pnpm workspaces + Turborepo
-- **Frontend**: Angular 20+, Tailwind CSS v4, Angular Material v20, Vitest, Playwright
-- **Backend**: NestJS 11+ with Bun runtime, Supabase (PostgreSQL + Auth + RLS)
-- **Shared**: `@pulpe/shared` package with Zod schemas for API contracts
+**CRITICAL**: YAGNI + KISS - Modern project, 1 developer.
 
 ## Commands
 
 ```bash
-pnpm dev                    # Full stack (frontend + backend + shared watch)
-pnpm quality:fix            # Fix lint, format, type-check
-pnpm test                   # Run all tests
-pnpm build                  # Build all packages
+pnpm dev              # Full stack (recommended)
+pnpm quality          # BEFORE commit: type-check + lint + format
+pnpm test:e2e         # E2E tests (Playwright)
 ```
 
-See `frontend/CLAUDE.md` and `backend-nest/CLAUDE.md` for package-specific commands.
+## Stack
 
-## Monorepo Structure
+| Layer | Tech |
+|-------|------|
+| Frontend | Angular 20+, Signals, Material v20, Tailwind v4 |
+| Backend | NestJS 11+, Bun, Supabase (PostgreSQL + Auth) |
+| Shared | TypeScript strict, Zod schemas |
+
+## Monorepo
 
 ```
-pulpe-workspace/
-├── frontend/               # Angular 20 web app
-├── backend-nest/           # NestJS API with Bun
-├── shared/                 # @pulpe/shared - Zod schemas
-└── turbo.json              # Turborepo orchestration
+├── frontend/         # Angular webapp → @frontend/CLAUDE.md
+├── backend-nest/     # NestJS API → @backend-nest/CLAUDE.md
+├── shared/           # Zod schemas, types
+└── .claude/rules/    # Lazy-loaded rules (frontend/, testing/, shared/)
 ```
 
-## Shared Package
+## Architecture References
 
-`@pulpe/shared` is the single source of truth for API contracts:
-- **Include**: API request/response types, form validation schemas, enums
-- **Exclude**: Database types, backend implementation details, frontend UI types
+- **Frontend patterns**: @frontend/CLAUDE.md
+- **Backend patterns**: @backend-nest/CLAUDE.md
+- **Signal/Store**: @frontend/STATE-PATTERN.md
+- **Business specs**: @memory-bank/SPECS.md
 
-## Deployment
+## Critical Rules
 
-- **Frontend**: Vercel
-- **Backend**: Railway
-- **Database**: Supabase Cloud
+### Angular (Frontend)
+- **ALWAYS** OnPush + signals
+- **ALWAYS** `#fieldName` for private fields
+- **NEVER** `::ng-deep`
+- **NEVER** import between sibling features
 
-## Pre-commit
+### NestJS (Backend)
+- **NEVER** use `any` types
+- **ALWAYS** use Zod for validation
+- **NEVER** destructive Supabase commands (`db reset`)
+- **AFTER** schema changes: `bun run generate-types:local`
 
-Lefthook runs `pnpm quality` on changed files. Skip with `--no-verify` if needed.
+### Testing
+- Test WHAT not HOW
+- See @.claude/rules/testing/vitest.md
 
-## Critical Notes
+## Vocabulary
 
-- Never use destructive commands (`db reset`) on Supabase
+| Technical | User-facing |
+|-----------|-------------|
+| `budget_lines` | **"prévisions"** |
+| `fixed` | "Tous les mois" |
+| `one_off` | "Une seule fois" |
+
+## Auth Flow
+
+Frontend (Supabase SDK) → Backend (JWT validation) → Database (RLS policies)
