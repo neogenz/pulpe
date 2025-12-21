@@ -1,422 +1,98 @@
-# CLAUDE.md - Frontend
+# CLAUDE.md
 
-This file provides specific guidance for Claude Code when working with the Angular frontend application.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Quick Start Commands
+## Commands
 
+### Development
 ```bash
-# Development
-pnpm run dev                       # Alias for ng serve with host 0.0.0.0
-pnpm run build                     # Build for production
-
-# Testing
-pnpm run test                      # Run unit tests with Vitest
-pnpm run test:e2e                  # Run end-to-end tests with Playwright
-
-# Quality & Analysis
-pnpm run lint                      # Run ESLint
-pnpm run format                    # Apply Prettier formatting
-pnpm run format:check              # Check Prettier formatting
-pnpm run deps:circular             # Check for circular dependencies
+pnpm start                  # ng serve --open (localhost:4200)
+pnpm dev                    # ng serve with 0.0.0.0 host
 ```
 
-## Angular CLI Commands
+### Testing
+```bash
+pnpm test                   # Vitest run
+pnpm test:watch             # Vitest watch mode
+pnpm test:e2e               # Playwright tests
+pnpm test:e2e:ui            # Playwright interactive mode
+pnpm test:e2e:debug         # Playwright debug mode
+```
 
-- Use Angular CLI mcp to create angular object. Or Angular CLI if mcp is not accessible.
+### Quality
+```bash
+pnpm lint                   # ESLint
+pnpm format                 # Prettier
+pnpm deps:circular          # Check circular dependencies (madge)
+```
+
+### Analysis
+```bash
+pnpm analyze                # Bundle analyzer
+pnpm analyze:deps           # Dependency graph visualization
+```
 
 ## Architecture
 
-### Framework & Technologies
+### 5-Layer Structure
 
-- **Angular 20** with standalone components
-- **Change Detection**: OnPush strategy for performance optimization
-- **Styling**: Tailwind CSS v4 + Angular Material v20
-- **Auth**: Supabase client with guards and interceptors
-- **Validation**: Zod schemas from `@pulpe/shared`
-- **Testing**: Vitest (unit) + Playwright (E2E)
-- **Build**: Angular CLI with esbuild
+Located in `projects/webapp/src/app/`:
 
-### Architectural Principles
+| Layer | Content | Loading | Can Import From |
+|-------|---------|---------|-----------------|
+| `core/` | Services, guards, interceptors (headless only) | Eager | core, shared |
+| `layout/` | App shell, navigation components | Eager | core, ui, pattern |
+| `ui/` | Generic reusable components (inputs/outputs only) | Cherry-picked | ui, shared |
+| `pattern/` | Stateful reusable components bound to services | Imported | core, ui, pattern |
+| `feature/` | Business domains (complete isolation) | Lazy | core, ui, pattern, own sub-features |
 
-1. **Standalone Components**: No NgModules, everything is standalone
-2. **Signal-based**: Use Angular signals for reactive state management
-3. **Lazy Loading**: All features must be lazy-loaded for optimal performance
-4. **Strict Isolation**: Features cannot depend on each other directly
-5. **OnPush Strategy**: All components use OnPush change detection
-6. **Acyclic Dependencies**: Strict one-way dependency graph enforced by eslint-plugin-boundaries
+### Key Rules
 
-### Directory Structure
+**Features are isolated "black boxes"**:
+- Features CANNOT import from sibling features
+- All features must be lazy-loaded via `loadChildren`
+- Provide services at feature level in routes config (not in root)
 
-```
-projects/webapp/src/app/
-├── core/                    # Application-wide services, guards, interceptors
-├── layout/                  # App shell components (header, footer, navigation)
-├── ui/                      # Generic, reusable, stateless components
-├── feature/                 # Business domain features (lazy-loaded)
-├── pattern/                 # Reusable stateful components
-└── styles/                  # Global styles and theming
-```
+**Extraction rule**: When logic needs sharing between features, extract to `core/` (services), `ui/` (generic components), or `pattern/` (stateful components). Wait for 3+ occurrences before abstracting.
 
-### Architectural Types
+**Domain-based organization**: Group by domain (`core/auth/`, `core/budget/`), not by type (avoid `core/services/`).
 
-#### Core (`core/`)
+### Architecture Enforcement
 
-- **Purpose**: Central hub for shared, headless application logic
-- **Content**: Domain-organized services (auth/, budget/, template/, config/), guards, interceptors
-- **Loading**: Eager-loaded (part of main bundle)
-- **Constraints**: No components, directives, or pipes with templates
-- **Organization**: Services are grouped by domain, not in a single services/ folder
+ESLint with `eslint-plugin-boundaries` enforces dependency rules. Run `pnpm lint` to verify.
 
-#### Layout (`layout/`)
+## Angular Patterns
 
-- **Purpose**: Application shell and main structure
-- **Content**: Header, footer, navigation, main router-outlet
-- **Loading**: Eager-loaded
-- **Dependencies**: Can use `core` services and `ui` components
-
-#### UI (`ui/`)
-
-- **Purpose**: Reusable, stateless presentation components
-- **Content**: Generic components, directives, pipes
-- **Loading**: Cherry-picked by consuming modules
-- **Constraints**: Must be stateless, no service injection, only @Input/@Output
-
-#### Feature (`feature/`)
-
-- **Purpose**: Business domain implementations
-- **Content**: Smart components, feature services, routing
-- **Loading**: Always lazy-loaded via `loadChildren`
-- **Constraints**: Complete isolation - no direct dependencies between features
-
-#### Pattern (`pattern/`)
-
-- **Purpose**: Reusable stateful components
-- **Content**: Cross-cutting functionality with state management
-- **Loading**: Imported by features as needed
-- **Example**: Document manager, approval widget, audit log
-
-### Dependency Rules
-
-```
-core     ← layout, feature, pattern
-ui       ← layout, feature, pattern
-pattern  ← feature
-feature  ← (isolated, no sibling dependencies)
-```
-
-### Feature Structure
-
-```
-feature/[domain]/
-├── components/              # Domain-specific components
-├── services/               # Domain services and state
-├── ui/                     # Feature-specific UI components
-├── [domain].routes.ts      # Feature routing
-└── [domain].ts            # Main feature component
-```
-
-## Development Patterns
-
-### Component Guidelines
-
-1. **Logic-free Components**: Delegate business logic to services
-2. **OnPush Strategy**: Use `changeDetection: ChangeDetectionStrategy.OnPush`
-3. **Signal-based**: Prefer signals over traditional observables
-4. **Standalone**: All components must be standalone
-5. **Private Fields**: Use `#fieldName` syntax instead of `private`
-
-### Routing
-
-- Use `loadChildren` with `.routes.ts` files for lazy loading
-- Avoid `loadComponent` for feature-level routing
-- Route guards in `core/guards/`
-
-### State Management
-
-- Use Angular signals for local state
-- Feature-specific state services in `feature/[domain]/services/`
-- Shared services organized by domain in `core/` (e.g., `core/auth/`, `core/budget/`, `core/template/`)
-
-### Testing
-
-#### Unit Tests (Vitest)
-
-- Test files: `*.spec.ts`
-- Focus on component logic and service behavior
-- Use Angular testing utilities with Vitest
-- Mock external dependencies
-
-#### E2E Tests (Playwright)
-
-- Tests in `e2e/` directory
-- Use `data-testid` attributes for element selection
-- Page Object Model pattern
-- Comprehensive user flow testing
-
-#### Testing Philosophy
-
-- Test WHAT, not HOW: Focus on observable business outcomes, not internal method names
-- Tests as Documentation: Each test should describe a business requirement
-- Resilient to Refactoring: Tests shouldn't break when implementation changes
-
-### Styling
-
-NEVER use `::ng-deep` in styles. It's FORBIDDEN.
-
-### Design System - Material Design 3
-
-The application implements **Material Design 3** (Material You) through a dual approach:
-
-- **Angular Material v20** for component base implementation
-- **Tailwind CSS v4** for custom styling and responsive design
-
-#### Material Design 3 Core Principles
-
-**CRITICAL**: All UI must strictly follow Material Design 3 specifications:
-
-1. **Dynamic Color System**: Use color roles, not fixed colors
-2. **Adaptive Surfaces**: Implement proper elevation and surface containers
-3. **Expressive Typography**: Follow Material Design 3 type scale
-4. **Responsive Layout**: Mobile-first approach with adaptive breakpoints
-5. **Motion & Interaction**: Use Material motion patterns
-
-#### Surface Containers & Elevation
-
-Use correct surface containers based on content hierarchy:
-
-```html
-<!-- Primary content -->
-<div class="bg-*">Content</div>
-```
-
-By using Tailwind overriding defined here : @frontend/projects/webapp/src/app/styles/vendors/\_tailwind.css
-
-#### Color System Integration
-
-**Angular Material + Tailwind Color Mapping**:
-
-The color system uses CSS variables mapped in `@theme inline` section of @frontend/projects/webapp/src/app/styles/vendors/\_tailwind.css
-
-**IMPORTANT**: Use arbitrary values syntax `bg-primary` since colors are defined as CSS variables.
-
-#### Typography System
-
-**Material Design 3 Type Scale** (via Tailwind utilities):
-
-```html
-<div class="text-*">Text</div>
-```
-
-By using Tailwind overriding defined here : @frontend/projects/webapp/src/app/styles/vendors/\_tailwind.css
-
-#### Responsive Design - Mobile First
-
-**MANDATORY**: All layouts must be responsive and mobile-first:
-
-```html
-<!-- Mobile first approach -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-  <!-- Content adapts from mobile to desktop -->
-</div>
-
-<!-- Touch targets - minimum 44px -->
-<button class="min-h-[44px] min-w-[44px] p-3">Touch-friendly button</button>
-
-<!-- Responsive spacing -->
-<div class="p-4 md:p-6 lg:p-8">
-  <!-- Spacing increases with screen size -->
-</div>
-```
-
-#### Angular Material Component Usage
-
-**Base Components**: Always start with Angular Material components:
-
+### Signals & State
 ```typescript
-// Import Material components
-import { MatButtonModule } from "@angular/material/button";
-import { MatCardModule } from "@angular/material/card";
-import { MatFormFieldModule } from "@angular/material/form-field";
+// Single private signal for state
+private readonly state = signal<State>(initialState);
+
+// Public read-only computed selectors
+readonly data = computed(() => this.state().data);
+
+// Immutable updates only
+this.state.update(s => ({ ...s, data: newData }));
 ```
 
-**Customization**: Override with Material system variables:
+### Components
+- All components are standalone (no NgModules)
+- Use `input()`, `output()`, `computed()` signals
+- OnPush change detection everywhere
+- Inline templates/styles for small components
+- No template functions - use `computed()` instead
 
-```scss
-// Component-specific overrides
-.custom-button {
-  --mdc-filled-button-container-color: var(--mat-sys-primary);
-  --mdc-filled-button-label-text-color: var(--mat-sys-on-primary);
-}
-```
+### Services
+- `providedIn: 'root'` only for core services
+- Feature-specific services provided in routes config
 
-#### Tailwind CSS v4 Integration
+## File Naming
 
-**Configuration**: Located in `projects/webapp/src/app/styles/vendors/_tailwind.css`
+Angular v20 style - no class suffixes required:
+- `auth.service.ts` with class `AuthService`
+- `main-layout.ts` with class `MainLayout`
+- `budget.routes.ts` for routing
 
-**Key Features**:
-
-- Full Material Design 3 color palette mapped to Tailwind
-- Typography scale utilities (`text-display-large`, `text-body-medium`, etc.)
-- Angular Material radius variables (use arbitrary values: `rounded-corner-medium`)
-- Dark mode support with `.dark-theme` class
-- Custom financial color utilities (`text-financial-income`, `text-financial-negative`)
-- Custom utility classes (`form-field-error-icon`, `icon-filled`)
-- Built-in animations (`animate-fadeIn`, `animate-marquee`)
-
-#### Mobile-First Breakpoints
-
-**Responsive Design Guidelines**:
-
-Follow Tailwind standards breakpoint.
-
-**Standard Breakpoints**:
-
-- Mobile: < 768px (default)
-- Tablet: 768px - 1023px (`md:`)
-- Desktop: 1024px - 1279px (`lg:`)
-- Large Desktop: ≥ 1280px (`xl:`)
-
-#### Form Design
-
-**Material Design 3 Forms**:
-
-```html
-<mat-form-field>
-  <mat-label>Enter your email</mat-label>
-  <input matInput placeholder="pat@example.com" [formControl]="email" (blur)="updateErrorMessage()" required />
-  @if (email.invalid) {
-  <mat-error>{{errorMessage()}}</mat-error>
-  }
-</mat-form-field>
-```
-
-## Code Quality
-
-### ESLint Configuration
-
-- Angular-specific rules
-- Boundary enforcement between architectural layers
-- Import/export organization
-- TypeScript strict mode
-
-### Prettier Configuration
-
-- Consistent formatting across TypeScript, HTML, SCSS
-- Integrated with ESLint for conflict-free setup
-
-### Performance Optimization
-
-- Bundle analysis with `analyze` scripts
-- Tree-shaking optimization
-- Lazy loading for all features
-- OnPush change detection strategy
-
-## Authentication Flow
-
-1. Supabase Auth integration in `core/auth/` (auth-api.ts, auth-guard.ts, auth-interceptor.ts)
-2. Auth guards protect feature routes
-3. Interceptors add Bearer tokens to API requests
-4. User context available throughout the app
-
-## Error Handling
-
-- Global error handler in `core/`
-- Feature-specific error components
-- User-friendly error messages
-- Proper error logging and monitoring
-
-## Build & Deployment
-
-- Production build: `pnpm run build`
-- Bundle analysis: `pnpm run analyze`
-- Source map analysis: `pnpm run analyze:sme`
-- Deployment-ready artifacts in `dist/webapp/`
-
-## Key Files
-
-- `projects/webapp/src/app/app.config.ts` - Application configuration
-- `projects/webapp/src/main.ts` - Application bootstrap
-- `projects/webapp/src/app/styles/` - Global styles and theming - HERE is the Tailwind overriding with Angular Material System Variables implementing well Material Design 3
-- `projects/webapp/src/app/core/` - Core application services
-- `e2e/` - End-to-end test suites
-
-## UX Guidelines & Vocabulary
-
-### Business Vocabulary (Critical for Consistency)
-
-**IMPORTANT**: Pulpe maintains a strict separation between planning and reality. Follow this vocabulary precisely:
-
-#### Core Terminology
-
-- **`budget_lines` (Technical)** = **"prévisions"** (User-facing)
-  - Use "prévisions" in ALL user interfaces
-  - Never use "lignes budgétaires" (too technical)
-  - Examples: "Nouvelle prévision", "Prévisions du budget", "Aucune prévision définie"
-
-#### Financial Overview Labels
-
-- **"Disponible à dépenser"** (not "Reste disponible")
-- **"Épargne prévue"** (not "Économies")
-- **"Fréquence"** (not "Récurrence")
-
-#### Recurrence/Frequency Options
-
-- **"Tous les mois"** (for `fixed` value) - recurring monthly expenses/income
-- **"Une seule fois"** (for `one_off` value) - one-time transactions
-
-#### Transaction Types
-
-- **Default type**: `expense` (Dépense) - most common use case
-- **Available types**:
-  - "Revenu" (`income`)
-  - "Dépense" (`expense`)
-  - "Épargne" (`saving`)
-
-### UX Principles Applied
-
-This vocabulary and UX must follows **Nielsen's 10 Usability Heuristics**, **Bastien & Scapin 8 Ergonomic Criteria**, and **ISO 9241-210:2019**:
-
-1. **Match between system and real world**: "Tous les mois" vs technical "Montant fixe"
-2. **Recognition rather than recall**: Clear, descriptive labels
-3. **Consistency**: Same vocabulary across all components
-4. **Error prevention**: Logical defaults (Dépense, Tous les mois)
-
-### Message Patterns
-
-- **Success**: "Prévision ajoutée."
-- **Delete success**: "Prévision supprimée."
-- **Confirmation**: "Êtes-vous sûr de vouloir supprimer cette prévision ?"
-- **Empty states**: "Aucune prévision définie", "Commencer à planifier"
-
-## Angular Material Best Practices
-
-- **Button Directives (v20)**: Utilise les nouvelles directives Angular Material v20 :
-  - `matButton` (text par défaut)
-  - `matButton="filled"` (remplace mat-flat-button)
-  - `matButton="outlined"` (remplace mat-stroked-button)
-  - `matButton="elevated"` (remplace mat-raised-button)
-  - `matButton="tonal"`
-  - `matIconButton` (remplace mat-icon-button)
-  - `matFab` (remplace mat-fab)
-  - `matMiniFab` (remplace mat-mini-fab)
-
-## Testing Utilities
-
-- **Location**: `/app/core/testing/`
-- **`createMockResourceRef<T>(initialValue)`**: Mock Angular's ResourceRef for tests
-
-```typescript
-import { createMockResourceRef } from "../../../core/testing";
-
-const mockResource = createMockResourceRef<BudgetTemplate[]>([]);
-mockResource.value.set([{ id: "1", name: "Template" }]);
-```
-
-## State Management Best Practices
-
-- Directly use public state service when the context is lightweight to avoid unnecessary boilerplate
-- Advantages of direct state access:
-  - Simplify code structure
-  - Reduce code duplication
-  - More direct access to service properties
-  - Clearer and more straightforward implementation
+## Critical Rules
+- **NEVER** use `::ng-deep` in styles
+- Use Angular Material v20 button syntax: `matButton="filled"`, `matButton="outlined"`, etc.
