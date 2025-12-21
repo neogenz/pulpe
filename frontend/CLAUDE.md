@@ -5,11 +5,24 @@ This file provides guidance to Claude Code (claude.ai/code) for the frontend app
 ## Commands
 
 ```bash
-pnpm run dev                        # ng serve (http://localhost:4200)
-pnpm run test                       # Vitest unit tests
-pnpm run test -- path/to/spec.ts   # Single test file
-pnpm run test:watch                 # Watch mode
-pnpm run lint                       # BEFORE commit
+# Development
+pnpm dev                            # ng serve (http://localhost:4200)
+
+# Unit tests (Vitest)
+pnpm test                           # All tests
+pnpm test -- path/to/spec.ts        # Single test file
+pnpm test:watch                     # Watch mode
+
+# E2E tests (Playwright)
+pnpm test:e2e                       # Run E2E tests
+pnpm test:e2e:ui                    # Interactive UI mode
+pnpm test:e2e:headed                # Visible browser
+pnpm test:e2e:debug                 # Debug mode
+
+# Quality (BEFORE commit)
+pnpm lint                           # ESLint
+pnpm format                         # Prettier format
+pnpm deps:circular                  # Check circular deps (fails if found)
 ```
 
 **Angular CLI MCP**: Use when available for creating Angular artifacts.
@@ -20,8 +33,8 @@ pnpm run lint                       # BEFORE commit
 |------|---------|
 | Angular | 20+, standalone, OnPush |
 | Styling | Tailwind v4 + Material v20 |
-| State | Signals (see @STATE-PATTERN.md) |
-| Testing | Vitest + Playwright |
+| State | Signals (see STATE-PATTERN.md) |
+| Testing | Vitest (unit) + Playwright (E2E) |
 
 ## Directory Structure
 
@@ -112,6 +125,13 @@ Prefer `httpResource()` for API calls:
 
 ```typescript
 readonly data = httpResource(() => `/api/endpoint/${this.id()}`);
+
+// With Zod validation
+readonly data = httpResource(() => url, { parse: schema.parse });
+
+// Response variants
+httpResource.text(() => url);   // string response
+httpResource.blob(() => url);   // binary response
 ```
 
 Use `resource()` only for non-HTTP async operations.
@@ -125,10 +145,10 @@ Use `resource()` only for non-HTTP async operations.
 
 ## Testing
 
-See @.claude/rules/testing/vitest.md
-
+- AAA pattern: Arrange, Act, Assert (separate with blank lines)
 - `data-testid` naming: `feature-component-element` (e.g., `budget-form-submit-button`)
-- Use `createMockResourceRef<T>()` for Resource mocks
+- Use `createMockResourceRef<T>()` from `@core/testing` for Resource mocks
+- Use `vi.fn()` for mocks, never `any`
 
 ## Critical Rules
 
@@ -137,9 +157,3 @@ See @.claude/rules/testing/vitest.md
 - **ALWAYS** OnPush + signals
 - **ALWAYS** `#fieldName` for private
 - **BEFORE** creating: check `ui/` or `pattern/` first
-
-## Architecture References
-
-| Topic | Reference |
-|-------|-----------|
-| Signal/Store | @frontend/STATE-PATTERN.md |
