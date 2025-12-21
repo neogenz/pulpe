@@ -36,21 +36,14 @@ pnpm test:e2e         # E2E tests (Playwright)
 
 ## Critical Rules
 
-### Angular (Frontend)
-- **ALWAYS** OnPush + signals
-- **ALWAYS** `#fieldName` for private fields
-- **NEVER** `::ng-deep`
-- **NEVER** import between sibling features
-
-### NestJS (Backend)
+### Backend (NestJS)
 - **NEVER** use `any` types
 - **ALWAYS** use Zod for validation
 - **NEVER** destructive Supabase commands (`db reset`)
 - **AFTER** schema changes: `bun run generate-types:local`
 
-### Testing
-- Test WHAT not HOW
-- See @.claude/rules/testing/vitest.md
+### Frontend/Testing
+- See @frontend/CLAUDE.md and @.claude/rules/
 
 ## Vocabulary
 
@@ -59,6 +52,11 @@ pnpm test:e2e         # E2E tests (Playwright)
 | `budget_lines` | **"prévisions"** |
 | `fixed` | "Tous les mois" |
 | `one_off` | "Une seule fois" |
+| `income` | "Revenu" |
+| `expense` | "Dépense" |
+| `saving` | "Épargne" |
+
+**Labels**: "Disponible à dépenser", "Épargne prévue", "Fréquence"
 
 ## Auth Flow
 

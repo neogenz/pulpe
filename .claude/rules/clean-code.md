@@ -53,6 +53,3 @@ save(isDraft: boolean)
 | `save(isDraft: boolean)` | `saveAsDraft()` / `saveAndPublish()` |
 | Comments explaining code | Self-documenting code |
 
-## Related
-
-- Error handling patterns: see `error-handling.md`

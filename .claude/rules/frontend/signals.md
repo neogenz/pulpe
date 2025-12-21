@@ -1,141 +1,352 @@
 ---
-description: Advanced Angular signal patterns and state management
-globs:
-  - "frontend/**/core/**/*.ts"
-  - "frontend/**/feature/**/*.ts"
-  - "!frontend/**/*.spec.ts"
+description: "Angular Signal API patterns and best practices"
+paths: "**/*.ts"
 ---
 
-# Angular Best Practices
+# Angular Signal API Guidelines (v21+)
 
-This project adheres to modern Angular best practices, emphasizing maintainability, performance, accessibility, and scalability.
+## Core Primitives
 
-## TypeScript Best Practices
+### signal() - Writable State
 
-- **Strict Type Checking:** Always enable and adhere to strict type checking. This helps catch errors early and improves code quality.
-- **Prefer Type Inference:** Allow TypeScript to infer types when they are obvious from the context. This reduces verbosity while maintaining type safety.
-  - **Bad:**
-    ```typescript
-    let name: string = "Angular";
-    ```
-  - **Good:**
-    ```typescript
-    let name = "Angular";
-    ```
-- **Avoid `any`:** Do not use the `any` type unless absolutely necessary as it bypasses type checking. Prefer `unknown` when a type is uncertain and you need to handle it safely.
+```typescript
+private readonly _count = signal(0);
+readonly count = this._count.asReadonly(); // expose read-only
 
-## Angular Best Practices
+// Update
+this._count.set(5);           // replace value
+this._count.update(v => v + 1); // transform value
+```
 
-- **Standalone Components:** Always use standalone components, directives, and pipes. Avoid using `NgModules` for new features or refactoring existing ones.
-- **Implicit Standalone:** When creating standalone components, you do not need to explicitly set `standalone: true` inside the `@Component`, `@Directive` and `@Pipe` decorators, as it is implied by default.
-  - **Bad:**
-    ```typescript
-    @Component({
-      standalone: true,
-      // ...
-    })
-    export class MyComponent {}
-    ```
-  - **Good:**
-    ```typescript
-    @Component({
-      // `standalone: true` is implied
-      // ...
-    })
-    export class MyComponent {}
-    ```
-- **Signals for State Management:** Utilize Angular Signals for reactive state management within components and services.
-- **Lazy Loading:** Implement lazy loading for feature routes to improve initial load times of your application.
-- **NgOptimizedImage:** Use `NgOptimizedImage` for all static images to automatically optimize image loading and performance.
-- **Host bindings:** Do NOT use the `@HostBinding` and `@HostListener` decorators. Put host bindings inside the `host` object of the `@Component` or `@Directive` decorator instead.
+### computed() - Derived State
 
-## Components
+```typescript
+readonly doubled = computed(() => this.count() * 2);
+readonly label = computed(() => `Count: ${this.count()}`);
+```
 
-- **Single Responsibility:** Keep components small, focused, and responsible for a single piece of functionality.
-- **`input()` and `output()` Functions:** Prefer `input()` and `output()` functions over the `@Input()` and `@Output()` decorators for defining component inputs and outputs.
-  - **Old Decorator Syntax:**
-    ```typescript
-    @Input() userId!: string;
-    @Output() userSelected = new EventEmitter<string>();
-    ```
-  - **New Function Syntax:**
+- Lazy evaluation, memoized
+- Auto-tracks dependencies
+- Read-only (cannot `set()`)
 
-    ```typescript
-    import { input, output } from "@angular/core";
+### linkedSignal() - Dependent Writable State
 
-    // ...
-    userId = input<string>("");
-    userSelected = output<string>();
-    ```
+```typescript
+readonly options = signal(['A', 'B', 'C']);
+readonly selected = linkedSignal(() => this.options()[0]);
 
-- **`computed()` for Derived State:** Use the `computed()` function from `@angular/core` for derived state based on signals.
-- **`ChangeDetectionStrategy.OnPush`:** Always set `changeDetection: ChangeDetectionStrategy.OnPush` in the `@Component` decorator for performance benefits by reducing unnecessary change detection cycles.
-- **Inline Templates:** Prefer inline templates (template: `...`) for small components to keep related code together. For larger templates, use external HTML files.
-- **Reactive Forms:** Prefer Reactive forms over Template-driven forms for complex forms, validation, and dynamic controls due to their explicit, immutable, and synchronous nature.
-- **No `ngClass` / `NgClass`:** Do not use the `ngClass` directive. Instead, use native `class` bindings for conditional styling.
-  - **Bad:**
-    ```html
-    <section [ngClass]="{'active': isActive}"></section>
-    ```
-  - **Good:**
-    ```html
-    <section [class.active]="isActive"></section>
-    <section [class]="{'active': isActive}"></section>
-    <section [class]="myClasses"></section>
-    ```
-- **No `ngStyle` / `NgStyle`:** Do not use the `ngStyle` directive. Instead, use native `style` bindings for conditional inline styles.
-  - **Bad:**
-    ```html
-    <section [ngStyle]="{'font-size': fontSize + 'px'}"></section>
-    ```
-  - **Good:**
-    ```html
-    <section [style.font-size.px]="fontSize"></section>
-    <section [style]="myStyles"></section>
-    ```
+// Can be manually set
+this.selected.set('B');
 
-## State Management
+// Resets when options change
+this.options.set(['X', 'Y']); // selected becomes 'X'
+```
 
-- **Signals for Local State:** Use signals for managing local component state.
-- **`computed()` for Derived State:** Leverage `computed()` for any state that can be derived from other signals.
-- **Pure and Predictable Transformations:** Ensure state transformations are pure functions (no side effects) and predictable.
-- **Signal value updates:** Do NOT use `mutate` on signals, use `update` or `set` instead.
+**With previous value:**
 
-## Templates
+```typescript
+readonly selected = linkedSignal({
+  source: this.options,
+  computation: (newOpts, prev) =>
+    newOpts.find(o => o === prev?.value) ?? newOpts[0]
+});
+```
 
-- **Simple Templates:** Keep templates as simple as possible, avoiding complex logic directly in the template. Delegate complex logic to the component's TypeScript code.
-- **Native Control Flow:** Use the new built-in control flow syntax (`@if`, `@for`, `@switch`) instead of the older structural directives (`*ngIf`, `*ngFor`, `*ngSwitch`).
-  - **Old Syntax:**
-    ```html
-    <section *ngIf="isVisible">Content</section>
-    <section *ngFor="let item of items">{{ item }}</section>
-    ```
-  - **New Syntax:**
-    ```html
-    @if (isVisible) {
-    <section>Content</section>
-    } @for (item of items; track item.id) {
-    <section>{{ item }}</section>
-    }
-    ```
-- **Async Pipe:** Use the `async` pipe to handle observables in templates. This automatically subscribes and unsubscribes, preventing memory leaks.
+---
 
-## Services
+## Component Communication
 
-- **Single Responsibility:** Design services around a single, well-defined responsibility.
-- **`providedIn: 'root'`:** Use the `providedIn: 'root'` option when declaring injectable services to ensure they are singletons and tree-shakable.
-- **`inject()` Function:** Prefer the `inject()` function over constructor injection when injecting dependencies, especially within `provide` functions, `computed` properties, or outside of constructor context.
-  - **Old Constructor Injection:**
-    ```typescript
-    constructor(private myService: MyService) {}
-    ```
-  - **New `inject()` Function:**
+### input() - Signal Inputs
 
-    ```typescript
-    import { inject } from "@angular/core";
+```typescript
+readonly name = input<string>();           // optional, undefined initially
+readonly name = input('default');          // optional with default
+readonly name = input.required<string>();  // required
+```
 
-    export class MyComponent {
-      private myService = inject(MyService);
-      // ...
-    }
-    ```
+### output() - Signal Outputs
+
+```typescript
+readonly clicked = output<void>();
+readonly selected = output<Item>();
+
+onClick() {
+  this.clicked.emit();
+  this.selected.emit(item);
+}
+```
+
+### model() - Two-Way Binding
+
+```typescript
+// Child component
+readonly value = model(0);
+
+increment() {
+  this.value.update(v => v + 1); // propagates to parent
+}
+
+// Parent template
+<child [(value)]="parentSignal" />
+```
+
+- Creates implicit `valueChange` output
+- Parent must bind to signal instance, not value
+
+---
+
+## Template Queries
+
+### viewChild() / viewChildren()
+
+```typescript
+readonly input = viewChild<ElementRef>('inputRef');
+readonly input = viewChild.required<ElementRef>('inputRef');
+readonly items = viewChildren<ItemComponent>(ItemComponent);
+```
+
+### contentChild() / contentChildren()
+
+```typescript
+readonly header = contentChild<TemplateRef<unknown>>('header');
+readonly tabs = contentChildren<TabComponent>(TabComponent);
+```
+
+- Return signals (call to get value)
+- Available after view init
+
+---
+
+## Async Data (Experimental)
+
+### resource() - Generic Async Loading
+
+```typescript
+readonly userId = input.required<string>();
+
+readonly user = resource({
+  params: () => ({ id: this.userId() }),
+  loader: ({ params, abortSignal }) =>
+    fetch(`/api/users/${params.id}`, { signal: abortSignal })
+      .then(r => r.json())
+});
+
+// Access
+this.user.value();      // data or undefined
+this.user.hasValue();   // boolean guard
+this.user.error();      // error or undefined
+this.user.isLoading();  // boolean
+this.user.status();     // 'idle'|'loading'|'reloading'|'resolved'|'error'|'local'
+this.user.reload();     // trigger refresh
+```
+
+### httpResource() - HTTP with Signals
+
+```typescript
+readonly user = httpResource(() => `/api/users/${this.userId()}`);
+
+// Advanced request
+readonly user = httpResource(() => ({
+  url: `/api/users/${this.userId()}`,
+  method: 'GET',
+  headers: { 'X-Custom': 'value' }
+}));
+
+// With validation (Zod)
+readonly user = httpResource(() => `/api/users/${this.userId()}`, {
+  parse: userSchema.parse
+});
+
+// Response types
+httpResource.text(() => url);
+httpResource.blob(() => url);
+httpResource.arrayBuffer(() => url);
+```
+
+### rxResource() - RxJS Integration
+
+```typescript
+readonly user = rxResource({
+  params: () => this.userId(),
+  stream: ({ params }) => this.http.get<User>(`/api/users/${params}`)
+});
+```
+
+---
+
+## Side Effects
+
+### effect() - Last Resort API
+
+```typescript
+constructor() {
+  effect(() => {
+    console.log(`User: ${this.user()}`);
+  });
+}
+```
+
+**Valid uses:**
+
+- Logging/analytics
+- Sync to localStorage/sessionStorage
+- Custom DOM behavior
+- Third-party library integration
+
+**NEVER use for:**
+
+- State propagation between signals
+- Deriving values (use `computed()`)
+- Setting other signals (use `linkedSignal()`)
+
+### afterRenderEffect() - DOM Manipulation
+
+```typescript
+constructor() {
+  afterRenderEffect({
+    write: () => this.chart.updateData(this.chartData())
+  });
+}
+```
+
+**Phases:** `earlyRead` → `write` → `mixedReadWrite` → `read`
+
+### effect() Cleanup
+
+```typescript
+effect((onCleanup) => {
+  const timer = setTimeout(() => {}, 1000);
+  onCleanup(() => clearTimeout(timer));
+});
+```
+
+---
+
+## RxJS Interop
+
+```typescript
+import { toSignal, toObservable } from '@angular/core/rxjs-interop';
+
+// Observable → Signal
+readonly user = toSignal(this.user$);
+readonly user = toSignal(this.user$, { initialValue: null });
+
+// Signal → Observable
+readonly user$ = toObservable(this.userSignal);
+```
+
+### takeUntilDestroyed()
+
+```typescript
+constructor() {
+  this.data$.pipe(
+    takeUntilDestroyed()
+  ).subscribe(d => this.process(d));
+}
+```
+
+---
+
+## Signal Forms (Experimental)
+
+```typescript
+import { signal } from '@angular/core';
+import { form, Field } from '@angular/forms/signals';
+
+@Component({
+  imports: [Field],
+  template: `
+    <input [field]="loginForm.email" />
+    <input type="password" [field]="loginForm.password" />
+  `
+})
+export class LoginComponent {
+  readonly model = signal({ email: '', password: '' });
+  readonly loginForm = form(this.model);
+
+  onSubmit() {
+    const data = this.model();
+    // submit data
+  }
+}
+```
+
+**Field state access:**
+
+```typescript
+this.loginForm.email().value();     // current value
+this.loginForm.email().valid();     // validation state
+this.loginForm.email().touched();   // interaction state
+this.loginForm.email().value.set(''); // programmatic update
+```
+
+---
+
+## Patterns
+
+### Service State Pattern
+
+```typescript
+@Injectable({ providedIn: 'root' })
+export class CounterService {
+  private readonly _count = signal(0);
+
+  readonly count = this._count.asReadonly();
+  readonly doubled = computed(() => this._count() * 2);
+
+  increment() { this._count.update(c => c + 1); }
+  reset() { this._count.set(0); }
+}
+```
+
+### Component Pattern
+
+```typescript
+@Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `{{ greeting() }}`
+})
+export class GreetingComponent {
+  readonly name = input.required<string>();
+  readonly prefix = input('Hello');
+  readonly greeted = output<string>();
+
+  readonly greeting = computed(() => `${this.prefix()}, ${this.name()}!`);
+}
+```
+
+---
+
+## Anti-Patterns
+
+| Don't | Do |
+|-------|-----|
+| `effect(() => this.b.set(this.a()))` | `b = computed(() => this.a())` or `b = linkedSignal(() => this.a())` |
+| `signal.mutate(arr => arr.push(x))` | `signal.update(arr => [...arr, x])` |
+| Read signal in constructor before init | Use `afterNextRender()` or `effect()` |
+| `toSignal()` without `initialValue` when sync needed | Provide `initialValue` or handle `undefined` |
+| `effect()` for derived state | `computed()` for read-only, `linkedSignal()` for writable |
+| Subscribe in component without cleanup | `takeUntilDestroyed()` or `toSignal()` |
+
+---
+
+## Quick Reference
+
+| API | Import | Purpose |
+|-----|--------|---------|
+| `signal()` | `@angular/core` | Writable state |
+| `computed()` | `@angular/core` | Derived read-only state |
+| `linkedSignal()` | `@angular/core` | Derived writable state |
+| `effect()` | `@angular/core` | Side effects (use sparingly) |
+| `input()` | `@angular/core` | Component input |
+| `output()` | `@angular/core` | Component output |
+| `model()` | `@angular/core` | Two-way binding |
+| `viewChild()` | `@angular/core` | Template query |
+| `contentChild()` | `@angular/core` | Projected content query |
+| `resource()` | `@angular/core` | Async data (experimental) |
+| `httpResource()` | `@angular/common/http` | HTTP requests (experimental) |
+| `rxResource()` | `@angular/core/rxjs-interop` | RxJS async data |
+| `toSignal()` | `@angular/core/rxjs-interop` | Observable → Signal |
+| `toObservable()` | `@angular/core/rxjs-interop` | Signal → Observable |
+| `untracked()` | `@angular/core` | Read without tracking |
+| `form()` | `@angular/forms/signals` | Signal forms (experimental) |
