@@ -432,10 +432,19 @@ export const budgetCalendarTour: TutorialTour = {
         <p>Cliquez sur un mois existant pour voir ses détails, ou sur un mois vide pour le créer.</p>
       `,
       attachTo: {
-        element: querySelector('.calendar-grid'),
+        element: () =>
+          window.innerWidth >= 768
+            ? document.querySelector<HTMLElement>(
+                '[data-testid="calendar-months-grid"]',
+              )
+            : document.querySelector<HTMLElement>(
+                '[data-testid^="month-tile-"]',
+              ),
         on: 'top',
       },
-      beforeShowPromise: createSafeBeforeShowPromise('.calendar-grid'),
+      beforeShowPromise: createSafeBeforeShowPromise(
+        '[data-testid^="month-tile-"]',
+      ),
       buttons: [buttons.cancel, buttons.back, buttons.complete],
     },
   ],

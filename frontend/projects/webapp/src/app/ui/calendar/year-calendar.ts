@@ -21,6 +21,7 @@ import { type CalendarMonth, type CalendarYear } from './calendar-types';
     >
       <div
         class="calendar-grid grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6 gap-4 md:gap-6"
+        data-testid="calendar-months-grid"
       >
         @for (month of displayMonths(); track month.id; let i = $index) {
           <div

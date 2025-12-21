@@ -468,14 +468,11 @@
     border-radius: var(--tutorial-tooltip-radius) var(--tutorial-tooltip-radius)
       0 0;
 
-    /* Slide-up animation */
-    transform: translateY(100%) !important;
-    transition: transform var(--tutorial-animation-duration)
-      var(--tutorial-animation-easing) !important;
-
-    &.shepherd-enabled {
-      transform: translateY(0) !important;
-    }
+    /* No animation between steps - instant display */
+    transform: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
   }
 
   /* Hide arrow on mobile (not needed for bottom sheet) */
