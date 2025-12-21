@@ -1,3 +1,8 @@
+---
+description: Code quality standards and length limits
+paths: "**/*.ts"
+---
+
 # Clean Code
 
 ## Code Quality

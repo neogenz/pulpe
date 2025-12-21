@@ -1,3 +1,8 @@
+---
+description: TypeScript strict typing and conventions
+paths: "**/*.ts"
+---
+
 # TypeScript
 
 ## Strict Types
