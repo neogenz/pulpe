@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+@theme {
+  /* Pulpe Design System Colors */
+  --color-pulpe-50: #f6fff0;
+  --color-pulpe-100: #ebffe6;
+  --color-pulpe-200: #c7ffc4;
+  --color-pulpe-300: #99f89d;
+  --color-pulpe-400: #7edb83;
+  --color-pulpe-500: #63bf6b;
+  --color-pulpe-600: #48a353;
+  --color-pulpe-700: #2b883b;
+  --color-pulpe-800: #006e25;
+  --color-pulpe-900: #00531a;
+  --color-pulpe-950: #002106;
+
+  /* Secondary Green */
+  --color-forest-500: #406741;
+  --color-forest-600: #294f2b;
+
+  /* Tertiary Blue (Income) */
+  --color-ocean-400: #6daff9;
+  --color-ocean-500: #0061a6;
+  --color-ocean-600: #00497e;
+
+  /* Orange (Expense) */
+  --color-tangerine-300: #ffb74d;
+  --color-tangerine-500: #c26c00;
+  --color-tangerine-600: #a85600;
+
+  /* Error Red */
+  --color-coral-500: #ba1a1a;
+
+  /* Neutrals */
+  --color-cream: #f6fff0;
+  --color-sage-100: #edf2e8;
+  --color-sage-200: #dfe4da;
+  --color-sage-300: #c3c8be;
+  --color-sage-500: #5a6058;
+  --color-sage-700: #2c322b;
+  --color-sage-900: #181d17;
+
+  /* Typography */
+  --font-display: "Inter", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+}
+
+/* Neo-brutalist shadow utilities */
+.shadow-brutal {
+  box-shadow: 6px 6px 0 0 #000;
+}
+
+.shadow-brutal-sm {
+  box-shadow: 4px 4px 0 0 #000;
+}
+
+.shadow-brutal-lg {
+  box-shadow: 8px 8px 0 0 #000;
+}
+
+/* Hover shadow shift */
+.hover-shift {
+  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+}
+
+.hover-shift:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 8px 8px 0 0 #000;
+}
+
+.hover-shift:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 0 #000;
+}
+
+/* Selection color */
+::selection {
+  background-color: var(--color-pulpe-300);
+  color: var(--color-pulpe-950);
+}
