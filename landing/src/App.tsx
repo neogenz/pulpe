@@ -221,10 +221,9 @@ function Hero() {
           <motion.div variants={fadeInUp} className="relative">
             <div className="relative mx-auto max-w-sm">
               {/* Phone frame */}
-              <div className="rounded-[3rem] border-4 border-black bg-white p-3 shadow-brutal-lg">
-                <div className="overflow-hidden rounded-[2.5rem] bg-cream">
+              <div className="overflow-hidden rounded-[2.5rem] border-4 border-black bg-cream shadow-brutal-lg">
                   {/* Status bar */}
-                  <div className="flex justify-between bg-pulpe-800 px-6 py-2 text-xs text-white">
+                  <div className="flex items-end justify-between bg-pulpe-800 px-6 pt-4 pb-3 text-xs text-white">
                     <span>9:41</span>
                     <span>●●● 📶 🔋</span>
                   </div>
@@ -274,7 +273,6 @@ function Hero() {
                       </div>
                     </div>
                   </div>
-                </div>
               </div>
 
               {/* Floating badges */}
