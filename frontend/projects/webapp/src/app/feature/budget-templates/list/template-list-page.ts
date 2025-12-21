@@ -1,8 +1,9 @@
 import {
-  afterRenderEffect,
   ChangeDetectionStrategy,
   Component,
+  computed,
   inject,
+  Injector,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -134,18 +135,17 @@ export default class TemplateListPage {
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
   readonly #logger = inject(Logger);
   readonly #tutorialService = inject(TutorialService);
+  readonly #injector = inject(Injector);
+  readonly #isDataLoaded = computed(
+    () => this.state.budgetTemplates.status() === 'resolved',
+  );
 
   constructor() {
-    afterRenderEffect(() => {
-      const hasLoadedData = this.state.budgetTemplates.status() === 'resolved';
-
-      if (
-        hasLoadedData &&
-        !this.#tutorialService.hasSeenTour('templates-intro')
-      ) {
-        this.#tutorialService.startTour('templates-intro');
-      }
-    });
+    this.#tutorialService.autoStartWhenReady(
+      'templates-intro',
+      this.#isDataLoaded,
+      this.#injector,
+    );
   }
 
   async onDeleteTemplate(template: BudgetTemplate) {

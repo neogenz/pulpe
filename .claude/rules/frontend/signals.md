@@ -224,15 +224,82 @@ constructor() {
 
 ### afterRenderEffect() - DOM Manipulation
 
+Exécute du code après le rendu DOM, en réaction aux changements de signaux trackés.
+
 ```typescript
-constructor() {
-  afterRenderEffect({
-    write: () => this.chart.updateData(this.chartData())
-  });
+@Component({...})
+export class MyChart {
+  chartData = input.required<ChartData>();
+  canvas = viewChild.required<ElementRef>('canvas');
+  chart: ChartInstance;
+
+  constructor() {
+    // Init unique
+    afterNextRender({ write: () => this.chart = initChart(this.canvas()) });
+
+    // Sync continue (re-exécuté quand chartData change)
+    afterRenderEffect({ write: () => this.chart.updateData(this.chartData()) });
+  }
 }
 ```
 
-**Phases:** `earlyRead` → `write` → `mixedReadWrite` → `read`
+**Comportement :**
+
+- S'exécute **au moins une fois**, puis quand les signaux trackés changent
+- **Pas** à chaque change detection, seulement quand les dépendances sont "dirty"
+- Exécution asynchrone pendant le cycle de change detection
+- Retourne `AfterRenderRef` avec méthode `destroy()` pour arrêter l'effet
+
+**Phases (ordre d'exécution) :** `earlyRead` → `write` → `mixedReadWrite` → `read`
+
+| Phase | Usage | Règle |
+|-------|-------|-------|
+| `earlyRead` | Lire DOM avant mutations | ❌ Ne jamais écrire |
+| `write` | Modifier le DOM | ❌ Ne jamais lire |
+| `mixedReadWrite` | Les deux (dégrade perf) | ⚠️ À éviter |
+| `read` | Lire DOM après mutations | ❌ Ne jamais écrire |
+
+> ⚠️ Sans phase spécifiée → `mixedReadWrite` par défaut (mauvais pour la perf)
+
+**Passage de valeurs entre phases :**
+
+```typescript
+afterRenderEffect({
+  earlyRead: () => this.el().getBoundingClientRect(),
+  write: (rectSignal) => this.overlay().style.top = `${rectSignal().bottom}px`
+});
+```
+
+**Destruction :**
+
+```typescript
+// Auto-nettoyé avec le composant par défaut
+const ref = afterRenderEffect({...});
+ref.destroy(); // Arrêt manuel
+
+// Ou avec manualCleanup: true si besoin de contrôle total
+afterRenderEffect({...}, { manualCleanup: true, injector: this.injector });
+```
+
+**⚠️ Éviter les boucles infinies :**
+
+```typescript
+// ❌ Modifie un signal tracké → boucle infinie
+afterRenderEffect({ read: () => this.size.set(this.el().getBoundingClientRect()) });
+
+// ✅ Utiliser untracked() pour lire sans tracker
+afterRenderEffect({ write: () => this.chart.update(untracked(() => this.data())) });
+```
+
+**Quand NE PAS utiliser afterRenderEffect :**
+
+| Besoin | API recommandée |
+|--------|-----------------|
+| Observer les changements de taille | `ResizeObserver` |
+| Observer les mutations DOM | `MutationObserver` |
+| Observer la visibilité | `IntersectionObserver` |
+
+**SSR :** Ne s'exécute que côté client, composants non garantis hydratés
 
 ### effect() Cleanup
 

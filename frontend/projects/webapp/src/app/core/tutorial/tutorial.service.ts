@@ -1,4 +1,11 @@
-import { inject, Injectable, signal } from '@angular/core';
+import {
+  afterRenderEffect,
+  inject,
+  Injectable,
+  type Injector,
+  signal,
+  type Signal,
+} from '@angular/core';
 import { Router } from '@angular/router';
 import { ShepherdService } from 'angular-shepherd';
 import { z } from 'zod';
@@ -348,6 +355,32 @@ export class TutorialService {
     return (
       state.completedTours.includes(tourId) ||
       state.skippedTours.includes(tourId)
+    );
+  }
+
+  /**
+   * Auto-start a tour when data is ready.
+   * The effect runs once after data loads, then destroys itself.
+   *
+   * Must be called from a component constructor.
+   */
+  autoStartWhenReady(
+    tourId: TourId,
+    isDataLoaded: Signal<boolean>,
+    injector: Injector,
+  ): void {
+    const ref = afterRenderEffect(
+      {
+        read: () => {
+          if (isDataLoaded()) {
+            ref.destroy();
+            if (!this.hasSeenTour(tourId)) {
+              this.startTour(tourId);
+            }
+          }
+        },
+      },
+      { injector },
     );
   }
 

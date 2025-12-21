@@ -1,8 +1,8 @@
 import {
-  afterRenderEffect,
   ChangeDetectionStrategy,
   Component,
   inject,
+  Injector,
   input,
   computed,
   effect,
@@ -188,11 +188,14 @@ export default class BudgetDetailsPage {
   readonly #snackBar = inject(MatSnackBar);
   readonly #logger = inject(Logger);
   readonly #tutorialService = inject(TutorialService);
+  readonly #injector = inject(Injector);
+  readonly #isDataLoaded = computed(
+    () => !this.store.isLoading() && !this.store.hasError(),
+  );
 
   id = input.required<string>();
 
   constructor() {
-    // React to ID changes automatically - this handles route parameter changes
     effect(() => {
       const budgetId = this.id();
       if (budgetId) {
@@ -200,17 +203,11 @@ export default class BudgetDetailsPage {
       }
     });
 
-    // Start tutorial after DOM is ready
-    afterRenderEffect(() => {
-      const hasLoadedData = !this.store.isLoading() && !this.store.hasError();
-
-      if (
-        hasLoadedData &&
-        !this.#tutorialService.hasSeenTour('budget-management')
-      ) {
-        this.#tutorialService.startTour('budget-management');
-      }
-    });
+    this.#tutorialService.autoStartWhenReady(
+      'budget-management',
+      this.#isDataLoaded,
+      this.#injector,
+    );
   }
 
   navigateBack(): void {

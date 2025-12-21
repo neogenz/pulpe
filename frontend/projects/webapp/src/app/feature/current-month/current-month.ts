@@ -1,10 +1,10 @@
 import { DatePipe } from '@angular/common';
 import {
-  afterRenderEffect,
   ChangeDetectionStrategy,
   Component,
   computed,
   inject,
+  Injector,
   signal,
 } from '@angular/core';
 import {
@@ -226,24 +226,19 @@ export default class CurrentMonth {
   readonly #snackBar = inject(MatSnackBar);
   readonly #logger = inject(Logger);
   readonly #tutorialService = inject(TutorialService);
+  readonly #injector = inject(Injector);
+  readonly #isDataLoaded = computed(
+    () =>
+      this.store.dashboardStatus() !== 'loading' &&
+      this.store.dashboardStatus() !== 'error',
+  );
 
   constructor() {
-    afterRenderEffect(() => {
-      const hasLoadedData =
-        this.store.dashboardStatus() !== 'loading' &&
-        this.store.dashboardStatus() !== 'error';
-      console.log('hasLoadedData', hasLoadedData);
-      console.log(
-        "this.#tutorialService.hasSeenTour('dashboard-welcome')",
-        this.#tutorialService.hasSeenTour('dashboard-welcome'),
-      );
-      if (
-        hasLoadedData &&
-        !this.#tutorialService.hasSeenTour('dashboard-welcome')
-      ) {
-        this.#tutorialService.startTour('dashboard-welcome');
-      }
-    });
+    this.#tutorialService.autoStartWhenReady(
+      'dashboard-welcome',
+      this.#isDataLoaded,
+      this.#injector,
+    );
   }
 
   recurringFinancialItems = computed<FinancialEntryModel[]>(() => {

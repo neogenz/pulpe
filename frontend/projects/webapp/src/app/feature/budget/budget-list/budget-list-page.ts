@@ -1,10 +1,10 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import {
-  afterRenderEffect,
   ChangeDetectionStrategy,
   Component,
   computed,
   inject,
+  Injector,
   type OnInit,
   signal,
 } from '@angular/core';
@@ -116,20 +116,19 @@ export default class BudgetListPage implements OnInit {
   readonly #snackBar = inject(MatSnackBar);
   readonly #logger = inject(Logger);
   readonly #tutorialService = inject(TutorialService);
+  readonly #injector = inject(Injector);
+  readonly #isDataLoaded = computed(
+    () =>
+      this.state.budgets.status() === 'resolved' ||
+      this.state.budgets.status() === 'local',
+  );
 
   constructor() {
-    afterRenderEffect(() => {
-      const hasLoadedData =
-        this.state.budgets.status() === 'resolved' ||
-        this.state.budgets.status() === 'local';
-
-      if (
-        hasLoadedData &&
-        !this.#tutorialService.hasSeenTour('budget-calendar')
-      ) {
-        this.#tutorialService.startTour('budget-calendar');
-      }
-    });
+    this.#tutorialService.autoStartWhenReady(
+      'budget-calendar',
+      this.#isDataLoaded,
+      this.#injector,
+    );
   }
 
   protected readonly calendarYears = computed<CalendarYear[]>(() => {
