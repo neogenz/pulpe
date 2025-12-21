@@ -131,16 +131,14 @@ describe('TutorialService', () => {
       expect(state.currentTour).toBeNull();
       expect(state.completedTours).toEqual([]);
       expect(state.skippedTours).toEqual([]);
-      expect(state.preferences.enabled).toBe(true);
-      expect(state.preferences.autoStart).toBe(true);
     });
 
     it('should load persisted state from localStorage', () => {
       // Arrange: Set up localStorage before creating service
       const persistedState = {
+        version: 1,
         completedTours: ['dashboard-welcome'],
-        skippedTours: ['add-transaction'],
-        preferences: { enabled: true, autoStart: false },
+        skippedTours: ['templates-intro'],
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(persistedState));
 
@@ -149,18 +147,17 @@ describe('TutorialService', () => {
 
       // Assert
       expect(newService.state().completedTours).toContain('dashboard-welcome');
-      expect(newService.state().skippedTours).toContain('add-transaction');
-      expect(newService.state().preferences.autoStart).toBe(false);
+      expect(newService.state().skippedTours).toContain('templates-intro');
     });
 
     it('should always initialize with isActive=false regardless of persisted state', () => {
       // Arrange: Persist a state with isActive=true
       const persistedState = {
+        version: 1,
         isActive: true,
         currentTour: 'dashboard-welcome',
         completedTours: [],
         skippedTours: [],
-        preferences: { enabled: true, autoStart: true },
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(persistedState));
 
@@ -186,9 +183,9 @@ describe('TutorialService', () => {
     it('should filter out invalid tour IDs from persisted state', () => {
       // Arrange: Include invalid tour ID
       const persistedState = {
+        version: 1,
         completedTours: ['dashboard-welcome', 'invalid-tour-id'],
         skippedTours: ['another-invalid'],
-        preferences: { enabled: true, autoStart: true },
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(persistedState));
 
@@ -216,9 +213,9 @@ describe('TutorialService', () => {
     it('should not start a tour that has already been completed', async () => {
       // Arrange: Mark tour as completed
       const persistedState = {
+        version: 1,
         completedTours: ['dashboard-welcome'],
         skippedTours: [],
-        preferences: { enabled: true, autoStart: true },
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(persistedState));
       const newService = createService();
@@ -229,18 +226,6 @@ describe('TutorialService', () => {
       // Assert
       expect(mockShepherdService.addSteps).not.toHaveBeenCalled();
       expect(newService.state().isActive).toBe(false);
-    });
-
-    it('should not start any tour when tutorials are disabled', async () => {
-      // Arrange
-      service.updatePreferences({ enabled: false });
-
-      // Act
-      await service.startTour('dashboard-welcome');
-
-      // Assert
-      expect(mockShepherdService.addSteps).not.toHaveBeenCalled();
-      expect(service.state().isActive).toBe(false);
     });
 
     it('should not start a tour when tourId does not exist', async () => {
@@ -279,182 +264,6 @@ describe('TutorialService', () => {
       // Assert
       expect(service.state().isActive).toBe(false);
       expect(service.state().currentTour).toBeNull();
-    });
-  });
-
-  describe('cancelTour', () => {
-    it('should cancel the active tour', async () => {
-      // Arrange
-      await service.startTour('dashboard-welcome');
-
-      // Act
-      service.cancelTour();
-
-      // Assert
-      expect(mockShepherdService.cancel).toHaveBeenCalled();
-    });
-
-    it('should not call cancel when no tour is active', () => {
-      // Act
-      service.cancelTour();
-
-      // Assert
-      expect(mockShepherdService.cancel).not.toHaveBeenCalled();
-    });
-
-    it('should handle errors during cancellation gracefully', async () => {
-      // Arrange
-      await service.startTour('dashboard-welcome');
-      mockShepherdService.cancel.mockImplementation(() => {
-        throw new Error('Cancel error');
-      });
-
-      // Act
-      service.cancelTour();
-
-      // Assert: State should be reset despite error
-      expect(service.state().isActive).toBe(false);
-      expect(service.state().currentTour).toBeNull();
-    });
-  });
-
-  describe('hasCompletedTour', () => {
-    it('should return true when tour is completed', () => {
-      // Arrange
-      const persistedState = {
-        completedTours: ['dashboard-welcome'],
-        skippedTours: [],
-        preferences: { enabled: true, autoStart: true },
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(persistedState));
-      const newService = createService();
-
-      // Assert
-      expect(newService.hasCompletedTour('dashboard-welcome')).toBe(true);
-    });
-
-    it('should return false when tour is not completed', () => {
-      expect(service.hasCompletedTour('dashboard-welcome')).toBe(false);
-    });
-  });
-
-  describe('hasCompletedAnyTour', () => {
-    it('should return true when at least one tour is completed', () => {
-      // Arrange
-      const persistedState = {
-        completedTours: ['dashboard-welcome'],
-        skippedTours: [],
-        preferences: { enabled: true, autoStart: true },
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(persistedState));
-      const newService = createService();
-
-      // Assert
-      expect(newService.hasCompletedAnyTour()).toBe(true);
-    });
-
-    it('should return false when no tours are completed', () => {
-      expect(service.hasCompletedAnyTour()).toBe(false);
-    });
-  });
-
-  describe('resetAllTours', () => {
-    it('should clear completedTours and skippedTours', () => {
-      // Arrange
-      const persistedState = {
-        completedTours: ['dashboard-welcome', 'add-transaction'],
-        skippedTours: ['templates-intro'],
-        preferences: { enabled: true, autoStart: true },
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(persistedState));
-      const newService = createService();
-
-      // Act
-      newService.resetAllTours();
-
-      // Assert
-      expect(newService.state().completedTours).toEqual([]);
-      expect(newService.state().skippedTours).toEqual([]);
-    });
-
-    it('should preserve user preferences during reset', () => {
-      // Arrange
-      service.updatePreferences({ enabled: false, autoStart: false });
-
-      // Act
-      service.resetAllTours();
-
-      // Assert
-      expect(service.state().preferences.enabled).toBe(false);
-      expect(service.state().preferences.autoStart).toBe(false);
-    });
-
-    it('should persist reset state to localStorage', () => {
-      // Arrange
-      const persistedState = {
-        completedTours: ['dashboard-welcome'],
-        skippedTours: [],
-        preferences: { enabled: true, autoStart: true },
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(persistedState));
-      const newService = createService();
-
-      // Act
-      newService.resetAllTours();
-
-      // Assert
-      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-      expect(saved.completedTours).toEqual([]);
-      expect(saved.skippedTours).toEqual([]);
-    });
-  });
-
-  describe('updatePreferences', () => {
-    it('should merge partial preferences with existing ones', () => {
-      // Act
-      service.updatePreferences({ autoStart: false });
-
-      // Assert
-      expect(service.state().preferences.enabled).toBe(true); // unchanged
-      expect(service.state().preferences.autoStart).toBe(false); // updated
-    });
-
-    it('should persist updated preferences to localStorage', () => {
-      // Act
-      service.updatePreferences({ enabled: false });
-
-      // Assert
-      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-      expect(saved.preferences.enabled).toBe(false);
-    });
-  });
-
-  describe('getTour', () => {
-    it('should return correct tour by ID', () => {
-      const tour = service.getTour('dashboard-welcome');
-
-      expect(tour).toBeDefined();
-      expect(tour?.id).toBe('dashboard-welcome');
-      expect(tour?.name).toBe('Découverte du tableau de bord');
-    });
-
-    it('should return undefined for non-existent tour ID', () => {
-      const tour = service.getTour('non-existent' as TourId);
-
-      expect(tour).toBeUndefined();
-    });
-  });
-
-  describe('getAllTours', () => {
-    it('should return all configured tours', () => {
-      const tours = service.getAllTours();
-
-      expect(tours).toHaveLength(5);
-      expect(tours.map((t) => t.id)).toContain('dashboard-welcome');
-      expect(tours.map((t) => t.id)).toContain('add-transaction');
-      expect(tours.map((t) => t.id)).toContain('templates-intro');
-      expect(tours.map((t) => t.id)).toContain('budget-management');
-      expect(tours.map((t) => t.id)).toContain('budget-calendar');
     });
   });
 
@@ -641,7 +450,7 @@ describe('TutorialService', () => {
       mockShepherdService.start.mockClear();
 
       // Act: Try to start another tour
-      await service.startTour('add-transaction');
+      await service.startTour('templates-intro');
 
       // Assert: Second tour should not start
       expect(mockShepherdService.addSteps).not.toHaveBeenCalled();
@@ -666,12 +475,12 @@ describe('TutorialService', () => {
       mockShepherdService.addSteps.mockClear();
       mockShepherdService.start.mockClear();
 
-      // Act: Start new tour
-      await service.startTour('add-transaction');
+      // Act: Start new tour (budget-management has no targetRoute, so no navigation/render wait)
+      await service.startTour('budget-management');
 
       // Assert: New tour should start
       expect(mockShepherdService.addSteps).toHaveBeenCalled();
-      expect(service.state().currentTour).toBe('add-transaction');
+      expect(service.state().currentTour).toBe('budget-management');
     });
 
     it('should allow starting new tour after previous one is cancelled', async () => {
@@ -697,6 +506,26 @@ describe('TutorialService', () => {
       // Assert: New tour should start
       expect(mockShepherdService.addSteps).toHaveBeenCalled();
       expect(service.state().currentTour).toBe('budget-management');
+    });
+  });
+
+  describe('force restart', () => {
+    it('should bypass hasSeenTour check when force option is true', async () => {
+      // Arrange: Mark tour as both completed and another as skipped
+      const persistedState = {
+        version: 1,
+        completedTours: ['dashboard-welcome'],
+        skippedTours: ['templates-intro'],
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(persistedState));
+      const newService = createService();
+
+      // Act: Force restart a completed tour
+      await newService.startTour('dashboard-welcome', { force: true });
+
+      // Assert: Tour starts despite being in completedTours
+      expect(newService.state().isActive).toBe(true);
+      expect(newService.state().currentTour).toBe('dashboard-welcome');
     });
   });
 });

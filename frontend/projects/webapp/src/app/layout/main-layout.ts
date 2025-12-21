@@ -9,7 +9,6 @@ import {
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDivider } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
@@ -42,12 +41,7 @@ interface NavigationItem {
 }
 
 interface HelpMenuItem {
-  readonly tourId:
-    | 'dashboard-welcome'
-    | 'add-transaction'
-    | 'templates-intro'
-    | 'budget-management'
-    | 'budget-calendar';
+  readonly tourId: 'dashboard-welcome' | 'templates-intro' | 'budget-calendar';
   readonly label: string;
   readonly icon: string;
   readonly testId: string;
@@ -57,7 +51,6 @@ interface HelpMenuItem {
   selector: 'pulpe-main-layout',
   imports: [
     MatButtonModule,
-    MatDivider,
     MatIconModule,
     MatListModule,
     MatMenuModule,
@@ -280,7 +273,9 @@ interface HelpMenuItem {
               @for (item of helpMenuItems; track item.tourId) {
                 <button
                   mat-menu-item
-                  (click)="tutorialService.startTour(item.tourId)"
+                  (click)="
+                    tutorialService.startTour(item.tourId, { force: true })
+                  "
                   [attr.data-testid]="item.testId"
                   class="flex items-center"
                 >
@@ -288,31 +283,6 @@ interface HelpMenuItem {
                   <span class="flex-1">{{ item.label }}</span>
                 </button>
               }
-              <mat-divider></mat-divider>
-              <button
-                mat-menu-item
-                (click)="toggleAutoStartTutorials()"
-                data-testid="help-menu-toggle-autostart"
-              >
-                <mat-icon matMenuItemIcon>{{
-                  tutorialService.state().preferences.autoStart
-                    ? 'notifications_off'
-                    : 'notifications_active'
-                }}</mat-icon>
-                <span>{{
-                  tutorialService.state().preferences.autoStart
-                    ? 'Désactiver tutoriels automatiques'
-                    : 'Activer tutoriels automatiques'
-                }}</span>
-              </button>
-              <button
-                mat-menu-item
-                (click)="tutorialService.resetAllTours()"
-                data-testid="help-menu-reset-tours"
-              >
-                <mat-icon matMenuItemIcon>refresh</mat-icon>
-                <span>Réinitialiser les tutoriels</span>
-              </button>
             </mat-menu>
 
             <!-- Accessibility: Screen reader feedback for logout state -->
@@ -450,18 +420,6 @@ export class MainLayout {
       icon: 'description',
       testId: 'help-menu-templates-tour',
     },
-    {
-      tourId: 'budget-management' as const,
-      label: 'Gestion des budgets',
-      icon: 'account_balance',
-      testId: 'help-menu-budget-tour',
-    },
-    {
-      tourId: 'add-transaction' as const,
-      label: 'Ajouter une transaction',
-      icon: 'attach_money',
-      testId: 'help-menu-transaction-tour',
-    },
   ] as const satisfies readonly HelpMenuItem[];
 
   // Responsive breakpoint detection
@@ -516,14 +474,6 @@ export class MainLayout {
     if (this.isHandset()) {
       drawer.close();
     }
-  }
-
-  /**
-   * Toggle auto-start tutorials preference
-   */
-  protected toggleAutoStartTutorials(): void {
-    const currentAutoStart = this.tutorialService.state().preferences.autoStart;
-    this.tutorialService.updatePreferences({ autoStart: !currentAutoStart });
   }
 
   async onLogout(): Promise<void> {

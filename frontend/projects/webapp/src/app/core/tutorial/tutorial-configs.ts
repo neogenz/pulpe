@@ -274,75 +274,6 @@ export const dashboardWelcomeTour: TutorialTour = {
 };
 
 /**
- * Add Transaction Tour - Guide for the transaction bottom sheet
- */
-export const addTransactionTour: TutorialTour = {
-  id: 'add-transaction',
-  name: 'Ajouter une transaction',
-  description: 'Apprenez à enregistrer vos dépenses quotidiennes',
-  triggerOn: 'manual',
-  targetRoute: ROUTES.CURRENT_MONTH,
-  steps: [
-    {
-      id: 'transaction-form',
-      title: 'Formulaire de transaction',
-      text: `
-        <p>Ce formulaire vous permet d'ajouter une dépense, un revenu ou une épargne ponctuelle.</p>
-        <p>C'est simple et rapide !</p>
-      `,
-      attachTo: {
-        element: querySelector('[data-testid="transaction-form"]'),
-        on: 'top',
-      },
-      // Wait for bottom sheet to open and render
-      beforeShowPromise: createSafeBeforeShowPromise(
-        '[data-testid="transaction-form"]',
-        5000,
-      ),
-      buttons: [buttons.cancel, buttons.next],
-    },
-    {
-      id: 'transaction-amount',
-      title: 'Montant de la transaction',
-      text: `
-        <p>Saisissez le montant de votre transaction en CHF.</p>
-        <p>Vous pouvez aussi utiliser les montants rapides juste en dessous !</p>
-      `,
-      attachTo: {
-        element: querySelector('[data-testid="transaction-amount-input"]'),
-        on: 'bottom',
-      },
-      beforeShowPromise: createSafeBeforeShowPromise(
-        '[data-testid="transaction-amount-input"]',
-        5000,
-      ),
-      buttons: [buttons.cancel, buttons.back, buttons.next],
-    },
-    {
-      id: 'transaction-type',
-      title: 'Type de transaction',
-      text: `
-        <p>Choisissez le type :</p>
-        <ul>
-          <li><strong>Revenu</strong> : Entrée d'argent</li>
-          <li><strong>Dépense</strong> : Sortie d'argent (défaut)</li>
-          <li><strong>Épargne</strong> : Montant mis de côté</li>
-        </ul>
-      `,
-      attachTo: {
-        element: querySelector('[data-testid="transaction-type-select"]'),
-        on: 'top',
-      },
-      beforeShowPromise: createSafeBeforeShowPromise(
-        '[data-testid="transaction-type-select"]',
-        5000,
-      ),
-      buttons: [buttons.cancel, buttons.back, buttons.complete],
-    },
-  ],
-};
-
-/**
  * Templates Introduction Tour - Guide for budget templates
  */
 export const templatesIntroTour: TutorialTour = {
@@ -516,7 +447,6 @@ export const budgetCalendarTour: TutorialTour = {
  */
 export const ALL_TOURS: TutorialTour[] = [
   dashboardWelcomeTour,
-  addTransactionTour,
   templatesIntroTour,
   budgetManagementTour,
   budgetCalendarTour,
