@@ -34,6 +34,7 @@ export interface TutorialTour {
 export interface TutorialState {
   isActive: boolean;
   currentTour: TourId | null;
+  currentStepId: string | null;
   completedTours: TourId[];
   skippedTours: TourId[];
 }
@@ -54,6 +55,7 @@ export interface TutorialEvent {
 export const DEFAULT_TUTORIAL_STATE: TutorialState = {
   isActive: false,
   currentTour: null,
+  currentStepId: null,
   completedTours: [],
   skippedTours: [],
 };

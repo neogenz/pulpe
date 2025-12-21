@@ -93,6 +93,17 @@ export class TutorialService {
     // Remove existing listeners to prevent duplicates when tour is restarted
     tourObject.off('complete');
     tourObject.off('cancel');
+    tourObject.off('show');
+
+    tourObject.on('show', () => {
+      const currentStep = tourObject.getCurrentStep();
+      if (currentStep) {
+        this.#state.update((state) => ({
+          ...state,
+          currentStepId: currentStep.id ?? null,
+        }));
+      }
+    });
 
     tourObject.on('complete', () => {
       this.#handleTourComplete();
@@ -308,6 +319,7 @@ export class TutorialService {
       ...state,
       isActive: false,
       currentTour: null,
+      currentStepId: null,
       completedTours:
         currentTourId && !state.completedTours.includes(currentTourId)
           ? [...state.completedTours, currentTourId]
@@ -342,6 +354,7 @@ export class TutorialService {
       ...state,
       isActive: false,
       currentTour: null,
+      currentStepId: null,
       skippedTours:
         currentTourId && !state.skippedTours.includes(currentTourId)
           ? [...state.skippedTours, currentTourId]
@@ -384,6 +397,7 @@ export class TutorialService {
       return {
         isActive: false,
         currentTour: null,
+        currentStepId: null,
         completedTours,
         skippedTours,
       };

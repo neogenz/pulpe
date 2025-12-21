@@ -188,6 +188,7 @@ type EditTransactionFormData = Pick<
       matFab
       (click)="openAddTransactionBottomSheet()"
       class="fab-button"
+      [class.fab-button--tutorial-active]="isFabStepActive()"
       aria-label="Ajouter une transaction"
       data-testid="add-transaction-fab"
     >
@@ -212,6 +213,14 @@ type EditTransactionFormData = Pick<
       bottom: 24px;
       right: 24px;
       z-index: 1000;
+      transition: bottom 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Move FAB above bottom sheet when tutorial is active on mobile */
+    @media (max-width: 767px) {
+      .fab-button--tutorial-active {
+        bottom: calc(50% + 24px);
+      }
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -227,6 +236,9 @@ export default class CurrentMonth {
   readonly #logger = inject(Logger);
   readonly #tutorialService = inject(TutorialService);
   readonly #injector = inject(Injector);
+  protected readonly isFabStepActive = computed(
+    () => this.#tutorialService.state().currentStepId === 'add-transaction-fab',
+  );
   readonly #isDataLoaded = computed(
     () =>
       this.store.dashboardStatus() !== 'loading' &&
