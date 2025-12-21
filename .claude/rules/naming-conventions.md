@@ -1,3 +1,8 @@
+---
+description: Naming conventions for variables, functions, and constants
+paths: "**/*.ts"
+---
+
 # Naming Conventions
 
 ## General Principles

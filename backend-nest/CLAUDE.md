@@ -1,11 +1,14 @@
 # CLAUDE.md - Backend (NestJS)
 
+This file provides guidance to Claude Code (claude.ai/code) for the backend API.
+
 ## Commands
 
 ```bash
 bun run dev                    # Start with local Supabase (port 3000)
 bun run build                  # Production build
 bun test                       # Run all tests
+bun test path/to/file.test.ts  # Single test file
 bun run quality                # Type-check + Lint + Format
 bun run generate-types:local   # Generate types from local Supabase
 ```
@@ -103,9 +106,9 @@ type BudgetRow = Database['public']['Tables']['monthly_budget']['Row'];
 
 | Purpose | Path |
 |---------|------|
-| App module | @src/app.module.ts |
-| Environment | @src/config/environment.ts |
-| Database types | @src/types/database.types.ts |
+| App module | `src/app.module.ts` |
+| Environment | `src/config/environment.ts` |
+| Database types | `src/types/database.types.ts` |
 
 ## Critical Rules
 

@@ -1,13 +1,23 @@
 # CLAUDE.md
 
-**CRITICAL**: YAGNI + KISS - Modern project, 1 developer.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Commands
 
 ```bash
-pnpm dev              # Full stack (recommended)
-pnpm quality          # BEFORE commit: type-check + lint + format
-pnpm test:e2e         # E2E tests (Playwright)
+pnpm dev                      # Full stack (recommended)
+pnpm quality                  # BEFORE commit: type-check + lint + format
+pnpm test                     # All unit tests
+pnpm test:e2e                 # E2E tests (Playwright)
+
+# Single tests
+cd frontend && pnpm test -- path/to/file.spec.ts
+cd frontend && pnpm test:watch                      # Watch mode
+cd backend-nest && bun test path/to/file.test.ts   # Backend single test
+
+# Supabase local
+supabase start                # Start local Supabase (DB + Auth)
+supabase stop                 # Stop local services
 ```
 
 ## Stack
@@ -27,17 +37,24 @@ pnpm test:e2e         # E2E tests (Playwright)
 └── .claude/rules/    # Lazy-loaded rules (frontend/, testing/, shared/)
 ```
 
-## Architecture References
+## Rules Files
 
-> **Note**: `@path` syntax means "read this file for details" (e.g., `@frontend/CLAUDE.md` = `frontend/CLAUDE.md`)
+Rules in `.claude/rules/` use frontmatter for path-based activation:
+
+```yaml
+---
+description: Brief description
+paths: "**/*.ts"
+---
+```
+
+## Architecture References
 
 | Topic | Reference |
 |-------|-----------|
 | Frontend patterns | @frontend/CLAUDE.md |
 | Backend patterns | @backend-nest/CLAUDE.md |
-| Signal/Store | @frontend/STATE-PATTERN.md |
 | Business specs | @memory-bank/SPECS.md |
-| Testing | @.claude/rules/testing/ |
 
 ## Critical Rules
 
@@ -49,21 +66,10 @@ pnpm test:e2e         # E2E tests (Playwright)
 
 ## Vocabulary
 
-| Technical | User-facing |
-|-----------|-------------|
-| `budget_lines` | **"prévisions"** |
-| `fixed` | "Tous les mois" |
-| `one_off` | "Une seule fois" |
-| `income` | "Revenu" |
-| `expense` | "Dépense" |
-| `saving` | "Épargne" |
-
-**Labels**: "Disponible à dépenser", "Épargne prévue", "Fréquence"
-
-## Auth Flow
-
-Frontend (Supabase SDK) → Backend (JWT validation) → Database (RLS policies)
+- `budget_lines` → "prévisions" | `fixed` → "Tous les mois" | `one_off` → "Une seule fois"
+- `income` → "Revenu" | `expense` → "Dépense" | `saving` → "Épargne"
+- Labels: "Disponible à dépenser", "Épargne prévue", "Fréquence"
 
 ## Key Files
-- DB types: @backend-nest/src/types/database.types.ts
-- Shared schemas: @shared/schemas.ts
+- DB types: `backend-nest/src/types/database.types.ts`
+- Shared schemas: `shared/schemas.ts`

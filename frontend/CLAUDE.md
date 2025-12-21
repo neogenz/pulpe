@@ -1,11 +1,15 @@
 # CLAUDE.md - Frontend
 
+This file provides guidance to Claude Code (claude.ai/code) for the frontend application.
+
 ## Commands
 
 ```bash
-pnpm run dev           # ng serve
-pnpm run test          # Vitest unit tests
-pnpm run lint          # BEFORE commit
+pnpm run dev                        # ng serve (http://localhost:4200)
+pnpm run test                       # Vitest unit tests
+pnpm run test -- path/to/spec.ts   # Single test file
+pnpm run test:watch                 # Watch mode
+pnpm run lint                       # BEFORE commit
 ```
 
 **Angular CLI MCP**: Use when available for creating Angular artifacts.
@@ -133,3 +137,9 @@ See @.claude/rules/testing/vitest.md
 - **ALWAYS** OnPush + signals
 - **ALWAYS** `#fieldName` for private
 - **BEFORE** creating: check `ui/` or `pattern/` first
+
+## Architecture References
+
+| Topic | Reference |
+|-------|-----------|
+| Signal/Store | @frontend/STATE-PATTERN.md |
