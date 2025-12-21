@@ -63,3 +63,7 @@ pnpm test:e2e         # E2E tests (Playwright)
 ## Auth Flow
 
 Frontend (Supabase SDK) → Backend (JWT validation) → Database (RLS policies)
+
+## Key Files
+- DB types: @backend-nest/src/types/database.types.ts
+- Shared schemas: @shared/schemas.ts
