@@ -1,146 +1,139 @@
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-Always apply YAGNI and KISS principles. It is for a modern project, maintained by 1 developer.
 
-## Quick Start Commands
+## Project Overview
+
+Pulpe is a personal budget management application for the Swiss market. Users plan their financial year using reusable monthly templates with automatic rollover mechanisms.
+
+**Core Philosophy**: Planning > Tracking, Simplicity > Completeness (KISS & YAGNI), Isolation > DRY
+
+## Tech Stack
+
+- **Monorepo**: pnpm workspaces + Turborepo
+- **Frontend**: Angular 20+ (Standalone Components, Signals, OnPush), Tailwind CSS v4, Angular Material v20, Vitest, Playwright
+- **Backend**: NestJS 11+ with Bun runtime, Supabase (PostgreSQL + Auth + RLS)
+- **Shared**: `@pulpe/shared` package with Zod schemas for API contracts
+
+## Commands
 
 ### Development
-
 ```bash
-# Full stack development (recommended)
-pnpm dev                        # Start all services with Turborepo orchestration
-
-# Targeted development
-pnpm dev:frontend-only          # Frontend + shared only
-pnpm dev:backend-only           # Backend + shared only
+pnpm dev                    # Full stack (frontend + backend + shared watch)
+pnpm dev:frontend           # Frontend only (http://localhost:4200)
+pnpm dev:backend            # Backend only (http://localhost:3000)
 ```
 
-### Building
-
+### Quality & Testing
 ```bash
-pnpm build                      # Build all projects with Turborepo
+pnpm quality:fix            # Fix all auto-fixable issues (lint, format, type-check)
+pnpm test                   # Run all tests
+pnpm test:e2e               # Run Playwright E2E tests
+
+# Frontend specific
+cd frontend && pnpm test:watch              # Vitest watch mode
+cd frontend && pnpm test:e2e:ui             # Playwright UI mode
+cd frontend && pnpm deps:circular           # Check circular dependencies
+
+# Backend specific
+cd backend-nest && bun test                 # Run backend tests
+cd backend-nest && bun run test:performance # Performance tests
 ```
 
-### Testing
-
+### Build
 ```bash
-# All tests
-pnpm test                       # Run all tests
-pnpm test:e2e                   # E2E tests only (Playwright)
-pnpm test:performance           # Performance tests
-
-cd backend-nest && bun test:performance # Performance tests
+pnpm build                  # Build all packages
+pnpm build:shared           # Build shared package only
 ```
 
-### Code Quality
-
-```bash
-# Quality checks
-pnpm quality                    # Run all quality checks (type-check, lint, format)
-pnpm quality:fix                # Fix all auto-fixable issues
-
-# Frontend bundle analysis
-cd frontend && pnpm deps:circular # Check for circular dependencies
-```
-
-## High-level Architecture
+## Architecture
 
 ### Monorepo Structure
-
 ```
 pulpe-workspace/
-├── frontend/              # Angular 20 web app with Material Design 3
-├── backend-nest/          # NestJS API with Supabase & Bun runtime
-├── shared/                # Shared Zod schemas and TypeScript types
-├── mobile/                # iOS SwiftUI application
-├── .cursor/               # Cursor AI rules and configurations
-└── turbo.json             # Turborepo orchestration config
+├── frontend/               # Angular 20 web app
+├── backend-nest/           # NestJS API with Bun
+├── shared/                 # @pulpe/shared - Zod schemas for API contracts
+└── turbo.json              # Turborepo orchestration
 ```
 
-### Technology Stack
+### Frontend 5-Layer Architecture
 
-- **Monorepo**: Turborepo + pnpm workspace for orchestration
-- **Backend**: NestJS 11+, Bun runtime, Supabase (PostgreSQL + Auth), Zod validation
-- **Frontend**: Angular 20+, Standalone Components, Signals, Tailwind CSS v4.1, Angular Material v20
-- **Mobile**: iOS SwiftUI, MVVM architecture, iOS 17.0+
-- **Shared**: TypeScript strict, Zod schemas, ESM-first
+Located in `frontend/projects/webapp/src/app/`:
 
-### Key Architectural Principles
+| Layer | Purpose | Loading |
+|-------|---------|---------|
+| `core/` | Headless services, guards, interceptors | Eager |
+| `layout/` | Application shell components | Eager |
+| `ui/` | Stateless reusable components (inputs/outputs only) | Cherry-picked |
+| `pattern/` | Stateful reusable components bound to services | Imported |
+| `feature/` | Business domains (complete isolation between features) | Lazy |
 
-#### 1. Type Safety Across Stack
+**Dependency Rules (one-way only)**:
+- `feature` can import from: `ui`, `pattern`, `core`
+- `pattern` can import from: `ui`, `core`
+- `layout` can import from: `ui`, `core`
+- `ui` cannot import from `core` (generic components only)
+- Features cannot import from sibling features (complete isolation)
 
-- **@pulpe/shared**: Contains Zod schemas for REST DTOs only
-- **Backend types**: Supabase types stay in backend only
-- **Frontend types**: Import from @pulpe/shared for API contracts
+### Backend Module Structure
 
-#### 2. Frontend Architecture (Angular)
-
-- **Standalone Components**: No NgModules, everything is standalone
-- **Signal-based**: Use Angular signals for reactive state
-- **OnPush Strategy**: All components use OnPush change detection
-- **Feature Isolation**: Features cannot depend on each other directly
-- **Lazy Loading**: All features must be lazy-loaded
-
-Directory structure:
-
+Each module in `backend-nest/src/modules/[domain]/`:
 ```
-frontend/projects/webapp/src/app/
-├── core/       # Application-wide services, guards, interceptors
-├── layout/     # App shell components (header, navigation)
-├── ui/         # Reusable, stateless components
-├── feature/    # Business domain features (lazy-loaded)
-└── pattern/    # Reusable stateful components
+├── [domain].controller.ts     # HTTP routes + validation
+├── [domain].service.ts        # Business logic
+├── [domain].mapper.ts         # DTO <-> Entity transformation
+├── [domain].module.ts         # DI configuration
+├── dto/                       # NestJS DTOs (createZodDto from shared schemas)
+└── entities/                  # Business entities
 ```
 
-- Details at @./frontend/CLAUDE.md
-- Follow rules at @.cursor/rules/00-architecture/0-angular-architecture-structure.mdc
+### Shared Package Usage
 
-#### 3. Backend Architecture (NestJS)
+`@pulpe/shared` is the single source of truth for API contracts:
 
-- **Module-based**: Each domain has its own module
-- **JWT + RLS**: Authentication via Supabase with Row Level Security
-- **Validation**: Zod schemas with NestJS integration
-- **API Versioning**: All endpoints prefixed with `/api/v1`
+```typescript
+// In backend - create NestJS DTO from shared schema
+import { budgetCreateSchema } from '@pulpe/shared';
+export class BudgetCreateDto extends createZodDto(budgetCreateSchema) {}
 
-Module structure:
-
-```
-backend-nest/src/modules/[domain]/
-├── [domain].controller.ts    # HTTP routes + validation
-├── [domain].service.ts       # Business logic
-├── [domain].module.ts        # Module configuration
-├── [domain].mapper.ts        # DTO ↔ Entity transformation
-├── dto/                      # NestJS DTOs
-└── entities/                 # Business entities
+// In frontend - use types directly
+import { type BudgetCreate } from '@pulpe/shared';
 ```
 
-Details at @backend-nest/CLAUDE.md
+**What belongs in shared**: API request/response types, form validation schemas, enums, business domain types.
+**What does NOT belong**: Database types, backend implementation details, frontend UI types.
 
-#### 3. Testing Strategy
+## Key Patterns
 
-- **Unit Tests**: Test business logic and component behavior
-- **E2E Tests**: Critical path tests with real auth, feature tests with mocks
+### Angular Patterns
+- All components are standalone (no NgModules)
+- Use `input()`, `output()`, `computed()` signals - avoid decorators
+- OnPush change detection everywhere
+- Inline templates/styles for small components
+- No template functions - use `computed()` instead
+- Avoid renaming inputs/outputs
 
-### Authentication Flow
+### Backend Patterns
+- Controllers inject `@User()` and `@SupabaseClient()` via custom decorators
+- Services use mappers for DTO <-> Entity transformation
+- Global `ZodValidationPipe` for automatic DTO validation
+- RLS policies enforce data isolation at database level
 
-1. **Frontend**: Supabase SDK manages JWT tokens
-2. **Backend**: Validates tokens via `supabase.auth.getUser()`
-3. **Database**: Row Level Security policies enforce data isolation
-4. **Guards**: AuthGuard protects backend routes
+### State Management
+- Angular Signals for reactive state
+- Direct service injection (no global store)
+- Feature-specific state in `core/` or within the feature
 
-### Key Files
+## Deployment
 
-- **Root config**: `turbo.json`, `pnpm-workspace.yaml`
-- **Frontend config**: `frontend/angular.json`, `frontend/projects/webapp/src/app/app.config.ts`
-- **Backend config**: `backend-nest/src/app.module.ts`, `backend-nest/src/config/environment.ts`
-- **Shared types**: `shared/schemas.ts`, `shared/types.ts`
-- **Database types**: `backend-nest/src/types/database.types.ts`
+- **Frontend**: Vercel
+- **Backend**: Railway
+- **Database**: Supabase Cloud
 
-## References to business specs of project
+## Pre-commit
 
-- You can reference @memory-bank/SPECS.md dynamically to refer at all business data
+Lefthook runs `pnpm quality` on changed files. Skip with `--no-verify` if needed.
 
 ## Important Notes
-
-- Never use destructive (`db reset` for exemple) commands on supabase
+- Never use destructive commands (`db reset`) on Supabase
