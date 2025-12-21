@@ -1,10 +1,3 @@
----
-description: TypeScript conventions and type safety patterns
-globs:
-  - "**/*.ts"
-  - "!**/*.spec.ts"
----
-
 # TypeScript
 
 ## Strict Types
@@ -107,10 +100,6 @@ function map<TInput, TOutput>(items: TInput[], fn: (item: TInput) => TOutput): T
 | `timeout: number \| undefined` | `timeout?: number` |
 | `const enum Status {}` | `type Status = 'a' \| 'b'` |
 | `function fetch<T>(): Promise<User>` (unused T) | Remove unused type parameters |
-
-## Related
-
-- Error handling patterns: see `error-handling.md`
 
 ## Sources
 

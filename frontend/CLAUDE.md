@@ -75,25 +75,29 @@ matButton="outlined" <!-- secondary -->
 matIconButton        <!-- icon only -->
 ```
 
-## Vocabulary
+## API Data Loading
 
-| Technical | User-facing |
-|-----------|-------------|
-| `budget_lines` | **"prévisions"** |
-| `fixed` | "Tous les mois" |
-| `one_off` | "Une seule fois" |
-| `income` | "Revenu" |
-| `expense` | "Dépense" |
-| `saving` | "Épargne" |
+Prefer `httpResource()` for API calls:
 
-**Labels**: "Disponible à dépenser", "Épargne prévue", "Fréquence"
+```typescript
+readonly data = httpResource(() => `/api/endpoint/${this.id()}`);
+```
+
+Use `resource()` only for non-HTTP async operations.
+
+## Error Handling
+
+- Use `resource().error()` for async errors
+- Display errors via Material snackbar
+- Never silent-fail user actions
+- Log errors to PostHog analytics
 
 ## Testing
 
 See @.claude/rules/testing/vitest.md
 
+- `data-testid` naming: `feature-component-element` (e.g., `budget-form-submit-button`)
 - Use `createMockResourceRef<T>()` for Resource mocks
-- `data-testid` for E2E selectors
 
 ## Critical Rules
 
