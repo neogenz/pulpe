@@ -2,22 +2,45 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Monorepo
+
+```
+├── frontend/         # Angular webapp
+├── backend-nest/     # NestJS API
+├── shared/           # Zod schemas, types (build before other packages)
+└── .claude/rules/    # Lazy-loaded rules (frontend/, testing/, shared/)
+```
+
 ## Commands
 
 ```bash
-pnpm dev                      # Full stack (recommended)
-pnpm quality                  # BEFORE commit: type-check + lint + format
+# Full stack (recommended)
+pnpm dev                      # Starts all packages via Turbo
+
+# Quality (BEFORE every commit)
+pnpm quality                  # type-check + lint + format (all packages)
+
+# Testing
 pnpm test                     # All unit tests
 pnpm test:e2e                 # E2E tests (Playwright)
 
-# Single tests
-cd frontend && pnpm test -- path/to/file.spec.ts
+# Single package commands
+cd frontend && pnpm test -- path/to/file.spec.ts   # Frontend single test
 cd frontend && pnpm test:watch                      # Watch mode
 cd backend-nest && bun test path/to/file.test.ts   # Backend single test
 
 # Supabase local
 supabase start                # Start local Supabase (DB + Auth)
 supabase stop                 # Stop local services
+```
+
+### Turbo-Specific Commands
+
+```bash
+pnpm build                    # Build all packages (respects deps)
+pnpm build:shared             # Build shared only
+pnpm dev:frontend             # Frontend + shared
+pnpm dev:backend              # Backend + shared
 ```
 
 ## Stack
@@ -27,15 +50,7 @@ supabase stop                 # Stop local services
 | Frontend | Angular 20+, Signals, Material v20, Tailwind v4 |
 | Backend | NestJS 11+, Bun, Supabase (PostgreSQL + Auth) |
 | Shared | TypeScript strict, Zod schemas |
-
-## Monorepo
-
-```
-├── frontend/         # Angular webapp → @frontend/CLAUDE.md
-├── backend-nest/     # NestJS API → @backend-nest/CLAUDE.md
-├── shared/           # Zod schemas, types
-└── .claude/rules/    # Lazy-loaded rules (frontend/, testing/, shared/)
-```
+| Orchestration | pnpm workspaces + Turborepo |
 
 ## Rules Files
 
@@ -48,17 +63,7 @@ paths: "**/*.ts"
 ---
 ```
 
-## Architecture References
-
-| Topic | Reference |
-|-------|-----------|
-| Frontend patterns | @frontend/CLAUDE.md |
-| Backend patterns | @backend-nest/CLAUDE.md |
-| Business specs | @memory-bank/SPECS.md |
-
 ## Critical Rules
-
-> Detailed rules in sub-CLAUDE.md files. This section: cross-cutting concerns only.
 
 - **NEVER** destructive Supabase commands (`db reset`, `db push --force`)
 - **ALWAYS** run `pnpm quality` before committing
@@ -71,5 +76,9 @@ paths: "**/*.ts"
 - Labels: "Disponible à dépenser", "Épargne prévue", "Fréquence"
 
 ## Key Files
-- DB types: `backend-nest/src/types/database.types.ts`
-- Shared schemas: `shared/schemas.ts`
+
+| Purpose | Path |
+|---------|------|
+| DB types | `backend-nest/src/types/database.types.ts` |
+| Shared schemas | `shared/schemas.ts` |
+| Business specs | `memory-bank/SPECS.md` |
