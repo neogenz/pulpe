@@ -29,21 +29,23 @@ pnpm test:e2e         # E2E tests (Playwright)
 
 ## Architecture References
 
-- **Frontend patterns**: @frontend/CLAUDE.md
-- **Backend patterns**: @backend-nest/CLAUDE.md
-- **Signal/Store**: @frontend/STATE-PATTERN.md
-- **Business specs**: @memory-bank/SPECS.md
+> **Note**: `@path` syntax means "read this file for details" (e.g., `@frontend/CLAUDE.md` = `frontend/CLAUDE.md`)
+
+| Topic | Reference |
+|-------|-----------|
+| Frontend patterns | @frontend/CLAUDE.md |
+| Backend patterns | @backend-nest/CLAUDE.md |
+| Signal/Store | @frontend/STATE-PATTERN.md |
+| Business specs | @memory-bank/SPECS.md |
+| Testing | @.claude/rules/testing/ |
 
 ## Critical Rules
 
-### Backend (NestJS)
-- **NEVER** use `any` types
-- **ALWAYS** use Zod for validation
-- **NEVER** destructive Supabase commands (`db reset`)
-- **AFTER** schema changes: `bun run generate-types:local`
+> Detailed rules in sub-CLAUDE.md files. This section: cross-cutting concerns only.
 
-### Frontend/Testing
-- See @frontend/CLAUDE.md and @.claude/rules/
+- **NEVER** destructive Supabase commands (`db reset`, `db push --force`)
+- **ALWAYS** run `pnpm quality` before committing
+- **AFTER** DB schema changes: `bun run generate-types:local` in backend
 
 ## Vocabulary
 

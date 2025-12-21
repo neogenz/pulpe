@@ -172,6 +172,29 @@ readonly user = rxResource({
 });
 ```
 
+### Choosing the Right Resource API
+
+| Use Case | API | Reason |
+|----------|-----|--------|
+| Simple GET requests | `httpResource()` | Minimal boilerplate, auto JSON parsing |
+| GET with Zod validation | `httpResource()` + `parse` | Type-safe responses |
+| Complex HTTP (interceptors, retries) | `rxResource()` | Full RxJS power |
+| Non-HTTP async (localStorage, IndexedDB) | `resource()` | Generic async loader |
+| WebSocket/SSE streams | `rxResource()` | Observable-based |
+| Existing Observable services | `rxResource()` | Seamless integration |
+
+**Decision Flow:**
+
+```
+Is it an HTTP GET?
+  ├─ Yes → httpResource()
+  └─ No → Is it Observable-based?
+            ├─ Yes → rxResource()
+            └─ No → resource()
+```
+
+**Project Convention:** Prefer `httpResource()` for API calls. Use `resource()` only for non-HTTP async.
+
 ---
 
 ## Side Effects
