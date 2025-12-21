@@ -1,6 +1,6 @@
-# Guide Technique : Store Réactif Angular avec Signals
+# Technical Guide: Reactive Store with Angular Signals
 
-## 📐 Structure de Base
+## Basic Structure
 
 ```typescript
 // store.ts
@@ -13,59 +13,59 @@ interface State {
 
 @Injectable()
 export class Store {
-  // 1. État privé, signal unique
+  // 1. Private state, single signal
   private readonly state = signal<State>(initialState);
 
-  // 2. Selectors publics read-only via computed
+  // 2. Public read-only selectors via computed
   readonly data = computed(() => this.state().data);
   readonly isLoading = computed(() => this.state().isLoading);
 
-  // 3. Selectors dérivés
+  // 3. Derived selectors
   readonly selected = computed(() => this.state().data.find((item) => item.id === this.state().selectedId));
 
-  // 4. Actions qui modifient l'état
+  // 4. Actions that modify state
   updateData(data: T[]) {
     this.state.update((state) => ({ ...state, data }));
   }
 }
 ```
 
-## ✅ Règles Fondamentales
+## Fundamental Rules
 
-### 1. État Immutable
+### 1. Immutable State
 
 ```typescript
-// ✅ BON - Nouvelle référence
+// Good - New reference
 this.state.update((state) => ({
   ...state,
   items: [...state.items, newItem],
 }));
 
-// ❌ MAUVAIS - Mutation
+// Bad - Mutation
 this.state.update((state) => {
   state.items.push(newItem); // Mutation!
   return state;
 });
 ```
 
-### 2. Computed pour Toute Dérivation
+### 2. Computed for All Derivations
 
 ```typescript
-// ✅ BON
+// Good
 readonly totalPrice = computed(() =>
   this.items().reduce((sum, item) => sum + item.price, 0)
 );
 
-// ❌ MAUVAIS - Recalcul à chaque appel
+// Bad - Recalculates on each call
 get totalPrice() {
   return this.items().reduce((sum, item) => sum + item.price, 0);
 }
 ```
 
-### 3. Actions Asynchrones
+### 3. Async Actions
 
 ```typescript
-// ✅ BON - Gestion d'état complète
+// Good - Complete state management
 async loadData() {
   this.state.update(s => ({ ...s, isLoading: true, error: null }));
 
@@ -77,29 +77,29 @@ async loadData() {
   }
 }
 
-// Alternative avec Resource API
+// Alternative with Resource API
 readonly data = resource({
   request: () => ({ id: this.selectedId() }),
   loader: async ({ request }) => this.api.getData(request.id)
 });
 ```
 
-## 🎯 Patterns Recommandés
+## Recommended Patterns
 
-### Pattern 1: Store avec Effects
+### Pattern 1: Store with Effects
 
 ```typescript
 @Injectable()
 export class CartStore {
   private readonly state = signal<CartState>(initialState);
 
-  // Effect pour persistence locale
+  // Effect for local persistence
   private readonly persistEffect = effect(() => {
     const state = this.state();
     localStorage.setItem("cart", JSON.stringify(state));
   });
 
-  // Effect pour analytics
+  // Effect for analytics
   private readonly analyticsEffect = effect(() => {
     const items = this.state().items;
     untracked(() => {
@@ -111,7 +111,7 @@ export class CartStore {
 }
 ```
 
-### Pattern 2: Composition de Stores
+### Pattern 2: Store Composition
 
 ```typescript
 @Injectable()
@@ -119,7 +119,7 @@ export class OrderStore {
   private readonly cart = inject(CartStore);
   private readonly user = inject(UserStore);
 
-  // Computed cross-store
+  // Cross-store computed
   readonly canCheckout = computed(() => this.cart.items().length > 0 && this.user.isAuthenticated());
 
   readonly orderSummary = computed(() => ({
@@ -130,63 +130,63 @@ export class OrderStore {
 }
 ```
 
-### Pattern 3: Sélection Optimisée
+### Pattern 3: Optimized Selection
 
 ```typescript
 export class ProductStore {
   private readonly state = signal<State>(initialState);
 
-  // Mémorisation par ID
+  // Memoization by ID
   private readonly productById = computed(() => {
     const map = new Map<string, Product>();
     this.state().products.forEach((p) => map.set(p.id, p));
     return map;
   });
 
-  // Sélection O(1)
+  // O(1) Selection
   getProduct(id: string) {
     return computed(() => this.productById().get(id));
   }
 }
 ```
 
-## 🚫 Anti-Patterns à Éviter
+## Anti-Patterns to Avoid
 
 ```typescript
-// ❌ Signals imbriqués
+// Nested signals
 private readonly user = signal(signal(userData));
 
-// ❌ Computed avec side-effects
+// Computed with side-effects
 readonly total = computed(() => {
   console.log('calculating...'); // Side-effect!
   return this.items().reduce(...);
 });
 
-// ❌ Modification directe dans computed
+// Direct modification in computed
 readonly sorted = computed(() => {
   const items = this.items();
   return items.sort(); // Mutation!
 });
 
-// ❌ Signal public modifiable
-readonly state = signal(initialState); // Devrait être private
+// Public mutable signal
+readonly state = signal(initialState); // Should be private
 
-// ❌ Update sans spread
+// Update without spread
 this.state.update(state => {
-  state.isLoading = true; // Mutation directe
+  state.isLoading = true; // Direct mutation
   return state;
 });
 ```
 
-## 🔧 Patterns Avancés
+## Advanced Patterns
 
-### LinkedSignal pour État Dérivé Modifiable
+### LinkedSignal for Mutable Derived State
 
 ```typescript
 export class FilterStore {
   readonly category = signal<string>("all");
 
-  // Reset automatique quand la catégorie change
+  // Auto-reset when category changes
   readonly subcategory = linkedSignal({
     source: this.category,
     computation: () => "all",
@@ -194,7 +194,7 @@ export class FilterStore {
 }
 ```
 
-### Resource avec Retry
+### Resource with Retry
 
 ```typescript
 readonly data = resource({
@@ -213,7 +213,7 @@ readonly data = resource({
 });
 ```
 
-### Store Générique Typé
+### Typed Generic Store
 
 ```typescript
 export class EntityStore<T extends { id: string }> {
@@ -241,7 +241,7 @@ export class EntityStore<T extends { id: string }> {
 }
 ```
 
-## 📊 Testing
+## Testing
 
 ```typescript
 describe("ProductStore", () => {
@@ -269,28 +269,28 @@ describe("ProductStore", () => {
 });
 ```
 
-## 🎬 Scoping & Lifecycle
+## Scoping & Lifecycle
 
 ```typescript
-// Store au niveau component (détruit avec le component)
+// Component-level store (destroyed with component)
 @Component({
   providers: [FeatureStore]
 })
 
-// Store singleton (survit aux navigations)
+// Singleton store (survives navigations)
 @Injectable({ providedIn: 'root' })
 
-// Store par route lazy-loadée
+// Store per lazy-loaded route
 @Injectable({ providedIn: FeatureModule })
 ```
 
-## 🔑 Points Clés
+## Key Points
 
-1. **Un signal d'état par store**
-2. **Computed pour toute dérivation**
-3. **Immutabilité stricte**
-4. **Actions pures et prévisibles**
-5. **Effects pour les side-effects**
-6. **Resource API pour l'async complexe**
-7. **LinkedSignal pour l'état dérivé modifiable**
-8. **Untracked() pour éviter les dépendances non voulues**
+1. **One state signal per store**
+2. **Computed for all derivations**
+3. **Strict immutability**
+4. **Pure, predictable actions**
+5. **Effects for side-effects**
+6. **Resource API for complex async**
+7. **LinkedSignal for mutable derived state**
+8. **Untracked() to avoid unwanted dependencies**
