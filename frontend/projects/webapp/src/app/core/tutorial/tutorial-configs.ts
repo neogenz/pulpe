@@ -8,10 +8,18 @@ import { ROUTES } from '../routing/routes-constants';
  */
 const ELEMENT_WAIT_TIMEOUT_MS = 5000;
 const EXTENDED_WAIT_TIMEOUT_MS = 10000;
-const POLL_INTERVAL_MS = 100;
 const MODAL_OVERLAY_PADDING_PX = 10;
 const MODAL_OVERLAY_RADIUS_PX = 12;
 const STEP_OFFSET_MAIN_AXIS_PX = 24;
+
+/**
+ * Creates a lazy element query function for Shepherd step attachments.
+ * Returns a function that queries the DOM when called (not at definition time).
+ */
+const querySelector =
+  (selector: string): (() => HTMLElement | null) =>
+  () =>
+    document.querySelector(selector);
 
 /**
  * Injects step counter and progress dots into the step element
@@ -67,58 +75,40 @@ function injectStepUI(this: Step): void {
 }
 
 /**
- * Helper function to wait for an element to exist in the DOM
- * @param selector CSS selector to wait for
- * @param timeout Maximum time to wait in milliseconds
- * @returns Promise that resolves when element is found
+ * Waits for an element to exist in the DOM using MutationObserver.
+ * More efficient than polling - fires immediately when element appears.
  */
 function waitForElement(
   selector: string,
   timeout = ELEMENT_WAIT_TIMEOUT_MS,
 ): Promise<HTMLElement> {
   return new Promise((resolve, reject) => {
-    const startTime = Date.now();
-
-    // Check if element already exists
-    try {
-      const existingElement = document.querySelector(selector);
-      if (existingElement instanceof HTMLElement) {
-        resolve(existingElement);
-        return;
-      }
-    } catch (error) {
-      console.error('[Tutorial] Error checking existing element:', {
-        selector,
-        error,
-      });
+    const existing = document.querySelector(selector);
+    if (existing instanceof HTMLElement) {
+      return resolve(existing);
     }
 
-    // Poll for element existence
-    const checkInterval = setInterval(() => {
-      try {
-        const element = document.querySelector(selector);
+    const timeoutId = setTimeout(() => {
+      observer.disconnect();
+      console.error(
+        `[Tutorial] Element not found within ${timeout}ms: ${selector}`,
+      );
+      reject(new Error(`Element ${selector} not found within ${timeout}ms`));
+    }, timeout);
 
-        if (element instanceof HTMLElement) {
-          clearInterval(checkInterval);
-          resolve(element);
-        } else if (Date.now() - startTime >= timeout) {
-          clearInterval(checkInterval);
-          console.error(
-            `[Tutorial] Element not found within ${timeout}ms: ${selector}`,
-          );
-          reject(
-            new Error(`Element ${selector} not found within ${timeout}ms`),
-          );
-        }
-      } catch (error) {
-        clearInterval(checkInterval);
-        console.error('[Tutorial] Error in waitForElement:', {
-          selector,
-          error,
-        });
-        reject(error);
+    const observer = new MutationObserver(() => {
+      const element = document.querySelector(selector);
+      if (element instanceof HTMLElement) {
+        observer.disconnect();
+        clearTimeout(timeoutId);
+        resolve(element);
       }
-    }, POLL_INTERVAL_MS);
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
   });
 }
 
@@ -199,6 +189,12 @@ const buttons = {
 };
 
 /**
+ * SECURITY NOTE: Tour step text uses raw HTML rendered by Shepherd.js.
+ * Never interpolate user input into these strings.
+ * All text must be static strings defined at build time.
+ */
+
+/**
  * Dashboard Welcome Tour - First visit to the current month page
  */
 export const dashboardWelcomeTour: TutorialTour = {
@@ -229,9 +225,7 @@ export const dashboardWelcomeTour: TutorialTour = {
         </ul>
       `,
       attachTo: {
-        // Lazy evaluation - query element when step is shown
-        element: () =>
-          document.querySelector('pulpe-budget-progress-bar') as HTMLElement,
+        element: querySelector('pulpe-budget-progress-bar'),
         on: 'bottom',
       },
       // Wait for element before showing step with error handling
@@ -248,10 +242,7 @@ export const dashboardWelcomeTour: TutorialTour = {
         <p>Elles sont organisées entre transactions fixes et ponctuelles.</p>
       `,
       attachTo: {
-        element: () =>
-          document.querySelector(
-            '[data-testid="dashboard-content"]',
-          ) as HTMLElement,
+        element: querySelector('[data-testid="dashboard-content"]'),
         on: 'top',
       },
       beforeShowPromise: createSafeBeforeShowPromise(
@@ -267,10 +258,7 @@ export const dashboardWelcomeTour: TutorialTour = {
         <p>C'est le moyen le plus rapide de suivre vos dépenses au quotidien !</p>
       `,
       attachTo: {
-        element: () =>
-          document.querySelector(
-            '[data-testid="add-transaction-fab"]',
-          ) as HTMLElement,
+        element: querySelector('[data-testid="add-transaction-fab"]'),
         on: 'left',
       },
       beforeShowPromise: createSafeBeforeShowPromise(
@@ -299,10 +287,7 @@ export const addTransactionTour: TutorialTour = {
         <p>C'est simple et rapide !</p>
       `,
       attachTo: {
-        element: () =>
-          document.querySelector(
-            '[data-testid="transaction-form"]',
-          ) as HTMLElement,
+        element: querySelector('[data-testid="transaction-form"]'),
         on: 'top',
       },
       // Wait for bottom sheet to open and render
@@ -320,10 +305,7 @@ export const addTransactionTour: TutorialTour = {
         <p>Vous pouvez aussi utiliser les montants rapides juste en dessous !</p>
       `,
       attachTo: {
-        element: () =>
-          document.querySelector(
-            '[data-testid="transaction-amount-input"]',
-          ) as HTMLElement,
+        element: querySelector('[data-testid="transaction-amount-input"]'),
         on: 'bottom',
       },
       beforeShowPromise: createSafeBeforeShowPromise(
@@ -344,10 +326,7 @@ export const addTransactionTour: TutorialTour = {
         </ul>
       `,
       attachTo: {
-        element: () =>
-          document.querySelector(
-            '[data-testid="transaction-type-select"]',
-          ) as HTMLElement,
+        element: querySelector('[data-testid="transaction-type-select"]'),
         on: 'top',
       },
       beforeShowPromise: createSafeBeforeShowPromise(
@@ -386,10 +365,7 @@ export const templatesIntroTour: TutorialTour = {
         <p>C'est largement suffisant pour couvrir tous vos besoins (mois standard, vacances, Noël, etc.).</p>
       `,
       attachTo: {
-        element: () =>
-          document.querySelector(
-            '[data-testid="template-counter"]',
-          ) as HTMLElement,
+        element: querySelector('[data-testid="template-counter"]'),
         on: 'bottom',
       },
       beforeShowPromise: createSafeBeforeShowPromise(
@@ -405,10 +381,7 @@ export const templatesIntroTour: TutorialTour = {
         <p>Définissez vos revenus, dépenses fixes et objectifs d'épargne.</p>
       `,
       attachTo: {
-        element: () =>
-          document.querySelector(
-            '[data-testid="create-template-button"]',
-          ) as HTMLElement,
+        element: querySelector('[data-testid="create-template-button"]'),
         on: 'bottom',
       },
       beforeShowPromise: createSafeBeforeShowPromise(
@@ -441,10 +414,7 @@ export const budgetManagementTour: TutorialTour = {
         </ul>
       `,
       attachTo: {
-        element: () =>
-          document.querySelector(
-            'pulpe-budget-financial-overview',
-          ) as HTMLElement,
+        element: querySelector('pulpe-budget-financial-overview'),
         on: 'bottom',
       },
       beforeShowPromise: createSafeBeforeShowPromise(
@@ -460,8 +430,7 @@ export const budgetManagementTour: TutorialTour = {
         <p>Vous pouvez ajouter, modifier ou supprimer des lignes directement ici.</p>
       `,
       attachTo: {
-        element: () =>
-          document.querySelector('pulpe-budget-table') as HTMLElement,
+        element: querySelector('pulpe-budget-table'),
         on: 'top',
       },
       beforeShowPromise: createSafeBeforeShowPromise('pulpe-budget-table'),
@@ -497,10 +466,7 @@ export const budgetCalendarTour: TutorialTour = {
         <p>Choisissez le mois et le modèle à utiliser comme base.</p>
       `,
       attachTo: {
-        element: () =>
-          document.querySelector(
-            '[data-testid="create-budget-btn"]',
-          ) as HTMLElement,
+        element: querySelector('[data-testid="create-budget-btn"]'),
         on: 'bottom',
       },
       beforeShowPromise: createSafeBeforeShowPromise(
@@ -516,10 +482,7 @@ export const budgetCalendarTour: TutorialTour = {
         <p>Planifiez vos budgets sur le long terme !</p>
       `,
       attachTo: {
-        element: () =>
-          document.querySelector(
-            '[data-testid="budget-year-tabs"]',
-          ) as HTMLElement,
+        element: querySelector('[data-testid="budget-year-tabs"]'),
         on: 'bottom',
       },
       beforeShowPromise: createSafeBeforeShowPromise(
@@ -535,8 +498,7 @@ export const budgetCalendarTour: TutorialTour = {
         <p>Cliquez sur un mois existant pour voir ses détails, ou sur un mois vide pour le créer.</p>
       `,
       attachTo: {
-        element: () =>
-          document.querySelector('pulpe-year-calendar') as HTMLElement,
+        element: querySelector('pulpe-year-calendar'),
         on: 'top',
       },
       beforeShowPromise: createSafeBeforeShowPromise('pulpe-year-calendar'),
