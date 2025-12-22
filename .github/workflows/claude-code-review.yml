@@ -3,126 +3,126 @@ name: Claude Code Review
 on:
   pull_request:
     types: [opened, synchronize]
-    # Optional: Only run on specific file changes
-    # paths:
-    #   - "src/**/*.ts"
-    #   - "src/**/*.tsx"
-    #   - "src/**/*.js"
-    #   - "src/**/*.jsx"
+    paths:
+      - 'frontend/**/*.ts'
+      - 'frontend/**/*.html'
+      - 'frontend/**/*.scss'
+      - 'backend-nest/**/*.ts'
+      - 'shared/**/*.ts'
 
 jobs:
   claude-review:
-    # Optional: Filter by PR author
-    # if: |
-    #   github.event.pull_request.user.login == 'external-contributor' ||
-    #   github.event.pull_request.user.login == 'new-developer' ||
-    #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
-
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: read
+      pull-requests: write
       issues: read
       id-token: write
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
 
-      - name: Run Claude Code Review
-        id: claude-review
-        uses: anthropics/claude-code-action@beta
+      - name: Claude Code Review
+        uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            <role>
+            Senior Full-Stack Developer reviewing code for Pulpe monorepo.
+            Reference CLAUDE.md for project standards and conventions.
+            </role>
 
-          # Optional: Specify model (defaults to Claude Sonnet 4, uncomment for Claude Opus 4)
-          # model: "claude-opus-4-20250514"
+            <context>
+            Repository: ${{ github.repository }}
+            PR: #${{ github.event.pull_request.number }}
+            Base branch: ${{ github.event.pull_request.base.ref }}
+            Author: ${{ github.event.pull_request.user.login }}
+            </context>
 
-          # Direct prompt for automated review (no @claude mention needed)
-          direct_prompt: |
-            ${{ contains(github.event.pull_request.changed_files.*.filename, 'frontend/') && 
-            'You are an Angular Code Review Specialist with expertise in modern Angular development (2025). Your mission: **Ensure code quality through rigorous review focusing on KISS, YAGNI, consistency, and elimination of over-engineering**.
+            <task>
+            Review the changed files in this PR.
+            1. Run `git diff ${{ github.event.pull_request.base.sha }} --name-only` to list changed files
+            2. Read and analyze each changed file
+            3. Report issues following the output format below
+            </task>
 
-            ## Core Philosophy
-            **KISS + YAGNI + Consistency = Maintainable Excellence**
-            - **KISS**: Keep implementations simple and direct
-            - **YAGNI**: Don''t write code used only by tests or future "maybe" scenarios  
-            - **Consistency**: Align with existing codebase patterns
+            <review_criteria>
+            ## Angular (frontend/)
+            - Modern patterns: `input()`/`output()` functions (not decorators), signals, `@if`/`@for`/`@switch`, `inject()`
+            - Angular 20 naming: no `.component`/`.service` suffix in filenames
+            - `OnPush` change detection strategy
+            - No `any` type - use `unknown` with type guards
+            - Architecture: no cross-feature imports (`from '../feature-x'` forbidden)
+            - Signals: use `computed()` for derived state, not `effect()`
+            - Security: no `innerHTML`, `bypassSecurityTrust*`
+            - Private fields: use `#field` syntax, not `private field`
 
-            ## Angular-Specific Review:
+            ## NestJS (backend-nest/)
+            - Proper error handling with typed exceptions
+            - Input validation using Zod schemas from `@pulpe/shared`
+            - No hardcoded secrets or credentials
+            - Supabase RLS policy considerations
+            - Consistent API response structure
 
-            ### YAGNI Violations (Critical Issues)
-            - Unnecessary abstractions (abstract classes, interfaces with single impl)
-            - Over-generic code with single use
-            - Test-only code or unused parameters
-            - Complex inheritance chains
+            ## Shared (shared/)
+            - Zod schema consistency and completeness
+            - Proper type exports with `z.infer<typeof schema>`
+            - No circular dependencies
+            </review_criteria>
 
-            ### Modern Angular Patterns (Must Fix)
-            - Use standalone components + OnPush
-            - Use `input()`/`output()` functions, not decorators
-            - Use signals + computed(), not BehaviorSubject
-            - Use `inject()` function, not constructor injection
-            - Use `@if`/`@for`/`@switch` control flow
+            <output_format>
+            ## Code Review: PR #${{ github.event.pull_request.number }}
 
-            ### Angular 20 Naming (Must Fix)
-            - Components: `user-profile.ts` → `UserProfile` (no `.component` suffix)
-            - Services: `user-api.ts` → `UserApi` (no `.service` suffix)
+            **Files reviewed**: X | **Issues found**: Y
 
-            ### TypeScript Quality (Critical)
-            - Never use `any` type
-            - Initialize all properties
-            - Type narrowing for unknown inputs
-            - Strict null checks
+            ---
 
-            ### Performance Issues
-            - Missing OnPush strategy
-            - Memory leaks (unsubscribed observables)
-            - Effects writing to signals (infinite loops)
-            - Side effects in computed()
+            ### Critical (must fix)
 
-            Include specific before/after code examples for each issue.' ||
-            'Senior code reviewer. Run git diff first, focus on modified files.
+            📍 `path/to/file.ts:42`
+            ❌ **Problem**: [Clear description of the issue]
+            📚 **Source**: [angular.dev URL or `.claude/rules/` path]
+            ✅ **Fix**:
+            ```typescript
+            // Before
+            problematic code...
 
-            Check:
-            - Simple, readable code
-            - Well-named functions/variables
-            - No duplicated code
-            - Proper error handling
-            - No exposed secrets/API keys
-            - Input validation
-            - Test coverage
-            - Performance
+            // After
+            fixed code...
+            ```
 
-            Organize feedback by priority:
-            - Critical issues (must fix)
-            - Warnings (should fix)
-            - Suggestions (consider improving)
+            ---
 
-            Include specific fix examples.' }}
+            ### Improvements (should fix)
 
-          # Use sticky comments to make Claude reuse the same comment on subsequent pushes to the same PR
+            [Same format as Critical]
+
+            ---
+
+            ### Summary
+
+            | Category     | Critical | Improvements |
+            |--------------|----------|--------------|
+            | Angular      | X        | Y            |
+            | NestJS       | X        | Y            |
+            | TypeScript   | X        | Y            |
+            | Security     | X        | Y            |
+            | Architecture | X        | Y            |
+
+            **Priority**: Security > Bugs > Architecture > Performance > Style
+            </output_format>
+
+            <rules>
+            - NO positive feedback ("looks good", "well done", etc.)
+            - MAX 10 issues - report most severe first
+            - If 0 issues: output "No issues found in X files reviewed" and stop
+            - ALWAYS cite source (official docs URL or project rule path)
+            - ALWAYS show concrete fix with before/after code
+            - Focus on actionable findings - skip obvious linting issues
+            - Verify patterns before reporting - use WebSearch if uncertain
+            </rules>
+          claude_args: "--model claude-opus-4-5-20251101 --max-turns 8"
           use_sticky_comment: true
-
-          # Optional: Customize review based on file types
-          # direct_prompt: |
-          #   Review this PR focusing on:
-          #   - For TypeScript files: Type safety and proper interface usage
-          #   - For API endpoints: Security, input validation, and error handling
-          #   - For React components: Performance, accessibility, and best practices
-          #   - For tests: Coverage, edge cases, and test quality
-
-          # Optional: Different prompts for different authors
-          # direct_prompt: |
-          #   ${{ github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR' &&
-          #   'Welcome! Please review this PR from a first-time contributor. Be encouraging and provide detailed explanations for any suggestions.' ||
-          #   'Please provide a thorough code review focusing on our coding standards and best practices.' }}
-
-          # Optional: Add specific tools for running tests or linting
-          # allowed_tools: "Bash(npm run test),Bash(npm run lint),Bash(npm run typecheck)"
-
-          # Optional: Skip review for certain conditions
-          # if: |
-          #   !contains(github.event.pull_request.title, '[skip-review]') &&
-          #   !contains(github.event.pull_request.title, '[WIP]')
