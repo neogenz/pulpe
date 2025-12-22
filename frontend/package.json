@@ -55,6 +55,7 @@
     "@supabase/supabase-js": "^2.49.10",
     "@tailwindcss/postcss": "^4.1.8",
     "date-fns": "^4.1.0",
+    "driver.js": "^1.4.0",
     "lottie-web": "^5.13.0",
     "ngx-lottie": "^20.0.0",
     "ngx-turnstile": "^0.2.5",

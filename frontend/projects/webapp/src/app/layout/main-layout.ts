@@ -31,6 +31,7 @@ import { ApplicationConfiguration } from '@core/config/application-configuration
 import { Logger } from '@core/logging/logger';
 import { DemoModeService } from '@core/demo/demo-mode.service';
 import { DemoInitializerService } from '@core/demo/demo-initializer.service';
+import { ProductTourService } from '@core/product-tour/product-tour.service';
 
 interface NavigationItem {
   readonly route: string;
@@ -101,7 +102,11 @@ interface NavigationItem {
           </mat-nav-list>
         } @else {
           <!-- Desktop: Material 3 Navigation Rail -->
-          <nav class="pt-4 px-3" data-testid="desktop-navigation">
+          <nav
+            class="pt-4 px-3"
+            data-testid="desktop-navigation"
+            data-tour="navigation"
+          >
             @for (item of navigationItems; track item.route) {
               <a
                 [routerLink]="item.route"
@@ -273,6 +278,7 @@ interface NavigationItem {
             [class.md:p-8]="!isHandset()"
             [class.p-4]="isHandset()"
             data-testid="page-content"
+            data-tour="page-content"
           >
             <router-outlet />
           </main>
@@ -330,8 +336,22 @@ export class MainLayout {
   private readonly applicationConfig = inject(ApplicationConfiguration);
   private readonly demoModeService = inject(DemoModeService);
   private readonly demoInitializer = inject(DemoInitializerService);
+  private readonly productTourService = inject(ProductTourService);
   readonly breadcrumbState = inject(BreadcrumbState);
   readonly #logger = inject(Logger);
+
+  constructor() {
+    // Start product tour on first dashboard visit
+    const initialUrl = this.router.url;
+    if (
+      initialUrl.includes(`/${ROUTES.APP}`) &&
+      !this.productTourService.hasSeenTour()
+    ) {
+      setTimeout(() => {
+        this.productTourService.startTour();
+      }, 1000);
+    }
+  }
 
   // Display "Mode Démo" for demo users, otherwise show email
   readonly userEmail = computed(() => {

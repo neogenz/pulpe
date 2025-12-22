@@ -1,0 +1,231 @@
+/**
+ * Driver.js Material Design 3 Theme for Pulpe
+ *
+ * Customizes Driver.js to match Material Design 3 tokens and Pulpe's design system.
+ */
+
+@import 'driver.js/dist/driver.css';
+
+/* Global reset for all Driver.js elements */
+.driver-popover *,
+.driver-popover *::before,
+.driver-popover *::after {
+  text-shadow: none !important;
+}
+
+/* Popover container - M3 Surface Container High */
+.driver-popover {
+  background-color: var(--mat-sys-surface-container-high) !important;
+  color: var(--mat-sys-on-surface) !important;
+  border-radius: 28px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3) !important;
+  max-width: 400px !important;
+  padding: 20px !important;
+}
+
+/* Popover title - M3 Title Large */
+.driver-popover-title {
+  font-family: var(--mat-sys-title-large-font) !important;
+  font-size: var(--mat-sys-title-large-size) !important;
+  font-weight: var(--mat-sys-title-large-weight) !important;
+  line-height: var(--mat-sys-title-large-line-height) !important;
+  color: var(--mat-sys-on-surface) !important;
+  margin-bottom: 12px !important;
+}
+
+/* Popover description - M3 Body Medium */
+.driver-popover-description {
+  font-family: var(--mat-sys-body-medium-font) !important;
+  font-size: var(--mat-sys-body-medium-size) !important;
+  font-weight: var(--mat-sys-body-medium-weight) !important;
+  line-height: 1.5 !important;
+  color: var(--mat-sys-on-surface) !important;
+}
+
+.driver-popover-description p {
+  margin-bottom: 12px !important;
+  color: var(--mat-sys-on-surface) !important;
+}
+
+.driver-popover-description p:last-child {
+  margin-bottom: 0 !important;
+}
+
+.driver-popover-description ul,
+.driver-popover-description ol {
+  margin-left: 0 !important;
+  padding-left: 20px !important;
+  list-style-position: outside !important;
+}
+
+.driver-popover-description li {
+  margin-bottom: 8px !important;
+  color: var(--mat-sys-on-surface) !important;
+}
+
+.driver-popover-description strong {
+  font-weight: 600 !important;
+  color: var(--mat-sys-on-surface) !important;
+}
+
+/* Content boxes in description */
+.driver-popover-description .bg-surface-container {
+  background-color: var(--mat-sys-surface-container) !important;
+  color: var(--mat-sys-on-surface) !important;
+}
+
+/* Progress text - M3 Label Small */
+.driver-popover-progress-text {
+  font-size: var(--mat-sys-label-small-size) !important;
+  color: var(--mat-sys-on-surface-variant) !important;
+}
+
+/* Buttons - M3 Filled & Outlined buttons (match Angular Material v20 exactly) */
+
+/* Next/Done button - M3 Filled Button */
+.driver-popover-next-btn,
+.driver-popover-next-btn::before,
+.driver-popover-next-btn::after {
+  text-shadow: none !important;
+  box-shadow: none !important;
+}
+
+.driver-popover-next-btn {
+  background-color: var(--mat-sys-primary) !important;
+  color: var(--mat-sys-on-primary) !important;
+  border: none !important;
+  border-radius: var(--mat-sys-corner-full) !important;
+  padding: 10px 24px !important;
+  min-height: 40px !important;
+  font-family: var(--mat-sys-label-large-font) !important;
+  font-size: var(--mat-sys-label-large-size) !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.1px !important;
+  line-height: 20px !important;
+  text-transform: none !important;
+  cursor: pointer !important;
+  transition: box-shadow 200ms cubic-bezier(0.2, 0, 0, 1) !important;
+  position: relative !important;
+}
+
+.driver-popover-next-btn:hover {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px 1px rgba(0, 0, 0, 0.15) !important;
+}
+
+.driver-popover-next-btn:active {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 6px 2px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Remove pseudo-elements that could duplicate text */
+.driver-popover-next-btn::before,
+.driver-popover-next-btn::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* Previous button - M3 Outlined Button */
+.driver-popover-prev-btn,
+.driver-popover-prev-btn::before,
+.driver-popover-prev-btn::after {
+  text-shadow: none !important;
+  box-shadow: none !important;
+}
+
+.driver-popover-prev-btn {
+  background-color: transparent !important;
+  color: var(--mat-sys-primary) !important;
+  border: 1px solid var(--mat-sys-outline) !important;
+  border-radius: var(--mat-sys-corner-full) !important;
+  padding: 10px 23px !important;
+  min-height: 40px !important;
+  font-family: var(--mat-sys-label-large-font) !important;
+  font-size: var(--mat-sys-label-large-size) !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.1px !important;
+  line-height: 20px !important;
+  text-transform: none !important;
+  cursor: pointer !important;
+  transition: all 200ms cubic-bezier(0.2, 0, 0, 1) !important;
+  position: relative !important;
+}
+
+.driver-popover-prev-btn:hover {
+  background-color: rgba(var(--mat-sys-primary-rgb, 0, 110, 37), 0.08) !important;
+  border-color: var(--mat-sys-outline) !important;
+}
+
+/* Remove pseudo-elements */
+.driver-popover-prev-btn::before,
+.driver-popover-prev-btn::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* Close button */
+.driver-popover-close-btn {
+  color: var(--mat-sys-on-surface-variant) !important;
+}
+
+.driver-popover-close-btn:hover {
+  background-color: var(--mat-sys-surface-container-highest) !important;
+}
+
+/* Highlighted element - Clean spotlight without borders */
+.driver-active-element {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove popover arrow (it's ugly) */
+.driver-popover-arrow,
+.driver-popover-arrow-side-left,
+.driver-popover-arrow-side-right,
+.driver-popover-arrow-side-top,
+.driver-popover-arrow-side-bottom,
+.driver-popover-arrow-side-over,
+.driver-popover-arrow-side-center,
+.driver-popover-arrow-align-start,
+.driver-popover-arrow-align-center,
+.driver-popover-arrow-align-end {
+  display: none !important;
+}
+
+/* Footer with buttons */
+.driver-popover-footer {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  margin-top: 20px !important;
+  padding-top: 16px !important;
+  border-top: 1px solid var(--mat-sys-outline-variant) !important;
+}
+
+/* Button container */
+.driver-popover-navigation-btns {
+  display: flex !important;
+  gap: 12px !important;
+}
+
+/* Mobile adjustments */
+@media (max-width: 600px) {
+  .driver-popover {
+    max-width: calc(100vw - 32px) !important;
+    margin: 0 16px !important;
+    border-radius: 16px !important;
+  }
+
+  .driver-popover-footer {
+    flex-direction: column-reverse !important;
+  }
+
+  .driver-popover-navigation-btns {
+    width: 100% !important;
+    flex-direction: column-reverse !important;
+  }
+
+  .driver-popover-next-btn,
+  .driver-popover-prev-btn {
+    width: 100% !important;
+  }
+}

@@ -5,6 +5,10 @@
 @use "./variables";
 @use "./app/styles/themes/_theme-colors.scss" as theme;
 
+// Product Tour
+@import "driver.js/dist/driver.css";
+@import "./app/core/product-tour/product-tour.css";
+
 html {
   color-scheme: light dark;
   @include mat.theme(
