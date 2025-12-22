@@ -18,25 +18,32 @@ export async function setupAuthBypass(page: Page, options: {
     const e2eWindow = window as unknown as E2EWindow;
     e2eWindow.__E2E_AUTH_BYPASS__ = true;
     e2eWindow.__E2E_MOCK_AUTH_STATE__ = {
-      user: { 
-        id: config.USER.ID, 
-        email: config.USER.EMAIL 
+      user: {
+        id: config.USER.ID,
+        email: config.USER.EMAIL
       },
-      session: { 
+      session: {
         access_token: config.TOKENS.ACCESS,
-        user: { 
-          id: config.USER.ID, 
-          email: config.USER.EMAIL 
+        user: {
+          id: config.USER.ID,
+          email: config.USER.EMAIL
         }
       },
       isLoading: false,
       isAuthenticated: true
     };
-    
+
     // Only set localStorage if explicitly requested (for fixtures)
     if (config.setLocalStorage) {
       localStorage.setItem('auth_token', config.TOKENS.ACCESS);
     }
+
+    // Disable product tours in E2E tests by marking them as already seen
+    localStorage.setItem('pulpe_tour_intro', 'true');
+    localStorage.setItem('pulpe_tour_current-month', 'true');
+    localStorage.setItem('pulpe_tour_budget-list', 'true');
+    localStorage.setItem('pulpe_tour_budget-details', 'true');
+    localStorage.setItem('pulpe_tour_templates-list', 'true');
   }, { ...TEST_CONFIG, setLocalStorage });
 
   // Setup API mocks if requested
