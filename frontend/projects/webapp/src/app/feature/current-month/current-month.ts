@@ -41,7 +41,10 @@ import { type TransactionCreate } from '@pulpe/shared';
 import { EditTransactionDialog } from './components/edit-transaction-dialog';
 import { type FinancialEntryModel } from './models/financial-entry.model';
 import { Logger } from '@core/logging/logger';
-import { ProductTourService } from '@core/product-tour/product-tour.service';
+import {
+  ProductTourService,
+  TOUR_START_DELAY,
+} from '@core/product-tour/product-tour.service';
 
 type TransactionFormData = Pick<
   TransactionCreate,
@@ -251,7 +254,7 @@ export default class CurrentMonth {
       if (!this.#productTourService.hasSeenPageTour('current-month')) {
         setTimeout(
           () => this.#productTourService.startPageTour('current-month'),
-          500,
+          TOUR_START_DELAY,
         );
       }
     });
@@ -260,6 +263,7 @@ export default class CurrentMonth {
   startPageTour(): void {
     this.#productTourService.startPageTour('current-month');
   }
+
   recurringFinancialItems = computed<FinancialEntryModel[]>(() => {
     const budgetLines = this.store.displayBudgetLines();
     const budget = this.store.dashboardData()?.budget;

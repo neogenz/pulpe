@@ -22,7 +22,10 @@ import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
 import { TemplateUsageDialogComponent } from '../components/dialogs/template-usage-dialog';
 import { getDeleteConfirmationConfig } from '../delete/template-delete-dialog';
 import { Logger } from '@core/logging/logger';
-import { ProductTourService } from '@core/product-tour/product-tour.service';
+import {
+  ProductTourService,
+  TOUR_START_DELAY,
+} from '@core/product-tour/product-tour.service';
 
 @Component({
   selector: 'pulpe-template-list-page',
@@ -152,7 +155,7 @@ export default class TemplateListPage {
       if (!this.#productTourService.hasSeenPageTour('templates-list')) {
         setTimeout(
           () => this.#productTourService.startPageTour('templates-list'),
-          500,
+          TOUR_START_DELAY,
         );
       }
     });

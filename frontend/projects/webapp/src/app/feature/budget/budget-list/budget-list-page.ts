@@ -25,7 +25,10 @@ import { mapToCalendarYear } from './budget-list-mapper/budget-list.mapper';
 import { BudgetListStore } from './budget-list-store';
 import { CreateBudgetDialogComponent } from './create-budget/budget-creation-dialog';
 import { Logger } from '@core/logging/logger';
-import { ProductTourService } from '@core/product-tour/product-tour.service';
+import {
+  ProductTourService,
+  TOUR_START_DELAY,
+} from '@core/product-tour/product-tour.service';
 
 const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
 
@@ -139,7 +142,7 @@ export default class BudgetListPage {
       if (!this.#productTourService.hasSeenPageTour('budget-list')) {
         setTimeout(
           () => this.#productTourService.startPageTour('budget-list'),
-          500,
+          TOUR_START_DELAY,
         );
       }
     });

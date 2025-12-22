@@ -17,6 +17,24 @@ export type TourPageId =
 const STORAGE_PREFIX = 'pulpe_tour_';
 const INTRO_KEY = `${STORAGE_PREFIX}intro`;
 
+/**
+ * Delay before starting tour to ensure DOM is fully rendered
+ * and Angular animations have completed
+ */
+export const TOUR_START_DELAY = 500;
+
+/**
+ * Storage keys for tour completion tracking
+ * Exported for E2E test utilities
+ */
+export const TOUR_STORAGE_KEYS = {
+  intro: INTRO_KEY,
+  'current-month': `${STORAGE_PREFIX}current-month`,
+  'budget-list': `${STORAGE_PREFIX}budget-list`,
+  'budget-details': `${STORAGE_PREFIX}budget-details`,
+  'templates-list': `${STORAGE_PREFIX}templates-list`,
+} as const;
+
 @Injectable({
   providedIn: 'root',
 })
@@ -70,6 +88,9 @@ export class ProductTourService {
     const includeIntro = !this.hasSeenIntro();
     const steps = this.getStepsForPage(pageId, includeIntro);
 
+    // Create driver instance first to avoid closure timing issues
+    const tourDriver = driver();
+
     const driverConfig: Config = {
       showProgress: true,
       showButtons: ['next', 'previous'],
@@ -87,10 +108,6 @@ export class ProductTourService {
       stageRadius: 8,
       popoverOffset: 16,
       onDestroyStarted: () => {
-        if (includeIntro) {
-          this.markIntroCompleted();
-        }
-        this.markPageTourCompleted(pageId);
         tourDriver.destroy();
       },
       onDestroyed: () => {
@@ -101,7 +118,7 @@ export class ProductTourService {
       },
     };
 
-    const tourDriver = driver(driverConfig);
+    tourDriver.setConfig(driverConfig);
     tourDriver.setSteps(steps);
     tourDriver.drive();
   }

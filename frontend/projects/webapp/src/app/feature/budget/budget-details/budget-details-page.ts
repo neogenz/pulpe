@@ -38,7 +38,10 @@ import {
   type BudgetLine,
   type Transaction,
 } from '@pulpe/shared';
-import { ProductTourService } from '@core/product-tour/product-tour.service';
+import {
+  ProductTourService,
+  TOUR_START_DELAY,
+} from '@core/product-tour/product-tour.service';
 
 @Component({
   selector: 'pulpe-budget-details-page',
@@ -219,7 +222,7 @@ export default class BudgetDetailsPage {
       if (!this.#productTourService.hasSeenPageTour('budget-details')) {
         setTimeout(
           () => this.#productTourService.startPageTour('budget-details'),
-          500,
+          TOUR_START_DELAY,
         );
       }
     });
