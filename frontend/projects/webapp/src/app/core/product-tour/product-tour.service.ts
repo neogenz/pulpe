@@ -157,8 +157,8 @@ export class ProductTourService {
       popover: {
         title: 'Bienvenue dans Pulpe',
         description: `
-          <p class="mb-3">Pulpe vous aide à gérer votre budget suisse avec simplicité.</p>
-          <p class="text-sm opacity-70">Découvrons ensemble les fonctionnalités principales.</p>
+          <p>Pulpe vous aide à gérer votre budget avec simplicité.</p>
+          <p>Découvrons ensemble les fonctionnalités principales.</p>
         `,
       },
     },
@@ -167,8 +167,8 @@ export class ProductTourService {
       popover: {
         title: 'Menu de navigation',
         description: `
-          <p class="mb-3">Pulpe est organisé en <strong>3 sections</strong> :</p>
-          <ul class="space-y-2 text-sm leading-relaxed">
+          <p>Pulpe est organisé en <strong>3 sections</strong> :</p>
+          <ul>
             <li><strong>Ce mois-ci</strong> : Suivez vos dépenses du mois</li>
             <li><strong>Budgets</strong> : Planifiez vos mois à l'avance</li>
             <li><strong>Modèles</strong> : Créez des bases réutilisables</li>
@@ -187,7 +187,7 @@ export class ProductTourService {
         title: 'Votre progression',
         description: `
           <p>Cette barre indique où vous en êtes dans votre budget mensuel.</p>
-          <p class="text-sm opacity-70 mt-2">Dépenses réalisées vs. budget disponible.</p>
+          <p>Dépenses réalisées vs. budget disponible.</p>
         `,
         side: 'bottom',
         align: 'center',
@@ -198,8 +198,8 @@ export class ProductTourService {
       popover: {
         title: 'Vos dépenses',
         description: `
-          <p class="mb-2">Deux types de dépenses sont affichées :</p>
-          <ul class="text-sm space-y-1">
+          <p>Deux types de dépenses sont affichées :</p>
+          <ul>
             <li><strong>Récurrentes</strong> : Loyer, assurances, abonnements</li>
             <li><strong>Variables</strong> : Courses, restaurants, loisirs</li>
           </ul>
@@ -214,7 +214,7 @@ export class ProductTourService {
         title: 'Ajouter une dépense',
         description: `
           <p>Cliquez ici pour enregistrer une nouvelle dépense rapidement.</p>
-          <p class="text-sm opacity-70 mt-2">Le suivi quotidien est la clé d'un budget maîtrisé.</p>
+          <p>Le suivi quotidien est la clé d'un budget maîtrisé.</p>
         `,
         side: 'left',
         align: 'center',
@@ -229,7 +229,7 @@ export class ProductTourService {
         title: 'Navigation par année',
         description: `
           <p>Basculez entre les années pour planifier sur le long terme.</p>
-          <p class="text-sm opacity-70 mt-2">Vous pouvez préparer jusqu'à 8 ans à l'avance.</p>
+          <p>Vous pouvez préparer jusqu'à 8 ans à l'avance.</p>
         `,
         side: 'bottom',
         align: 'start',
@@ -241,7 +241,7 @@ export class ProductTourService {
         title: 'Calendrier des budgets',
         description: `
           <p>Chaque case représente un mois.</p>
-          <p class="text-sm opacity-70 mt-2">Cliquez sur un mois vide pour créer un nouveau budget.</p>
+          <p>Cliquez sur un mois vide pour créer un nouveau budget.</p>
         `,
         side: 'top',
         align: 'center',
@@ -253,7 +253,7 @@ export class ProductTourService {
         title: 'Créer un budget',
         description: `
           <p>Créez un budget à partir d'un modèle existant.</p>
-          <p class="text-sm opacity-70 mt-2">Les modèles vous font gagner du temps.</p>
+          <p>Les modèles vous font gagner du temps.</p>
         `,
         side: 'left',
         align: 'start',
@@ -267,8 +267,8 @@ export class ProductTourService {
       popover: {
         title: "Vue d'ensemble",
         description: `
-          <p class="mb-2">4 indicateurs clés de votre mois :</p>
-          <ul class="text-sm space-y-1">
+          <p>4 indicateurs clés de votre mois :</p>
+          <ul>
             <li><strong>Revenus</strong> : Total des entrées d'argent</li>
             <li><strong>Dépenses</strong> : Total des sorties prévues</li>
             <li><strong>Épargne</strong> : Ce que vous mettez de côté</li>
@@ -285,7 +285,7 @@ export class ProductTourService {
         title: 'Détail du budget',
         description: `
           <p>Toutes vos lignes de budget sont listées ici.</p>
-          <p class="text-sm opacity-70 mt-2">Cliquez sur une ligne pour voir les transactions associées.</p>
+          <p>Cliquez sur une ligne pour voir les transactions associées.</p>
         `,
         side: 'top',
         align: 'center',
@@ -297,7 +297,7 @@ export class ProductTourService {
         title: 'Ajouter une ligne',
         description: `
           <p>Ajoutez un revenu, une dépense ou une épargne.</p>
-          <p class="text-sm opacity-70 mt-2">Chaque ligne peut être fixe ou variable.</p>
+          <p>Chaque ligne peut être fixe ou variable.</p>
         `,
         side: 'left',
         align: 'start',
@@ -312,7 +312,7 @@ export class ProductTourService {
         title: 'Vos modèles',
         description: `
           <p>Les modèles sont des budgets types réutilisables.</p>
-          <p class="text-sm opacity-70 mt-2">Créez-en un par type de mois (normal, vacances, etc.).</p>
+          <p>Créez-en un par type de mois (normal, vacances, etc.).</p>
         `,
         side: 'top',
         align: 'start',
@@ -324,7 +324,7 @@ export class ProductTourService {
         title: 'Limite de modèles',
         description: `
           <p>Vous pouvez créer jusqu'à 5 modèles.</p>
-          <p class="text-sm opacity-70 mt-2">Gardez les choses simples avec quelques modèles bien pensés.</p>
+          <p>Gardez les choses simples avec quelques modèles bien pensés.</p>
         `,
         side: 'bottom',
         align: 'start',
@@ -336,7 +336,7 @@ export class ProductTourService {
         title: 'Créer un modèle',
         description: `
           <p>Définissez vos revenus et dépenses récurrents.</p>
-          <p class="text-sm opacity-70 mt-2">Ce modèle servira de base pour vos futurs budgets.</p>
+          <p>Ce modèle servira de base pour vos futurs budgets.</p>
         `,
         side: 'left',
         align: 'start',
