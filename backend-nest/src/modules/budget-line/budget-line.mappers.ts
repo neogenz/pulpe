@@ -46,7 +46,7 @@ export function toInsert(
   // Validate with Zod schema - fail fast on invalid data
   const validationResult = budgetLineCreateSchema.safeParse(createDto);
   if (!validationResult.success) {
-    const firstError = validationResult.error.errors[0];
+    const firstError = validationResult.error.issues[0];
     throw new BadRequestException(
       `Validation failed: ${firstError.path.join('.')} - ${firstError.message}`,
     );

@@ -116,7 +116,7 @@ export class BudgetCalculator {
       this.logger.error(
         {
           budgetId,
-          validationErrors: error.errors,
+          validationErrors: error.issues,
           operation: 'getBudgetRollover.validation',
         },
         'RPC response validation failed for get_budget_with_rollover',
@@ -129,7 +129,7 @@ export class BudgetCalculator {
           operation: 'getBudgetRollover',
           entityId: budgetId,
           entityType: 'budget',
-          validationErrors: error.errors,
+          validationErrors: error.issues,
         },
       );
     }

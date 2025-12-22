@@ -65,7 +65,7 @@
     "tailwindcss": "^4.1.17",
     "tslib": "^2.3.0",
     "uuid": "^11.1.0",
-    "zod": "^3.25.67"
+    "zod": "^4.1.13"
   },
   "devDependencies": {
     "@angular-eslint/builder": "21.1.0",
