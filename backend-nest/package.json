@@ -86,7 +86,7 @@
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-boundaries": "^4.2.2",
     "eslint-plugin-prettier": "^5.5.1",
-    "supabase": "^2.39.2",
+    "supabase": "2.39.2",
     "supertest": "^7.1.1",
     "ts-node": "^10.9.2"
   }
