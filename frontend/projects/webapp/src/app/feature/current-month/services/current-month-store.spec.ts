@@ -390,7 +390,7 @@ describe('CurrentMonthStore - Business Scenarios', () => {
 
       // Wait for resource to load (will be empty)
       await vi.waitFor(() => {
-        expect(store.dashboardStatus()).not.toBe('loading');
+        expect(store.isLoading()).toBe(false);
       });
 
       expect(store.budgetLines()).toEqual([]);

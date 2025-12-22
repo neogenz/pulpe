@@ -74,7 +74,8 @@ export class OnboardingStore {
 
   // Public readonly computed selectors
   readonly data = computed(() => this.#state().data);
-  readonly isSubmitting = computed(() => this.#state().isSubmitting);
+  readonly isLoading = computed(() => this.#state().isLoading);
+  readonly hasValue = computed(() => !!this.#state().data.firstName);
   readonly error = computed(() => this.#state().error);
 
   // Navigation and progress computed selectors
@@ -179,7 +180,7 @@ export class OnboardingStore {
       return false;
     }
 
-    this.#setSubmitting(true);
+    this.#setLoading(true);
     this.#clearError();
 
     try {
@@ -262,7 +263,7 @@ export class OnboardingStore {
 
       return false;
     } finally {
-      this.#setSubmitting(false);
+      this.#setLoading(false);
     }
   }
 
@@ -278,8 +279,8 @@ export class OnboardingStore {
   /**
    * Set loading state
    */
-  #setSubmitting(isSubmitting: boolean): void {
-    this.#setState((state) => ({ ...state, isSubmitting }));
+  #setLoading(isLoading: boolean): void {
+    this.#setState((state) => ({ ...state, isLoading }));
   }
 
   /**

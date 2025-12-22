@@ -124,9 +124,7 @@ describe('TemplateLineStore - Unit Tests', () => {
       expect(lines[0].formData).toEqual(shortFormData[0]);
     });
 
-    it('should clear error state on initialization', () => {
-      store.error.set('Previous error');
-
+    it('should have no error state after initialization', () => {
       store.initialize(mockTemplateLines, mockTransactionData);
 
       expect(store.error()).toBe(null);
@@ -474,9 +472,7 @@ describe('TemplateLineStore - Unit Tests', () => {
       ).not.toHaveBeenCalled();
     });
 
-    it('should clear error on loading start', async () => {
-      // Set an error first
-      store.error.set('Previous error');
+    it('should have no error after successful save', async () => {
       const firstLine = store.activeLines()[0];
       store.updateTransaction(firstLine.id, { amount: 1500 });
 

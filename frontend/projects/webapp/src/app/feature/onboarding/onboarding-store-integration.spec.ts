@@ -268,12 +268,12 @@ describe('User Onboarding Journey', () => {
       );
 
       // Then: Loading state is active during process
-      expect(store.isSubmitting()).toBe(true);
+      expect(store.isLoading()).toBe(true);
 
       await submitPromise;
 
       // And: Loading state ends after completion
-      expect(store.isSubmitting()).toBe(false);
+      expect(store.isLoading()).toBe(false);
     });
   });
 

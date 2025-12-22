@@ -19,7 +19,7 @@ interface TemplateStoreState {
   selectedId: string | null;
   templateLinesCache: Map<string, TemplateLine[]>;
   templateTotalsMap: Record<string, TemplateTotals>;
-  isLoadingTemplates: boolean;
+  isLoading: boolean;
   error: Error | null;
 }
 
@@ -44,7 +44,7 @@ export class TemplateStore {
     selectedId: null,
     templateLinesCache: new Map(),
     templateTotalsMap: {},
-    isLoadingTemplates: false,
+    isLoading: false,
     error: null,
   });
 
@@ -52,9 +52,8 @@ export class TemplateStore {
   readonly templates = computed(() => this.#state().templates);
   readonly selectedTemplateId = computed(() => this.#state().selectedId);
   readonly templateTotalsMap = computed(() => this.#state().templateTotalsMap);
-  readonly isLoadingTemplates = computed(
-    () => this.#state().isLoadingTemplates,
-  );
+  readonly isLoading = computed(() => this.#state().isLoading);
+  readonly hasValue = computed(() => this.#state().templates.length > 0);
   readonly error = computed(() => this.#state().error);
 
   /**
@@ -219,7 +218,7 @@ export class TemplateStore {
   async loadTemplates(): Promise<void> {
     this.#state.update((state) => ({
       ...state,
-      isLoadingTemplates: true,
+      isLoading: true,
       error: null,
     }));
 
@@ -228,13 +227,13 @@ export class TemplateStore {
       this.#state.update((state) => ({
         ...state,
         templates: templates || [],
-        isLoadingTemplates: false,
+        isLoading: false,
       }));
     } catch (error) {
       this.#logger.error('Error loading templates:', error);
       this.#state.update((state) => ({
         ...state,
-        isLoadingTemplates: false,
+        isLoading: false,
         error: error instanceof Error ? error : new Error('Unknown error'),
       }));
     }

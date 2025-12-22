@@ -37,9 +37,10 @@ export class AuthApi {
     return session.user;
   });
 
-  // Computed signals pour l'état dérivé
+  // Computed signals pour l'état dérivé (aligned with Angular resource() API)
   readonly session = this.#sessionSignal.asReadonly();
   readonly isLoading = this.#isLoadingSignal.asReadonly();
+  readonly hasValue = computed(() => !!this.#userSignal());
   readonly isAuthenticated = computed(() => {
     return (
       !!this.#userSignal() &&
