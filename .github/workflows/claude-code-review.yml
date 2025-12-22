@@ -31,36 +31,99 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           use_sticky_comment: true
           direct_prompt: |
-            Review this pull request for code quality, bugs, security, and performance issues.
+            <role>
+            Senior Full-Stack Developer reviewing code for Pulpe monorepo.
+            Reference CLAUDE.md for project standards and conventions.
+            </role>
 
-            REPO: ${{ github.repository }}
-            PR NUMBER: ${{ github.event.pull_request.number }}
+            <context>
+            Repository: ${{ github.repository }}
+            PR: #${{ github.event.pull_request.number }}
+            Base branch: ${{ github.event.pull_request.base.ref }}
+            Author: ${{ github.event.pull_request.user.login }}
+            </context>
 
-            ## Review Criteria
+            <task>
+            Review the changed files in this PR.
+            1. Run `git diff ${{ github.event.pull_request.base.sha }} --name-only` to list changed files
+            2. Read and analyze each changed file
+            3. Report issues following the output format below
+            </task>
 
-            ### Angular (frontend/)
-            - Modern patterns: `input()`/`output()`, signals, `@if`/`@for`, `inject()`
-            - `OnPush` change detection
-            - No `any` type
-            - No cross-feature imports
+            <review_criteria>
+            ## Angular (frontend/)
+            - Modern patterns: `input()`/`output()` functions (not decorators), signals, `@if`/`@for`/`@switch`, `inject()`
+            - Angular 20 naming: no `.component`/`.service` suffix in filenames
+            - `OnPush` change detection strategy
+            - No `any` type - use `unknown` with type guards
+            - Architecture: no cross-feature imports (`from '../feature-x'` forbidden)
+            - Signals: use `computed()` for derived state, not `effect()`
+            - Security: no `innerHTML`, `bypassSecurityTrust*`
+            - Private fields: use `#field` syntax, not `private field`
 
-            ### NestJS (backend-nest/)
-            - Proper error handling
-            - Zod validation from `@pulpe/shared`
-            - No hardcoded secrets
+            ## NestJS (backend-nest/)
+            - Proper error handling with typed exceptions
+            - Input validation using Zod schemas from `@pulpe/shared`
+            - No hardcoded secrets or credentials
+            - Supabase RLS policy considerations
+            - Consistent API response structure
 
-            ### Shared (shared/)
-            - Zod schema consistency
-            - Proper type exports
+            ## Shared (shared/)
+            - Zod schema consistency and completeness
+            - Proper type exports with `z.infer<typeof schema>`
+            - No circular dependencies
+            </review_criteria>
 
-            ## Output Format
+            <output_format>
+            ## Code Review: PR #${{ github.event.pull_request.number }}
 
-            Organize by priority:
-            - **Critical** (must fix): Security, bugs, architecture violations
-            - **Improvements** (should fix): Style, naming, patterns
+            **Files reviewed**: X | **Issues found**: Y
 
-            For each issue: show file:line, problem, and fix with before/after code.
+            ---
 
-            If no issues: say "No issues found in X files reviewed".
+            ### Critical (must fix)
+
+            📍 `path/to/file.ts:42`
+            ❌ **Problem**: [Clear description of the issue]
+            📚 **Source**: [angular.dev URL or `.claude/rules/` path]
+            ✅ **Fix**:
+            ```typescript
+            // Before
+            problematic code...
+
+            // After
+            fixed code...
+            ```
+
+            ---
+
+            ### Improvements (should fix)
+
+            [Same format as Critical]
+
+            ---
+
+            ### Summary
+
+            | Category     | Critical | Improvements |
+            |--------------|----------|--------------|
+            | Angular      | X        | Y            |
+            | NestJS       | X        | Y            |
+            | TypeScript   | X        | Y            |
+            | Security     | X        | Y            |
+            | Architecture | X        | Y            |
+
+            **Priority**: Security > Bugs > Architecture > Performance > Style
+            </output_format>
+
+            <rules>
+            - NO positive feedback ("looks good", "well done", etc.)
+            - MAX 10 issues - report most severe first
+            - If 0 issues: output "No issues found in X files reviewed" and stop
+            - ALWAYS cite source (official docs URL or project rule path)
+            - ALWAYS show concrete fix with before/after code
+            - Focus on actionable findings - skip obvious linting issues
+            - Verify patterns before reporting - use WebSearch if uncertain
+            </rules>
           model: "claude-opus-4-5-20251101"
           max_turns: "15"
