@@ -142,6 +142,10 @@ export class ProductTourService {
         return this.#budgetDetailsSteps;
       case 'templates-list':
         return this.#templatesListSteps;
+      default: {
+        const _exhaustive: never = pageId;
+        throw new Error(`Unknown page ID: ${_exhaustive}`);
+      }
     }
   }
 

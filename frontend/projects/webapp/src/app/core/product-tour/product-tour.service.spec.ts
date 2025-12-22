@@ -123,4 +123,10 @@ describe('ProductTourService', () => {
       );
     });
   });
+
+  describe('startPageTour', () => {
+    it('should not throw when called with valid pageId', () => {
+      expect(() => service.startPageTour('current-month')).not.toThrow();
+    });
+  });
 });
