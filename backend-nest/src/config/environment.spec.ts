@@ -12,9 +12,7 @@ describe('Environment Validation', () => {
         // SERVICE_ROLE_KEY omitted - should fail
       };
 
-      expect(() => validateConfig(config)).toThrow(
-        /SUPABASE_SERVICE_ROLE_KEY.*Required/,
-      );
+      expect(() => validateConfig(config)).toThrow(/SUPABASE_SERVICE_ROLE_KEY/);
     });
 
     it('should be required in test environment', () => {
@@ -26,9 +24,7 @@ describe('Environment Validation', () => {
         // SERVICE_ROLE_KEY omitted - should fail
       };
 
-      expect(() => validateConfig(config)).toThrow(
-        /SUPABASE_SERVICE_ROLE_KEY.*Required/,
-      );
+      expect(() => validateConfig(config)).toThrow(/SUPABASE_SERVICE_ROLE_KEY/);
     });
 
     it('should be required in production', () => {
@@ -40,9 +36,7 @@ describe('Environment Validation', () => {
         // SERVICE_ROLE_KEY omitted - should fail
       };
 
-      expect(() => validateConfig(config)).toThrow(
-        /SUPABASE_SERVICE_ROLE_KEY.*Required/,
-      );
+      expect(() => validateConfig(config)).toThrow(/SUPABASE_SERVICE_ROLE_KEY/);
     });
 
     it('should be required in preview', () => {
@@ -54,9 +48,7 @@ describe('Environment Validation', () => {
         // SERVICE_ROLE_KEY omitted - should fail
       };
 
-      expect(() => validateConfig(config)).toThrow(
-        /SUPABASE_SERVICE_ROLE_KEY.*Required/,
-      );
+      expect(() => validateConfig(config)).toThrow(/SUPABASE_SERVICE_ROLE_KEY/);
     });
 
     it('should accept SERVICE_ROLE_KEY when provided', () => {

@@ -59,12 +59,12 @@ export type SavingsGoalStatus = z.infer<typeof savingsGoalStatusSchema>;
  * - Premier mois : rollover = 0
  */
 export const budgetSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
   year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
   description: z.string().min(1).max(500),
-  userId: z.string().uuid().optional(),
-  templateId: z.string().uuid(),
+  userId: z.uuid().optional(),
+  templateId: z.uuid(),
   // ending_balance : STOCKÉ en base selon SPECS.md section 3
   // Calculé par le backend, pas par le frontend
   endingBalance: z.number().nullable().optional(),
@@ -76,9 +76,9 @@ export const budgetSchema = z.object({
   // Correspond au "Disponible CHF" de la barre de progression
   remaining: z.number().optional(),
   // previousBudgetId : Budget source du rollover pour traçabilité
-  previousBudgetId: z.string().uuid().nullable().optional(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
+  previousBudgetId: z.uuid().nullable().optional(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
 });
 export type Budget = z.infer<typeof budgetSchema>;
 
@@ -86,7 +86,7 @@ export const budgetCreateSchema = z.object({
   month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
   year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
   description: z.string().min(1).max(500).trim(),
-  templateId: z.string().uuid(),
+  templateId: z.uuid(),
 });
 export type BudgetCreate = z.infer<typeof budgetCreateSchema>;
 
@@ -136,15 +136,15 @@ export type BudgetUpdate = z.infer<typeof budgetUpdateSchema>;
  * IMPACT: Les BudgetLines ont un savingsGoalId pour cette feature future
  */
 export const savingsGoalSchema = z.object({
-  id: z.string().uuid(),
-  userId: z.string().uuid(),
+  id: z.uuid(),
+  userId: z.uuid(),
   name: z.string().min(1).max(100).trim(),
   targetAmount: z.number().positive(),
   targetDate: z.string(), // Date in ISO format
   priority: priorityLevelSchema,
   status: savingsGoalStatusSchema,
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
 });
 export type SavingsGoal = z.infer<typeof savingsGoalSchema>;
 
@@ -172,25 +172,25 @@ export type SavingsGoalUpdate = z.infer<typeof savingsGoalUpdateSchema>;
  * UX: Appelé "prévisions" dans l'interface utilisateur (voir CLAUDE.md frontend)
  */
 export const budgetLineSchema = z.object({
-  id: z.string().uuid(),
-  budgetId: z.string().uuid(),
-  templateLineId: z.string().uuid().nullable(),
+  id: z.uuid(),
+  budgetId: z.uuid(),
+  templateLineId: z.uuid().nullable(),
   // NOTE: savingsGoalId pour feature future (pas dans SPECS V1)
-  savingsGoalId: z.string().uuid().nullable(),
+  savingsGoalId: z.uuid().nullable(),
   name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,
   isManuallyAdjusted: z.boolean(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
 });
 export type BudgetLine = z.infer<typeof budgetLineSchema>;
 
 export const budgetLineCreateSchema = z.object({
-  budgetId: z.string().uuid(),
-  templateLineId: z.string().uuid().nullable().optional(),
-  savingsGoalId: z.string().uuid().nullable().optional(),
+  budgetId: z.uuid(),
+  templateLineId: z.uuid().nullable().optional(),
+  savingsGoalId: z.uuid().nullable().optional(),
   name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
   kind: transactionKindSchema,
@@ -203,7 +203,7 @@ export const budgetLineUpdateSchema = budgetLineCreateSchema
   .omit({ budgetId: true })
   .partial()
   .extend({
-    id: z.string().uuid(),
+    id: z.uuid(),
   });
 export type BudgetLineUpdate = z.infer<typeof budgetLineUpdateSchema>;
 
@@ -219,25 +219,25 @@ export type BudgetLineUpdate = z.infer<typeof budgetLineUpdateSchema>;
  * Formule SPECS: expenses = Σ(budget_lines) + Σ(transactions)
  */
 export const transactionSchema = z.object({
-  id: z.string().uuid(),
-  budgetId: z.string().uuid(),
+  id: z.uuid(),
+  budgetId: z.uuid(),
   name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
   kind: transactionKindSchema,
-  transactionDate: z.string().datetime(),
+  transactionDate: z.iso.datetime(),
   // NOTE: category pas définie dans SPECS V1 - "Pas de catégorisation avancée"
   category: z.string().max(100).trim().nullable(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
 });
 export type Transaction = z.infer<typeof transactionSchema>;
 
 export const transactionCreateSchema = z.object({
-  budgetId: z.string().uuid(),
+  budgetId: z.uuid(),
   name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
   kind: transactionKindSchema,
-  transactionDate: z.string().datetime().optional(),
+  transactionDate: z.iso.datetime().optional(),
   category: z.string().max(100).trim().nullable().optional(),
 });
 export type TransactionCreate = z.infer<typeof transactionCreateSchema>;
@@ -246,39 +246,39 @@ export const transactionUpdateSchema = z.object({
   name: z.string().min(1).max(100).trim().optional(),
   amount: z.number().positive().optional(),
   kind: transactionKindSchema.optional(),
-  transactionDate: z.string().datetime().optional(),
+  transactionDate: z.iso.datetime().optional(),
   category: z.string().max(100).trim().nullable().optional(),
 });
 export type TransactionUpdate = z.infer<typeof transactionUpdateSchema>;
 
 // Budget template schemas
 export const budgetTemplateSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   name: z.string().min(1).max(100).trim(),
   description: z.string().max(500).trim().optional(),
-  userId: z.string().uuid().optional(),
+  userId: z.uuid().optional(),
   isDefault: z.boolean().optional(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
 });
 export type BudgetTemplate = z.infer<typeof budgetTemplateSchema>;
 
 // Template line schemas
 export const templateLineSchema = z.object({
-  id: z.string().uuid(),
-  templateId: z.string().uuid(),
+  id: z.uuid(),
+  templateId: z.uuid(),
   name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,
   description: z.string().max(500).trim(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
 });
 export type TemplateLine = z.infer<typeof templateLineSchema>;
 
 export const templateLineCreateSchema = z.object({
-  templateId: z.string().uuid(),
+  templateId: z.uuid(),
   name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
   kind: transactionKindSchema,
@@ -337,7 +337,7 @@ export type TemplateLineUpdate = z.infer<typeof templateLineUpdateSchema>;
 
 // Bulk template line update schemas
 export const templateLineUpdateWithIdSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   name: z.string().min(1).max(100).trim().optional(),
   amount: z.number().positive().optional(),
   kind: transactionKindSchema.optional(),
@@ -364,7 +364,7 @@ export const templateLinesBulkOperationsSchema = z
       .max(100)
       .default([]),
     update: z.array(templateLineUpdateWithIdSchema).max(100).default([]),
-    delete: z.array(z.string().uuid()).max(100).default([]),
+    delete: z.array(z.uuid()).max(100).default([]),
     propagateToBudgets: z.boolean().default(false),
   })
   .refine(
@@ -374,8 +374,7 @@ export const templateLinesBulkOperationsSchema = z
       return totalOperations <= 200;
     },
     {
-      message:
-        'Total bulk operations cannot exceed 200 items across all arrays',
+      error: 'Total bulk operations cannot exceed 200 items across all arrays',
       path: ['totalOperations'],
     },
   );
@@ -386,7 +385,7 @@ export type TemplateLinesBulkOperations = z.infer<
 // Response schema for bulk operations
 const templateLinesPropagationSummarySchema = z.object({
   mode: z.enum(['template-only', 'propagate']),
-  affectedBudgetIds: z.array(z.string().uuid()),
+  affectedBudgetIds: z.array(z.uuid()),
   affectedBudgetsCount: z.number().int().nonnegative(),
 });
 export type TemplateLinesPropagationSummary = z.infer<
@@ -398,7 +397,7 @@ export const templateLinesBulkOperationsResponseSchema = z.object({
   data: z.object({
     created: z.array(templateLineSchema),
     updated: z.array(templateLineSchema),
-    deleted: z.array(z.string().uuid()),
+    deleted: z.array(z.uuid()),
     propagation: templateLinesPropagationSummarySchema.nullable().default(null),
   }),
 });
@@ -420,13 +419,13 @@ export const errorResponseSchema = z.object({
   success: z.literal(false),
   error: z.string(),
   message: z.string().optional(),
-  details: z.union([z.string(), z.record(z.unknown())]).optional(), // Can be string or object
+  details: z.union([z.string(), z.record(z.string(), z.unknown())]).optional(), // Can be string or object
   code: z.string().optional(),
   statusCode: z.number().optional(),
   timestamp: z.string().optional(),
   path: z.string().optional(),
   method: z.string().optional(),
-  context: z.record(z.unknown()).optional(),
+  context: z.record(z.string(), z.unknown()).optional(),
   // Note: stack field from backend is intentionally not included as it's only for debugging
 });
 export type ErrorResponse = z.infer<typeof errorResponseSchema>;
@@ -598,8 +597,8 @@ export type TransactionResponse = {
 
 // User schemas
 export const userProfileSchema = z.object({
-  id: z.string().uuid(),
-  email: z.string().email(),
+  id: z.uuid(),
+  email: z.email(),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
 });
@@ -682,13 +681,13 @@ export type BudgetLineDeleteResponse = z.infer<
 
 // Auth schemas
 export const userInfoSchema = z.object({
-  id: z.string().uuid(),
-  email: z.string().email(),
+  id: z.uuid(),
+  email: z.email(),
 });
 export type UserInfo = z.infer<typeof userInfoSchema>;
 
 export const authLoginSchema = z.object({
-  email: z.string().email(),
+  email: z.email(),
   password: z.string().min(6),
 });
 export type AuthLogin = z.infer<typeof authLoginSchema>;

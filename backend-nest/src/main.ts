@@ -6,7 +6,7 @@ import { Logger } from 'nestjs-pino';
 import helmet from 'helmet';
 import compression from 'compression';
 import { AppModule } from './app.module';
-import { patchNestJsSwagger } from 'nestjs-zod';
+import { cleanupOpenApiDoc } from 'nestjs-zod';
 import { isProductionLike, type Environment } from '@config/environment';
 
 // ValidationPipe removed - using ZodValidationPipe from app.module.ts instead
@@ -123,7 +123,8 @@ function setupSwagger(
     .addTag('Debug', 'Outils de développement et débogage')
     .build();
 
-  const document = SwaggerModule.createDocument(app, config);
+  const rawDocument = SwaggerModule.createDocument(app, config);
+  const document = cleanupOpenApiDoc(rawDocument);
   SwaggerModule.setup('docs', app, document, {
     swaggerOptions: {
       persistAuthorization: true,
@@ -237,7 +238,6 @@ async function bootstrap() {
   let document: import('@nestjs/swagger').OpenAPIObject | undefined;
 
   if (!productionLike) {
-    patchNestJsSwagger();
     document = setupSwagger(app);
   }
 

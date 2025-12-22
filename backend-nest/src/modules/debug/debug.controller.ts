@@ -2,7 +2,7 @@ import { Controller, Get, Post, Param, Query, Body } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
 import { ZodValidationException } from 'nestjs-zod';
-import { ZodError } from 'zod';
+import { z, ZodError } from 'zod';
 
 @ApiTags('Debug')
 @Controller({ path: 'debug', version: '1' })
@@ -71,27 +71,17 @@ export class DebugController {
   }
 
   private createZodValidationError(): ZodValidationException {
-    const zodErrors = [
-      {
-        code: 'too_small' as const,
-        minimum: 0,
-        type: 'number' as const,
-        inclusive: false,
-        exact: false,
-        message: 'Number must be greater than 0',
-        path: ['amount'],
-      },
-      {
-        code: 'invalid_type' as const,
-        expected: 'string' as const,
-        received: 'number' as const,
-        message: 'Expected string, received number',
-        path: ['name'],
-      },
-    ];
-
-    const zodError = new ZodError(zodErrors);
-    return new ZodValidationException(zodError);
+    // Create a real ZodError by triggering validation failure
+    const testSchema = z.object({
+      amount: z.number().positive(),
+      name: z.string(),
+    });
+    const result = testSchema.safeParse({ amount: -1, name: 123 });
+    if (!result.success) {
+      return new ZodValidationException(result.error);
+    }
+    // Fallback (should never reach here)
+    return new ZodValidationException(new ZodError([]));
   }
 
   @Post('test-service-error')
