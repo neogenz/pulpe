@@ -1,5 +1,20 @@
 # pulpe-frontend
 
+## 2025.15.0
+
+### Minor Changes
+
+- Ajout de la visite guidée interactive pour les nouveaux utilisateurs
+  - Guide pas-à-pas à travers les principales fonctionnalités de l'application
+  - Présentation de la page du mois en cours, de la liste des budgets, des détails de budget et des templates
+  - Sauvegarde de la progression pour ne pas répéter les étapes déjà vues
+
+### Patch Changes
+
+- Correction de l'affichage mobile et du défilement
+  - Amélioration de la gestion du viewport sur mobile
+  - Correction du défilement indésirable du body sur les appareils mobiles
+
 ## 2025.14.0
 
 ### Minor Changes
