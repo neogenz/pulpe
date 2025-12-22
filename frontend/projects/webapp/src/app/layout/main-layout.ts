@@ -31,7 +31,6 @@ import { ApplicationConfiguration } from '@core/config/application-configuration
 import { Logger } from '@core/logging/logger';
 import { DemoModeService } from '@core/demo/demo-mode.service';
 import { DemoInitializerService } from '@core/demo/demo-initializer.service';
-import { ProductTourService } from '@core/product-tour/product-tour.service';
 
 interface NavigationItem {
   readonly route: string;
@@ -221,7 +220,9 @@ interface NavigationItem {
             >
               <div class="flex items-center gap-2">
                 <mat-icon>person</mat-icon>
-                <span class="ph-no-capture">{{ userEmail() }}</span>
+                <span class="ph-no-capture max-w-32 truncate">{{
+                  userEmail()
+                }}</span>
               </div>
             </button>
 
@@ -336,22 +337,8 @@ export class MainLayout {
   private readonly applicationConfig = inject(ApplicationConfiguration);
   private readonly demoModeService = inject(DemoModeService);
   private readonly demoInitializer = inject(DemoInitializerService);
-  private readonly productTourService = inject(ProductTourService);
   readonly breadcrumbState = inject(BreadcrumbState);
   readonly #logger = inject(Logger);
-
-  constructor() {
-    // Start product tour on first dashboard visit
-    const initialUrl = this.router.url;
-    if (
-      initialUrl.includes(`/${ROUTES.APP}`) &&
-      !this.productTourService.hasSeenTour()
-    ) {
-      setTimeout(() => {
-        this.productTourService.startTour();
-      }, 1000);
-    }
-  }
 
   // Display "Mode Démo" for demo users, otherwise show email
   readonly userEmail = computed(() => {

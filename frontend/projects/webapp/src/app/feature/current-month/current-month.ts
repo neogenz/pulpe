@@ -1,10 +1,10 @@
 import { DatePipe } from '@angular/common';
 import {
+  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   computed,
   inject,
-  type OnInit,
   signal,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
@@ -22,6 +22,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { DashboardError } from './components/dashboard-error';
 import { BaseLoading } from '@ui/loading';
 import { RecurringExpensesList } from './components/recurring-expenses-list';
@@ -40,6 +41,7 @@ import { type TransactionCreate } from '@pulpe/shared';
 import { EditTransactionDialog } from './components/edit-transaction-dialog';
 import { type FinancialEntryModel } from './models/financial-entry.model';
 import { Logger } from '@core/logging/logger';
+import { ProductTourService } from '@core/product-tour/product-tour.service';
 
 type TransactionFormData = Pick<
   TransactionCreate,
@@ -72,6 +74,7 @@ type EditTransactionFormData = Pick<
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MatTooltipModule,
     RecurringExpensesList,
     DashboardError,
     BaseLoading,
@@ -89,15 +92,26 @@ type EditTransactionFormData = Pick<
         >
           {{ titleDisplay.currentTitle() }}
         </h1>
-        <button
-          matButton
-          (click)="store.refreshData()"
-          [disabled]="store.dashboardStatus() === 'loading'"
-          data-testid="refresh-button"
-        >
-          <mat-icon>refresh</mat-icon>
-          Actualiser
-        </button>
+        <div class="flex gap-2">
+          <button
+            matIconButton
+            (click)="startPageTour()"
+            matTooltip="Découvrir cette page"
+            aria-label="Aide"
+            data-testid="help-button"
+          >
+            <mat-icon>help_outline</mat-icon>
+          </button>
+          <button
+            matButton
+            (click)="store.refreshData()"
+            [disabled]="store.dashboardStatus() === 'loading'"
+            data-testid="refresh-button"
+          >
+            <mat-icon>refresh</mat-icon>
+            Actualiser
+          </button>
+        </div>
       </header>
 
       @switch (true) {
@@ -125,8 +139,13 @@ type EditTransactionFormData = Pick<
             <pulpe-budget-progress-bar
               [expenses]="store.totalExpenses()"
               [available]="store.totalAvailable()"
+              data-tour="progress-bar"
             />
-            <div class="flex flex-col gap-4" data-testid="dashboard-content">
+            <div
+              class="flex flex-col gap-4"
+              data-testid="dashboard-content"
+              data-tour="expense-lists"
+            >
               <!--<pulpe-transaction-chip-filter
                 data-testid="transaction-chip-filter"
               />-->
@@ -189,6 +208,7 @@ type EditTransactionFormData = Pick<
       class="fab-button"
       aria-label="Ajouter une transaction"
       data-testid="add-transaction-fab"
+      data-tour="add-transaction-fab"
     >
       <mat-icon>add</mat-icon>
     </button>
@@ -215,15 +235,31 @@ type EditTransactionFormData = Pick<
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export default class CurrentMonth implements OnInit {
+export default class CurrentMonth {
   isCreatingTransaction = signal(false);
   selectedTransactions = signal<string[]>([]);
   protected readonly store = inject(CurrentMonthStore);
   protected readonly titleDisplay = inject(TitleDisplay);
+  readonly #productTourService = inject(ProductTourService);
   #bottomSheet = inject(MatBottomSheet);
   #dialog = inject(MatDialog);
   #snackBar = inject(MatSnackBar);
   #logger = inject(Logger);
+
+  constructor() {
+    afterNextRender(() => {
+      if (!this.#productTourService.hasSeenPageTour('current-month')) {
+        setTimeout(
+          () => this.#productTourService.startPageTour('current-month'),
+          500,
+        );
+      }
+    });
+  }
+
+  startPageTour(): void {
+    this.#productTourService.startPageTour('current-month');
+  }
   recurringFinancialItems = computed<FinancialEntryModel[]>(() => {
     const budgetLines = this.store.displayBudgetLines();
     const budget = this.store.dashboardData()?.budget;
@@ -245,27 +281,6 @@ export default class CurrentMonth implements OnInit {
     );
   });
 
-  /**
-   * [FEATURE MÉTIER TEMPORAIRE]
-   * Ouvre automatiquement le bottom sheet "Ajouter une transaction" à chaque chargement de la page du mois courant,
-   * après un délai de 300ms. Ce comportement est volontaire pour le moment: il s'agit d'une exigence métier temporaire
-   * visant à encourager l'utilisateur à saisir sa première transaction dès l'arrivée sur la page.
-   *
-   * À retirer ou à conditionner dès que l'on implémente une UX plus évoluée (ex: onboarding, flag utilisateur, etc.).
-   *
-   * [TEMPORAIREMENT DÉSACTIVÉ POUR LES TESTS E2E]
-   */
-  // eslint-disable-next-line @angular-eslint/no-empty-lifecycle-method
-  ngOnInit() {
-    // Désactiver temporairement l'ouverture automatique pour éviter les interférences avec les tests E2E
-    // setTimeout(() => {
-    //   this.openAddTransactionBottomSheet();
-    // }, 300);
-  }
-
-  /**
-   *
-   */
   openAddTransactionBottomSheet(): void {
     const bottomSheetRef = this.#bottomSheet.open(AddTransactionBottomSheet, {
       disableClose: false,

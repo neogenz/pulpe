@@ -6,6 +6,11 @@
 
 @import 'driver.js/dist/driver.css';
 
+/* Prevent horizontal scroll when driver is active */
+body.driver-active {
+  overflow-x: hidden !important;
+}
+
 /* Global reset for all Driver.js elements */
 .driver-popover *,
 .driver-popover *::before,
@@ -103,6 +108,7 @@
   letter-spacing: 0.1px !important;
   line-height: 20px !important;
   text-transform: none !important;
+  text-align: center !important;
   cursor: pointer !important;
   transition: box-shadow 200ms cubic-bezier(0.2, 0, 0, 1) !important;
   position: relative !important;
@@ -144,6 +150,7 @@
   letter-spacing: 0.1px !important;
   line-height: 20px !important;
   text-transform: none !important;
+  text-align: center !important;
   cursor: pointer !important;
   transition: all 200ms cubic-bezier(0.2, 0, 0, 1) !important;
   position: relative !important;
@@ -170,10 +177,16 @@
   background-color: var(--mat-sys-surface-container-highest) !important;
 }
 
-/* Highlighted element - Clean spotlight without borders */
+/* Highlighted element - Clean spotlight */
 .driver-active-element {
   outline: none !important;
   box-shadow: none !important;
+}
+
+/* Override Driver.js overflow:hidden only for flex containers with buttons
+   The original rule breaks button layouts in flex containers */
+.flex:has(> button.driver-active-element) {
+  overflow: visible !important;
 }
 
 /* Remove popover arrow (it's ugly) */
@@ -216,16 +229,14 @@
   }
 
   .driver-popover-footer {
-    flex-direction: column-reverse !important;
+    flex-direction: column !important;
+    align-items: center !important;
   }
 
   .driver-popover-navigation-btns {
-    width: 100% !important;
-    flex-direction: column-reverse !important;
-  }
-
-  .driver-popover-next-btn,
-  .driver-popover-prev-btn {
-    width: 100% !important;
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: center !important;
+    gap: 12px !important;
   }
 }

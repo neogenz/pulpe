@@ -1,99 +1,74 @@
 /**
  * Product Tour Service using Driver.js
  *
- * Simple, robust product tour with spotlight highlighting.
+ * Page-specific product tours with spotlight highlighting.
  * Uses Driver.js library with Material Design 3 theming.
  */
 
 import { Injectable } from '@angular/core';
 import { driver, type DriveStep, type Config } from 'driver.js';
 
-const TOUR_STORAGE_KEY = 'pulpe_tour_completed';
+export type TourPageId =
+  | 'current-month'
+  | 'budget-list'
+  | 'budget-details'
+  | 'templates-list';
+
+const STORAGE_PREFIX = 'pulpe_tour_';
+const INTRO_KEY = `${STORAGE_PREFIX}intro`;
 
 @Injectable({
   providedIn: 'root',
 })
 export class ProductTourService {
   /**
-   * Check if user has already seen the tour
+   * Check if user has seen the intro (welcome + navigation)
    */
-  hasSeenTour(): boolean {
-    return localStorage.getItem(TOUR_STORAGE_KEY) === 'true';
+  hasSeenIntro(): boolean {
+    return localStorage.getItem(INTRO_KEY) === 'true';
   }
 
   /**
-   * Mark tour as completed
+   * Check if user has seen a specific page tour
    */
-  private markTourCompleted(): void {
-    localStorage.setItem(TOUR_STORAGE_KEY, 'true');
+  hasSeenPageTour(pageId: TourPageId): boolean {
+    return localStorage.getItem(`${STORAGE_PREFIX}${pageId}`) === 'true';
   }
 
   /**
-   * Reset tour (for testing)
+   * Mark intro as completed
    */
-  resetTour(): void {
-    localStorage.removeItem(TOUR_STORAGE_KEY);
+  private markIntroCompleted(): void {
+    localStorage.setItem(INTRO_KEY, 'true');
   }
 
   /**
-   * Start the Pulpe product tour
+   * Mark a page tour as completed
    */
-  startTour(): void {
-    const tourSteps: DriveStep[] = [
-      {
-        popover: {
-          title: 'Bienvenue dans Pulpe',
-          description: `
-            <p class="mb-3">Pulpe vous aide à gérer votre budget suisse avec simplicité.</p>
-            <p class="text-sm opacity-70">Découvrons ensemble les fonctionnalités principales en quelques étapes.</p>
-          `,
-        },
-      },
-      {
-        element: '[data-tour="navigation"]',
-        popover: {
-          title: 'Menu de navigation',
-          description: `
-            <p class="mb-3">Pulpe est organisé en <strong>3 sections principales</strong> :</p>
-            <ul class="space-y-2 text-sm leading-relaxed">
-              <li><strong>Ce mois-ci</strong> : Suivez vos dépenses du mois en cours</li>
-              <li><strong>Budgets</strong> : Planifiez tous vos mois à l'avance</li>
-              <li><strong>Modèles</strong> : Créez des bases mensuelles réutilisables</li>
-            </ul>
-          `,
-          side: 'right',
-          align: 'start',
-        },
-      },
-      {
-        element: '[data-tour="page-content"]',
-        popover: {
-          title: 'Tableau de bord',
-          description: `
-            <p class="mb-2">C'est ici que vous gérez votre budget au quotidien.</p>
-            <p class="text-sm opacity-70">Naviguez entre les sections pour créer vos modèles et suivre vos dépenses.</p>
-          `,
-          side: 'top',
-          align: 'center',
-        },
-      },
-      {
-        popover: {
-          title: 'Vous êtes prêt',
-          description: `
-            <p class="mb-4">Vous connaissez maintenant les bases de Pulpe.</p>
-            <div class="bg-surface-container rounded-lg p-4">
-              <p class="font-medium mb-3">Prochaines étapes</p>
-              <ol class="space-y-2 text-sm leading-relaxed opacity-80">
-                <li>Créez votre premier modèle mensuel</li>
-                <li>Ajoutez vos revenus et dépenses récurrents</li>
-                <li>Suivez votre budget dans "Ce mois-ci"</li>
-              </ol>
-            </div>
-          `,
-        },
-      },
-    ];
+  private markPageTourCompleted(pageId: TourPageId): void {
+    localStorage.setItem(`${STORAGE_PREFIX}${pageId}`, 'true');
+  }
+
+  /**
+   * Reset all tours (for testing)
+   */
+  resetAllTours(): void {
+    localStorage.removeItem(INTRO_KEY);
+    localStorage.removeItem(`${STORAGE_PREFIX}current-month`);
+    localStorage.removeItem(`${STORAGE_PREFIX}budget-list`);
+    localStorage.removeItem(`${STORAGE_PREFIX}budget-details`);
+    localStorage.removeItem(`${STORAGE_PREFIX}templates-list`);
+    // Clean up old key
+    localStorage.removeItem('pulpe_tour_completed');
+  }
+
+  /**
+   * Start a page-specific tour
+   * Includes intro steps if user hasn't seen them yet
+   */
+  startPageTour(pageId: TourPageId): void {
+    const includeIntro = !this.hasSeenIntro();
+    const steps = this.getStepsForPage(pageId, includeIntro);
 
     const driverConfig: Config = {
       showProgress: true,
@@ -112,16 +87,246 @@ export class ProductTourService {
       stageRadius: 8,
       popoverOffset: 16,
       onDestroyStarted: () => {
-        this.markTourCompleted();
+        if (includeIntro) {
+          this.markIntroCompleted();
+        }
+        this.markPageTourCompleted(pageId);
         tourDriver.destroy();
       },
       onDestroyed: () => {
-        this.markTourCompleted();
+        if (includeIntro) {
+          this.markIntroCompleted();
+        }
+        this.markPageTourCompleted(pageId);
       },
     };
 
     const tourDriver = driver(driverConfig);
-    tourDriver.setSteps(tourSteps);
+    tourDriver.setSteps(steps);
     tourDriver.drive();
   }
+
+  /**
+   * Get steps for a specific page, optionally including intro
+   */
+  private getStepsForPage(
+    pageId: TourPageId,
+    includeIntro: boolean,
+  ): DriveStep[] {
+    const introSteps = includeIntro ? this.introSteps : [];
+    const pageSteps = this.getPageSteps(pageId);
+    return [...introSteps, ...pageSteps];
+  }
+
+  /**
+   * Get page-specific steps
+   */
+  private getPageSteps(pageId: TourPageId): DriveStep[] {
+    switch (pageId) {
+      case 'current-month':
+        return this.currentMonthSteps;
+      case 'budget-list':
+        return this.budgetListSteps;
+      case 'budget-details':
+        return this.budgetDetailsSteps;
+      case 'templates-list':
+        return this.templatesListSteps;
+    }
+  }
+
+  // ============================================
+  // Step Definitions
+  // ============================================
+
+  private readonly introSteps: DriveStep[] = [
+    {
+      popover: {
+        title: 'Bienvenue dans Pulpe',
+        description: `
+          <p class="mb-3">Pulpe vous aide à gérer votre budget suisse avec simplicité.</p>
+          <p class="text-sm opacity-70">Découvrons ensemble les fonctionnalités principales.</p>
+        `,
+      },
+    },
+    {
+      element: '[data-tour="navigation"]',
+      popover: {
+        title: 'Menu de navigation',
+        description: `
+          <p class="mb-3">Pulpe est organisé en <strong>3 sections</strong> :</p>
+          <ul class="space-y-2 text-sm leading-relaxed">
+            <li><strong>Ce mois-ci</strong> : Suivez vos dépenses du mois</li>
+            <li><strong>Budgets</strong> : Planifiez vos mois à l'avance</li>
+            <li><strong>Modèles</strong> : Créez des bases réutilisables</li>
+          </ul>
+        `,
+        side: 'right',
+        align: 'start',
+      },
+    },
+  ];
+
+  private readonly currentMonthSteps: DriveStep[] = [
+    {
+      element: '[data-tour="progress-bar"]',
+      popover: {
+        title: 'Votre progression',
+        description: `
+          <p>Cette barre indique où vous en êtes dans votre budget mensuel.</p>
+          <p class="text-sm opacity-70 mt-2">Dépenses réalisées vs. budget disponible.</p>
+        `,
+        side: 'bottom',
+        align: 'center',
+      },
+    },
+    {
+      element: '[data-tour="expense-lists"]',
+      popover: {
+        title: 'Vos dépenses',
+        description: `
+          <p class="mb-2">Deux types de dépenses sont affichées :</p>
+          <ul class="text-sm space-y-1">
+            <li><strong>Récurrentes</strong> : Loyer, assurances, abonnements</li>
+            <li><strong>Variables</strong> : Courses, restaurants, loisirs</li>
+          </ul>
+        `,
+        side: 'top',
+        align: 'start',
+      },
+    },
+    {
+      element: '[data-tour="add-transaction-fab"]',
+      popover: {
+        title: 'Ajouter une dépense',
+        description: `
+          <p>Cliquez ici pour enregistrer une nouvelle dépense rapidement.</p>
+          <p class="text-sm opacity-70 mt-2">Le suivi quotidien est la clé d'un budget maîtrisé.</p>
+        `,
+        side: 'left',
+        align: 'center',
+      },
+    },
+  ];
+
+  private readonly budgetListSteps: DriveStep[] = [
+    {
+      element: '[data-tour="year-tabs"]',
+      popover: {
+        title: 'Navigation par année',
+        description: `
+          <p>Basculez entre les années pour planifier sur le long terme.</p>
+          <p class="text-sm opacity-70 mt-2">Vous pouvez préparer jusqu'à 8 ans à l'avance.</p>
+        `,
+        side: 'bottom',
+        align: 'start',
+      },
+    },
+    {
+      element: '[data-tour="calendar-grid"]',
+      popover: {
+        title: 'Calendrier des budgets',
+        description: `
+          <p>Chaque case représente un mois.</p>
+          <p class="text-sm opacity-70 mt-2">Cliquez sur un mois vide pour créer un nouveau budget.</p>
+        `,
+        side: 'top',
+        align: 'center',
+      },
+    },
+    {
+      element: '[data-tour="create-budget"]',
+      popover: {
+        title: 'Créer un budget',
+        description: `
+          <p>Créez un budget à partir d'un modèle existant.</p>
+          <p class="text-sm opacity-70 mt-2">Les modèles vous font gagner du temps.</p>
+        `,
+        side: 'left',
+        align: 'start',
+      },
+    },
+  ];
+
+  private readonly budgetDetailsSteps: DriveStep[] = [
+    {
+      element: '[data-tour="financial-overview"]',
+      popover: {
+        title: "Vue d'ensemble",
+        description: `
+          <p class="mb-2">4 indicateurs clés de votre mois :</p>
+          <ul class="text-sm space-y-1">
+            <li><strong>Revenus</strong> : Total des entrées d'argent</li>
+            <li><strong>Dépenses</strong> : Total des sorties prévues</li>
+            <li><strong>Épargne</strong> : Ce que vous mettez de côté</li>
+            <li><strong>Reste à vivre</strong> : Votre budget quotidien</li>
+          </ul>
+        `,
+        side: 'bottom',
+        align: 'center',
+      },
+    },
+    {
+      element: '[data-tour="budget-table"]',
+      popover: {
+        title: 'Détail du budget',
+        description: `
+          <p>Toutes vos lignes de budget sont listées ici.</p>
+          <p class="text-sm opacity-70 mt-2">Cliquez sur une ligne pour voir les transactions associées.</p>
+        `,
+        side: 'top',
+        align: 'center',
+      },
+    },
+    {
+      element: '[data-tour="add-budget-line"]',
+      popover: {
+        title: 'Ajouter une ligne',
+        description: `
+          <p>Ajoutez un revenu, une dépense ou une épargne.</p>
+          <p class="text-sm opacity-70 mt-2">Chaque ligne peut être fixe ou variable.</p>
+        `,
+        side: 'left',
+        align: 'start',
+      },
+    },
+  ];
+
+  private readonly templatesListSteps: DriveStep[] = [
+    {
+      element: '[data-tour="templates-list"]',
+      popover: {
+        title: 'Vos modèles',
+        description: `
+          <p>Les modèles sont des budgets types réutilisables.</p>
+          <p class="text-sm opacity-70 mt-2">Créez-en un par type de mois (normal, vacances, etc.).</p>
+        `,
+        side: 'top',
+        align: 'start',
+      },
+    },
+    {
+      element: '[data-tour="template-counter"]',
+      popover: {
+        title: 'Limite de modèles',
+        description: `
+          <p>Vous pouvez créer jusqu'à 5 modèles.</p>
+          <p class="text-sm opacity-70 mt-2">Gardez les choses simples avec quelques modèles bien pensés.</p>
+        `,
+        side: 'bottom',
+        align: 'start',
+      },
+    },
+    {
+      element: '[data-tour="create-template"]',
+      popover: {
+        title: 'Créer un modèle',
+        description: `
+          <p>Définissez vos revenus et dépenses récurrents.</p>
+          <p class="text-sm opacity-70 mt-2">Ce modèle servira de base pour vos futurs budgets.</p>
+        `,
+        side: 'left',
+        align: 'start',
+      },
+    },
+  ];
 }
