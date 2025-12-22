@@ -27,6 +27,10 @@ export class BudgetListStore {
     loader: async () => this.#loadBudgets(),
   });
 
+  readonly isLoading = computed(() => this.budgets.isLoading());
+  readonly hasValue = computed(() => this.budgets.hasValue());
+  readonly error = computed(() => this.budgets.error());
+
   plannedYears = computed(() => {
     const months = this.budgets.value() ?? [];
     const years = [...new Set(months.map((month) => month.year))];
@@ -151,7 +155,7 @@ export class BudgetListStore {
   });
 
   refreshData(): void {
-    if (this.budgets.status() !== 'loading') {
+    if (!this.isLoading()) {
       this.budgets.reload();
     }
   }

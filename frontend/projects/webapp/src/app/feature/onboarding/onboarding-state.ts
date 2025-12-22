@@ -19,9 +19,9 @@ export interface OnboardingState {
   currentStepIndex: number;
 
   /**
-   * Whether a submission operation is in progress
+   * Whether an async operation is in progress
    */
-  isSubmitting: boolean;
+  isLoading: boolean;
 
   /**
    * Error message if any operation failed
@@ -75,7 +75,7 @@ export function createInitialOnboardingState(): OnboardingState {
       isUserCreated: false,
     },
     currentStepIndex: 0,
-    isSubmitting: false,
+    isLoading: false,
     error: '',
   };
 }

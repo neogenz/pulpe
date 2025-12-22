@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core';
+import { Logger } from '@core/logging/logger';
 import {
   NavigationEnd,
   Router,
@@ -19,6 +20,7 @@ export interface BreadcrumbItem {
 export class BreadcrumbState {
   readonly #router = inject(Router);
   readonly #activatedRoute = inject(ActivatedRoute);
+  readonly #logger = inject(Logger);
 
   // Le signal est privé pour contrôler les écritures, exposé via un signal calculé ou une méthode.
   // Ici, nous le laissons public readonly pour correspondre à l'original.
@@ -86,7 +88,9 @@ export class BreadcrumbState {
 
       return breadcrumbs.items;
     } catch (error) {
-      console.warn("Erreur lors de la construction du fil d'Ariane:", error);
+      this.#logger.warn("Erreur lors de la construction du fil d'Ariane", {
+        error,
+      });
       return [];
     }
   }

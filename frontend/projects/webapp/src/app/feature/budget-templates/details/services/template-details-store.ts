@@ -42,6 +42,7 @@ export class TemplateDetailsStore {
   readonly isLoading = computed(() =>
     this.#templateDetailsResource.isLoading(),
   );
+  readonly hasValue = computed(() => this.#templateDetailsResource.hasValue());
   readonly error = computed(
     () => this.#templateDetailsResource.error() || this.#state().error,
   );
