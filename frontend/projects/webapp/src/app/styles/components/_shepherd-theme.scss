@@ -401,6 +401,19 @@
   opacity: 0;
 }
 
+/* Centered dialogs on desktop - no movement animation, only fade-in */
+.shepherd-element.shepherd-centered {
+  transform: none;
+  transition:
+    opacity var(--tutorial-animation-duration) var(--tutorial-animation-easing),
+    visibility var(--tutorial-animation-duration)
+      var(--tutorial-animation-easing);
+
+  &.shepherd-enabled {
+    transform: none;
+  }
+}
+
 /* Arrow positioning for different placements */
 .shepherd-element[data-popper-placement^="top"] > .shepherd-arrow {
   bottom: -8px;
