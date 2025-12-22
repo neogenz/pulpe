@@ -62,4 +62,5 @@ jobs:
             For each issue: show file:line, problem, and fix with before/after code.
 
             If no issues: say "No issues found in X files reviewed".
+          allowed_tools: "Edit,Read,Glob,Grep,Bash(git:*),Bash(gh:*),mcp__github__*"
           claude_args: "--model claude-opus-4-5-20251101 --max-turns 10"
