@@ -111,7 +111,7 @@ export class TourEngineService {
         config.onComplete?.();
         this.#logger.info('Tour completed', { tourId: config.tourId });
 
-        // Clean up reference
+        this.#currentDriver?.destroy();
         this.#currentDriver = null;
         this.#isDestroying = false;
       },
