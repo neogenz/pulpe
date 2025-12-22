@@ -49,9 +49,11 @@ export class TurnstileService {
       return true;
     }
 
+    // Allow empty token - protected by rate limiting (30 req/h/IP)
+    // Required for Safari iOS where Turnstile cross-origin is blocked
     if (!token) {
-      this.logger.warn('Missing Turnstile token');
-      return false;
+      this.logger.log('Empty Turnstile token accepted (rate-limited endpoint)');
+      return true;
     }
 
     if (!this.secretKey) {
