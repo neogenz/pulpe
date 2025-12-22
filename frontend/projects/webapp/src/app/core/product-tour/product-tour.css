@@ -36,6 +36,7 @@ body.driver-active {
   line-height: var(--mat-sys-title-large-line-height) !important;
   color: var(--mat-sys-on-surface) !important;
   margin-bottom: 16px !important;
+  padding-right: 40px !important; /* Space for close button */
 }
 
 /* Popover description - M3 Body Medium */
