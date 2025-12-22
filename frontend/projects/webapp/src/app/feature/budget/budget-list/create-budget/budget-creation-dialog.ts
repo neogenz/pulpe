@@ -161,7 +161,7 @@ const MONTH_YEAR_FORMATS = {
           <pulpe-templates-list
             [templates]="templateViewModels()"
             [selectedTemplateId]="templateStore.selectedTemplateId()"
-            [isLoading]="templateStore.isLoadingTemplates()"
+            [isLoading]="templateStore.isLoading()"
             [hasError]="!!templateStore.error()"
             (templateSelected)="onTemplateSelect($event)"
             (templateDetailsRequested)="showTemplateDetails($event)"

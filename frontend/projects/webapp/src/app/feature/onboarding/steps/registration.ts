@@ -3,7 +3,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  HostListener,
   inject,
   type OnDestroy,
   signal,
@@ -38,6 +37,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     RouterLink,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { '(keydown.enter)': 'onEnter()' },
   template: `
     <div class="gap-6 h-full flex flex-col">
       <div class="text-center space-y-2 mb-6">
@@ -57,7 +57,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
             type="email"
             placeholder="Email"
             formControlName="email"
-            [disabled]="store.isSubmitting()"
+            [disabled]="store.isLoading()"
             data-testid="email-input"
             #emailInput
           />
@@ -71,7 +71,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
             [type]="hidePassword() ? 'password' : 'text'"
             placeholder="Mot de passe"
             formControlName="password"
-            [disabled]="store.isSubmitting()"
+            [disabled]="store.isLoading()"
             data-testid="password-input"
           />
           <mat-icon matPrefix>lock</mat-icon>
@@ -81,7 +81,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
             type="button"
             (click)="hidePassword.set(!hidePassword())"
             [attr.aria-label]="'Afficher le mot de passe'"
-            [disabled]="store.isSubmitting()"
+            [disabled]="store.isLoading()"
             data-testid="password-visibility-toggle"
           >
             <mat-icon>{{
@@ -96,7 +96,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
         <div class="mt-6">
           <mat-checkbox
             formControlName="acceptTerms"
-            [disabled]="store.isSubmitting()"
+            [disabled]="store.isLoading()"
             data-testid="accept-terms-checkbox"
           >
             <span class="text-body-medium">
@@ -137,11 +137,11 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
           color="primary"
           class="flex-1 flex items-center justify-center"
           data-testid="submit-button"
-          [disabled]="!isValid() || store.isSubmitting()"
+          [disabled]="!isValid() || store.isLoading()"
           (click)="onSubmit()"
         >
           <div class="flex items-center justify-center gap-2">
-            @if (store.isSubmitting()) {
+            @if (store.isLoading()) {
               <mat-progress-spinner
                 mode="indeterminate"
                 [diameter]="24"
@@ -195,9 +195,8 @@ export default class Registration implements OnDestroy {
     this.store.clearError();
   }
 
-  @HostListener('keydown.enter')
   onEnter(): void {
-    if (this.isValid() && !this.store.isSubmitting()) {
+    if (this.isValid() && !this.store.isLoading()) {
       this.onSubmit();
     }
   }
@@ -215,7 +214,7 @@ export default class Registration implements OnDestroy {
   }
 
   async onSubmit(): Promise<void> {
-    if (!this.isValid() || this.store.isSubmitting()) {
+    if (!this.isValid() || this.store.isLoading()) {
       this.registrationForm.markAllAsTouched();
       return;
     }

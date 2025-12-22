@@ -2,7 +2,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  HostListener,
   inject,
   signal,
   viewChild,
@@ -31,6 +30,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
     NgxTurnstileModule,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { '(keydown.enter)': 'onEnter()' },
   template: `
     <div
       class="flex flex-col items-center justify-center h-full md:gap-10 gap-6"
@@ -211,7 +211,6 @@ export default class Welcome {
     assetsPath: '/lottie/',
   };
 
-  @HostListener('keydown.enter')
   onEnter(): void {
     this.#continueToNext();
   }

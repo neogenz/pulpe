@@ -104,9 +104,11 @@ export class CurrentMonthStore {
   });
 
   /**
-   * Dashboard resource status
+   * Standardized resource state signals (aligned with Angular resource() API)
    */
-  readonly dashboardStatus = computed(() => this.#dashboardResource.status());
+  readonly isLoading = computed(() => this.#dashboardResource.isLoading());
+  readonly hasValue = computed(() => this.#dashboardResource.hasValue());
+  readonly error = computed(() => this.#dashboardResource.error());
 
   /**
    * Current date selector
@@ -162,7 +164,7 @@ export class CurrentMonthStore {
    * Refresh dashboard data by reloading the resource
    */
   refreshData(): void {
-    if (this.dashboardStatus() !== 'loading') {
+    if (!this.isLoading()) {
       this.#dashboardResource.reload();
     }
   }
