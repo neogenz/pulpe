@@ -194,7 +194,7 @@ export class ProductTourService {
       popover: {
         title: 'Tes dépenses organisées',
         description: `
-          <p>Les fixes (loyer, abos) et les variables (courses, sorties) sont séparées.</p>
+          <p>Les récurrentes (loyer, abos) et les ponctuelles (courses, sorties) sont séparées.</p>
           <p>Tu vois tout de suite ce qui est prévu et ce qui reste flexible.</p>
         `,
         side: 'top',
