@@ -26,11 +26,11 @@ jobs:
           fetch-depth: 0
 
       - name: Claude Code Review
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@beta
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           use_sticky_comment: true
-          prompt: |
+          direct_prompt: |
             Review this pull request for code quality, bugs, security, and performance issues.
 
             REPO: ${{ github.repository }}
@@ -62,4 +62,5 @@ jobs:
             For each issue: show file:line, problem, and fix with before/after code.
 
             If no issues: say "No issues found in X files reviewed".
-          claude_args: "--model claude-opus-4-5-20251101 --max-turns 15"
+          model: "claude-opus-4-5-20251101"
+          max_turns: "15"
