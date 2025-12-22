@@ -109,9 +109,9 @@ describe('TurnstileService', () => {
         fetchMock.mockRestore();
       });
 
-      it('should return false if token is empty', async () => {
+      it('should return true if token is empty (rate-limited)', async () => {
         const result = await prodService.verify('');
-        expect(result).toBe(false);
+        expect(result).toBe(true);
         expect(fetchMock).not.toHaveBeenCalled();
       });
 
