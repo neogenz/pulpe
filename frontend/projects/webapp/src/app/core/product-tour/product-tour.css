@@ -83,6 +83,8 @@ body.driver-active {
 .driver-popover-progress-text {
   font-size: var(--mat-sys-label-small-size) !important;
   color: var(--mat-sys-on-surface-variant) !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
 }
 
 /* Buttons - M3 Filled & Outlined buttons (match Angular Material v20 exactly) */
@@ -210,9 +212,24 @@ body.driver-active {
   ) !important;
 }
 
-/* Close button */
+/* Close button - positioned in top right corner */
 .driver-popover-close-btn {
+  position: absolute !important;
+  top: 16px !important;
+  right: 16px !important;
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   color: var(--mat-sys-on-surface-variant) !important;
+  background-color: transparent !important;
+  border: none !important;
+  cursor: pointer !important;
+  font-size: 20px !important;
+  line-height: 1 !important;
+  padding: 0 !important;
 }
 
 .driver-popover-close-btn:hover {
@@ -248,6 +265,7 @@ body.driver-active {
 /* Footer with buttons */
 .driver-popover-footer {
   display: flex !important;
+  flex-wrap: wrap !important;
   align-items: center !important;
   justify-content: space-between !important;
   gap: 12px !important;
@@ -266,19 +284,5 @@ body.driver-active {
 @media (max-width: 600px) {
   .driver-popover {
     max-width: calc(100vw - 32px) !important;
-    margin: 0 16px !important;
-    border-radius: 16px !important;
-  }
-
-  .driver-popover-footer {
-    flex-direction: column !important;
-    align-items: center !important;
-  }
-
-  .driver-popover-navigation-btns {
-    display: flex !important;
-    flex-direction: row !important;
-    justify-content: center !important;
-    gap: 12px !important;
   }
 }

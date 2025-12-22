@@ -101,14 +101,12 @@ const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
           >
             @for (budgetsOfYear of calendarYears(); track budgetsOfYear.year) {
               <mat-tab [label]="budgetsOfYear.year.toString()">
-                <div class="pt-6" data-tour="calendar-grid">
-                  <pulpe-year-calendar
-                    [calendarYear]="budgetsOfYear"
-                    [currentDate]="currentDate()"
-                    (monthClick)="navigateToDetails($event)"
-                    (createMonth)="onCreateMonth($event)"
-                  />
-                </div>
+                <pulpe-year-calendar
+                  [calendarYear]="budgetsOfYear"
+                  [currentDate]="currentDate()"
+                  (monthClick)="navigateToDetails($event)"
+                  (createMonth)="onCreateMonth($event)"
+                />
               </mat-tab>
             }
           </mat-tab-group>
