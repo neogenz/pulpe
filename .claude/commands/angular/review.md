@@ -37,7 +37,19 @@ Parse `$ARGUMENTS` to get files:
 
 Filter for frontend files only: `frontend/**/*.{ts,html,css,scss,spec.ts}`
 
-### 2. LOAD KNOWLEDGE
+### 2. PRIORITIZE FILES
+
+**High-risk** (review thoroughly):
+- `*.service.ts` in `core/` → Wide impact
+- `*.guard.ts`, `*.interceptor.ts` → Security critical
+- Files with `effect()` → Reactive bugs potential
+- Files > 200 lines → Complexity smell
+
+**Quick scan**:
+- Pure UI components without `inject()`
+- Test files following established patterns
+
+### 3. LOAD KNOWLEDGE (first review only)
 
 Before reviewing:
 1. `mcp__angular-cli__get_best_practices` with workspace path
@@ -48,7 +60,7 @@ Before reviewing:
    - `.claude/rules/naming-conventions.md`
 3. If specific topic needed: `mcp__context7__get-library-docs`
 
-### 3. REVIEW EACH FILE
+### 4. REVIEW EACH FILE
 
 Read each file and check for issues. For each issue:
 
@@ -66,7 +78,7 @@ private fieldName = signal(0);
 ```
 ```
 
-### 4. RESEARCH IF NEEDED
+### 5. RESEARCH IF NEEDED
 
 - If unsure about a pattern → `WebSearch "angular <pattern> best practice 2025"`
 - If need doc confirmation → `mcp__context7__get-library-docs`
@@ -97,6 +109,7 @@ private fieldName = signal(0);
 | `[ngStyle]` | `[style.prop]` binding | Same |
 | `constructor(private x)` | `inject()` function | angular.dev/guide/di/dependency-injection |
 | `ChangeDetectionStrategy.Default` | `OnPush` | `.cursor/rules/03-frameworks-and-libraries/3-angular-all-best-practices.mdc` |
+| `@Input` + `@Output` (2-way binding) | `model()` | angular.dev/guide/signals/inputs#model-inputs |
 
 ### 3. Signal Misuse
 
@@ -106,6 +119,7 @@ private fieldName = signal(0);
 | Mutation in `update()` | Immutable spread: `[...arr, item]` | angular.dev/guide/signals |
 | Missing cleanup | `takeUntilDestroyed()` | angular.dev/ecosystem/rxjs-interop |
 | `signal.set()` in computed | Never write in computed | angular.dev/guide/signals |
+| `effect()` to sync dependent signals | `linkedSignal()` | angular.dev/guide/signals/linked-signal |
 
 ### 4. Private Fields
 
@@ -170,6 +184,16 @@ private fieldName = signal(0);
 | `it('test 1')` | `it('should do X when Y')` | Same |
 | `id="btn"` | `data-testid="feature-component-element"` | Same |
 | `any` in mocks | Typed mocks | Same |
+
+### 11. Security Patterns
+
+| Anti-Pattern | Detection | Fix | Source |
+|--------------|-----------|-----|--------|
+| XSS via innerHTML | `innerHTML` or `bypassSecurity*` | Use `[innerText]` or sanitize | OWASP |
+| Raw `console.log` | Direct console usage | Use `Logger` service (auto-sanitizes) | `@core/logging/logger.ts` |
+| Hardcoded secrets | `api_key`, `secret`, `password` literals | Use environment variables | 12-factor |
+
+**Note**: Le projet utilise `Logger` et `posthog-sanitizer.ts` qui masquent automatiquement les tokens, passwords et données financières.
 
 ## Output Format
 
@@ -252,6 +276,11 @@ grep -r "private \w" frontend/           # Should be #field
 
 # Testing
 grep -r "it('test" frontend/             # Bad test name
+
+# Security
+grep -r "innerHTML\|bypassSecurity" frontend/    # XSS risk
+grep -r "console\.\(log\|warn\|error\)" frontend/projects/webapp/src/app/ # Should use Logger
+grep -rE "(api_key|secret|password)\s*=" frontend/ # Hardcoded secrets
 ```
 
 ## Priority
