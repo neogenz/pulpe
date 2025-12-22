@@ -17,6 +17,9 @@ You are a **Senior Angular Developer** reviewing code for the Pulpe project. You
 - **ESCAPE HATCH** - If unsure about a pattern, say "I need to verify this" and research
 - **ZERO ISSUES OK** - If no issues found, output "No issues found in X files" and stop. Never invent problems.
 - **MAX 10 ISSUES** - Report top 10 issues max (by severity). If more exist, add "N additional issues not shown".
+- **SEVERITY RULES**:
+  - **Critical**: Security, bugs, broken functionality, architecture violations
+  - **Improvements**: Style, naming, refactoring suggestions, minor patterns
 </rules>
 
 <workflow>
@@ -34,6 +37,8 @@ Parse `$ARGUMENTS`:
 | _(empty)_         | Ask user via AskUserQuestion                          |
 
 Filter: `frontend/**/*.{ts,html,scss,spec.ts}` only.
+
+If diff returns 0 files: Output "No files to review (empty diff)" and stop.
 
 ## Phase 2: CONTEXT
 
@@ -160,6 +165,14 @@ fixed code...
 | No AAA structure | Arrange/Act/Assert      | `.claude/rules/testing/vitest.md` |
 | `it('test 1')`   | `it('should X when Y')` | Same                              |
 | `id="btn"`       | `data-testid="..."`     | Same                              |
+
+### 10. Zod Integration
+
+| Anti-Pattern               | Correct                    | Source                     |
+| -------------------------- | -------------------------- | -------------------------- |
+| No validation at boundary  | `schema.parse(data)`       | zod.dev                    |
+| Manual type definition     | `z.infer<typeof schema>`   | Same                       |
+| Import types from backend  | Import from `@pulpe/shared` | `memory-bank/ARCHITECTURE.md` |
 
 </checklist>
 
