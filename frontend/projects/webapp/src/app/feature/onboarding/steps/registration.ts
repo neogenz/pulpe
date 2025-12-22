@@ -3,7 +3,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  HostListener,
   inject,
   type OnDestroy,
   signal,
@@ -38,6 +37,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     RouterLink,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { '(keydown.enter)': 'onEnter()' },
   template: `
     <div class="gap-6 h-full flex flex-col">
       <div class="text-center space-y-2 mb-6">
@@ -195,7 +195,6 @@ export default class Registration implements OnDestroy {
     this.store.clearError();
   }
 
-  @HostListener('keydown.enter')
   onEnter(): void {
     if (this.isValid() && !this.store.isLoading()) {
       this.onSubmit();

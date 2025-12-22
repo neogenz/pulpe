@@ -83,11 +83,7 @@ export class OnboardingStore {
     const url = this.#currentUrl();
     const stepName = url.split('/').pop();
     const stepIndex = STEP_ORDER.indexOf(stepName as OnboardingStep);
-    const result = stepIndex !== -1 ? stepIndex : -1;
-    console.log(
-      `Current Step Computed: URL=${url}, Step=${stepName}, Index=${result}`,
-    );
-    return result;
+    return stepIndex !== -1 ? stepIndex : -1;
   });
 
   readonly totalSteps = STEP_ORDER.length;
