@@ -76,13 +76,16 @@ Cette Epic introduit le concept de **Transaction allouée** : une transaction op
 **Dépendances :** T1 (colonne `budget_line_id` existe)
 
 #### Travaux
-- [ ] Service : Créer méthode `BudgetLineService.getConsumedAmount(budgetLineId: string): number`
+- [ ] Service : Créer méthode `BudgetLineService.getConsumedAmount(budgetLineId: string): Promise<number>`
   - Somme des `transaction.amount` où `transaction.budget_line_id = budgetLineId`
-- [ ] Service : Créer méthode `BudgetLineService.getRemainingAmount(budgetLineId: string): number`
+  - Query Supabase avec SELECT SUM(amount) FROM transaction WHERE budget_line_id = ?
+- [ ] Service : Créer méthode `BudgetLineService.getRemainingAmount(budgetLineId: string): Promise<number>`
   - Formule : `budgetLine.amount - consumedAmount`
-- [ ] Service : Mettre à jour `BudgetService.calculateRemaining(budgetId: string)`
-  - Ancienne formule : `(income + rollover) - Σ(budgetLines) - Σ(transactions)`
-  - Nouvelle formule : `(income + rollover) - Σ(budgetLines) - Σ(transactions)` (inchangée, car transactions allouées ET libres déjà comptées)
+  - Récupérer budgetLine puis calculer : `budgetLine.amount - await getConsumedAmount(budgetLineId)`
+- [ ] **Note importante** : Aucune modification nécessaire dans `BudgetService`
+  - Le calcul global du `remaining` fonctionne déjà correctement
+  - `BudgetCalculator.calculateEndingBalance()` compte toutes les transactions via `BudgetFormulas.calculateTotalExpenses(budgetLines, transactions)`
+  - Les transactions allouées ET libres sont déjà incluses dans le calcul global
 - [ ] Tests unitaires : Calculs avec transactions allouées + libres mélangées
 
 #### Critères d'acceptation
@@ -131,25 +134,34 @@ Cette Epic introduit le concept de **Transaction allouée** : une transaction op
 
 #### Travaux
 - [ ] Créer type `BudgetLineWithTransactions` (miroir du DTO backend)
+  - Interface avec budgetLine, consumedAmount, remainingAmount, allocatedTransactions[]
 - [ ] Mettre à jour `budget-line-api.ts` : Appeler `GET /budgets/:id/lines`
-- [ ] Étendre `budget-table-data-provider.ts` :
-  - Ajouter colonnes "Montant consommé" et "Montant restant"
-  - Créer signal `expandedLines = signal<Set<string>>(new Set())`
-- [ ] Mettre à jour template `budget-table.ts` :
-  - Ajouter chips Material "X CHF dépensés · Y CHF restants"
-  - Ajouter `mat-expansion-panel` par ligne
-  - Afficher liste des transactions allouées dans panel
-  - Afficher message "Aucune transaction enregistrée" si vide
-  - Optionnel : `mat-progress-bar` (consommé/prévu)
-- [ ] Tests unitaires : `budget-table.spec.ts` avec données mockées
+  - Nouveau endpoint qui retourne BudgetLineWithTransactions[]
+- [ ] Créer `AllocatedTransactionsDialog` component (pattern dialog existant)
+  - Template : Liste des transactions allouées, bouton "Ajouter", actions éditer/supprimer
+  - Injects : MatDialogRef, MAT_DIALOG_DATA (budgetLineId, budgetLineWithTransactions)
+  - Afficher message "Aucune transaction enregistrée" si liste vide
+  - Trier transactions par date décroissante (plus récente en premier)
+- [ ] Mettre à jour `budget-table.ts` :
+  - Ajouter bouton "Voir transactions" dans menu/actions de chaque ligne
+  - Au clic : ouvrir AllocatedTransactionsDialog avec MatDialog.open()
+  - Ajouter chips Material "X CHF dépensés · Y CHF restants" dans colonne amount
+  - Optionnel : `mat-progress-bar` (consommé/prévu) dans la ligne
+- [ ] Mettre à jour `budget-details-page.ts` :
+  - Gérer output event du dialog (transaction créée/modifiée/supprimée)
+  - Recharger données après modification
+- [ ] Tests unitaires : `allocated-transactions-dialog.spec.ts` avec données mockées
 
 #### Critères d'acceptation
 - [ ] Given: BudgetLine "Repas" 700 CHF + 2 transactions (100 CHF + 50 CHF)
 - [ ] When: Affichage du tableau budget
 - [ ] Then: Ligne affiche "700 CHF prévu · 150 CHF dépensés · 550 CHF restants"
-- [ ] When: Clic expansion
-- [ ] Then: Panel affiche 2 transactions triées par date (plus récente en premier)
+- [ ] When: Clic sur bouton "Voir transactions" dans le menu de la ligne
+- [ ] Then: Dialog AllocatedTransactionsDialog s'ouvre
+- [ ] And: Dialog affiche 2 transactions triées par date (plus récente en premier)
 - [ ] And: Chaque transaction affiche date, description, montant
+- [ ] And: Dialog contient bouton "Ajouter une transaction"
+- [ ] And: Chaque transaction a icônes éditer/supprimer
 
 ---
 
@@ -158,31 +170,38 @@ Cette Epic introduit le concept de **Transaction allouée** : une transaction op
 **Dépendances :** T4 (affichage existe)
 
 #### Travaux
-- [ ] Créer `AllocatedTransactionDialogComponent` :
+- [ ] Créer `AllocatedTransactionFormDialog` component (formulaire création/édition d'UNE transaction)
   - Formulaire : montant (required, > 0), description (required), date (default: aujourd'hui)
   - Champs cachés auto-remplis : `budgetLineId`, `kind`, `budgetId`
-  - Mode création + mode édition
-- [ ] Ajouter bouton "[+ Ajouter une transaction]" dans expansion panel
-- [ ] Ajouter icônes actions (✏️ éditer, 🗑️ supprimer) sur chaque transaction
-- [ ] Créer dialog confirmation suppression Material
-- [ ] Gestion optimiste :
-  - Update signal local immédiatement
-  - Rollback si API échoue
+  - Mode création + mode édition (détecté via presence de transaction.id dans data)
+  - Pattern similaire à EditBudgetLineDialog
+- [ ] Intégrer dans `AllocatedTransactionsDialog` (créé en T4) :
+  - Bouton "[+ Ajouter une transaction]" ouvre AllocatedTransactionFormDialog
+  - Icônes actions (✏️ éditer, 🗑️ supprimer) sur chaque transaction de la liste
+  - Clic éditer : ouvre AllocatedTransactionFormDialog en mode édition
+  - Clic supprimer : ouvre ConfirmationDialog (réutiliser composant existant)
+- [ ] Gestion optimiste dans store (budget-details-store.ts) :
+  - createAllocatedTransaction() : Update signal local immédiatement, rollback si API échoue
+  - updateAllocatedTransaction() : Même pattern
+  - deleteAllocatedTransaction() : Même pattern
 - [ ] Snackbar Material : "Transaction enregistrée" / "Transaction supprimée" / "Erreur: ..."
-- [ ] Tests unitaires : Dialog component + interactions
+- [ ] Tests unitaires : AllocatedTransactionFormDialog + interactions dans AllocatedTransactionsDialog
 
 #### Critères d'acceptation
-- [ ] Given: BudgetLine "Essence" visible
-- [ ] When: Clic "Ajouter une transaction"
-- [ ] Then: Dialog s'ouvre avec formulaire vide, date = aujourd'hui
+- [ ] Given: AllocatedTransactionsDialog ouvert pour BudgetLine "Essence"
+- [ ] When: Clic bouton "Ajouter une transaction"
+- [ ] Then: AllocatedTransactionFormDialog s'ouvre avec formulaire vide, date = aujourd'hui
 - [ ] When: Saisie 65 CHF + "Plein d'essence" + clic "Enregistrer"
-- [ ] Then: Dialog se ferme, ligne affichée immédiatement (optimistic), snackbar confirmé
-- [ ] When: Clic icône "éditer" sur transaction
-- [ ] Then: Dialog s'ouvre pré-rempli, modification possible (sauf budgetLineId/kind)
-- [ ] When: Clic icône "supprimer"
-- [ ] Then: Dialog confirmation "Supprimer cette transaction ?"
-- [ ] When: Confirmation
-- [ ] Then: Transaction disparaît, montants recalculés
+- [ ] Then: FormDialog se ferme, transaction apparaît dans la liste immédiatement (optimistic)
+- [ ] And: Snackbar "Transaction enregistrée" affiché
+- [ ] And: Montants "consommé" et "restant" mis à jour dans AllocatedTransactionsDialog
+- [ ] When: Clic icône "éditer" sur une transaction dans la liste
+- [ ] Then: AllocatedTransactionFormDialog s'ouvre pré-rempli en mode édition
+- [ ] And: Modification possible (montant, description, date) SAUF budgetLineId et kind (disabled)
+- [ ] When: Clic icône "supprimer" sur une transaction
+- [ ] Then: ConfirmationDialog s'ouvre avec message "Supprimer cette transaction ?"
+- [ ] When: Confirmation de suppression
+- [ ] Then: Transaction disparaît de la liste, montants recalculés, snackbar "Transaction supprimée"
 
 ---
 
@@ -251,7 +270,9 @@ T6 (Tests E2E)
 
 ---
 
-## Vocabulaire final (UI française)
+## Vocabulaire final
+
+### Termes métier (UI française)
 
 | Code | UI française |
 |------|--------------|
@@ -263,6 +284,14 @@ T6 (Tests E2E)
 | `Available` (global) | **Disponible à dépenser** |
 | `Remaining` (global) | **Restant du mois** |
 
+### Composants frontend
+
+| Composant | Rôle |
+|-----------|------|
+| `AllocatedTransactionsDialog` | Dialog qui affiche la LISTE des transactions allouées à une BudgetLine + bouton Ajouter |
+| `AllocatedTransactionFormDialog` | Dialog de formulaire pour créer/éditer UNE transaction allouée |
+| `BudgetLineWithTransactions` | Type TypeScript pour BudgetLine enrichie avec consumedAmount, remainingAmount, allocatedTransactions[] |
+
 ---
 
 ## Estimation totale
@@ -270,3 +299,81 @@ T6 (Tests E2E)
 **Durée :** 8-11 jours (solo dev)
 **Complexité :** Moyenne (extension existant, pas de refonte)
 **Risque :** Faible (migration additive, backward compatible)
+
+---
+
+## Références techniques (codebase)
+
+### Fichiers clés
+
+**Backend :**
+- `backend-nest/src/modules/transaction/transaction.service.ts:167-205` - TransactionService.create()
+- `backend-nest/src/modules/budget/budget.service.ts:428-433` - BudgetService.recalculateBalances()
+- `backend-nest/src/modules/budget-line/budget-line.service.ts:156-194` - BudgetLineService.create()
+
+**Frontend :**
+- `frontend/projects/webapp/src/app/feature/budget/budget-details/budget-table/budget-table.ts:1-540`
+- `frontend/projects/webapp/src/app/feature/budget/budget-details/store/budget-details-store.ts:1-270`
+- `frontend/projects/webapp/src/app/feature/budget/budget-details/edit-budget-line/edit-budget-line-dialog.ts:1-211`
+
+**Database & Shared :**
+- `backend-nest/schema.sql:397-442` - Transaction table
+- `backend-nest/supabase/migrations/20250828165030_add_ending_balance_to_monthly_budget.sql` - Migration example
+- `shared/schemas.ts:235-242` - transactionCreateSchema
+
+### Pattern : Migration SQL (T1)
+
+```sql
+-- Pattern: YYYYMMDDHHMMSS_descriptive_name.sql
+ALTER TABLE public.transaction
+ADD COLUMN IF NOT EXISTS budget_line_id UUID NULL;
+
+COMMENT ON COLUMN public.transaction.budget_line_id IS
+'Optional reference to the budget line this transaction is allocated to. NULL for free transactions.';
+
+CREATE INDEX IF NOT EXISTS idx_transaction_budget_line_id
+ON public.transaction USING btree (budget_line_id)
+WHERE budget_line_id IS NOT NULL;
+
+ALTER TABLE public.transaction
+DROP CONSTRAINT IF EXISTS transaction_budget_line_id_fkey;
+
+ALTER TABLE public.transaction
+ADD CONSTRAINT transaction_budget_line_id_fkey
+FOREIGN KEY (budget_line_id)
+REFERENCES public.budget_line (id)
+ON DELETE SET NULL;
+```
+
+### Pattern : Validation backend (T1)
+
+```typescript
+// Validation dans service
+private validateCreateTransactionDto(dto: TransactionCreate): void {
+  if (!dto.budgetId || !dto.name || dto.amount === undefined) {
+    throw new BusinessException(ERROR_DEFINITIONS.TRANSACTION.REQUIRED_DATA_MISSING, {
+      fields: ['budgetId', 'name', 'amount']
+    });
+  }
+  if (dto.amount <= 0) {
+    throw new BusinessException(ERROR_DEFINITIONS.TRANSACTION.VALIDATION_FAILED, {
+      reason: 'Amount must be greater than 0'
+    });
+  }
+}
+```
+
+### Pattern : Shared schema update (T1)
+
+```typescript
+// shared/schemas.ts - Ajouter budgetLineId
+export const transactionCreateSchema = z.object({
+  budgetId: z.uuid(),
+  budgetLineId: z.uuid().nullable().optional(), // NOUVEAU
+  name: z.string().min(1).max(100).trim(),
+  amount: z.number().positive(),
+  kind: transactionKindSchema,
+  transactionDate: z.iso.datetime().optional(),
+  category: z.string().max(100).trim().nullable().optional(),
+});
+```
