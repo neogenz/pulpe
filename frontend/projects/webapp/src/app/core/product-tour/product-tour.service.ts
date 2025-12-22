@@ -107,6 +107,13 @@ export class ProductTourService {
       stagePadding: 10,
       stageRadius: 8,
       popoverOffset: 16,
+      onPopoverRender: (popover) => {
+        const skipButton = document.createElement('button');
+        skipButton.innerText = 'Passer';
+        skipButton.className = 'driver-popover-skip-btn';
+        skipButton.addEventListener('click', () => tourDriver.destroy());
+        popover.footerButtons.appendChild(skipButton);
+      },
       onDestroyStarted: () => {
         tourDriver.destroy();
       },

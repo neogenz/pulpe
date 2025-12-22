@@ -184,6 +184,32 @@ body.driver-active {
   display: none !important;
 }
 
+/* Skip button - M3 Text Button (subdued variant) */
+.driver-popover-skip-btn {
+  background-color: transparent !important;
+  color: var(--mat-sys-on-surface-variant) !important;
+  border: none !important;
+  border-radius: var(--mat-sys-corner-full) !important;
+  padding: 10px 16px !important;
+  min-height: 40px !important;
+  font-family: var(--mat-sys-label-large-font) !important;
+  font-size: var(--mat-sys-label-large-size) !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.1px !important;
+  line-height: 20px !important;
+  text-transform: none !important;
+  text-align: center !important;
+  cursor: pointer !important;
+  transition: background-color 200ms cubic-bezier(0.2, 0, 0, 1) !important;
+}
+
+.driver-popover-skip-btn:hover {
+  background-color: rgba(
+    var(--mat-sys-on-surface-variant-rgb, 73, 69, 79),
+    0.08
+  ) !important;
+}
+
 /* Close button */
 .driver-popover-close-btn {
   color: var(--mat-sys-on-surface-variant) !important;
