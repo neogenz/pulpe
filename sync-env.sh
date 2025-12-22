@@ -24,7 +24,6 @@ CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILES=(
     ".env"
     "frontend/.env"
-    "backend-nest/.env"
     "backend-nest/.env.local"
     "backend-nest/.env.development"
 )
