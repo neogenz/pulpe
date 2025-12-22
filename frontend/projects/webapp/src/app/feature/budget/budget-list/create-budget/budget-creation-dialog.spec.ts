@@ -152,7 +152,7 @@ describe('CreateBudgetDialogComponent', () => {
     const selectedTemplateIdSignal = signal<string | null>(null);
     const selectedTemplateSignal = signal<BudgetTemplate | null>(null);
     const templateTotalsMapSignal = signal<Record<string, TemplateTotals>>({});
-    const isLoadingTemplatesSignal = signal<boolean>(false);
+    const isLoadingSignal = signal<boolean>(false);
     const errorSignal = signal<Error | null>(null);
 
     mockTemplateStore = {
@@ -161,7 +161,7 @@ describe('CreateBudgetDialogComponent', () => {
       selectedTemplate: selectedTemplateSignal,
       sortedTemplates: signal([]),
       templateTotalsMap: templateTotalsMapSignal,
-      isLoadingTemplates: isLoadingTemplatesSignal,
+      isLoading: isLoadingSignal,
       error: errorSignal,
       selectTemplate: vi.fn((id: string) => {
         selectedTemplateIdSignal.set(id);

@@ -67,7 +67,7 @@ import {
           [fullHeight]="true"
           testId="budget-details-loading"
         ></pulpe-base-loading>
-      } @else if (store.hasError()) {
+      } @else if (store.error()) {
         <mat-card class="bg-error-container" appearance="outlined">
           <mat-card-content>
             <div class="flex items-center gap-2 text-on-error-container">

@@ -103,8 +103,8 @@ describe('OnboardingStore - Unit Tests', () => {
       expect(data.transportCosts).toBeNull();
     });
 
-    it('should initialize with no submission state', () => {
-      expect(store.isSubmitting()).toBe(false);
+    it('should initialize with no loading state', () => {
+      expect(store.isLoading()).toBe(false);
       expect(store.error()).toBe('');
     });
   });

@@ -23,10 +23,15 @@ import type { EditableLine, SaveResult } from './template-line-state';
 export class TemplateLineStore {
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
 
-  // Direct public state signals
+  // Private state signals
   readonly lines = signal<EditableLine[]>([]);
-  readonly isLoading = signal(false);
-  readonly error = signal<string | null>(null);
+  readonly #isLoading = signal(false);
+  readonly #error = signal<string | null>(null);
+
+  // Standardized resource state signals (aligned with Angular resource() API)
+  readonly isLoading = computed(() => this.#isLoading());
+  readonly hasValue = computed(() => this.lines().length > 0 && !this.#error());
+  readonly error = computed(() => this.#error());
 
   // Computed properties for component consumption
   readonly activeLines = computed(() =>
@@ -72,7 +77,7 @@ export class TemplateLineStore {
 
     this.lines.set(editableLines);
     this.#deletedIds.set(new Set());
-    this.error.set(null);
+    this.#error.set(null);
   }
 
   /**
@@ -150,8 +155,8 @@ export class TemplateLineStore {
       };
     }
 
-    this.isLoading.set(true);
-    this.error.set(null);
+    this.#isLoading.set(true);
+    this.#error.set(null);
 
     try {
       const operations = this.#generateBulkOperations(propagateToBudgets);
@@ -177,10 +182,10 @@ export class TemplateLineStore {
           ? error.message
           : 'Une erreur est survenue lors de la sauvegarde';
 
-      this.error.set(errorMessage);
+      this.#error.set(errorMessage);
       return { success: false, error: errorMessage };
     } finally {
-      this.isLoading.set(false);
+      this.#isLoading.set(false);
     }
   }
 

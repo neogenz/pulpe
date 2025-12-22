@@ -1,0 +1,6 @@
+{
+    "scripts": {
+        "setup": "PULPE_MAIN_WORKSPACE=\"$CONDUCTOR_ROOT_PATH\" ./sync-env.sh",
+        "run": ""
+    }
+}

@@ -108,7 +108,7 @@ type EditTransactionFormData = Pick<
           <button
             matButton
             (click)="store.refreshData()"
-            [disabled]="store.dashboardStatus() === 'loading'"
+            [disabled]="store.isLoading()"
             data-testid="refresh-button"
           >
             <mat-icon>refresh</mat-icon>
@@ -117,47 +117,38 @@ type EditTransactionFormData = Pick<
         </div>
       </header>
 
-      @switch (true) {
-        @case (
-          store.dashboardStatus() === 'loading' ||
-          store.dashboardStatus() === 'reloading'
-        ) {
-          <pulpe-base-loading
-            message="Chargement du tableau de bord..."
-            size="large"
-            testId="dashboard-loading"
+      @if (store.isLoading()) {
+        <pulpe-base-loading
+          message="Chargement du tableau de bord..."
+          size="large"
+          testId="dashboard-loading"
+        />
+      } @else if (store.error()) {
+        <pulpe-dashboard-error
+          (reload)="store.refreshData()"
+          data-testid="dashboard-error"
+        />
+      } @else if (store.hasValue()) {
+        @if (store.dashboardData()?.budget) {
+          <pulpe-budget-progress-bar
+            [expenses]="store.totalExpenses()"
+            [available]="store.totalAvailable()"
+            data-tour="progress-bar"
           />
-        }
-        @case (store.dashboardStatus() === 'error') {
-          <pulpe-dashboard-error
-            (reload)="store.refreshData()"
-            data-testid="dashboard-error"
-          />
-        }
-        @case (
-          store.dashboardStatus() === 'resolved' ||
-          store.dashboardStatus() === 'local'
-        ) {
-          @if (store.dashboardData()?.budget) {
-            <pulpe-budget-progress-bar
-              [expenses]="store.totalExpenses()"
-              [available]="store.totalAvailable()"
-              data-tour="progress-bar"
-            />
-            <div
-              class="flex flex-col gap-4"
-              data-testid="dashboard-content"
-              data-tour="expense-lists"
-            >
-              <!--<pulpe-transaction-chip-filter
+          <div
+            class="flex flex-col gap-4"
+            data-testid="dashboard-content"
+            data-tour="expense-lists"
+          >
+            <!--<pulpe-transaction-chip-filter
                 data-testid="transaction-chip-filter"
               />-->
-              <h3 class="text-title-medium md:text-title-large">
-                Liste des dépenses
-              </h3>
-              @if (selectedTransactions().length > 1) {
-                <div class="flex gap-4" data-testid="bulk-actions">
-                  <!--<button
+            <h3 class="text-title-medium md:text-title-large">
+              Liste des dépenses
+            </h3>
+            @if (selectedTransactions().length > 1) {
+              <div class="flex gap-4" data-testid="bulk-actions">
+                <!--<button
                     matButton="tonal"
                     (click)="deleteSelectedTransactions()"
                     data-testid="delete-selected-button"
@@ -165,41 +156,38 @@ type EditTransactionFormData = Pick<
                     <mat-icon>delete_sweep</mat-icon>
                     Supprimer ({{ selectedTransactions().length }})
                   </button>-->
-                  <button matButton="tonal" data-testid="merge-selected-button">
-                    <mat-icon>call_merge</mat-icon>
-                    Fusionner ({{ selectedTransactions().length }})
-                  </button>
-                </div>
-              }
+                <button matButton="tonal" data-testid="merge-selected-button">
+                  <mat-icon>call_merge</mat-icon>
+                  Fusionner ({{ selectedTransactions().length }})
+                </button>
+              </div>
+            }
 
-              <pulpe-recurring-expenses-list
-                [financialEntries]="recurringFinancialItems()"
-                data-testid="recurring-expenses-list"
-              />
-              <pulpe-one-time-expenses-list
-                [financialEntries]="oneTimeFinancialItems()"
-                [(selectedFinancialEntries)]="selectedTransactions"
-                (deleteFinancialEntry)="deleteTransaction($event)"
-                (editFinancialEntry)="
-                  openEditTransactionDialogAndUpdate($event)
-                "
-                data-testid="one-time-expenses-list"
-              />
-            </div>
-          } @else {
-            <div class="empty-state" data-testid="empty-state">
-              <h2 class="text-title-large mt-4" data-testid="empty-state-title">
-                Aucun budget trouvé
-              </h2>
-              <p
-                class="text-body-large text-on-surface-variant mt-2"
-                data-testid="empty-state-description"
-              >
-                Aucun budget n'a été créé pour
-                {{ store.budgetDate() | date: 'MMMM yyyy' }}.
-              </p>
-            </div>
-          }
+            <pulpe-recurring-expenses-list
+              [financialEntries]="recurringFinancialItems()"
+              data-testid="recurring-expenses-list"
+            />
+            <pulpe-one-time-expenses-list
+              [financialEntries]="oneTimeFinancialItems()"
+              [(selectedFinancialEntries)]="selectedTransactions"
+              (deleteFinancialEntry)="deleteTransaction($event)"
+              (editFinancialEntry)="openEditTransactionDialogAndUpdate($event)"
+              data-testid="one-time-expenses-list"
+            />
+          </div>
+        } @else {
+          <div class="empty-state" data-testid="empty-state">
+            <h2 class="text-title-large mt-4" data-testid="empty-state-title">
+              Aucun budget trouvé
+            </h2>
+            <p
+              class="text-body-large text-on-surface-variant mt-2"
+              data-testid="empty-state-description"
+            >
+              Aucun budget n'a été créé pour
+              {{ store.budgetDate() | date: 'MMMM yyyy' }}.
+            </p>
+          </div>
         }
       }
     </div>
