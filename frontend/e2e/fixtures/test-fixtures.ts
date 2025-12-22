@@ -41,8 +41,8 @@ export const test = base.extend<AppFixtures>({
     await use(new BudgetDetailsPage(page));
   },
 
-  mainLayoutPage: async ({ page }, use) => {
-    await use(new MainLayoutPage(page));
+  mainLayoutPage: async ({ authenticatedPage }, use) => {
+    await use(new MainLayoutPage(authenticatedPage));
   },
 
   // Authenticated page - for feature tests with mocks
