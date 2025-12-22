@@ -2,7 +2,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  HostListener,
   inject,
   signal,
   viewChild,
@@ -21,6 +20,9 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
 
 @Component({
   selector: 'pulpe-welcome',
+  host: {
+    '(keydown.enter)': 'onNext()',
+  },
   imports: [
     MatButtonModule,
     MatDividerModule,
@@ -210,11 +212,6 @@ export default class Welcome {
     },
     assetsPath: '/lottie/',
   };
-
-  @HostListener('keydown.enter')
-  onEnter(): void {
-    this.#continueToNext();
-  }
 
   onNext(): void {
     this.#continueToNext();

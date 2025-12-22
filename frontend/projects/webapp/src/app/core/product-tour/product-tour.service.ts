@@ -56,14 +56,14 @@ export class ProductTourService {
   /**
    * Mark intro as completed
    */
-  private markIntroCompleted(): void {
+  #markIntroCompleted(): void {
     localStorage.setItem(INTRO_KEY, 'true');
   }
 
   /**
    * Mark a page tour as completed
    */
-  private markPageTourCompleted(pageId: TourPageId): void {
+  #markPageTourCompleted(pageId: TourPageId): void {
     localStorage.setItem(`${STORAGE_PREFIX}${pageId}`, 'true');
   }
 
@@ -86,7 +86,7 @@ export class ProductTourService {
    */
   startPageTour(pageId: TourPageId): void {
     const includeIntro = !this.hasSeenIntro();
-    const steps = this.getStepsForPage(pageId, includeIntro);
+    const steps = this.#getStepsForPage(pageId, includeIntro);
 
     // Create driver instance first to avoid closure timing issues
     const tourDriver = driver();
@@ -112,9 +112,9 @@ export class ProductTourService {
       },
       onDestroyed: () => {
         if (includeIntro) {
-          this.markIntroCompleted();
+          this.#markIntroCompleted();
         }
-        this.markPageTourCompleted(pageId);
+        this.#markPageTourCompleted(pageId);
       },
     };
 
@@ -126,28 +126,25 @@ export class ProductTourService {
   /**
    * Get steps for a specific page, optionally including intro
    */
-  private getStepsForPage(
-    pageId: TourPageId,
-    includeIntro: boolean,
-  ): DriveStep[] {
-    const introSteps = includeIntro ? this.introSteps : [];
-    const pageSteps = this.getPageSteps(pageId);
+  #getStepsForPage(pageId: TourPageId, includeIntro: boolean): DriveStep[] {
+    const introSteps = includeIntro ? this.#introSteps : [];
+    const pageSteps = this.#getPageSteps(pageId);
     return [...introSteps, ...pageSteps];
   }
 
   /**
    * Get page-specific steps
    */
-  private getPageSteps(pageId: TourPageId): DriveStep[] {
+  #getPageSteps(pageId: TourPageId): DriveStep[] {
     switch (pageId) {
       case 'current-month':
-        return this.currentMonthSteps;
+        return this.#currentMonthSteps;
       case 'budget-list':
-        return this.budgetListSteps;
+        return this.#budgetListSteps;
       case 'budget-details':
-        return this.budgetDetailsSteps;
+        return this.#budgetDetailsSteps;
       case 'templates-list':
-        return this.templatesListSteps;
+        return this.#templatesListSteps;
     }
   }
 
@@ -155,7 +152,7 @@ export class ProductTourService {
   // Step Definitions
   // ============================================
 
-  private readonly introSteps: DriveStep[] = [
+  readonly #introSteps: DriveStep[] = [
     {
       popover: {
         title: 'Bienvenue dans Pulpe',
@@ -183,7 +180,7 @@ export class ProductTourService {
     },
   ];
 
-  private readonly currentMonthSteps: DriveStep[] = [
+  readonly #currentMonthSteps: DriveStep[] = [
     {
       element: '[data-tour="progress-bar"]',
       popover: {
@@ -225,7 +222,7 @@ export class ProductTourService {
     },
   ];
 
-  private readonly budgetListSteps: DriveStep[] = [
+  readonly #budgetListSteps: DriveStep[] = [
     {
       element: '[data-tour="year-tabs"]',
       popover: {
@@ -264,7 +261,7 @@ export class ProductTourService {
     },
   ];
 
-  private readonly budgetDetailsSteps: DriveStep[] = [
+  readonly #budgetDetailsSteps: DriveStep[] = [
     {
       element: '[data-tour="financial-overview"]',
       popover: {
@@ -308,7 +305,7 @@ export class ProductTourService {
     },
   ];
 
-  private readonly templatesListSteps: DriveStep[] = [
+  readonly #templatesListSteps: DriveStep[] = [
     {
       element: '[data-tour="templates-list"]',
       popover: {

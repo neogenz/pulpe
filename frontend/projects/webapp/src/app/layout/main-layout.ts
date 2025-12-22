@@ -330,22 +330,22 @@ interface NavigationItem {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MainLayout {
-  private readonly breakpointObserver = inject(BreakpointObserver);
-  private readonly router = inject(Router);
-  private readonly scrollDispatcher = inject(ScrollDispatcher);
-  private readonly authApi = inject(AuthApi);
-  private readonly applicationConfig = inject(ApplicationConfiguration);
-  private readonly demoModeService = inject(DemoModeService);
-  private readonly demoInitializer = inject(DemoInitializerService);
+  readonly #breakpointObserver = inject(BreakpointObserver);
+  readonly #router = inject(Router);
+  readonly #scrollDispatcher = inject(ScrollDispatcher);
+  readonly #authApi = inject(AuthApi);
+  readonly #applicationConfig = inject(ApplicationConfiguration);
+  readonly #demoModeService = inject(DemoModeService);
+  readonly #demoInitializer = inject(DemoInitializerService);
   readonly breadcrumbState = inject(BreadcrumbState);
   readonly #logger = inject(Logger);
 
   // Display "Mode Démo" for demo users, otherwise show email
   readonly userEmail = computed(() => {
-    if (this.demoModeService.isDemoMode()) {
+    if (this.#demoModeService.isDemoMode()) {
       return 'demo@gmail.com';
     }
-    return this.authApi.authState().user?.email;
+    return this.#authApi.authState().user?.email;
   });
 
   // Navigation items configuration
@@ -372,7 +372,7 @@ export class MainLayout {
 
   // Responsive breakpoint detection
   protected readonly isHandset = toSignal(
-    this.breakpointObserver.observe(Breakpoints.Handset).pipe(
+    this.#breakpointObserver.observe(Breakpoints.Handset).pipe(
       map((result) => result.matches),
       shareReplay(),
     ),
@@ -380,17 +380,17 @@ export class MainLayout {
   );
 
   // Current route tracking
-  private readonly currentRoute = toSignal(
-    this.router.events.pipe(
+  readonly #currentRoute = toSignal(
+    this.#router.events.pipe(
       filter((event) => event instanceof NavigationEnd),
       map((event) => (event as NavigationEnd).urlAfterRedirects),
     ),
-    { initialValue: this.router.url },
+    { initialValue: this.#router.url },
   );
 
   // Current navigation item based on route
   protected readonly currentNavigationItem = computed(() => {
-    const url = this.currentRoute();
+    const url = this.#currentRoute();
     return this.navigationItems.find((item) => url.includes(item.route));
   });
 
@@ -402,7 +402,7 @@ export class MainLayout {
 
   // Scroll detection for header border
   protected isScrolled = toSignal(
-    this.scrollDispatcher.scrolled(100).pipe(
+    this.#scrollDispatcher.scrolled(100).pipe(
       map((scrollable) => {
         const top = scrollable
           ? scrollable.getElementRef().nativeElement.scrollTop
@@ -431,20 +431,20 @@ export class MainLayout {
       this.#isLoggingOut.set(true);
 
       // Sign out and wait for session to be cleared
-      await this.authApi.signOut();
+      await this.#authApi.signOut();
 
-      await this.router.navigate([ROUTES.LOGIN]);
+      await this.#router.navigate([ROUTES.LOGIN]);
     } catch (error) {
       // Only log detailed errors in development
-      if (!this.applicationConfig.isProduction()) {
+      if (!this.#applicationConfig.isProduction()) {
         this.#logger.error('Erreur lors de la déconnexion:', error);
       }
 
       // Always navigate to login on error to ensure user is signed out
       try {
-        await this.router.navigate([ROUTES.LOGIN]);
+        await this.#router.navigate([ROUTES.LOGIN]);
       } catch (navError) {
-        if (!this.applicationConfig.isProduction()) {
+        if (!this.#applicationConfig.isProduction()) {
           this.#logger.error(
             'Erreur lors de la navigation vers login:',
             navError,
@@ -459,20 +459,20 @@ export class MainLayout {
   /**
    * Reactive signal for demo mode state
    */
-  protected readonly isDemoMode = this.demoModeService.isDemoMode;
+  protected readonly isDemoMode = this.#demoModeService.isDemoMode;
 
   /**
    * Exit demo mode and redirect to login
    */
   protected async exitDemoMode(): Promise<void> {
     try {
-      await this.demoInitializer.exitDemoMode();
+      await this.#demoInitializer.exitDemoMode();
     } catch (error) {
       this.#logger.error('Failed to exit demo mode', { error });
     } finally {
       // Always navigate to login, even if exit fails
       // This ensures user is signed out even on error
-      await this.router.navigate([ROUTES.LOGIN]);
+      await this.#router.navigate([ROUTES.LOGIN]);
     }
   }
 }
