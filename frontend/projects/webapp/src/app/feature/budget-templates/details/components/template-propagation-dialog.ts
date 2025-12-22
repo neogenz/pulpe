@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -22,13 +21,7 @@ interface TemplatePropagationDialogData {
 
 @Component({
   selector: 'pulpe-template-propagation-dialog',
-  imports: [
-    CommonModule,
-    MatDialogModule,
-    MatButtonModule,
-    MatRadioModule,
-    MatIconModule,
-  ],
+  imports: [MatDialogModule, MatButtonModule, MatRadioModule, MatIconModule],
   template: `
     <h2 mat-dialog-title class="flex! gap-2 items-center pt-6!">
       <mat-icon>tune</mat-icon>
