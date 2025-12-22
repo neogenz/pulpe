@@ -124,5 +124,5 @@ jobs:
             - Focus on actionable findings - skip obvious linting issues
             - Verify patterns before reporting - use WebSearch if uncertain
             </rules>
-          claude_args: "--model claude-opus-4-5-20251101 --max-turns 8"
+          claude_args: "--model claude-opus-4-5-20251101 --max-turns 12"
           use_sticky_comment: true
