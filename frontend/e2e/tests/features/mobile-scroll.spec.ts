@@ -1,0 +1,164 @@
+import { test, expect } from '../../fixtures/test-fixtures';
+import {
+  createBudgetDetailsMock,
+  createBudgetLineMock,
+} from '../../helpers/api-mocks';
+
+test.describe('Mobile scroll behavior', () => {
+  test.beforeEach(async ({ authenticatedPage: page }) => {
+    const budgetId = 'test-budget-123';
+    const currentMonth = new Date().getMonth() + 1;
+    const currentYear = new Date().getFullYear();
+
+    // Mock budgets list endpoint
+    await page.route('**/api/v1/budgets', (route) => {
+      if (route.request().method() === 'GET') {
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            data: [
+              {
+                id: budgetId,
+                month: currentMonth,
+                year: currentYear,
+                description: 'Budget du mois',
+                templateId: 'template-123',
+                createdAt: '2025-01-01T00:00:00Z',
+                updatedAt: '2025-01-01T00:00:00Z',
+              },
+            ],
+          }),
+        });
+      } else {
+        route.continue();
+      }
+    });
+
+    // Mock budget details endpoint with enough budget lines to force scrolling
+    const mockResponse = createBudgetDetailsMock(budgetId, {
+      budget: { month: currentMonth, year: currentYear },
+      budgetLines: [
+        createBudgetLineMock('line-1', budgetId, { name: 'Salaire', amount: 5000, kind: 'income' }),
+        createBudgetLineMock('line-2', budgetId, { name: 'Loyer', amount: 1200, kind: 'expense' }),
+        createBudgetLineMock('line-3', budgetId, { name: 'Électricité', amount: 100, kind: 'expense' }),
+        createBudgetLineMock('line-4', budgetId, { name: 'Internet', amount: 50, kind: 'expense' }),
+        createBudgetLineMock('line-5', budgetId, { name: 'Courses', amount: 400, kind: 'expense' }),
+        createBudgetLineMock('line-6', budgetId, { name: 'Transport', amount: 150, kind: 'expense' }),
+        createBudgetLineMock('line-7', budgetId, { name: 'Loisirs', amount: 200, kind: 'expense' }),
+        createBudgetLineMock('line-8', budgetId, { name: 'Épargne', amount: 300, kind: 'saving' }),
+      ],
+    });
+
+    await page.route('**/api/v1/budgets/*/details', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(mockResponse),
+      }),
+    );
+
+    await page.goto('/app/current-month');
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForSelector('[data-testid="page-content"]');
+  });
+
+  test.describe('Mobile View', () => {
+    test.use({ viewport: { width: 375, height: 667 }, isMobile: true });
+
+    test('body should prevent independent scrolling (managed by mat-sidenav-container)', async ({
+      authenticatedPage: page,
+    }) => {
+      await page.waitForLoadState('networkidle');
+
+      const { bodyOverflowX, bodyOverflowY } = await page.evaluate(() => {
+        const bodyStyle = window.getComputedStyle(document.body);
+        return {
+          bodyOverflowX: bodyStyle.overflowX,
+          bodyOverflowY: bodyStyle.overflowY,
+        };
+      });
+
+      expect(bodyOverflowX).toBe('hidden');
+      // Body overflow-y should be 'hidden' to prevent independent scrolling.
+      // mat-sidenav-container manages all scroll internally via the main content area.
+      expect(bodyOverflowY).toBe('hidden');
+    });
+
+    test('main content should be the only scrollable container', async ({
+      authenticatedPage: page,
+    }) => {
+      const mainOverflow = await page.evaluate(() => {
+        const main = document.querySelector('[data-testid="page-content"]');
+        if (!main) {
+          throw new Error(
+            'Element [data-testid="page-content"] not found in DOM. ' +
+              'Verify the component rendered correctly and the test ID exists.',
+          );
+        }
+        return window.getComputedStyle(main).overflowY;
+      });
+
+      expect(mainOverflow).toBe('auto');
+    });
+
+    test('navbar should stay fixed when scrolling content', async ({
+      authenticatedPage: page,
+    }) => {
+      const toolbar = page.locator('mat-toolbar').first();
+      await expect(toolbar).toBeVisible({ timeout: 5000 });
+
+      const initialPosition = await toolbar.boundingBox();
+      expect(initialPosition).not.toBeNull();
+
+      await page.evaluate(() => {
+        const main = document.querySelector('[data-testid="page-content"]');
+        if (!main) {
+          throw new Error(
+            'Cannot scroll: [data-testid="page-content"] not found in DOM.',
+          );
+        }
+        main.scrollTop = 100;
+      });
+
+      const afterScrollPosition = await toolbar.boundingBox();
+      expect(afterScrollPosition).not.toBeNull();
+
+      expect(afterScrollPosition!.y).toBe(initialPosition!.y);
+    });
+  });
+
+  test.describe('Desktop View', () => {
+    test.use({ viewport: { width: 1280, height: 720 } });
+
+    test('scroll behavior should work correctly on desktop', async ({
+      authenticatedPage: page,
+    }) => {
+      const mainOverflow = await page.evaluate(() => {
+        const main = document.querySelector('[data-testid="page-content"]');
+        if (!main) {
+          throw new Error(
+            'Element [data-testid="page-content"] not found in DOM. ' +
+              'Verify the component rendered correctly and the test ID exists.',
+          );
+        }
+        return window.getComputedStyle(main).overflowY;
+      });
+
+      expect(mainOverflow).toBe('auto');
+    });
+
+    test('body should prevent independent scrolling on desktop', async ({
+      authenticatedPage: page,
+    }) => {
+      await page.waitForLoadState('networkidle');
+
+      const bodyOverflow = await page.evaluate(() => {
+        return window.getComputedStyle(document.body).overflow;
+      });
+
+      expect(bodyOverflow).toBe('hidden');
+    });
+  });
+});

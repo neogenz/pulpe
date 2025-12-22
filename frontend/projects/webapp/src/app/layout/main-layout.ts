@@ -55,7 +55,7 @@ interface NavigationItem {
     PulpeBreadcrumb,
   ],
   template: `
-    <mat-sidenav-container class="h-screen !bg-surface-container">
+    <mat-sidenav-container class="h-[100dvh] !bg-surface-container">
       <!-- Navigation Sidenav -->
       <mat-sidenav
         #drawer
@@ -286,7 +286,7 @@ interface NavigationItem {
 
       :host {
         display: block;
-        height: 100vh;
+        height: 100dvh;
       }
 
       /*
