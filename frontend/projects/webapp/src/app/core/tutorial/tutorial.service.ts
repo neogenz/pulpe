@@ -27,6 +27,13 @@ interface StartTourOptions {
 }
 
 /**
+ * E2E testing window interface (minimal subset)
+ */
+interface E2EWindow extends Window {
+  __E2E_DISABLE_TUTORIAL__?: boolean;
+}
+
+/**
  * Zod schema for validating localStorage data
  */
 const TutorialStateSchema = z.object({
@@ -76,6 +83,16 @@ export class TutorialService {
     this.#shepherdService.confirmCancel = false;
     // Note: Event listeners are registered in startTour() after addSteps()
     // because tourObject is only available after a tour is created
+  }
+
+  /**
+   * Check if running in E2E test mode
+   */
+  #isE2EMode(): boolean {
+    return (
+      typeof window !== 'undefined' &&
+      !!(window as unknown as E2EWindow).__E2E_DISABLE_TUTORIAL__
+    );
   }
 
   /**
@@ -293,6 +310,8 @@ export class TutorialService {
     isDataLoaded: Signal<boolean>,
     injector: Injector,
   ): void {
+    if (this.#isE2EMode()) return;
+
     const ref = afterRenderEffect(
       {
         read: () => {

@@ -29,6 +29,7 @@ export interface E2EWindow extends Window {
     access_token: string;
     refresh_token: string;
   };
+  __E2E_DISABLE_TUTORIAL__?: boolean;
 }
 
 /**

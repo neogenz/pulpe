@@ -17,6 +17,7 @@ export async function setupAuthBypass(page: Page, options: {
   await page.addInitScript((config) => {
     const e2eWindow = window as unknown as E2EWindow;
     e2eWindow.__E2E_AUTH_BYPASS__ = true;
+    e2eWindow.__E2E_DISABLE_TUTORIAL__ = true;
     e2eWindow.__E2E_MOCK_AUTH_STATE__ = {
       user: { 
         id: config.USER.ID, 
