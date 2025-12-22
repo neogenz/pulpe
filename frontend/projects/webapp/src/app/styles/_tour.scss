@@ -1,0 +1,212 @@
+/**
+ * Driver.js tour popover styles
+ * Material Design 3 themed - Pulpe design system
+ */
+
+// Import Driver.js base styles (required)
+@use "driver.js/dist/driver.css";
+
+// ============================================
+// HIDE ARROW
+// ============================================
+.driver-popover-arrow {
+  display: none !important;
+}
+
+// ============================================
+// POPOVER CONTAINER
+// ============================================
+.driver-popover.pulpe-tour-popover {
+  background-color: var(--mat-sys-surface-container-high) !important;
+  color: var(--mat-sys-on-surface) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.24) !important;
+  max-width: min(90vw, 380px) !important;
+  padding: 20px !important;
+  border: none !important;
+}
+
+// ============================================
+// TITLE
+// ============================================
+.driver-popover.pulpe-tour-popover .driver-popover-title {
+  font-family: var(--mat-sys-body-large-font, "Roboto", sans-serif) !important;
+  font-size: 1.125rem !important;
+  font-weight: 500 !important;
+  line-height: 1.4 !important;
+  letter-spacing: normal !important;
+  margin: 0 0 8px 0 !important;
+  padding: 0 28px 0 0 !important;
+  color: var(--mat-sys-on-surface) !important;
+  text-shadow: none !important;
+}
+
+// ============================================
+// DESCRIPTION
+// ============================================
+.driver-popover.pulpe-tour-popover .driver-popover-description {
+  font-family: var(--mat-sys-body-large-font, "Roboto", sans-serif) !important;
+  font-size: 0.875rem !important;
+  font-weight: 400 !important;
+  line-height: 1.5 !important;
+  letter-spacing: normal !important;
+  color: var(--mat-sys-on-surface-variant) !important;
+  margin: 0 0 16px 0 !important;
+  padding: 0 !important;
+  text-shadow: none !important;
+}
+
+// ============================================
+// FOOTER (buttons container)
+// ============================================
+.driver-popover.pulpe-tour-popover .driver-popover-footer {
+  display: flex !important;
+  gap: 8px !important;
+  align-items: center !important;
+  margin-top: 16px !important;
+  padding: 0 !important;
+}
+
+// ============================================
+// PROGRESS TEXT
+// ============================================
+.driver-popover.pulpe-tour-popover .driver-popover-progress-text {
+  font-family: var(--mat-sys-body-large-font, "Roboto", sans-serif) !important;
+  color: var(--mat-sys-on-surface-variant) !important;
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+  letter-spacing: normal !important;
+  margin-right: auto !important;
+  padding: 0 !important;
+  text-shadow: none !important;
+}
+
+// ============================================
+// BUTTONS - Base reset and common styles
+// ============================================
+.driver-popover.pulpe-tour-popover .driver-popover-prev-btn,
+.driver-popover.pulpe-tour-popover .driver-popover-next-btn {
+  // Reset Driver.js defaults that cause text doubling
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  text-shadow: none !important;
+  box-shadow: none !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+
+  // Typography
+  font-family: var(--mat-sys-body-large-font, "Roboto", sans-serif) !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  line-height: 1.15 !important;
+  letter-spacing: 0.01em !important;
+  text-transform: none !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+
+  // Layout
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 40px !important;
+  padding: 10px 24px !important;
+  border-radius: 20px !important;
+  border: none !important;
+  outline: none !important;
+
+  // Interaction
+  cursor: pointer !important;
+  user-select: none !important;
+  transition:
+    background-color 150ms ease,
+    filter 150ms ease !important;
+}
+
+// ============================================
+// PREVIOUS BUTTON - Tonal style (secondary container)
+// ============================================
+.driver-popover.pulpe-tour-popover .driver-popover-prev-btn {
+  background-color: var(--mat-sys-secondary-container) !important;
+  color: var(--mat-sys-on-secondary-container) !important;
+}
+
+.driver-popover.pulpe-tour-popover .driver-popover-prev-btn:hover {
+  filter: brightness(0.92) !important;
+}
+
+.driver-popover.pulpe-tour-popover .driver-popover-prev-btn:active {
+  filter: brightness(0.88) !important;
+}
+
+// ============================================
+// NEXT/DONE BUTTON - Filled primary style
+// ============================================
+.driver-popover.pulpe-tour-popover .driver-popover-next-btn {
+  background-color: var(--mat-sys-primary) !important;
+  color: var(--mat-sys-on-primary) !important;
+}
+
+.driver-popover.pulpe-tour-popover .driver-popover-next-btn:hover {
+  filter: brightness(0.92) !important;
+}
+
+.driver-popover.pulpe-tour-popover .driver-popover-next-btn:active {
+  filter: brightness(0.88) !important;
+}
+
+// ============================================
+// CLOSE BUTTON (X)
+// ============================================
+.driver-popover.pulpe-tour-popover .driver-popover-close-btn {
+  position: absolute !important;
+  top: 12px !important;
+  right: 12px !important;
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-radius: 50% !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: var(--mat-sys-on-surface-variant) !important;
+  font-size: 18px !important;
+  line-height: 1 !important;
+  text-shadow: none !important;
+  outline: none !important;
+  transition: background-color 150ms ease !important;
+}
+
+.driver-popover.pulpe-tour-popover .driver-popover-close-btn:hover {
+  background-color: var(--mat-sys-surface-container-highest) !important;
+}
+
+// ============================================
+// MOBILE ADJUSTMENTS
+// ============================================
+@media (max-width: 599px) {
+  .driver-popover.pulpe-tour-popover {
+    padding: 16px !important;
+    max-width: 95vw !important;
+  }
+
+  .driver-popover.pulpe-tour-popover .driver-popover-prev-btn,
+  .driver-popover.pulpe-tour-popover .driver-popover-next-btn {
+    min-height: 44px !important;
+    padding: 12px 20px !important;
+  }
+
+  .driver-popover.pulpe-tour-popover .driver-popover-close-btn {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    top: 8px !important;
+    right: 8px !important;
+  }
+}

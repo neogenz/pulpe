@@ -24,6 +24,8 @@ import { mapToCalendarYear } from './budget-list-mapper/budget-list.mapper';
 import { BudgetListStore } from './budget-list-store';
 import { CreateBudgetDialogComponent } from './create-budget/budget-creation-dialog';
 import { Logger } from '@core/logging/logger';
+import { TourTriggerDirective } from '@core/tour';
+import { BUDGET_TOUR_STEPS } from '../tour/budget-tour.config';
 
 const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
 
@@ -36,9 +38,14 @@ const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
     MonthsError,
     MatTabsModule,
     YearCalendar,
+    TourTriggerDirective,
   ],
   template: `
-    <div class="flex flex-col 2xl:h-full gap-4 2xl:min-h-0">
+    <div
+      class="flex flex-col 2xl:h-full gap-4 2xl:min-h-0"
+      pulpeTourTrigger="budget"
+      [tourSteps]="tourSteps"
+    >
       <header class="flex justify-between items-center">
         <h1 class="text-display-small">
           {{ titleDisplay.currentTitle() }}
@@ -107,6 +114,7 @@ const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
 export default class BudgetListPage implements OnInit {
   protected readonly state = inject(BudgetListStore);
   protected readonly titleDisplay = inject(TitleDisplay);
+  protected readonly tourSteps = BUDGET_TOUR_STEPS;
   readonly #dialog = inject(MatDialog);
   readonly #router = inject(Router);
   readonly #breakpointObserver = inject(BreakpointObserver);

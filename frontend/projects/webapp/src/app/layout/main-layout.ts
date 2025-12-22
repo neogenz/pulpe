@@ -31,6 +31,7 @@ import { ApplicationConfiguration } from '@core/config/application-configuration
 import { Logger } from '@core/logging/logger';
 import { DemoModeService } from '@core/demo/demo-mode.service';
 import { DemoInitializerService } from '@core/demo/demo-initializer.service';
+import { TourStateService } from '@core/tour';
 
 interface NavigationItem {
   readonly route: string;
@@ -223,6 +224,15 @@ interface NavigationItem {
             <mat-menu #userMenu="matMenu" xPosition="before">
               <button
                 mat-menu-item
+                (click)="replayTours()"
+                aria-label="Revoir les tutoriels"
+                data-testid="replay-tours-button"
+              >
+                <mat-icon matMenuItemIcon>replay</mat-icon>
+                <span>Revoir les tutoriels</span>
+              </button>
+              <button
+                mat-menu-item
                 (click)="onLogout()"
                 [disabled]="isLoggingOut()"
                 [attr.aria-label]="
@@ -330,6 +340,7 @@ export class MainLayout {
   private readonly applicationConfig = inject(ApplicationConfiguration);
   private readonly demoModeService = inject(DemoModeService);
   private readonly demoInitializer = inject(DemoInitializerService);
+  private readonly tourStateService = inject(TourStateService);
   readonly breadcrumbState = inject(BreadcrumbState);
   readonly #logger = inject(Logger);
 
@@ -453,6 +464,14 @@ export class MainLayout {
    * Reactive signal for demo mode state
    */
   protected readonly isDemoMode = this.demoModeService.isDemoMode;
+
+  /**
+   * Reset all tours and navigate to current month to start fresh
+   */
+  protected replayTours(): void {
+    this.tourStateService.resetAllTours();
+    this.router.navigate([ROUTES.APP, ROUTES.CURRENT_MONTH]);
+  }
 
   /**
    * Exit demo mode and redirect to login

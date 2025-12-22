@@ -12,4 +12,5 @@
 @forward "./sizes"; // get it using `@ngm-dev/cli add styles/_sizes`
 @forward "./tabs"; // get it using `@ngm-dev/cli add styles/_tabs`
 @forward "./financial-colors"; // financial summary color variables
+@forward "./tour"; // Driver.js tour popover styles
 @forward "./vendors/_tailwind.css"; // get it using `@ngm-dev/cli add styles/vendors`

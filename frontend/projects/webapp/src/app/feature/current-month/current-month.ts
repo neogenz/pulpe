@@ -40,6 +40,8 @@ import { type TransactionCreate } from '@pulpe/shared';
 import { EditTransactionDialog } from './components/edit-transaction-dialog';
 import { type FinancialEntryModel } from './models/financial-entry.model';
 import { Logger } from '@core/logging/logger';
+import { TourTriggerDirective } from '@core/tour';
+import { CURRENT_MONTH_TOUR_STEPS } from './tour/current-month-tour.config';
 
 type TransactionFormData = Pick<
   TransactionCreate,
@@ -76,9 +78,15 @@ type EditTransactionFormData = Pick<
     DashboardError,
     BaseLoading,
     OneTimeExpensesList,
+    TourTriggerDirective,
   ],
   template: `
-    <div class="flex flex-col gap-4" data-testid="current-month-page">
+    <div
+      class="flex flex-col gap-4"
+      data-testid="current-month-page"
+      pulpeTourTrigger="currentMonth"
+      [tourSteps]="tourSteps"
+    >
       <header
         class="flex justify-between items-center"
         data-testid="page-header"
@@ -220,6 +228,7 @@ export default class CurrentMonth implements OnInit {
   selectedTransactions = signal<string[]>([]);
   protected readonly store = inject(CurrentMonthStore);
   protected readonly titleDisplay = inject(TitleDisplay);
+  protected readonly tourSteps = CURRENT_MONTH_TOUR_STEPS;
   #bottomSheet = inject(MatBottomSheet);
   #dialog = inject(MatDialog);
   #snackBar = inject(MatSnackBar);

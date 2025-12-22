@@ -17,6 +17,8 @@ import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
 import { TemplateUsageDialogComponent } from '../components/dialogs/template-usage-dialog';
 import { getDeleteConfirmationConfig } from '../delete/template-delete-dialog';
 import { Logger } from '@core/logging/logger';
+import { TourTriggerDirective } from '@core/tour';
+import { TEMPLATES_TOUR_STEPS } from '../tour/templates-tour.config';
 
 @Component({
   selector: 'pulpe-template-list-page',
@@ -29,9 +31,15 @@ import { Logger } from '@core/logging/logger';
     TemplateList,
     BaseLoading,
     TemplatesError,
+    TourTriggerDirective,
   ],
   template: `
-    <div class="flex flex-col gap-4 h-full" data-testid="budget-templates-page">
+    <div
+      class="flex flex-col gap-4 h-full"
+      data-testid="budget-templates-page"
+      pulpeTourTrigger="budgetTemplates"
+      [tourSteps]="tourSteps"
+    >
       <header
         class="flex justify-between items-center"
         data-testid="page-header"
@@ -123,6 +131,7 @@ import { Logger } from '@core/logging/logger';
 export default class TemplateListPage {
   protected readonly state = inject(BudgetTemplatesState);
   protected readonly title = inject(TitleDisplay);
+  protected readonly tourSteps = TEMPLATES_TOUR_STEPS;
   readonly #dialog = inject(MatDialog);
   readonly #snackBar = inject(MatSnackBar);
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
