@@ -212,13 +212,13 @@ export type FinancialEntryViewModel = FinancialEntryModel & {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FinancialEntry {
-  private readonly breakpointObserver = inject(BreakpointObserver);
+  readonly #breakpointObserver = inject(BreakpointObserver);
 
-  data = input.required<FinancialEntryViewModel>();
-  selectable = input<boolean>(false);
-  deletable = input<boolean>(false);
-  editable = input<boolean>(false);
-  isOdd = input<boolean>(false);
+  readonly data = input.required<FinancialEntryViewModel>();
+  readonly selectable = input<boolean>(false);
+  readonly deletable = input<boolean>(false);
+  readonly editable = input<boolean>(false);
+  readonly isOdd = input<boolean>(false);
 
   readonly selectionChange = output<boolean>();
   readonly deleteClick = output<void>();
@@ -226,7 +226,7 @@ export class FinancialEntry {
 
   // Responsive breakpoint detection for mobile view
   protected readonly isMobile = toSignal(
-    this.breakpointObserver.observe(Breakpoints.Handset).pipe(
+    this.#breakpointObserver.observe(Breakpoints.Handset).pipe(
       map((result) => result.matches),
       shareReplay(),
     ),

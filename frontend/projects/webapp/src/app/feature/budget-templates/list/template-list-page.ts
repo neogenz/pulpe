@@ -1,4 +1,9 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import {
+  afterNextRender,
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -17,6 +22,10 @@ import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
 import { TemplateUsageDialogComponent } from '../components/dialogs/template-usage-dialog';
 import { getDeleteConfirmationConfig } from '../delete/template-delete-dialog';
 import { Logger } from '@core/logging/logger';
+import {
+  ProductTourService,
+  TOUR_START_DELAY,
+} from '@core/product-tour/product-tour.service';
 
 @Component({
   selector: 'pulpe-template-list-page',
@@ -47,6 +56,7 @@ import { Logger } from '@core/logging/logger';
             <p
               class="text-body-medium text-on-surface-variant mt-1"
               data-testid="template-counter"
+              data-tour="template-counter"
             >
               {{ state.templateCount() }} modèle{{
                 state.templateCount() > 1 ? 's' : ''
@@ -57,6 +67,15 @@ import { Logger } from '@core/logging/logger';
         </div>
         <div class="flex gap-2 items-center">
           <button
+            matIconButton
+            (click)="startPageTour()"
+            matTooltip="Découvrir cette page"
+            aria-label="Aide"
+            data-testid="help-button"
+          >
+            <mat-icon>help_outline</mat-icon>
+          </button>
+          <button
             matButton="filled"
             routerLink="create"
             [disabled]="state.isTemplateLimitReached()"
@@ -66,6 +85,7 @@ import { Logger } from '@core/logging/logger';
                 : 'Créer un nouveau modèle'
             "
             data-testid="create-template-button"
+            data-tour="create-template"
           >
             <mat-icon class="md:inline hidden">add_circle</mat-icon>
             <span class="md:hidden">Ajouter</span>
@@ -106,6 +126,7 @@ import { Logger } from '@core/logging/logger';
             [templates]="state.budgetTemplates.value() ?? []"
             (deleteTemplate)="onDeleteTemplate($event)"
             data-testid="templates-list"
+            data-tour="templates-list"
           />
         }
       }
@@ -123,10 +144,27 @@ import { Logger } from '@core/logging/logger';
 export default class TemplateListPage {
   protected readonly state = inject(BudgetTemplatesState);
   protected readonly title = inject(TitleDisplay);
+  readonly #productTourService = inject(ProductTourService);
   readonly #dialog = inject(MatDialog);
   readonly #snackBar = inject(MatSnackBar);
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
   readonly #logger = inject(Logger);
+
+  constructor() {
+    afterNextRender(() => {
+      if (!this.#productTourService.hasSeenPageTour('templates-list')) {
+        setTimeout(
+          () => this.#productTourService.startPageTour('templates-list'),
+          TOUR_START_DELAY,
+        );
+      }
+    });
+  }
+
+  startPageTour(): void {
+    this.#productTourService.startPageTour('templates-list');
+  }
+
   async onDeleteTemplate(template: BudgetTemplate) {
     try {
       // First check if template is being used

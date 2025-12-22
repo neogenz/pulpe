@@ -1,4 +1,5 @@
 import {
+  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   inject,
@@ -12,6 +13,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { BaseLoading } from '@ui/loading';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { DatePipe } from '@angular/common';
@@ -36,6 +38,10 @@ import {
   type BudgetLine,
   type Transaction,
 } from '@pulpe/shared';
+import {
+  ProductTourService,
+  TOUR_START_DELAY,
+} from '@core/product-tour/product-tour.service';
 
 @Component({
   selector: 'pulpe-budget-details-page',
@@ -45,6 +51,7 @@ import {
     MatButtonModule,
     MatSnackBarModule,
     MatDialogModule,
+    MatTooltipModule,
     DatePipe,
     BudgetTable,
     BudgetFinancialOverview,
@@ -95,12 +102,23 @@ import {
               </p>
             }
           </div>
+          <button
+            matIconButton
+            (click)="startPageTour()"
+            matTooltip="Découvrir cette page"
+            aria-label="Aide"
+            data-testid="help-button"
+            class="mt-1"
+          >
+            <mat-icon>help_outline</mat-icon>
+          </button>
         </header>
 
         <!-- Financial Overview -->
         <pulpe-budget-financial-overview
           [budgetLines]="budgetLines"
           [transactions]="transactions"
+          data-tour="financial-overview"
         />
 
         <!-- Budget Items Table -->
@@ -110,6 +128,7 @@ import {
           (update)="handleUpdateBudgetLine($event)"
           (delete)="handleDeleteItem($event)"
           (add)="openAddBudgetLineDialog()"
+          data-tour="budget-table"
         />
 
         <!-- Budget Info Card -->
@@ -185,6 +204,7 @@ export default class BudgetDetailsPage {
   readonly #dialog = inject(MatDialog);
   readonly #snackBar = inject(MatSnackBar);
   readonly #logger = inject(Logger);
+  readonly #productTourService = inject(ProductTourService);
 
   id = input.required<string>();
 
@@ -196,6 +216,20 @@ export default class BudgetDetailsPage {
         this.store.setBudgetId(budgetId);
       }
     });
+
+    // Auto-trigger tour on first visit
+    afterNextRender(() => {
+      if (!this.#productTourService.hasSeenPageTour('budget-details')) {
+        setTimeout(
+          () => this.#productTourService.startPageTour('budget-details'),
+          TOUR_START_DELAY,
+        );
+      }
+    });
+  }
+
+  startPageTour(): void {
+    this.#productTourService.startPageTour('budget-details');
   }
 
   navigateBack(): void {

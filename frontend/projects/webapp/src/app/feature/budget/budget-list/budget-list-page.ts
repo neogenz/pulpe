@@ -1,10 +1,10 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import {
+  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   computed,
   inject,
-  type OnInit,
   signal,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -13,6 +13,7 @@ import { MatDialog, type MatDialogConfig } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 import { ROUTES, TitleDisplay } from '@core/routing';
 import { type CalendarMonth, YearCalendar } from '@ui/calendar';
@@ -24,6 +25,10 @@ import { mapToCalendarYear } from './budget-list-mapper/budget-list.mapper';
 import { BudgetListStore } from './budget-list-store';
 import { CreateBudgetDialogComponent } from './create-budget/budget-creation-dialog';
 import { Logger } from '@core/logging/logger';
+import {
+  ProductTourService,
+  TOUR_START_DELAY,
+} from '@core/product-tour/product-tour.service';
 
 const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
 
@@ -32,6 +37,7 @@ const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
   imports: [
     MatIconModule,
     MatButtonModule,
+    MatTooltipModule,
     BaseLoading,
     MonthsError,
     MatTabsModule,
@@ -43,16 +49,28 @@ const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
         <h1 class="text-display-small">
           {{ titleDisplay.currentTitle() }}
         </h1>
-        <button
-          matButton="filled"
-          (click)="openCreateBudgetDialog()"
-          [disabled]="state.budgets.isLoading()"
-          data-testid="create-budget-btn"
-        >
-          <mat-icon class="md:inline hidden">add_circle</mat-icon>
-          <span class="md:hidden">Ajouter</span>
-          <span class="hidden md:inline">Ajouter un budget</span>
-        </button>
+        <div class="flex gap-2">
+          <button
+            matIconButton
+            (click)="startPageTour()"
+            matTooltip="Découvrir cette page"
+            aria-label="Aide"
+            data-testid="help-button"
+          >
+            <mat-icon>help_outline</mat-icon>
+          </button>
+          <button
+            matButton="filled"
+            (click)="openCreateBudgetDialog()"
+            [disabled]="state.budgets.isLoading()"
+            data-testid="create-budget-btn"
+            data-tour="create-budget"
+          >
+            <mat-icon class="md:inline hidden">add_circle</mat-icon>
+            <span class="md:hidden">Ajouter</span>
+            <span class="hidden md:inline">Ajouter un budget</span>
+          </button>
+        </div>
       </header>
 
       @switch (true) {
@@ -79,17 +97,16 @@ const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
             fitInkBarToContent
             [selectedIndex]="state.selectedYearIndex()"
             (selectedIndexChange)="onTabChange($event)"
+            data-tour="year-tabs"
           >
             @for (budgetsOfYear of calendarYears(); track budgetsOfYear.year) {
               <mat-tab [label]="budgetsOfYear.year.toString()">
-                <div class="pt-6">
-                  <pulpe-year-calendar
-                    [calendarYear]="budgetsOfYear"
-                    [currentDate]="currentDate()"
-                    (monthClick)="navigateToDetails($event)"
-                    (createMonth)="onCreateMonth($event)"
-                  />
-                </div>
+                <pulpe-year-calendar
+                  [calendarYear]="budgetsOfYear"
+                  [currentDate]="currentDate()"
+                  (monthClick)="navigateToDetails($event)"
+                  (createMonth)="onCreateMonth($event)"
+                />
               </mat-tab>
             }
           </mat-tab-group>
@@ -104,14 +121,34 @@ const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export default class BudgetListPage implements OnInit {
+export default class BudgetListPage {
   protected readonly state = inject(BudgetListStore);
   protected readonly titleDisplay = inject(TitleDisplay);
+  readonly #productTourService = inject(ProductTourService);
   readonly #dialog = inject(MatDialog);
   readonly #router = inject(Router);
   readonly #breakpointObserver = inject(BreakpointObserver);
   readonly #snackBar = inject(MatSnackBar);
   readonly #logger = inject(Logger);
+
+  constructor() {
+    // Refresh data on init
+    this.state.refreshData();
+
+    // Auto-trigger tour on first visit
+    afterNextRender(() => {
+      if (!this.#productTourService.hasSeenPageTour('budget-list')) {
+        setTimeout(
+          () => this.#productTourService.startPageTour('budget-list'),
+          TOUR_START_DELAY,
+        );
+      }
+    });
+  }
+
+  startPageTour(): void {
+    this.#productTourService.startPageTour('budget-list');
+  }
 
   protected readonly calendarYears = computed<CalendarYear[]>(() => {
     const currentYear = new Date().getFullYear();
@@ -174,10 +211,6 @@ export default class BudgetListPage implements OnInit {
       disableClose: false,
     };
   });
-
-  ngOnInit(): void {
-    this.state.refreshData();
-  }
 
   navigateToDetails(month: CalendarMonth): void {
     if (month.hasContent && month.id) {

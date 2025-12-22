@@ -2,6 +2,7 @@ import type { Page, Route } from '@playwright/test';
 import type { E2EWindow } from '../types/e2e.types';
 import { TEST_CONFIG } from '../config/test-config';
 import { MOCK_API_RESPONSES } from '../mocks/api-responses';
+import { TOUR_STORAGE_KEYS } from '../../projects/webapp/src/app/core/product-tour/product-tour.service';
 
 /**
  * Shared utility for E2E auth bypass setup
@@ -18,26 +19,31 @@ export async function setupAuthBypass(page: Page, options: {
     const e2eWindow = window as unknown as E2EWindow;
     e2eWindow.__E2E_AUTH_BYPASS__ = true;
     e2eWindow.__E2E_MOCK_AUTH_STATE__ = {
-      user: { 
-        id: config.USER.ID, 
-        email: config.USER.EMAIL 
+      user: {
+        id: config.USER.ID,
+        email: config.USER.EMAIL
       },
-      session: { 
+      session: {
         access_token: config.TOKENS.ACCESS,
-        user: { 
-          id: config.USER.ID, 
-          email: config.USER.EMAIL 
+        user: {
+          id: config.USER.ID,
+          email: config.USER.EMAIL
         }
       },
       isLoading: false,
       isAuthenticated: true
     };
-    
+
     // Only set localStorage if explicitly requested (for fixtures)
     if (config.setLocalStorage) {
       localStorage.setItem('auth_token', config.TOKENS.ACCESS);
     }
-  }, { ...TEST_CONFIG, setLocalStorage });
+
+    // Disable product tours in E2E tests by marking them as already seen
+    for (const key of Object.values(config.tourKeys)) {
+      localStorage.setItem(key, 'true');
+    }
+  }, { ...TEST_CONFIG, setLocalStorage, tourKeys: TOUR_STORAGE_KEYS });
 
   // Setup API mocks if requested
   if (includeApiMocks) {

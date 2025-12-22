@@ -20,6 +20,9 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
 
 @Component({
   selector: 'pulpe-welcome',
+  host: {
+    '(keydown.enter)': 'onNext()',
+  },
   imports: [
     MatButtonModule,
     MatDividerModule,
@@ -30,7 +33,6 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
     NgxTurnstileModule,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { '(keydown.enter)': 'onEnter()' },
   template: `
     <div
       class="flex flex-col items-center justify-center h-full md:gap-10 gap-6"
@@ -210,10 +212,6 @@ export default class Welcome {
     },
     assetsPath: '/lottie/',
   };
-
-  onEnter(): void {
-    this.#continueToNext();
-  }
 
   onNext(): void {
     this.#continueToNext();
