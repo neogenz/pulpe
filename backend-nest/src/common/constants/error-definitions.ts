@@ -245,6 +245,22 @@ export const ERROR_DEFINITIONS = {
         : 'Budget line does not belong to the specified budget',
     httpStatus: HttpStatus.BAD_REQUEST,
   },
+  TRANSACTION_BUDGET_LINE_NOT_FOUND: {
+    code: 'ERR_TRANSACTION_BUDGET_LINE_NOT_FOUND',
+    message: (details?: Record<string, unknown>) =>
+      details?.budgetLineId
+        ? `Budget line '${details.budgetLineId}' not found`
+        : 'Budget line not found',
+    httpStatus: HttpStatus.NOT_FOUND,
+  },
+  TRANSACTION_BUDGET_LINE_KIND_MISMATCH: {
+    code: 'ERR_TRANSACTION_BUDGET_LINE_KIND_MISMATCH',
+    message: (details?: Record<string, unknown>) =>
+      details?.expected && details?.actual
+        ? `Transaction kind must match budget line kind. Expected: ${details.expected}, got: ${details.actual}`
+        : 'Transaction kind must match budget line kind',
+    httpStatus: HttpStatus.BAD_REQUEST,
+  },
   TRANSACTION_VALIDATION_FAILED: {
     code: 'ERR_TRANSACTION_VALIDATION_FAILED',
     message: (details?: Record<string, unknown>) =>
