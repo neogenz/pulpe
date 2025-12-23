@@ -26,10 +26,10 @@ jobs:
           fetch-depth: 0
 
       - name: Claude Code Review
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@beta
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          direct_prompt: |
+          prompt: |
             # Angular 21+ / NestJS Monorepo Expert Review
 
             Read CLAUDE.md and .claude/rules/ for project standards. You are an expert on THIS codebase.
@@ -58,4 +58,4 @@ jobs:
             End with: ✅ APPROVE or ❌ NEEDS FIX (X critical, Y important)
 
             Respond in French if PR is in French.
-          max_turns: "4"
+          claude_args: "--model claude-sonnet-4-5-20250929 --max-turns 4"
