@@ -115,6 +115,7 @@ export class TransactionService {
     // Manual conversion without Zod validation (already validated in service)
     return {
       budget_id: createTransactionDto.budgetId,
+      budget_line_id: createTransactionDto.budgetLineId ?? null,
       amount: createTransactionDto.amount,
       name: createTransactionDto.name,
       kind: createTransactionDto.kind as Database['public']['Enums']['transaction_kind'],
@@ -122,6 +123,43 @@ export class TransactionService {
         createTransactionDto.transactionDate || new Date().toISOString(),
       category: createTransactionDto.category ?? null,
     };
+  }
+
+  /**
+   * Validates that budgetLineId exists, belongs to the same budget, and has matching kind
+   */
+  private async validateBudgetLineId(
+    budgetLineId: string,
+    budgetId: string,
+    transactionKind: Database['public']['Enums']['transaction_kind'],
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    const { data: budgetLine, error } = await supabase
+      .from('budget_line')
+      .select('id, budget_id, kind')
+      .eq('id', budgetLineId)
+      .single();
+
+    if (error || !budgetLine) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_BUDGET_LINE_NOT_FOUND,
+        { budgetLineId },
+      );
+    }
+
+    if (budgetLine.budget_id !== budgetId) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_BUDGET_LINE_MISMATCH,
+        { budgetLineId, budgetId },
+      );
+    }
+
+    if (budgetLine.kind !== transactionKind) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_BUDGET_LINE_KIND_MISMATCH,
+        { expected: budgetLine.kind, actual: transactionKind },
+      );
+    }
   }
 
   private async insertTransaction(
@@ -171,6 +209,16 @@ export class TransactionService {
   ): Promise<TransactionResponse> {
     try {
       this.validateCreateTransactionDto(createTransactionDto);
+
+      // Validate budgetLineId if provided
+      if (createTransactionDto.budgetLineId) {
+        await this.validateBudgetLineId(
+          createTransactionDto.budgetLineId,
+          createTransactionDto.budgetId,
+          createTransactionDto.kind as Database['public']['Enums']['transaction_kind'],
+          supabase,
+        );
+      }
 
       const transactionData = this.prepareTransactionData(createTransactionDto);
       const transactionDb = await this.insertTransaction(
@@ -324,6 +372,9 @@ export class TransactionService {
       }),
       ...(updateTransactionDto.category !== undefined && {
         category: updateTransactionDto.category,
+      }),
+      ...(updateTransactionDto.budgetLineId !== undefined && {
+        budget_line_id: updateTransactionDto.budgetLineId,
       }),
       updated_at: new Date().toISOString(),
     };

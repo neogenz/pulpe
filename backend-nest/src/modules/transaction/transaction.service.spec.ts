@@ -512,7 +512,11 @@ describe('TransactionService', () => {
 
         // Assert
         expect(result.success).toBe(true);
-        expect(result.data?.budgetLineId).toBeNull();
+        expect(
+          result.data &&
+            'budgetLineId' in result.data &&
+            result.data.budgetLineId,
+        ).toBeNull();
       });
 
       it('should create transaction with valid budgetLineId and matching kind', async () => {
@@ -536,7 +540,6 @@ describe('TransactionService', () => {
         };
 
         // Setup: First call returns budget_line, second call returns created transaction
-        let callCount = 0;
         const originalFrom = mockSupabaseClient.from;
         mockSupabaseClient.from = (table: string) => {
           if (table === 'budget_line') {
@@ -549,7 +552,6 @@ describe('TransactionService', () => {
               }),
             };
           }
-          callCount++;
           return originalFrom.call(mockSupabaseClient, table);
         };
 
@@ -571,7 +573,9 @@ describe('TransactionService', () => {
 
         // Assert
         expect(result.success).toBe(true);
-        expect(result.data?.budgetLineId).toBe(TEST_UUIDS.BUDGET_LINE);
+        if (result.data && 'budgetLineId' in result.data) {
+          expect(result.data.budgetLineId).toBe(TEST_UUIDS.BUDGET_LINE);
+        }
 
         // Restore
         mockSupabaseClient.from = originalFrom;
@@ -796,7 +800,9 @@ describe('TransactionService', () => {
 
         // Assert
         expect(result.success).toBe(true);
-        expect(result.data?.budgetLineId).toBe(TEST_UUIDS.BUDGET_LINE);
+        if (result.data && 'budgetLineId' in result.data) {
+          expect(result.data.budgetLineId).toBe(TEST_UUIDS.BUDGET_LINE);
+        }
 
         // Restore
         mockSupabaseClient.from = originalFrom;
@@ -828,7 +834,9 @@ describe('TransactionService', () => {
 
         // Assert
         expect(result.success).toBe(true);
-        expect(result.data?.budgetLineId).toBeNull();
+        if (result.data && 'budgetLineId' in result.data) {
+          expect(result.data.budgetLineId).toBeNull();
+        }
       });
     });
   });
