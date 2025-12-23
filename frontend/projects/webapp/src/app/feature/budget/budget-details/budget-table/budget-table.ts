@@ -12,7 +12,6 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { map } from 'rxjs/operators';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
@@ -35,6 +34,7 @@ import {
   RecurrenceLabelPipe,
   TransactionLabelPipe,
 } from '@ui/transaction-display';
+import { map } from 'rxjs/operators';
 import { EditBudgetLineDialog } from '../edit-budget-line/edit-budget-line-dialog';
 import { type BudgetLineViewModel } from '../models/budget-line-view-model';
 import { type TransactionViewModel } from '../models/transaction-view-model';
@@ -270,12 +270,12 @@ import {
                   </button>
                 } @else {
                   <button
-                    matButton="outlined"
-                    class="text-body-small !h-8 !px-2"
+                    matIconButton
                     (click)="addAllocatedTransaction(line.data)"
                     matTooltip="Ajouter une transaction"
+                    aria-label="Ajouter une transaction"
                   >
-                    <mat-icon class="!text-base">add</mat-icon>
+                    <mat-icon>add</mat-icon>
                   </button>
                 }
               }
