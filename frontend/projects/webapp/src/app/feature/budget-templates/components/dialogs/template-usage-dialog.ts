@@ -44,7 +44,7 @@ interface BudgetUsage {
     <h2 mat-dialog-title class="text-headline-small">Suppression impossible</h2>
 
     <mat-dialog-content>
-      @if (loading()) {
+      @if (isLoading()) {
         <div
           class="flex flex-col items-center justify-center py-8"
           role="status"
@@ -60,7 +60,7 @@ interface BudgetUsage {
             Vérification en cours...
           </p>
         </div>
-      } @else if (error()) {
+      } @else if (hasError()) {
         <div class="text-error text-body-large" role="alert">
           <p>Une erreur est survenue lors de la vérification.</p>
         </div>
@@ -169,25 +169,25 @@ export class TemplateUsageDialogComponent {
   readonly #router = inject(Router);
   readonly data = inject<TemplateUsageDialogData>(MAT_DIALOG_DATA);
 
-  readonly loading = signal(false);
-  readonly error = signal(false);
+  readonly isLoading = signal(false);
+  readonly hasError = signal(false);
   readonly budgets = signal<BudgetUsage[]>([]);
   readonly budgetCount = signal(0);
 
   setUsageData(budgets: BudgetUsage[]): void {
     this.budgets.set(budgets);
     this.budgetCount.set(budgets.length);
-    this.loading.set(false);
+    this.isLoading.set(false);
   }
 
   setError(): void {
-    this.error.set(true);
-    this.loading.set(false);
+    this.hasError.set(true);
+    this.isLoading.set(false);
   }
 
   setLoading(): void {
-    this.loading.set(true);
-    this.error.set(false);
+    this.isLoading.set(true);
+    this.hasError.set(false);
   }
 
   close(): void {

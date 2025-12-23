@@ -2,7 +2,7 @@ import {
   Component,
   inject,
   ChangeDetectionStrategy,
-  signal,
+  computed,
 } from '@angular/core';
 import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 import {
@@ -175,8 +175,8 @@ export interface AllocatedTransactionsDialogResult {
       background: transparent;
     }
 
-    .warn-bar ::ng-deep .mdc-linear-progress__bar-inner {
-      border-color: var(--md-sys-color-error);
+    .warn-bar {
+      --mat-progress-bar-active-indicator-color: var(--mat-sys-error);
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -192,7 +192,7 @@ export class AllocatedTransactionsDialog {
 
   readonly displayedColumns = ['date', 'name', 'amount', 'actions'];
 
-  readonly consumptionPercentage = signal(
+  readonly consumptionPercentage = computed(() =>
     this.data.budgetLine.amount > 0
       ? Math.round(
           (this.data.consumption.consumed / this.data.budgetLine.amount) * 100,

@@ -4,9 +4,11 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   inject,
   signal,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   MatBottomSheet,
   MatBottomSheetModule,
@@ -231,6 +233,7 @@ export default class CurrentMonth {
   protected readonly store = inject(CurrentMonthStore);
   protected readonly titleDisplay = inject(TitleDisplay);
   readonly #productTourService = inject(ProductTourService);
+  readonly #destroyRef = inject(DestroyRef);
   #bottomSheet = inject(MatBottomSheet);
   #dialog = inject(MatDialog);
   #snackBar = inject(MatSnackBar);
@@ -280,6 +283,7 @@ export default class CurrentMonth {
 
     bottomSheetRef
       .afterDismissed()
+      .pipe(takeUntilDestroyed(this.#destroyRef))
       .subscribe((transaction: TransactionFormData | undefined) => {
         if (transaction) {
           this.onAddTransaction(transaction);
