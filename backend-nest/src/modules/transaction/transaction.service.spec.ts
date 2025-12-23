@@ -15,6 +15,14 @@ import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 const MOCK_BUDGET_ID = 'budget-123';
 const MOCK_TRANSACTION_ID = 'transaction-456';
 
+// Valid UUIDs for testing budgetLineId validation
+const TEST_UUIDS = {
+  BUDGET: '33333333-3333-4333-8333-333333333333',
+  BUDGET_LINE: '44444444-4444-4444-8444-444444444444',
+  BUDGET_LINE_NONEXISTENT: '66666666-6666-4666-8666-666666666666',
+  OTHER_BUDGET: '77777777-7777-4777-8777-777777777777',
+};
+
 describe('TransactionService', () => {
   let service: TransactionService;
   let mockLogger: Partial<PinoLogger>;
@@ -472,6 +480,356 @@ describe('TransactionService', () => {
       // Assert
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(0);
+    });
+  });
+
+  describe('budgetLineId validation', () => {
+    describe('create with budgetLineId', () => {
+      it('should create transaction without budgetLineId (backward compatible)', async () => {
+        // Arrange
+        const mockUser = createMockAuthenticatedUser();
+        const createDto: TransactionCreate = {
+          budgetId: TEST_UUIDS.BUDGET,
+          name: 'Free Transaction',
+          amount: 100,
+          kind: 'expense',
+        };
+        const mockCreatedTransaction = createMockTransactionEntity({
+          budget_id: TEST_UUIDS.BUDGET,
+          budget_line_id: null,
+          name: createDto.name,
+          amount: createDto.amount,
+          kind: 'expense',
+        });
+        mockSupabaseClient.reset().setMockData(mockCreatedTransaction);
+
+        // Act
+        const result = await service.create(
+          createDto,
+          mockUser,
+          mockSupabaseClient as any,
+        );
+
+        // Assert
+        expect(result.success).toBe(true);
+        expect(result.data?.budgetLineId).toBeNull();
+      });
+
+      it('should create transaction with valid budgetLineId and matching kind', async () => {
+        // Arrange
+        const mockUser = createMockAuthenticatedUser();
+        const createDto: TransactionCreate = {
+          budgetId: TEST_UUIDS.BUDGET,
+          budgetLineId: TEST_UUIDS.BUDGET_LINE,
+          name: 'Allocated Transaction',
+          amount: 100,
+          kind: 'expense',
+        };
+
+        // Mock budget_line lookup to return a matching line
+        const mockBudgetLine = {
+          id: TEST_UUIDS.BUDGET_LINE,
+          budget_id: TEST_UUIDS.BUDGET,
+          kind: 'expense',
+          name: 'Groceries',
+          amount: 500,
+        };
+
+        // Setup: First call returns budget_line, second call returns created transaction
+        let callCount = 0;
+        const originalFrom = mockSupabaseClient.from;
+        mockSupabaseClient.from = (table: string) => {
+          if (table === 'budget_line') {
+            return {
+              select: () => ({
+                eq: () => ({
+                  single: () =>
+                    Promise.resolve({ data: mockBudgetLine, error: null }),
+                }),
+              }),
+            };
+          }
+          callCount++;
+          return originalFrom.call(mockSupabaseClient, table);
+        };
+
+        const mockCreatedTransaction = createMockTransactionEntity({
+          budget_id: TEST_UUIDS.BUDGET,
+          budget_line_id: TEST_UUIDS.BUDGET_LINE,
+          name: createDto.name,
+          amount: createDto.amount,
+          kind: 'expense',
+        });
+        mockSupabaseClient.setMockData(mockCreatedTransaction);
+
+        // Act
+        const result = await service.create(
+          createDto,
+          mockUser,
+          mockSupabaseClient as any,
+        );
+
+        // Assert
+        expect(result.success).toBe(true);
+        expect(result.data?.budgetLineId).toBe(TEST_UUIDS.BUDGET_LINE);
+
+        // Restore
+        mockSupabaseClient.from = originalFrom;
+      });
+
+      it('should throw error when budgetLineId does not exist', async () => {
+        // Arrange
+        const mockUser = createMockAuthenticatedUser();
+        const createDto: TransactionCreate = {
+          budgetId: TEST_UUIDS.BUDGET,
+          budgetLineId: TEST_UUIDS.BUDGET_LINE_NONEXISTENT,
+          name: 'Transaction',
+          amount: 100,
+          kind: 'expense',
+        };
+
+        // Mock budget_line lookup to return not found
+        const originalFrom = mockSupabaseClient.from;
+        mockSupabaseClient.from = (table: string) => {
+          if (table === 'budget_line') {
+            return {
+              select: () => ({
+                eq: () => ({
+                  single: () =>
+                    Promise.resolve({
+                      data: null,
+                      error: { message: 'Not found' },
+                    }),
+                }),
+              }),
+            };
+          }
+          return originalFrom.call(mockSupabaseClient, table);
+        };
+
+        // Act & Assert
+        await expectBusinessExceptionThrown(
+          () => service.create(createDto, mockUser, mockSupabaseClient as any),
+          ERROR_DEFINITIONS.TRANSACTION_BUDGET_LINE_NOT_FOUND,
+        );
+
+        // Restore
+        mockSupabaseClient.from = originalFrom;
+      });
+
+      it('should throw error when budgetLineId belongs to different budget', async () => {
+        // Arrange
+        const mockUser = createMockAuthenticatedUser();
+        const createDto: TransactionCreate = {
+          budgetId: TEST_UUIDS.BUDGET,
+          budgetLineId: TEST_UUIDS.BUDGET_LINE,
+          name: 'Transaction',
+          amount: 100,
+          kind: 'expense',
+        };
+
+        // Mock budget_line lookup to return line from different budget
+        const mockBudgetLine = {
+          id: TEST_UUIDS.BUDGET_LINE,
+          budget_id: TEST_UUIDS.OTHER_BUDGET, // Different budget!
+          kind: 'expense',
+          name: 'Other Budget Line',
+          amount: 500,
+        };
+
+        const originalFrom = mockSupabaseClient.from;
+        mockSupabaseClient.from = (table: string) => {
+          if (table === 'budget_line') {
+            return {
+              select: () => ({
+                eq: () => ({
+                  single: () =>
+                    Promise.resolve({ data: mockBudgetLine, error: null }),
+                }),
+              }),
+            };
+          }
+          return originalFrom.call(mockSupabaseClient, table);
+        };
+
+        // Act & Assert
+        await expectBusinessExceptionThrown(
+          () => service.create(createDto, mockUser, mockSupabaseClient as any),
+          ERROR_DEFINITIONS.TRANSACTION_BUDGET_LINE_MISMATCH,
+        );
+
+        // Restore
+        mockSupabaseClient.from = originalFrom;
+      });
+
+      it('should throw error when transaction kind does not match budget line kind', async () => {
+        // Arrange
+        const mockUser = createMockAuthenticatedUser();
+        const createDto: TransactionCreate = {
+          budgetId: TEST_UUIDS.BUDGET,
+          budgetLineId: TEST_UUIDS.BUDGET_LINE,
+          name: 'Transaction',
+          amount: 100,
+          kind: 'expense', // Transaction is expense
+        };
+
+        // Mock budget_line lookup to return line with different kind
+        const mockBudgetLine = {
+          id: TEST_UUIDS.BUDGET_LINE,
+          budget_id: TEST_UUIDS.BUDGET,
+          kind: 'income', // Budget line is income!
+          name: 'Salary',
+          amount: 5000,
+        };
+
+        const originalFrom = mockSupabaseClient.from;
+        mockSupabaseClient.from = (table: string) => {
+          if (table === 'budget_line') {
+            return {
+              select: () => ({
+                eq: () => ({
+                  single: () =>
+                    Promise.resolve({ data: mockBudgetLine, error: null }),
+                }),
+              }),
+            };
+          }
+          return originalFrom.call(mockSupabaseClient, table);
+        };
+
+        // Act & Assert
+        await expectBusinessExceptionThrown(
+          () => service.create(createDto, mockUser, mockSupabaseClient as any),
+          ERROR_DEFINITIONS.TRANSACTION_BUDGET_LINE_KIND_MISMATCH,
+        );
+
+        // Restore
+        mockSupabaseClient.from = originalFrom;
+      });
+    });
+
+    describe('update with budgetLineId', () => {
+      it('should update transaction to allocate to a budget line', async () => {
+        // Arrange
+        const mockUser = createMockAuthenticatedUser();
+        const updateDto: TransactionUpdate = {
+          budgetLineId: TEST_UUIDS.BUDGET_LINE,
+        };
+
+        // Mock budget_line lookup to return matching line
+        const mockBudgetLine = {
+          id: TEST_UUIDS.BUDGET_LINE,
+          budget_id: TEST_UUIDS.BUDGET,
+          kind: 'expense',
+          name: 'Groceries',
+          amount: 500,
+        };
+
+        // Mock existing transaction to get its budget_id and kind
+        const existingTransaction = createMockTransactionEntity({
+          id: MOCK_TRANSACTION_ID,
+          budget_id: TEST_UUIDS.BUDGET,
+          budget_line_id: null,
+          kind: 'expense',
+        });
+
+        const updatedTransaction = createMockTransactionEntity({
+          id: MOCK_TRANSACTION_ID,
+          budget_id: TEST_UUIDS.BUDGET,
+          budget_line_id: TEST_UUIDS.BUDGET_LINE,
+          kind: 'expense',
+        });
+
+        let selectCallCount = 0;
+        const originalFrom = mockSupabaseClient.from;
+        mockSupabaseClient.from = (table: string) => {
+          if (table === 'budget_line') {
+            return {
+              select: () => ({
+                eq: () => ({
+                  single: () =>
+                    Promise.resolve({ data: mockBudgetLine, error: null }),
+                }),
+              }),
+            };
+          }
+          if (table === 'transaction') {
+            return {
+              select: () => ({
+                eq: () => ({
+                  single: () => {
+                    selectCallCount++;
+                    // First select is to get existing transaction, second is after update
+                    return Promise.resolve({
+                      data:
+                        selectCallCount === 1
+                          ? existingTransaction
+                          : updatedTransaction,
+                      error: null,
+                    });
+                  },
+                }),
+              }),
+              update: () => ({
+                eq: () => ({
+                  select: () => ({
+                    single: () =>
+                      Promise.resolve({
+                        data: updatedTransaction,
+                        error: null,
+                      }),
+                  }),
+                }),
+              }),
+            };
+          }
+          return originalFrom.call(mockSupabaseClient, table);
+        };
+
+        // Act
+        const result = await service.update(
+          MOCK_TRANSACTION_ID,
+          updateDto,
+          mockUser,
+          mockSupabaseClient as any,
+        );
+
+        // Assert
+        expect(result.success).toBe(true);
+        expect(result.data?.budgetLineId).toBe(TEST_UUIDS.BUDGET_LINE);
+
+        // Restore
+        mockSupabaseClient.from = originalFrom;
+      });
+
+      it('should update transaction to unallocate (set budgetLineId to null)', async () => {
+        // Arrange
+        const mockUser = createMockAuthenticatedUser();
+        const updateDto: TransactionUpdate = {
+          budgetLineId: null, // Unallocate
+        };
+
+        const updatedTransaction = createMockTransactionEntity({
+          id: MOCK_TRANSACTION_ID,
+          budget_id: TEST_UUIDS.BUDGET,
+          budget_line_id: null,
+          kind: 'expense',
+        });
+
+        mockSupabaseClient.reset().setMockData(updatedTransaction);
+
+        // Act
+        const result = await service.update(
+          MOCK_TRANSACTION_ID,
+          updateDto,
+          mockUser,
+          mockSupabaseClient as any,
+        );
+
+        // Assert
+        expect(result.success).toBe(true);
+        expect(result.data?.budgetLineId).toBeNull();
+      });
     });
   });
 });

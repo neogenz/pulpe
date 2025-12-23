@@ -43,6 +43,7 @@ export const createMockTransactionEntity = (
 ) => ({
   id: MOCK_TRANSACTION_ID,
   budget_id: MOCK_BUDGET_ID,
+  budget_line_id: null,
   name: 'Test Transaction',
   amount: 100,
   kind: 'expense' as const,
