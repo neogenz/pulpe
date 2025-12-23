@@ -684,6 +684,31 @@ export type BudgetLineDeleteResponse = z.infer<
   typeof budgetLineDeleteResponseSchema
 >;
 
+/**
+ * BUDGET LINE WITH CONSUMPTION - Ligne budgétaire enrichie avec consommation
+ *
+ * Extension de BudgetLine avec les montants calculés pour le suivi par enveloppe:
+ * - consumedAmount: Somme des transactions allouées à cette ligne
+ * - remainingAmount: Montant restant (amount - consumedAmount)
+ *
+ * Utilisé par l'API GET /budgets/:id/lines pour retourner les lignes enrichies
+ */
+export const budgetLineWithConsumptionSchema = budgetLineSchema.extend({
+  consumedAmount: z.number(),
+  remainingAmount: z.number(),
+});
+export type BudgetLineWithConsumption = z.infer<
+  typeof budgetLineWithConsumptionSchema
+>;
+
+export const budgetLineWithConsumptionListResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.array(budgetLineWithConsumptionSchema),
+});
+export type BudgetLineWithConsumptionListResponse = z.infer<
+  typeof budgetLineWithConsumptionListResponseSchema
+>;
+
 // Auth schemas
 export const userInfoSchema = z.object({
   id: z.uuid(),
