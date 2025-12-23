@@ -218,15 +218,42 @@ import {
                   </mat-form-field>
                 </form>
               } @else {
-                <span
-                  class="ph-no-capture text-body-medium font-medium"
-                  [class.text-financial-income]="line.data.kind === 'income'"
-                  [class.text-financial-expense]="line.data.kind === 'expense'"
-                  [class.text-primary]="line.data.kind === 'saving'"
-                  [class.italic]="line.metadata.isRollover"
-                >
-                  {{ line.data.amount | currency: 'CHF' }}
-                </span>
+                <div class="flex flex-col items-end gap-0.5">
+                  <span
+                    class="ph-no-capture text-body-medium font-medium"
+                    [class.text-financial-income]="line.data.kind === 'income'"
+                    [class.text-financial-expense]="
+                      line.data.kind === 'expense'
+                    "
+                    [class.text-primary]="line.data.kind === 'saving'"
+                    [class.italic]="line.metadata.isRollover"
+                  >
+                    {{ line.data.amount | currency: 'CHF' }}
+                  </span>
+                  @if (
+                    line.metadata.itemType === 'budget_line' &&
+                    !line.metadata.isRollover &&
+                    line.data.consumedAmount !== undefined
+                  ) {
+                    <span
+                      class="text-label-small text-on-surface-variant"
+                      [attr.data-testid]="'consumption-chips-' + line.data.id"
+                    >
+                      {{
+                        line.data.consumedAmount
+                          | currency: 'CHF' : 'symbol' : '1.0-0'
+                      }}
+                      dépensés ·
+                      <span [class.text-error]="line.data.remainingAmount < 0">
+                        {{
+                          line.data.remainingAmount
+                            | currency: 'CHF' : 'symbol' : '1.0-0'
+                        }}
+                        restants
+                      </span>
+                    </span>
+                  }
+                </div>
               }
             </td>
           </ng-container>
@@ -304,6 +331,16 @@ import {
                       @if (line.metadata.itemType === 'budget_line') {
                         <button
                           mat-menu-item
+                          (click)="viewTransactions.emit(line.data.id)"
+                          [attr.data-testid]="
+                            'view-transactions-' + line.data.id
+                          "
+                        >
+                          <mat-icon matMenuItemIcon>receipt_long</mat-icon>
+                          <span>Voir les transactions</span>
+                        </button>
+                        <button
+                          mat-menu-item
                           (click)="startEdit(line)"
                           [attr.data-testid]="'edit-' + line.data.id"
                         >
@@ -324,8 +361,23 @@ import {
                       </button>
                     </mat-menu>
                   } @else if (!line.metadata.isRollover) {
-                    <!-- Desktop: Separate edit and delete buttons -->
+                    <!-- Desktop: Separate action buttons -->
                     @if (line.metadata.itemType === 'budget_line') {
+                      <button
+                        matIconButton
+                        (click)="viewTransactions.emit(line.data.id)"
+                        [attr.aria-label]="
+                          'Voir les transactions pour ' +
+                          (line.data.name | rolloverFormat)
+                        "
+                        [attr.data-testid]="'view-transactions-' + line.data.id"
+                        [disabled]="line.metadata.isLoading"
+                        class="!w-10 !h-10"
+                        matTooltip="Voir les transactions"
+                        matTooltipPosition="above"
+                      >
+                        <mat-icon>receipt_long</mat-icon>
+                      </button>
                       <button
                         matIconButton
                         (click)="startEdit(line)"
@@ -430,6 +482,7 @@ export class BudgetTable {
   update = output<BudgetLineUpdate>();
   delete = output<string>();
   add = output<void>();
+  viewTransactions = output<string>();
 
   // Services
   readonly #breakpointObserver = inject(BreakpointObserver);

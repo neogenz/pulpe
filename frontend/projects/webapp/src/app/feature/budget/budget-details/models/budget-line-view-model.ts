@@ -1,6 +1,6 @@
-import { type BudgetLine } from '@pulpe/shared';
+import { type BudgetLineWithConsumption } from '@pulpe/shared';
 
-export type BudgetLineViewModel = BudgetLine & {
+export type BudgetLineViewModel = BudgetLineWithConsumption & {
   isEditing?: boolean;
   isDeleting?: boolean;
   isUpdating?: boolean;

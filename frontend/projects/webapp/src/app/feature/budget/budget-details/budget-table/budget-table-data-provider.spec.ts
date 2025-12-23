@@ -3,11 +3,11 @@ import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { BudgetTableDataProvider } from './budget-table-data-provider';
 import { BudgetCalculator } from '@core/budget/budget-calculator';
-import type { BudgetLine, Transaction } from '@pulpe/shared';
+import type { BudgetLineWithConsumption, Transaction } from '@pulpe/shared';
 import {
-  createMockBudgetLine,
+  createMockBudgetLineWithConsumption,
   createMockTransaction,
-  createMockRolloverBudgetLine,
+  createMockRolloverBudgetLineWithConsumption,
 } from '../../../../testing/mock-factories';
 
 describe('BudgetTableDataProvider', () => {
@@ -28,8 +28,8 @@ describe('BudgetTableDataProvider', () => {
   describe('Display Order Business Rules', () => {
     it('should display budget lines before transactions', () => {
       // Arrange
-      const budgetLines: BudgetLine[] = [
-        createMockBudgetLine({
+      const budgetLines: BudgetLineWithConsumption[] = [
+        createMockBudgetLineWithConsumption({
           id: 'budget-1',
           name: 'Salary',
           amount: 5000,
@@ -62,20 +62,20 @@ describe('BudgetTableDataProvider', () => {
     });
 
     it('should order budget lines by recurrence then createdAt', () => {
-      const budgetLines: BudgetLine[] = [
-        createMockBudgetLine({
+      const budgetLines: BudgetLineWithConsumption[] = [
+        createMockBudgetLineWithConsumption({
           id: 'fixed-new',
           name: 'Fixed New',
           recurrence: 'fixed',
           createdAt: '2024-02-01T00:00:00Z',
         }),
-        createMockBudgetLine({
+        createMockBudgetLineWithConsumption({
           id: 'oneoff',
           name: 'One Off',
           recurrence: 'one_off',
           createdAt: '2024-01-01T00:00:00Z',
         }),
-        createMockBudgetLine({
+        createMockBudgetLineWithConsumption({
           id: 'fixed-old',
           name: 'Fixed Old',
           recurrence: 'fixed',
@@ -98,22 +98,22 @@ describe('BudgetTableDataProvider', () => {
 
     it('should fall back to kind ordering when budget lines share date and recurrence', () => {
       const createdAt = '2024-01-01T00:00:00Z';
-      const budgetLines: BudgetLine[] = [
-        createMockBudgetLine({
+      const budgetLines: BudgetLineWithConsumption[] = [
+        createMockBudgetLineWithConsumption({
           id: 'expense-line',
           name: 'Expense',
           recurrence: 'fixed',
           kind: 'expense',
           createdAt,
         }),
-        createMockBudgetLine({
+        createMockBudgetLineWithConsumption({
           id: 'income-line',
           name: 'Income',
           recurrence: 'fixed',
           kind: 'income',
           createdAt,
         }),
-        createMockBudgetLine({
+        createMockBudgetLineWithConsumption({
           id: 'saving-line',
           name: 'Saving',
           recurrence: 'fixed',
@@ -136,15 +136,15 @@ describe('BudgetTableDataProvider', () => {
     });
 
     it('should maintain ordering across mixed data types with date priority', () => {
-      const budgetLines: BudgetLine[] = [
-        createMockBudgetLine({
+      const budgetLines: BudgetLineWithConsumption[] = [
+        createMockBudgetLineWithConsumption({
           id: 'fixed-early',
           name: 'Fixed Early',
           recurrence: 'fixed',
           createdAt: '2024-01-01T00:00:00Z',
           kind: 'income',
         }),
-        createMockBudgetLine({
+        createMockBudgetLineWithConsumption({
           id: 'fixed-late',
           name: 'Fixed Late',
           recurrence: 'fixed',
@@ -187,15 +187,15 @@ describe('BudgetTableDataProvider', () => {
   describe('Rollover Line Management', () => {
     it('should identify rollover lines correctly', () => {
       // Arrange
-      const budgetLines: BudgetLine[] = [
-        createMockBudgetLine({
+      const budgetLines: BudgetLineWithConsumption[] = [
+        createMockBudgetLineWithConsumption({
           id: 'regular-line',
           name: 'Rent',
           amount: 1500,
           kind: 'expense',
           recurrence: 'fixed',
         }),
-        createMockRolloverBudgetLine({
+        createMockRolloverBudgetLineWithConsumption({
           id: 'rollover-line',
           name: 'rollover_12_2024',
           amount: 150,
@@ -226,8 +226,8 @@ describe('BudgetTableDataProvider', () => {
 
     it('should prevent editing of rollover lines even when editingLineId matches', () => {
       // Arrange
-      const budgetLines: BudgetLine[] = [
-        createMockRolloverBudgetLine({
+      const budgetLines: BudgetLineWithConsumption[] = [
+        createMockRolloverBudgetLineWithConsumption({
           id: 'rollover-line',
           name: 'rollover_12_2024',
           amount: 150,
@@ -250,8 +250,8 @@ describe('BudgetTableDataProvider', () => {
 
     it('should allow editing of regular budget lines', () => {
       // Arrange
-      const budgetLines: BudgetLine[] = [
-        createMockBudgetLine({
+      const budgetLines: BudgetLineWithConsumption[] = [
+        createMockBudgetLineWithConsumption({
           id: 'regular-line',
           name: 'Rent',
           amount: 1500,
@@ -275,9 +275,9 @@ describe('BudgetTableDataProvider', () => {
 
     it('should sort rollover lines according to business rules', () => {
       // Arrange
-      const budgetLines: BudgetLine[] = [
+      const budgetLines: BudgetLineWithConsumption[] = [
         // Fixed expense (should be first after fixed income)
-        createMockBudgetLine({
+        createMockBudgetLineWithConsumption({
           id: 'expense-line',
           name: 'Regular Expense',
           amount: 500,
@@ -285,14 +285,14 @@ describe('BudgetTableDataProvider', () => {
           recurrence: 'fixed',
         }),
         // Rollover income (one_off recurrence, should be after fixed items)
-        createMockRolloverBudgetLine({
+        createMockRolloverBudgetLineWithConsumption({
           id: 'rollover-income',
           name: 'rollover_12_2024',
           amount: 150,
           kind: 'income',
         }),
         // Fixed income (should be first)
-        createMockBudgetLine({
+        createMockBudgetLineWithConsumption({
           id: 'income-line',
           name: 'Salary',
           amount: 5000,
@@ -322,15 +322,15 @@ describe('BudgetTableDataProvider', () => {
   describe('Cumulative Balance Calculation', () => {
     it('should calculate cumulative balance for all items', () => {
       // Arrange
-      const budgetLines: BudgetLine[] = [
-        createMockBudgetLine({
+      const budgetLines: BudgetLineWithConsumption[] = [
+        createMockBudgetLineWithConsumption({
           id: 'salary',
           name: 'Salary',
           amount: 5000,
           kind: 'income',
           recurrence: 'fixed',
         }),
-        createMockBudgetLine({
+        createMockBudgetLineWithConsumption({
           id: 'rent',
           name: 'Rent',
           amount: 1500,
@@ -370,15 +370,15 @@ describe('BudgetTableDataProvider', () => {
 
     it('should handle negative balances correctly', () => {
       // Arrange
-      const budgetLines: BudgetLine[] = [
-        createMockBudgetLine({
+      const budgetLines: BudgetLineWithConsumption[] = [
+        createMockBudgetLineWithConsumption({
           id: 'salary',
           name: 'Salary',
           amount: 2000,
           kind: 'income',
           recurrence: 'fixed',
         }),
-        createMockBudgetLine({
+        createMockBudgetLineWithConsumption({
           id: 'expensive-rent',
           name: 'Expensive Rent',
           amount: 2500,
@@ -402,21 +402,21 @@ describe('BudgetTableDataProvider', () => {
 
     it('should maintain balance continuity with mixed rollover and regular lines', () => {
       // Arrange
-      const budgetLines: BudgetLine[] = [
-        createMockBudgetLine({
+      const budgetLines: BudgetLineWithConsumption[] = [
+        createMockBudgetLineWithConsumption({
           id: 'salary',
           name: 'Salary',
           amount: 5000,
           kind: 'income',
           recurrence: 'fixed',
         }),
-        createMockRolloverBudgetLine({
+        createMockRolloverBudgetLineWithConsumption({
           id: 'rollover',
           name: 'rollover_12_2024',
           amount: 200,
           kind: 'income',
         }),
-        createMockBudgetLine({
+        createMockBudgetLineWithConsumption({
           id: 'rent',
           name: 'Rent',
           amount: 1500,
@@ -445,15 +445,15 @@ describe('BudgetTableDataProvider', () => {
   describe('Editing State Management', () => {
     it('should mark line as editing when editingLineId matches', () => {
       // Arrange
-      const budgetLines: BudgetLine[] = [
-        createMockBudgetLine({
+      const budgetLines: BudgetLineWithConsumption[] = [
+        createMockBudgetLineWithConsumption({
           id: 'editable-line',
           name: 'Rent',
           amount: 1500,
           kind: 'expense',
           recurrence: 'fixed',
         }),
-        createMockBudgetLine({
+        createMockBudgetLineWithConsumption({
           id: 'other-line',
           name: 'Utilities',
           amount: 200,
@@ -483,15 +483,15 @@ describe('BudgetTableDataProvider', () => {
 
     it('should not mark any line as editing when editingLineId is null', () => {
       // Arrange
-      const budgetLines: BudgetLine[] = [
-        createMockBudgetLine({
+      const budgetLines: BudgetLineWithConsumption[] = [
+        createMockBudgetLineWithConsumption({
           id: 'line-1',
           name: 'Rent',
           amount: 1500,
           kind: 'expense',
           recurrence: 'fixed',
         }),
-        createMockBudgetLine({
+        createMockBudgetLineWithConsumption({
           id: 'line-2',
           name: 'Utilities',
           amount: 200,
@@ -515,14 +515,14 @@ describe('BudgetTableDataProvider', () => {
 
     it('should never allow editing of rollover lines regardless of editingLineId', () => {
       // Arrange
-      const budgetLines: BudgetLine[] = [
-        createMockRolloverBudgetLine({
+      const budgetLines: BudgetLineWithConsumption[] = [
+        createMockRolloverBudgetLineWithConsumption({
           id: 'rollover-line',
           name: 'rollover_12_2024',
           amount: 150,
           kind: 'income',
         }),
-        createMockBudgetLine({
+        createMockBudgetLineWithConsumption({
           id: 'regular-line',
           name: 'Rent',
           amount: 1500,
@@ -596,15 +596,15 @@ describe('BudgetTableDataProvider', () => {
 
     it('should handle only budget lines without transactions', () => {
       // Arrange
-      const budgetLines: BudgetLine[] = [
-        createMockBudgetLine({
+      const budgetLines: BudgetLineWithConsumption[] = [
+        createMockBudgetLineWithConsumption({
           id: 'income',
           name: 'Salary',
           amount: 5000,
           kind: 'income',
           recurrence: 'fixed',
         }),
-        createMockBudgetLine({
+        createMockBudgetLineWithConsumption({
           id: 'expense',
           name: 'Rent',
           amount: 1500,
@@ -630,15 +630,15 @@ describe('BudgetTableDataProvider', () => {
 
     it('should provide correct metadata for all item types', () => {
       // Arrange
-      const budgetLines: BudgetLine[] = [
-        createMockBudgetLine({
+      const budgetLines: BudgetLineWithConsumption[] = [
+        createMockBudgetLineWithConsumption({
           id: 'regular-line',
           name: 'Salary',
           amount: 5000,
           kind: 'income',
           recurrence: 'fixed',
         }),
-        createMockRolloverBudgetLine({
+        createMockRolloverBudgetLineWithConsumption({
           id: 'rollover-line',
           name: 'rollover_12_2024',
           amount: 200,
@@ -693,18 +693,18 @@ describe('BudgetTableDataProvider', () => {
     });
 
     it('should expose template linkage and propagation lock flags for budget lines', () => {
-      const budgetLines: BudgetLine[] = [
-        createMockBudgetLine({
+      const budgetLines: BudgetLineWithConsumption[] = [
+        createMockBudgetLineWithConsumption({
           id: 'linked-line',
           templateLineId: 'tpl-1',
           isManuallyAdjusted: false,
         }),
-        createMockBudgetLine({
+        createMockBudgetLineWithConsumption({
           id: 'locked-line',
           templateLineId: 'tpl-2',
           isManuallyAdjusted: true,
         }),
-        createMockBudgetLine({
+        createMockBudgetLineWithConsumption({
           id: 'manual-line',
           templateLineId: null,
           isManuallyAdjusted: true,

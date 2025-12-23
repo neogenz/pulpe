@@ -1,5 +1,6 @@
 import type {
   BudgetLine,
+  BudgetLineWithConsumption,
   Transaction,
   Budget,
   BudgetTemplate,
@@ -22,6 +23,12 @@ const defaultBudgetLine: BudgetLine = {
   isManuallyAdjusted: false,
   createdAt: '2024-01-01T00:00:00Z',
   updatedAt: '2024-01-01T00:00:00Z',
+};
+
+const defaultBudgetLineWithConsumption: BudgetLineWithConsumption = {
+  ...defaultBudgetLine,
+  consumedAmount: 0,
+  remainingAmount: 1000,
 };
 
 const defaultTransaction: Transaction = {
@@ -84,6 +91,34 @@ export function createMockBudgetLine(
   overrides?: Partial<BudgetLine>,
 ): BudgetLine {
   return { ...defaultBudgetLine, ...overrides };
+}
+
+/**
+ * Creates a mock BudgetLineWithConsumption with type-safe overrides
+ * Includes consumedAmount and remainingAmount for enriched budget line display
+ * @param overrides Partial BudgetLineWithConsumption properties to override defaults
+ * @returns Complete BudgetLineWithConsumption object
+ */
+export function createMockBudgetLineWithConsumption(
+  overrides?: Partial<BudgetLineWithConsumption>,
+): BudgetLineWithConsumption {
+  const baseOverrides = { ...overrides };
+  const amount =
+    baseOverrides.amount ?? defaultBudgetLineWithConsumption.amount;
+  const consumedAmount =
+    baseOverrides.consumedAmount ??
+    defaultBudgetLineWithConsumption.consumedAmount;
+  // Calculate remainingAmount if not explicitly provided
+  const remainingAmount =
+    baseOverrides.remainingAmount ?? amount - consumedAmount;
+
+  return {
+    ...defaultBudgetLineWithConsumption,
+    ...baseOverrides,
+    amount,
+    consumedAmount,
+    remainingAmount,
+  };
 }
 
 /**
@@ -152,6 +187,25 @@ export function createMockBudgetLines(
 }
 
 /**
+ * Creates multiple mock BudgetLineWithConsumption with sequential IDs
+ * @param count Number of enriched budget lines to create
+ * @param baseOverrides Base properties to apply to all lines
+ * @returns Array of BudgetLineWithConsumption objects
+ */
+export function createMockBudgetLinesWithConsumption(
+  count: number,
+  baseOverrides?: Partial<BudgetLineWithConsumption>,
+): BudgetLineWithConsumption[] {
+  return Array.from({ length: count }, (_, index) =>
+    createMockBudgetLineWithConsumption({
+      ...baseOverrides,
+      id: `budget-line-${index + 1}`,
+      name: `Budget Line ${index + 1}`,
+    }),
+  );
+}
+
+/**
  * Creates multiple mock Transactions with sequential IDs
  * @param count Number of transactions to create
  * @param baseOverrides Base properties to apply to all transactions
@@ -211,6 +265,30 @@ export function createMockRolloverBudgetLine(
 
   return {
     ...line,
+    isRollover: true as const,
+  };
+}
+
+/**
+ * Creates a mock rollover BudgetLineWithConsumption with isRollover property
+ * This creates a special rollover line with enriched data that cannot be edited
+ * @param overrides Additional properties to override
+ * @returns BudgetLineWithConsumption configured as a rollover line with isRollover flag
+ */
+export function createMockRolloverBudgetLineWithConsumption(
+  overrides?: Partial<BudgetLineWithConsumption & { isRollover: boolean }>,
+): BudgetLineWithConsumption & { isRollover: true } {
+  const line = createMockBudgetLineWithConsumption({
+    name: 'rollover_12_2024',
+    kind: 'income',
+    recurrence: 'one_off',
+    consumedAmount: 0,
+    ...overrides,
+  });
+
+  return {
+    ...line,
+    remainingAmount: line.amount,
     isRollover: true as const,
   };
 }

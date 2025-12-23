@@ -4,9 +4,10 @@ import { Logger } from '@core/logging/logger';
 import { createRolloverLine } from '@core/rollover/rollover-types';
 import { TransactionApi } from '@core/transaction/transaction-api';
 import {
-  type BudgetLine,
+  type BudgetLineWithConsumption,
   type BudgetLineCreate,
   type BudgetLineUpdate,
+  type Transaction,
 } from '@pulpe/shared';
 
 import { firstValueFrom } from 'rxjs';
@@ -14,6 +15,19 @@ import { v4 as uuidv4 } from 'uuid';
 import { BudgetLineApi } from '../budget-line-api/budget-line-api';
 import { type BudgetDetailsViewModel } from '../models/budget-details-view-model';
 import { createInitialBudgetDetailsState } from './budget-details-state';
+
+/**
+ * Enriches a budget line with default consumption values
+ */
+function enrichBudgetLineWithConsumption(
+  line: Omit<BudgetLineWithConsumption, 'consumedAmount' | 'remainingAmount'>,
+): BudgetLineWithConsumption {
+  return {
+    ...line,
+    consumedAmount: 0,
+    remainingAmount: line.amount,
+  };
+}
 
 /**
  * Signal-based store for budget details state management
@@ -48,9 +62,15 @@ export class BudgetDetailsStore {
         throw new Error('Failed to fetch budget details');
       }
 
+      // Enrich budget lines with default consumption values
+      // Actual consumption data will be loaded when user opens allocated transactions dialog
+      const enrichedBudgetLines = response.data.budgetLines.map(
+        enrichBudgetLineWithConsumption,
+      );
+
       return {
         ...response.data.budget,
-        budgetLines: response.data.budgetLines,
+        budgetLines: enrichedBudgetLines,
         transactions: response.data.transactions,
       };
     },
@@ -70,7 +90,7 @@ export class BudgetDetailsStore {
    * Budget lines for display - includes virtual rollover line when applicable
    * Similar to current-month-store pattern but for budget details page
    */
-  readonly displayBudgetLines = computed<BudgetLine[]>(() => {
+  readonly displayBudgetLines = computed<BudgetLineWithConsumption[]>(() => {
     const details = this.budgetDetails();
     if (!details) return [];
 
@@ -88,12 +108,50 @@ export class BudgetDetailsStore {
         previousBudgetId: previousBudgetId,
       });
 
-      // Add rollover at the beginning of the list
-      lines.unshift(rolloverLine);
+      // Add rollover at the beginning of the list with consumption data
+      lines.unshift({
+        ...rolloverLine,
+        consumedAmount: 0,
+        remainingAmount: rollover,
+      });
     }
 
     return lines;
   });
+
+  /**
+   * Get a budget line by ID with consumption data
+   */
+  getBudgetLineWithConsumption(
+    id: string,
+  ): BudgetLineWithConsumption | undefined {
+    const details = this.budgetDetails();
+    if (!details) return undefined;
+    return details.budgetLines.find((line) => line.id === id);
+  }
+
+  /**
+   * Load allocated transactions for a budget line
+   */
+  async getAllocatedTransactions(budgetLineId: string): Promise<Transaction[]> {
+    try {
+      const response = await firstValueFrom(
+        this.#budgetLineApi.getAllocatedTransactions$(budgetLineId),
+      );
+
+      if (!response.success || !response.data) {
+        this.#logger.error('Failed to fetch allocated transactions', {
+          budgetLineId,
+        });
+        return [];
+      }
+
+      return response.data;
+    } catch (error) {
+      this.#logger.error('Error fetching allocated transactions:', error);
+      return [];
+    }
+  }
 
   setBudgetId(budgetId: string): void {
     this.#state.budgetId.set(budgetId);
@@ -105,14 +163,16 @@ export class BudgetDetailsStore {
   async createBudgetLine(budgetLine: BudgetLineCreate): Promise<void> {
     const newId = `temp-${uuidv4()}`;
 
-    // Create temporary budget line for optimistic update
-    const tempBudgetLine: BudgetLine = {
+    // Create temporary budget line for optimistic update with enriched data
+    const tempBudgetLine: BudgetLineWithConsumption = {
       ...budgetLine,
       id: newId,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       templateLineId: null,
       savingsGoalId: null,
+      consumedAmount: 0,
+      remainingAmount: budgetLine.amount,
     };
 
     // Optimistic update - add the new line immediately
@@ -130,14 +190,16 @@ export class BudgetDetailsStore {
         this.#budgetLineApi.createBudgetLine$(budgetLine),
       );
 
-      // Replace temporary line with server response
+      // Replace temporary line with server response (enriched with default consumption)
       this.#budgetDetailsResource.update((details) => {
         if (!details) return details;
 
         return {
           ...details,
           budgetLines: details.budgetLines.map((line) =>
-            line.id === newId ? response.data : line,
+            line.id === newId
+              ? enrichBudgetLineWithConsumption(response.data)
+              : line,
           ),
         };
       });

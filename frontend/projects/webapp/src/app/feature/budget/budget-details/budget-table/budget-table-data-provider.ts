@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import {
   type Transaction,
-  type BudgetLine,
+  type BudgetLineWithConsumption,
   type TransactionKind,
   type TransactionRecurrence,
 } from '@pulpe/shared';
@@ -14,7 +14,7 @@ import { type TableItem } from './budget-table-models';
  * Used internally for presentation logic
  */
 interface BudgetItemWithBalance {
-  item: BudgetLine | Transaction;
+  item: BudgetLineWithConsumption | Transaction;
   cumulativeBalance: number;
   itemType: 'budget_line' | 'transaction';
 }
@@ -47,7 +47,7 @@ export class BudgetTableDataProvider {
    * 2. Transactions ordered by transactionDate ascending (fallback createdAt), then kind
    */
   #composeBudgetItemsWithBalanceGrouped(
-    budgetLines: BudgetLine[],
+    budgetLines: BudgetLineWithConsumption[],
     transactions: Transaction[],
   ): BudgetItemWithBalance[] {
     const items = this.#createDisplayItems(budgetLines, transactions);
@@ -72,8 +72,8 @@ export class BudgetTableDataProvider {
 
     if (a.itemType === 'budget_line') {
       return this.#compareBudgetLines(
-        a.item as BudgetLine,
-        b.item as BudgetLine,
+        a.item as BudgetLineWithConsumption,
+        b.item as BudgetLineWithConsumption,
       );
     }
 
@@ -83,7 +83,10 @@ export class BudgetTableDataProvider {
     );
   };
 
-  #compareBudgetLines(a: BudgetLine, b: BudgetLine): number {
+  #compareBudgetLines(
+    a: BudgetLineWithConsumption,
+    b: BudgetLineWithConsumption,
+  ): number {
     const recurrenceDiff =
       (this.#RECURRENCE_ORDER[a.recurrence] ?? Number.MAX_SAFE_INTEGER) -
       (this.#RECURRENCE_ORDER[b.recurrence] ?? Number.MAX_SAFE_INTEGER);
@@ -125,7 +128,7 @@ export class BudgetTableDataProvider {
     return aTimestamp - bTimestamp;
   }
 
-  #getBudgetLineSortTimestamp(line: BudgetLine): number {
+  #getBudgetLineSortTimestamp(line: BudgetLineWithConsumption): number {
     return this.#safeParseDate(line.createdAt ?? null);
   }
 
@@ -146,7 +149,7 @@ export class BudgetTableDataProvider {
    * Crée les éléments d'affichage pour le tri et le calcul des soldes
    */
   #createDisplayItems(
-    budgetLines: BudgetLine[],
+    budgetLines: BudgetLineWithConsumption[],
     transactions: Transaction[],
   ): BudgetItemWithBalance[] {
     const items: BudgetItemWithBalance[] = [];
@@ -197,7 +200,7 @@ export class BudgetTableDataProvider {
    * Provides budget table data for display
    */
   provideTableData(params: {
-    budgetLines: BudgetLine[];
+    budgetLines: BudgetLineWithConsumption[];
     transactions: Transaction[];
     editingLineId: string | null;
   }): TableItem[] {
@@ -209,7 +212,9 @@ export class BudgetTableDataProvider {
     return itemsWithBalance.map((item) => {
       const isRollover = isRolloverLine(item.item);
       const isBudgetLine = item.itemType === 'budget_line';
-      const budgetLine = isBudgetLine ? (item.item as BudgetLine) : null;
+      const budgetLine = isBudgetLine
+        ? (item.item as BudgetLineWithConsumption)
+        : null;
       return {
         data: item.item,
         metadata: {

@@ -45,6 +45,8 @@ describe('BudgetTable', () => {
       savingsGoalId: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      consumedAmount: 0,
+      remainingAmount: 1000,
     },
   ];
 
@@ -257,6 +259,8 @@ describe('BudgetTable', () => {
           ...mockBudgetLines[0],
           id: 'rollover-1',
           name: 'Report du mois précédent',
+          consumedAmount: 0,
+          remainingAmount: mockBudgetLines[0].amount,
           // In real implementation, rollover would be determined by metadata
         },
       ];
@@ -398,9 +402,24 @@ describe('BudgetTable', () => {
   describe('Test ID Uniqueness', () => {
     it('should have unique test IDs for each budget line', () => {
       const multipleBudgetLines: BudgetLineViewModel[] = [
-        { ...mockBudgetLines[0], id: 'line-1' },
-        { ...mockBudgetLines[0], id: 'line-2' },
-        { ...mockBudgetLines[0], id: 'line-3' },
+        {
+          ...mockBudgetLines[0],
+          id: 'line-1',
+          consumedAmount: 0,
+          remainingAmount: 1000,
+        },
+        {
+          ...mockBudgetLines[0],
+          id: 'line-2',
+          consumedAmount: 0,
+          remainingAmount: 1000,
+        },
+        {
+          ...mockBudgetLines[0],
+          id: 'line-3',
+          consumedAmount: 0,
+          remainingAmount: 1000,
+        },
       ];
 
       signalSetFn(component.budgetLines[SIGNAL], multipleBudgetLines);
@@ -527,6 +546,113 @@ describe('BudgetTable', () => {
       // Access protected property for testing purposes
       expect(component['inlineFormEditingItem']()).toBeNull();
       expect(component.editForm.value.name).toBe(null);
+    });
+  });
+
+  describe('View Allocated Transactions', () => {
+    describe('Mobile View', () => {
+      beforeEach(() => {
+        breakpointSubject.next({ matches: true, breakpoints: {} });
+        fixture.detectChanges();
+      });
+
+      it('should have "Voir les transactions" menu item in mobile menu', () => {
+        const compiled = fixture.nativeElement as HTMLElement;
+        const menuTrigger = compiled.querySelector(
+          '[data-testid="actions-menu-budget-line-1"]',
+        ) as HTMLButtonElement;
+
+        expect(menuTrigger).toBeTruthy();
+        menuTrigger?.click();
+        fixture.detectChanges();
+
+        const viewTransactionsMenuItem =
+          compiled.querySelector(
+            '[data-testid="view-transactions-budget-line-1"]',
+          ) ||
+          document.querySelector(
+            '[data-testid="view-transactions-budget-line-1"]',
+          );
+
+        expect(viewTransactionsMenuItem).toBeTruthy();
+        expect(viewTransactionsMenuItem?.textContent).toContain(
+          'Voir les transactions',
+        );
+      });
+
+      it('should emit viewTransactions when menu item clicked', () => {
+        const viewTransactionsSpy = vi.spyOn(
+          component.viewTransactions,
+          'emit',
+        );
+
+        const compiled = fixture.nativeElement as HTMLElement;
+        const menuTrigger = compiled.querySelector(
+          '[data-testid="actions-menu-budget-line-1"]',
+        ) as HTMLButtonElement;
+
+        menuTrigger?.click();
+        fixture.detectChanges();
+
+        const viewTransactionsMenuItem = (compiled.querySelector(
+          '[data-testid="view-transactions-budget-line-1"]',
+        ) ||
+          document.querySelector(
+            '[data-testid="view-transactions-budget-line-1"]',
+          )) as HTMLButtonElement;
+
+        viewTransactionsMenuItem?.click();
+        fixture.detectChanges();
+
+        expect(viewTransactionsSpy).toHaveBeenCalledWith('budget-line-1');
+      });
+    });
+
+    describe('Desktop View', () => {
+      beforeEach(() => {
+        breakpointSubject.next({ matches: false, breakpoints: {} });
+        fixture.detectChanges();
+      });
+
+      it('should have view transactions icon button on desktop', () => {
+        const compiled = fixture.nativeElement as HTMLElement;
+        const viewButton = compiled.querySelector(
+          '[data-testid="view-transactions-budget-line-1"]',
+        );
+
+        expect(viewButton).toBeTruthy();
+      });
+
+      it('should emit viewTransactions when icon button clicked', () => {
+        const viewTransactionsSpy = vi.spyOn(
+          component.viewTransactions,
+          'emit',
+        );
+
+        const compiled = fixture.nativeElement as HTMLElement;
+        const viewButton = compiled.querySelector(
+          '[data-testid="view-transactions-budget-line-1"]',
+        ) as HTMLButtonElement;
+
+        viewButton?.click();
+        fixture.detectChanges();
+
+        expect(viewTransactionsSpy).toHaveBeenCalledWith('budget-line-1');
+      });
+    });
+
+    describe('Consumption Chips', () => {
+      it('should display consumption chips showing spent and remaining amounts', () => {
+        const compiled = fixture.nativeElement as HTMLElement;
+        const consumptionChips = compiled.querySelector(
+          '[data-testid="consumption-chips-budget-line-1"]',
+        );
+
+        expect(consumptionChips).toBeTruthy();
+        // Should show "0 CHF dépensés · 1000 CHF restants" for mock data
+        expect(consumptionChips?.textContent).toContain('dépensés');
+        expect(consumptionChips?.textContent).toContain('restants');
+      });
     });
   });
 });

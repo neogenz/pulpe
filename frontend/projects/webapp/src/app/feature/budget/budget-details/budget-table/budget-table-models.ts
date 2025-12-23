@@ -1,10 +1,13 @@
-import { type BudgetLine, type Transaction } from '@pulpe/shared';
+import {
+  type BudgetLineWithConsumption,
+  type Transaction,
+} from '@pulpe/shared';
 
 /**
  * Simple table item using composition
  */
 export interface TableItem {
-  data: BudgetLine | Transaction;
+  data: BudgetLineWithConsumption | Transaction;
   metadata: {
     itemType: 'budget_line' | 'transaction';
     cumulativeBalance: number;
@@ -12,9 +15,10 @@ export interface TableItem {
     isRollover?: boolean;
     isTemplateLinked?: boolean;
     isPropagationLocked?: boolean;
+    isLoading?: boolean;
   };
 }
 
 export type BudgetLineTableItem = TableItem & {
-  data: BudgetLine;
+  data: BudgetLineWithConsumption;
 };

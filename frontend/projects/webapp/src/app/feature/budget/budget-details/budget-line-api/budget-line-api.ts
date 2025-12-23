@@ -7,6 +7,8 @@ import {
   type BudgetLineDeleteResponse,
   type BudgetLineCreate,
   type BudgetLineUpdate,
+  type BudgetLineWithConsumptionListResponse,
+  type TransactionListResponse,
 } from '@pulpe/shared';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { Logger } from '@core/logging/logger';
@@ -19,6 +21,10 @@ export class BudgetLineApi {
 
   get #apiUrl(): string {
     return `${this.#applicationConfig.backendApiUrl()}/budget-lines`;
+  }
+
+  get #budgetApiUrl(): string {
+    return `${this.#applicationConfig.backendApiUrl()}/budgets`;
   }
 
   getBudgetLines$(budgetId: string): Observable<BudgetLineListResponse> {
@@ -69,6 +75,52 @@ export class BudgetLineApi {
           this.#logger.error('Error deleting budget line:', error);
           return throwError(
             () => new Error('Impossible de supprimer la prévision'),
+          );
+        }),
+      );
+  }
+
+  /**
+   * Get budget lines with consumption data (consumedAmount, remainingAmount)
+   * Uses the enriched endpoint GET /budgets/:id/lines
+   */
+  getBudgetLinesWithConsumption$(
+    budgetId: string,
+  ): Observable<BudgetLineWithConsumptionListResponse> {
+    return this.#http
+      .get<BudgetLineWithConsumptionListResponse>(
+        `${this.#budgetApiUrl}/${budgetId}/lines`,
+      )
+      .pipe(
+        catchError((error) => {
+          this.#logger.error(
+            'Error fetching budget lines with consumption:',
+            error,
+          );
+          return throwError(
+            () => new Error('Impossible de charger les prévisions enrichies'),
+          );
+        }),
+      );
+  }
+
+  /**
+   * Get transactions allocated to a specific budget line
+   * Uses endpoint GET /budget-lines/:id/transactions
+   * Returns transactions sorted by date DESC
+   */
+  getAllocatedTransactions$(
+    budgetLineId: string,
+  ): Observable<TransactionListResponse> {
+    return this.#http
+      .get<TransactionListResponse>(
+        `${this.#apiUrl}/${budgetLineId}/transactions`,
+      )
+      .pipe(
+        catchError((error) => {
+          this.#logger.error('Error fetching allocated transactions:', error);
+          return throwError(
+            () => new Error('Impossible de charger les transactions allouées'),
           );
         }),
       );

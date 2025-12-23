@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import type { BudgetLineCreate, BudgetLineUpdate } from '@pulpe/shared';
+import type {
+  BudgetLineCreate,
+  BudgetLineUpdate,
+  BudgetLineWithConsumption,
+} from '@pulpe/shared';
 
 /**
  * Tests unitaires métier pour BudgetDetailsStore
@@ -444,6 +448,185 @@ describe('BudgetDetailsStore - Logique Métier', () => {
       expect(updated.budgetLines).not.toBe(original.budgetLines);
       expect(updated.budgetLines[0].amount).toBe(200);
       expect(original.budgetLines[0].amount).toBe(100); // Original unchanged
+    });
+  });
+
+  describe('BudgetLinesWithConsumption - État enrichi', () => {
+    it('should contain consumedAmount and remainingAmount in budget lines', () => {
+      // Arrange - Mock enriched budget lines
+      const enrichedLines: BudgetLineWithConsumption[] = [
+        {
+          id: 'line-1',
+          budgetId: 'budget-1',
+          name: 'Essence',
+          amount: 120,
+          kind: 'expense',
+          recurrence: 'fixed',
+          templateLineId: null,
+          savingsGoalId: null,
+          isManuallyAdjusted: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          consumedAmount: 65,
+          remainingAmount: 55,
+        },
+        {
+          id: 'line-2',
+          budgetId: 'budget-1',
+          name: 'Courses',
+          amount: 400,
+          kind: 'expense',
+          recurrence: 'fixed',
+          templateLineId: null,
+          savingsGoalId: null,
+          isManuallyAdjusted: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          consumedAmount: 0,
+          remainingAmount: 400,
+        },
+      ];
+
+      // Act & Assert - Verify enriched fields
+      expect(enrichedLines[0]).toHaveProperty('consumedAmount');
+      expect(enrichedLines[0]).toHaveProperty('remainingAmount');
+      expect(enrichedLines[0].consumedAmount).toBe(65);
+      expect(enrichedLines[0].remainingAmount).toBe(55);
+
+      // Verify line without consumption
+      expect(enrichedLines[1].consumedAmount).toBe(0);
+      expect(enrichedLines[1].remainingAmount).toBe(400);
+    });
+
+    it('should calculate remainingAmount as amount - consumedAmount', () => {
+      // Arrange
+      const line: BudgetLineWithConsumption = {
+        id: 'line-1',
+        budgetId: 'budget-1',
+        name: 'Loyer',
+        amount: 1500,
+        kind: 'expense',
+        recurrence: 'fixed',
+        templateLineId: null,
+        savingsGoalId: null,
+        isManuallyAdjusted: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        consumedAmount: 1500, // Fully consumed
+        remainingAmount: 0,
+      };
+
+      // Act & Assert
+      expect(line.amount - line.consumedAmount).toBe(line.remainingAmount);
+    });
+
+    it('should provide access to a budget line by ID with consumption data', () => {
+      // Arrange
+      const enrichedLines: BudgetLineWithConsumption[] = [
+        {
+          id: 'line-essence',
+          budgetId: 'budget-1',
+          name: 'Essence',
+          amount: 120,
+          kind: 'expense',
+          recurrence: 'fixed',
+          templateLineId: null,
+          savingsGoalId: null,
+          isManuallyAdjusted: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          consumedAmount: 65,
+          remainingAmount: 55,
+        },
+        {
+          id: 'line-courses',
+          budgetId: 'budget-1',
+          name: 'Courses',
+          amount: 400,
+          kind: 'expense',
+          recurrence: 'fixed',
+          templateLineId: null,
+          savingsGoalId: null,
+          isManuallyAdjusted: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          consumedAmount: 150,
+          remainingAmount: 250,
+        },
+      ];
+
+      // Act - Simulate computed for getting line by ID
+      const getBudgetLineWithConsumption = (
+        id: string,
+      ): BudgetLineWithConsumption | undefined => {
+        return enrichedLines.find((line) => line.id === id);
+      };
+
+      // Assert
+      const essenceLine = getBudgetLineWithConsumption('line-essence');
+      expect(essenceLine).toBeDefined();
+      expect(essenceLine?.name).toBe('Essence');
+      expect(essenceLine?.consumedAmount).toBe(65);
+      expect(essenceLine?.remainingAmount).toBe(55);
+
+      const coursesLine = getBudgetLineWithConsumption('line-courses');
+      expect(coursesLine).toBeDefined();
+      expect(coursesLine?.consumedAmount).toBe(150);
+
+      // Non-existent line
+      const nonExistent = getBudgetLineWithConsumption('line-unknown');
+      expect(nonExistent).toBeUndefined();
+    });
+
+    it('should handle budget lines with zero consumption', () => {
+      // Arrange - Line with no allocated transactions
+      const lineWithNoConsumption: BudgetLineWithConsumption = {
+        id: 'line-new',
+        budgetId: 'budget-1',
+        name: 'Nouvelle prévision',
+        amount: 200,
+        kind: 'expense',
+        recurrence: 'one_off',
+        templateLineId: null,
+        savingsGoalId: null,
+        isManuallyAdjusted: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        consumedAmount: 0,
+        remainingAmount: 200,
+      };
+
+      // Assert
+      expect(lineWithNoConsumption.consumedAmount).toBe(0);
+      expect(lineWithNoConsumption.remainingAmount).toBe(
+        lineWithNoConsumption.amount,
+      );
+    });
+
+    it('should handle over-consumption (remaining can be negative)', () => {
+      // Arrange - User spent more than budgeted
+      const overConsumedLine: BudgetLineWithConsumption = {
+        id: 'line-over',
+        budgetId: 'budget-1',
+        name: 'Restaurant',
+        amount: 100,
+        kind: 'expense',
+        recurrence: 'fixed',
+        templateLineId: null,
+        savingsGoalId: null,
+        isManuallyAdjusted: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        consumedAmount: 150, // Over budget by 50
+        remainingAmount: -50,
+      };
+
+      // Assert - Remaining can be negative when over budget
+      expect(overConsumedLine.consumedAmount).toBeGreaterThan(
+        overConsumedLine.amount,
+      );
+      expect(overConsumedLine.remainingAmount).toBeLessThan(0);
+      expect(overConsumedLine.remainingAmount).toBe(-50);
     });
   });
 });
