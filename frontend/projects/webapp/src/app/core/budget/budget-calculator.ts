@@ -61,9 +61,10 @@ export class BudgetCalculator {
   }
 
   /**
-   * Calcule le ending balance localement selon les spécifications métier
-   * ending_balance = available - totalExpenses
-   * Délègue au shared BudgetFormulas
+   * Calcule le ending balance localement avec la logique d'enveloppe
+   *
+   * Les transactions allouées à une enveloppe ne sont pas comptabilisées
+   * sauf si elles dépassent le montant de l'enveloppe (seul l'excès compte).
    *
    * @param budgetLines Les lignes budgétaires planifiées
    * @param transactions Les transactions réelles effectuées
@@ -75,7 +76,7 @@ export class BudgetCalculator {
     transactions: Transaction[],
     rollover = 0,
   ): number {
-    return BudgetFormulas.calculateAllMetrics(
+    return BudgetFormulas.calculateAllMetricsWithEnvelopes(
       budgetLines,
       transactions,
       rollover,

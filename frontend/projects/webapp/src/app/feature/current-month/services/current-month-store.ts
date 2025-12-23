@@ -124,22 +124,34 @@ export class CurrentMonthStore {
   });
 
   /**
-   * Total des revenus (budget lines + transactions)
+   * Total des revenus (budget lines + transactions) avec logique d'enveloppe
+   *
+   * Pour les transactions allouées à une enveloppe de revenu,
+   * seul l'excès par rapport au montant de l'enveloppe est comptabilisé.
    */
   readonly totalIncome = computed<number>(() => {
     const budgetLines = this.budgetLines();
     const transactions = this.transactions();
-    return BudgetFormulas.calculateTotalIncome(budgetLines, transactions);
+    return BudgetFormulas.calculateTotalIncomeWithEnvelopes(
+      budgetLines,
+      transactions,
+    );
   });
 
   /**
-   * Total dépensé (expenses + savings) depuis les budget lines ET transactions
-   * Utilise les formules partagées
+   * Total dépensé (expenses + savings) avec logique d'enveloppe
+   *
+   * Pour les transactions allouées à une enveloppe de dépense/épargne,
+   * seul l'excès par rapport au montant de l'enveloppe est comptabilisé.
+   * Cela évite le double comptage (enveloppe + transactions).
    */
   readonly totalExpenses = computed<number>(() => {
     const budgetLines = this.budgetLines();
     const transactions = this.transactions();
-    return BudgetFormulas.calculateTotalExpenses(budgetLines, transactions);
+    return BudgetFormulas.calculateTotalExpensesWithEnvelopes(
+      budgetLines,
+      transactions,
+    );
   });
 
   /**
@@ -252,9 +264,9 @@ export class CurrentMonthStore {
       if (currentData && currentData.budget) {
         const updatedData = updateData(currentData, response);
 
-        // Recalculate ending balance locally avec les formules partagées
+        // Recalculate ending balance locally avec la logique d'enveloppe
         const rollover = updatedData.budget?.rollover || 0;
-        const metrics = BudgetFormulas.calculateAllMetrics(
+        const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
           updatedData.budgetLines,
           updatedData.transactions,
           rollover,
@@ -318,9 +330,9 @@ export class CurrentMonthStore {
       if (currentData && currentData.budget) {
         const updatedData = updateData(currentData);
 
-        // Recalculate ending balance locally avec les formules partagées
+        // Recalculate ending balance locally avec la logique d'enveloppe
         const rollover = updatedData.budget?.rollover || 0;
-        const metrics = BudgetFormulas.calculateAllMetrics(
+        const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
           updatedData.budgetLines,
           updatedData.transactions,
           rollover,

@@ -22,7 +22,12 @@ export class BudgetCalculator {
 
   /**
    * Calculates the ending balance for a specific month
-   * Uses shared BudgetFormulas for consistency
+   * Uses shared BudgetFormulas with envelope logic for consistency
+   *
+   * Envelope logic:
+   * - Allocated transactions (with budget_line_id) don't count towards expenses
+   * - Unless they exceed the envelope amount - only the excess counts
+   *
    * @param budgetId - The budget ID
    * @param supabase - Authenticated Supabase client
    * @returns The calculated ending balance
@@ -31,22 +36,33 @@ export class BudgetCalculator {
     budgetId: string,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<number> {
+    // Fetch all fields needed for envelope logic
+    // Using '*' because selectFields is shared between budget_line and transaction tables
     const { budgetLines, transactions } = await this.repository.fetchBudgetData(
       budgetId,
       supabase,
-      { selectFields: 'kind, amount' },
+      { selectFields: '*' },
     );
 
-    const totalIncome = BudgetFormulas.calculateTotalIncome(
-      budgetLines,
-      transactions,
-    );
-    const totalExpenses = BudgetFormulas.calculateTotalExpenses(
-      budgetLines,
-      transactions,
+    // Map to the interface expected by BudgetFormulas
+    const mappedBudgetLines = budgetLines.map((line) => ({
+      id: (line as { id: string }).id,
+      kind: line.kind,
+      amount: line.amount,
+    }));
+
+    const mappedTransactions = transactions.map((tx) => ({
+      kind: tx.kind,
+      amount: tx.amount,
+      budgetLineId: (tx as { budget_line_id?: string | null }).budget_line_id,
+    }));
+
+    const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
+      mappedBudgetLines,
+      mappedTransactions,
     );
 
-    return totalIncome - totalExpenses;
+    return metrics.endingBalance;
   }
 
   /**

@@ -37,6 +37,8 @@ import {
   type BudgetLineUpdate,
   type BudgetLine,
   type Transaction,
+  type TransactionCreate,
+  type TransactionUpdate,
 } from '@pulpe/shared';
 import {
   ProductTourService,
@@ -128,6 +130,10 @@ import {
           (update)="handleUpdateBudgetLine($event)"
           (delete)="handleDeleteItem($event)"
           (add)="openAddBudgetLineDialog()"
+          (viewTransactions)="handleTransactionsUpdated()"
+          (createTransaction)="handleCreateTransaction($event)"
+          (updateTransaction)="handleUpdateTransaction($event)"
+          (deleteTransaction)="handleDeleteTransaction($event)"
           data-tour="budget-table"
         />
 
@@ -325,5 +331,33 @@ export default class BudgetDetailsPage {
         panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
       });
     }
+  }
+
+  handleTransactionsUpdated(): void {
+    this.store.reloadBudgetDetails();
+  }
+
+  async handleCreateTransaction(transaction: TransactionCreate): Promise<void> {
+    await this.store.createAllocatedTransaction(transaction);
+    this.#snackBar.open('Transaction ajoutée.', 'Fermer', {
+      duration: 3000,
+    });
+  }
+
+  async handleUpdateTransaction(event: {
+    id: string;
+    data: TransactionUpdate;
+  }): Promise<void> {
+    await this.store.updateAllocatedTransaction(event.id, event.data);
+    this.#snackBar.open('Transaction modifiée.', 'Fermer', {
+      duration: 3000,
+    });
+  }
+
+  async handleDeleteTransaction(id: string): Promise<void> {
+    await this.store.deleteTransaction(id);
+    this.#snackBar.open('Transaction supprimée.', 'Fermer', {
+      duration: 3000,
+    });
   }
 }

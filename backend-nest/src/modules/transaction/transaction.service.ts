@@ -111,10 +111,53 @@ export class TransactionService {
     }
   }
 
+  private async validateBudgetLineAllocation(
+    dto: TransactionCreate,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    if (!dto.budgetLineId) {
+      return;
+    }
+
+    const { data: budgetLine, error } = await supabase
+      .from('budget_line')
+      .select('id, budget_id, kind')
+      .eq('id', dto.budgetLineId)
+      .single();
+
+    if (error || !budgetLine) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND,
+        { id: dto.budgetLineId },
+        {
+          operation: 'validateBudgetLineAllocation',
+          entityId: dto.budgetLineId,
+          entityType: 'budget_line',
+          supabaseError: error,
+        },
+      );
+    }
+
+    if (budgetLine.budget_id !== dto.budgetId) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_BUDGET_LINE_MISMATCH,
+        { budgetLineId: dto.budgetLineId, budgetId: dto.budgetId },
+      );
+    }
+
+    if (budgetLine.kind !== dto.kind) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_BUDGET_LINE_KIND_MISMATCH,
+        { transactionKind: dto.kind, budgetLineKind: budgetLine.kind },
+      );
+    }
+  }
+
   private prepareTransactionData(createTransactionDto: TransactionCreate) {
     // Manual conversion without Zod validation (already validated in service)
     return {
       budget_id: createTransactionDto.budgetId,
+      budget_line_id: createTransactionDto.budgetLineId ?? null,
       amount: createTransactionDto.amount,
       name: createTransactionDto.name,
       kind: createTransactionDto.kind as Database['public']['Enums']['transaction_kind'],
@@ -171,6 +214,7 @@ export class TransactionService {
   ): Promise<TransactionResponse> {
     try {
       this.validateCreateTransactionDto(createTransactionDto);
+      await this.validateBudgetLineAllocation(createTransactionDto, supabase);
 
       const transactionData = this.prepareTransactionData(createTransactionDto);
       const transactionDb = await this.insertTransaction(
@@ -324,6 +368,9 @@ export class TransactionService {
       }),
       ...(updateTransactionDto.category !== undefined && {
         category: updateTransactionDto.category,
+      }),
+      ...(updateTransactionDto.budgetLineId !== undefined && {
+        budget_line_id: updateTransactionDto.budgetLineId,
       }),
       updated_at: new Date().toISOString(),
     };

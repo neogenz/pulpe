@@ -1,6 +1,7 @@
 import type {
   BudgetDetailsResponse,
   BudgetLineResponse,
+  AllocatedTransactionsListResponse,
   Budget,
   BudgetLine,
   Transaction,
@@ -72,13 +73,47 @@ export function createBudgetLineResponseMock(
 
 export function createMultipleBudgetLinesMock(
   budgetId: string,
-  lines: { id: string; name: string; amount: number; kind?: BudgetLine['kind'] }[]
+  lines: {
+    id: string;
+    name: string;
+    amount: number;
+    kind?: BudgetLine['kind'];
+  }[],
 ): BudgetLine[] {
   return lines.map((line) =>
     createBudgetLineMock(line.id, budgetId, {
       name: line.name,
       amount: line.amount,
       kind: line.kind || 'expense',
-    })
+    }),
   );
+}
+
+export function createTransactionMock(
+  id: string,
+  budgetId: string,
+  overrides?: Partial<Transaction>,
+): Transaction {
+  return {
+    id,
+    budgetId,
+    budgetLineId: null,
+    name: 'Test Transaction',
+    amount: 50,
+    kind: 'expense',
+    transactionDate: '2025-01-15T00:00:00Z',
+    category: null,
+    createdAt: '2025-01-01T00:00:00Z',
+    updatedAt: '2025-01-01T00:00:00Z',
+    ...overrides,
+  };
+}
+
+export function createAllocatedTransactionsResponseMock(
+  transactions: Transaction[],
+): AllocatedTransactionsListResponse {
+  return {
+    success: true,
+    data: transactions,
+  };
 }

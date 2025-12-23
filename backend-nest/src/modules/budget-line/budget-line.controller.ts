@@ -23,6 +23,8 @@ import {
   type BudgetLineResponse,
   type BudgetLineListResponse,
   type BudgetLineDeleteResponse,
+  type BudgetLineWithTransactionsListResponse,
+  type AllocatedTransactionsListResponse,
 } from '@pulpe/shared';
 import { AuthGuard } from '@common/guards/auth.guard';
 import {
@@ -38,6 +40,8 @@ import {
   BudgetLineResponseDto,
   BudgetLineListResponseDto,
   BudgetLineDeleteResponseDto,
+  BudgetLineWithTransactionsListResponseDto,
+  AllocatedTransactionsListResponseDto,
 } from './dto/budget-line-swagger.dto';
 import { ErrorResponseDto } from '@common/dto/response.dto';
 
@@ -55,6 +59,37 @@ import { ErrorResponseDto } from '@common/dto/response.dto';
 })
 export class BudgetLineController {
   constructor(private readonly budgetLineService: BudgetLineService) {}
+
+  // IMPORTANT: More specific routes MUST come BEFORE generic routes
+  // e.g., 'budget/:budgetId/with-transactions' BEFORE 'budget/:budgetId'
+  // and ':id/transactions' BEFORE ':id'
+
+  @Get('budget/:budgetId/with-transactions')
+  @ApiOperation({
+    summary:
+      "Liste toutes les lignes budgétaires d'un budget avec leurs transactions allouées",
+  })
+  @ApiParam({
+    name: 'budgetId',
+    description: 'Identifiant unique du budget',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Liste des lignes budgétaires avec transactions récupérée avec succès',
+    type: BudgetLineWithTransactionsListResponseDto,
+  })
+  async findByBudgetWithTransactions(
+    @Param('budgetId') budgetId: string,
+    @User() _user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<BudgetLineWithTransactionsListResponse> {
+    return this.budgetLineService.findByBudgetIdWithTransactions(
+      budgetId,
+      supabase,
+    );
+  }
 
   @Get('budget/:budgetId')
   @ApiOperation({ summary: "Liste toutes les lignes budgétaires d'un budget" })
@@ -89,6 +124,35 @@ export class BudgetLineController {
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineResponse> {
     return this.budgetLineService.create(createBudgetLineDto, user, supabase);
+  }
+
+  @Get(':id/transactions')
+  @ApiOperation({
+    summary: 'Récupère les transactions allouées à une ligne budgétaire',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Identifiant unique de la ligne budgétaire',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Liste des transactions allouées récupérée avec succès',
+    type: AllocatedTransactionsListResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Budget line not found',
+    type: ErrorResponseDto,
+  })
+  async getAllocatedTransactions(
+    @Param('id') id: string,
+    @User() _user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<AllocatedTransactionsListResponse> {
+    return this.budgetLineService.getAllocatedTransactionsResponse(
+      id,
+      supabase,
+    );
   }
 
   @Get(':id')

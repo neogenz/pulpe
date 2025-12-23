@@ -11,8 +11,13 @@ import {
   type BudgetLineResponse,
   type BudgetLineUpdate,
   type BudgetLineDeleteResponse,
+  type Transaction,
+  type BudgetLineWithTransactions,
+  type BudgetLineWithTransactionsListResponse,
+  type AllocatedTransactionsListResponse,
 } from '@pulpe/shared';
 import * as budgetLineMappers from './budget-line.mappers';
+import * as transactionMappers from '../transaction/transaction.mappers';
 import type { Database } from '../../types/database.types';
 import { BudgetService } from '../budget/budget.service';
 
@@ -493,6 +498,198 @@ export class BudgetLineService {
           operation: 'listBudgetLinesByBudget',
           entityId: budgetId,
           entityType: 'budget_line',
+        },
+      );
+    }
+  }
+
+  async getConsumedAmount(
+    budgetLineId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<number> {
+    const { data, error } = await supabase
+      .from('transaction')
+      .select('amount')
+      .eq('budget_line_id', budgetLineId);
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'getConsumedAmount',
+          entityId: budgetLineId,
+          entityType: 'budget_line',
+          supabaseError: error,
+        },
+        { cause: error },
+      );
+    }
+
+    return (data || []).reduce(
+      (sum, transaction) => sum + transaction.amount,
+      0,
+    );
+  }
+
+  async getRemainingAmount(
+    budgetLineId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<number> {
+    const { data: budgetLine, error } = await supabase
+      .from('budget_line')
+      .select('amount')
+      .eq('id', budgetLineId)
+      .single();
+
+    if (error || !budgetLine) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND,
+        { id: budgetLineId },
+        {
+          operation: 'getRemainingAmount',
+          entityId: budgetLineId,
+          entityType: 'budget_line',
+          supabaseError: error,
+        },
+      );
+    }
+
+    const consumedAmount = await this.getConsumedAmount(budgetLineId, supabase);
+    return budgetLine.amount - consumedAmount;
+  }
+
+  async getAllocatedTransactions(
+    budgetLineId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<Transaction[]> {
+    const { data: transactionsDb, error } = await supabase
+      .from('transaction')
+      .select('*')
+      .eq('budget_line_id', budgetLineId)
+      .order('transaction_date', { ascending: false });
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'getAllocatedTransactions',
+          entityId: budgetLineId,
+          entityType: 'budget_line',
+          supabaseError: error,
+        },
+        { cause: error },
+      );
+    }
+
+    return transactionMappers.toApiList(transactionsDb || []);
+  }
+
+  async getAllocatedTransactionsResponse(
+    budgetLineId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<AllocatedTransactionsListResponse> {
+    const transactions = await this.getAllocatedTransactions(
+      budgetLineId,
+      supabase,
+    );
+    return {
+      success: true,
+      data: transactions,
+    };
+  }
+
+  async getWithTransactions(
+    budgetLineId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<BudgetLineWithTransactions> {
+    const { data: budgetLineDb, error } = await supabase
+      .from('budget_line')
+      .select('*')
+      .eq('id', budgetLineId)
+      .single();
+
+    if (error || !budgetLineDb) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND,
+        { id: budgetLineId },
+        {
+          operation: 'getWithTransactions',
+          entityId: budgetLineId,
+          entityType: 'budget_line',
+          supabaseError: error,
+        },
+      );
+    }
+
+    const [consumedAmount, allocatedTransactions] = await Promise.all([
+      this.getConsumedAmount(budgetLineId, supabase),
+      this.getAllocatedTransactions(budgetLineId, supabase),
+    ]);
+
+    return {
+      budgetLine: budgetLineMappers.toApi(budgetLineDb),
+      consumedAmount,
+      remainingAmount: budgetLineDb.amount - consumedAmount,
+      allocatedTransactions,
+    };
+  }
+
+  async findByBudgetIdWithTransactions(
+    budgetId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<BudgetLineWithTransactionsListResponse> {
+    try {
+      const { data: budgetLinesDb, error } = await supabase
+        .from('budget_line')
+        .select('*')
+        .eq('budget_id', budgetId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
+          undefined,
+          {
+            operation: 'findByBudgetIdWithTransactions',
+            entityId: budgetId,
+            entityType: 'budget',
+            supabaseError: error,
+          },
+          { cause: error },
+        );
+      }
+
+      const enrichedLines = await Promise.all(
+        (budgetLinesDb || []).map(async (budgetLineDb) => {
+          const [consumedAmount, allocatedTransactions] = await Promise.all([
+            this.getConsumedAmount(budgetLineDb.id, supabase),
+            this.getAllocatedTransactions(budgetLineDb.id, supabase),
+          ]);
+
+          return {
+            budgetLine: budgetLineMappers.toApi(budgetLineDb),
+            consumedAmount,
+            remainingAmount: budgetLineDb.amount - consumedAmount,
+            allocatedTransactions,
+          };
+        }),
+      );
+
+      return {
+        success: true,
+        data: enrichedLines,
+      };
+    } catch (error) {
+      handleServiceError(
+        error,
+        ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'findByBudgetIdWithTransactions',
+          entityId: budgetId,
+          entityType: 'budget',
         },
       );
     }

@@ -13,6 +13,10 @@ import {
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { map } from 'rxjs/operators';
+import {
+  MatBottomSheet,
+  MatBottomSheetModule,
+} from '@angular/material/bottom-sheet';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
@@ -26,12 +30,23 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 import { RolloverFormatPipe } from '@app/ui/rollover-format';
 import { Logger } from '@core/logging/logger';
-import { type BudgetLineUpdate } from '@pulpe/shared';
+import {
+  type BudgetLineUpdate,
+  type BudgetLine,
+  type Transaction,
+  type TransactionCreate,
+  type TransactionUpdate,
+} from '@pulpe/shared';
 import {
   RecurrenceLabelPipe,
   TransactionLabelPipe,
 } from '@ui/transaction-display';
 import { EditBudgetLineDialog } from '../edit-budget-line/edit-budget-line-dialog';
+import { AllocatedTransactionsDialog } from '../allocated-transactions-dialog';
+import {
+  AllocatedTransactionBottomSheet,
+  type AllocatedTransactionBottomSheetData,
+} from '../allocated-transaction-bottom-sheet';
 import { type BudgetLineViewModel } from '../models/budget-line-view-model';
 import { type TransactionViewModel } from '../models/transaction-view-model';
 import { BudgetTableDataProvider } from './budget-table-data-provider';
@@ -39,10 +54,12 @@ import {
   type BudgetLineTableItem,
   type TableItem,
 } from './budget-table-models';
+import { AllocatedTransactionsInline } from './allocated-transactions-inline';
 
 @Component({
   selector: 'pulpe-budget-table',
   imports: [
+    MatBottomSheetModule,
     MatTableModule,
     MatCardModule,
     MatIconModule,
@@ -58,6 +75,7 @@ import {
     TransactionLabelPipe,
     RecurrenceLabelPipe,
     RolloverFormatPipe,
+    AllocatedTransactionsInline,
   ],
   host: {},
   template: `
@@ -73,8 +91,31 @@ import {
           mat-table
           [dataSource]="budgetTableData()"
           [trackBy]="trackByRow"
+          multiTemplateDataRows
           class="w-full min-w-[600px]"
         >
+          <!-- Expand Column -->
+          <ng-container matColumnDef="expand">
+            <th mat-header-cell *matHeaderCellDef class="w-12"></th>
+            <td mat-cell *matCellDef="let row">
+              @if (
+                row.metadata.itemType === 'budget_line' &&
+                !row.metadata.isRollover
+              ) {
+                <button
+                  matIconButton
+                  (click)="toggleExpand(row); $event.stopPropagation()"
+                  [attr.aria-label]="isExpanded(row) ? 'Réduire' : 'Développer'"
+                  class="!w-8 !h-8"
+                >
+                  <mat-icon>
+                    {{ isExpanded(row) ? 'expand_less' : 'expand_more' }}
+                  </mat-icon>
+                </button>
+              }
+            </td>
+          </ng-container>
+
           <!-- Name Column -->
           <ng-container matColumnDef="name">
             <th mat-header-cell *matHeaderCellDef>Description</th>
@@ -304,6 +345,14 @@ import {
                       @if (line.metadata.itemType === 'budget_line') {
                         <button
                           mat-menu-item
+                          (click)="openAllocatedTransactions(line.data)"
+                          [attr.data-testid]="'transactions-' + line.data.id"
+                        >
+                          <mat-icon matMenuItemIcon>receipt_long</mat-icon>
+                          <span>Transactions</span>
+                        </button>
+                        <button
+                          mat-menu-item
                           (click)="startEdit(line)"
                           [attr.data-testid]="'edit-' + line.data.id"
                         >
@@ -326,6 +375,20 @@ import {
                   } @else if (!line.metadata.isRollover) {
                     <!-- Desktop: Separate edit and delete buttons -->
                     @if (line.metadata.itemType === 'budget_line') {
+                      <button
+                        matIconButton
+                        (click)="openAllocatedTransactions(line.data)"
+                        [attr.aria-label]="
+                          'Voir les transactions de ' +
+                          (line.data.name | rolloverFormat)
+                        "
+                        [attr.data-testid]="'transactions-' + line.data.id"
+                        [disabled]="line.metadata.isLoading"
+                        matTooltip="Voir les transactions"
+                        class="!w-10 !h-10"
+                      >
+                        <mat-icon>receipt_long</mat-icon>
+                      </button>
                       <button
                         matIconButton
                         (click)="startEdit(line)"
@@ -355,26 +418,60 @@ import {
             </td>
           </ng-container>
 
+          <!-- Expanded Detail Column -->
+          <ng-container matColumnDef="expandedDetail">
+            <td
+              mat-cell
+              *matCellDef="let row"
+              [attr.colspan]="columnsWithExpand().length"
+            >
+              @if (row.metadata.itemType === 'budget_line' && isExpanded(row)) {
+                <div
+                  class="overflow-hidden bg-surface-container-lowest border-l-4 border-primary"
+                >
+                  <pulpe-allocated-transactions-inline
+                    [budgetLine]="row.data"
+                    [transactions]="getTransactionsForLine(row.data.id)"
+                    (add)="openAddTransactionSheet(row.data)"
+                    (edit)="openEditTransactionSheet($event, row.data)"
+                    (delete)="deleteTransaction.emit($event)"
+                  />
+                </div>
+              }
+            </td>
+          </ng-container>
+
           <tr
             mat-header-row
-            *matHeaderRowDef="currentColumns(); sticky: true"
+            *matHeaderRowDef="columnsWithExpand(); sticky: true"
           ></tr>
           <tr
             mat-row
-            *matRowDef="let row; columns: currentColumns()"
-            class="hover:bg-surface-container-low transition-opacity"
+            *matRowDef="let row; columns: columnsWithExpand()"
+            class="hover:bg-surface-container-low transition-opacity cursor-pointer"
             [class.opacity-50]="row.metadata.isLoading"
             [class.pointer-events-none]="row.metadata.isLoading"
+            [class.bg-surface-container]="isExpanded(row)"
             [attr.data-testid]="
               'budget-line-' + (row.data.name | rolloverFormat)
             "
+            (click)="
+              row.metadata.itemType === 'budget_line' &&
+                !row.metadata.isRollover &&
+                toggleExpand(row)
+            "
+          ></tr>
+          <tr
+            mat-row
+            *matRowDef="let row; columns: ['expandedDetail']"
+            class="detail-row"
           ></tr>
 
           <!-- No data row -->
           <tr class="mat-row" *matNoDataRow>
             <td
               class="mat-cell text-center py-8"
-              [attr.colspan]="currentColumns().length"
+              [attr.colspan]="columnsWithExpand().length"
             >
               <p class="text-body-medium text-on-surface-variant">
                 Aucune prévision définie
@@ -419,6 +516,15 @@ import {
     .mat-mdc-row:hover {
       cursor: pointer;
     }
+
+    .detail-row {
+      height: 0;
+    }
+
+    .detail-row td {
+      padding: 0 !important;
+      border-bottom-width: 0;
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -430,14 +536,22 @@ export class BudgetTable {
   update = output<BudgetLineUpdate>();
   delete = output<string>();
   add = output<void>();
+  viewTransactions = output<BudgetLine>();
+  createTransaction = output<TransactionCreate>();
+  updateTransaction = output<{ id: string; data: TransactionUpdate }>();
+  deleteTransaction = output<string>();
 
   // Services
   readonly #breakpointObserver = inject(BreakpointObserver);
   readonly #fb = inject(FormBuilder);
   readonly #dialog = inject(MatDialog);
+  readonly #bottomSheet = inject(MatBottomSheet);
   readonly #destroyRef = inject(DestroyRef);
   readonly #budgetTableDataProvider = inject(BudgetTableDataProvider);
   readonly #logger = inject(Logger);
+
+  // Expansion state
+  protected expandedBudgetLineId = signal<string | null>(null);
 
   // UI configuration
   displayedColumns = ['name', 'amount', 'remaining', 'recurrence', 'actions'];
@@ -459,6 +573,8 @@ export class BudgetTable {
   currentColumns = computed(() =>
     this.isMobile() ? this.displayedColumnsMobile : this.displayedColumns,
   );
+
+  columnsWithExpand = computed(() => ['expand', ...this.currentColumns()]);
 
   // View Model - single computed that delegates to service
   budgetTableData = computed(() => {
@@ -535,5 +651,80 @@ export class BudgetTable {
     this.inlineFormEditingItem.set(null);
     this.editForm.reset();
     this.update.emit(updateData);
+  }
+
+  openAllocatedTransactions(budgetLine: BudgetLineViewModel): void {
+    const dialogRef = this.#dialog.open(AllocatedTransactionsDialog, {
+      data: { budgetLine },
+      width: '600px',
+      maxWidth: '90vw',
+    });
+
+    dialogRef
+      .afterClosed()
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe((result) => {
+        if (result?.updated) {
+          this.viewTransactions.emit(budgetLine);
+        }
+      });
+  }
+
+  // Expansion methods
+  protected isExpanded(row: TableItem): boolean {
+    return this.expandedBudgetLineId() === row.data.id;
+  }
+
+  protected toggleExpand(row: TableItem): void {
+    this.expandedBudgetLineId.update((current) =>
+      current === row.data.id ? null : row.data.id,
+    );
+  }
+
+  protected getTransactionsForLine(budgetLineId: string): Transaction[] {
+    return this.transactions().filter((tx) => tx.budgetLineId === budgetLineId);
+  }
+
+  // Bottom sheet methods for allocated transactions
+  protected openAddTransactionSheet(budgetLine: BudgetLine): void {
+    const sheetRef = this.#bottomSheet.open<
+      AllocatedTransactionBottomSheet,
+      AllocatedTransactionBottomSheetData
+    >(AllocatedTransactionBottomSheet, {
+      data: { budgetLine, mode: 'create' },
+    });
+
+    sheetRef
+      .afterDismissed()
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe((result) => {
+        if (result?.transaction && result.mode === 'create') {
+          this.createTransaction.emit(result.transaction as TransactionCreate);
+        }
+      });
+  }
+
+  protected openEditTransactionSheet(
+    transaction: Transaction,
+    budgetLine: BudgetLine,
+  ): void {
+    const sheetRef = this.#bottomSheet.open<
+      AllocatedTransactionBottomSheet,
+      AllocatedTransactionBottomSheetData
+    >(AllocatedTransactionBottomSheet, {
+      data: { budgetLine, transaction, mode: 'edit' },
+    });
+
+    sheetRef
+      .afterDismissed()
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe((result) => {
+        if (result?.transaction && result.mode === 'edit') {
+          this.updateTransaction.emit({
+            id: transaction.id,
+            data: result.transaction as TransactionUpdate,
+          });
+        }
+      });
   }
 }

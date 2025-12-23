@@ -10,4 +10,8 @@
  */
 
 export { BudgetFormulas } from './budget-formulas.js';
+export type {
+  BudgetLineWithId,
+  AllocatableTransaction,
+} from './budget-formulas.js';
 export type * from '../types.js';

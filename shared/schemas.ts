@@ -221,6 +221,9 @@ export type BudgetLineUpdate = z.infer<typeof budgetLineUpdateSchema>;
 export const transactionSchema = z.object({
   id: z.uuid(),
   budgetId: z.uuid(),
+  // Optional reference to a budget line for allocated transactions
+  // NULL for "free" transactions (not linked to a specific budget line)
+  budgetLineId: z.uuid().nullable(),
   name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
   kind: transactionKindSchema,
@@ -234,6 +237,8 @@ export type Transaction = z.infer<typeof transactionSchema>;
 
 export const transactionCreateSchema = z.object({
   budgetId: z.uuid(),
+  // Optional: link this transaction to a specific budget line
+  budgetLineId: z.uuid().nullable().optional(),
   name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
   kind: transactionKindSchema,
@@ -248,6 +253,8 @@ export const transactionUpdateSchema = z.object({
   kind: transactionKindSchema.optional(),
   transactionDate: z.iso.datetime().optional(),
   category: z.string().max(100).trim().nullable().optional(),
+  // Optional: update budget line allocation (set to null to make "free")
+  budgetLineId: z.uuid().nullable().optional(),
 });
 export type TransactionUpdate = z.infer<typeof transactionUpdateSchema>;
 
@@ -677,6 +684,33 @@ export type BudgetLineListResponse = z.infer<
 export const budgetLineDeleteResponseSchema = deleteResponseSchema;
 export type BudgetLineDeleteResponse = z.infer<
   typeof budgetLineDeleteResponseSchema
+>;
+
+// Budget Line with allocated transactions (enriched view)
+export const budgetLineWithTransactionsSchema = z.object({
+  budgetLine: budgetLineSchema,
+  consumedAmount: z.number(),
+  remainingAmount: z.number(),
+  allocatedTransactions: z.array(transactionSchema),
+});
+export type BudgetLineWithTransactions = z.infer<
+  typeof budgetLineWithTransactionsSchema
+>;
+
+export const budgetLineWithTransactionsListResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.array(budgetLineWithTransactionsSchema),
+});
+export type BudgetLineWithTransactionsListResponse = z.infer<
+  typeof budgetLineWithTransactionsListResponseSchema
+>;
+
+export const allocatedTransactionsListResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.array(transactionSchema),
+});
+export type AllocatedTransactionsListResponse = z.infer<
+  typeof allocatedTransactionsListResponseSchema
 >;
 
 // Auth schemas

@@ -72,6 +72,9 @@ export {
   budgetLineResponseSchema,
   budgetLineListResponseSchema,
   budgetLineDeleteResponseSchema,
+  budgetLineWithTransactionsSchema,
+  budgetLineWithTransactionsListResponseSchema,
+  allocatedTransactionsListResponseSchema,
 
   // User schemas
   userProfileSchema,
@@ -96,6 +99,10 @@ export {
 
 // Export calculators
 export { BudgetFormulas } from './src/calculators/index.js';
+export type {
+  BudgetLineWithId,
+  AllocatableTransaction,
+} from './src/calculators/index.js';
 
 // Export all types from types.ts
 export type {
@@ -172,6 +179,9 @@ export type {
   BudgetLineResponse,
   BudgetLineListResponse,
   BudgetLineDeleteResponse,
+  BudgetLineWithTransactions,
+  BudgetLineWithTransactionsListResponse,
+  AllocatedTransactionsListResponse,
 
   // User types
   UserProfile,

@@ -7,6 +7,8 @@ import {
   type BudgetLineDeleteResponse,
   type BudgetLineCreate,
   type BudgetLineUpdate,
+  type BudgetLineWithTransactionsListResponse,
+  type AllocatedTransactionsListResponse,
 } from '@pulpe/shared';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { Logger } from '@core/logging/logger';
@@ -69,6 +71,46 @@ export class BudgetLineApi {
           this.#logger.error('Error deleting budget line:', error);
           return throwError(
             () => new Error('Impossible de supprimer la prévision'),
+          );
+        }),
+      );
+  }
+
+  getAllocatedTransactions$(
+    budgetLineId: string,
+  ): Observable<AllocatedTransactionsListResponse> {
+    return this.#http
+      .get<AllocatedTransactionsListResponse>(
+        `${this.#apiUrl}/${budgetLineId}/transactions`,
+      )
+      .pipe(
+        catchError((error) => {
+          this.#logger.error('Error fetching allocated transactions:', error);
+          return throwError(
+            () => new Error('Impossible de charger les transactions allouées'),
+          );
+        }),
+      );
+  }
+
+  getBudgetLinesWithTransactions$(
+    budgetId: string,
+  ): Observable<BudgetLineWithTransactionsListResponse> {
+    return this.#http
+      .get<BudgetLineWithTransactionsListResponse>(
+        `${this.#apiUrl}/budget/${budgetId}/with-transactions`,
+      )
+      .pipe(
+        catchError((error) => {
+          this.#logger.error(
+            'Error fetching budget lines with transactions:',
+            error,
+          );
+          return throwError(
+            () =>
+              new Error(
+                'Impossible de charger les prévisions avec transactions',
+              ),
           );
         }),
       );

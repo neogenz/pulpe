@@ -34,6 +34,20 @@ interface FinancialItem {
 }
 
 /**
+ * Interface pour les budget lines avec ID (nécessaire pour la logique d'enveloppe)
+ */
+export interface BudgetLineWithId extends FinancialItem {
+  id: string;
+}
+
+/**
+ * Interface pour les transactions pouvant être allouées à une enveloppe
+ */
+export interface AllocatableTransaction extends FinancialItem {
+  budgetLineId?: string | null;
+}
+
+/**
  * Classe contenant toutes les formules métier selon SPECS
  * Toutes les méthodes sont statiques et pures (pas d'effets de bord)
  */
@@ -148,6 +162,211 @@ export class BudgetFormulas {
     const available = this.calculateAvailable(totalIncome, rollover);
     const endingBalance = this.calculateEndingBalance(available, totalExpenses);
     const remaining = endingBalance; // Same as ending balance per SPECS
+
+    return {
+      totalIncome,
+      totalExpenses,
+      available,
+      endingBalance,
+      remaining,
+      rollover,
+    };
+  }
+
+  // ==========================================
+  // MÉTHODES AVEC LOGIQUE D'ENVELOPPE
+  // ==========================================
+
+  /**
+   * Calcule l'impact effectif des transactions sur le budget en tenant compte des enveloppes.
+   *
+   * Logique d'enveloppe:
+   * - Transactions libres (sans budgetLineId): impact complet
+   * - Transactions allouées: seul l'excès par rapport au montant de l'enveloppe compte
+   *
+   * @example
+   * // Enveloppe de 500 CHF, transaction de 100 CHF → impact = 0 (couvert par l'enveloppe)
+   * // Enveloppe de 500 CHF, transaction de 600 CHF → impact = 100 (excès)
+   *
+   * @param budgetLines - Budget lines avec leur ID
+   * @param transactions - Transactions avec leur budgetLineId optionnel
+   * @returns Impact net des transactions (négatif pour dépenses, positif pour revenus)
+   */
+  static calculateEffectiveTransactionImpact(
+    budgetLines: BudgetLineWithId[],
+    transactions: AllocatableTransaction[],
+  ): number {
+    const budgetLineIds = new Set(budgetLines.map((line) => line.id));
+
+    // 1. Transactions libres: celles sans budgetLineId ou allouées à des lignes inexistantes
+    const freeTransactions = transactions.filter(
+      (tx) => !tx.budgetLineId || !budgetLineIds.has(tx.budgetLineId),
+    );
+
+    let impact = freeTransactions.reduce((sum, tx) => {
+      const sign = tx.kind === 'income' ? 1 : -1;
+      return sum + sign * tx.amount;
+    }, 0);
+
+    // 2. Pour chaque budget line, vérifier si les transactions allouées dépassent l'enveloppe
+    for (const line of budgetLines) {
+      const allocatedTransactions = transactions.filter(
+        (tx) => tx.budgetLineId === line.id,
+      );
+
+      if (allocatedTransactions.length > 0) {
+        const allocatedTotal = allocatedTransactions.reduce(
+          (sum, tx) => sum + tx.amount,
+          0,
+        );
+        const excess = allocatedTotal - line.amount;
+
+        if (excess > 0) {
+          // Seul l'excès impacte le budget
+          if (line.kind === 'expense' || line.kind === 'saving') {
+            impact -= excess; // Dépense supplémentaire réduit le disponible
+          } else if (line.kind === 'income') {
+            impact += excess; // Revenu supplémentaire augmente le disponible
+          }
+        }
+      }
+    }
+
+    return impact;
+  }
+
+  /**
+   * Calcule les dépenses totales avec la logique d'enveloppe.
+   *
+   * Formule:
+   * - Somme des budget lines (expense + saving)
+   * - Plus les transactions libres (expense + saving)
+   * - Plus l'excès des transactions allouées par rapport à leur enveloppe
+   *
+   * @param budgetLines - Budget lines avec leur ID
+   * @param transactions - Transactions avec leur budgetLineId optionnel
+   * @returns Montant total des dépenses effectives
+   */
+  static calculateTotalExpensesWithEnvelopes(
+    budgetLines: BudgetLineWithId[],
+    transactions: AllocatableTransaction[],
+  ): number {
+    // Dépenses des budget lines (enveloppes)
+    const budgetExpenses = budgetLines
+      .filter((line) => line.kind === 'expense' || line.kind === 'saving')
+      .reduce((sum, line) => sum + line.amount, 0);
+
+    const budgetLineIds = new Set(budgetLines.map((line) => line.id));
+
+    // Transactions libres (sans allocation)
+    const freeTransactionExpenses = transactions
+      .filter(
+        (tx) =>
+          (tx.kind === 'expense' || tx.kind === 'saving') &&
+          (!tx.budgetLineId || !budgetLineIds.has(tx.budgetLineId)),
+      )
+      .reduce((sum, tx) => sum + tx.amount, 0);
+
+    // Excès des transactions allouées
+    let allocatedExcess = 0;
+    for (const line of budgetLines) {
+      if (line.kind === 'expense' || line.kind === 'saving') {
+        const allocatedTransactions = transactions.filter(
+          (tx) => tx.budgetLineId === line.id,
+        );
+        if (allocatedTransactions.length > 0) {
+          const allocatedTotal = allocatedTransactions.reduce(
+            (sum, tx) => sum + tx.amount,
+            0,
+          );
+          const excess = allocatedTotal - line.amount;
+          if (excess > 0) {
+            allocatedExcess += excess;
+          }
+        }
+      }
+    }
+
+    return budgetExpenses + freeTransactionExpenses + allocatedExcess;
+  }
+
+  /**
+   * Calcule les revenus totaux avec la logique d'enveloppe.
+   *
+   * @param budgetLines - Budget lines avec leur ID
+   * @param transactions - Transactions avec leur budgetLineId optionnel
+   * @returns Montant total des revenus effectifs
+   */
+  static calculateTotalIncomeWithEnvelopes(
+    budgetLines: BudgetLineWithId[],
+    transactions: AllocatableTransaction[],
+  ): number {
+    // Revenus des budget lines
+    const budgetIncome = budgetLines
+      .filter((line) => line.kind === 'income')
+      .reduce((sum, line) => sum + line.amount, 0);
+
+    const budgetLineIds = new Set(budgetLines.map((line) => line.id));
+
+    // Transactions libres (sans allocation)
+    const freeTransactionIncome = transactions
+      .filter(
+        (tx) =>
+          tx.kind === 'income' &&
+          (!tx.budgetLineId || !budgetLineIds.has(tx.budgetLineId)),
+      )
+      .reduce((sum, tx) => sum + tx.amount, 0);
+
+    // Excès des transactions allouées (revenus supplémentaires)
+    let allocatedExcess = 0;
+    for (const line of budgetLines) {
+      if (line.kind === 'income') {
+        const allocatedTransactions = transactions.filter(
+          (tx) => tx.budgetLineId === line.id,
+        );
+        if (allocatedTransactions.length > 0) {
+          const allocatedTotal = allocatedTransactions.reduce(
+            (sum, tx) => sum + tx.amount,
+            0,
+          );
+          const excess = allocatedTotal - line.amount;
+          if (excess > 0) {
+            allocatedExcess += excess;
+          }
+        }
+      }
+    }
+
+    return budgetIncome + freeTransactionIncome + allocatedExcess;
+  }
+
+  /**
+   * Calcule toutes les métriques avec la logique d'enveloppe.
+   *
+   * Cette méthode est la version principale à utiliser pour les calculs budgétaires
+   * quand les transactions peuvent être allouées à des enveloppes.
+   *
+   * @param budgetLines - Budget lines avec leur ID
+   * @param transactions - Transactions avec leur budgetLineId optionnel
+   * @param rollover - Report du mois précédent
+   * @returns Toutes les métriques calculées
+   */
+  static calculateAllMetricsWithEnvelopes(
+    budgetLines: BudgetLineWithId[],
+    transactions: AllocatableTransaction[] = [],
+    rollover: number = 0,
+  ) {
+    const totalIncome = this.calculateTotalIncomeWithEnvelopes(
+      budgetLines,
+      transactions,
+    );
+    const totalExpenses = this.calculateTotalExpensesWithEnvelopes(
+      budgetLines,
+      transactions,
+    );
+    const available = this.calculateAvailable(totalIncome, rollover);
+    const endingBalance = this.calculateEndingBalance(available, totalExpenses);
+    const remaining = endingBalance;
 
     return {
       totalIncome,
