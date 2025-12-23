@@ -221,6 +221,9 @@ export type BudgetLineUpdate = z.infer<typeof budgetLineUpdateSchema>;
 export const transactionSchema = z.object({
   id: z.uuid(),
   budgetId: z.uuid(),
+  // budgetLineId: Optional link to a BudgetLine for envelope-based tracking
+  // When set, the transaction is "allocated" to that budget line
+  budgetLineId: z.string().uuid().nullable(),
   name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
   kind: transactionKindSchema,
@@ -234,6 +237,7 @@ export type Transaction = z.infer<typeof transactionSchema>;
 
 export const transactionCreateSchema = z.object({
   budgetId: z.uuid(),
+  budgetLineId: z.string().uuid().nullable().optional(),
   name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
   kind: transactionKindSchema,
@@ -248,6 +252,7 @@ export const transactionUpdateSchema = z.object({
   kind: transactionKindSchema.optional(),
   transactionDate: z.iso.datetime().optional(),
   category: z.string().max(100).trim().nullable().optional(),
+  budgetLineId: z.string().uuid().nullable().optional(),
 });
 export type TransactionUpdate = z.infer<typeof transactionUpdateSchema>;
 
