@@ -83,6 +83,27 @@ export const createMockTemplateLineEntity = (
   ...overrides,
 });
 
+export const MOCK_BUDGET_LINE_ID = '550e8400-e29b-41d4-a716-446655440020';
+
+export const createMockBudgetLineEntity = (
+  overrides: Partial<
+    import('@/types/database.types').Tables<'budget_line'>
+  > = {},
+) => ({
+  id: MOCK_BUDGET_LINE_ID,
+  budget_id: MOCK_BUDGET_ID,
+  template_line_id: null,
+  savings_goal_id: null,
+  name: 'Test Budget Line',
+  amount: 100,
+  kind: 'expense' as const,
+  recurrence: 'fixed' as const,
+  is_manually_adjusted: false,
+  created_at: '2024-01-01T00:00:00.000Z',
+  updated_at: '2024-01-01T00:00:00.000Z',
+  ...overrides,
+});
+
 // Simple mock Supabase client
 export class MockSupabaseClient {
   #mockData: unknown = null;
