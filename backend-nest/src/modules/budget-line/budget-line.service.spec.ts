@@ -416,4 +416,123 @@ describe('BudgetLineService', () => {
       ).rejects.toThrow(BusinessException);
     });
   });
+
+  describe('getAllocatedTransactions', () => {
+    const budgetLineId = '123e4567-e89b-12d3-a456-426614174000';
+
+    const mockTransactionDb = {
+      id: 'trans-1',
+      budget_id: '123e4567-e89b-12d3-a456-426614174001',
+      budget_line_id: budgetLineId,
+      name: 'Plein essence',
+      amount: 65,
+      kind: 'expense' as const,
+      transaction_date: '2024-01-15T00:00:00.000Z',
+      category: null,
+      created_at: '2024-01-15T00:00:00.000Z',
+      updated_at: '2024-01-15T00:00:00.000Z',
+    };
+
+    const mockTransactionApi = {
+      id: 'trans-1',
+      budgetId: '123e4567-e89b-12d3-a456-426614174001',
+      budgetLineId,
+      name: 'Plein essence',
+      amount: 65,
+      kind: 'expense' as const,
+      transactionDate: '2024-01-15T00:00:00.000Z',
+      category: null,
+      createdAt: '2024-01-15T00:00:00.000Z',
+      updatedAt: '2024-01-15T00:00:00.000Z',
+    };
+
+    it('should return transactions allocated to a budget line sorted by date DESC', async () => {
+      const secondTransaction = {
+        ...mockTransactionDb,
+        id: 'trans-2',
+        name: 'Autre plein',
+        transaction_date: '2024-01-10T00:00:00.000Z',
+        created_at: '2024-01-10T00:00:00.000Z',
+        updated_at: '2024-01-10T00:00:00.000Z',
+      };
+
+      // Mock returns transactions sorted by transaction_date DESC
+      mockSupabase.from.mockReturnValue(
+        createMockQueryBuilder({
+          data: [mockTransactionDb, secondTransaction], // First is more recent
+          error: null,
+        }),
+      );
+
+      const result = await service.getAllocatedTransactions(
+        budgetLineId,
+        getMockSupabaseClient(),
+      );
+
+      expect(result).toEqual({
+        success: true,
+        data: [
+          mockTransactionApi,
+          {
+            ...mockTransactionApi,
+            id: 'trans-2',
+            name: 'Autre plein',
+            transactionDate: '2024-01-10T00:00:00.000Z',
+            createdAt: '2024-01-10T00:00:00.000Z',
+            updatedAt: '2024-01-10T00:00:00.000Z',
+          },
+        ],
+      });
+      expect(mockSupabase.from).toHaveBeenCalledWith('transaction');
+    });
+
+    it('should return empty array when no transactions found', async () => {
+      mockSupabase.from.mockReturnValue(
+        createMockQueryBuilder({
+          data: [],
+          error: null,
+        }),
+      );
+
+      const result = await service.getAllocatedTransactions(
+        budgetLineId,
+        getMockSupabaseClient(),
+      );
+
+      expect(result).toEqual({
+        success: true,
+        data: [],
+      });
+    });
+
+    it('should filter correctly by budget_line_id', async () => {
+      mockSupabase.from.mockReturnValue(
+        createMockQueryBuilder({
+          data: [mockTransactionDb],
+          error: null,
+        }),
+      );
+
+      await service.getAllocatedTransactions(
+        budgetLineId,
+        getMockSupabaseClient(),
+      );
+
+      // Verify that 'from' was called with 'transaction'
+      expect(mockSupabase.from).toHaveBeenCalledWith('transaction');
+    });
+
+    it('should throw BusinessException on database error', async () => {
+      mockSupabase.from.mockReturnValue(
+        createMockQueryBuilder({
+          data: null,
+          error: new Error('Database error'),
+        }),
+      );
+
+      await expect(
+        service.getAllocatedTransactions(budgetLineId, getMockSupabaseClient()),
+      ).rejects.toThrow(BusinessException);
+    });
+  });
 });

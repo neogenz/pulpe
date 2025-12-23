@@ -11,8 +11,10 @@ import {
   type BudgetLineResponse,
   type BudgetLineUpdate,
   type BudgetLineDeleteResponse,
+  type TransactionListResponse,
 } from '@pulpe/shared';
 import * as budgetLineMappers from './budget-line.mappers';
+import * as transactionMappers from '../transaction/transaction.mappers';
 import type { Database } from '../../types/database.types';
 import { BudgetService } from '../budget/budget.service';
 
@@ -493,6 +495,59 @@ export class BudgetLineService {
           operation: 'listBudgetLinesByBudget',
           entityId: budgetId,
           entityType: 'budget_line',
+        },
+      );
+    }
+  }
+
+  /**
+   * Retrieves all transactions allocated to a specific budget line.
+   * Returns transactions sorted by transaction_date DESC.
+   *
+   * @param budgetLineId - The budget line ID to fetch transactions for
+   * @param supabase - The Supabase client
+   * @returns Transactions allocated to the budget line
+   */
+  async getAllocatedTransactions(
+    budgetLineId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<TransactionListResponse> {
+    try {
+      const { data: transactionsDb, error } = await supabase
+        .from('transaction')
+        .select('*')
+        .eq('budget_line_id', budgetLineId)
+        .order('transaction_date', { ascending: false });
+
+      if (error) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+          undefined,
+          {
+            operation: 'getAllocatedTransactions',
+            entityId: budgetLineId,
+            entityType: 'transaction',
+            supabaseError: error,
+          },
+          { cause: error },
+        );
+      }
+
+      const apiData = transactionMappers.toApiList(transactionsDb || []);
+
+      return {
+        success: true as const,
+        data: apiData,
+      } as TransactionListResponse;
+    } catch (error) {
+      handleServiceError(
+        error,
+        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'getAllocatedTransactions',
+          entityId: budgetLineId,
+          entityType: 'transaction',
         },
       );
     }
