@@ -26,34 +26,36 @@ jobs:
           fetch-depth: 0
 
       - name: Claude Code Review
-        uses: anthropics/claude-code-action@beta
+        uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           direct_prompt: |
-            # Angular 21+ / NestJS Monorepo Code Review
+            # Angular 21+ / NestJS Monorepo Expert Review
 
-            You have full access to the repo. Read CLAUDE.md, .claude/rules/, package.json, and tsconfig.json for project standards.
+            Read CLAUDE.md and .claude/rules/ for project standards. You are an expert on THIS codebase.
 
-            Review ONLY changes in this PR. Focus on our stack:
+            Review ONLY PR changes. Apply these project rules strictly:
 
-            **CRITICAL (block merge):**
-            - Angular 21+ violations (deprecated APIs, standalone components, signals misuse)
-            - Cross-feature imports (frontend -> backend/shared violations)
-            - Security: XSS, secrets in code, injection risks, unsafe DOM
-            - TypeScript: `any` usage, unsafe type guards, missing null checks
+            **🚨 CRITICAL (block merge):**
+            - Angular 21+ violations: deprecated APIs, missing OnPush, signals misuse
+            - Cross-feature imports (features must be isolated)
+            - Security: XSS, secrets, injection, unsafe DOM
+            - TypeScript: `any` usage, `as` instead of type guards, missing null checks
+            - Functions >30 lines, files >300 lines, params >5
 
-            **IMPORTANT:**
-            - Performance: heavy change detection, ngrx effects leaks, RxJS subscriptions
-            - Architecture: feature module boundaries, NestJS guards/decorators consistency
-            - Test coverage gaps in changed files
+            **⚠️ IMPORTANT:**
+            - Signals anti-patterns: `effect()` for derived state (use `computed()`), mutable signals
+            - RxJS subscriptions without cleanup (`takeUntilDestroyed`)
+            - Performance: heavy change detection, ngrx effects leaks
+            - Missing tests for changed logic
+            - `::ng-deep` usage (forbidden)
 
-            **Output format:**
-            - Single top-level comment
-            - Group by severity: 🚨 CRITICAL | ⚠️ IMPORTANT | ℹ️ SUGGESTION
-            - For each issue: `file:line` + before/after code + 1-line fix
-            - End with: "APPROVE" (if safe) or "NEEDS FIX" + priority count
+            **ℹ️ SUGGESTION:**
+            - Naming conventions (verbs for actions, is/has/should for booleans)
+            - Import organization (Angular → ecosystem → third-party → aliases)
 
-            Be concise. Max 10 issues total. Respond in French if PR description is in French.
+            **Format:** Single comment, grouped by severity, `file:line` + fix. Max 10 issues.
+            End with: ✅ APPROVE or ❌ NEEDS FIX (X critical, Y important)
 
-          model: "claude-sonnet-4-5-20250929"
+            Respond in French if PR is in French.
           max_turns: "4"
