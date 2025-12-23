@@ -329,7 +329,7 @@ interface NavigationItem {
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class MainLayout {
+export default class MainLayout {
   readonly #breakpointObserver = inject(BreakpointObserver);
   readonly #router = inject(Router);
   readonly #scrollDispatcher = inject(ScrollDispatcher);
