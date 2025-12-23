@@ -26,6 +26,7 @@ import {
   type BudgetResponse,
   type BudgetDeleteResponse,
   type BudgetDetailsResponse,
+  type BudgetLineWithConsumptionListResponse,
 } from '@pulpe/shared';
 import { AuthGuard } from '@common/guards/auth.guard';
 import {
@@ -43,6 +44,7 @@ import {
   BudgetDeleteResponseDto,
   BudgetDetailsResponseDto,
 } from './dto/budget-swagger.dto';
+import { BudgetLineWithConsumptionListResponseDto } from '../budget-line/dto/budget-line-swagger.dto';
 import { ErrorResponseDto } from '@common/dto/response.dto';
 
 @ApiTags('Budgets')
@@ -157,6 +159,36 @@ export class BudgetController {
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetDetailsResponse> {
     return this.budgetService.findOneWithDetails(id, user, supabase);
+  }
+
+  @Get(':id/lines')
+  @ApiOperation({
+    summary: 'Get budget lines with consumption data',
+    description:
+      'Retrieves all budget lines for a budget with their consumed and remaining amounts. Uses a single SQL query for optimal performance.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Unique budget identifier',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Budget lines with consumption data retrieved successfully',
+    type: BudgetLineWithConsumptionListResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Budget not found',
+    type: ErrorResponseDto,
+  })
+  async getBudgetLinesWithConsumption(
+    @Param('id', ParseUUIDPipe) id: string,
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<BudgetLineWithConsumptionListResponse> {
+    return this.budgetService.getBudgetLinesWithConsumption(id, user, supabase);
   }
 
   @Patch(':id')
