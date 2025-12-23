@@ -12,7 +12,7 @@ import {
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { CommonModule } from '@angular/common';
+
 import { type HttpErrorResponse } from '@angular/common/http';
 
 interface ApiErrorDetails {
@@ -30,7 +30,7 @@ type TemplateErrorType = HttpErrorResponse | ApiError | Error | null;
 
 @Component({
   selector: 'pulpe-templates-error',
-  imports: [CommonModule, MatCardModule, MatButtonModule, MatIconModule],
+  imports: [MatCardModule, MatButtonModule, MatIconModule],
   template: `
     <mat-card
       class="flex flex-col items-center justify-center p-8 text-center"

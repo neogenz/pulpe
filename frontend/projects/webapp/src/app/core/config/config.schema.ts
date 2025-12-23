@@ -48,14 +48,11 @@ const POSTHOG_KEY_PATTERN = /^phc_[A-Za-z0-9_-]+$/;
  */
 export const EnvSchema = z.object({
   PUBLIC_ENVIRONMENT: z.enum(['development', 'production', 'local', 'test'], {
-    errorMap: () => ({
-      message:
-        "Environment must be 'development', 'production', 'local', or 'test'",
-    }),
+    error:
+      "Environment must be 'development', 'production', 'local', or 'test'",
   }),
   PUBLIC_SUPABASE_URL: z
-    .string()
-    .url('Supabase URL must be a valid URL')
+    .url({ error: 'Supabase URL must be a valid URL' })
     .refine(
       (url) => {
         // Allow localhost for development
@@ -66,13 +63,12 @@ export const EnvSchema = z.object({
         return url.includes('supabase.co') || url.includes('supabase.in');
       },
       {
-        message:
-          'URL must be a valid Supabase URL or localhost for development',
+        error: 'URL must be a valid Supabase URL or localhost for development',
       },
     ),
   PUBLIC_SUPABASE_ANON_KEY: z
     .string()
-    .min(1, 'Supabase anon key is required')
+    .min(1, { error: 'Supabase anon key is required' })
     .refine(
       (key) => {
         // Basic JWT format validation (header.payload.signature)
@@ -80,30 +76,25 @@ export const EnvSchema = z.object({
         return parts.length === 3;
       },
       {
-        message: 'Supabase anon key must be a valid JWT token',
+        error: 'Supabase anon key must be a valid JWT token',
       },
     ),
   PUBLIC_BACKEND_API_URL: z
-    .string()
-    .url('Backend API URL must be a valid URL')
+    .url({ error: 'Backend API URL must be a valid URL' })
     .refine(
       (url) => {
         // Ensure it ends with /api/v1 or similar API path
         return url.includes('/api/') || url.includes('localhost');
       },
       {
-        message: 'Backend API URL should contain an API path',
+        error: 'Backend API URL should contain an API path',
       },
     ),
-  PUBLIC_POSTHOG_API_KEY: z
-    .string()
-    .regex(
-      POSTHOG_KEY_PATTERN,
-      'PostHog API key must match format phc_[A-Za-z0-9_-]+',
-    ),
+  PUBLIC_POSTHOG_API_KEY: z.string().regex(POSTHOG_KEY_PATTERN, {
+    error: 'PostHog API key must match format phc_[A-Za-z0-9_-]+',
+  }),
   PUBLIC_POSTHOG_HOST: z
-    .string()
-    .url('PostHog host must be a valid URL')
+    .url({ error: 'PostHog host must be a valid URL' })
     .refine(
       (url) => {
         // Allow common PostHog hosts
@@ -114,37 +105,37 @@ export const EnvSchema = z.object({
         );
       },
       {
-        message: 'PostHog host must be a valid PostHog instance URL',
+        error: 'PostHog host must be a valid PostHog instance URL',
       },
     ),
   PUBLIC_POSTHOG_ENABLED: z
     .string()
     .refine((val) => val === 'true' || val === 'false', {
-      message: 'Must be "true" or "false"',
+      error: 'Must be "true" or "false"',
     })
     .transform((val) => val === 'true'),
   PUBLIC_POSTHOG_CAPTURE_PAGEVIEWS: z
     .string()
     .refine((val) => val === 'true' || val === 'false', {
-      message: 'Must be "true" or "false"',
+      error: 'Must be "true" or "false"',
     })
     .transform((val) => val === 'true'),
   PUBLIC_POSTHOG_CAPTURE_PAGELEAVES: z
     .string()
     .refine((val) => val === 'true' || val === 'false', {
-      message: 'Must be "true" or "false"',
+      error: 'Must be "true" or "false"',
     })
     .transform((val) => val === 'true'),
   PUBLIC_POSTHOG_SESSION_RECORDING_ENABLED: z
     .string()
     .refine((val) => val === 'true' || val === 'false', {
-      message: 'Must be "true" or "false"',
+      error: 'Must be "true" or "false"',
     })
     .transform((val) => val === 'true'),
   PUBLIC_POSTHOG_MASK_INPUTS: z
     .string()
     .refine((val) => val === 'true' || val === 'false', {
-      message: 'Must be "true" or "false"',
+      error: 'Must be "true" or "false"',
     })
     .transform((val) => val === 'true'),
   PUBLIC_POSTHOG_SAMPLE_RATE: z
@@ -155,19 +146,19 @@ export const EnvSchema = z.object({
         return !isNaN(num) && num >= 0 && num <= 1;
       },
       {
-        message: 'Must be a number between 0.0 and 1.0',
+        error: 'Must be a number between 0.0 and 1.0',
       },
     )
     .transform((val) => parseFloat(val)),
   PUBLIC_POSTHOG_DEBUG: z
     .string()
     .refine((val) => val === 'true' || val === 'false', {
-      message: 'Must be "true" or "false"',
+      error: 'Must be "true" or "false"',
     })
     .transform((val) => val === 'true'),
   PUBLIC_TURNSTILE_SITE_KEY: z
     .string()
-    .min(1, 'Turnstile site key is required')
+    .min(1, { error: 'Turnstile site key is required' })
     .refine(
       (key) => {
         // Allow test keys (start with 0x, 1x, 2x, or 3x)
@@ -183,8 +174,7 @@ export const EnvSchema = z.object({
         return key.length >= 20;
       },
       {
-        message:
-          'Turnstile site key must be valid (test key or production key)',
+        error: 'Turnstile site key must be valid (test key or production key)',
       },
     ),
 });
@@ -249,26 +239,22 @@ export function envToConfig(env: EnvironmentVariables): ApplicationConfig {
  */
 export const ConfigSchema = z.object({
   supabase: z.object({
-    url: z
-      .string()
-      .url('Supabase URL must be a valid URL')
-      .refine(
-        (url) => {
-          // Allow localhost for development
-          if (url.includes('localhost') || url.includes('127.0.0.1')) {
-            return true;
-          }
-          // For production, ensure it's a Supabase URL
-          return url.includes('supabase.co') || url.includes('supabase.in');
-        },
-        {
-          message:
-            'URL must be a valid Supabase URL or localhost for development',
-        },
-      ),
+    url: z.url({ error: 'Supabase URL must be a valid URL' }).refine(
+      (url) => {
+        // Allow localhost for development
+        if (url.includes('localhost') || url.includes('127.0.0.1')) {
+          return true;
+        }
+        // For production, ensure it's a Supabase URL
+        return url.includes('supabase.co') || url.includes('supabase.in');
+      },
+      {
+        error: 'URL must be a valid Supabase URL or localhost for development',
+      },
+    ),
     anonKey: z
       .string()
-      .min(1, 'Supabase anon key is required')
+      .min(1, { error: 'Supabase anon key is required' })
       .refine(
         (key) => {
           // Basic JWT format validation (header.payload.signature)
@@ -276,29 +262,26 @@ export const ConfigSchema = z.object({
           return parts.length === 3;
         },
         {
-          message: 'Supabase anon key must be a valid JWT token',
+          error: 'Supabase anon key must be a valid JWT token',
         },
       ),
   }),
   backend: z.object({
-    apiUrl: z
-      .string()
-      .url('Backend API URL must be a valid URL')
-      .refine(
-        (url) => {
-          // Ensure it ends with /api/v1 or similar API path
-          return url.includes('/api/') || url.includes('localhost');
-        },
-        {
-          message: 'Backend API URL should contain an API path',
-        },
-      ),
+    apiUrl: z.url({ error: 'Backend API URL must be a valid URL' }).refine(
+      (url) => {
+        // Ensure it ends with /api/v1 or similar API path
+        return url.includes('/api/') || url.includes('localhost');
+      },
+      {
+        error: 'Backend API URL should contain an API path',
+      },
+    ),
   }),
   postHog: z
     .object({
       apiKey: z
         .string()
-        .min(1, 'PostHog API key is required')
+        .min(1, { error: 'PostHog API key is required' })
         .refine(
           (key) => {
             return (
@@ -308,13 +291,12 @@ export const ConfigSchema = z.object({
             );
           },
           {
-            message:
+            error:
               'PostHog API key must be valid format (phc_xxxxx with at least 40 characters)',
           },
         ),
       host: z
-        .string()
-        .url('PostHog host must be a valid URL')
+        .url({ error: 'PostHog host must be a valid URL' })
         .refine(
           (url) => {
             // Allow common PostHog hosts
@@ -325,7 +307,7 @@ export const ConfigSchema = z.object({
             );
           },
           {
-            message: 'PostHog host must be a valid PostHog instance URL',
+            error: 'PostHog host must be a valid PostHog instance URL',
           },
         )
         .default('https://eu.i.posthog.com'),
@@ -345,7 +327,7 @@ export const ConfigSchema = z.object({
   turnstile: z.object({
     siteKey: z
       .string()
-      .min(1, 'Turnstile site key is required')
+      .min(1, { error: 'Turnstile site key is required' })
       .refine(
         (key) => {
           // Allow test keys (start with 0x, 1x, 2x, or 3x)
@@ -361,16 +343,14 @@ export const ConfigSchema = z.object({
           return key.length >= 20;
         },
         {
-          message:
+          error:
             'Turnstile site key must be valid (test key or production key)',
         },
       ),
   }),
   environment: z.enum(['development', 'production', 'local', 'test'], {
-    errorMap: () => ({
-      message:
-        "Environment must be 'development', 'production', 'local', or 'test'",
-    }),
+    error:
+      "Environment must be 'development', 'production', 'local', or 'test'",
   }),
 });
 

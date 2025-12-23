@@ -590,7 +590,7 @@ export class BudgetService {
             userId,
             templateId,
             result,
-            validationErrors: error.errors,
+            validationErrors: error.issues,
             operation: 'processBudgetCreationResult.validation',
           },
           'RPC response validation failed',
@@ -602,7 +602,7 @@ export class BudgetService {
           {
             userId,
             templateId,
-            validationErrors: error.errors,
+            validationErrors: error.issues,
             operation: 'processBudgetCreationResult',
           },
         );

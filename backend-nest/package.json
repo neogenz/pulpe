@@ -62,14 +62,14 @@
     "express-rate-limit": "^8.0.1",
     "helmet": "^8.1.0",
     "nestjs-pino": "^4.4.0",
-    "nestjs-zod": "^4.3.1",
+    "nestjs-zod": "^5.0.0",
     "pino": "^9.7.0",
     "pino-http": "^10.5.0",
     "pino-pretty": "^13.0.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "uuid": "^11.1.0",
-    "zod": "^3.25.67"
+    "zod": "^4.1.13"
   },
   "devDependencies": {
     "@darraghor/eslint-plugin-nestjs-typed": "^6.7.0",
@@ -86,7 +86,7 @@
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-boundaries": "^4.2.2",
     "eslint-plugin-prettier": "^5.5.1",
-    "supabase": "^2.39.2",
+    "supabase": "2.39.2",
     "supertest": "^7.1.1",
     "ts-node": "^10.9.2"
   }

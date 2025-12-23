@@ -30,14 +30,18 @@ import { ROUTES } from '@core/routing';
         <section class="mb-8">
           <h2 class="text-headline-medium mb-4">2. Données collectées</h2>
 
-          <h3 class="text-title-large mb-2 mt-4">Données que vous me fournissez :</h3>
+          <h3 class="text-title-large mb-2 mt-4">
+            Données que vous me fournissez :
+          </h3>
           <ul class="list-disc pl-6 text-body-large">
             <li>Email et mot de passe (pour votre compte)</li>
             <li>Informations financières (revenus, dépenses, épargne)</li>
             <li>Préférences et paramètres de l'application</li>
           </ul>
 
-          <h3 class="text-title-large mb-2 mt-4">Données collectées automatiquement :</h3>
+          <h3 class="text-title-large mb-2 mt-4">
+            Données collectées automatiquement :
+          </h3>
           <ul class="list-disc pl-6 text-body-large">
             <li>Pages visitées et fonctionnalités utilisées</li>
             <li>Durée d'utilisation et fréquence</li>
@@ -61,8 +65,9 @@ import { ROUTES } from '@core/routing';
         <section class="mb-8">
           <h2 class="text-headline-medium mb-4">4. Outils d'analyse</h2>
           <p class="text-body-large">
-            J'utilise <strong>PostHog</strong> (hébergé en Europe - eu.posthog.com) pour analyser l'utilisation
-            de l'application. Cet outil m'aide à :
+            J'utilise <strong>PostHog</strong> (hébergé en Europe -
+            eu.posthog.com) pour analyser l'utilisation de l'application. Cet
+            outil m'aide à :
           </p>
           <ul class="list-disc pl-6 text-body-large">
             <li>Comprendre comment vous utilisez Pulpe</li>
@@ -73,28 +78,43 @@ import { ROUTES } from '@core/routing';
             <strong>Protection de vos données financières :</strong>
           </p>
           <ul class="list-disc pl-6 text-body-large">
-            <li>Vos montants financiers sont automatiquement masqués dans toutes les analyses</li>
-            <li>Les données sont pseudonymisées (votre identité n'est pas directement visible)</li>
-            <li>Vos données financières ne sont <strong>jamais transmises à des tiers</strong></li>
+            <li>
+              Vos montants financiers sont automatiquement masqués dans toutes
+              les analyses
+            </li>
+            <li>
+              Les données sont pseudonymisées (votre identité n'est pas
+              directement visible)
+            </li>
+            <li>
+              Vos données financières ne sont
+              <strong>jamais transmises à des tiers</strong>
+            </li>
             <li>Aucune utilisation commerciale de vos données</li>
             <li>Pas de publicité ciblée</li>
           </ul>
         </section>
 
         <section class="mb-8">
-          <h2 class="text-headline-medium mb-4">5. Infrastructure et hébergement</h2>
+          <h2 class="text-headline-medium mb-4">
+            5. Infrastructure et hébergement
+          </h2>
           <p class="text-body-large mb-4">
             Pulpe utilise plusieurs services cloud pour fonctionner :
           </p>
           <ul class="list-disc pl-6 text-body-large">
-            <li><strong>Supabase</strong> (Europe - Frankfurt) : Stockage de vos données</li>
+            <li>
+              <strong>Supabase</strong> (Europe - Frankfurt) : Stockage de vos
+              données
+            </li>
             <li><strong>Railway</strong> (USA - Oregon) : Backend API</li>
             <li><strong>Vercel</strong> (CDN global) : Interface web</li>
             <li><strong>PostHog</strong> (Europe) : Analytics</li>
           </ul>
           <p class="text-body-large mt-4">
-            <strong>Note :</strong> Vos données sont principalement stockées en Europe (Supabase).
-            Le backend Railway ne fait que transiter les données sans stockage permanent.
+            <strong>Note :</strong> Vos données sont principalement stockées en
+            Europe (Supabase). Le backend Railway ne fait que transiter les
+            données sans stockage permanent.
           </p>
         </section>
 
@@ -104,7 +124,9 @@ import { ROUTES } from '@core/routing';
             <li>Toutes les connexions sont chiffrées (HTTPS)</li>
             <li>Mots de passe hashés avec bcrypt</li>
             <li>Authentification JWT sécurisée</li>
-            <li>Accès aux données limité par utilisateur (Row Level Security)</li>
+            <li>
+              Accès aux données limité par utilisateur (Row Level Security)
+            </li>
             <li>Sauvegardes automatiques par Supabase</li>
           </ul>
         </section>
@@ -115,8 +137,9 @@ import { ROUTES } from '@core/routing';
             Je <strong>ne vends JAMAIS</strong> vos données personnelles.
           </p>
           <p class="text-body-large mt-4">
-            Vos données transitent uniquement par les services mentionnés ci-dessus.
-            Le code source est open source sur GitHub mais vos données restent privées.
+            Vos données transitent uniquement par les services mentionnés
+            ci-dessus. Le code source est open source sur GitHub mais vos
+            données restent privées.
           </p>
         </section>
 
@@ -133,7 +156,8 @@ import { ROUTES } from '@core/routing';
         <section class="mb-8">
           <h2 class="text-headline-medium mb-4">9. Vos droits (RGPD/LPD)</h2>
           <p class="text-body-large mb-4">
-            <strong>Conformément au RGPD et à la LPD suisse</strong>, vous disposez des droits suivants :
+            <strong>Conformément au RGPD et à la LPD suisse</strong>, vous
+            disposez des droits suivants :
           </p>
           <ul class="list-disc pl-6 text-body-large">
             <li>Droit d'accès à vos données personnelles</li>
@@ -145,10 +169,13 @@ import { ROUTES } from '@core/routing';
           </ul>
           <p class="text-body-large mt-4">
             Pour exercer ces droits, contactez-moi dans un délai de 30 jours à :
-            <a href="mailto:maxime.desogus@gmail.com" class="text-primary">maxime.desogus@gmail.com</a>
+            <a href="mailto:maxime.desogus@gmail.com" class="text-primary"
+              >maxime.desogus@gmail.com</a
+            >
           </p>
           <p class="text-body-large mt-2">
-            Je suis responsable du traitement de vos données dès la création de votre compte.
+            Je suis responsable du traitement de vos données dès la création de
+            votre compte.
           </p>
         </section>
 
@@ -166,7 +193,9 @@ import { ROUTES } from '@core/routing';
             <strong>Cookies d'analyse (PostHog) :</strong>
           </p>
           <ul class="list-disc pl-6 text-body-large">
-            <li>Activés uniquement après acceptation des CGU lors de l'inscription</li>
+            <li>
+              Activés uniquement après acceptation des CGU lors de l'inscription
+            </li>
             <li>Données pseudonymisées (pas d'identification directe)</li>
           </ul>
         </section>
@@ -174,16 +203,16 @@ import { ROUTES } from '@core/routing';
         <section class="mb-8">
           <h2 class="text-headline-medium mb-4">11. Enfants</h2>
           <p class="text-body-large">
-            Pulpe n'est pas destiné aux enfants de moins de 16 ans. Je ne collecte
-            pas sciemment de données d'enfants.
+            Pulpe n'est pas destiné aux enfants de moins de 16 ans. Je ne
+            collecte pas sciemment de données d'enfants.
           </p>
         </section>
 
         <section class="mb-8">
           <h2 class="text-headline-medium mb-4">12. Modifications</h2>
           <p class="text-body-large">
-            Cette politique peut être mise à jour occasionnellement. Les changements
-            importants seront notifiés par email.
+            Cette politique peut être mise à jour occasionnellement. Les
+            changements importants seront notifiés par email.
           </p>
         </section>
 
@@ -193,8 +222,21 @@ import { ROUTES } from '@core/routing';
             Pour toute question sur vos données personnelles :
           </p>
           <ul class="list-disc pl-6 text-body-large">
-            <li>Email : <a href="mailto:maxime.desogus@gmail.com" class="text-primary">maxime.desogus@gmail.com</a></li>
-            <li>GitHub : <a href="https://github.com/neogenz/pulpe" class="text-primary" target="_blank">Issues & Discussions</a></li>
+            <li>
+              Email :
+              <a href="mailto:maxime.desogus@gmail.com" class="text-primary"
+                >maxime.desogus@gmail.com</a
+              >
+            </li>
+            <li>
+              GitHub :
+              <a
+                href="https://github.com/neogenz/pulpe"
+                class="text-primary"
+                target="_blank"
+                >Issues & Discussions</a
+              >
+            </li>
             <li>Localisation : Suisse</li>
           </ul>
         </section>
@@ -202,7 +244,11 @@ import { ROUTES } from '@core/routing';
         <div class="mt-12 pt-8 border-t border-outline-variant">
           <p class="text-body-medium text-on-surface-variant text-center">
             Cette politique fait partie intégrante de mes
-            <a [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_TERMS]" class="text-primary">Conditions d'Utilisation</a>.
+            <a
+              [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_TERMS]"
+              class="text-primary"
+              >Conditions d'Utilisation</a
+            >.
           </p>
         </div>
       </article>

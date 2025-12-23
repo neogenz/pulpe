@@ -6,12 +6,16 @@ const envSchema = z.object({
     .enum(['development', 'production', 'preview', 'test'])
     .default('development'),
   PORT: z.coerce.number().default(3000),
-  SUPABASE_URL: z.string().min(1, 'SUPABASE_URL is required'),
-  SUPABASE_ANON_KEY: z.string().min(1, 'SUPABASE_ANON_KEY is required'),
+  SUPABASE_URL: z.string().min(1, { error: 'SUPABASE_URL is required' }),
+  SUPABASE_ANON_KEY: z
+    .string()
+    .min(1, { error: 'SUPABASE_ANON_KEY is required' }),
   SUPABASE_SERVICE_ROLE_KEY: z
     .string()
-    .min(1, 'SUPABASE_SERVICE_ROLE_KEY is required'),
-  TURNSTILE_SECRET_KEY: z.string().min(1, 'TURNSTILE_SECRET_KEY is required'),
+    .min(1, { error: 'SUPABASE_SERVICE_ROLE_KEY is required' }),
+  TURNSTILE_SECRET_KEY: z
+    .string()
+    .min(1, { error: 'TURNSTILE_SECRET_KEY is required' }),
   CORS_ORIGIN: z.string().optional(),
   DEBUG_HTTP_FULL: z.string().optional(),
 });

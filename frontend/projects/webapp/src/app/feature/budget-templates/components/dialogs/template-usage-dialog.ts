@@ -13,7 +13,7 @@ import {
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatCardModule } from '@angular/material/card';
-import { CommonModule } from '@angular/common';
+
 import { Router } from '@angular/router';
 import { A11yModule } from '@angular/cdk/a11y';
 
@@ -33,7 +33,6 @@ interface BudgetUsage {
   selector: 'pulpe-template-usage-dialog',
 
   imports: [
-    CommonModule,
     MatDialogModule,
     MatButtonModule,
     MatIconModule,
