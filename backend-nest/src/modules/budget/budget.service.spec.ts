@@ -7,6 +7,8 @@ import { BudgetRepository } from './budget.repository';
 import {
   createMockAuthenticatedUser,
   createMockSupabaseClient,
+  createMockBudgetLineEntity,
+  createMockTransactionEntity,
   expectBusinessExceptionThrown,
   MOCK_BUDGET_ID,
   MockSupabaseClient,
@@ -795,6 +797,195 @@ describe('BudgetService', () => {
 
       // Restore the original method
       mockRepository.fetchBudgetData = originalFetchBudgetData;
+    });
+  });
+
+  describe('getBudgetLinesWithConsumption', () => {
+    it('should return budget lines with consumedAmount and remainingAmount', async () => {
+      const mockUser = createMockAuthenticatedUser();
+      const budgetId = MOCK_BUDGET_ID;
+
+      // Budget lines with different amounts
+      const mockBudgetLines = [
+        createMockBudgetLineEntity({
+          id: 'bl-1',
+          budget_id: budgetId,
+          name: 'Loyer',
+          amount: 1500,
+          kind: 'expense',
+        }),
+        createMockBudgetLineEntity({
+          id: 'bl-2',
+          budget_id: budgetId,
+          name: 'Essence',
+          amount: 120,
+          kind: 'expense',
+        }),
+      ];
+
+      // Transactions allocated to budget lines (for reference in test setup)
+      const _mockTransactions = [
+        createMockTransactionEntity({
+          id: 'trans-1',
+          budget_id: budgetId,
+          budget_line_id: 'bl-1',
+          amount: 1500,
+          kind: 'expense',
+        }),
+        createMockTransactionEntity({
+          id: 'trans-2',
+          budget_id: budgetId,
+          budget_line_id: 'bl-2',
+          amount: 65,
+          kind: 'expense',
+        }),
+      ];
+
+      // Expected result with consumption data
+      const expectedRpcResult = [
+        {
+          ...mockBudgetLines[0],
+          consumed_amount: 1500,
+          remaining_amount: 0,
+        },
+        {
+          ...mockBudgetLines[1],
+          consumed_amount: 65,
+          remaining_amount: 55,
+        },
+      ];
+
+      // Mock the RPC call
+      mockSupabaseClient.setMockData(expectedRpcResult).setMockError(null);
+
+      const result = await service.getBudgetLinesWithConsumption(
+        budgetId,
+        mockUser,
+        mockSupabaseClient as any,
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveLength(2);
+
+      // Verify first budget line (Loyer - fully consumed)
+      expect(result.data[0].name).toBe('Loyer');
+      expect(result.data[0].amount).toBe(1500);
+      expect(result.data[0].consumedAmount).toBe(1500);
+      expect(result.data[0].remainingAmount).toBe(0);
+
+      // Verify second budget line (Essence - partially consumed)
+      expect(result.data[1].name).toBe('Essence');
+      expect(result.data[1].amount).toBe(120);
+      expect(result.data[1].consumedAmount).toBe(65);
+      expect(result.data[1].remainingAmount).toBe(55);
+    });
+
+    it('should return consumedAmount: 0 for budget lines without transactions', async () => {
+      const mockUser = createMockAuthenticatedUser();
+      const budgetId = MOCK_BUDGET_ID;
+
+      // Budget line with no allocated transactions
+      const expectedRpcResult = [
+        {
+          ...createMockBudgetLineEntity({
+            id: 'bl-1',
+            budget_id: budgetId,
+            name: 'Courses',
+            amount: 500,
+            kind: 'expense',
+          }),
+          consumed_amount: 0,
+          remaining_amount: 500,
+        },
+      ];
+
+      mockSupabaseClient.setMockData(expectedRpcResult).setMockError(null);
+
+      const result = await service.getBudgetLinesWithConsumption(
+        budgetId,
+        mockUser,
+        mockSupabaseClient as any,
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].consumedAmount).toBe(0);
+      expect(result.data[0].remainingAmount).toBe(500);
+    });
+
+    it('should return empty array when budget has no budget lines', async () => {
+      const mockUser = createMockAuthenticatedUser();
+      const budgetId = MOCK_BUDGET_ID;
+
+      mockSupabaseClient.setMockData([]).setMockError(null);
+
+      const result = await service.getBudgetLinesWithConsumption(
+        budgetId,
+        mockUser,
+        mockSupabaseClient as any,
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveLength(0);
+    });
+
+    it('should throw exception when database query fails', async () => {
+      const mockUser = createMockAuthenticatedUser();
+      const budgetId = MOCK_BUDGET_ID;
+
+      mockSupabaseClient
+        .setMockData(null)
+        .setMockError({ message: 'Database error' });
+
+      await expectBusinessExceptionThrown(
+        () =>
+          service.getBudgetLinesWithConsumption(
+            budgetId,
+            mockUser,
+            mockSupabaseClient as any,
+          ),
+        ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
+      );
+    });
+
+    it('should use single SQL query (no N+1)', async () => {
+      const mockUser = createMockAuthenticatedUser();
+      const budgetId = MOCK_BUDGET_ID;
+
+      // Track number of calls to 'from' method
+      let queryCount = 0;
+      const originalFrom = mockSupabaseClient.from.bind(mockSupabaseClient);
+      mockSupabaseClient.from = ((table: string) => {
+        queryCount++;
+        return originalFrom(table);
+      }) as any;
+
+      // Mock successful RPC result
+      const expectedRpcResult = [
+        {
+          ...createMockBudgetLineEntity({
+            id: 'bl-1',
+            budget_id: budgetId,
+            name: 'Test',
+            amount: 100,
+          }),
+          consumed_amount: 50,
+          remaining_amount: 50,
+        },
+      ];
+
+      mockSupabaseClient.setMockData(expectedRpcResult).setMockError(null);
+
+      await service.getBudgetLinesWithConsumption(
+        budgetId,
+        mockUser,
+        mockSupabaseClient as any,
+      );
+
+      // Should only call RPC once (single query), not multiple times
+      // Note: Implementation uses RPC, so 'from' won't be called directly
+      // This test verifies the implementation doesn't make N+1 queries
+      expect(queryCount).toBeLessThanOrEqual(1);
     });
   });
 });

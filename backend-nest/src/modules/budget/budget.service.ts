@@ -17,6 +17,8 @@ import {
   type Budget,
   type Transaction,
   type BudgetLine,
+  type BudgetLineWithConsumption,
+  type BudgetLineWithConsumptionListResponse,
 } from '@pulpe/shared';
 import * as budgetMappers from './budget.mappers';
 import { type Tables } from '../../types/database.types';
@@ -30,6 +32,25 @@ interface BudgetDetailsData {
   budget: Budget;
   transactions: Transaction[];
   budgetLines: BudgetLine[];
+}
+
+/**
+ * Row type returned by get_budget_lines_with_consumption RPC
+ */
+interface BudgetLineWithConsumptionRow {
+  id: string;
+  budget_id: string;
+  template_line_id: string | null;
+  savings_goal_id: string | null;
+  name: string;
+  amount: number;
+  kind: 'income' | 'expense' | 'saving';
+  recurrence: 'fixed' | 'one_off';
+  is_manually_adjusted: boolean;
+  created_at: string;
+  updated_at: string;
+  consumed_amount: number;
+  remaining_amount: number;
 }
 
 @Injectable()
@@ -430,6 +451,89 @@ export class BudgetService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<void> {
     await this.calculator.recalculateAndPersist(budgetId, supabase);
+  }
+
+  /**
+   * Retrieves budget lines with consumption data for a budget.
+   * Uses a single SQL query with LEFT JOIN and GROUP BY to avoid N+1 queries.
+   */
+  async getBudgetLinesWithConsumption(
+    budgetId: string,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<BudgetLineWithConsumptionListResponse> {
+    try {
+      // Note: The RPC function 'get_budget_lines_with_consumption' is defined in migration
+      // 20251223164015_add_get_budget_lines_with_consumption_rpc.sql
+      // TypeScript types will be updated after migration is applied and types regenerated
+      const { data, error } = await (supabase as any).rpc(
+        'get_budget_lines_with_consumption',
+        { p_budget_id: budgetId },
+      );
+
+      if (error) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
+          undefined,
+          {
+            operation: 'getBudgetLinesWithConsumption',
+            userId: user.id,
+            entityId: budgetId,
+            entityType: 'budget_line',
+            supabaseError: error,
+          },
+          { cause: error },
+        );
+      }
+
+      return {
+        success: true as const,
+        data: this.mapBudgetLinesWithConsumption(data || []),
+      };
+    } catch (error) {
+      handleServiceError(
+        error,
+        ERROR_DEFINITIONS.BUDGET_LINE_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'getBudgetLinesWithConsumption',
+          userId: user.id,
+          entityId: budgetId,
+          entityType: 'budget_line',
+        },
+      );
+    }
+  }
+
+  /**
+   * Maps database rows to BudgetLineWithConsumption API format
+   */
+  private mapBudgetLinesWithConsumption(
+    rows: BudgetLineWithConsumptionRow[],
+  ): BudgetLineWithConsumption[] {
+    return rows.map((row) => {
+      const consumedAmount = Number(row.consumed_amount) || 0;
+      const remainingAmount =
+        row.remaining_amount !== null && row.remaining_amount !== undefined
+          ? Number(row.remaining_amount)
+          : row.amount - consumedAmount;
+
+      return {
+        id: row.id,
+        budgetId: row.budget_id,
+        templateLineId: row.template_line_id,
+        savingsGoalId: row.savings_goal_id,
+        name: row.name,
+        amount: row.amount,
+        kind: row.kind,
+        recurrence: row.recurrence,
+        isManuallyAdjusted: row.is_manually_adjusted,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        consumedAmount,
+        remainingAmount,
+      };
+    });
   }
 
   private async executeBudgetCreationRpc(
