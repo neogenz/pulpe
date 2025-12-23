@@ -256,6 +256,7 @@ export type Database = {
         Row: {
           amount: number;
           budget_id: string;
+          budget_line_id: string | null;
           category: string | null;
           created_at: string;
           id: string;
@@ -267,6 +268,7 @@ export type Database = {
         Insert: {
           amount: number;
           budget_id: string;
+          budget_line_id?: string | null;
           category?: string | null;
           created_at?: string;
           id?: string;
@@ -278,6 +280,7 @@ export type Database = {
         Update: {
           amount?: number;
           budget_id?: string;
+          budget_line_id?: string | null;
           category?: string | null;
           created_at?: string;
           id?: string;
@@ -287,6 +290,13 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: 'fk_transaction_budget_line';
+            columns: ['budget_line_id'];
+            isOneToOne: false;
+            referencedRelation: 'budget_line';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'transaction_budget_id_fkey';
             columns: ['budget_id'];
