@@ -1,5 +1,4 @@
 import { type Routes } from '@angular/router';
-import { OnboardingLayout } from './onboarding-layout';
 import { OnboardingStore, STEP_ORDER } from './onboarding-store';
 import { PAGE_TITLES, ROUTES } from '@core/routing';
 import { onboardingStepGuard } from './onboarding-step-guard';
@@ -8,7 +7,7 @@ import { OnboardingApi } from './services/onboarding-api';
 const routes: Routes = [
   {
     path: '',
-    component: OnboardingLayout,
+    loadComponent: () => import('./onboarding-layout'),
     providers: [OnboardingStore, OnboardingApi],
     children: [
       {

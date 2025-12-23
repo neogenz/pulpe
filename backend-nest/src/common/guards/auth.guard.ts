@@ -5,18 +5,15 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
+import { Request } from 'express';
 import { SupabaseService } from '@modules/supabase/supabase.service';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
+import type { SupabaseClient } from '@/types/supabase-helpers';
 
-/**
- * Request object with optional throttler cache
- * UserThrottlerGuard (global) may populate this before AuthGuard runs
- */
-interface RequestWithCache extends Record<string, any> {
+interface RequestWithCache extends Request {
   __throttlerUserCache?: AuthenticatedUser | null;
   user?: AuthenticatedUser;
-  supabase?: any;
-  headers?: { authorization?: string };
+  supabase?: SupabaseClient;
 }
 
 @Injectable()
@@ -35,37 +32,46 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException("Token d'accès requis");
     }
 
-    // Performance optimization: Reuse user resolved by UserThrottlerGuard (global guard)
-    // UserThrottlerGuard runs first and caches user in __throttlerUserCache
-    // This eliminates the 3rd redundant Supabase auth.getUser() call
     if (request.__throttlerUserCache) {
-      try {
-        const cachedUser = request.__throttlerUserCache;
-        const supabase =
-          this.supabaseService.createAuthenticatedClient(accessToken);
-
-        this.logger.debug(
-          { userId: cachedUser.id },
-          'Reusing cached user from throttler guard',
-        );
-
-        request.user = cachedUser;
-        request.supabase = supabase;
-        return true;
-      } catch (error) {
-        if (error instanceof UnauthorizedException) {
-          throw error;
-        }
-        this.logger.error(
-          { err: error },
-          'Authentication error while using cached user',
-        );
-        throw new UnauthorizedException("Erreur d'authentification");
-      }
+      return this.authenticateWithCache(request, accessToken);
     }
 
-    // Fallback: If cache miss (shouldn't happen with UserThrottlerGuard enabled),
-    // perform normal authentication flow
+    return this.authenticateWithSupabase(request, accessToken);
+  }
+
+  private authenticateWithCache(
+    request: RequestWithCache,
+    accessToken: string,
+  ): boolean {
+    try {
+      const cachedUser = request.__throttlerUserCache!;
+      const supabase =
+        this.supabaseService.createAuthenticatedClient(accessToken);
+
+      this.logger.debug(
+        { userId: cachedUser.id },
+        'Reusing cached user from throttler guard',
+      );
+
+      request.user = cachedUser;
+      request.supabase = supabase;
+      return true;
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      this.logger.error(
+        { err: error },
+        'Authentication error while using cached user',
+      );
+      throw new UnauthorizedException("Erreur d'authentification");
+    }
+  }
+
+  private async authenticateWithSupabase(
+    request: RequestWithCache,
+    accessToken: string,
+  ): Promise<boolean> {
     try {
       const supabase =
         this.supabaseService.createAuthenticatedClient(accessToken);
