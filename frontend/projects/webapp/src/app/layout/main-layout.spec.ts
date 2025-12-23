@@ -16,7 +16,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterModule } from '@angular/router';
 import { Subject, EMPTY } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
-import { MainLayout } from './main-layout';
+import MainLayout from './main-layout';
 import { AuthApi } from '../core/auth/auth-api';
 import { BreadcrumbState } from '../core/routing/breadcrumb-state';
 import { ROUTES } from '../core/routing/routes-constants';

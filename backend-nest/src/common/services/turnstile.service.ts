@@ -43,14 +43,11 @@ export class TurnstileService {
    * @returns true if verification succeeds or is skipped, false otherwise
    */
   async verify(token: string, ip?: string): Promise<boolean> {
-    // Skip in non-production environments
     if (this.skipVerification) {
       this.logger.debug('Turnstile verification skipped (non-production)');
       return true;
     }
 
-    // Allow empty token - protected by rate limiting (30 req/h/IP)
-    // Required for Safari iOS where Turnstile cross-origin is blocked
     if (!token) {
       this.logger.log('Empty Turnstile token accepted (rate-limited endpoint)');
       return true;
@@ -61,6 +58,13 @@ export class TurnstileService {
       return false;
     }
 
+    return this.verifyWithCloudflare(token, ip);
+  }
+
+  private async verifyWithCloudflare(
+    token: string,
+    ip?: string,
+  ): Promise<boolean> {
     try {
       const response = await fetch(
         'https://challenges.cloudflare.com/turnstile/v0/siteverify',

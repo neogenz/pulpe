@@ -8,16 +8,12 @@ import {
   type ThrottlerStorage,
 } from '@nestjs/throttler';
 import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
+import { Request } from 'express';
 import { SupabaseService } from '@modules/supabase/supabase.service';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 
-/**
- * Request object extended with throttler cache
- * Used to cache user resolution within a single request lifecycle
- */
-interface RequestWithThrottlerCache extends Record<string, any> {
+interface RequestWithThrottlerCache extends Request {
   __throttlerUserCache?: AuthenticatedUser | null;
-  headers?: { authorization?: string };
 }
 
 /**

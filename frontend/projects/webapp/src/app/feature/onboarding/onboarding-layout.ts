@@ -54,7 +54,7 @@ import { OnboardingStore } from './onboarding-store';
   `,
   styles: ``,
 })
-export class OnboardingLayout {
+export default class OnboardingLayout {
   protected readonly store = inject(OnboardingStore);
 
   protected readonly progressSteps = computed(() => {
