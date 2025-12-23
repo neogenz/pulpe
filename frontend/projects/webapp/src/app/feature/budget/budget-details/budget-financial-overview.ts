@@ -11,6 +11,7 @@ import {
 } from '@ui/financial-summary/financial-summary';
 import { type BudgetLine, type Transaction } from '@pulpe/shared';
 import { BudgetCalculator } from '@core/budget/budget-calculator';
+import { calculateAllConsumptions } from '@core/budget/budget-line-consumption';
 
 @Component({
   selector: 'pulpe-budget-financial-overview',
@@ -38,26 +39,41 @@ export class BudgetFinancialOverview {
     const lines = this.budgetLines();
     const transactions = this.transactions();
 
+    // Calculer les consommations de chaque enveloppe pour les dépassements
+    const consumptionMap = calculateAllConsumptions(lines, transactions);
+
     // Calculate base amounts from budget lines
+    // Pour les dépenses et épargnes, utiliser MAX(prévu, consommé) pour les dépassements
     const income = this.#budgetCalculator.calculatePlannedIncome(lines);
     let expenses = 0;
     let savings = 0;
 
     lines.forEach((line) => {
+      const consumption = consumptionMap.get(line.id);
+      // Utiliser MAX(prévu, consommé) pour prendre en compte les dépassements
+      const effectiveAmount = consumption
+        ? Math.max(line.amount, consumption.consumed)
+        : line.amount;
+
       switch (line.kind) {
         case 'expense':
-          expenses += line.amount;
+          expenses += effectiveAmount;
           break;
         case 'saving':
-          savings += line.amount;
+          savings += effectiveAmount;
           break;
       }
     });
 
     // Calculate Living Allowance with transactions impact
+    // Note: Les transactions allouées sont déjà prises en compte via MAX(prévu, consommé)
+    // Seules les transactions LIBRES (non allouées) impactent le budget ici
+    const freeTransactions = transactions.filter((tx) => !tx.budgetLineId);
     const initialLivingAllowance = income - expenses - savings;
     const transactionImpact =
-      this.#budgetCalculator.calculateActualTransactionsAmount(transactions);
+      this.#budgetCalculator.calculateActualTransactionsAmount(
+        freeTransactions,
+      );
     const remaining = initialLivingAllowance + transactionImpact;
 
     return { income, expenses, savings, remaining };

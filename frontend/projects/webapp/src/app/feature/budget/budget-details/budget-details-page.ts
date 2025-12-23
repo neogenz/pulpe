@@ -37,7 +37,18 @@ import {
   type BudgetLineUpdate,
   type BudgetLine,
   type Transaction,
+  type TransactionCreate,
 } from '@pulpe/shared';
+import type { BudgetLineConsumption } from '@core/budget';
+import {
+  AllocatedTransactionsDialog,
+  type AllocatedTransactionsDialogData,
+  type AllocatedTransactionsDialogResult,
+} from './allocated-transactions-dialog/allocated-transactions-dialog';
+import {
+  CreateAllocatedTransactionDialog,
+  type CreateAllocatedTransactionDialogData,
+} from './create-allocated-transaction-dialog/create-allocated-transaction-dialog';
 import {
   ProductTourService,
   TOUR_START_DELAY,
@@ -128,6 +139,10 @@ import {
           (update)="handleUpdateBudgetLine($event)"
           (delete)="handleDeleteItem($event)"
           (add)="openAddBudgetLineDialog()"
+          (viewAllocatedTransactions)="openAllocatedTransactionsDialog($event)"
+          (createAllocatedTransaction)="
+            openCreateAllocatedTransactionDialog($event)
+          "
           data-tour="budget-table"
         />
 
@@ -323,6 +338,88 @@ export default class BudgetDetailsPage {
       this.#snackBar.open('Transaction supprimée.', 'Fermer', {
         duration: 5000,
         panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
+      });
+    }
+  }
+
+  /**
+   * Open dialog to view allocated transactions for a budget line
+   */
+  async openAllocatedTransactionsDialog(event: {
+    budgetLine: BudgetLine;
+    consumption: BudgetLineConsumption;
+  }): Promise<void> {
+    const dialogRef = this.#dialog.open(AllocatedTransactionsDialog, {
+      data: {
+        budgetLine: event.budgetLine,
+        consumption: event.consumption,
+      } satisfies AllocatedTransactionsDialogData,
+      width: '800px',
+      maxWidth: '95vw',
+    });
+
+    const result: AllocatedTransactionsDialogResult | undefined =
+      await firstValueFrom(dialogRef.afterClosed());
+
+    if (!result) return;
+
+    if (result.action === 'add') {
+      // Open create transaction dialog
+      this.openCreateAllocatedTransactionDialog(event.budgetLine);
+    } else if (result.action === 'delete' && result.transaction) {
+      // Delete transaction with confirmation
+      await this.handleDeleteTransaction(result.transaction);
+    }
+  }
+
+  /**
+   * Open dialog to create an allocated transaction
+   */
+  async openCreateAllocatedTransactionDialog(
+    budgetLine: BudgetLine,
+  ): Promise<void> {
+    const dialogRef = this.#dialog.open(CreateAllocatedTransactionDialog, {
+      data: {
+        budgetLine,
+      } satisfies CreateAllocatedTransactionDialogData,
+      width: '600px',
+      maxWidth: '90vw',
+    });
+
+    const transaction: TransactionCreate | undefined = await firstValueFrom(
+      dialogRef.afterClosed(),
+    );
+
+    if (transaction) {
+      await this.store.createAllocatedTransaction(transaction);
+
+      this.#snackBar.open('Transaction ajoutée.', 'Fermer', {
+        duration: 3000,
+      });
+    }
+  }
+
+  /**
+   * Delete a transaction with confirmation dialog
+   */
+  async handleDeleteTransaction(transaction: Transaction): Promise<void> {
+    const dialogRef = this.#dialog.open(ConfirmationDialog, {
+      data: {
+        title: 'Supprimer la transaction',
+        message: `Voulez-vous supprimer la transaction "${transaction.name}" ?`,
+        confirmText: 'Supprimer',
+        confirmColor: 'warn',
+      } satisfies ConfirmationDialogData,
+      width: '400px',
+    });
+
+    const confirmed = await firstValueFrom(dialogRef.afterClosed());
+
+    if (confirmed) {
+      await this.store.deleteTransaction(transaction.id);
+
+      this.#snackBar.open('Transaction supprimée.', 'Fermer', {
+        duration: 3000,
       });
     }
   }

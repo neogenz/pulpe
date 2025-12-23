@@ -14,12 +14,14 @@ describe('BudgetCalculator', () => {
     name = 'Test Transaction',
     kind: 'income' | 'expense' | 'saving' = 'expense',
     id = `transaction-${amount}-${kind}`,
+    budgetLineId: string | null = null,
   ): Transaction => ({
     id,
     amount,
     name,
     kind,
     budgetId: 'test-budget-id',
+    budgetLineId,
     transactionDate: new Date().toISOString(),
     category: null,
     createdAt: new Date().toISOString(),
@@ -230,6 +232,247 @@ describe('BudgetCalculator', () => {
 
       // Assert
       expect(actualTransactions).toBe(-500);
+    });
+
+    describe('with budgetLines (allocated transactions)', () => {
+      it('should exclude allocated transactions when within envelope budget', () => {
+        // Arrange - Enveloppe de 500 CHF avec 100 CHF de transactions
+        const envelopeId = 'envelope-groceries';
+        const budgetLines: BudgetLine[] = [
+          createBudgetLine(500, 'Courses', 'expense', envelopeId),
+        ];
+        const transactions: Transaction[] = [
+          createTransaction(100, 'Supermarché', 'expense', 'tx-1', envelopeId),
+        ];
+
+        // Act
+        const impact = calculator.calculateActualTransactionsAmount(
+          transactions,
+          budgetLines,
+        );
+
+        // Assert - Les 100 CHF sont "couverts" par l'enveloppe, pas d'impact
+        expect(impact).toBe(0);
+      });
+
+      it('should include only overage when allocated transactions exceed envelope', () => {
+        // Arrange - Enveloppe de 500 CHF avec 600 CHF de transactions (100 CHF de dépassement)
+        const envelopeId = 'envelope-groceries';
+        const budgetLines: BudgetLine[] = [
+          createBudgetLine(500, 'Courses', 'expense', envelopeId),
+        ];
+        const transactions: Transaction[] = [
+          createTransaction(300, 'Supermarché', 'expense', 'tx-1', envelopeId),
+          createTransaction(300, 'Marché', 'expense', 'tx-2', envelopeId),
+        ];
+
+        // Act
+        const impact = calculator.calculateActualTransactionsAmount(
+          transactions,
+          budgetLines,
+        );
+
+        // Assert - Seul le dépassement de 100 CHF impacte le budget (négatif car expense)
+        expect(impact).toBe(-100);
+      });
+
+      it('should calculate 88 CHF overage for 100 CHF envelope with 188 CHF consumed', () => {
+        // Arrange - Scénario exact utilisateur: Enveloppe 100 CHF, consommation 188 CHF
+        const envelopeId = 'envelope-test';
+        const budgetLines: BudgetLine[] = [
+          createBudgetLine(100, 'Enveloppe Test', 'expense', envelopeId),
+        ];
+        const transactions: Transaction[] = [
+          createTransaction(
+            188,
+            'test_feature_dev_1',
+            'expense',
+            'tx-1',
+            envelopeId,
+          ),
+        ];
+
+        // Act
+        const impact = calculator.calculateActualTransactionsAmount(
+          transactions,
+          budgetLines,
+        );
+
+        // Assert - Dépassement de 88 CHF (188 - 100) devrait impacter le budget (négatif car expense)
+        expect(impact).toBe(-88);
+      });
+
+      it('should calculate remaining correctly with overage (simulating BudgetFinancialOverview)', () => {
+        // Arrange - Scénario complet: simule le calcul de budget-financial-overview.ts
+        const envelopeId = 'envelope-test';
+        const budgetLines: BudgetLine[] = [
+          createBudgetLine(1000, 'Salaire', 'income'),
+          createBudgetLine(100, 'Enveloppe Test', 'expense', envelopeId),
+        ];
+        const transactions: Transaction[] = [
+          createTransaction(
+            188,
+            'test_feature_dev_1',
+            'expense',
+            'tx-1',
+            envelopeId,
+          ),
+        ];
+
+        // Act - Simule exactement le calcul de budget-financial-overview.ts
+        const income = calculator.calculatePlannedIncome(budgetLines);
+        let expenses = 0;
+        let savings = 0;
+        budgetLines.forEach((line) => {
+          if (line.kind === 'expense') expenses += line.amount;
+          if (line.kind === 'saving') savings += line.amount;
+        });
+        const initialLivingAllowance = income - expenses - savings;
+        const transactionImpact = calculator.calculateActualTransactionsAmount(
+          transactions,
+          budgetLines,
+        );
+        const remaining = initialLivingAllowance + transactionImpact;
+
+        // Assert
+        expect(income).toBe(1000);
+        expect(expenses).toBe(100);
+        expect(savings).toBe(0);
+        expect(initialLivingAllowance).toBe(900); // 1000 - 100 - 0
+        expect(transactionImpact).toBe(-88); // Dépassement de 88 CHF
+        expect(remaining).toBe(812); // 900 - 88 = 812 (diminution de 88 CHF par rapport à 900)
+      });
+
+      it('should handle free transactions normally while excluding allocated ones', () => {
+        // Arrange - Mix de transactions libres et allouées
+        const envelopeId = 'envelope-groceries';
+        const budgetLines: BudgetLine[] = [
+          createBudgetLine(500, 'Courses', 'expense', envelopeId),
+        ];
+        const transactions: Transaction[] = [
+          // Transaction allouée sans dépassement → impact 0
+          createTransaction(200, 'Supermarché', 'expense', 'tx-1', envelopeId),
+          // Transactions libres → impact normal
+          createTransaction(50, 'Restaurant', 'expense', 'tx-2', null),
+          createTransaction(100, 'Freelance', 'income', 'tx-3', null),
+        ];
+
+        // Act
+        const impact = calculator.calculateActualTransactionsAmount(
+          transactions,
+          budgetLines,
+        );
+
+        // Assert - Seulement les transactions libres comptent: +100 - 50 = 50
+        expect(impact).toBe(50);
+      });
+
+      it('should handle multiple envelopes with different allocation levels', () => {
+        // Arrange
+        const envelopeGroceries = 'envelope-groceries';
+        const envelopeRestaurant = 'envelope-restaurant';
+        const budgetLines: BudgetLine[] = [
+          createBudgetLine(500, 'Courses', 'expense', envelopeGroceries),
+          createBudgetLine(200, 'Restaurant', 'expense', envelopeRestaurant),
+        ];
+        const transactions: Transaction[] = [
+          // Enveloppe courses: 400/500 → pas de dépassement
+          createTransaction(
+            400,
+            'Supermarché',
+            'expense',
+            'tx-1',
+            envelopeGroceries,
+          ),
+          // Enveloppe restaurant: 350/200 → dépassement de 150
+          createTransaction(
+            200,
+            'Resto 1',
+            'expense',
+            'tx-2',
+            envelopeRestaurant,
+          ),
+          createTransaction(
+            150,
+            'Resto 2',
+            'expense',
+            'tx-3',
+            envelopeRestaurant,
+          ),
+        ];
+
+        // Act
+        const impact = calculator.calculateActualTransactionsAmount(
+          transactions,
+          budgetLines,
+        );
+
+        // Assert - Seul le dépassement restaurant de 150 CHF
+        expect(impact).toBe(-150);
+      });
+
+      it('should handle income envelope overage correctly (positive impact)', () => {
+        // Arrange - Enveloppe revenu de 1000 avec 1500 de transactions
+        const envelopeId = 'envelope-freelance';
+        const budgetLines: BudgetLine[] = [
+          createBudgetLine(1000, 'Freelance', 'income', envelopeId),
+        ];
+        const transactions: Transaction[] = [
+          createTransaction(800, 'Client A', 'income', 'tx-1', envelopeId),
+          createTransaction(700, 'Client B', 'income', 'tx-2', envelopeId),
+        ];
+
+        // Act
+        const impact = calculator.calculateActualTransactionsAmount(
+          transactions,
+          budgetLines,
+        );
+
+        // Assert - Dépassement de 500 CHF en revenu (positif)
+        expect(impact).toBe(500);
+      });
+
+      it('should fallback to legacy behavior when budgetLines is undefined', () => {
+        // Arrange - Même scénario que le premier test mais sans budgetLines
+        const envelopeId = 'envelope-groceries';
+        const transactions: Transaction[] = [
+          createTransaction(100, 'Supermarché', 'expense', 'tx-1', envelopeId),
+        ];
+
+        // Act - Sans budgetLines, toutes les transactions comptent
+        const impact = calculator.calculateActualTransactionsAmount(
+          transactions,
+          undefined,
+        );
+
+        // Assert - Comportement legacy: la transaction compte normalement
+        expect(impact).toBe(-100);
+      });
+
+      it('should ignore allocated transactions for non-existent budget lines', () => {
+        // Arrange - Transaction allouée à une enveloppe qui n'existe pas
+        const budgetLines: BudgetLine[] = [
+          createBudgetLine(500, 'Courses', 'expense', 'existing-envelope'),
+        ];
+        const transactions: Transaction[] = [
+          createTransaction(
+            100,
+            'Orphan',
+            'expense',
+            'tx-1',
+            'non-existent-envelope',
+          ),
+        ];
+
+        // Act
+        const impact = calculator.calculateActualTransactionsAmount(
+          transactions,
+          budgetLines,
+        );
+
+        // Assert - Transaction ignorée car son enveloppe n'existe pas (pas de dépassement calculable)
+        expect(impact).toBe(0);
+      });
     });
   });
 

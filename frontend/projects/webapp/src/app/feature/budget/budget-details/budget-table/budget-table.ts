@@ -25,8 +25,12 @@ import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 import { RolloverFormatPipe } from '@app/ui/rollover-format';
+import {
+  calculateAllConsumptions,
+  type BudgetLineConsumption,
+} from '@core/budget';
 import { Logger } from '@core/logging/logger';
-import { type BudgetLineUpdate } from '@pulpe/shared';
+import { type BudgetLine, type BudgetLineUpdate } from '@pulpe/shared';
 import {
   RecurrenceLabelPipe,
   TransactionLabelPipe,
@@ -231,6 +235,53 @@ import {
             </td>
           </ng-container>
 
+          <!-- Consumption Column (only for budget lines) -->
+          <ng-container matColumnDef="consumption">
+            <th mat-header-cell *matHeaderCellDef class="text-right">
+              Consommé
+            </th>
+            <td mat-cell *matCellDef="let line" class="text-right">
+              @if (
+                line.metadata.itemType === 'budget_line' &&
+                !line.metadata.isRollover
+              ) {
+                @let consumption = budgetLineConsumptions().get(line.data.id);
+                @if (consumption && consumption.transactionCount > 0) {
+                  <button
+                    matButton
+                    class="text-body-small !h-8 !px-2"
+                    (click)="openAllocatedTransactions(line.data, consumption)"
+                    [matTooltip]="
+                      'Voir les ' +
+                      consumption.transactionCount +
+                      ' transaction(s)'
+                    "
+                  >
+                    <mat-icon class="!text-base mr-1">receipt_long</mat-icon>
+                    <span
+                      [class.text-error]="consumption.remaining < 0"
+                      [class.font-bold]="consumption.remaining < 0"
+                    >
+                      {{
+                        consumption.consumed
+                          | currency: 'CHF' : 'symbol' : '1.0-0'
+                      }}
+                    </span>
+                  </button>
+                } @else {
+                  <button
+                    matButton="outlined"
+                    class="text-body-small !h-8 !px-2"
+                    (click)="addAllocatedTransaction(line.data)"
+                    matTooltip="Ajouter une transaction"
+                  >
+                    <mat-icon class="!text-base">add</mat-icon>
+                  </button>
+                }
+              }
+            </td>
+          </ng-container>
+
           <!-- Remaining Balance Column -->
           <ng-container matColumnDef="remaining">
             <th mat-header-cell *matHeaderCellDef class="text-right">
@@ -302,6 +353,14 @@ import {
 
                     <mat-menu #lineActionMenu="matMenu" xPosition="before">
                       @if (line.metadata.itemType === 'budget_line') {
+                        <button
+                          mat-menu-item
+                          (click)="addAllocatedTransaction(line.data)"
+                          [attr.data-testid]="'allocate-' + line.data.id"
+                        >
+                          <mat-icon matMenuItemIcon>add_card</mat-icon>
+                          <span>Ajouter transaction</span>
+                        </button>
                         <button
                           mat-menu-item
                           (click)="startEdit(line)"
@@ -430,6 +489,11 @@ export class BudgetTable {
   update = output<BudgetLineUpdate>();
   delete = output<string>();
   add = output<void>();
+  viewAllocatedTransactions = output<{
+    budgetLine: BudgetLine;
+    consumption: BudgetLineConsumption;
+  }>();
+  createAllocatedTransaction = output<BudgetLine>();
 
   // Services
   readonly #breakpointObserver = inject(BreakpointObserver);
@@ -439,8 +503,15 @@ export class BudgetTable {
   readonly #budgetTableDataProvider = inject(BudgetTableDataProvider);
   readonly #logger = inject(Logger);
 
-  // UI configuration
-  displayedColumns = ['name', 'amount', 'remaining', 'recurrence', 'actions'];
+  // UI configuration - added 'consumption' column
+  displayedColumns = [
+    'name',
+    'amount',
+    'consumption',
+    'remaining',
+    'recurrence',
+    'actions',
+  ];
   displayedColumnsMobile = ['name', 'amount', 'remaining', 'actions'];
 
   protected inlineFormEditingItem = signal<BudgetLineTableItem | null>(null);
@@ -459,6 +530,13 @@ export class BudgetTable {
   currentColumns = computed(() =>
     this.isMobile() ? this.displayedColumnsMobile : this.displayedColumns,
   );
+
+  // Computed for budget line consumptions
+  readonly budgetLineConsumptions = computed(() => {
+    const lines = this.budgetLines();
+    const txs = this.transactions();
+    return calculateAllConsumptions(lines, txs);
+  });
 
   // View Model - single computed that delegates to service
   budgetTableData = computed(() => {
@@ -535,5 +613,16 @@ export class BudgetTable {
     this.inlineFormEditingItem.set(null);
     this.editForm.reset();
     this.update.emit(updateData);
+  }
+
+  openAllocatedTransactions(
+    budgetLine: BudgetLine,
+    consumption: BudgetLineConsumption,
+  ): void {
+    this.viewAllocatedTransactions.emit({ budgetLine, consumption });
+  }
+
+  addAllocatedTransaction(budgetLine: BudgetLine): void {
+    this.createAllocatedTransaction.emit(budgetLine);
   }
 }
