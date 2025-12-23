@@ -30,20 +30,30 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           direct_prompt: |
-            Review the changes in this PR for the Pulpe monorepo.
+            # Angular 21+ / NestJS Monorepo Code Review
 
-            Read CLAUDE.md and .claude/rules/ for project standards, then check for:
-            - Angular 21+ violations (decorators, old syntax, .component suffix)
-            - Architecture issues (cross-feature imports)
-            - Security problems (XSS, secrets, injection)
-            - Type safety (any usage)
+            You have full access to the repo. Read CLAUDE.md, .claude/rules/, package.json, and tsconfig.json for project standards.
 
-            Post a single structured comment with:
-            1. Critical issues (must fix) with file:line references
-            2. Suggested improvements
-            3. Summary table by category
+            Review ONLY changes in this PR. Focus on our stack:
 
-            Skip positive feedback. Max 10 issues. If no issues, say "No issues found".
+            **CRITICAL (block merge):**
+            - Angular 21+ violations (deprecated APIs, standalone components, signals misuse)
+            - Cross-feature imports (frontend -> backend/shared violations)
+            - Security: XSS, secrets in code, injection risks, unsafe DOM
+            - TypeScript: `any` usage, unsafe type guards, missing null checks
 
-          model: "claude-opus-4-5-20251101"
-          max_turns: "15"
+            **IMPORTANT:**
+            - Performance: heavy change detection, ngrx effects leaks, RxJS subscriptions
+            - Architecture: feature module boundaries, NestJS guards/decorators consistency
+            - Test coverage gaps in changed files
+
+            **Output format:**
+            - Single top-level comment
+            - Group by severity: 🚨 CRITICAL | ⚠️ IMPORTANT | ℹ️ SUGGESTION
+            - For each issue: `file:line` + before/after code + 1-line fix
+            - End with: "APPROVE" (if safe) or "NEEDS FIX" + priority count
+
+            Be concise. Max 10 issues total. Respond in French if PR description is in French.
+
+          model: "claude-sonnet-4-5-20250929"
+          max_turns: "4"
