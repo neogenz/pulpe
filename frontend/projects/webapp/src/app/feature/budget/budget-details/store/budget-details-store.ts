@@ -8,6 +8,8 @@ import {
   type BudgetLineCreate,
   type BudgetLineUpdate,
   type Transaction,
+  type TransactionCreate,
+  type TransactionUpdate,
 } from '@pulpe/shared';
 
 import { firstValueFrom } from 'rxjs';
@@ -313,7 +315,122 @@ export class BudgetDetailsStore {
     this.#clearError();
   }
 
+  // ============================================================================
+  // Allocated Transactions CRUD
+  // ============================================================================
+
+  /**
+   * Create a new allocated transaction with optimistic updates
+   * Updates local consumption without additional API call
+   */
+  async createAllocatedTransaction(
+    transaction: TransactionCreate,
+  ): Promise<void> {
+    const budgetLineId = transaction.budgetLineId;
+    const amount = transaction.amount;
+
+    try {
+      await firstValueFrom(this.#transactionApi.create$(transaction));
+
+      // Update local consumption after successful creation
+      if (budgetLineId) {
+        this.#updateLocalConsumption(budgetLineId, amount);
+      }
+
+      this.#clearError();
+    } catch (error) {
+      this.reloadBudgetDetails();
+
+      const errorMessage = "Erreur lors de l'ajout de la transaction";
+      this.#setError(errorMessage);
+      this.#logger.error('Error creating allocated transaction', error);
+    }
+  }
+
+  /**
+   * Update an allocated transaction with optimistic updates
+   * Updates local consumption by delta (newAmount - originalAmount)
+   */
+  async updateAllocatedTransaction(
+    transactionId: string,
+    data: TransactionUpdate,
+    budgetLineId: string,
+    originalAmount: number,
+  ): Promise<void> {
+    const newAmount = data.amount ?? originalAmount;
+    const delta = newAmount - originalAmount;
+
+    try {
+      await firstValueFrom(this.#transactionApi.update$(transactionId, data));
+
+      // Update local consumption by delta
+      if (delta !== 0) {
+        this.#updateLocalConsumption(budgetLineId, delta);
+      }
+
+      this.#clearError();
+    } catch (error) {
+      this.reloadBudgetDetails();
+
+      const errorMessage = 'Erreur lors de la modification de la transaction';
+      this.#setError(errorMessage);
+      this.#logger.error('Error updating allocated transaction', error);
+    }
+  }
+
+  /**
+   * Delete an allocated transaction with optimistic updates
+   * Updates local consumption by negative amount
+   */
+  async deleteAllocatedTransaction(
+    transactionId: string,
+    budgetLineId: string,
+    amount: number,
+  ): Promise<void> {
+    try {
+      await firstValueFrom(this.#transactionApi.remove$(transactionId));
+
+      // Update local consumption (decrease by deleted amount)
+      this.#updateLocalConsumption(budgetLineId, -amount);
+
+      this.#clearError();
+    } catch (error) {
+      this.reloadBudgetDetails();
+
+      const errorMessage = 'Erreur lors de la suppression de la transaction';
+      this.#setError(errorMessage);
+      this.#logger.error('Error deleting allocated transaction', error);
+    }
+  }
+
+  // ============================================================================
   // Private state mutation methods
+  // ============================================================================
+
+  /**
+   * Update local consumption for a budget line
+   * This is a pure local state update - no API call
+   * @param budgetLineId The budget line to update
+   * @param delta Amount to add to consumedAmount (negative to decrease)
+   */
+  #updateLocalConsumption(budgetLineId: string, delta: number): void {
+    this.#budgetDetailsResource.update((details) => {
+      if (!details) return details;
+
+      return {
+        ...details,
+        budgetLines: details.budgetLines.map((line) =>
+          line.id === budgetLineId
+            ? {
+                ...line,
+                consumedAmount: line.consumedAmount + delta,
+                remainingAmount: line.remainingAmount - delta,
+              }
+            : line,
+        ),
+      };
+    });
+  }
 
   /**
    * Set an error message in the state

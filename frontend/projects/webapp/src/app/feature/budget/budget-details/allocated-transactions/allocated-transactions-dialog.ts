@@ -7,17 +7,42 @@ import {
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import {
   MAT_DIALOG_DATA,
+  MatDialog,
   MatDialogModule,
   MatDialogRef,
 } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
-import type { BudgetLineWithConsumption, Transaction } from '@pulpe/shared';
+import type {
+  BudgetLineWithConsumption,
+  Transaction,
+  TransactionCreate,
+  TransactionUpdate,
+} from '@pulpe/shared';
+import { firstValueFrom } from 'rxjs';
+import {
+  AllocatedTransactionFormDialog,
+  type AllocatedTransactionFormDialogData,
+  type AllocatedTransactionFormResult,
+} from './allocated-transaction-form-dialog';
+import { ConfirmationDialog } from '../../../../ui/dialogs/confirmation-dialog';
 
 export interface AllocatedTransactionsDialogData {
   budgetLine: BudgetLineWithConsumption;
   transactions: Transaction[];
+  onCreateTransaction?: (data: TransactionCreate) => Promise<void>;
+  onUpdateTransaction?: (
+    transactionId: string,
+    data: TransactionUpdate,
+    budgetLineId: string,
+    originalAmount: number,
+  ) => Promise<void>;
+  onDeleteTransaction?: (
+    transactionId: string,
+    budgetLineId: string,
+    amount: number,
+  ) => Promise<void>;
 }
 
 @Component({
@@ -82,9 +107,29 @@ export interface AllocatedTransactionsDialogData {
                     </span>
                     <span class="transaction-name">{{ tx.name }}</span>
                   </div>
-                  <span class="transaction-amount">
-                    {{ tx.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
-                  </span>
+                  <div class="transaction-actions">
+                    <span class="transaction-amount">
+                      {{ tx.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
+                    </span>
+                    @if (hasCrudCallbacks()) {
+                      <button
+                        mat-icon-button
+                        [attr.data-testid]="'edit-transaction-' + tx.id"
+                        (click)="openEditDialog(tx)"
+                        aria-label="Modifier la transaction"
+                      >
+                        <mat-icon>edit</mat-icon>
+                      </button>
+                      <button
+                        mat-icon-button
+                        [attr.data-testid]="'delete-transaction-' + tx.id"
+                        (click)="confirmDelete(tx)"
+                        aria-label="Supprimer la transaction"
+                      >
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    }
+                  </div>
                 </div>
               </mat-list-item>
             }
@@ -101,8 +146,13 @@ export interface AllocatedTransactionsDialogData {
         <button
           mat-button
           data-testid="add-transaction-button"
-          disabled
-          aria-label="Ajouter une transaction (bientôt disponible)"
+          [disabled]="!hasCrudCallbacks()"
+          (click)="openAddDialog()"
+          [attr.aria-label]="
+            hasCrudCallbacks()
+              ? 'Ajouter une transaction'
+              : 'Ajouter une transaction (bientôt disponible)'
+          "
         >
           <mat-icon>add</mat-icon>
           Ajouter
@@ -161,6 +211,7 @@ export interface AllocatedTransactionsDialogData {
       display: flex;
       flex-direction: column;
       gap: 0.25rem;
+      flex: 1;
     }
 
     .transaction-date {
@@ -172,9 +223,16 @@ export interface AllocatedTransactionsDialogData {
       font-weight: 500;
     }
 
+    .transaction-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
     .transaction-amount {
       font-weight: 500;
       color: var(--mat-sys-on-surface);
+      margin-right: 0.5rem;
     }
 
     .empty-state {
@@ -202,7 +260,18 @@ export interface AllocatedTransactionsDialogData {
 })
 export class AllocatedTransactionsDialog {
   readonly #dialogRef = inject(MatDialogRef<AllocatedTransactionsDialog>);
+  readonly #matDialog = inject(MatDialog);
   readonly data = inject<AllocatedTransactionsDialogData>(MAT_DIALOG_DATA);
+
+  /**
+   * Check if CRUD callbacks are provided
+   */
+  readonly hasCrudCallbacks = computed(
+    () =>
+      !!this.data.onCreateTransaction &&
+      !!this.data.onUpdateTransaction &&
+      !!this.data.onDeleteTransaction,
+  );
 
   /**
    * Transactions sorted by date DESC (most recent first)
@@ -217,5 +286,86 @@ export class AllocatedTransactionsDialog {
 
   close(): void {
     this.#dialogRef.close();
+  }
+
+  /**
+   * Open dialog to add a new transaction
+   */
+  async openAddDialog(): Promise<void> {
+    if (!this.data.onCreateTransaction) return;
+
+    const dialogData: AllocatedTransactionFormDialogData = {
+      budgetLineId: this.data.budgetLine.id,
+      budgetId: this.data.budgetLine.budgetId,
+      kind: this.data.budgetLine.kind,
+    };
+
+    const dialogRef = this.#matDialog.open(AllocatedTransactionFormDialog, {
+      data: dialogData,
+      width: '400px',
+    });
+
+    const result = await firstValueFrom(dialogRef.afterClosed());
+
+    if (result?.mode === 'create') {
+      await this.data.onCreateTransaction(result.data);
+    }
+  }
+
+  /**
+   * Open dialog to edit an existing transaction
+   */
+  async openEditDialog(transaction: Transaction): Promise<void> {
+    if (!this.data.onUpdateTransaction) return;
+
+    const dialogData: AllocatedTransactionFormDialogData = {
+      budgetLineId: this.data.budgetLine.id,
+      budgetId: this.data.budgetLine.budgetId,
+      kind: this.data.budgetLine.kind,
+      transaction,
+    };
+
+    const dialogRef = this.#matDialog.open(AllocatedTransactionFormDialog, {
+      data: dialogData,
+      width: '400px',
+    });
+
+    const result: AllocatedTransactionFormResult | undefined =
+      await firstValueFrom(dialogRef.afterClosed());
+
+    if (result?.mode === 'update') {
+      await this.data.onUpdateTransaction(
+        result.transactionId,
+        result.data,
+        this.data.budgetLine.id,
+        result.originalAmount,
+      );
+    }
+  }
+
+  /**
+   * Show confirmation dialog and delete transaction if confirmed
+   */
+  async confirmDelete(transaction: Transaction): Promise<void> {
+    if (!this.data.onDeleteTransaction) return;
+
+    const dialogRef = this.#matDialog.open(ConfirmationDialog, {
+      data: {
+        title: 'Supprimer la transaction',
+        message: `Voulez-vous vraiment supprimer "${transaction.name}" ?`,
+        confirmText: 'Supprimer',
+        cancelText: 'Annuler',
+      },
+    });
+
+    const confirmed = await firstValueFrom(dialogRef.afterClosed());
+
+    if (confirmed) {
+      await this.data.onDeleteTransaction(
+        transaction.id,
+        transaction.budgetLineId!,
+        transaction.amount,
+      );
+    }
   }
 }

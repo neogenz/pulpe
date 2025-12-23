@@ -7,7 +7,12 @@ import {
 } from '@angular/common/http/testing';
 import { of, throwError, Subject } from 'rxjs';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import type { BudgetLineCreate, BudgetLineUpdate } from '@pulpe/shared';
+import type {
+  BudgetLineCreate,
+  BudgetLineUpdate,
+  TransactionCreate,
+  TransactionUpdate,
+} from '@pulpe/shared';
 
 import { BudgetDetailsStore } from './budget-details-store';
 import { BudgetApi } from '@core/budget/budget-api';
@@ -76,8 +81,11 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     createBudgetLine$: ReturnType<typeof vi.fn>;
     updateBudgetLine$: ReturnType<typeof vi.fn>;
     deleteBudgetLine$: ReturnType<typeof vi.fn>;
+    getAllocatedTransactions$: ReturnType<typeof vi.fn>;
   };
   let mockTransactionApi: {
+    create$: ReturnType<typeof vi.fn>;
+    update$: ReturnType<typeof vi.fn>;
     remove$: ReturnType<typeof vi.fn>;
   };
   let mockLogger: {
@@ -122,9 +130,14 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       createBudgetLine$: vi.fn(),
       updateBudgetLine$: vi.fn(),
       deleteBudgetLine$: vi.fn(),
+      getAllocatedTransactions$: vi
+        .fn()
+        .mockReturnValue(of({ success: true, data: [] })),
     };
 
     mockTransactionApi = {
+      create$: vi.fn(),
+      update$: vi.fn(),
       remove$: vi.fn(),
     };
 
@@ -682,6 +695,292 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
 
       // User sees an error occurred
       expect(service.error()).toBeTruthy();
+    });
+  });
+
+  describe('Allocated Transactions CRUD', () => {
+    beforeEach(async () => {
+      service.setBudgetId(mockBudgetId);
+      TestBed.tick();
+      await waitForResourceStable();
+    });
+
+    describe('createAllocatedTransaction', () => {
+      it('should add transaction with optimistic update and update consumption locally', async () => {
+        // Arrange - Setup budget line with consumption data
+        const budgetLineId = 'line-2'; // Rent line
+        const newTransaction: TransactionCreate = {
+          budgetId: mockBudgetId,
+          budgetLineId,
+          name: 'Loyer janvier',
+          amount: 1500,
+          kind: 'expense',
+          transactionDate: '2024-01-15T00:00:00.000Z',
+        };
+
+        const serverTransaction = createMockTransaction({
+          id: 'tx-new-server',
+          ...newTransaction,
+          createdAt: '2024-01-15T10:00:00Z',
+          updatedAt: '2024-01-15T10:00:00Z',
+        });
+
+        mockTransactionApi.create$ = vi.fn().mockReturnValue(
+          of({
+            success: true,
+            data: serverTransaction,
+          }),
+        );
+
+        // Get initial consumption state
+        const initialLine = service
+          .budgetDetails()
+          ?.budgetLines.find((l) => l.id === budgetLineId);
+        const initialConsumed = initialLine?.consumedAmount ?? 0;
+
+        // Act
+        await service.createAllocatedTransaction(newTransaction);
+
+        // Assert - Consumption should be updated locally
+        const updatedLine = service
+          .budgetDetails()
+          ?.budgetLines.find((l) => l.id === budgetLineId);
+        expect(updatedLine?.consumedAmount).toBe(initialConsumed + 1500);
+        expect(updatedLine?.remainingAmount).toBe(
+          updatedLine!.amount - updatedLine!.consumedAmount,
+        );
+
+        // Transaction API was called
+        expect(mockTransactionApi.create$).toHaveBeenCalledWith(newTransaction);
+      });
+
+      it('should refresh full state on error and show snackbar', async () => {
+        // Arrange
+        mockTransactionApi.create$ = vi
+          .fn()
+          .mockReturnValue(throwError(() => new Error('Server error')));
+
+        const failedTransaction: TransactionCreate = {
+          budgetId: mockBudgetId,
+          budgetLineId: 'line-2',
+          name: 'Failed transaction',
+          amount: 100,
+          kind: 'expense',
+        };
+
+        // Act
+        await service.createAllocatedTransaction(failedTransaction);
+
+        // Assert - Error should be set (reload happens on error)
+        expect(service.error()).toBeTruthy();
+        expect(mockLogger.error).toHaveBeenCalled();
+      });
+    });
+
+    describe('updateAllocatedTransaction', () => {
+      it('should update transaction and adjust consumption by delta', async () => {
+        // Arrange - Setup existing transaction
+        const transactionId = 'tx-existing';
+        const budgetLineId = 'line-2';
+        const originalAmount = 100;
+        const newAmount = 150;
+
+        mockTransactionApi.update$ = vi.fn().mockReturnValue(
+          of({
+            success: true,
+            data: createMockTransaction({
+              id: transactionId,
+              budgetId: mockBudgetId,
+              budgetLineId,
+              name: 'Updated transaction',
+              amount: newAmount,
+              kind: 'expense',
+            }),
+          }),
+        );
+
+        const updateData: TransactionUpdate = {
+          name: 'Updated transaction',
+          amount: newAmount,
+        };
+
+        // Get initial consumption
+        const initialLine = service
+          .budgetDetails()
+          ?.budgetLines.find((l) => l.id === budgetLineId);
+        const initialConsumed = initialLine?.consumedAmount ?? 0;
+
+        // Act - Update with originalAmount for delta calculation
+        await service.updateAllocatedTransaction(
+          transactionId,
+          updateData,
+          budgetLineId,
+          originalAmount,
+        );
+
+        // Assert - Consumption should be adjusted by delta (newAmount - originalAmount = 50)
+        const updatedLine = service
+          .budgetDetails()
+          ?.budgetLines.find((l) => l.id === budgetLineId);
+        expect(updatedLine?.consumedAmount).toBe(
+          initialConsumed + (newAmount - originalAmount),
+        );
+
+        // Transaction API was called
+        expect(mockTransactionApi.update$).toHaveBeenCalledWith(
+          transactionId,
+          updateData,
+        );
+      });
+
+      it('should refresh full state on update error', async () => {
+        // Arrange
+        mockTransactionApi.update$ = vi
+          .fn()
+          .mockReturnValue(throwError(() => new Error('Update failed')));
+
+        // Act
+        await service.updateAllocatedTransaction(
+          'tx-1',
+          { amount: 200 },
+          'line-2',
+          100,
+        );
+
+        // Assert
+        expect(service.error()).toBeTruthy();
+        expect(mockLogger.error).toHaveBeenCalled();
+      });
+    });
+
+    describe('deleteAllocatedTransaction', () => {
+      it('should delete transaction and decrease consumption locally', async () => {
+        // Arrange
+        const transactionId = 'tx-to-delete';
+        const budgetLineId = 'line-2';
+        const transactionAmount = 75;
+
+        mockTransactionApi.remove$ = vi.fn().mockReturnValue(of({}));
+
+        // Get initial consumption
+        const initialLine = service
+          .budgetDetails()
+          ?.budgetLines.find((l) => l.id === budgetLineId);
+        const initialConsumed = initialLine?.consumedAmount ?? 0;
+
+        // Act
+        await service.deleteAllocatedTransaction(
+          transactionId,
+          budgetLineId,
+          transactionAmount,
+        );
+
+        // Assert - Consumption should decrease by deleted amount
+        const updatedLine = service
+          .budgetDetails()
+          ?.budgetLines.find((l) => l.id === budgetLineId);
+        expect(updatedLine?.consumedAmount).toBe(
+          initialConsumed - transactionAmount,
+        );
+
+        // Transaction API was called
+        expect(mockTransactionApi.remove$).toHaveBeenCalledWith(transactionId);
+      });
+
+      it('should refresh full state on delete error', async () => {
+        // Arrange
+        mockTransactionApi.remove$ = vi
+          .fn()
+          .mockReturnValue(throwError(() => new Error('Delete failed')));
+
+        // Act
+        await service.deleteAllocatedTransaction('tx-1', 'line-2', 50);
+
+        // Assert
+        expect(service.error()).toBeTruthy();
+        expect(mockLogger.error).toHaveBeenCalled();
+      });
+    });
+
+    describe('updateLocalConsumption - internal method behavior', () => {
+      it('should update consumedAmount and remainingAmount correctly', async () => {
+        // Arrange - Create a transaction to trigger consumption update
+        const budgetLineId = 'line-2';
+        const transactionAmount = 100;
+
+        mockTransactionApi.create$ = vi.fn().mockReturnValue(
+          of({
+            success: true,
+            data: createMockTransaction({
+              id: 'tx-new',
+              budgetId: mockBudgetId,
+              budgetLineId,
+              amount: transactionAmount,
+              kind: 'expense',
+            }),
+          }),
+        );
+
+        // Get initial state
+        const initialLine = service
+          .budgetDetails()
+          ?.budgetLines.find((l) => l.id === budgetLineId);
+        const initialConsumed = initialLine?.consumedAmount ?? 0;
+        const initialRemaining =
+          initialLine?.remainingAmount ?? initialLine!.amount;
+
+        // Act
+        await service.createAllocatedTransaction({
+          budgetId: mockBudgetId,
+          budgetLineId,
+          name: 'Test transaction',
+          amount: transactionAmount,
+          kind: 'expense',
+        });
+
+        // Assert
+        const updatedLine = service
+          .budgetDetails()
+          ?.budgetLines.find((l) => l.id === budgetLineId);
+        expect(updatedLine?.consumedAmount).toBe(
+          initialConsumed + transactionAmount,
+        );
+        expect(updatedLine?.remainingAmount).toBe(
+          initialRemaining - transactionAmount,
+        );
+      });
+
+      it('should not call API for local consumption updates', async () => {
+        // This is tested implicitly - the consumption update happens locally
+        // without a separate API call. The only API call is for the transaction itself.
+        const budgetLineId = 'line-2';
+
+        mockTransactionApi.create$ = vi.fn().mockReturnValue(
+          of({
+            success: true,
+            data: createMockTransaction({
+              id: 'tx-new',
+              budgetId: mockBudgetId,
+              budgetLineId,
+              amount: 50,
+              kind: 'expense',
+            }),
+          }),
+        );
+
+        await service.createAllocatedTransaction({
+          budgetId: mockBudgetId,
+          budgetLineId,
+          name: 'Test',
+          amount: 50,
+          kind: 'expense',
+        });
+
+        // Only transaction create was called, no separate consumption update API
+        expect(mockTransactionApi.create$).toHaveBeenCalledTimes(1);
+        // No budget line update API was called for consumption
+        expect(mockBudgetLineApi.updateBudgetLine$).not.toHaveBeenCalled();
+      });
     });
   });
 });
