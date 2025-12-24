@@ -67,34 +67,32 @@ export interface TemplateDetailsDialogData {
         <!-- Lines List -->
         <mat-list>
           @for (line of lines; track line.id) {
-            <mat-list-item>
-              <div class="flex flex-row justify-between items-end gap-4">
-                <div class="flex flex-col flex-1 min-w-0">
-                  <div
-                    class="ph-no-capture text-body-medium font-medium truncate"
-                  >
-                    {{ line.name }}
-                  </div>
-                  @if (line.description) {
-                    <div
-                      class="text-body-small text-on-surface-variant truncate"
-                    >
-                      {{ line.description }}
-                    </div>
-                  }
-                </div>
-                <div
-                  class="ph-no-capture text-body-medium font-medium flex-shrink-0"
-                  [class.text-financial-savings]="line.kind === 'saving'"
-                  [class.text-financial-negative]="line.kind === 'expense'"
-                  [class.text-financial-income]="line.kind === 'income'"
+            <mat-list-item
+              [style.--mat-list-list-item-trailing-supporting-text-color]="
+                line.kind === 'income'
+                  ? 'var(--pulpe-financial-income)'
+                  : line.kind === 'saving'
+                    ? 'var(--pulpe-financial-savings)'
+                    : 'var(--pulpe-financial-negative)'
+              "
+            >
+              <span matListItemTitle class="ph-no-capture truncate">
+                {{ line.name }}
+              </span>
+              @if (line.description) {
+                <span
+                  matListItemLine
+                  class="text-body-small text-on-surface-variant truncate"
                 >
-                  {{ line.kind === 'income' ? '+' : '-' }}
-                  {{
-                    line.amount | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
-                  }}
-                </div>
-              </div>
+                  {{ line.description }}
+                </span>
+              }
+              <span matListItemMeta class="ph-no-capture">
+                {{ line.kind === 'income' ? '+' : '-' }}
+                {{
+                  line.amount | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
+                }}
+              </span>
             </mat-list-item>
             @if (!$last) {
               <mat-divider></mat-divider>
