@@ -79,7 +79,9 @@ export class BudgetTemplatesState {
 
       this.budgetTemplates.update((data) => {
         if (!data || !response.data) return data;
-        return data.map((t) => (t.id.startsWith('temp-') ? response.data.template : t));
+        return data.map((t) =>
+          t.id.startsWith('temp-') ? response.data.template : t,
+        );
       });
 
       // Return the created template for navigation

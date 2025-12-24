@@ -174,9 +174,11 @@ describe('BudgetTemplatesState', () => {
         updatedAt: new Date().toISOString(),
       };
 
-      mockApi.create$ = vi.fn().mockReturnValue(
-        of({ data: { template: createdTemplate, lines: [] }, success: true }),
-      );
+      mockApi.create$ = vi
+        .fn()
+        .mockReturnValue(
+          of({ data: { template: createdTemplate, lines: [] }, success: true }),
+        );
 
       // Wait for initial load
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -203,9 +205,11 @@ describe('BudgetTemplatesState', () => {
         updatedAt: new Date().toISOString(),
       };
 
-      mockApi.create$ = vi.fn().mockReturnValue(
-        of({ data: { template: createdTemplate, lines: [] }, success: true }),
-      );
+      mockApi.create$ = vi
+        .fn()
+        .mockReturnValue(
+          of({ data: { template: createdTemplate, lines: [] }, success: true }),
+        );
 
       // Wait for initial load
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -303,9 +307,11 @@ describe('BudgetTemplatesState', () => {
         updatedAt: new Date().toISOString(),
       };
 
-      mockApi.create$ = vi.fn().mockReturnValue(
-        of({ data: { template: createdTemplate, lines: [] }, success: true }),
-      );
+      mockApi.create$ = vi
+        .fn()
+        .mockReturnValue(
+          of({ data: { template: createdTemplate, lines: [] }, success: true }),
+        );
 
       // Wait for initial load
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -371,7 +377,10 @@ describe('BudgetTemplatesState', () => {
       expect(tempTemplate?.name).toBe('Optimistic Template');
 
       // Resolve the creation with correct response structure
-      createResolve!({ data: { template: createdTemplate, lines: [] }, success: true });
+      createResolve!({
+        data: { template: createdTemplate, lines: [] },
+        success: true,
+      });
       await addPromise;
 
       // Check final state - temporary should be replaced

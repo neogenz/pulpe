@@ -34,8 +34,13 @@ export class BudgetTemplatesApi {
     return this.#http.get<BudgetTemplateResponse>(`${this.#apiUrl}/${id}`);
   }
 
-  create$(template: BudgetTemplateCreate): Observable<BudgetTemplateCreateResponse> {
-    return this.#http.post<BudgetTemplateCreateResponse>(this.#apiUrl, template);
+  create$(
+    template: BudgetTemplateCreate,
+  ): Observable<BudgetTemplateCreateResponse> {
+    return this.#http.post<BudgetTemplateCreateResponse>(
+      this.#apiUrl,
+      template,
+    );
   }
 
   createFromOnboarding$(
