@@ -511,9 +511,9 @@ export class BudgetLineService {
   private prepareResetUpdateData(templateLine: {
     name: string;
     amount: number;
-    kind: string;
-    recurrence: string;
-  }) {
+    kind: Database['public']['Enums']['transaction_kind'];
+    recurrence: Database['public']['Enums']['transaction_recurrence'];
+  }): Database['public']['Tables']['budget_line']['Update'] {
     return {
       name: templateLine.name,
       amount: templateLine.amount,
