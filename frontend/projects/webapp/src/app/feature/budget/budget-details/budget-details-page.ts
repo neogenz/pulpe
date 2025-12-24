@@ -1,25 +1,27 @@
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
+import { DatePipe } from '@angular/common';
 import {
   afterNextRender,
   ChangeDetectionStrategy,
   Component,
-  inject,
-  input,
   computed,
   effect,
+  inject,
+  input,
 } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
-import { ActivatedRoute, Router } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
+import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { BaseLoading } from '@ui/loading';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { DatePipe } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Logger } from '@core/logging/logger';
+import { BaseLoading } from '@ui/loading';
 import { formatDate } from 'date-fns';
 import { frCH } from 'date-fns/locale';
+import { firstValueFrom } from 'rxjs';
 import { BudgetDetailsStore } from './store/budget-details-store';
 import { BudgetLineApi } from './budget-line-api/budget-line-api';
 import { BudgetTable } from './budget-table/budget-table';
@@ -28,6 +30,16 @@ import {
   AddBudgetLineDialog,
   type BudgetLineDialogData,
 } from './create-budget-line/add-budget-line-dialog';
+import {
+  AllocatedTransactionsDialog,
+  type AllocatedTransactionsDialogData,
+  type AllocatedTransactionsDialogResult,
+} from './allocated-transactions/allocated-transactions-dialog';
+import {
+  AllocatedTransactionFormDialog,
+  type AllocatedTransactionFormDialogData,
+  type AllocatedTransactionFormDialogResult,
+} from './allocated-transactions/allocated-transaction-form-dialog';
 import {
   ConfirmationDialog,
   type ConfirmationDialogData,
@@ -128,6 +140,7 @@ import {
           (update)="handleUpdateBudgetLine($event)"
           (delete)="handleDeleteItem($event)"
           (add)="openAddBudgetLineDialog()"
+          (viewTransactions)="handleViewTransactions($event)"
           data-tour="budget-table"
         />
 
@@ -202,6 +215,8 @@ export default class BudgetDetailsPage {
   readonly #router = inject(Router);
   readonly #route = inject(ActivatedRoute);
   readonly #dialog = inject(MatDialog);
+  readonly #bottomSheet = inject(MatBottomSheet);
+  readonly #breakpointObserver = inject(BreakpointObserver);
   readonly #snackBar = inject(MatSnackBar);
   readonly #logger = inject(Logger);
   readonly #productTourService = inject(ProductTourService);
@@ -325,5 +340,139 @@ export default class BudgetDetailsPage {
         panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
       });
     }
+  }
+
+  async handleViewTransactions(budgetLineId: string): Promise<void> {
+    const data = this.store.budgetDetails();
+    if (!data) return;
+
+    const budgetLine = data.budgetLines.find(
+      (line: BudgetLine) => line.id === budgetLineId,
+    );
+    if (!budgetLine) {
+      this.#logger.error('Budget line not found', {
+        budgetLineId,
+        budgetId: this.id(),
+      });
+      return;
+    }
+
+    // Filter transactions allocated to this budget line
+    const allocatedTransactions = data.transactions.filter(
+      (tx: Transaction) => tx.budgetLineId === budgetLineId,
+    );
+
+    const dialogData: AllocatedTransactionsDialogData = {
+      budgetLine,
+      allocatedTransactions,
+    };
+
+    const isMobile = this.#breakpointObserver.isMatched(Breakpoints.Handset);
+
+    let result: AllocatedTransactionsDialogResult | undefined;
+
+    if (isMobile) {
+      // Mobile: Bottom Sheet
+      const sheetRef = this.#bottomSheet.open(AllocatedTransactionsDialog, {
+        data: dialogData,
+        panelClass: 'allocated-transactions-sheet',
+      });
+      result = await firstValueFrom(sheetRef.afterDismissed());
+    } else {
+      // Desktop: Dialog
+      const dialogRef = this.#dialog.open(AllocatedTransactionsDialog, {
+        data: dialogData,
+        width: '600px',
+        maxWidth: '90vw',
+      });
+      result = await firstValueFrom(dialogRef.afterClosed());
+    }
+
+    if (!result) return;
+
+    // Handle dialog actions
+    switch (result.action) {
+      case 'add':
+        await this.#openTransactionFormDialog(
+          budgetLine,
+          allocatedTransactions,
+        );
+        break;
+      case 'edit':
+        if (result.transaction) {
+          await this.#openTransactionFormDialog(
+            budgetLine,
+            allocatedTransactions,
+            result.transaction,
+          );
+        }
+        break;
+      case 'delete':
+        if (result.transaction) {
+          await this.handleDeleteItem(result.transaction.id);
+        }
+        break;
+    }
+  }
+
+  async #openTransactionFormDialog(
+    budgetLine: BudgetLine,
+    allocatedTransactions: Transaction[],
+    transaction?: Transaction,
+  ): Promise<void> {
+    const budget = this.store.budgetDetails();
+    if (!budget) return;
+
+    // Calculate consumed amount (excluding the transaction being edited)
+    const consumedAmount = allocatedTransactions
+      .filter((tx) => tx.id !== transaction?.id)
+      .reduce((sum, tx) => sum + tx.amount, 0);
+
+    const formData: AllocatedTransactionFormDialogData = {
+      budgetLine,
+      budgetId: budget.id,
+      month: budget.month,
+      year: budget.year,
+      transaction,
+      consumedAmount,
+    };
+
+    const isMobile = this.#breakpointObserver.isMatched(Breakpoints.Handset);
+
+    let result: AllocatedTransactionFormDialogResult;
+
+    if (isMobile) {
+      // Mobile: Bottom Sheet
+      const sheetRef = this.#bottomSheet.open(AllocatedTransactionFormDialog, {
+        data: formData,
+        panelClass: 'transaction-form-sheet',
+      });
+      result = await firstValueFrom(sheetRef.afterDismissed());
+    } else {
+      // Desktop: Dialog
+      const dialogRef = this.#dialog.open(AllocatedTransactionFormDialog, {
+        data: formData,
+        width: '500px',
+        maxWidth: '95vw',
+      });
+      result = await firstValueFrom(dialogRef.afterClosed());
+    }
+
+    if (!result) return;
+
+    if (result.action === 'create') {
+      await this.store.createAllocatedTransaction(result.data);
+      this.#snackBar.open('Transaction ajoutée.', 'Fermer', {
+        duration: 5000,
+      });
+    } else if (result.action === 'update') {
+      await this.store.updateAllocatedTransaction(result.id, result.data);
+      this.#snackBar.open('Transaction modifiée.', 'Fermer', {
+        duration: 5000,
+      });
+    }
+
+    // Re-open the allocated transactions dialog to show updated list
+    await this.handleViewTransactions(budgetLine.id);
   }
 }

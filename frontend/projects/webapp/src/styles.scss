@@ -75,3 +75,31 @@ body {
     var(--pulpe-gradient-100) 100%
   );
 }
+
+// Bottom sheet panel classes for allocated transactions (mobile)
+.allocated-transactions-sheet,
+.transaction-form-sheet {
+  .mat-bottom-sheet-container {
+    max-height: 85vh;
+    border-radius: 28px 28px 0 0;
+    padding: 0;
+    background: var(--mat-sys-surface-container-low);
+
+    // Remove default dialog margins
+    .mat-mdc-dialog-title {
+      padding: 16px 16px 8px;
+      margin: 0;
+    }
+
+    .mat-mdc-dialog-content {
+      padding: 0 16px;
+      max-height: calc(85vh - 180px);
+    }
+
+    .mat-mdc-dialog-actions {
+      padding: 16px;
+      margin: 0;
+      min-height: auto;
+    }
+  }
+}

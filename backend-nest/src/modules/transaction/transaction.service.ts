@@ -1,6 +1,6 @@
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import { Injectable, HttpException } from '@nestjs/common';
+import { Injectable, HttpException, Inject, forwardRef } from '@nestjs/common';
 import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { BusinessException } from '@common/exceptions/business.exception';
@@ -11,11 +11,13 @@ import {
   type TransactionListResponse,
   type TransactionResponse,
   type TransactionUpdate,
+  type TransactionKind,
 } from '@pulpe/shared';
 import * as transactionMappers from './transaction.mappers';
 import { TRANSACTION_CONSTANTS } from './entities';
 import type { Database } from '../../types/database.types';
 import { BudgetService } from '../budget/budget.service';
+import { BudgetLineService } from '../budget-line/budget-line.service';
 
 @Injectable()
 export class TransactionService {
@@ -23,6 +25,8 @@ export class TransactionService {
     @InjectPinoLogger(TransactionService.name)
     private readonly logger: PinoLogger,
     private readonly budgetService: BudgetService,
+    @Inject(forwardRef(() => BudgetLineService))
+    private readonly budgetLineService: BudgetLineService,
   ) {}
 
   async findAll(
@@ -111,10 +115,43 @@ export class TransactionService {
     }
   }
 
+  private async validateBudgetLineAllocation(
+    budgetLineId: string,
+    budgetId: string,
+    kind: TransactionKind,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    // Fetch the budget line to validate
+    const budgetLineResponse = await this.budgetLineService.findOne(
+      budgetLineId,
+      user,
+      supabase,
+    );
+    const budgetLine = budgetLineResponse.data;
+
+    // Validate that budget line belongs to the same budget
+    if (budgetLine.budgetId !== budgetId) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_BUDGET_LINE_MISMATCH,
+        { budgetLineId, budgetId },
+      );
+    }
+
+    // Validate that transaction kind matches budget line kind
+    if (budgetLine.kind !== kind) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_BUDGET_LINE_KIND_MISMATCH,
+        { transactionKind: kind, budgetLineKind: budgetLine.kind },
+      );
+    }
+  }
+
   private prepareTransactionData(createTransactionDto: TransactionCreate) {
     // Manual conversion without Zod validation (already validated in service)
     return {
       budget_id: createTransactionDto.budgetId,
+      budget_line_id: createTransactionDto.budgetLineId ?? null,
       amount: createTransactionDto.amount,
       name: createTransactionDto.name,
       kind: createTransactionDto.kind as Database['public']['Enums']['transaction_kind'],
@@ -171,6 +208,17 @@ export class TransactionService {
   ): Promise<TransactionResponse> {
     try {
       this.validateCreateTransactionDto(createTransactionDto);
+
+      // Validate budget line allocation if provided
+      if (createTransactionDto.budgetLineId) {
+        await this.validateBudgetLineAllocation(
+          createTransactionDto.budgetLineId,
+          createTransactionDto.budgetId,
+          createTransactionDto.kind,
+          user,
+          supabase,
+        );
+      }
 
       const transactionData = this.prepareTransactionData(createTransactionDto);
       const transactionDb = await this.insertTransaction(
@@ -325,6 +373,9 @@ export class TransactionService {
       ...(updateTransactionDto.category !== undefined && {
         category: updateTransactionDto.category,
       }),
+      ...(updateTransactionDto.budgetLineId !== undefined && {
+        budget_line_id: updateTransactionDto.budgetLineId,
+      }),
       updated_at: new Date().toISOString(),
     };
   }
@@ -368,6 +419,31 @@ export class TransactionService {
   ): Promise<TransactionResponse> {
     try {
       this.validateUpdateTransactionDto(updateTransactionDto);
+
+      // Validate budget line allocation if being updated (not null = allocating)
+      if (
+        updateTransactionDto.budgetLineId !== undefined &&
+        updateTransactionDto.budgetLineId !== null
+      ) {
+        // Fetch existing transaction to get budgetId and kind
+        const existingTransaction = await this.fetchTransactionById(
+          id,
+          user,
+          supabase,
+        );
+
+        // Use updated kind if provided, otherwise use existing
+        const effectiveKind =
+          updateTransactionDto.kind ?? existingTransaction.kind;
+
+        await this.validateBudgetLineAllocation(
+          updateTransactionDto.budgetLineId,
+          existingTransaction.budget_id,
+          effectiveKind,
+          user,
+          supabase,
+        );
+      }
 
       const updateData =
         this.prepareTransactionUpdateData(updateTransactionDto);

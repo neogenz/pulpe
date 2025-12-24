@@ -23,6 +23,7 @@ import {
   type BudgetLineResponse,
   type BudgetLineListResponse,
   type BudgetLineDeleteResponse,
+  type AllocatedTransactionsResponse,
 } from '@pulpe/shared';
 import { AuthGuard } from '@common/guards/auth.guard';
 import {
@@ -171,5 +172,39 @@ export class BudgetLineController {
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetLineDeleteResponse> {
     return this.budgetLineService.remove(id, user, supabase);
+  }
+
+  @Get(':id/transactions')
+  @ApiOperation({
+    summary: 'Récupère les transactions allouées à une ligne budgétaire',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Identifiant unique de la ligne budgétaire',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Transactions allouées récupérées avec succès',
+  })
+  @ApiNotFoundResponse({
+    description: 'Budget line not found',
+    type: ErrorResponseDto,
+  })
+  async getAllocatedTransactions(
+    @Param('id') id: string,
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<AllocatedTransactionsResponse> {
+    const transactions = await this.budgetLineService.getAllocatedTransactions(
+      id,
+      supabase,
+    );
+    // Import transaction mappers to convert DB rows to API format
+    const { toApiList } = await import('../transaction/transaction.mappers');
+    return {
+      success: true,
+      data: toApiList(transactions),
+    };
   }
 }

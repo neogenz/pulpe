@@ -7,6 +7,9 @@ import {
   type BudgetLine,
   type BudgetLineCreate,
   type BudgetLineUpdate,
+  type Transaction,
+  type TransactionCreate,
+  type TransactionUpdate,
 } from '@pulpe/shared';
 
 import { firstValueFrom } from 'rxjs';
@@ -240,6 +243,100 @@ export class BudgetDetailsStore {
       const errorMessage = 'Erreur lors de la suppression de la transaction';
       this.#setError(errorMessage);
       this.#logger.error('Error deleting transaction', error);
+    }
+  }
+
+  /**
+   * Create a transaction allocated to a budget line with optimistic updates
+   */
+  async createAllocatedTransaction(
+    transaction: TransactionCreate,
+  ): Promise<void> {
+    const tempId = `temp-${uuidv4()}`;
+
+    // Create temporary transaction for optimistic update
+    const tempTransaction: Transaction = {
+      id: tempId,
+      budgetId: transaction.budgetId,
+      budgetLineId: transaction.budgetLineId ?? null,
+      name: transaction.name,
+      amount: transaction.amount,
+      kind: transaction.kind,
+      transactionDate: transaction.transactionDate ?? new Date().toISOString(),
+      category: transaction.category ?? null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Optimistic update - add the new transaction immediately
+    this.#budgetDetailsResource.update((details) => {
+      if (!details) return details;
+
+      return {
+        ...details,
+        transactions: [...(details.transactions ?? []), tempTransaction],
+      };
+    });
+
+    try {
+      const response = await firstValueFrom(
+        this.#transactionApi.create$(transaction),
+      );
+
+      // Replace temporary transaction with server response
+      this.#budgetDetailsResource.update((details) => {
+        if (!details) return details;
+
+        return {
+          ...details,
+          transactions: details.transactions?.map((tx) =>
+            tx.id === tempId ? response.data : tx,
+          ) ?? [response.data],
+        };
+      });
+
+      this.#clearError();
+    } catch (error) {
+      this.reloadBudgetDetails();
+
+      const errorMessage = "Erreur lors de l'ajout de la transaction";
+      this.#setError(errorMessage);
+      this.#logger.error('Error creating allocated transaction', error);
+    }
+  }
+
+  /**
+   * Update a transaction with optimistic updates
+   */
+  async updateAllocatedTransaction(
+    id: string,
+    transaction: TransactionUpdate,
+  ): Promise<void> {
+    // Optimistic update
+    this.#budgetDetailsResource.update((details) => {
+      if (!details) return details;
+
+      return {
+        ...details,
+        transactions:
+          details.transactions?.map((tx) =>
+            tx.id === id
+              ? { ...tx, ...transaction, updatedAt: new Date().toISOString() }
+              : tx,
+          ) ?? [],
+      };
+    });
+
+    try {
+      await firstValueFrom(this.#transactionApi.update$(id, transaction));
+
+      this.#clearError();
+    } catch (error) {
+      this.reloadBudgetDetails();
+
+      const errorMessage = 'Erreur lors de la modification de la transaction';
+      this.#setError(errorMessage);
+      this.#logger.error('Error updating allocated transaction', error);
     }
   }
 

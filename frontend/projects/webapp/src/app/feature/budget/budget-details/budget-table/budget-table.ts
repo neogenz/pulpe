@@ -146,6 +146,21 @@ import {
                             lock
                           </mat-icon>
                         }
+                        @if (
+                          line.metadata.itemType === 'budget_line' &&
+                          line.metadata.hasAllocatedTransactions
+                        ) {
+                          <span
+                            class="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-label-small font-medium bg-tertiary-container text-on-tertiary-container"
+                            [matTooltip]="
+                              line.metadata.allocatedTransactionsCount +
+                              ' transaction(s) allouée(s)'
+                            "
+                            matTooltipPosition="above"
+                          >
+                            {{ line.metadata.allocatedTransactionsCount }}
+                          </span>
+                        }
                       </span>
                     }
                   </span>
@@ -218,15 +233,37 @@ import {
                   </mat-form-field>
                 </form>
               } @else {
-                <span
-                  class="ph-no-capture text-body-medium font-medium"
-                  [class.text-financial-income]="line.data.kind === 'income'"
-                  [class.text-financial-expense]="line.data.kind === 'expense'"
-                  [class.text-primary]="line.data.kind === 'saving'"
-                  [class.italic]="line.metadata.isRollover"
-                >
-                  {{ line.data.amount | currency: 'CHF' }}
-                </span>
+                <div class="flex flex-col items-end">
+                  <span
+                    class="ph-no-capture text-body-medium font-medium"
+                    [class.text-financial-income]="line.data.kind === 'income'"
+                    [class.text-financial-expense]="
+                      line.data.kind === 'expense'
+                    "
+                    [class.text-primary]="line.data.kind === 'saving'"
+                    [class.italic]="line.metadata.isRollover"
+                  >
+                    {{ line.data.amount | currency: 'CHF' }}
+                  </span>
+                  @if (
+                    line.metadata.itemType === 'budget_line' &&
+                    line.metadata.hasAllocatedTransactions
+                  ) {
+                    <span
+                      class="text-label-small"
+                      [class.text-financial-income]="!isOverBudget(line)"
+                      [class.text-error]="isOverBudget(line)"
+                      [matTooltip]="getConsumptionTooltip(line)"
+                      matTooltipPosition="above"
+                    >
+                      {{
+                        line.metadata.consumedAmount
+                          | currency: 'CHF' : 'symbol' : '1.0-0' : 'de-CH'
+                      }}
+                      dépensé
+                    </span>
+                  }
+                </div>
               }
             </td>
           </ng-container>
@@ -304,6 +341,16 @@ import {
                       @if (line.metadata.itemType === 'budget_line') {
                         <button
                           mat-menu-item
+                          (click)="viewTransactions.emit(line.data.id)"
+                          [attr.data-testid]="
+                            'view-transactions-' + line.data.id
+                          "
+                        >
+                          <mat-icon matMenuItemIcon>receipt_long</mat-icon>
+                          <span>Voir les transactions</span>
+                        </button>
+                        <button
+                          mat-menu-item
                           (click)="startEdit(line)"
                           [attr.data-testid]="'edit-' + line.data.id"
                         >
@@ -324,8 +371,23 @@ import {
                       </button>
                     </mat-menu>
                   } @else if (!line.metadata.isRollover) {
-                    <!-- Desktop: Separate edit and delete buttons -->
+                    <!-- Desktop: Separate action buttons -->
                     @if (line.metadata.itemType === 'budget_line') {
+                      <button
+                        matIconButton
+                        (click)="viewTransactions.emit(line.data.id)"
+                        [attr.aria-label]="
+                          'Voir les transactions de ' +
+                          (line.data.name | rolloverFormat)
+                        "
+                        [attr.data-testid]="'view-transactions-' + line.data.id"
+                        [disabled]="line.metadata.isLoading"
+                        class="!w-10 !h-10"
+                        matTooltip="Voir les transactions"
+                        matTooltipPosition="above"
+                      >
+                        <mat-icon>receipt_long</mat-icon>
+                      </button>
                       <button
                         matIconButton
                         (click)="startEdit(line)"
@@ -408,6 +470,7 @@ import {
   `,
   styles: `
     @reference "tailwindcss";
+
     :host {
       display: block;
     }
@@ -430,6 +493,7 @@ export class BudgetTable {
   update = output<BudgetLineUpdate>();
   delete = output<string>();
   add = output<void>();
+  viewTransactions = output<string>(); // Emits budgetLineId
 
   // Services
   readonly #breakpointObserver = inject(BreakpointObserver);
@@ -535,5 +599,23 @@ export class BudgetTable {
     this.inlineFormEditingItem.set(null);
     this.editForm.reset();
     this.update.emit(updateData);
+  }
+
+  protected isOverBudget(line: TableItem): boolean {
+    const consumed = line.metadata.consumedAmount ?? 0;
+    const planned = line.data.amount;
+    return consumed > planned;
+  }
+
+  protected getConsumptionTooltip(line: TableItem): string {
+    const consumed = line.metadata.consumedAmount ?? 0;
+    const planned = line.data.amount;
+    const remaining = planned - consumed;
+    const percentage = planned > 0 ? Math.round((consumed / planned) * 100) : 0;
+
+    if (remaining >= 0) {
+      return `${percentage}% utilisé · ${remaining.toFixed(0)} CHF restant`;
+    }
+    return `${percentage}% utilisé · Dépassement de ${Math.abs(remaining).toFixed(0)} CHF`;
   }
 }

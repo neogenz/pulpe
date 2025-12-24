@@ -12,8 +12,12 @@ import type { TransactionKind } from '../types.js';
 /**
  * Helper pour créer des items financiers de test
  */
-function createFinancialItem(kind: TransactionKind, amount: number) {
-  return { kind, amount };
+function createFinancialItem(
+  kind: TransactionKind,
+  amount: number,
+  options: { id?: string; budgetLineId?: string | null } = {},
+) {
+  return { kind, amount, ...options };
 }
 
 /**
@@ -112,6 +116,113 @@ describe('BudgetFormulas', () => {
       expect(
         BudgetFormulas.calculateTotalExpenses(budgetLines, transactions),
       ).toBe(0);
+    });
+  });
+
+  describe('calculateTotalExpenses with allocated transactions', () => {
+    it('should NOT count allocated transaction when within envelope limit', () => {
+      const budgetLines = [createFinancialItem('expense', 500, { id: 'bl-1' })];
+      const transactions = [
+        createFinancialItem('expense', 100, { budgetLineId: 'bl-1' }),
+      ];
+
+      expect(
+        BudgetFormulas.calculateTotalExpenses(budgetLines, transactions),
+      ).toBe(500);
+    });
+
+    it('should count ONLY excess when allocated transactions exceed envelope', () => {
+      const budgetLines = [createFinancialItem('expense', 500, { id: 'bl-1' })];
+      const transactions = [
+        createFinancialItem('expense', 600, { budgetLineId: 'bl-1' }),
+      ];
+
+      expect(
+        BudgetFormulas.calculateTotalExpenses(budgetLines, transactions),
+      ).toBe(600);
+    });
+
+    it('should count free transactions (not allocated) fully', () => {
+      const budgetLines = [createFinancialItem('expense', 500, { id: 'bl-1' })];
+      const transactions = [
+        createFinancialItem('expense', 100, { budgetLineId: null }),
+      ];
+
+      expect(
+        BudgetFormulas.calculateTotalExpenses(budgetLines, transactions),
+      ).toBe(600);
+    });
+
+    it('should handle mix of allocated and free transactions correctly', () => {
+      const budgetLines = [createFinancialItem('expense', 500, { id: 'bl-1' })];
+      const transactions = [
+        createFinancialItem('expense', 300, { budgetLineId: 'bl-1' }),
+        createFinancialItem('expense', 400, { budgetLineId: 'bl-1' }),
+        createFinancialItem('expense', 150, { budgetLineId: null }),
+      ];
+
+      expect(
+        BudgetFormulas.calculateTotalExpenses(budgetLines, transactions),
+      ).toBe(850);
+    });
+
+    it('should maintain backward compatibility with items without budgetLineId', () => {
+      const budgetLines = [createFinancialItem('expense', 500)];
+      const transactions = [createFinancialItem('expense', 100)];
+
+      expect(
+        BudgetFormulas.calculateTotalExpenses(budgetLines, transactions),
+      ).toBe(600);
+    });
+
+    it('should handle multiple envelopes with mixed overruns', () => {
+      const budgetLines = [
+        createFinancialItem('expense', 500, { id: 'bl-1' }),
+        createFinancialItem('expense', 300, { id: 'bl-2' }),
+      ];
+      const transactions = [
+        createFinancialItem('expense', 400, { budgetLineId: 'bl-1' }),
+        createFinancialItem('expense', 500, { budgetLineId: 'bl-2' }),
+      ];
+
+      expect(
+        BudgetFormulas.calculateTotalExpenses(budgetLines, transactions),
+      ).toBe(1000);
+    });
+
+    it('should treat allocated transaction to non-existent envelope as free', () => {
+      const budgetLines = [createFinancialItem('expense', 500, { id: 'bl-1' })];
+      const transactions = [
+        createFinancialItem('expense', 100, { budgetLineId: 'bl-unknown' }),
+      ];
+
+      expect(
+        BudgetFormulas.calculateTotalExpenses(budgetLines, transactions),
+      ).toBe(600);
+    });
+
+    it('should handle savings allocated to envelope correctly', () => {
+      const budgetLines = [
+        createFinancialItem('saving', 500, { id: 'saving-1' }),
+      ];
+      const transactions = [
+        createFinancialItem('saving', 300, { budgetLineId: 'saving-1' }),
+      ];
+
+      expect(
+        BudgetFormulas.calculateTotalExpenses(budgetLines, transactions),
+      ).toBe(500);
+    });
+
+    it('should handle exactly matched allocation (no overrun)', () => {
+      const budgetLines = [createFinancialItem('expense', 500, { id: 'bl-1' })];
+      const transactions = [
+        createFinancialItem('expense', 500, { budgetLineId: 'bl-1' }),
+      ];
+
+      expect(
+        BudgetFormulas.calculateTotalExpenses(budgetLines, transactions),
+      ).toBe(500);
     });
   });
 

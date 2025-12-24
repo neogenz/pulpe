@@ -497,4 +497,76 @@ export class BudgetLineService {
       );
     }
   }
+
+  /**
+   * Get the sum of all transaction amounts allocated to a budget line
+   */
+  async getConsumedAmount(
+    budgetLineId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<number> {
+    const { data, error } = await supabase
+      .from('transaction')
+      .select('amount')
+      .eq('budget_line_id', budgetLineId);
+
+    if (error) {
+      this.logger.error(
+        {
+          err: error,
+          operation: 'getConsumedAmount',
+          entityId: budgetLineId,
+          entityType: 'budget_line',
+        },
+        'Failed to calculate consumed amount',
+      );
+      return 0;
+    }
+
+    return data?.reduce((sum, t) => sum + t.amount, 0) ?? 0;
+  }
+
+  /**
+   * Get the remaining amount for a budget line (planned - consumed)
+   */
+  async getRemainingAmount(
+    budgetLineId: string,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<number> {
+    const budgetLineResponse = await this.findOne(budgetLineId, user, supabase);
+    const budgetLine = budgetLineResponse.data;
+
+    const consumedAmount = await this.getConsumedAmount(budgetLineId, supabase);
+    return budgetLine.amount - consumedAmount;
+  }
+
+  /**
+   * Get all transactions allocated to a budget line
+   */
+  async getAllocatedTransactions(
+    budgetLineId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<Database['public']['Tables']['transaction']['Row'][]> {
+    const { data, error } = await supabase
+      .from('transaction')
+      .select('*')
+      .eq('budget_line_id', budgetLineId)
+      .order('transaction_date', { ascending: false });
+
+    if (error) {
+      this.logger.error(
+        {
+          err: error,
+          operation: 'getAllocatedTransactions',
+          entityId: budgetLineId,
+          entityType: 'budget_line',
+        },
+        'Failed to fetch allocated transactions',
+      );
+      return [];
+    }
+
+    return data ?? [];
+  }
 }

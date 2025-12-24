@@ -1,11 +1,10 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable } from '@angular/core';
 import {
   type Transaction,
   type BudgetLine,
   type TransactionKind,
   type TransactionRecurrence,
 } from '@pulpe/shared';
-import { BudgetCalculator } from '@core/budget/budget-calculator';
 import { isRolloverLine } from '@core/rollover/rollover-types';
 import { type TableItem } from './budget-table-models';
 
@@ -25,8 +24,6 @@ interface BudgetItemWithBalance {
  */
 @Injectable()
 export class BudgetTableDataProvider {
-  readonly #budgetCalculator = inject(BudgetCalculator);
-
   // Constantes pour l'ordre de tri
   readonly #RECURRENCE_ORDER: Record<TransactionRecurrence, number> = {
     fixed: 1,
@@ -49,10 +46,11 @@ export class BudgetTableDataProvider {
   #composeBudgetItemsWithBalanceGrouped(
     budgetLines: BudgetLine[],
     transactions: Transaction[],
+    allocationStats: Map<string, { count: number; consumedAmount: number }>,
   ): BudgetItemWithBalance[] {
     const items = this.#createDisplayItems(budgetLines, transactions);
     this.#sortItemsByBusinessRules(items);
-    this.#calculateCumulativeBalances(items);
+    this.#calculateCumulativeBalances(items, allocationStats);
 
     return items;
   }
@@ -160,8 +158,9 @@ export class BudgetTableDataProvider {
       });
     });
 
-    // Ajouter les transactions
-    transactions.forEach((transaction) => {
+    // Ajouter uniquement les transactions libres (non allouées à une enveloppe)
+    const freeTransactions = transactions.filter((t) => !t.budgetLineId);
+    freeTransactions.forEach((transaction) => {
       items.push({
         item: transaction,
         cumulativeBalance: 0, // Sera calculé après tri
@@ -181,15 +180,37 @@ export class BudgetTableDataProvider {
 
   /**
    * Calcule les soldes cumulatifs pour tous les éléments
-   * Utilise le BudgetCalculator pour les calculs métier purs
+   * Prend en compte les dépassements d'enveloppe (overruns)
    */
-  #calculateCumulativeBalances(items: BudgetItemWithBalance[]): void {
-    const flatItems = items.map((item) => item.item);
-    const itemsWithBalance =
-      this.#budgetCalculator.enrichWithCumulativeBalance(flatItems);
+  #calculateCumulativeBalances(
+    items: BudgetItemWithBalance[],
+    allocationStats: Map<string, { count: number; consumedAmount: number }>,
+  ): void {
+    let runningBalance = 0;
 
-    items.forEach((item, index) => {
-      item.cumulativeBalance = itemsWithBalance[index].cumulativeBalance;
+    items.forEach((item) => {
+      const kind = item.item.kind;
+      let amount = item.item.amount;
+
+      // For budget lines with allocated transactions, use the effective amount
+      // (max of planned amount vs consumed amount) to account for overruns
+      if (item.itemType === 'budget_line') {
+        const stats = allocationStats.get(item.item.id);
+        if (stats && stats.consumedAmount > amount) {
+          amount = stats.consumedAmount;
+        }
+      }
+
+      // Apply sign based on kind
+      const signedAmount =
+        kind === 'income'
+          ? amount
+          : kind === 'expense' || kind === 'saving'
+            ? -amount
+            : 0;
+
+      runningBalance += signedAmount;
+      item.cumulativeBalance = runningBalance;
     });
   }
 
@@ -201,15 +222,24 @@ export class BudgetTableDataProvider {
     transactions: Transaction[];
     editingLineId: string | null;
   }): TableItem[] {
+    // Pre-calculate allocated transactions per budget line
+    // Used for both cumulative balance calculation (overruns) and display
+    const allocationStats = this.#calculateAllocationStats(params.transactions);
+
     const itemsWithBalance = this.#composeBudgetItemsWithBalanceGrouped(
       params.budgetLines,
       params.transactions,
+      allocationStats,
     );
 
     return itemsWithBalance.map((item) => {
       const isRollover = isRolloverLine(item.item);
       const isBudgetLine = item.itemType === 'budget_line';
       const budgetLine = isBudgetLine ? (item.item as BudgetLine) : null;
+
+      // Get allocation stats for budget lines
+      const stats = budgetLine ? allocationStats.get(budgetLine.id) : undefined;
+
       return {
         data: item.item,
         metadata: {
@@ -225,8 +255,35 @@ export class BudgetTableDataProvider {
             isBudgetLine &&
             !!budgetLine?.templateLineId &&
             !!budgetLine?.isManuallyAdjusted,
+          allocatedTransactionsCount: stats?.count ?? 0,
+          consumedAmount: stats?.consumedAmount ?? 0,
+          hasAllocatedTransactions: (stats?.count ?? 0) > 0,
         },
       };
     });
+  }
+
+  /**
+   * Calculates allocation statistics for each budget line
+   */
+  #calculateAllocationStats(
+    transactions: Transaction[],
+  ): Map<string, { count: number; consumedAmount: number }> {
+    const stats = new Map<string, { count: number; consumedAmount: number }>();
+
+    transactions.forEach((tx) => {
+      if (tx.budgetLineId) {
+        const existing = stats.get(tx.budgetLineId) ?? {
+          count: 0,
+          consumedAmount: 0,
+        };
+        stats.set(tx.budgetLineId, {
+          count: existing.count + 1,
+          consumedAmount: existing.consumedAmount + tx.amount,
+        });
+      }
+    });
+
+    return stats;
   }
 }

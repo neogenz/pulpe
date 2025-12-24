@@ -34,16 +34,31 @@ export class BudgetCalculator {
     const { budgetLines, transactions } = await this.repository.fetchBudgetData(
       budgetId,
       supabase,
-      { selectFields: 'kind, amount' },
+      {
+        budgetLineFields: 'id, kind, amount',
+        transactionFields: 'kind, amount, budget_line_id',
+      },
     );
 
+    const mappedBudgetLines = budgetLines.map((line) => ({
+      id: line.id,
+      kind: line.kind,
+      amount: line.amount,
+    }));
+
+    const mappedTransactions = transactions.map((t) => ({
+      kind: t.kind,
+      amount: t.amount,
+      budgetLineId: t.budget_line_id,
+    }));
+
     const totalIncome = BudgetFormulas.calculateTotalIncome(
-      budgetLines,
-      transactions,
+      mappedBudgetLines,
+      mappedTransactions,
     );
     const totalExpenses = BudgetFormulas.calculateTotalExpenses(
-      budgetLines,
-      transactions,
+      mappedBudgetLines,
+      mappedTransactions,
     );
 
     return totalIncome - totalExpenses;

@@ -12,6 +12,13 @@ export interface TableItem {
     isRollover?: boolean;
     isTemplateLinked?: boolean;
     isPropagationLocked?: boolean;
+    /** Number of transactions allocated to this budget line */
+    allocatedTransactionsCount?: number;
+    /** Total consumed amount from allocated transactions */
+    consumedAmount?: number;
+    /** Has transactions allocated to this budget line */
+    hasAllocatedTransactions?: boolean;
+    isLoading?: boolean;
   };
 }
 

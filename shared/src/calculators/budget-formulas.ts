@@ -22,15 +22,17 @@ import type { TransactionKind } from '../types.js';
  *
  * @example
  * // Pour une ligne budgétaire (prévision)
- * { kind: 'income', amount: 5000 }  // Salaire prévu
+ * { id: 'bl-1', kind: 'income', amount: 5000 }  // Salaire prévu
  *
  * @example
  * // Pour une transaction (réalisation)
- * { kind: 'expense', amount: 150 }  // Restaurant saisi
+ * { kind: 'expense', amount: 150, budgetLineId: 'bl-1' }  // Transaction allouée
  */
 interface FinancialItem {
   kind: TransactionKind;
   amount: number;
+  id?: string;
+  budgetLineId?: string | null;
 }
 
 /**
@@ -63,27 +65,96 @@ export class BudgetFormulas {
 
   /**
    * Calcule les dépenses totales (expenses + savings) depuis les budget lines et transactions
-   * Formule SPECS: expenses_M = Σ(budget_lines WHERE type IN ('expense', 'saving')) + Σ(transactions WHERE type IN ('expense', 'saving'))
+   *
+   * Formule corrigée:
+   * expenses_M = Σ(budget_lines) + Σ(free_transactions) + Σ(envelope_overruns)
+   *
+   * où:
+   * - free_transactions = transactions SANS budgetLineId
+   * - envelope_overruns = MAX(0, allocated_transactions_total - budget_line_amount) pour chaque enveloppe
    *
    * Note SPECS: "Le saving est volontairement traité comme une expense dans les calculs"
    *
-   * @param budgetLines - Lignes budgétaires planifiées
-   * @param transactions - Transactions réelles
+   * @param budgetLines - Lignes budgétaires planifiées (avec id optionnel pour les enveloppes)
+   * @param transactions - Transactions réelles (avec budgetLineId optionnel pour les allocations)
    * @returns Montant total des dépenses + épargnes
    */
   static calculateTotalExpenses(
     budgetLines: FinancialItem[],
     transactions: FinancialItem[] = [],
   ): number {
+    const isExpenseOrSaving = (item: FinancialItem) =>
+      item.kind === 'expense' || item.kind === 'saving';
+
     const budgetExpenses = budgetLines
-      .filter((line) => line.kind === 'expense' || line.kind === 'saving')
+      .filter(isExpenseOrSaving)
       .reduce((sum, line) => sum + line.amount, 0);
 
-    const transactionExpenses = transactions
-      .filter((t) => t.kind === 'expense' || t.kind === 'saving')
-      .reduce((sum, t) => sum + t.amount, 0);
+    const expenseTransactions = transactions.filter(isExpenseOrSaving);
 
-    return budgetExpenses + transactionExpenses;
+    const freeTransactions = expenseTransactions.filter((t) => !t.budgetLineId);
+    const allocatedTransactions = expenseTransactions.filter(
+      (t) => t.budgetLineId,
+    );
+
+    const freeTransactionExpenses = freeTransactions.reduce(
+      (sum, t) => sum + t.amount,
+      0,
+    );
+
+    const envelopeOverruns = this.calculateEnvelopeOverruns(
+      budgetLines,
+      allocatedTransactions,
+    );
+
+    return budgetExpenses + freeTransactionExpenses + envelopeOverruns;
+  }
+
+  /**
+   * Calcule le dépassement total des enveloppes par les transactions allouées
+   *
+   * Pour chaque enveloppe, si le total des transactions allouées dépasse le montant
+   * de l'enveloppe, seul le dépassement est compté.
+   *
+   * @param budgetLines - Lignes budgétaires avec leurs id
+   * @param allocatedTransactions - Transactions allouées (avec budgetLineId)
+   * @returns Total des dépassements d'enveloppes
+   */
+  private static calculateEnvelopeOverruns(
+    budgetLines: FinancialItem[],
+    allocatedTransactions: FinancialItem[],
+  ): number {
+    if (allocatedTransactions.length === 0) {
+      return 0;
+    }
+
+    const budgetLineAmounts = new Map<string, number>();
+    for (const line of budgetLines) {
+      if (line.id && (line.kind === 'expense' || line.kind === 'saving')) {
+        budgetLineAmounts.set(line.id, line.amount);
+      }
+    }
+
+    const allocatedTotals = new Map<string, number>();
+    for (const t of allocatedTransactions) {
+      if (t.budgetLineId) {
+        const current = allocatedTotals.get(t.budgetLineId) ?? 0;
+        allocatedTotals.set(t.budgetLineId, current + t.amount);
+      }
+    }
+
+    let totalOverruns = 0;
+    for (const [budgetLineId, allocatedTotal] of allocatedTotals) {
+      const envelopeAmount = budgetLineAmounts.get(budgetLineId);
+      if (envelopeAmount !== undefined) {
+        const overrun = Math.max(0, allocatedTotal - envelopeAmount);
+        totalOverruns += overrun;
+      } else {
+        totalOverruns += allocatedTotal;
+      }
+    }
+
+    return totalOverruns;
   }
 
   /**

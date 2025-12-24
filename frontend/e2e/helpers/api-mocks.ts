@@ -1,6 +1,8 @@
 import type {
   BudgetDetailsResponse,
   BudgetLineResponse,
+  TransactionCreateResponse,
+  TransactionUpdateResponse,
   Budget,
   BudgetLine,
   Transaction,
@@ -81,4 +83,42 @@ export function createMultipleBudgetLinesMock(
       kind: line.kind || 'expense',
     })
   );
+}
+
+export function createTransactionMock(
+  id: string,
+  budgetId: string,
+  overrides?: Partial<Transaction>
+): Transaction {
+  return {
+    id,
+    budgetId,
+    budgetLineId: null,
+    name: 'Test Transaction',
+    amount: 50,
+    kind: 'expense',
+    transactionDate: '2025-01-15T00:00:00Z',
+    category: null,
+    createdAt: '2025-01-01T00:00:00Z',
+    updatedAt: '2025-01-01T00:00:00Z',
+    ...overrides,
+  };
+}
+
+export function createTransactionCreateResponseMock(
+  transaction: Transaction
+): TransactionCreateResponse {
+  return {
+    success: true,
+    data: transaction,
+  };
+}
+
+export function createTransactionUpdateResponseMock(
+  transaction: Transaction
+): TransactionUpdateResponse {
+  return {
+    success: true,
+    data: transaction,
+  };
 }

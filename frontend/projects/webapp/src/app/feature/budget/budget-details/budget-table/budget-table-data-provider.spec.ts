@@ -548,6 +548,140 @@ describe('BudgetTableDataProvider', () => {
     });
   });
 
+  describe('Allocated Transactions Filtering', () => {
+    it('should NOT display allocated transactions as standalone rows', () => {
+      // Arrange
+      const budgetLines: BudgetLine[] = [
+        createMockBudgetLine({
+          id: 'bl-1',
+          name: 'Groceries',
+          amount: 500,
+          kind: 'expense',
+          recurrence: 'fixed',
+        }),
+      ];
+      const transactions: Transaction[] = [
+        createMockTransaction({
+          id: 't-allocated',
+          name: 'Supermarket',
+          amount: 100,
+          kind: 'expense',
+          budgetLineId: 'bl-1', // Allocated to budget line
+        }),
+        createMockTransaction({
+          id: 't-free',
+          name: 'Restaurant',
+          amount: 50,
+          kind: 'expense',
+          budgetLineId: null, // Free transaction
+        }),
+      ];
+
+      // Act
+      const result = service.provideTableData({
+        budgetLines,
+        transactions,
+        editingLineId: null,
+      });
+
+      // Assert - Only 2 items: 1 budget line + 1 free transaction
+      expect(result).toHaveLength(2);
+
+      const transactionItems = result.filter(
+        (r) => r.metadata.itemType === 'transaction',
+      );
+      expect(transactionItems).toHaveLength(1);
+      expect(transactionItems[0].data.id).toBe('t-free');
+    });
+
+    it('should still calculate allocation stats for budget lines with allocated transactions', () => {
+      // Arrange
+      const budgetLines: BudgetLine[] = [
+        createMockBudgetLine({
+          id: 'bl-1',
+          name: 'Groceries',
+          amount: 500,
+          kind: 'expense',
+          recurrence: 'fixed',
+        }),
+      ];
+      const transactions: Transaction[] = [
+        createMockTransaction({
+          id: 't-1',
+          name: 'Supermarket',
+          amount: 100,
+          kind: 'expense',
+          budgetLineId: 'bl-1',
+        }),
+        createMockTransaction({
+          id: 't-2',
+          name: 'Bakery',
+          amount: 50,
+          kind: 'expense',
+          budgetLineId: 'bl-1',
+        }),
+      ];
+
+      // Act
+      const result = service.provideTableData({
+        budgetLines,
+        transactions,
+        editingLineId: null,
+      });
+
+      // Assert - Only the budget line is displayed
+      expect(result).toHaveLength(1);
+
+      const budgetLine = result.find((r) => r.data.id === 'bl-1');
+      expect(budgetLine?.metadata.allocatedTransactionsCount).toBe(2);
+      expect(budgetLine?.metadata.consumedAmount).toBe(150); // 100 + 50
+    });
+
+    it('should display only free transactions when all transactions are free', () => {
+      // Arrange
+      const budgetLines: BudgetLine[] = [
+        createMockBudgetLine({
+          id: 'bl-1',
+          name: 'Budget Line',
+          amount: 500,
+          kind: 'expense',
+          recurrence: 'fixed',
+        }),
+      ];
+      const transactions: Transaction[] = [
+        createMockTransaction({
+          id: 't-1',
+          name: 'Transaction 1',
+          amount: 100,
+          kind: 'expense',
+          budgetLineId: null,
+        }),
+        createMockTransaction({
+          id: 't-2',
+          name: 'Transaction 2',
+          amount: 50,
+          kind: 'expense',
+          budgetLineId: null,
+        }),
+      ];
+
+      // Act
+      const result = service.provideTableData({
+        budgetLines,
+        transactions,
+        editingLineId: null,
+      });
+
+      // Assert - All 3 items displayed
+      expect(result).toHaveLength(3);
+
+      const transactionItems = result.filter(
+        (r) => r.metadata.itemType === 'transaction',
+      );
+      expect(transactionItems).toHaveLength(2);
+    });
+  });
+
   describe('Edge Cases and Boundary Conditions', () => {
     it('should handle empty budgetLines and transactions', () => {
       // Arrange & Act

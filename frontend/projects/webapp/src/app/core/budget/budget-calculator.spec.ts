@@ -14,12 +14,14 @@ describe('BudgetCalculator', () => {
     name = 'Test Transaction',
     kind: 'income' | 'expense' | 'saving' = 'expense',
     id = `transaction-${amount}-${kind}`,
+    budgetLineId: string | null = null,
   ): Transaction => ({
     id,
     amount,
     name,
     kind,
     budgetId: 'test-budget-id',
+    budgetLineId,
     transactionDate: new Date().toISOString(),
     category: null,
     createdAt: new Date().toISOString(),
@@ -391,6 +393,99 @@ describe('BudgetCalculator', () => {
       // Assert
       // According to SPECS: ending_balance = 500 (for January example)
       expect(endingBalance).toBe(500);
+    });
+  });
+
+  describe('calculateLocalEndingBalance with allocated transactions', () => {
+    it('should NOT count allocated transaction when within envelope limit', () => {
+      // Arrange
+      const budgetLines: BudgetLine[] = [
+        createBudgetLine(8000, 'Salary', 'income'),
+        createBudgetLine(500, 'Groceries', 'expense', 'bl-groceries'),
+      ];
+      const transactions: Transaction[] = [
+        createTransaction(100, 'Supermarket', 'expense', 't-1', 'bl-groceries'),
+      ];
+
+      // Act
+      const endingBalance = calculator.calculateLocalEndingBalance(
+        budgetLines,
+        transactions,
+      );
+
+      // Assert
+      // Income: 8000, Expenses: 500 (envelope only, transaction covered)
+      // Formula: 8000 - 500 = 7500
+      expect(endingBalance).toBe(7500);
+    });
+
+    it('should count ONLY excess when allocated transactions exceed envelope', () => {
+      // Arrange
+      const budgetLines: BudgetLine[] = [
+        createBudgetLine(8000, 'Salary', 'income'),
+        createBudgetLine(500, 'Groceries', 'expense', 'bl-groceries'),
+      ];
+      const transactions: Transaction[] = [
+        createTransaction(600, 'Supermarket', 'expense', 't-1', 'bl-groceries'),
+      ];
+
+      // Act
+      const endingBalance = calculator.calculateLocalEndingBalance(
+        budgetLines,
+        transactions,
+      );
+
+      // Assert
+      // Income: 8000, Expenses: 500 + 100 (only the overrun)
+      // Formula: 8000 - 600 = 7400
+      expect(endingBalance).toBe(7400);
+    });
+
+    it('should count free transactions fully', () => {
+      // Arrange
+      const budgetLines: BudgetLine[] = [
+        createBudgetLine(8000, 'Salary', 'income'),
+        createBudgetLine(500, 'Groceries', 'expense', 'bl-groceries'),
+      ];
+      const transactions: Transaction[] = [
+        createTransaction(100, 'Restaurant', 'expense', 't-1', null),
+      ];
+
+      // Act
+      const endingBalance = calculator.calculateLocalEndingBalance(
+        budgetLines,
+        transactions,
+      );
+
+      // Assert
+      // Income: 8000, Expenses: 500 (envelope) + 100 (free transaction)
+      // Formula: 8000 - 600 = 7400
+      expect(endingBalance).toBe(7400);
+    });
+
+    it('should handle mix of allocated and free transactions correctly', () => {
+      // Arrange
+      const budgetLines: BudgetLine[] = [
+        createBudgetLine(8000, 'Salary', 'income'),
+        createBudgetLine(500, 'Groceries', 'expense', 'bl-groceries'),
+      ];
+      const transactions: Transaction[] = [
+        createTransaction(300, 'Supermarket', 'expense', 't-1', 'bl-groceries'),
+        createTransaction(400, 'Food Market', 'expense', 't-2', 'bl-groceries'),
+        createTransaction(150, 'Restaurant', 'expense', 't-3', null),
+      ];
+
+      // Act
+      const endingBalance = calculator.calculateLocalEndingBalance(
+        budgetLines,
+        transactions,
+      );
+
+      // Assert
+      // allocated_total = 700, envelope = 500 → overrun = 200
+      // Income: 8000, Expenses: 500 (envelope) + 200 (overrun) + 150 (free)
+      // Formula: 8000 - 850 = 7150
+      expect(endingBalance).toBe(7150);
     });
   });
 

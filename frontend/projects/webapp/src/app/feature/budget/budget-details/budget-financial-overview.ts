@@ -2,15 +2,17 @@ import {
   Component,
   input,
   computed,
-  inject,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import {
   FinancialSummary,
   type FinancialSummaryData,
 } from '@ui/financial-summary/financial-summary';
-import { type BudgetLine, type Transaction } from '@pulpe/shared';
-import { BudgetCalculator } from '@core/budget/budget-calculator';
+import {
+  type BudgetLine,
+  type Transaction,
+  BudgetFormulas,
+} from '@pulpe/shared';
 
 @Component({
   selector: 'pulpe-budget-financial-overview',
@@ -29,38 +31,33 @@ import { BudgetCalculator } from '@core/budget/budget-calculator';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BudgetFinancialOverview {
-  readonly #budgetCalculator = inject(BudgetCalculator);
-
   budgetLines = input.required<BudgetLine[]>();
   transactions = input.required<Transaction[]>();
 
   totals = computed(() => {
     const lines = this.budgetLines();
-    const transactions = this.transactions();
+    const txs = this.transactions();
 
-    // Calculate base amounts from budget lines
-    const income = this.#budgetCalculator.calculatePlannedIncome(lines);
-    let expenses = 0;
-    let savings = 0;
+    // Use BudgetFormulas to correctly handle envelope overruns
+    // This ensures allocated transactions only count for their excess over the envelope
+    const metrics = BudgetFormulas.calculateAllMetrics(lines, txs, 0);
 
-    lines.forEach((line) => {
-      switch (line.kind) {
-        case 'expense':
-          expenses += line.amount;
-          break;
-        case 'saving':
-          savings += line.amount;
-          break;
-      }
-    });
+    // Calculate savings separately for display
+    const savings = lines
+      .filter((line) => line.kind === 'saving')
+      .reduce((sum, line) => sum + line.amount, 0);
 
-    // Calculate Living Allowance with transactions impact
-    const initialLivingAllowance = income - expenses - savings;
-    const transactionImpact =
-      this.#budgetCalculator.calculateActualTransactionsAmount(transactions);
-    const remaining = initialLivingAllowance + transactionImpact;
+    // Calculate expenses (without savings) for display
+    const expenses = lines
+      .filter((line) => line.kind === 'expense')
+      .reduce((sum, line) => sum + line.amount, 0);
 
-    return { income, expenses, savings, remaining };
+    return {
+      income: metrics.totalIncome,
+      expenses,
+      savings,
+      remaining: metrics.remaining,
+    };
   });
 
   incomeData = computed<FinancialSummaryData>(() => ({

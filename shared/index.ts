@@ -72,6 +72,10 @@ export {
   budgetLineResponseSchema,
   budgetLineListResponseSchema,
   budgetLineDeleteResponseSchema,
+  budgetLineWithTransactionsSchema,
+  budgetLineWithTransactionsResponseSchema,
+  budgetLineWithTransactionsListResponseSchema,
+  allocatedTransactionsResponseSchema,
 
   // User schemas
   userProfileSchema,
@@ -172,6 +176,10 @@ export type {
   BudgetLineResponse,
   BudgetLineListResponse,
   BudgetLineDeleteResponse,
+  BudgetLineWithTransactions,
+  BudgetLineWithTransactionsResponse,
+  BudgetLineWithTransactionsListResponse,
+  AllocatedTransactionsResponse,
 
   // User types
   UserProfile,
