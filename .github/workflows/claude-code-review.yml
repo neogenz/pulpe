@@ -112,4 +112,4 @@ jobs:
           claude_args: |
             --max-turns 10
             --model claude-opus-4-5-20251101
-            --allowedTools "Bash(gh pr diff:*),Bash(gh pr view:*),Read,Glob"
+            --allowedTools "Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr comment:*),Read,Glob"
