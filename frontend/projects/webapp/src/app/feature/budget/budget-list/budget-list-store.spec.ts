@@ -248,48 +248,56 @@ describe('BudgetListStore', () => {
   });
 
   describe('refreshData', () => {
-    it('should skip reload when data already exists', async () => {
-      budgetApiMock.getAllBudgets$ = vi.fn().mockReturnValue(of([]));
+    it('should not call API when data already exists', async () => {
+      const apiSpy = vi.fn().mockReturnValue(of([]));
+      budgetApiMock.getAllBudgets$ = apiSpy;
 
       store.budgets.reload();
       await new Promise((resolve) => setTimeout(resolve, 10));
+      expect(apiSpy).toHaveBeenCalledTimes(1);
 
-      const reloadSpy = vi.spyOn(store.budgets, 'reload');
       store.refreshData();
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
-      expect(reloadSpy).not.toHaveBeenCalled();
+      expect(apiSpy).toHaveBeenCalledTimes(1);
     });
 
-    it('should skip reload when already loading', () => {
+    it('should not call API when already loading', async () => {
+      const apiSpy = vi.fn().mockReturnValue(of([]));
+      budgetApiMock.getAllBudgets$ = apiSpy;
+
       store.budgets.reload();
-
-      const reloadSpy = vi.spyOn(store.budgets, 'reload');
       store.refreshData();
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
-      expect(reloadSpy).not.toHaveBeenCalled();
+      expect(apiSpy).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('forceRefresh', () => {
-    it('should trigger reload even when data exists', async () => {
-      budgetApiMock.getAllBudgets$ = vi.fn().mockReturnValue(of([]));
+    it('should call API even when data already exists', async () => {
+      const apiSpy = vi.fn().mockReturnValue(of([]));
+      budgetApiMock.getAllBudgets$ = apiSpy;
 
       store.budgets.reload();
       await new Promise((resolve) => setTimeout(resolve, 10));
+      expect(apiSpy).toHaveBeenCalledTimes(1);
 
-      const reloadSpy = vi.spyOn(store.budgets, 'reload');
       store.forceRefresh();
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
-      expect(reloadSpy).toHaveBeenCalledTimes(1);
+      expect(apiSpy).toHaveBeenCalledTimes(2);
     });
 
-    it('should skip reload when already loading', () => {
+    it('should not call API when already loading', async () => {
+      const apiSpy = vi.fn().mockReturnValue(of([]));
+      budgetApiMock.getAllBudgets$ = apiSpy;
+
       store.budgets.reload();
-
-      const reloadSpy = vi.spyOn(store.budgets, 'reload');
       store.forceRefresh();
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
-      expect(reloadSpy).not.toHaveBeenCalled();
+      expect(apiSpy).toHaveBeenCalledTimes(1);
     });
   });
 });
