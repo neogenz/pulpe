@@ -273,7 +273,6 @@ export class BudgetDetailsStore {
           : 'Erreur lors de la réinitialisation de la prévision';
       this.#setError(errorMessage);
       this.#logger.error('Error resetting budget line from template', error);
-      throw error;
     }
   }
 

@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { type Observable, catchError, throwError } from 'rxjs';
 import {
   type BudgetLineResponse,
@@ -83,7 +83,8 @@ export class BudgetLineApi {
             'Error resetting budget line from template:',
             error,
           );
-          const isNotFound = error.status === 404;
+          const isNotFound =
+            error instanceof HttpErrorResponse && error.status === 404;
           return throwError(
             () =>
               new Error(
