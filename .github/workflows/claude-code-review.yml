@@ -59,4 +59,4 @@ jobs:
 
             Respond in French if PR is in French.
           model: "claude-sonnet-4-5-20250929"
-          max_turns: "4"
+          max_turns: "10"
