@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { registerLocaleData } from '@angular/common';
 import localeDeCH from '@angular/common/locales/de-CH';
+import localeFrCH from '@angular/common/locales/fr-CH';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { CurrencyPipe } from '@angular/common';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
@@ -24,8 +25,9 @@ import {
 } from './financial-entry';
 import { RolloverFormatPipe } from '@app/ui/rollover-format';
 
-// Register locale for currency formatting
+// Register locales for currency and date formatting
 registerLocaleData(localeDeCH);
+registerLocaleData(localeFrCH);
 
 // Mock RolloverFormatPipe
 class MockRolloverFormatPipe {
@@ -92,6 +94,14 @@ describe('FinancialEntry', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('should display the creation date in Swiss format', () => {
+    const dateElement = fixture.nativeElement.querySelector(
+      '.text-body-small.text-on-surface-variant',
+    );
+    expect(dateElement).toBeTruthy();
+    expect(dateElement.textContent.trim()).toBe('01.01.2023');
   });
 
   describe('Desktop view (non-mobile)', () => {

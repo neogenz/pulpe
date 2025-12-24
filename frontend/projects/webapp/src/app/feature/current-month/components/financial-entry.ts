@@ -1,4 +1,4 @@
-import { DecimalPipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import {
   ChangeDetectionStrategy,
@@ -30,6 +30,7 @@ export type FinancialEntryViewModel = FinancialEntryModel & {
   selector: 'pulpe-financial-entry',
 
   imports: [
+    DatePipe,
     DecimalPipe,
     MatIconModule,
     MatListModule,
@@ -80,6 +81,9 @@ export type FinancialEntryViewModel = FinancialEntryModel & {
           }}</span>
         }
       </div>
+      <span class="text-body-small text-on-surface-variant">
+        {{ data().createdAt | date: 'dd.MM.yyyy' : '' : 'fr-CH' }}
+      </span>
       <div matListItemMeta class="!flex !h-full !items-center">
         <span class="ph-no-capture" [class.italic]="isRollover()">
           {{ data().kind === 'income' ? '+' : '-'
