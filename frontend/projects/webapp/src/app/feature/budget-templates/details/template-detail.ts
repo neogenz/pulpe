@@ -366,7 +366,7 @@ export default class TemplateDetail implements OnInit {
     this.#router.navigate(['/app/budget-templates']);
   }
 
-  editTemplate() {
+  async editTemplate() {
     const template = this.templateDetailsStore.template();
     const transactions = this.templateDetailsStore.transactions();
     const templateId = this.templateId;
@@ -403,24 +403,24 @@ export default class TemplateDetail implements OnInit {
       injector: this.#injector,
     });
 
-    dialogRef.afterClosed().subscribe((dialogResult) => {
-      if (dialogResult?.saved) {
-        const propagation = dialogResult.propagation ?? null;
+    const dialogResult = await firstValueFrom(dialogRef.afterClosed());
 
-        if (propagation) {
-          // Reload to sync with server state when changes were applied
-          this.templateDetailsStore.reloadTemplateDetails();
-        }
+    if (dialogResult?.saved) {
+      const propagation = dialogResult.propagation ?? null;
 
-        const message = this.#buildSuccessMessage(propagation);
-        this.#snackBar.open(message, undefined, {
-          duration: 4000,
-        });
-      } else if (dialogResult?.error) {
-        this.#logger.error('Erreur lors de la sauvegarde:', dialogResult.error);
-        // Error is already handled by the dialog with user-friendly messages
+      if (propagation) {
+        // Reload to sync with server state when changes were applied
+        this.templateDetailsStore.reloadTemplateDetails();
       }
-    });
+
+      const message = this.#buildSuccessMessage(propagation);
+      this.#snackBar.open(message, undefined, {
+        duration: 4000,
+      });
+    } else if (dialogResult?.error) {
+      this.#logger.error('Erreur lors de la sauvegarde:', dialogResult.error);
+      // Error is already handled by the dialog with user-friendly messages
+    }
   }
 
   async deleteTemplate() {

@@ -273,19 +273,17 @@ export default class CurrentMonth {
     );
   });
 
-  openAddTransactionBottomSheet(): void {
+  async openAddTransactionBottomSheet(): Promise<void> {
     const bottomSheetRef = this.#bottomSheet.open(AddTransactionBottomSheet, {
       disableClose: false,
       panelClass: 'add-transaction-bottom-sheet',
     });
 
-    bottomSheetRef
-      .afterDismissed()
-      .subscribe((transaction: TransactionFormData | undefined) => {
-        if (transaction) {
-          this.onAddTransaction(transaction);
-        }
-      });
+    const transaction = await firstValueFrom(bottomSheetRef.afterDismissed());
+
+    if (transaction) {
+      await this.onAddTransaction(transaction);
+    }
   }
 
   async onAddTransaction(transaction: TransactionFormData) {
