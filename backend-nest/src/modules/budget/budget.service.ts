@@ -149,7 +149,12 @@ export class BudgetService {
         user,
         supabase,
       );
-      const apiData = budgetMappers.toApi(budgetDb as Tables<'monthly_budget'>);
+
+      const enrichedBudgets = await this.enrichBudgetsWithRemaining(
+        [budgetDb as Tables<'monthly_budget'>],
+        supabase,
+      );
+      const apiData = budgetMappers.toApi(enrichedBudgets[0]);
 
       return {
         success: true,

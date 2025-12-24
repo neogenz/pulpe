@@ -246,4 +246,58 @@ describe('BudgetListStore', () => {
       });
     });
   });
+
+  describe('refreshData', () => {
+    it('should not call API when data already exists', async () => {
+      const apiSpy = vi.fn().mockReturnValue(of([]));
+      budgetApiMock.getAllBudgets$ = apiSpy;
+
+      store.budgets.reload();
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      expect(apiSpy).toHaveBeenCalledTimes(1);
+
+      store.refreshData();
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(apiSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not call API when already loading', async () => {
+      const apiSpy = vi.fn().mockReturnValue(of([]));
+      budgetApiMock.getAllBudgets$ = apiSpy;
+
+      store.budgets.reload();
+      store.refreshData();
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(apiSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('forceRefresh', () => {
+    it('should call API even when data already exists', async () => {
+      const apiSpy = vi.fn().mockReturnValue(of([]));
+      budgetApiMock.getAllBudgets$ = apiSpy;
+
+      store.budgets.reload();
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      expect(apiSpy).toHaveBeenCalledTimes(1);
+
+      store.forceRefresh();
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(apiSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('should not call API when already loading', async () => {
+      const apiSpy = vi.fn().mockReturnValue(of([]));
+      budgetApiMock.getAllBudgets$ = apiSpy;
+
+      store.budgets.reload();
+      store.forceRefresh();
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(apiSpy).toHaveBeenCalledTimes(1);
+    });
+  });
 });

@@ -16,6 +16,7 @@ import { TransactionApi } from '@core/transaction/transaction-api';
 import { Logger } from '@core/logging/logger';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { PostHogService } from '@core/analytics/posthog';
+import { BudgetListStore } from '../../budget-list/budget-list-store';
 import {
   createMockBudgetLine,
   createMockBudgetDetailsResponse,
@@ -91,6 +92,9 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
     isInitialized: ReturnType<typeof vi.fn>;
     isEnabled: ReturnType<typeof vi.fn>;
   };
+  let mockBudgetListStore: {
+    updateBudgetById: ReturnType<typeof vi.fn>;
+  };
 
   // Helper function to wait for resource to stabilize
   const waitForResourceStable = async (timeout = 1000): Promise<void> => {
@@ -142,6 +146,10 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
       isEnabled: vi.fn(() => ({ value: true })),
     };
 
+    mockBudgetListStore = {
+      updateBudgetById: vi.fn().mockResolvedValue(undefined),
+    };
+
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
@@ -157,6 +165,7 @@ describe('BudgetDetailsStore - User Behavior Tests', () => {
           useValue: mockApplicationConfiguration,
         },
         { provide: PostHogService, useValue: mockPostHogService },
+        { provide: BudgetListStore, useValue: mockBudgetListStore },
       ],
     });
 

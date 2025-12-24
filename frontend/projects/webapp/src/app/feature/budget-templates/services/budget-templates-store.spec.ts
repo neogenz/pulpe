@@ -433,27 +433,40 @@ describe('BudgetTemplatesState', () => {
   });
 
   describe('Data Refresh', () => {
-    it('should refresh data when not loading', async () => {
+    it('should skip refresh when data already exists', async () => {
       // Wait for initial load to complete
       await new Promise((resolve) => setTimeout(resolve, 100));
+      expect(state.budgetTemplates.hasValue()).toBe(true);
 
       const reloadSpy = vi.spyOn(state.budgetTemplates, 'reload');
 
       state.refreshData();
+
+      expect(reloadSpy).not.toHaveBeenCalled();
+    });
+
+    it('should force refresh even when data exists', async () => {
+      // Wait for initial load to complete
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      expect(state.budgetTemplates.hasValue()).toBe(true);
+
+      const reloadSpy = vi.spyOn(state.budgetTemplates, 'reload');
+
+      state.forceRefresh();
 
       expect(reloadSpy).toHaveBeenCalled();
     });
 
-    it('should not refresh when already loading', async () => {
+    it('should skip forceRefresh when already loading', async () => {
       // Wait for initial load to complete
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      // The current implementation always calls reload
       const reloadSpy = vi.spyOn(state.budgetTemplates, 'reload');
+      vi.spyOn(state.budgetTemplates, 'isLoading').mockReturnValue(true);
 
-      state.refreshData();
+      state.forceRefresh();
 
-      expect(reloadSpy).toHaveBeenCalled();
+      expect(reloadSpy).not.toHaveBeenCalled();
     });
   });
 

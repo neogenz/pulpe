@@ -85,7 +85,7 @@ const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
           />
         }
         @case (state.budgets.status() === 'error') {
-          <pulpe-months-error (reload)="state.refreshData()" />
+          <pulpe-months-error (reload)="state.forceRefresh()" />
         }
         @case (
           state.budgets.status() === 'resolved' ||
@@ -238,7 +238,7 @@ export default class BudgetListPage {
 
       // Only refresh data if budget was successfully created
       if (result?.success) {
-        this.state.refreshData();
+        this.state.forceRefresh();
       }
     } catch (error) {
       this.#logger.error('Error opening create budget dialog', error);
@@ -273,7 +273,7 @@ export default class BudgetListPage {
       const result = await firstValueFrom(dialogRef.afterClosed());
 
       if (result?.success) {
-        this.state.refreshData();
+        this.state.forceRefresh();
       }
     } catch (error) {
       this.#logger.error('Error opening create budget dialog', error);

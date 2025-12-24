@@ -39,9 +39,17 @@ export class BudgetTemplatesState {
   );
 
   refreshData(): void {
-    if (this.budgetTemplates.status() !== 'loading') {
-      this.budgetTemplates.reload();
+    if (this.budgetTemplates.isLoading() || this.budgetTemplates.hasValue()) {
+      return;
     }
+    this.budgetTemplates.reload();
+  }
+
+  forceRefresh(): void {
+    if (this.budgetTemplates.isLoading()) {
+      return;
+    }
+    this.budgetTemplates.reload();
   }
 
   selectTemplate(id: string): void {

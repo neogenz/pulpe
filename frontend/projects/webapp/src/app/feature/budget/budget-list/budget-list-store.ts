@@ -155,8 +155,43 @@ export class BudgetListStore {
   });
 
   refreshData(): void {
-    if (!this.isLoading()) {
-      this.budgets.reload();
+    if (this.isLoading() || this.hasValue()) {
+      return;
+    }
+    this.budgets.reload();
+  }
+
+  forceRefresh(): void {
+    if (this.isLoading()) {
+      return;
+    }
+    this.budgets.reload();
+  }
+
+  /**
+   * Update a single budget in the list by fetching fresh data from the API.
+   * Used when budget details are modified (budget lines, transactions) to sync
+   * the calculated fields (remaining, endingBalance) with the backend.
+   */
+  async updateBudgetById(budgetId: string): Promise<void> {
+    try {
+      const updatedBudget = await firstValueFrom(
+        this.#budgetApi.getBudgetById$(budgetId),
+      );
+
+      this.budgets.update((budgets) => {
+        if (!budgets) {
+          return budgets;
+        }
+        return budgets.map((budget) =>
+          budget.id === budgetId ? updatedBudget : budget,
+        );
+      });
+    } catch (error) {
+      this.#logger.error('Error updating single budget in list', {
+        budgetId,
+        error,
+      });
     }
   }
 
