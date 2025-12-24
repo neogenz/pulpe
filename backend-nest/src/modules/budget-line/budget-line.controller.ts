@@ -149,6 +149,38 @@ export class BudgetLineController {
     );
   }
 
+  @Post(':id/reset-from-template')
+  @ApiOperation({
+    summary: 'Réinitialise une ligne budgétaire depuis son modèle',
+    description:
+      'Restaure les valeurs de la ligne budgétaire (nom, montant, type, récurrence) depuis le modèle associé et désactive le verrouillage manuel',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Identifiant unique de la ligne budgétaire',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Ligne budgétaire réinitialisée avec succès',
+    type: BudgetLineResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: "La ligne budgétaire n'a pas de modèle associé",
+    type: ErrorResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Ligne budgétaire ou modèle non trouvé',
+    type: ErrorResponseDto,
+  })
+  async resetFromTemplate(
+    @Param('id') id: string,
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<BudgetLineResponse> {
+    return this.budgetLineService.resetFromTemplate(id, user, supabase);
+  }
+
   @Delete(':id')
   @ApiOperation({ summary: 'Supprime une ligne budgétaire existante' })
   @ApiParam({

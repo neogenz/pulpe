@@ -73,4 +73,26 @@ export class BudgetLineApi {
         }),
       );
   }
+
+  resetFromTemplate$(id: string): Observable<BudgetLineResponse> {
+    return this.#http
+      .post<BudgetLineResponse>(`${this.#apiUrl}/${id}/reset-from-template`, {})
+      .pipe(
+        catchError((error) => {
+          this.#logger.error(
+            'Error resetting budget line from template:',
+            error,
+          );
+          const isNotFound = error.status === 404;
+          return throwError(
+            () =>
+              new Error(
+                isNotFound
+                  ? 'Le modèle a été supprimé'
+                  : 'Impossible de réinitialiser la prévision',
+              ),
+          );
+        }),
+      );
+  }
 }

@@ -12,6 +12,8 @@ export interface TableItem {
     isRollover?: boolean;
     isTemplateLinked?: boolean;
     isPropagationLocked?: boolean;
+    canResetFromTemplate?: boolean;
+    isLoading?: boolean;
   };
 }
 

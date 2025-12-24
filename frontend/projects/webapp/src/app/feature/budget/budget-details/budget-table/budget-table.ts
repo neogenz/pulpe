@@ -28,6 +28,10 @@ import { RolloverFormatPipe } from '@app/ui/rollover-format';
 import { Logger } from '@core/logging/logger';
 import { type BudgetLineUpdate } from '@pulpe/shared';
 import {
+  ConfirmationDialog,
+  type ConfirmationDialogData,
+} from '@ui/dialogs/confirmation-dialog';
+import {
   RecurrenceLabelPipe,
   TransactionLabelPipe,
 } from '@ui/transaction-display';
@@ -135,16 +139,24 @@ import {
                         class="ph-no-capture text-body-medium font-semibold flex items-center gap-1"
                       >
                         {{ line.data.name | rolloverFormat }}
-                        @if (line.metadata.isPropagationLocked) {
-                          <mat-icon
-                            class="text-base! text-outline"
+                        @if (line.metadata.canResetFromTemplate) {
+                          <button
+                            matIconButton
+                            class="w-6! h-6! text-outline"
                             [matTooltip]="
-                              'Montants verrouillés = non affectés par la propagation'
+                              'Montants verrouillés. Cliquer pour réinitialiser depuis le modèle.'
                             "
                             matTooltipPosition="above"
+                            [attr.data-testid]="
+                              'reset-from-template-' + line.data.id
+                            "
+                            (click)="
+                              onResetFromTemplateClick(line);
+                              $event.stopPropagation()
+                            "
                           >
-                            lock
-                          </mat-icon>
+                            <mat-icon class="text-base!">lock</mat-icon>
+                          </button>
                         }
                       </span>
                     }
@@ -427,6 +439,7 @@ export class BudgetTable {
   update = output<BudgetLineUpdate>();
   delete = output<string>();
   add = output<void>();
+  resetFromTemplate = output<string>();
 
   // Services
   readonly #breakpointObserver = inject(BreakpointObserver);
@@ -532,5 +545,27 @@ export class BudgetTable {
     this.inlineFormEditingItem.set(null);
     this.editForm.reset();
     this.update.emit(updateData);
+  }
+
+  onResetFromTemplateClick(line: BudgetLineTableItem): void {
+    const dialogRef = this.#dialog.open(ConfirmationDialog, {
+      data: {
+        title: 'Réinitialiser depuis le modèle',
+        message:
+          'Cette action va remplacer les valeurs actuelles par celles du modèle. Cette action est irréversible.',
+        confirmText: 'Réinitialiser',
+        confirmColor: 'primary',
+      } satisfies ConfirmationDialogData,
+      width: '400px',
+    });
+
+    dialogRef
+      .afterClosed()
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe((confirmed: boolean) => {
+        if (confirmed) {
+          this.resetFromTemplate.emit(line.data.id);
+        }
+      });
   }
 }
