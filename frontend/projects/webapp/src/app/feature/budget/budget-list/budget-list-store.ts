@@ -155,9 +155,17 @@ export class BudgetListStore {
   });
 
   refreshData(): void {
-    if (!this.isLoading()) {
-      this.budgets.reload();
+    if (this.isLoading() || this.hasValue()) {
+      return;
     }
+    this.budgets.reload();
+  }
+
+  forceRefresh(): void {
+    if (this.isLoading()) {
+      return;
+    }
+    this.budgets.reload();
   }
 
   setSelectedYear(year: number): void {

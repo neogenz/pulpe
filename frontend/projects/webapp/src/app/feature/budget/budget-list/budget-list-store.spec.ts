@@ -246,4 +246,50 @@ describe('BudgetListStore', () => {
       });
     });
   });
+
+  describe('refreshData', () => {
+    it('should skip reload when data already exists', async () => {
+      budgetApiMock.getAllBudgets$ = vi.fn().mockReturnValue(of([]));
+
+      store.budgets.reload();
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      const reloadSpy = vi.spyOn(store.budgets, 'reload');
+      store.refreshData();
+
+      expect(reloadSpy).not.toHaveBeenCalled();
+    });
+
+    it('should skip reload when already loading', () => {
+      store.budgets.reload();
+
+      const reloadSpy = vi.spyOn(store.budgets, 'reload');
+      store.refreshData();
+
+      expect(reloadSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('forceRefresh', () => {
+    it('should trigger reload even when data exists', async () => {
+      budgetApiMock.getAllBudgets$ = vi.fn().mockReturnValue(of([]));
+
+      store.budgets.reload();
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      const reloadSpy = vi.spyOn(store.budgets, 'reload');
+      store.forceRefresh();
+
+      expect(reloadSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('should skip reload when already loading', () => {
+      store.budgets.reload();
+
+      const reloadSpy = vi.spyOn(store.budgets, 'reload');
+      store.forceRefresh();
+
+      expect(reloadSpy).not.toHaveBeenCalled();
+    });
+  });
 });
