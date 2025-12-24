@@ -168,6 +168,33 @@ export class BudgetListStore {
     this.budgets.reload();
   }
 
+  /**
+   * Update a single budget in the list by fetching fresh data from the API.
+   * Used when budget details are modified (budget lines, transactions) to sync
+   * the calculated fields (remaining, endingBalance) with the backend.
+   */
+  async updateBudgetById(budgetId: string): Promise<void> {
+    try {
+      const updatedBudget = await firstValueFrom(
+        this.#budgetApi.getBudgetById$(budgetId),
+      );
+
+      this.budgets.update((budgets) => {
+        if (!budgets) {
+          return budgets;
+        }
+        return budgets.map((budget) =>
+          budget.id === budgetId ? updatedBudget : budget,
+        );
+      });
+    } catch (error) {
+      this.#logger.error('Error updating single budget in list', {
+        budgetId,
+        error,
+      });
+    }
+  }
+
   setSelectedYear(year: number): void {
     this.selectedYear.set(year);
   }

@@ -14,6 +14,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { BudgetLineApi } from '../budget-line-api/budget-line-api';
 import { type BudgetDetailsViewModel } from '../models/budget-details-view-model';
 import { createInitialBudgetDetailsState } from './budget-details-state';
+import { BudgetListStore } from '../../budget-list/budget-list-store';
 
 /**
  * Signal-based store for budget details state management
@@ -24,6 +25,7 @@ export class BudgetDetailsStore {
   readonly #budgetLineApi = inject(BudgetLineApi);
   readonly #budgetApi = inject(BudgetApi);
   readonly #transactionApi = inject(TransactionApi);
+  readonly #budgetListStore = inject(BudgetListStore);
   readonly #logger = inject(Logger);
 
   // Single source of truth - private state signal for non-resource data
@@ -143,6 +145,7 @@ export class BudgetDetailsStore {
       });
 
       this.#clearError();
+      this.#syncBudgetToList();
     } catch (error) {
       this.reloadBudgetDetails();
 
@@ -180,6 +183,7 @@ export class BudgetDetailsStore {
 
       // Clear any previous errors
       this.#clearError();
+      this.#syncBudgetToList();
     } catch (error) {
       this.reloadBudgetDetails();
 
@@ -207,6 +211,7 @@ export class BudgetDetailsStore {
       await firstValueFrom(this.#budgetLineApi.deleteBudgetLine$(id));
 
       this.#clearError();
+      this.#syncBudgetToList();
     } catch (error) {
       this.reloadBudgetDetails();
 
@@ -234,6 +239,7 @@ export class BudgetDetailsStore {
       await firstValueFrom(this.#transactionApi.remove$(id));
 
       this.#clearError();
+      this.#syncBudgetToList();
     } catch (error) {
       this.reloadBudgetDetails();
 
@@ -265,5 +271,17 @@ export class BudgetDetailsStore {
    */
   #clearError(): void {
     this.#state.errorMessage.set(null);
+  }
+
+  /**
+   * Sync the current budget to the list store.
+   * Called after successful mutations to keep the budget list in sync
+   * with the backend-calculated values (remaining, endingBalance).
+   */
+  #syncBudgetToList(): void {
+    const budgetId = this.#state.budgetId();
+    if (budgetId) {
+      this.#budgetListStore.updateBudgetById(budgetId);
+    }
   }
 }

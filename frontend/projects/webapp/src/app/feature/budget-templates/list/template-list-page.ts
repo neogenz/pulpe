@@ -93,7 +93,7 @@ import {
           </button>
           <button
             matIconButton
-            (click)="state.refreshData()"
+            (click)="state.forceRefresh()"
             [disabled]="state.budgetTemplates.isLoading()"
             aria-label="Actualiser"
             data-testid="refresh-button"
@@ -114,7 +114,7 @@ import {
         @case (state.budgetTemplates.status() === 'error') {
           <pulpe-templates-error
             [error]="state.budgetTemplates.error()"
-            (reload)="state.refreshData()"
+            (reload)="state.forceRefresh()"
             data-testid="templates-error"
           />
         }
