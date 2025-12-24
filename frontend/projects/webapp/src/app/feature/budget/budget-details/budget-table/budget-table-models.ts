@@ -13,7 +13,6 @@ export interface TableItem {
     isTemplateLinked?: boolean;
     isPropagationLocked?: boolean;
     canResetFromTemplate?: boolean;
-    isLoading?: boolean;
   };
 }
 

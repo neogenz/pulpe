@@ -302,7 +302,6 @@ import {
                         'Actions pour ' + (line.data.name | rolloverFormat)
                       "
                       [attr.data-testid]="'actions-menu-' + line.data.id"
-                      [disabled]="line.metadata.isLoading"
                       class="w-10! h-10! text-on-surface-variant"
                       (click)="$event.stopPropagation()"
                     >
@@ -342,7 +341,6 @@ import {
                           'Edit ' + (line.data.name | rolloverFormat)
                         "
                         [attr.data-testid]="'edit-' + line.data.id"
-                        [disabled]="line.metadata.isLoading"
                         class="w-10! h-10!"
                       >
                         <mat-icon>edit</mat-icon>
@@ -353,7 +351,6 @@ import {
                       (click)="delete.emit(line.data.id)"
                       [attr.aria-label]="'Delete ' + line.data.name"
                       [attr.data-testid]="'delete-' + line.data.id"
-                      [disabled]="line.metadata.isLoading"
                       class="w-10! h-10! text-error"
                     >
                       <mat-icon>delete</mat-icon>
@@ -371,9 +368,7 @@ import {
           <tr
             mat-row
             *matRowDef="let row; columns: currentColumns()"
-            class="hover:bg-surface-container-low transition-opacity"
-            [class.opacity-50]="row.metadata.isLoading"
-            [class.pointer-events-none]="row.metadata.isLoading"
+            class="hover:bg-surface-container-low"
             [attr.data-testid]="
               'budget-line-' + (row.data.name | rolloverFormat)
             "
