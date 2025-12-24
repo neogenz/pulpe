@@ -110,6 +110,6 @@ jobs:
             Max 10 issues. Réponse en français.
 
           claude_args: |
-            --max-turns 10
+            --max-turns 25
             --model claude-opus-4-5-20251101
             --allowedTools "Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr comment:*),Read,Glob"
