@@ -98,7 +98,7 @@ describe('FinancialEntry', () => {
 
   it('should display the creation date in Swiss format', () => {
     const dateElement = fixture.nativeElement.querySelector(
-      '.text-body-small.text-on-surface-variant',
+      '[data-testid="creation-date-test-id-1"]',
     );
     expect(dateElement).toBeTruthy();
     expect(dateElement.textContent.trim()).toBe('01.01.2023');

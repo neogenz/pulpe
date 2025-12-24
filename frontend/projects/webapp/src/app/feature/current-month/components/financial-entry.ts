@@ -81,7 +81,10 @@ export type FinancialEntryViewModel = FinancialEntryModel & {
           }}</span>
         }
       </div>
-      <span class="text-body-small text-on-surface-variant">
+      <span
+        class="text-body-small text-on-surface-variant"
+        [attr.data-testid]="'creation-date-' + data().id"
+      >
         {{ data().createdAt | date: 'dd.MM.yyyy' : '' : 'fr-CH' }}
       </span>
       <div matListItemMeta class="!flex !h-full !items-center">
