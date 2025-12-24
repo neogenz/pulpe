@@ -12,6 +12,7 @@ export interface TableItem {
     isRollover?: boolean;
     isTemplateLinked?: boolean;
     isPropagationLocked?: boolean;
+    isLoading?: boolean;
   };
 }
 

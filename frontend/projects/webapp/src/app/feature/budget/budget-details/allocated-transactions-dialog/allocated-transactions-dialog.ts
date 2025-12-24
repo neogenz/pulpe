@@ -62,7 +62,9 @@ export interface AllocatedTransactionsDialogResult {
             </div>
           </div>
           <div class="text-center">
-            <div class="text-label-small text-on-surface-variant">Restant</div>
+            <div class="text-label-small text-on-surface-variant">
+              Disponible
+            </div>
             <div
               class="text-title-medium font-semibold"
               [class.text-error]="data.consumption.remaining < 0"

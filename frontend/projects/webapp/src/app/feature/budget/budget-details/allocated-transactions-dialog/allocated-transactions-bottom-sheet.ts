@@ -57,7 +57,7 @@ import type {
           </div>
         </div>
         <div class="text-center p-3 bg-surface-container rounded-lg">
-          <div class="text-label-small text-on-surface-variant">Restant</div>
+          <div class="text-label-small text-on-surface-variant">Disponible</div>
           <div
             class="text-title-small font-semibold"
             [class.text-error]="data.consumption.remaining < 0"
