@@ -4,15 +4,17 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   inject,
   signal,
 } from '@angular/core';
-import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   MatBottomSheet,
   MatBottomSheetModule,
 } from '@angular/material/bottom-sheet';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
 import { MatDialog } from '@angular/material/dialog';
 import {
   MAT_FORM_FIELD_DEFAULT_OPTIONS,
@@ -23,28 +25,28 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { DashboardError } from './components/dashboard-error';
-import { BaseLoading } from '@ui/loading';
-import { RecurringExpensesList } from './components/recurring-expenses-list';
-import { OneTimeExpensesList } from './components/one-time-expenses-list';
-import { CurrentMonthStore } from './services/current-month-store';
-import { TitleDisplay } from '@core/routing';
-import { BudgetProgressBar } from './components/budget-progress-bar';
-import { AddTransactionBottomSheet } from './components/add-transaction-bottom-sheet';
-import {
-  mapBudgetLineToFinancialEntry,
-  mapTransactionToFinancialEntry,
-} from './utils/financial-entry-mapper';
-import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
-import { firstValueFrom } from 'rxjs';
-import { type TransactionCreate } from '@pulpe/shared';
-import { EditTransactionDialog } from './components/edit-transaction-dialog';
-import { type FinancialEntryModel } from './models/financial-entry.model';
 import { Logger } from '@core/logging/logger';
 import {
   ProductTourService,
   TOUR_START_DELAY,
 } from '@core/product-tour/product-tour.service';
+import { TitleDisplay } from '@core/routing';
+import { type TransactionCreate } from '@pulpe/shared';
+import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
+import { BaseLoading } from '@ui/loading';
+import { firstValueFrom } from 'rxjs';
+import { AddTransactionBottomSheet } from './components/add-transaction-bottom-sheet';
+import { BudgetProgressBar } from './components/budget-progress-bar';
+import { DashboardError } from './components/dashboard-error';
+import { EditTransactionDialog } from './components/edit-transaction-dialog';
+import { OneTimeExpensesList } from './components/one-time-expenses-list';
+import { RecurringExpensesList } from './components/recurring-expenses-list';
+import { type FinancialEntryModel } from './models/financial-entry.model';
+import { CurrentMonthStore } from './services/current-month-store';
+import {
+  mapBudgetLineToFinancialEntry,
+  mapTransactionToFinancialEntry,
+} from './utils/financial-entry-mapper';
 
 type TransactionFormData = Pick<
   TransactionCreate,
@@ -106,7 +108,8 @@ type EditTransactionFormData = Pick<
             <mat-icon>help_outline</mat-icon>
           </button>
           <button
-            matButton
+            matButton="tonal"
+            class="icon-text-btn"
             (click)="store.refreshData()"
             [disabled]="store.isLoading()"
             data-testid="refresh-button"
@@ -156,7 +159,11 @@ type EditTransactionFormData = Pick<
                     <mat-icon>delete_sweep</mat-icon>
                     Supprimer ({{ selectedTransactions().length }})
                   </button>-->
-                <button matButton="tonal" data-testid="merge-selected-button">
+                <button
+                  matButton="tonal"
+                  class="icon-text-btn"
+                  data-testid="merge-selected-button"
+                >
                   <mat-icon>call_merge</mat-icon>
                   Fusionner ({{ selectedTransactions().length }})
                 </button>
@@ -185,7 +192,7 @@ type EditTransactionFormData = Pick<
               data-testid="empty-state-description"
             >
               Aucun budget n'a été créé pour
-              {{ store.budgetDate() | date: 'MMMM yyyy' }}.
+              {{ store.budgetDate() | date: 'MMMM yyyy' : '' : 'fr-CH' }}.
             </p>
           </div>
         }
@@ -208,13 +215,7 @@ type EditTransactionFormData = Pick<
     :host {
       display: block;
       position: relative;
-
       padding-bottom: 100px;
-
-      --mat-button-tonal-container-height: 32px;
-      --mat-button-tonal-horizontal-padding: 12px;
-      --mat-button-tonal-icon-spacing: 4px;
-      --mat-button-tonal-icon-offset: 0;
     }
 
     .fab-button {
@@ -232,6 +233,7 @@ export default class CurrentMonth {
   protected readonly store = inject(CurrentMonthStore);
   protected readonly titleDisplay = inject(TitleDisplay);
   readonly #productTourService = inject(ProductTourService);
+  readonly #destroyRef = inject(DestroyRef);
   #bottomSheet = inject(MatBottomSheet);
   #dialog = inject(MatDialog);
   #snackBar = inject(MatSnackBar);
@@ -281,6 +283,7 @@ export default class CurrentMonth {
 
     bottomSheetRef
       .afterDismissed()
+      .pipe(takeUntilDestroyed(this.#destroyRef))
       .subscribe((transaction: TransactionFormData | undefined) => {
         if (transaction) {
           this.onAddTransaction(transaction);

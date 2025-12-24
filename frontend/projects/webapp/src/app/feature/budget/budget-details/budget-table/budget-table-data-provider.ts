@@ -1,11 +1,11 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable } from '@angular/core';
 import {
   type Transaction,
   type BudgetLine,
   type TransactionKind,
   type TransactionRecurrence,
 } from '@pulpe/shared';
-import { BudgetCalculator } from '@core/budget/budget-calculator';
+import { calculateAllConsumptions } from '@core/budget/budget-line-consumption';
 import { isRolloverLine } from '@core/rollover/rollover-types';
 import { type TableItem } from './budget-table-models';
 
@@ -25,8 +25,6 @@ interface BudgetItemWithBalance {
  */
 @Injectable()
 export class BudgetTableDataProvider {
-  readonly #budgetCalculator = inject(BudgetCalculator);
-
   // Constantes pour l'ordre de tri
   readonly #RECURRENCE_ORDER: Record<TransactionRecurrence, number> = {
     fixed: 1,
@@ -45,6 +43,9 @@ export class BudgetTableDataProvider {
    * 1. Budget lines grouped by recurrence: fixed → one_off
    *    Within each group: createdAt ascending, then kind (income → saving → expense)
    * 2. Transactions ordered by transactionDate ascending (fallback createdAt), then kind
+   *
+   * Note: Le calcul du solde cumulatif utilise MAX(prévu, consommé) pour chaque enveloppe
+   * afin de prendre en compte les dépassements.
    */
   #composeBudgetItemsWithBalanceGrouped(
     budgetLines: BudgetLine[],
@@ -52,7 +53,11 @@ export class BudgetTableDataProvider {
   ): BudgetItemWithBalance[] {
     const items = this.#createDisplayItems(budgetLines, transactions);
     this.#sortItemsByBusinessRules(items);
-    this.#calculateCumulativeBalances(items);
+
+    // Calculer les consommations de chaque enveloppe pour les dépassements
+    const consumptionMap = calculateAllConsumptions(budgetLines, transactions);
+
+    this.#calculateCumulativeBalances(items, consumptionMap);
 
     return items;
   }
@@ -144,6 +149,10 @@ export class BudgetTableDataProvider {
 
   /**
    * Crée les éléments d'affichage pour le tri et le calcul des soldes
+   *
+   * Note: Les transactions allouées (budgetLineId != null) sont exclues de l'affichage
+   * car elles sont "contenues" dans leur enveloppe et ne doivent pas apparaître
+   * comme des lignes séparées dans le tableau principal.
    */
   #createDisplayItems(
     budgetLines: BudgetLine[],
@@ -160,8 +169,10 @@ export class BudgetTableDataProvider {
       });
     });
 
-    // Ajouter les transactions
-    transactions.forEach((transaction) => {
+    // Ajouter seulement les transactions LIBRES (non allouées à une enveloppe)
+    // Les transactions allouées sont visibles via la consommation de leur enveloppe
+    const freeTransactions = transactions.filter((tx) => !tx.budgetLineId);
+    freeTransactions.forEach((transaction) => {
       items.push({
         item: transaction,
         cumulativeBalance: 0, // Sera calculé après tri
@@ -181,16 +192,50 @@ export class BudgetTableDataProvider {
 
   /**
    * Calcule les soldes cumulatifs pour tous les éléments
-   * Utilise le BudgetCalculator pour les calculs métier purs
+   * Pour les enveloppes (budget lines), utilise MAX(montant_prévu, montant_consommé)
+   * afin de prendre en compte les dépassements dans le solde restant.
+   *
+   * @param items Les éléments à enrichir avec le solde cumulatif
+   * @param consumptionMap Map des consommations par budgetLineId
    */
-  #calculateCumulativeBalances(items: BudgetItemWithBalance[]): void {
-    const flatItems = items.map((item) => item.item);
-    const itemsWithBalance =
-      this.#budgetCalculator.enrichWithCumulativeBalance(flatItems);
+  #calculateCumulativeBalances(
+    items: BudgetItemWithBalance[],
+    consumptionMap: Map<string, { consumed: number }>,
+  ): void {
+    let runningBalance = 0;
 
-    items.forEach((item, index) => {
-      item.cumulativeBalance = itemsWithBalance[index].cumulativeBalance;
+    items.forEach((item) => {
+      const kind = item.item.kind;
+      let effectiveAmount = item.item.amount;
+
+      // Pour les budget lines, utiliser MAX(prévu, consommé) pour les dépassements
+      if (item.itemType === 'budget_line') {
+        const consumption = consumptionMap.get(item.item.id);
+        if (consumption) {
+          effectiveAmount = Math.max(item.item.amount, consumption.consumed);
+        }
+      }
+
+      // Calculer l'impact signé selon le type
+      const signedAmount = this.#getSignedAmount(kind, effectiveAmount);
+      runningBalance += signedAmount;
+      item.cumulativeBalance = runningBalance;
     });
+  }
+
+  /**
+   * Retourne le montant avec le signe approprié selon le type
+   */
+  #getSignedAmount(kind: TransactionKind, amount: number): number {
+    switch (kind) {
+      case 'income':
+        return amount;
+      case 'expense':
+      case 'saving':
+        return -amount;
+      default:
+        return 0;
+    }
   }
 
   /**

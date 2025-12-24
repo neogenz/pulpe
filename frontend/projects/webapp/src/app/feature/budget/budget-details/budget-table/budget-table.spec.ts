@@ -6,7 +6,6 @@ import { BreakpointObserver } from '@angular/cdk/layout';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { By } from '@angular/platform-browser';
 import { Logger } from '@core/logging/logger';
 import { BehaviorSubject, of } from 'rxjs';
 // Import the internal API for signal manipulation in tests
@@ -99,71 +98,74 @@ describe('BudgetTable', () => {
       fixture.detectChanges();
     });
 
-    it('should show separate edit and delete buttons', () => {
+    it('should show menu button for actions', () => {
       const compiled = fixture.nativeElement as HTMLElement;
-      const editButton = compiled.querySelector(
-        '[data-testid="edit-budget-line-1"]',
-      );
-      const deleteButton = compiled.querySelector(
-        '[data-testid="delete-budget-line-1"]',
-      );
       const menuButton = compiled.querySelector(
         '[data-testid="actions-menu-budget-line-1"]',
       );
 
+      expect(menuButton).toBeTruthy();
+    });
+
+    it('should have menu items for edit and delete when menu opened', () => {
+      const compiled = fixture.nativeElement as HTMLElement;
+      const menuTrigger = compiled.querySelector(
+        '[data-testid="actions-menu-budget-line-1"]',
+      ) as HTMLButtonElement;
+
+      expect(menuTrigger).toBeTruthy();
+      menuTrigger?.click();
+      fixture.detectChanges();
+
+      const editButton = document.querySelector(
+        '[data-testid="edit-budget-line-1"]',
+      );
+      const deleteButton = document.querySelector(
+        '[data-testid="delete-budget-line-1"]',
+      );
+
       expect(editButton).toBeTruthy();
       expect(deleteButton).toBeTruthy();
-      expect(menuButton).toBeFalsy();
     });
 
-    it('should not show menu button on desktop', () => {
-      const compiled = fixture.nativeElement as HTMLElement;
-      const menuButtons = compiled.querySelectorAll(
-        'button[data-testid^="actions-menu-"]',
-      );
-      expect(menuButtons.length).toBe(0);
-    });
-
-    it('should emit delete when delete button clicked', () => {
+    it('should emit delete when delete menu item clicked', () => {
       const deleteSpy = vi.spyOn(component.delete, 'emit');
+      const compiled = fixture.nativeElement as HTMLElement;
 
-      const deleteButton = fixture.debugElement.query(
-        By.css('[data-testid="delete-budget-line-1"]'),
-      );
+      const menuTrigger = compiled.querySelector(
+        '[data-testid="actions-menu-budget-line-1"]',
+      ) as HTMLButtonElement;
+      menuTrigger?.click();
+      fixture.detectChanges();
 
-      deleteButton?.nativeElement.click();
+      const deleteButton = document.querySelector(
+        '[data-testid="delete-budget-line-1"]',
+      ) as HTMLButtonElement;
+      deleteButton?.click();
       fixture.detectChanges();
 
       expect(deleteSpy).toHaveBeenCalledWith('budget-line-1');
     });
 
-    it('should open inline edit when edit button clicked', () => {
+    it('should open inline edit when edit menu item clicked', () => {
       const compiled = fixture.nativeElement as HTMLElement;
-      const editButton = compiled.querySelector(
+
+      const menuTrigger = compiled.querySelector(
+        '[data-testid="actions-menu-budget-line-1"]',
+      ) as HTMLButtonElement;
+      menuTrigger?.click();
+      fixture.detectChanges();
+
+      const editButton = document.querySelector(
         '[data-testid="edit-budget-line-1"]',
       ) as HTMLButtonElement;
-
       editButton?.click();
       fixture.detectChanges();
 
-      // Access protected property for testing purposes
       expect(component['inlineFormEditingItem']()).toBeTruthy();
       expect(component['inlineFormEditingItem']()?.data.id).toBe(
         'budget-line-1',
       );
-    });
-
-    it('should have proper aria-labels for desktop buttons', () => {
-      const compiled = fixture.nativeElement as HTMLElement;
-      const editButton = compiled.querySelector(
-        '[data-testid="edit-budget-line-1"]',
-      ) as HTMLButtonElement;
-      const deleteButton = compiled.querySelector(
-        '[data-testid="delete-budget-line-1"]',
-      ) as HTMLButtonElement;
-
-      expect(editButton?.getAttribute('aria-label')).toContain('Edit');
-      expect(deleteButton?.getAttribute('aria-label')).toContain('Delete');
     });
   });
 
@@ -173,27 +175,25 @@ describe('BudgetTable', () => {
       fixture.detectChanges();
     });
 
-    it('should show menu button instead of separate buttons', () => {
+    it('should show envelope cards with menu button', () => {
       const compiled = fixture.nativeElement as HTMLElement;
+      // Mobile uses card-menu instead of actions-menu
       const menuButton = compiled.querySelector(
-        '[data-testid="actions-menu-budget-line-1"]',
+        '[data-testid="card-menu-budget-line-1"]',
       );
-      const editButton = compiled.querySelector(
-        '[data-testid="edit-budget-line-1"]:not([mat-menu-item])',
-      );
-      const deleteButton = compiled.querySelector(
-        '[data-testid="delete-budget-line-1"]:not([mat-menu-item])',
+      // Cards should be visible
+      const envelopeCard = compiled.querySelector(
+        '[data-testid="envelope-card-Test Budget Line"]',
       );
 
       expect(menuButton).toBeTruthy();
-      expect(editButton).toBeFalsy();
-      expect(deleteButton).toBeFalsy();
+      expect(envelopeCard).toBeTruthy();
     });
 
     it('should have menu items for edit and delete', () => {
       const compiled = fixture.nativeElement as HTMLElement;
       const menuTrigger = compiled.querySelector(
-        '[data-testid="actions-menu-budget-line-1"]',
+        '[data-testid="card-menu-budget-line-1"]',
       ) as HTMLButtonElement;
 
       expect(menuTrigger).toBeTruthy();
@@ -223,7 +223,7 @@ describe('BudgetTable', () => {
     it('should show correct menu item text in French', () => {
       const compiled = fixture.nativeElement as HTMLElement;
       const menuTrigger = compiled.querySelector(
-        '[data-testid="actions-menu-budget-line-1"]',
+        '[data-testid="card-menu-budget-line-1"]',
       ) as HTMLButtonElement;
 
       expect(menuTrigger).toBeTruthy();
@@ -268,7 +268,7 @@ describe('BudgetTable', () => {
 
       const compiled = fixture.nativeElement as HTMLElement;
       const allMenuButtons = compiled.querySelectorAll(
-        'button[data-testid^="actions-menu-"]',
+        'button[data-testid^="card-menu-"]',
       );
       expect(allMenuButtons.length).toBeGreaterThanOrEqual(0);
     });
@@ -276,7 +276,7 @@ describe('BudgetTable', () => {
     it('should open dialog when edit menu item clicked', () => {
       const compiled = fixture.nativeElement as HTMLElement;
       const menuTrigger = compiled.querySelector(
-        '[data-testid="actions-menu-budget-line-1"]',
+        '[data-testid="card-menu-budget-line-1"]',
       ) as HTMLButtonElement;
 
       expect(menuTrigger).toBeTruthy();
@@ -309,7 +309,7 @@ describe('BudgetTable', () => {
 
       const compiled = fixture.nativeElement as HTMLElement;
       const menuTrigger = compiled.querySelector(
-        '[data-testid="actions-menu-budget-line-1"]',
+        '[data-testid="card-menu-budget-line-1"]',
       ) as HTMLButtonElement;
 
       expect(menuTrigger).toBeTruthy();
@@ -331,13 +331,12 @@ describe('BudgetTable', () => {
       expect(deleteSpy).toHaveBeenCalledWith('budget-line-1');
     });
 
-    it('should have proper aria-label for menu button', () => {
+    it('should display available amount prominently', () => {
       const compiled = fixture.nativeElement as HTMLElement;
-      const menuButton = compiled.querySelector(
-        '[data-testid="actions-menu-budget-line-1"]',
-      ) as HTMLButtonElement;
-
-      expect(menuButton?.getAttribute('aria-label')).toContain('Actions pour');
+      // Check for the headline-medium class which indicates the available amount
+      const availableAmount = compiled.querySelector('.text-headline-medium');
+      expect(availableAmount).toBeTruthy();
+      expect(availableAmount?.textContent).toContain('CHF');
     });
   });
 
@@ -348,24 +347,30 @@ describe('BudgetTable', () => {
       fixture.detectChanges();
 
       const compiled = fixture.nativeElement as HTMLElement;
-      let editButtonDesktop = compiled.querySelector(
-        '[data-testid="edit-budget-line-1"]:not([mat-menu-item])',
+      // Desktop uses actions-menu in table
+      let actionsMenu = compiled.querySelector(
+        '[data-testid="actions-menu-budget-line-1"]',
       );
-      expect(editButtonDesktop).toBeTruthy();
+      expect(actionsMenu).toBeTruthy();
 
       // Switch to mobile
       breakpointSubject.next({ matches: true, breakpoints: {} });
       fixture.detectChanges();
 
-      const menuButton = compiled.querySelector(
+      // Mobile uses card-menu and envelope cards
+      const cardMenu = compiled.querySelector(
+        '[data-testid="card-menu-budget-line-1"]',
+      );
+      const envelopeCard = compiled.querySelector(
+        '[data-testid^="envelope-card-"]',
+      );
+      actionsMenu = compiled.querySelector(
         '[data-testid="actions-menu-budget-line-1"]',
       );
-      editButtonDesktop = compiled.querySelector(
-        '[data-testid="edit-budget-line-1"]:not([mat-menu-item])',
-      );
 
-      expect(menuButton).toBeTruthy();
-      expect(editButtonDesktop).toBeFalsy();
+      expect(cardMenu).toBeTruthy();
+      expect(envelopeCard).toBeTruthy();
+      expect(actionsMenu).toBeFalsy();
     });
 
     it('should switch from mobile to desktop view when breakpoint changes', () => {
@@ -374,24 +379,24 @@ describe('BudgetTable', () => {
       fixture.detectChanges();
 
       const compiled = fixture.nativeElement as HTMLElement;
-      let menuButton = compiled.querySelector(
-        '[data-testid="actions-menu-budget-line-1"]',
+      let cardMenu = compiled.querySelector(
+        '[data-testid="card-menu-budget-line-1"]',
       );
-      expect(menuButton).toBeTruthy();
+      expect(cardMenu).toBeTruthy();
 
       // Switch to desktop
       breakpointSubject.next({ matches: false, breakpoints: {} });
       fixture.detectChanges();
 
-      menuButton = compiled.querySelector(
+      cardMenu = compiled.querySelector(
+        '[data-testid="card-menu-budget-line-1"]',
+      );
+      const actionsMenu = compiled.querySelector(
         '[data-testid="actions-menu-budget-line-1"]',
       );
-      const editButtonDesktop = compiled.querySelector(
-        '[data-testid="edit-budget-line-1"]:not([mat-menu-item])',
-      );
 
-      expect(menuButton).toBeFalsy();
-      expect(editButtonDesktop).toBeTruthy();
+      expect(cardMenu).toBeFalsy();
+      expect(actionsMenu).toBeTruthy();
     });
   });
 

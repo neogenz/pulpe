@@ -27,6 +27,7 @@ const defaultBudgetLine: BudgetLine = {
 const defaultTransaction: Transaction = {
   id: 'transaction-1',
   budgetId: 'budget-1',
+  budgetLineId: null,
   name: 'Test Transaction',
   amount: 100,
   kind: 'expense',

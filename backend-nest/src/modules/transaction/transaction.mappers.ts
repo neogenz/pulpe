@@ -19,6 +19,7 @@ export function toApi(transactionDb: TransactionRow): Transaction {
     createdAt: transactionDb.created_at,
     updatedAt: transactionDb.updated_at,
     budgetId: transactionDb.budget_id,
+    budgetLineId: transactionDb.budget_line_id ?? null,
     amount: transactionDb.amount,
     name: transactionDb.name,
     kind: transactionDb.kind, // Pas de conversion - les enums sont maintenant unifiés
@@ -64,6 +65,7 @@ export function toInsert(
 
   return {
     budget_id: finalBudgetId,
+    budget_line_id: createDto.budgetLineId ?? null,
     amount: createDto.amount,
     name: createDto.name,
     kind: createDto.kind, // Pas de conversion - les enums sont maintenant unifiés

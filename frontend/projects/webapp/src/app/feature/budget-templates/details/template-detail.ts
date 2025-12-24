@@ -4,12 +4,13 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   effect,
   inject,
   Injector,
   type OnInit,
 } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -235,6 +236,7 @@ export default class TemplateDetail implements OnInit {
   readonly #transactionIconPipe = inject(TransactionIconPipe);
   readonly #transactionLabelPipe = inject(TransactionLabelPipe);
   readonly #logger = inject(Logger);
+  readonly #destroyRef = inject(DestroyRef);
   ngOnInit(): void {
     // Get template ID from route parameters
     const templateId = this.#route.snapshot.paramMap.get('templateId');
@@ -386,24 +388,30 @@ export default class TemplateDetail implements OnInit {
       injector: this.#injector,
     });
 
-    dialogRef.afterClosed().subscribe((dialogResult) => {
-      if (dialogResult?.saved) {
-        const propagation = dialogResult.propagation ?? null;
+    dialogRef
+      .afterClosed()
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe((dialogResult) => {
+        if (dialogResult?.saved) {
+          const propagation = dialogResult.propagation ?? null;
 
-        if (propagation) {
-          // Reload to sync with server state when changes were applied
-          this.templateDetailsStore.reloadTemplateDetails();
+          if (propagation) {
+            // Reload to sync with server state when changes were applied
+            this.templateDetailsStore.reloadTemplateDetails();
+          }
+
+          const message = this.#buildSuccessMessage(propagation);
+          this.#snackBar.open(message, undefined, {
+            duration: 4000,
+          });
+        } else if (dialogResult?.error) {
+          this.#logger.error(
+            'Erreur lors de la sauvegarde:',
+            dialogResult.error,
+          );
+          // Error is already handled by the dialog with user-friendly messages
         }
-
-        const message = this.#buildSuccessMessage(propagation);
-        this.#snackBar.open(message, undefined, {
-          duration: 4000,
-        });
-      } else if (dialogResult?.error) {
-        this.#logger.error('Erreur lors de la sauvegarde:', dialogResult.error);
-        // Error is already handled by the dialog with user-friendly messages
-      }
-    });
+      });
   }
 
   async deleteTemplate() {

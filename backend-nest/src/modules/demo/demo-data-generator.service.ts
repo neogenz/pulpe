@@ -655,6 +655,7 @@ export class DemoDataGeneratorService {
   ): Omit<TransactionRow, 'id' | 'created_at' | 'updated_at'> {
     return {
       budget_id: budget.id,
+      budget_line_id: null,
       name,
       amount,
       kind: 'expense',

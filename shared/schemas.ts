@@ -218,9 +218,18 @@ export type BudgetLineUpdate = z.infer<typeof budgetLineUpdateSchema>;
  *
  * Formule SPECS: expenses = Σ(budget_lines) + Σ(transactions)
  */
+/**
+ * TRANSACTION - Opération réelle saisie par l'utilisateur
+ *
+ * budgetLineId: Optional allocation to a specific budget line
+ * - When set, the transaction is "allocated" and contributes to that line's consumption
+ * - When null, the transaction is "free" (contributes only to global budget)
+ * - Validation: kind must match budget line's kind, budgetId must match
+ */
 export const transactionSchema = z.object({
   id: z.uuid(),
   budgetId: z.uuid(),
+  budgetLineId: z.uuid().nullable(),
   name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
   kind: transactionKindSchema,
@@ -234,6 +243,7 @@ export type Transaction = z.infer<typeof transactionSchema>;
 
 export const transactionCreateSchema = z.object({
   budgetId: z.uuid(),
+  budgetLineId: z.uuid().nullable().optional(),
   name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
   kind: transactionKindSchema,

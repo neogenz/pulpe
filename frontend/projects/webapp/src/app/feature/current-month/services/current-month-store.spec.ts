@@ -62,6 +62,7 @@ const mockTransactions: Transaction[] = [
   {
     id: 'txn-1',
     budgetId: 'budget-1',
+    budgetLineId: null,
     amount: 50,
     category: null,
     name: 'Coffee',
