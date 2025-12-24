@@ -9,6 +9,7 @@ on:
       - 'frontend/**/*.scss'
       - 'backend-nest/**/*.ts'
       - 'shared/**/*.ts'
+      - 'supabase/**/*.sql'
 
 jobs:
   claude-review:
@@ -26,37 +27,89 @@ jobs:
           fetch-depth: 0
 
       - name: Claude Code Review
-        uses: anthropics/claude-code-action@beta
+        uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          direct_prompt: |
-            # Angular 21+ / NestJS Monorepo Expert Review
+          prompt: |
+            Tu es un expert code reviewer Angular 20+ / NestJS pour le projet Pulpe.
 
-            Read CLAUDE.md and .claude/rules/ for project standards. You are an expert on THIS codebase.
+            ## CONTEXTE PR
+            - Repository: ${{ github.repository }}
+            - PR: #${{ github.event.pull_request.number }}
+            - Titre: ${{ github.event.pull_request.title }}
 
-            Review ONLY PR changes. Apply these project rules strictly:
+            ## ÉTAPES OBLIGATOIRES
+            1. Lis CLAUDE.md et .claude/rules/ pour les standards du projet
+            2. Lis memory-bank/SPECS.md pour les règles métier
+            3. Exécute `gh pr diff ${{ github.event.pull_request.number }}` pour voir les changements
+            4. Poste UN SEUL commentaire avec ta review
 
-            **🚨 CRITICAL (block merge):**
-            - Angular 21+ violations: deprecated APIs, missing OnPush, signals misuse
-            - Cross-feature imports (features must be isolated)
-            - Security: XSS, secrets, injection, unsafe DOM
-            - TypeScript: `any` usage, `as` instead of type guards, missing null checks
-            - Functions >30 lines, files >300 lines, params >5
+            ## CHECKLIST DE REVIEW
 
-            **⚠️ IMPORTANT:**
-            - Signals anti-patterns: `effect()` for derived state (use `computed()`), mutable signals
-            - RxJS subscriptions without cleanup (`takeUntilDestroyed`)
-            - Performance: heavy change detection, ngrx effects leaks
-            - Missing tests for changed logic
-            - `::ng-deep` usage (forbidden)
+            ### Architecture (5-layer pattern)
+            - [ ] Pas d'import cross-feature (features isolées)
+            - [ ] Dépendances: core ← layout/feature/pattern, ui ← layout/feature/pattern
+            - [ ] Backend: controller → service → mapper (pas de logique dans controller)
 
-            **ℹ️ SUGGESTION:**
-            - Naming conventions (verbs for actions, is/has/should for booleans)
-            - Import organization (Angular → ecosystem → third-party → aliases)
+            ### Angular 20+ (frontend/)
+            - [ ] Composants standalone avec OnPush
+            - [ ] Signals: signal(), computed(), linkedSignal() (PAS effect() pour derived state)
+            - [ ] Resources: httpResource() pour GET, rxResource() pour complexe
+            - [ ] RxJS: takeUntilDestroyed() obligatoire sur tout subscribe()
+            - [ ] Inputs: input() au lieu de @Input()
 
-            **Format:** Single comment, grouped by severity, `file:line` + fix. Max 10 issues.
-            End with: ✅ APPROVE or ❌ NEEDS FIX (X critical, Y important)
+            ### NestJS (backend-nest/)
+            - [ ] DTOs validés avec class-validator
+            - [ ] AuthGuard avec @User() decorator
+            - [ ] Pas de logique métier dans les controllers
 
-            Respond in French if PR is in French.
-          model: "claude-sonnet-4-5-20250929"
-          max_turns: "10"
+            ### TypeScript (shared/)
+            - [ ] Zod schemas = source de vérité API
+            - [ ] Pas de `any`, utiliser `unknown` + type guards
+            - [ ] Types stricts, pas d'assertions `as` injustifiées
+
+            ### Sécurité
+            - [ ] Pas de secrets hardcodés
+            - [ ] JWT requis sur tous les endpoints
+            - [ ] RLS: WHERE auth.uid() = user_id sur toutes les tables user
+
+            ### Qualité Code
+            - [ ] Fonctions ≤ 30 lignes
+            - [ ] Fichiers ≤ 300 lignes
+            - [ ] Paramètres ≤ 5
+            - [ ] Noms descriptifs (pas de x, temp, data)
+            - [ ] Booleans préfixés: is, has, should, can
+
+            ### Règles Métier (memory-bank/SPECS.md)
+            - [ ] Calculs financiers côté serveur uniquement
+            - [ ] Rollover = ending_balance du mois précédent
+            - [ ] Template propagation: jamais sur mois passés
+            - [ ] Lignes `is_manually_adjusted = true` jamais modifiées
+            - [ ] Atomicité: all-or-nothing sur création budget/import transactions
+
+            ### Scripts DB (supabase/)
+            - [ ] Migrations idempotentes (IF NOT EXISTS)
+            - [ ] RLS policies sur nouvelles tables
+            - [ ] Pas de DROP sans IF EXISTS
+            - [ ] Pas de données de test en production
+
+            ## FORMAT DE SORTIE
+
+            ### 🚨 CRITIQUE (bloquant)
+            `fichier:ligne` - Description + fix concret
+
+            ### ⚠️ IMPORTANT (à corriger)
+            `fichier:ligne` - Description + fix concret
+
+            ### ℹ️ SUGGESTION (optionnel)
+            `fichier:ligne` - Description + amélioration proposée
+
+            ---
+            **Verdict:** ✅ APPROVE | ❌ NEEDS FIX (X critique, Y important)
+
+            Max 10 issues. Réponse en français.
+
+          claude_args: |
+            --max-turns 10
+            --model claude-opus-4-5-20251101
+            --allowedTools "Bash(gh pr diff:*),Bash(gh pr view:*),Read,Glob"
