@@ -37,7 +37,13 @@ import {
   type BudgetLineUpdate,
   type BudgetLine,
   type Transaction,
+  type TransactionCreate,
+  type TransactionUpdate,
 } from '@pulpe/shared';
+import {
+  AllocatedTransactionsDialog,
+  type AllocatedTransactionsDialogData,
+} from './allocated-transactions/allocated-transactions-dialog';
 import {
   ProductTourService,
   TOUR_START_DELAY,
@@ -128,6 +134,7 @@ import {
           (update)="handleUpdateBudgetLine($event)"
           (delete)="handleDeleteItem($event)"
           (add)="openAddBudgetLineDialog()"
+          (viewTransactions)="handleViewTransactions($event)"
           data-tour="budget-table"
         />
 
@@ -272,6 +279,71 @@ export default class BudgetDetailsPage {
       duration: 5000,
       panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
     });
+  }
+
+  async handleViewTransactions(budgetLineId: string): Promise<void> {
+    const budgetLine = this.store.getBudgetLineWithConsumption(budgetLineId);
+    if (!budgetLine) {
+      this.#logger.error('Budget line not found', {
+        budgetLineId,
+        budgetId: this.id(),
+      });
+      return;
+    }
+
+    // Load transactions for this budget line
+    const transactions =
+      await this.store.getAllocatedTransactions(budgetLineId);
+
+    const dialogRef = this.#dialog.open(AllocatedTransactionsDialog, {
+      data: {
+        budgetLine,
+        transactions,
+        onCreateTransaction: async (data: TransactionCreate) => {
+          await this.store.createAllocatedTransaction(data);
+          // Reload transactions to refresh dialog via public method
+          const refreshedTransactions =
+            await this.store.getAllocatedTransactions(budgetLineId);
+          dialogRef.componentInstance.setTransactions(refreshedTransactions);
+        },
+        onUpdateTransaction: async (
+          transactionId: string,
+          data: TransactionUpdate,
+          lineId: string,
+          originalAmount: number,
+        ) => {
+          await this.store.updateAllocatedTransaction(
+            transactionId,
+            data,
+            lineId,
+            originalAmount,
+          );
+          // Reload transactions to refresh dialog via public method
+          const refreshedTransactions =
+            await this.store.getAllocatedTransactions(budgetLineId);
+          dialogRef.componentInstance.setTransactions(refreshedTransactions);
+        },
+        onDeleteTransaction: async (
+          transactionId: string,
+          lineId: string,
+          amount: number,
+        ) => {
+          await this.store.deleteAllocatedTransaction(
+            transactionId,
+            lineId,
+            amount,
+          );
+          // Reload transactions to refresh dialog via public method
+          const refreshedTransactions =
+            await this.store.getAllocatedTransactions(budgetLineId);
+          dialogRef.componentInstance.setTransactions(refreshedTransactions);
+        },
+      } satisfies AllocatedTransactionsDialogData,
+      width: '500px',
+      maxWidth: '90vw',
+    });
+
+    await firstValueFrom(dialogRef.afterClosed());
   }
 
   async handleDeleteItem(id: string): Promise<void> {

@@ -3,6 +3,7 @@ import {
   Component,
   inject,
   computed,
+  signal,
 } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import {
@@ -73,21 +74,12 @@ export interface AllocatedTransactionsDialogData {
           </span>
           <span class="stat-separator">·</span>
           <span class="stat consumed">
-            {{
-              data.budgetLine.consumedAmount
-                | currency: 'CHF' : 'symbol' : '1.0-0'
-            }}
+            {{ consumedAmount() | currency: 'CHF' : 'symbol' : '1.0-0' }}
             dépensés
           </span>
           <span class="stat-separator">·</span>
-          <span
-            class="stat remaining"
-            [class.negative]="data.budgetLine.remainingAmount < 0"
-          >
-            {{
-              data.budgetLine.remainingAmount
-                | currency: 'CHF' : 'symbol' : '1.0-0'
-            }}
+          <span class="stat remaining" [class.negative]="remainingAmount() < 0">
+            {{ remainingAmount() | currency: 'CHF' : 'symbol' : '1.0-0' }}
             restants
           </span>
         </div>
@@ -263,6 +255,42 @@ export class AllocatedTransactionsDialog {
   readonly #matDialog = inject(MatDialog);
   readonly data = inject<AllocatedTransactionsDialogData>(MAT_DIALOG_DATA);
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LOCAL STORE - Signal-based state with derived computeds
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Private writable signal for transactions
+   */
+  readonly #transactions = signal<Transaction[]>(this.data.transactions);
+
+  /**
+   * Read-only accessor for transactions (encapsulation)
+   */
+  readonly transactions = this.#transactions.asReadonly();
+
+  /**
+   * Public method to update transactions (proper encapsulation)
+   * Called by parent after CRUD operations
+   */
+  setTransactions(transactions: Transaction[]): void {
+    this.#transactions.set(transactions);
+  }
+
+  /**
+   * Consumed amount computed from transactions (reactive)
+   */
+  readonly consumedAmount = computed(() =>
+    this.#transactions().reduce((sum, tx) => sum + tx.amount, 0),
+  );
+
+  /**
+   * Remaining amount computed from budget line amount minus consumed (reactive)
+   */
+  readonly remainingAmount = computed(
+    () => this.data.budgetLine.amount - this.consumedAmount(),
+  );
+
   /**
    * Check if CRUD callbacks are provided
    */
@@ -277,7 +305,7 @@ export class AllocatedTransactionsDialog {
    * Transactions sorted by date DESC (most recent first)
    */
   readonly sortedTransactions = computed(() => {
-    return [...this.data.transactions].sort((a, b) => {
+    return [...this.transactions()].sort((a, b) => {
       const dateA = new Date(a.transactionDate).getTime();
       const dateB = new Date(b.transactionDate).getTime();
       return dateB - dateA;

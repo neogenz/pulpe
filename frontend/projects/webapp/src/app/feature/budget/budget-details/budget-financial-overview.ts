@@ -9,7 +9,10 @@ import {
   FinancialSummary,
   type FinancialSummaryData,
 } from '@ui/financial-summary/financial-summary';
-import { type BudgetLine, type Transaction } from '@pulpe/shared';
+import {
+  type BudgetLineWithConsumption,
+  type Transaction,
+} from '@pulpe/shared';
 import { BudgetCalculator } from '@core/budget/budget-calculator';
 
 @Component({
@@ -31,7 +34,7 @@ import { BudgetCalculator } from '@core/budget/budget-calculator';
 export class BudgetFinancialOverview {
   readonly #budgetCalculator = inject(BudgetCalculator);
 
-  budgetLines = input.required<BudgetLine[]>();
+  budgetLines = input.required<BudgetLineWithConsumption[]>();
   transactions = input.required<Transaction[]>();
 
   totals = computed(() => {
@@ -44,12 +47,14 @@ export class BudgetFinancialOverview {
     let savings = 0;
 
     lines.forEach((line) => {
+      // Use MAX(amount, consumedAmount) to account for overruns
+      const effectiveAmount = Math.max(line.amount, line.consumedAmount);
       switch (line.kind) {
         case 'expense':
-          expenses += line.amount;
+          expenses += effectiveAmount;
           break;
         case 'saving':
-          savings += line.amount;
+          savings += effectiveAmount;
           break;
       }
     });

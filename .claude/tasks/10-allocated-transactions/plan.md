@@ -4,8 +4,8 @@ description: Associer optionnellement une transaction à une BudgetLine pour sui
 status: in_progress
 created: 2024-12-23
 updated: 2024-12-23
-progress: 17
-total_tasks: 44
+progress: 39
+total_tasks: 45
 tech_stack: Angular 20+, NestJS 11+, Supabase, Zod, Bun
 ---
 
@@ -393,36 +393,36 @@ Cette feature permet d'associer optionnellement une transaction à une ligne bud
 
 ### Phase T5: Frontend CRUD (State Local)
 
-- [ ] **T5-01**: 🔴 TEST - Tests FormDialog validation et modes
+- [x] **T5-01**: 🔴 TEST - Tests FormDialog validation et modes ✅
   - **Files**: `frontend/projects/webapp/src/app/feature/budget/budget-details/allocated-transactions/allocated-transaction-form-dialog.spec.ts`
   - **Action**: Créer fichier avec tests:
     - Validation: amount > 0, name requis
     - Mode création: champs vides, date = aujourd'hui
     - Mode édition: champs pré-remplis
     - Submit retourne TransactionCreate ou TransactionUpdate
-  - **Verification**: `cd frontend && pnpm test -- allocated-transaction-form-dialog` ÉCHOUE (RED)
+  - **Verification**: `cd frontend && pnpm test -- allocated-transaction-form-dialog` PASSE ✅
   - **Dependencies**: T4-01
 
-- [ ] **T5-02**: 🟢 IMPL - Créer AllocatedTransactionFormDialog
+- [x] **T5-02**: 🟢 IMPL - Créer AllocatedTransactionFormDialog ✅
   - **Files**: `frontend/projects/webapp/src/app/feature/budget/budget-details/allocated-transactions/allocated-transaction-form-dialog.ts`
   - **Action**: Créer composant standalone:
     - Input: `{ budgetLineId, budgetId, kind, transaction?: Transaction }`
     - Reactive form avec amount, name, transactionDate
     - Champs cachés: budgetLineId, budgetId, kind
     - Mode création vs édition selon présence transaction
-  - **Verification**: `cd frontend && pnpm test -- allocated-transaction-form-dialog` PASSE (GREEN)
+  - **Verification**: `cd frontend && pnpm test -- allocated-transaction-form-dialog` PASSE ✅
   - **Dependencies**: T5-01
 
-- [ ] **T5-03**: 🔴 TEST - Tests updateLocalConsumption
+- [x] **T5-03**: 🔴 TEST - Tests updateLocalConsumption ✅
   - **Files**: `frontend/projects/webapp/src/app/feature/budget/budget-details/store/budget-details-store.spec.ts`
   - **Action**: Ajouter tests:
     - `updateLocalConsumption(lineId, +50)` → consumedAmount += 50, remainingAmount -= 50
     - `updateLocalConsumption(lineId, -30)` → consumedAmount -= 30, remainingAmount += 30
     - Ne fait PAS d'appel API
-  - **Verification**: `cd frontend && pnpm test -- budget-details-store` ÉCHOUE (RED)
+  - **Verification**: `cd frontend && pnpm test -- budget-details-store` PASSE ✅
   - **Dependencies**: T4-05
 
-- [ ] **T5-04**: 🟢 IMPL - Ajouter updateLocalConsumption
+- [x] **T5-04**: 🟢 IMPL - Ajouter updateLocalConsumption ✅
   - **Files**: `frontend/projects/webapp/src/app/feature/budget/budget-details/store/budget-details-store.ts`
   - **Action**: Créer méthode privée:
     ```typescript
@@ -431,19 +431,19 @@ Cette feature permet d'associer optionnellement une transaction à une ligne bud
       // No API call
     }
     ```
-  - **Verification**: `cd frontend && pnpm test -- budget-details-store` PASSE (GREEN)
+  - **Verification**: `cd frontend && pnpm test -- budget-details-store` PASSE ✅
   - **Dependencies**: T5-03
 
-- [ ] **T5-05**: 🔴 TEST - Tests createAllocatedTransaction
+- [x] **T5-05**: 🔴 TEST - Tests createAllocatedTransaction ✅
   - **Files**: `frontend/projects/webapp/src/app/feature/budget/budget-details/store/budget-details-store.spec.ts`
   - **Action**: Ajouter tests:
     - Optimistic: transaction temp ajoutée immédiatement
     - Success: temp remplacée par vraie, montants mis à jour localement
     - Error: refresh complet, snackbar erreur
-  - **Verification**: `cd frontend && pnpm test -- budget-details-store` ÉCHOUE (RED)
+  - **Verification**: `cd frontend && pnpm test -- budget-details-store` PASSE ✅
   - **Dependencies**: T5-04
 
-- [ ] **T5-06**: 🟢 IMPL - Implémenter createAllocatedTransaction
+- [x] **T5-06**: 🟢 IMPL - Implémenter createAllocatedTransaction ✅
   - **Files**: `frontend/projects/webapp/src/app/feature/budget/budget-details/store/budget-details-store.ts`
   - **Action**: Créer méthode:
     ```typescript
@@ -454,58 +454,67 @@ Cette feature permet d'associer optionnellement une transaction à une ligne bud
       // 4. Error: reload(), show snackbar
     }
     ```
-  - **Verification**: `cd frontend && pnpm test -- budget-details-store` PASSE (GREEN)
+  - **Verification**: `cd frontend && pnpm test -- budget-details-store` PASSE ✅
   - **Dependencies**: T5-05
 
-- [ ] **T5-07**: 🔴 TEST - Tests updateAllocatedTransaction
+- [x] **T5-07**: 🔴 TEST - Tests updateAllocatedTransaction ✅
   - **Files**: `frontend/projects/webapp/src/app/feature/budget/budget-details/store/budget-details-store.spec.ts`
   - **Action**: Ajouter tests:
     - Optimistic: transaction modifiée immédiatement
     - Success: montants ajustés (delta = newAmount - oldAmount)
     - Error: refresh complet
-  - **Verification**: `cd frontend && pnpm test -- budget-details-store` ÉCHOUE (RED)
+  - **Verification**: `cd frontend && pnpm test -- budget-details-store` PASSE ✅
   - **Dependencies**: T5-04
 
-- [ ] **T5-08**: 🟢 IMPL - Implémenter updateAllocatedTransaction
+- [x] **T5-08**: 🟢 IMPL - Implémenter updateAllocatedTransaction ✅
   - **Files**: `frontend/projects/webapp/src/app/feature/budget/budget-details/store/budget-details-store.ts`
   - **Action**: Créer méthode avec calcul delta et update local
-  - **Verification**: `cd frontend && pnpm test -- budget-details-store` PASSE (GREEN)
+  - **Verification**: `cd frontend && pnpm test -- budget-details-store` PASSE ✅
   - **Dependencies**: T5-07
 
-- [ ] **T5-09**: 🔴 TEST - Tests deleteAllocatedTransaction
+- [x] **T5-09**: 🔴 TEST - Tests deleteAllocatedTransaction ✅
   - **Files**: `frontend/projects/webapp/src/app/feature/budget/budget-details/store/budget-details-store.spec.ts`
   - **Action**: Ajouter tests:
     - Optimistic: transaction retirée immédiatement
     - Success: montants ajustés (#updateLocalConsumption avec -amount)
     - Error: refresh complet
-  - **Verification**: `cd frontend && pnpm test -- budget-details-store` ÉCHOUE (RED)
+  - **Verification**: `cd frontend && pnpm test -- budget-details-store` PASSE ✅
   - **Dependencies**: T5-04
 
-- [ ] **T5-10**: 🟢 IMPL - Implémenter deleteAllocatedTransaction
+- [x] **T5-10**: 🟢 IMPL - Implémenter deleteAllocatedTransaction ✅
   - **Files**: `frontend/projects/webapp/src/app/feature/budget/budget-details/store/budget-details-store.ts`
   - **Action**: Créer méthode avec update local
-  - **Verification**: `cd frontend && pnpm test -- budget-details-store` PASSE (GREEN)
+  - **Verification**: `cd frontend && pnpm test -- budget-details-store` PASSE ✅
   - **Dependencies**: T5-09
 
-- [ ] **T5-11**: 🔴 TEST - Tests dialog boutons CRUD actifs
+- [x] **T5-11**: 🔴 TEST - Tests dialog boutons CRUD actifs ✅
   - **Files**: `frontend/projects/webapp/src/app/feature/budget/budget-details/allocated-transactions/allocated-transactions-dialog.spec.ts`
   - **Action**: Ajouter tests:
     - Bouton "Ajouter" ouvre FormDialog en mode création
     - Icône edit ouvre FormDialog en mode édition
     - Icône delete ouvre ConfirmationDialog
     - Après action: dialog reste ouvert, liste mise à jour
-  - **Verification**: `cd frontend && pnpm test -- allocated-transactions-dialog` ÉCHOUE (RED)
+  - **Verification**: `cd frontend && pnpm test -- allocated-transactions-dialog` PASSE ✅
   - **Dependencies**: T5-02
 
-- [ ] **T5-12**: 🟢 IMPL - Connecter boutons CRUD
+- [x] **T5-12**: 🟢 IMPL - Connecter boutons CRUD ✅
   - **Files**: `frontend/projects/webapp/src/app/feature/budget/budget-details/allocated-transactions/allocated-transactions-dialog.ts`
   - **Action**:
     - Bouton "Ajouter" → ouvre FormDialog, appelle store.createAllocatedTransaction()
     - Icône edit → ouvre FormDialog avec transaction, appelle store.updateAllocatedTransaction()
     - Icône delete → ouvre ConfirmationDialog, appelle store.deleteAllocatedTransaction()
     - Afficher Snackbar succès/erreur
-  - **Verification**: `cd frontend && pnpm test -- allocated-transactions-dialog` PASSE (GREEN)
+  - **Verification**: `cd frontend && pnpm test -- allocated-transactions-dialog` PASSE ✅
   - **Dependencies**: T5-11
+
+- [x] **T5-13**: 🟢 IMPL - Wire BudgetDetailsPage to BudgetTable viewTransactions ✅
+  - **Files**: `frontend/projects/webapp/src/app/feature/budget/budget-details/budget-details-page.ts`
+  - **Action**:
+    - Importer AllocatedTransactionsDialog
+    - Ajouter handler `(viewTransactions)="handleViewTransactions($event)"` sur BudgetTable
+    - Implémenter `handleViewTransactions()` qui charge les transactions et ouvre le dialog avec les callbacks CRUD
+  - **Verification**: `pnpm quality` PASSE ✅
+  - **Dependencies**: T5-12
 
 ---
 
@@ -644,12 +653,13 @@ ORDER BY bl.created_at;
 - **T1 - Migration + Validation**: 8/8 tasks ✅
 - **T2 - Calculs**: 5/5 tasks ✅
 - **T3 - API**: 4/4 tasks ✅
-- **T4 - Frontend Affichage**: 0/9 tasks
-- **T5 - Frontend CRUD**: 0/12 tasks
+- **T4 - Frontend Affichage**: 9/9 tasks ✅
+- **T5 - Frontend CRUD**: 13/13 tasks ✅
 - **T6 - E2E**: 0/6 tasks
-- **Total**: 17/44 (39%)
+- **Total**: 39/45 (87%)
 
 ### Session History
 
 - 2024-12-23: Plan created (TDD approach)
 - 2024-12-23: T1-T3 completed - Backend implementation finished
+- 2024-12-23: T4-T5 completed - Frontend display, CRUD, and page wiring done

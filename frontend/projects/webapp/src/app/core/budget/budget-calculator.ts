@@ -45,13 +45,23 @@ export class BudgetCalculator {
   /**
    * Enrichit les items avec leur balance cumulative de manière immutable
    * Logique métier pure : traite chaque item et calcule le cumul
+   * Pour les budget lines avec dépassement, utilise MAX(amount, consumedAmount)
    */
   enrichWithCumulativeBalance<
-    T extends { kind: TransactionKind; amount: number },
+    T extends {
+      kind: TransactionKind;
+      amount: number;
+      consumedAmount?: number;
+    },
   >(items: T[]): (T & { cumulativeBalance: number })[] {
     let runningBalance = 0;
     return items.map((item) => {
-      const signedAmount = this.#getSignedAmount(item.kind, item.amount);
+      // For budget lines with overrun, use MAX(amount, consumedAmount)
+      const effectiveAmount =
+        item.consumedAmount !== undefined
+          ? Math.max(item.amount, item.consumedAmount)
+          : item.amount;
+      const signedAmount = this.#getSignedAmount(item.kind, effectiveAmount);
       runningBalance += signedAmount;
       return {
         ...item,
