@@ -84,7 +84,6 @@ export interface AllocatedTransactionBottomSheetResult {
         <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label>Montant</mat-label>
           <input
-            class="!text-xl !font-bold !text-center"
             matInput
             #amountInput
             type="number"
@@ -93,6 +92,7 @@ export interface AllocatedTransactionBottomSheetResult {
             formControlName="amount"
             step="0.01"
             min="0.01"
+            class="text-right"
             required
           />
           <span matTextSuffix>CHF</span>

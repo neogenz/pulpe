@@ -42,10 +42,13 @@ import {
   TransactionLabelPipe,
 } from '@ui/transaction-display';
 import { EditBudgetLineDialog } from '../edit-budget-line/edit-budget-line-dialog';
-import { AllocatedTransactionsDialog } from '../allocated-transactions-dialog';
 import {
-  AllocatedTransactionBottomSheet,
-  type AllocatedTransactionBottomSheetData,
+  AllocatedTransactionsDialog,
+  AllocatedTransactionFormDialog,
+} from '../allocated-transactions-dialog';
+import {
+  AllocatedTransactionsListBottomSheet,
+  type AllocatedTransactionsListBottomSheetData,
 } from '../allocated-transaction-bottom-sheet';
 import { type BudgetLineViewModel } from '../models/budget-line-view-model';
 import { type TransactionViewModel } from '../models/transaction-view-model';
@@ -432,9 +435,11 @@ import { AllocatedTransactionsInline } from './allocated-transactions-inline';
                   <pulpe-allocated-transactions-inline
                     [budgetLine]="row.data"
                     [transactions]="getTransactionsForLine(row.data.id)"
-                    (add)="openAddTransactionSheet(row.data)"
-                    (edit)="openEditTransactionSheet($event, row.data)"
+                    [isMobile]="isMobile()"
+                    (add)="openAddTransactionDialog(row.data)"
+                    (edit)="openEditTransactionDialog($event, row.data)"
                     (delete)="deleteTransaction.emit($event)"
+                    (openDetails)="openAllocatedTransactions(row.data)"
                   />
                 </div>
               }
@@ -653,7 +658,40 @@ export class BudgetTable {
     this.update.emit(updateData);
   }
 
-  openAllocatedTransactions(budgetLine: BudgetLineViewModel): void {
+  // Opens allocated transactions view - bottom sheet on mobile, dialog on desktop
+  openAllocatedTransactions(
+    budgetLine: BudgetLineViewModel | BudgetLine,
+  ): void {
+    if (this.isMobile()) {
+      this.#openTransactionsListBottomSheet(budgetLine);
+    } else {
+      this.#openTransactionsListDialog(budgetLine);
+    }
+  }
+
+  #openTransactionsListBottomSheet(
+    budgetLine: BudgetLineViewModel | BudgetLine,
+  ): void {
+    const sheetRef = this.#bottomSheet.open<
+      AllocatedTransactionsListBottomSheet,
+      AllocatedTransactionsListBottomSheetData
+    >(AllocatedTransactionsListBottomSheet, {
+      data: { budgetLine: budgetLine as BudgetLine },
+    });
+
+    sheetRef
+      .afterDismissed()
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe((result) => {
+        if (result?.updated) {
+          this.viewTransactions.emit(budgetLine as BudgetLine);
+        }
+      });
+  }
+
+  #openTransactionsListDialog(
+    budgetLine: BudgetLineViewModel | BudgetLine,
+  ): void {
     const dialogRef = this.#dialog.open(AllocatedTransactionsDialog, {
       data: { budgetLine },
       width: '600px',
@@ -665,7 +703,7 @@ export class BudgetTable {
       .pipe(takeUntilDestroyed(this.#destroyRef))
       .subscribe((result) => {
         if (result?.updated) {
-          this.viewTransactions.emit(budgetLine);
+          this.viewTransactions.emit(budgetLine as BudgetLine);
         }
       });
   }
@@ -685,45 +723,41 @@ export class BudgetTable {
     return this.transactions().filter((tx) => tx.budgetLineId === budgetLineId);
   }
 
-  // Bottom sheet methods for allocated transactions
-  protected openAddTransactionSheet(budgetLine: BudgetLine): void {
-    const sheetRef = this.#bottomSheet.open<
-      AllocatedTransactionBottomSheet,
-      AllocatedTransactionBottomSheetData
-    >(AllocatedTransactionBottomSheet, {
-      data: { budgetLine, mode: 'create' },
+  // Desktop only: Add transaction via dialog (called from inline on desktop)
+  protected openAddTransactionDialog(budgetLine: BudgetLine): void {
+    const dialogRef = this.#dialog.open(AllocatedTransactionFormDialog, {
+      data: { budgetLine, mode: 'create' as const },
+      width: '400px',
+      maxWidth: '90vw',
     });
 
-    sheetRef
-      .afterDismissed()
+    dialogRef
+      .afterClosed()
       .pipe(takeUntilDestroyed(this.#destroyRef))
       .subscribe((result) => {
-        if (result?.transaction && result.mode === 'create') {
-          this.createTransaction.emit(result.transaction as TransactionCreate);
+        if (result?.created) {
+          this.viewTransactions.emit(budgetLine);
         }
       });
   }
 
-  protected openEditTransactionSheet(
+  // Desktop only: Edit transaction via dialog (called from inline on desktop)
+  protected openEditTransactionDialog(
     transaction: Transaction,
     budgetLine: BudgetLine,
   ): void {
-    const sheetRef = this.#bottomSheet.open<
-      AllocatedTransactionBottomSheet,
-      AllocatedTransactionBottomSheetData
-    >(AllocatedTransactionBottomSheet, {
-      data: { budgetLine, transaction, mode: 'edit' },
+    const dialogRef = this.#dialog.open(AllocatedTransactionFormDialog, {
+      data: { budgetLine, transaction, mode: 'edit' as const },
+      width: '400px',
+      maxWidth: '90vw',
     });
 
-    sheetRef
-      .afterDismissed()
+    dialogRef
+      .afterClosed()
       .pipe(takeUntilDestroyed(this.#destroyRef))
       .subscribe((result) => {
-        if (result?.transaction && result.mode === 'edit') {
-          this.updateTransaction.emit({
-            id: transaction.id,
-            data: result.transaction as TransactionUpdate,
-          });
+        if (result?.updated) {
+          this.viewTransactions.emit(budgetLine);
         }
       });
   }

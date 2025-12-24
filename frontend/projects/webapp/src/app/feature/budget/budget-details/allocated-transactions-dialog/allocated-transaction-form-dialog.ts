@@ -62,6 +62,28 @@ export interface AllocatedTransactionFormDialogResult {
 
     <mat-dialog-content>
       <form [formGroup]="form" class="flex flex-col gap-4 pt-4">
+        <!-- Amount Field (first for quick entry) -->
+        <mat-form-field>
+          <mat-label>Montant</mat-label>
+          <input
+            matInput
+            type="number"
+            inputmode="decimal"
+            formControlName="amount"
+            placeholder="0.00"
+            min="0.01"
+            step="0.01"
+            class="text-right"
+          />
+          <span matTextSuffix>CHF</span>
+          @if (form.controls.amount.hasError('required')) {
+            <mat-error>Le montant est requis</mat-error>
+          }
+          @if (form.controls.amount.hasError('min')) {
+            <mat-error>Le montant doit être positif</mat-error>
+          }
+        </mat-form-field>
+
         <mat-form-field>
           <mat-label>Nom</mat-label>
           <input
@@ -71,24 +93,6 @@ export interface AllocatedTransactionFormDialogResult {
           />
           @if (form.controls.name.hasError('required')) {
             <mat-error>Le nom est requis</mat-error>
-          }
-        </mat-form-field>
-
-        <mat-form-field>
-          <mat-label>Montant (CHF)</mat-label>
-          <input
-            matInput
-            type="number"
-            formControlName="amount"
-            placeholder="0.00"
-            min="0.01"
-            step="0.01"
-          />
-          @if (form.controls.amount.hasError('required')) {
-            <mat-error>Le montant est requis</mat-error>
-          }
-          @if (form.controls.amount.hasError('min')) {
-            <mat-error>Le montant doit être positif</mat-error>
           }
         </mat-form-field>
 
@@ -106,7 +110,11 @@ export interface AllocatedTransactionFormDialogResult {
             matInput
             formControlName="category"
             placeholder="Ex: Alimentation"
+            maxlength="50"
           />
+          <mat-hint align="end">
+            {{ form.controls.category.value.length || 0 }}/50
+          </mat-hint>
         </mat-form-field>
       </form>
     </mat-dialog-content>
@@ -128,11 +136,12 @@ export interface AllocatedTransactionFormDialogResult {
       >
         @if (isProcessing()) {
           <mat-spinner diameter="20" />
+        } @else if (data.mode === 'create') {
+          <mat-icon aria-hidden="true">add</mat-icon>
+          Ajouter
         } @else {
-          <mat-icon aria-hidden="true">
-            {{ data.mode === 'create' ? 'add' : 'save' }}
-          </mat-icon>
-          {{ data.mode === 'create' ? 'Ajouter' : 'Enregistrer' }}
+          <mat-icon aria-hidden="true">save</mat-icon>
+          Enregistrer
         }
       </button>
     </mat-dialog-actions>
