@@ -14,11 +14,11 @@ describe('RecurrenceLabelPipe', () => {
   });
 
   it('should return correct label for fixed', () => {
-    expect(pipe.transform('fixed')).toBe('Tous les mois');
+    expect(pipe.transform('fixed')).toBe('Récurrent');
   });
 
   it('should return correct label for one_off', () => {
-    expect(pipe.transform('one_off')).toBe('Une seule fois');
+    expect(pipe.transform('one_off')).toBe('Prévu');
   });
 
   it('should handle all TransactionRecurrence values', () => {
@@ -32,9 +32,9 @@ describe('RecurrenceLabelPipe', () => {
     });
   });
 
-  it('should return French labels', () => {
-    // Verify that labels follow French business vocabulary
-    expect(pipe.transform('fixed')).toBe('Tous les mois'); // Not "Fixe" or "Récurrent"
-    expect(pipe.transform('one_off')).toBe('Une seule fois'); // Not "Unique" or "Ponctuel"
+  it('should return Swiss French labels', () => {
+    // Verify that labels follow Swiss French budget vocabulary
+    expect(pipe.transform('fixed')).toBe('Récurrent'); // Monthly recurring expense
+    expect(pipe.transform('one_off')).toBe('Prévu'); // Planned one-time expense
   });
 });
