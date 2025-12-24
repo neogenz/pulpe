@@ -210,6 +210,10 @@ export class BudgetTableDataProvider {
       const isRollover = isRolloverLine(item.item);
       const isBudgetLine = item.itemType === 'budget_line';
       const budgetLine = isBudgetLine ? (item.item as BudgetLine) : null;
+      const isPropagationLocked =
+        isBudgetLine &&
+        !!budgetLine?.templateLineId &&
+        !!budgetLine?.isManuallyAdjusted;
       return {
         data: item.item,
         metadata: {
@@ -218,13 +222,11 @@ export class BudgetTableDataProvider {
           isEditing:
             isBudgetLine &&
             params.editingLineId === item.item.id &&
-            !isRollover, // Rollover lines cannot be edited
+            !isRollover,
           isRollover,
           isTemplateLinked: isBudgetLine ? !!budgetLine?.templateLineId : false,
-          isPropagationLocked:
-            isBudgetLine &&
-            !!budgetLine?.templateLineId &&
-            !!budgetLine?.isManuallyAdjusted,
+          isPropagationLocked,
+          canResetFromTemplate: isPropagationLocked,
         },
       };
     });

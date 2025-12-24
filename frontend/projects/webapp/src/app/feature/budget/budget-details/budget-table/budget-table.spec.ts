@@ -13,6 +13,7 @@ import { BehaviorSubject, of } from 'rxjs';
 // This is a workaround for the signal inputs testing issue with Vitest
 import { SIGNAL, signalSetFn } from '@angular/core/primitives/signals';
 import { createMockLogger } from '../../../../testing/mock-posthog';
+import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
 import { EditBudgetLineDialog } from '../edit-budget-line/edit-budget-line-dialog';
 import { type BudgetLineViewModel } from '../models/budget-line-view-model';
 import { type TransactionViewModel } from '../models/transaction-view-model';
@@ -527,6 +528,130 @@ describe('BudgetTable', () => {
       // Access protected property for testing purposes
       expect(component['inlineFormEditingItem']()).toBeNull();
       expect(component.editForm.value.name).toBe(null);
+    });
+  });
+
+  describe('Reset From Template', () => {
+    const lockedBudgetLines: BudgetLineViewModel[] = [
+      {
+        id: 'locked-line-1',
+        name: 'Locked Budget Line',
+        amount: 1500,
+        kind: 'expense',
+        recurrence: 'fixed',
+        isManuallyAdjusted: true,
+        budgetId: 'budget-1',
+        templateLineId: 'template-1',
+        savingsGoalId: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    ];
+
+    const unlockedBudgetLines: BudgetLineViewModel[] = [
+      {
+        id: 'unlocked-line-1',
+        name: 'Unlocked Budget Line',
+        amount: 1000,
+        kind: 'expense',
+        recurrence: 'fixed',
+        isManuallyAdjusted: false,
+        budgetId: 'budget-1',
+        templateLineId: 'template-1',
+        savingsGoalId: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    ];
+
+    it('should show reset button only when canResetFromTemplate is true', () => {
+      signalSetFn(component.budgetLines[SIGNAL], lockedBudgetLines);
+      fixture.detectChanges();
+
+      const compiled = fixture.nativeElement as HTMLElement;
+      const resetButton = compiled.querySelector(
+        '[data-testid="reset-from-template-locked-line-1"]',
+      );
+
+      expect(resetButton).toBeTruthy();
+    });
+
+    it('should not show reset button when line is not locked', () => {
+      signalSetFn(component.budgetLines[SIGNAL], unlockedBudgetLines);
+      fixture.detectChanges();
+
+      const compiled = fixture.nativeElement as HTMLElement;
+      const resetButton = compiled.querySelector(
+        '[data-testid="reset-from-template-unlocked-line-1"]',
+      );
+
+      expect(resetButton).toBeFalsy();
+    });
+
+    it('should open confirmation dialog when reset button is clicked', () => {
+      signalSetFn(component.budgetLines[SIGNAL], lockedBudgetLines);
+      fixture.detectChanges();
+
+      const compiled = fixture.nativeElement as HTMLElement;
+      const resetButton = compiled.querySelector(
+        '[data-testid="reset-from-template-locked-line-1"]',
+      ) as HTMLButtonElement;
+
+      resetButton?.click();
+      fixture.detectChanges();
+
+      expect(mockDialog.open).toHaveBeenCalledWith(
+        ConfirmationDialog,
+        expect.objectContaining({
+          width: '400px',
+          data: expect.objectContaining({
+            title: 'Réinitialiser depuis le modèle',
+            confirmText: 'Réinitialiser',
+          }),
+        }),
+      );
+    });
+
+    it('should emit resetFromTemplate when dialog is confirmed', () => {
+      mockDialog.open.mockReturnValue({
+        afterClosed: vi.fn().mockReturnValue(of(true)),
+      });
+
+      const resetSpy = vi.spyOn(component.resetFromTemplate, 'emit');
+
+      signalSetFn(component.budgetLines[SIGNAL], lockedBudgetLines);
+      fixture.detectChanges();
+
+      const compiled = fixture.nativeElement as HTMLElement;
+      const resetButton = compiled.querySelector(
+        '[data-testid="reset-from-template-locked-line-1"]',
+      ) as HTMLButtonElement;
+
+      resetButton?.click();
+      fixture.detectChanges();
+
+      expect(resetSpy).toHaveBeenCalledWith('locked-line-1');
+    });
+
+    it('should not emit resetFromTemplate when dialog is cancelled', () => {
+      mockDialog.open.mockReturnValue({
+        afterClosed: vi.fn().mockReturnValue(of(false)),
+      });
+
+      const resetSpy = vi.spyOn(component.resetFromTemplate, 'emit');
+
+      signalSetFn(component.budgetLines[SIGNAL], lockedBudgetLines);
+      fixture.detectChanges();
+
+      const compiled = fixture.nativeElement as HTMLElement;
+      const resetButton = compiled.querySelector(
+        '[data-testid="reset-from-template-locked-line-1"]',
+      ) as HTMLButtonElement;
+
+      resetButton?.click();
+      fixture.detectChanges();
+
+      expect(resetSpy).not.toHaveBeenCalled();
     });
   });
 });

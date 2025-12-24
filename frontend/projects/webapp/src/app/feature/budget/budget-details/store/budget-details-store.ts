@@ -244,6 +244,40 @@ export class BudgetDetailsStore {
   }
 
   /**
+   * Reset a budget line from its template values
+   */
+  async resetBudgetLineFromTemplate(id: string): Promise<void> {
+    try {
+      const response = await firstValueFrom(
+        this.#budgetLineApi.resetFromTemplate$(id),
+      );
+
+      this.#budgetDetailsResource.update((details) => {
+        if (!details) return details;
+
+        return {
+          ...details,
+          budgetLines: details.budgetLines.map((line) =>
+            line.id === id ? response.data : line,
+          ),
+        };
+      });
+
+      this.#clearError();
+    } catch (error) {
+      this.reloadBudgetDetails();
+
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Erreur lors de la réinitialisation de la prévision';
+      this.#setError(errorMessage);
+      this.#logger.error('Error resetting budget line from template', error);
+      throw error;
+    }
+  }
+
+  /**
    * Manually reload budget details from the server
    */
   reloadBudgetDetails(): void {

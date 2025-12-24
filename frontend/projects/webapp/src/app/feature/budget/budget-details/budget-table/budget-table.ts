@@ -28,6 +28,10 @@ import { RolloverFormatPipe } from '@app/ui/rollover-format';
 import { Logger } from '@core/logging/logger';
 import { type BudgetLineUpdate } from '@pulpe/shared';
 import {
+  ConfirmationDialog,
+  type ConfirmationDialogData,
+} from '@ui/dialogs/confirmation-dialog';
+import {
   RecurrenceLabelPipe,
   TransactionLabelPipe,
 } from '@ui/transaction-display';
@@ -135,16 +139,24 @@ import {
                         class="ph-no-capture text-body-medium font-semibold flex items-center gap-1"
                       >
                         {{ line.data.name | rolloverFormat }}
-                        @if (line.metadata.isPropagationLocked) {
-                          <mat-icon
-                            class="text-base! text-outline"
+                        @if (line.metadata.canResetFromTemplate) {
+                          <button
+                            matIconButton
+                            class="w-6! h-6! text-outline"
                             [matTooltip]="
-                              'Montants verrouillés = non affectés par la propagation'
+                              'Montants verrouillés. Cliquer pour réinitialiser depuis le modèle.'
                             "
                             matTooltipPosition="above"
+                            [attr.data-testid]="
+                              'reset-from-template-' + line.data.id
+                            "
+                            (click)="
+                              onResetFromTemplateClick(line);
+                              $event.stopPropagation()
+                            "
                           >
-                            lock
-                          </mat-icon>
+                            <mat-icon class="text-base!">lock</mat-icon>
+                          </button>
                         }
                       </span>
                     }
@@ -290,7 +302,6 @@ import {
                         'Actions pour ' + (line.data.name | rolloverFormat)
                       "
                       [attr.data-testid]="'actions-menu-' + line.data.id"
-                      [disabled]="line.metadata.isLoading"
                       class="w-10! h-10! text-on-surface-variant"
                       (click)="$event.stopPropagation()"
                     >
@@ -330,7 +341,6 @@ import {
                           'Edit ' + (line.data.name | rolloverFormat)
                         "
                         [attr.data-testid]="'edit-' + line.data.id"
-                        [disabled]="line.metadata.isLoading"
                         class="w-10! h-10!"
                       >
                         <mat-icon>edit</mat-icon>
@@ -341,7 +351,6 @@ import {
                       (click)="delete.emit(line.data.id)"
                       [attr.aria-label]="'Delete ' + line.data.name"
                       [attr.data-testid]="'delete-' + line.data.id"
-                      [disabled]="line.metadata.isLoading"
                       class="w-10! h-10! text-error"
                     >
                       <mat-icon>delete</mat-icon>
@@ -359,9 +368,7 @@ import {
           <tr
             mat-row
             *matRowDef="let row; columns: currentColumns()"
-            class="hover:bg-surface-container-low transition-opacity"
-            [class.opacity-50]="row.metadata.isLoading"
-            [class.pointer-events-none]="row.metadata.isLoading"
+            class="hover:bg-surface-container-low"
             [attr.data-testid]="
               'budget-line-' + (row.data.name | rolloverFormat)
             "
@@ -427,6 +434,7 @@ export class BudgetTable {
   update = output<BudgetLineUpdate>();
   delete = output<string>();
   add = output<void>();
+  resetFromTemplate = output<string>();
 
   // Services
   readonly #breakpointObserver = inject(BreakpointObserver);
@@ -532,5 +540,27 @@ export class BudgetTable {
     this.inlineFormEditingItem.set(null);
     this.editForm.reset();
     this.update.emit(updateData);
+  }
+
+  onResetFromTemplateClick(line: BudgetLineTableItem): void {
+    const dialogRef = this.#dialog.open(ConfirmationDialog, {
+      data: {
+        title: 'Réinitialiser depuis le modèle',
+        message:
+          'Cette action va remplacer les valeurs actuelles par celles du modèle. Cette action est irréversible.',
+        confirmText: 'Réinitialiser',
+        confirmColor: 'primary',
+      } satisfies ConfirmationDialogData,
+      width: '400px',
+    });
+
+    dialogRef
+      .afterClosed()
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe((confirmed: boolean) => {
+        if (confirmed) {
+          this.resetFromTemplate.emit(line.data.id);
+        }
+      });
   }
 }

@@ -453,6 +453,96 @@ export class BudgetLineService {
     );
   }
 
+  async resetFromTemplate(
+    id: string,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<BudgetLineResponse> {
+    try {
+      const budgetLine = await this.fetchBudgetLineById(id, user, supabase);
+      this.validateTemplateLineIdExists(budgetLine.template_line_id);
+
+      const templateLine = await this.fetchTemplateLineById(
+        budgetLine.template_line_id!,
+        supabase,
+      );
+
+      const updateData = this.prepareResetUpdateData(templateLine);
+      const updatedBudgetLine = await this.updateBudgetLineInDb(
+        id,
+        updateData,
+        supabase,
+        user,
+      );
+
+      await this.budgetService.recalculateBalances(
+        updatedBudgetLine.budget_id,
+        supabase,
+      );
+
+      return {
+        success: true,
+        data: budgetLineMappers.toApi(updatedBudgetLine),
+      };
+    } catch (error) {
+      handleServiceError(
+        error,
+        ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,
+        { id },
+        {
+          operation: 'resetFromTemplate',
+          userId: user.id,
+          entityId: id,
+          entityType: 'budget_line',
+        },
+      );
+    }
+  }
+
+  private validateTemplateLineIdExists(templateLineId: string | null): void {
+    if (!templateLineId) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_VALIDATION_FAILED,
+        { reason: 'Budget line has no associated template' },
+      );
+    }
+  }
+
+  private prepareResetUpdateData(templateLine: {
+    name: string;
+    amount: number;
+    kind: Database['public']['Enums']['transaction_kind'];
+    recurrence: Database['public']['Enums']['transaction_recurrence'];
+  }): Database['public']['Tables']['budget_line']['Update'] {
+    return {
+      name: templateLine.name,
+      amount: templateLine.amount,
+      kind: templateLine.kind,
+      recurrence: templateLine.recurrence,
+      is_manually_adjusted: false,
+      updated_at: new Date().toISOString(),
+    };
+  }
+
+  private async fetchTemplateLineById(
+    templateLineId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ) {
+    const { data: templateLine, error } = await supabase
+      .from('template_line')
+      .select('name, amount, kind, recurrence')
+      .eq('id', templateLineId)
+      .single();
+
+    if (error || !templateLine) {
+      throw new BusinessException(ERROR_DEFINITIONS.TEMPLATE_LINE_NOT_FOUND, {
+        id: templateLineId,
+      });
+    }
+
+    return templateLine;
+  }
+
   async findByBudgetId(
     budgetId: string,
     supabase: AuthenticatedSupabaseClient,
