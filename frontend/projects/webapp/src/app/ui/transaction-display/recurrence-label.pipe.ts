@@ -7,8 +7,8 @@ import type { TransactionRecurrence } from '@pulpe/shared';
 export class RecurrenceLabelPipe implements PipeTransform {
   transform(recurrence: TransactionRecurrence): string {
     const labels: Record<TransactionRecurrence, string> = {
-      fixed: 'Tous les mois',
-      one_off: 'Une seule fois',
+      fixed: 'Récurrent',
+      one_off: 'Prévu',
     };
     return labels[recurrence];
   }
