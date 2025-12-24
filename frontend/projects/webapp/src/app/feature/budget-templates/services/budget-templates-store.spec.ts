@@ -174,9 +174,9 @@ describe('BudgetTemplatesState', () => {
         updatedAt: new Date().toISOString(),
       };
 
-      mockApi.create$ = vi
-        .fn()
-        .mockReturnValue(of({ data: createdTemplate, success: true }));
+      mockApi.create$ = vi.fn().mockReturnValue(
+        of({ data: { template: createdTemplate, lines: [] }, success: true }),
+      );
 
       // Wait for initial load
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -203,9 +203,9 @@ describe('BudgetTemplatesState', () => {
         updatedAt: new Date().toISOString(),
       };
 
-      mockApi.create$ = vi
-        .fn()
-        .mockReturnValue(of({ data: createdTemplate, success: true }));
+      mockApi.create$ = vi.fn().mockReturnValue(
+        of({ data: { template: createdTemplate, lines: [] }, success: true }),
+      );
 
       // Wait for initial load
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -287,6 +287,44 @@ describe('BudgetTemplatesState', () => {
       );
       expect(mockApi.create$).not.toHaveBeenCalled();
     });
+
+    it('should return created template with valid ID for navigation (fixes #116)', async () => {
+      const newTemplate: BudgetTemplateCreate = {
+        name: 'Navigation Test Template',
+        description: 'Testing ID is returned correctly',
+        isDefault: false,
+        lines: [],
+      };
+
+      const createdTemplate: BudgetTemplate = {
+        id: 'real-uuid-from-backend',
+        ...newTemplate,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      mockApi.create$ = vi.fn().mockReturnValue(
+        of({ data: { template: createdTemplate, lines: [] }, success: true }),
+      );
+
+      // Wait for initial load
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      const result = await state.addTemplate(newTemplate);
+
+      // Critical: returned template must have a valid ID for navigation
+      expect(result).toBeDefined();
+      expect(result?.id).toBe('real-uuid-from-backend');
+      expect(result?.id).not.toBeUndefined();
+      expect(result?.id).not.toBe('undefined');
+      expect(result?.name).toBe('Navigation Test Template');
+
+      // Also verify the template in state has the correct ID
+      const storedTemplate = state.budgetTemplates
+        .value()
+        ?.find((t) => t.name === 'Navigation Test Template');
+      expect(storedTemplate?.id).toBe('real-uuid-from-backend');
+    });
   });
 
   describe('Optimistic Updates', () => {
@@ -332,8 +370,8 @@ describe('BudgetTemplatesState', () => {
       expect(tempTemplate).toBeTruthy();
       expect(tempTemplate?.name).toBe('Optimistic Template');
 
-      // Resolve the creation
-      createResolve!({ data: createdTemplate, success: true });
+      // Resolve the creation with correct response structure
+      createResolve!({ data: { template: createdTemplate, lines: [] }, success: true });
       await addPromise;
 
       // Check final state - temporary should be replaced
