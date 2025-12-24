@@ -127,7 +127,7 @@ import {
                         matButton
                         class="ph-no-capture text-body-medium font-semibold"
                       >
-                        <mat-icon class="!text-base">open_in_new</mat-icon>
+                        <mat-icon class="text-base!">open_in_new</mat-icon>
                         {{ line.data.name | rolloverFormat }}
                       </a>
                     } @else {
@@ -137,7 +137,7 @@ import {
                         {{ line.data.name | rolloverFormat }}
                         @if (line.metadata.isPropagationLocked) {
                           <mat-icon
-                            class="!text-base text-outline"
+                            class="text-base! text-outline"
                             [matTooltip]="
                               'Montants verrouillés = non affectés par la propagation'
                             "
@@ -159,27 +159,24 @@ import {
             <th mat-header-cell *matHeaderCellDef>Fréquence</th>
             <td mat-cell *matCellDef="let line">
               @if ('recurrence' in line.data) {
-                <mat-chip
-                  [class.bg-primary-container!]="
-                    line.data.recurrence === 'fixed'
-                  "
-                  [class.text-on-primary-container!]="
-                    line.data.recurrence === 'fixed'
-                  "
-                  [class.bg-secondary-container!]="
-                    line.data.recurrence === 'one_off'
-                  "
-                  [class.text-on-secondary-container!]="
-                    line.data.recurrence === 'one_off'
-                  "
-                >
-                  {{ line.data.recurrence | recurrenceLabel }}
+                <!-- Budget Lines: fixed ou one_off -->
+                <mat-chip class="bg-surface-container text-on-surface">
+                  <span class="flex items-center">
+                    @if (line.data.recurrence === 'fixed') {
+                      <mat-icon class="text-base!">repeat</mat-icon>
+                    } @else {
+                      <mat-icon class="text-base!">schedule</mat-icon>
+                    }
+                    {{ line.data.recurrence | recurrenceLabel }}
+                  </span>
                 </mat-chip>
               } @else {
-                <mat-chip
-                  class="bg-secondary-container text-on-secondary-container"
-                >
-                  Une seule fois
+                <!-- Transactions -->
+                <mat-chip class="bg-surface-container text-on-surface">
+                  <span class="flex items-center">
+                    <mat-icon class="text-base!">paid</mat-icon>
+                    Réel
+                  </span>
                 </mat-chip>
               }
             </td>
@@ -268,7 +265,7 @@ import {
                       [attr.data-testid]="'cancel-' + line.data.id"
                       class="density-3"
                     >
-                      <mat-icon class="!text-base mr-1">close</mat-icon>
+                      <mat-icon class="text-base! mr-1">close</mat-icon>
                       Annuler
                     </button>
                     <button
@@ -279,7 +276,7 @@ import {
                       [disabled]="!editForm.valid"
                       class="density-3"
                     >
-                      <mat-icon class="!text-base mr-1">check</mat-icon>
+                      <mat-icon class="text-base! mr-1">check</mat-icon>
                       Enregistrer
                     </button>
                   </div>
@@ -294,7 +291,7 @@ import {
                       "
                       [attr.data-testid]="'actions-menu-' + line.data.id"
                       [disabled]="line.metadata.isLoading"
-                      class="!w-10 !h-10 text-on-surface-variant"
+                      class="w-10! h-10! text-on-surface-variant"
                       (click)="$event.stopPropagation()"
                     >
                       <mat-icon>more_vert</mat-icon>
@@ -334,7 +331,7 @@ import {
                         "
                         [attr.data-testid]="'edit-' + line.data.id"
                         [disabled]="line.metadata.isLoading"
-                        class="!w-10 !h-10"
+                        class="w-10! h-10!"
                       >
                         <mat-icon>edit</mat-icon>
                       </button>
@@ -345,7 +342,7 @@ import {
                       [attr.aria-label]="'Delete ' + line.data.name"
                       [attr.data-testid]="'delete-' + line.data.id"
                       [disabled]="line.metadata.isLoading"
-                      class="!w-10 !h-10 text-error"
+                      class="w-10! h-10! text-error"
                     >
                       <mat-icon>delete</mat-icon>
                     </button>

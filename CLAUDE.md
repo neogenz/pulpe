@@ -71,7 +71,7 @@ paths: "**/*.ts"
 
 ## Vocabulary
 
-- `budget_lines` → "prévisions" | `fixed` → "Tous les mois" | `one_off` → "Une seule fois"
+- `budget_lines` → "prévisions" | `fixed` → "Récurrent" | `one_off` → "Prévu" | `transaction` → "Réel"
 - `income` → "Revenu" | `expense` → "Dépense" | `saving` → "Épargne"
 - Labels: "Disponible à dépenser", "Épargne prévue", "Fréquence"
 
