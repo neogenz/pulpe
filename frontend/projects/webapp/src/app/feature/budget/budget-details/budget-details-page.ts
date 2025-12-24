@@ -1,3 +1,4 @@
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import {
   afterNextRender,
   ChangeDetectionStrategy,
@@ -7,13 +8,15 @@ import {
   computed,
   effect,
 } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { firstValueFrom, map } from 'rxjs';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { BaseLoading } from '@ui/loading';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { DatePipe } from '@angular/common';
@@ -45,6 +48,7 @@ import {
   type AllocatedTransactionsDialogData,
   type AllocatedTransactionsDialogResult,
 } from './allocated-transactions-dialog/allocated-transactions-dialog';
+import { AllocatedTransactionsBottomSheet } from './allocated-transactions-dialog/allocated-transactions-bottom-sheet';
 import {
   CreateAllocatedTransactionDialog,
   type CreateAllocatedTransactionDialogData,
@@ -217,9 +221,18 @@ export default class BudgetDetailsPage {
   readonly #router = inject(Router);
   readonly #route = inject(ActivatedRoute);
   readonly #dialog = inject(MatDialog);
+  readonly #bottomSheet = inject(MatBottomSheet);
   readonly #snackBar = inject(MatSnackBar);
   readonly #logger = inject(Logger);
   readonly #productTourService = inject(ProductTourService);
+  readonly #breakpointObserver = inject(BreakpointObserver);
+
+  readonly #isMobile = toSignal(
+    this.#breakpointObserver
+      .observe(Breakpoints.Handset)
+      .pipe(map((result) => result.matches)),
+    { initialValue: false },
+  );
 
   id = input.required<string>();
 
@@ -343,23 +356,35 @@ export default class BudgetDetailsPage {
   }
 
   /**
-   * Open dialog to view allocated transactions for a budget line
+   * Open dialog or bottom sheet to view allocated transactions for a budget line
    */
   async openAllocatedTransactionsDialog(event: {
     budgetLine: BudgetLine;
     consumption: BudgetLineConsumption;
   }): Promise<void> {
-    const dialogRef = this.#dialog.open(AllocatedTransactionsDialog, {
-      data: {
-        budgetLine: event.budgetLine,
-        consumption: event.consumption,
-      } satisfies AllocatedTransactionsDialogData,
-      width: '800px',
-      maxWidth: '95vw',
-    });
+    const data: AllocatedTransactionsDialogData = {
+      budgetLine: event.budgetLine,
+      consumption: event.consumption,
+    };
 
-    const result: AllocatedTransactionsDialogResult | undefined =
-      await firstValueFrom(dialogRef.afterClosed());
+    let result: AllocatedTransactionsDialogResult | undefined;
+
+    if (this.#isMobile()) {
+      // Mobile: use bottom sheet
+      const bottomSheetRef = this.#bottomSheet.open(
+        AllocatedTransactionsBottomSheet,
+        { data },
+      );
+      result = await firstValueFrom(bottomSheetRef.afterDismissed());
+    } else {
+      // Desktop: use dialog
+      const dialogRef = this.#dialog.open(AllocatedTransactionsDialog, {
+        data,
+        width: '800px',
+        maxWidth: '95vw',
+      });
+      result = await firstValueFrom(dialogRef.afterClosed());
+    }
 
     if (!result) return;
 

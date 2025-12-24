@@ -63,7 +63,6 @@ import {
     RecurrenceLabelPipe,
     RolloverFormatPipe,
   ],
-  host: {},
   template: `
     <mat-card appearance="outlined">
       <mat-card-header>
@@ -222,15 +221,58 @@ import {
                   </mat-form-field>
                 </form>
               } @else {
-                <span
-                  class="ph-no-capture text-body-medium font-medium"
-                  [class.text-financial-income]="line.data.kind === 'income'"
-                  [class.text-financial-expense]="line.data.kind === 'expense'"
-                  [class.text-primary]="line.data.kind === 'saving'"
-                  [class.italic]="line.metadata.isRollover"
-                >
-                  {{ line.data.amount | currency: 'CHF' }}
-                </span>
+                @if (
+                  isMobile() &&
+                  line.metadata.itemType === 'budget_line' &&
+                  !line.metadata.isRollover
+                ) {
+                  @let consumption = budgetLineConsumptions().get(line.data.id);
+                  @if (consumption && consumption.transactionCount > 0) {
+                    <button
+                      matButton
+                      class="text-body-small !h-8 !px-2"
+                      (click)="
+                        openAllocatedTransactions(line.data, consumption)
+                      "
+                    >
+                      <mat-icon class="!text-base mr-1">receipt_long</mat-icon>
+                      <span
+                        [class.text-error]="consumption.remaining < 0"
+                        [class.font-bold]="consumption.remaining < 0"
+                      >
+                        {{
+                          consumption.consumed
+                            | currency: 'CHF' : 'symbol' : '1.0-0'
+                        }}
+                      </span>
+                    </button>
+                  } @else {
+                    <span
+                      class="ph-no-capture text-body-medium font-medium"
+                      [class.text-financial-income]="
+                        line.data.kind === 'income'
+                      "
+                      [class.text-financial-expense]="
+                        line.data.kind === 'expense'
+                      "
+                      [class.text-primary]="line.data.kind === 'saving'"
+                    >
+                      {{ line.data.amount | currency: 'CHF' }}
+                    </span>
+                  }
+                } @else {
+                  <span
+                    class="ph-no-capture text-body-medium font-medium"
+                    [class.text-financial-income]="line.data.kind === 'income'"
+                    [class.text-financial-expense]="
+                      line.data.kind === 'expense'
+                    "
+                    [class.text-primary]="line.data.kind === 'saving'"
+                    [class.italic]="line.metadata.isRollover"
+                  >
+                    {{ line.data.amount | currency: 'CHF' }}
+                  </span>
+                }
               }
             </td>
           </ng-container>
@@ -353,6 +395,26 @@ import {
 
                     <mat-menu #lineActionMenu="matMenu" xPosition="before">
                       @if (line.metadata.itemType === 'budget_line') {
+                        @let consumption =
+                          budgetLineConsumptions().get(line.data.id);
+                        @if (consumption && consumption.transactionCount > 0) {
+                          <button
+                            mat-menu-item
+                            (click)="
+                              openAllocatedTransactions(line.data, consumption)
+                            "
+                            [attr.data-testid]="
+                              'view-transactions-' + line.data.id
+                            "
+                          >
+                            <mat-icon matMenuItemIcon>receipt_long</mat-icon>
+                            <span
+                              >Voir les
+                              {{ consumption.transactionCount }}
+                              transaction(s)</span
+                            >
+                          </button>
+                        }
                         <button
                           mat-menu-item
                           (click)="addAllocatedTransaction(line.data)"
@@ -604,15 +666,18 @@ export class BudgetTable {
     if (!editingId || !this.editForm.valid) return;
 
     const value = this.editForm.getRawValue();
-    const updateData = {
-      id: editingId,
-      name: value.name!.trim(),
-      amount: value.amount!,
-      isManuallyAdjusted: true,
-    };
+    const name = value.name?.trim();
+    const amount = value.amount;
+    if (!name || amount == null) return;
+
     this.inlineFormEditingItem.set(null);
     this.editForm.reset();
-    this.update.emit(updateData);
+    this.update.emit({
+      id: editingId,
+      name,
+      amount,
+      isManuallyAdjusted: true,
+    });
   }
 
   openAllocatedTransactions(
