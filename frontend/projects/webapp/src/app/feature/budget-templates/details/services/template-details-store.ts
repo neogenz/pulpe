@@ -22,6 +22,9 @@ export class TemplateDetailsStore {
     createInitialTemplateDetailsState(),
   );
 
+  // Preloaded data from navigation (avoids initial fetch after creation)
+  readonly #preloadedData = signal<BudgetTemplateDetailViewModel | null>(null);
+
   // Resource for template details data - managed independently
   readonly #templateDetailsResource = resource<
     BudgetTemplateDetailViewModel,
@@ -31,6 +34,11 @@ export class TemplateDetailsStore {
     loader: async ({ params: templateId }) => {
       if (!templateId) {
         throw new Error('Template ID is required');
+      }
+      const preloaded = this.#preloadedData();
+      if (preloaded && preloaded.template.id === templateId) {
+        this.#preloadedData.set(null);
+        return preloaded;
       }
       return await firstValueFrom(
         this.#budgetTemplatesApi.getDetail$(templateId),
@@ -67,6 +75,18 @@ export class TemplateDetailsStore {
     this.#state.update((state) => ({
       ...state,
       templateId: id,
+      error: null,
+    }));
+  }
+
+  /**
+   * Initialize with preloaded data (avoids initial API fetch after creation)
+   */
+  initializeWithData(data: BudgetTemplateDetailViewModel): void {
+    this.#preloadedData.set(data);
+    this.#state.update((state) => ({
+      ...state,
+      templateId: data.template.id,
       error: null,
     }));
   }

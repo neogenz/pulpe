@@ -109,7 +109,9 @@ export default class CreateTemplatePage {
 
       // Navigate to the details page of the newly created template
       if (createdTemplate && createdTemplate.id) {
-        this.#router.navigate([ROUTES.TEMPLATE_DETAILS(createdTemplate.id)]);
+        this.#router.navigate([ROUTES.TEMPLATE_DETAILS(createdTemplate.id)], {
+          state: { template: createdTemplate, transactions: [] },
+        });
       } else {
         this.navigateBack();
       }
