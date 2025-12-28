@@ -8,6 +8,7 @@ import {
 import { calculateAllConsumptions } from '@core/budget/budget-line-consumption';
 import { isRolloverLine } from '@core/rollover/rollover-types';
 import { type TableItem } from './budget-table-models';
+import type { BudgetTableViewMode } from './budget-table-view-mode';
 
 /**
  * Interface for budget items with cumulative balance calculation
@@ -46,12 +47,19 @@ export class BudgetTableDataProvider {
    *
    * Note: Le calcul du solde cumulatif utilise MAX(prévu, consommé) pour chaque enveloppe
    * afin de prendre en compte les dépassements.
+   *
+   * @param includeAllocatedTransactions - Si true, inclut toutes les transactions (allouées + libres)
    */
   #composeBudgetItemsWithBalanceGrouped(
     budgetLines: BudgetLine[],
     transactions: Transaction[],
+    includeAllocatedTransactions = false,
   ): BudgetItemWithBalance[] {
-    const items = this.#createDisplayItems(budgetLines, transactions);
+    const items = this.#createDisplayItems(
+      budgetLines,
+      transactions,
+      includeAllocatedTransactions,
+    );
     this.#sortItemsByBusinessRules(items);
 
     // Calculer les consommations de chaque enveloppe pour les dépassements
@@ -150,13 +158,14 @@ export class BudgetTableDataProvider {
   /**
    * Crée les éléments d'affichage pour le tri et le calcul des soldes
    *
-   * Note: Les transactions allouées (budgetLineId != null) sont exclues de l'affichage
-   * car elles sont "contenues" dans leur enveloppe et ne doivent pas apparaître
-   * comme des lignes séparées dans le tableau principal.
+   * @param includeAllocatedTransactions - Si true, inclut toutes les transactions.
+   *   Si false (défaut), exclut les transactions allouées (budgetLineId != null)
+   *   car elles sont "contenues" dans leur enveloppe.
    */
   #createDisplayItems(
     budgetLines: BudgetLine[],
     transactions: Transaction[],
+    includeAllocatedTransactions = false,
   ): BudgetItemWithBalance[] {
     const items: BudgetItemWithBalance[] = [];
 
@@ -169,10 +178,13 @@ export class BudgetTableDataProvider {
       });
     });
 
-    // Ajouter seulement les transactions LIBRES (non allouées à une enveloppe)
-    // Les transactions allouées sont visibles via la consommation de leur enveloppe
-    const freeTransactions = transactions.filter((tx) => !tx.budgetLineId);
-    freeTransactions.forEach((transaction) => {
+    // Mode transactions: inclure toutes les transactions
+    // Mode envelopes: seulement les transactions libres (non allouées)
+    const transactionsToDisplay = includeAllocatedTransactions
+      ? transactions
+      : transactions.filter((tx) => !tx.budgetLineId);
+
+    transactionsToDisplay.forEach((transaction) => {
       items.push({
         item: transaction,
         cumulativeBalance: 0, // Sera calculé après tri
@@ -240,21 +252,38 @@ export class BudgetTableDataProvider {
 
   /**
    * Provides budget table data for display
+   *
+   * @param viewMode - 'envelopes' (défaut) affiche budget lines + transactions libres
+   *                   'transactions' affiche budget lines + TOUTES les transactions
    */
   provideTableData(params: {
     budgetLines: BudgetLine[];
     transactions: Transaction[];
     editingLineId: string | null;
+    viewMode?: BudgetTableViewMode;
   }): TableItem[] {
+    const includeAllocatedTransactions = params.viewMode === 'transactions';
+
+    // Créer une map pour récupérer le nom de l'enveloppe pour les transactions allouées
+    const envelopeNameMap = new Map<string, string>();
+    if (includeAllocatedTransactions) {
+      params.budgetLines.forEach((line) => {
+        envelopeNameMap.set(line.id, line.name);
+      });
+    }
+
     const itemsWithBalance = this.#composeBudgetItemsWithBalanceGrouped(
       params.budgetLines,
       params.transactions,
+      includeAllocatedTransactions,
     );
 
     return itemsWithBalance.map((item) => {
       const isRollover = isRolloverLine(item.item);
       const isBudgetLine = item.itemType === 'budget_line';
       const budgetLine = isBudgetLine ? (item.item as BudgetLine) : null;
+      const transaction = !isBudgetLine ? (item.item as Transaction) : null;
+
       return {
         data: item.item,
         metadata: {
@@ -270,6 +299,10 @@ export class BudgetTableDataProvider {
             isBudgetLine &&
             !!budgetLine?.templateLineId &&
             !!budgetLine?.isManuallyAdjusted,
+          // Pour les transactions allouées, inclure le nom de l'enveloppe
+          envelopeName: transaction?.budgetLineId
+            ? (envelopeNameMap.get(transaction.budgetLineId) ?? null)
+            : null,
         },
       };
     });

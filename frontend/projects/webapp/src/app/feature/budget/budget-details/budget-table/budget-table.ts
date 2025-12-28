@@ -49,6 +49,8 @@ import {
   type BudgetLineTableItem,
   type TableItem,
 } from './budget-table-models';
+import type { BudgetTableViewMode } from './budget-table-view-mode';
+import { BudgetTableViewToggle } from './budget-table-view-toggle';
 
 @Component({
   selector: 'pulpe-budget-table',
@@ -70,6 +72,7 @@ import {
     TransactionLabelPipe,
     RecurrenceLabelPipe,
     RolloverFormatPipe,
+    BudgetTableViewToggle,
   ],
   template: `
     <mat-card appearance="outlined">
@@ -80,8 +83,10 @@ import {
         </mat-card-subtitle>
       </mat-card-header>
       <mat-card-content>
+        <pulpe-budget-table-view-toggle [(viewMode)]="viewMode" class="mb-4" />
+
         @if (isMobile()) {
-          <!-- Mobile: Card-based envelope view -->
+          <!-- Mobile view - same layout for both modes, data adapts via viewMode -->
           <div class="flex flex-col gap-3">
             @for (item of budgetLineItems(); track item.data.id) {
               @let consumption = budgetLineConsumptions().get(item.data.id);
@@ -325,11 +330,11 @@ import {
               </div>
             }
 
-            <!-- Standalone transactions (not allocated to budget lines) -->
+            <!-- Transactions section -->
             @if (transactionItems().length > 0) {
               <div class="mt-4 pt-4 border-t border-outline-variant">
                 <h3 class="text-title-small text-on-surface-variant mb-3">
-                  Dépenses ponctuelles
+                  Transactions
                 </h3>
                 @for (item of transactionItems(); track item.data.id) {
                   <div
@@ -345,6 +350,14 @@ import {
                         <div class="text-label-small text-on-surface-variant">
                           {{ item.data.kind | transactionLabel }}
                         </div>
+                        @if (item.metadata.envelopeName) {
+                          <div
+                            class="flex items-center gap-1 text-label-small text-on-surface-variant mt-1"
+                          >
+                            <mat-icon class="!text-sm">folder</mat-icon>
+                            <span>{{ item.metadata.envelopeName }}</span>
+                          </div>
+                        }
                       </div>
                       <div class="flex items-center gap-2">
                         <span
@@ -374,7 +387,7 @@ import {
             }
           </div>
         } @else {
-          <!-- Desktop: Table view with envelope columns -->
+          <!-- Desktop view - same layout for both modes, data adapts via viewMode -->
           <div class="overflow-x-auto">
             <table
               mat-table
@@ -447,29 +460,39 @@ import {
                             {{ line.data.name | rolloverFormat }}
                           </a>
                         } @else {
-                          <span
-                            class="ph-no-capture text-body-medium font-semibold flex items-center gap-1"
-                            [class.text-financial-income]="
-                              line.data.kind === 'income'
-                            "
-                            [class.text-financial-expense]="
-                              line.data.kind === 'expense'
-                            "
-                            [class.text-financial-savings]="
-                              line.data.kind === 'saving'
-                            "
-                          >
-                            {{ line.data.name | rolloverFormat }}
-                            @if (line.metadata.isPropagationLocked) {
-                              <mat-icon
-                                class="!text-base text-outline"
-                                matTooltip="Montants verrouillés = non affectés par la propagation"
-                                matTooltipPosition="above"
+                          <div class="flex flex-col">
+                            <span
+                              class="ph-no-capture text-body-medium font-semibold flex items-center gap-1"
+                              [class.text-financial-income]="
+                                line.data.kind === 'income'
+                              "
+                              [class.text-financial-expense]="
+                                line.data.kind === 'expense'
+                              "
+                              [class.text-financial-savings]="
+                                line.data.kind === 'saving'
+                              "
+                            >
+                              {{ line.data.name | rolloverFormat }}
+                              @if (line.metadata.isPropagationLocked) {
+                                <mat-icon
+                                  class="!text-base text-outline"
+                                  matTooltip="Montants verrouillés = non affectés par la propagation"
+                                  matTooltipPosition="above"
+                                >
+                                  lock
+                                </mat-icon>
+                              }
+                            </span>
+                            @if (line.metadata.envelopeName) {
+                              <span
+                                class="flex items-center gap-1 text-label-small text-on-surface-variant"
                               >
-                                lock
-                              </mat-icon>
+                                <mat-icon class="!text-sm">folder</mat-icon>
+                                {{ line.metadata.envelopeName }}
+                              </span>
                             }
-                          </span>
+                          </div>
                         }
                       </span>
                     </div>
@@ -859,6 +882,7 @@ export class BudgetTable {
 
   update = output<BudgetLineUpdate>();
   delete = output<string>();
+  deleteTransaction = output<string>();
   add = output<void>();
   viewAllocatedTransactions = output<{
     budgetLine: BudgetLine;
@@ -874,7 +898,7 @@ export class BudgetTable {
   readonly #budgetTableDataProvider = inject(BudgetTableDataProvider);
   readonly #logger = inject(Logger);
 
-  // Desktop columns - new envelope-based order
+  // Desktop columns - envelopes mode
   displayedColumns = [
     'name',
     'available',
@@ -884,6 +908,9 @@ export class BudgetTable {
     'recurrence',
     'actions',
   ];
+
+  // View mode toggle state
+  readonly viewMode = signal<BudgetTableViewMode>('envelopes');
 
   protected inlineFormEditingItem = signal<BudgetLineTableItem | null>(null);
   readonly editForm = this.#fb.group({
@@ -905,7 +932,7 @@ export class BudgetTable {
     return calculateAllConsumptions(lines, txs);
   });
 
-  // View Model - single computed that delegates to service
+  // View Model - adapts data based on current viewMode
   budgetTableData = computed(() => {
     const budgetLines = this.budgetLines();
     const transactions = this.transactions();
@@ -915,6 +942,7 @@ export class BudgetTable {
       budgetLines,
       transactions,
       editingLineId: editingLine?.data.id ?? null,
+      viewMode: this.viewMode(),
     });
   });
 
@@ -933,7 +961,7 @@ export class BudgetTable {
     );
   });
 
-  // Track function for performance optimization
+  // Track functions for performance optimization
   readonly trackByRow = (_: number, row: TableItem): string => row.data.id;
 
   // Calculate consumption percentage

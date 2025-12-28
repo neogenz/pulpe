@@ -13,6 +13,8 @@ export interface TableItem {
     isTemplateLinked?: boolean;
     isPropagationLocked?: boolean;
     isLoading?: boolean;
+    /** Nom de l'enveloppe pour les transactions allouées (mode transactions) */
+    envelopeName?: string | null;
   };
 }
 
