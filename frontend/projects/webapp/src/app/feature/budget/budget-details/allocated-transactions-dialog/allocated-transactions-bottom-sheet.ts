@@ -42,22 +42,30 @@ import type {
 
       <!-- Summary -->
       <div class="grid grid-cols-3 gap-2 px-4">
-        <div class="text-center p-3 bg-surface-container rounded-lg">
-          <div class="text-label-small text-on-surface-variant">Prévu</div>
-          <div class="text-title-small font-semibold">
-            {{ data.budgetLine.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
-          </div>
-        </div>
-        <div class="text-center p-3 bg-surface-container rounded-lg">
-          <div class="text-label-small text-on-surface-variant">Consommé</div>
-          <div class="text-title-small font-semibold">
+        <!-- Dépensé (mis en avant) -->
+        <div class="text-center p-2 bg-surface-container rounded-lg">
+          <div class="text-label-small text-on-surface-variant">Dépensé</div>
+          <div
+            class="text-title-medium font-bold"
+            [class.text-financial-income]="data.budgetLine.kind === 'income'"
+            [class.text-financial-expense]="data.budgetLine.kind === 'expense'"
+            [class.text-financial-savings]="data.budgetLine.kind === 'saving'"
+          >
             {{
               data.consumption.consumed | currency: 'CHF' : 'symbol' : '1.0-0'
             }}
           </div>
         </div>
-        <div class="text-center p-3 bg-surface-container rounded-lg">
-          <div class="text-label-small text-on-surface-variant">Disponible</div>
+        <!-- Prévu -->
+        <div class="text-center p-2 bg-surface-container rounded-lg">
+          <div class="text-label-small text-on-surface-variant">Prévu</div>
+          <div class="text-title-small font-semibold">
+            {{ data.budgetLine.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
+          </div>
+        </div>
+        <!-- Reste -->
+        <div class="text-center p-2 bg-surface-container rounded-lg">
+          <div class="text-label-small text-on-surface-variant">Reste</div>
           <div
             class="text-title-small font-semibold"
             [class.text-error]="data.consumption.remaining < 0"
