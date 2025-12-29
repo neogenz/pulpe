@@ -101,8 +101,6 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                   item.data.amount,
                   consumption?.consumed ?? 0
                 );
-              @let isExceeded =
-                (consumption?.remaining ?? item.data.amount) < 0;
               @let hasTransactions =
                 consumption && consumption.transactionCount > 0;
 
