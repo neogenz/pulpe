@@ -236,64 +236,27 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
 
                 <mat-card-content class="pt-0">
                   @if (hasTransactions) {
-                    <!-- Summary grid avec transactions -->
-                    <div class="grid grid-cols-3 gap-2 mb-3">
-                      <!-- Dépensé (mis en avant) -->
+                    <!-- Affichage simplifié avec barre de progression -->
+                    <div class="text-center py-2 mb-3">
                       <div
-                        class="text-center p-2 bg-surface-container rounded-lg"
+                        class="text-headline-medium font-bold"
+                        [class.text-financial-income]="
+                          item.data.kind === 'income'
+                        "
+                        [class.text-financial-expense]="
+                          item.data.kind === 'expense'
+                        "
+                        [class.text-financial-savings]="
+                          item.data.kind === 'saving'
+                        "
                       >
-                        <div class="text-label-small text-on-surface-variant">
-                          Dépensé
-                        </div>
-                        <div
-                          class="text-title-medium font-bold"
-                          [class.text-financial-income]="
-                            item.data.kind === 'income'
-                          "
-                          [class.text-financial-expense]="
-                            item.data.kind === 'expense'
-                          "
-                          [class.text-financial-savings]="
-                            item.data.kind === 'saving'
-                          "
-                        >
-                          {{
-                            consumption!.consumed
-                              | currency: 'CHF' : 'symbol' : '1.0-0'
-                          }}
-                        </div>
+                        {{
+                          item.data.amount
+                            | currency: 'CHF' : 'symbol' : '1.0-0'
+                        }}
                       </div>
-                      <!-- Prévu -->
-                      <div
-                        class="text-center p-2 bg-surface-container rounded-lg"
-                      >
-                        <div class="text-label-small text-on-surface-variant">
-                          Prévu
-                        </div>
-                        <div class="text-title-small font-semibold">
-                          {{
-                            item.data.amount
-                              | currency: 'CHF' : 'symbol' : '1.0-0'
-                          }}
-                        </div>
-                      </div>
-                      <!-- Reste -->
-                      <div
-                        class="text-center p-2 bg-surface-container rounded-lg"
-                      >
-                        <div class="text-label-small text-on-surface-variant">
-                          Reste
-                        </div>
-                        <div
-                          class="text-title-small font-semibold"
-                          [class.text-error]="isExceeded"
-                          [class.text-financial-income]="!isExceeded"
-                        >
-                          {{
-                            consumption!.remaining
-                              | currency: 'CHF' : 'symbol' : '1.0-0'
-                          }}
-                        </div>
+                      <div class="text-label-medium text-on-surface-variant">
+                        prévu
                       </div>
                     </div>
 
@@ -601,25 +564,27 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                     @let isExceeded = remaining < 0;
 
                     <div class="flex flex-col items-end gap-1">
-                      <span
-                        class="text-body-medium font-semibold"
-                        [class.text-error]="isExceeded"
-                      >
-                        {{ remaining | currency: 'CHF' : 'symbol' : '1.0-0' }}
-                        @if (isExceeded) {
-                          <span class="text-label-small font-normal ml-1"
-                            >dépassé</span
-                          >
+                      <div class="flex flex-col items-center">
+                        <span
+                          class="text-body-medium font-semibold"
+                          [class.text-error]="isExceeded"
+                        >
+                          {{ remaining | currency: 'CHF' : 'symbol' : '1.0-0' }}
+                          @if (isExceeded) {
+                            <span class="text-label-small font-normal ml-1"
+                              >dépassé</span
+                            >
+                          }
+                        </span>
+                        @if (!line.metadata.isRollover) {
+                          <mat-progress-bar
+                            mode="determinate"
+                            [value]="percentage > 100 ? 100 : percentage"
+                            [class.warn-bar]="percentage > 100"
+                            class="h-1.5! w-24! rounded-full"
+                          />
                         }
-                      </span>
-                      @if (!line.metadata.isRollover) {
-                        <mat-progress-bar
-                          mode="determinate"
-                          [value]="percentage > 100 ? 100 : percentage"
-                          [class.warn-bar]="percentage > 100"
-                          class="h-1.5! w-24! rounded-full"
-                        />
-                      }
+                      </div>
                     </div>
                   }
                 </td>
@@ -681,10 +646,8 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
 
               <!-- Spent Column -->
               <ng-container matColumnDef="spent">
-                <th mat-header-cell *matHeaderCellDef class="text-right">
-                  Dépensé
-                </th>
-                <td mat-cell *matCellDef="let line" class="text-right">
+                <th mat-header-cell *matHeaderCellDef>Dépensé</th>
+                <td mat-cell *matCellDef="let line">
                   @if (
                     line.metadata.itemType === 'budget_line' &&
                     !line.metadata.isRollover
