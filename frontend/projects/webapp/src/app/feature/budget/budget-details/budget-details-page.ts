@@ -147,6 +147,7 @@ import {
           (createAllocatedTransaction)="
             openCreateAllocatedTransactionDialog($event)
           "
+          (resetFromTemplate)="handleResetFromTemplate($event)"
           data-tour="budget-table"
         />
 
@@ -445,6 +446,29 @@ export default class BudgetDetailsPage {
 
       this.#snackBar.open('Transaction supprimée.', 'Fermer', {
         duration: 3000,
+      });
+    }
+  }
+
+  async handleResetFromTemplate(budgetLineId: string): Promise<void> {
+    try {
+      await this.store.resetBudgetLineFromTemplate(budgetLineId);
+
+      this.#snackBar.open(
+        'Prévision réinitialisée depuis le modèle.',
+        'Fermer',
+        {
+          duration: 5000,
+          panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
+        },
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Erreur inconnue';
+
+      this.#snackBar.open(errorMessage, 'Fermer', {
+        duration: 5000,
+        panelClass: ['bg-error-container', 'text-on-error-container'],
       });
     }
   }

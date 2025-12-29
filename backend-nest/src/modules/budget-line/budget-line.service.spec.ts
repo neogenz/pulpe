@@ -416,4 +416,134 @@ describe('BudgetLineService', () => {
       ).rejects.toThrow(BusinessException);
     });
   });
+
+  describe('resetFromTemplate', () => {
+    const mockTemplateLineId = '123e4567-e89b-12d3-a456-426614174002';
+    const mockTemplateLine = {
+      name: 'Template Salaire',
+      amount: 3000,
+      kind: 'income' as const,
+      recurrence: 'fixed' as const,
+    };
+
+    const mockBudgetLineWithTemplate: BudgetLineRow = {
+      ...mockBudgetLineDb,
+      template_line_id: mockTemplateLineId,
+      is_manually_adjusted: true,
+    };
+
+    const mockBudgetLineWithoutTemplate: BudgetLineRow = {
+      ...mockBudgetLineDb,
+      template_line_id: null,
+    };
+
+    it('should reset budget line from template when template exists', async () => {
+      const budgetLineId = '123e4567-e89b-12d3-a456-426614174000';
+
+      // First call: fetch budget line
+      // Second call: fetch template line
+      // Third call: update budget line
+      let callCount = 0;
+      mockSupabase.from.mockImplementation((table: string) => {
+        callCount++;
+        if (table === 'budget_line' && callCount === 1) {
+          return createMockQueryBuilder({
+            data: mockBudgetLineWithTemplate,
+            error: null,
+          });
+        }
+        if (table === 'template_line') {
+          return createMockQueryBuilder({
+            data: mockTemplateLine,
+            error: null,
+          });
+        }
+        // Update call
+        return createMockQueryBuilder({
+          data: {
+            ...mockBudgetLineWithTemplate,
+            name: mockTemplateLine.name,
+            amount: mockTemplateLine.amount,
+            is_manually_adjusted: false,
+          },
+          error: null,
+        });
+      });
+
+      const result = await service.resetFromTemplate(
+        budgetLineId,
+        mockUser,
+        getMockSupabaseClient(),
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data).toMatchObject({
+        name: mockTemplateLine.name,
+        amount: mockTemplateLine.amount,
+        isManuallyAdjusted: false,
+      });
+    });
+
+    it('should throw BusinessException when budget line has no template_line_id', async () => {
+      const budgetLineId = '123e4567-e89b-12d3-a456-426614174000';
+
+      mockSupabase.from.mockReturnValue(
+        createMockQueryBuilder({
+          data: mockBudgetLineWithoutTemplate,
+          error: null,
+        }),
+      );
+
+      try {
+        await service.resetFromTemplate(
+          budgetLineId,
+          mockUser,
+          getMockSupabaseClient(),
+        );
+        expect.unreachable('Should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).code).toBe(
+          'ERR_BUDGET_LINE_VALIDATION_FAILED',
+        );
+      }
+    });
+
+    it('should throw BusinessException when template line is deleted', async () => {
+      const budgetLineId = '123e4567-e89b-12d3-a456-426614174000';
+
+      let callCount = 0;
+      mockSupabase.from.mockImplementation((table: string) => {
+        callCount++;
+        if (table === 'budget_line' && callCount === 1) {
+          return createMockQueryBuilder({
+            data: mockBudgetLineWithTemplate,
+            error: null,
+          });
+        }
+        // Template line query returns not found
+        if (table === 'template_line') {
+          return createMockQueryBuilder({
+            data: null,
+            error: new Error('Not found'),
+          });
+        }
+        return createMockQueryBuilder({ data: null, error: null });
+      });
+
+      try {
+        await service.resetFromTemplate(
+          budgetLineId,
+          mockUser,
+          getMockSupabaseClient(),
+        );
+        expect.unreachable('Should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(BusinessException);
+        expect((error as BusinessException).code).toBe(
+          'ERR_TEMPLATE_LINE_NOT_FOUND',
+        );
+      }
+    });
+  });
 });

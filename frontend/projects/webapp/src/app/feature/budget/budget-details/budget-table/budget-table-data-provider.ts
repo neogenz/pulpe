@@ -283,6 +283,10 @@ export class BudgetTableDataProvider {
       const isBudgetLine = item.itemType === 'budget_line';
       const budgetLine = isBudgetLine ? (item.item as BudgetLine) : null;
       const transaction = !isBudgetLine ? (item.item as Transaction) : null;
+      const isPropagationLocked =
+        isBudgetLine &&
+        !!budgetLine?.templateLineId &&
+        !!budgetLine?.isManuallyAdjusted;
 
       return {
         data: item.item,
@@ -292,13 +296,11 @@ export class BudgetTableDataProvider {
           isEditing:
             isBudgetLine &&
             params.editingLineId === item.item.id &&
-            !isRollover, // Rollover lines cannot be edited
+            !isRollover,
           isRollover,
           isTemplateLinked: isBudgetLine ? !!budgetLine?.templateLineId : false,
-          isPropagationLocked:
-            isBudgetLine &&
-            !!budgetLine?.templateLineId &&
-            !!budgetLine?.isManuallyAdjusted,
+          isPropagationLocked,
+          canResetFromTemplate: isPropagationLocked,
           // Pour les transactions allouées, inclure le nom de l'enveloppe
           envelopeName: transaction?.budgetLineId
             ? (envelopeNameMap.get(transaction.budgetLineId) ?? null)

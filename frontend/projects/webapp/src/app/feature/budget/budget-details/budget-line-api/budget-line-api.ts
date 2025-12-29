@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { type Observable, catchError, throwError } from 'rxjs';
 import {
   type BudgetLineResponse,
@@ -69,6 +69,29 @@ export class BudgetLineApi {
           this.#logger.error('Error deleting budget line:', error);
           return throwError(
             () => new Error('Impossible de supprimer la prévision'),
+          );
+        }),
+      );
+  }
+
+  resetFromTemplate$(id: string): Observable<BudgetLineResponse> {
+    return this.#http
+      .post<BudgetLineResponse>(`${this.#apiUrl}/${id}/reset-from-template`, {})
+      .pipe(
+        catchError((error) => {
+          this.#logger.error(
+            'Error resetting budget line from template:',
+            error,
+          );
+          const isNotFound =
+            error instanceof HttpErrorResponse && error.status === 404;
+          return throwError(
+            () =>
+              new Error(
+                isNotFound
+                  ? 'Le modèle a été supprimé'
+                  : 'Impossible de réinitialiser la prévision',
+              ),
           );
         }),
       );

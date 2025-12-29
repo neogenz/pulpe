@@ -37,6 +37,10 @@ import {
   type TransactionKind,
 } from '@pulpe/shared';
 import {
+  ConfirmationDialog,
+  type ConfirmationDialogData,
+} from '@ui/dialogs/confirmation-dialog';
+import {
   RecurrenceLabelPipe,
   TransactionLabelPipe,
 } from '@ui/transaction-display';
@@ -889,6 +893,7 @@ export class BudgetTable {
     consumption: BudgetLineConsumption;
   }>();
   createAllocatedTransaction = output<BudgetLine>();
+  resetFromTemplate = output<string>();
 
   // Services
   readonly #breakpointObserver = inject(BreakpointObserver);
@@ -1086,5 +1091,27 @@ export class BudgetTable {
       saving: 'savings',
     };
     return icons[kind];
+  }
+
+  onResetFromTemplateClick(line: BudgetLineTableItem): void {
+    const dialogRef = this.#dialog.open(ConfirmationDialog, {
+      data: {
+        title: 'Réinitialiser depuis le modèle',
+        message:
+          'Cette action va remplacer les valeurs actuelles par celles du modèle. Cette action est irréversible.',
+        confirmText: 'Réinitialiser',
+        confirmColor: 'primary',
+      } satisfies ConfirmationDialogData,
+      width: '400px',
+    });
+
+    dialogRef
+      .afterClosed()
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe((confirmed: boolean) => {
+        if (confirmed) {
+          this.resetFromTemplate.emit(line.data.id);
+        }
+      });
   }
 }
