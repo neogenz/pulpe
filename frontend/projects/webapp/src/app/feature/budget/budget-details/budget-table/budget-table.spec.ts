@@ -1,11 +1,29 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { provideZonelessChangeDetection } from '@angular/core';
-import { registerLocaleData } from '@angular/common';
+import {
+  Component,
+  model,
+  NO_ERRORS_SCHEMA,
+  provideZonelessChangeDetection,
+} from '@angular/core';
+import { CurrencyPipe, registerLocaleData } from '@angular/common';
 import localeDeCH from '@angular/common/locales/de-CH';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { ReactiveFormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatTableModule } from '@angular/material/table';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { Logger } from '@core/logging/logger';
 import { BehaviorSubject, of } from 'rxjs';
 // Import the internal API for signal manipulation in tests
@@ -13,11 +31,26 @@ import { BehaviorSubject, of } from 'rxjs';
 import { SIGNAL, signalSetFn } from '@angular/core/primitives/signals';
 import { createMockLogger } from '../../../../testing/mock-posthog';
 import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
+import { RolloverFormatPipe } from '@app/ui/rollover-format';
+import {
+  RecurrenceLabelPipe,
+  TransactionLabelPipe,
+} from '@ui/transaction-display';
 import { EditBudgetLineDialog } from '../edit-budget-line/edit-budget-line-dialog';
 import { type BudgetLineViewModel } from '../models/budget-line-view-model';
 import { type TransactionViewModel } from '../models/transaction-view-model';
 import { BudgetTable } from './budget-table';
 import { BudgetTableDataProvider } from './budget-table-data-provider';
+import type { BudgetTableViewMode } from './budget-table-view-mode';
+
+// Mock component for BudgetTableViewToggle
+@Component({
+  selector: 'pulpe-budget-table-view-toggle',
+  template: '',
+})
+class MockBudgetTableViewToggle {
+  viewMode = model<BudgetTableViewMode>('envelopes');
+}
 
 // Register locale for currency formatting
 registerLocaleData(localeDeCH);
@@ -81,7 +114,37 @@ describe('BudgetTable', () => {
         { provide: Logger, useValue: mockLogger },
         BudgetTableDataProvider,
       ],
-    }).compileComponents();
+    });
+
+    // Override BudgetTable imports to replace BudgetTableViewToggle with mock
+    // Using NO_ERRORS_SCHEMA to avoid errors with model() signal bindings
+    TestBed.overrideComponent(BudgetTable, {
+      set: {
+        imports: [
+          MatTableModule,
+          MatCardModule,
+          MatIconModule,
+          MatButtonModule,
+          MatFormFieldModule,
+          MatInputModule,
+          MatChipsModule,
+          MatMenuModule,
+          MatTooltipModule,
+          MatProgressBarModule,
+          MatDividerModule,
+          ReactiveFormsModule,
+          RouterLink,
+          CurrencyPipe,
+          TransactionLabelPipe,
+          RecurrenceLabelPipe,
+          RolloverFormatPipe,
+          MockBudgetTableViewToggle,
+        ],
+        schemas: [NO_ERRORS_SCHEMA],
+      },
+    });
+
+    await TestBed.compileComponents();
 
     fixture = TestBed.createComponent(BudgetTable);
     component = fixture.componentInstance;
@@ -574,7 +637,17 @@ describe('BudgetTable', () => {
       fixture.detectChanges();
 
       const compiled = fixture.nativeElement as HTMLElement;
-      const resetButton = compiled.querySelector(
+
+      // Open the actions menu first
+      const menuTrigger = compiled.querySelector(
+        '[data-testid="actions-menu-locked-line-1"]',
+      ) as HTMLButtonElement;
+      expect(menuTrigger).toBeTruthy();
+      menuTrigger?.click();
+      fixture.detectChanges();
+
+      // Query in document (overlay)
+      const resetButton = document.querySelector(
         '[data-testid="reset-from-template-locked-line-1"]',
       );
 
@@ -586,7 +659,17 @@ describe('BudgetTable', () => {
       fixture.detectChanges();
 
       const compiled = fixture.nativeElement as HTMLElement;
-      const resetButton = compiled.querySelector(
+
+      // Open the actions menu first
+      const menuTrigger = compiled.querySelector(
+        '[data-testid="actions-menu-unlocked-line-1"]',
+      ) as HTMLButtonElement;
+      expect(menuTrigger).toBeTruthy();
+      menuTrigger?.click();
+      fixture.detectChanges();
+
+      // Query in document (overlay)
+      const resetButton = document.querySelector(
         '[data-testid="reset-from-template-unlocked-line-1"]',
       );
 
@@ -598,7 +681,16 @@ describe('BudgetTable', () => {
       fixture.detectChanges();
 
       const compiled = fixture.nativeElement as HTMLElement;
-      const resetButton = compiled.querySelector(
+
+      // Open the actions menu first
+      const menuTrigger = compiled.querySelector(
+        '[data-testid="actions-menu-locked-line-1"]',
+      ) as HTMLButtonElement;
+      menuTrigger?.click();
+      fixture.detectChanges();
+
+      // Query in document (overlay)
+      const resetButton = document.querySelector(
         '[data-testid="reset-from-template-locked-line-1"]',
       ) as HTMLButtonElement;
 
@@ -628,7 +720,16 @@ describe('BudgetTable', () => {
       fixture.detectChanges();
 
       const compiled = fixture.nativeElement as HTMLElement;
-      const resetButton = compiled.querySelector(
+
+      // Open the actions menu first
+      const menuTrigger = compiled.querySelector(
+        '[data-testid="actions-menu-locked-line-1"]',
+      ) as HTMLButtonElement;
+      menuTrigger?.click();
+      fixture.detectChanges();
+
+      // Query in document (overlay)
+      const resetButton = document.querySelector(
         '[data-testid="reset-from-template-locked-line-1"]',
       ) as HTMLButtonElement;
 
@@ -649,7 +750,16 @@ describe('BudgetTable', () => {
       fixture.detectChanges();
 
       const compiled = fixture.nativeElement as HTMLElement;
-      const resetButton = compiled.querySelector(
+
+      // Open the actions menu first
+      const menuTrigger = compiled.querySelector(
+        '[data-testid="actions-menu-locked-line-1"]',
+      ) as HTMLButtonElement;
+      menuTrigger?.click();
+      fixture.detectChanges();
+
+      // Query in document (overlay)
+      const resetButton = document.querySelector(
         '[data-testid="reset-from-template-locked-line-1"]',
       ) as HTMLButtonElement;
 

@@ -207,6 +207,9 @@ export class BudgetTableDataProvider {
    * Pour les enveloppes (budget lines), utilise MAX(montant_prévu, montant_consommé)
    * afin de prendre en compte les dépassements dans le solde restant.
    *
+   * Note: Les transactions allouées (avec budgetLineId) n'impactent pas le solde
+   * car leur montant est déjà comptabilisé dans la consommation de l'enveloppe parente.
+   *
    * @param items Les éléments à enrichir avec le solde cumulatif
    * @param consumptionMap Map des consommations par budgetLineId
    */
@@ -228,9 +231,17 @@ export class BudgetTableDataProvider {
         }
       }
 
-      // Calculer l'impact signé selon le type
-      const signedAmount = this.#getSignedAmount(kind, effectiveAmount);
-      runningBalance += signedAmount;
+      // Les transactions allouées n'impactent pas le solde cumulatif
+      // car leur montant est déjà inclus dans la consommation de l'enveloppe parente
+      const isAllocatedTransaction =
+        item.itemType === 'transaction' &&
+        !!(item.item as Transaction).budgetLineId;
+
+      if (!isAllocatedTransaction) {
+        const signedAmount = this.#getSignedAmount(kind, effectiveAmount);
+        runningBalance += signedAmount;
+      }
+
       item.cumulativeBalance = runningBalance;
     });
   }

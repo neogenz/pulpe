@@ -12,6 +12,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
@@ -63,6 +64,7 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
     MatCardModule,
     MatIconModule,
     MatButtonModule,
+    MatBadgeModule,
     MatFormFieldModule,
     MatInputModule,
     MatChipsModule,
@@ -180,59 +182,87 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                   }
                 </div>
 
-                <!-- Available amount (Primary info) -->
+                <!-- Amount display - adapts based on transactions -->
                 <div class="mb-2">
-                  <span
-                    class="text-headline-medium font-bold"
-                    [class.text-error]="isExceeded"
-                  >
-                    {{
-                      consumption?.remaining ?? item.data.amount
-                        | currency: 'CHF' : 'symbol' : '1.0-0'
-                    }}
-                  </span>
-                  <span class="text-label-medium text-on-surface-variant ml-2">
-                    @if (isExceeded) {
-                      dépassé
-                    } @else {
-                      disponibles sur
+                  @if (consumption && consumption.transactionCount > 0) {
+                    <!-- Has transactions: show remaining + context -->
+                    <span
+                      class="text-headline-medium font-bold"
+                      [class.text-error]="isExceeded"
+                    >
+                      {{
+                        consumption.remaining
+                          | currency: 'CHF' : 'symbol' : '1.0-0'
+                      }}
+                    </span>
+                    <span
+                      class="text-label-medium text-on-surface-variant ml-2"
+                    >
+                      @if (isExceeded) {
+                        dépassé
+                      } @else {
+                        reste sur
+                        {{
+                          item.data.amount
+                            | currency: 'CHF' : 'symbol' : '1.0-0'
+                        }}
+                        prévu
+                      }
+                    </span>
+                    <mat-progress-bar
+                      mode="determinate"
+                      [value]="percentage > 100 ? 100 : percentage"
+                      [class.warn-bar]="percentage > 100"
+                      class="mt-2 !h-2 rounded-full"
+                    />
+                  } @else {
+                    <!-- No transactions: show planned amount only -->
+                    <span
+                      class="text-headline-medium font-bold"
+                      [class.text-financial-income]="
+                        item.data.kind === 'income'
+                      "
+                      [class.text-financial-expense]="
+                        item.data.kind === 'expense'
+                      "
+                      [class.text-financial-savings]="
+                        item.data.kind === 'saving'
+                      "
+                    >
                       {{
                         item.data.amount | currency: 'CHF' : 'symbol' : '1.0-0'
                       }}
-                    }
-                  </span>
+                    </span>
+                    <span
+                      class="text-label-medium text-on-surface-variant ml-2"
+                    >
+                      prévu
+                    </span>
+                  }
                 </div>
-
-                <!-- Progress bar -->
-                @if (consumption && consumption.transactionCount > 0) {
-                  <mat-progress-bar
-                    mode="determinate"
-                    [value]="percentage > 100 ? 100 : percentage"
-                    [class.warn-bar]="percentage > 100"
-                    class="mb-2 !h-2 rounded-full"
-                  />
-                }
 
                 <!-- Consumed + Transaction count (clickable) -->
                 <div class="flex justify-between items-center">
                   @if (consumption && consumption.transactionCount > 0) {
                     <button
-                      matButton
-                      class="text-label-medium !h-8 !px-2 -ml-2"
+                      matButton="outlined"
+                      class="text-label-medium !h-8 !px-3 -ml-2"
+                      [matBadge]="consumption.transactionCount"
+                      matBadgeColor="primary"
                       (click)="
                         openAllocatedTransactions(item.data, consumption)
                       "
-                    >
-                      {{
-                        consumption.consumed
-                          | currency: 'CHF' : 'symbol' : '1.0-0'
-                      }}
-                      ·
-                      {{
+                      [matTooltip]="
                         getTransactionCountLabel(
                           item.data.kind,
                           consumption.transactionCount
                         )
+                      "
+                    >
+                      <mat-icon class="!text-base mr-1">receipt_long</mat-icon>
+                      {{
+                        consumption.consumed
+                          | currency: 'CHF' : 'symbol' : '1.0-0'
                       }}
                     </button>
                   } @else if (!item.metadata.isRollover) {
@@ -279,6 +309,18 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                         <mat-icon matMenuItemIcon>edit</mat-icon>
                         <span>Éditer</span>
                       </button>
+                      @if (item.metadata.canResetFromTemplate) {
+                        <button
+                          mat-menu-item
+                          (click)="onResetFromTemplateClick(item)"
+                          [attr.data-testid]="
+                            'reset-from-template-' + item.data.id
+                          "
+                        >
+                          <mat-icon matMenuItemIcon>refresh</mat-icon>
+                          <span>Réinitialiser</span>
+                        </button>
+                      }
                       <button
                         mat-menu-item
                         (click)="delete.emit(item.data.id)"
@@ -342,7 +384,7 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                 </h3>
                 @for (item of transactionItems(); track item.data.id) {
                   <div
-                    class="envelope-card rounded-xl border border-outline-variant bg-surface p-4 mb-3"
+                    class="rounded-xl border border-outline-variant bg-surface p-4 mb-3"
                     [class.opacity-50]="item.metadata.isLoading"
                     [attr.data-testid]="'transaction-card-' + item.data.id"
                   >
@@ -504,54 +546,51 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                 </td>
               </ng-container>
 
-              <!-- Available Column (PRIMARY - bold with progress bar) -->
-              <ng-container matColumnDef="available">
+              <!-- Remaining Column (only shown when there are transactions) -->
+              <ng-container matColumnDef="remaining">
                 <th mat-header-cell *matHeaderCellDef class="!text-right">
-                  Disponible
+                  Reste
                 </th>
                 <td mat-cell *matCellDef="let line" class="text-right">
                   @let consumption = budgetLineConsumptions().get(line.data.id);
-                  @let remaining = consumption?.remaining ?? line.data.amount;
-                  @let percentage =
-                    calculatePercentage(
-                      line.data.amount,
-                      consumption?.consumed ?? 0
-                    );
-                  @let isExceeded = remaining < 0;
+                  @if (consumption && consumption.transactionCount > 0) {
+                    @let remaining = consumption.remaining;
+                    @let percentage =
+                      calculatePercentage(
+                        line.data.amount,
+                        consumption.consumed
+                      );
+                    @let isExceeded = remaining < 0;
 
-                  <div class="flex flex-col items-end gap-1">
-                    <span
-                      class="text-body-medium font-bold"
-                      [class.text-error]="isExceeded"
-                      [class.italic]="line.metadata.isRollover"
-                    >
-                      {{ remaining | currency: 'CHF' : 'symbol' : '1.0-0' }}
-                      @if (isExceeded) {
-                        <span class="text-label-small font-normal ml-1"
-                          >dépassé</span
-                        >
+                    <div class="flex flex-col items-end gap-1">
+                      <span
+                        class="text-body-medium font-semibold"
+                        [class.text-error]="isExceeded"
+                      >
+                        {{ remaining | currency: 'CHF' : 'symbol' : '1.0-0' }}
+                        @if (isExceeded) {
+                          <span class="text-label-small font-normal ml-1"
+                            >dépassé</span
+                          >
+                        }
+                      </span>
+                      @if (!line.metadata.isRollover) {
+                        <mat-progress-bar
+                          mode="determinate"
+                          [value]="percentage > 100 ? 100 : percentage"
+                          [class.warn-bar]="percentage > 100"
+                          class="!h-1.5 w-24 rounded-full"
+                        />
                       }
-                    </span>
-                    @if (
-                      consumption &&
-                      consumption.transactionCount > 0 &&
-                      !line.metadata.isRollover
-                    ) {
-                      <mat-progress-bar
-                        mode="determinate"
-                        [value]="percentage > 100 ? 100 : percentage"
-                        [class.warn-bar]="percentage > 100"
-                        class="!h-1.5 w-24 rounded-full"
-                      />
-                    }
-                  </div>
+                    </div>
+                  }
                 </td>
               </ng-container>
 
-              <!-- Reserved Column (secondary - gray) -->
-              <ng-container matColumnDef="reserved">
+              <!-- Planned Column (budget amount with kind colors) -->
+              <ng-container matColumnDef="planned">
                 <th mat-header-cell *matHeaderCellDef class="text-right">
-                  Réservé
+                  Prévu
                 </th>
                 <td mat-cell *matCellDef="let line" class="text-right">
                   @if (line.metadata.isEditing) {
@@ -582,8 +621,17 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                     </form>
                   } @else {
                     <span
-                      class="text-body-small text-on-surface-variant"
+                      class="text-body-medium font-bold"
                       [class.italic]="line.metadata.isRollover"
+                      [class.text-financial-income]="
+                        line.data.kind === 'income'
+                      "
+                      [class.text-financial-expense]="
+                        line.data.kind === 'expense'
+                      "
+                      [class.text-financial-savings]="
+                        line.data.kind === 'saving'
+                      "
                     >
                       {{
                         line.data.amount | currency: 'CHF' : 'symbol' : '1.0-0'
@@ -593,10 +641,10 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                 </td>
               </ng-container>
 
-              <!-- Consumed Column -->
-              <ng-container matColumnDef="consumed">
+              <!-- Spent Column -->
+              <ng-container matColumnDef="spent">
                 <th mat-header-cell *matHeaderCellDef class="text-right">
-                  Consommé
+                  Dépensé
                 </th>
                 <td mat-cell *matCellDef="let line" class="text-right">
                   @if (
@@ -608,7 +656,9 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                     @if (consumption && consumption.transactionCount > 0) {
                       <button
                         matButton
-                        class="text-body-small !h-8 !px-2"
+                        class="text-body-small !h-8 !px-3"
+                        [matBadge]="consumption.transactionCount"
+                        matBadgeColor="primary"
                         (click)="
                           openAllocatedTransactions(line.data, consumption)
                         "
@@ -627,9 +677,6 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                           consumption.consumed
                             | currency: 'CHF' : 'symbol' : '1.0-0'
                         }}
-                        <span class="text-on-surface-variant ml-1"
-                          >({{ consumption.transactionCount }})</span
-                        >
                       </button>
                     }
                   }
@@ -781,6 +828,18 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                             <span>Éditer</span>
                           </button>
                         }
+                        @if (line.metadata.canResetFromTemplate) {
+                          <button
+                            mat-menu-item
+                            (click)="onResetFromTemplateClick(line)"
+                            [attr.data-testid]="
+                              'reset-from-template-' + line.data.id
+                            "
+                          >
+                            <mat-icon matMenuItemIcon>refresh</mat-icon>
+                            <span>Réinitialiser</span>
+                          </button>
+                        }
                         <button
                           mat-menu-item
                           (click)="delete.emit(line.data.id)"
@@ -868,14 +927,6 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
     .warn-bar {
       --mat-progress-bar-active-indicator-color: var(--mat-sys-error);
     }
-
-    .envelope-card {
-      transition: box-shadow 0.2s ease;
-
-      &:hover {
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-      }
-    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -906,9 +957,9 @@ export class BudgetTable {
   // Desktop columns - envelopes mode
   displayedColumns = [
     'name',
-    'available',
-    'reserved',
-    'consumed',
+    'planned',
+    'spent',
+    'remaining',
     'balance',
     'recurrence',
     'actions',
