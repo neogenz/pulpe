@@ -103,6 +103,8 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                 );
               @let isExceeded =
                 (consumption?.remaining ?? item.data.amount) < 0;
+              @let hasTransactions =
+                consumption && consumption.transactionCount > 0;
 
               <mat-card
                 appearance="outlined"
@@ -111,160 +113,208 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                   'envelope-card-' + (item.data.name | rolloverFormat)
                 "
               >
-                <mat-card-header class="flex justify-between items-start">
-                  <div class="flex items-center gap-2 flex-1 min-w-0">
-                    <mat-icon
-                      class="text-base! shrink-0"
-                      [class.text-financial-income]="
-                        item.data.kind === 'income'
-                      "
-                      [class.text-financial-expense]="
-                        item.data.kind === 'expense'
-                      "
-                      [class.text-financial-savings]="
-                        item.data.kind === 'saving'
-                      "
-                      [matTooltip]="item.data.kind | transactionLabel"
-                    >
-                      {{ getKindIcon(item.data.kind) }}
-                    </mat-icon>
-                    <mat-card-title
-                      class="text-title-medium! font-medium! truncate m-0"
-                      [class.italic]="item.metadata.isRollover"
-                      [class.text-financial-income]="
-                        item.data.kind === 'income'
-                      "
-                      [class.text-financial-expense]="
-                        item.data.kind === 'expense'
-                      "
-                      [class.text-financial-savings]="
-                        item.data.kind === 'saving'
-                      "
-                    >
-                      @if (
-                        item.metadata.isRollover &&
-                        getRolloverSourceBudgetId(item.data)
-                      ) {
-                        <a
-                          [routerLink]="[
-                            '/app/budget',
-                            getRolloverSourceBudgetId(item.data),
-                          ]"
-                          class="text-primary"
-                        >
-                          {{ item.data.name | rolloverFormat }}
-                        </a>
-                      } @else {
-                        {{ item.data.name | rolloverFormat }}
-                      }
-                    </mat-card-title>
-                    @if (item.metadata.isPropagationLocked) {
+                <!-- Header simplifié -->
+                <mat-card-header class="pb-2">
+                  <div class="flex items-center justify-between w-full">
+                    <div class="flex items-center gap-2 min-w-0 flex-1">
                       <mat-icon
-                        class="text-base! text-outline shrink-0"
-                        matTooltip="Montants verrouillés"
+                        class="text-base! shrink-0"
+                        [class.text-financial-income]="
+                          item.data.kind === 'income'
+                        "
+                        [class.text-financial-expense]="
+                          item.data.kind === 'expense'
+                        "
+                        [class.text-financial-savings]="
+                          item.data.kind === 'saving'
+                        "
+                        [matTooltip]="item.data.kind | transactionLabel"
                       >
-                        lock
+                        {{ getKindIcon(item.data.kind) }}
                       </mat-icon>
-                    }
-                  </div>
+                      <span
+                        class="text-title-medium font-medium truncate"
+                        [class.italic]="item.metadata.isRollover"
+                        [class.text-financial-income]="
+                          item.data.kind === 'income'
+                        "
+                        [class.text-financial-expense]="
+                          item.data.kind === 'expense'
+                        "
+                        [class.text-financial-savings]="
+                          item.data.kind === 'saving'
+                        "
+                      >
+                        @if (
+                          item.metadata.isRollover &&
+                          getRolloverSourceBudgetId(item.data)
+                        ) {
+                          <a
+                            [routerLink]="[
+                              '/app/budget',
+                              getRolloverSourceBudgetId(item.data),
+                            ]"
+                            class="text-primary"
+                          >
+                            {{ item.data.name | rolloverFormat }}
+                          </a>
+                        } @else {
+                          {{ item.data.name | rolloverFormat }}
+                        }
+                      </span>
+                      @if (item.metadata.isPropagationLocked) {
+                        <mat-icon
+                          class="text-base! text-outline shrink-0"
+                          matTooltip="Montants verrouillés"
+                        >
+                          lock
+                        </mat-icon>
+                      }
+                    </div>
 
-                  @if (!item.metadata.isRollover) {
-                    <button
-                      matIconButton
-                      [matMenuTriggerFor]="cardActionMenu"
-                      class="-mr-2 -mt-2"
-                      [attr.data-testid]="'card-menu-' + item.data.id"
-                    >
-                      <mat-icon>more_vert</mat-icon>
-                    </button>
+                    @if (!item.metadata.isRollover) {
+                      <button
+                        matIconButton
+                        [matMenuTriggerFor]="cardActionMenu"
+                        [attr.data-testid]="'card-menu-' + item.data.id"
+                      >
+                        <mat-icon>more_vert</mat-icon>
+                      </button>
 
-                    <mat-menu #cardActionMenu="matMenu" xPosition="before">
-                      <div
-                        class="px-4 py-2 text-label-medium text-on-surface-variant max-w-48 truncate"
-                        [matTooltip]="item.data.name"
-                        matTooltipShowDelay="500"
-                      >
-                        {{ item.data.name }}
-                      </div>
-                      <mat-divider />
-                      <button
-                        mat-menu-item
-                        (click)="addAllocatedTransaction(item.data)"
-                        [attr.data-testid]="'add-transaction-' + item.data.id"
-                      >
-                        <mat-icon matMenuItemIcon>add</mat-icon>
-                        <span>{{ getAllocationLabel(item.data.kind) }}</span>
-                      </button>
-                      <button
-                        mat-menu-item
-                        (click)="startEditBudgetLine(item)"
-                        [attr.data-testid]="'edit-' + item.data.id"
-                      >
-                        <mat-icon matMenuItemIcon>edit</mat-icon>
-                        <span>Éditer</span>
-                      </button>
-                      @if (item.metadata.canResetFromTemplate) {
+                      <mat-menu #cardActionMenu="matMenu" xPosition="before">
+                        <div
+                          class="px-4 py-2 text-label-medium text-on-surface-variant max-w-48 truncate"
+                          [matTooltip]="item.data.name"
+                          matTooltipShowDelay="500"
+                        >
+                          {{ item.data.name }}
+                        </div>
+                        <mat-divider />
                         <button
                           mat-menu-item
-                          (click)="onResetFromTemplateClick(item)"
-                          [attr.data-testid]="
-                            'reset-from-template-' + item.data.id
-                          "
+                          (click)="addAllocatedTransaction(item.data)"
+                          [attr.data-testid]="'add-transaction-' + item.data.id"
                         >
-                          <mat-icon matMenuItemIcon>refresh</mat-icon>
-                          <span>Réinitialiser</span>
+                          <mat-icon matMenuItemIcon>add</mat-icon>
+                          <span>{{ getAllocationLabel(item.data.kind) }}</span>
                         </button>
-                      }
-                      <button
-                        mat-menu-item
-                        (click)="delete.emit(item.data.id)"
-                        [attr.data-testid]="'delete-' + item.data.id"
-                        class="text-error"
-                      >
-                        <mat-icon matMenuItemIcon class="text-error"
-                          >delete</mat-icon
+                        <button
+                          mat-menu-item
+                          (click)="startEditBudgetLine(item)"
+                          [attr.data-testid]="'edit-' + item.data.id"
                         >
-                        <span>Supprimer</span>
-                      </button>
-                    </mat-menu>
-                  }
+                          <mat-icon matMenuItemIcon>edit</mat-icon>
+                          <span>Éditer</span>
+                        </button>
+                        @if (item.metadata.canResetFromTemplate) {
+                          <button
+                            mat-menu-item
+                            (click)="onResetFromTemplateClick(item)"
+                            [attr.data-testid]="
+                              'reset-from-template-' + item.data.id
+                            "
+                          >
+                            <mat-icon matMenuItemIcon>refresh</mat-icon>
+                            <span>Réinitialiser</span>
+                          </button>
+                        }
+                        <button
+                          mat-menu-item
+                          (click)="delete.emit(item.data.id)"
+                          [attr.data-testid]="'delete-' + item.data.id"
+                          class="text-error"
+                        >
+                          <mat-icon matMenuItemIcon class="text-error"
+                            >delete</mat-icon
+                          >
+                          <span>Supprimer</span>
+                        </button>
+                      </mat-menu>
+                    }
+                  </div>
                 </mat-card-header>
 
-                <mat-card-content>
-                  <!-- Amount display - adapts based on transactions -->
-                  <div class="mb-2">
-                    @if (consumption && consumption.transactionCount > 0) {
-                      <span
-                        class="text-headline-medium font-bold"
-                        [class.text-error]="isExceeded"
+                <mat-card-content class="pt-0">
+                  @if (hasTransactions) {
+                    <!-- Summary grid avec transactions -->
+                    <div class="grid grid-cols-3 gap-2 mb-3">
+                      <!-- Dépensé (mis en avant) -->
+                      <div
+                        class="text-center p-2 bg-surface-container rounded-lg"
                       >
-                        {{
-                          consumption.remaining
-                            | currency: 'CHF' : 'symbol' : '1.0-0'
-                        }}
-                      </span>
-                      <span
-                        class="text-label-medium text-on-surface-variant ml-2"
+                        <div class="text-label-small text-on-surface-variant">
+                          Dépensé
+                        </div>
+                        <div
+                          class="text-title-medium font-bold"
+                          [class.text-financial-income]="
+                            item.data.kind === 'income'
+                          "
+                          [class.text-financial-expense]="
+                            item.data.kind === 'expense'
+                          "
+                          [class.text-financial-savings]="
+                            item.data.kind === 'saving'
+                          "
+                        >
+                          {{
+                            consumption!.consumed
+                              | currency: 'CHF' : 'symbol' : '1.0-0'
+                          }}
+                        </div>
+                      </div>
+                      <!-- Prévu -->
+                      <div
+                        class="text-center p-2 bg-surface-container rounded-lg"
                       >
-                        @if (isExceeded) {
-                          dépassé
-                        } @else {
-                          reste sur
+                        <div class="text-label-small text-on-surface-variant">
+                          Prévu
+                        </div>
+                        <div class="text-title-small font-semibold">
                           {{
                             item.data.amount
                               | currency: 'CHF' : 'symbol' : '1.0-0'
                           }}
-                          prévu
-                        }
-                      </span>
+                        </div>
+                      </div>
+                      <!-- Reste -->
+                      <div
+                        class="text-center p-2 bg-surface-container rounded-lg"
+                      >
+                        <div class="text-label-small text-on-surface-variant">
+                          Reste
+                        </div>
+                        <div
+                          class="text-title-small font-semibold"
+                          [class.text-error]="isExceeded"
+                          [class.text-financial-income]="!isExceeded"
+                        >
+                          {{
+                            consumption!.remaining
+                              | currency: 'CHF' : 'symbol' : '1.0-0'
+                          }}
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Progress bar avec pourcentage -->
+                    <div class="mb-3">
                       <mat-progress-bar
                         mode="determinate"
                         [value]="percentage > 100 ? 100 : percentage"
                         [class.warn-bar]="percentage > 100"
-                        class="mt-2 h-2! rounded-full"
+                        class="h-2! rounded-full"
                       />
-                    } @else {
-                      <span
+                      <div
+                        class="text-label-small text-on-surface-variant text-center mt-1"
+                      >
+                        {{ percentage }}% utilisé
+                      </div>
+                    </div>
+                  } @else {
+                    <!-- Cas sans transactions - affichage simplifié -->
+                    <div class="text-center py-2 mb-3">
+                      <div
                         class="text-headline-medium font-bold"
                         [class.text-financial-income]="
                           item.data.kind === 'income'
@@ -280,63 +330,18 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                           item.data.amount
                             | currency: 'CHF' : 'symbol' : '1.0-0'
                         }}
-                      </span>
-                      <span
-                        class="text-label-medium text-on-surface-variant ml-2"
-                      >
+                      </div>
+                      <div class="text-label-medium text-on-surface-variant">
                         prévu
-                      </span>
-                    }
-                  </div>
+                      </div>
+                    </div>
+                  }
 
-                  <!-- Consumed + Transaction count -->
-                  <div class="flex justify-between items-center">
-                    @if (consumption && consumption.transactionCount > 0) {
-                      <button
-                        matButton="outlined"
-                        class="text-label-medium h-8! px-3! -ml-2"
-                        [matBadge]="consumption.transactionCount"
-                        matBadgeColor="primary"
-                        (click)="
-                          openAllocatedTransactions(item.data, consumption)
-                        "
-                        [matTooltip]="
-                          getTransactionCountLabel(
-                            item.data.kind,
-                            consumption.transactionCount
-                          )
-                        "
-                      >
-                        <mat-icon class="text-base! mr-1"
-                          >receipt_long</mat-icon
-                        >
-                        {{
-                          consumption.consumed
-                            | currency: 'CHF' : 'symbol' : '1.0-0'
-                        }}
-                      </button>
-                    } @else if (!item.metadata.isRollover) {
-                      <span class="text-label-small text-on-surface-variant">
-                        Aucune saisie
-                      </span>
-                    } @else {
-                      <span></span>
-                    }
-
-                    @if (!item.metadata.isRollover) {
-                      <button
-                        matIconButton
-                        (click)="addAllocatedTransaction(item.data)"
-                        [matTooltip]="getAllocationLabel(item.data.kind)"
-                      >
-                        <mat-icon>add</mat-icon>
-                      </button>
-                    }
-                  </div>
-
-                  <!-- Recurrence badge -->
+                  <!-- Footer: Récurrence + Actions -->
                   @if (!item.metadata.isRollover) {
-                    <div class="mt-2">
+                    <div
+                      class="flex items-center justify-between pt-3 border-t border-outline-variant"
+                    >
                       <mat-chip
                         class="h-6! text-label-small!"
                         [class.bg-primary-container!]="
@@ -354,6 +359,34 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                       >
                         {{ item.data.recurrence | recurrenceLabel }}
                       </mat-chip>
+
+                      @if (hasTransactions) {
+                        <button
+                          matButton
+                          class="h-8!"
+                          [matBadge]="consumption!.transactionCount"
+                          matBadgeColor="primary"
+                          (click)="
+                            openAllocatedTransactions(item.data, consumption!)
+                          "
+                        >
+                          <mat-icon class="text-base!">receipt_long</mat-icon>
+                          {{
+                            consumption!.transactionCount > 1
+                              ? consumption!.transactionCount + ' saisies'
+                              : '1 saisie'
+                          }}
+                        </button>
+                      } @else {
+                        <button
+                          matButton
+                          class="h-8!"
+                          (click)="addAllocatedTransaction(item.data)"
+                        >
+                          <mat-icon class="text-base!">add</mat-icon>
+                          Saisir
+                        </button>
+                      }
                     </div>
                   }
                 </mat-card-content>
