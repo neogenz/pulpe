@@ -4,6 +4,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
@@ -29,6 +30,7 @@ import {
   ProductTourService,
   TOUR_START_DELAY,
 } from '@core/product-tour/product-tour.service';
+import { LoadingIndicator } from '@core/loading/loading-indicator';
 
 const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
 
@@ -74,10 +76,7 @@ const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
       </header>
 
       @switch (true) {
-        @case (
-          state.budgets.status() === 'loading' ||
-          state.budgets.status() === 'reloading'
-        ) {
+        @case (state.budgets.status() === 'loading') {
           <pulpe-base-loading
             message="Chargement des données mensuelles..."
             size="large"
@@ -89,7 +88,8 @@ const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
         }
         @case (
           state.budgets.status() === 'resolved' ||
-          state.budgets.status() === 'local'
+          state.budgets.status() === 'local' ||
+          state.budgets.status() === 'reloading'
         ) {
           <mat-tab-group
             mat-stretch-tabs="false"
@@ -130,10 +130,16 @@ export default class BudgetListPage {
   readonly #breakpointObserver = inject(BreakpointObserver);
   readonly #snackBar = inject(MatSnackBar);
   readonly #logger = inject(Logger);
+  readonly #loadingIndicator = inject(LoadingIndicator);
 
   constructor() {
     // Refresh data on init
     this.state.refreshData();
+
+    effect(() => {
+      const status = this.state.budgets.status();
+      this.#loadingIndicator.setLoading(status === 'reloading');
+    });
 
     // Auto-trigger tour on first visit
     afterNextRender(() => {

@@ -31,6 +31,8 @@ import { ApplicationConfiguration } from '@core/config/application-configuration
 import { Logger } from '@core/logging/logger';
 import { DemoModeService } from '@core/demo/demo-mode.service';
 import { DemoInitializerService } from '@core/demo/demo-initializer.service';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { LoadingIndicator } from '@core/loading/loading-indicator';
 
 interface NavigationItem {
   readonly route: string;
@@ -53,13 +55,14 @@ interface NavigationItem {
     RouterLinkActive,
     RouterOutlet,
     PulpeBreadcrumb,
+    MatProgressBarModule,
   ],
   template: `
-    <mat-sidenav-container class="h-[100dvh] !bg-surface-container">
+    <mat-sidenav-container class="h-dvh bg-surface-container!">
       <!-- Navigation Sidenav -->
       <mat-sidenav
         #drawer
-        class="!bg-surface-container"
+        class="bg-surface-container!"
         [class.!w-auto]="!isHandset()"
         [mode]="isHandset() ? 'over' : 'side'"
         [opened]="!isHandset()"
@@ -82,7 +85,7 @@ interface NavigationItem {
         <!-- Navigation List -->
         @if (isHandset()) {
           <!-- Mobile: Full navigation list -->
-          <mat-nav-list class="pt-4 !px-2" data-testid="mobile-navigation">
+          <mat-nav-list class="pt-4 px-2!" data-testid="mobile-navigation">
             @for (item of navigationItems; track item.route) {
               <a
                 mat-list-item
@@ -156,6 +159,15 @@ interface NavigationItem {
           [class.p-2]="!isHandset()"
           [class.rounded-xl]="!isHandset()"
         >
+          @if (loadingIndicator.isLoading()) {
+            <div class="absolute top-0 left-0 right-0">
+              <mat-progress-bar
+                mode="indeterminate"
+                aria-label="Mise à jour en cours"
+                data-testid="budget-list-refresh-progress"
+              />
+            </div>
+          }
           <!-- Demo Mode Banner -->
           @if (isDemoMode()) {
             <div
@@ -193,7 +205,7 @@ interface NavigationItem {
           <!-- Top App Bar - Fixed Header -->
           <mat-toolbar
             color="primary"
-            class="flex-shrink-0"
+            class="shrink-0"
             [class.rounded-t-xl]="!isHandset()"
           >
             @if (isHandset()) {
@@ -274,7 +286,7 @@ interface NavigationItem {
           <!-- Page Content - Scrollable Container -->
           <main
             cdkScrollable
-            class="flex-1 overflow-y-auto bg-surface text-on-surface !pt-2"
+            class="flex-1 overflow-y-auto bg-surface text-on-surface pt-2!"
             [class.p-6]="!isHandset()"
             [class.md:p-8]="!isHandset()"
             [class.p-4]="isHandset()"
@@ -339,7 +351,7 @@ export default class MainLayout {
   readonly #demoInitializer = inject(DemoInitializerService);
   readonly breadcrumbState = inject(BreadcrumbState);
   readonly #logger = inject(Logger);
-
+  protected readonly loadingIndicator = inject(LoadingIndicator);
   // Display "Mode Démo" for demo users, otherwise show email
   readonly userEmail = computed(() => {
     if (this.#demoModeService.isDemoMode()) {
