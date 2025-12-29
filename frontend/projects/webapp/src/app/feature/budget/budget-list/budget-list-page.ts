@@ -136,6 +136,11 @@ export default class BudgetListPage {
     // Refresh data on init
     this.state.refreshData();
 
+    effect(() => {
+      const status = this.state.budgets.status();
+      this.#loadingIndicator.setLoading(status === 'reloading');
+    });
+
     // Auto-trigger tour on first visit
     afterNextRender(() => {
       if (!this.#productTourService.hasSeenPageTour('budget-list')) {
@@ -144,11 +149,6 @@ export default class BudgetListPage {
           TOUR_START_DELAY,
         );
       }
-    });
-
-    effect(() => {
-      const status = this.state.budgets.status();
-      this.#loadingIndicator.setLoading(status === 'reloading');
     });
   }
 
