@@ -102,7 +102,7 @@ export interface AllocatedTransactionsDialogResult {
             <ng-container matColumnDef="date">
               <th mat-header-cell *matHeaderCellDef>Date</th>
               <td mat-cell *matCellDef="let tx" class="text-body-small">
-                {{ tx.transactionDate | date: 'dd/MM/yyyy' }}
+                {{ tx.transactionDate | date: 'dd.MM.yyyy' : 'fr-CH' }}
               </td>
             </ng-container>
 

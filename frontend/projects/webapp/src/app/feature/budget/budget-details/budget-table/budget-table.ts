@@ -410,8 +410,8 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
 
             <!-- Transactions section -->
             @if (transactionItems().length > 0) {
-              <div class="mt-4 pt-4 border-t border-outline-variant">
-                <h3 class="text-title-small text-on-surface-variant mb-3">
+              <div class="pt-4 border-outline-variant">
+                <h3 class="text-title-medium text-on-surface-variant mb-3">
                   Transactions
                 </h3>
                 @for (item of transactionItems(); track item.data.id) {
@@ -421,25 +421,29 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                     [class.opacity-50]="item.metadata.isLoading"
                     [attr.data-testid]="'transaction-card-' + item.data.id"
                   >
-                    <mat-card-content class="flex justify-between items-start">
-                      <div class="flex-1 min-w-0">
-                        <span class="text-body-medium font-medium truncate">
-                          {{ item.data.name }}
-                        </span>
-                        <div class="text-label-small text-on-surface-variant">
-                          {{ item.data.kind | transactionLabel }}
-                        </div>
-                        @if (item.metadata.envelopeName) {
-                          <div
-                            class="flex items-center gap-1 text-label-small text-on-surface-variant mt-1"
-                          >
-                            <mat-icon class="text-sm!">folder</mat-icon>
-                            <span>{{ item.metadata.envelopeName }}</span>
+                    <mat-card-content>
+                      <div
+                        class="grid grid-cols-[1fr_auto_auto] gap-0.5 items-center"
+                      >
+                        <div class="truncate space-y-0.5">
+                          <span class="text-body-medium font-medium">
+                            {{ item.data.name }}
+                          </span>
+                          <div class="text-label-small text-on-surface-variant">
+                            {{ item.data.kind | transactionLabel }}
                           </div>
-                        }
-                      </div>
-                      <div class="flex items-center gap-2">
-                        <span
+                          @if (item.metadata.envelopeName) {
+                            <div
+                              class="flex items-center text-label-small text-on-surface-variant"
+                            >
+                              <mat-icon class="text-sm! leading-none! w-4! h-4!"
+                                >folder</mat-icon
+                              >
+                              <span>{{ item.metadata.envelopeName }}</span>
+                            </div>
+                          }
+                        </div>
+                        <div
                           class="text-title-medium font-bold"
                           [class.text-financial-income]="item.data.amount > 0"
                           [class.text-error]="item.data.amount < 0"
@@ -448,16 +452,17 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                             item.data.amount
                               | currency: 'CHF' : 'symbol' : '1.0-0'
                           }}
-                        </span>
-                        <button
-                          matIconButton
-                          (click)="delete.emit(item.data.id)"
-                          matTooltip="Supprimer"
-                          class="w-8! h-8! text-error"
-                          [attr.data-testid]="'delete-tx-' + item.data.id"
-                        >
-                          <mat-icon class="text-xl!">delete</mat-icon>
-                        </button>
+                        </div>
+                        <div>
+                          <button
+                            matIconButton
+                            (click)="delete.emit(item.data.id)"
+                            matTooltip="Supprimer"
+                            [attr.data-testid]="'delete-tx-' + item.data.id"
+                          >
+                            <mat-icon class="text-xl!">delete</mat-icon>
+                          </button>
+                        </div>
                       </div>
                     </mat-card-content>
                   </mat-card>

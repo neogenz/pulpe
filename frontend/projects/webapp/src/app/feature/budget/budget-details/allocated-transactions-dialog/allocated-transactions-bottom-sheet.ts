@@ -95,7 +95,7 @@ import type {
                     {{ tx.name }}
                   </span>
                   <span class="text-label-small text-on-surface-variant">
-                    {{ tx.transactionDate | date: 'dd/MM/yyyy' }}
+                    {{ tx.transactionDate | date: 'dd.MM.yyyy' }}
                   </span>
                 </div>
                 <div class="flex items-center gap-2">
@@ -108,9 +108,9 @@ import type {
                     matIconButton
                     (click)="deleteTransaction(tx)"
                     aria-label="Supprimer la transaction"
-                    class="text-error !w-9 !h-9"
+                    class="text-error w-9! h-9!"
                   >
-                    <mat-icon class="!text-xl">delete</mat-icon>
+                    <mat-icon class="text-xl!">delete</mat-icon>
                   </button>
                 </div>
               </div>
@@ -118,7 +118,7 @@ import type {
           </div>
         } @else {
           <div class="text-center py-6 text-on-surface-variant">
-            <mat-icon class="!text-4xl mb-2">receipt_long</mat-icon>
+            <mat-icon class="text-4xl! mb-2!">receipt_long</mat-icon>
             <p class="text-body-medium">Aucune transaction</p>
           </div>
         }
