@@ -17,10 +17,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog } from '@angular/material/dialog';
+import { MatDividerModule } from '@angular/material/divider';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { MatDividerModule } from '@angular/material/divider';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTableModule } from '@angular/material/table';
@@ -32,11 +32,7 @@ import {
   type BudgetLineConsumption,
 } from '@core/budget';
 import { Logger } from '@core/logging/logger';
-import {
-  type BudgetLine,
-  type BudgetLineUpdate,
-  type TransactionKind,
-} from '@pulpe/shared';
+import { type BudgetLine, type BudgetLineUpdate } from '@pulpe/shared';
 import {
   ConfirmationDialog,
   type ConfirmationDialogData,
@@ -50,9 +46,11 @@ import { EditBudgetLineDialog } from '../edit-budget-line/edit-budget-line-dialo
 import { type BudgetLineViewModel } from '../models/budget-line-view-model';
 import { type TransactionViewModel } from '../models/transaction-view-model';
 import { BudgetTableDataProvider } from './budget-table-data-provider';
+import { BudgetTableMobileCard } from './budget-table-mobile-card';
 import {
   type BudgetLineTableItem,
   type TableItem,
+  type TransactionTableItem,
 } from './budget-table-models';
 import type { BudgetTableViewMode } from './budget-table-view-mode';
 import { BudgetTableViewToggle } from './budget-table-view-toggle';
@@ -79,6 +77,7 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
     RecurrenceLabelPipe,
     RolloverFormatPipe,
     BudgetTableViewToggle,
+    BudgetTableMobileCard,
   ],
   template: `
     <mat-card appearance="outlined">
@@ -92,266 +91,17 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
         <pulpe-budget-table-view-toggle [(viewMode)]="viewMode" class="mb-4" />
 
         @if (isMobile()) {
-          <!-- Mobile view - same layout for both modes, data adapts via viewMode -->
+          <!-- Mobile view -->
           <div class="flex flex-col gap-3">
             @for (item of budgetLineItems(); track item.data.id) {
-              @let consumption = budgetLineConsumptions().get(item.data.id);
-              @let percentage =
-                calculatePercentage(
-                  item.data.amount,
-                  consumption?.consumed ?? 0
-                );
-              @let hasTransactions =
-                consumption && consumption.transactionCount > 0;
-
-              <mat-card
-                appearance="outlined"
-                [class.opacity-50]="item.metadata.isLoading"
-                [attr.data-testid]="
-                  'envelope-card-' + (item.data.name | rolloverFormat)
-                "
-              >
-                <!-- Header simplifié -->
-                <mat-card-header class="pb-2">
-                  <div class="flex items-center justify-between w-full">
-                    <div class="flex items-center gap-2 min-w-0 flex-1">
-                      <mat-icon
-                        class="text-base! shrink-0"
-                        [class.text-financial-income]="
-                          item.data.kind === 'income'
-                        "
-                        [class.text-financial-expense]="
-                          item.data.kind === 'expense'
-                        "
-                        [class.text-financial-savings]="
-                          item.data.kind === 'saving'
-                        "
-                        [matTooltip]="item.data.kind | transactionLabel"
-                      >
-                        {{ getKindIcon(item.data.kind) }}
-                      </mat-icon>
-                      <span
-                        class="text-title-medium font-medium truncate"
-                        [class.italic]="item.metadata.isRollover"
-                        [class.text-financial-income]="
-                          item.data.kind === 'income'
-                        "
-                        [class.text-financial-expense]="
-                          item.data.kind === 'expense'
-                        "
-                        [class.text-financial-savings]="
-                          item.data.kind === 'saving'
-                        "
-                      >
-                        @if (
-                          item.metadata.isRollover &&
-                          getRolloverSourceBudgetId(item.data)
-                        ) {
-                          <a
-                            [routerLink]="[
-                              '/app/budget',
-                              getRolloverSourceBudgetId(item.data),
-                            ]"
-                            class="text-primary"
-                          >
-                            {{ item.data.name | rolloverFormat }}
-                          </a>
-                        } @else {
-                          {{ item.data.name | rolloverFormat }}
-                        }
-                      </span>
-                      @if (item.metadata.isPropagationLocked) {
-                        <mat-icon
-                          class="text-base! text-outline shrink-0"
-                          matTooltip="Montants verrouillés"
-                        >
-                          lock
-                        </mat-icon>
-                      }
-                    </div>
-
-                    @if (!item.metadata.isRollover) {
-                      <button
-                        matIconButton
-                        [matMenuTriggerFor]="cardActionMenu"
-                        [attr.data-testid]="'card-menu-' + item.data.id"
-                      >
-                        <mat-icon>more_vert</mat-icon>
-                      </button>
-
-                      <mat-menu #cardActionMenu="matMenu" xPosition="before">
-                        <div
-                          class="px-4 py-2 text-label-medium text-on-surface-variant max-w-48 truncate"
-                          [matTooltip]="item.data.name"
-                          matTooltipShowDelay="500"
-                        >
-                          {{ item.data.name }}
-                        </div>
-                        <mat-divider />
-                        <button
-                          mat-menu-item
-                          (click)="addAllocatedTransaction(item.data)"
-                          [attr.data-testid]="'add-transaction-' + item.data.id"
-                        >
-                          <mat-icon matMenuItemIcon>add</mat-icon>
-                          <span>{{ getAllocationLabel(item.data.kind) }}</span>
-                        </button>
-                        <button
-                          mat-menu-item
-                          (click)="startEditBudgetLine(item)"
-                          [attr.data-testid]="'edit-' + item.data.id"
-                        >
-                          <mat-icon matMenuItemIcon>edit</mat-icon>
-                          <span>Éditer</span>
-                        </button>
-                        @if (item.metadata.canResetFromTemplate) {
-                          <button
-                            mat-menu-item
-                            (click)="onResetFromTemplateClick(item)"
-                            [attr.data-testid]="
-                              'reset-from-template-' + item.data.id
-                            "
-                          >
-                            <mat-icon matMenuItemIcon>refresh</mat-icon>
-                            <span>Réinitialiser</span>
-                          </button>
-                        }
-                        <button
-                          mat-menu-item
-                          (click)="delete.emit(item.data.id)"
-                          [attr.data-testid]="'delete-' + item.data.id"
-                          class="text-error"
-                        >
-                          <mat-icon matMenuItemIcon class="text-error"
-                            >delete</mat-icon
-                          >
-                          <span>Supprimer</span>
-                        </button>
-                      </mat-menu>
-                    }
-                  </div>
-                </mat-card-header>
-
-                <mat-card-content class="pt-0">
-                  @if (hasTransactions) {
-                    <!-- Affichage simplifié avec barre de progression -->
-                    <div class="text-center py-2 mb-3">
-                      <div
-                        class="text-headline-medium font-bold"
-                        [class.text-financial-income]="
-                          item.data.kind === 'income'
-                        "
-                        [class.text-financial-expense]="
-                          item.data.kind === 'expense'
-                        "
-                        [class.text-financial-savings]="
-                          item.data.kind === 'saving'
-                        "
-                      >
-                        {{
-                          item.data.amount
-                            | currency: 'CHF' : 'symbol' : '1.0-0'
-                        }}
-                      </div>
-                      <div class="text-label-medium text-on-surface-variant">
-                        prévu
-                      </div>
-                    </div>
-
-                    <!-- Progress bar avec pourcentage -->
-                    <div class="mb-3">
-                      <mat-progress-bar
-                        mode="determinate"
-                        [value]="percentage > 100 ? 100 : percentage"
-                        [class.warn-bar]="percentage > 100"
-                        class="h-2! rounded-full"
-                      />
-                      <div
-                        class="text-label-small text-on-surface-variant text-center mt-1"
-                      >
-                        {{ percentage }}% utilisé
-                      </div>
-                    </div>
-                  } @else {
-                    <!-- Cas sans transactions - affichage simplifié -->
-                    <div class="text-center py-2 mb-3">
-                      <div
-                        class="text-headline-medium font-bold"
-                        [class.text-financial-income]="
-                          item.data.kind === 'income'
-                        "
-                        [class.text-financial-expense]="
-                          item.data.kind === 'expense'
-                        "
-                        [class.text-financial-savings]="
-                          item.data.kind === 'saving'
-                        "
-                      >
-                        {{
-                          item.data.amount
-                            | currency: 'CHF' : 'symbol' : '1.0-0'
-                        }}
-                      </div>
-                      <div class="text-label-medium text-on-surface-variant">
-                        prévu
-                      </div>
-                    </div>
-                  }
-
-                  <!-- Footer: Récurrence + Actions -->
-                  @if (!item.metadata.isRollover) {
-                    <div
-                      class="flex items-center justify-between pt-3 border-t border-outline-variant"
-                    >
-                      <mat-chip
-                        class="h-6! text-label-small!"
-                        [class.bg-primary-container!]="
-                          item.data.recurrence === 'fixed'
-                        "
-                        [class.text-on-primary-container!]="
-                          item.data.recurrence === 'fixed'
-                        "
-                        [class.bg-secondary-container!]="
-                          item.data.recurrence === 'one_off'
-                        "
-                        [class.text-on-secondary-container!]="
-                          item.data.recurrence === 'one_off'
-                        "
-                      >
-                        {{ item.data.recurrence | recurrenceLabel }}
-                      </mat-chip>
-
-                      @if (hasTransactions) {
-                        <button
-                          matButton
-                          class="h-8!"
-                          [matBadge]="consumption!.transactionCount"
-                          matBadgeColor="primary"
-                          (click)="
-                            openAllocatedTransactions(item.data, consumption!)
-                          "
-                        >
-                          <mat-icon class="text-base!">receipt_long</mat-icon>
-                          {{
-                            consumption!.transactionCount > 1
-                              ? consumption!.transactionCount + ' saisies'
-                              : '1 saisie'
-                          }}
-                        </button>
-                      } @else {
-                        <button
-                          matButton
-                          class="h-8!"
-                          (click)="addAllocatedTransaction(item.data)"
-                        >
-                          <mat-icon class="text-base!">add</mat-icon>
-                          Saisir
-                        </button>
-                      }
-                    </div>
-                  }
-                </mat-card-content>
-              </mat-card>
+              <pulpe-budget-table-mobile-card
+                [item]="item"
+                (edit)="startEditBudgetLine($event)"
+                (delete)="delete.emit($event)"
+                (addTransaction)="addAllocatedTransaction($event)"
+                (viewTransactions)="onViewTransactions($event)"
+                (resetFromTemplate)="onResetFromTemplateClick($event)"
+              />
             } @empty {
               <div class="text-center py-8">
                 <p class="text-body-medium text-on-surface-variant">
@@ -417,7 +167,7 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                         <div>
                           <button
                             matIconButton
-                            (click)="delete.emit(item.data.id)"
+                            (click)="deleteTransaction.emit(item.data.id)"
                             matTooltip="Supprimer"
                             [attr.data-testid]="'delete-tx-' + item.data.id"
                           >
@@ -432,7 +182,7 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
             }
           </div>
         } @else {
-          <!-- Desktop view - same layout for both modes, data adapts via viewMode -->
+          <!-- Desktop view -->
           <div class="overflow-x-auto">
             <table
               mat-table
@@ -468,7 +218,6 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                     </form>
                   } @else {
                     <div class="flex items-center gap-2">
-                      <!-- Kind indicator icon -->
                       <mat-icon
                         class="text-base! shrink-0"
                         [class.text-financial-income]="
@@ -483,7 +232,7 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                         [matTooltip]="line.data.kind | transactionLabel"
                         matTooltipPosition="above"
                       >
-                        {{ getKindIcon(line.data.kind) }}
+                        {{ line.metadata.kindIcon }}
                       </mat-icon>
                       <span
                         class="inline-flex items-center gap-2"
@@ -491,12 +240,12 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                       >
                         @if (
                           line.metadata.isRollover &&
-                          line.data.rolloverSourceBudgetId
+                          line.metadata.rolloverSourceBudgetId
                         ) {
                           <a
                             [routerLink]="[
                               '/app/budget',
-                              line.data.rolloverSourceBudgetId,
+                              line.metadata.rolloverSourceBudgetId,
                             ]"
                             matButton
                             class="ph-no-capture text-body-medium font-semibold"
@@ -545,20 +294,15 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                 </td>
               </ng-container>
 
-              <!-- Remaining Column (only shown when there are transactions) -->
+              <!-- Remaining Column -->
               <ng-container matColumnDef="remaining">
                 <th mat-header-cell *matHeaderCellDef class="text-right!">
                   Reste
                 </th>
                 <td mat-cell *matCellDef="let line" class="text-right">
-                  @let consumption = budgetLineConsumptions().get(line.data.id);
-                  @if (consumption && consumption.transactionCount > 0) {
-                    @let remaining = consumption.remaining;
-                    @let percentage =
-                      calculatePercentage(
-                        line.data.amount,
-                        consumption.consumed
-                      );
+                  @if (line.consumption?.hasTransactions) {
+                    @let remaining =
+                      line.data.amount - line.consumption.consumed;
                     @let isExceeded = remaining < 0;
 
                     <div class="flex flex-col items-end gap-1">
@@ -577,8 +321,12 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                         @if (!line.metadata.isRollover) {
                           <mat-progress-bar
                             mode="determinate"
-                            [value]="percentage > 100 ? 100 : percentage"
-                            [class.warn-bar]="percentage > 100"
+                            [value]="
+                              line.consumption.percentage > 100
+                                ? 100
+                                : line.consumption.percentage
+                            "
+                            [class.warn-bar]="line.consumption.percentage > 100"
                             class="h-1.5! w-24! rounded-full"
                           />
                         }
@@ -588,7 +336,7 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                 </td>
               </ng-container>
 
-              <!-- Planned Column (budget amount with kind colors) -->
+              <!-- Planned Column -->
               <ng-container matColumnDef="planned">
                 <th mat-header-cell *matHeaderCellDef class="text-right">
                   Prévu
@@ -648,41 +396,30 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                 <td mat-cell *matCellDef="let line">
                   @if (
                     line.metadata.itemType === 'budget_line' &&
-                    !line.metadata.isRollover
+                    !line.metadata.isRollover &&
+                    line.consumption?.hasTransactions
                   ) {
-                    @let consumption =
-                      budgetLineConsumptions().get(line.data.id);
-                    @if (consumption && consumption.transactionCount > 0) {
-                      <button
-                        matButton
-                        class="text-body-small h-8! px-3!"
-                        [matBadge]="consumption.transactionCount"
-                        matBadgeColor="primary"
-                        (click)="
-                          openAllocatedTransactions(line.data, consumption)
-                        "
-                        [matTooltip]="
-                          'Voir les ' +
-                          getTransactionCountLabel(
-                            line.data.kind,
-                            consumption.transactionCount
-                          )
-                        "
-                      >
-                        <mat-icon class="text-base! mr-1"
-                          >receipt_long</mat-icon
-                        >
-                        {{
-                          consumption.consumed
-                            | currency: 'CHF' : 'symbol' : '1.0-0'
-                        }}
-                      </button>
-                    }
+                    <button
+                      matButton
+                      class="text-body-small h-8! px-3!"
+                      [matBadge]="line.consumption.transactionCount"
+                      matBadgeColor="primary"
+                      (click)="onViewTransactionsFromLine(line)"
+                      [matTooltip]="
+                        'Voir les ' + line.consumption.transactionCountLabel
+                      "
+                    >
+                      <mat-icon class="text-base! mr-1">receipt_long</mat-icon>
+                      {{
+                        line.consumption.consumed
+                          | currency: 'CHF' : 'symbol' : '1.0-0'
+                      }}
+                    </button>
                   }
                 </td>
               </ng-container>
 
-              <!-- Balance Column (cumulative balance) -->
+              <!-- Balance Column -->
               <ng-container matColumnDef="balance">
                 <th mat-header-cell *matHeaderCellDef class="text-right">
                   Solde
@@ -812,9 +549,7 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                             "
                           >
                             <mat-icon matMenuItemIcon>add</mat-icon>
-                            <span>{{
-                              getAllocationLabel(line.data.kind)
-                            }}</span>
+                            <span>{{ line.metadata.allocationLabel }}</span>
                           </button>
                         }
                         @if (line.metadata.itemType === 'budget_line') {
@@ -930,10 +665,11 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BudgetTable {
-  // Signal inputs - modern Angular 20+ pattern
+  // Signal inputs
   budgetLines = input.required<BudgetLineViewModel[]>();
   transactions = input.required<TransactionViewModel[]>();
 
+  // Outputs
   update = output<BudgetLineUpdate>();
   delete = output<string>();
   deleteTransaction = output<string>();
@@ -953,7 +689,7 @@ export class BudgetTable {
   readonly #budgetTableDataProvider = inject(BudgetTableDataProvider);
   readonly #logger = inject(Logger);
 
-  // Desktop columns - envelopes mode
+  // Desktop columns
   displayedColumns = [
     'name',
     'planned',
@@ -967,12 +703,14 @@ export class BudgetTable {
   // View mode toggle state
   readonly viewMode = signal<BudgetTableViewMode>('envelopes');
 
+  // Inline edit state
   protected inlineFormEditingItem = signal<BudgetLineTableItem | null>(null);
   readonly editForm = this.#fb.group({
     name: ['', [Validators.required, Validators.minLength(1)]],
     amount: [0, [Validators.required, Validators.min(0.01)]],
   });
 
+  // Responsive
   isMobile = toSignal(
     this.#breakpointObserver
       .observe(Breakpoints.Handset)
@@ -980,81 +718,59 @@ export class BudgetTable {
     { initialValue: false },
   );
 
-  // Computed for budget line consumptions
-  readonly budgetLineConsumptions = computed(() => {
-    const lines = this.budgetLines();
-    const txs = this.transactions();
-    return calculateAllConsumptions(lines, txs);
-  });
+  // Full consumption data for outputs (needed for parent component)
+  readonly #consumptions = computed(() =>
+    calculateAllConsumptions(this.budgetLines(), this.transactions()),
+  );
 
-  // View Model - adapts data based on current viewMode
+  // View Model with pre-computed values
   budgetTableData = computed(() => {
-    const budgetLines = this.budgetLines();
-    const transactions = this.transactions();
     const editingLine = this.inlineFormEditingItem();
-
     return this.#budgetTableDataProvider.provideTableData({
-      budgetLines,
-      transactions,
+      budgetLines: this.budgetLines(),
+      transactions: this.transactions(),
       editingLineId: editingLine?.data.id ?? null,
       viewMode: this.viewMode(),
     });
   });
 
-  // Mobile view: budget lines as typed items
-  readonly budgetLineItems = computed(() => {
-    return this.budgetTableData().filter(
+  // Filtered items for mobile view
+  readonly budgetLineItems = computed(() =>
+    this.budgetTableData().filter(
       (item): item is BudgetLineTableItem =>
         item.metadata.itemType === 'budget_line',
-    );
-  });
+    ),
+  );
 
-  // Mobile view: standalone transactions (not allocated to budget lines)
-  readonly transactionItems = computed(() => {
-    return this.budgetTableData().filter(
-      (item) => item.metadata.itemType === 'transaction',
-    );
-  });
+  readonly transactionItems = computed(() =>
+    this.budgetTableData().filter(
+      (item): item is TransactionTableItem =>
+        item.metadata.itemType === 'transaction',
+    ),
+  );
 
-  // Track functions for performance optimization
   readonly trackByRow = (_: number, row: TableItem): string => row.data.id;
 
-  // Calculate consumption percentage
-  calculatePercentage(reserved: number, consumed: number): number {
-    if (reserved <= 0) return 0;
-    return Math.round((consumed / reserved) * 100);
-  }
-
-  // Get rollover source budget ID if it exists (for rollover lines)
-  getRolloverSourceBudgetId(data: BudgetLine): string | undefined {
-    return 'rolloverSourceBudgetId' in data
-      ? (data as BudgetLine & { rolloverSourceBudgetId?: string })
-          .rolloverSourceBudgetId
-      : undefined;
-  }
-
+  // Edit methods
   startEdit(item: BudgetLineTableItem): void {
-    // On mobile, open dialog for editing
     if (this.isMobile()) {
       this.#openEditDialog(item);
-    } else {
-      // Desktop: inline editing
-      try {
-        this.inlineFormEditingItem.set(item);
-        this.editForm.patchValue({
-          name: item.data.name,
-          amount: item.data.amount,
-        });
-      } catch (error) {
-        this.#logger.error('Failed to start inline edit', {
-          error,
-          itemId: item.data.id,
-        });
-      }
+      return;
+    }
+    try {
+      this.inlineFormEditingItem.set(item);
+      this.editForm.patchValue({
+        name: item.data.name,
+        amount: item.data.amount,
+      });
+    } catch (error) {
+      this.#logger.error('Failed to start inline edit', {
+        error,
+        itemId: item.data.id,
+      });
     }
   }
 
-  // Mobile-specific edit for budget lines
   startEditBudgetLine(item: BudgetLineTableItem): void {
     this.#openEditDialog(item);
   }
@@ -1070,8 +786,8 @@ export class BudgetTable {
       dialogRef
         .afterClosed()
         .pipe(takeUntilDestroyed(this.#destroyRef))
-        .subscribe((update: BudgetLineUpdate | undefined) => {
-          if (update) this.update.emit(update);
+        .subscribe((result: BudgetLineUpdate | undefined) => {
+          if (result) this.update.emit(result);
         });
     } catch (error) {
       this.#logger.error('Failed to open edit dialog', {
@@ -1105,42 +821,22 @@ export class BudgetTable {
     });
   }
 
-  getAllocationLabel(kind: TransactionKind): string {
-    const labels: Record<TransactionKind, string> = {
-      expense: 'Saisir une dépense',
-      income: 'Saisir un revenu',
-      saving: 'Saisir une épargne',
-    };
-    return labels[kind];
-  }
-
-  getTransactionCountLabel(kind: TransactionKind, count: number): string {
-    const labels: Record<TransactionKind, string> = {
-      expense: 'dépense',
-      income: 'revenu',
-      saving: 'épargne',
-    };
-    return `${count} ${labels[kind]}${count > 1 ? 's' : ''}`;
-  }
-
-  openAllocatedTransactions(
-    budgetLine: BudgetLine,
-    consumption: BudgetLineConsumption,
-  ): void {
-    this.viewAllocatedTransactions.emit({ budgetLine, consumption });
-  }
-
+  // Action handlers
   addAllocatedTransaction(budgetLine: BudgetLine): void {
     this.createAllocatedTransaction.emit(budgetLine);
   }
 
-  getKindIcon(kind: TransactionKind): string {
-    const icons: Record<TransactionKind, string> = {
-      income: 'arrow_upward',
-      expense: 'arrow_downward',
-      saving: 'savings',
-    };
-    return icons[kind];
+  onViewTransactions(item: BudgetLineTableItem): void {
+    const consumption = this.#consumptions().get(item.data.id);
+    if (!consumption) return;
+    this.viewAllocatedTransactions.emit({
+      budgetLine: item.data,
+      consumption,
+    });
+  }
+
+  onViewTransactionsFromLine(line: BudgetLineTableItem): void {
+    this.onViewTransactions(line);
   }
 
   onResetFromTemplateClick(line: BudgetLineTableItem): void {

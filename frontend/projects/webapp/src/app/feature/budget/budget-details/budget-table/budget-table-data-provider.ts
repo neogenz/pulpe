@@ -7,7 +7,10 @@ import {
 } from '@pulpe/shared';
 import { calculateAllConsumptions } from '@core/budget/budget-line-consumption';
 import { isRolloverLine } from '@core/rollover/rollover-types';
-import { type TableItem } from './budget-table-models';
+import {
+  type BudgetLineTableItem,
+  type TransactionTableItem,
+} from './budget-table-models';
 import type { BudgetTableViewMode } from './budget-table-view-mode';
 
 /**
@@ -38,17 +41,27 @@ export class BudgetTableDataProvider {
     expense: 3,
   } as const;
 
+  // Constantes pour les labels et icônes
+  readonly #KIND_ICONS: Record<TransactionKind, string> = {
+    income: 'arrow_upward',
+    expense: 'arrow_downward',
+    saving: 'savings',
+  } as const;
+
+  readonly #ALLOCATION_LABELS: Record<TransactionKind, string> = {
+    expense: 'Saisir une dépense',
+    income: 'Saisir un revenu',
+    saving: 'Saisir une épargne',
+  } as const;
+
+  readonly #TRANSACTION_COUNT_LABELS: Record<TransactionKind, string> = {
+    expense: 'dépense',
+    income: 'revenu',
+    saving: 'épargne',
+  } as const;
+
   /**
    * Combines and sorts budget lines and transactions with cumulative balance calculation
-   * Order:
-   * 1. Budget lines grouped by recurrence: fixed → one_off
-   *    Within each group: createdAt ascending, then kind (income → saving → expense)
-   * 2. Transactions ordered by transactionDate ascending (fallback createdAt), then kind
-   *
-   * Note: Le calcul du solde cumulatif utilise MAX(prévu, consommé) pour chaque enveloppe
-   * afin de prendre en compte les dépassements.
-   *
-   * @param includeAllocatedTransactions - Si true, inclut toutes les transactions (allouées + libres)
    */
   #composeBudgetItemsWithBalanceGrouped(
     budgetLines: BudgetLine[],
@@ -62,23 +75,16 @@ export class BudgetTableDataProvider {
     );
     this.#sortItemsByBusinessRules(items);
 
-    // Calculer les consommations de chaque enveloppe pour les dépassements
     const consumptionMap = calculateAllConsumptions(budgetLines, transactions);
-
     this.#calculateCumulativeBalances(items, consumptionMap);
 
     return items;
   }
 
-  /**
-   * Compare deux éléments pour déterminer leur ordre de tri
-   * Règles: 1. budget_lines avant transactions 2. récurrence (fixed → one_off) 3. type (income → saving → expense)
-   */
   #compareItems = (
     a: BudgetItemWithBalance,
     b: BudgetItemWithBalance,
   ): number => {
-    // 1. budget_lines avant transactions
     if (a.itemType !== b.itemType) {
       return a.itemType === 'budget_line' ? -1 : 1;
     }
@@ -155,13 +161,6 @@ export class BudgetTableDataProvider {
     return timestamp;
   }
 
-  /**
-   * Crée les éléments d'affichage pour le tri et le calcul des soldes
-   *
-   * @param includeAllocatedTransactions - Si true, inclut toutes les transactions.
-   *   Si false (défaut), exclut les transactions allouées (budgetLineId != null)
-   *   car elles sont "contenues" dans leur enveloppe.
-   */
   #createDisplayItems(
     budgetLines: BudgetLine[],
     transactions: Transaction[],
@@ -169,17 +168,14 @@ export class BudgetTableDataProvider {
   ): BudgetItemWithBalance[] {
     const items: BudgetItemWithBalance[] = [];
 
-    // Ajouter les budget lines
     budgetLines.forEach((line) => {
       items.push({
         item: line,
-        cumulativeBalance: 0, // Sera calculé après tri
+        cumulativeBalance: 0,
         itemType: 'budget_line',
       });
     });
 
-    // Mode transactions: inclure toutes les transactions
-    // Mode envelopes: seulement les transactions libres (non allouées)
     const transactionsToDisplay = includeAllocatedTransactions
       ? transactions
       : transactions.filter((tx) => !tx.budgetLineId);
@@ -187,7 +183,7 @@ export class BudgetTableDataProvider {
     transactionsToDisplay.forEach((transaction) => {
       items.push({
         item: transaction,
-        cumulativeBalance: 0, // Sera calculé après tri
+        cumulativeBalance: 0,
         itemType: 'transaction',
       });
     });
@@ -195,24 +191,10 @@ export class BudgetTableDataProvider {
     return items;
   }
 
-  /**
-   * Trie les éléments selon les règles métier
-   */
   #sortItemsByBusinessRules(items: BudgetItemWithBalance[]): void {
     items.sort(this.#compareItems);
   }
 
-  /**
-   * Calcule les soldes cumulatifs pour tous les éléments
-   * Pour les enveloppes (budget lines), utilise MAX(montant_prévu, montant_consommé)
-   * afin de prendre en compte les dépassements dans le solde restant.
-   *
-   * Note: Les transactions allouées (avec budgetLineId) n'impactent pas le solde
-   * car leur montant est déjà comptabilisé dans la consommation de l'enveloppe parente.
-   *
-   * @param items Les éléments à enrichir avec le solde cumulatif
-   * @param consumptionMap Map des consommations par budgetLineId
-   */
   #calculateCumulativeBalances(
     items: BudgetItemWithBalance[],
     consumptionMap: Map<string, { consumed: number }>,
@@ -223,7 +205,6 @@ export class BudgetTableDataProvider {
       const kind = item.item.kind;
       let effectiveAmount = item.item.amount;
 
-      // Pour les budget lines, utiliser MAX(prévu, consommé) pour les dépassements
       if (item.itemType === 'budget_line') {
         const consumption = consumptionMap.get(item.item.id);
         if (consumption) {
@@ -231,8 +212,6 @@ export class BudgetTableDataProvider {
         }
       }
 
-      // Les transactions allouées n'impactent pas le solde cumulatif
-      // car leur montant est déjà inclus dans la consommation de l'enveloppe parente
       const isAllocatedTransaction =
         item.itemType === 'transaction' &&
         !!(item.item as Transaction).budgetLineId;
@@ -246,9 +225,6 @@ export class BudgetTableDataProvider {
     });
   }
 
-  /**
-   * Retourne le montant avec le signe approprié selon le type
-   */
   #getSignedAmount(kind: TransactionKind, amount: number): number {
     switch (kind) {
       case 'income':
@@ -261,27 +237,56 @@ export class BudgetTableDataProvider {
     }
   }
 
+  // Méthodes pour les valeurs pré-calculées d'affichage
+  #getKindIcon(kind: TransactionKind): string {
+    return this.#KIND_ICONS[kind] ?? 'help';
+  }
+
+  #getAllocationLabel(kind: TransactionKind): string {
+    return this.#ALLOCATION_LABELS[kind] ?? 'Saisir';
+  }
+
+  #getTransactionCountLabel(kind: TransactionKind, count: number): string {
+    const label = this.#TRANSACTION_COUNT_LABELS[kind] ?? 'transaction';
+    return `${count} ${label}${count > 1 ? 's' : ''}`;
+  }
+
+  #calculatePercentage(reserved: number, consumed: number): number {
+    if (reserved <= 0) return 0;
+    return Math.round((consumed / reserved) * 100);
+  }
+
+  #getRolloverSourceBudgetId(data: BudgetLine): string | undefined {
+    return 'rolloverSourceBudgetId' in data
+      ? (data as BudgetLine & { rolloverSourceBudgetId?: string })
+          .rolloverSourceBudgetId
+      : undefined;
+  }
+
   /**
-   * Provides budget table data for display
-   *
-   * @param viewMode - 'envelopes' (défaut) affiche budget lines + transactions libres
-   *                   'transactions' affiche budget lines + TOUTES les transactions
+   * Provides budget table data for display with pre-computed display values
    */
   provideTableData(params: {
     budgetLines: BudgetLine[];
     transactions: Transaction[];
     editingLineId: string | null;
     viewMode?: BudgetTableViewMode;
-  }): TableItem[] {
+  }): (BudgetLineTableItem | TransactionTableItem)[] {
     const includeAllocatedTransactions = params.viewMode === 'transactions';
 
-    // Créer une map pour récupérer le nom de l'enveloppe pour les transactions allouées
+    // Map pour les noms d'enveloppes des transactions allouées
     const envelopeNameMap = new Map<string, string>();
     if (includeAllocatedTransactions) {
       params.budgetLines.forEach((line) => {
         envelopeNameMap.set(line.id, line.name);
       });
     }
+
+    // Calculer les consommations pour les budget lines
+    const consumptionMap = calculateAllConsumptions(
+      params.budgetLines,
+      params.transactions,
+    );
 
     const itemsWithBalance = this.#composeBudgetItemsWithBalanceGrouped(
       params.budgetLines,
@@ -299,25 +304,52 @@ export class BudgetTableDataProvider {
         !!budgetLine?.templateLineId &&
         !!budgetLine?.isManuallyAdjusted;
 
-      return {
-        data: item.item,
-        metadata: {
-          itemType: item.itemType,
-          cumulativeBalance: item.cumulativeBalance,
-          isEditing:
-            isBudgetLine &&
-            params.editingLineId === item.item.id &&
-            !isRollover,
-          isRollover,
-          isTemplateLinked: isBudgetLine ? !!budgetLine?.templateLineId : false,
-          isPropagationLocked,
-          canResetFromTemplate: isPropagationLocked,
-          // Pour les transactions allouées, inclure le nom de l'enveloppe
-          envelopeName: transaction?.budgetLineId
-            ? (envelopeNameMap.get(transaction.budgetLineId) ?? null)
-            : null,
-        },
+      // Métadonnées de base + valeurs pré-calculées
+      const baseMetadata = {
+        itemType: item.itemType as 'budget_line' | 'transaction',
+        cumulativeBalance: item.cumulativeBalance,
+        isEditing:
+          isBudgetLine && params.editingLineId === item.item.id && !isRollover,
+        isRollover,
+        isTemplateLinked: isBudgetLine ? !!budgetLine?.templateLineId : false,
+        isPropagationLocked,
+        canResetFromTemplate: isPropagationLocked,
+        envelopeName: transaction?.budgetLineId
+          ? (envelopeNameMap.get(transaction.budgetLineId) ?? null)
+          : null,
+        // Valeurs pré-calculées pour la vue
+        kindIcon: this.#getKindIcon(item.item.kind),
+        allocationLabel: this.#getAllocationLabel(item.item.kind),
+        rolloverSourceBudgetId: budgetLine
+          ? this.#getRolloverSourceBudgetId(budgetLine)
+          : undefined,
       };
+
+      if (isBudgetLine && budgetLine) {
+        const consumption = consumptionMap.get(budgetLine.id);
+        const consumed = consumption?.consumed ?? 0;
+        const transactionCount = consumption?.transactionCount ?? 0;
+
+        return {
+          data: budgetLine,
+          metadata: baseMetadata,
+          consumption: {
+            consumed,
+            transactionCount,
+            percentage: this.#calculatePercentage(budgetLine.amount, consumed),
+            transactionCountLabel: this.#getTransactionCountLabel(
+              budgetLine.kind,
+              transactionCount,
+            ),
+            hasTransactions: transactionCount > 0,
+          },
+        } as BudgetLineTableItem;
+      }
+
+      return {
+        data: item.item as Transaction,
+        metadata: baseMetadata,
+      } as TransactionTableItem;
     });
   }
 }
