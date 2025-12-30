@@ -21,6 +21,7 @@ import { BaseLoading } from '@ui/loading';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { DatePipe } from '@angular/common';
 import { Logger } from '@core/logging/logger';
+import { BreadcrumbState } from '@core/routing';
 import { formatDate } from 'date-fns';
 import { frCH } from 'date-fns/locale';
 import { BudgetDetailsStore } from './store/budget-details-store';
@@ -226,6 +227,7 @@ export default class BudgetDetailsPage {
   readonly #snackBar = inject(MatSnackBar);
   readonly #logger = inject(Logger);
   readonly #productTourService = inject(ProductTourService);
+  readonly #breadcrumbState = inject(BreadcrumbState);
   readonly #breakpointObserver = inject(BreakpointObserver);
 
   readonly #isMobile = toSignal(
@@ -238,7 +240,6 @@ export default class BudgetDetailsPage {
   id = input.required<string>();
 
   constructor() {
-    // React to ID changes automatically - this handles route parameter changes
     effect(() => {
       const budgetId = this.id();
       if (budgetId) {
@@ -246,7 +247,22 @@ export default class BudgetDetailsPage {
       }
     });
 
-    // Auto-trigger tour on first visit
+    effect((onCleanup) => {
+      const details = this.store.budgetDetails();
+      if (details) {
+        const label = formatDate(
+          new Date(details.year, details.month - 1, 1),
+          'MMMM yyyy',
+          { locale: frCH },
+        );
+        this.#breadcrumbState.setDynamicBreadcrumb(label);
+
+        onCleanup(() => {
+          this.#breadcrumbState.clearDynamicBreadcrumb();
+        });
+      }
+    });
+
     afterNextRender(() => {
       if (!this.#productTourService.hasSeenPageTour('budget-details')) {
         setTimeout(

@@ -4,6 +4,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   effect,
   inject,
   signal,
@@ -131,6 +132,7 @@ export default class BudgetListPage {
   readonly #snackBar = inject(MatSnackBar);
   readonly #logger = inject(Logger);
   readonly #loadingIndicator = inject(LoadingIndicator);
+  readonly #destroyRef = inject(DestroyRef);
 
   constructor() {
     // Refresh data on init
@@ -139,6 +141,10 @@ export default class BudgetListPage {
     effect(() => {
       const status = this.state.budgets.status();
       this.#loadingIndicator.setLoading(status === 'reloading');
+    });
+
+    this.#destroyRef.onDestroy(() => {
+      this.#loadingIndicator.setLoading(false);
     });
 
     // Auto-trigger tour on first visit
