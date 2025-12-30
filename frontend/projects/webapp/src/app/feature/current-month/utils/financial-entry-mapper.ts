@@ -23,6 +23,7 @@ export function mapBudgetLineToFinancialEntry(
     transactionDate: new Date().toISOString(),
     createdAt: budgetLine.createdAt,
     updatedAt: budgetLine.updatedAt,
+    checkedAt: budgetLine.checkedAt,
     rollover: {
       sourceBudgetId: isRollover
         ? budgetLine.rolloverSourceBudgetId

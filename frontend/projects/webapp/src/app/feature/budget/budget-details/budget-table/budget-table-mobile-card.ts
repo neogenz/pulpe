@@ -1,4 +1,4 @@
-import { CurrencyPipe } from '@angular/common';
+import { CurrencyPipe, DatePipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -8,6 +8,7 @@ import {
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
@@ -32,6 +33,7 @@ import { type BudgetLineTableItem } from './budget-table-models';
   standalone: true,
   imports: [
     MatCardModule,
+    MatSlideToggleModule,
     MatIconModule,
     MatButtonModule,
     MatBadgeModule,
@@ -42,6 +44,7 @@ import { type BudgetLineTableItem } from './budget-table-models';
     MatDividerModule,
     RouterLink,
     CurrencyPipe,
+    DatePipe,
     TransactionLabelPipe,
     RecurrenceLabelPipe,
     RolloverFormatPipe,
@@ -50,6 +53,8 @@ import { type BudgetLineTableItem } from './budget-table-models';
     <mat-card
       appearance="outlined"
       [class.opacity-50]="item().metadata.isLoading"
+      [class.line-through]="item().data.checkedAt"
+      [class.opacity-60]="item().data.checkedAt"
       [attr.data-testid]="
         'envelope-card-' + (item().data.name | rolloverFormat)
       "
@@ -67,30 +72,37 @@ import { type BudgetLineTableItem } from './budget-table-models';
             >
               {{ item().metadata.kindIcon }}
             </mat-icon>
-            <span
-              class="text-title-medium font-medium truncate"
-              [class.italic]="item().metadata.isRollover"
-              [class.text-financial-income]="item().data.kind === 'income'"
-              [class.text-financial-expense]="item().data.kind === 'expense'"
-              [class.text-financial-savings]="item().data.kind === 'saving'"
-            >
-              @if (
-                item().metadata.isRollover &&
-                item().metadata.rolloverSourceBudgetId
-              ) {
-                <a
-                  [routerLink]="[
-                    '/app/budget',
-                    item().metadata.rolloverSourceBudgetId,
-                  ]"
-                  class="text-primary underline"
-                >
+            <div class="flex items-center gap-2">
+              <span
+                class="text-title-medium font-medium truncate"
+                [class.italic]="item().metadata.isRollover"
+                [class.text-financial-income]="item().data.kind === 'income'"
+                [class.text-financial-expense]="item().data.kind === 'expense'"
+                [class.text-financial-savings]="item().data.kind === 'saving'"
+              >
+                @if (
+                  item().metadata.isRollover &&
+                  item().metadata.rolloverSourceBudgetId
+                ) {
+                  <a
+                    [routerLink]="[
+                      '/app/budget',
+                      item().metadata.rolloverSourceBudgetId,
+                    ]"
+                    class="text-primary underline"
+                  >
+                    {{ item().data.name | rolloverFormat }}
+                  </a>
+                } @else {
                   {{ item().data.name | rolloverFormat }}
-                </a>
-              } @else {
-                {{ item().data.name | rolloverFormat }}
+                }
+              </span>
+              @if (item().data.checkedAt) {
+                <span class="text-label-small text-on-surface-variant">
+                  {{ item().data.checkedAt | date: 'MM.dd' : '' : 'fr-CH' }}
+                </span>
               }
-            </span>
+            </div>
             @if (item().metadata.isPropagationLocked) {
               <mat-icon
                 class="text-base! text-outline shrink-0"
@@ -102,6 +114,12 @@ import { type BudgetLineTableItem } from './budget-table-models';
           </div>
 
           @if (!item().metadata.isRollover) {
+            <mat-slide-toggle
+              [checked]="item().data.checkedAt !== null"
+              (change)="toggleCheck.emit(item().data.id)"
+              (click)="$event.stopPropagation()"
+              [attr.data-testid]="'toggle-check-' + item().data.id"
+            />
             <button
               matIconButton
               [matMenuTriggerFor]="cardActionMenu"
@@ -273,4 +291,5 @@ export class BudgetTableMobileCard {
   readonly addTransaction = output<BudgetLine>();
   readonly viewTransactions = output<BudgetLineTableItem>();
   readonly resetFromTemplate = output<BudgetLineTableItem>();
+  readonly toggleCheck = output<string>();
 }

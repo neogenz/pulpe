@@ -10,6 +10,7 @@ export const financialEntrySchema = z.object({
   transactionDate: z.string().datetime(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
+  checkedAt: z.string().datetime().nullable().optional(),
   rollover: z.object({
     sourceBudgetId: z.string().uuid().optional(),
   }),

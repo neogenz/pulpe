@@ -38,6 +38,7 @@ export type Database = {
         Row: {
           amount: number;
           budget_id: string;
+          checked_at: string | null;
           created_at: string;
           id: string;
           is_manually_adjusted: boolean;
@@ -51,6 +52,7 @@ export type Database = {
         Insert: {
           amount: number;
           budget_id: string;
+          checked_at?: string | null;
           created_at?: string;
           id?: string;
           is_manually_adjusted?: boolean;
@@ -64,6 +66,7 @@ export type Database = {
         Update: {
           amount?: number;
           budget_id?: string;
+          checked_at?: string | null;
           created_at?: string;
           id?: string;
           is_manually_adjusted?: boolean;

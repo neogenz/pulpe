@@ -134,6 +134,7 @@ import {
         <pulpe-budget-financial-overview
           [budgetLines]="budgetLines"
           [transactions]="transactions"
+          [realizedBalance]="store.realizedBalance()"
           data-tour="financial-overview"
         />
 
@@ -149,6 +150,7 @@ import {
             openCreateAllocatedTransactionDialog($event)
           "
           (resetFromTemplate)="handleResetFromTemplate($event)"
+          (toggleCheck)="handleToggleCheck($event)"
           data-tour="budget-table"
         />
 
@@ -487,5 +489,9 @@ export default class BudgetDetailsPage {
         panelClass: ['bg-error-container', 'text-on-error-container'],
       });
     }
+  }
+
+  async handleToggleCheck(budgetLineId: string): Promise<void> {
+    await this.store.toggleCheck(budgetLineId);
   }
 }

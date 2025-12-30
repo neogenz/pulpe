@@ -1,5 +1,7 @@
+import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, resource, signal } from '@angular/core';
 import { BudgetApi } from '@core/budget';
+import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { TransactionApi } from '@core/transaction';
 import { createRolloverLine } from '@core/rollover/rollover-types';
 import {
@@ -36,6 +38,8 @@ import { createInitialCurrentMonthInternalState } from './current-month-state';
 export class CurrentMonthStore {
   #budgetApi = inject(BudgetApi);
   #transactionApi = inject(TransactionApi);
+  #httpClient = inject(HttpClient);
+  #appConfig = inject(ApplicationConfiguration);
 
   /**
    * Simple state signal for UI feedback during operations
@@ -158,6 +162,15 @@ export class CurrentMonthStore {
     const available = this.totalAvailable();
     const expenses = this.totalExpenses();
     return BudgetFormulas.calculateRemaining(available, expenses);
+  });
+
+  /**
+   * Solde réalisé (uniquement les éléments cochés)
+   */
+  readonly realizedBalance = computed<number>(() => {
+    const budgetLines = this.budgetLines();
+    const transactions = this.transactions();
+    return BudgetFormulas.calculateRealizedBalance(budgetLines, transactions);
   });
 
   /**
@@ -362,6 +375,38 @@ export class CurrentMonthStore {
       } else {
         this.refreshData();
       }
+      throw error;
+    }
+  }
+
+  /**
+   * Toggle the checked state of a budget line
+   * Uses optimistic update for instant UI feedback with rollback on error
+   */
+  async toggleCheck(budgetLineId: string): Promise<void> {
+    const originalData = this.#dashboardResource.value();
+    if (!originalData) return;
+
+    const budgetLine = originalData.budgetLines.find(
+      (line) => line.id === budgetLineId,
+    );
+    if (!budgetLine) return;
+
+    const newCheckedAt =
+      budgetLine.checkedAt === null ? new Date().toISOString() : null;
+
+    this.#dashboardResource.set({
+      ...originalData,
+      budgetLines: originalData.budgetLines.map((line) =>
+        line.id === budgetLineId ? { ...line, checkedAt: newCheckedAt } : line,
+      ),
+    });
+
+    try {
+      const apiUrl = `${this.#appConfig.backendApiUrl()}/budget-lines/${budgetLineId}/toggle-check`;
+      await firstValueFrom(this.#httpClient.post(apiUrl, {}));
+    } catch (error) {
+      this.#dashboardResource.set(originalData);
       throw error;
     }
   }

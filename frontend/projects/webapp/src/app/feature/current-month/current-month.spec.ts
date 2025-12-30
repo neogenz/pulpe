@@ -14,6 +14,7 @@ const createBudgetLine = (overrides: Partial<BudgetLine> = {}): BudgetLine => ({
   kind: 'expense',
   recurrence: 'fixed',
   isManuallyAdjusted: false,
+  checkedAt: null,
   createdAt: '2024-01-01T00:00:00.000Z',
   updatedAt: '2024-01-01T00:00:00.000Z',
   ...overrides,

@@ -44,6 +44,7 @@ describe('BudgetCalculator', () => {
     kind,
     recurrence: 'fixed',
     isManuallyAdjusted: false,
+    checkedAt: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   });

@@ -527,6 +527,7 @@ export class DemoDataGeneratorService {
           kind: templateLine.kind,
           recurrence: templateLine.recurrence,
           is_manually_adjusted: false,
+          checked_at: null,
         });
       }
     }

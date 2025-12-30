@@ -20,6 +20,7 @@ const defaultBudgetLine: BudgetLine = {
   kind: 'expense',
   recurrence: 'fixed',
   isManuallyAdjusted: false,
+  checkedAt: null,
   createdAt: '2024-01-01T00:00:00Z',
   updatedAt: '2024-01-01T00:00:00Z',
 };

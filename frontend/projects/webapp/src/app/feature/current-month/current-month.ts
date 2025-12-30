@@ -34,6 +34,10 @@ import { TitleDisplay } from '@core/routing';
 import { type TransactionCreate } from '@pulpe/shared';
 import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
 import { BaseLoading } from '@ui/loading';
+import {
+  FinancialSummary,
+  type FinancialSummaryData,
+} from '@ui/financial-summary/financial-summary';
 import { firstValueFrom } from 'rxjs';
 import { AddTransactionBottomSheet } from './components/add-transaction-bottom-sheet';
 import { BudgetProgressBar } from './components/budget-progress-bar';
@@ -84,6 +88,7 @@ type EditTransactionFormData = Pick<
     DashboardError,
     BaseLoading,
     OneTimeExpensesList,
+    FinancialSummary,
   ],
   template: `
     <div class="flex flex-col gap-4" data-testid="current-month-page">
@@ -138,6 +143,11 @@ type EditTransactionFormData = Pick<
             [available]="store.totalAvailable()"
             data-tour="progress-bar"
           />
+          <pulpe-financial-summary
+            [data]="realizedBalanceData()"
+            class="mt-4"
+            data-testid="realized-balance-summary"
+          />
           <div
             class="flex flex-col gap-4"
             data-testid="dashboard-content"
@@ -172,6 +182,7 @@ type EditTransactionFormData = Pick<
 
             <pulpe-recurring-expenses-list
               [financialEntries]="recurringFinancialItems()"
+              (toggleCheckFinancialEntry)="handleToggleBudgetLineCheck($event)"
               data-testid="recurring-expenses-list"
             />
             <pulpe-one-time-expenses-list
@@ -179,6 +190,7 @@ type EditTransactionFormData = Pick<
               [(selectedFinancialEntries)]="selectedTransactions"
               (deleteFinancialEntry)="deleteTransaction($event)"
               (editFinancialEntry)="openEditTransactionDialogAndUpdate($event)"
+              (toggleCheckFinancialEntry)="handleToggleBudgetLineCheck($event)"
               data-testid="one-time-expenses-list"
             />
           </div>
@@ -267,12 +279,23 @@ export default class CurrentMonth {
       )
       .map((line) => mapBudgetLineToFinancialEntry(line, budget.id));
   });
+
   oneTimeFinancialItems = computed<FinancialEntryModel[]>(() => {
     // For now, show all transactions as variable expenses
     const transactions = this.store.dashboardData()?.transactions ?? [];
     return transactions.map((transaction) =>
       mapTransactionToFinancialEntry(transaction),
     );
+  });
+
+  realizedBalanceData = computed<FinancialSummaryData>(() => {
+    const balance = this.store.realizedBalance();
+    return {
+      title: 'Solde réalisé',
+      amount: balance,
+      icon: 'check_circle',
+      type: balance >= 0 ? 'income' : 'negative',
+    };
   });
 
   openAddTransactionBottomSheet(): void {
@@ -416,6 +439,17 @@ export default class CurrentMonth {
           duration: 5000,
         },
       );
+    }
+  }
+
+  async handleToggleBudgetLineCheck(budgetLineId: string): Promise<void> {
+    try {
+      await this.store.toggleCheck(budgetLineId);
+    } catch (error) {
+      this.#logger.error('Error toggling budget line check:', error);
+      this.#snackBar.open('Erreur lors du basculement du statut', 'Fermer', {
+        duration: 5000,
+      });
     }
   }
 }

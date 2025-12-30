@@ -96,4 +96,17 @@ export class BudgetLineApi {
         }),
       );
   }
+
+  toggleCheck$(id: string): Observable<BudgetLineResponse> {
+    return this.#http
+      .post<BudgetLineResponse>(`${this.#apiUrl}/${id}/toggle-check`, {})
+      .pipe(
+        catchError((error) => {
+          this.#logger.error('Error toggling budget line check:', error);
+          return throwError(
+            () => new Error('Impossible de basculer le statut de la prévision'),
+          );
+        }),
+      );
+  }
 }

@@ -1,5 +1,5 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { CurrencyPipe } from '@angular/common';
+import { CurrencyPipe, DatePipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -15,6 +15,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
@@ -60,6 +61,7 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
   imports: [
     MatTableModule,
     MatCardModule,
+    MatSlideToggleModule,
     MatIconModule,
     MatButtonModule,
     MatBadgeModule,
@@ -73,6 +75,7 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
     ReactiveFormsModule,
     RouterLink,
     CurrencyPipe,
+    DatePipe,
     TransactionLabelPipe,
     RecurrenceLabelPipe,
     RolloverFormatPipe,
@@ -101,6 +104,7 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                 (addTransaction)="addAllocatedTransaction($event)"
                 (viewTransactions)="onViewTransactions($event)"
                 (resetFromTemplate)="onResetFromTemplateClick($event)"
+                (toggleCheck)="toggleCheck.emit($event)"
               />
             } @empty {
               <div class="text-center py-8">
@@ -287,6 +291,15 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                               </span>
                             }
                           </div>
+                        }
+                        @if (line.data.checkedAt) {
+                          <span
+                            class="text-body-small text-on-surface-variant ml-2"
+                          >
+                            {{
+                              line.data.checkedAt | date: 'MM.dd' : '' : 'fr-CH'
+                            }}
+                          </span>
                         }
                       </span>
                     </div>
@@ -519,6 +532,14 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                         </button>
                       </div>
                     } @else if (!line.metadata.isRollover) {
+                      @if (line.metadata.itemType === 'budget_line') {
+                        <mat-slide-toggle
+                          [checked]="line.data.checkedAt !== null"
+                          (change)="toggleCheck.emit(line.data.id)"
+                          (click)="$event.stopPropagation()"
+                          [attr.data-testid]="'toggle-check-' + line.data.id"
+                        />
+                      }
                       <button
                         matIconButton
                         [matMenuTriggerFor]="rowActionMenu"
@@ -601,6 +622,8 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                 class="hover:bg-surface-container-low transition-opacity"
                 [class.opacity-50]="row.metadata.isLoading"
                 [class.pointer-events-none]="row.metadata.isLoading"
+                [class.line-through]="row.data.checkedAt"
+                [class.opacity-60]="row.data.checkedAt"
                 [attr.data-testid]="
                   'budget-line-' + (row.data.name | rolloverFormat)
                 "
@@ -680,6 +703,7 @@ export class BudgetTable {
   }>();
   createAllocatedTransaction = output<BudgetLine>();
   resetFromTemplate = output<string>();
+  toggleCheck = output<string>();
 
   // Services
   readonly #breakpointObserver = inject(BreakpointObserver);

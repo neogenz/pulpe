@@ -17,7 +17,7 @@ import { calculateAllConsumptions } from '@core/budget/budget-line-consumption';
   selector: 'pulpe-budget-financial-overview',
   imports: [FinancialSummary],
   template: `
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
       <pulpe-financial-summary
         [data]="incomeData()"
         data-testid="financial-overview"
@@ -25,6 +25,7 @@ import { calculateAllConsumptions } from '@core/budget/budget-line-consumption';
       <pulpe-financial-summary [data]="expenseData()" />
       <pulpe-financial-summary [data]="savingsData()" />
       <pulpe-financial-summary [data]="remainingData()" />
+      <pulpe-financial-summary [data]="realizedBalanceData()" />
     </div>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -34,6 +35,7 @@ export class BudgetFinancialOverview {
 
   budgetLines = input.required<BudgetLine[]>();
   transactions = input.required<Transaction[]>();
+  realizedBalance = input.required<number>();
 
   totals = computed(() => {
     const lines = this.budgetLines();
@@ -107,6 +109,16 @@ export class BudgetFinancialOverview {
       amount: Math.abs(remaining),
       icon: remaining >= 0 ? 'account_balance_wallet' : 'warning',
       type: remaining >= 0 ? 'savings' : 'negative',
+    };
+  });
+
+  realizedBalanceData = computed<FinancialSummaryData>(() => {
+    const balance = this.realizedBalance();
+    return {
+      title: 'Solde réalisé',
+      amount: balance,
+      icon: 'check_circle',
+      type: balance >= 0 ? 'income' : 'negative',
     };
   });
 }

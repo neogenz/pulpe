@@ -158,6 +158,193 @@ describe('BudgetFormulas', () => {
     });
   });
 
+  describe('calculateRealizedIncome', () => {
+    it('should only count checked income items', () => {
+      const budgetLines: Array<{
+        kind: TransactionKind;
+        amount: number;
+        checkedAt: string | null;
+      }> = [
+        { kind: 'income', amount: 5000, checkedAt: '2025-01-15T10:00:00Z' },
+        { kind: 'income', amount: 1000, checkedAt: null },
+      ];
+      expect(BudgetFormulas.calculateRealizedIncome(budgetLines)).toBe(5000);
+    });
+
+    it('should return 0 when no items are checked', () => {
+      const budgetLines: Array<{
+        kind: TransactionKind;
+        amount: number;
+        checkedAt: string | null;
+      }> = [{ kind: 'income', amount: 5000, checkedAt: null }];
+      expect(BudgetFormulas.calculateRealizedIncome(budgetLines)).toBe(0);
+    });
+
+    it('should combine checked budget lines and transactions', () => {
+      const budgetLines: Array<{
+        kind: TransactionKind;
+        amount: number;
+        checkedAt: string | null;
+      }> = [
+        { kind: 'income', amount: 5000, checkedAt: '2025-01-15' },
+        { kind: 'income', amount: 1000, checkedAt: null },
+      ];
+      const transactions: Array<{
+        kind: TransactionKind;
+        amount: number;
+        checkedAt: string | null;
+      }> = [
+        { kind: 'income', amount: 300, checkedAt: '2025-01-16' },
+        { kind: 'income', amount: 200, checkedAt: null },
+      ];
+      expect(
+        BudgetFormulas.calculateRealizedIncome(budgetLines, transactions),
+      ).toBe(5300);
+    });
+
+    it('should ignore non-income items', () => {
+      const budgetLines: Array<{
+        kind: TransactionKind;
+        amount: number;
+        checkedAt: string | null;
+      }> = [
+        { kind: 'expense', amount: 1000, checkedAt: '2025-01-15' },
+        { kind: 'saving', amount: 500, checkedAt: '2025-01-15' },
+      ];
+      expect(BudgetFormulas.calculateRealizedIncome(budgetLines)).toBe(0);
+    });
+
+    it('should handle empty arrays', () => {
+      expect(BudgetFormulas.calculateRealizedIncome([], [])).toBe(0);
+    });
+  });
+
+  describe('calculateRealizedExpenses', () => {
+    it('should only count checked expense and saving items', () => {
+      const budgetLines: Array<{
+        kind: TransactionKind;
+        amount: number;
+        checkedAt: string | null;
+      }> = [
+        { kind: 'expense', amount: 1000, checkedAt: '2025-01-15' },
+        { kind: 'saving', amount: 500, checkedAt: '2025-01-15' },
+        { kind: 'expense', amount: 200, checkedAt: null },
+      ];
+      expect(BudgetFormulas.calculateRealizedExpenses(budgetLines)).toBe(1500);
+    });
+
+    it('should return 0 when no items are checked', () => {
+      const budgetLines: Array<{
+        kind: TransactionKind;
+        amount: number;
+        checkedAt: string | null;
+      }> = [
+        { kind: 'expense', amount: 1000, checkedAt: null },
+        { kind: 'saving', amount: 500, checkedAt: null },
+      ];
+      expect(BudgetFormulas.calculateRealizedExpenses(budgetLines)).toBe(0);
+    });
+
+    it('should combine checked budget lines and transactions', () => {
+      const budgetLines: Array<{
+        kind: TransactionKind;
+        amount: number;
+        checkedAt: string | null;
+      }> = [
+        { kind: 'expense', amount: 1000, checkedAt: '2025-01-15' },
+        { kind: 'expense', amount: 500, checkedAt: null },
+      ];
+      const transactions: Array<{
+        kind: TransactionKind;
+        amount: number;
+        checkedAt: string | null;
+      }> = [
+        { kind: 'expense', amount: 200, checkedAt: '2025-01-16' },
+        { kind: 'saving', amount: 100, checkedAt: '2025-01-16' },
+        { kind: 'expense', amount: 50, checkedAt: null },
+      ];
+      expect(
+        BudgetFormulas.calculateRealizedExpenses(budgetLines, transactions),
+      ).toBe(1300);
+    });
+
+    it('should ignore income items', () => {
+      const budgetLines: Array<{
+        kind: TransactionKind;
+        amount: number;
+        checkedAt: string | null;
+      }> = [{ kind: 'income', amount: 5000, checkedAt: '2025-01-15' }];
+      expect(BudgetFormulas.calculateRealizedExpenses(budgetLines)).toBe(0);
+    });
+
+    it('should handle empty arrays', () => {
+      expect(BudgetFormulas.calculateRealizedExpenses([], [])).toBe(0);
+    });
+  });
+
+  describe('calculateRealizedBalance', () => {
+    it('should calculate balance from checked items only', () => {
+      const budgetLines: Array<{
+        kind: TransactionKind;
+        amount: number;
+        checkedAt: string | null;
+      }> = [
+        { kind: 'income', amount: 5000, checkedAt: '2025-01-15' },
+        { kind: 'expense', amount: 2000, checkedAt: '2025-01-16' },
+        { kind: 'expense', amount: 1000, checkedAt: null },
+      ];
+      expect(BudgetFormulas.calculateRealizedBalance(budgetLines)).toBe(3000);
+    });
+
+    it('should handle no checked items', () => {
+      const budgetLines: Array<{
+        kind: TransactionKind;
+        amount: number;
+        checkedAt: string | null;
+      }> = [
+        { kind: 'income', amount: 5000, checkedAt: null },
+        { kind: 'expense', amount: 2000, checkedAt: null },
+      ];
+      expect(BudgetFormulas.calculateRealizedBalance(budgetLines)).toBe(0);
+    });
+
+    it('should combine checked budget lines and transactions', () => {
+      const budgetLines: Array<{
+        kind: TransactionKind;
+        amount: number;
+        checkedAt: string | null;
+      }> = [
+        { kind: 'income', amount: 5000, checkedAt: '2025-01-15' },
+        { kind: 'expense', amount: 1500, checkedAt: '2025-01-15' },
+        { kind: 'saving', amount: 500, checkedAt: null },
+      ];
+      const transactions: Array<{
+        kind: TransactionKind;
+        amount: number;
+        checkedAt: string | null;
+      }> = [
+        { kind: 'expense', amount: 200, checkedAt: '2025-01-16' },
+        { kind: 'income', amount: 300, checkedAt: '2025-01-16' },
+        { kind: 'expense', amount: 100, checkedAt: null },
+      ];
+      expect(
+        BudgetFormulas.calculateRealizedBalance(budgetLines, transactions),
+      ).toBe(3600);
+    });
+
+    it('should handle negative balance', () => {
+      const budgetLines: Array<{
+        kind: TransactionKind;
+        amount: number;
+        checkedAt: string | null;
+      }> = [
+        { kind: 'income', amount: 2000, checkedAt: '2025-01-15' },
+        { kind: 'expense', amount: 3000, checkedAt: '2025-01-15' },
+      ];
+      expect(BudgetFormulas.calculateRealizedBalance(budgetLines)).toBe(-1000);
+    });
+  });
+
   describe('calculateAllMetrics', () => {
     it('should calculate all metrics coherently with complex data', () => {
       const { budgetLines, transactions, rollover } = complexTestData;

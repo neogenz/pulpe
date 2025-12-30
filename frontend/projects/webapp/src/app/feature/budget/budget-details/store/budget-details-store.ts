@@ -9,6 +9,7 @@ import {
   type BudgetLineUpdate,
   type Transaction,
   type TransactionCreate,
+  BudgetFormulas,
 } from '@pulpe/shared';
 
 import { firstValueFrom } from 'rxjs';
@@ -97,6 +98,16 @@ export class BudgetDetailsStore {
     return lines;
   });
 
+  readonly realizedBalance = computed<number>(() => {
+    const details = this.budgetDetails();
+    if (!details) return 0;
+
+    return BudgetFormulas.calculateRealizedBalance(
+      details.budgetLines,
+      details.transactions,
+    );
+  });
+
   setBudgetId(budgetId: string): void {
     this.#state.budgetId.set(budgetId);
   }
@@ -115,6 +126,7 @@ export class BudgetDetailsStore {
       updatedAt: new Date().toISOString(),
       templateLineId: null,
       savingsGoalId: null,
+      checkedAt: budgetLine.checkedAt ?? null,
     };
 
     // Optimistic update - add the new line immediately
@@ -336,6 +348,55 @@ export class BudgetDetailsStore {
       this.#setError(errorMessage);
       this.#logger.error('Error resetting budget line from template', error);
       throw error;
+    }
+  }
+
+  /**
+   * Toggle the checked state of a budget line
+   */
+  async toggleCheck(id: string): Promise<void> {
+    this.#budgetDetailsResource.update((details) => {
+      if (!details) return details;
+
+      return {
+        ...details,
+        budgetLines: details.budgetLines.map((line) =>
+          line.id === id
+            ? {
+                ...line,
+                checkedAt:
+                  line.checkedAt === null ? new Date().toISOString() : null,
+                updatedAt: new Date().toISOString(),
+              }
+            : line,
+        ),
+      };
+    });
+
+    try {
+      const response = await firstValueFrom(
+        this.#budgetLineApi.toggleCheck$(id),
+      );
+
+      this.#budgetDetailsResource.update((details) => {
+        if (!details) return details;
+
+        return {
+          ...details,
+          budgetLines: details.budgetLines.map((line) =>
+            line.id === id ? response.data : line,
+          ),
+        };
+      });
+
+      this.#clearError();
+    } catch (error) {
+      this.reloadBudgetDetails();
+
+      const errorMessage =
+        'Erreur lors du basculement du statut de la prévision';
+      this.#setError(errorMessage);
+      this.#logger.error('Error toggling budget line check', error);
     }
   }
 

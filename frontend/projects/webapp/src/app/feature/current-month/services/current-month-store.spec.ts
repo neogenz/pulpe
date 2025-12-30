@@ -1,5 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
+import { provideHttpClient } from '@angular/common/http';
+import {
+  HttpTestingController,
+  provideHttpClientTesting,
+} from '@angular/common/http/testing';
 import { of, throwError } from 'rxjs';
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import type {
@@ -13,6 +18,7 @@ import { CurrentMonthStore } from './current-month-store';
 import { BudgetApi, BudgetCalculator } from '@core/budget';
 import { TransactionApi } from '@core/transaction/transaction-api';
 import { Logger } from '@core/logging/logger';
+import { ApplicationConfiguration } from '@core/config/application-configuration';
 
 // Mock data aligned with business scenarios
 const mockBudget: Budget = {
@@ -39,6 +45,7 @@ const mockBudgetLines: BudgetLine[] = [
     amount: 5000,
     kind: 'income',
     recurrence: 'fixed',
+    checkedAt: null,
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
   },
@@ -52,6 +59,7 @@ const mockBudgetLines: BudgetLine[] = [
     amount: 1500,
     kind: 'expense',
     recurrence: 'fixed',
+    checkedAt: null,
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
   },
@@ -135,14 +143,21 @@ describe('CurrentMonthStore - Business Scenarios', () => {
       error: vi.fn(),
     };
 
+    const mockAppConfig = {
+      backendApiUrl: vi.fn().mockReturnValue('http://localhost:3000/api'),
+    };
+
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
+        provideHttpClient(),
+        provideHttpClientTesting(),
         CurrentMonthStore,
         { provide: BudgetApi, useValue: mockBudgetApi },
         { provide: TransactionApi, useValue: mockTransactionApi },
         { provide: BudgetCalculator, useValue: mockBudgetCalculator },
         { provide: Logger, useValue: mockLogger },
+        { provide: ApplicationConfiguration, useValue: mockAppConfig },
       ],
     });
 
@@ -364,6 +379,129 @@ describe('CurrentMonthStore - Business Scenarios', () => {
     });
   });
 
+  describe('User can toggle budget line check', () => {
+    let httpTesting: HttpTestingController;
+
+    beforeEach(() => {
+      httpTesting = TestBed.inject(HttpTestingController);
+    });
+
+    it('should update checkedAt locally before API completes (optimistic update)', async () => {
+      await vi.waitFor(() => {
+        expect(store.dashboardData()).toBeTruthy();
+      });
+
+      const budgetLine = store
+        .budgetLines()
+        .find((l) => l.id === 'line-income');
+      expect(budgetLine?.checkedAt).toBeNull();
+
+      const togglePromise = store.toggleCheck('line-income');
+
+      const updatedLine = store
+        .budgetLines()
+        .find((l) => l.id === 'line-income');
+      expect(updatedLine?.checkedAt).not.toBeNull();
+
+      const req = httpTesting.expectOne(
+        'http://localhost:3000/api/budget-lines/line-income/toggle-check',
+      );
+      req.flush({});
+
+      await togglePromise;
+    });
+
+    it('should toggle checkedAt from non-null to null', async () => {
+      const checkedBudgetLines: BudgetLine[] = [
+        {
+          ...mockBudgetLines[0],
+          checkedAt: '2024-01-15T00:00:00Z',
+        },
+        mockBudgetLines[1],
+      ];
+
+      mockBudgetApi.getBudgetWithDetails$.mockReturnValue(
+        of({
+          data: {
+            budget: mockBudget,
+            transactions: mockTransactions,
+            budgetLines: checkedBudgetLines,
+          },
+        }),
+      );
+      store.refreshData();
+
+      await vi.waitFor(() => {
+        const line = store.budgetLines().find((l) => l.id === 'line-income');
+        expect(line?.checkedAt).toBe('2024-01-15T00:00:00Z');
+      });
+
+      const togglePromise = store.toggleCheck('line-income');
+
+      const updatedLine = store
+        .budgetLines()
+        .find((l) => l.id === 'line-income');
+      expect(updatedLine?.checkedAt).toBeNull();
+
+      const req = httpTesting.expectOne(
+        'http://localhost:3000/api/budget-lines/line-income/toggle-check',
+      );
+      req.flush({});
+
+      await togglePromise;
+    });
+
+    it('should rollback on API error', async () => {
+      await vi.waitFor(() => {
+        expect(store.dashboardData()).toBeTruthy();
+      });
+
+      const originalCheckedAt = store
+        .budgetLines()
+        .find((l) => l.id === 'line-income')?.checkedAt;
+      expect(originalCheckedAt).toBeNull();
+
+      const togglePromise = store.toggleCheck('line-income');
+
+      const updatedLine = store
+        .budgetLines()
+        .find((l) => l.id === 'line-income');
+      expect(updatedLine?.checkedAt).not.toBeNull();
+
+      const req = httpTesting.expectOne(
+        'http://localhost:3000/api/budget-lines/line-income/toggle-check',
+      );
+      req.error(new ProgressEvent('error'));
+
+      await expect(togglePromise).rejects.toThrow();
+
+      const restoredLine = store
+        .budgetLines()
+        .find((l) => l.id === 'line-income');
+      expect(restoredLine?.checkedAt).toBeNull();
+    });
+
+    it('should update realizedBalance when toggling income line', async () => {
+      await vi.waitFor(() => {
+        expect(store.dashboardData()).toBeTruthy();
+      });
+
+      const initialRealizedBalance = store.realizedBalance();
+
+      const togglePromise = store.toggleCheck('line-income');
+
+      const newRealizedBalance = store.realizedBalance();
+      expect(newRealizedBalance).not.toBe(initialRealizedBalance);
+
+      const req = httpTesting.expectOne(
+        'http://localhost:3000/api/budget-lines/line-income/toggle-check',
+      );
+      req.flush({});
+
+      await togglePromise;
+    });
+  });
+
   describe('App handles empty states gracefully', () => {
     beforeEach(() => {
       // Setup scenario with no data
@@ -373,14 +511,21 @@ describe('CurrentMonthStore - Business Scenarios', () => {
       );
       mockBudgetCalculator.calculateTotalAvailable.mockReturnValue(0);
 
+      const mockAppConfig = {
+        backendApiUrl: vi.fn().mockReturnValue('http://localhost:3000/api'),
+      };
+
       TestBed.resetTestingModule();
       TestBed.configureTestingModule({
         providers: [
           provideZonelessChangeDetection(),
+          provideHttpClient(),
+          provideHttpClientTesting(),
           CurrentMonthStore,
           { provide: BudgetApi, useValue: mockBudgetApi },
           { provide: TransactionApi, useValue: mockTransactionApi },
           { provide: BudgetCalculator, useValue: mockBudgetCalculator },
+          { provide: ApplicationConfiguration, useValue: mockAppConfig },
         ],
       });
       store = TestBed.inject(CurrentMonthStore);
