@@ -50,7 +50,13 @@ export class BreadcrumbState {
           if (!route.snapshot) {
             return acc;
           }
-          const breadcrumbLabel = route.snapshot.data?.['breadcrumb'];
+          const breadcrumbConfig = route.snapshot.data?.['breadcrumb'];
+
+          // Support function breadcrumbs that receive the route snapshot
+          const breadcrumbLabel =
+            typeof breadcrumbConfig === 'function'
+              ? breadcrumbConfig(route.snapshot)
+              : breadcrumbConfig;
 
           // 1. Accumuler les segments de chemin pour former le chemin complet jusqu'à cette route
           const routeUrlSegments = route.snapshot.url.map(

@@ -1,8 +1,35 @@
-import { type Routes } from '@angular/router';
+import {
+  type ActivatedRouteSnapshot,
+  type ResolveFn,
+  type Routes,
+} from '@angular/router';
+import {
+  type BreadcrumbContext,
+  getBreadcrumbContext,
+  PAGE_TITLES,
+} from '@core/routing';
+import { formatDate } from 'date-fns';
+import { frCH } from 'date-fns/locale';
 import { BudgetLineApi } from './budget-details/budget-line-api/budget-line-api';
 import { BudgetTableDataProvider } from './budget-details/budget-table/budget-table-data-provider';
 import { BudgetListStore } from './budget-list/budget-list-store';
-import { PAGE_TITLES } from '@core/routing';
+
+const breadcrumbContextResolver: ResolveFn<BreadcrumbContext | null> = (
+  route,
+) => {
+  const id = route.paramMap.get('id');
+  if (!id) return null;
+
+  return getBreadcrumbContext(id);
+};
+
+const budgetBreadcrumb = (route: ActivatedRouteSnapshot): string => {
+  const context = route.data['breadcrumbContext'] as BreadcrumbContext | null;
+  if (!context) return 'Détail du budget';
+
+  const date = new Date(context.year, context.month - 1, 1);
+  return formatDate(date, 'MMMM yyyy', { locale: frCH });
+};
 
 export const budgetRoutes: Routes = [
   {
@@ -17,7 +44,8 @@ export const budgetRoutes: Routes = [
       {
         path: ':id',
         title: PAGE_TITLES.BUDGET_DETAILS,
-        data: { breadcrumb: 'Détail du budget', icon: 'visibility' },
+        resolve: { breadcrumbContext: breadcrumbContextResolver },
+        data: { breadcrumb: budgetBreadcrumb, icon: 'visibility' },
         providers: [BudgetLineApi, BudgetTableDataProvider],
         loadComponent: () => import('./budget-details/budget-details-page'),
       },

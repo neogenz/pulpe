@@ -4,6 +4,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   effect,
   inject,
   signal,
@@ -21,6 +22,7 @@ import { type CalendarMonth, YearCalendar } from '@ui/calendar';
 import { type CalendarYear } from '@ui/calendar/calendar-types';
 import { BaseLoading } from '@ui/loading';
 import { firstValueFrom, map, shareReplay } from 'rxjs';
+import { saveBreadcrumbContext } from '@core/routing';
 import { MonthsError } from '../ui/budget-error';
 import { mapToCalendarYear } from './budget-list-mapper/budget-list.mapper';
 import { BudgetListStore } from './budget-list-store';
@@ -131,6 +133,7 @@ export default class BudgetListPage {
   readonly #snackBar = inject(MatSnackBar);
   readonly #logger = inject(Logger);
   readonly #loadingIndicator = inject(LoadingIndicator);
+  readonly #destroyRef = inject(DestroyRef);
 
   constructor() {
     // Refresh data on init
@@ -139,6 +142,10 @@ export default class BudgetListPage {
     effect(() => {
       const status = this.state.budgets.status();
       this.#loadingIndicator.setLoading(status === 'reloading');
+    });
+
+    this.#destroyRef.onDestroy(() => {
+      this.#loadingIndicator.setLoading(false);
     });
 
     // Auto-trigger tour on first visit
@@ -220,6 +227,11 @@ export default class BudgetListPage {
 
   navigateToDetails(month: CalendarMonth): void {
     if (month.hasContent && month.id) {
+      saveBreadcrumbContext({
+        id: month.id,
+        month: month.month,
+        year: month.year,
+      });
       this.#router.navigate([ROUTES.APP, ROUTES.BUDGET, month.id]);
     }
   }
