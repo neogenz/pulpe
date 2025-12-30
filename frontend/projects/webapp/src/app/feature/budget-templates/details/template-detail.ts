@@ -245,15 +245,12 @@ export default class TemplateDetail implements OnInit {
     if (!templateId) return;
 
     // Extract stale data from router state (if navigated from create page)
-    // This enables SWR: instant display + background revalidation
-    const navigation = this.#router.getCurrentNavigation();
-    const staleData = navigation?.extras.state?.['initialData'] as
+    // Note: Use history.state because getCurrentNavigation() returns null in ngOnInit
+    // (navigation is already complete when component initializes)
+    const staleData = history.state?.['initialData'] as
       | BudgetTemplateDetailViewModel
       | undefined;
 
-    // Initialize store with optional SWR cache
-    // - With staleData: instant render + background fetch
-    // - Without staleData: normal loading (e.g., direct URL access)
     this.templateDetailsStore.initializeTemplateId(templateId, staleData);
   }
 

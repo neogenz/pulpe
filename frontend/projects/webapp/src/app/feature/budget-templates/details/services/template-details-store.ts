@@ -82,15 +82,18 @@ export class TemplateDetailsStore {
     id: string,
     staleData?: BudgetTemplateDetailViewModel,
   ): void {
+    // IMPORTANT: Set stale data BEFORE templateId to avoid loading flash
+    // When templateId changes, resource triggers isLoading=true
+    // Having staleData already set makes isLoading computed return false
+    if (staleData) {
+      this.#staleData.set(staleData);
+    }
+
     this.#state.update((state) => ({
       ...state,
       templateId: id,
       error: null,
     }));
-
-    if (staleData) {
-      this.#staleData.set(staleData);
-    }
   }
 
   /**
