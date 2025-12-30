@@ -252,6 +252,7 @@ export const transactionCreateSchema = z.object({
   kind: transactionKindSchema,
   transactionDate: z.iso.datetime().optional(),
   category: z.string().max(100).trim().nullable().optional(),
+  checkedAt: z.iso.datetime().nullable().optional(),
 });
 export type TransactionCreate = z.infer<typeof transactionCreateSchema>;
 

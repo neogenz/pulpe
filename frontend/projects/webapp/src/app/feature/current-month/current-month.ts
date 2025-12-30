@@ -147,7 +147,17 @@ type EditTransactionFormData = Pick<
             [data]="realizedBalanceData()"
             class="mt-4"
             data-testid="realized-balance-summary"
-          />
+          >
+            <mat-icon
+              slot="title-info"
+              matTooltip="Calculé à partir des revenus et dépenses cochés uniquement"
+              matTooltipPosition="above"
+              aria-label="Information sur le solde réalisé"
+              class="text-financial-income cursor-help text-base"
+              tabindex="0"
+              >info</mat-icon
+            >
+          </pulpe-financial-summary>
           <div
             class="flex flex-col gap-4"
             data-testid="dashboard-content"

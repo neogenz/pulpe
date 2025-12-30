@@ -12,10 +12,12 @@ import {
 import { type BudgetLine, type Transaction } from '@pulpe/shared';
 import { BudgetCalculator } from '@core/budget/budget-calculator';
 import { calculateAllConsumptions } from '@core/budget/budget-line-consumption';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatIconModule } from '@angular/material/icon';
 
 @Component({
   selector: 'pulpe-budget-financial-overview',
-  imports: [FinancialSummary],
+  imports: [FinancialSummary, MatTooltipModule, MatIconModule],
   template: `
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
       <pulpe-financial-summary
@@ -25,7 +27,17 @@ import { calculateAllConsumptions } from '@core/budget/budget-line-consumption';
       <pulpe-financial-summary [data]="expenseData()" />
       <pulpe-financial-summary [data]="savingsData()" />
       <pulpe-financial-summary [data]="remainingData()" />
-      <pulpe-financial-summary [data]="realizedBalanceData()" />
+      <pulpe-financial-summary [data]="realizedBalanceData()">
+        <mat-icon
+          slot="title-info"
+          matTooltip="Calculé à partir des revenus et dépenses cochés uniquement"
+          matTooltipPosition="above"
+          aria-label="Information sur le solde réalisé"
+          class="text-financial-income cursor-help !text-base"
+          tabindex="0"
+          >info</mat-icon
+        >
+      </pulpe-financial-summary>
     </div>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

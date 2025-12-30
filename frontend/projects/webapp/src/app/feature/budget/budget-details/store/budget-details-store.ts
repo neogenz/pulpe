@@ -264,11 +264,19 @@ export class BudgetDetailsStore {
 
   /**
    * Create an allocated transaction with optimistic updates
+   * If parent budget line is checked, new transaction inherits checked state
    */
   async createAllocatedTransaction(
     transactionData: TransactionCreate,
   ): Promise<void> {
     const newId = `temp-${uuidv4()}`;
+    const details = this.budgetDetails();
+
+    // Inherit checked state from parent budget line if it's checked
+    const parentBudgetLine = details?.budgetLines.find(
+      (line) => line.id === transactionData.budgetLineId,
+    );
+    const inheritedCheckedAt = parentBudgetLine?.checkedAt ?? null;
 
     // Create temporary transaction for optimistic update
     const tempTransaction: Transaction = {
@@ -283,7 +291,7 @@ export class BudgetDetailsStore {
       category: transactionData.category ?? null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      checkedAt: null,
+      checkedAt: inheritedCheckedAt,
     };
 
     // Optimistic update - add the new transaction immediately
@@ -298,7 +306,10 @@ export class BudgetDetailsStore {
 
     try {
       const response = await firstValueFrom(
-        this.#transactionApi.create$(transactionData),
+        this.#transactionApi.create$({
+          ...transactionData,
+          checkedAt: inheritedCheckedAt,
+        }),
       );
 
       // Replace temporary transaction with server response

@@ -175,6 +175,7 @@ export class TransactionService {
       transaction_date:
         createTransactionDto.transactionDate || new Date().toISOString(),
       category: createTransactionDto.category ?? null,
+      checked_at: createTransactionDto.checkedAt ?? null,
     };
   }
 
