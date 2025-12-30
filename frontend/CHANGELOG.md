@@ -1,5 +1,23 @@
 # pulpe-frontend
 
+## 2025.16.0
+
+### Minor Changes
+
+- ## Nouvelles fonctionnalités
+  - **Allocation de transactions aux prévisions** : Possibilité d'associer des transactions réelles à des lignes de prévision spécifiques pour un meilleur suivi budgétaire
+  - **Indicateur de rechargement** : Un indicateur visuel s'affiche lors du rechargement des données du budget, améliorant le feedback utilisateur
+  - **Réinitialisation depuis le template** : Les lignes budgétaires détachées de leur template peuvent maintenant être réinitialisées pour retrouver les valeurs du template d'origine
+  - **Dates de création des transactions** : Les transactions affichent désormais leur date de création dans la vue du mois en cours
+  - **Vocabulaire fréquence amélioré** : La colonne fréquence utilise maintenant un vocabulaire plus clair (Récurrent/Prévu)
+  - **Mise à niveau Angular 21** : Migration vers Angular 21 et Material 21 pour de meilleures performances et fonctionnalités
+
+  ## Corrections
+  - Correction du fil d'Ariane et nettoyage des effects Angular
+  - Amélioration de l'affichage mobile et correction du défilement
+  - Compatibilité améliorée avec Safari iOS pour la protection anti-bot
+  - Optimisation de la taille du bundle et correction des warnings ESLint
+
 ## 2025.15.0
 
 ### Minor Changes
