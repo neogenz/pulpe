@@ -116,9 +116,9 @@ import type {
                     matIconButton
                     (click)="deleteTransaction(tx)"
                     aria-label="Supprimer la transaction"
-                    class="text-error w-9! h-9!"
+                    class="text-error"
                   >
-                    <mat-icon class="text-xl!">delete</mat-icon>
+                    <mat-icon class="text-error">delete</mat-icon>
                   </button>
                 </div>
               </div>

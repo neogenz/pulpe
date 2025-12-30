@@ -83,7 +83,7 @@ import { type BudgetLineTableItem } from './budget-table-models';
                     '/app/budget',
                     item().metadata.rolloverSourceBudgetId,
                   ]"
-                  class="text-primary"
+                  class="text-primary underline"
                 >
                   {{ item().data.name | rolloverFormat }}
                 </a>
@@ -117,6 +117,13 @@ import { type BudgetLineTableItem } from './budget-table-models';
                 matTooltipShowDelay="500"
               >
                 {{ item().data.name }}
+              </div>
+              <div class="px-4 pb-2 text-label-medium">
+                Solde:
+                {{
+                  item().metadata.cumulativeBalance
+                    | currency: 'CHF' : 'symbol' : '1.0-0'
+                }}
               </div>
               <mat-divider />
               <button
