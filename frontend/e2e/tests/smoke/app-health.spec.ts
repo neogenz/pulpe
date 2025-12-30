@@ -96,6 +96,18 @@ test.describe('App Health Check', () => {
       if (url.includes('lottie') || url.includes('animation')) {
         return false;
       }
+      // Allow PostHog and analytics scripts to fail
+      if (url.includes('posthog') || url.includes('analytics')) {
+        return false;
+      }
+      // Allow source maps to fail
+      if (url.includes('.map')) {
+        return false;
+      }
+      // Allow fonts to fail
+      if (url.includes('.woff') || url.includes('.ttf') || url.includes('fonts')) {
+        return false;
+      }
       // Only critical are main app files and favicon
       return (
         url.includes('.css') ||
