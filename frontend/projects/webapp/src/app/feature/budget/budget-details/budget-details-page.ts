@@ -3,7 +3,6 @@ import {
   afterNextRender,
   ChangeDetectionStrategy,
   Component,
-  DestroyRef,
   inject,
   input,
   computed,
@@ -229,7 +228,6 @@ export default class BudgetDetailsPage {
   readonly #logger = inject(Logger);
   readonly #productTourService = inject(ProductTourService);
   readonly #breadcrumbState = inject(BreadcrumbState);
-  readonly #destroyRef = inject(DestroyRef);
   readonly #breakpointObserver = inject(BreakpointObserver);
 
   readonly #isMobile = toSignal(
@@ -249,7 +247,7 @@ export default class BudgetDetailsPage {
       }
     });
 
-    effect(() => {
+    effect((onCleanup) => {
       const details = this.store.budgetDetails();
       if (details) {
         const label = formatDate(
@@ -258,11 +256,11 @@ export default class BudgetDetailsPage {
           { locale: frCH },
         );
         this.#breadcrumbState.setDynamicBreadcrumb(label);
-      }
-    });
 
-    this.#destroyRef.onDestroy(() => {
-      this.#breadcrumbState.clearDynamicBreadcrumb();
+        onCleanup(() => {
+          this.#breadcrumbState.clearDynamicBreadcrumb();
+        });
+      }
     });
 
     afterNextRender(() => {
