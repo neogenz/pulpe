@@ -666,6 +666,7 @@ export class DemoDataGeneratorService {
         budget.month - 1,
         day,
       ).toISOString(),
+      checked_at: null,
     };
   }
 }

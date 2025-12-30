@@ -30,7 +30,6 @@ import { type BudgetLineTableItem } from './budget-table-models';
  */
 @Component({
   selector: 'pulpe-budget-table-mobile-card',
-  standalone: true,
   imports: [
     MatCardModule,
     MatSlideToggleModule,
@@ -99,7 +98,7 @@ import { type BudgetLineTableItem } from './budget-table-models';
               </span>
               @if (item().data.checkedAt) {
                 <span class="text-label-small text-on-surface-variant">
-                  {{ item().data.checkedAt | date: 'MM.dd' : '' : 'fr-CH' }}
+                  {{ item().data.checkedAt | date: 'dd.MM' : '' : 'fr-CH' }}
                 </span>
               }
             </div>
@@ -113,13 +112,13 @@ import { type BudgetLineTableItem } from './budget-table-models';
             }
           </div>
 
+          <mat-slide-toggle
+            [checked]="item().data.checkedAt !== null"
+            (change)="toggleCheck.emit(item().data.id)"
+            (click)="$event.stopPropagation()"
+            [attr.data-testid]="'toggle-check-' + item().data.id"
+          />
           @if (!item().metadata.isRollover) {
-            <mat-slide-toggle
-              [checked]="item().data.checkedAt !== null"
-              (change)="toggleCheck.emit(item().data.id)"
-              (click)="$event.stopPropagation()"
-              [attr.data-testid]="'toggle-check-' + item().data.id"
-            />
             <button
               matIconButton
               [matMenuTriggerFor]="cardActionMenu"

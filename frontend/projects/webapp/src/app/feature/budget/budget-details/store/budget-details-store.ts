@@ -91,6 +91,9 @@ export class BudgetDetailsStore {
         previousBudgetId: previousBudgetId,
       });
 
+      // Apply local checked state for rollover
+      rolloverLine.checkedAt = this.#state.rolloverCheckedAt();
+
       // Add rollover at the beginning of the list
       lines.unshift(rolloverLine);
     }
@@ -103,13 +106,15 @@ export class BudgetDetailsStore {
     if (!details) return 0;
 
     return BudgetFormulas.calculateRealizedBalance(
-      details.budgetLines,
+      this.displayBudgetLines(),
       details.transactions,
     );
   });
 
   setBudgetId(budgetId: string): void {
     this.#state.budgetId.set(budgetId);
+    // Reset rollover checked state when changing budget (checked by default)
+    this.#state.rolloverCheckedAt.set(new Date().toISOString());
   }
 
   /**
@@ -278,6 +283,7 @@ export class BudgetDetailsStore {
       category: transactionData.category ?? null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      checkedAt: null,
     };
 
     // Optimistic update - add the new transaction immediately
@@ -353,37 +359,74 @@ export class BudgetDetailsStore {
 
   /**
    * Toggle the checked state of a budget line
+   * For rollover lines (virtual), only updates local state without API call
+   * Cascades to allocated transactions: checking checks all, unchecking unchecks all
    */
   async toggleCheck(id: string): Promise<void> {
-    this.#budgetDetailsResource.update((details) => {
-      if (!details) return details;
+    // Handle virtual rollover line - local state only, no API call
+    if (id === 'rollover-display') {
+      const currentCheckedAt = this.#state.rolloverCheckedAt();
+      this.#state.rolloverCheckedAt.set(
+        currentCheckedAt === null ? new Date().toISOString() : null,
+      );
+      return;
+    }
 
+    const details = this.budgetDetails();
+    if (!details) return;
+
+    const budgetLine = details.budgetLines.find((line) => line.id === id);
+    if (!budgetLine) return;
+
+    const isChecking = budgetLine.checkedAt === null;
+    const allocatedTransactions = (details.transactions ?? []).filter(
+      (tx) => tx.budgetLineId === id,
+    );
+
+    // Transactions to toggle: unchecked when checking, checked when unchecking
+    const transactionsToToggle = allocatedTransactions.filter((tx) =>
+      isChecking ? tx.checkedAt === null : tx.checkedAt !== null,
+    );
+
+    // Optimistic update for budget line and allocated transactions
+    this.#budgetDetailsResource.update((d) => {
+      if (!d) return d;
+
+      const now = new Date().toISOString();
       return {
-        ...details,
-        budgetLines: details.budgetLines.map((line) =>
+        ...d,
+        budgetLines: d.budgetLines.map((line) =>
           line.id === id
-            ? {
-                ...line,
-                checkedAt:
-                  line.checkedAt === null ? new Date().toISOString() : null,
-                updatedAt: new Date().toISOString(),
-              }
+            ? { ...line, checkedAt: isChecking ? now : null, updatedAt: now }
             : line,
+        ),
+        transactions: (d.transactions ?? []).map((tx) =>
+          tx.budgetLineId === id
+            ? { ...tx, checkedAt: isChecking ? now : null, updatedAt: now }
+            : tx,
         ),
       };
     });
 
     try {
+      // Toggle budget line
       const response = await firstValueFrom(
         this.#budgetLineApi.toggleCheck$(id),
       );
 
-      this.#budgetDetailsResource.update((details) => {
-        if (!details) return details;
+      // Toggle allocated transactions that need to change
+      await Promise.all(
+        transactionsToToggle.map((tx) =>
+          firstValueFrom(this.#transactionApi.toggleCheck$(tx.id)),
+        ),
+      );
+
+      this.#budgetDetailsResource.update((d) => {
+        if (!d) return d;
 
         return {
-          ...details,
-          budgetLines: details.budgetLines.map((line) =>
+          ...d,
+          budgetLines: d.budgetLines.map((line) =>
             line.id === id ? response.data : line,
           ),
         };
@@ -397,6 +440,123 @@ export class BudgetDetailsStore {
         'Erreur lors du basculement du statut de la prévision';
       this.#setError(errorMessage);
       this.#logger.error('Error toggling budget line check', error);
+    }
+  }
+
+  /**
+   * Toggle the checked state of a transaction
+   * Uses optimistic update for instant UI feedback with rollback on error
+   * When unchecking a transaction, unchecks the parent budget line
+   * When all allocated transactions are checked, checks the parent budget line
+   */
+  async toggleTransactionCheck(id: string): Promise<void> {
+    const details = this.budgetDetails();
+    if (!details) return;
+
+    const transaction = (details.transactions ?? []).find((tx) => tx.id === id);
+    if (!transaction) return;
+
+    const isChecking = transaction.checkedAt === null;
+    const budgetLineId = transaction.budgetLineId;
+
+    // Optimistic update
+    this.#budgetDetailsResource.update((d) => {
+      if (!d) return d;
+
+      const now = new Date().toISOString();
+      const updatedTransactions = (d.transactions ?? []).map((tx) =>
+        tx.id === id
+          ? { ...tx, checkedAt: isChecking ? now : null, updatedAt: now }
+          : tx,
+      );
+
+      let updatedBudgetLines = d.budgetLines;
+
+      if (budgetLineId) {
+        if (!isChecking) {
+          // Unchecking transaction → uncheck parent budget line
+          updatedBudgetLines = d.budgetLines.map((line) =>
+            line.id === budgetLineId && line.checkedAt !== null
+              ? { ...line, checkedAt: null, updatedAt: now }
+              : line,
+          );
+        } else {
+          // Checking transaction → check if all allocated transactions will be checked
+          const allocatedTxs = updatedTransactions.filter(
+            (tx) => tx.budgetLineId === budgetLineId,
+          );
+          const allChecked = allocatedTxs.every((tx) => tx.checkedAt !== null);
+          if (allChecked) {
+            updatedBudgetLines = d.budgetLines.map((line) =>
+              line.id === budgetLineId && line.checkedAt === null
+                ? { ...line, checkedAt: now, updatedAt: now }
+                : line,
+            );
+          }
+        }
+      }
+
+      return {
+        ...d,
+        transactions: updatedTransactions,
+        budgetLines: updatedBudgetLines,
+      };
+    });
+
+    try {
+      const response = await firstValueFrom(
+        this.#transactionApi.toggleCheck$(id),
+      );
+
+      // Handle cascading budget line updates
+      if (budgetLineId) {
+        const currentDetails = this.budgetDetails();
+        if (currentDetails) {
+          const budgetLine = currentDetails.budgetLines.find(
+            (line) => line.id === budgetLineId,
+          );
+          const allocatedTxs = (currentDetails.transactions ?? []).filter(
+            (tx) => tx.budgetLineId === budgetLineId,
+          );
+
+          if (!isChecking && budgetLine?.checkedAt !== null) {
+            // Unchecking → uncheck budget line if it was checked
+            await firstValueFrom(
+              this.#budgetLineApi.toggleCheck$(budgetLineId),
+            );
+          } else if (isChecking) {
+            // Checking → check budget line if all allocated are now checked
+            const allChecked = allocatedTxs.every(
+              (tx) => tx.checkedAt !== null,
+            );
+            if (allChecked && budgetLine?.checkedAt === null) {
+              await firstValueFrom(
+                this.#budgetLineApi.toggleCheck$(budgetLineId),
+              );
+            }
+          }
+        }
+      }
+
+      this.#budgetDetailsResource.update((d) => {
+        if (!d) return d;
+
+        return {
+          ...d,
+          transactions: (d.transactions ?? []).map((tx) =>
+            tx.id === id ? response.data : tx,
+          ),
+        };
+      });
+
+      this.#clearError();
+    } catch (error) {
+      this.reloadBudgetDetails();
+
+      const errorMessage =
+        'Erreur lors du basculement du statut de la transaction';
+      this.#setError(errorMessage);
+      this.#logger.error('Error toggling transaction check', error);
     }
   }
 

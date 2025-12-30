@@ -297,7 +297,7 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                             class="text-body-small text-on-surface-variant ml-2"
                           >
                             {{
-                              line.data.checkedAt | date: 'MM.dd' : '' : 'fr-CH'
+                              line.data.checkedAt | date: 'dd.MM' : '' : 'fr-CH'
                             }}
                           </span>
                         }
@@ -531,7 +531,7 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                           Enregistrer
                         </button>
                       </div>
-                    } @else if (!line.metadata.isRollover) {
+                    } @else {
                       @if (line.metadata.itemType === 'budget_line') {
                         <mat-slide-toggle
                           [checked]="line.data.checkedAt !== null"
@@ -539,74 +539,78 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                           (click)="$event.stopPropagation()"
                           [attr.data-testid]="'toggle-check-' + line.data.id"
                         />
+                      } @else if (line.metadata.itemType === 'transaction') {
+                        <mat-slide-toggle
+                          [checked]="line.data.checkedAt !== null"
+                          (change)="toggleTransactionCheck.emit(line.data.id)"
+                          (click)="$event.stopPropagation()"
+                          [attr.data-testid]="'toggle-check-tx-' + line.data.id"
+                        />
                       }
-                      <button
-                        matIconButton
-                        [matMenuTriggerFor]="rowActionMenu"
-                        [attr.data-testid]="'actions-menu-' + line.data.id"
-                        [disabled]="line.metadata.isLoading"
-                      >
-                        <mat-icon>more_vert</mat-icon>
-                      </button>
-
-                      <mat-menu #rowActionMenu="matMenu" xPosition="before">
-                        <div
-                          class="px-4 py-2 text-label-medium text-on-surface-variant max-w-48 truncate"
-                          [matTooltip]="line.data.name"
-                          matTooltipShowDelay="500"
-                        >
-                          {{ line.data.name }}
-                        </div>
-                        <mat-divider />
-                        @if (
-                          line.metadata.itemType === 'budget_line' &&
-                          !line.metadata.isRollover
-                        ) {
-                          <button
-                            mat-menu-item
-                            (click)="addAllocatedTransaction(line.data)"
-                            [attr.data-testid]="
-                              'add-transaction-' + line.data.id
-                            "
-                          >
-                            <mat-icon matMenuItemIcon>add</mat-icon>
-                            <span>{{ line.metadata.allocationLabel }}</span>
-                          </button>
-                        }
-                        @if (line.metadata.itemType === 'budget_line') {
-                          <button
-                            mat-menu-item
-                            (click)="startEdit(line)"
-                            [attr.data-testid]="'edit-' + line.data.id"
-                          >
-                            <mat-icon matMenuItemIcon>edit</mat-icon>
-                            <span>Éditer</span>
-                          </button>
-                        }
-                        @if (line.metadata.canResetFromTemplate) {
-                          <button
-                            mat-menu-item
-                            (click)="onResetFromTemplateClick(line)"
-                            [attr.data-testid]="
-                              'reset-from-template-' + line.data.id
-                            "
-                          >
-                            <mat-icon matMenuItemIcon>refresh</mat-icon>
-                            <span>Réinitialiser</span>
-                          </button>
-                        }
+                      @if (!line.metadata.isRollover) {
                         <button
-                          mat-menu-item
-                          (click)="delete.emit(line.data.id)"
-                          [attr.data-testid]="'delete-' + line.data.id"
-                          class="text-error"
+                          matIconButton
+                          [matMenuTriggerFor]="rowActionMenu"
+                          [attr.data-testid]="'actions-menu-' + line.data.id"
+                          [disabled]="line.metadata.isLoading"
                         >
-                          <mat-icon matMenuItemIcon class="text-error"
-                            >delete</mat-icon
-                          >
-                          <span>Supprimer</span>
+                          <mat-icon>more_vert</mat-icon>
                         </button>
-                      </mat-menu>
+
+                        <mat-menu #rowActionMenu="matMenu" xPosition="before">
+                          <div
+                            class="px-4 py-2 text-label-medium text-on-surface-variant max-w-48 truncate"
+                            [matTooltip]="line.data.name"
+                            matTooltipShowDelay="500"
+                          >
+                            {{ line.data.name }}
+                          </div>
+                          <mat-divider />
+                          @if (line.metadata.itemType === 'budget_line') {
+                            <button
+                              mat-menu-item
+                              (click)="addAllocatedTransaction(line.data)"
+                              [attr.data-testid]="
+                                'add-transaction-' + line.data.id
+                              "
+                            >
+                              <mat-icon matMenuItemIcon>add</mat-icon>
+                              <span>{{ line.metadata.allocationLabel }}</span>
+                            </button>
+                            <button
+                              mat-menu-item
+                              (click)="startEdit(line)"
+                              [attr.data-testid]="'edit-' + line.data.id"
+                            >
+                              <mat-icon matMenuItemIcon>edit</mat-icon>
+                              <span>Éditer</span>
+                            </button>
+                          }
+                          @if (line.metadata.canResetFromTemplate) {
+                            <button
+                              mat-menu-item
+                              (click)="onResetFromTemplateClick(line)"
+                              [attr.data-testid]="
+                                'reset-from-template-' + line.data.id
+                              "
+                            >
+                              <mat-icon matMenuItemIcon>refresh</mat-icon>
+                              <span>Réinitialiser</span>
+                            </button>
+                          }
+                          <button
+                            mat-menu-item
+                            (click)="delete.emit(line.data.id)"
+                            [attr.data-testid]="'delete-' + line.data.id"
+                            class="text-error"
+                          >
+                            <mat-icon matMenuItemIcon class="text-error"
+                              >delete</mat-icon
+                            >
+                            <span>Supprimer</span>
+                          </button>
+                        </mat-menu>
+                      }
                     }
                   </div>
                 </td>
@@ -704,6 +708,7 @@ export class BudgetTable {
   createAllocatedTransaction = output<BudgetLine>();
   resetFromTemplate = output<string>();
   toggleCheck = output<string>();
+  toggleTransactionCheck = output<string>();
 
   // Services
   readonly #breakpointObserver = inject(BreakpointObserver);

@@ -261,6 +261,7 @@ export type Database = {
           budget_id: string;
           budget_line_id: string | null;
           category: string | null;
+          checked_at: string | null;
           created_at: string;
           id: string;
           kind: Database['public']['Enums']['transaction_kind'];
@@ -273,6 +274,7 @@ export type Database = {
           budget_id: string;
           budget_line_id?: string | null;
           category?: string | null;
+          checked_at?: string | null;
           created_at?: string;
           id?: string;
           kind: Database['public']['Enums']['transaction_kind'];
@@ -285,6 +287,7 @@ export type Database = {
           budget_id?: string;
           budget_line_id?: string | null;
           category?: string | null;
+          checked_at?: string | null;
           created_at?: string;
           id?: string;
           kind?: Database['public']['Enums']['transaction_kind'];

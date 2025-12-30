@@ -151,6 +151,7 @@ import {
           "
           (resetFromTemplate)="handleResetFromTemplate($event)"
           (toggleCheck)="handleToggleCheck($event)"
+          (toggleTransactionCheck)="handleToggleTransactionCheck($event)"
           data-tour="budget-table"
         />
 
@@ -493,5 +494,9 @@ export default class BudgetDetailsPage {
 
   async handleToggleCheck(budgetLineId: string): Promise<void> {
     await this.store.toggleCheck(budgetLineId);
+  }
+
+  async handleToggleTransactionCheck(transactionId: string): Promise<void> {
+    await this.store.toggleTransactionCheck(transactionId);
   }
 }

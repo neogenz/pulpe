@@ -192,4 +192,32 @@ export class TransactionController {
   ): Promise<TransactionDeleteResponse> {
     return this.transactionService.remove(id, user, supabase);
   }
+
+  @Post(':id/toggle-check')
+  @ApiOperation({
+    summary: 'Bascule le statut checked_at de la transaction',
+    description:
+      'Si checked_at est null, le définit à la date/heure actuelle. Sinon, le remet à null.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Identifiant unique de la transaction',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Statut de la transaction basculé avec succès',
+    type: TransactionResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Transaction not found',
+    type: ErrorResponseDto,
+  })
+  async toggleCheck(
+    @Param('id') id: string,
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<TransactionResponse> {
+    return this.transactionService.toggleCheck(id, user, supabase);
+  }
 }

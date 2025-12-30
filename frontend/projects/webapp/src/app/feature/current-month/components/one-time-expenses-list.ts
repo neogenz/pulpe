@@ -68,7 +68,7 @@ export class OneTimeExpensesList {
       emptyStateIcon: 'swap_vert',
       emptyStateTitle: 'Aucune transaction ponctuelle',
       emptyStateSubtitle: 'Vos transactions ponctuelles apparaîtront ici',
-      selectable: true,
+      selectable: false,
       deletable: true,
       editable: true,
       defaultExpanded: true,

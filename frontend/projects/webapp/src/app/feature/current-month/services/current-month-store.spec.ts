@@ -78,6 +78,7 @@ const mockTransactions: Transaction[] = [
     transactionDate: '2024-01-15T10:00:00Z',
     createdAt: '2024-01-15T10:00:00Z',
     updatedAt: '2024-01-15T10:00:00Z',
+    checkedAt: null,
   },
 ];
 
@@ -396,7 +397,7 @@ describe('CurrentMonthStore - Business Scenarios', () => {
         .find((l) => l.id === 'line-income');
       expect(budgetLine?.checkedAt).toBeNull();
 
-      const togglePromise = store.toggleCheck('line-income');
+      const togglePromise = store.toggleBudgetLineCheck('line-income');
 
       const updatedLine = store
         .budgetLines()
@@ -436,7 +437,7 @@ describe('CurrentMonthStore - Business Scenarios', () => {
         expect(line?.checkedAt).toBe('2024-01-15T00:00:00Z');
       });
 
-      const togglePromise = store.toggleCheck('line-income');
+      const togglePromise = store.toggleBudgetLineCheck('line-income');
 
       const updatedLine = store
         .budgetLines()
@@ -461,7 +462,7 @@ describe('CurrentMonthStore - Business Scenarios', () => {
         .find((l) => l.id === 'line-income')?.checkedAt;
       expect(originalCheckedAt).toBeNull();
 
-      const togglePromise = store.toggleCheck('line-income');
+      const togglePromise = store.toggleBudgetLineCheck('line-income');
 
       const updatedLine = store
         .budgetLines()
@@ -488,7 +489,7 @@ describe('CurrentMonthStore - Business Scenarios', () => {
 
       const initialRealizedBalance = store.realizedBalance();
 
-      const togglePromise = store.toggleCheck('line-income');
+      const togglePromise = store.toggleBudgetLineCheck('line-income');
 
       const newRealizedBalance = store.realizedBalance();
       expect(newRealizedBalance).not.toBe(initialRealizedBalance);

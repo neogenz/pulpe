@@ -73,7 +73,7 @@ export type FinancialEntryViewModel = FinancialEntryModel & {
             class="ph-no-capture inline-flex items-center font-semibold"
             matTooltip="Voir le mois d'origine"
           >
-            <mat-icon class="!text-base">open_in_new</mat-icon>
+            <mat-icon class="text-base!">open_in_new</mat-icon>
             {{ data().name | rolloverFormat }}
           </a>
         } @else {
@@ -82,7 +82,7 @@ export type FinancialEntryViewModel = FinancialEntryModel & {
           }}</span>
         }
       </div>
-      <div class="flex items-center gap-2">
+      <div matListItemLine class="flex items-center gap-2">
         <span
           class="text-body-small text-on-surface-variant"
           [attr.data-testid]="'creation-date-' + data().id"
@@ -91,11 +91,11 @@ export type FinancialEntryViewModel = FinancialEntryModel & {
         </span>
         @if (data().checkedAt) {
           <span class="text-body-small text-on-surface-variant">
-            {{ data().checkedAt | date: 'MM.dd' : '' : 'fr-CH' }}
+            {{ data().checkedAt | date: 'dd.MM' : '' : 'fr-CH' }}
           </span>
         }
       </div>
-      <div matListItemMeta class="!flex !h-full !items-center">
+      <div matListItemMeta class="flex! h-full! items-center!">
         <span class="ph-no-capture" [class.italic]="isRollover()">
           {{ data().kind === 'income' ? '+' : '-'
           }}{{ data().amount | number: '1.2-2' : 'de-CH' }}
@@ -107,7 +107,7 @@ export type FinancialEntryViewModel = FinancialEntryModel & {
             [matMenuTriggerFor]="actionMenu"
             [attr.aria-label]="'Actions pour ' + data().name"
             [attr.data-testid]="'actions-menu-' + data().id"
-            class="!w-10 !h-10 text-on-surface-variant"
+            class="w-10! h-10! text-on-surface-variant!"
             (click)="$event.stopPropagation()"
           >
             <mat-icon>more_vert</mat-icon>
@@ -143,7 +143,7 @@ export type FinancialEntryViewModel = FinancialEntryModel & {
               (click)="onEditClick($event)"
               [attr.aria-label]="'Modifier ' + data().name"
               [attr.data-testid]="'edit-transaction-' + data().id"
-              class="!w-10 !h-10 text-primary"
+              class="w-10! h-10! text-primary"
             >
               <mat-icon>edit</mat-icon>
             </button>
@@ -154,7 +154,7 @@ export type FinancialEntryViewModel = FinancialEntryModel & {
               (click)="onDeleteClick($event)"
               [attr.aria-label]="'Supprimer ' + data().name"
               [attr.data-testid]="'delete-transaction-' + data().id"
-              class="!w-10 !h-10 text-error"
+              class="w-10! h-10! text-error"
             >
               <mat-icon>delete</mat-icon>
             </button>

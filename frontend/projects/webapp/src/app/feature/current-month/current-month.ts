@@ -190,7 +190,7 @@ type EditTransactionFormData = Pick<
               [(selectedFinancialEntries)]="selectedTransactions"
               (deleteFinancialEntry)="deleteTransaction($event)"
               (editFinancialEntry)="openEditTransactionDialogAndUpdate($event)"
-              (toggleCheckFinancialEntry)="handleToggleBudgetLineCheck($event)"
+              (toggleCheckFinancialEntry)="handleToggleTransactionCheck($event)"
               data-testid="one-time-expenses-list"
             />
           </div>
@@ -444,9 +444,20 @@ export default class CurrentMonth {
 
   async handleToggleBudgetLineCheck(budgetLineId: string): Promise<void> {
     try {
-      await this.store.toggleCheck(budgetLineId);
+      await this.store.toggleBudgetLineCheck(budgetLineId);
     } catch (error) {
       this.#logger.error('Error toggling budget line check:', error);
+      this.#snackBar.open('Erreur lors du basculement du statut', 'Fermer', {
+        duration: 5000,
+      });
+    }
+  }
+
+  async handleToggleTransactionCheck(transactionId: string): Promise<void> {
+    try {
+      await this.store.toggleTransactionCheck(transactionId);
+    } catch (error) {
+      this.#logger.error('Error toggling transaction check:', error);
       this.#snackBar.open('Erreur lors du basculement du statut', 'Fermer', {
         duration: 5000,
       });
