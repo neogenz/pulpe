@@ -267,8 +267,10 @@ export class CreateTemplateForm {
   isFormValid = computed(() => this.formStatus() === 'VALID');
   isDefaultChecked = computed(() => this.formValues()?.isDefault ?? false);
 
-  // Computed: limit reached based on input
-  isLimitReached = computed(() => this.templateCount() >= this.maxTemplates);
+  // Computed: limit reached based on input (hidden during creation to avoid flicker)
+  isLimitReached = computed(
+    () => !this.isCreating() && this.templateCount() >= this.maxTemplates,
+  );
 
   // Computed: warning message when overriding default
   overrideDefaultWarning = computed(() => {

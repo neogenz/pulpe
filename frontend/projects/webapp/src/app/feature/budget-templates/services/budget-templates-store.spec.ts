@@ -176,7 +176,9 @@ describe('BudgetTemplatesState', () => {
 
       mockApi.create$ = vi
         .fn()
-        .mockReturnValue(of({ data: createdTemplate, success: true }));
+        .mockReturnValue(
+          of({ data: { template: createdTemplate, lines: [] }, success: true }),
+        );
 
       // Wait for initial load
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -205,7 +207,9 @@ describe('BudgetTemplatesState', () => {
 
       mockApi.create$ = vi
         .fn()
-        .mockReturnValue(of({ data: createdTemplate, success: true }));
+        .mockReturnValue(
+          of({ data: { template: createdTemplate, lines: [] }, success: true }),
+        );
 
       // Wait for initial load
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -305,7 +309,11 @@ describe('BudgetTemplatesState', () => {
         updatedAt: new Date().toISOString(),
       };
 
-      mockApi.create$ = vi.fn().mockReturnValue(of({ data: createdTemplate }));
+      mockApi.create$ = vi
+        .fn()
+        .mockReturnValue(
+          of({ data: { template: createdTemplate, lines: [] }, success: true }),
+        );
 
       // Wait for initial load
       await new Promise((resolve) => setTimeout(resolve, 100));

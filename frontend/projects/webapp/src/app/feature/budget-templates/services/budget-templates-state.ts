@@ -1,5 +1,9 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { type BudgetTemplate, type BudgetTemplateCreate } from '@pulpe/shared';
+import {
+  type BudgetTemplate,
+  type BudgetTemplateCreate,
+  type BudgetTemplateCreateResponse,
+} from '@pulpe/shared';
 import { catchError, firstValueFrom, map } from 'rxjs';
 import { BudgetTemplatesApi } from './budget-templates-api';
 import { rxResource } from '@angular/core/rxjs-interop';
@@ -60,7 +64,7 @@ export class BudgetTemplatesState {
 
   async addTemplate(
     template: BudgetTemplateCreate,
-  ): Promise<BudgetTemplate | void> {
+  ): Promise<BudgetTemplateCreateResponse['data'] | void> {
     // Validate business rules
     if (this.isTemplateLimitReached()) {
       throw new Error('Template limit reached');
@@ -74,12 +78,13 @@ export class BudgetTemplatesState {
       this.#budgetTemplatesApi.create$(template),
     );
 
-    // Update state with the real template after successful creation
+    // Update list state with template only (lines don't belong in list)
     this.budgetTemplates.update((data) => {
-      if (!data || !response.data) return data;
-      return [...data, response.data];
+      if (!data || !response.data.template) return data;
+      return [...data, response.data.template];
     });
 
+    // Return full data (template + lines) for SWR navigation
     return response.data;
   }
   async deleteTemplate(id: string): Promise<void> {

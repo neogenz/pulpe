@@ -119,7 +119,7 @@ export default class CreateTemplatePage {
     this.isCreatingTemplate.set(true);
 
     try {
-      const createdTemplate = await this.#state.addTemplate(template);
+      const response = await this.#state.addTemplate(template);
 
       // Show success message
       this.#snackBar.open(MESSAGES.SUCCESS, 'Fermer', SNACKBAR_CONFIG.SUCCESS);
@@ -127,10 +127,19 @@ export default class CreateTemplatePage {
       // Navigate to the details page of the newly created template
       // Note: We keep isCreating=true during navigation to prevent UI flicker.
       // The component will be destroyed when navigation completes.
-      if (createdTemplate?.id) {
-        await this.#router.navigate([
-          ROUTES.TEMPLATE_DETAILS(createdTemplate.id),
-        ]);
+      if (response?.template.id) {
+        // Pass POST response as router state for SWR (instant display)
+        await this.#router.navigate(
+          [ROUTES.TEMPLATE_DETAILS(response.template.id)],
+          {
+            state: {
+              initialData: {
+                template: response.template,
+                transactions: response.lines,
+              },
+            },
+          },
+        );
       } else {
         await this.#router.navigate([ROUTES.BUDGET_TEMPLATES]);
       }

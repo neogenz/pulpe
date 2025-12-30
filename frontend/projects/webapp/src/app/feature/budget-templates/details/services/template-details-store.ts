@@ -11,7 +11,7 @@ import {
 
 /**
  * Signal-based store for template details state management
- * Follows the reactive patterns with single state signal and resource separation
+ * Implements SWR (Stale-While-Revalidate) pattern for instant display after creation
  */
 @Injectable()
 export class TemplateDetailsStore {
@@ -22,7 +22,11 @@ export class TemplateDetailsStore {
     createInitialTemplateDetailsState(),
   );
 
-  // Resource for template details data - managed independently
+  // Stale data from navigation (POST response via router state)
+  // Used for SWR: display immediately while fresh data loads in background
+  readonly #staleData = signal<BudgetTemplateDetailViewModel | null>(null);
+
+  // Resource for fresh data (background revalidation)
   readonly #templateDetailsResource = resource<
     BudgetTemplateDetailViewModel,
     string | null
@@ -38,19 +42,23 @@ export class TemplateDetailsStore {
     },
   });
 
-  // Public selectors (read-only computed signals)
-  readonly isLoading = computed(() =>
-    this.#templateDetailsResource.isLoading(),
+  // SWR with computed(): fresh data takes priority, fallback to stale
+  // Conforms to Angular 21 guidelines: "Derived read-only state" → computed()
+  readonly templateDetails = computed<BudgetTemplateDetailViewModel | null>(
+    () => this.#templateDetailsResource.value() ?? this.#staleData(),
   );
-  readonly hasValue = computed(() => this.#templateDetailsResource.hasValue());
+
+  // Loading hidden if stale data available (smooth UX)
+  readonly isLoading = computed(
+    () => this.#templateDetailsResource.isLoading() && !this.#staleData(),
+  );
+
+  readonly hasValue = computed(() => !!this.templateDetails());
   readonly error = computed(
     () => this.#templateDetailsResource.error() || this.#state().error,
   );
 
   // Derived selectors for convenience
-  readonly templateDetails = computed(
-    () => this.#templateDetailsResource.value() ?? null,
-  );
   readonly template = computed(() => this.templateDetails()?.template ?? null);
   readonly templateLines = computed(
     () => this.templateDetails()?.transactions ?? [],
@@ -61,14 +69,28 @@ export class TemplateDetailsStore {
   // Public Actions
 
   /**
-   * Initialize the template ID (called once from component)
+   * Initialize template ID with optional stale data for SWR
+   *
+   * @param id - Template ID from route
+   * @param staleData - Optional cached data from navigation (POST response)
+   *
+   * Behavior:
+   * - With staleData: instant render + background fetch
+   * - Without staleData: normal loading spinner (e.g., direct URL access)
    */
-  initializeTemplateId(id: string): void {
+  initializeTemplateId(
+    id: string,
+    staleData?: BudgetTemplateDetailViewModel,
+  ): void {
     this.#state.update((state) => ({
       ...state,
       templateId: id,
       error: null,
     }));
+
+    if (staleData) {
+      this.#staleData.set(staleData);
+    }
   }
 
   /**
