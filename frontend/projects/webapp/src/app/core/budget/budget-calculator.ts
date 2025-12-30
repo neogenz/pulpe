@@ -18,16 +18,83 @@ export class BudgetCalculator {
 
   /**
    * Calcule l'impact des transactions réelles sur la balance
-   * Note: Selon RG-007, les transactions diminuent la balance
-   * - Les revenus (income) l'augmentent (+)
-   * - Les dépenses et épargnes (expense, saving) la diminuent (-)
+   *
+   * Règle métier importante:
+   * - Les transactions LIBRES (budgetLineId = null) impactent directement le budget
+   * - Les transactions ALLOUÉES (budgetLineId != null) sont déjà "couvertes" par leur enveloppe
+   *   → Elles n'impactent le budget que si elles causent un DÉPASSEMENT
+   *   → Dans ce cas, seul le dépassement est compté
+   *
+   * @param transactions Les transactions à calculer
+   * @param budgetLines Les lignes budgétaires (optionnel - si fourni, calcule les dépassements)
    */
-  calculateActualTransactionsAmount(transactions: Transaction[]): number {
-    return transactions.reduce(
-      (total, transaction) =>
-        total + this.#getSignedAmount(transaction.kind, transaction.amount),
+  calculateActualTransactionsAmount(
+    transactions: Transaction[],
+    budgetLines?: BudgetLine[],
+  ): number {
+    // Si pas de budgetLines fourni, comportement legacy (toutes les transactions comptent)
+    if (!budgetLines) {
+      return transactions.reduce(
+        (total, tx) => total + this.#getSignedAmount(tx.kind, tx.amount),
+        0,
+      );
+    }
+
+    // Séparer les transactions libres et allouées
+    const freeTransactions = transactions.filter((tx) => !tx.budgetLineId);
+    const allocatedTransactions = transactions.filter((tx) => tx.budgetLineId);
+
+    // Impact des transactions libres (comportement normal)
+    const freeImpact = freeTransactions.reduce(
+      (total, tx) => total + this.#getSignedAmount(tx.kind, tx.amount),
       0,
     );
+
+    // Calculer le dépassement par enveloppe
+    const overageImpact = this.#calculateOverageImpact(
+      allocatedTransactions,
+      budgetLines,
+    );
+
+    return freeImpact + overageImpact;
+  }
+
+  /**
+   * Calcule l'impact des dépassements d'enveloppes
+   * Pour chaque enveloppe: si consumed > amount, le dépassement impacte le budget
+   */
+  #calculateOverageImpact(
+    allocatedTransactions: Transaction[],
+    budgetLines: BudgetLine[],
+  ): number {
+    // Grouper les transactions par budgetLineId
+    const transactionsByLine = new Map<string, Transaction[]>();
+    for (const tx of allocatedTransactions) {
+      if (!tx.budgetLineId) continue;
+      const existing = transactionsByLine.get(tx.budgetLineId) ?? [];
+      existing.push(tx);
+      transactionsByLine.set(tx.budgetLineId, existing);
+    }
+
+    let totalOverage = 0;
+
+    // Pour chaque enveloppe avec des transactions allouées
+    for (const [lineId, lineTxs] of transactionsByLine) {
+      const budgetLine = budgetLines.find((bl) => bl.id === lineId);
+      if (!budgetLine) continue;
+
+      // Calculer la consommation totale de cette enveloppe
+      const consumed = lineTxs.reduce((sum, tx) => sum + tx.amount, 0);
+
+      // Si dépassement, l'ajouter à l'impact (avec le signe approprié)
+      if (consumed > budgetLine.amount) {
+        const overage = consumed - budgetLine.amount;
+        // Le dépassement est une dépense supplémentaire (signe négatif)
+        totalOverage += this.#getSignedAmount(budgetLine.kind, overage);
+      }
+    }
+
+    return totalOverage;
   }
 
   calculateTotalAvailable(

@@ -8,6 +8,7 @@ import { handleServiceError } from '@common/utils/error-handler';
 import {
   type TransactionCreate,
   type TransactionDeleteResponse,
+  type TransactionKind,
   type TransactionListResponse,
   type TransactionResponse,
   type TransactionUpdate,
@@ -111,10 +112,63 @@ export class TransactionService {
     }
   }
 
+  /**
+   * Validate that the budget line allocation is valid:
+   * - Budget line must exist
+   * - Budget line must belong to the same budget as the transaction
+   * - Transaction kind must match budget line kind
+   */
+  private async validateBudgetLineAllocation(
+    budgetLineId: string,
+    budgetId: string,
+    transactionKind: TransactionKind,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    const { data: budgetLine, error } = await supabase
+      .from('budget_line')
+      .select('budget_id, kind')
+      .eq('id', budgetLineId)
+      .single();
+
+    if (error || !budgetLine) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND,
+        { id: budgetLineId },
+        {
+          operation: 'validateBudgetLineAllocation',
+          entityId: budgetLineId,
+          entityType: 'budget_line',
+          supabaseError: error,
+        },
+      );
+    }
+
+    // Validate budget match
+    if (budgetLine.budget_id !== budgetId) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
+        {
+          reason: 'Transaction budget must match budget line budget',
+        },
+      );
+    }
+
+    // Validate kind match
+    if (budgetLine.kind !== transactionKind) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_VALIDATION_FAILED,
+        {
+          reason: `Transaction kind must match budget line kind (expected: ${budgetLine.kind}, got: ${transactionKind})`,
+        },
+      );
+    }
+  }
+
   private prepareTransactionData(createTransactionDto: TransactionCreate) {
     // Manual conversion without Zod validation (already validated in service)
     return {
       budget_id: createTransactionDto.budgetId,
+      budget_line_id: createTransactionDto.budgetLineId ?? null,
       amount: createTransactionDto.amount,
       name: createTransactionDto.name,
       kind: createTransactionDto.kind as Database['public']['Enums']['transaction_kind'],
@@ -171,6 +225,16 @@ export class TransactionService {
   ): Promise<TransactionResponse> {
     try {
       this.validateCreateTransactionDto(createTransactionDto);
+
+      // Validate budget line allocation if provided
+      if (createTransactionDto.budgetLineId) {
+        await this.validateBudgetLineAllocation(
+          createTransactionDto.budgetLineId,
+          createTransactionDto.budgetId,
+          createTransactionDto.kind,
+          supabase,
+        );
+      }
 
       const transactionData = this.prepareTransactionData(createTransactionDto);
       const transactionDb = await this.insertTransaction(
@@ -553,6 +617,85 @@ export class TransactionService {
           operation: 'listTransactionsByBudget',
           entityId: budgetId,
           entityType: 'budget',
+        },
+      );
+    }
+  }
+
+  /**
+   * Validates that a budget line exists and is accessible to the current user.
+   * RLS policies ensure only budget lines belonging to the user are returned.
+   */
+  private async validateBudgetLineExists(
+    budgetLineId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    const { data: budgetLine, error } = await supabase
+      .from('budget_line')
+      .select('id')
+      .eq('id', budgetLineId)
+      .single();
+
+    if (error || !budgetLine) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND,
+        { id: budgetLineId },
+        {
+          operation: 'validateBudgetLineExists',
+          entityId: budgetLineId,
+          entityType: 'budget_line',
+          supabaseError: error,
+        },
+      );
+    }
+  }
+
+  /**
+   * Find all transactions allocated to a specific budget line
+   * Returns transactions sorted by transaction_date descending (most recent first)
+   */
+  async findByBudgetLineId(
+    budgetLineId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<TransactionListResponse> {
+    try {
+      await this.validateBudgetLineExists(budgetLineId, supabase);
+
+      const { data: transactionsDb, error } = await supabase
+        .from('transaction')
+        .select('*')
+        .eq('budget_line_id', budgetLineId)
+        .order('transaction_date', { ascending: false });
+
+      if (error) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+          undefined,
+          {
+            operation: 'listTransactionsByBudgetLine',
+            entityId: budgetLineId,
+            entityType: 'budget_line',
+            supabaseError: error,
+          },
+          { cause: error },
+        );
+      }
+
+      const apiData = transactionMappers.toApiList(transactionsDb || []);
+
+      return {
+        success: true as const,
+        data: apiData,
+      } as TransactionListResponse;
+    } catch (error) {
+      handleServiceError(
+        error,
+        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'listTransactionsByBudgetLine',
+          entityId: budgetLineId,
+          entityType: 'budget_line',
         },
       );
     }

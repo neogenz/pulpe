@@ -25,6 +25,7 @@ import { type Transaction, type TransactionCreate } from '@pulpe/shared';
 import { startOfMonth, endOfMonth } from 'date-fns';
 import { TransactionValidators } from '../utils/transaction-form-validators';
 import { TransactionLabelPipe } from '@ui/transaction-display';
+import { Logger } from '@core/logging/logger';
 
 type EditTransactionFormData = Pick<
   TransactionCreate,
@@ -240,6 +241,7 @@ type EditTransactionFormData = Pick<
 })
 export class EditTransactionForm implements OnInit {
   readonly #fb = inject(FormBuilder);
+  readonly #logger = inject(Logger);
 
   transaction = input.required<Transaction>();
   readonly updateTransaction = output<EditTransactionFormData>();
@@ -305,12 +307,10 @@ export class EditTransactionForm implements OnInit {
         category: transaction.category || '',
       });
     } catch (error) {
-      if (typeof ngDevMode !== 'undefined' && ngDevMode) {
-        console.warn(
-          "Impossible d'initialiser le formulaire de transaction :",
-          error,
-        );
-      }
+      this.#logger.warn(
+        "Impossible d'initialiser le formulaire de transaction",
+        { error },
+      );
       this.cancelEdit.emit();
     }
   }

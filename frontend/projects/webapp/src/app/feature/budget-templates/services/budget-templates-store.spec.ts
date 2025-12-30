@@ -176,7 +176,9 @@ describe('BudgetTemplatesState', () => {
 
       mockApi.create$ = vi
         .fn()
-        .mockReturnValue(of({ data: createdTemplate, success: true }));
+        .mockReturnValue(
+          of({ data: { template: createdTemplate, lines: [] }, success: true }),
+        );
 
       // Wait for initial load
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -205,7 +207,9 @@ describe('BudgetTemplatesState', () => {
 
       mockApi.create$ = vi
         .fn()
-        .mockReturnValue(of({ data: createdTemplate, success: true }));
+        .mockReturnValue(
+          of({ data: { template: createdTemplate, lines: [] }, success: true }),
+        );
 
       // Wait for initial load
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -289,11 +293,11 @@ describe('BudgetTemplatesState', () => {
     });
   });
 
-  describe('Optimistic Updates', () => {
-    it('should apply optimistic update during creation', async () => {
+  describe('Template Creation', () => {
+    it('should add template to state only after successful API response', async () => {
       const newTemplate: BudgetTemplateCreate = {
-        name: 'Optimistic Template',
-        description: 'Testing optimistic update',
+        name: 'New Template',
+        description: 'Testing creation',
         isDefault: false,
         lines: [],
       };
@@ -305,44 +309,27 @@ describe('BudgetTemplatesState', () => {
         updatedAt: new Date().toISOString(),
       };
 
-      let createResolve: (value: unknown) => void;
-      const createPromise = new Promise((resolve) => {
-        createResolve = resolve;
-      });
-
-      mockApi.create$ = vi.fn().mockReturnValue({
-        subscribe: (callbacks: { next: (value: unknown) => void }) => {
-          createPromise.then((value) => callbacks.next(value));
-          return {
-            unsubscribe: () => {
-              /* noop */
-            },
-          };
-        },
-      });
+      mockApi.create$ = vi
+        .fn()
+        .mockReturnValue(
+          of({ data: { template: createdTemplate, lines: [] }, success: true }),
+        );
 
       // Wait for initial load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      const addPromise = state.addTemplate(newTemplate);
+      const initialCount = state.templateCount();
 
-      // Check optimistic update - should have temporary template
-      const templates = state.budgetTemplates.value();
-      const tempTemplate = templates?.find((t) => t.id.startsWith('temp-'));
-      expect(tempTemplate).toBeTruthy();
-      expect(tempTemplate?.name).toBe('Optimistic Template');
+      await state.addTemplate(newTemplate);
 
-      // Resolve the creation
-      createResolve!({ data: createdTemplate, success: true });
-      await addPromise;
-
-      // Check final state - temporary should be replaced
-      const finalTemplates = state.budgetTemplates.value();
-      expect(finalTemplates?.find((t) => t.id.startsWith('temp-'))).toBeFalsy();
-      expect(finalTemplates?.find((t) => t.id === 'template-3')).toBeTruthy();
+      // Template should be added after successful creation
+      expect(state.templateCount()).toBe(initialCount + 1);
+      expect(
+        state.budgetTemplates.value()?.find((t) => t.id === 'template-3'),
+      ).toBeTruthy();
     });
 
-    it('should rollback optimistic update on failure', async () => {
+    it('should not modify state on creation failure', async () => {
       const newTemplate: BudgetTemplateCreate = {
         name: 'Failing Template',
         description: 'This will fail',
@@ -365,11 +352,8 @@ describe('BudgetTemplatesState', () => {
         // Expected error
       }
 
-      // Template count should be back to original
+      // Template count should remain unchanged
       expect(state.templateCount()).toBe(initialCount);
-      expect(
-        state.budgetTemplates.value()?.find((t) => t.id.startsWith('temp-')),
-      ).toBeFalsy();
     });
   });
 

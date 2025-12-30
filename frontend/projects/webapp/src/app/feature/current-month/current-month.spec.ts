@@ -24,6 +24,7 @@ const createTransaction = (
 ): Transaction => ({
   id: 'transaction-123',
   budgetId: 'budget-456',
+  budgetLineId: null,
   name: 'Test Transaction',
   amount: 50,
   kind: 'expense',
