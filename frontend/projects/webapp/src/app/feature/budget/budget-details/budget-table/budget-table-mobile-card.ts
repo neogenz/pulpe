@@ -180,25 +180,25 @@ import { type BudgetLineTableItem } from './budget-table-models';
           <div class="text-label-medium text-on-surface-variant">prévu</div>
         </div>
 
-        @if (item().consumption?.hasTransactions) {
-          <!-- Progress bar -->
-          <div class="mb-3">
-            <mat-progress-bar
-              mode="determinate"
-              [value]="
-                item().consumption!.percentage > 100
-                  ? 100
-                  : item().consumption!.percentage
-              "
-              [class.warn-bar]="item().consumption!.percentage > 100"
-              class="h-2! rounded-full"
-            />
-            <div
-              class="text-label-small text-on-surface-variant text-center mt-1"
-            >
-              {{ item().consumption!.percentage }}% utilisé
+        @if (item().consumption; as consumption) {
+          @if (consumption.hasTransactions) {
+            <!-- Progress bar -->
+            <div class="mb-3">
+              <mat-progress-bar
+                mode="determinate"
+                [value]="
+                  consumption.percentage > 100 ? 100 : consumption.percentage
+                "
+                [class.warn-bar]="consumption.percentage > 100"
+                class="h-2! rounded-full"
+              />
+              <div
+                class="text-label-small text-on-surface-variant text-center mt-1"
+              >
+                {{ consumption.percentage }}% utilisé
+              </div>
             </div>
-          </div>
+          }
         }
 
         <!-- Footer: Recurrence + Actions -->
@@ -222,18 +222,21 @@ import { type BudgetLineTableItem } from './budget-table-models';
               {{ item().data.recurrence | recurrenceLabel }}
             </mat-chip>
 
-            @if (item().consumption?.hasTransactions) {
-              <button
-                matButton
-                class="h-8!"
-                [matBadge]="item().consumption!.transactionCount"
-                matBadgeColor="primary"
-                (click)="viewTransactions.emit(item())"
-              >
-                <mat-icon class="text-base!">receipt_long</mat-icon>
-                {{ item().consumption!.transactionCountLabel }}
-              </button>
-            } @else {
+            @if (item().consumption; as consumption) {
+              @if (consumption.hasTransactions) {
+                <button
+                  matButton
+                  class="h-8!"
+                  [matBadge]="consumption.transactionCount"
+                  matBadgeColor="primary"
+                  (click)="viewTransactions.emit(item())"
+                >
+                  <mat-icon class="text-base!">receipt_long</mat-icon>
+                  {{ consumption.transactionCountLabel }}
+                </button>
+              }
+            }
+            @if (!item().consumption?.hasTransactions) {
               <button
                 matButton
                 class="h-8!"
