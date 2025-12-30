@@ -76,6 +76,28 @@ export class TransactionController {
     return this.transactionService.findByBudgetId(budgetId, supabase);
   }
 
+  @Get('budget-line/:budgetLineId')
+  @ApiOperation({
+    summary: 'Liste les transactions allouées à une ligne budgétaire',
+  })
+  @ApiParam({
+    name: 'budgetLineId',
+    description: 'Identifiant unique de la ligne budgétaire',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Liste des transactions allouées récupérée avec succès',
+    type: TransactionListResponseDto,
+  })
+  async findByBudgetLine(
+    @Param('budgetLineId') budgetLineId: string,
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<TransactionListResponse> {
+    return this.transactionService.findByBudgetLineId(budgetLineId, supabase);
+  }
+
   @Post()
   @ApiOperation({ summary: 'Crée une nouvelle transaction' })
   @ApiResponse({

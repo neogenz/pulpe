@@ -14,7 +14,7 @@ test.describe('Budget Line Editing', () => {
 
     // Track whether the update has been called and validate the payload
     let hasBeenUpdated = false;
-    let updatePayload: any = null;
+    let updatePayload: unknown = null;
 
     // Mock the budget details API with a budget line using typed helper
     await authenticatedPage.route('**/api/v1/budgets/*/details', (route) => {
@@ -78,7 +78,7 @@ test.describe('Budget Line Editing', () => {
 
     await budgetDetailsPage.goto(budgetId);
     await budgetDetailsPage.expectPageLoaded();
-    
+
     // Wait for the table to render
     await authenticatedPage.waitForSelector('table[mat-table]');
 
@@ -86,13 +86,17 @@ test.describe('Budget Line Editing', () => {
     const nameInput = authenticatedPage.locator('[data-testid="edit-name-line-1"]');
     const amountInput = authenticatedPage.locator('[data-testid="edit-amount-line-1"]');
 
-    // Check if already in edit mode, if not click the edit button
+    // Check if already in edit mode, if not open the menu and click the edit option
     const isInEditMode = await nameInput.isVisible({ timeout: 1000 }).catch(() => false);
-    
+
     if (!isInEditMode) {
-      // Find and click the edit button
-      const editButton = authenticatedPage.locator('button[data-testid="edit-line-1"]');
-      await editButton.click();
+      // Open the actions menu first
+      const menuButton = authenticatedPage.locator('[data-testid="actions-menu-line-1"]');
+      await menuButton.click();
+
+      // Click the edit menu item
+      const editMenuItem = authenticatedPage.locator('button[mat-menu-item]').filter({ hasText: 'Éditer' });
+      await editMenuItem.click();
     }
 
     // Verify we're in edit mode
@@ -113,10 +117,10 @@ test.describe('Budget Line Editing', () => {
 
     // Wait for the API request to complete by waiting for the success message
     await expect(authenticatedPage.locator('.mat-mdc-snack-bar-label').last()).toHaveText('Prévision modifiée.');
-    
+
     // Wait for the DOM to update with the new values
     await expect(authenticatedPage.locator('tr:has-text("' + updatedName + '")')).toBeVisible();
-    
+
     // Verify the row contains the updated values
     const updatedRow = authenticatedPage.locator('tr').filter({ hasText: updatedName });
     await expect(updatedRow).toContainText(updatedName);
@@ -145,7 +149,7 @@ test.describe('Budget Line Editing', () => {
         }),
       ],
     });
-    
+
     await authenticatedPage.route('**/api/v1/budgets/*/details', (route) => {
       void route.fulfill({
         status: 200,
@@ -156,15 +160,19 @@ test.describe('Budget Line Editing', () => {
 
     await budgetDetailsPage.goto(budgetId);
     await budgetDetailsPage.expectPageLoaded();
-    
+
     // Wait for the table to render and for the row to be visible
     await authenticatedPage.waitForSelector('table[mat-table]');
     await authenticatedPage.waitForSelector('tr:has-text("Test Budget Line")');
 
-    // Find and click the edit button
-    const editButton = authenticatedPage.locator('button[data-testid="edit-line-1"]');
-    await expect(editButton).toBeVisible();
-    await editButton.click();
+    // Open the actions menu first
+    const menuButton = authenticatedPage.locator('[data-testid="actions-menu-line-1"]');
+    await expect(menuButton).toBeVisible();
+    await menuButton.click();
+
+    // Click the edit menu item
+    const editMenuItem = authenticatedPage.locator('button[mat-menu-item]').filter({ hasText: 'Éditer' });
+    await editMenuItem.click();
 
     // Wait for edit mode to be active
     const nameInput = authenticatedPage.locator('[data-testid="edit-name-line-1"]');

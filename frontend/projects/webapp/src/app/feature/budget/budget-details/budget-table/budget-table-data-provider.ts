@@ -1,13 +1,17 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable } from '@angular/core';
 import {
   type Transaction,
   type BudgetLine,
   type TransactionKind,
   type TransactionRecurrence,
 } from '@pulpe/shared';
-import { BudgetCalculator } from '@core/budget/budget-calculator';
+import { calculateAllConsumptions } from '@core/budget/budget-line-consumption';
 import { isRolloverLine } from '@core/rollover/rollover-types';
-import { type TableItem } from './budget-table-models';
+import {
+  type BudgetLineTableItem,
+  type TransactionTableItem,
+} from './budget-table-models';
+import type { BudgetTableViewMode } from './budget-table-view-mode';
 
 /**
  * Interface for budget items with cumulative balance calculation
@@ -25,8 +29,6 @@ interface BudgetItemWithBalance {
  */
 @Injectable()
 export class BudgetTableDataProvider {
-  readonly #budgetCalculator = inject(BudgetCalculator);
-
   // Constantes pour l'ordre de tri
   readonly #RECURRENCE_ORDER: Record<TransactionRecurrence, number> = {
     fixed: 1,
@@ -39,33 +41,50 @@ export class BudgetTableDataProvider {
     expense: 3,
   } as const;
 
+  // Constantes pour les labels et icônes
+  readonly #KIND_ICONS: Record<TransactionKind, string> = {
+    income: 'arrow_upward',
+    expense: 'arrow_downward',
+    saving: 'savings',
+  } as const;
+
+  readonly #ALLOCATION_LABELS: Record<TransactionKind, string> = {
+    expense: 'Saisir une dépense',
+    income: 'Saisir un revenu',
+    saving: 'Saisir une épargne',
+  } as const;
+
+  readonly #TRANSACTION_COUNT_LABELS: Record<TransactionKind, string> = {
+    expense: 'dépense',
+    income: 'revenu',
+    saving: 'épargne',
+  } as const;
+
   /**
    * Combines and sorts budget lines and transactions with cumulative balance calculation
-   * Order:
-   * 1. Budget lines grouped by recurrence: fixed → one_off
-   *    Within each group: createdAt ascending, then kind (income → saving → expense)
-   * 2. Transactions ordered by transactionDate ascending (fallback createdAt), then kind
    */
   #composeBudgetItemsWithBalanceGrouped(
     budgetLines: BudgetLine[],
     transactions: Transaction[],
+    includeAllocatedTransactions = false,
   ): BudgetItemWithBalance[] {
-    const items = this.#createDisplayItems(budgetLines, transactions);
+    const items = this.#createDisplayItems(
+      budgetLines,
+      transactions,
+      includeAllocatedTransactions,
+    );
     this.#sortItemsByBusinessRules(items);
-    this.#calculateCumulativeBalances(items);
+
+    const consumptionMap = calculateAllConsumptions(budgetLines, transactions);
+    this.#calculateCumulativeBalances(items, consumptionMap);
 
     return items;
   }
 
-  /**
-   * Compare deux éléments pour déterminer leur ordre de tri
-   * Règles: 1. budget_lines avant transactions 2. récurrence (fixed → one_off) 3. type (income → saving → expense)
-   */
   #compareItems = (
     a: BudgetItemWithBalance,
     b: BudgetItemWithBalance,
   ): number => {
-    // 1. budget_lines avant transactions
     if (a.itemType !== b.itemType) {
       return a.itemType === 'budget_line' ? -1 : 1;
     }
@@ -142,29 +161,29 @@ export class BudgetTableDataProvider {
     return timestamp;
   }
 
-  /**
-   * Crée les éléments d'affichage pour le tri et le calcul des soldes
-   */
   #createDisplayItems(
     budgetLines: BudgetLine[],
     transactions: Transaction[],
+    includeAllocatedTransactions = false,
   ): BudgetItemWithBalance[] {
     const items: BudgetItemWithBalance[] = [];
 
-    // Ajouter les budget lines
     budgetLines.forEach((line) => {
       items.push({
         item: line,
-        cumulativeBalance: 0, // Sera calculé après tri
+        cumulativeBalance: 0,
         itemType: 'budget_line',
       });
     });
 
-    // Ajouter les transactions
-    transactions.forEach((transaction) => {
+    const transactionsToDisplay = includeAllocatedTransactions
+      ? transactions
+      : transactions.filter((tx) => !tx.budgetLineId);
+
+    transactionsToDisplay.forEach((transaction) => {
       items.push({
         item: transaction,
-        cumulativeBalance: 0, // Sera calculé après tri
+        cumulativeBalance: 0,
         itemType: 'transaction',
       });
     });
@@ -172,63 +191,165 @@ export class BudgetTableDataProvider {
     return items;
   }
 
-  /**
-   * Trie les éléments selon les règles métier
-   */
   #sortItemsByBusinessRules(items: BudgetItemWithBalance[]): void {
     items.sort(this.#compareItems);
   }
 
-  /**
-   * Calcule les soldes cumulatifs pour tous les éléments
-   * Utilise le BudgetCalculator pour les calculs métier purs
-   */
-  #calculateCumulativeBalances(items: BudgetItemWithBalance[]): void {
-    const flatItems = items.map((item) => item.item);
-    const itemsWithBalance =
-      this.#budgetCalculator.enrichWithCumulativeBalance(flatItems);
+  #calculateCumulativeBalances(
+    items: BudgetItemWithBalance[],
+    consumptionMap: Map<string, { consumed: number }>,
+  ): void {
+    let runningBalance = 0;
 
-    items.forEach((item, index) => {
-      item.cumulativeBalance = itemsWithBalance[index].cumulativeBalance;
+    items.forEach((item) => {
+      const kind = item.item.kind;
+      let effectiveAmount = item.item.amount;
+
+      if (item.itemType === 'budget_line') {
+        const consumption = consumptionMap.get(item.item.id);
+        if (consumption) {
+          effectiveAmount = Math.max(item.item.amount, consumption.consumed);
+        }
+      }
+
+      const isAllocatedTransaction =
+        item.itemType === 'transaction' &&
+        !!(item.item as Transaction).budgetLineId;
+
+      if (!isAllocatedTransaction) {
+        const signedAmount = this.#getSignedAmount(kind, effectiveAmount);
+        runningBalance += signedAmount;
+      }
+
+      item.cumulativeBalance = runningBalance;
     });
   }
 
+  #getSignedAmount(kind: TransactionKind, amount: number): number {
+    switch (kind) {
+      case 'income':
+        return amount;
+      case 'expense':
+      case 'saving':
+        return -amount;
+      default:
+        return 0;
+    }
+  }
+
+  // Méthodes pour les valeurs pré-calculées d'affichage
+  #getKindIcon(kind: TransactionKind): string {
+    return this.#KIND_ICONS[kind] ?? 'help';
+  }
+
+  #getAllocationLabel(kind: TransactionKind): string {
+    return this.#ALLOCATION_LABELS[kind] ?? 'Saisir';
+  }
+
+  #getTransactionCountLabel(kind: TransactionKind, count: number): string {
+    const label = this.#TRANSACTION_COUNT_LABELS[kind] ?? 'transaction';
+    return `${count} ${label}${count > 1 ? 's' : ''}`;
+  }
+
+  #calculatePercentage(reserved: number, consumed: number): number {
+    if (reserved <= 0) return 0;
+    return Math.round((consumed / reserved) * 100);
+  }
+
+  #getRolloverSourceBudgetId(data: BudgetLine): string | undefined {
+    return 'rolloverSourceBudgetId' in data
+      ? (data as BudgetLine & { rolloverSourceBudgetId?: string })
+          .rolloverSourceBudgetId
+      : undefined;
+  }
+
   /**
-   * Provides budget table data for display
+   * Provides budget table data for display with pre-computed display values
    */
   provideTableData(params: {
     budgetLines: BudgetLine[];
     transactions: Transaction[];
     editingLineId: string | null;
-  }): TableItem[] {
+    viewMode?: BudgetTableViewMode;
+  }): (BudgetLineTableItem | TransactionTableItem)[] {
+    const includeAllocatedTransactions = params.viewMode === 'transactions';
+
+    // Map pour les noms d'enveloppes des transactions allouées
+    const envelopeNameMap = new Map<string, string>();
+    if (includeAllocatedTransactions) {
+      params.budgetLines.forEach((line) => {
+        envelopeNameMap.set(line.id, line.name);
+      });
+    }
+
+    // Calculer les consommations pour les budget lines
+    const consumptionMap = calculateAllConsumptions(
+      params.budgetLines,
+      params.transactions,
+    );
+
     const itemsWithBalance = this.#composeBudgetItemsWithBalanceGrouped(
       params.budgetLines,
       params.transactions,
+      includeAllocatedTransactions,
     );
 
     return itemsWithBalance.map((item) => {
       const isRollover = isRolloverLine(item.item);
       const isBudgetLine = item.itemType === 'budget_line';
       const budgetLine = isBudgetLine ? (item.item as BudgetLine) : null;
+      const transaction = !isBudgetLine ? (item.item as Transaction) : null;
       const isPropagationLocked =
         isBudgetLine &&
         !!budgetLine?.templateLineId &&
         !!budgetLine?.isManuallyAdjusted;
-      return {
-        data: item.item,
-        metadata: {
-          itemType: item.itemType,
-          cumulativeBalance: item.cumulativeBalance,
-          isEditing:
-            isBudgetLine &&
-            params.editingLineId === item.item.id &&
-            !isRollover,
-          isRollover,
-          isTemplateLinked: isBudgetLine ? !!budgetLine?.templateLineId : false,
-          isPropagationLocked,
-          canResetFromTemplate: isPropagationLocked,
-        },
+
+      // Métadonnées de base + valeurs pré-calculées
+      const baseMetadata = {
+        itemType: item.itemType as 'budget_line' | 'transaction',
+        cumulativeBalance: item.cumulativeBalance,
+        isEditing:
+          isBudgetLine && params.editingLineId === item.item.id && !isRollover,
+        isRollover,
+        isTemplateLinked: isBudgetLine ? !!budgetLine?.templateLineId : false,
+        isPropagationLocked,
+        canResetFromTemplate: isPropagationLocked,
+        envelopeName: transaction?.budgetLineId
+          ? (envelopeNameMap.get(transaction.budgetLineId) ?? null)
+          : null,
+        // Valeurs pré-calculées pour la vue
+        kindIcon: this.#getKindIcon(item.item.kind),
+        allocationLabel: this.#getAllocationLabel(item.item.kind),
+        rolloverSourceBudgetId: budgetLine
+          ? this.#getRolloverSourceBudgetId(budgetLine)
+          : undefined,
       };
+
+      if (isBudgetLine && budgetLine) {
+        const consumption = consumptionMap.get(budgetLine.id);
+        const consumed = consumption?.consumed ?? 0;
+        const transactionCount = consumption?.transactionCount ?? 0;
+
+        return {
+          data: budgetLine,
+          metadata: baseMetadata,
+          consumption: {
+            consumed,
+            transactionCount,
+            percentage: this.#calculatePercentage(budgetLine.amount, consumed),
+            transactionCountLabel: this.#getTransactionCountLabel(
+              budgetLine.kind,
+              transactionCount,
+            ),
+            hasTransactions: transactionCount > 0,
+          },
+        } as BudgetLineTableItem;
+      }
+
+      return {
+        data: item.item as Transaction,
+        metadata: baseMetadata,
+      } as TransactionTableItem;
     });
   }
 }

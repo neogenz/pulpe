@@ -19,11 +19,29 @@ export class BudgetDetailsPage {
   }
 
   async clickDeleteBudgetLine(lineName: string): Promise<void> {
-    // Find the row with the budget line, then click its delete button
-    // The delete button testid is `delete-{id}`, but we need to find it within the row
+    // Find the row with the budget line
     const row = this.page.getByTestId(`budget-line-${lineName}`);
-    // Look for any button with data-testid starting with "delete-" within this row
-    await row.locator('[data-testid^="delete-"]').click();
+
+    // The delete action is inside a menu - first open the menu
+    const menuButton = row.locator('[data-testid^="actions-menu-"]');
+    await menuButton.click();
+
+    // Then click the delete menu item
+    const deleteMenuItem = this.page.locator('button[mat-menu-item]').filter({ hasText: 'Supprimer' });
+    await deleteMenuItem.click();
+  }
+
+  async clickEditBudgetLine(lineName: string): Promise<void> {
+    // Find the row with the budget line
+    const row = this.page.getByTestId(`budget-line-${lineName}`);
+
+    // The edit action is inside a menu - first open the menu
+    const menuButton = row.locator('[data-testid^="actions-menu-"]');
+    await menuButton.click();
+
+    // Then click the edit menu item
+    const editMenuItem = this.page.locator('button[mat-menu-item]').filter({ hasText: 'Éditer' });
+    await editMenuItem.click();
   }
 
   async confirmDelete(): Promise<void> {

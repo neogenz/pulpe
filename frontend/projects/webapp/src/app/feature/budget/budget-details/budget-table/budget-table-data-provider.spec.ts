@@ -731,4 +731,185 @@ describe('BudgetTableDataProvider', () => {
       expect(manual?.metadata.isPropagationLocked).toBe(false);
     });
   });
+
+  describe('View Mode: Transactions', () => {
+    it('should include allocated transactions when viewMode is transactions', () => {
+      const budgetLines: BudgetLine[] = [
+        createMockBudgetLine({
+          id: 'envelope-1',
+          name: 'Groceries',
+          amount: 500,
+          kind: 'expense',
+          recurrence: 'fixed',
+        }),
+      ];
+      const transactions: Transaction[] = [
+        createMockTransaction({
+          id: 'allocated-tx',
+          name: 'Carrefour',
+          amount: 100,
+          kind: 'expense',
+          budgetLineId: 'envelope-1', // Allocated to envelope
+        }),
+        createMockTransaction({
+          id: 'free-tx',
+          name: 'Coffee',
+          amount: 20,
+          kind: 'expense',
+          budgetLineId: null, // Free transaction
+        }),
+      ];
+
+      const result = service.provideTableData({
+        budgetLines,
+        transactions,
+        editingLineId: null,
+        viewMode: 'transactions',
+      });
+
+      // All items should be displayed
+      expect(result).toHaveLength(3);
+      expect(result.map((item) => item.data.id)).toContain('allocated-tx');
+      expect(result.map((item) => item.data.id)).toContain('free-tx');
+    });
+
+    it('should exclude allocated transactions when viewMode is envelopes', () => {
+      const budgetLines: BudgetLine[] = [
+        createMockBudgetLine({
+          id: 'envelope-1',
+          name: 'Groceries',
+          amount: 500,
+          kind: 'expense',
+          recurrence: 'fixed',
+        }),
+      ];
+      const transactions: Transaction[] = [
+        createMockTransaction({
+          id: 'allocated-tx',
+          name: 'Carrefour',
+          amount: 100,
+          kind: 'expense',
+          budgetLineId: 'envelope-1',
+        }),
+        createMockTransaction({
+          id: 'free-tx',
+          name: 'Coffee',
+          amount: 20,
+          kind: 'expense',
+          budgetLineId: null,
+        }),
+      ];
+
+      const result = service.provideTableData({
+        budgetLines,
+        transactions,
+        editingLineId: null,
+        viewMode: 'envelopes',
+      });
+
+      // Only envelope and free transaction
+      expect(result).toHaveLength(2);
+      expect(result.map((item) => item.data.id)).not.toContain('allocated-tx');
+      expect(result.map((item) => item.data.id)).toContain('free-tx');
+    });
+
+    it('should NOT count allocated transactions in cumulative balance (already in envelope consumption)', () => {
+      // This test verifies the bug fix: allocated transactions should not
+      // impact cumulative balance because their amount is already accounted
+      // for in the parent envelope's consumption.
+      const budgetLines: BudgetLine[] = [
+        createMockBudgetLine({
+          id: 'salary',
+          name: 'Salary',
+          amount: 5000,
+          kind: 'income',
+          recurrence: 'fixed',
+        }),
+        createMockBudgetLine({
+          id: 'groceries',
+          name: 'Groceries',
+          amount: 500,
+          kind: 'expense',
+          recurrence: 'fixed',
+        }),
+      ];
+      const transactions: Transaction[] = [
+        createMockTransaction({
+          id: 'allocated-grocery-tx',
+          name: 'Carrefour',
+          amount: 100,
+          kind: 'expense',
+          budgetLineId: 'groceries', // Allocated
+        }),
+        createMockTransaction({
+          id: 'free-coffee-tx',
+          name: 'Coffee',
+          amount: 20,
+          kind: 'expense',
+          budgetLineId: null, // Free (not allocated)
+        }),
+      ];
+
+      const result = service.provideTableData({
+        budgetLines,
+        transactions,
+        editingLineId: null,
+        viewMode: 'transactions',
+      });
+
+      // Find items by ID
+      const salary = result.find((item) => item.data.id === 'salary');
+      const groceries = result.find((item) => item.data.id === 'groceries');
+      const allocatedTx = result.find(
+        (item) => item.data.id === 'allocated-grocery-tx',
+      );
+      const freeTx = result.find((item) => item.data.id === 'free-coffee-tx');
+
+      // Salary adds +5000
+      expect(salary?.metadata.cumulativeBalance).toBe(5000);
+
+      // Groceries uses MAX(500 planned, 100 consumed) = 500 → balance = 5000 - 500 = 4500
+      expect(groceries?.metadata.cumulativeBalance).toBe(4500);
+
+      // Allocated transaction should NOT impact balance (already in groceries consumption)
+      // It should have the same balance as the previous item (groceries)
+      expect(allocatedTx?.metadata.cumulativeBalance).toBe(4500);
+
+      // Free transaction DOES impact balance: 4500 - 20 = 4480
+      expect(freeTx?.metadata.cumulativeBalance).toBe(4480);
+    });
+
+    it('should include envelope name for allocated transactions', () => {
+      const budgetLines: BudgetLine[] = [
+        createMockBudgetLine({
+          id: 'envelope-1',
+          name: 'Groceries',
+          amount: 500,
+          kind: 'expense',
+          recurrence: 'fixed',
+        }),
+      ];
+      const transactions: Transaction[] = [
+        createMockTransaction({
+          id: 'allocated-tx',
+          name: 'Carrefour',
+          amount: 100,
+          kind: 'expense',
+          budgetLineId: 'envelope-1',
+        }),
+      ];
+
+      const result = service.provideTableData({
+        budgetLines,
+        transactions,
+        editingLineId: null,
+        viewMode: 'transactions',
+      });
+
+      const allocatedTx = result.find(
+        (item) => item.data.id === 'allocated-tx',
+      );
+      expect(allocatedTx?.metadata.envelopeName).toBe('Groceries');
+    });
+  });
 });
