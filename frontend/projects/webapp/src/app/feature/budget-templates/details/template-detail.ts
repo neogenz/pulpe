@@ -37,7 +37,10 @@ import { firstValueFrom } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { TemplateUsageDialogComponent } from '../components/dialogs/template-usage-dialog';
 import { getDeleteConfirmationConfig } from '../delete/template-delete-dialog';
-import { BudgetTemplatesApi } from '../services/budget-templates-api';
+import {
+  BudgetTemplatesApi,
+  type BudgetTemplateDetailViewModel,
+} from '../services/budget-templates-api';
 import {
   EditTransactionsDialog,
   TransactionsTable,
@@ -238,11 +241,17 @@ export default class TemplateDetail implements OnInit {
   readonly #logger = inject(Logger);
   readonly #destroyRef = inject(DestroyRef);
   ngOnInit(): void {
-    // Get template ID from route parameters
     const templateId = this.#route.snapshot.paramMap.get('templateId');
-    if (templateId) {
-      this.templateDetailsStore.initializeTemplateId(templateId);
-    }
+    if (!templateId) return;
+
+    // Extract stale data from router state (if navigated from create page)
+    // Note: Use history.state because getCurrentNavigation() returns null in ngOnInit
+    // (navigation is already complete when component initializes)
+    const staleData = history.state?.['initialData'] as
+      | BudgetTemplateDetailViewModel
+      | undefined;
+
+    this.templateDetailsStore.initializeTemplateId(templateId, staleData);
   }
 
   private get templateId(): string | null {

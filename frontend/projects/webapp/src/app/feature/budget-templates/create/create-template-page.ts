@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   inject,
   signal,
 } from '@angular/core';
@@ -70,10 +71,12 @@ const SNACKBAR_CONFIG = {
 
       <div class="flex-1 overflow-auto">
         <pulpe-create-template-form
+          [isCreating]="isCreatingTemplate()"
+          [templateCount]="templateCount()"
+          [existingTemplateNames]="existingTemplateNames()"
+          [defaultTemplateName]="defaultTemplateName()"
           (addTemplate)="onAddTemplate($event)"
           (cancelForm)="navigateBack()"
-          (formReset)="onFormReset()"
-          [isCreating]="isCreatingTemplate()"
           data-testid="add-template-form"
         />
       </div>
@@ -94,35 +97,57 @@ export default class CreateTemplatePage {
   #state = inject(BudgetTemplatesState);
   #snackBar = inject(MatSnackBar);
   #logger = inject(Logger);
-  // Properties
+
+  // Local state
   isCreatingTemplate = signal(false);
 
+  // Computed values to pass to child form (smart/dumb pattern)
+  // These are computed ONCE from state and passed as stable inputs
+  templateCount = computed(() => this.#state.templateCount());
+  existingTemplateNames = computed(
+    () =>
+      this.#state.budgetTemplates
+        .value()
+        ?.filter((t) => !t.id.startsWith('temp-'))
+        .map((t) => t.name.toLowerCase()) ?? [],
+  );
+  defaultTemplateName = computed(
+    () => this.#state.defaultBudgetTemplate()?.name ?? null,
+  );
+
   async onAddTemplate(template: BudgetTemplateCreate) {
+    this.isCreatingTemplate.set(true);
+
     try {
-      this.isCreatingTemplate.set(true);
-      const createdTemplate = await this.#state.addTemplate(template);
+      const response = await this.#state.addTemplate(template);
 
       // Show success message
       this.#snackBar.open(MESSAGES.SUCCESS, 'Fermer', SNACKBAR_CONFIG.SUCCESS);
 
-      // Form will reset itself and emit formReset event
-
       // Navigate to the details page of the newly created template
-      if (createdTemplate && createdTemplate.id) {
-        this.#router.navigate([ROUTES.TEMPLATE_DETAILS(createdTemplate.id)]);
+      // Note: We keep isCreating=true during navigation to prevent UI flicker.
+      // The component will be destroyed when navigation completes.
+      if (response?.template.id) {
+        // Pass POST response as router state for SWR (instant display)
+        await this.#router.navigate(
+          [ROUTES.TEMPLATE_DETAILS(response.template.id)],
+          {
+            state: {
+              initialData: {
+                template: response.template,
+                transactions: response.lines,
+              },
+            },
+          },
+        );
       } else {
-        this.navigateBack();
+        await this.#router.navigate([ROUTES.BUDGET_TEMPLATES]);
       }
     } catch (error) {
-      this.handleError(error);
-    } finally {
+      // Only reset isCreating on error (user stays on page to retry)
       this.isCreatingTemplate.set(false);
+      this.handleError(error);
     }
-  }
-
-  onFormReset() {
-    // Handle form reset completion if needed
-    // Currently no additional action required
   }
 
   navigateBack() {
