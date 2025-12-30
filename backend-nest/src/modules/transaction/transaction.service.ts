@@ -623,6 +623,34 @@ export class TransactionService {
   }
 
   /**
+   * Validates that a budget line exists and is accessible to the current user.
+   * RLS policies ensure only budget lines belonging to the user are returned.
+   */
+  private async validateBudgetLineExists(
+    budgetLineId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    const { data: budgetLine, error } = await supabase
+      .from('budget_line')
+      .select('id')
+      .eq('id', budgetLineId)
+      .single();
+
+    if (error || !budgetLine) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_LINE_NOT_FOUND,
+        { id: budgetLineId },
+        {
+          operation: 'validateBudgetLineExists',
+          entityId: budgetLineId,
+          entityType: 'budget_line',
+          supabaseError: error,
+        },
+      );
+    }
+  }
+
+  /**
    * Find all transactions allocated to a specific budget line
    * Returns transactions sorted by transaction_date descending (most recent first)
    */
@@ -631,6 +659,8 @@ export class TransactionService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionListResponse> {
     try {
+      await this.validateBudgetLineExists(budgetLineId, supabase);
+
       const { data: transactionsDb, error } = await supabase
         .from('transaction')
         .select('*')
