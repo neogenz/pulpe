@@ -7,6 +7,7 @@ import {
   input,
   computed,
   effect,
+  isDevMode,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { firstValueFrom, map } from 'rxjs';
@@ -155,58 +156,60 @@ import {
           data-tour="budget-table"
         />
 
-        <!-- Budget Info Card -->
-        <mat-card appearance="outlined">
-          <mat-card-header>
-            <div mat-card-avatar>
-              <div
-                class="flex justify-center items-center size-11 bg-primary-container rounded-full"
-              >
-                <mat-icon class="text-on-primary-container"
-                  >calendar_month</mat-icon
+        @if (isDevMode) {
+          <!-- Budget Info Card -->
+          <mat-card appearance="outlined">
+            <mat-card-header>
+              <div mat-card-avatar>
+                <div
+                  class="flex justify-center items-center size-11 bg-primary-container rounded-full"
                 >
-              </div>
-            </div>
-            <mat-card-title>Informations du budget</mat-card-title>
-            <mat-card-subtitle>Détails et métadonnées</mat-card-subtitle>
-          </mat-card-header>
-          <mat-card-content>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              <div>
-                <div class="text-label-medium text-on-surface-variant">
-                  Période
+                  <mat-icon class="text-on-primary-container"
+                    >calendar_month</mat-icon
+                  >
                 </div>
-                <p class="text-body-large">
-                  {{ displayName() }}
-                </p>
               </div>
-              <div>
-                <div class="text-label-medium text-on-surface-variant">
-                  Créé le
+              <mat-card-title>Informations du budget</mat-card-title>
+              <mat-card-subtitle>Détails et métadonnées</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div>
+                  <div class="text-label-medium text-on-surface-variant">
+                    Période
+                  </div>
+                  <p class="text-body-large">
+                    {{ displayName() }}
+                  </p>
                 </div>
-                <p class="text-body-large">
-                  {{ budget.createdAt | date: 'short' : '' : 'fr-CH' }}
-                </p>
-              </div>
-              <div>
-                <div class="text-label-medium text-on-surface-variant">
-                  Dernière modification
+                <div>
+                  <div class="text-label-medium text-on-surface-variant">
+                    Créé le
+                  </div>
+                  <p class="text-body-large">
+                    {{ budget.createdAt | date: 'short' : '' : 'fr-CH' }}
+                  </p>
                 </div>
-                <p class="text-body-large">
-                  {{ budget.updatedAt | date: 'short' : '' : 'fr-CH' }}
-                </p>
-              </div>
-              <div>
-                <div class="text-label-medium text-on-surface-variant">
-                  ID du budget
+                <div>
+                  <div class="text-label-medium text-on-surface-variant">
+                    Dernière modification
+                  </div>
+                  <p class="text-body-large">
+                    {{ budget.updatedAt | date: 'short' : '' : 'fr-CH' }}
+                  </p>
                 </div>
-                <p class="text-body-small font-mono text-on-surface-variant">
-                  {{ budget.id }}
-                </p>
+                <div>
+                  <div class="text-label-medium text-on-surface-variant">
+                    ID du budget
+                  </div>
+                  <p class="text-body-small font-mono text-on-surface-variant">
+                    {{ budget.id }}
+                  </p>
+                </div>
               </div>
-            </div>
-          </mat-card-content>
-        </mat-card>
+            </mat-card-content>
+          </mat-card>
+        }
       } @else {
         <div class="flex justify-center items-center h-full">
           <p class="text-body-large">Aucun budget trouvé</p>
@@ -222,6 +225,7 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class BudgetDetailsPage {
+  readonly isDevMode = isDevMode();
   store = inject(BudgetDetailsStore);
   readonly #router = inject(Router);
   readonly #route = inject(ActivatedRoute);

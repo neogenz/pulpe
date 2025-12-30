@@ -77,6 +77,7 @@ import {
           </button>
           <button
             matButton="filled"
+            class="shrink-0"
             routerLink="create"
             [disabled]="state.isTemplateLimitReached()"
             [matTooltip]="
