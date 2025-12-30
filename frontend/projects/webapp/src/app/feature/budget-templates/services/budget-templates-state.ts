@@ -26,7 +26,16 @@ export class BudgetTemplatesState {
       ),
   });
   selectedTemplate = signal<BudgetTemplate | null>(null);
-  templateCount = computed(() => this.budgetTemplates.value()?.length ?? 0);
+
+  // Filter out optimistic (temporary) templates for business logic computations
+  // Temporary templates have IDs starting with "temp-"
+  #persistedTemplates = computed(
+    () =>
+      this.budgetTemplates.value()?.filter((t) => !t.id.startsWith('temp-')) ??
+      [],
+  );
+
+  templateCount = computed(() => this.#persistedTemplates().length);
 
   isTemplateLimitReached = computed(
     () => this.templateCount() >= this.MAX_TEMPLATES,
@@ -35,7 +44,7 @@ export class BudgetTemplatesState {
     () => this.MAX_TEMPLATES - this.templateCount(),
   );
   defaultBudgetTemplate = computed(
-    () => this.budgetTemplates.value()?.find((t) => t.isDefault) ?? null,
+    () => this.#persistedTemplates().find((t) => t.isDefault) ?? null,
   );
 
   refreshData(): void {
@@ -57,40 +66,21 @@ export class BudgetTemplatesState {
       throw new Error('Template limit reached');
     }
 
+    // Note: We intentionally DON'T use optimistic update here.
+    // The creation is fast (< 1s) and the user sees a spinner.
+    // Optimistic update caused UI flicker issues because computed signals
+    // would react to state changes during navigation.
+    const response = await firstValueFrom(
+      this.#budgetTemplatesApi.create$(template),
+    );
+
+    // Update state with the real template after successful creation
     this.budgetTemplates.update((data) => {
-      if (!data) return data;
-      const optimisticTemplate: BudgetTemplate = {
-        id: `temp-${Date.now()}`,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        userId: undefined,
-        name: template.name,
-        description: template.description ?? undefined,
-        // category: template.category ?? undefined, // Removed: category field doesn't exist in schema
-        isDefault: template.isDefault ?? false,
-      };
-      return [...data, optimisticTemplate];
+      if (!data || !response.data) return data;
+      return [...data, response.data];
     });
 
-    try {
-      const response = await firstValueFrom(
-        this.#budgetTemplatesApi.create$(template),
-      );
-
-      this.budgetTemplates.update((data) => {
-        if (!data || !response.data) return data;
-        return data.map((t) => (t.id.startsWith('temp-') ? response.data : t));
-      });
-
-      // Return the created template for navigation
-      return response.data;
-    } catch (error) {
-      this.budgetTemplates.update((data) => {
-        if (!data) return data;
-        return data.filter((t) => !t.id.startsWith('temp-'));
-      });
-      throw error;
-    }
+    return response.data;
   }
   async deleteTemplate(id: string): Promise<void> {
     const originalData = this.budgetTemplates.value();

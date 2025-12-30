@@ -2,6 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { type Observable, forkJoin, map } from 'rxjs';
 import {
+  type BudgetTemplate,
   type BudgetTemplateCreate,
   type BudgetTemplateCreateFromOnboarding,
   type BudgetTemplateCreateResponse,
@@ -34,8 +35,12 @@ export class BudgetTemplatesApi {
     return this.#http.get<BudgetTemplateResponse>(`${this.#apiUrl}/${id}`);
   }
 
-  create$(template: BudgetTemplateCreate): Observable<BudgetTemplateResponse> {
-    return this.#http.post<BudgetTemplateResponse>(this.#apiUrl, template);
+  create$(
+    template: BudgetTemplateCreate,
+  ): Observable<{ data: BudgetTemplate }> {
+    return this.#http
+      .post<BudgetTemplateCreateResponse>(this.#apiUrl, template)
+      .pipe(map((response) => ({ data: response.data.template })));
   }
 
   createFromOnboarding$(
