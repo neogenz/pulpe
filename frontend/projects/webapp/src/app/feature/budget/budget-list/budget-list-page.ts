@@ -22,7 +22,6 @@ import { type CalendarMonth, YearCalendar } from '@ui/calendar';
 import { type CalendarYear } from '@ui/calendar/calendar-types';
 import { BaseLoading } from '@ui/loading';
 import { firstValueFrom, map, shareReplay } from 'rxjs';
-import { saveBreadcrumbContext } from '@core/routing';
 import { MonthsError } from '../ui/budget-error';
 import { mapToCalendarYear } from './budget-list-mapper/budget-list.mapper';
 import { BudgetListStore } from './budget-list-store';
@@ -227,11 +226,6 @@ export default class BudgetListPage {
 
   navigateToDetails(month: CalendarMonth): void {
     if (month.hasContent && month.id) {
-      saveBreadcrumbContext({
-        id: month.id,
-        month: month.month,
-        year: month.year,
-      });
       this.#router.navigate([ROUTES.APP, ROUTES.BUDGET, month.id]);
     }
   }

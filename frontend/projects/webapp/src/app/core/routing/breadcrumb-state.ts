@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal, computed } from '@angular/core';
 import { Logger } from '@core/logging/logger';
 import {
   NavigationEnd,
@@ -22,18 +22,38 @@ export class BreadcrumbState {
   readonly #activatedRoute = inject(ActivatedRoute);
   readonly #logger = inject(Logger);
 
-  // Le signal est privé pour contrôler les écritures, exposé via un signal calculé ou une méthode.
-  // Ici, nous le laissons public readonly pour correspondre à l'original.
-  readonly breadcrumbs = toSignal(
+  readonly #dynamicLabel = signal<string | null>(null);
+
+  readonly #routeBreadcrumbs = toSignal(
     this.#router.events.pipe(
       filter((event): event is NavigationEnd => event instanceof NavigationEnd),
-      startWith(null), // Déclenche la construction initiale au démarrage
+      startWith(null),
       map(() => this.#buildBreadcrumbs()),
-      // distinctUntilChanged n'est plus nécessaire car toSignal le fait par défaut avec une comparaison d'égalité.
-      // Si une comparaison profonde est toujours souhaitée, on peut l'ajouter via `computed` ou le garder ici.
     ),
     { initialValue: [] },
   );
+
+  readonly breadcrumbs = computed(() => {
+    const items = this.#routeBreadcrumbs();
+    const dynamicLabel = this.#dynamicLabel();
+
+    if (!dynamicLabel || items.length === 0) {
+      return items;
+    }
+
+    const lastIndex = items.length - 1;
+    return items.map((item, index) =>
+      index === lastIndex ? { ...item, label: dynamicLabel } : item,
+    );
+  });
+
+  setDynamicBreadcrumb(label: string): void {
+    this.#dynamicLabel.set(label);
+  }
+
+  clearDynamicBreadcrumb(): void {
+    this.#dynamicLabel.set(null);
+  }
 
   /**
    * Construit le fil d'Ariane en parcourant la hiérarchie des routes de manière fonctionnelle.
