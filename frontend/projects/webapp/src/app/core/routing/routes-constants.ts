@@ -6,6 +6,7 @@ export const ROUTES = {
   CURRENT_MONTH: 'current-month',
   BUDGET: 'budget',
   BUDGET_TEMPLATES: 'budget-templates',
+  SETTINGS: 'settings',
   LEGAL: 'legal',
 
   // Onboarding step paths
@@ -50,4 +51,5 @@ export const PAGE_TITLES = {
   LEGAL: 'Mentions légales',
   LEGAL_TERMS: "Conditions Générales d'Utilisation",
   LEGAL_PRIVACY: 'Politique de Confidentialité',
+  SETTINGS: 'Paramètres',
 } as const;

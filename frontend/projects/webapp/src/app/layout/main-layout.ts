@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatDialog } from '@angular/material/dialog';
@@ -47,6 +48,7 @@ interface NavigationItem {
   selector: 'pulpe-main-layout',
   imports: [
     MatButtonModule,
+    MatDividerModule,
     MatIconModule,
     MatListModule,
     MatMenuModule,
@@ -241,6 +243,16 @@ interface NavigationItem {
             </button>
 
             <mat-menu #userMenu="matMenu" xPosition="before">
+              <a
+                mat-menu-item
+                [routerLink]="settingsRoute"
+                aria-label="Accéder aux paramètres"
+                data-testid="settings-link"
+              >
+                <mat-icon matMenuItemIcon>settings</mat-icon>
+                <span>Paramètres</span>
+              </a>
+              <mat-divider />
               <button
                 mat-menu-item
                 (click)="openAboutDialog()"
@@ -371,6 +383,9 @@ export default class MainLayout {
     }
     return this.#authApi.authState().user?.email;
   });
+
+  // Route to settings page
+  protected readonly settingsRoute = `/${ROUTES.APP}/${ROUTES.SETTINGS}`;
 
   // Navigation items configuration
   protected readonly navigationItems: readonly NavigationItem[] = [

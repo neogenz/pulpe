@@ -3,6 +3,7 @@ import { computed, inject, Injectable, resource, signal } from '@angular/core';
 import { BudgetApi } from '@core/budget';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { TransactionApi } from '@core/transaction';
+import { UserSettingsApi } from '@core/user-settings';
 import { createRolloverLine } from '@core/rollover/rollover-types';
 import {
   type Budget,
@@ -11,8 +12,8 @@ import {
   type TransactionCreate,
   type TransactionUpdate,
   BudgetFormulas,
+  getBudgetPeriodForDate,
 } from 'pulpe-shared';
-import { format } from 'date-fns';
 import { firstValueFrom, type Observable } from 'rxjs';
 import {
   type CurrentMonthState,
@@ -40,6 +41,7 @@ export class CurrentMonthStore {
   #transactionApi = inject(TransactionApi);
   #httpClient = inject(HttpClient);
   #appConfig = inject(ApplicationConfiguration);
+  #userSettingsApi = inject(UserSettingsApi);
 
   /**
    * Simple state signal for UI feedback during operations
@@ -49,6 +51,22 @@ export class CurrentMonthStore {
   );
 
   /**
+   * Pay day of month from user settings
+   * Used to calculate the correct budget period
+   */
+  readonly payDayOfMonth = this.#userSettingsApi.payDayOfMonth;
+
+  /**
+   * Current budget period computed using payDayOfMonth
+   * This determines which month/year to load based on user's pay cycle
+   */
+  readonly currentBudgetPeriod = computed(() => {
+    const currentDate = this.#state().currentDate;
+    const payDay = this.payDayOfMonth();
+    return getBudgetPeriodForDate(currentDate, payDay);
+  });
+
+  /**
    * Resource for loading dashboard data - single source of truth for async data
    */
   readonly #dashboardResource = resource<
@@ -56,10 +74,10 @@ export class CurrentMonthStore {
     { month: string; year: string }
   >({
     params: () => {
-      const currentDate = this.budgetDate();
+      const period = this.currentBudgetPeriod();
       return {
-        month: format(currentDate, 'MM'),
-        year: format(currentDate, 'yyyy'),
+        month: period.month.toString().padStart(2, '0'),
+        year: period.year.toString(),
       };
     },
     loader: async ({ params }) => this.#loadDashboardData(params),

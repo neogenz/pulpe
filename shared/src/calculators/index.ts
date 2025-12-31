@@ -10,4 +10,11 @@
  */
 
 export { BudgetFormulas } from './budget-formulas.js';
+export {
+  getBudgetPeriodForDate,
+  isInCurrentBudgetPeriod,
+  compareBudgetPeriods,
+  isPastBudgetPeriod,
+  type BudgetPeriod,
+} from './budget-period.js';
 export type * from '../types.js';

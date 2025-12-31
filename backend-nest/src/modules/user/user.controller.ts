@@ -29,6 +29,8 @@ import {
   UserProfileResponseDto,
   OnboardingStatusResponseDto,
   SuccessMessageResponseDto,
+  UpdateUserSettingsDto,
+  UserSettingsResponseDto,
 } from './dto/user-profile.dto';
 import { ErrorResponseDto } from '@common/dto/response.dto';
 
@@ -242,6 +244,88 @@ export class UserController {
       this.logger.error({ err: error }, 'Failed to fetch onboarding status');
       throw new InternalServerErrorException(
         "Erreur lors de la récupération du statut d'onboarding",
+      );
+    }
+  }
+
+  @Get('settings')
+  @ApiOperation({
+    summary: 'Get user settings',
+    description:
+      'Retrieves the current settings for the user (e.g., payDayOfMonth)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Settings retrieved successfully',
+    type: UserSettingsResponseDto,
+  })
+  async getSettings(
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<UserSettingsResponseDto> {
+    try {
+      const currentUserData = await this.getCurrentUserData(supabase);
+      const payDayOfMonth =
+        currentUserData.user.user_metadata?.payDayOfMonth ?? null;
+
+      return {
+        success: true as const,
+        data: {
+          payDayOfMonth,
+        },
+      };
+    } catch (error) {
+      this.logger.error({ err: error }, 'Failed to fetch user settings');
+      throw new InternalServerErrorException(
+        'Erreur lors de la récupération des paramètres',
+      );
+    }
+  }
+
+  @Put('settings')
+  @ApiOperation({
+    summary: 'Update user settings',
+    description:
+      'Updates the user settings (e.g., payDayOfMonth for custom budget period)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Settings updated successfully',
+    type: UserSettingsResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid input data',
+    type: ErrorResponseDto,
+  })
+  async updateSettings(
+    @Body(ValidationPipe) updateData: UpdateUserSettingsDto,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<UserSettingsResponseDto> {
+    try {
+      const currentUserData = await this.getCurrentUserData(supabase);
+
+      const { data: updatedUser, error } = await supabase.auth.updateUser({
+        data: {
+          ...currentUserData.user.user_metadata,
+          payDayOfMonth: updateData.payDayOfMonth ?? null,
+        },
+      });
+
+      if (error || !updatedUser.user) {
+        throw new InternalServerErrorException(
+          'Erreur lors de la mise à jour des paramètres',
+        );
+      }
+
+      return {
+        success: true as const,
+        data: {
+          payDayOfMonth: updatedUser.user.user_metadata?.payDayOfMonth ?? null,
+        },
+      };
+    } catch (error) {
+      this.logger.error({ err: error }, 'Failed to update user settings');
+      throw new InternalServerErrorException(
+        'Erreur lors de la mise à jour des paramètres',
       );
     }
   }
