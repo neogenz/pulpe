@@ -82,6 +82,10 @@ export {
   publicInfoResponseSchema,
   onboardingStatusResponseSchema,
   successMessageResponseSchema,
+  payDayOfMonthSchema,
+  updateUserSettingsSchema,
+  userSettingsSchema,
+  userSettingsResponseSchema,
 
   // Auth schemas
   userInfoSchema,
@@ -98,6 +102,15 @@ export {
 
 // Export calculators
 export { BudgetFormulas } from './src/calculators/index.js';
+
+// Export budget period utilities
+export {
+  getBudgetPeriodForDate,
+  isInCurrentBudgetPeriod,
+  compareBudgetPeriods,
+  isPastBudgetPeriod,
+  type BudgetPeriod,
+} from './src/calculators/index.js';
 
 // Export all types from types.ts
 export type {
@@ -184,6 +197,10 @@ export type {
   PublicInfoResponse,
   OnboardingStatusResponse,
   SuccessMessageResponse,
+  PayDayOfMonth,
+  UpdateUserSettings,
+  UserSettings,
+  UserSettingsResponse,
 
   // Auth types
   UserInfo,
