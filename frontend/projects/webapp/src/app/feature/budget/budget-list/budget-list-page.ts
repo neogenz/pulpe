@@ -17,6 +17,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
+import { BudgetApi } from '@core/budget/budget-api';
 import { ROUTES, TitleDisplay } from '@core/routing';
 import { type CalendarMonth, YearCalendar } from '@ui/calendar';
 import { type CalendarYear } from '@ui/calendar/calendar-types';
@@ -61,6 +62,20 @@ const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
             data-testid="help-button"
           >
             <mat-icon>help_outline</mat-icon>
+          </button>
+          <button
+            matButton="outlined"
+            (click)="onExportBudgets()"
+            [disabled]="isExporting()"
+            matTooltip="Exporter tous les budgets en JSON"
+            data-testid="export-budgets-btn"
+          >
+            @if (isExporting()) {
+              <mat-icon>hourglass_empty</mat-icon>
+            } @else {
+              <mat-icon>download</mat-icon>
+            }
+            <span class="hidden md:inline">Exporter</span>
           </button>
           <button
             matButton="filled"
@@ -133,6 +148,10 @@ export default class BudgetListPage {
   readonly #logger = inject(Logger);
   readonly #loadingIndicator = inject(LoadingIndicator);
   readonly #destroyRef = inject(DestroyRef);
+  readonly #budgetApi = inject(BudgetApi);
+
+  readonly #isExporting = signal(false);
+  readonly isExporting = this.#isExporting.asReadonly();
 
   constructor() {
     // Refresh data on init
@@ -296,6 +315,31 @@ export default class BudgetListPage {
           duration: 5000,
         },
       );
+    }
+  }
+
+  async onExportBudgets(): Promise<void> {
+    this.#isExporting.set(true);
+    try {
+      await firstValueFrom(this.#budgetApi.exportAllBudgets$());
+      this.#snackBar.open(
+        'Export réussi ! Le fichier a été téléchargé.',
+        'Fermer',
+        { duration: 3000 },
+      );
+    } catch (error) {
+      this.#logger.error('Error exporting budgets', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Erreur inconnue';
+      this.#snackBar.open(
+        `Erreur lors de l'export: ${errorMessage}`,
+        'Fermer',
+        {
+          duration: 5000,
+        },
+      );
+    } finally {
+      this.#isExporting.set(false);
     }
   }
 }

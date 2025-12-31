@@ -100,6 +100,23 @@ export class BudgetController {
     return this.budgetService.create(createBudgetDto, user, supabase);
   }
 
+  @Get('export')
+  @ApiOperation({
+    summary: 'Export all budgets with full details',
+    description:
+      'Exports all budgets for the authenticated user with transactions, budget lines, and calculated values (rollover, remaining) as JSON',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Export data retrieved successfully',
+  })
+  async exportAll(
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ) {
+    return this.budgetService.exportAll(user, supabase);
+  }
+
   @Get(':id')
   @ApiOperation({
     summary: 'Get budget by ID',

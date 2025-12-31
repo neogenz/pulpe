@@ -93,6 +93,94 @@ export class BudgetService {
     }
   }
 
+  async exportAll(
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ) {
+    try {
+      const startTime = Date.now();
+
+      // Fetch all budgets ordered by year and month
+      const { data: budgets, error } = await supabase
+        .from('monthly_budget')
+        .select('*')
+        .order('year', { ascending: true })
+        .order('month', { ascending: true });
+
+      if (error) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
+          undefined,
+          {
+            operation: 'exportAllBudgets',
+            userId: user.id,
+            entityType: 'budget',
+            supabaseError: error,
+          },
+          { cause: error },
+        );
+      }
+
+      // For each budget, fetch full details with transactions and budget lines
+      const budgetsWithDetails = await Promise.all(
+        (budgets || []).map(async (budget) => {
+          const { transactions, budgetLines } =
+            await this.repository.fetchBudgetData(budget.id, supabase, {
+              selectFields: '*',
+              orderTransactions: true,
+            });
+
+          const rolloverData = await this.calculator.getRollover(
+            budget.id,
+            supabase,
+          );
+
+          const remaining =
+            (budget.ending_balance ?? 0) + rolloverData.rollover;
+
+          return {
+            ...budgetMappers.toApi(budget),
+            rollover: rolloverData.rollover,
+            previousBudgetId: rolloverData.previousBudgetId,
+            remaining,
+            transactions: transactionMappers.toApiList(transactions || []),
+            budgetLines: budgetLineMappers.toApiList(budgetLines || []),
+          };
+        }),
+      );
+
+      this.logger.info(
+        {
+          userId: user.id,
+          budgetCount: budgetsWithDetails.length,
+          duration: Date.now() - startTime,
+          operation: 'budget.export.success',
+        },
+        'Export de tous les budgets réussi',
+      );
+
+      return {
+        success: true as const,
+        data: {
+          exportDate: new Date().toISOString(),
+          totalBudgets: budgetsWithDetails.length,
+          budgets: budgetsWithDetails,
+        },
+      };
+    } catch (error) {
+      handleServiceError(
+        error,
+        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+        undefined,
+        {
+          operation: 'exportAllBudgets',
+          userId: user.id,
+          entityType: 'budget',
+        },
+      );
+    }
+  }
+
   async create(
     createBudgetDto: BudgetCreate,
     user: AuthenticatedUser,
