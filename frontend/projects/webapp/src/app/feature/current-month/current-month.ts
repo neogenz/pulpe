@@ -25,6 +25,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { RealizedBalanceProgressBar } from '@ui/realized-balance-progress-bar/realized-balance-progress-bar';
 import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-balance-tooltip';
 import { Logger } from '@core/logging/logger';
 import {
@@ -35,10 +36,6 @@ import { TitleDisplay } from '@core/routing';
 import { type TransactionCreate } from '@pulpe/shared';
 import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
 import { BaseLoading } from '@ui/loading';
-import {
-  FinancialSummary,
-  type FinancialSummaryData,
-} from '@ui/financial-summary/financial-summary';
 import { firstValueFrom } from 'rxjs';
 import { AddTransactionBottomSheet } from './components/add-transaction-bottom-sheet';
 import { BudgetProgressBar } from './components/budget-progress-bar';
@@ -89,8 +86,8 @@ type EditTransactionFormData = Pick<
     DashboardError,
     BaseLoading,
     OneTimeExpensesList,
+    RealizedBalanceProgressBar,
     RealizedBalanceTooltip,
-    FinancialSummary,
   ],
   template: `
     <div class="flex flex-col gap-4" data-testid="current-month-page">
@@ -145,13 +142,16 @@ type EditTransactionFormData = Pick<
             [available]="store.totalAvailable()"
             data-tour="progress-bar"
           />
-          <pulpe-financial-summary
-            [data]="realizedBalanceData()"
+          <pulpe-realized-balance-progress-bar
+            [realizedExpenses]="store.realizedExpenses()"
+            [realizedBalance]="store.realizedBalance()"
+            [checkedCount]="store.checkedItemsCount()"
+            [totalCount]="store.totalItemsCount()"
             class="mt-4"
             data-testid="realized-balance-summary"
           >
             <pulpe-realized-balance-tooltip slot="title-info" />
-          </pulpe-financial-summary>
+          </pulpe-realized-balance-progress-bar>
           <div
             class="flex flex-col gap-4"
             data-testid="dashboard-content"
@@ -290,16 +290,6 @@ export default class CurrentMonth {
     return transactions.map((transaction) =>
       mapTransactionToFinancialEntry(transaction),
     );
-  });
-
-  realizedBalanceData = computed<FinancialSummaryData>(() => {
-    const balance = this.store.realizedBalance();
-    return {
-      title: 'Solde actuel (coché)',
-      amount: balance,
-      icon: 'check_circle',
-      type: balance >= 0 ? 'income' : 'negative',
-    };
   });
 
   openAddTransactionBottomSheet(): void {

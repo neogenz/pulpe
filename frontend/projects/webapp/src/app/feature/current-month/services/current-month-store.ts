@@ -174,6 +174,33 @@ export class CurrentMonthStore {
   });
 
   /**
+   * Dépenses réalisées (uniquement les éléments cochés)
+   */
+  readonly realizedExpenses = computed<number>(() => {
+    const budgetLines = this.budgetLines();
+    const transactions = this.transactions();
+    return BudgetFormulas.calculateRealizedExpenses(budgetLines, transactions);
+  });
+
+  /**
+   * Nombre d'éléments cochés (budget lines + transactions)
+   */
+  readonly checkedItemsCount = computed<number>(() => {
+    const budgetLines = this.budgetLines();
+    const transactions = this.transactions();
+    return [...budgetLines, ...transactions].filter(
+      (item) => item.checkedAt != null,
+    ).length;
+  });
+
+  /**
+   * Nombre total d'éléments (budget lines + transactions)
+   */
+  readonly totalItemsCount = computed<number>(() => {
+    return this.budgetLines().length + this.transactions().length;
+  });
+
+  /**
    * Refresh dashboard data by reloading the resource
    */
   refreshData(): void {

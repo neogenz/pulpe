@@ -136,6 +136,9 @@ import {
           [budgetLines]="budgetLines"
           [transactions]="transactions"
           [realizedBalance]="store.realizedBalance()"
+          [realizedExpenses]="store.realizedExpenses()"
+          [checkedCount]="store.checkedItemsCount()"
+          [totalCount]="store.totalItemsCount()"
           data-tour="financial-overview"
         />
 

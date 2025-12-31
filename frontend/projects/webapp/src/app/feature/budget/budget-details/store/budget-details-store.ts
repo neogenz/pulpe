@@ -114,6 +114,41 @@ export class BudgetDetailsStore {
     );
   });
 
+  /**
+   * Dépenses réalisées (uniquement les éléments cochés)
+   */
+  readonly realizedExpenses = computed<number>(() => {
+    if (!this.#budgetDetailsResource.hasValue()) return 0;
+    const details = this.#budgetDetailsResource.value();
+    return BudgetFormulas.calculateRealizedExpenses(
+      this.displayBudgetLines(),
+      details.transactions,
+    );
+  });
+
+  /**
+   * Nombre d'éléments cochés (budget lines + transactions)
+   */
+  readonly checkedItemsCount = computed<number>(() => {
+    if (!this.#budgetDetailsResource.hasValue()) return 0;
+    const details = this.#budgetDetailsResource.value();
+    const lines = this.displayBudgetLines();
+    const transactions = details.transactions ?? [];
+    return [...lines, ...transactions].filter((item) => item.checkedAt != null)
+      .length;
+  });
+
+  /**
+   * Nombre total d'éléments (budget lines + transactions)
+   */
+  readonly totalItemsCount = computed<number>(() => {
+    if (!this.#budgetDetailsResource.hasValue()) return 0;
+    const details = this.#budgetDetailsResource.value();
+    const lines = this.displayBudgetLines();
+    const transactions = details.transactions ?? [];
+    return lines.length + transactions.length;
+  });
+
   setBudgetId(budgetId: string): void {
     this.#state.budgetId.set(budgetId);
     // Reset rollover checked state when changing budget (checked by default)

@@ -9,9 +9,13 @@ import { MatTooltipModule } from '@angular/material/tooltip';
     <mat-icon
       matTooltip="Ce solde est calculé en fonction des dépenses que vous avez cochées comme effectuées. Comparez-le à votre solde bancaire pour vérifier qu'il n'y a pas d'écart."
       matTooltipPosition="above"
+      matTooltipTouchGestures="auto"
+      matTooltipClass="text-center"
+      aria-hidden="false"
       aria-label="Information sur le solde actuel"
-      class="text-financial-income cursor-help text-base!"
+      role="button"
       tabindex="0"
+      class="text-financial-income cursor-help text-base! text-center"
       >info</mat-icon
     >
   `,
