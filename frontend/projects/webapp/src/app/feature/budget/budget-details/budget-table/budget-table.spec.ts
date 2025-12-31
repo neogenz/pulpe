@@ -1,10 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   Component,
-  input,
   model,
   NO_ERRORS_SCHEMA,
-  output,
   provideZonelessChangeDetection,
 } from '@angular/core';
 import { CurrencyPipe, registerLocaleData } from '@angular/common';
@@ -38,13 +36,10 @@ import {
   RecurrenceLabelPipe,
   TransactionLabelPipe,
 } from '@ui/transaction-display';
-import type { BudgetLine } from '@pulpe/shared';
-import { EditBudgetLineDialog } from '../edit-budget-line/edit-budget-line-dialog';
 import { type BudgetLineViewModel } from '../models/budget-line-view-model';
 import { type TransactionViewModel } from '../models/transaction-view-model';
 import { BudgetTable } from './budget-table';
 import { BudgetTableDataProvider } from './budget-table-data-provider';
-import type { BudgetLineTableItem } from './budget-table-models';
 import type { BudgetTableViewMode } from './budget-table-view-mode';
 
 // Mock component for BudgetTableViewToggle
@@ -54,61 +49,6 @@ import type { BudgetTableViewMode } from './budget-table-view-mode';
 })
 class MockBudgetTableViewToggle {
   viewMode = model<BudgetTableViewMode>('envelopes');
-}
-
-// Mock component for BudgetTableMobileCard - simplified for tests
-// Note: Mobile view tests are currently skipped due to input.required() issues with Angular test lifecycle
-@Component({
-  selector: 'pulpe-budget-table-mobile-card',
-  template: `
-    @if (item()) {
-      <mat-card
-        appearance="outlined"
-        [attr.data-testid]="'envelope-card-' + item()!.data.name"
-      >
-        <button
-          [attr.data-testid]="'card-menu-' + item()!.data.id"
-          [matMenuTriggerFor]="cardMenu"
-        >
-          <mat-icon>more_vert</mat-icon>
-        </button>
-        <mat-menu #cardMenu="matMenu">
-          <button
-            mat-menu-item
-            [attr.data-testid]="'edit-' + item()!.data.id"
-            (click)="edit.emit(item()!)"
-          >
-            Éditer
-          </button>
-          <button
-            mat-menu-item
-            [attr.data-testid]="'delete-' + item()!.data.id"
-            (click)="delete.emit(item()!.data.id)"
-          >
-            Supprimer
-          </button>
-        </mat-menu>
-        <div class="text-headline-medium">
-          {{ item()!.data.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
-        </div>
-      </mat-card>
-    }
-  `,
-  imports: [
-    MatCardModule,
-    MatMenuModule,
-    MatIconModule,
-    MatButtonModule,
-    CurrencyPipe,
-  ],
-})
-class MockBudgetTableMobileCard {
-  item = input<BudgetLineTableItem | undefined>();
-  edit = output<BudgetLineTableItem>();
-  delete = output<string>();
-  addTransaction = output<BudgetLine>();
-  viewTransactions = output<BudgetLineTableItem>();
-  resetFromTemplate = output<BudgetLineTableItem>();
 }
 
 // Register locale for currency formatting
@@ -200,7 +140,6 @@ describe('BudgetTable', () => {
           RecurrenceLabelPipe,
           RolloverFormatPipe,
           MockBudgetTableViewToggle,
-          MockBudgetTableMobileCard,
         ],
         schemas: [NO_ERRORS_SCHEMA],
       },
@@ -292,241 +231,6 @@ describe('BudgetTable', () => {
       expect(component['inlineFormEditingItem']()?.data.id).toBe(
         'budget-line-1',
       );
-    });
-  });
-
-  // TODO: Fix mobile view tests after BudgetTableMobileCard extraction
-  // These tests need to be updated to work with the new sub-component architecture
-  // The issue is that the mock component doesn't receive items correctly from the @for loop
-  describe.skip('Mobile View', () => {
-    beforeEach(() => {
-      breakpointSubject.next({ matches: true, breakpoints: {} });
-      fixture.detectChanges();
-    });
-
-    it('should show envelope cards with menu button', () => {
-      const compiled = fixture.nativeElement as HTMLElement;
-      // Mobile uses card-menu instead of actions-menu
-      const menuButton = compiled.querySelector(
-        '[data-testid="card-menu-budget-line-1"]',
-      );
-      // Cards should be visible
-      const envelopeCard = compiled.querySelector(
-        '[data-testid="envelope-card-Test Budget Line"]',
-      );
-
-      expect(menuButton).toBeTruthy();
-      expect(envelopeCard).toBeTruthy();
-    });
-
-    it('should have menu items for edit and delete', () => {
-      const compiled = fixture.nativeElement as HTMLElement;
-      const menuTrigger = compiled.querySelector(
-        '[data-testid="card-menu-budget-line-1"]',
-      ) as HTMLButtonElement;
-
-      expect(menuTrigger).toBeTruthy();
-      menuTrigger?.click();
-      fixture.detectChanges();
-
-      // Query in both fixture and document (for overlay)
-      const editMenuItem =
-        compiled.querySelector(
-          '[data-testid="edit-budget-line-1"][mat-menu-item]',
-        ) ||
-        document.querySelector(
-          '[data-testid="edit-budget-line-1"][mat-menu-item]',
-        );
-      const deleteMenuItem =
-        compiled.querySelector(
-          '[data-testid="delete-budget-line-1"][mat-menu-item]',
-        ) ||
-        document.querySelector(
-          '[data-testid="delete-budget-line-1"][mat-menu-item]',
-        );
-
-      expect(editMenuItem).toBeTruthy();
-      expect(deleteMenuItem).toBeTruthy();
-    });
-
-    it('should show correct menu item text in French', () => {
-      const compiled = fixture.nativeElement as HTMLElement;
-      const menuTrigger = compiled.querySelector(
-        '[data-testid="card-menu-budget-line-1"]',
-      ) as HTMLButtonElement;
-
-      expect(menuTrigger).toBeTruthy();
-      menuTrigger?.click();
-      fixture.detectChanges();
-
-      // Query in both fixture and document (for overlay)
-      const editMenuItem =
-        compiled.querySelector(
-          '[data-testid="edit-budget-line-1"][mat-menu-item]',
-        ) ||
-        document.querySelector(
-          '[data-testid="edit-budget-line-1"][mat-menu-item]',
-        );
-      const deleteMenuItem =
-        compiled.querySelector(
-          '[data-testid="delete-budget-line-1"][mat-menu-item]',
-        ) ||
-        document.querySelector(
-          '[data-testid="delete-budget-line-1"][mat-menu-item]',
-        );
-
-      expect(editMenuItem?.textContent).toContain('Éditer');
-      expect(deleteMenuItem?.textContent).toContain('Supprimer');
-    });
-
-    it('should not show menu button when not editable or deletable (rollover)', () => {
-      // Create a rollover budget line
-      const rolloverBudgetLines: BudgetLineViewModel[] = [
-        {
-          ...mockBudgetLines[0],
-          id: 'rollover-1',
-          name: 'Report du mois précédent',
-          // In real implementation, rollover would be determined by metadata
-        },
-      ];
-
-      // Menu button should still appear for non-rollover lines
-      // This test verifies the conditional logic exists
-      signalSetFn(component.budgetLines[SIGNAL], rolloverBudgetLines);
-      fixture.detectChanges();
-
-      const compiled = fixture.nativeElement as HTMLElement;
-      const allMenuButtons = compiled.querySelectorAll(
-        'button[data-testid^="card-menu-"]',
-      );
-      expect(allMenuButtons.length).toBeGreaterThanOrEqual(0);
-    });
-
-    it('should open dialog when edit menu item clicked', () => {
-      const compiled = fixture.nativeElement as HTMLElement;
-      const menuTrigger = compiled.querySelector(
-        '[data-testid="card-menu-budget-line-1"]',
-      ) as HTMLButtonElement;
-
-      expect(menuTrigger).toBeTruthy();
-      menuTrigger?.click();
-      fixture.detectChanges();
-
-      // Query in both fixture and document (for overlay)
-      const editMenuItem = (compiled.querySelector(
-        '[data-testid="edit-budget-line-1"][mat-menu-item]',
-      ) ||
-        document.querySelector(
-          '[data-testid="edit-budget-line-1"][mat-menu-item]',
-        )) as HTMLButtonElement;
-
-      expect(editMenuItem).toBeTruthy();
-      editMenuItem?.click();
-      fixture.detectChanges();
-
-      expect(mockDialog.open).toHaveBeenCalledWith(
-        EditBudgetLineDialog,
-        expect.objectContaining({
-          width: '400px',
-          maxWidth: '90vw',
-        }),
-      );
-    });
-
-    it('should emit delete when delete menu item clicked', () => {
-      const deleteSpy = vi.spyOn(component.delete, 'emit');
-
-      const compiled = fixture.nativeElement as HTMLElement;
-      const menuTrigger = compiled.querySelector(
-        '[data-testid="card-menu-budget-line-1"]',
-      ) as HTMLButtonElement;
-
-      expect(menuTrigger).toBeTruthy();
-      menuTrigger?.click();
-      fixture.detectChanges();
-
-      // Query in both fixture and document (for overlay)
-      const deleteMenuItem = (compiled.querySelector(
-        '[data-testid="delete-budget-line-1"][mat-menu-item]',
-      ) ||
-        document.querySelector(
-          '[data-testid="delete-budget-line-1"][mat-menu-item]',
-        )) as HTMLButtonElement;
-
-      expect(deleteMenuItem).toBeTruthy();
-      deleteMenuItem?.click();
-      fixture.detectChanges();
-
-      expect(deleteSpy).toHaveBeenCalledWith('budget-line-1');
-    });
-
-    it('should display available amount prominently', () => {
-      const compiled = fixture.nativeElement as HTMLElement;
-      // Check for the headline-medium class which indicates the available amount
-      const availableAmount = compiled.querySelector('.text-headline-medium');
-      expect(availableAmount).toBeTruthy();
-      expect(availableAmount?.textContent).toContain('CHF');
-    });
-  });
-
-  // TODO: Fix responsive behavior tests after BudgetTableMobileCard extraction
-  describe.skip('Responsive Behavior', () => {
-    it('should switch from desktop to mobile view when breakpoint changes', () => {
-      // Start in desktop mode
-      breakpointSubject.next({ matches: false, breakpoints: {} });
-      fixture.detectChanges();
-
-      const compiled = fixture.nativeElement as HTMLElement;
-      // Desktop uses actions-menu in table
-      let actionsMenu = compiled.querySelector(
-        '[data-testid="actions-menu-budget-line-1"]',
-      );
-      expect(actionsMenu).toBeTruthy();
-
-      // Switch to mobile
-      breakpointSubject.next({ matches: true, breakpoints: {} });
-      fixture.detectChanges();
-
-      // Mobile uses card-menu and envelope cards
-      const cardMenu = compiled.querySelector(
-        '[data-testid="card-menu-budget-line-1"]',
-      );
-      const envelopeCard = compiled.querySelector(
-        '[data-testid^="envelope-card-"]',
-      );
-      actionsMenu = compiled.querySelector(
-        '[data-testid="actions-menu-budget-line-1"]',
-      );
-
-      expect(cardMenu).toBeTruthy();
-      expect(envelopeCard).toBeTruthy();
-      expect(actionsMenu).toBeFalsy();
-    });
-
-    it('should switch from mobile to desktop view when breakpoint changes', () => {
-      // Start in mobile mode
-      breakpointSubject.next({ matches: true, breakpoints: {} });
-      fixture.detectChanges();
-
-      const compiled = fixture.nativeElement as HTMLElement;
-      let cardMenu = compiled.querySelector(
-        '[data-testid="card-menu-budget-line-1"]',
-      );
-      expect(cardMenu).toBeTruthy();
-
-      // Switch to desktop
-      breakpointSubject.next({ matches: false, breakpoints: {} });
-      fixture.detectChanges();
-
-      cardMenu = compiled.querySelector(
-        '[data-testid="card-menu-budget-line-1"]',
-      );
-      const actionsMenu = compiled.querySelector(
-        '[data-testid="actions-menu-budget-line-1"]',
-      );
-
-      expect(cardMenu).toBeFalsy();
-      expect(actionsMenu).toBeTruthy();
     });
   });
 

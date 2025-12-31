@@ -10,14 +10,12 @@ import {
   type FinancialSummaryData,
 } from '@ui/financial-summary/financial-summary';
 import { type BudgetLine, type Transaction } from '@pulpe/shared';
-import { BudgetCalculator } from '@core/budget/budget-calculator';
-import { calculateAllConsumptions } from '@core/budget/budget-line-consumption';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatIconModule } from '@angular/material/icon';
+import { BudgetCalculator, calculateAllConsumptions } from '@core/budget';
+import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-balance-tooltip';
 
 @Component({
   selector: 'pulpe-budget-financial-overview',
-  imports: [FinancialSummary, MatTooltipModule, MatIconModule],
+  imports: [FinancialSummary, RealizedBalanceTooltip],
   template: `
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
       <pulpe-financial-summary
@@ -28,15 +26,7 @@ import { MatIconModule } from '@angular/material/icon';
       <pulpe-financial-summary [data]="savingsData()" />
       <pulpe-financial-summary [data]="remainingData()" />
       <pulpe-financial-summary [data]="realizedBalanceData()">
-        <mat-icon
-          slot="title-info"
-          matTooltip="Calculé à partir des revenus et dépenses cochés uniquement"
-          matTooltipPosition="above"
-          aria-label="Information sur le solde réalisé"
-          class="text-financial-income cursor-help !text-base"
-          tabindex="0"
-          >info</mat-icon
-        >
+        <pulpe-realized-balance-tooltip slot="title-info" />
       </pulpe-financial-summary>
     </div>
   `,
@@ -127,7 +117,7 @@ export class BudgetFinancialOverview {
   realizedBalanceData = computed<FinancialSummaryData>(() => {
     const balance = this.realizedBalance();
     return {
-      title: 'Solde réalisé',
+      title: 'Solde actuel (coché)',
       amount: balance,
       icon: 'check_circle',
       type: balance >= 0 ? 'income' : 'negative',

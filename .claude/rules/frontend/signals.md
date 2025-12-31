@@ -10,12 +10,11 @@ paths: "**/*.ts"
 ### signal() - Writable State
 
 ```typescript
-private readonly _count = signal(0);
-readonly count = this._count.asReadonly(); // expose read-only
+readonly #count = signal(0);
+readonly count = this.#count.asReadonly();
 
-// Update
-this._count.set(5);           // replace value
-this._count.update(v => v + 1); // transform value
+this.#count.set(5);
+this.#count.update(v => v + 1);
 ```
 
 ### computed() - Derived State
@@ -312,13 +311,13 @@ this.loginForm.email().value.set(''); // programmatic update
 ```typescript
 @Injectable({ providedIn: 'root' })
 export class CounterService {
-  private readonly _count = signal(0);
+  readonly #count = signal(0);
 
-  readonly count = this._count.asReadonly();
-  readonly doubled = computed(() => this._count() * 2);
+  readonly count = this.#count.asReadonly();
+  readonly doubled = computed(() => this.#count() * 2);
 
-  increment() { this._count.update(c => c + 1); }
-  reset() { this._count.set(0); }
+  increment() { this.#count.update(c => c + 1); }
+  reset() { this.#count.set(0); }
 }
 ```
 

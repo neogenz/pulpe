@@ -25,6 +25,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-balance-tooltip';
 import { Logger } from '@core/logging/logger';
 import {
   ProductTourService,
@@ -88,6 +89,7 @@ type EditTransactionFormData = Pick<
     DashboardError,
     BaseLoading,
     OneTimeExpensesList,
+    RealizedBalanceTooltip,
     FinancialSummary,
   ],
   template: `
@@ -148,15 +150,7 @@ type EditTransactionFormData = Pick<
             class="mt-4"
             data-testid="realized-balance-summary"
           >
-            <mat-icon
-              slot="title-info"
-              matTooltip="Calculé à partir des revenus et dépenses cochés uniquement"
-              matTooltipPosition="above"
-              aria-label="Information sur le solde réalisé"
-              class="text-financial-income cursor-help text-base"
-              tabindex="0"
-              >info</mat-icon
-            >
+            <pulpe-realized-balance-tooltip slot="title-info" />
           </pulpe-financial-summary>
           <div
             class="flex flex-col gap-4"
@@ -301,7 +295,7 @@ export default class CurrentMonth {
   realizedBalanceData = computed<FinancialSummaryData>(() => {
     const balance = this.store.realizedBalance();
     return {
-      title: 'Solde réalisé',
+      title: 'Solde actuel (coché)',
       amount: balance,
       icon: 'check_circle',
       type: balance >= 0 ? 'income' : 'negative',

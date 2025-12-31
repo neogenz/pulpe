@@ -165,7 +165,7 @@ export class CurrentMonthStore {
   });
 
   /**
-   * Solde réalisé (uniquement les éléments cochés)
+   * Solde actuel (uniquement les éléments cochés)
    */
   readonly realizedBalance = computed<number>(() => {
     const budgetLines = this.budgetLines();
