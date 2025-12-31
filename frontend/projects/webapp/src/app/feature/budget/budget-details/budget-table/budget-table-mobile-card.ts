@@ -1,4 +1,4 @@
-import { CurrencyPipe, DatePipe } from '@angular/common';
+import { CurrencyPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -43,7 +43,6 @@ import { type BudgetLineTableItem } from './budget-table-models';
     MatDividerModule,
     RouterLink,
     CurrencyPipe,
-    DatePipe,
     TransactionLabelPipe,
     RecurrenceLabelPipe,
     RolloverFormatPipe,

@@ -55,7 +55,7 @@ export type FinancialEntryViewModel = FinancialEntryModel & {
       [class.opacity-60]="data().checkedAt"
       (click)="handleClick()"
     >
-      @if (!isMobile() && 'checkedAt' in data()) {
+      @if ('checkedAt' in data()) {
         <div matListItemAvatar class="toggle-container">
           <mat-slide-toggle
             [checked]="data().checkedAt !== null"
