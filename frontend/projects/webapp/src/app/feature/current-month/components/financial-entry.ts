@@ -52,7 +52,6 @@ export type FinancialEntryViewModel = FinancialEntryModel & {
       [class.expense-item]="data().kind === 'expense'"
       [class.!cursor-pointer]="selectable()"
       [class.line-through]="data().checkedAt"
-      [class.opacity-60]="data().checkedAt"
       (click)="handleClick()"
     >
       @if ('checkedAt' in data()) {

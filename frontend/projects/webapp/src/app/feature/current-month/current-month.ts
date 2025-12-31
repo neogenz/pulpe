@@ -25,8 +25,6 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { RealizedBalanceProgressBar } from '@ui/realized-balance-progress-bar/realized-balance-progress-bar';
-import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-balance-tooltip';
 import { Logger } from '@core/logging/logger';
 import {
   ProductTourService,
@@ -86,8 +84,6 @@ type EditTransactionFormData = Pick<
     DashboardError,
     BaseLoading,
     OneTimeExpensesList,
-    RealizedBalanceProgressBar,
-    RealizedBalanceTooltip,
   ],
   template: `
     <div class="flex flex-col gap-4" data-testid="current-month-page">
@@ -142,16 +138,6 @@ type EditTransactionFormData = Pick<
             [available]="store.totalAvailable()"
             data-tour="progress-bar"
           />
-          <pulpe-realized-balance-progress-bar
-            [realizedExpenses]="store.realizedExpenses()"
-            [realizedBalance]="store.realizedBalance()"
-            [checkedCount]="store.checkedItemsCount()"
-            [totalCount]="store.totalItemsCount()"
-            class="mt-4"
-            data-testid="realized-balance-summary"
-          >
-            <pulpe-realized-balance-tooltip slot="title-info" />
-          </pulpe-realized-balance-progress-bar>
           <div
             class="flex flex-col gap-4"
             data-testid="dashboard-content"

@@ -477,30 +477,15 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
               <ng-container matColumnDef="recurrence">
                 <th mat-header-cell *matHeaderCellDef>Fréquence</th>
                 <td mat-cell *matCellDef="let line">
-                  @if ('recurrence' in line.data) {
-                    <mat-chip
-                      [class.bg-primary-container!]="
-                        line.data.recurrence === 'fixed'
-                      "
-                      [class.text-on-primary-container!]="
-                        line.data.recurrence === 'fixed'
-                      "
-                      [class.bg-secondary-container!]="
-                        line.data.recurrence === 'one_off'
-                      "
-                      [class.text-on-secondary-container!]="
-                        line.data.recurrence === 'one_off'
-                      "
-                    >
+                  <mat-chip
+                    class="bg-secondary-container chip-on-secondary-container"
+                  >
+                    @if ('recurrence' in line.data) {
                       {{ line.data.recurrence | recurrenceLabel }}
-                    </mat-chip>
-                  } @else {
-                    <mat-chip
-                      class="bg-secondary-container text-on-secondary-container"
-                    >
+                    } @else {
                       Une seule fois
-                    </mat-chip>
-                  }
+                    }
+                  </mat-chip>
                 </td>
               </ng-container>
 
@@ -627,7 +612,6 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                 [class.opacity-50]="row.metadata.isLoading"
                 [class.pointer-events-none]="row.metadata.isLoading"
                 [class.line-through]="row.data.checkedAt"
-                [class.opacity-60]="row.data.checkedAt"
                 [attr.data-testid]="
                   'budget-line-' + (row.data.name | rolloverFormat)
                 "
@@ -687,6 +671,10 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
 
     .warn-bar {
       --mat-progress-bar-active-indicator-color: var(--mat-sys-error);
+    }
+
+    .chip-on-secondary-container {
+      --mat-chip-label-text-color: var(--mat-sys-on-secondary-container);
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

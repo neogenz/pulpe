@@ -481,26 +481,6 @@ describe('CurrentMonthStore - Business Scenarios', () => {
         .find((l) => l.id === 'line-income');
       expect(restoredLine?.checkedAt).toBeNull();
     });
-
-    it('should update realizedBalance when toggling income line', async () => {
-      await vi.waitFor(() => {
-        expect(store.dashboardData()).toBeTruthy();
-      });
-
-      const initialRealizedBalance = store.realizedBalance();
-
-      const togglePromise = store.toggleBudgetLineCheck('line-income');
-
-      const newRealizedBalance = store.realizedBalance();
-      expect(newRealizedBalance).not.toBe(initialRealizedBalance);
-
-      const req = httpTesting.expectOne(
-        'http://localhost:3000/api/budget-lines/line-income/toggle-check',
-      );
-      req.flush({});
-
-      await togglePromise;
-    });
   });
 
   describe('App handles empty states gracefully', () => {

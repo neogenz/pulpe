@@ -72,7 +72,6 @@ import { type BudgetLineTableItem } from './budget-table-models';
               class="text-title-medium font-medium truncate"
               [class.italic]="item().metadata.isRollover"
               [class.line-through]="item().data.checkedAt"
-              [class.opacity-60]="item().data.checkedAt"
               [class.text-financial-income]="item().data.kind === 'income'"
               [class.text-financial-expense]="item().data.kind === 'expense'"
               [class.text-financial-savings]="item().data.kind === 'saving'"
@@ -210,17 +209,7 @@ import { type BudgetLineTableItem } from './budget-table-models';
             class="flex items-center justify-between pt-3 border-t border-outline-variant"
           >
             <mat-chip
-              class="h-6! text-label-small!"
-              [class.bg-primary-container!]="item().data.recurrence === 'fixed'"
-              [class.text-on-primary-container!]="
-                item().data.recurrence === 'fixed'
-              "
-              [class.bg-secondary-container!]="
-                item().data.recurrence === 'one_off'
-              "
-              [class.text-on-secondary-container!]="
-                item().data.recurrence === 'one_off'
-              "
+              class="h-6! text-label-small! bg-secondary-container! chip-on-secondary-container"
             >
               {{ item().data.recurrence | recurrenceLabel }}
             </mat-chip>
@@ -269,6 +258,10 @@ import { type BudgetLineTableItem } from './budget-table-models';
 
     .warn-bar {
       --mat-progress-bar-active-indicator-color: var(--mat-sys-error);
+    }
+
+    .chip-on-secondary-container {
+      --mat-chip-label-text-color: var(--mat-sys-on-secondary-container);
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
