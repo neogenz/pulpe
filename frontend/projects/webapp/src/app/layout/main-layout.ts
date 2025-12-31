@@ -11,6 +11,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
+import { MatDialog } from '@angular/material/dialog';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -33,6 +34,7 @@ import { DemoModeService } from '@core/demo/demo-mode.service';
 import { DemoInitializerService } from '@core/demo/demo-initializer.service';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
+import { AboutDialog } from './about-dialog';
 
 interface NavigationItem {
   readonly route: string;
@@ -241,6 +243,15 @@ interface NavigationItem {
             <mat-menu #userMenu="matMenu" xPosition="before">
               <button
                 mat-menu-item
+                (click)="openAboutDialog()"
+                aria-label="Afficher les informations de l'application"
+                data-testid="about-button"
+              >
+                <mat-icon matMenuItemIcon aria-hidden="true">info</mat-icon>
+                <span>À propos</span>
+              </button>
+              <button
+                mat-menu-item
                 (click)="onLogout()"
                 [disabled]="isLoggingOut()"
                 [attr.aria-label]="
@@ -351,6 +362,7 @@ export default class MainLayout {
   readonly #demoInitializer = inject(DemoInitializerService);
   readonly breadcrumbState = inject(BreadcrumbState);
   readonly #logger = inject(Logger);
+  readonly #dialog = inject(MatDialog);
   protected readonly loadingIndicator = inject(LoadingIndicator);
   // Display "Mode Démo" for demo users, otherwise show email
   readonly userEmail = computed(() => {
@@ -434,6 +446,13 @@ export default class MainLayout {
     if (this.isHandset()) {
       drawer.close();
     }
+  }
+
+  protected openAboutDialog(): void {
+    this.#dialog.open(AboutDialog, {
+      width: 'auto',
+      maxWidth: '90vw',
+    });
   }
 
   async onLogout(): Promise<void> {
