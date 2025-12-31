@@ -15,7 +15,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
  * - Left: Total checked expenses (CHF)
  * - Right: Realized balance (CHF)
  * - Progress bar: Ratio of checked items
- * - Label: "X/Y éléments vérifiés"
+ * - Label: "X/Y éléments exécutés"
  */
 @Component({
   selector: 'pulpe-realized-balance-progress-bar',
@@ -56,7 +56,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
       <mat-card-content class="space-y-2">
         <mat-progress-bar mode="determinate" [value]="progressPercentage()" />
         <div class="text-label-small text-on-surface-variant ph-no-capture">
-          {{ checkedCount() }}/{{ totalCount() }} éléments vérifiés
+          {{ checkedCount() }}/{{ totalCount() }} éléments exécutés
         </div>
       </mat-card-content>
     </mat-card>
