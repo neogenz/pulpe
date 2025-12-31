@@ -52,15 +52,13 @@ import { type BudgetLineTableItem } from './budget-table-models';
     <mat-card
       appearance="outlined"
       [class.opacity-50]="item().metadata.isLoading"
-      [class.line-through]="item().data.checkedAt"
-      [class.opacity-60]="item().data.checkedAt"
       [attr.data-testid]="
         'envelope-card-' + (item().data.name | rolloverFormat)
       "
     >
       <!-- Header -->
       <mat-card-header class="pb-2">
-        <div class="flex items-center justify-between w-full">
+        <div class="flex items-center justify-between gap-2 w-full">
           <div class="flex items-center gap-2 min-w-0 flex-1">
             <mat-icon
               class="text-base! shrink-0"
@@ -71,58 +69,47 @@ import { type BudgetLineTableItem } from './budget-table-models';
             >
               {{ item().metadata.kindIcon }}
             </mat-icon>
-            <div class="flex items-center gap-2">
-              <span
-                class="text-title-medium font-medium truncate"
-                [class.italic]="item().metadata.isRollover"
-                [class.text-financial-income]="item().data.kind === 'income'"
-                [class.text-financial-expense]="item().data.kind === 'expense'"
-                [class.text-financial-savings]="item().data.kind === 'saving'"
-              >
-                @if (
-                  item().metadata.isRollover &&
-                  item().metadata.rolloverSourceBudgetId
-                ) {
-                  <a
-                    [routerLink]="[
-                      '/app/budget',
-                      item().metadata.rolloverSourceBudgetId,
-                    ]"
-                    class="text-primary underline"
-                  >
-                    {{ item().data.name | rolloverFormat }}
-                  </a>
-                } @else {
+            <span
+              class="text-title-medium font-medium truncate"
+              [class.italic]="item().metadata.isRollover"
+              [class.line-through]="item().data.checkedAt"
+              [class.opacity-60]="item().data.checkedAt"
+              [class.text-financial-income]="item().data.kind === 'income'"
+              [class.text-financial-expense]="item().data.kind === 'expense'"
+              [class.text-financial-savings]="item().data.kind === 'saving'"
+            >
+              @if (
+                item().metadata.isRollover &&
+                item().metadata.rolloverSourceBudgetId
+              ) {
+                <a
+                  [routerLink]="[
+                    '/app/budget',
+                    item().metadata.rolloverSourceBudgetId,
+                  ]"
+                  class="text-primary underline"
+                >
                   {{ item().data.name | rolloverFormat }}
-                }
-              </span>
-              @if (item().data.checkedAt) {
-                <span class="text-label-small text-on-surface-variant">
-                  {{ item().data.checkedAt | date: 'dd.MM' : '' : 'fr-CH' }}
-                </span>
+                </a>
+              } @else {
+                {{ item().data.name | rolloverFormat }}
               }
-            </div>
+            </span>
             @if (item().metadata.isPropagationLocked) {
               <mat-icon
-                class="text-base! text-outline shrink-0"
+                class="text-sm! text-outline shrink-0"
                 matTooltip="Montants verrouillés"
               >
                 lock
               </mat-icon>
             }
           </div>
-
-          <mat-slide-toggle
-            [checked]="item().data.checkedAt !== null"
-            (change)="toggleCheck.emit(item().data.id)"
-            (click)="$event.stopPropagation()"
-            [attr.data-testid]="'toggle-check-' + item().data.id"
-          />
           @if (!item().metadata.isRollover) {
             <button
               matIconButton
               [matMenuTriggerFor]="cardActionMenu"
               [attr.data-testid]="'card-menu-' + item().data.id"
+              class="shrink-0"
             >
               <mat-icon>more_vert</mat-icon>
             </button>
@@ -218,7 +205,7 @@ import { type BudgetLineTableItem } from './budget-table-models';
           }
         }
 
-        <!-- Footer: Recurrence + Actions -->
+        <!-- Footer: Chip + Toggle + Action -->
         @if (!item().metadata.isRollover) {
           <div
             class="flex items-center justify-between pt-3 border-t border-outline-variant"
@@ -238,6 +225,13 @@ import { type BudgetLineTableItem } from './budget-table-models';
             >
               {{ item().data.recurrence | recurrenceLabel }}
             </mat-chip>
+
+            <mat-slide-toggle
+              [checked]="item().data.checkedAt !== null"
+              (change)="toggleCheck.emit(item().data.id)"
+              (click)="$event.stopPropagation()"
+              [attr.data-testid]="'toggle-check-' + item().data.id"
+            />
 
             @if (item().consumption; as consumption) {
               @if (consumption.hasTransactions) {

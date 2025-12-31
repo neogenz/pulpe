@@ -1,10 +1,10 @@
 ---
 title: Implementation Plan - Budget Details Store Refactoring
 description: Refactor budget-details-store to fix hasValue() guard, reduce file length, and extract cascade logic
-status: in_progress
+status: completed
 created: 2025-12-31
 updated: 2025-12-31
-progress: 0
+progress: 9
 total_tasks: 9
 tech_stack: Angular 21+, TypeScript, Signals, Vitest
 ---
@@ -61,7 +61,7 @@ Refactor `budget-details-store.ts` to address three code quality issues:
 
 ### Phase: Setup
 
-- [ ] **SETUP-01**: Create utils file with type definitions
+- [x] **SETUP-01**: Create utils file with type definitions
   - **Files**: `frontend/projects/webapp/src/app/feature/budget/budget-details/store/budget-details-check.utils.ts`
   - **Action**:
     1. Create new file
@@ -97,7 +97,7 @@ Refactor `budget-details-store.ts` to address three code quality issues:
 
 ### Phase: Core
 
-- [ ] **CORE-01**: Extract `findAllocatedTransactions` helper
+- [x] **CORE-01**: Extract `findAllocatedTransactions` helper
   - **Files**: `frontend/projects/webapp/src/app/feature/budget/budget-details/store/budget-details-check.utils.ts`
   - **Action**: Add pure function:
     ```typescript
@@ -114,7 +114,7 @@ Refactor `budget-details-store.ts` to address three code quality issues:
   - **Verification**: `pnpm run lint` passes
   - **Dependencies**: SETUP-01
 
-- [ ] **CORE-02**: Extract `areAllAllocatedTransactionsChecked` helper
+- [x] **CORE-02**: Extract `areAllAllocatedTransactionsChecked` helper
   - **Files**: `frontend/projects/webapp/src/app/feature/budget/budget-details/store/budget-details-check.utils.ts`
   - **Action**: Add pure function:
     ```typescript
@@ -134,7 +134,7 @@ Refactor `budget-details-store.ts` to address three code quality issues:
   - **Verification**: `pnpm run lint` passes
   - **Dependencies**: CORE-01
 
-- [ ] **CORE-03**: Extract `calculateBudgetLineToggle` function
+- [x] **CORE-03**: Extract `calculateBudgetLineToggle` function
   - **Files**: `frontend/projects/webapp/src/app/feature/budget/budget-details/store/budget-details-check.utils.ts`
   - **Action**: Add pure function that encapsulates cascade logic from `toggleCheck` method:
 
@@ -188,7 +188,7 @@ Refactor `budget-details-store.ts` to address three code quality issues:
   - **Verification**: `pnpm run lint` passes
   - **Dependencies**: CORE-01, CORE-02
 
-- [ ] **CORE-04**: Extract `calculateTransactionToggle` function
+- [x] **CORE-04**: Extract `calculateTransactionToggle` function
   - **Files**: `frontend/projects/webapp/src/app/feature/budget/budget-details/store/budget-details-check.utils.ts`
   - **Action**: Add pure function that encapsulates cascade logic from `toggleTransactionCheck` method:
 
@@ -269,7 +269,7 @@ Refactor `budget-details-store.ts` to address three code quality issues:
 
 ### Phase: Integration
 
-- [ ] **INT-01**: Fix `hasValue()` guard in `realizedBalance` computed
+- [x] **INT-01**: Fix `hasValue()` guard in `realizedBalance` computed
   - **Files**: `frontend/projects/webapp/src/app/feature/budget/budget-details/store/budget-details-store.ts`
   - **Action**: Update `realizedBalance` computed signal (around line 104-112):
 
@@ -298,7 +298,7 @@ Refactor `budget-details-store.ts` to address three code quality issues:
   - **Verification**: `pnpm run lint` passes
   - **Dependencies**: None
 
-- [ ] **INT-02**: Refactor `toggleCheck` method to use utils
+- [x] **INT-02**: Refactor `toggleCheck` method to use utils
   - **Files**: `frontend/projects/webapp/src/app/feature/budget/budget-details/store/budget-details-store.ts`
   - **Action**:
     1. Add import: `import { calculateBudgetLineToggle } from './budget-details-check.utils';`
@@ -376,7 +376,7 @@ Refactor `budget-details-store.ts` to address three code quality issues:
   - **Verification**: `pnpm run lint` passes
   - **Dependencies**: CORE-03
 
-- [ ] **INT-03**: Refactor `toggleTransactionCheck` method to use utils
+- [x] **INT-03**: Refactor `toggleTransactionCheck` method to use utils
   - **Files**: `frontend/projects/webapp/src/app/feature/budget/budget-details/store/budget-details-store.ts`
   - **Action**:
     1. Add to existing import: `import { calculateBudgetLineToggle, calculateTransactionToggle } from './budget-details-check.utils';`
@@ -450,7 +450,7 @@ Refactor `budget-details-store.ts` to address three code quality issues:
 
 ### Phase: Testing
 
-- [ ] **TEST-01**: Verify all tests pass and file metrics
+- [x] **TEST-01**: Verify all tests pass and file metrics
   - **Files**: All modified files
   - **Action**:
     1. Run unit tests: `cd frontend && pnpm run test`
@@ -497,12 +497,18 @@ frontend/projects/webapp/src/app/feature/budget/budget-details/store/
 
 ## Progress Tracking
 
-- **Setup**: 0/1 tasks
-- **Core**: 0/4 tasks
-- **Integration**: 0/3 tasks
-- **Testing**: 0/1 tasks
-- **Total**: 0/9 (0%)
+- **Setup**: 1/1 tasks
+- **Core**: 4/4 tasks
+- **Integration**: 3/3 tasks
+- **Testing**: 1/1 tasks
+- **Total**: 9/9 (100%)
 
 ### Session History
 
 - 2025-12-31: Plan created
+- 2025-12-31: All tasks completed
+  - Created `budget-details-check.utils.ts` (137 lines) with pure functions
+  - Fixed `hasValue()` guard in `realizedBalance` computed
+  - Refactored `toggleCheck` and `toggleTransactionCheck` methods
+  - Store reduced from 598 to 503 lines (95 lines / 16% reduction)
+  - All 658 tests passing
