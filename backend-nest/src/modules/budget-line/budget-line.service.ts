@@ -543,6 +543,45 @@ export class BudgetLineService {
     return templateLine;
   }
 
+  async toggleCheck(
+    id: string,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<BudgetLineResponse> {
+    try {
+      const budgetLine = await this.fetchBudgetLineById(id, user, supabase);
+
+      const updateData = {
+        checked_at: budgetLine.checked_at ? null : new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const updatedBudgetLine = await this.updateBudgetLineInDb(
+        id,
+        updateData,
+        supabase,
+        user,
+      );
+
+      return {
+        success: true,
+        data: budgetLineMappers.toApi(updatedBudgetLine),
+      };
+    } catch (error) {
+      handleServiceError(
+        error,
+        ERROR_DEFINITIONS.BUDGET_LINE_UPDATE_FAILED,
+        { id },
+        {
+          operation: 'toggleCheck',
+          userId: user.id,
+          entityId: id,
+          entityType: 'budget_line',
+        },
+      );
+    }
+  }
+
   async findByBudgetId(
     budgetId: string,
     supabase: AuthenticatedSupabaseClient,

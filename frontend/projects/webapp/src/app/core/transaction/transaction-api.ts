@@ -54,4 +54,11 @@ export class TransactionApi {
   remove$(id: string): Observable<void> {
     return this.#http.delete<void>(`${this.#apiUrl}/${id}`);
   }
+
+  toggleCheck$(id: string): Observable<TransactionUpdateResponse> {
+    return this.#http.post<TransactionUpdateResponse>(
+      `${this.#apiUrl}/${id}/toggle-check`,
+      {},
+    );
+  }
 }

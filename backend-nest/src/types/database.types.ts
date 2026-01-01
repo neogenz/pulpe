@@ -38,6 +38,7 @@ export type Database = {
         Row: {
           amount: number;
           budget_id: string;
+          checked_at: string | null;
           created_at: string;
           id: string;
           is_manually_adjusted: boolean;
@@ -51,6 +52,7 @@ export type Database = {
         Insert: {
           amount: number;
           budget_id: string;
+          checked_at?: string | null;
           created_at?: string;
           id?: string;
           is_manually_adjusted?: boolean;
@@ -64,6 +66,7 @@ export type Database = {
         Update: {
           amount?: number;
           budget_id?: string;
+          checked_at?: string | null;
           created_at?: string;
           id?: string;
           is_manually_adjusted?: boolean;
@@ -258,6 +261,7 @@ export type Database = {
           budget_id: string;
           budget_line_id: string | null;
           category: string | null;
+          checked_at: string | null;
           created_at: string;
           id: string;
           kind: Database['public']['Enums']['transaction_kind'];
@@ -270,6 +274,7 @@ export type Database = {
           budget_id: string;
           budget_line_id?: string | null;
           category?: string | null;
+          checked_at?: string | null;
           created_at?: string;
           id?: string;
           kind: Database['public']['Enums']['transaction_kind'];
@@ -282,6 +287,7 @@ export type Database = {
           budget_id?: string;
           budget_line_id?: string | null;
           category?: string | null;
+          checked_at?: string | null;
           created_at?: string;
           id?: string;
           kind?: Database['public']['Enums']['transaction_kind'];

@@ -8,6 +8,7 @@ import {
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
@@ -29,9 +30,9 @@ import { type BudgetLineTableItem } from './budget-table-models';
  */
 @Component({
   selector: 'pulpe-budget-table-mobile-card',
-  standalone: true,
   imports: [
     MatCardModule,
+    MatSlideToggleModule,
     MatIconModule,
     MatButtonModule,
     MatBadgeModule,
@@ -56,7 +57,7 @@ import { type BudgetLineTableItem } from './budget-table-models';
     >
       <!-- Header -->
       <mat-card-header class="pb-2">
-        <div class="flex items-center justify-between w-full">
+        <div class="flex items-center justify-between gap-2 w-full">
           <div class="flex items-center gap-2 min-w-0 flex-1">
             <mat-icon
               class="text-base! shrink-0"
@@ -70,6 +71,7 @@ import { type BudgetLineTableItem } from './budget-table-models';
             <span
               class="text-title-medium font-medium truncate"
               [class.italic]="item().metadata.isRollover"
+              [class.line-through]="item().data.checkedAt"
               [class.text-financial-income]="item().data.kind === 'income'"
               [class.text-financial-expense]="item().data.kind === 'expense'"
               [class.text-financial-savings]="item().data.kind === 'saving'"
@@ -93,19 +95,19 @@ import { type BudgetLineTableItem } from './budget-table-models';
             </span>
             @if (item().metadata.isPropagationLocked) {
               <mat-icon
-                class="text-base! text-outline shrink-0"
+                class="text-sm! text-outline shrink-0"
                 matTooltip="Montants verrouillés"
               >
                 lock
               </mat-icon>
             }
           </div>
-
           @if (!item().metadata.isRollover) {
             <button
               matIconButton
               [matMenuTriggerFor]="cardActionMenu"
               [attr.data-testid]="'card-menu-' + item().data.id"
+              class="shrink-0"
             >
               <mat-icon>more_vert</mat-icon>
             </button>
@@ -201,26 +203,23 @@ import { type BudgetLineTableItem } from './budget-table-models';
           }
         }
 
-        <!-- Footer: Recurrence + Actions -->
+        <!-- Footer: Chip + Toggle + Action -->
         @if (!item().metadata.isRollover) {
           <div
             class="flex items-center justify-between pt-3 border-t border-outline-variant"
           >
             <mat-chip
-              class="h-6! text-label-small!"
-              [class.bg-primary-container!]="item().data.recurrence === 'fixed'"
-              [class.text-on-primary-container!]="
-                item().data.recurrence === 'fixed'
-              "
-              [class.bg-secondary-container!]="
-                item().data.recurrence === 'one_off'
-              "
-              [class.text-on-secondary-container!]="
-                item().data.recurrence === 'one_off'
-              "
+              class="h-6! text-label-small! bg-secondary-container! chip-on-secondary-container"
             >
               {{ item().data.recurrence | recurrenceLabel }}
             </mat-chip>
+
+            <mat-slide-toggle
+              [checked]="!!item().data.checkedAt"
+              (change)="toggleCheck.emit(item().data.id)"
+              (click)="$event.stopPropagation()"
+              [attr.data-testid]="'toggle-check-' + item().data.id"
+            />
 
             @if (item().consumption; as consumption) {
               @if (consumption.hasTransactions) {
@@ -231,8 +230,7 @@ import { type BudgetLineTableItem } from './budget-table-models';
                   matBadgeColor="primary"
                   (click)="viewTransactions.emit(item())"
                 >
-                  <mat-icon class="text-base!">receipt_long</mat-icon>
-                  {{ consumption.transactionCountLabel }}
+                  <mat-icon class="text-base! m-0!">receipt_long</mat-icon>
                 </button>
               }
             }
@@ -260,6 +258,10 @@ import { type BudgetLineTableItem } from './budget-table-models';
     .warn-bar {
       --mat-progress-bar-active-indicator-color: var(--mat-sys-error);
     }
+
+    .chip-on-secondary-container {
+      --mat-chip-label-text-color: var(--mat-sys-on-secondary-container);
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -273,4 +275,5 @@ export class BudgetTableMobileCard {
   readonly addTransaction = output<BudgetLine>();
   readonly viewTransactions = output<BudgetLineTableItem>();
   readonly resetFromTemplate = output<BudgetLineTableItem>();
+  readonly toggleCheck = output<string>();
 }

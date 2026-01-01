@@ -181,6 +181,34 @@ export class BudgetLineController {
     return this.budgetLineService.resetFromTemplate(id, user, supabase);
   }
 
+  @Post(':id/toggle-check')
+  @ApiOperation({
+    summary: "Bascule l'état coché d'une ligne budgétaire",
+    description:
+      "Si la ligne n'est pas cochée (checked_at = null), la marque comme cochée avec la date actuelle. Si déjà cochée, la décoche (checked_at = null).",
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Identifiant unique de la ligne budgétaire',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'État de la ligne budgétaire basculé avec succès',
+    type: BudgetLineResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Ligne budgétaire non trouvée',
+    type: ErrorResponseDto,
+  })
+  async toggleCheck(
+    @Param('id') id: string,
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<BudgetLineResponse> {
+    return this.budgetLineService.toggleCheck(id, user, supabase);
+  }
+
   @Delete(':id')
   @ApiOperation({ summary: 'Supprime une ligne budgétaire existante' })
   @ApiParam({

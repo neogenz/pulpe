@@ -4,6 +4,7 @@ import {
   computed,
   inject,
   input,
+  output,
 } from '@angular/core';
 import {
   FinancialAccordion,
@@ -23,6 +24,7 @@ import { type FinancialEntryModel } from '../models/financial-entry.model';
     <pulpe-financial-accordion
       [financialEntries]="financialEntries()"
       [config]="config()"
+      (toggleCheckFinancialEntry)="toggleCheckFinancialEntry.emit($event)"
       [isHandset]="isHandset()"
     />
   `,
@@ -32,6 +34,7 @@ export class RecurringExpensesList {
   readonly breakpointObserver = inject(BreakpointObserver);
 
   financialEntries = input.required<FinancialEntryModel[]>();
+  readonly toggleCheckFinancialEntry = output<string>();
 
   protected readonly isHandset = toSignal(
     this.breakpointObserver.observe(Breakpoints.Handset).pipe(

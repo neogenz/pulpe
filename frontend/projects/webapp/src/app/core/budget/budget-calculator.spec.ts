@@ -26,6 +26,7 @@ describe('BudgetCalculator', () => {
     category: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
+    checkedAt: null,
   });
 
   // Helper function to create mock BudgetLine objects
@@ -44,6 +45,7 @@ describe('BudgetCalculator', () => {
     kind,
     recurrence: 'fixed',
     isManuallyAdjusted: false,
+    checkedAt: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   });

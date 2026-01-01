@@ -127,6 +127,52 @@ test.describe('Budget Table Mobile Menu', () => {
       const cancelButton = page.locator('mat-dialog-container button').filter({ hasText: 'Annuler' });
       await cancelButton.click();
     });
+
+    test('should not show menu button for rollover budget lines', async ({ authenticatedPage: page }) => {
+      // Override route with rollover line in mock data
+      await page.route('**/api/v1/budgets/*/details', route =>
+        route.fulfill({
+          status: 200,
+          body: JSON.stringify({
+            success: true,
+            data: {
+              budget: {
+                id: 'test-budget-123',
+                name: 'Test Budget',
+                month: 8,
+                year: 2025,
+              },
+              budgetLines: [
+                { id: 'line-1', name: 'Groceries', amount: 400, kind: 'expense', recurrence: 'fixed' },
+                {
+                  id: 'rollover-display',
+                  name: 'rollover_7_2025',
+                  amount: 150,
+                  kind: 'income',
+                  recurrence: 'fixed',
+                  isRollover: true,
+                  rolloverSourceBudgetId: 'previous-budget-456',
+                },
+              ],
+              transactions: [],
+            },
+          }),
+        }),
+      );
+
+      // Reload page to get new mock data
+      await page.goto('/app/budget/test-budget-123');
+      await page.waitForLoadState('domcontentloaded');
+      await expect(page.locator('pulpe-budget-table')).toBeVisible();
+
+      // Regular line should have menu button
+      const regularLineMenu = page.locator('[data-testid="card-menu-line-1"]');
+      await expect(regularLineMenu).toBeVisible();
+
+      // Rollover line should NOT have menu button
+      const rolloverLineMenu = page.locator('[data-testid="card-menu-rollover-display"]');
+      await expect(rolloverLineMenu).not.toBeVisible();
+    });
   });
 
   test.describe('Desktop View', () => {

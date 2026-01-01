@@ -1,5 +1,5 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { CurrencyPipe } from '@angular/common';
+import { CurrencyPipe, DatePipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -15,6 +15,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
@@ -49,7 +50,8 @@ import { BudgetTableDataProvider } from './budget-table-data-provider';
 import { BudgetTableMobileCard } from './budget-table-mobile-card';
 import {
   type BudgetLineTableItem,
-  type TableItem,
+  type GroupHeaderTableItem,
+  type TableRowItem,
   type TransactionTableItem,
 } from './budget-table-models';
 import type { BudgetTableViewMode } from './budget-table-view-mode';
@@ -60,6 +62,7 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
   imports: [
     MatTableModule,
     MatCardModule,
+    MatSlideToggleModule,
     MatIconModule,
     MatButtonModule,
     MatBadgeModule,
@@ -73,6 +76,7 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
     ReactiveFormsModule,
     RouterLink,
     CurrencyPipe,
+    DatePipe,
     TransactionLabelPipe,
     RecurrenceLabelPipe,
     RolloverFormatPipe,
@@ -101,6 +105,7 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                 (addTransaction)="addAllocatedTransaction($event)"
                 (viewTransactions)="onViewTransactions($event)"
                 (resetFromTemplate)="onResetFromTemplateClick($event)"
+                (toggleCheck)="toggleCheck.emit($event)"
               />
             } @empty {
               <div class="text-center py-8">
@@ -218,22 +223,28 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                     </form>
                   } @else {
                     <div class="flex items-center gap-2">
-                      <mat-icon
-                        class="text-base! shrink-0"
-                        [class.text-financial-income]="
-                          line.data.kind === 'income'
-                        "
-                        [class.text-financial-expense]="
-                          line.data.kind === 'expense'
-                        "
-                        [class.text-financial-savings]="
-                          line.data.kind === 'saving'
-                        "
-                        [matTooltip]="line.data.kind | transactionLabel"
-                        matTooltipPosition="above"
-                      >
-                        {{ line.metadata.kindIcon }}
-                      </mat-icon>
+                      @if (line.metadata.isNestedUnderEnvelope) {
+                        <mat-icon class="text-sm! text-outline shrink-0">
+                          subdirectory_arrow_right
+                        </mat-icon>
+                      } @else {
+                        <mat-icon
+                          class="text-base! shrink-0"
+                          [class.text-financial-income]="
+                            line.data.kind === 'income'
+                          "
+                          [class.text-financial-expense]="
+                            line.data.kind === 'expense'
+                          "
+                          [class.text-financial-savings]="
+                            line.data.kind === 'saving'
+                          "
+                          [matTooltip]="line.data.kind | transactionLabel"
+                          matTooltipPosition="above"
+                        >
+                          {{ line.metadata.kindIcon }}
+                        </mat-icon>
+                      }
                       <span
                         class="inline-flex items-center gap-2"
                         [class.rollover-text]="line.metadata.isRollover"
@@ -287,6 +298,15 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                               </span>
                             }
                           </div>
+                        }
+                        @if (line.data.checkedAt) {
+                          <span
+                            class="text-body-small text-on-surface-variant ml-2"
+                          >
+                            {{
+                              line.data.checkedAt | date: 'dd.MM' : '' : 'fr-CH'
+                            }}
+                          </span>
                         }
                       </span>
                     </div>
@@ -464,30 +484,37 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
               <ng-container matColumnDef="recurrence">
                 <th mat-header-cell *matHeaderCellDef>Fréquence</th>
                 <td mat-cell *matCellDef="let line">
-                  @if ('recurrence' in line.data) {
-                    <mat-chip
-                      [class.bg-primary-container!]="
-                        line.data.recurrence === 'fixed'
-                      "
-                      [class.text-on-primary-container!]="
-                        line.data.recurrence === 'fixed'
-                      "
-                      [class.bg-secondary-container!]="
-                        line.data.recurrence === 'one_off'
-                      "
-                      [class.text-on-secondary-container!]="
-                        line.data.recurrence === 'one_off'
-                      "
-                    >
+                  <mat-chip
+                    class="bg-secondary-container chip-on-secondary-container"
+                  >
+                    @if ('recurrence' in line.data) {
                       {{ line.data.recurrence | recurrenceLabel }}
-                    </mat-chip>
-                  } @else {
-                    <mat-chip
-                      class="bg-secondary-container text-on-secondary-container"
-                    >
+                    } @else {
                       Une seule fois
-                    </mat-chip>
-                  }
+                    }
+                  </mat-chip>
+                </td>
+              </ng-container>
+
+              <!-- Group Header Column -->
+              <ng-container matColumnDef="groupHeader">
+                <td
+                  mat-cell
+                  *matCellDef="let row"
+                  [attr.colspan]="displayedColumns.length"
+                  class="!py-3 !px-4"
+                >
+                  <div class="flex items-center gap-2">
+                    <mat-icon class="text-lg">{{
+                      row.metadata.groupIcon
+                    }}</mat-icon>
+                    <span class="text-title-medium font-semibold">
+                      {{ row.metadata.groupLabel }}
+                    </span>
+                    <span class="text-label-small text-on-surface-variant">
+                      ({{ row.metadata.itemCount }})
+                    </span>
+                  </div>
                 </td>
               </ng-container>
 
@@ -518,91 +545,113 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                           Enregistrer
                         </button>
                       </div>
-                    } @else if (!line.metadata.isRollover) {
-                      <button
-                        matIconButton
-                        [matMenuTriggerFor]="rowActionMenu"
-                        [attr.data-testid]="'actions-menu-' + line.data.id"
-                        [disabled]="line.metadata.isLoading"
-                      >
-                        <mat-icon>more_vert</mat-icon>
-                      </button>
-
-                      <mat-menu #rowActionMenu="matMenu" xPosition="before">
-                        <div
-                          class="px-4 py-2 text-label-medium text-on-surface-variant max-w-48 truncate"
-                          [matTooltip]="line.data.name"
-                          matTooltipShowDelay="500"
-                        >
-                          {{ line.data.name }}
-                        </div>
-                        <mat-divider />
-                        @if (
-                          line.metadata.itemType === 'budget_line' &&
-                          !line.metadata.isRollover
-                        ) {
-                          <button
-                            mat-menu-item
-                            (click)="addAllocatedTransaction(line.data)"
-                            [attr.data-testid]="
-                              'add-transaction-' + line.data.id
-                            "
-                          >
-                            <mat-icon matMenuItemIcon>add</mat-icon>
-                            <span>{{ line.metadata.allocationLabel }}</span>
-                          </button>
-                        }
-                        @if (line.metadata.itemType === 'budget_line') {
-                          <button
-                            mat-menu-item
-                            (click)="startEdit(line)"
-                            [attr.data-testid]="'edit-' + line.data.id"
-                          >
-                            <mat-icon matMenuItemIcon>edit</mat-icon>
-                            <span>Éditer</span>
-                          </button>
-                        }
-                        @if (line.metadata.canResetFromTemplate) {
-                          <button
-                            mat-menu-item
-                            (click)="onResetFromTemplateClick(line)"
-                            [attr.data-testid]="
-                              'reset-from-template-' + line.data.id
-                            "
-                          >
-                            <mat-icon matMenuItemIcon>refresh</mat-icon>
-                            <span>Réinitialiser</span>
-                          </button>
-                        }
+                    } @else {
+                      @if (line.metadata.itemType === 'budget_line') {
+                        <mat-slide-toggle
+                          [checked]="!!line.data.checkedAt"
+                          (change)="toggleCheck.emit(line.data.id)"
+                          (click)="$event.stopPropagation()"
+                          [attr.data-testid]="'toggle-check-' + line.data.id"
+                        />
+                      } @else if (line.metadata.itemType === 'transaction') {
+                        <mat-slide-toggle
+                          [checked]="!!line.data.checkedAt"
+                          (change)="toggleTransactionCheck.emit(line.data.id)"
+                          (click)="$event.stopPropagation()"
+                          [attr.data-testid]="'toggle-check-tx-' + line.data.id"
+                        />
+                      }
+                      @if (!line.metadata.isRollover) {
                         <button
-                          mat-menu-item
-                          (click)="delete.emit(line.data.id)"
-                          [attr.data-testid]="'delete-' + line.data.id"
-                          class="text-error"
+                          matIconButton
+                          [matMenuTriggerFor]="rowActionMenu"
+                          [attr.data-testid]="'actions-menu-' + line.data.id"
+                          [disabled]="line.metadata.isLoading"
                         >
-                          <mat-icon matMenuItemIcon class="text-error"
-                            >delete</mat-icon
-                          >
-                          <span>Supprimer</span>
+                          <mat-icon>more_vert</mat-icon>
                         </button>
-                      </mat-menu>
+
+                        <mat-menu #rowActionMenu="matMenu" xPosition="before">
+                          <div
+                            class="px-4 py-2 text-label-medium text-on-surface-variant max-w-48 truncate"
+                            [matTooltip]="line.data.name"
+                            matTooltipShowDelay="500"
+                          >
+                            {{ line.data.name }}
+                          </div>
+                          <mat-divider />
+                          @if (line.metadata.itemType === 'budget_line') {
+                            <button
+                              mat-menu-item
+                              (click)="addAllocatedTransaction(line.data)"
+                              [attr.data-testid]="
+                                'add-transaction-' + line.data.id
+                              "
+                            >
+                              <mat-icon matMenuItemIcon>add</mat-icon>
+                              <span>{{ line.metadata.allocationLabel }}</span>
+                            </button>
+                            <button
+                              mat-menu-item
+                              (click)="startEdit(line)"
+                              [attr.data-testid]="'edit-' + line.data.id"
+                            >
+                              <mat-icon matMenuItemIcon>edit</mat-icon>
+                              <span>Éditer</span>
+                            </button>
+                          }
+                          @if (line.metadata.canResetFromTemplate) {
+                            <button
+                              mat-menu-item
+                              (click)="onResetFromTemplateClick(line)"
+                              [attr.data-testid]="
+                                'reset-from-template-' + line.data.id
+                              "
+                            >
+                              <mat-icon matMenuItemIcon>refresh</mat-icon>
+                              <span>Réinitialiser</span>
+                            </button>
+                          }
+                          <button
+                            mat-menu-item
+                            (click)="delete.emit(line.data.id)"
+                            [attr.data-testid]="'delete-' + line.data.id"
+                            class="text-error"
+                          >
+                            <mat-icon matMenuItemIcon class="text-error"
+                              >delete</mat-icon
+                            >
+                            <span>Supprimer</span>
+                          </button>
+                        </mat-menu>
+                      }
                     }
                   </div>
                 </td>
               </ng-container>
 
+              <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
               <tr
-                mat-header-row
-                *matHeaderRowDef="displayedColumns; sticky: true"
+                mat-row
+                *matRowDef="
+                  let row;
+                  columns: ['groupHeader'];
+                  when: isGroupHeader
+                "
+                class="group-header-row"
               ></tr>
               <tr
                 mat-row
                 *matRowDef="let row; columns: displayedColumns"
                 class="hover:bg-surface-container-low transition-opacity"
-                [class.opacity-50]="row.metadata.isLoading"
-                [class.pointer-events-none]="row.metadata.isLoading"
+                [class.opacity-50]="row.metadata?.isLoading"
+                [class.pointer-events-none]="row.metadata?.isLoading"
+                [class.line-through]="row.data?.checkedAt"
+                [class.bg-surface-container-lowest]="
+                  row.metadata?.isNestedUnderEnvelope
+                "
                 [attr.data-testid]="
-                  'budget-line-' + (row.data.name | rolloverFormat)
+                  'budget-line-' + (row.data?.name | rolloverFormat)
                 "
               ></tr>
 
@@ -661,6 +710,19 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
     .warn-bar {
       --mat-progress-bar-active-indicator-color: var(--mat-sys-error);
     }
+
+    .chip-on-secondary-container {
+      --mat-chip-label-text-color: var(--mat-sys-on-secondary-container);
+    }
+
+    .group-header-row {
+      background-color: var(--mat-sys-surface-container);
+      border-top: 1px solid var(--mat-sys-outline-variant);
+    }
+
+    .group-header-row:first-of-type {
+      border-top: none;
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -680,6 +742,8 @@ export class BudgetTable {
   }>();
   createAllocatedTransaction = output<BudgetLine>();
   resetFromTemplate = output<string>();
+  toggleCheck = output<string>();
+  toggleTransactionCheck = output<string>();
 
   // Services
   readonly #breakpointObserver = inject(BreakpointObserver);
@@ -749,7 +813,17 @@ export class BudgetTable {
     ),
   );
 
-  readonly trackByRow = (_: number, row: TableItem): string => row.data.id;
+  readonly trackByRow = (_: number, row: TableRowItem): string => {
+    if (row.metadata.itemType === 'group_header') {
+      return `group-${row.metadata.groupKind}`;
+    }
+    return (row as BudgetLineTableItem | TransactionTableItem).data.id;
+  };
+
+  readonly isGroupHeader = (
+    _index: number,
+    row: TableRowItem,
+  ): row is GroupHeaderTableItem => row.metadata.itemType === 'group_header';
 
   // Edit methods
   startEdit(item: BudgetLineTableItem): void {

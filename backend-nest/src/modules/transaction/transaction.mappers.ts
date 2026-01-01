@@ -25,6 +25,7 @@ export function toApi(transactionDb: TransactionRow): Transaction {
     kind: transactionDb.kind, // Pas de conversion - les enums sont maintenant unifiés
     transactionDate: transactionDb.transaction_date,
     category: transactionDb.category,
+    checkedAt: transactionDb.checked_at ?? null,
   };
 }
 

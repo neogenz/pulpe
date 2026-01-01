@@ -1,4 +1,8 @@
-import { type BudgetLine, type Transaction } from '@pulpe/shared';
+import {
+  type BudgetLine,
+  type Transaction,
+  type TransactionKind,
+} from '@pulpe/shared';
 
 /**
  * Métadonnées d'affichage pré-calculées pour éviter les appels de fonctions dans le template
@@ -41,6 +45,8 @@ export interface TableItem {
     isLoading?: boolean;
     /** Nom de l'enveloppe pour les transactions allouées (mode transactions) */
     envelopeName?: string | null;
+    /** Transaction imbriquée sous une enveloppe (pour indentation visuelle) */
+    isNestedUnderEnvelope?: boolean;
   } & TableItemDisplayMetadata;
 }
 
@@ -58,3 +64,24 @@ export interface BudgetLineTableItem extends TableItem {
 export interface TransactionTableItem extends TableItem {
   data: Transaction;
 }
+
+/**
+ * Header de groupe pour la séparation visuelle par type
+ */
+export interface GroupHeaderTableItem {
+  metadata: {
+    itemType: 'group_header';
+    groupKind: TransactionKind;
+    groupLabel: string;
+    groupIcon: string;
+    itemCount: number;
+  };
+}
+
+/**
+ * Union type pour toutes les lignes de la table
+ */
+export type TableRowItem =
+  | BudgetLineTableItem
+  | TransactionTableItem
+  | GroupHeaderTableItem;

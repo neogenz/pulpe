@@ -133,6 +133,7 @@ export interface FinancialAccordionConfig {
                   (selectionChange)="toggleSelection(vm.id, $event)"
                   (deleteClick)="deleteFinancialEntry.emit(vm.id)"
                   (editClick)="editFinancialEntry.emit(vm.id)"
+                  (toggleCheck)="toggleCheckFinancialEntry.emit(vm.id)"
                 />
                 @if (!isLast) {
                   <mat-divider></mat-divider>
@@ -170,6 +171,7 @@ export class FinancialAccordion {
   readonly selectedFinancialEntries = model<string[]>([]);
   readonly deleteFinancialEntry = output<string>();
   readonly editFinancialEntry = output<string>();
+  readonly toggleCheckFinancialEntry = output<string>();
   isHandset = input<boolean>(false);
 
   private readonly expandedState = signal<boolean | null>(null);
