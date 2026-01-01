@@ -13,8 +13,8 @@ import { createBudgetDetailsMock, createBudgetLineMock } from '../../helpers/api
 test.describe('Budget Table Mobile Menu', () => {
   const budgetId = 'test-budget-123';
 
-  test.beforeEach(async ({ authenticatedPage: page }) => {
-    // Mock budget details endpoint with test data using typed helpers
+  // Helper to set up route mocking (used by each nested describe's beforeEach)
+  async function setupBudgetDetailsMock(page: import('@playwright/test').Page) {
     const mockResponse = createBudgetDetailsMock(budgetId, {
       budget: { month: 8, year: 2025 },
       budgetLines: [
@@ -32,17 +32,17 @@ test.describe('Budget Table Mobile Menu', () => {
         body: JSON.stringify(mockResponse),
       }),
     );
-
-    // Navigate directly to budget details page
-    await page.goto('/app/budget/test-budget-123');
-    await page.waitForLoadState('domcontentloaded');
-
-    // Ensure budget table is loaded
-    await expect(page.locator('pulpe-budget-table')).toBeVisible();
-  });
+  }
 
   test.describe('Mobile View', () => {
     test.use({ viewport: { width: 375, height: 667 }, isMobile: true });
+
+    test.beforeEach(async ({ authenticatedPage: page }) => {
+      await setupBudgetDetailsMock(page);
+      await page.goto('/app/budget/test-budget-123');
+      await page.waitForLoadState('domcontentloaded');
+      await expect(page.locator('pulpe-budget-table')).toBeVisible();
+    });
 
     test('shows menu button for budget line actions', async ({ authenticatedPage: page }) => {
       // Mobile view uses card-menu-* prefix
@@ -128,6 +128,13 @@ test.describe('Budget Table Mobile Menu', () => {
   test.describe('Desktop View', () => {
     test.use({ viewport: { width: 1280, height: 720 } });
 
+    test.beforeEach(async ({ authenticatedPage: page }) => {
+      await setupBudgetDetailsMock(page);
+      await page.goto('/app/budget/test-budget-123');
+      await page.waitForLoadState('domcontentloaded');
+      await expect(page.locator('pulpe-budget-table')).toBeVisible();
+    });
+
     test('shows menu button for row actions', async ({ authenticatedPage: page }) => {
       // Desktop view uses actions-menu-* prefix in the table
       const menuButton = page.locator('[data-testid^="actions-menu-"]').first();
@@ -186,10 +193,16 @@ test.describe('Budget Table Mobile Menu', () => {
   });
 
   test.describe('Responsive Behavior', () => {
+    test.beforeEach(async ({ authenticatedPage: page }) => {
+      await setupBudgetDetailsMock(page);
+    });
+
     test('uses different menu button prefixes for mobile vs desktop', async ({ authenticatedPage: page }) => {
       // Start with desktop viewport
       await page.setViewportSize({ width: 1280, height: 720 });
-      await page.waitForTimeout(500);
+      await page.goto('/app/budget/test-budget-123');
+      await page.waitForLoadState('domcontentloaded');
+      await expect(page.locator('pulpe-budget-table')).toBeVisible();
 
       // Desktop uses actions-menu-* prefix (table view)
       const desktopMenuButton = page.locator('[data-testid^="actions-menu-"]').first();
@@ -206,10 +219,16 @@ test.describe('Budget Table Mobile Menu', () => {
   });
 
   test.describe('Accessibility', () => {
-    test('can navigate menu with keyboard on mobile', async ({ authenticatedPage: page }) => {
-      await page.setViewportSize({ width: 375, height: 667 });
-      await page.waitForTimeout(500);
+    test.use({ viewport: { width: 375, height: 667 }, isMobile: true });
 
+    test.beforeEach(async ({ authenticatedPage: page }) => {
+      await setupBudgetDetailsMock(page);
+      await page.goto('/app/budget/test-budget-123');
+      await page.waitForLoadState('domcontentloaded');
+      await expect(page.locator('pulpe-budget-table')).toBeVisible();
+    });
+
+    test('can navigate menu with keyboard on mobile', async ({ authenticatedPage: page }) => {
       const menuButton = page.locator('[data-testid^="card-menu-"]').first();
 
       // Focus and activate menu with keyboard

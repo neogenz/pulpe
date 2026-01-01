@@ -53,12 +53,13 @@ export async function setupAuthBypass(page: Page, options: {
 
 /**
  * Setup API mocks for E2E testing
+ * Uses route.fallback() to allow test-specific routes to override these defaults
  */
 export async function setupApiMocks(page: Page) {
   await page.route('**/api/v1/**', (route: Route) => {
     const url = route.request().url();
     const method = route.request().method();
-    
+
     // Auth endpoints
     if (url.includes('auth')) {
       return route.fulfill({
@@ -67,16 +68,16 @@ export async function setupApiMocks(page: Page) {
         body: JSON.stringify(MOCK_API_RESPONSES.auth)
       });
     }
-    
-    // Budget endpoints
-    if (url.includes('budgets')) {
+
+    // Budget list endpoints only (not details - let tests override those)
+    if (url.includes('budgets') && !url.includes('/details')) {
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify(MOCK_API_RESPONSES.budgets)
       });
     }
-    
+
     // Template endpoints - handle different patterns
     if (url.includes('budget-templates')) {
       // Template lines endpoint: /api/v1/budget-templates/{id}/lines
@@ -104,7 +105,7 @@ export async function setupApiMocks(page: Page) {
         body: JSON.stringify(MOCK_API_RESPONSES.templates)
       });
     }
-    
+
     // Success for mutations (POST/PUT/DELETE)
     if (method !== 'GET') {
       return route.fulfill({
@@ -113,12 +114,8 @@ export async function setupApiMocks(page: Page) {
         body: JSON.stringify(MOCK_API_RESPONSES.success)
       });
     }
-    
-    // Default empty array for other GETs
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ data: [] })
-    });
+
+    // For unhandled GET routes, fall back to allow test-specific handlers
+    return route.fallback();
   });
 }
