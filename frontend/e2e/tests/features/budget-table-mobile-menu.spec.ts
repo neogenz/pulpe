@@ -39,8 +39,11 @@ test.describe('Budget Table Mobile Menu', () => {
 
     test.beforeEach(async ({ authenticatedPage: page }) => {
       await setupBudgetDetailsMock(page);
-      await page.goto('/app/budget/test-budget-123');
-      await page.waitForLoadState('domcontentloaded');
+      // Navigate and wait for the API response to ensure data is loaded
+      await Promise.all([
+        page.waitForResponse(resp => resp.url().includes('/api/v1/budgets/') && resp.url().includes('/details')),
+        page.goto('/app/budget/test-budget-123'),
+      ]);
       await expect(page.locator('pulpe-budget-table')).toBeVisible();
     });
 
@@ -130,8 +133,11 @@ test.describe('Budget Table Mobile Menu', () => {
 
     test.beforeEach(async ({ authenticatedPage: page }) => {
       await setupBudgetDetailsMock(page);
-      await page.goto('/app/budget/test-budget-123');
-      await page.waitForLoadState('domcontentloaded');
+      // Navigate and wait for the API response to ensure data is loaded
+      await Promise.all([
+        page.waitForResponse(resp => resp.url().includes('/api/v1/budgets/') && resp.url().includes('/details')),
+        page.goto('/app/budget/test-budget-123'),
+      ]);
       await expect(page.locator('pulpe-budget-table')).toBeVisible();
     });
 
@@ -200,8 +206,11 @@ test.describe('Budget Table Mobile Menu', () => {
     test('uses different menu button prefixes for mobile vs desktop', async ({ authenticatedPage: page }) => {
       // Start with desktop viewport
       await page.setViewportSize({ width: 1280, height: 720 });
-      await page.goto('/app/budget/test-budget-123');
-      await page.waitForLoadState('domcontentloaded');
+      // Navigate and wait for the API response to ensure data is loaded
+      await Promise.all([
+        page.waitForResponse(resp => resp.url().includes('/api/v1/budgets/') && resp.url().includes('/details')),
+        page.goto('/app/budget/test-budget-123'),
+      ]);
       await expect(page.locator('pulpe-budget-table')).toBeVisible();
 
       // Desktop uses actions-menu-* prefix (table view)
@@ -223,8 +232,11 @@ test.describe('Budget Table Mobile Menu', () => {
 
     test.beforeEach(async ({ authenticatedPage: page }) => {
       await setupBudgetDetailsMock(page);
-      await page.goto('/app/budget/test-budget-123');
-      await page.waitForLoadState('domcontentloaded');
+      // Navigate and wait for the API response to ensure data is loaded
+      await Promise.all([
+        page.waitForResponse(resp => resp.url().includes('/api/v1/budgets/') && resp.url().includes('/details')),
+        page.goto('/app/budget/test-budget-123'),
+      ]);
       await expect(page.locator('pulpe-budget-table')).toBeVisible();
     });
 
