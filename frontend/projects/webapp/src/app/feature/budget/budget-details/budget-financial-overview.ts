@@ -1,56 +1,148 @@
+import { DecimalPipe } from '@angular/common';
 import {
+  ChangeDetectionStrategy,
   Component,
-  input,
   computed,
   inject,
-  ChangeDetectionStrategy,
+  input,
 } from '@angular/core';
-import {
-  FinancialSummary,
-  type FinancialSummaryData,
-} from '@ui/financial-summary/financial-summary';
+import { MatCardModule } from '@angular/material/card';
+import { MatIconModule } from '@angular/material/icon';
 import { type BudgetLine, type Transaction } from '@pulpe/shared';
-import { BudgetCalculator } from '@core/budget/budget-calculator';
-import { calculateAllConsumptions } from '@core/budget/budget-line-consumption';
+import { BudgetCalculator, calculateAllConsumptions } from '@core/budget';
+import { RealizedBalanceProgressBar } from '@ui/realized-balance-progress-bar/realized-balance-progress-bar';
+import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-balance-tooltip';
 
 @Component({
   selector: 'pulpe-budget-financial-overview',
-  imports: [FinancialSummary],
+  imports: [
+    MatCardModule,
+    MatIconModule,
+    DecimalPipe,
+    RealizedBalanceProgressBar,
+    RealizedBalanceTooltip,
+  ],
   template: `
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      <pulpe-financial-summary
-        [data]="incomeData()"
-        data-testid="financial-overview"
-      />
-      <pulpe-financial-summary [data]="expenseData()" />
-      <pulpe-financial-summary [data]="savingsData()" />
-      <pulpe-financial-summary [data]="remainingData()" />
+    <div class="space-y-4">
+      <mat-card appearance="outlined">
+        <mat-card-content class="py-4 px-6">
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <!-- Revenus -->
+            <div class="text-center">
+              <div class="flex items-center justify-center mb-1">
+                <mat-icon class="text-base! text-on-surface!">
+                  arrow_upward
+                </mat-icon>
+                <span class="text-label-large"> Revenus CHF </span>
+              </div>
+              <div
+                class="text-title-large font-bold text-financial-income ph-no-capture"
+              >
+                {{ totals().income | number: '1.0-0' : 'de-CH' }}
+              </div>
+            </div>
+
+            <!-- Dépenses -->
+            <div class="text-center">
+              <div class="flex items-center justify-center mb-1">
+                <mat-icon class="text-base! text-on-surface!">
+                  arrow_downward
+                </mat-icon>
+                <span class="text-label-large"> Dépenses CHF </span>
+              </div>
+              <div
+                class="text-title-large font-bold text-financial-expense ph-no-capture"
+              >
+                {{ totals().expenses | number: '1.0-0' : 'de-CH' }}
+              </div>
+            </div>
+
+            <!-- Épargne -->
+            <div class="text-center">
+              <div class="flex items-center justify-center mb-1">
+                <mat-icon class="text-base! text-on-surface!">
+                  savings
+                </mat-icon>
+                <span class="text-label-large"> Épargne CHF </span>
+              </div>
+              <div
+                class="text-title-large font-bold text-financial-savings ph-no-capture"
+              >
+                {{ totals().savings | number: '1.0-0' : 'de-CH' }}
+              </div>
+            </div>
+
+            <!-- Disponible -->
+            <div class="text-center">
+              <div class="flex items-center justify-center mb-1">
+                <mat-icon class="text-base! text-on-surface!">
+                  @if (totals().remaining >= 0) {
+                    account_balance_wallet
+                  } @else {
+                    warning
+                  }
+                </mat-icon>
+                <span class="text-label-large">
+                  @if (totals().remaining >= 0) {
+                    Disponible CHF
+                  } @else {
+                    Déficit CHF
+                  }
+                </span>
+              </div>
+              <div
+                class="text-title-large font-bold ph-no-capture"
+                [class.text-financial-savings]="totals().remaining >= 0"
+                [class.text-error]="totals().remaining < 0"
+              >
+                {{ Math.abs(totals().remaining) | number: '1.0-0' : 'de-CH' }}
+              </div>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <pulpe-realized-balance-progress-bar
+        [realizedExpenses]="realizedExpenses()"
+        [realizedBalance]="realizedBalance()"
+        [checkedCount]="checkedCount()"
+        [totalCount]="totalCount()"
+        data-testid="realized-balance-progress"
+      >
+        <pulpe-realized-balance-tooltip slot="title-info" />
+      </pulpe-realized-balance-progress-bar>
     </div>
+  `,
+  styles: `
+    :host {
+      display: block;
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BudgetFinancialOverview {
+  readonly Math = Math;
   readonly #budgetCalculator = inject(BudgetCalculator);
 
   budgetLines = input.required<BudgetLine[]>();
   transactions = input.required<Transaction[]>();
+  realizedBalance = input.required<number>();
+  realizedExpenses = input.required<number>();
+  checkedCount = input.required<number>();
+  totalCount = input.required<number>();
 
   totals = computed(() => {
     const lines = this.budgetLines();
     const transactions = this.transactions();
 
-    // Calculer les consommations de chaque enveloppe pour les dépassements
     const consumptionMap = calculateAllConsumptions(lines, transactions);
 
-    // Calculate base amounts from budget lines
-    // Pour les dépenses et épargnes, utiliser MAX(prévu, consommé) pour les dépassements
     const income = this.#budgetCalculator.calculatePlannedIncome(lines);
     let expenses = 0;
     let savings = 0;
 
     lines.forEach((line) => {
       const consumption = consumptionMap.get(line.id);
-      // Utiliser MAX(prévu, consommé) pour prendre en compte les dépassements
       const effectiveAmount = consumption
         ? Math.max(line.amount, consumption.consumed)
         : line.amount;
@@ -65,9 +157,6 @@ export class BudgetFinancialOverview {
       }
     });
 
-    // Calculate Living Allowance with transactions impact
-    // Note: Les transactions allouées sont déjà prises en compte via MAX(prévu, consommé)
-    // Seules les transactions LIBRES (non allouées) impactent le budget ici
     const freeTransactions = transactions.filter((tx) => !tx.budgetLineId);
     const initialLivingAllowance = income - expenses - savings;
     const transactionImpact =
@@ -77,36 +166,5 @@ export class BudgetFinancialOverview {
     const remaining = initialLivingAllowance + transactionImpact;
 
     return { income, expenses, savings, remaining };
-  });
-
-  incomeData = computed<FinancialSummaryData>(() => ({
-    title: 'Revenus',
-    amount: this.totals().income,
-    icon: 'arrow_upward',
-    type: 'income',
-  }));
-
-  expenseData = computed<FinancialSummaryData>(() => ({
-    title: 'Dépenses',
-    amount: this.totals().expenses,
-    icon: 'arrow_downward',
-    type: 'expense',
-  }));
-
-  savingsData = computed<FinancialSummaryData>(() => ({
-    title: 'Épargne prévue',
-    amount: this.totals().savings,
-    icon: 'savings',
-    type: 'savings',
-  }));
-
-  remainingData = computed<FinancialSummaryData>(() => {
-    const remaining = this.totals().remaining;
-    return {
-      title: remaining >= 0 ? 'Disponible à dépenser' : 'Déficit',
-      amount: Math.abs(remaining),
-      icon: remaining >= 0 ? 'account_balance_wallet' : 'warning',
-      type: remaining >= 0 ? 'savings' : 'negative',
-    };
   });
 }

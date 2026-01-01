@@ -172,6 +172,7 @@ type EditTransactionFormData = Pick<
 
             <pulpe-recurring-expenses-list
               [financialEntries]="recurringFinancialItems()"
+              (toggleCheckFinancialEntry)="handleToggleBudgetLineCheck($event)"
               data-testid="recurring-expenses-list"
             />
             <pulpe-one-time-expenses-list
@@ -179,6 +180,7 @@ type EditTransactionFormData = Pick<
               [(selectedFinancialEntries)]="selectedTransactions"
               (deleteFinancialEntry)="deleteTransaction($event)"
               (editFinancialEntry)="openEditTransactionDialogAndUpdate($event)"
+              (toggleCheckFinancialEntry)="handleToggleTransactionCheck($event)"
               data-testid="one-time-expenses-list"
             />
           </div>
@@ -267,6 +269,7 @@ export default class CurrentMonth {
       )
       .map((line) => mapBudgetLineToFinancialEntry(line, budget.id));
   });
+
   oneTimeFinancialItems = computed<FinancialEntryModel[]>(() => {
     // For now, show all transactions as variable expenses
     const transactions = this.store.dashboardData()?.transactions ?? [];
@@ -416,6 +419,28 @@ export default class CurrentMonth {
           duration: 5000,
         },
       );
+    }
+  }
+
+  async handleToggleBudgetLineCheck(budgetLineId: string): Promise<void> {
+    try {
+      await this.store.toggleBudgetLineCheck(budgetLineId);
+    } catch (error) {
+      this.#logger.error('Error toggling budget line check:', error);
+      this.#snackBar.open('Erreur lors du basculement du statut', 'Fermer', {
+        duration: 5000,
+      });
+    }
+  }
+
+  async handleToggleTransactionCheck(transactionId: string): Promise<void> {
+    try {
+      await this.store.toggleTransactionCheck(transactionId);
+    } catch (error) {
+      this.#logger.error('Error toggling transaction check:', error);
+      this.#snackBar.open('Erreur lors du basculement du statut', 'Fermer', {
+        duration: 5000,
+      });
     }
   }
 }

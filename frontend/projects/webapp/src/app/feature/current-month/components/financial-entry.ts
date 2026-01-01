@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatRippleModule } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
@@ -34,7 +34,7 @@ export type FinancialEntryViewModel = FinancialEntryModel & {
     DecimalPipe,
     MatIconModule,
     MatListModule,
-    MatCheckboxModule,
+    MatSlideToggleModule,
     MatRippleModule,
     MatButtonModule,
     MatMenuModule,
@@ -51,19 +51,19 @@ export type FinancialEntryViewModel = FinancialEntryModel & {
       [class.saving-item]="data().kind === 'saving'"
       [class.expense-item]="data().kind === 'expense'"
       [class.!cursor-pointer]="selectable()"
+      [class.line-through]="data().checkedAt"
       (click)="handleClick()"
     >
-      <!--
-      <div matListItemAvatar class="flex justify-center items-center gap-4">
-        @if (selectable()) {
-          <mat-checkbox
-            [checked]="data().isSelected"
-            (change)="selectionChange.emit($event.checked)"
+      @if ('checkedAt' in data()) {
+        <div matListItemAvatar class="toggle-container">
+          <mat-slide-toggle
+            [checked]="data().checkedAt !== null"
+            (change)="toggleCheck.emit()"
             (click)="$event.stopPropagation()"
+            [attr.data-testid]="'check-budget-line-' + data().id"
           />
-        }
-      </div>
-      -->
+        </div>
+      }
       <div matListItemTitle [class.rollover-text]="isRollover()">
         @if (isRollover() && rolloverSourceBudgetId()) {
           <a
@@ -72,7 +72,7 @@ export type FinancialEntryViewModel = FinancialEntryModel & {
             class="ph-no-capture inline-flex items-center font-semibold"
             matTooltip="Voir le mois d'origine"
           >
-            <mat-icon class="!text-base">open_in_new</mat-icon>
+            <mat-icon class="text-base!">open_in_new</mat-icon>
             {{ data().name | rolloverFormat }}
           </a>
         } @else {
@@ -81,13 +81,20 @@ export type FinancialEntryViewModel = FinancialEntryModel & {
           }}</span>
         }
       </div>
-      <span
-        class="text-body-small text-on-surface-variant"
-        [attr.data-testid]="'creation-date-' + data().id"
-      >
-        {{ data().createdAt | date: 'dd.MM.yyyy' : '' : 'fr-CH' }}
-      </span>
-      <div matListItemMeta class="!flex !h-full !items-center">
+      <div matListItemLine class="flex items-center gap-2">
+        <span
+          class="text-body-small text-on-surface-variant"
+          [attr.data-testid]="'creation-date-' + data().id"
+        >
+          {{ data().createdAt | date: 'dd.MM.yyyy' : '' : 'fr-CH' }}
+        </span>
+        @if (data().checkedAt) {
+          <span class="text-body-small text-on-surface-variant">
+            {{ data().checkedAt | date: 'dd.MM' : '' : 'fr-CH' }}
+          </span>
+        }
+      </div>
+      <div matListItemMeta class="flex! h-full! items-center!">
         <span class="ph-no-capture" [class.italic]="isRollover()">
           {{ data().kind === 'income' ? '+' : '-'
           }}{{ data().amount | number: '1.2-2' : 'de-CH' }}
@@ -99,7 +106,7 @@ export type FinancialEntryViewModel = FinancialEntryModel & {
             [matMenuTriggerFor]="actionMenu"
             [attr.aria-label]="'Actions pour ' + data().name"
             [attr.data-testid]="'actions-menu-' + data().id"
-            class="!w-10 !h-10 text-on-surface-variant"
+            class="w-10! h-10! text-on-surface-variant!"
             (click)="$event.stopPropagation()"
           >
             <mat-icon>more_vert</mat-icon>
@@ -135,7 +142,7 @@ export type FinancialEntryViewModel = FinancialEntryModel & {
               (click)="onEditClick($event)"
               [attr.aria-label]="'Modifier ' + data().name"
               [attr.data-testid]="'edit-transaction-' + data().id"
-              class="!w-10 !h-10 text-primary"
+              class="w-10! h-10! text-primary"
             >
               <mat-icon>edit</mat-icon>
             </button>
@@ -146,7 +153,7 @@ export type FinancialEntryViewModel = FinancialEntryModel & {
               (click)="onDeleteClick($event)"
               [attr.aria-label]="'Supprimer ' + data().name"
               [attr.data-testid]="'delete-transaction-' + data().id"
-              class="!w-10 !h-10 text-error"
+              class="w-10! h-10! text-error"
             >
               <mat-icon>delete</mat-icon>
             </button>
@@ -204,6 +211,13 @@ export type FinancialEntryViewModel = FinancialEntryModel & {
       .mat-mdc-list-item:hover {
         background-color: rgba(0, 0, 0, 0.04);
       }
+
+      .toggle-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 52px;
+      }
     }
 
     .expense-item {
@@ -230,6 +244,7 @@ export class FinancialEntry {
   readonly selectionChange = output<boolean>();
   readonly deleteClick = output<void>();
   readonly editClick = output<void>();
+  readonly toggleCheck = output<void>();
 
   // Responsive breakpoint detection for mobile view
   protected readonly isMobile = toSignal(

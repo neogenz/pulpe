@@ -16,6 +16,7 @@ describe('BudgetLine Mappers', () => {
         kind: 'expense',
         recurrence: 'fixed',
         is_manually_adjusted: true,
+        checked_at: null,
         created_at: '2025-01-01T00:00:00Z',
         updated_at: '2025-01-02T00:00:00Z',
       };
@@ -32,6 +33,7 @@ describe('BudgetLine Mappers', () => {
         kind: 'expense',
         recurrence: 'fixed',
         isManuallyAdjusted: true,
+        checkedAt: null,
         createdAt: '2025-01-01T00:00:00Z',
         updatedAt: '2025-01-02T00:00:00Z',
       });
@@ -48,6 +50,7 @@ describe('BudgetLine Mappers', () => {
         kind: 'income',
         recurrence: 'one_off',
         is_manually_adjusted: false,
+        checked_at: null,
         created_at: '2025-01-01T00:00:00Z',
         updated_at: '2025-01-01T00:00:00Z',
       };

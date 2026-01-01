@@ -28,6 +28,7 @@ import { type FinancialEntryModel } from '../models/financial-entry.model';
       [(selectedFinancialEntries)]="selectedFinancialEntries"
       (deleteFinancialEntry)="deleteFinancialEntry.emit($event)"
       (editFinancialEntry)="editFinancialEntry.emit($event)"
+      (toggleCheckFinancialEntry)="toggleCheckFinancialEntry.emit($event)"
       [isHandset]="isHandset()"
     />
   `,
@@ -39,6 +40,7 @@ export class OneTimeExpensesList {
   selectedFinancialEntries = model<string[]>([]);
   deleteFinancialEntry = output<string>();
   editFinancialEntry = output<string>();
+  toggleCheckFinancialEntry = output<string>();
   readonly #breakpointObserver = inject(BreakpointObserver);
 
   protected readonly isHandset = toSignal(
@@ -66,7 +68,7 @@ export class OneTimeExpensesList {
       emptyStateIcon: 'swap_vert',
       emptyStateTitle: 'Aucune transaction ponctuelle',
       emptyStateSubtitle: 'Vos transactions ponctuelles apparaîtront ici',
-      selectable: true,
+      selectable: false,
       deletable: true,
       editable: true,
       defaultExpanded: true,

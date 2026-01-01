@@ -9,12 +9,17 @@ import {
   type BudgetLineUpdate,
   type Transaction,
   type TransactionCreate,
+  BudgetFormulas,
 } from '@pulpe/shared';
 
 import { firstValueFrom } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
 import { BudgetLineApi } from '../budget-line-api/budget-line-api';
 import { type BudgetDetailsViewModel } from '../models/budget-details-view-model';
+import {
+  calculateBudgetLineToggle,
+  calculateTransactionToggle,
+} from './budget-details-check.utils';
 import { createInitialBudgetDetailsState } from './budget-details-state';
 
 /**
@@ -90,6 +95,9 @@ export class BudgetDetailsStore {
         previousBudgetId: previousBudgetId,
       });
 
+      // Apply local checked state for rollover
+      rolloverLine.checkedAt = this.#state.rolloverCheckedAt();
+
       // Add rollover at the beginning of the list
       lines.unshift(rolloverLine);
     }
@@ -97,8 +105,54 @@ export class BudgetDetailsStore {
     return lines;
   });
 
+  readonly realizedBalance = computed<number>(() => {
+    if (!this.#budgetDetailsResource.hasValue()) return 0;
+    const details = this.#budgetDetailsResource.value();
+    return BudgetFormulas.calculateRealizedBalance(
+      this.displayBudgetLines(),
+      details.transactions,
+    );
+  });
+
+  /**
+   * Dépenses réalisées (uniquement les éléments cochés)
+   */
+  readonly realizedExpenses = computed<number>(() => {
+    if (!this.#budgetDetailsResource.hasValue()) return 0;
+    const details = this.#budgetDetailsResource.value();
+    return BudgetFormulas.calculateRealizedExpenses(
+      this.displayBudgetLines(),
+      details.transactions,
+    );
+  });
+
+  /**
+   * Nombre d'éléments cochés (budget lines + transactions)
+   */
+  readonly checkedItemsCount = computed<number>(() => {
+    if (!this.#budgetDetailsResource.hasValue()) return 0;
+    const details = this.#budgetDetailsResource.value();
+    const lines = this.displayBudgetLines();
+    const transactions = details.transactions ?? [];
+    return [...lines, ...transactions].filter((item) => item.checkedAt != null)
+      .length;
+  });
+
+  /**
+   * Nombre total d'éléments (budget lines + transactions)
+   */
+  readonly totalItemsCount = computed<number>(() => {
+    if (!this.#budgetDetailsResource.hasValue()) return 0;
+    const details = this.#budgetDetailsResource.value();
+    const lines = this.displayBudgetLines();
+    const transactions = details.transactions ?? [];
+    return lines.length + transactions.length;
+  });
+
   setBudgetId(budgetId: string): void {
     this.#state.budgetId.set(budgetId);
+    // Reset rollover checked state when changing budget (checked by default)
+    this.#state.rolloverCheckedAt.set(new Date().toISOString());
   }
 
   /**
@@ -115,6 +169,7 @@ export class BudgetDetailsStore {
       updatedAt: new Date().toISOString(),
       templateLineId: null,
       savingsGoalId: null,
+      checkedAt: budgetLine.checkedAt ?? null,
     };
 
     // Optimistic update - add the new line immediately
@@ -247,11 +302,19 @@ export class BudgetDetailsStore {
 
   /**
    * Create an allocated transaction with optimistic updates
+   * If parent budget line is checked, new transaction inherits checked state
    */
   async createAllocatedTransaction(
     transactionData: TransactionCreate,
   ): Promise<void> {
     const newId = `temp-${uuidv4()}`;
+    const details = this.budgetDetails();
+
+    // Inherit checked state from parent budget line if it's checked
+    const parentBudgetLine = details?.budgetLines.find(
+      (line) => line.id === transactionData.budgetLineId,
+    );
+    const inheritedCheckedAt = parentBudgetLine?.checkedAt ?? null;
 
     // Create temporary transaction for optimistic update
     const tempTransaction: Transaction = {
@@ -266,6 +329,7 @@ export class BudgetDetailsStore {
       category: transactionData.category ?? null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      checkedAt: inheritedCheckedAt,
     };
 
     // Optimistic update - add the new transaction immediately
@@ -280,7 +344,10 @@ export class BudgetDetailsStore {
 
     try {
       const response = await firstValueFrom(
-        this.#transactionApi.create$(transactionData),
+        this.#transactionApi.create$({
+          ...transactionData,
+          checkedAt: inheritedCheckedAt,
+        }),
       );
 
       // Replace temporary transaction with server response
@@ -336,6 +403,112 @@ export class BudgetDetailsStore {
       this.#setError(errorMessage);
       this.#logger.error('Error resetting budget line from template', error);
       throw error;
+    }
+  }
+
+  async toggleCheck(id: string): Promise<void> {
+    if (id === 'rollover-display') {
+      const currentCheckedAt = this.#state.rolloverCheckedAt();
+      this.#state.rolloverCheckedAt.set(
+        currentCheckedAt === null ? new Date().toISOString() : null,
+      );
+      return;
+    }
+
+    const details = this.budgetDetails();
+    if (!details) return;
+
+    const result = calculateBudgetLineToggle(id, {
+      budgetLines: details.budgetLines,
+      transactions: details.transactions ?? [],
+    });
+
+    if (!result) return;
+
+    this.#budgetDetailsResource.update((d) => {
+      if (!d) return d;
+      return {
+        ...d,
+        budgetLines: result.updatedBudgetLines,
+        transactions: result.updatedTransactions,
+      };
+    });
+
+    try {
+      const response = await firstValueFrom(
+        this.#budgetLineApi.toggleCheck$(id),
+      );
+
+      await Promise.all(
+        result.transactionsToToggle.map((tx) =>
+          firstValueFrom(this.#transactionApi.toggleCheck$(tx.id)),
+        ),
+      );
+
+      this.#budgetDetailsResource.update((d) => {
+        if (!d) return d;
+        return {
+          ...d,
+          budgetLines: d.budgetLines.map((line) =>
+            line.id === id ? response.data : line,
+          ),
+        };
+      });
+
+      this.#clearError();
+    } catch (error) {
+      this.reloadBudgetDetails();
+      this.#setError('Erreur lors du basculement du statut de la prévision');
+      this.#logger.error('Error toggling budget line check', error);
+    }
+  }
+
+  async toggleTransactionCheck(id: string): Promise<void> {
+    const details = this.budgetDetails();
+    if (!details) return;
+
+    const result = calculateTransactionToggle(id, {
+      budgetLines: details.budgetLines,
+      transactions: details.transactions ?? [],
+    });
+
+    if (!result) return;
+
+    this.#budgetDetailsResource.update((d) => {
+      if (!d) return d;
+      return {
+        ...d,
+        budgetLines: result.updatedBudgetLines,
+        transactions: result.updatedTransactions,
+      };
+    });
+
+    try {
+      const response = await firstValueFrom(
+        this.#transactionApi.toggleCheck$(id),
+      );
+
+      if (result.shouldToggleBudgetLine && result.budgetLineId) {
+        await firstValueFrom(
+          this.#budgetLineApi.toggleCheck$(result.budgetLineId),
+        );
+      }
+
+      this.#budgetDetailsResource.update((d) => {
+        if (!d) return d;
+        return {
+          ...d,
+          transactions: (d.transactions ?? []).map((tx) =>
+            tx.id === id ? response.data : tx,
+          ),
+        };
+      });
+
+      this.#clearError();
+    } catch (error) {
+      this.reloadBudgetDetails();
+      this.#setError('Erreur lors du basculement du statut de la transaction');
+      this.#logger.error('Error toggling transaction check', error);
     }
   }
 

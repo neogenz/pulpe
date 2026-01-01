@@ -47,6 +47,7 @@ export function createRolloverLine(params: {
     kind: params.amount > 0 ? 'income' : 'expense',
     recurrence: 'fixed',
     isManuallyAdjusted: false,
+    checkedAt: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     isRollover: true as const,

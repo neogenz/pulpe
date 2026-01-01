@@ -77,6 +77,7 @@ describe('BudgetLineService', () => {
     kind: 'income' as const,
     recurrence: 'fixed' as const,
     is_manually_adjusted: false,
+    checked_at: null,
     created_at: '2024-01-01T00:00:00.000Z',
     updated_at: '2024-01-01T00:00:00.000Z',
   };
@@ -91,6 +92,7 @@ describe('BudgetLineService', () => {
     kind: 'income' as const,
     recurrence: 'fixed' as const,
     isManuallyAdjusted: false,
+    checkedAt: null,
     createdAt: '2024-01-01T00:00:00.000Z',
     updatedAt: '2024-01-01T00:00:00.000Z',
   };
@@ -334,6 +336,7 @@ describe('BudgetLineService', () => {
           kind: 'income', // Enums maintenant unifiés - pas de conversion
           recurrence: updatedBudgetLine.recurrence,
           isManuallyAdjusted: updatedBudgetLine.is_manually_adjusted,
+          checkedAt: updatedBudgetLine.checked_at,
           createdAt: updatedBudgetLine.created_at,
           updatedAt: updatedBudgetLine.updated_at,
         },
@@ -544,6 +547,91 @@ describe('BudgetLineService', () => {
           'ERR_TEMPLATE_LINE_NOT_FOUND',
         );
       }
+    });
+  });
+
+  describe('toggleCheck', () => {
+    it('should set checked_at when budget line is unchecked', async () => {
+      const budgetLineId = '123e4567-e89b-12d3-a456-426614174000';
+      const checkedTimestamp = '2024-01-15T10:30:00.000Z';
+
+      let callCount = 0;
+      mockSupabase.from.mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
+          // First call: fetch budget line (unchecked)
+          return createMockQueryBuilder({
+            data: { ...mockBudgetLineDb, checked_at: null },
+            error: null,
+          });
+        }
+        // Second call: update budget line
+        return createMockQueryBuilder({
+          data: {
+            ...mockBudgetLineDb,
+            checked_at: checkedTimestamp,
+          },
+          error: null,
+        });
+      });
+
+      const result = await service.toggleCheck(
+        budgetLineId,
+        mockUser,
+        getMockSupabaseClient(),
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data.checkedAt).not.toBeNull();
+    });
+
+    it('should clear checked_at when budget line is checked', async () => {
+      const budgetLineId = '123e4567-e89b-12d3-a456-426614174000';
+      const existingCheckedAt = '2024-01-10T08:00:00.000Z';
+
+      let callCount = 0;
+      mockSupabase.from.mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
+          // First call: fetch budget line (already checked)
+          return createMockQueryBuilder({
+            data: { ...mockBudgetLineDb, checked_at: existingCheckedAt },
+            error: null,
+          });
+        }
+        // Second call: update budget line
+        return createMockQueryBuilder({
+          data: {
+            ...mockBudgetLineDb,
+            checked_at: null,
+          },
+          error: null,
+        });
+      });
+
+      const result = await service.toggleCheck(
+        budgetLineId,
+        mockUser,
+        getMockSupabaseClient(),
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data.checkedAt).toBeNull();
+    });
+
+    it('should throw BusinessException when budget line not found', async () => {
+      const budgetLineId = '123e4567-e89b-12d3-a456-426614174000';
+
+      mockSupabase.from.mockReturnValue(
+        createMockQueryBuilder({
+          data: null,
+          error: new Error('Not found'),
+        }),
+      );
+
+      await expect(
+        service.toggleCheck(budgetLineId, mockUser, getMockSupabaseClient()),
+      ).rejects.toThrow(BusinessException);
     });
   });
 });

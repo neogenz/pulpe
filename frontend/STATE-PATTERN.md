@@ -14,21 +14,17 @@ interface State {
 
 @Injectable()
 export class Store {
-  // 1. Private state, single signal
-  private readonly state = signal<State>(initialState);
+  readonly #state = signal<State>(initialState);
 
-  // 2. Public read-only selectors via computed
-  readonly data = computed(() => this.state().data);
-  readonly isLoading = computed(() => this.state().isLoading);
+  readonly data = computed(() => this.#state().data);
+  readonly isLoading = computed(() => this.#state().isLoading);
 
-  // 3. Derived selectors
   readonly selected = computed(() =>
-    this.state().data.find((item) => item.id === this.state().selectedId)
+    this.#state().data.find((item) => item.id === this.#state().selectedId)
   );
 
-  // 4. Actions that modify state
   updateData(data: T[]) {
-    this.state.update((state) => ({ ...state, data }));
+    this.#state.update((state) => ({ ...state, data }));
   }
 }
 ```
@@ -39,13 +35,13 @@ export class Store {
 
 ```typescript
 // Good - New reference
-this.state.update((state) => ({
+this.#state.update((state) => ({
   ...state,
   items: [...state.items, newItem],
 }));
 
 // Bad - Mutation
-this.state.update((state) => {
+this.#state.update((state) => {
   state.items.push(newItem); // Mutation!
   return state;
 });
@@ -55,13 +51,13 @@ this.state.update((state) => {
 
 ```typescript
 async loadData() {
-  this.state.update(s => ({ ...s, isLoading: true, error: null }));
+  this.#state.update(s => ({ ...s, isLoading: true, error: null }));
 
   try {
-    const data = await this.api.getData();
-    this.state.update(s => ({ ...s, data, isLoading: false }));
+    const data = await this.#api.getData();
+    this.#state.update(s => ({ ...s, data, isLoading: false }));
   } catch (error) {
-    this.state.update(s => ({ ...s, error, isLoading: false }));
+    this.#state.update(s => ({ ...s, error, isLoading: false }));
   }
 }
 ```
@@ -73,18 +69,19 @@ async loadData() {
 ```typescript
 @Injectable()
 export class CartStore {
-  private readonly state = signal<CartState>(initialState);
+  readonly #state = signal<CartState>(initialState);
+  readonly #analytics = inject(AnalyticsService);
 
-  private readonly persistEffect = effect(() => {
-    const state = this.state();
+  readonly #persistEffect = effect(() => {
+    const state = this.#state();
     localStorage.setItem("cart", JSON.stringify(state));
   });
 
-  private readonly analyticsEffect = effect(() => {
-    const items = this.state().items;
+  readonly #analyticsEffect = effect(() => {
+    const items = this.#state().items;
     untracked(() => {
       if (items.length > 0) {
-        this.analytics.trackCart(items);
+        this.#analytics.trackCart(items);
       }
     });
   });
@@ -96,17 +93,17 @@ export class CartStore {
 ```typescript
 @Injectable()
 export class OrderStore {
-  private readonly cart = inject(CartStore);
-  private readonly user = inject(UserStore);
+  readonly #cart = inject(CartStore);
+  readonly #user = inject(UserStore);
 
   readonly canCheckout = computed(() =>
-    this.cart.items().length > 0 && this.user.isAuthenticated()
+    this.#cart.items().length > 0 && this.#user.isAuthenticated()
   );
 
   readonly orderSummary = computed(() => ({
-    items: this.cart.items(),
-    user: this.user.current(),
-    total: this.cart.total(),
+    items: this.#cart.items(),
+    user: this.#user.current(),
+    total: this.#cart.total(),
   }));
 }
 ```
@@ -115,16 +112,16 @@ export class OrderStore {
 
 ```typescript
 export class ProductStore {
-  private readonly state = signal<State>(initialState);
+  readonly #state = signal<State>(initialState);
 
-  private readonly productById = computed(() => {
+  readonly #productById = computed(() => {
     const map = new Map<string, Product>();
-    this.state().products.forEach((p) => map.set(p.id, p));
+    this.#state().products.forEach((p) => map.set(p.id, p));
     return map;
   });
 
   getProduct(id: string) {
-    return computed(() => this.productById().get(id));
+    return computed(() => this.#productById().get(id));
   }
 }
 ```

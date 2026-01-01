@@ -175,6 +175,7 @@ export class TransactionService {
       transaction_date:
         createTransactionDto.transactionDate || new Date().toISOString(),
       category: createTransactionDto.category ?? null,
+      checked_at: createTransactionDto.checkedAt ?? null,
     };
   }
 
@@ -696,6 +697,65 @@ export class TransactionService {
           operation: 'listTransactionsByBudgetLine',
           entityId: budgetLineId,
           entityType: 'budget_line',
+        },
+      );
+    }
+  }
+
+  /**
+   * Toggle the checked state of a transaction
+   * If checked_at is null, sets it to current timestamp
+   * If checked_at has a value, sets it to null
+   * Does NOT trigger budget recalculation (lightweight operation)
+   */
+  async toggleCheck(
+    id: string,
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<TransactionResponse> {
+    const startTime = Date.now();
+
+    try {
+      const transactionDb = await this.fetchTransactionById(id, user, supabase);
+
+      const newCheckedAt =
+        transactionDb.checked_at === null ? new Date().toISOString() : null;
+
+      const updatedTransaction = await this.updateTransactionInDb(
+        id,
+        { checked_at: newCheckedAt, updated_at: new Date().toISOString() },
+        supabase,
+        user.id,
+      );
+
+      const apiData = transactionMappers.toApi(updatedTransaction);
+
+      this.logger.info(
+        {
+          operation: 'toggleTransactionCheck',
+          userId: user.id,
+          entityId: id,
+          entityType: 'transaction',
+          newCheckedAt,
+          duration: Date.now() - startTime,
+        },
+        'Transaction check state toggled successfully',
+      );
+
+      return {
+        success: true,
+        data: apiData,
+      };
+    } catch (error) {
+      handleServiceError(
+        error,
+        ERROR_DEFINITIONS.TRANSACTION_UPDATE_FAILED,
+        { id },
+        {
+          operation: 'toggleTransactionCheck',
+          userId: user.id,
+          entityId: id,
+          entityType: 'transaction',
         },
       );
     }

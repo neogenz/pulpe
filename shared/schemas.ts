@@ -182,6 +182,7 @@ export const budgetLineSchema = z.object({
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,
   isManuallyAdjusted: z.boolean(),
+  checkedAt: z.iso.datetime({ offset: true }).nullable(),
   createdAt: z.iso.datetime({ offset: true }),
   updatedAt: z.iso.datetime({ offset: true }),
 });
@@ -196,6 +197,7 @@ export const budgetLineCreateSchema = z.object({
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,
   isManuallyAdjusted: z.boolean().default(false),
+  checkedAt: z.iso.datetime().nullable().optional(),
 });
 export type BudgetLineCreate = z.infer<typeof budgetLineCreateSchema>;
 
@@ -238,6 +240,7 @@ export const transactionSchema = z.object({
   category: z.string().max(100).trim().nullable(),
   createdAt: z.iso.datetime({ offset: true }),
   updatedAt: z.iso.datetime({ offset: true }),
+  checkedAt: z.iso.datetime({ offset: true }).nullable(),
 });
 export type Transaction = z.infer<typeof transactionSchema>;
 
@@ -249,6 +252,7 @@ export const transactionCreateSchema = z.object({
   kind: transactionKindSchema,
   transactionDate: z.iso.datetime({ offset: true }).optional(),
   category: z.string().max(100).trim().nullable().optional(),
+  checkedAt: z.iso.datetime().nullable().optional(),
 });
 export type TransactionCreate = z.infer<typeof transactionCreateSchema>;
 

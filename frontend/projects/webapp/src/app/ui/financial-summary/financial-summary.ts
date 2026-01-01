@@ -23,16 +23,19 @@ export interface FinancialSummaryData {
       <mat-card-content class="p-4">
         <div class="flex items-center space-x-3">
           <div
-            class="w-12 h-12 rounded-full flex items-center justify-center icon-container flex-shrink-0"
+            class="w-12 h-12 rounded-full flex items-center justify-center icon-container shrink-0"
             [attr.data-type]="data().type"
           >
-            <mat-icon class="!text-white text-xl">
+            <mat-icon class="text-white! text-xl">
               {{ data().icon }}
             </mat-icon>
           </div>
           <div class="flex-1 min-w-0">
-            <h3 class="mb-1 financial-title ph-no-capture">
+            <h3
+              class="mb-1 financial-title ph-no-capture inline-flex items-center gap-1"
+            >
               {{ data().title }}
+              <ng-content select="[slot=title-info]" />
             </h3>
             <p
               class="text-headline-small financial-amount ph-no-capture overflow-hidden text-ellipsis"

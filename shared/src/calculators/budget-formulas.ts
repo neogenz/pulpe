@@ -31,6 +31,7 @@ import type { TransactionKind } from '../types.js';
 interface FinancialItem {
   kind: TransactionKind;
   amount: number;
+  checkedAt?: string | null;
 }
 
 /**
@@ -84,6 +85,84 @@ export class BudgetFormulas {
       .reduce((sum, t) => sum + t.amount, 0);
 
     return budgetExpenses + transactionExpenses;
+  }
+
+  /**
+   * Calcule le revenu réalisé (uniquement les éléments cochés)
+   * Formule: Σ(items WHERE kind = 'income' AND checkedAt != null)
+   *
+   * @param budgetLines - Lignes budgétaires planifiées
+   * @param transactions - Transactions réelles
+   * @returns Montant total des revenus cochés
+   */
+  static calculateRealizedIncome(
+    budgetLines: FinancialItem[],
+    transactions: FinancialItem[] = [],
+  ): number {
+    const checkedBudgetIncome = budgetLines
+      .filter((line) => line.checkedAt != null && line.kind === 'income')
+      .reduce((sum, line) => sum + line.amount, 0);
+
+    const checkedTransactionIncome = transactions
+      .filter((t) => t.checkedAt != null && t.kind === 'income')
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    return checkedBudgetIncome + checkedTransactionIncome;
+  }
+
+  /**
+   * Calcule les dépenses réalisées (uniquement les éléments cochés)
+   * Formule: Σ(items WHERE (kind IN ('expense', 'saving')) AND checkedAt != null)
+   *
+   * Note: Le saving est traité comme une expense selon SPECS
+   *
+   * @param budgetLines - Lignes budgétaires planifiées
+   * @param transactions - Transactions réelles
+   * @returns Montant total des dépenses + épargnes cochées
+   */
+  static calculateRealizedExpenses(
+    budgetLines: FinancialItem[],
+    transactions: FinancialItem[] = [],
+  ): number {
+    const checkedBudgetExpenses = budgetLines
+      .filter(
+        (line) =>
+          line.checkedAt != null &&
+          (line.kind === 'expense' || line.kind === 'saving'),
+      )
+      .reduce((sum, line) => sum + line.amount, 0);
+
+    const checkedTransactionExpenses = transactions
+      .filter(
+        (t) =>
+          t.checkedAt != null && (t.kind === 'expense' || t.kind === 'saving'),
+      )
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    return checkedBudgetExpenses + checkedTransactionExpenses;
+  }
+
+  /**
+   * Calcule le solde réalisé (basé uniquement sur les éléments cochés)
+   * Formule: solde_réalisé = Σ(revenus cochés) - Σ(dépenses + épargnes cochées)
+   *
+   * @param budgetLines - Lignes budgétaires planifiées
+   * @param transactions - Transactions réelles
+   * @returns Solde calculé depuis les éléments cochés uniquement
+   */
+  static calculateRealizedBalance(
+    budgetLines: FinancialItem[],
+    transactions: FinancialItem[] = [],
+  ): number {
+    const realizedIncome = this.calculateRealizedIncome(
+      budgetLines,
+      transactions,
+    );
+    const realizedExpenses = this.calculateRealizedExpenses(
+      budgetLines,
+      transactions,
+    );
+    return realizedIncome - realizedExpenses;
   }
 
   /**
