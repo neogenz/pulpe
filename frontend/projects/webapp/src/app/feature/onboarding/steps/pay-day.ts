@@ -25,30 +25,27 @@ import { ROUTES } from '@core/routing';
           À quelle date es-tu payé ?
         </h1>
         <p class="text-body-large text-on-surface-variant leading-relaxed">
-          Si tu es payé à une date spécifique (ex: le 27), ton mois budgétaire
-          débutera ce jour-là. Tu pourras modifier ce paramètre plus tard.
+          Ton budget commencera le jour où tu reçois ton salaire.
         </p>
       </div>
 
       <mat-form-field appearance="fill" class="w-full">
         <mat-label>Jour de paie</mat-label>
         <mat-select [formControl]="payDayControl" data-testid="pay-day-select">
-          <mat-option [value]="null">
-            Calendrier standard (1er du mois)
-          </mat-option>
+          <mat-option [value]="null"> 1er du mois </mat-option>
           @for (day of availableDays; track day) {
-            <mat-option [value]="day"> Le {{ day }} du mois </mat-option>
+            <mat-option [value]="day"> Le {{ day }} </mat-option>
           }
         </mat-select>
         <mat-icon matPrefix>calendar_today</mat-icon>
         <mat-hint>
           @if (payDayControl.value && payDayControl.value > 28) {
-            Ton mois budgétaire commencera le {{ payDayControl.value }}. Si le
-            mois a moins de jours, il débutera le dernier jour disponible.
+            Ton budget commencera le {{ payDayControl.value }}. Si le mois a
+            moins de jours, il débutera le dernier jour disponible.
           } @else if (payDayControl.value) {
-            Ton mois budgétaire commencera le {{ payDayControl.value }}
+            Ton budget commencera le {{ payDayControl.value }} de chaque mois
           } @else {
-            Ton mois budgétaire suivra le calendrier standard
+            Ton budget suivra le calendrier standard
           }
         </mat-hint>
       </mat-form-field>
