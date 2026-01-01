@@ -1,9 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  effect,
-  inject,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -47,7 +42,10 @@ import { ROUTES } from '@core/routing';
         </mat-select>
         <mat-icon matPrefix>calendar_today</mat-icon>
         <mat-hint>
-          @if (payDayControl.value) {
+          @if (payDayControl.value && payDayControl.value > 28) {
+            Ton mois budgétaire commencera le {{ payDayControl.value }}. Si le
+            mois a moins de jours, il débutera le dernier jour disponible.
+          } @else if (payDayControl.value) {
             Ton mois budgétaire commencera le {{ payDayControl.value }}
           } @else {
             Ton mois budgétaire suivra le calendrier standard
@@ -92,14 +90,12 @@ export default class PayDay {
   protected readonly payDayControl = new FormControl<number | null>(null);
 
   protected readonly availableDays = Array.from(
-    { length: 28 },
+    { length: 31 },
     (_, i) => i + 1,
   );
 
   constructor() {
-    effect(() => {
-      this.payDayControl.setValue(this.#store.data().payDayOfMonth);
-    });
+    this.payDayControl.setValue(this.#store.data().payDayOfMonth);
   }
 
   onNext(): void {
