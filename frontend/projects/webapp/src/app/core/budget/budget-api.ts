@@ -211,32 +211,16 @@ export class BudgetApi {
   }
 
   /**
-   * Exporte tous les budgets avec leurs détails au format JSON
+   * Récupère tous les budgets avec leurs détails pour export
    */
-  exportAllBudgets$(): Observable<void> {
-    return this.#httpClient.get(`${this.#apiUrl}/export`).pipe(
-      map((response) => {
-        const exportData = JSON.stringify(response, null, 2);
-        const blob = new Blob([exportData], { type: 'application/json' });
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-
-        try {
-          link.href = url;
-          const today = new Date();
-          const dateStr = today.toISOString().split('T')[0];
-          link.download = `pulpe-export-${dateStr}.json`;
-          document.body.appendChild(link);
-          link.click();
-        } finally {
-          document.body.removeChild(link);
-          window.URL.revokeObjectURL(url);
-        }
-      }),
-      catchError((error) =>
-        this.#handleApiError(error, "Erreur lors de l'export des budgets"),
-      ),
-    );
+  exportAllBudgets$(): Observable<unknown> {
+    return this.#httpClient
+      .get(`${this.#apiUrl}/export`)
+      .pipe(
+        catchError((error) =>
+          this.#handleApiError(error, "Erreur lors de l'export des budgets"),
+        ),
+      );
   }
 
   /**

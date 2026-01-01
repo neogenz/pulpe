@@ -18,6 +18,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 import { BudgetApi } from '@core/budget/budget-api';
+import { downloadAsJsonFile } from '@core/file-download';
 import { ROUTES, TitleDisplay } from '@core/routing';
 import { type CalendarMonth, YearCalendar } from '@ui/calendar';
 import { type CalendarYear } from '@ui/calendar/calendar-types';
@@ -320,8 +321,13 @@ export default class BudgetListPage {
 
   async onExportBudgets(): Promise<void> {
     this.#isExporting.set(true);
+    this.#loadingIndicator.setLoading(true);
+
     try {
-      await firstValueFrom(this.#budgetApi.exportAllBudgets$());
+      const data = await firstValueFrom(this.#budgetApi.exportAllBudgets$());
+      const today = new Date().toISOString().split('T')[0];
+      downloadAsJsonFile(data, `pulpe-export-${today}`);
+
       this.#snackBar.open(
         'Export réussi ! Le fichier a été téléchargé.',
         'Fermer',
@@ -340,6 +346,7 @@ export default class BudgetListPage {
       );
     } finally {
       this.#isExporting.set(false);
+      this.#loadingIndicator.setLoading(false);
     }
   }
 }

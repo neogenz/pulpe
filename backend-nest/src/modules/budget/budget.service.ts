@@ -99,74 +99,15 @@ export class BudgetService {
   ) {
     try {
       const startTime = Date.now();
-
-      // Fetch all budgets ordered by year and month
-      const { data: budgets, error } = await supabase
-        .from('monthly_budget')
-        .select('*')
-        .order('year', { ascending: true })
-        .order('month', { ascending: true });
-
-      if (error) {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
-          undefined,
-          {
-            operation: 'exportAllBudgets',
-            userId: user.id,
-            entityType: 'budget',
-            supabaseError: error,
-          },
-          { cause: error },
-        );
-      }
-
-      // For each budget, fetch full details with transactions and budget lines
-      const budgetsWithDetails = await Promise.all(
-        (budgets || []).map(async (budget) => {
-          const { transactions, budgetLines } =
-            await this.repository.fetchBudgetData(budget.id, supabase, {
-              selectFields: '*',
-              orderTransactions: true,
-            });
-
-          const rolloverData = await this.calculator.getRollover(
-            budget.id,
-            supabase,
-          );
-
-          const remaining =
-            (budget.ending_balance ?? 0) + rolloverData.rollover;
-
-          return {
-            ...budgetMappers.toApi(budget),
-            rollover: rolloverData.rollover,
-            previousBudgetId: rolloverData.previousBudgetId,
-            remaining,
-            transactions: transactionMappers.toApiList(transactions || []),
-            budgetLines: budgetLineMappers.toApiList(budgetLines || []),
-          };
-        }),
+      const budgets = await this.fetchAllBudgetsForExport(user.id, supabase);
+      const budgetsWithDetails = await this.enrichBudgetsForExport(
+        budgets,
+        supabase,
       );
 
-      this.logger.info(
-        {
-          userId: user.id,
-          budgetCount: budgetsWithDetails.length,
-          duration: Date.now() - startTime,
-          operation: 'budget.export.success',
-        },
-        'Export de tous les budgets réussi',
-      );
+      this.logExportSuccess(user.id, budgetsWithDetails.length, startTime);
 
-      return {
-        success: true as const,
-        data: {
-          exportDate: new Date().toISOString(),
-          totalBudgets: budgetsWithDetails.length,
-          budgets: budgetsWithDetails,
-        },
-      };
+      return this.buildExportResponse(budgetsWithDetails);
     } catch (error) {
       handleServiceError(
         error,
@@ -179,6 +120,92 @@ export class BudgetService {
         },
       );
     }
+  }
+
+  private async fetchAllBudgetsForExport(
+    userId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<Tables<'monthly_budget'>[]> {
+    const { data: budgets, error } = await supabase
+      .from('monthly_budget')
+      .select('*')
+      .order('year', { ascending: true })
+      .order('month', { ascending: true });
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'exportAllBudgets',
+          userId,
+          entityType: 'budget',
+          supabaseError: error,
+        },
+        { cause: error },
+      );
+    }
+
+    return budgets || [];
+  }
+
+  private async enrichBudgetsForExport(
+    budgets: Tables<'monthly_budget'>[],
+    supabase: AuthenticatedSupabaseClient,
+  ) {
+    return Promise.all(
+      budgets.map((budget) => this.enrichBudgetForExport(budget, supabase)),
+    );
+  }
+
+  private async enrichBudgetForExport(
+    budget: Tables<'monthly_budget'>,
+    supabase: AuthenticatedSupabaseClient,
+  ) {
+    const { transactions, budgetLines } = await this.repository.fetchBudgetData(
+      budget.id,
+      supabase,
+      { selectFields: '*', orderTransactions: true },
+    );
+
+    const rolloverData = await this.calculator.getRollover(budget.id, supabase);
+    const remaining = await this.calculateRemainingForBudget(budget, supabase);
+
+    return {
+      ...budgetMappers.toApi(budget),
+      rollover: rolloverData.rollover,
+      previousBudgetId: rolloverData.previousBudgetId,
+      remaining,
+      transactions: transactionMappers.toApiList(transactions || []),
+      budgetLines: budgetLineMappers.toApiList(budgetLines || []),
+    };
+  }
+
+  private logExportSuccess(
+    userId: string,
+    budgetCount: number,
+    startTime: number,
+  ): void {
+    this.logger.info(
+      {
+        userId,
+        budgetCount,
+        duration: Date.now() - startTime,
+        operation: 'budget.export.success',
+      },
+      'Export de tous les budgets réussi',
+    );
+  }
+
+  private buildExportResponse(budgetsWithDetails: unknown[]) {
+    return {
+      success: true as const,
+      data: {
+        exportDate: new Date().toISOString(),
+        totalBudgets: budgetsWithDetails.length,
+        budgets: budgetsWithDetails,
+      },
+    };
   }
 
   async create(
