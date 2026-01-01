@@ -1,4 +1,5 @@
 import { test, expect } from '../../fixtures/test-fixtures';
+import { createBudgetDetailsMock, createBudgetLineMock } from '../../helpers/api-mocks';
 
 /**
  * Budget Table Menu Tests
@@ -10,30 +11,25 @@ import { test, expect } from '../../fixtures/test-fixtures';
  * Both views display actions through a dropdown menu (not separate buttons).
  */
 test.describe('Budget Table Mobile Menu', () => {
+  const budgetId = 'test-budget-123';
+
   test.beforeEach(async ({ authenticatedPage: page }) => {
-    // Mock budget details endpoint with test data
+    // Mock budget details endpoint with test data using typed helpers
+    const mockResponse = createBudgetDetailsMock(budgetId, {
+      budget: { month: 8, year: 2025 },
+      budgetLines: [
+        createBudgetLineMock('line-1', budgetId, { name: 'Groceries', amount: 400, kind: 'expense', recurrence: 'fixed' }),
+        createBudgetLineMock('line-2', budgetId, { name: 'Salary', amount: 5000, kind: 'income', recurrence: 'fixed' }),
+        createBudgetLineMock('line-3', budgetId, { name: 'Transport', amount: 150, kind: 'expense', recurrence: 'fixed' }),
+      ],
+      transactions: [],
+    });
+
     await page.route('**/api/v1/budgets/*/details', route =>
       route.fulfill({
         status: 200,
-        body: JSON.stringify({
-          success: true,
-          data: {
-            budget: {
-              id: 'test-budget-123',
-              name: 'Test Budget',
-              month: 8,
-              year: 2025,
-            },
-            budgetLines: [
-              { id: 'line-1', name: 'Groceries', amount: 400, kind: 'expense', recurrence: 'fixed' },
-              { id: 'line-2', name: 'Salary', amount: 5000, kind: 'income', recurrence: 'fixed' },
-              { id: 'line-3', name: 'Transport', amount: 150, kind: 'expense', recurrence: 'fixed' },
-            ],
-            transactions: [
-              { id: 'txn-1', name: 'Coffee', amount: 5, kind: 'expense', budgetLineId: 'line-1' },
-            ],
-          },
-        }),
+        contentType: 'application/json',
+        body: JSON.stringify(mockResponse),
       }),
     );
 

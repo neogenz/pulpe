@@ -4,6 +4,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
+import { ZodError } from 'zod';
 import { DemoInitializerService } from './demo-initializer.service';
 import { DemoModeService } from './demo-mode.service';
 import { AuthApi } from '../auth/auth-api';
@@ -165,21 +166,21 @@ describe('DemoInitializerService', () => {
     });
 
     it('should handle backend error response', async () => {
-      // GIVEN: Backend returns error response
+      // GIVEN: Backend returns error response (fails Zod validation)
       const errorResponse = { success: false, error: 'Database unavailable' };
       mockHttp.post.mockReturnValue(of(errorResponse));
 
       // WHEN: User tries to start demo
       await expect(
         service.startDemoSession(TEST_TURNSTILE_TOKEN),
-      ).rejects.toThrow('Invalid demo session response');
+      ).rejects.toThrow(ZodError);
 
       // THEN: Auth session is NOT set
       expect(mockAuthApi.setSession).not.toHaveBeenCalled();
     });
 
     it('should handle missing session data', async () => {
-      // GIVEN: Backend response is missing session
+      // GIVEN: Backend response is missing session (fails Zod validation)
       const invalidResponse = {
         success: true,
         data: {},
@@ -189,7 +190,7 @@ describe('DemoInitializerService', () => {
       // WHEN: User tries to start demo
       await expect(
         service.startDemoSession(TEST_TURNSTILE_TOKEN),
-      ).rejects.toThrow('Invalid demo session response');
+      ).rejects.toThrow(ZodError);
     });
 
     it('should handle auth session errors gracefully', async () => {
