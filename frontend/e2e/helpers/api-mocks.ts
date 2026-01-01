@@ -76,6 +76,7 @@ export function createBudgetLineMock(
     isManuallyAdjusted: false,
     templateLineId: null,
     savingsGoalId: null,
+    checkedAt: null,
     createdAt: '2025-01-01T00:00:00Z',
     updatedAt: '2025-01-01T00:00:00Z',
     ...overrides,

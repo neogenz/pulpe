@@ -14,6 +14,8 @@ async function setupBudgetMocks(page: Page) {
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const budgetName = `${monthNames[now.getMonth()]} ${currentYear}`;
 
+  const dateNow = new Date().toISOString();
+
   // Mock 1: Budget list endpoint (returns current month budget)
   await page.route('**/api/v1/budgets', route =>
     route.fulfill({
@@ -22,9 +24,13 @@ async function setupBudgetMocks(page: Page) {
         success: true,
         data: [{
           id: 'current-budget-123',
-          name: budgetName,
+          description: budgetName,
           month: currentMonth,
-          year: currentYear
+          year: currentYear,
+          userId: '00000000-0000-4000-a000-000000000201',
+          templateId: '00000000-0000-4000-a000-000000000101',
+          createdAt: '2025-01-01T00:00:00Z',
+          updatedAt: '2025-01-01T00:00:00Z',
         }]
       })
     })
@@ -39,37 +45,45 @@ async function setupBudgetMocks(page: Page) {
         data: {
           budget: {
             id: 'current-budget-123',
-            name: budgetName,
+            description: budgetName,
             month: currentMonth,
-            year: currentYear
+            year: currentYear,
+            userId: '00000000-0000-4000-a000-000000000201',
+            templateId: '00000000-0000-4000-a000-000000000101',
+            createdAt: '2025-01-01T00:00:00Z',
+            updatedAt: '2025-01-01T00:00:00Z',
           },
           budgetLines: [
-            { id: 'line-1', name: 'Salary', amount: 5000, kind: 'income', recurrence: 'fixed' },
-            { id: 'line-2', name: 'Groceries', amount: 400, kind: 'expense', recurrence: 'fixed' },
-            { id: 'line-3', name: 'Transport', amount: 150, kind: 'expense', recurrence: 'fixed' }
+            { id: 'line-1', budgetId: 'current-budget-123', name: 'Salary', amount: 5000, kind: 'income', recurrence: 'fixed', isManuallyAdjusted: false, templateLineId: null, savingsGoalId: null, checkedAt: null, createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-01-01T00:00:00Z' },
+            { id: 'line-2', budgetId: 'current-budget-123', name: 'Groceries', amount: 400, kind: 'expense', recurrence: 'fixed', isManuallyAdjusted: false, templateLineId: null, savingsGoalId: null, checkedAt: null, createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-01-01T00:00:00Z' },
+            { id: 'line-3', budgetId: 'current-budget-123', name: 'Transport', amount: 150, kind: 'expense', recurrence: 'fixed', isManuallyAdjusted: false, templateLineId: null, savingsGoalId: null, checkedAt: null, createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-01-01T00:00:00Z' }
           ],
           transactions: [
             {
               id: 'txn-1',
               budgetId: 'current-budget-123',
+              budgetLineId: null,
               name: 'Coffee',
               amount: 5,
               kind: 'expense',
-              transactionDate: new Date().toISOString(),
+              transactionDate: dateNow,
               category: null,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString()
+              createdAt: dateNow,
+              updatedAt: dateNow,
+              checkedAt: null
             },
             {
               id: 'txn-2',
               budgetId: 'current-budget-123',
+              budgetLineId: null,
               name: 'Lunch',
               amount: 12,
               kind: 'expense',
-              transactionDate: new Date().toISOString(),
+              transactionDate: dateNow,
               category: null,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString()
+              createdAt: dateNow,
+              updatedAt: dateNow,
+              checkedAt: null
             }
           ]
         }
