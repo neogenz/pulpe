@@ -955,5 +955,220 @@ describe('BudgetTableDataProvider', () => {
       );
       expect(allocatedTx?.metadata.envelopeName).toBe('Groceries');
     });
+
+    it('should nest allocated transactions under their parent envelope', () => {
+      const budgetLines: BudgetLine[] = [
+        createMockBudgetLine({
+          id: 'groceries',
+          name: 'Groceries',
+          amount: 500,
+          kind: 'expense',
+          recurrence: 'fixed',
+        }),
+        createMockBudgetLine({
+          id: 'rent',
+          name: 'Rent',
+          amount: 1500,
+          kind: 'expense',
+          recurrence: 'fixed',
+        }),
+      ];
+      const transactions: Transaction[] = [
+        createMockTransaction({
+          id: 'grocery-tx-1',
+          name: 'Carrefour',
+          amount: 100,
+          kind: 'expense',
+          budgetLineId: 'groceries',
+        }),
+        createMockTransaction({
+          id: 'grocery-tx-2',
+          name: 'Migros',
+          amount: 80,
+          kind: 'expense',
+          budgetLineId: 'groceries',
+        }),
+        createMockTransaction({
+          id: 'rent-tx',
+          name: 'Paiement loyer',
+          amount: 1500,
+          kind: 'expense',
+          budgetLineId: 'rent',
+        }),
+      ];
+
+      const result = service.provideTableData({
+        budgetLines,
+        transactions,
+        editingLineId: null,
+        viewMode: 'transactions',
+      });
+
+      const dataItems = filterDataItems(result);
+
+      // Order should be: groceries → grocery-tx-1 → grocery-tx-2 → rent → rent-tx
+      // (sorted by envelope first, then nested transactions)
+      const ids = dataItems.map((item) => item.data.id);
+      const groceriesIndex = ids.indexOf('groceries');
+      const groceryTx1Index = ids.indexOf('grocery-tx-1');
+      const groceryTx2Index = ids.indexOf('grocery-tx-2');
+      const rentIndex = ids.indexOf('rent');
+      const rentTxIndex = ids.indexOf('rent-tx');
+
+      // Nested transactions should come right after their parent envelope
+      expect(groceryTx1Index).toBeGreaterThan(groceriesIndex);
+      expect(groceryTx2Index).toBeGreaterThan(groceriesIndex);
+      expect(groceryTx1Index).toBeLessThan(rentIndex);
+      expect(groceryTx2Index).toBeLessThan(rentIndex);
+      expect(rentTxIndex).toBeGreaterThan(rentIndex);
+    });
+
+    it('should mark allocated transactions with isNestedUnderEnvelope: true', () => {
+      const budgetLines: BudgetLine[] = [
+        createMockBudgetLine({
+          id: 'groceries',
+          name: 'Groceries',
+          amount: 500,
+          kind: 'expense',
+        }),
+      ];
+      const transactions: Transaction[] = [
+        createMockTransaction({
+          id: 'allocated-tx',
+          name: 'Carrefour',
+          amount: 100,
+          kind: 'expense',
+          budgetLineId: 'groceries',
+        }),
+        createMockTransaction({
+          id: 'free-tx',
+          name: 'Coffee',
+          amount: 20,
+          kind: 'expense',
+          budgetLineId: null,
+        }),
+      ];
+
+      const result = service.provideTableData({
+        budgetLines,
+        transactions,
+        editingLineId: null,
+        viewMode: 'transactions',
+      });
+
+      const dataItems = filterDataItems(result);
+      const allocatedTx = dataItems.find(
+        (item) => item.data.id === 'allocated-tx',
+      );
+      const freeTx = dataItems.find((item) => item.data.id === 'free-tx');
+
+      expect(allocatedTx?.metadata.isNestedUnderEnvelope).toBe(true);
+      expect(freeTx?.metadata.isNestedUnderEnvelope).toBe(false);
+    });
+
+    it('should place free transactions after envelopes within the same kind group', () => {
+      const budgetLines: BudgetLine[] = [
+        createMockBudgetLine({
+          id: 'groceries',
+          name: 'Groceries',
+          amount: 500,
+          kind: 'expense',
+        }),
+      ];
+      const transactions: Transaction[] = [
+        createMockTransaction({
+          id: 'allocated-tx',
+          name: 'Carrefour',
+          amount: 100,
+          kind: 'expense',
+          budgetLineId: 'groceries',
+        }),
+        createMockTransaction({
+          id: 'free-tx',
+          name: 'Coffee',
+          amount: 20,
+          kind: 'expense',
+          budgetLineId: null,
+        }),
+      ];
+
+      const result = service.provideTableData({
+        budgetLines,
+        transactions,
+        editingLineId: null,
+        viewMode: 'transactions',
+      });
+
+      const dataItems = filterDataItems(result);
+      const ids = dataItems.map((item) => item.data.id);
+
+      // Order: envelope → allocated tx → free tx
+      const groceriesIndex = ids.indexOf('groceries');
+      const allocatedTxIndex = ids.indexOf('allocated-tx');
+      const freeTxIndex = ids.indexOf('free-tx');
+
+      expect(allocatedTxIndex).toBeGreaterThan(groceriesIndex);
+      expect(freeTxIndex).toBeGreaterThan(allocatedTxIndex);
+    });
+
+    it('should maintain correct cumulative balance with nested structure', () => {
+      const budgetLines: BudgetLine[] = [
+        createMockBudgetLine({
+          id: 'salary',
+          name: 'Salary',
+          amount: 5000,
+          kind: 'income',
+          recurrence: 'fixed',
+        }),
+        createMockBudgetLine({
+          id: 'groceries',
+          name: 'Groceries',
+          amount: 500,
+          kind: 'expense',
+          recurrence: 'fixed',
+        }),
+      ];
+      const transactions: Transaction[] = [
+        createMockTransaction({
+          id: 'grocery-tx',
+          name: 'Carrefour',
+          amount: 100,
+          kind: 'expense',
+          budgetLineId: 'groceries',
+        }),
+        createMockTransaction({
+          id: 'free-tx',
+          name: 'Coffee',
+          amount: 20,
+          kind: 'expense',
+          budgetLineId: null,
+        }),
+      ];
+
+      const result = service.provideTableData({
+        budgetLines,
+        transactions,
+        editingLineId: null,
+        viewMode: 'transactions',
+      });
+
+      const dataItems = filterDataItems(result);
+      const salary = dataItems.find((item) => item.data.id === 'salary');
+      const groceries = dataItems.find((item) => item.data.id === 'groceries');
+      const groceryTx = dataItems.find((item) => item.data.id === 'grocery-tx');
+      const freeTx = dataItems.find((item) => item.data.id === 'free-tx');
+
+      // Salary: +5000
+      expect(salary?.metadata.cumulativeBalance).toBe(5000);
+
+      // Groceries: 5000 - 500 = 4500
+      expect(groceries?.metadata.cumulativeBalance).toBe(4500);
+
+      // Nested transaction inherits parent's balance (no impact)
+      expect(groceryTx?.metadata.cumulativeBalance).toBe(4500);
+
+      // Free transaction impacts balance: 4500 - 20 = 4480
+      expect(freeTx?.metadata.cumulativeBalance).toBe(4480);
+    });
   });
 });

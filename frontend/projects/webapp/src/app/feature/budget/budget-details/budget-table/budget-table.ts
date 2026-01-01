@@ -223,22 +223,28 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                     </form>
                   } @else {
                     <div class="flex items-center gap-2">
-                      <mat-icon
-                        class="text-base! shrink-0"
-                        [class.text-financial-income]="
-                          line.data.kind === 'income'
-                        "
-                        [class.text-financial-expense]="
-                          line.data.kind === 'expense'
-                        "
-                        [class.text-financial-savings]="
-                          line.data.kind === 'saving'
-                        "
-                        [matTooltip]="line.data.kind | transactionLabel"
-                        matTooltipPosition="above"
-                      >
-                        {{ line.metadata.kindIcon }}
-                      </mat-icon>
+                      @if (line.metadata.isNestedUnderEnvelope) {
+                        <mat-icon class="text-sm! text-outline shrink-0">
+                          subdirectory_arrow_right
+                        </mat-icon>
+                      } @else {
+                        <mat-icon
+                          class="text-base! shrink-0"
+                          [class.text-financial-income]="
+                            line.data.kind === 'income'
+                          "
+                          [class.text-financial-expense]="
+                            line.data.kind === 'expense'
+                          "
+                          [class.text-financial-savings]="
+                            line.data.kind === 'saving'
+                          "
+                          [matTooltip]="line.data.kind | transactionLabel"
+                          matTooltipPosition="above"
+                        >
+                          {{ line.metadata.kindIcon }}
+                        </mat-icon>
+                      }
                       <span
                         class="inline-flex items-center gap-2"
                         [class.rollover-text]="line.metadata.isRollover"
@@ -641,6 +647,9 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                 [class.opacity-50]="row.metadata?.isLoading"
                 [class.pointer-events-none]="row.metadata?.isLoading"
                 [class.line-through]="row.data?.checkedAt"
+                [class.bg-surface-container-lowest]="
+                  row.metadata?.isNestedUnderEnvelope
+                "
                 [attr.data-testid]="
                   'budget-line-' + (row.data?.name | rolloverFormat)
                 "

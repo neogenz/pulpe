@@ -230,8 +230,7 @@ import { type BudgetLineTableItem } from './budget-table-models';
                   matBadgeColor="primary"
                   (click)="viewTransactions.emit(item())"
                 >
-                  <mat-icon class="text-base!">receipt_long</mat-icon>
-                  {{ consumption.transactionCountLabel }}
+                  <mat-icon class="text-base! m-0!">receipt_long</mat-icon>
                 </button>
               }
             }
