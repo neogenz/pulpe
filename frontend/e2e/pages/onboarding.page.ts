@@ -24,6 +24,10 @@ export class OnboardingPage {
     await this.clickNext();
   }
 
+  async skipPayDay() {
+    await this.page.getByTestId('skip-button').click();
+  }
+
   async fillHousing(amount: string) {
     await this.page.getByTestId('housing-costs-input').fill(amount);
     await this.clickNext();
@@ -122,6 +126,7 @@ export class OnboardingPage {
     // Fill all steps using helper methods
     await this.fillPersonalInfo(values.name);
     await this.fillIncome(values.income);
+    await this.skipPayDay();
     await this.fillHousing(values.housing);
     await this.fillHealthInsurance(values.healthInsurance);
     await this.fillPhonePlan(values.phonePlan);
