@@ -264,7 +264,7 @@ describe('OnboardingStore - Unit Tests', () => {
 
   describe('Progress Tracking', () => {
     it('should return the correct total number of steps', () => {
-      expect(store.totalSteps).toBe(9); // Based on STEP_ORDER length
+      expect(store.totalSteps).toBe(10); // Based on STEP_ORDER length
     });
 
     it('should correctly determine the current step based on URL', () => {
@@ -292,7 +292,7 @@ describe('OnboardingStore - Unit Tests', () => {
           '/onboarding/registration',
         ),
       );
-      expect(store.currentStep()).toBe(8); // 'registration' is the 8th index (0-based)
+      expect(store.currentStep()).toBe(9); // 'registration' is the 9th index (0-based)
     });
 
     it('should correctly identify if it is the first step', () => {
