@@ -480,6 +480,27 @@ export const budgetDetailsResponseSchema = z.object({
 });
 export type BudgetDetailsResponse = z.infer<typeof budgetDetailsResponseSchema>;
 
+// Budget with full details for export (includes rollover, remaining, transactions, budgetLines)
+export const budgetWithDetailsSchema = budgetSchema.extend({
+  rollover: z.number(),
+  remaining: z.number(),
+  previousBudgetId: z.string().uuid().nullable(),
+  transactions: z.array(transactionSchema),
+  budgetLines: z.array(budgetLineSchema),
+});
+export type BudgetWithDetails = z.infer<typeof budgetWithDetailsSchema>;
+
+// Export response schema for bulk budget export
+export const budgetExportResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    exportDate: z.string(),
+    totalBudgets: z.number().int().nonnegative(),
+    budgets: z.array(budgetWithDetailsSchema),
+  }),
+});
+export type BudgetExportResponse = z.infer<typeof budgetExportResponseSchema>;
+
 // Transaction response schemas for operation-specific types
 export const transactionResponseSchema = z.object({
   success: z.literal(true),

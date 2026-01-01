@@ -151,8 +151,7 @@ export default class BudgetListPage {
   readonly #destroyRef = inject(DestroyRef);
   readonly #budgetApi = inject(BudgetApi);
 
-  readonly #isExporting = signal(false);
-  readonly isExporting = this.#isExporting.asReadonly();
+  protected readonly isExporting = signal(false);
 
   constructor() {
     // Refresh data on init
@@ -320,7 +319,7 @@ export default class BudgetListPage {
   }
 
   async onExportBudgets(): Promise<void> {
-    this.#isExporting.set(true);
+    this.isExporting.set(true);
     this.#loadingIndicator.setLoading(true);
 
     try {
@@ -345,7 +344,7 @@ export default class BudgetListPage {
         },
       );
     } finally {
-      this.#isExporting.set(false);
+      this.isExporting.set(false);
       this.#loadingIndicator.setLoading(false);
     }
   }

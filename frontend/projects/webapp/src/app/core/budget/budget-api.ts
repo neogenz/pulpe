@@ -5,7 +5,11 @@ import {
   type BudgetCreate,
   budgetCreateSchema,
   type BudgetDetailsResponse,
-  type BudgetResponse,
+  budgetDetailsResponseSchema,
+  type BudgetExportResponse,
+  budgetExportResponseSchema,
+  budgetListResponseSchema,
+  budgetResponseSchema,
   budgetSchema,
   type ErrorResponse,
   errorResponseSchema,
@@ -50,23 +54,18 @@ export class BudgetApi {
   createBudget$(
     templateData: BudgetCreate,
   ): Observable<CreateBudgetApiResponse> {
-    // Valider les données avec le schéma partagé
     const validatedRequest = budgetCreateSchema.parse(templateData);
 
     return this.#httpClient
-      .post<BudgetResponse>(`${this.#apiUrl}`, validatedRequest)
+      .post<unknown>(`${this.#apiUrl}`, validatedRequest)
       .pipe(
         map((response) => {
-          if (!response.data || Array.isArray(response.data)) {
-            throw new Error('Réponse invalide: budget manquant');
-          }
-
+          const validated = budgetResponseSchema.parse(response);
           const result: CreateBudgetApiResponse = {
-            budget: response.data,
+            budget: validated.data,
             message: 'Budget créé avec succès à partir du template',
           };
-
-          this.#saveBudgetToStorage(response.data);
+          this.#saveBudgetToStorage(validated.data);
           return result;
         }),
         catchError((error) =>
@@ -82,10 +81,8 @@ export class BudgetApi {
    * Récupère tous les budgets de l'utilisateur
    */
   getAllBudgets$(): Observable<Budget[]> {
-    return this.#httpClient.get<BudgetResponse>(this.#apiUrl).pipe(
-      map((response) => {
-        return Array.isArray(response.data) ? response.data : [];
-      }),
+    return this.#httpClient.get<unknown>(this.#apiUrl).pipe(
+      map((response) => budgetListResponseSchema.parse(response).data),
       catchError((error) =>
         this.#handleApiError(
           error,
@@ -99,23 +96,12 @@ export class BudgetApi {
    * Récupère un budget spécifique par ID
    */
   getBudgetById$(budgetId: string): Observable<Budget> {
-    return this.#httpClient
-      .get<BudgetResponse>(`${this.#apiUrl}/${budgetId}`)
-      .pipe(
-        map((response) => {
-          if (!response.data || Array.isArray(response.data)) {
-            throw new Error('Budget non trouvé');
-          }
-
-          return response.data;
-        }),
-        catchError((error) =>
-          this.#handleApiError(
-            error,
-            'Erreur lors de la récupération du budget',
-          ),
-        ),
-      );
+    return this.#httpClient.get<unknown>(`${this.#apiUrl}/${budgetId}`).pipe(
+      map((response) => budgetResponseSchema.parse(response).data),
+      catchError((error) =>
+        this.#handleApiError(error, 'Erreur lors de la récupération du budget'),
+      ),
+    );
   }
 
   /**
@@ -123,17 +109,12 @@ export class BudgetApi {
    */
   getBudgetWithDetails$(budgetId: string): Observable<BudgetDetailsResponse> {
     return this.#httpClient
-      .get<BudgetDetailsResponse>(`${this.#apiUrl}/${budgetId}/details`)
+      .get<unknown>(`${this.#apiUrl}/${budgetId}/details`)
       .pipe(
         map((response) => {
-          if (!response.data) {
-            throw new Error('Données du budget non trouvées');
-          }
-
-          // Sauvegarder le budget principal dans le localStorage
-          this.#saveBudgetToStorage(response.data.budget);
-
-          return response;
+          const validated = budgetDetailsResponseSchema.parse(response);
+          this.#saveBudgetToStorage(validated.data.budget);
+          return validated;
         }),
         catchError((error) =>
           this.#handleApiError(
@@ -177,15 +158,12 @@ export class BudgetApi {
     updateData: Partial<BudgetCreate>,
   ): Observable<Budget> {
     return this.#httpClient
-      .patch<BudgetResponse>(`${this.#apiUrl}/${budgetId}`, updateData)
+      .patch<unknown>(`${this.#apiUrl}/${budgetId}`, updateData)
       .pipe(
         map((response) => {
-          if (!response.data || Array.isArray(response.data)) {
-            throw new Error('Réponse invalide: budget manquant');
-          }
-
-          this.#saveBudgetToStorage(response.data);
-          return response.data;
+          const validated = budgetResponseSchema.parse(response);
+          this.#saveBudgetToStorage(validated.data);
+          return validated.data;
         }),
         catchError((error) =>
           this.#handleApiError(
@@ -213,14 +191,13 @@ export class BudgetApi {
   /**
    * Récupère tous les budgets avec leurs détails pour export
    */
-  exportAllBudgets$(): Observable<unknown> {
-    return this.#httpClient
-      .get(`${this.#apiUrl}/export`)
-      .pipe(
-        catchError((error) =>
-          this.#handleApiError(error, "Erreur lors de l'export des budgets"),
-        ),
-      );
+  exportAllBudgets$(): Observable<BudgetExportResponse> {
+    return this.#httpClient.get<unknown>(`${this.#apiUrl}/export`).pipe(
+      map((response) => budgetExportResponseSchema.parse(response)),
+      catchError((error) =>
+        this.#handleApiError(error, "Erreur lors de l'export des budgets"),
+      ),
+    );
   }
 
   /**

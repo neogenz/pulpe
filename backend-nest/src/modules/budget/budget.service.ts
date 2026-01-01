@@ -14,6 +14,8 @@ import {
   type BudgetResponse,
   type BudgetUpdate,
   type BudgetDetailsResponse,
+  type BudgetExportResponse,
+  type BudgetWithDetails,
   type Budget,
   type Transaction,
   type BudgetLine,
@@ -96,7 +98,7 @@ export class BudgetService {
   async exportAll(
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
-  ) {
+  ): Promise<BudgetExportResponse> {
     try {
       const startTime = Date.now();
       const budgets = await this.fetchAllBudgetsForExport(user.id, supabase);
@@ -152,7 +154,7 @@ export class BudgetService {
   private async enrichBudgetsForExport(
     budgets: Tables<'monthly_budget'>[],
     supabase: AuthenticatedSupabaseClient,
-  ) {
+  ): Promise<BudgetWithDetails[]> {
     return Promise.all(
       budgets.map((budget) => this.enrichBudgetForExport(budget, supabase)),
     );
@@ -161,7 +163,7 @@ export class BudgetService {
   private async enrichBudgetForExport(
     budget: Tables<'monthly_budget'>,
     supabase: AuthenticatedSupabaseClient,
-  ) {
+  ): Promise<BudgetWithDetails> {
     const { transactions, budgetLines } = await this.repository.fetchBudgetData(
       budget.id,
       supabase,
@@ -197,7 +199,9 @@ export class BudgetService {
     );
   }
 
-  private buildExportResponse(budgetsWithDetails: unknown[]) {
+  private buildExportResponse(
+    budgetsWithDetails: BudgetWithDetails[],
+  ): BudgetExportResponse {
     return {
       success: true as const,
       data: {

@@ -1,8 +1,11 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
-import type { DemoSessionResponse, DemoSessionCreate } from '@pulpe/shared';
+import { firstValueFrom, map } from 'rxjs';
+import {
+  type DemoSessionCreate,
+  demoSessionResponseSchema,
+} from '@pulpe/shared';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { ROUTES } from '@core/routing/routes-constants';
 import { Logger } from '@core/logging/logger';
@@ -64,15 +67,10 @@ export class DemoInitializerService {
       const backendUrl = this.#config.backendApiUrl();
       const payload: DemoSessionCreate = { turnstileToken };
       const response = await firstValueFrom(
-        this.#http.post<DemoSessionResponse>(
-          `${backendUrl}/demo/session`,
-          payload,
-        ),
+        this.#http
+          .post<unknown>(`${backendUrl}/demo/session`, payload)
+          .pipe(map((data) => demoSessionResponseSchema.parse(data))),
       );
-
-      if (!response.success || !response.data.session) {
-        throw new Error('Invalid demo session response from backend');
-      }
 
       const session = response.data.session;
 

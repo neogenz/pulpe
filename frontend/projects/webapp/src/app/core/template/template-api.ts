@@ -3,11 +3,11 @@ import { HttpClient } from '@angular/common/http';
 import { type Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import {
-  type BudgetTemplateListResponse,
-  type BudgetTemplateResponse,
   type BudgetTemplate,
-  type TemplateLineListResponse,
+  budgetTemplateListResponseSchema,
+  budgetTemplateResponseSchema,
   type TemplateLine,
+  templateLineListResponseSchema,
 } from '@pulpe/shared';
 import { ApplicationConfiguration } from '../config/application-configuration';
 
@@ -15,37 +15,36 @@ import { ApplicationConfiguration } from '../config/application-configuration';
   providedIn: 'root',
 })
 export class TemplateApi {
-  #http = inject(HttpClient);
-  #applicationConfig = inject(ApplicationConfiguration);
+  readonly #http = inject(HttpClient);
+  readonly #applicationConfig = inject(ApplicationConfiguration);
 
   get #apiUrl(): string {
     return `${this.#applicationConfig.backendApiUrl()}/budget-templates`;
   }
 
-  /**
-   * Observable that fetches all templates for the current user
-   */
   getAll$(): Observable<BudgetTemplate[]> {
     return this.#http
-      .get<BudgetTemplateListResponse>(this.#apiUrl)
-      .pipe(map((response) => response.data || []));
+      .get<unknown>(this.#apiUrl)
+      .pipe(
+        map(
+          (response) => budgetTemplateListResponseSchema.parse(response).data,
+        ),
+      );
   }
 
-  /**
-   * Fetches a specific template by ID
-   */
   getById$(id: string): Observable<BudgetTemplate> {
     return this.#http
-      .get<BudgetTemplateResponse>(`${this.#apiUrl}/${id}`)
-      .pipe(map((response) => response.data));
+      .get<unknown>(`${this.#apiUrl}/${id}`)
+      .pipe(
+        map((response) => budgetTemplateResponseSchema.parse(response).data),
+      );
   }
 
-  /**
-   * Fetches template lines (transactions) for a specific template
-   */
   getTemplateLines$(templateId: string): Observable<TemplateLine[]> {
     return this.#http
-      .get<TemplateLineListResponse>(`${this.#apiUrl}/${templateId}/lines`)
-      .pipe(map((response) => response.data || []));
+      .get<unknown>(`${this.#apiUrl}/${templateId}/lines`)
+      .pipe(
+        map((response) => templateLineListResponseSchema.parse(response).data),
+      );
   }
 }
