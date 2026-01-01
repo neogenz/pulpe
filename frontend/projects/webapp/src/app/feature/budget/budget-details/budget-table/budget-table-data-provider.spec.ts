@@ -2,24 +2,35 @@ import { describe, beforeEach, it, expect } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { BudgetTableDataProvider } from './budget-table-data-provider';
-import { BudgetCalculator } from '@core/budget/budget-calculator';
 import type { BudgetLine, Transaction } from '@pulpe/shared';
 import {
   createMockBudgetLine,
   createMockTransaction,
   createMockRolloverBudgetLine,
 } from '../../../../testing/mock-factories';
+import type {
+  BudgetLineTableItem,
+  TableRowItem,
+  TransactionTableItem,
+} from './budget-table-models';
+
+/**
+ * Helper to filter out group headers and get only data items
+ */
+const filterDataItems = (
+  items: TableRowItem[],
+): (BudgetLineTableItem | TransactionTableItem)[] =>
+  items.filter(
+    (item): item is BudgetLineTableItem | TransactionTableItem =>
+      item.metadata.itemType !== 'group_header',
+  );
 
 describe('BudgetTableDataProvider', () => {
   let service: BudgetTableDataProvider;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [
-        BudgetTableDataProvider,
-        BudgetCalculator,
-        provideZonelessChangeDetection(),
-      ],
+      providers: [BudgetTableDataProvider, provideZonelessChangeDetection()],
     });
 
     service = TestBed.inject(BudgetTableDataProvider);
@@ -54,11 +65,12 @@ describe('BudgetTableDataProvider', () => {
       });
 
       // Assert
-      expect(result).toHaveLength(2);
-      expect(result[0].metadata.itemType).toBe('budget_line');
-      expect(result[0].data.name).toBe('Salary');
-      expect(result[1].metadata.itemType).toBe('transaction');
-      expect(result[1].data.name).toBe('Coffee');
+      const dataItems = filterDataItems(result);
+      expect(dataItems).toHaveLength(2);
+      expect(dataItems[0].metadata.itemType).toBe('budget_line');
+      expect(dataItems[0].data.name).toBe('Salary');
+      expect(dataItems[1].metadata.itemType).toBe('transaction');
+      expect(dataItems[1].data.name).toBe('Coffee');
     });
 
     it('should order budget lines by recurrence then createdAt', () => {
@@ -89,7 +101,8 @@ describe('BudgetTableDataProvider', () => {
         editingLineId: null,
       });
 
-      expect(result.map((item) => item.data.id)).toEqual([
+      const dataItems = filterDataItems(result);
+      expect(dataItems.map((item) => item.data.id)).toEqual([
         'fixed-old',
         'fixed-new',
         'oneoff',
@@ -128,14 +141,15 @@ describe('BudgetTableDataProvider', () => {
         editingLineId: null,
       });
 
-      expect(result.map((item) => item.data.id)).toEqual([
+      const dataItems = filterDataItems(result);
+      expect(dataItems.map((item) => item.data.id)).toEqual([
         'income-line',
         'saving-line',
         'expense-line',
       ]);
     });
 
-    it('should maintain ordering across mixed data types with date priority', () => {
+    it('should maintain ordering across mixed data types with date priority, grouped by kind', () => {
       const budgetLines: BudgetLine[] = [
         createMockBudgetLine({
           id: 'fixed-early',
@@ -175,11 +189,13 @@ describe('BudgetTableDataProvider', () => {
         editingLineId: null,
       });
 
-      expect(result.map((item) => item.data.id)).toEqual([
-        'fixed-early',
-        'fixed-late',
-        'transaction-early',
-        'transaction-late',
+      // Items are grouped by kind (income, saving, expense), then sorted within each group
+      const dataItems = filterDataItems(result);
+      expect(dataItems.map((item) => item.data.id)).toEqual([
+        'fixed-early', // income group: budget line first
+        'transaction-early', // income group: transaction
+        'fixed-late', // expense group: budget line first
+        'transaction-late', // expense group: transaction
       ]);
     });
   });
@@ -211,12 +227,13 @@ describe('BudgetTableDataProvider', () => {
       });
 
       // Assert
-      expect(result).toHaveLength(2);
+      const dataItems = filterDataItems(result);
+      expect(dataItems).toHaveLength(2);
 
-      const rolloverItem = result.find((item) =>
+      const rolloverItem = dataItems.find((item) =>
         item.data.name.includes('rollover'),
       );
-      const regularItem = result.find(
+      const regularItem = dataItems.find(
         (item) => !item.data.name.includes('rollover'),
       );
 
@@ -243,9 +260,10 @@ describe('BudgetTableDataProvider', () => {
       });
 
       // Assert
-      expect(result).toHaveLength(1);
-      expect(result[0].metadata.isRollover).toBe(true);
-      expect(result[0].metadata.isEditing).toBe(false); // Should not be editable
+      const dataItems = filterDataItems(result);
+      expect(dataItems).toHaveLength(1);
+      expect(dataItems[0].metadata.isRollover).toBe(true);
+      expect(dataItems[0].metadata.isEditing).toBe(false); // Should not be editable
     });
 
     it('should allow editing of regular budget lines', () => {
@@ -268,15 +286,16 @@ describe('BudgetTableDataProvider', () => {
       });
 
       // Assert
-      expect(result).toHaveLength(1);
-      expect(result[0].metadata.isRollover).toBe(false);
-      expect(result[0].metadata.isEditing).toBe(true); // Should be editable
+      const dataItems = filterDataItems(result);
+      expect(dataItems).toHaveLength(1);
+      expect(dataItems[0].metadata.isRollover).toBe(false);
+      expect(dataItems[0].metadata.isEditing).toBe(true); // Should be editable
     });
 
-    it('should sort rollover lines according to business rules', () => {
+    it('should sort rollover lines according to business rules, grouped by kind', () => {
       // Arrange
       const budgetLines: BudgetLine[] = [
-        // Fixed expense (should be first after fixed income)
+        // Fixed expense
         createMockBudgetLine({
           id: 'expense-line',
           name: 'Regular Expense',
@@ -284,14 +303,14 @@ describe('BudgetTableDataProvider', () => {
           kind: 'expense',
           recurrence: 'fixed',
         }),
-        // Rollover income (one_off recurrence, should be after fixed items)
+        // Rollover income (one_off recurrence)
         createMockRolloverBudgetLine({
           id: 'rollover-income',
           name: 'rollover_12_2024',
           amount: 150,
           kind: 'income',
         }),
-        // Fixed income (should be first)
+        // Fixed income
         createMockBudgetLine({
           id: 'income-line',
           name: 'Salary',
@@ -309,13 +328,15 @@ describe('BudgetTableDataProvider', () => {
       });
 
       // Assert
-      expect(result).toHaveLength(3);
+      const dataItems = filterDataItems(result);
+      expect(dataItems).toHaveLength(3);
 
-      // Expected order: Fixed income, Fixed expense, One-off income (rollover)
-      expect(result[0].data.name).toBe('Salary'); // Fixed income
-      expect(result[1].data.name).toBe('Regular Expense'); // Fixed expense
-      expect(result[2].data.name).toBe('rollover_12_2024'); // One-off income (rollover)
-      expect(result[2].metadata.isRollover).toBe(true);
+      // Items are grouped by kind (income first, then expense)
+      // Within income group: fixed items before one_off (rollover)
+      expect(dataItems[0].data.name).toBe('Salary'); // Income group: fixed
+      expect(dataItems[1].data.name).toBe('rollover_12_2024'); // Income group: one_off (rollover)
+      expect(dataItems[1].metadata.isRollover).toBe(true);
+      expect(dataItems[2].data.name).toBe('Regular Expense'); // Expense group
     });
   });
 
@@ -355,17 +376,18 @@ describe('BudgetTableDataProvider', () => {
       });
 
       // Assert
-      expect(result).toHaveLength(3);
+      const dataItems = filterDataItems(result);
+      expect(dataItems).toHaveLength(3);
 
       // All items should have cumulative balance calculated
-      result.forEach((item) => {
+      dataItems.forEach((item) => {
         expect(typeof item.metadata.cumulativeBalance).toBe('number');
       });
 
       // Expected cumulative calculation based on sorted order
-      expect(result[0].metadata.cumulativeBalance).toBe(5000); // Salary: +5000
-      expect(result[1].metadata.cumulativeBalance).toBe(3500); // Rent: 5000 - 1500 = 3500
-      expect(result[2].metadata.cumulativeBalance).toBe(3300); // Grocery: 3500 - 200 = 3300
+      expect(dataItems[0].metadata.cumulativeBalance).toBe(5000); // Salary: +5000
+      expect(dataItems[1].metadata.cumulativeBalance).toBe(3500); // Rent: 5000 - 1500 = 3500
+      expect(dataItems[2].metadata.cumulativeBalance).toBe(3300); // Grocery: 3500 - 200 = 3300
     });
 
     it('should handle negative balances correctly', () => {
@@ -395,12 +417,13 @@ describe('BudgetTableDataProvider', () => {
       });
 
       // Assert
-      expect(result).toHaveLength(2);
-      expect(result[0].metadata.cumulativeBalance).toBe(2000); // Income
-      expect(result[1].metadata.cumulativeBalance).toBe(-500); // Negative balance
+      const dataItems = filterDataItems(result);
+      expect(dataItems).toHaveLength(2);
+      expect(dataItems[0].metadata.cumulativeBalance).toBe(2000); // Income
+      expect(dataItems[1].metadata.cumulativeBalance).toBe(-500); // Negative balance
     });
 
-    it('should maintain balance continuity with mixed rollover and regular lines', () => {
+    it('should maintain balance continuity with mixed rollover and regular lines, grouped by kind', () => {
       // Arrange
       const budgetLines: BudgetLine[] = [
         createMockBudgetLine({
@@ -432,13 +455,19 @@ describe('BudgetTableDataProvider', () => {
         editingLineId: null,
       });
 
-      // Assert
-      expect(result).toHaveLength(3);
+      // Assert - items are grouped by kind for display (income first, then expense)
+      // But cumulative balance is calculated BEFORE grouping based on sort order:
+      // Sort order: Salary (fixed) → Rent (fixed) → Rollover (one_off)
+      const dataItems = filterDataItems(result);
+      expect(dataItems).toHaveLength(3);
 
-      // Cumulative balance calculation based on sorted order
-      expect(result[0].metadata.cumulativeBalance).toBe(5000); // Salary: +5000
-      expect(result[1].metadata.cumulativeBalance).toBe(3500); // Rent: 5000 - 1500 = 3500
-      expect(result[2].metadata.cumulativeBalance).toBe(3700); // Rollover: 3500 + 200 = 3700
+      // Display order after grouping by kind:
+      expect(dataItems[0].data.name).toBe('Salary');
+      expect(dataItems[0].metadata.cumulativeBalance).toBe(5000); // First in sort: +5000
+      expect(dataItems[1].data.name).toBe('rollover_12_2024');
+      expect(dataItems[1].metadata.cumulativeBalance).toBe(3700); // Third in sort: 5000 - 1500 + 200
+      expect(dataItems[2].data.name).toBe('Rent');
+      expect(dataItems[2].metadata.cumulativeBalance).toBe(3500); // Second in sort: 5000 - 1500
     });
   });
 
@@ -470,12 +499,13 @@ describe('BudgetTableDataProvider', () => {
       });
 
       // Assert
-      expect(result).toHaveLength(2);
+      const dataItems = filterDataItems(result);
+      expect(dataItems).toHaveLength(2);
 
-      const editingItem = result.find(
+      const editingItem = dataItems.find(
         (item) => item.data.id === 'editable-line',
       );
-      const otherItem = result.find((item) => item.data.id === 'other-line');
+      const otherItem = dataItems.find((item) => item.data.id === 'other-line');
 
       expect(editingItem?.metadata.isEditing).toBe(true);
       expect(otherItem?.metadata.isEditing).toBe(false);
@@ -508,7 +538,8 @@ describe('BudgetTableDataProvider', () => {
       });
 
       // Assert
-      result.forEach((item) => {
+      const dataItems = filterDataItems(result);
+      dataItems.forEach((item) => {
         expect(item.metadata.isEditing).toBe(false);
       });
     });
@@ -539,7 +570,8 @@ describe('BudgetTableDataProvider', () => {
       });
 
       // Assert
-      const rolloverItem = result.find((item) =>
+      const dataItems = filterDataItems(result);
+      const rolloverItem = dataItems.find((item) =>
         item.data.name.includes('rollover'),
       );
 
@@ -587,8 +619,9 @@ describe('BudgetTableDataProvider', () => {
       });
 
       // Assert
-      expect(result).toHaveLength(2);
-      result.forEach((item) => {
+      const dataItems = filterDataItems(result);
+      expect(dataItems).toHaveLength(2);
+      dataItems.forEach((item) => {
         expect(item.metadata.itemType).toBe('transaction');
         expect(typeof item.metadata.cumulativeBalance).toBe('number');
       });
@@ -621,8 +654,9 @@ describe('BudgetTableDataProvider', () => {
       });
 
       // Assert
-      expect(result).toHaveLength(2);
-      result.forEach((item) => {
+      const dataItems = filterDataItems(result);
+      expect(dataItems).toHaveLength(2);
+      dataItems.forEach((item) => {
         expect(item.metadata.itemType).toBe('budget_line');
         expect(typeof item.metadata.cumulativeBalance).toBe('number');
       });
@@ -662,10 +696,11 @@ describe('BudgetTableDataProvider', () => {
       });
 
       // Assert
-      expect(result).toHaveLength(3);
+      const dataItems = filterDataItems(result);
+      expect(dataItems).toHaveLength(3);
 
       // Regular budget line
-      const regularItem = result.find(
+      const regularItem = dataItems.find(
         (item) => item.data.id === 'regular-line',
       );
       expect(regularItem?.metadata.itemType).toBe('budget_line');
@@ -674,7 +709,7 @@ describe('BudgetTableDataProvider', () => {
       expect(typeof regularItem?.metadata.cumulativeBalance).toBe('number');
 
       // Rollover budget line
-      const rolloverItem = result.find(
+      const rolloverItem = dataItems.find(
         (item) => item.data.id === 'rollover-line',
       );
       expect(rolloverItem?.metadata.itemType).toBe('budget_line');
@@ -683,7 +718,7 @@ describe('BudgetTableDataProvider', () => {
       expect(typeof rolloverItem?.metadata.cumulativeBalance).toBe('number');
 
       // Transaction
-      const transactionItem = result.find(
+      const transactionItem = dataItems.find(
         (item) => item.data.id === 'transaction-1',
       );
       expect(transactionItem?.metadata.itemType).toBe('transaction');
@@ -717,9 +752,10 @@ describe('BudgetTableDataProvider', () => {
         editingLineId: null,
       });
 
-      const linked = result.find((item) => item.data.id === 'linked-line');
-      const locked = result.find((item) => item.data.id === 'locked-line');
-      const manual = result.find((item) => item.data.id === 'manual-line');
+      const dataItems = filterDataItems(result);
+      const linked = dataItems.find((item) => item.data.id === 'linked-line');
+      const locked = dataItems.find((item) => item.data.id === 'locked-line');
+      const manual = dataItems.find((item) => item.data.id === 'manual-line');
 
       expect(linked?.metadata.isTemplateLinked).toBe(true);
       expect(linked?.metadata.isPropagationLocked).toBe(false);
@@ -768,9 +804,10 @@ describe('BudgetTableDataProvider', () => {
       });
 
       // All items should be displayed
-      expect(result).toHaveLength(3);
-      expect(result.map((item) => item.data.id)).toContain('allocated-tx');
-      expect(result.map((item) => item.data.id)).toContain('free-tx');
+      const dataItems = filterDataItems(result);
+      expect(dataItems).toHaveLength(3);
+      expect(dataItems.map((item) => item.data.id)).toContain('allocated-tx');
+      expect(dataItems.map((item) => item.data.id)).toContain('free-tx');
     });
 
     it('should exclude allocated transactions when viewMode is envelopes', () => {
@@ -808,9 +845,12 @@ describe('BudgetTableDataProvider', () => {
       });
 
       // Only envelope and free transaction
-      expect(result).toHaveLength(2);
-      expect(result.map((item) => item.data.id)).not.toContain('allocated-tx');
-      expect(result.map((item) => item.data.id)).toContain('free-tx');
+      const dataItems = filterDataItems(result);
+      expect(dataItems).toHaveLength(2);
+      expect(dataItems.map((item) => item.data.id)).not.toContain(
+        'allocated-tx',
+      );
+      expect(dataItems.map((item) => item.data.id)).toContain('free-tx');
     });
 
     it('should NOT count allocated transactions in cumulative balance (already in envelope consumption)', () => {
@@ -858,12 +898,15 @@ describe('BudgetTableDataProvider', () => {
       });
 
       // Find items by ID
-      const salary = result.find((item) => item.data.id === 'salary');
-      const groceries = result.find((item) => item.data.id === 'groceries');
-      const allocatedTx = result.find(
+      const dataItems = filterDataItems(result);
+      const salary = dataItems.find((item) => item.data.id === 'salary');
+      const groceries = dataItems.find((item) => item.data.id === 'groceries');
+      const allocatedTx = dataItems.find(
         (item) => item.data.id === 'allocated-grocery-tx',
       );
-      const freeTx = result.find((item) => item.data.id === 'free-coffee-tx');
+      const freeTx = dataItems.find(
+        (item) => item.data.id === 'free-coffee-tx',
+      );
 
       // Salary adds +5000
       expect(salary?.metadata.cumulativeBalance).toBe(5000);
@@ -906,7 +949,8 @@ describe('BudgetTableDataProvider', () => {
         viewMode: 'transactions',
       });
 
-      const allocatedTx = result.find(
+      const dataItems = filterDataItems(result);
+      const allocatedTx = dataItems.find(
         (item) => item.data.id === 'allocated-tx',
       );
       expect(allocatedTx?.metadata.envelopeName).toBe('Groceries');

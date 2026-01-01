@@ -50,7 +50,8 @@ import { BudgetTableDataProvider } from './budget-table-data-provider';
 import { BudgetTableMobileCard } from './budget-table-mobile-card';
 import {
   type BudgetLineTableItem,
-  type TableItem,
+  type GroupHeaderTableItem,
+  type TableRowItem,
   type TransactionTableItem,
 } from './budget-table-models';
 import type { BudgetTableViewMode } from './budget-table-view-mode';
@@ -489,6 +490,28 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                 </td>
               </ng-container>
 
+              <!-- Group Header Column -->
+              <ng-container matColumnDef="groupHeader">
+                <td
+                  mat-cell
+                  *matCellDef="let row"
+                  [attr.colspan]="displayedColumns.length"
+                  class="!py-3 !px-4"
+                >
+                  <div class="flex items-center gap-2">
+                    <mat-icon class="text-lg">{{
+                      row.metadata.groupIcon
+                    }}</mat-icon>
+                    <span class="text-title-medium font-semibold">
+                      {{ row.metadata.groupLabel }}
+                    </span>
+                    <span class="text-label-small text-on-surface-variant">
+                      ({{ row.metadata.itemCount }})
+                    </span>
+                  </div>
+                </td>
+              </ng-container>
+
               <!-- Actions Column -->
               <ng-container matColumnDef="actions">
                 <th mat-header-cell *matHeaderCellDef></th>
@@ -601,19 +624,25 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                 </td>
               </ng-container>
 
+              <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
               <tr
-                mat-header-row
-                *matHeaderRowDef="displayedColumns; sticky: true"
+                mat-row
+                *matRowDef="
+                  let row;
+                  columns: ['groupHeader'];
+                  when: isGroupHeader
+                "
+                class="group-header-row"
               ></tr>
               <tr
                 mat-row
                 *matRowDef="let row; columns: displayedColumns"
                 class="hover:bg-surface-container-low transition-opacity"
-                [class.opacity-50]="row.metadata.isLoading"
-                [class.pointer-events-none]="row.metadata.isLoading"
-                [class.line-through]="row.data.checkedAt"
+                [class.opacity-50]="row.metadata?.isLoading"
+                [class.pointer-events-none]="row.metadata?.isLoading"
+                [class.line-through]="row.data?.checkedAt"
                 [attr.data-testid]="
-                  'budget-line-' + (row.data.name | rolloverFormat)
+                  'budget-line-' + (row.data?.name | rolloverFormat)
                 "
               ></tr>
 
@@ -675,6 +704,15 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
 
     .chip-on-secondary-container {
       --mat-chip-label-text-color: var(--mat-sys-on-secondary-container);
+    }
+
+    .group-header-row {
+      background-color: var(--mat-sys-surface-container);
+      border-top: 1px solid var(--mat-sys-outline-variant);
+    }
+
+    .group-header-row:first-of-type {
+      border-top: none;
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -766,7 +804,17 @@ export class BudgetTable {
     ),
   );
 
-  readonly trackByRow = (_: number, row: TableItem): string => row.data.id;
+  readonly trackByRow = (_: number, row: TableRowItem): string => {
+    if (row.metadata.itemType === 'group_header') {
+      return `group-${row.metadata.groupKind}`;
+    }
+    return (row as BudgetLineTableItem | TransactionTableItem).data.id;
+  };
+
+  readonly isGroupHeader = (
+    _index: number,
+    row: TableRowItem,
+  ): row is GroupHeaderTableItem => row.metadata.itemType === 'group_header';
 
   // Edit methods
   startEdit(item: BudgetLineTableItem): void {
