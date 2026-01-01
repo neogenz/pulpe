@@ -134,10 +134,12 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                   >
                     <mat-card-content>
                       <div
-                        class="grid grid-cols-[1fr_auto_auto] gap-0.5 items-center"
+                        class="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-1 items-center"
                       >
-                        <div class="truncate space-y-0.5">
-                          <span class="text-body-medium font-medium">
+                        <div class="min-w-0 space-y-0.5">
+                          <span
+                            class="text-body-medium font-medium block truncate"
+                          >
                             {{ item.data.name }}
                           </span>
                           <div class="text-label-small text-on-surface-variant">

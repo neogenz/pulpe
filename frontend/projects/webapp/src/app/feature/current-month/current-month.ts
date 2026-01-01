@@ -86,18 +86,18 @@ type EditTransactionFormData = Pick<
     OneTimeExpensesList,
   ],
   template: `
-    <div class="flex flex-col gap-4" data-testid="current-month-page">
+    <div class="flex flex-col gap-4 min-w-0" data-testid="current-month-page">
       <header
-        class="flex justify-between items-center"
+        class="flex flex-wrap justify-between items-center gap-2"
         data-testid="page-header"
       >
         <h1
-          class="text-headline-medium md:text-display-small"
+          class="text-headline-medium md:text-display-small truncate min-w-0 flex-shrink"
           data-testid="page-title"
         >
           {{ titleDisplay.currentTitle() }}
         </h1>
-        <div class="flex gap-2">
+        <div class="flex gap-2 flex-shrink-0">
           <button
             matIconButton
             (click)="startPageTour()"

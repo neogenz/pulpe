@@ -49,12 +49,12 @@ const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
     YearCalendar,
   ],
   template: `
-    <div class="flex flex-col 2xl:h-full gap-4 2xl:min-h-0">
-      <header class="flex justify-between items-center">
-        <h1 class="text-display-small">
+    <div class="flex flex-col 2xl:h-full gap-4 2xl:min-h-0 min-w-0">
+      <header class="flex flex-wrap justify-between items-center gap-2">
+        <h1 class="text-display-small truncate min-w-0 flex-shrink">
           {{ titleDisplay.currentTitle() }}
         </h1>
-        <div class="flex gap-2">
+        <div class="flex gap-2 flex-shrink-0">
           <button
             matIconButton
             (click)="startPageTour()"
@@ -65,10 +65,11 @@ const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
             <mat-icon>help_outline</mat-icon>
           </button>
           <button
-            matButton="outlined"
+            matIconButton
             (click)="onExportBudgets()"
             [disabled]="isExporting()"
             matTooltip="Exporter tous les budgets en JSON"
+            aria-label="Exporter"
             data-testid="export-budgets-btn"
           >
             @if (isExporting()) {
@@ -76,7 +77,6 @@ const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
             } @else {
               <mat-icon>download</mat-icon>
             }
-            <span class="hidden md:inline">Exporter</span>
           </button>
           <button
             matButton="filled"

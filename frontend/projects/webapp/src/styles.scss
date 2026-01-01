@@ -33,6 +33,9 @@ body {
   // Prevent body scroll - mat-sidenav-container manages all scrolling internally
   // See: main-layout.ts where mat-sidenav-container is h-[100dvh] and main content is overflow-y-auto
   overflow: hidden;
+  // Prevent horizontal scrolling on mobile - critical for preventing layout issues
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
 body {
