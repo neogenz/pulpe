@@ -14,6 +14,7 @@ import {
   type TransactionTableItem,
 } from './budget-table-models';
 import type { BudgetTableViewMode } from './budget-table-view-mode';
+import { buildNestedTransactionViewData } from './nested-transaction-view-builder';
 
 /**
  * Discriminated union for budget items with cumulative balance calculation.
@@ -306,175 +307,6 @@ export class BudgetTableDataProvider {
   }
 
   /**
-   * Builds data for transaction view mode with transactions nested under their parent envelopes.
-   * Structure: Group Header → Envelope → Nested Transactions → Free Transactions
-   */
-  #buildNestedTransactionViewData(params: {
-    budgetLines: BudgetLine[];
-    transactions: Transaction[];
-    editingLineId: string | null;
-  }): TableRowItem[] {
-    const { budgetLines, transactions, editingLineId } = params;
-
-    // 1. Separate allocated vs free transactions
-    const allocatedByEnvelope = new Map<string, Transaction[]>();
-    const freeTransactions: Transaction[] = [];
-
-    transactions.forEach((tx) => {
-      if (tx.budgetLineId) {
-        const list = allocatedByEnvelope.get(tx.budgetLineId) ?? [];
-        list.push(tx);
-        allocatedByEnvelope.set(tx.budgetLineId, list);
-      } else {
-        freeTransactions.push(tx);
-      }
-    });
-
-    // 2. Calculate consumptions for envelopes
-    const consumptionMap = calculateAllConsumptions(budgetLines, transactions);
-
-    // 3. Group envelopes by kind
-    const envelopesByKind = new Map<TransactionKind, BudgetLine[]>();
-    budgetLines.forEach((line) => {
-      const list = envelopesByKind.get(line.kind) ?? [];
-      list.push(line);
-      envelopesByKind.set(line.kind, list);
-    });
-
-    // 4. Group free transactions by kind
-    const freeByKind = new Map<TransactionKind, Transaction[]>();
-    freeTransactions.forEach((tx) => {
-      const list = freeByKind.get(tx.kind) ?? [];
-      list.push(tx);
-      freeByKind.set(tx.kind, list);
-    });
-
-    // 5. Build result with cumulative balance
-    const result: TableRowItem[] = [];
-    const kindOrder: TransactionKind[] = ['income', 'saving', 'expense'];
-    let runningBalance = 0;
-
-    kindOrder.forEach((kind) => {
-      const envelopes = envelopesByKind.get(kind) ?? [];
-      const freeTxs = freeByKind.get(kind) ?? [];
-
-      if (envelopes.length === 0 && freeTxs.length === 0) return;
-
-      // Sort envelopes by business rules
-      envelopes.sort((a, b) => this.#compareBudgetLines(a, b));
-
-      // Count items for header (envelopes + free transactions, not nested)
-      const itemCount = envelopes.length + freeTxs.length;
-
-      // Add group header
-      result.push({
-        metadata: {
-          itemType: 'group_header',
-          groupKind: kind,
-          groupLabel: this.#GROUP_LABELS[kind],
-          groupIcon: this.#KIND_ICONS[kind],
-          itemCount,
-        },
-      } as GroupHeaderTableItem);
-
-      // Add envelopes with their nested transactions
-      envelopes.forEach((envelope) => {
-        const consumption = consumptionMap.get(envelope.id);
-        const consumed = consumption?.consumed ?? 0;
-        const transactionCount = consumption?.transactionCount ?? 0;
-        const effectiveAmount = Math.max(envelope.amount, consumed);
-
-        // Update running balance for envelope
-        runningBalance += this.#getSignedAmount(kind, effectiveAmount);
-
-        const isRollover = isRolloverLine(envelope);
-        const isPropagationLocked =
-          !!envelope.templateLineId && !!envelope.isManuallyAdjusted;
-
-        result.push({
-          data: envelope,
-          metadata: {
-            itemType: 'budget_line',
-            cumulativeBalance: runningBalance,
-            isEditing: editingLineId === envelope.id && !isRollover,
-            isRollover,
-            isTemplateLinked: !!envelope.templateLineId,
-            isPropagationLocked,
-            canResetFromTemplate: isPropagationLocked,
-            envelopeName: null,
-            kindIcon: this.#getKindIcon(envelope.kind),
-            allocationLabel: this.#getAllocationLabel(envelope.kind),
-            rolloverSourceBudgetId: this.#getRolloverSourceBudgetId(envelope),
-          },
-          consumption: {
-            consumed,
-            transactionCount,
-            percentage: this.#calculatePercentage(envelope.amount, consumed),
-            transactionCountLabel: this.#getTransactionCountLabel(
-              envelope.kind,
-              transactionCount,
-            ),
-            hasTransactions: transactionCount > 0,
-          },
-        } satisfies BudgetLineTableItem);
-
-        // Add nested transactions (sorted by date desc, then name)
-        const nestedTxs = allocatedByEnvelope.get(envelope.id) ?? [];
-        nestedTxs
-          .sort((a, b) => this.#compareTransactions(a, b))
-          .forEach((tx) => {
-            // Nested transactions inherit parent's balance (no impact)
-            result.push({
-              data: tx,
-              metadata: {
-                itemType: 'transaction',
-                cumulativeBalance: runningBalance,
-                isEditing: false,
-                isRollover: false,
-                isTemplateLinked: false,
-                isPropagationLocked: false,
-                canResetFromTemplate: false,
-                envelopeName: envelope.name,
-                isNestedUnderEnvelope: true,
-                kindIcon: this.#getKindIcon(tx.kind),
-                allocationLabel: this.#getAllocationLabel(tx.kind),
-                rolloverSourceBudgetId: undefined,
-              },
-            } satisfies TransactionTableItem);
-          });
-      });
-
-      // Add free transactions (sorted)
-      freeTxs
-        .sort((a, b) => this.#compareTransactions(a, b))
-        .forEach((tx) => {
-          // Free transactions impact balance
-          runningBalance += this.#getSignedAmount(tx.kind, tx.amount);
-
-          result.push({
-            data: tx,
-            metadata: {
-              itemType: 'transaction',
-              cumulativeBalance: runningBalance,
-              isEditing: false,
-              isRollover: false,
-              isTemplateLinked: false,
-              isPropagationLocked: false,
-              canResetFromTemplate: false,
-              envelopeName: null,
-              isNestedUnderEnvelope: false,
-              kindIcon: this.#getKindIcon(tx.kind),
-              allocationLabel: this.#getAllocationLabel(tx.kind),
-              rolloverSourceBudgetId: undefined,
-            },
-          } satisfies TransactionTableItem);
-        });
-    });
-
-    return result;
-  }
-
-  /**
    * Provides budget table data for display with pre-computed display values
    */
   provideTableData(params: {
@@ -485,7 +317,7 @@ export class BudgetTableDataProvider {
   }): TableRowItem[] {
     // Use nested view for transactions mode
     if (params.viewMode === 'transactions') {
-      return this.#buildNestedTransactionViewData(params);
+      return buildNestedTransactionViewData(params);
     }
 
     // Default: envelopes mode (only free transactions shown)

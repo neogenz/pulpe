@@ -548,14 +548,14 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                     } @else {
                       @if (line.metadata.itemType === 'budget_line') {
                         <mat-slide-toggle
-                          [checked]="line.data.checkedAt !== null"
+                          [checked]="!!line.data.checkedAt"
                           (change)="toggleCheck.emit(line.data.id)"
                           (click)="$event.stopPropagation()"
                           [attr.data-testid]="'toggle-check-' + line.data.id"
                         />
                       } @else if (line.metadata.itemType === 'transaction') {
                         <mat-slide-toggle
-                          [checked]="line.data.checkedAt !== null"
+                          [checked]="!!line.data.checkedAt"
                           (change)="toggleTransactionCheck.emit(line.data.id)"
                           (click)="$event.stopPropagation()"
                           [attr.data-testid]="'toggle-check-tx-' + line.data.id"

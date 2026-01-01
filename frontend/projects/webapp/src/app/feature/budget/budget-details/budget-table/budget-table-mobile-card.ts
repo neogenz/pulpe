@@ -215,7 +215,7 @@ import { type BudgetLineTableItem } from './budget-table-models';
             </mat-chip>
 
             <mat-slide-toggle
-              [checked]="item().data.checkedAt !== null"
+              [checked]="!!item().data.checkedAt"
               (change)="toggleCheck.emit(item().data.id)"
               (click)="$event.stopPropagation()"
               [attr.data-testid]="'toggle-check-' + item().data.id"
