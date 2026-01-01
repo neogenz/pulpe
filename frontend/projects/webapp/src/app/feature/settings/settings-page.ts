@@ -2,26 +2,26 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  effect,
   inject,
+  linkedSignal,
   signal,
 } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSelectModule } from '@angular/material/select';
+import {
+  type MatSelectChange,
+  MatSelectModule,
+} from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { UserSettingsApi } from '@core/user-settings';
 
 @Component({
   selector: 'pulpe-settings-page',
   imports: [
-    ReactiveFormsModule,
     MatButtonModule,
     MatCardModule,
     MatFormFieldModule,
@@ -50,42 +50,38 @@ import { UserSettingsApi } from '@core/user-settings';
               >calendar_today</mat-icon
             >
           </div>
-          <mat-card-title>Cycle de budget</mat-card-title>
+          <mat-card-title>Jour de paie</mat-card-title>
           <mat-card-subtitle>
-            Définissez le jour où commence votre mois budgétaire
+            Votre budget commence le jour où vous recevez votre salaire
           </mat-card-subtitle>
         </mat-card-header>
 
         <mat-card-content>
-          <p class="text-body-medium text-on-surface-variant mb-4">
-            Par défaut, votre mois budgétaire suit le calendrier (du 1er au
-            dernier jour du mois). Si vous êtes payé à une date spécifique, vous
-            pouvez définir cette date comme début de votre mois budgétaire.
-          </p>
-
           <mat-form-field
             appearance="outline"
-            [class.pb-4]="!hasChanges()"
-            class="w-full md:pb-0!"
+            subscriptSizing="dynamic"
+            class="w-full"
           >
-            <mat-label>Jour de début du mois</mat-label>
-            <mat-select [formControl]="payDayControl">
-              <mat-option [value]="null">
-                Calendrier standard (1er du mois)
-              </mat-option>
+            <mat-label>Jour de paie</mat-label>
+            <mat-select
+              [value]="selectedPayDay()"
+              (selectionChange)="onPayDayChange($event)"
+            >
+              <mat-option [value]="null"> 1er du mois </mat-option>
               @for (day of availableDays; track day) {
-                <mat-option [value]="day"> Le {{ day }} du mois </mat-option>
+                <mat-option [value]="day"> Le {{ day }} </mat-option>
               }
             </mat-select>
             <mat-hint>
-              @if (payDayControl.value && payDayControl.value > 28) {
-                Votre mois budgétaire commence le {{ payDayControl.value }}. Si
-                le mois a moins de jours, il débutera le dernier jour
-                disponible.
-              } @else if (payDayControl.value) {
-                Votre mois budgétaire commence le {{ payDayControl.value }}
+              @if (selectedPayDay(); as day) {
+                @if (day > 28) {
+                  Votre budget commence le {{ day }}. Si le mois a moins de
+                  jours, il débutera le dernier jour disponible.
+                } @else {
+                  Votre budget commence le {{ day }} de chaque mois
+                }
               } @else {
-                Votre mois budgétaire suit le calendrier standard
+                Votre budget suit le calendrier standard
               }
             </mat-hint>
           </mat-form-field>
@@ -120,16 +116,16 @@ import { UserSettingsApi } from '@core/user-settings';
       <mat-card appearance="outlined" class="bg-secondary-container!">
         <mat-card-content class="flex! gap-4">
           <div class="flex items-center justify-center">
-            <mat-icon class="text-on-secondary-container!">info</mat-icon>
+            <mat-icon class="text-on-secondary-container!">lightbulb</mat-icon>
           </div>
           <div class="flex-1">
             <p class="text-body-medium text-on-secondary-container font-medium">
               Comment ça marche ?
             </p>
             <p class="text-body-small text-on-secondary-container mt-1">
-              Si vous définissez le jour de paie au 27, alors à partir du 27
-              décembre, vous verrez le budget de janvier. Cela vous permet de
-              planifier vos dépenses en fonction de votre vrai cycle de revenus.
+              Si vous êtes payé le 27, votre budget de janvier couvrira la
+              période du 27 décembre au 26 janvier. Vous planifiez ainsi vos
+              dépenses selon votre vrai rythme financier.
             </p>
           </div>
         </mat-card-content>
@@ -142,32 +138,22 @@ export default class SettingsPage {
   readonly #userSettingsApi = inject(UserSettingsApi);
   readonly #snackBar = inject(MatSnackBar);
 
-  readonly payDayControl = new FormControl<number | null>(null);
   readonly isSaving = signal(false);
-
   readonly availableDays = Array.from({ length: 31 }, (_, i) => i + 1);
 
-  // Convert form valueChanges to a signal for reactive change detection
-  readonly #currentFormValue = toSignal(this.payDayControl.valueChanges, {
-    initialValue: this.payDayControl.value,
-  });
+  // linkedSignal syncs with API value but can be locally modified by user
+  readonly selectedPayDay = linkedSignal(
+    () => this.#userSettingsApi.payDayOfMonth() ?? null,
+  );
 
   readonly initialValue = computed(() => this.#userSettingsApi.payDayOfMonth());
 
   readonly hasChanges = computed(() => {
-    const initial = this.initialValue();
-    const current = this.#currentFormValue();
-    return initial !== current;
+    return this.initialValue() !== this.selectedPayDay();
   });
 
-  constructor() {
-    // Initialize the form when API value is loaded
-    effect(() => {
-      const apiValue = this.#userSettingsApi.payDayOfMonth();
-      if (apiValue !== undefined) {
-        this.payDayControl.setValue(apiValue, { emitEvent: false });
-      }
-    });
+  onPayDayChange(event: MatSelectChange): void {
+    this.selectedPayDay.set(event.value);
   }
 
   async saveSettings(): Promise<void> {
@@ -177,7 +163,7 @@ export default class SettingsPage {
       this.isSaving.set(true);
 
       await this.#userSettingsApi.updateSettings({
-        payDayOfMonth: this.payDayControl.value,
+        payDayOfMonth: this.selectedPayDay(),
       });
 
       this.#snackBar.open('Paramètres enregistrés', 'OK', {
@@ -197,6 +183,6 @@ export default class SettingsPage {
   }
 
   resetChanges(): void {
-    this.payDayControl.setValue(this.initialValue());
+    this.selectedPayDay.set(this.initialValue());
   }
 }
