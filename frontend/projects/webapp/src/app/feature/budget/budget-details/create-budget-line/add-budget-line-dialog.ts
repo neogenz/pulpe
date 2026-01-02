@@ -17,7 +17,6 @@ import {
   type TransactionRecurrence,
 } from '@pulpe/shared';
 import {
-  RecurrenceLabelPipe,
   TransactionIconPipe,
   TransactionLabelPipe,
 } from '@ui/transaction-display';
@@ -36,7 +35,6 @@ export interface BudgetLineDialogData {
     MatButtonModule,
     MatIconModule,
     ReactiveFormsModule,
-    RecurrenceLabelPipe,
     TransactionIconPipe,
     TransactionLabelPipe,
   ],
@@ -70,46 +68,29 @@ export interface BudgetLineDialogData {
             <span matTextSuffix>CHF</span>
           </mat-form-field>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <mat-form-field appearance="outline" class="w-full">
-              <mat-label>Type</mat-label>
-              <mat-select formControlName="kind" data-testid="new-line-kind">
-                <mat-option value="income">
-                  <mat-icon class="text-financial-income">{{
-                    'income' | transactionIcon
-                  }}</mat-icon>
-                  <span>{{ 'income' | transactionLabel }}</span>
-                </mat-option>
-                <mat-option value="expense">
-                  <mat-icon class="text-financial-negative">{{
-                    'expense' | transactionIcon
-                  }}</mat-icon>
-                  <span>{{ 'expense' | transactionLabel }}</span>
-                </mat-option>
-                <mat-option value="saving">
-                  <mat-icon class="text-primary">{{
-                    'saving' | transactionIcon
-                  }}</mat-icon>
-                  <span>{{ 'saving' | transactionLabel }}</span>
-                </mat-option>
-              </mat-select>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="w-full">
-              <mat-label>Fréquence</mat-label>
-              <mat-select
-                formControlName="recurrence"
-                data-testid="new-line-recurrence"
-              >
-                <mat-option value="fixed">{{
-                  'fixed' | recurrenceLabel
-                }}</mat-option>
-                <mat-option value="one_off">{{
-                  'one_off' | recurrenceLabel
-                }}</mat-option>
-              </mat-select>
-            </mat-form-field>
-          </div>
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Type</mat-label>
+            <mat-select formControlName="kind" data-testid="new-line-kind">
+              <mat-option value="income">
+                <mat-icon class="text-financial-income">{{
+                  'income' | transactionIcon
+                }}</mat-icon>
+                <span>{{ 'income' | transactionLabel }}</span>
+              </mat-option>
+              <mat-option value="expense">
+                <mat-icon class="text-financial-negative">{{
+                  'expense' | transactionIcon
+                }}</mat-icon>
+                <span>{{ 'expense' | transactionLabel }}</span>
+              </mat-option>
+              <mat-option value="saving">
+                <mat-icon class="text-primary">{{
+                  'saving' | transactionIcon
+                }}</mat-icon>
+                <span>{{ 'saving' | transactionLabel }}</span>
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
         </form>
       </div>
     </mat-dialog-content>
@@ -144,7 +125,7 @@ export class AddBudgetLineDialog {
       [Validators.required, Validators.min(0.01)],
     ],
     kind: ['expense' as TransactionKind, Validators.required],
-    recurrence: ['fixed' as TransactionRecurrence, Validators.required],
+    recurrence: ['one_off' as TransactionRecurrence],
   });
 
   formValue = toSignal(this.form.valueChanges, {

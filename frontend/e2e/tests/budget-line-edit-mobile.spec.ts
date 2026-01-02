@@ -58,7 +58,6 @@ test.describe('Budget Line Edit - Mobile', () => {
     await expect(dialog.locator('[data-testid="edit-line-name"]')).toBeVisible();
     await expect(dialog.locator('[data-testid="edit-line-amount"]')).toBeVisible();
     await expect(dialog.locator('[data-testid="edit-line-kind"]')).toBeVisible();
-    await expect(dialog.locator('[data-testid="edit-line-recurrence"]')).toBeVisible();
 
     // Check that cancel and save buttons are present
     await expect(dialog.locator('[data-testid="cancel-edit-line"]')).toBeVisible();
