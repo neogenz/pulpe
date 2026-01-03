@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import {
   HttpTestingController,
@@ -19,6 +19,7 @@ import { BudgetApi, BudgetCalculator } from '@core/budget';
 import { TransactionApi } from '@core/transaction/transaction-api';
 import { Logger } from '@core/logging/logger';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
+import { UserSettingsApi } from '@core/user-settings';
 
 // Mock data aligned with business scenarios
 const mockBudget: Budget = {
@@ -148,6 +149,11 @@ describe('CurrentMonthStore - Business Scenarios', () => {
       backendApiUrl: vi.fn().mockReturnValue('http://localhost:3000/api'),
     };
 
+    const mockUserSettingsApi = {
+      payDayOfMonth: signal<number | null>(null),
+      isLoading: signal(false),
+    };
+
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
@@ -159,6 +165,7 @@ describe('CurrentMonthStore - Business Scenarios', () => {
         { provide: BudgetCalculator, useValue: mockBudgetCalculator },
         { provide: Logger, useValue: mockLogger },
         { provide: ApplicationConfiguration, useValue: mockAppConfig },
+        { provide: UserSettingsApi, useValue: mockUserSettingsApi },
       ],
     });
 
@@ -496,6 +503,11 @@ describe('CurrentMonthStore - Business Scenarios', () => {
         backendApiUrl: vi.fn().mockReturnValue('http://localhost:3000/api'),
       };
 
+      const mockUserSettingsApi = {
+        payDayOfMonth: signal<number | null>(null),
+        isLoading: signal(false),
+      };
+
       TestBed.resetTestingModule();
       TestBed.configureTestingModule({
         providers: [
@@ -507,6 +519,7 @@ describe('CurrentMonthStore - Business Scenarios', () => {
           { provide: TransactionApi, useValue: mockTransactionApi },
           { provide: BudgetCalculator, useValue: mockBudgetCalculator },
           { provide: ApplicationConfiguration, useValue: mockAppConfig },
+          { provide: UserSettingsApi, useValue: mockUserSettingsApi },
         ],
       });
       store = TestBed.inject(CurrentMonthStore);
