@@ -126,9 +126,19 @@ export class CurrentMonthStore {
   });
 
   /**
-   * Standardized resource state signals (aligned with Angular resource() API)
+   * Settings loading state - exposed to prevent data flash during initial load
    */
-  readonly isLoading = computed(() => this.#dashboardResource.isLoading());
+  readonly isSettingsLoading = computed(() =>
+    this.#userSettingsApi.isLoading(),
+  );
+
+  /**
+   * Standardized resource state signals (aligned with Angular resource() API)
+   * isLoading includes settings loading to prevent flash of incorrect period data
+   */
+  readonly isLoading = computed(
+    () => this.#dashboardResource.isLoading() || this.isSettingsLoading(),
+  );
   readonly hasValue = computed(() => this.#dashboardResource.hasValue());
   readonly error = computed(() => this.#dashboardResource.error());
 
