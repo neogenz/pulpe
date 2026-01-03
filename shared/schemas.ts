@@ -77,8 +77,8 @@ export const budgetSchema = z.object({
   remaining: z.number().optional(),
   // previousBudgetId : Budget source du rollover pour traçabilité
   previousBudgetId: z.uuid().nullable().optional(),
-  createdAt: z.iso.datetime(),
-  updatedAt: z.iso.datetime(),
+  createdAt: z.iso.datetime({ offset: true }),
+  updatedAt: z.iso.datetime({ offset: true }),
 });
 export type Budget = z.infer<typeof budgetSchema>;
 
@@ -143,8 +143,8 @@ export const savingsGoalSchema = z.object({
   targetDate: z.string(), // Date in ISO format
   priority: priorityLevelSchema,
   status: savingsGoalStatusSchema,
-  createdAt: z.iso.datetime(),
-  updatedAt: z.iso.datetime(),
+  createdAt: z.iso.datetime({ offset: true }),
+  updatedAt: z.iso.datetime({ offset: true }),
 });
 export type SavingsGoal = z.infer<typeof savingsGoalSchema>;
 
@@ -182,9 +182,12 @@ export const budgetLineSchema = z.object({
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,
   isManuallyAdjusted: z.boolean(),
-  checkedAt: z.iso.datetime().nullable(),
-  createdAt: z.iso.datetime(),
-  updatedAt: z.iso.datetime(),
+  checkedAt: z.iso.datetime({ offset: true }).nullable(),
+  createdAt: z.iso.datetime({ offset: true }),
+  updatedAt: z.iso.datetime({ offset: true }),
+  // Rollover fields - added when budget line represents a rollover from previous month
+  isRollover: z.boolean().optional(),
+  rolloverSourceBudgetId: z.uuid().optional(),
 });
 export type BudgetLine = z.infer<typeof budgetLineSchema>;
 
@@ -235,12 +238,12 @@ export const transactionSchema = z.object({
   name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
   kind: transactionKindSchema,
-  transactionDate: z.iso.datetime(),
+  transactionDate: z.iso.datetime({ offset: true }),
   // NOTE: category pas définie dans SPECS V1 - "Pas de catégorisation avancée"
   category: z.string().max(100).trim().nullable(),
-  createdAt: z.iso.datetime(),
-  updatedAt: z.iso.datetime(),
-  checkedAt: z.iso.datetime().nullable(),
+  createdAt: z.iso.datetime({ offset: true }),
+  updatedAt: z.iso.datetime({ offset: true }),
+  checkedAt: z.iso.datetime({ offset: true }).nullable(),
 });
 export type Transaction = z.infer<typeof transactionSchema>;
 
@@ -250,7 +253,7 @@ export const transactionCreateSchema = z.object({
   name: z.string().min(1).max(100).trim(),
   amount: z.number().positive(),
   kind: transactionKindSchema,
-  transactionDate: z.iso.datetime().optional(),
+  transactionDate: z.iso.datetime({ offset: true }).optional(),
   category: z.string().max(100).trim().nullable().optional(),
   checkedAt: z.iso.datetime().nullable().optional(),
 });
@@ -260,7 +263,7 @@ export const transactionUpdateSchema = z.object({
   name: z.string().min(1).max(100).trim().optional(),
   amount: z.number().positive().optional(),
   kind: transactionKindSchema.optional(),
-  transactionDate: z.iso.datetime().optional(),
+  transactionDate: z.iso.datetime({ offset: true }).optional(),
   category: z.string().max(100).trim().nullable().optional(),
 });
 export type TransactionUpdate = z.infer<typeof transactionUpdateSchema>;
@@ -272,8 +275,8 @@ export const budgetTemplateSchema = z.object({
   description: z.string().max(500).trim().optional(),
   userId: z.uuid().optional(),
   isDefault: z.boolean().optional(),
-  createdAt: z.iso.datetime(),
-  updatedAt: z.iso.datetime(),
+  createdAt: z.iso.datetime({ offset: true }),
+  updatedAt: z.iso.datetime({ offset: true }),
 });
 export type BudgetTemplate = z.infer<typeof budgetTemplateSchema>;
 
@@ -286,8 +289,8 @@ export const templateLineSchema = z.object({
   kind: transactionKindSchema,
   recurrence: transactionRecurrenceSchema,
   description: z.string().max(500).trim(),
-  createdAt: z.iso.datetime(),
-  updatedAt: z.iso.datetime(),
+  createdAt: z.iso.datetime({ offset: true }),
+  updatedAt: z.iso.datetime({ offset: true }),
 });
 export type TemplateLine = z.infer<typeof templateLineSchema>;
 
@@ -483,6 +486,27 @@ export const budgetDetailsResponseSchema = z.object({
   }),
 });
 export type BudgetDetailsResponse = z.infer<typeof budgetDetailsResponseSchema>;
+
+// Budget with full details for export (includes rollover, remaining, transactions, budgetLines)
+export const budgetWithDetailsSchema = budgetSchema.extend({
+  rollover: z.number(),
+  remaining: z.number(),
+  previousBudgetId: z.string().uuid().nullable(),
+  transactions: z.array(transactionSchema),
+  budgetLines: z.array(budgetLineSchema),
+});
+export type BudgetWithDetails = z.infer<typeof budgetWithDetailsSchema>;
+
+// Export response schema for bulk budget export
+export const budgetExportResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    exportDate: z.string(),
+    totalBudgets: z.number().int().nonnegative(),
+    budgets: z.array(budgetWithDetailsSchema),
+  }),
+});
+export type BudgetExportResponse = z.infer<typeof budgetExportResponseSchema>;
 
 // Transaction response schemas for operation-specific types
 export const transactionResponseSchema = z.object({

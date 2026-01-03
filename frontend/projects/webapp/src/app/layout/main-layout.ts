@@ -152,12 +152,12 @@ interface NavigationItem {
 
       <!-- Main Content -->
       <mat-sidenav-content
-        class="flex flex-col h-full overflow-hidden"
+        class="flex flex-col h-full overflow-hidden max-w-full"
         [class.p-2]="!isHandset()"
         data-testid="main-content"
       >
         <div
-          class="flex flex-col h-full bg-surface relative overflow-hidden"
+          class="flex flex-col h-full bg-surface relative overflow-hidden min-w-0"
           [class.p-2]="!isHandset()"
           [class.rounded-xl]="!isHandset()"
         >
@@ -297,7 +297,7 @@ interface NavigationItem {
           <!-- Page Content - Scrollable Container -->
           <main
             cdkScrollable
-            class="flex-1 overflow-y-auto bg-surface text-on-surface pt-2!"
+            class="flex-1 overflow-y-auto overflow-x-hidden bg-surface text-on-surface pt-2! min-w-0"
             [class.p-6]="!isHandset()"
             [class.md:p-8]="!isHandset()"
             [class.p-4]="isHandset()"

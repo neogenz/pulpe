@@ -4,7 +4,13 @@ export class BudgetDetailsPage {
   constructor(private readonly page: Page) {}
 
   async goto(budgetId = 'test-budget-123'): Promise<void> {
-    await this.page.goto(`/app/budget/${budgetId}`);
+    // Navigate and wait for the API response to ensure data is loaded
+    await Promise.all([
+      this.page.waitForResponse(resp =>
+        resp.url().includes('/api/v1/budgets/') && resp.url().includes('/details')
+      ),
+      this.page.goto(`/app/budget/${budgetId}`),
+    ]);
     await this.expectPageLoaded();
   }
 

@@ -1,12 +1,12 @@
 import { test, expect } from '../../fixtures/test-fixtures';
-import { createBudgetDetailsMock, createBudgetLineMock, createBudgetLineResponseMock } from '../../helpers/api-mocks';
+import { createBudgetDetailsMock, createBudgetLineMock, createBudgetLineResponseMock, TEST_UUIDS } from '../../helpers/api-mocks';
 
 test.describe('Budget Line Editing', () => {
   test('should edit budget line inline', async ({
     authenticatedPage,
     budgetDetailsPage,
   }) => {
-    const budgetId = 'test-budget-123';
+    const budgetId = TEST_UUIDS.BUDGET_1;
     const originalName = 'Test Budget Line';
     const originalAmount = 100;
     const updatedName = 'Updated Budget Line';
@@ -22,7 +22,7 @@ test.describe('Budget Line Editing', () => {
       const mockResponse = hasBeenUpdated
         ? createBudgetDetailsMock(budgetId, {
             budgetLines: [
-              createBudgetLineMock('line-1', budgetId, {
+              createBudgetLineMock(TEST_UUIDS.LINE_1, budgetId, {
                 name: updatedName,
                 amount: updatedAmount,
                 recurrence: 'fixed',
@@ -32,7 +32,7 @@ test.describe('Budget Line Editing', () => {
           })
         : createBudgetDetailsMock(budgetId, {
             budgetLines: [
-              createBudgetLineMock('line-1', budgetId, {
+              createBudgetLineMock(TEST_UUIDS.LINE_1, budgetId, {
                 name: originalName,
                 amount: originalAmount,
                 recurrence: 'fixed',
@@ -49,7 +49,7 @@ test.describe('Budget Line Editing', () => {
     });
 
     // Mock the update API endpoint using typed helper
-    await authenticatedPage.route('**/api/v1/budget-lines/line-1', (route) => {
+    await authenticatedPage.route(`**/api/v1/budget-lines/${TEST_UUIDS.LINE_1}`, (route) => {
       if (route.request().method() === 'PATCH') {
         // Capture the update payload
         updatePayload = route.request().postDataJSON();
@@ -60,7 +60,7 @@ test.describe('Budget Line Editing', () => {
         // Mark that the update has been called
         hasBeenUpdated = true;
 
-        const updatedBudgetLine = createBudgetLineMock('line-1', budgetId, {
+        const updatedBudgetLine = createBudgetLineMock(TEST_UUIDS.LINE_1, budgetId, {
           name: updatedName,
           amount: updatedAmount,
           recurrence: 'fixed',
@@ -83,15 +83,15 @@ test.describe('Budget Line Editing', () => {
     await authenticatedPage.waitForSelector('table[mat-table]');
 
     // Find the inputs directly using data-testid
-    const nameInput = authenticatedPage.locator('[data-testid="edit-name-line-1"]');
-    const amountInput = authenticatedPage.locator('[data-testid="edit-amount-line-1"]');
+    const nameInput = authenticatedPage.locator(`[data-testid="edit-name-${TEST_UUIDS.LINE_1}"]`);
+    const amountInput = authenticatedPage.locator(`[data-testid="edit-amount-${TEST_UUIDS.LINE_1}"]`);
 
     // Check if already in edit mode, if not open the menu and click the edit option
     const isInEditMode = await nameInput.isVisible({ timeout: 1000 }).catch(() => false);
 
     if (!isInEditMode) {
       // Open the actions menu first
-      const menuButton = authenticatedPage.locator('[data-testid="actions-menu-line-1"]');
+      const menuButton = authenticatedPage.locator(`[data-testid="actions-menu-${TEST_UUIDS.LINE_1}"]`);
       await menuButton.click();
 
       // Click the edit menu item
@@ -112,7 +112,7 @@ test.describe('Budget Line Editing', () => {
     await amountInput.fill(updatedAmount.toString());
 
     // Save the changes using data-testid
-    const saveButton = authenticatedPage.locator('[data-testid="save-line-1"]');
+    const saveButton = authenticatedPage.locator(`[data-testid="save-${TEST_UUIDS.LINE_1}"]`);
     await saveButton.click();
 
     // Wait for the API request to complete by waiting for the success message
@@ -135,14 +135,14 @@ test.describe('Budget Line Editing', () => {
     authenticatedPage,
     budgetDetailsPage,
   }) => {
-    const budgetId = 'test-budget-123';
+    const budgetId = TEST_UUIDS.BUDGET_1;
     const originalName = 'Test Budget Line';
     const originalAmount = 100;
 
     // Mock the budget details API using typed helper
     const mockResponse = createBudgetDetailsMock(budgetId, {
       budgetLines: [
-        createBudgetLineMock('line-1', budgetId, {
+        createBudgetLineMock(TEST_UUIDS.LINE_1, budgetId, {
           name: originalName,
           amount: originalAmount,
           recurrence: 'fixed',
@@ -166,7 +166,7 @@ test.describe('Budget Line Editing', () => {
     await authenticatedPage.waitForSelector('tr:has-text("Test Budget Line")');
 
     // Open the actions menu first
-    const menuButton = authenticatedPage.locator('[data-testid="actions-menu-line-1"]');
+    const menuButton = authenticatedPage.locator(`[data-testid="actions-menu-${TEST_UUIDS.LINE_1}"]`);
     await expect(menuButton).toBeVisible();
     await menuButton.click();
 
@@ -175,7 +175,7 @@ test.describe('Budget Line Editing', () => {
     await editMenuItem.click();
 
     // Wait for edit mode to be active
-    const nameInput = authenticatedPage.locator('[data-testid="edit-name-line-1"]');
+    const nameInput = authenticatedPage.locator(`[data-testid="edit-name-${TEST_UUIDS.LINE_1}"]`);
     await expect(nameInput).toBeVisible();
 
     // Make some changes
@@ -183,7 +183,7 @@ test.describe('Budget Line Editing', () => {
     await nameInput.fill('Changed Name That Should Not Be Saved');
 
     // Cancel the changes using data-testid
-    const cancelButton = authenticatedPage.locator('[data-testid="cancel-line-1"]');
+    const cancelButton = authenticatedPage.locator(`[data-testid="cancel-${TEST_UUIDS.LINE_1}"]`);
     await expect(cancelButton).toBeVisible();
     await cancelButton.click();
 

@@ -2,13 +2,16 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import {
   type TransactionCreate,
-  type TransactionUpdate,
   type TransactionCreateResponse,
-  type TransactionUpdateResponse,
   type TransactionFindOneResponse,
   type TransactionListResponse,
+  type TransactionUpdate,
+  type TransactionUpdateResponse,
+  transactionListResponseSchema,
+  transactionResponseSchema,
 } from '@pulpe/shared';
 import { type Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { ApplicationConfiguration } from '../config/application-configuration';
 
 @Injectable({
@@ -23,32 +26,32 @@ export class TransactionApi {
   }
 
   findByBudget$(budgetId: string): Observable<TransactionListResponse> {
-    return this.#http.get<TransactionListResponse>(
-      `${this.#apiUrl}/budget/${budgetId}`,
-    );
+    return this.#http
+      .get<unknown>(`${this.#apiUrl}/budget/${budgetId}`)
+      .pipe(map((response) => transactionListResponseSchema.parse(response)));
   }
 
   create$(
     transaction: TransactionCreate,
   ): Observable<TransactionCreateResponse> {
-    return this.#http.post<TransactionCreateResponse>(
-      this.#apiUrl,
-      transaction,
-    );
+    return this.#http
+      .post<unknown>(this.#apiUrl, transaction)
+      .pipe(map((response) => transactionResponseSchema.parse(response)));
   }
 
   findOne$(id: string): Observable<TransactionFindOneResponse> {
-    return this.#http.get<TransactionFindOneResponse>(`${this.#apiUrl}/${id}`);
+    return this.#http
+      .get<unknown>(`${this.#apiUrl}/${id}`)
+      .pipe(map((response) => transactionResponseSchema.parse(response)));
   }
 
   update$(
     id: string,
     transaction: TransactionUpdate,
   ): Observable<TransactionUpdateResponse> {
-    return this.#http.patch<TransactionUpdateResponse>(
-      `${this.#apiUrl}/${id}`,
-      transaction,
-    );
+    return this.#http
+      .patch<unknown>(`${this.#apiUrl}/${id}`, transaction)
+      .pipe(map((response) => transactionResponseSchema.parse(response)));
   }
 
   remove$(id: string): Observable<void> {

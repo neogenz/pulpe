@@ -2,11 +2,12 @@ import { test, expect } from '../../fixtures/test-fixtures';
 import {
   createBudgetDetailsMock,
   createBudgetLineMock,
+  TEST_UUIDS,
 } from '../../helpers/api-mocks';
 
 test.describe('Mobile scroll behavior', () => {
   test.beforeEach(async ({ authenticatedPage: page }) => {
-    const budgetId = 'test-budget-123';
+    const budgetId = TEST_UUIDS.BUDGET_1;
     const currentMonth = new Date().getMonth() + 1;
     const currentYear = new Date().getFullYear();
 
@@ -24,7 +25,7 @@ test.describe('Mobile scroll behavior', () => {
                 month: currentMonth,
                 year: currentYear,
                 description: 'Budget du mois',
-                templateId: 'template-123',
+                templateId: TEST_UUIDS.TEMPLATE_1,
                 createdAt: '2025-01-01T00:00:00Z',
                 updatedAt: '2025-01-01T00:00:00Z',
               },
@@ -40,14 +41,14 @@ test.describe('Mobile scroll behavior', () => {
     const mockResponse = createBudgetDetailsMock(budgetId, {
       budget: { month: currentMonth, year: currentYear },
       budgetLines: [
-        createBudgetLineMock('line-1', budgetId, { name: 'Salaire', amount: 5000, kind: 'income' }),
-        createBudgetLineMock('line-2', budgetId, { name: 'Loyer', amount: 1200, kind: 'expense' }),
-        createBudgetLineMock('line-3', budgetId, { name: 'Électricité', amount: 100, kind: 'expense' }),
-        createBudgetLineMock('line-4', budgetId, { name: 'Internet', amount: 50, kind: 'expense' }),
-        createBudgetLineMock('line-5', budgetId, { name: 'Courses', amount: 400, kind: 'expense' }),
-        createBudgetLineMock('line-6', budgetId, { name: 'Transport', amount: 150, kind: 'expense' }),
-        createBudgetLineMock('line-7', budgetId, { name: 'Loisirs', amount: 200, kind: 'expense' }),
-        createBudgetLineMock('line-8', budgetId, { name: 'Épargne', amount: 300, kind: 'saving' }),
+        createBudgetLineMock(TEST_UUIDS.LINE_1, budgetId, { name: 'Salaire', amount: 5000, kind: 'income' }),
+        createBudgetLineMock(TEST_UUIDS.LINE_2, budgetId, { name: 'Loyer', amount: 1200, kind: 'expense' }),
+        createBudgetLineMock(TEST_UUIDS.LINE_3, budgetId, { name: 'Électricité', amount: 100, kind: 'expense' }),
+        createBudgetLineMock(TEST_UUIDS.LINE_4, budgetId, { name: 'Internet', amount: 50, kind: 'expense' }),
+        createBudgetLineMock(TEST_UUIDS.LINE_5, budgetId, { name: 'Courses', amount: 400, kind: 'expense' }),
+        createBudgetLineMock(TEST_UUIDS.LINE_6, budgetId, { name: 'Transport', amount: 150, kind: 'expense' }),
+        createBudgetLineMock(TEST_UUIDS.LINE_7, budgetId, { name: 'Loisirs', amount: 200, kind: 'expense' }),
+        createBudgetLineMock(TEST_UUIDS.LINE_8, budgetId, { name: 'Épargne', amount: 300, kind: 'saving' }),
       ],
     });
 

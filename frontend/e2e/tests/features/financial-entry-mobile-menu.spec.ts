@@ -2,6 +2,18 @@ import { test, expect } from '../../fixtures/test-fixtures';
 import { setupAuthBypass } from '../../utils/auth-bypass';
 import type { Page } from '@playwright/test';
 
+// Valid UUIDs for Zod validation
+const TEST_UUIDS = {
+  BUDGET: '00000000-0000-4000-a000-000000000001',
+  USER: '00000000-0000-4000-a000-000000000201',
+  TEMPLATE: '00000000-0000-4000-a000-000000000101',
+  LINE_1: '00000000-0000-4000-a000-000000001001',
+  LINE_2: '00000000-0000-4000-a000-000000001002',
+  LINE_3: '00000000-0000-4000-a000-000000001003',
+  TXN_1: '00000000-0000-4000-a000-000000002001',
+  TXN_2: '00000000-0000-4000-a000-000000002002',
+};
+
 /**
  * Setup budget mocks for financial entry tests with current month/year
  * This ensures tests don't fail when the calendar month changes
@@ -14,6 +26,8 @@ async function setupBudgetMocks(page: Page) {
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const budgetName = `${monthNames[now.getMonth()]} ${currentYear}`;
 
+  const dateNow = new Date().toISOString();
+
   // Mock 1: Budget list endpoint (returns current month budget)
   await page.route('**/api/v1/budgets', route =>
     route.fulfill({
@@ -21,55 +35,67 @@ async function setupBudgetMocks(page: Page) {
       body: JSON.stringify({
         success: true,
         data: [{
-          id: 'current-budget-123',
-          name: budgetName,
+          id: TEST_UUIDS.BUDGET,
+          description: budgetName,
           month: currentMonth,
-          year: currentYear
+          year: currentYear,
+          userId: TEST_UUIDS.USER,
+          templateId: TEST_UUIDS.TEMPLATE,
+          createdAt: '2025-01-01T00:00:00Z',
+          updatedAt: '2025-01-01T00:00:00Z',
         }]
       })
     })
   );
 
   // Mock 2: Budget details endpoint (budgetLines + transactions)
-  await page.route('**/api/v1/budgets/current-budget-123/details', route =>
+  await page.route(`**/api/v1/budgets/${TEST_UUIDS.BUDGET}/details`, route =>
     route.fulfill({
       status: 200,
       body: JSON.stringify({
         success: true,
         data: {
           budget: {
-            id: 'current-budget-123',
-            name: budgetName,
+            id: TEST_UUIDS.BUDGET,
+            description: budgetName,
             month: currentMonth,
-            year: currentYear
+            year: currentYear,
+            userId: TEST_UUIDS.USER,
+            templateId: TEST_UUIDS.TEMPLATE,
+            createdAt: '2025-01-01T00:00:00Z',
+            updatedAt: '2025-01-01T00:00:00Z',
           },
           budgetLines: [
-            { id: 'line-1', name: 'Salary', amount: 5000, kind: 'income', recurrence: 'fixed' },
-            { id: 'line-2', name: 'Groceries', amount: 400, kind: 'expense', recurrence: 'fixed' },
-            { id: 'line-3', name: 'Transport', amount: 150, kind: 'expense', recurrence: 'fixed' }
+            { id: TEST_UUIDS.LINE_1, budgetId: TEST_UUIDS.BUDGET, name: 'Salary', amount: 5000, kind: 'income', recurrence: 'fixed', isManuallyAdjusted: false, templateLineId: null, savingsGoalId: null, checkedAt: null, createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-01-01T00:00:00Z' },
+            { id: TEST_UUIDS.LINE_2, budgetId: TEST_UUIDS.BUDGET, name: 'Groceries', amount: 400, kind: 'expense', recurrence: 'fixed', isManuallyAdjusted: false, templateLineId: null, savingsGoalId: null, checkedAt: null, createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-01-01T00:00:00Z' },
+            { id: TEST_UUIDS.LINE_3, budgetId: TEST_UUIDS.BUDGET, name: 'Transport', amount: 150, kind: 'expense', recurrence: 'fixed', isManuallyAdjusted: false, templateLineId: null, savingsGoalId: null, checkedAt: null, createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-01-01T00:00:00Z' }
           ],
           transactions: [
             {
-              id: 'txn-1',
-              budgetId: 'current-budget-123',
+              id: TEST_UUIDS.TXN_1,
+              budgetId: TEST_UUIDS.BUDGET,
+              budgetLineId: null,
               name: 'Coffee',
               amount: 5,
               kind: 'expense',
-              transactionDate: new Date().toISOString(),
+              transactionDate: dateNow,
               category: null,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString()
+              createdAt: dateNow,
+              updatedAt: dateNow,
+              checkedAt: null
             },
             {
-              id: 'txn-2',
-              budgetId: 'current-budget-123',
+              id: TEST_UUIDS.TXN_2,
+              budgetId: TEST_UUIDS.BUDGET,
+              budgetLineId: null,
               name: 'Lunch',
               amount: 12,
               kind: 'expense',
-              transactionDate: new Date().toISOString(),
+              transactionDate: dateNow,
               category: null,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString()
+              createdAt: dateNow,
+              updatedAt: dateNow,
+              checkedAt: null
             }
           ]
         }

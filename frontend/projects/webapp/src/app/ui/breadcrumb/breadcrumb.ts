@@ -26,7 +26,9 @@ export interface BreadcrumbItemViewModel {
   template: `
     @if (hasContentProjection() || showDataDrivenMode()) {
       <nav [attr.aria-label]="ariaLabel()">
-        <ol class="flex items-center list-none p-0 m-0 flex-wrap text-sm">
+        <ol
+          class="flex items-center list-none p-0 m-0 flex-wrap text-sm min-w-0 max-w-full"
+        >
           <!-- Content projection mode -->
           @if (hasContentProjection()) {
             @for (item of projectedItems(); track item; let last = $last) {
@@ -54,28 +56,30 @@ export interface BreadcrumbItemViewModel {
           <!-- Data-driven mode -->
           @else if (showDataDrivenMode()) {
             @for (item of items(); track item.url; let isLast = $last) {
-              <li>
+              <li class="min-w-0 max-w-full">
                 @if (!isLast) {
                   <a
                     mat-button
                     [routerLink]="item.url"
-                    class="min-w-0 px-2 text-on-surface-variant hover:text-primary"
+                    class="min-w-0 px-2 text-on-surface-variant hover:text-primary max-w-[150px] sm:max-w-none"
                   >
                     @if (item.icon) {
-                      <mat-icon class="!text-base mr-1">{{
+                      <mat-icon class="!text-base mr-1 flex-shrink-0">{{
                         item.icon
                       }}</mat-icon>
                     }
-                    {{ item.label }}
+                    <span class="truncate">{{ item.label }}</span>
                   </a>
                 } @else {
                   <span
-                    class="flex items-center gap-1 text-on-surface font-medium px-2"
+                    class="flex items-center gap-1 text-on-surface font-medium px-2 min-w-0 max-w-[200px] sm:max-w-none"
                   >
                     @if (item.icon) {
-                      <mat-icon class="!text-base">{{ item.icon }}</mat-icon>
+                      <mat-icon class="!text-base flex-shrink-0">{{
+                        item.icon
+                      }}</mat-icon>
                     }
-                    {{ item.label }}
+                    <span class="truncate">{{ item.label }}</span>
                   </span>
                 }
               </li>

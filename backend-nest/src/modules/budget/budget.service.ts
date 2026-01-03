@@ -14,6 +14,8 @@ import {
   type BudgetResponse,
   type BudgetUpdate,
   type BudgetDetailsResponse,
+  type BudgetExportResponse,
+  type BudgetWithDetails,
   type Budget,
   type Transaction,
   type BudgetLine,
@@ -91,6 +93,123 @@ export class BudgetService {
         },
       );
     }
+  }
+
+  async exportAll(
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<BudgetExportResponse> {
+    try {
+      const startTime = Date.now();
+      const budgets = await this.fetchAllBudgetsForExport(user.id, supabase);
+      const budgetsWithDetails = await this.enrichBudgetsForExport(
+        budgets,
+        supabase,
+      );
+
+      this.logExportSuccess(user.id, budgetsWithDetails.length, startTime);
+
+      return this.buildExportResponse(budgetsWithDetails);
+    } catch (error) {
+      handleServiceError(
+        error,
+        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+        undefined,
+        {
+          operation: 'exportAllBudgets',
+          userId: user.id,
+          entityType: 'budget',
+        },
+      );
+    }
+  }
+
+  private async fetchAllBudgetsForExport(
+    userId: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<Tables<'monthly_budget'>[]> {
+    const { data: budgets, error } = await supabase
+      .from('monthly_budget')
+      .select('*')
+      .order('year', { ascending: true })
+      .order('month', { ascending: true });
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'exportAllBudgets',
+          userId,
+          entityType: 'budget',
+          supabaseError: error,
+        },
+        { cause: error },
+      );
+    }
+
+    return budgets || [];
+  }
+
+  private async enrichBudgetsForExport(
+    budgets: Tables<'monthly_budget'>[],
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<BudgetWithDetails[]> {
+    return Promise.all(
+      budgets.map((budget) => this.enrichBudgetForExport(budget, supabase)),
+    );
+  }
+
+  private async enrichBudgetForExport(
+    budget: Tables<'monthly_budget'>,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<BudgetWithDetails> {
+    const { transactions, budgetLines } = await this.repository.fetchBudgetData(
+      budget.id,
+      supabase,
+      { selectFields: '*', orderTransactions: true },
+    );
+
+    const rolloverData = await this.calculator.getRollover(budget.id, supabase);
+    const remaining = await this.calculateRemainingForBudget(budget, supabase);
+
+    return {
+      ...budgetMappers.toApi(budget),
+      rollover: rolloverData.rollover,
+      previousBudgetId: rolloverData.previousBudgetId,
+      remaining,
+      transactions: transactionMappers.toApiList(transactions || []),
+      budgetLines: budgetLineMappers.toApiList(budgetLines || []),
+    };
+  }
+
+  private logExportSuccess(
+    userId: string,
+    budgetCount: number,
+    startTime: number,
+  ): void {
+    this.logger.info(
+      {
+        userId,
+        budgetCount,
+        duration: Date.now() - startTime,
+        operation: 'budget.export.success',
+      },
+      'Export de tous les budgets réussi',
+    );
+  }
+
+  private buildExportResponse(
+    budgetsWithDetails: BudgetWithDetails[],
+  ): BudgetExportResponse {
+    return {
+      success: true as const,
+      data: {
+        exportDate: new Date().toISOString(),
+        totalBudgets: budgetsWithDetails.length,
+        budgets: budgetsWithDetails,
+      },
+    };
   }
 
   async create(

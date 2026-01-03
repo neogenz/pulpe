@@ -17,6 +17,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
+import { BudgetApi } from '@core/budget/budget-api';
+import { downloadAsJsonFile } from '@core/file-download';
 import { ROUTES, TitleDisplay } from '@core/routing';
 import { type CalendarMonth, YearCalendar } from '@ui/calendar';
 import { type CalendarYear } from '@ui/calendar/calendar-types';
@@ -47,12 +49,12 @@ const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
     YearCalendar,
   ],
   template: `
-    <div class="flex flex-col 2xl:h-full gap-4 2xl:min-h-0">
-      <header class="flex justify-between items-center">
-        <h1 class="text-display-small">
+    <div class="flex flex-col 2xl:h-full gap-4 2xl:min-h-0 min-w-0">
+      <header class="flex flex-wrap justify-between items-center gap-2">
+        <h1 class="text-display-small truncate min-w-0 flex-shrink">
           {{ titleDisplay.currentTitle() }}
         </h1>
-        <div class="flex gap-2">
+        <div class="flex gap-2 flex-shrink-0">
           <button
             matIconButton
             (click)="startPageTour()"
@@ -61,6 +63,20 @@ const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
             data-testid="help-button"
           >
             <mat-icon>help_outline</mat-icon>
+          </button>
+          <button
+            matIconButton
+            (click)="onExportBudgets()"
+            [disabled]="isExporting()"
+            matTooltip="Exporter tous les budgets en JSON"
+            aria-label="Exporter"
+            data-testid="export-budgets-btn"
+          >
+            @if (isExporting()) {
+              <mat-icon>hourglass_empty</mat-icon>
+            } @else {
+              <mat-icon>download</mat-icon>
+            }
           </button>
           <button
             matButton="filled"
@@ -133,6 +149,9 @@ export default class BudgetListPage {
   readonly #logger = inject(Logger);
   readonly #loadingIndicator = inject(LoadingIndicator);
   readonly #destroyRef = inject(DestroyRef);
+  readonly #budgetApi = inject(BudgetApi);
+
+  protected readonly isExporting = signal(false);
 
   constructor() {
     // Refresh data on init
@@ -296,6 +315,37 @@ export default class BudgetListPage {
           duration: 5000,
         },
       );
+    }
+  }
+
+  async onExportBudgets(): Promise<void> {
+    this.isExporting.set(true);
+    this.#loadingIndicator.setLoading(true);
+
+    try {
+      const data = await firstValueFrom(this.#budgetApi.exportAllBudgets$());
+      const today = new Date().toISOString().split('T')[0];
+      downloadAsJsonFile(data, `pulpe-export-${today}`);
+
+      this.#snackBar.open(
+        'Export réussi ! Le fichier a été téléchargé.',
+        'Fermer',
+        { duration: 3000 },
+      );
+    } catch (error) {
+      this.#logger.error('Error exporting budgets', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Erreur inconnue';
+      this.#snackBar.open(
+        `Erreur lors de l'export: ${errorMessage}`,
+        'Fermer',
+        {
+          duration: 5000,
+        },
+      );
+    } finally {
+      this.isExporting.set(false);
+      this.#loadingIndicator.setLoading(false);
     }
   }
 }

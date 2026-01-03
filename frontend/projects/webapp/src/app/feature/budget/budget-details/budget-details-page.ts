@@ -76,7 +76,7 @@ import {
   ],
   providers: [BudgetDetailsStore, BudgetLineApi],
   template: `
-    <div class="flex flex-col gap-6" data-testid="budget-detail-page">
+    <div class="flex flex-col gap-6 min-w-0" data-testid="budget-detail-page">
       @if (store.isLoading()) {
         <pulpe-base-loading
           message="Chargement des détails du budget..."
@@ -99,18 +99,20 @@ import {
         @let transactions = budget.transactions;
 
         <!-- Header -->
-        <header class="flex items-start gap-4">
+        <header class="flex items-start gap-2 sm:gap-4 min-w-0">
           <button
             matIconButton
             (click)="navigateBack()"
             aria-label="Retour aux budgets"
             data-testid="back-button"
-            class="mt-1"
+            class="mt-1 flex-shrink-0"
           >
             <mat-icon>arrow_back</mat-icon>
           </button>
-          <div class="flex-1">
-            <h1 class="text-display-small mb-2">
+          <div class="flex-1 min-w-0">
+            <h1
+              class="text-headline-medium sm:text-display-small mb-2 truncate"
+            >
               {{ displayName() }}
             </h1>
             @if (budget.description) {
@@ -125,7 +127,7 @@ import {
             matTooltip="Découvrir cette page"
             aria-label="Aide"
             data-testid="help-button"
-            class="mt-1"
+            class="mt-1 flex-shrink-0"
           >
             <mat-icon>help_outline</mat-icon>
           </button>

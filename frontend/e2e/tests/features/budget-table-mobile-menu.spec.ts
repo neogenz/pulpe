@@ -1,4 +1,5 @@
 import { test, expect } from '../../fixtures/test-fixtures';
+import { createBudgetDetailsMock, createBudgetLineMock, TEST_UUIDS } from '../../helpers/api-mocks';
 
 /**
  * Budget Table Menu Tests
@@ -10,43 +11,41 @@ import { test, expect } from '../../fixtures/test-fixtures';
  * Both views display actions through a dropdown menu (not separate buttons).
  */
 test.describe('Budget Table Mobile Menu', () => {
-  test.beforeEach(async ({ authenticatedPage: page }) => {
-    // Mock budget details endpoint with test data
+  const budgetId = TEST_UUIDS.BUDGET_1;
+
+  // Helper to set up route mocking (used by each nested describe's beforeEach)
+  async function setupBudgetDetailsMock(page: import('@playwright/test').Page) {
+    const mockResponse = createBudgetDetailsMock(budgetId, {
+      budget: { month: 8, year: 2025 },
+      budgetLines: [
+        createBudgetLineMock(TEST_UUIDS.LINE_1, budgetId, { name: 'Groceries', amount: 400, kind: 'expense', recurrence: 'fixed' }),
+        createBudgetLineMock(TEST_UUIDS.LINE_2, budgetId, { name: 'Salary', amount: 5000, kind: 'income', recurrence: 'fixed' }),
+        createBudgetLineMock(TEST_UUIDS.LINE_3, budgetId, { name: 'Transport', amount: 150, kind: 'expense', recurrence: 'fixed' }),
+      ],
+      transactions: [],
+    });
+
     await page.route('**/api/v1/budgets/*/details', route =>
       route.fulfill({
         status: 200,
-        body: JSON.stringify({
-          success: true,
-          data: {
-            budget: {
-              id: 'test-budget-123',
-              name: 'Test Budget',
-              month: 8,
-              year: 2025,
-            },
-            budgetLines: [
-              { id: 'line-1', name: 'Groceries', amount: 400, kind: 'expense', recurrence: 'fixed' },
-              { id: 'line-2', name: 'Salary', amount: 5000, kind: 'income', recurrence: 'fixed' },
-              { id: 'line-3', name: 'Transport', amount: 150, kind: 'expense', recurrence: 'fixed' },
-            ],
-            transactions: [
-              { id: 'txn-1', name: 'Coffee', amount: 5, kind: 'expense', budgetLineId: 'line-1' },
-            ],
-          },
-        }),
+        contentType: 'application/json',
+        body: JSON.stringify(mockResponse),
       }),
     );
-
-    // Navigate directly to budget details page
-    await page.goto('/app/budget/test-budget-123');
-    await page.waitForLoadState('domcontentloaded');
-
-    // Ensure budget table is loaded
-    await expect(page.locator('pulpe-budget-table')).toBeVisible();
-  });
+  }
 
   test.describe('Mobile View', () => {
     test.use({ viewport: { width: 375, height: 667 }, isMobile: true });
+
+    test.beforeEach(async ({ authenticatedPage: page }) => {
+      await setupBudgetDetailsMock(page);
+      // Navigate and wait for the API response to ensure data is loaded
+      await Promise.all([
+        page.waitForResponse(resp => resp.url().includes('/api/v1/budgets/') && resp.url().includes('/details')),
+        page.goto(`/app/budget/${budgetId}`),
+      ]);
+      await expect(page.locator('pulpe-budget-table')).toBeVisible();
+    });
 
     test('shows menu button for budget line actions', async ({ authenticatedPage: page }) => {
       // Mobile view uses card-menu-* prefix
@@ -129,6 +128,12 @@ test.describe('Budget Table Mobile Menu', () => {
     });
 
     test('should not show menu button for rollover budget lines', async ({ authenticatedPage: page }) => {
+      // Use valid UUIDs for Zod validation
+      const testBudgetId = '00000000-0000-4000-a000-000000000003';
+      const lineId = '00000000-0000-4000-a000-000000001009';
+      const rolloverId = '00000000-0000-4000-a000-000000001010';
+      const previousBudgetId = '00000000-0000-4000-a000-000000000004';
+
       // Override route with rollover line in mock data
       await page.route('**/api/v1/budgets/*/details', route =>
         route.fulfill({
@@ -137,21 +142,45 @@ test.describe('Budget Table Mobile Menu', () => {
             success: true,
             data: {
               budget: {
-                id: 'test-budget-123',
-                name: 'Test Budget',
+                id: testBudgetId,
+                description: 'Test Budget',
                 month: 8,
                 year: 2025,
+                userId: '00000000-0000-4000-a000-000000000201',
+                templateId: '00000000-0000-4000-a000-000000000101',
+                createdAt: '2025-01-01T00:00:00Z',
+                updatedAt: '2025-01-01T00:00:00Z',
               },
               budgetLines: [
-                { id: 'line-1', name: 'Groceries', amount: 400, kind: 'expense', recurrence: 'fixed' },
                 {
-                  id: 'rollover-display',
+                  id: lineId,
+                  budgetId: testBudgetId,
+                  name: 'Groceries',
+                  amount: 400,
+                  kind: 'expense',
+                  recurrence: 'fixed',
+                  isManuallyAdjusted: false,
+                  templateLineId: null,
+                  savingsGoalId: null,
+                  checkedAt: null,
+                  createdAt: '2025-01-01T00:00:00Z',
+                  updatedAt: '2025-01-01T00:00:00Z',
+                },
+                {
+                  id: rolloverId,
+                  budgetId: testBudgetId,
                   name: 'rollover_7_2025',
                   amount: 150,
                   kind: 'income',
                   recurrence: 'fixed',
+                  isManuallyAdjusted: false,
+                  templateLineId: null,
+                  savingsGoalId: null,
+                  checkedAt: null,
+                  createdAt: '2025-01-01T00:00:00Z',
+                  updatedAt: '2025-01-01T00:00:00Z',
                   isRollover: true,
-                  rolloverSourceBudgetId: 'previous-budget-456',
+                  rolloverSourceBudgetId: previousBudgetId,
                 },
               ],
               transactions: [],
@@ -161,22 +190,32 @@ test.describe('Budget Table Mobile Menu', () => {
       );
 
       // Reload page to get new mock data
-      await page.goto('/app/budget/test-budget-123');
+      await page.goto(`/app/budget/${testBudgetId}`);
       await page.waitForLoadState('domcontentloaded');
       await expect(page.locator('pulpe-budget-table')).toBeVisible();
 
       // Regular line should have menu button
-      const regularLineMenu = page.locator('[data-testid="card-menu-line-1"]');
+      const regularLineMenu = page.locator(`[data-testid="card-menu-${lineId}"]`);
       await expect(regularLineMenu).toBeVisible();
 
       // Rollover line should NOT have menu button
-      const rolloverLineMenu = page.locator('[data-testid="card-menu-rollover-display"]');
+      const rolloverLineMenu = page.locator(`[data-testid="card-menu-${rolloverId}"]`);
       await expect(rolloverLineMenu).not.toBeVisible();
     });
   });
 
   test.describe('Desktop View', () => {
     test.use({ viewport: { width: 1280, height: 720 } });
+
+    test.beforeEach(async ({ authenticatedPage: page }) => {
+      await setupBudgetDetailsMock(page);
+      // Navigate and wait for the API response to ensure data is loaded
+      await Promise.all([
+        page.waitForResponse(resp => resp.url().includes('/api/v1/budgets/') && resp.url().includes('/details')),
+        page.goto(`/app/budget/${budgetId}`),
+      ]);
+      await expect(page.locator('pulpe-budget-table')).toBeVisible();
+    });
 
     test('shows menu button for row actions', async ({ authenticatedPage: page }) => {
       // Desktop view uses actions-menu-* prefix in the table
@@ -236,10 +275,19 @@ test.describe('Budget Table Mobile Menu', () => {
   });
 
   test.describe('Responsive Behavior', () => {
+    test.beforeEach(async ({ authenticatedPage: page }) => {
+      await setupBudgetDetailsMock(page);
+    });
+
     test('uses different menu button prefixes for mobile vs desktop', async ({ authenticatedPage: page }) => {
       // Start with desktop viewport
       await page.setViewportSize({ width: 1280, height: 720 });
-      await page.waitForTimeout(500);
+      // Navigate and wait for the API response to ensure data is loaded
+      await Promise.all([
+        page.waitForResponse(resp => resp.url().includes('/api/v1/budgets/') && resp.url().includes('/details')),
+        page.goto(`/app/budget/${budgetId}`),
+      ]);
+      await expect(page.locator('pulpe-budget-table')).toBeVisible();
 
       // Desktop uses actions-menu-* prefix (table view)
       const desktopMenuButton = page.locator('[data-testid^="actions-menu-"]').first();
@@ -256,10 +304,19 @@ test.describe('Budget Table Mobile Menu', () => {
   });
 
   test.describe('Accessibility', () => {
-    test('can navigate menu with keyboard on mobile', async ({ authenticatedPage: page }) => {
-      await page.setViewportSize({ width: 375, height: 667 });
-      await page.waitForTimeout(500);
+    test.use({ viewport: { width: 375, height: 667 }, isMobile: true });
 
+    test.beforeEach(async ({ authenticatedPage: page }) => {
+      await setupBudgetDetailsMock(page);
+      // Navigate and wait for the API response to ensure data is loaded
+      await Promise.all([
+        page.waitForResponse(resp => resp.url().includes('/api/v1/budgets/') && resp.url().includes('/details')),
+        page.goto(`/app/budget/${budgetId}`),
+      ]);
+      await expect(page.locator('pulpe-budget-table')).toBeVisible();
+    });
+
+    test('can navigate menu with keyboard on mobile', async ({ authenticatedPage: page }) => {
       const menuButton = page.locator('[data-testid^="card-menu-"]').first();
 
       // Focus and activate menu with keyboard
