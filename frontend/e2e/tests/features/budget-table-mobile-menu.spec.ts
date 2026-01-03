@@ -128,6 +128,12 @@ test.describe('Budget Table Mobile Menu', () => {
     });
 
     test('should not show menu button for rollover budget lines', async ({ authenticatedPage: page }) => {
+      // Use valid UUIDs for Zod validation
+      const testBudgetId = '00000000-0000-4000-a000-000000000003';
+      const lineId = '00000000-0000-4000-a000-000000001009';
+      const rolloverId = '00000000-0000-4000-a000-000000001010';
+      const previousBudgetId = '00000000-0000-4000-a000-000000000004';
+
       // Override route with rollover line in mock data
       await page.route('**/api/v1/budgets/*/details', route =>
         route.fulfill({
@@ -136,7 +142,7 @@ test.describe('Budget Table Mobile Menu', () => {
             success: true,
             data: {
               budget: {
-                id: 'test-budget-123',
+                id: testBudgetId,
                 description: 'Test Budget',
                 month: 8,
                 year: 2025,
@@ -147,8 +153,8 @@ test.describe('Budget Table Mobile Menu', () => {
               },
               budgetLines: [
                 {
-                  id: 'line-1',
-                  budgetId: 'test-budget-123',
+                  id: lineId,
+                  budgetId: testBudgetId,
                   name: 'Groceries',
                   amount: 400,
                   kind: 'expense',
@@ -161,8 +167,8 @@ test.describe('Budget Table Mobile Menu', () => {
                   updatedAt: '2025-01-01T00:00:00Z',
                 },
                 {
-                  id: 'rollover-display',
-                  budgetId: 'test-budget-123',
+                  id: rolloverId,
+                  budgetId: testBudgetId,
                   name: 'rollover_7_2025',
                   amount: 150,
                   kind: 'income',
@@ -174,7 +180,7 @@ test.describe('Budget Table Mobile Menu', () => {
                   createdAt: '2025-01-01T00:00:00Z',
                   updatedAt: '2025-01-01T00:00:00Z',
                   isRollover: true,
-                  rolloverSourceBudgetId: 'previous-budget-456',
+                  rolloverSourceBudgetId: previousBudgetId,
                 },
               ],
               transactions: [],
@@ -184,16 +190,16 @@ test.describe('Budget Table Mobile Menu', () => {
       );
 
       // Reload page to get new mock data
-      await page.goto('/app/budget/test-budget-123');
+      await page.goto(`/app/budget/${testBudgetId}`);
       await page.waitForLoadState('domcontentloaded');
       await expect(page.locator('pulpe-budget-table')).toBeVisible();
 
       // Regular line should have menu button
-      const regularLineMenu = page.locator('[data-testid="card-menu-line-1"]');
+      const regularLineMenu = page.locator(`[data-testid="card-menu-${lineId}"]`);
       await expect(regularLineMenu).toBeVisible();
 
       // Rollover line should NOT have menu button
-      const rolloverLineMenu = page.locator('[data-testid="card-menu-rollover-display"]');
+      const rolloverLineMenu = page.locator(`[data-testid="card-menu-${rolloverId}"]`);
       await expect(rolloverLineMenu).not.toBeVisible();
     });
   });
