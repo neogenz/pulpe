@@ -5,7 +5,6 @@ import {
   Body,
   UseGuards,
   InternalServerErrorException,
-  ValidationPipe,
 } from '@nestjs/common';
 import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
 import {
@@ -91,7 +90,7 @@ export class UserController {
     type: ErrorResponseDto,
   })
   async updateProfile(
-    @Body(ValidationPipe) updateData: UpdateProfileDto,
+    @Body() updateData: UpdateProfileDto,
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<UserProfileResponseDto> {
@@ -297,7 +296,7 @@ export class UserController {
     type: ErrorResponseDto,
   })
   async updateSettings(
-    @Body(ValidationPipe) updateData: UpdateUserSettingsDto,
+    @Body() updateData: UpdateUserSettingsDto,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<UserSettingsResponseDto> {
     try {

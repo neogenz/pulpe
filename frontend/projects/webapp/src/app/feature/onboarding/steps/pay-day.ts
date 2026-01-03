@@ -101,7 +101,7 @@ export default class PayDay {
   }
 
   onSkip(): void {
-    // Don't save anything, just navigate
+    this.#store.updateField('payDayOfMonth', null);
     this.#navigateToNext();
   }
 
