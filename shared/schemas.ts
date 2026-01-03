@@ -185,6 +185,9 @@ export const budgetLineSchema = z.object({
   checkedAt: z.iso.datetime({ offset: true }).nullable(),
   createdAt: z.iso.datetime({ offset: true }),
   updatedAt: z.iso.datetime({ offset: true }),
+  // Rollover fields - added when budget line represents a rollover from previous month
+  isRollover: z.boolean().optional(),
+  rolloverSourceBudgetId: z.uuid().optional(),
 });
 export type BudgetLine = z.infer<typeof budgetLineSchema>;
 
