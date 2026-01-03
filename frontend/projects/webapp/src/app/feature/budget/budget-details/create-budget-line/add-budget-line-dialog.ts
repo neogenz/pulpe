@@ -10,7 +10,6 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { toSignal } from '@angular/core/rxjs-interop';
 import {
   type BudgetLineCreate,
   type TransactionKind,
@@ -126,10 +125,6 @@ export class AddBudgetLineDialog {
     ],
     kind: ['expense' as TransactionKind, Validators.required],
     recurrence: ['one_off' as TransactionRecurrence],
-  });
-
-  formValue = toSignal(this.form.valueChanges, {
-    initialValue: this.form.getRawValue(),
   });
 
   handleSubmit(): void {
