@@ -3,6 +3,7 @@ import SwiftUI
 struct BudgetDetailsView: View {
     let budgetId: String
     @State private var viewModel: BudgetDetailsViewModel
+    @State private var selectedLineForTransaction: BudgetLine?
 
     init(budgetId: String) {
         self.budgetId = budgetId
@@ -26,6 +27,11 @@ struct BudgetDetailsView: View {
         .task {
             await viewModel.loadDetails()
         }
+        .sheet(item: $selectedLineForTransaction) { line in
+            AddAllocatedTransactionSheet(budgetLine: line) { transaction in
+                viewModel.addTransaction(transaction)
+            }
+        }
     }
 
     private func content(budget: Budget) -> some View {
@@ -47,6 +53,9 @@ struct BudgetDetailsView: View {
                         transactions: viewModel.transactions,
                         onToggle: { line in
                             Task { await viewModel.toggleBudgetLine(line) }
+                        },
+                        onAddTransaction: { line in
+                            selectedLineForTransaction = line
                         }
                     )
                 }
@@ -58,6 +67,9 @@ struct BudgetDetailsView: View {
                         transactions: viewModel.transactions,
                         onToggle: { line in
                             Task { await viewModel.toggleBudgetLine(line) }
+                        },
+                        onAddTransaction: { line in
+                            selectedLineForTransaction = line
                         }
                     )
                 }
@@ -69,6 +81,9 @@ struct BudgetDetailsView: View {
                         transactions: viewModel.transactions,
                         onToggle: { line in
                             Task { await viewModel.toggleBudgetLine(line) }
+                        },
+                        onAddTransaction: { line in
+                            selectedLineForTransaction = line
                         }
                     )
                 }
@@ -101,6 +116,7 @@ struct BudgetLineSection: View {
     let lines: [BudgetLine]
     let transactions: [Transaction]
     let onToggle: (BudgetLine) -> Void
+    let onAddTransaction: (BudgetLine) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -121,7 +137,8 @@ struct BudgetLineSection: View {
                     BudgetLineDetailRow(
                         line: line,
                         consumption: BudgetFormulas.calculateConsumption(for: line, transactions: transactions),
-                        onToggle: { onToggle(line) }
+                        onToggle: { onToggle(line) },
+                        onAddTransaction: { onAddTransaction(line) }
                     )
                 }
             }
@@ -138,6 +155,7 @@ struct BudgetLineDetailRow: View {
     let line: BudgetLine
     let consumption: BudgetFormulas.Consumption
     let onToggle: () -> Void
+    let onAddTransaction: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -179,6 +197,14 @@ struct BudgetLineDetailRow: View {
                             .foregroundStyle(consumption.isOverBudget ? .red : .secondary)
                     }
                 }
+
+                // Add transaction button
+                Button(action: onAddTransaction) {
+                    Image(systemName: "plus.circle")
+                        .font(.title2)
+                        .foregroundStyle(Color.accentColor)
+                }
+                .disabled(line.isVirtualRollover)
             }
             .padding()
 
@@ -350,6 +376,11 @@ final class BudgetDetailsViewModel {
         } catch {
             self.error = error
         }
+    }
+
+    @MainActor
+    func addTransaction(_ transaction: Transaction) {
+        transactions.append(transaction)
     }
 }
 

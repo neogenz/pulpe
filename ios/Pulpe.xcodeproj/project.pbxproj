@@ -20,6 +20,7 @@
 		36D240411A8032729B6D29AA /* HealthInsuranceStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2462651BA94AFFA96E88027 /* HealthInsuranceStep.swift */; };
 		3A4F017B5B7D8F61564A40BC /* BudgetLine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 150C0AA658E75766BDC017EB /* BudgetLine.swift */; };
 		3C754ABC64CCC7FB68006C9D /* KeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57A624A40CC91AC97C743441 /* KeychainManager.swift */; };
+		3D7531C34481474D2EDD7DC0 /* AddAllocatedTransactionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E873F06201D0A4D69F356ED /* AddAllocatedTransactionSheet.swift */; };
 		3EBBC9D5EDE6B6B316A3A074 /* TemplateDetailsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3A3C49B0B8A78283AB987AD /* TemplateDetailsView.swift */; };
 		40867D66318D1675AC21C5EE /* Endpoints.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3AD93EA890CC61B4AA606B7 /* Endpoints.swift */; };
 		4491DFC84F384660F238F4F8 /* BudgetTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27F72011B11153235E828030 /* BudgetTemplate.swift */; };
@@ -94,6 +95,7 @@
 		606435140AB22BD250F34C36 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		698F0684A80FD2BFB998D92A /* BudgetDetailsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetDetailsView.swift; sourceTree = "<group>"; };
 		6B63C48FA85869F486C3CBE3 /* TemplateListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemplateListView.swift; sourceTree = "<group>"; };
+		6E873F06201D0A4D69F356ED /* AddAllocatedTransactionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddAllocatedTransactionSheet.swift; sourceTree = "<group>"; };
 		7D01817526FAA87D773269A9 /* TransactionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionService.swift; sourceTree = "<group>"; };
 		7F7722947386A7CD78FE3B05 /* OnboardingFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlow.swift; sourceTree = "<group>"; };
 		94570CEB6CD57FB35C06DE92 /* Pulpe.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Pulpe.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -275,6 +277,7 @@
 		7AD30F582AADD63CA98FF48E /* BudgetDetails */ = {
 			isa = PBXGroup;
 			children = (
+				6E873F06201D0A4D69F356ED /* AddAllocatedTransactionSheet.swift */,
 				698F0684A80FD2BFB998D92A /* BudgetDetailsView.swift */,
 			);
 			path = BudgetDetails;
@@ -519,6 +522,7 @@
 				7FDE6E7EF6B2084A2D298452 /* APIClient.swift in Sources */,
 				EDDD3545AF89F29F118A14A8 /* APIError.swift in Sources */,
 				C60DD41963FD1AA7424B73E7 /* APIResponse.swift in Sources */,
+				3D7531C34481474D2EDD7DC0 /* AddAllocatedTransactionSheet.swift in Sources */,
 				5EB9DD65C1AD7312A87E4133 /* AddTransactionSheet.swift in Sources */,
 				D089B1AD077036EE44E5F027 /* AppConfiguration.swift in Sources */,
 				626E386E73A2C807D70E799A /* AppState.swift in Sources */,

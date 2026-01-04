@@ -4,6 +4,7 @@ struct CurrentMonthView: View {
     @Environment(AppState.self) private var appState
     @State private var viewModel = CurrentMonthViewModel()
     @State private var showAddTransaction = false
+    @State private var selectedLineForTransaction: BudgetLine?
 
     var body: some View {
         ZStack {
@@ -52,6 +53,11 @@ struct CurrentMonthView: View {
                 }
             }
         }
+        .sheet(item: $selectedLineForTransaction) { line in
+            AddAllocatedTransactionSheet(budgetLine: line) { transaction in
+                viewModel.addTransaction(transaction)
+            }
+        }
         .task {
             await viewModel.loadData()
         }
@@ -77,6 +83,9 @@ struct CurrentMonthView: View {
                             transactions: viewModel.transactions,
                             onToggle: { line in
                                 Task { await viewModel.toggleBudgetLine(line) }
+                            },
+                            onAddTransaction: { line in
+                                selectedLineForTransaction = line
                             }
                         )
                     }
@@ -89,6 +98,9 @@ struct CurrentMonthView: View {
                             transactions: viewModel.transactions,
                             onToggle: { line in
                                 Task { await viewModel.toggleBudgetLine(line) }
+                            },
+                            onAddTransaction: { line in
+                                selectedLineForTransaction = line
                             }
                         )
                     }

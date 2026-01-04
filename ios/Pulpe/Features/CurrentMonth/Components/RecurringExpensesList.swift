@@ -6,6 +6,7 @@ struct RecurringExpensesList: View {
     let items: [BudgetLine]
     let transactions: [Transaction]
     let onToggle: (BudgetLine) -> Void
+    let onAddTransaction: (BudgetLine) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -18,7 +19,8 @@ struct RecurringExpensesList: View {
                     BudgetLineRow(
                         line: item,
                         consumption: BudgetFormulas.calculateConsumption(for: item, transactions: transactions),
-                        onToggle: { onToggle(item) }
+                        onToggle: { onToggle(item) },
+                        onAddTransaction: { onAddTransaction(item) }
                     )
                 }
             }
@@ -32,6 +34,7 @@ struct BudgetLineRow: View {
     let line: BudgetLine
     let consumption: BudgetFormulas.Consumption
     let onToggle: () -> Void
+    let onAddTransaction: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
@@ -70,6 +73,14 @@ struct BudgetLineRow: View {
                     }
                 }
             }
+
+            // Add transaction button
+            Button(action: onAddTransaction) {
+                Image(systemName: "plus.circle")
+                    .font(.title2)
+                    .foregroundStyle(Color.accentColor)
+            }
+            .disabled(line.isVirtualRollover)
         }
         .padding()
         .background(.background)
@@ -134,7 +145,8 @@ struct ConsumptionIndicator: View {
             )
         ],
         transactions: [],
-        onToggle: { _ in }
+        onToggle: { _ in },
+        onAddTransaction: { _ in }
     )
     .padding()
     .background(Color(.systemGroupedBackground))

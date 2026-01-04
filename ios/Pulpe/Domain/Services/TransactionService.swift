@@ -14,7 +14,7 @@ actor TransactionService {
 
     /// Get all transactions for a budget
     func getTransactions(budgetId: String) async throws -> [Transaction] {
-        try await apiClient.request(.transactions(budgetId: budgetId), method: .get)
+        try await apiClient.request(.transactionsByBudget(budgetId: budgetId), method: .get)
     }
 
     /// Get a specific transaction
@@ -24,7 +24,7 @@ actor TransactionService {
 
     /// Create a new transaction
     func createTransaction(_ data: TransactionCreate) async throws -> Transaction {
-        try await apiClient.request(.transactions(budgetId: data.budgetId), body: data, method: .post)
+        try await apiClient.request(.transactionsCreate, body: data, method: .post)
     }
 
     /// Update a transaction
