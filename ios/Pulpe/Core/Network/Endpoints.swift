@@ -65,13 +65,13 @@ enum Endpoint {
         // Budget Lines
         case .budgetLines(let budgetId): return "/budgets/\(budgetId)/lines"
         case .budgetLine(let id): return "/budget-lines/\(id)"
-        case .budgetLineToggle(let id): return "/budget-lines/\(id)/toggle"
+        case .budgetLineToggle(let id): return "/budget-lines/\(id)/toggle-check"
         case .budgetLineResetFromTemplate(let id): return "/budget-lines/\(id)/reset-from-template"
 
         // Transactions
         case .transactions(let budgetId): return "/budgets/\(budgetId)/transactions"
         case .transaction(let id): return "/transactions/\(id)"
-        case .transactionToggle(let id): return "/transactions/\(id)/toggle"
+        case .transactionToggle(let id): return "/transactions/\(id)/toggle-check"
 
         // Templates
         case .templates: return "/budget-templates"
