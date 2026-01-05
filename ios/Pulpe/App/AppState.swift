@@ -25,13 +25,12 @@ final class AppState {
         didSet { UserDefaults.standard.set(hasCompletedOnboarding, forKey: "pulpe-onboarding-completed") }
     }
 
+    private var tutorialCompleted: Bool = UserDefaults.standard.bool(forKey: "pulpe-tutorial-completed") {
+        didSet { UserDefaults.standard.set(tutorialCompleted, forKey: "pulpe-tutorial-completed") }
+    }
+
     var showTutorial: Bool {
-        get { !UserDefaults.standard.bool(forKey: "pulpe-tutorial-completed") && authState == .authenticated }
-        set {
-            if !newValue {
-                UserDefaults.standard.set(true, forKey: "pulpe-tutorial-completed")
-            }
-        }
+        !tutorialCompleted && authState == .authenticated
     }
 
     // MARK: - Services
@@ -87,7 +86,7 @@ final class AppState {
     }
 
     func completeTutorial() {
-        showTutorial = false
+        tutorialCompleted = true
     }
 }
 

@@ -2,17 +2,17 @@
 
 ## Overview
 
-Ajouter un long press sur les transactions allouées (avec `budgetLineId`) dans `RecurringExpensesList` pour afficher une sheet modale contenant toutes les transactions liées au même budget line. La sheet permettra de check/uncheck et supprimer les transactions.
+Ajouter un long press sur les budget lines dans `RecurringExpensesList` pour afficher une sheet modale avec effet **Liquid Glass iOS 26** contenant toutes les transactions liées. La sheet permettra de check/uncheck et supprimer les transactions.
 
-**Approche** : Sheet Modal (Option A de l'exploration)
-- Cohérent avec `AddAllocatedTransactionSheet` existant
-- Pattern iOS standard
-- Support accessibilité natif
+**Approche** : Sheet Modal avec Liquid Glass natif iOS 26
+- `GlassEffectContainer` + `.glassEffect()` pour le glassmorphism natif
+- `withAnimation(.bouncy)` pour les animations natives
+- `.sensoryFeedback()` pour le retour haptique
 
 **Scope** :
 - Long press sur `BudgetLineRow` (pas `TransactionRow` qui affiche les transactions "free")
 - Haptic feedback avec `.sensoryFeedback()` iOS 17+
-- Animation scale pendant le press
+- Animation native `.bouncy` pendant le press
 
 ---
 
@@ -28,7 +28,7 @@ Ajouter un long press sur les transactions allouées (avec `budgetLineId`) dans 
 
 ### 1. `Pulpe/Features/CurrentMonth/Components/LinkedTransactionsSheet.swift` (NOUVEAU)
 
-**Purpose**: Sheet modale affichant les transactions liées à un budget line
+**Purpose**: Sheet modale avec Liquid Glass affichant les transactions liées
 
 - Créer struct `LinkedTransactionsSheet` avec:
   - Paramètres: `budgetLine: BudgetLine`, `transactions: [Transaction]`, `onToggle: (Transaction) -> Void`, `onDelete: (Transaction) -> Void`
@@ -36,8 +36,14 @@ Ajouter un long press sur les transactions allouées (avec `budgetLineId`) dans 
   - Liste des transactions avec design similaire à `TransactionRow`
   - Actions: check button + swipe delete avec confirmation
 
+- **iOS 26 Liquid Glass** :
+  - Wrapper le contenu dans `GlassEffectContainer`
+  - Appliquer `.glassEffect()` sur le header
+  - Utiliser `.presentationBackground(.ultraThinMaterial)` sur la sheet
+  - Animations avec `withAnimation(.bouncy)`
+
 - Suivre le pattern de `AddAllocatedTransactionSheet`:
-  - `NavigationStack` avec toolbar (bouton Fermer)
+  - `NavigationStack` avec toolbar (bouton Fermer avec `.buttonStyle(.glass)`)
   - `@Environment(\.dismiss)` pour fermeture
   - `.navigationBarTitleDisplayMode(.inline)`
 
@@ -59,13 +65,15 @@ Ajouter un long press sur les transactions allouées (avec `budgetLineId`) dans 
 - Ajouter `@State private var isPressed = false`
 - Ajouter `@State private var showNoLinkedFeedback = false`
 
-- Wrapper le contenu principal dans `.onLongPressGesture()`:
+- **iOS 26 Native Long Press** avec `.onLongPressGesture()`:
   - `minimumDuration: 0.5`
   - `maximumDistance: 10` (évite déclenchement pendant scroll)
-  - `pressing:` → animation scale 0.95 avec `.easeInOut(duration: 0.15)`
+  - `pressing:` → `withAnimation(.bouncy) { isPressed = pressing }`
   - `perform:` → calculer transactions liées, appeler callback ou trigger warning
 
-- Ajouter `.scaleEffect(isPressed ? 0.97 : 1.0)` sur le contenu
+- **Animation native iOS 26** :
+  - Ajouter `.scaleEffect(isPressed ? 0.96 : 1.0)` sur le contenu
+  - L'animation `.bouncy` gère automatiquement le retour élastique
 
 - Ajouter haptic feedback:
   - `.sensoryFeedback(.success, trigger: ...)` quand transactions trouvées
@@ -158,7 +166,8 @@ Aucune documentation externe requise.
 
 ## Rollout Considerations
 
-- **iOS 17+ requis** pour `.sensoryFeedback()` - vérifier la version minimum du projet
+- **iOS 26 requis** pour `GlassEffectContainer`, `.glassEffect()`, `.bouncy` animation
+- **Fallback iOS 17-25** : Si besoin de supporter versions antérieures, utiliser `@available(iOS 26, *)` avec fallback `.ultraThinMaterial`
 - **Pas de migration de données** - feature purement UI
 - **Pas de breaking changes** - nouveaux paramètres avec valeurs par défaut possibles si preview échoue
 
