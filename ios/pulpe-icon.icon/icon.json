@@ -1,0 +1,52 @@
+{
+  "fill" : {
+    "solid" : "srgb:0.70173,1.00000,0.87141,1.00000"
+  },
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "hidden" : false,
+          "image-name" : "modern-symbol--stylized-citrus-slice-cross-section (1).png",
+          "name" : "modern-symbol--stylized-citrus-slice-cross-section (1)",
+          "position" : {
+            "scale" : 1,
+            "translation-in-points" : [
+              0,
+              0
+            ]
+          }
+        },
+        {
+          "blend-mode" : "normal",
+          "fill" : "automatic",
+          "glass" : true,
+          "hidden" : false,
+          "image-name" : "modern-symbol--stylized-citrus-slice-cross-section.png",
+          "name" : "modern-symbol--stylized-citrus-slice-cross-section",
+          "position" : {
+            "scale" : 1,
+            "translation-in-points" : [
+              0,
+              0
+            ]
+          }
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
+  }
+}

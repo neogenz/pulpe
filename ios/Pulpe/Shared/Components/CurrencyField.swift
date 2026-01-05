@@ -118,7 +118,6 @@ struct CurrencyText: View {
     var body: some View {
         Text(formattedAmount)
             .font(font)
-            .foregroundStyle(amount < 0 ? .red : .primary)
     }
 
     private var font: Font {
