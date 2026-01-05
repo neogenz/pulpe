@@ -11,9 +11,7 @@ struct LoginView: View {
                 VStack(spacing: 32) {
                     // Logo and title
                     VStack(spacing: 16) {
-                        Image(systemName: "banknote.fill")
-                            .font(.system(size: 60))
-                            .foregroundStyle(.tint)
+                        PulpeLogo(size: 80)
 
                         Text("Connexion")
                             .font(.largeTitle)
