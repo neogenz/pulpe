@@ -54,7 +54,7 @@ struct WelcomeStep: View {
             }
         }
         .sheet(isPresented: $showLogin) {
-            LoginView()
+            LoginView(isPresented: $showLogin)
         }
     }
 }

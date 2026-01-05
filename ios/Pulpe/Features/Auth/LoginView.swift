@@ -5,6 +5,10 @@ struct LoginView: View {
     @Environment(AppState.self) private var appState
     @State private var viewModel = LoginViewModel()
 
+    var isPresented: Binding<Bool>?
+
+    private var isPresentedAsSheet: Bool { isPresented != nil }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -120,7 +124,11 @@ struct LoginView: View {
                             .foregroundStyle(.secondary)
 
                         Button("Créer un compte") {
-                            dismiss()
+                            if isPresentedAsSheet {
+                                dismiss()
+                            } else {
+                                appState.hasCompletedOnboarding = false
+                            }
                         }
                         .fontWeight(.medium)
                     }
@@ -132,9 +140,11 @@ struct LoginView: View {
             }
             .background(Color(.systemGroupedBackground))
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") {
-                        dismiss()
+                if isPresentedAsSheet {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Annuler") {
+                            dismiss()
+                        }
                     }
                 }
             }

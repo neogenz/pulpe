@@ -32,9 +32,9 @@ enum TransactionKind: String, Codable, CaseIterable, Sendable {
 
     var color: Color {
         switch self {
-        case .income: .green
-        case .expense: .red
-        case .saving: .blue
+        case .income: .financialIncome
+        case .expense: .financialExpense
+        case .saving: .financialSavings
         }
     }
 

@@ -63,6 +63,7 @@
 		EC88348DD8DBF4F6B166D265 /* Formatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = D576CD613CD0E637C83249E9 /* Formatters.swift */; };
 		EDDD3545AF89F29F118A14A8 /* APIError.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFC463766B410987FE96534C /* APIError.swift */; };
 		F28AE4EA87CA967C9EAE1B9F /* RecurringExpensesList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2947DBEF8A6264E9FF73AEDA /* RecurringExpensesList.swift */; };
+		F2F1195BE9107FF339538B3E /* Color+Pulpe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E4F47F7A88B6744CA6D788C /* Color+Pulpe.swift */; };
 		F5D9B6FD484997E69677F7E2 /* Decimal+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BE2934837CC4349E12F1EE2 /* Decimal+Extensions.swift */; };
 		FE6501D7F3A0BBA2FA54CD7C /* BudgetListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E68DC6A301F7687197817A0 /* BudgetListView.swift */; };
 /* End PBXBuildFile section */
@@ -96,6 +97,7 @@
 		606435140AB22BD250F34C36 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		698F0684A80FD2BFB998D92A /* BudgetDetailsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetDetailsView.swift; sourceTree = "<group>"; };
 		6B63C48FA85869F486C3CBE3 /* TemplateListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemplateListView.swift; sourceTree = "<group>"; };
+		6E4F47F7A88B6744CA6D788C /* Color+Pulpe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Pulpe.swift"; sourceTree = "<group>"; };
 		6E873F06201D0A4D69F356ED /* AddAllocatedTransactionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddAllocatedTransactionSheet.swift; sourceTree = "<group>"; };
 		7D01817526FAA87D773269A9 /* TransactionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionService.swift; sourceTree = "<group>"; };
 		7D23A76488CE35949FDA3B08 /* PulpeLogo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PulpeLogo.swift; sourceTree = "<group>"; };
@@ -218,6 +220,7 @@
 		513DABDD517355E952C1BFFF /* Extensions */ = {
 			isa = PBXGroup;
 			children = (
+				6E4F47F7A88B6744CA6D788C /* Color+Pulpe.swift */,
 				BF72C3AFECE05BCF77785C5F /* Date+Extensions.swift */,
 				3BE2934837CC4349E12F1EE2 /* Decimal+Extensions.swift */,
 				E7A8C7ACFFD4118A786F4A2C /* View+Extensions.swift */,
@@ -540,6 +543,7 @@
 				D189B4BF576DC1596EF13C66 /* BudgetProgressBar.swift in Sources */,
 				E9723E285117007368341692 /* BudgetService.swift in Sources */,
 				4491DFC84F384660F238F4F8 /* BudgetTemplate.swift in Sources */,
+				F2F1195BE9107FF339538B3E /* Color+Pulpe.swift in Sources */,
 				83A455CF99981A6CD2A65ED3 /* CreateBudgetView.swift in Sources */,
 				547E46730E438D89507B7693 /* CreateTemplateView.swift in Sources */,
 				2D9213003E2378D76B409DC9 /* CurrencyField.swift in Sources */,

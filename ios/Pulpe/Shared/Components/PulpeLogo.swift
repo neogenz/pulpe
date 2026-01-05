@@ -9,12 +9,7 @@ struct PulpeLogo: View {
     }
 
     private let gradient = LinearGradient(
-        colors: [
-            Color(hex: 0x0088FF), // bleu survitaminé
-            Color(hex: 0x00DDAA), // turquoise punch
-            Color(hex: 0x00FF55), // vert néon
-            Color(hex: 0x88FF44)  // vert lime électrique
-        ],
+        colors: Color.pulpeGradientColors,
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
@@ -23,16 +18,6 @@ struct PulpeLogo: View {
         Circle()
             .fill(gradient)
             .frame(width: size, height: size)
-    }
-}
-
-private extension Color {
-    init(hex: UInt) {
-        self.init(
-            red: Double((hex >> 16) & 0xFF) / 255,
-            green: Double((hex >> 8) & 0xFF) / 255,
-            blue: Double(hex & 0xFF) / 255
-        )
     }
 }
 

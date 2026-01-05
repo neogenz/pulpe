@@ -16,9 +16,9 @@ struct FinancialSummaryCard: View {
 
         var color: Color {
             switch self {
-            case .income: .green
-            case .expense: .red
-            case .savings: .blue
+            case .income: .financialIncome
+            case .expense: .financialExpense
+            case .savings: .financialSavings
             case .balance: .primary
             case .neutral: .secondary
             }
@@ -26,9 +26,9 @@ struct FinancialSummaryCard: View {
 
         var backgroundColor: Color {
             switch self {
-            case .income: .green.opacity(0.1)
-            case .expense: .red.opacity(0.1)
-            case .savings: .blue.opacity(0.1)
+            case .income: .financialIncome.opacity(0.1)
+            case .expense: .financialExpense.opacity(0.1)
+            case .savings: .financialSavings.opacity(0.1)
             case .balance: .primary.opacity(0.1)
             case .neutral: .secondary.opacity(0.1)
             }

@@ -21,9 +21,8 @@ final class AppState {
 
     // MARK: - Onboarding & Tutorial
 
-    var hasCompletedOnboarding: Bool {
-        get { UserDefaults.standard.bool(forKey: "pulpe-onboarding-completed") }
-        set { UserDefaults.standard.set(newValue, forKey: "pulpe-onboarding-completed") }
+    var hasCompletedOnboarding: Bool = UserDefaults.standard.bool(forKey: "pulpe-onboarding-completed") {
+        didSet { UserDefaults.standard.set(hasCompletedOnboarding, forKey: "pulpe-onboarding-completed") }
     }
 
     var showTutorial: Bool {
