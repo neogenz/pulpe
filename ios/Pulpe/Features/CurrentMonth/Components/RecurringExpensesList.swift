@@ -14,7 +14,7 @@ struct RecurringExpensesList: View {
                 .sectionHeader()
                 .padding(.horizontal)
 
-            VStack(spacing: 8) {
+            VStack(spacing: 6) {
                 ForEach(items) { item in
                     BudgetLineRow(
                         line: item,
@@ -29,85 +29,115 @@ struct RecurringExpensesList: View {
     }
 }
 
-/// Single budget line row
+/// Single budget line row - Clean, minimal design
 struct BudgetLineRow: View {
     let line: BudgetLine
     let consumption: BudgetFormulas.Consumption
     let onToggle: () -> Void
     let onAddTransaction: () -> Void
 
-    var body: some View {
-        HStack(spacing: 12) {
-            // Check button
-            Button {
-                onToggle()
-            } label: {
-                Image(systemName: line.isChecked ? "checkmark.circle.fill" : "circle")
-                    .font(.title2)
-                    .foregroundStyle(line.isChecked ? .green : .secondary)
-            }
-            .disabled(line.isVirtualRollover)
-
-            // Content
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text(line.name)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .strikethrough(line.isChecked)
-                        .foregroundStyle(line.isChecked ? .secondary : .primary)
-
-                    Spacer()
-
-                    CurrencyText(line.amount, style: .body)
-                        .foregroundStyle(line.kind.color)
-                }
-
-                // Badges and consumption
-                HStack {
-                    BudgetLineBadges(kind: line.kind, recurrence: line.recurrence)
-
-                    if consumption.allocated > 0 {
-                        Spacer()
-                        ConsumptionIndicator(consumption: consumption)
-                    }
-                }
-            }
-
-            // Add transaction button
-            Button(action: onAddTransaction) {
-                Image(systemName: "plus.circle")
-                    .font(.title2)
-                    .foregroundStyle(Color.accentColor)
-            }
-            .disabled(line.isVirtualRollover)
-        }
-        .padding()
-        .background(.background)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
+    private var hasConsumption: Bool {
+        consumption.allocated > 0
     }
-}
 
-/// Consumption indicator for allocated transactions
-struct ConsumptionIndicator: View {
-    let consumption: BudgetFormulas.Consumption
-
-    private var color: Color {
+    private var consumptionColor: Color {
         if consumption.isOverBudget { return .red }
         if consumption.isNearLimit { return .orange }
         return .green
     }
 
     var body: some View {
-        HStack(spacing: 4) {
-            CircularProgressView(progress: consumption.percentage / 100, lineWidth: 3)
-                .frame(width: 16, height: 16)
+        VStack(spacing: 0) {
+            HStack(spacing: 14) {
+                // Check button - larger tap target
+                Button(action: onToggle) {
+                    ZStack {
+                        Circle()
+                            .stroke(line.isChecked ? Color.green : Color(.systemGray4), lineWidth: 2)
+                            .frame(width: 24, height: 24)
 
-            Text(consumption.allocated.asCompactCHF)
-                .font(.caption)
-                .foregroundStyle(color)
+                        if line.isChecked {
+                            Circle()
+                                .fill(Color.green)
+                                .frame(width: 24, height: 24)
+
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(.white)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+                .disabled(line.isVirtualRollover)
+                .opacity(line.isVirtualRollover ? 0.4 : 1)
+
+                // Main content
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(line.name)
+                        .font(.system(.body, design: .rounded, weight: .medium))
+                        .foregroundStyle(line.isChecked ? .secondary : .primary)
+                        .strikethrough(line.isChecked, color: .secondary)
+                        .lineLimit(1)
+
+                    // Subtitle: recurrence indicator
+                    HStack(spacing: 4) {
+                        Image(systemName: line.recurrence.icon)
+                            .font(.caption2)
+                        Text(line.recurrence.label)
+                            .font(.caption)
+                    }
+                    .foregroundStyle(.tertiary)
+                }
+
+                Spacer(minLength: 8)
+
+                // Amount with optional consumption
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(line.amount.asCHF)
+                        .font(.system(.body, design: .rounded, weight: .semibold))
+                        .foregroundStyle(line.isChecked ? .secondary : line.kind.color)
+
+                    if hasConsumption {
+                        Text("\(consumption.allocated.asCompactCHF) utilisé")
+                            .font(.caption2)
+                            .foregroundStyle(consumptionColor)
+                    }
+                }
+
+                // Add button - subtle but accessible
+                Button(action: onAddTransaction) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Color.accentColor)
+                        .frame(width: 28, height: 28)
+                        .background(Color.accentColor.opacity(0.12))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .disabled(line.isVirtualRollover)
+                .opacity(line.isVirtualRollover ? 0 : 1)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+
+            // Consumption progress bar - only if has consumption
+            if hasConsumption {
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        Rectangle()
+                            .fill(Color(.systemGray5))
+
+                        Rectangle()
+                            .fill(consumptionColor.opacity(0.8))
+                            .frame(width: geometry.size.width * CGFloat(min(consumption.percentage / 100, 1)))
+                    }
+                }
+                .frame(height: 3)
+            }
         }
+        .background(Color(.systemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .shadow(color: .black.opacity(0.04), radius: 3, y: 1)
     }
 }
 
