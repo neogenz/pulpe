@@ -52,14 +52,13 @@ struct OnboardingFlow: View {
                         }
                         .tag(OnboardingStep.registration)
                     }
+                    .id(state.currentStep) // Force re-render when step changes
                     .tabViewStyle(.page(indexDisplayMode: .never))
+                    .scrollDisabled(true)
                     .animation(.easeInOut(duration: 0.3), value: state.currentStep)
                 }
             }
             .navigationBarHidden(true)
-            .onAppear {
-                state.loadFromStorage()
-            }
         }
     }
 }

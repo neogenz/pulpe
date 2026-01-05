@@ -28,7 +28,13 @@ final class OnboardingState {
 
     // MARK: - Persistence Keys
 
-    private let storageKey = "pulpe-onboarding-data"
+    private static let storageKey = "pulpe-onboarding-data"
+
+    // MARK: - Init
+
+    init() {
+        loadFromStorage()
+    }
 
     // MARK: - Computed
 
@@ -55,7 +61,8 @@ final class OnboardingState {
 
     var progressPercentage: Double {
         let totalSteps = OnboardingStep.allCases.count - 1 // Exclude welcome
-        let currentIndex = max(0, OnboardingStep.allCases.firstIndex(of: currentStep)! - 1)
+        guard let stepIndex = OnboardingStep.allCases.firstIndex(of: currentStep) else { return 0 }
+        let currentIndex = max(0, stepIndex - 1)
         return Double(currentIndex) / Double(totalSteps) * 100
     }
 
@@ -91,6 +98,7 @@ final class OnboardingState {
             return
         }
         currentStep = OnboardingStep.allCases[currentIndex - 1]
+        saveToStorage()
     }
 
     // MARK: - Persistence
@@ -108,12 +116,12 @@ final class OnboardingState {
         )
 
         if let encoded = try? JSONEncoder().encode(data) {
-            UserDefaults.standard.set(encoded, forKey: storageKey)
+            UserDefaults.standard.set(encoded, forKey: Self.storageKey)
         }
     }
 
     func loadFromStorage() {
-        guard let data = UserDefaults.standard.data(forKey: storageKey),
+        guard let data = UserDefaults.standard.data(forKey: Self.storageKey),
               let decoded = try? JSONDecoder().decode(OnboardingStorageData.self, from: data) else {
             return
         }
@@ -132,6 +140,10 @@ final class OnboardingState {
     }
 
     func clearStorage() {
+        UserDefaults.standard.removeObject(forKey: Self.storageKey)
+    }
+
+    static func clearPersistedData() {
         UserDefaults.standard.removeObject(forKey: storageKey)
     }
 

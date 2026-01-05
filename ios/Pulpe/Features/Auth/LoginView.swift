@@ -1,13 +1,10 @@
 import SwiftUI
 
 struct LoginView: View {
-    @Environment(\.dismiss) private var dismiss
     @Environment(AppState.self) private var appState
     @State private var viewModel = LoginViewModel()
 
     var isPresented: Binding<Bool>?
-
-    private var isPresentedAsSheet: Bool { isPresented != nil }
 
     var body: some View {
         NavigationStack {
@@ -124,9 +121,10 @@ struct LoginView: View {
                             .foregroundStyle(.secondary)
 
                         Button("Créer un compte") {
-                            if isPresentedAsSheet {
-                                dismiss()
+                            if let isPresented {
+                                isPresented.wrappedValue = false
                             } else {
+                                OnboardingState.clearPersistedData()
                                 appState.hasCompletedOnboarding = false
                             }
                         }
@@ -140,10 +138,10 @@ struct LoginView: View {
             }
             .background(Color(.systemGroupedBackground))
             .toolbar {
-                if isPresentedAsSheet {
+                if let isPresented {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Annuler") {
-                            dismiss()
+                            isPresented.wrappedValue = false
                         }
                     }
                 }
@@ -158,7 +156,7 @@ struct LoginView: View {
 
         do {
             try await appState.login(email: viewModel.email, password: viewModel.password)
-            dismiss()
+            isPresented?.wrappedValue = false
         } catch {
             viewModel.errorMessage = AuthErrorLocalizer.localize(error)
             viewModel.isLoading = false
