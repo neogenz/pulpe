@@ -9,6 +9,7 @@ import { AuthErrorLocalizer } from './auth-error-localizer';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
 import { DemoModeService } from '../demo/demo-mode.service';
+import { PostHogService } from '../analytics/posthog';
 
 export interface AuthState {
   readonly user: User | null;
@@ -25,6 +26,7 @@ export class AuthApi {
   readonly #applicationConfig = inject(ApplicationConfiguration);
   readonly #logger = inject(Logger);
   readonly #demoModeService = inject(DemoModeService);
+  readonly #postHogService = inject(PostHogService);
 
   // Supabase client - créé dans initializeAuthState() après le chargement de la config
   #supabaseClient: SupabaseClient | null = null;
@@ -154,16 +156,25 @@ export class AuthApi {
   private handleSignOut(): void {
     // Clear demo mode state BEFORE clearing other data
     // This ensures demo state is reset on ALL logout paths (menu, auth errors, etc.)
+    // Note: This also updates internal signals, not just localStorage
     this.#demoModeService.deactivateDemoMode();
 
-    // Nettoyer le localStorage et autres états liés à l'utilisateur
+    // Reset analytics identity to prevent tracking new user with old identity
+    this.#postHogService.reset();
+
+    // Clear all user data from localStorage
+    // IMPORTANT: All app storage keys MUST use 'pulpe' prefix to be cleaned on logout
+    // TODO: Consider creating a typed StorageService to enforce prefix at compile-time
+    this.#clearUserStorage();
+  }
+
+  #clearUserStorage(): void {
     try {
-      localStorage.removeItem('pulpe-onboarding-completed');
+      Object.keys(localStorage)
+        .filter((key) => key.startsWith('pulpe'))
+        .forEach((key) => localStorage.removeItem(key));
     } catch (error) {
-      this.#logger.warn(
-        'Failed to clear onboarding status from localStorage:',
-        error,
-      );
+      this.#logger.warn('Failed to clear user data from localStorage:', error);
     }
   }
 
