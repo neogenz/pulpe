@@ -5,17 +5,15 @@
  * Uses Driver.js library with Material Design 3 theming.
  */
 
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { driver, type DriveStep, type Config } from 'driver.js';
+import { StorageService, STORAGE_KEYS } from '@core/storage';
 
 export type TourPageId =
   | 'current-month'
   | 'budget-list'
   | 'budget-details'
   | 'templates-list';
-
-const STORAGE_PREFIX = 'pulpe_tour_';
-const INTRO_KEY = `${STORAGE_PREFIX}intro`;
 
 /**
  * Delay before starting tour to ensure DOM is fully rendered
@@ -28,56 +26,56 @@ export const TOUR_START_DELAY = 500;
  * Exported for E2E test utilities
  */
 export const TOUR_STORAGE_KEYS = {
-  intro: INTRO_KEY,
-  'current-month': `${STORAGE_PREFIX}current-month`,
-  'budget-list': `${STORAGE_PREFIX}budget-list`,
-  'budget-details': `${STORAGE_PREFIX}budget-details`,
-  'templates-list': `${STORAGE_PREFIX}templates-list`,
+  intro: STORAGE_KEYS.TOUR_INTRO,
+  'current-month': STORAGE_KEYS.TOUR_CURRENT_MONTH,
+  'budget-list': STORAGE_KEYS.TOUR_BUDGET_LIST,
+  'budget-details': STORAGE_KEYS.TOUR_BUDGET_DETAILS,
+  'templates-list': STORAGE_KEYS.TOUR_TEMPLATES_LIST,
 } as const;
 
 @Injectable({
   providedIn: 'root',
 })
 export class ProductTourService {
+  readonly #storageService = inject(StorageService);
+
   /**
    * Check if user has seen the intro (welcome + navigation)
    */
   hasSeenIntro(): boolean {
-    return localStorage.getItem(INTRO_KEY) === 'true';
+    return this.#storageService.getString(TOUR_STORAGE_KEYS.intro) === 'true';
   }
 
   /**
    * Check if user has seen a specific page tour
    */
   hasSeenPageTour(pageId: TourPageId): boolean {
-    return localStorage.getItem(`${STORAGE_PREFIX}${pageId}`) === 'true';
+    return this.#storageService.getString(TOUR_STORAGE_KEYS[pageId]) === 'true';
   }
 
   /**
    * Mark intro as completed
    */
   #markIntroCompleted(): void {
-    localStorage.setItem(INTRO_KEY, 'true');
+    this.#storageService.setString(TOUR_STORAGE_KEYS.intro, 'true');
   }
 
   /**
    * Mark a page tour as completed
    */
   #markPageTourCompleted(pageId: TourPageId): void {
-    localStorage.setItem(`${STORAGE_PREFIX}${pageId}`, 'true');
+    this.#storageService.setString(TOUR_STORAGE_KEYS[pageId], 'true');
   }
 
   /**
    * Reset all tours (for testing)
    */
   resetAllTours(): void {
-    localStorage.removeItem(INTRO_KEY);
-    localStorage.removeItem(`${STORAGE_PREFIX}current-month`);
-    localStorage.removeItem(`${STORAGE_PREFIX}budget-list`);
-    localStorage.removeItem(`${STORAGE_PREFIX}budget-details`);
-    localStorage.removeItem(`${STORAGE_PREFIX}templates-list`);
-    // Clean up old key
-    localStorage.removeItem('pulpe_tour_completed');
+    this.#storageService.remove(TOUR_STORAGE_KEYS.intro);
+    this.#storageService.remove(TOUR_STORAGE_KEYS['current-month']);
+    this.#storageService.remove(TOUR_STORAGE_KEYS['budget-list']);
+    this.#storageService.remove(TOUR_STORAGE_KEYS['budget-details']);
+    this.#storageService.remove(TOUR_STORAGE_KEYS['templates-list']);
   }
 
   /**

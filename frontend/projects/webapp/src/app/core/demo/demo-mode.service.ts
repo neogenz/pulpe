@@ -1,5 +1,6 @@
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { Logger } from '@core/logging/logger';
+import { StorageService, STORAGE_KEYS } from '@core/storage';
 
 /**
  * Service managing demo mode state using reactive signals
@@ -10,11 +11,14 @@ import { Logger } from '@core/logging/logger';
 })
 export class DemoModeService {
   readonly #logger = inject(Logger);
+  readonly #storageService = inject(StorageService);
 
   // Private writable signals
-  readonly #isDemoModeSignal = signal<boolean>(this.#readDemoModeFromStorage());
+  readonly #isDemoModeSignal = signal<boolean>(
+    this.#storageService.getString(STORAGE_KEYS.DEMO_MODE) === 'true',
+  );
   readonly #demoUserEmailSignal = signal<string | null>(
-    this.#readDemoUserEmailFromStorage(),
+    this.#storageService.getString(STORAGE_KEYS.DEMO_USER_EMAIL),
   );
 
   // Public readonly signals
@@ -37,14 +41,15 @@ export class DemoModeService {
       const email = this.#demoUserEmailSignal();
 
       if (isDemoMode && email) {
-        this.#writeDemoModeToStorage(true);
-        this.#writeDemoUserEmailToStorage(email);
+        this.#storageService.setString(STORAGE_KEYS.DEMO_MODE, 'true');
+        this.#storageService.setString(STORAGE_KEYS.DEMO_USER_EMAIL, email);
         this.#logger.debug('Demo mode state synchronized to localStorage', {
           isDemoMode,
           email,
         });
       } else {
-        this.#clearDemoModeFromStorage();
+        this.#storageService.remove(STORAGE_KEYS.DEMO_MODE);
+        this.#storageService.remove(STORAGE_KEYS.DEMO_USER_EMAIL);
         this.#logger.debug('Demo mode state cleared from localStorage');
       }
     });
@@ -66,56 +71,5 @@ export class DemoModeService {
     this.#logger.info('Deactivating demo mode');
     this.#isDemoModeSignal.set(false);
     this.#demoUserEmailSignal.set(null);
-  }
-
-  // Private methods for localStorage access
-
-  #readDemoModeFromStorage(): boolean {
-    try {
-      return localStorage.getItem('pulpe-demo-mode') === 'true';
-    } catch (error) {
-      this.#logger.warn('Failed to read demo mode from localStorage', error);
-      return false;
-    }
-  }
-
-  #readDemoUserEmailFromStorage(): string | null {
-    try {
-      return localStorage.getItem('pulpe-demo-user-email');
-    } catch (error) {
-      this.#logger.warn(
-        'Failed to read demo user email from localStorage',
-        error,
-      );
-      return null;
-    }
-  }
-
-  #writeDemoModeToStorage(value: boolean): void {
-    try {
-      localStorage.setItem('pulpe-demo-mode', value.toString());
-    } catch (error) {
-      this.#logger.warn('Failed to write demo mode to localStorage', error);
-    }
-  }
-
-  #writeDemoUserEmailToStorage(email: string): void {
-    try {
-      localStorage.setItem('pulpe-demo-user-email', email);
-    } catch (error) {
-      this.#logger.warn(
-        'Failed to write demo user email to localStorage',
-        error,
-      );
-    }
-  }
-
-  #clearDemoModeFromStorage(): void {
-    try {
-      localStorage.removeItem('pulpe-demo-mode');
-      localStorage.removeItem('pulpe-demo-user-email');
-    } catch (error) {
-      this.#logger.warn('Failed to clear demo mode from localStorage', error);
-    }
   }
 }

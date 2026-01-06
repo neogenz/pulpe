@@ -85,17 +85,6 @@ describe('ProductTourService', () => {
       expect(service.hasSeenPageTour('templates-list')).toBe(false);
     });
 
-    it('should also clear legacy tour key', () => {
-      // GIVEN: Legacy key exists
-      localStorage.setItem('pulpe_tour_completed', 'true');
-
-      // WHEN: Reset all tours
-      service.resetAllTours();
-
-      // THEN: Legacy key is also cleared
-      expect(localStorage.getItem('pulpe_tour_completed')).toBeNull();
-    });
-
     it('should handle being called when no tours have been seen', () => {
       // WHEN: Reset is called with no tours seen
       service.resetAllTours();
@@ -107,19 +96,19 @@ describe('ProductTourService', () => {
 
   describe('TOUR_STORAGE_KEYS', () => {
     it('should have correct key format for intro', () => {
-      expect(TOUR_STORAGE_KEYS.intro).toBe('pulpe_tour_intro');
+      expect(TOUR_STORAGE_KEYS.intro).toBe('pulpe-tour-intro');
     });
 
     it('should have correct key format for page tours', () => {
       expect(TOUR_STORAGE_KEYS['current-month']).toBe(
-        'pulpe_tour_current-month',
+        'pulpe-tour-current-month',
       );
-      expect(TOUR_STORAGE_KEYS['budget-list']).toBe('pulpe_tour_budget-list');
+      expect(TOUR_STORAGE_KEYS['budget-list']).toBe('pulpe-tour-budget-list');
       expect(TOUR_STORAGE_KEYS['budget-details']).toBe(
-        'pulpe_tour_budget-details',
+        'pulpe-tour-budget-details',
       );
       expect(TOUR_STORAGE_KEYS['templates-list']).toBe(
-        'pulpe_tour_templates-list',
+        'pulpe-tour-templates-list',
       );
     });
   });

@@ -10,6 +10,7 @@ import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
 import { DemoModeService } from '../demo/demo-mode.service';
 import { PostHogService } from '../analytics/posthog';
+import { StorageService } from '../storage';
 
 export interface AuthState {
   readonly user: User | null;
@@ -27,6 +28,7 @@ export class AuthApi {
   readonly #logger = inject(Logger);
   readonly #demoModeService = inject(DemoModeService);
   readonly #postHogService = inject(PostHogService);
+  readonly #storageService = inject(StorageService);
 
   // Supabase client - créé dans initializeAuthState() après le chargement de la config
   #supabaseClient: SupabaseClient | null = null;
@@ -162,20 +164,8 @@ export class AuthApi {
     // Reset analytics identity to prevent tracking new user with old identity
     this.#postHogService.reset();
 
-    // Clear all user data from localStorage
-    // IMPORTANT: All app storage keys MUST use 'pulpe' prefix to be cleaned on logout
-    // TODO: Consider creating a typed StorageService to enforce prefix at compile-time
-    this.#clearUserStorage();
-  }
-
-  #clearUserStorage(): void {
-    try {
-      Object.keys(localStorage)
-        .filter((key) => key.startsWith('pulpe'))
-        .forEach((key) => localStorage.removeItem(key));
-    } catch (error) {
-      this.#logger.warn('Failed to clear user data from localStorage:', error);
-    }
+    // Clear all user data from localStorage (type-safe via StorageService)
+    this.#storageService.clearAll();
   }
 
   async signInWithEmail(
