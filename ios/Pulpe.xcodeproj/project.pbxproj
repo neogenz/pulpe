@@ -31,6 +31,7 @@
 		5EB9DD65C1AD7312A87E4133 /* AddTransactionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054A9E4A9CCF915305B08CC0 /* AddTransactionSheet.swift */; };
 		626E386E73A2C807D70E799A /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4377A27005BBA73FC6616969 /* AppState.swift */; };
 		6BDB2182575FA1AB04F061CC /* Budget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 375A017C49DE46C9C5B8D8DB /* Budget.swift */; };
+		6CDB77CCB53255B0897278CC /* LinkedTransactionsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8334F2FD3ED442FCC576A91 /* LinkedTransactionsSheet.swift */; };
 		78F733179BB5B59703022BCA /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19358B36831C40F5A674FBDA /* AuthService.swift */; };
 		7D8DD48CD5C6688A74753599 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 606435140AB22BD250F34C36 /* MainTabView.swift */; };
 		7E995CCFD4F86681A8C2ABA9 /* BudgetFormulas.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAAA7ED54F25794213D540FE /* BudgetFormulas.swift */; };
@@ -129,6 +130,7 @@
 		F24CDAB50DD41CF603A787D2 /* PulpeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PulpeApp.swift; sourceTree = "<group>"; };
 		F3A3C49B0B8A78283AB987AD /* TemplateDetailsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemplateDetailsView.swift; sourceTree = "<group>"; };
 		F76CA89C404286DF9CAF27D5 /* CurrentMonthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrentMonthView.swift; sourceTree = "<group>"; };
+		F8334F2FD3ED442FCC576A91 /* LinkedTransactionsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkedTransactionsSheet.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -202,6 +204,7 @@
 			isa = PBXGroup;
 			children = (
 				054A9E4A9CCF915305B08CC0 /* AddTransactionSheet.swift */,
+				F8334F2FD3ED442FCC576A91 /* LinkedTransactionsSheet.swift */,
 				4EA095E32B5C5AC4B0FCE485 /* OneTimeExpensesList.swift */,
 				2947DBEF8A6264E9FF73AEDA /* RecurringExpensesList.swift */,
 			);
@@ -560,6 +563,7 @@
 				3C754ABC64CCC7FB68006C9D /* KeychainManager.swift in Sources */,
 				DDAAA3DDA45E5B0FF93BD616 /* KindBadge.swift in Sources */,
 				B4A23874085296AD464B88DC /* LeasingCreditStep.swift in Sources */,
+				6CDB77CCB53255B0897278CC /* LinkedTransactionsSheet.swift in Sources */,
 				A9D815E799971DE27B7770E9 /* LoadingView.swift in Sources */,
 				846573A9906007B79BC2B2C2 /* LoginView.swift in Sources */,
 				7D8DD48CD5C6688A74753599 /* MainTabView.swift in Sources */,

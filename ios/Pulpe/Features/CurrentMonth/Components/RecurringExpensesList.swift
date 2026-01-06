@@ -7,6 +7,7 @@ struct RecurringExpensesList: View {
     let transactions: [Transaction]
     let onToggle: (BudgetLine) -> Void
     let onAddTransaction: (BudgetLine) -> Void
+    let onLongPress: (BudgetLine, [Transaction]) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -19,8 +20,12 @@ struct RecurringExpensesList: View {
                     BudgetLineRow(
                         line: item,
                         consumption: BudgetFormulas.calculateConsumption(for: item, transactions: transactions),
+                        allTransactions: transactions,
                         onToggle: { onToggle(item) },
-                        onAddTransaction: { onAddTransaction(item) }
+                        onAddTransaction: { onAddTransaction(item) },
+                        onLongPress: { linkedTransactions in
+                            onLongPress(item, linkedTransactions)
+                        }
                     )
                 }
             }
@@ -33,8 +38,14 @@ struct RecurringExpensesList: View {
 struct BudgetLineRow: View {
     let line: BudgetLine
     let consumption: BudgetFormulas.Consumption
+    let allTransactions: [Transaction]
     let onToggle: () -> Void
     let onAddTransaction: () -> Void
+    let onLongPress: ([Transaction]) -> Void
+
+    @State private var isPressed = false
+    @State private var triggerSuccessFeedback = false
+    @State private var triggerWarningFeedback = false
 
     private var hasConsumption: Bool {
         consumption.allocated > 0
@@ -44,6 +55,10 @@ struct BudgetLineRow: View {
         if consumption.isOverBudget { return .red }
         if consumption.isNearLimit { return .orange }
         return .green
+    }
+
+    private var linkedTransactions: [Transaction] {
+        allTransactions.filter { $0.budgetLineId == line.id }
     }
 
     var body: some View {
@@ -138,6 +153,33 @@ struct BudgetLineRow: View {
         .background(Color(.systemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .shadow(color: .black.opacity(0.04), radius: 3, y: 1)
+        .scaleEffect(isPressed ? 0.96 : 1.0)
+        .animation(.bouncy(duration: 0.3), value: isPressed)
+        .onLongPressGesture(
+            minimumDuration: 0.5,
+            maximumDistance: 10,
+            pressing: { pressing in
+                withAnimation(.bouncy(duration: 0.2)) {
+                    isPressed = pressing
+                }
+            },
+            perform: {
+                handleLongPress()
+            }
+        )
+        .sensoryFeedback(.success, trigger: triggerSuccessFeedback)
+        .sensoryFeedback(.warning, trigger: triggerWarningFeedback)
+    }
+
+    private func handleLongPress() {
+        guard !line.isVirtualRollover else { return }
+
+        if linkedTransactions.isEmpty {
+            triggerWarningFeedback.toggle()
+        } else {
+            triggerSuccessFeedback.toggle()
+            onLongPress(linkedTransactions)
+        }
     }
 }
 
@@ -174,9 +216,24 @@ struct BudgetLineRow: View {
                 updatedAt: Date()
             )
         ],
-        transactions: [],
+        transactions: [
+            Transaction(
+                id: "t1",
+                budgetId: "b1",
+                budgetLineId: "1",
+                name: "Loyer janvier",
+                amount: 1500,
+                kind: .expense,
+                transactionDate: Date(),
+                category: nil,
+                checkedAt: nil,
+                createdAt: Date(),
+                updatedAt: Date()
+            )
+        ],
         onToggle: { _ in },
-        onAddTransaction: { _ in }
+        onAddTransaction: { _ in },
+        onLongPress: { _, _ in }
     )
     .padding()
     .background(Color(.systemGroupedBackground))

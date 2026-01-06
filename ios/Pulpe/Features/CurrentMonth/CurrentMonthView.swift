@@ -5,6 +5,7 @@ struct CurrentMonthView: View {
     @State private var viewModel = CurrentMonthViewModel()
     @State private var showAddTransaction = false
     @State private var selectedLineForTransaction: BudgetLine?
+    @State private var linkedTransactionsContext: LinkedTransactionsContext?
 
     var body: some View {
         ZStack {
@@ -58,6 +59,22 @@ struct CurrentMonthView: View {
                 viewModel.addTransaction(transaction)
             }
         }
+        .sheet(item: $linkedTransactionsContext) { context in
+            LinkedTransactionsSheet(
+                budgetLine: context.budgetLine,
+                transactions: context.transactions,
+                onToggle: { transaction in
+                    Task { await viewModel.toggleTransaction(transaction) }
+                },
+                onDelete: { transaction in
+                    Task { await viewModel.deleteTransaction(transaction) }
+                },
+                onAddTransaction: {
+                    linkedTransactionsContext = nil
+                    selectedLineForTransaction = context.budgetLine
+                }
+            )
+        }
         .task {
             await viewModel.loadData()
         }
@@ -86,6 +103,12 @@ struct CurrentMonthView: View {
                             },
                             onAddTransaction: { line in
                                 selectedLineForTransaction = line
+                            },
+                            onLongPress: { line, transactions in
+                                linkedTransactionsContext = LinkedTransactionsContext(
+                                    budgetLine: line,
+                                    transactions: transactions
+                                )
                             }
                         )
                     }
@@ -101,6 +124,12 @@ struct CurrentMonthView: View {
                             },
                             onAddTransaction: { line in
                                 selectedLineForTransaction = line
+                            },
+                            onLongPress: { line, transactions in
+                                linkedTransactionsContext = LinkedTransactionsContext(
+                                    budgetLine: line,
+                                    transactions: transactions
+                                )
                             }
                         )
                     }
@@ -277,6 +306,14 @@ final class CurrentMonthViewModel {
             self.error = error
         }
     }
+}
+
+// MARK: - Linked Transactions Context
+
+private struct LinkedTransactionsContext: Identifiable {
+    let id = UUID()
+    let budgetLine: BudgetLine
+    let transactions: [Transaction]
 }
 
 #Preview {
