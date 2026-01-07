@@ -22,6 +22,7 @@ enum Endpoint {
     // MARK: - Budget Lines
 
     case budgetLines(budgetId: String)
+    case budgetLinesCreate
     case budgetLine(id: String)
     case budgetLineToggle(id: String)
     case budgetLineResetFromTemplate(id: String)
@@ -65,6 +66,7 @@ enum Endpoint {
 
         // Budget Lines
         case .budgetLines(let budgetId): return "/budgets/\(budgetId)/lines"
+        case .budgetLinesCreate: return "/budget-lines"
         case .budgetLine(let id): return "/budget-lines/\(id)"
         case .budgetLineToggle(let id): return "/budget-lines/\(id)/toggle-check"
         case .budgetLineResetFromTemplate(let id): return "/budget-lines/\(id)/reset-from-template"
@@ -92,7 +94,7 @@ enum Endpoint {
 
     var method: HTTPMethod {
         switch self {
-        case .budgets, .budgetLines, .transactionsCreate, .templates,
+        case .budgets, .budgetLines, .budgetLinesCreate, .transactionsCreate, .templates,
              .templateLines, .templateFromOnboarding, .templateLinesBulk:
             return .post
 

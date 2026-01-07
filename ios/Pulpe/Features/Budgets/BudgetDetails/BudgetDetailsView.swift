@@ -4,6 +4,7 @@ struct BudgetDetailsView: View {
     let budgetId: String
     @State private var viewModel: BudgetDetailsViewModel
     @State private var selectedLineForTransaction: BudgetLine?
+    @State private var showAddBudgetLine = false
 
     init(budgetId: String) {
         self.budgetId = budgetId
@@ -24,12 +25,26 @@ struct BudgetDetailsView: View {
         }
         .navigationTitle(viewModel.budget?.monthYear ?? "Budget")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    showAddBudgetLine = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+            }
+        }
         .task {
             await viewModel.loadDetails()
         }
         .sheet(item: $selectedLineForTransaction) { line in
             AddAllocatedTransactionSheet(budgetLine: line) { transaction in
                 viewModel.addTransaction(transaction)
+            }
+        }
+        .sheet(isPresented: $showAddBudgetLine) {
+            AddBudgetLineSheet(budgetId: budgetId) { budgetLine in
+                viewModel.addBudgetLine(budgetLine)
             }
         }
     }
@@ -112,9 +127,7 @@ struct BudgetDetailsView: View {
         .listSectionSpacing(16)
         .scrollContentBackground(.hidden)
         .background(Color(.systemGroupedBackground))
-        .safeAreaInset(edge: .bottom) {
-            Color.clear.frame(height: 80)
-        }
+        .applyScrollEdgeEffect()
         .refreshable {
             await viewModel.loadDetails()
         }
@@ -221,6 +234,11 @@ final class BudgetDetailsViewModel {
     @MainActor
     func addTransaction(_ transaction: Transaction) {
         transactions.append(transaction)
+    }
+
+    @MainActor
+    func addBudgetLine(_ budgetLine: BudgetLine) {
+        budgetLines.append(budgetLine)
     }
 }
 

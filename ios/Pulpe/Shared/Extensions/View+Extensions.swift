@@ -113,3 +113,16 @@ extension View {
         }
     }
 }
+
+// MARK: - iOS 26 Scroll Edge Effect
+
+extension View {
+    @ViewBuilder
+    func applyScrollEdgeEffect() -> some View {
+        if #available(iOS 26, *) {
+            self.scrollEdgeEffectStyle(.soft, for: .top)
+        } else {
+            self
+        }
+    }
+}

@@ -24,7 +24,7 @@ actor BudgetLineService {
 
     /// Create a new budget line
     func createBudgetLine(_ data: BudgetLineCreate) async throws -> BudgetLine {
-        try await apiClient.request(.budgetLines(budgetId: data.budgetId), body: data, method: .post)
+        try await apiClient.request(.budgetLinesCreate, body: data, method: .post)
     }
 
     /// Update a budget line

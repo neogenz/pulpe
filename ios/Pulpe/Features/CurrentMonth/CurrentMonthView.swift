@@ -341,19 +341,6 @@ private struct LinkedTransactionsContext: Identifiable {
     let transactions: [Transaction]
 }
 
-// MARK: - iOS 26 Scroll Edge Effect
-
-private extension View {
-    @ViewBuilder
-    func applyScrollEdgeEffect() -> some View {
-        if #available(iOS 26, *) {
-            self.scrollEdgeEffectStyle(.soft, for: .top)
-        } else {
-            self
-        }
-    }
-}
-
 #Preview {
     NavigationStack {
         CurrentMonthView()
