@@ -52,7 +52,6 @@ struct BudgetProgressBar: View {
                 footerSection
             }
         }
-        .contentShape(Rectangle())
     }
 
     // MARK: - Header Section
@@ -66,12 +65,6 @@ struct BudgetProgressBar: View {
 
             // Right: Available (Secondary)
             availableColumn
-
-            // Affordance: indicates tappable
-            Image(systemName: "chevron.right")
-                .font(.subheadline)
-                .foregroundStyle(.tertiary)
-                .padding(.leading, 4)
         }
     }
 

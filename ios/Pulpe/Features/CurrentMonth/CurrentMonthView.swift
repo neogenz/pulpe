@@ -29,22 +29,30 @@ struct CurrentMonthView: View {
         .navigationTitle("Ce mois-ci")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Menu {
+                HStack(spacing: 16) {
                     Button {
-                        Task { await viewModel.loadData() }
+                        showRealizedBalanceSheet = true
                     } label: {
-                        Label("Actualiser", systemImage: "arrow.clockwise")
+                        Image(systemName: "chart.bar.fill")
                     }
 
-                    Divider()
+                    Menu {
+                        Button {
+                            Task { await viewModel.loadData() }
+                        } label: {
+                            Label("Actualiser", systemImage: "arrow.clockwise")
+                        }
 
-                    Button(role: .destructive) {
-                        Task { await appState.logout() }
+                        Divider()
+
+                        Button(role: .destructive) {
+                            Task { await appState.logout() }
+                        } label: {
+                            Label("Se déconnecter", systemImage: "rectangle.portrait.and.arrow.right")
+                        }
                     } label: {
-                        Label("Se déconnecter", systemImage: "rectangle.portrait.and.arrow.right")
+                        Image(systemName: "ellipsis.circle")
                     }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
                 }
             }
         }
@@ -91,14 +99,10 @@ struct CurrentMonthView: View {
         ZStack(alignment: .bottomTrailing) {
             ScrollView {
                 VStack(spacing: 20) {
-                    // Progress bar (tappable - opens realized balance sheet)
+                    // Progress bar
                     BudgetProgressBar(metrics: viewModel.metrics)
                         .padding()
                         .cardStyle()
-                        .onTapGesture {
-                            showRealizedBalanceSheet = true
-                        }
-                        .sensoryFeedback(.impact(flexibility: .soft), trigger: showRealizedBalanceSheet)
 
                     // Recurring expenses section
                     if !viewModel.recurringBudgetLines.isEmpty {
