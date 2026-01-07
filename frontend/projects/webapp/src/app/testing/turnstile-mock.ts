@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 
 /**
  * Mock Turnstile component for testing
@@ -19,21 +19,20 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
   // eslint-disable-next-line @angular-eslint/component-selector
   selector: 'ngx-turnstile',
   template: '',
-  standalone: true,
 })
 export class MockTurnstileComponent {
-  @Input() siteKey?: string;
-  @Input() appearance?: 'always' | 'execute' | 'interaction-only';
-  @Input() theme?: 'light' | 'dark' | 'auto';
-  @Output() resolved = new EventEmitter<string>();
-  @Output() errored = new EventEmitter<string | null>();
+  readonly siteKey = input<string>();
+  readonly appearance = input<'always' | 'execute' | 'interaction-only'>();
+  readonly theme = input<'light' | 'dark' | 'auto'>();
+  readonly resolved = output<string>();
+  readonly errored = output<string | null>();
 
   /**
    * Simulates Turnstile widget reset
    * Automatically re-triggers challenge for interaction-only appearance
    */
   reset(): void {
-    if (this.appearance === 'interaction-only') {
+    if (this.appearance() === 'interaction-only') {
       // Simulate automatic re-challenge after reset
       setTimeout(() => {
         this.resolved.emit('XXXX.DUMMY.TOKEN.XXXX');
@@ -46,7 +45,7 @@ export class MockTurnstileComponent {
    * Automatically resolves for interaction-only appearance
    */
   createWidget(): void {
-    if (this.appearance === 'interaction-only') {
+    if (this.appearance() === 'interaction-only') {
       setTimeout(() => {
         this.resolved.emit('XXXX.DUMMY.TOKEN.XXXX');
       }, 0);
