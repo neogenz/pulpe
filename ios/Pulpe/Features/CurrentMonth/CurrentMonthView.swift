@@ -29,30 +29,30 @@ struct CurrentMonthView: View {
         .navigationTitle("Ce mois-ci")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                HStack(spacing: 16) {
+                Button {
+                    showRealizedBalanceSheet = true
+                } label: {
+                    Image(systemName: "chart.bar.fill")
+                }
+            }
+
+            ToolbarItem(placement: .primaryAction) {
+                Menu {
                     Button {
-                        showRealizedBalanceSheet = true
+                        Task { await viewModel.loadData() }
                     } label: {
-                        Image(systemName: "chart.bar.fill")
+                        Label("Actualiser", systemImage: "arrow.clockwise")
                     }
 
-                    Menu {
-                        Button {
-                            Task { await viewModel.loadData() }
-                        } label: {
-                            Label("Actualiser", systemImage: "arrow.clockwise")
-                        }
+                    Divider()
 
-                        Divider()
-
-                        Button(role: .destructive) {
-                            Task { await appState.logout() }
-                        } label: {
-                            Label("Se déconnecter", systemImage: "rectangle.portrait.and.arrow.right")
-                        }
+                    Button(role: .destructive) {
+                        Task { await appState.logout() }
                     } label: {
-                        Image(systemName: "ellipsis.circle")
+                        Label("Se déconnecter", systemImage: "rectangle.portrait.and.arrow.right")
                     }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
                 }
             }
         }
