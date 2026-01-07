@@ -4,6 +4,7 @@ struct CurrentMonthView: View {
     @Environment(AppState.self) private var appState
     @State private var viewModel = CurrentMonthViewModel()
     @State private var showAddTransaction = false
+    @State private var showRealizedBalanceSheet = false
     @State private var selectedLineForTransaction: BudgetLine?
     @State private var linkedTransactionsContext: LinkedTransactionsContext?
 
@@ -75,6 +76,12 @@ struct CurrentMonthView: View {
                 }
             )
         }
+        .sheet(isPresented: $showRealizedBalanceSheet) {
+            RealizedBalanceSheet(
+                metrics: viewModel.metrics,
+                realizedMetrics: viewModel.realizedMetrics
+            )
+        }
         .task {
             await viewModel.loadData()
         }
@@ -84,13 +91,14 @@ struct CurrentMonthView: View {
         ZStack(alignment: .bottomTrailing) {
             ScrollView {
                 VStack(spacing: 20) {
-                    // Progress bar
+                    // Progress bar (tappable - opens realized balance sheet)
                     BudgetProgressBar(metrics: viewModel.metrics)
                         .padding()
                         .cardStyle()
-
-                    // Financial summary
-                    FinancialSummaryRow(metrics: viewModel.metrics)
+                        .onTapGesture {
+                            showRealizedBalanceSheet = true
+                        }
+                        .sensoryFeedback(.impact(flexibility: .soft), trigger: showRealizedBalanceSheet)
 
                     // Recurring expenses section
                     if !viewModel.recurringBudgetLines.isEmpty {
@@ -194,6 +202,13 @@ final class CurrentMonthViewModel {
             budgetLines: budgetLines,
             transactions: transactions,
             rollover: budget?.rollover.orZero ?? 0
+        )
+    }
+
+    var realizedMetrics: BudgetFormulas.RealizedMetrics {
+        BudgetFormulas.calculateRealizedMetrics(
+            budgetLines: budgetLines,
+            transactions: transactions
         )
     }
 

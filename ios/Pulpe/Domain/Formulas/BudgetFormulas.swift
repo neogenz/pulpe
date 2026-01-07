@@ -9,6 +9,7 @@ enum BudgetFormulas {
     struct Metrics: Equatable, Sendable {
         let totalIncome: Decimal
         let totalExpenses: Decimal
+        let totalSavings: Decimal
         let available: Decimal
         let endingBalance: Decimal
         let remaining: Decimal
@@ -79,6 +80,25 @@ enum BudgetFormulas {
             .reduce(Decimal.zero) { $0 + $1.amount }
 
         return budgetExpenses + transactionExpenses
+    }
+
+    // MARK: - Savings Calculations
+
+    /// Calculate total savings from budget lines and transactions
+    /// Formula: Σ(items WHERE kind = 'saving')
+    static func calculateTotalSavings(
+        budgetLines: [BudgetLine],
+        transactions: [Transaction] = []
+    ) -> Decimal {
+        let budgetSavings = budgetLines
+            .filter { $0.kind == .saving && !($0.isRollover ?? false) }
+            .reduce(Decimal.zero) { $0 + $1.amount }
+
+        let transactionSavings = transactions
+            .filter { $0.kind == .saving }
+            .reduce(Decimal.zero) { $0 + $1.amount }
+
+        return budgetSavings + transactionSavings
     }
 
     // MARK: - Realized Calculations (checked items only)
@@ -155,12 +175,14 @@ enum BudgetFormulas {
     ) -> Metrics {
         let totalIncome = calculateTotalIncome(budgetLines: budgetLines, transactions: transactions)
         let totalExpenses = calculateTotalExpenses(budgetLines: budgetLines, transactions: transactions)
+        let totalSavings = calculateTotalSavings(budgetLines: budgetLines, transactions: transactions)
         let available = calculateAvailable(totalIncome: totalIncome, rollover: rollover)
         let endingBalance = calculateEndingBalance(available: available, totalExpenses: totalExpenses)
 
         return Metrics(
             totalIncome: totalIncome,
             totalExpenses: totalExpenses,
+            totalSavings: totalSavings,
             available: available,
             endingBalance: endingBalance,
             remaining: endingBalance, // Same as ending balance per SPECS

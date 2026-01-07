@@ -52,6 +52,7 @@ struct BudgetProgressBar: View {
                 footerSection
             }
         }
+        .contentShape(Rectangle())
     }
 
     // MARK: - Header Section
@@ -65,6 +66,12 @@ struct BudgetProgressBar: View {
 
             // Right: Available (Secondary)
             availableColumn
+
+            // Affordance: indicates tappable
+            Image(systemName: "chevron.right")
+                .font(.subheadline)
+                .foregroundStyle(.tertiary)
+                .padding(.leading, 4)
         }
     }
 
@@ -176,6 +183,7 @@ struct CircularProgressView: View {
             BudgetProgressBar(metrics: .init(
                 totalIncome: 5000,
                 totalExpenses: 2000,
+                totalSavings: 500,
                 available: 5500,
                 endingBalance: 3500,
                 remaining: 3500,
@@ -187,6 +195,7 @@ struct CircularProgressView: View {
             BudgetProgressBar(metrics: .init(
                 totalIncome: 5000,
                 totalExpenses: 4500,
+                totalSavings: 300,
                 available: 5000,
                 endingBalance: 500,
                 remaining: 500,
@@ -198,6 +207,7 @@ struct CircularProgressView: View {
             BudgetProgressBar(metrics: .init(
                 totalIncome: 5000,
                 totalExpenses: 5500,
+                totalSavings: 200,
                 available: 5000,
                 endingBalance: -500,
                 remaining: -500,

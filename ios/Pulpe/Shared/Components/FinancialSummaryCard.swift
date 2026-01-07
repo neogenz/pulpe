@@ -1,10 +1,9 @@
 import SwiftUI
 
-/// Card displaying a financial metric
+/// Card displaying a financial metric with colored accent bar
 struct FinancialSummaryCard: View {
     let title: String
     let amount: Decimal
-    let icon: String
     let type: FinancialType
 
     enum FinancialType {
@@ -12,55 +11,56 @@ struct FinancialSummaryCard: View {
         case expense
         case savings
         case balance
-        case neutral
 
-        var color: Color {
+        var accentColor: Color {
             switch self {
             case .income: .financialIncome
             case .expense: .financialExpense
             case .savings: .financialSavings
-            case .balance: .primary
-            case .neutral: .secondary
-            }
-        }
-
-        var backgroundColor: Color {
-            switch self {
-            case .income: .financialIncome.opacity(0.1)
-            case .expense: .financialExpense.opacity(0.1)
-            case .savings: .financialSavings.opacity(0.1)
-            case .balance: .primary.opacity(0.1)
-            case .neutral: .secondary.opacity(0.1)
+            case .balance: .pulpePrimary
             }
         }
     }
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: icon)
-                    .font(.title3)
-                    .foregroundStyle(type.color)
-                    .frame(width: 32, height: 32)
-                    .background(type.backgroundColor, in: Circle())
-
-                Spacer()
-            }
-
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            Text(amount.formatted(.currency(code: "CHF")))
-                .font(.title3)
-                .fontWeight(.semibold)
-                .foregroundStyle(type == .balance && amount < 0 ? .red : .primary)
+    private var amountColor: Color {
+        if type == .balance && amount < 0 {
+            return .red
         }
-        .padding()
+        return .primary
+    }
+
+    var body: some View {
+        HStack(spacing: 0) {
+            // Colored accent bar
+            RoundedRectangle(cornerRadius: 2)
+                .fill(type.accentColor)
+                .frame(width: 4)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(title)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text("CHF")
+                        .font(.subheadline)
+                        .fontWeight(.regular)
+                        .foregroundStyle(.tertiary)
+
+                    Text(amount.formatted(.number.grouping(.automatic)))
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                        .monospacedDigit()
+                        .foregroundStyle(amountColor)
+                }
+            }
+            .padding(.leading, 12)
+            .padding(.vertical, 14)
+            .padding(.trailing, 16)
+        }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.background)
+        .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
-        .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
     }
 }
 
@@ -74,26 +74,23 @@ struct FinancialSummaryRow: View {
                 FinancialSummaryCard(
                     title: "Revenus",
                     amount: metrics.totalIncome,
-                    icon: "arrow.down.circle.fill",
                     type: .income
                 )
-                .frame(width: 140)
+                .frame(width: 160)
 
                 FinancialSummaryCard(
                     title: "Dépenses",
                     amount: metrics.totalExpenses,
-                    icon: "arrow.up.circle.fill",
                     type: .expense
                 )
-                .frame(width: 140)
+                .frame(width: 160)
 
                 FinancialSummaryCard(
                     title: "Disponible",
                     amount: metrics.remaining,
-                    icon: "banknote.fill",
                     type: .balance
                 )
-                .frame(width: 140)
+                .frame(width: 160)
             }
             .padding(.horizontal)
         }
@@ -104,15 +101,22 @@ struct FinancialSummaryRow: View {
     VStack(spacing: 20) {
         FinancialSummaryCard(
             title: "Revenus",
-            amount: 5000,
-            icon: "arrow.down.circle.fill",
+            amount: 7956,
             type: .income
         )
-        .frame(width: 150)
+        .frame(width: 160)
+
+        FinancialSummaryCard(
+            title: "Disponible",
+            amount: -500,
+            type: .balance
+        )
+        .frame(width: 160)
 
         FinancialSummaryRow(metrics: .init(
             totalIncome: 5000,
             totalExpenses: 3500,
+            totalSavings: 500,
             available: 5500,
             endingBalance: 2000,
             remaining: 2000,
