@@ -101,91 +101,110 @@ struct CurrentMonthView: View {
 
     private var content: some View {
         ZStack(alignment: .bottomTrailing) {
-            ScrollView {
-                VStack(spacing: 20) {
-                    // Progress bar
-                    BudgetProgressBar(metrics: viewModel.metrics)
-                        .padding()
-                        .cardStyle()
-
-                    // Recurring expenses section
-                    if !viewModel.recurringBudgetLines.isEmpty {
-                        RecurringExpensesList(
-                            title: "Dépenses récurrentes",
-                            items: viewModel.recurringBudgetLines,
-                            transactions: viewModel.transactions,
-                            onToggle: { line in
-                                Task { await viewModel.toggleBudgetLine(line) }
-                            },
-                            onAddTransaction: { line in
-                                selectedLineForTransaction = line
-                            },
-                            onLongPress: { line, transactions in
-                                linkedTransactionsContext = LinkedTransactionsContext(
-                                    budgetLine: line,
-                                    transactions: transactions
-                                )
-                            }
-                        )
-                    }
-
-                    // One-off expenses section
-                    if !viewModel.oneOffBudgetLines.isEmpty {
-                        RecurringExpensesList(
-                            title: "Dépenses prévues",
-                            items: viewModel.oneOffBudgetLines,
-                            transactions: viewModel.transactions,
-                            onToggle: { line in
-                                Task { await viewModel.toggleBudgetLine(line) }
-                            },
-                            onAddTransaction: { line in
-                                selectedLineForTransaction = line
-                            },
-                            onLongPress: { line, transactions in
-                                linkedTransactionsContext = LinkedTransactionsContext(
-                                    budgetLine: line,
-                                    transactions: transactions
-                                )
-                            }
-                        )
-                    }
-
-                    // Free transactions
-                    if !viewModel.freeTransactions.isEmpty {
-                        OneTimeExpensesList(
-                            title: "Autres dépenses",
-                            transactions: viewModel.freeTransactions,
-                            onToggle: { transaction in
-                                Task { await viewModel.toggleTransaction(transaction) }
-                            },
-                            onDelete: { transaction in
-                                Task { await viewModel.deleteTransaction(transaction) }
-                            }
-                        )
-                    }
-
-                    Spacer(minLength: 100)
-                }
-                .padding(.vertical)
-            }
+            scrollContent
+                .applyScrollEdgeEffect()
 
             // FAB
-            Button {
-                showAddTransaction = true
-            } label: {
-                Image(systemName: "plus")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.white)
-                    .frame(width: 56, height: 56)
-                    .background(Color.accentColor, in: Circle())
-                    .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
-            }
-            .padding()
+            fabButton
         }
         .refreshable {
             await viewModel.loadData()
         }
+    }
+
+    private var scrollContent: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                // Hero balance card (Revolut-style)
+                HeroBalanceCard(
+                    metrics: viewModel.metrics,
+                    onTapProgress: { showRealizedBalanceSheet = true }
+                )
+                .padding(.horizontal)
+
+                // Sections
+                sectionsContent
+            }
+            .padding(.vertical)
+        }
+    }
+
+    private var sectionsContent: some View {
+        VStack(spacing: 24) {
+            // Recurring expenses section
+            if !viewModel.recurringBudgetLines.isEmpty {
+                RecurringExpensesList(
+                    title: "Dépenses récurrentes",
+                    items: viewModel.recurringBudgetLines,
+                    transactions: viewModel.transactions,
+                    onToggle: { line in
+                        Task { await viewModel.toggleBudgetLine(line) }
+                    },
+                    onAddTransaction: { line in
+                        selectedLineForTransaction = line
+                    },
+                    onLongPress: { line, transactions in
+                        linkedTransactionsContext = LinkedTransactionsContext(
+                            budgetLine: line,
+                            transactions: transactions
+                        )
+                    }
+                )
+            }
+
+            // One-off expenses section
+            if !viewModel.oneOffBudgetLines.isEmpty {
+                RecurringExpensesList(
+                    title: "Dépenses prévues",
+                    items: viewModel.oneOffBudgetLines,
+                    transactions: viewModel.transactions,
+                    onToggle: { line in
+                        Task { await viewModel.toggleBudgetLine(line) }
+                    },
+                    onAddTransaction: { line in
+                        selectedLineForTransaction = line
+                    },
+                    onLongPress: { line, transactions in
+                        linkedTransactionsContext = LinkedTransactionsContext(
+                            budgetLine: line,
+                            transactions: transactions
+                        )
+                    }
+                )
+            }
+
+            // Free transactions
+            if !viewModel.freeTransactions.isEmpty {
+                OneTimeExpensesList(
+                    title: "Autres dépenses",
+                    transactions: viewModel.freeTransactions,
+                    onToggle: { transaction in
+                        Task { await viewModel.toggleTransaction(transaction) }
+                    },
+                    onDelete: { transaction in
+                        Task { await viewModel.deleteTransaction(transaction) }
+                    }
+                )
+            }
+
+            // Bottom spacing for FAB
+            Spacer(minLength: 100)
+        }
+    }
+
+    private var fabButton: some View {
+        Button {
+            showAddTransaction = true
+        } label: {
+            Image(systemName: "plus")
+                .font(.title2)
+                .fontWeight(.semibold)
+                .foregroundStyle(.white)
+                .frame(width: 56, height: 56)
+                .background(Color.accentColor, in: Circle())
+                .shadow(color: .black.opacity(0.15), radius: 8, y: 4)
+        }
+        .padding()
     }
 }
 
@@ -337,6 +356,19 @@ private struct LinkedTransactionsContext: Identifiable {
     let id = UUID()
     let budgetLine: BudgetLine
     let transactions: [Transaction]
+}
+
+// MARK: - iOS 26 Scroll Edge Effect
+
+private extension View {
+    @ViewBuilder
+    func applyScrollEdgeEffect() -> some View {
+        if #available(iOS 26, *) {
+            self.scrollEdgeEffectStyle(.soft, for: .top)
+        } else {
+            self
+        }
+    }
 }
 
 #Preview {

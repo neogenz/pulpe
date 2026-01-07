@@ -29,6 +29,7 @@
 		56C95E28B17F927063FCB76C /* TemplateListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B63C48FA85869F486C3CBE3 /* TemplateListView.swift */; };
 		5B556B010CD1598EAA240A4A /* IncomeStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0B8C94F0B71D25CF2D5D563 /* IncomeStep.swift */; };
 		5EB9DD65C1AD7312A87E4133 /* AddTransactionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054A9E4A9CCF915305B08CC0 /* AddTransactionSheet.swift */; };
+		EF174022C9B448E2B5CD3D27 /* HeroBalanceCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA4CE47450004BAABFC40804 /* HeroBalanceCard.swift */; };
 		626E386E73A2C807D70E799A /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4377A27005BBA73FC6616969 /* AppState.swift */; };
 		6BDB2182575FA1AB04F061CC /* Budget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 375A017C49DE46C9C5B8D8DB /* Budget.swift */; };
 		6CDB77CCB53255B0897278CC /* LinkedTransactionsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8334F2FD3ED442FCC576A91 /* LinkedTransactionsSheet.swift */; };
@@ -73,6 +74,7 @@
 /* Begin PBXFileReference section */
 		02D25BA5A5074D1D86441DDC /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
 		054A9E4A9CCF915305B08CC0 /* AddTransactionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddTransactionSheet.swift; sourceTree = "<group>"; };
+		DA4CE47450004BAABFC40804 /* HeroBalanceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeroBalanceCard.swift; sourceTree = "<group>"; };
 		0E68DC6A301F7687197817A0 /* BudgetListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetListView.swift; sourceTree = "<group>"; };
 		150C0AA658E75766BDC017EB /* BudgetLine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetLine.swift; sourceTree = "<group>"; };
 		189487F4CD907092391CEAE8 /* LeasingCreditStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeasingCreditStep.swift; sourceTree = "<group>"; };
@@ -206,6 +208,7 @@
 			isa = PBXGroup;
 			children = (
 				054A9E4A9CCF915305B08CC0 /* AddTransactionSheet.swift */,
+				DA4CE47450004BAABFC40804 /* HeroBalanceCard.swift */,
 				F8334F2FD3ED442FCC576A91 /* LinkedTransactionsSheet.swift */,
 				4EA095E32B5C5AC4B0FCE485 /* OneTimeExpensesList.swift */,
 				20D3CD9F4165D2DBB8ED8DC1 /* RealizedBalanceSheet.swift */,
@@ -536,6 +539,7 @@
 				C60DD41963FD1AA7424B73E7 /* APIResponse.swift in Sources */,
 				3D7531C34481474D2EDD7DC0 /* AddAllocatedTransactionSheet.swift in Sources */,
 				5EB9DD65C1AD7312A87E4133 /* AddTransactionSheet.swift in Sources */,
+				EF174022C9B448E2B5CD3D27 /* HeroBalanceCard.swift in Sources */,
 				D089B1AD077036EE44E5F027 /* AppConfiguration.swift in Sources */,
 				626E386E73A2C807D70E799A /* AppState.swift in Sources */,
 				94129CA9F8DE35A23853772A /* AuthErrorLocalizer.swift in Sources */,
