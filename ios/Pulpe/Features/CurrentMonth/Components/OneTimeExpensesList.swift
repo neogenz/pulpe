@@ -7,38 +7,71 @@ struct OneTimeExpensesList: View {
     let onToggle: (Transaction) -> Void
     let onDelete: (Transaction) -> Void
 
+    private var totalAmount: Decimal {
+        transactions.reduce(0) { sum, t in
+            switch t.kind {
+            case .income: sum + t.amount
+            case .expense, .saving: sum - t.amount
+            }
+        }
+    }
+
+    private var totalColor: Color {
+        if totalAmount > 0 { return .financialIncome }
+        if totalAmount < 0 { return .financialExpense }
+        return .secondary
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(title)
-                .sectionHeader()
-                .padding(.horizontal)
+            SectionHeader(
+                title: title,
+                count: transactions.count,
+                totalAmount: totalAmount,
+                totalColor: totalColor
+            )
 
-            VStack(spacing: 6) {
+            // Use List for native swipe actions
+            List {
                 ForEach(transactions) { transaction in
-                    TransactionRow(
-                        transaction: transaction,
-                        onToggle: { onToggle(transaction) },
-                        onDelete: { onDelete(transaction) }
-                    )
+                    TransactionRow(transaction: transaction)
+                        .listRowInsets(EdgeInsets(top: 3, leading: 16, bottom: 3, trailing: 16))
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                onDelete(transaction)
+                            } label: {
+                                Label("Supprimer", systemImage: "trash")
+                            }
+
+                            Button {
+                                onToggle(transaction)
+                            } label: {
+                                Label(
+                                    transaction.isChecked ? "Annuler" : "Comptabiliser",
+                                    systemImage: transaction.isChecked ? "arrow.uturn.backward" : "checkmark.circle"
+                                )
+                            }
+                            .tint(transaction.isChecked ? .orange : .pulpePrimary)
+                        }
                 }
             }
-            .padding(.horizontal)
+            .listStyle(.plain)
+            .scrollDisabled(true)
+            .frame(height: CGFloat(transactions.count) * 70) // Approximate row height
         }
     }
 }
 
-/// Single transaction row - Clean, Revolut-inspired design
+/// Single transaction row - Revolut-inspired design
 struct TransactionRow: View {
     let transaction: Transaction
-    let onToggle: () -> Void
-    let onDelete: () -> Void
-
-    @State private var showDeleteConfirmation = false
 
     var body: some View {
         HStack(spacing: 12) {
-            // Check button
-            checkButton
+            // Kind icon circle (Revolut-style)
+            kindIconCircle
 
             // Main content
             VStack(alignment: .leading, spacing: 4) {
@@ -48,8 +81,8 @@ struct TransactionRow: View {
                     .strikethrough(transaction.isChecked, color: .secondary)
                     .lineLimit(1)
 
-                // Date
-                Text(transaction.transactionDate.dayMonthFormatted)
+                // Date (relative formatting)
+                Text(transaction.transactionDate.relativeFormatted)
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
@@ -62,49 +95,32 @@ struct TransactionRow: View {
                 .foregroundStyle(transaction.isChecked ? .secondary : transaction.kind.color)
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 14)
+        .padding(.vertical, 12)
         .background(Color(.systemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(0.04), radius: 4, y: 2)
-        .swipeActions(edge: .trailing) {
-            Button(role: .destructive) {
-                showDeleteConfirmation = true
-            } label: {
-                Label("Supprimer", systemImage: "trash")
-            }
-        }
-        .confirmationDialog(
-            "Supprimer cette transaction ?",
-            isPresented: $showDeleteConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button("Supprimer", role: .destructive) {
-                onDelete()
-            }
-            Button("Annuler", role: .cancel) {}
-        }
     }
 
-    private var checkButton: some View {
-        Button(action: onToggle) {
-            ZStack {
-                Circle()
-                    .stroke(transaction.isChecked ? Color.pulpePrimary : Color(.systemGray4), lineWidth: 2)
-                    .frame(width: 26, height: 26)
+    // MARK: - Kind Icon Circle (Revolut-style)
 
-                if transaction.isChecked {
-                    Circle()
-                        .fill(Color.pulpePrimary)
-                        .frame(width: 26, height: 26)
+    private var kindIconCircle: some View {
+        ZStack {
+            Circle()
+                .fill(transaction.isChecked ? Color(.systemGray5) : transaction.kind.color.opacity(0.15))
+                .frame(width: 40, height: 40)
 
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(.white)
-                }
+            if transaction.isChecked {
+                // Show checkmark when checked
+                Image(systemName: "checkmark")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.secondary)
+            } else {
+                // Show kind icon
+                Image(systemName: transaction.kind.listIcon)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(transaction.kind.color)
             }
-            .animation(.spring(duration: 0.2), value: transaction.isChecked)
         }
-        .buttonStyle(.plain)
     }
 }
 
@@ -129,12 +145,25 @@ struct TransactionRow: View {
                 id: "2",
                 budgetId: "b1",
                 budgetLineId: nil,
-                name: "Courses",
+                name: "Remboursement",
                 amount: 120,
-                kind: .expense,
-                transactionDate: Date(),
+                kind: .income,
+                transactionDate: Date().addingTimeInterval(-86400),
                 category: nil,
                 checkedAt: Date(),
+                createdAt: Date(),
+                updatedAt: Date()
+            ),
+            Transaction(
+                id: "3",
+                budgetId: "b1",
+                budgetLineId: nil,
+                name: "Virement épargne",
+                amount: 200,
+                kind: .saving,
+                transactionDate: Date().addingTimeInterval(-172800),
+                category: nil,
+                checkedAt: nil,
                 createdAt: Date(),
                 updatedAt: Date()
             )
@@ -142,6 +171,6 @@ struct TransactionRow: View {
         onToggle: { _ in },
         onDelete: { _ in }
     )
-    .padding()
+    .padding(.vertical)
     .background(Color(.systemGroupedBackground))
 }

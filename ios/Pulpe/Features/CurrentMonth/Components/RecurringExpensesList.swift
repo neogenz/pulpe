@@ -9,13 +9,32 @@ struct RecurringExpensesList: View {
     let onAddTransaction: (BudgetLine) -> Void
     let onLongPress: (BudgetLine, [Transaction]) -> Void
 
+    private var totalAmount: Decimal {
+        items.reduce(0) { sum, item in
+            switch item.kind {
+            case .income: sum + item.amount
+            case .expense, .saving: sum - item.amount
+            }
+        }
+    }
+
+    private var totalColor: Color {
+        if totalAmount > 0 { return .financialIncome }
+        if totalAmount < 0 { return .financialExpense }
+        return .secondary
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(title)
-                .sectionHeader()
-                .padding(.horizontal)
+            SectionHeader(
+                title: title,
+                count: items.count,
+                totalAmount: totalAmount,
+                totalColor: totalColor
+            )
 
-            VStack(spacing: 6) {
+            // Use List for native swipe actions
+            List {
                 ForEach(items) { item in
                     BudgetLineRow(
                         line: item,
@@ -27,14 +46,32 @@ struct RecurringExpensesList: View {
                             onLongPress(item, linkedTransactions)
                         }
                     )
+                    .listRowInsets(EdgeInsets(top: 3, leading: 16, bottom: 3, trailing: 16))
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        if !item.isVirtualRollover {
+                            Button {
+                                onToggle(item)
+                            } label: {
+                                Label(
+                                    item.isChecked ? "Annuler" : "Comptabiliser",
+                                    systemImage: item.isChecked ? "arrow.uturn.backward" : "checkmark.circle"
+                                )
+                            }
+                            .tint(item.isChecked ? .orange : .pulpePrimary)
+                        }
+                    }
                 }
             }
-            .padding(.horizontal)
+            .listStyle(.plain)
+            .scrollDisabled(true)
+            .frame(height: CGFloat(items.count) * 76) // Approximate row height
         }
     }
 }
 
-/// Single budget line row - Clean, Revolut-inspired design
+/// Single budget line row - Revolut-inspired design
 struct BudgetLineRow: View {
     let line: BudgetLine
     let consumption: BudgetFormulas.Consumption
@@ -68,8 +105,8 @@ struct BudgetLineRow: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 12) {
-                // Check button with animated state
-                checkButton
+                // Kind icon circle (Revolut-style)
+                kindIconCircle
 
                 // Main content
                 VStack(alignment: .leading, spacing: 4) {
@@ -79,7 +116,7 @@ struct BudgetLineRow: View {
                         .strikethrough(line.isChecked, color: .secondary)
                         .lineLimit(1)
 
-                    // Consumption info (replaces recurrence label when has consumption)
+                    // Consumption info or recurrence label
                     if hasConsumption {
                         HStack(spacing: 6) {
                             Text("\(consumptionPercentage)%")
@@ -94,13 +131,9 @@ struct BudgetLineRow: View {
                                 .foregroundStyle(.secondary)
                         }
                     } else {
-                        HStack(spacing: 4) {
-                            Image(systemName: line.recurrence.icon)
-                                .font(.caption2)
-                            Text(line.recurrence.label)
-                                .font(.caption)
-                        }
-                        .foregroundStyle(.tertiary)
+                        Text(line.recurrence.label)
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
                     }
                 }
 
@@ -111,7 +144,7 @@ struct BudgetLineRow: View {
                     .font(.system(.callout, design: .rounded, weight: .semibold))
                     .foregroundStyle(line.isChecked ? .secondary : line.kind.color)
 
-                // Add button
+                // Add button (only for non-rollover lines)
                 if !line.isVirtualRollover {
                     Button(action: onAddTransaction) {
                         Image(systemName: "plus")
@@ -125,7 +158,7 @@ struct BudgetLineRow: View {
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 14)
+            .padding(.vertical, 12)
 
             // Consumption progress bar
             if hasConsumption {
@@ -151,30 +184,27 @@ struct BudgetLineRow: View {
         .sensoryFeedback(.warning, trigger: triggerWarningFeedback)
     }
 
-    // MARK: - Subviews
+    // MARK: - Kind Icon Circle (Revolut-style)
 
-    private var checkButton: some View {
-        Button(action: onToggle) {
-            ZStack {
-                Circle()
-                    .stroke(line.isChecked ? Color.pulpePrimary : Color(.systemGray4), lineWidth: 2)
-                    .frame(width: 26, height: 26)
+    private var kindIconCircle: some View {
+        ZStack {
+            Circle()
+                .fill(line.isChecked ? Color(.systemGray5) : line.kind.color.opacity(0.15))
+                .frame(width: 40, height: 40)
 
-                if line.isChecked {
-                    Circle()
-                        .fill(Color.pulpePrimary)
-                        .frame(width: 26, height: 26)
-
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(.white)
-                }
+            if line.isChecked {
+                // Show checkmark when checked
+                Image(systemName: "checkmark")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.secondary)
+            } else {
+                // Show kind icon
+                Image(systemName: line.kind.listIcon)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(line.kind.color)
             }
-            .animation(.spring(duration: 0.2), value: line.isChecked)
         }
-        .buttonStyle(.plain)
-        .disabled(line.isVirtualRollover)
-        .opacity(line.isVirtualRollover ? 0.4 : 1)
+        .opacity(line.isVirtualRollover ? 0.6 : 1)
     }
 
     private var progressBar: some View {
@@ -239,6 +269,20 @@ struct BudgetLineRow: View {
                 checkedAt: Date(),
                 createdAt: Date(),
                 updatedAt: Date()
+            ),
+            BudgetLine(
+                id: "3",
+                budgetId: "b1",
+                templateLineId: nil,
+                savingsGoalId: nil,
+                name: "Épargne mensuelle",
+                amount: 500,
+                kind: .saving,
+                recurrence: .fixed,
+                isManuallyAdjusted: false,
+                checkedAt: nil,
+                createdAt: Date(),
+                updatedAt: Date()
             )
         ],
         transactions: [
@@ -260,6 +304,6 @@ struct BudgetLineRow: View {
         onAddTransaction: { _ in },
         onLongPress: { _, _ in }
     )
-    .padding()
+    .padding(.vertical)
     .background(Color(.systemGroupedBackground))
 }

@@ -24,9 +24,18 @@ enum TransactionKind: String, Codable, CaseIterable, Sendable {
 
     var icon: String {
         switch self {
-        case .income: "arrow.down.circle.fill"
-        case .expense: "arrow.up.circle.fill"
-        case .saving: "banknote.fill"
+        case .income: "arrow.down"
+        case .expense: "arrow.up"
+        case .saving: "pig.circle.fill"
+        }
+    }
+
+    /// Large icon for list rows (Revolut-style)
+    var listIcon: String {
+        switch self {
+        case .income: "arrow.down"
+        case .expense: "arrow.up"
+        case .saving: "dollarsign.bank.building"
         }
     }
 

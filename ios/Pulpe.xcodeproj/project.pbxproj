@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		8F64D8845DB4482F8407BBDD /* SectionHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94563542C48B4A369D760C3E /* SectionHeader.swift */; };
 		0157030A5AF0AA8ED66650F2 /* TemplateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4BC53510F1748B0FB8407CE /* TemplateService.swift */; };
 		1623C2D7A07E71A04BAF5EB9 /* View+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7A8C7ACFFD4118A786F4A2C /* View+Extensions.swift */; };
 		194F56EEAE3B2C2EF5B15A3A /* PhonePlanStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6D73BC1D11C6EC1A1E313C /* PhonePlanStep.swift */; };
@@ -72,6 +73,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		94563542C48B4A369D760C3E /* SectionHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionHeader.swift; sourceTree = "<group>"; };
 		02D25BA5A5074D1D86441DDC /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
 		054A9E4A9CCF915305B08CC0 /* AddTransactionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddTransactionSheet.swift; sourceTree = "<group>"; };
 		DA4CE47450004BAABFC40804 /* HeroBalanceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeroBalanceCard.swift; sourceTree = "<group>"; };
@@ -213,6 +215,7 @@
 				4EA095E32B5C5AC4B0FCE485 /* OneTimeExpensesList.swift */,
 				20D3CD9F4165D2DBB8ED8DC1 /* RealizedBalanceSheet.swift */,
 				2947DBEF8A6264E9FF73AEDA /* RecurringExpensesList.swift */,
+				94563542C48B4A369D760C3E /* SectionHeader.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -534,6 +537,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8F64D8845DB4482F8407BBDD /* SectionHeader.swift in Sources */,
 				7FDE6E7EF6B2084A2D298452 /* APIClient.swift in Sources */,
 				EDDD3545AF89F29F118A14A8 /* APIError.swift in Sources */,
 				C60DD41963FD1AA7424B73E7 /* APIResponse.swift in Sources */,

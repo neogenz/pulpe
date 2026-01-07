@@ -66,6 +66,31 @@ extension Date {
         if year == now.year && month > now.month { return true }
         return false
     }
+
+    /// Format as relative date (Aujourd'hui, Hier, Lundi, etc.)
+    var relativeFormatted: String {
+        let calendar = Calendar.current
+        let now = Date()
+
+        if calendar.isDateInToday(self) {
+            return "Aujourd'hui"
+        }
+        if calendar.isDateInYesterday(self) {
+            return "Hier"
+        }
+
+        // Check if within this week (show day name)
+        let startOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now))!
+        if self >= startOfWeek {
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "fr_FR")
+            formatter.dateFormat = "EEEE"
+            return formatter.string(from: self).capitalized
+        }
+
+        // Otherwise show day month
+        return dayMonthFormatted
+    }
 }
 
 // MARK: - Month/Year Helpers
