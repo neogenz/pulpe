@@ -59,3 +59,29 @@
 - Removed `recurrence` column from transaction table
 - Simplified transaction forms and validation
 - Cleaner separation between planning (budget lines) and tracking (transactions)
+
+---
+
+## DR-004: Typed & Versioned Storage Service
+
+**Context**: Bug de fuite de données entre utilisateurs (données localStorage persistantes après logout). Fix initial par nettoyage des clés `pulpe-*` mais approche fragile.
+
+**Decision**: Implémenter un service de storage typé avec versioning et migrations
+- Registre centralisé des clés de storage avec typage fort
+- Validation Zod à la lecture des données
+- Versioning par clé avec format `{ version, data, updatedAt }`
+- Système de migrations automatiques au démarrage
+- Distinction `user-scoped` vs `app-scoped` pour le nettoyage
+
+**Rationale**:
+- Type-safety: Erreurs de compilation si clé/valeur incorrecte
+- Évolutivité: Migrations automatiques lors des changements de schéma
+- Maintenabilité: Registre unique = source de vérité pour toutes les clés
+- Debugging: Versioning permet de tracer l'état des données
+
+**Rejected Alternative**: Nettoyage par convention de préfixe (`pulpe-*`)
+- Pas de typage fort (runtime errors possibles)
+- Pas de migration automatique (données corrompues/obsolètes)
+- Risque d'oubli lors de l'ajout de nouvelles clés
+
+**Status**: À implémenter

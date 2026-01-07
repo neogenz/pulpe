@@ -18,6 +18,7 @@ import { type Observable, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
+import { StorageService, STORAGE_KEYS } from '../storage';
 
 export interface CreateBudgetApiResponse {
   readonly budget: Budget;
@@ -30,8 +31,6 @@ export interface BudgetApiError {
   readonly code?: string;
 }
 
-const CURRENT_BUDGET_STORAGE_KEY = 'pulpe-current-budget';
-
 type NormalizedErrorPayload = Partial<
   Pick<ErrorResponse, 'message' | 'error' | 'code' | 'details'>
 >;
@@ -43,6 +42,7 @@ export class BudgetApi {
   readonly #httpClient = inject(HttpClient);
   readonly #applicationConfig = inject(ApplicationConfiguration);
   readonly #logger = inject(Logger);
+  readonly #storageService = inject(StorageService);
 
   get #apiUrl(): string {
     return `${this.#applicationConfig.backendApiUrl()}/budgets`;
@@ -204,57 +204,34 @@ export class BudgetApi {
    * Récupère le budget actuel depuis le localStorage
    */
   getCurrentBudgetFromStorage(): Budget | null {
-    try {
-      const savedBudget = localStorage.getItem(CURRENT_BUDGET_STORAGE_KEY);
-      if (!savedBudget) {
-        return null;
-      }
-
-      const parsedData = JSON.parse(savedBudget);
-      // Utiliser la validation Zod du schéma partagé
-      const result = budgetSchema.safeParse(parsedData);
-
-      if (result.success && result.data) {
-        return result.data;
-      }
-
-      this.#logger.warn(
-        'Données de budget invalides dans localStorage, suppression',
-      );
-      localStorage.removeItem(CURRENT_BUDGET_STORAGE_KEY);
-      return null;
-    } catch (error) {
-      this.#logger.error(
-        'Erreur lors de la lecture du budget depuis localStorage:',
-        error,
-      );
-      localStorage.removeItem(CURRENT_BUDGET_STORAGE_KEY);
+    const parsedData = this.#storageService.get<unknown>(
+      STORAGE_KEYS.CURRENT_BUDGET,
+    );
+    if (!parsedData) {
       return null;
     }
+
+    // Utiliser la validation Zod du schéma partagé
+    const result = budgetSchema.safeParse(parsedData);
+    if (result.success && result.data) {
+      return result.data;
+    }
+
+    this.#logger.warn(
+      'Données de budget invalides dans localStorage, suppression',
+    );
+    this.#storageService.remove(STORAGE_KEYS.CURRENT_BUDGET);
+    return null;
   }
 
   #saveBudgetToStorage(budget: Budget): void {
-    try {
-      localStorage.setItem(CURRENT_BUDGET_STORAGE_KEY, JSON.stringify(budget));
-    } catch (error) {
-      this.#logger.error(
-        'Erreur lors de la sauvegarde du budget dans localStorage:',
-        error,
-      );
-    }
+    this.#storageService.set(STORAGE_KEYS.CURRENT_BUDGET, budget);
   }
 
   #removeBudgetFromStorage(budgetId: string): void {
-    try {
-      const currentBudget = this.getCurrentBudgetFromStorage();
-      if (currentBudget?.id === budgetId) {
-        localStorage.removeItem(CURRENT_BUDGET_STORAGE_KEY);
-      }
-    } catch (error) {
-      this.#logger.error(
-        'Erreur lors de la suppression du budget du localStorage:',
-        error,
-      );
+    const currentBudget = this.getCurrentBudgetFromStorage();
+    if (currentBudget?.id === budgetId) {
+      this.#storageService.remove(STORAGE_KEYS.CURRENT_BUDGET);
     }
   }
 

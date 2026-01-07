@@ -5,6 +5,7 @@ import { PostHogService } from '@core/analytics/posthog';
 import { AuthApi } from '@core/auth/auth-api';
 import { BudgetApi } from '@core/budget';
 import { Logger } from '@core/logging/logger';
+import { StorageService, STORAGE_KEYS } from '@core/storage';
 import {
   type BudgetCreate,
   type BudgetTemplateCreateFromOnboarding,
@@ -21,8 +22,6 @@ import { OnboardingApi } from './services/onboarding-api';
 
 // Re-export for external use
 export type { OnboardingStep } from './onboarding-state';
-
-const STORAGE_KEY = 'pulpe-onboarding-data';
 
 export const STEP_ORDER: readonly OnboardingStep[] = [
   'welcome',
@@ -59,6 +58,7 @@ export class OnboardingStore {
   readonly #router = inject(Router);
   readonly #logger = inject(Logger);
   readonly #postHogService = inject(PostHogService);
+  readonly #storageService = inject(StorageService);
 
   // Single source of truth - private state signal
   readonly #state = signal<OnboardingState>(createInitialOnboardingState());
@@ -299,28 +299,21 @@ export class OnboardingStore {
    * Save onboarding data to localStorage (called by effect)
    */
   #saveDataToStorage(data: OnboardingData): void {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    } catch (error) {
-      this.#logger.error('Erreur sauvegarde localStorage:', error);
-    }
+    this.#storageService.set(STORAGE_KEYS.ONBOARDING_DATA, data);
   }
 
   /**
    * Load onboarding data from localStorage
    */
   #loadFromStorage(): void {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const savedData: OnboardingData = JSON.parse(saved);
-        this.#setState((state) => ({
-          ...state,
-          data: savedData,
-        }));
-      }
-    } catch (error) {
-      this.#logger.error('Erreur chargement localStorage:', error);
+    const savedData = this.#storageService.get<OnboardingData>(
+      STORAGE_KEYS.ONBOARDING_DATA,
+    );
+    if (savedData) {
+      this.#setState((state) => ({
+        ...state,
+        data: savedData,
+      }));
     }
   }
 
@@ -328,10 +321,6 @@ export class OnboardingStore {
    * Clear onboarding data from localStorage
    */
   #clearStorage(): void {
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch (error) {
-      this.#logger.error('Erreur suppression localStorage:', error);
-    }
+    this.#storageService.remove(STORAGE_KEYS.ONBOARDING_DATA);
   }
 }

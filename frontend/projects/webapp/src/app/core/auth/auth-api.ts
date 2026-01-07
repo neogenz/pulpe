@@ -9,6 +9,8 @@ import { AuthErrorLocalizer } from './auth-error-localizer';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
 import { DemoModeService } from '../demo/demo-mode.service';
+import { PostHogService } from '../analytics/posthog';
+import { StorageService } from '../storage';
 
 export interface AuthState {
   readonly user: User | null;
@@ -25,6 +27,8 @@ export class AuthApi {
   readonly #applicationConfig = inject(ApplicationConfiguration);
   readonly #logger = inject(Logger);
   readonly #demoModeService = inject(DemoModeService);
+  readonly #postHogService = inject(PostHogService);
+  readonly #storageService = inject(StorageService);
 
   // Supabase client - créé dans initializeAuthState() après le chargement de la config
   #supabaseClient: SupabaseClient | null = null;
@@ -154,17 +158,14 @@ export class AuthApi {
   private handleSignOut(): void {
     // Clear demo mode state BEFORE clearing other data
     // This ensures demo state is reset on ALL logout paths (menu, auth errors, etc.)
+    // Note: This also updates internal signals, not just localStorage
     this.#demoModeService.deactivateDemoMode();
 
-    // Nettoyer le localStorage et autres états liés à l'utilisateur
-    try {
-      localStorage.removeItem('pulpe-onboarding-completed');
-    } catch (error) {
-      this.#logger.warn(
-        'Failed to clear onboarding status from localStorage:',
-        error,
-      );
-    }
+    // Reset analytics identity to prevent tracking new user with old identity
+    this.#postHogService.reset();
+
+    // Clear all user data from localStorage (type-safe via StorageService)
+    this.#storageService.clearAll();
   }
 
   async signInWithEmail(
