@@ -319,14 +319,6 @@ final class BudgetDetailsViewModel {
     }
 }
 
-// MARK: - Linked Transactions Context
-
-private struct LinkedTransactionsContext: Identifiable {
-    let id = UUID()
-    let budgetLine: BudgetLine
-    let transactions: [Transaction]
-}
-
 #Preview {
     NavigationStack {
         BudgetDetailsView(budgetId: "test")

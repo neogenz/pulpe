@@ -8,6 +8,7 @@ struct CurrentMonthView: View {
     @State private var selectedLineForTransaction: BudgetLine?
     @State private var linkedTransactionsContext: LinkedTransactionsContext?
     @State private var budgetLineToDelete: BudgetLine?
+    @State private var showAccount = false
 
     var body: some View {
         ZStack {
@@ -38,22 +39,10 @@ struct CurrentMonthView: View {
             }
 
             ToolbarItem(placement: .primaryAction) {
-                Menu {
-                    Button {
-                        Task { await viewModel.loadData() }
-                    } label: {
-                        Label("Actualiser", systemImage: "arrow.clockwise")
-                    }
-
-                    Divider()
-
-                    Button(role: .destructive) {
-                        Task { await appState.logout() }
-                    } label: {
-                        Label("Se déconnecter", systemImage: "rectangle.portrait.and.arrow.right")
-                    }
+                Button {
+                    showAccount = true
                 } label: {
-                    Image(systemName: "ellipsis.circle")
+                    Image(systemName: "person.circle")
                 }
             }
 
@@ -102,6 +91,9 @@ struct CurrentMonthView: View {
                 metrics: viewModel.metrics,
                 realizedMetrics: viewModel.realizedMetrics
             )
+        }
+        .sheet(isPresented: $showAccount) {
+            AccountView()
         }
         .confirmationDialog(
             "Supprimer cette prévision ?",
@@ -374,14 +366,6 @@ final class CurrentMonthViewModel {
             self.error = error
         }
     }
-}
-
-// MARK: - Linked Transactions Context
-
-private struct LinkedTransactionsContext: Identifiable {
-    let id = UUID()
-    let budgetLine: BudgetLine
-    let transactions: [Transaction]
 }
 
 #Preview {
