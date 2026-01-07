@@ -36,6 +36,10 @@ struct CurrentMonthView: View {
                 }
             }
 
+            if #available(iOS 26, *) {
+                ToolbarSpacer(.fixed, placement: .primaryAction)
+            }
+
             ToolbarItem(placement: .primaryAction) {
                 Menu {
                     Button {
