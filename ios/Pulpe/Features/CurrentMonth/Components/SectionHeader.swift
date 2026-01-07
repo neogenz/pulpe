@@ -13,6 +13,7 @@ struct SectionHeader: View {
             Text(title)
                 .font(.headline)
                 .foregroundStyle(.primary)
+                .lineLimit(1)
 
             // Count badge
             Text("\(count)")
@@ -32,7 +33,6 @@ struct SectionHeader: View {
                     .foregroundStyle(totalColor)
             }
         }
-        .padding(.horizontal)
     }
 }
 

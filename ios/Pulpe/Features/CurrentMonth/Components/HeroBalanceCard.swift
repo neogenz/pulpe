@@ -53,7 +53,7 @@ struct HeroBalanceCard: View {
     private var balanceSection: some View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("Disponible à dépenser")
+                Text("Disponible CHF")
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .foregroundStyle(.secondary)
@@ -64,10 +64,6 @@ struct HeroBalanceCard: View {
                         .foregroundStyle(balanceColor)
                         .contentTransition(.numericText())
 
-                    Text("CHF")
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.secondary)
                 }
 
                 if isOverBudget {
@@ -99,9 +95,9 @@ struct HeroBalanceCard: View {
                     .rotationEffect(.degrees(-90))
                     .animation(.spring(duration: 0.6), value: progressPercentage)
 
-                VStack(spacing: 0) {
+                HStack(spacing: 2) {
                     Text("\(displayPercentage)")
-                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
                         .foregroundStyle(progressColor)
 
                     Text("%")
@@ -119,27 +115,27 @@ struct HeroBalanceCard: View {
     private var statsRow: some View {
         HStack(spacing: 0) {
             statItem(
-                label: "Dépenses",
+                label: "Dépenses CHF",
                 value: metrics.totalExpenses,
                 color: .financialExpense
             )
 
             Divider()
                 .frame(height: 32)
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 8)
 
             statItem(
-                label: "Revenus",
+                label: "Revenus CHF",
                 value: metrics.totalIncome,
                 color: .financialIncome
             )
 
             Divider()
                 .frame(height: 32)
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 8)
 
             statItem(
-                label: "Épargne",
+                label: "Épargne CHF",
                 value: metrics.totalSavings,
                 color: .financialSavings
             )
@@ -152,7 +148,7 @@ struct HeroBalanceCard: View {
                 .font(.caption)
                 .foregroundStyle(.tertiary)
 
-            Text(value.asCompactCHF)
+            Text(value.formatted())
                 .font(.system(.subheadline, design: .rounded, weight: .semibold))
                 .foregroundStyle(color)
         }
@@ -166,7 +162,12 @@ private struct HeroCardStyleModifier: ViewModifier {
     func body(content: Content) -> some View {
         if #available(iOS 26, *) {
             content
-                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 20))
+                .glassEffect(
+                        .regular
+                            .tint(.white.opacity(0.5)) // Couleur de fond du verre
+                            .interactive(), // Active les animations au toucher
+                        in: .rect(cornerRadius: 20)
+                    )
         } else {
             content
                 .background(Color(.secondarySystemGroupedBackground))
@@ -192,10 +193,10 @@ extension View {
                 metrics: .init(
                     totalIncome: 5000,
                     totalExpenses: 2000,
-                    totalSavings: 500,
+                    totalSavings: 5000,
                     available: 5500,
                     endingBalance: 3500,
-                    remaining: 3000,
+                    remaining: 3000.45,
                     rollover: 500
                 ),
                 onTapProgress: {}
@@ -218,9 +219,9 @@ extension View {
             // Over budget
             HeroBalanceCard(
                 metrics: .init(
-                    totalIncome: 5000,
-                    totalExpenses: 5500,
-                    totalSavings: 200,
+                    totalIncome: 50000,
+                    totalExpenses: 55000,
+                    totalSavings: 2000,
                     available: 5000,
                     endingBalance: -500,
                     remaining: -700,

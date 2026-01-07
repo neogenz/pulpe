@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// List of recurring budget lines with consumption tracking
-struct RecurringExpensesList: View {
+/// Section of recurring budget lines - designed to be used inside a parent List
+struct BudgetSection: View {
     let title: String
     let items: [BudgetLine]
     let transactions: [Transaction]
@@ -25,51 +25,45 @@ struct RecurringExpensesList: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        Section {
+            ForEach(items) { item in
+                BudgetLineRow(
+                    line: item,
+                    consumption: BudgetFormulas.calculateConsumption(for: item, transactions: transactions),
+                    allTransactions: transactions,
+                    onToggle: { onToggle(item) },
+                    onAddTransaction: { onAddTransaction(item) },
+                    onLongPress: { linkedTransactions in
+                        onLongPress(item, linkedTransactions)
+                    }
+                )
+                .listRowSeparator(.hidden)
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    if !item.isVirtualRollover {
+                        Button {
+                            onToggle(item)
+                        } label: {
+                            Label(
+                                item.isChecked ? "Annuler" : "Comptabiliser",
+                                systemImage: item.isChecked ? "arrow.uturn.backward" : "checkmark.circle"
+                            )
+                        }
+                        .tint(item.isChecked ? .orange : .pulpePrimary)
+                    }
+                }
+            }
+        } header: {
             SectionHeader(
                 title: title,
                 count: items.count,
                 totalAmount: totalAmount,
                 totalColor: totalColor
             )
-
-            // Use List for native swipe actions
-            List {
-                ForEach(items) { item in
-                    BudgetLineRow(
-                        line: item,
-                        consumption: BudgetFormulas.calculateConsumption(for: item, transactions: transactions),
-                        allTransactions: transactions,
-                        onToggle: { onToggle(item) },
-                        onAddTransaction: { onAddTransaction(item) },
-                        onLongPress: { linkedTransactions in
-                            onLongPress(item, linkedTransactions)
-                        }
-                    )
-                    .listRowInsets(EdgeInsets(top: 3, leading: 16, bottom: 3, trailing: 16))
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color.clear)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                        if !item.isVirtualRollover {
-                            Button {
-                                onToggle(item)
-                            } label: {
-                                Label(
-                                    item.isChecked ? "Annuler" : "Comptabiliser",
-                                    systemImage: item.isChecked ? "arrow.uturn.backward" : "checkmark.circle"
-                                )
-                            }
-                            .tint(item.isChecked ? .orange : .pulpePrimary)
-                        }
-                    }
-                }
-            }
-            .listStyle(.plain)
-            .scrollDisabled(true)
-            .frame(height: CGFloat(items.count) * 76) // Approximate row height
+            .textCase(nil)
         }
     }
 }
+
 
 /// Single budget line row - Revolut-inspired design
 struct BudgetLineRow: View {
@@ -118,18 +112,10 @@ struct BudgetLineRow: View {
 
                     // Consumption info or recurrence label
                     if hasConsumption {
-                        HStack(spacing: 6) {
-                            Text("\(consumptionPercentage)%")
-                                .font(.system(.caption, design: .rounded, weight: .semibold))
-                                .foregroundStyle(consumptionColor)
-
-                            Text("·")
-                                .foregroundStyle(.tertiary)
-
-                            Text("\(consumption.allocated.asCompactCHF) / \(line.amount.asCompactCHF)")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
+                        Text("\(consumptionPercentage)% · \(consumption.allocated.asCompactCHF) dépensé")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
                     } else {
                         Text(line.recurrence.label)
                             .font(.caption)
@@ -157,17 +143,13 @@ struct BudgetLineRow: View {
                     .buttonStyle(.plain)
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.vertical, 8)
 
             // Consumption progress bar
             if hasConsumption {
                 progressBar
             }
         }
-        .background(Color(.systemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.04), radius: 4, y: 2)
         .scaleEffect(isPressed ? 0.97 : 1.0)
         .animation(.spring(duration: 0.25), value: isPressed)
         .onLongPressGesture(
@@ -239,71 +221,75 @@ struct BudgetLineRow: View {
 }
 
 #Preview {
-    RecurringExpensesList(
-        title: "Dépenses récurrentes",
-        items: [
-            BudgetLine(
-                id: "1",
-                budgetId: "b1",
-                templateLineId: nil,
-                savingsGoalId: nil,
-                name: "Loyer",
-                amount: 1500,
-                kind: .expense,
-                recurrence: .fixed,
-                isManuallyAdjusted: false,
-                checkedAt: nil,
-                createdAt: Date(),
-                updatedAt: Date()
-            ),
-            BudgetLine(
-                id: "2",
-                budgetId: "b1",
-                templateLineId: nil,
-                savingsGoalId: nil,
-                name: "Salaire",
-                amount: 5000,
-                kind: .income,
-                recurrence: .fixed,
-                isManuallyAdjusted: false,
-                checkedAt: Date(),
-                createdAt: Date(),
-                updatedAt: Date()
-            ),
-            BudgetLine(
-                id: "3",
-                budgetId: "b1",
-                templateLineId: nil,
-                savingsGoalId: nil,
-                name: "Épargne mensuelle",
-                amount: 500,
-                kind: .saving,
-                recurrence: .fixed,
-                isManuallyAdjusted: false,
-                checkedAt: nil,
-                createdAt: Date(),
-                updatedAt: Date()
-            )
-        ],
-        transactions: [
-            Transaction(
-                id: "t1",
-                budgetId: "b1",
-                budgetLineId: "1",
-                name: "Loyer janvier",
-                amount: 1500,
-                kind: .expense,
-                transactionDate: Date(),
-                category: nil,
-                checkedAt: nil,
-                createdAt: Date(),
-                updatedAt: Date()
-            )
-        ],
-        onToggle: { _ in },
-        onAddTransaction: { _ in },
-        onLongPress: { _, _ in }
-    )
-    .padding(.vertical)
+    List {
+        BudgetSection(
+            title: "Dépenses récurrentes",
+            items: [
+                BudgetLine(
+                    id: "1",
+                    budgetId: "b1",
+                    templateLineId: nil,
+                    savingsGoalId: nil,
+                    name: "Loyer",
+                    amount: 1500,
+                    kind: .expense,
+                    recurrence: .fixed,
+                    isManuallyAdjusted: false,
+                    checkedAt: nil,
+                    createdAt: Date(),
+                    updatedAt: Date()
+                ),
+                BudgetLine(
+                    id: "2",
+                    budgetId: "b1",
+                    templateLineId: nil,
+                    savingsGoalId: nil,
+                    name: "Salaire",
+                    amount: 5000,
+                    kind: .income,
+                    recurrence: .fixed,
+                    isManuallyAdjusted: false,
+                    checkedAt: Date(),
+                    createdAt: Date(),
+                    updatedAt: Date()
+                ),
+                BudgetLine(
+                    id: "3",
+                    budgetId: "b1",
+                    templateLineId: nil,
+                    savingsGoalId: nil,
+                    name: "Épargne mensuelle",
+                    amount: 500,
+                    kind: .saving,
+                    recurrence: .fixed,
+                    isManuallyAdjusted: false,
+                    checkedAt: nil,
+                    createdAt: Date(),
+                    updatedAt: Date()
+                )
+            ],
+            transactions: [
+                Transaction(
+                    id: "t1",
+                    budgetId: "b1",
+                    budgetLineId: "1",
+                    name: "Loyer janvier",
+                    amount: 1500,
+                    kind: .expense,
+                    transactionDate: Date(),
+                    category: nil,
+                    checkedAt: nil,
+                    createdAt: Date(),
+                    updatedAt: Date()
+                )
+            ],
+            onToggle: { _ in },
+            onAddTransaction: { _ in },
+            onLongPress: { _, _ in }
+        )
+    }
+    .listStyle(.insetGrouped)
+    .listSectionSpacing(16)
+    .scrollContentBackground(.hidden)
     .background(Color(.systemGroupedBackground))
 }

@@ -35,80 +35,85 @@ struct BudgetDetailsView: View {
     }
 
     private var content: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                // Hero balance card (Revolut-style)
+        List {
+            // Hero balance card (Revolut-style)
+            Section {
                 HeroBalanceCard(
                     metrics: viewModel.metrics,
                     onTapProgress: {}
                 )
-                .padding(.horizontal)
-
-                // Income section
-                if !viewModel.incomeLines.isEmpty {
-                    RecurringExpensesList(
-                        title: "Revenus",
-                        items: viewModel.incomeLines,
-                        transactions: viewModel.transactions,
-                        onToggle: { line in
-                            Task { await viewModel.toggleBudgetLine(line) }
-                        },
-                        onAddTransaction: { line in
-                            selectedLineForTransaction = line
-                        },
-                        onLongPress: { _, _ in }
-                    )
-                }
-
-                // Expense section
-                if !viewModel.expenseLines.isEmpty {
-                    RecurringExpensesList(
-                        title: "Dépenses",
-                        items: viewModel.expenseLines,
-                        transactions: viewModel.transactions,
-                        onToggle: { line in
-                            Task { await viewModel.toggleBudgetLine(line) }
-                        },
-                        onAddTransaction: { line in
-                            selectedLineForTransaction = line
-                        },
-                        onLongPress: { _, _ in }
-                    )
-                }
-
-                // Saving section
-                if !viewModel.savingLines.isEmpty {
-                    RecurringExpensesList(
-                        title: "Épargne",
-                        items: viewModel.savingLines,
-                        transactions: viewModel.transactions,
-                        onToggle: { line in
-                            Task { await viewModel.toggleBudgetLine(line) }
-                        },
-                        onAddTransaction: { line in
-                            selectedLineForTransaction = line
-                        },
-                        onLongPress: { _, _ in }
-                    )
-                }
-
-                // Free transactions
-                if !viewModel.freeTransactions.isEmpty {
-                    OneTimeExpensesList(
-                        title: "Transactions libres",
-                        transactions: viewModel.freeTransactions,
-                        onToggle: { transaction in
-                            Task { await viewModel.toggleTransaction(transaction) }
-                        },
-                        onDelete: { transaction in
-                            Task { await viewModel.deleteTransaction(transaction) }
-                        }
-                    )
-                }
-
-                Spacer(minLength: 80)
             }
-            .padding(.vertical)
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+
+            // Income section
+            if !viewModel.incomeLines.isEmpty {
+                BudgetSection(
+                    title: "Revenus",
+                    items: viewModel.incomeLines,
+                    transactions: viewModel.transactions,
+                    onToggle: { line in
+                        Task { await viewModel.toggleBudgetLine(line) }
+                    },
+                    onAddTransaction: { line in
+                        selectedLineForTransaction = line
+                    },
+                    onLongPress: { _, _ in }
+                )
+            }
+
+            // Expense section
+            if !viewModel.expenseLines.isEmpty {
+                BudgetSection(
+                    title: "Dépenses",
+                    items: viewModel.expenseLines,
+                    transactions: viewModel.transactions,
+                    onToggle: { line in
+                        Task { await viewModel.toggleBudgetLine(line) }
+                    },
+                    onAddTransaction: { line in
+                        selectedLineForTransaction = line
+                    },
+                    onLongPress: { _, _ in }
+                )
+            }
+
+            // Saving section
+            if !viewModel.savingLines.isEmpty {
+                BudgetSection(
+                    title: "Épargne",
+                    items: viewModel.savingLines,
+                    transactions: viewModel.transactions,
+                    onToggle: { line in
+                        Task { await viewModel.toggleBudgetLine(line) }
+                    },
+                    onAddTransaction: { line in
+                        selectedLineForTransaction = line
+                    },
+                    onLongPress: { _, _ in }
+                )
+            }
+
+            // Free transactions
+            if !viewModel.freeTransactions.isEmpty {
+                TransactionSection(
+                    title: "Transactions libres",
+                    transactions: viewModel.freeTransactions,
+                    onToggle: { transaction in
+                        Task { await viewModel.toggleTransaction(transaction) }
+                    },
+                    onDelete: { transaction in
+                        Task { await viewModel.deleteTransaction(transaction) }
+                    }
+                )
+            }
+        }
+        .listStyle(.insetGrouped)
+        .listSectionSpacing(16)
+        .scrollContentBackground(.hidden)
+        .background(Color(.systemGroupedBackground))
+        .safeAreaInset(edge: .bottom) {
+            Color.clear.frame(height: 80)
         }
         .refreshable {
             await viewModel.loadDetails()

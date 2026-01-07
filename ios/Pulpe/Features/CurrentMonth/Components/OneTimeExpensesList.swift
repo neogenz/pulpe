@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// List of free (unallocated) transactions
-struct OneTimeExpensesList: View {
+/// Section of free (unallocated) transactions - designed to be used inside a parent List
+struct TransactionSection: View {
     let title: String
     let transactions: [Transaction]
     let onToggle: (Transaction) -> Void
@@ -23,43 +23,36 @@ struct OneTimeExpensesList: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        Section {
+            ForEach(transactions) { transaction in
+                TransactionRow(transaction: transaction)
+                    .listRowSeparator(.hidden)
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            onDelete(transaction)
+                        } label: {
+                            Label("Supprimer", systemImage: "trash")
+                        }
+
+                        Button {
+                            onToggle(transaction)
+                        } label: {
+                            Label(
+                                transaction.isChecked ? "Annuler" : "Comptabiliser",
+                                systemImage: transaction.isChecked ? "arrow.uturn.backward" : "checkmark.circle"
+                            )
+                        }
+                        .tint(transaction.isChecked ? .orange : .pulpePrimary)
+                    }
+            }
+        } header: {
             SectionHeader(
                 title: title,
                 count: transactions.count,
                 totalAmount: totalAmount,
                 totalColor: totalColor
             )
-
-            // Use List for native swipe actions
-            List {
-                ForEach(transactions) { transaction in
-                    TransactionRow(transaction: transaction)
-                        .listRowInsets(EdgeInsets(top: 3, leading: 16, bottom: 3, trailing: 16))
-                        .listRowSeparator(.hidden)
-                        .listRowBackground(Color.clear)
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button(role: .destructive) {
-                                onDelete(transaction)
-                            } label: {
-                                Label("Supprimer", systemImage: "trash")
-                            }
-
-                            Button {
-                                onToggle(transaction)
-                            } label: {
-                                Label(
-                                    transaction.isChecked ? "Annuler" : "Comptabiliser",
-                                    systemImage: transaction.isChecked ? "arrow.uturn.backward" : "checkmark.circle"
-                                )
-                            }
-                            .tint(transaction.isChecked ? .orange : .pulpePrimary)
-                        }
-                }
-            }
-            .listStyle(.plain)
-            .scrollDisabled(true)
-            .frame(height: CGFloat(transactions.count) * 70) // Approximate row height
+            .textCase(nil)
         }
     }
 }
@@ -94,11 +87,7 @@ struct TransactionRow: View {
                 .font(.system(.callout, design: .rounded, weight: .semibold))
                 .foregroundStyle(transaction.isChecked ? .secondary : transaction.kind.color)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(Color(.systemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.04), radius: 4, y: 2)
+        .padding(.vertical, 8)
     }
 
     // MARK: - Kind Icon Circle (Revolut-style)
@@ -125,52 +114,56 @@ struct TransactionRow: View {
 }
 
 #Preview {
-    OneTimeExpensesList(
-        title: "Autres dépenses",
-        transactions: [
-            Transaction(
-                id: "1",
-                budgetId: "b1",
-                budgetLineId: nil,
-                name: "Restaurant",
-                amount: 45,
-                kind: .expense,
-                transactionDate: Date(),
-                category: nil,
-                checkedAt: nil,
-                createdAt: Date(),
-                updatedAt: Date()
-            ),
-            Transaction(
-                id: "2",
-                budgetId: "b1",
-                budgetLineId: nil,
-                name: "Remboursement",
-                amount: 120,
-                kind: .income,
-                transactionDate: Date().addingTimeInterval(-86400),
-                category: nil,
-                checkedAt: Date(),
-                createdAt: Date(),
-                updatedAt: Date()
-            ),
-            Transaction(
-                id: "3",
-                budgetId: "b1",
-                budgetLineId: nil,
-                name: "Virement épargne",
-                amount: 200,
-                kind: .saving,
-                transactionDate: Date().addingTimeInterval(-172800),
-                category: nil,
-                checkedAt: nil,
-                createdAt: Date(),
-                updatedAt: Date()
-            )
-        ],
-        onToggle: { _ in },
-        onDelete: { _ in }
-    )
-    .padding(.vertical)
+    List {
+        TransactionSection(
+            title: "Autres dépenses",
+            transactions: [
+                Transaction(
+                    id: "1",
+                    budgetId: "b1",
+                    budgetLineId: nil,
+                    name: "Restaurant",
+                    amount: 45,
+                    kind: .expense,
+                    transactionDate: Date(),
+                    category: nil,
+                    checkedAt: nil,
+                    createdAt: Date(),
+                    updatedAt: Date()
+                ),
+                Transaction(
+                    id: "2",
+                    budgetId: "b1",
+                    budgetLineId: nil,
+                    name: "Remboursement",
+                    amount: 120,
+                    kind: .income,
+                    transactionDate: Date().addingTimeInterval(-86400),
+                    category: nil,
+                    checkedAt: Date(),
+                    createdAt: Date(),
+                    updatedAt: Date()
+                ),
+                Transaction(
+                    id: "3",
+                    budgetId: "b1",
+                    budgetLineId: nil,
+                    name: "Virement épargne",
+                    amount: 200,
+                    kind: .saving,
+                    transactionDate: Date().addingTimeInterval(-172800),
+                    category: nil,
+                    checkedAt: nil,
+                    createdAt: Date(),
+                    updatedAt: Date()
+                )
+            ],
+            onToggle: { _ in },
+            onDelete: { _ in }
+        )
+    }
+    .listStyle(.insetGrouped)
+    .listSectionSpacing(16)
+    .scrollContentBackground(.hidden)
     .background(Color(.systemGroupedBackground))
 }

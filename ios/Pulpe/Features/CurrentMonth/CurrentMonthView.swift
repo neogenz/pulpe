@@ -101,7 +101,7 @@ struct CurrentMonthView: View {
 
     private var content: some View {
         ZStack(alignment: .bottomTrailing) {
-            scrollContent
+            listContent
                 .applyScrollEdgeEffect()
 
             // FAB
@@ -112,28 +112,21 @@ struct CurrentMonthView: View {
         }
     }
 
-    private var scrollContent: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                // Hero balance card (Revolut-style)
+    private var listContent: some View {
+        List {
+            // Hero balance card (Revolut-style)
+            Section {
                 HeroBalanceCard(
                     metrics: viewModel.metrics,
                     onTapProgress: { showRealizedBalanceSheet = true }
                 )
-                .padding(.horizontal)
-
-                // Sections
-                sectionsContent
             }
-            .padding(.vertical)
-        }
-    }
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
 
-    private var sectionsContent: some View {
-        VStack(spacing: 24) {
             // Recurring expenses section
             if !viewModel.recurringBudgetLines.isEmpty {
-                RecurringExpensesList(
+                BudgetSection(
                     title: "Dépenses récurrentes",
                     items: viewModel.recurringBudgetLines,
                     transactions: viewModel.transactions,
@@ -154,7 +147,7 @@ struct CurrentMonthView: View {
 
             // One-off expenses section
             if !viewModel.oneOffBudgetLines.isEmpty {
-                RecurringExpensesList(
+                BudgetSection(
                     title: "Dépenses prévues",
                     items: viewModel.oneOffBudgetLines,
                     transactions: viewModel.transactions,
@@ -175,7 +168,7 @@ struct CurrentMonthView: View {
 
             // Free transactions
             if !viewModel.freeTransactions.isEmpty {
-                OneTimeExpensesList(
+                TransactionSection(
                     title: "Autres dépenses",
                     transactions: viewModel.freeTransactions,
                     onToggle: { transaction in
@@ -186,9 +179,13 @@ struct CurrentMonthView: View {
                     }
                 )
             }
-
-            // Bottom spacing for FAB
-            Spacer(minLength: 100)
+        }
+        .listStyle(.insetGrouped)
+        .listSectionSpacing(16)
+        .scrollContentBackground(.hidden)
+        .background(Color(.systemGroupedBackground))
+        .safeAreaInset(edge: .bottom) {
+            Color.clear.frame(height: 80)
         }
     }
 
