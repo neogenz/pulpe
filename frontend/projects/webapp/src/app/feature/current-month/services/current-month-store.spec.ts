@@ -550,3 +550,180 @@ describe('CurrentMonthStore - Business Scenarios', () => {
     });
   });
 });
+
+/**
+ * Pay-Day Integration Tests
+ *
+ * Tests that verify the behavior when a custom pay day is configured.
+ * Key business rule: Budget is named after the month where payDay occurred.
+ * - If day >= payDay → current calendar month's budget
+ * - If day < payDay → previous calendar month's budget
+ */
+describe('CurrentMonthStore - Pay Day Integration', () => {
+  let store: CurrentMonthStore;
+  let payDaySignal: ReturnType<typeof signal<number | null>>;
+  let mockBudgetApi: {
+    getBudgetForMonth$: Mock;
+    getBudgetWithDetails$: Mock;
+    getBudgetById$: Mock;
+  };
+
+  const mockJanuaryBudget: Budget = {
+    id: 'budget-jan',
+    userId: 'user-1',
+    templateId: 'template-1',
+    month: 1,
+    year: 2024,
+    description: 'January Budget',
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+    endingBalance: 0,
+    rollover: 500,
+  };
+
+  beforeEach(() => {
+    payDaySignal = signal<number | null>(null);
+
+    mockBudgetApi = {
+      getBudgetForMonth$: vi.fn().mockReturnValue(of(mockJanuaryBudget)),
+      getBudgetWithDetails$: vi.fn().mockReturnValue(
+        of({
+          data: {
+            budget: mockJanuaryBudget,
+            transactions: [],
+            budgetLines: [],
+          },
+        }),
+      ),
+      getBudgetById$: vi.fn().mockReturnValue(of(mockJanuaryBudget)),
+    };
+
+    const mockTransactionApi = {
+      create$: vi.fn(),
+      update$: vi.fn(),
+      remove$: vi.fn(),
+    };
+
+    const mockBudgetCalculator = {
+      calculateLocalEndingBalance: vi.fn().mockReturnValue(0),
+      calculatePlannedIncome: vi.fn().mockReturnValue(0),
+      calculateActualTransactionsAmount: vi.fn().mockReturnValue(0),
+      calculateTotalAvailable: vi.fn().mockReturnValue(0),
+    };
+
+    const mockAppConfig = {
+      backendApiUrl: vi.fn().mockReturnValue('http://localhost:3000/api'),
+    };
+
+    const mockUserSettingsApi = {
+      payDayOfMonth: payDaySignal.asReadonly(),
+      isLoading: signal(false),
+    };
+
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        CurrentMonthStore,
+        { provide: BudgetApi, useValue: mockBudgetApi },
+        { provide: TransactionApi, useValue: mockTransactionApi },
+        { provide: BudgetCalculator, useValue: mockBudgetCalculator },
+        { provide: ApplicationConfiguration, useValue: mockAppConfig },
+        { provide: UserSettingsApi, useValue: mockUserSettingsApi },
+      ],
+    });
+
+    store = TestBed.inject(CurrentMonthStore);
+  });
+
+  describe('Budget period calculation with custom pay day', () => {
+    it('should compute January period when today is Jan 28 and payDay is 27', () => {
+      // Business scenario: User is paid on the 27th.
+      // On January 28, they already received their January paycheck on the 27th.
+      payDaySignal.set(27);
+      store.setCurrentDate(new Date('2024-01-28'));
+
+      const period = store.currentBudgetPeriod();
+
+      // 28 >= 27 → current month (January)
+      expect(period).toEqual({ month: 1, year: 2024 });
+    });
+
+    it('should compute December period when today is Jan 26 and payDay is 27', () => {
+      // Business scenario: User is paid on the 27th.
+      // On January 26, they haven't received their January paycheck yet (still on December's).
+      payDaySignal.set(27);
+      store.setCurrentDate(new Date('2024-01-26'));
+
+      const period = store.currentBudgetPeriod();
+
+      // 26 < 27 → previous month (December)
+      expect(period).toEqual({ month: 12, year: 2023 });
+    });
+
+    it('should compute December period when today is Dec 27 and payDay is 27', () => {
+      // Business scenario: Year boundary.
+      // On December 27, user just received their December paycheck.
+      payDaySignal.set(27);
+      store.setCurrentDate(new Date('2024-12-27'));
+
+      const period = store.currentBudgetPeriod();
+
+      // 27 >= 27 → current month (December)
+      expect(period).toEqual({ month: 12, year: 2024 });
+    });
+
+    it('should use calendar month when payDay is null', () => {
+      // Business scenario: User has no custom pay day configured.
+      // Standard calendar behavior: January 28 = January budget.
+      payDaySignal.set(null);
+      store.setCurrentDate(new Date('2024-01-28'));
+
+      const period = store.currentBudgetPeriod();
+
+      expect(period).toEqual({ month: 1, year: 2024 });
+    });
+
+    it('should use calendar month when payDay is 1', () => {
+      // Business scenario: User is paid on the 1st (standard calendar).
+      payDaySignal.set(1);
+      store.setCurrentDate(new Date('2024-01-28'));
+
+      const period = store.currentBudgetPeriod();
+
+      expect(period).toEqual({ month: 1, year: 2024 });
+    });
+
+    it('should compute January when today is Jan 6 and payDay is 3', () => {
+      // Business scenario: User is paid on the 3rd.
+      // On January 6, they already received their January paycheck on the 3rd.
+      payDaySignal.set(3);
+      store.setCurrentDate(new Date('2024-01-06'));
+
+      const period = store.currentBudgetPeriod();
+
+      // 6 >= 3 → current month (January)
+      expect(period).toEqual({ month: 1, year: 2024 });
+    });
+  });
+
+  describe('Dashboard loads correct budget based on pay day', () => {
+    it('should request January budget when today is Jan 28 and payDay is 27', async () => {
+      // Business scenario: Dashboard should load the budget for the computed period
+      payDaySignal.set(27);
+      store.setCurrentDate(new Date('2024-01-28'));
+
+      // Wait for resource to trigger
+      await vi.waitFor(() => {
+        expect(mockBudgetApi.getBudgetForMonth$).toHaveBeenCalled();
+      });
+
+      // Verify the API was called with January (month=1)
+      expect(mockBudgetApi.getBudgetForMonth$).toHaveBeenCalledWith(
+        '01',
+        '2024',
+      );
+    });
+  });
+});
