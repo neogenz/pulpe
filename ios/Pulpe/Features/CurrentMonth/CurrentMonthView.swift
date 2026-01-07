@@ -36,10 +36,6 @@ struct CurrentMonthView: View {
                 }
             }
 
-            if #available(iOS 26, *) {
-                ToolbarSpacer(.fixed, placement: .primaryAction)
-            }
-
             ToolbarItem(placement: .primaryAction) {
                 Menu {
                     Button {
@@ -57,6 +53,18 @@ struct CurrentMonthView: View {
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
+                }
+            }
+
+            if #available(iOS 26, *) {
+                ToolbarSpacer(.fixed, placement: .primaryAction)
+            }
+
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    showAddTransaction = true
+                } label: {
+                    Image(systemName: "plus")
                 }
             }
         }
@@ -100,16 +108,11 @@ struct CurrentMonthView: View {
     }
 
     private var content: some View {
-        ZStack(alignment: .bottomTrailing) {
-            listContent
-                .applyScrollEdgeEffect()
-
-            // FAB
-            fabButton
-        }
-        .refreshable {
-            await viewModel.loadData()
-        }
+        listContent
+            .applyScrollEdgeEffect()
+            .refreshable {
+                await viewModel.loadData()
+            }
     }
 
     private var listContent: some View {
@@ -184,25 +187,8 @@ struct CurrentMonthView: View {
         .listSectionSpacing(16)
         .scrollContentBackground(.hidden)
         .background(Color(.systemGroupedBackground))
-        .safeAreaInset(edge: .bottom) {
-            Color.clear.frame(height: 80)
-        }
     }
 
-    private var fabButton: some View {
-        Button {
-            showAddTransaction = true
-        } label: {
-            Image(systemName: "plus")
-                .font(.title2)
-                .fontWeight(.semibold)
-                .foregroundStyle(.white)
-                .frame(width: 56, height: 56)
-                .background(Color.accentColor, in: Circle())
-                .shadow(color: .black.opacity(0.15), radius: 8, y: 4)
-        }
-        .padding()
-    }
 }
 
 // MARK: - ViewModel
