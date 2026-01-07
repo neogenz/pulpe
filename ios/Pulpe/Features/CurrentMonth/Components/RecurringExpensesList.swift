@@ -176,6 +176,9 @@ struct BudgetLineRow: View {
 
         if linkedTransactions.isEmpty {
             triggerWarningFeedback.toggle()
+            withAnimation(.bouncy(duration: 0.2)) {
+                isPressed = false
+            }
         } else {
             triggerSuccessFeedback.toggle()
             onLongPress(linkedTransactions)

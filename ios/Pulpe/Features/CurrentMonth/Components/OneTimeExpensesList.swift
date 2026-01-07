@@ -65,14 +65,20 @@ struct TransactionRow: View {
                     .strikethrough(transaction.isChecked, color: .secondary)
                     .lineLimit(1)
 
-                // Subtitle: kind badge + date
+                // Subtitle: "Une seule fois" label + date
                 HStack(spacing: 4) {
-                    KindBadge(transaction.kind, style: .compact)
+                    Image(systemName: "1.circle")
+                        .font(.caption2)
+                    Text("Une seule fois")
+                        .font(.caption)
+
+                    Text("·")
+                        .font(.caption)
 
                     Text(transaction.transactionDate.dayMonthFormatted)
                         .font(.caption)
-                        .foregroundStyle(.tertiary)
                 }
+                .foregroundStyle(.tertiary)
             }
 
             Spacer(minLength: 8)
