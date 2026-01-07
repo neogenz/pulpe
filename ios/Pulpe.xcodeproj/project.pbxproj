@@ -27,6 +27,7 @@
 		3EBBC9D5EDE6B6B316A3A074 /* TemplateDetailsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3A3C49B0B8A78283AB987AD /* TemplateDetailsView.swift */; };
 		40867D66318D1675AC21C5EE /* Endpoints.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3AD93EA890CC61B4AA606B7 /* Endpoints.swift */; };
 		4491DFC84F384660F238F4F8 /* BudgetTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27F72011B11153235E828030 /* BudgetTemplate.swift */; };
+		4A0D647CD0FC9FA613122423 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = E1ED9277251CACDC297FEFA3 /* LaunchScreen.storyboard */; };
 		547E46730E438D89507B7693 /* CreateTemplateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94DA9F16798B6DC1691A2DB8 /* CreateTemplateView.swift */; };
 		56C95E28B17F927063FCB76C /* TemplateListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B63C48FA85869F486C3CBE3 /* TemplateListView.swift */; };
 		5B556B010CD1598EAA240A4A /* IncomeStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0B8C94F0B71D25CF2D5D563 /* IncomeStep.swift */; };
@@ -133,6 +134,7 @@
 		D4614F485D865898B139E965 /* ErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorView.swift; sourceTree = "<group>"; };
 		D576CD613CD0E637C83249E9 /* Formatters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Formatters.swift; sourceTree = "<group>"; };
 		D86B67782D2A720349211B65 /* WelcomeStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeStep.swift; sourceTree = "<group>"; };
+		E1ED9277251CACDC297FEFA3 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		E3AD93EA890CC61B4AA606B7 /* Endpoints.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Endpoints.swift; sourceTree = "<group>"; };
 		E4BC53510F1748B0FB8407CE /* TemplateService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemplateService.swift; sourceTree = "<group>"; };
 		E5BB996AAB135A9A73AF8762 /* HeroBalanceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeroBalanceCard.swift; sourceTree = "<group>"; };
@@ -252,6 +254,7 @@
 			children = (
 				4AD1FCFD448FFC39ED3DEEE8 /* Assets.xcassets */,
 				C4E26A1733C140437FFB1B7D /* Info.plist */,
+				E1ED9277251CACDC297FEFA3 /* LaunchScreen.storyboard */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -536,6 +539,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D6933C7FF2F6CE51966FB2FB /* Assets.xcassets in Resources */,
+				4A0D647CD0FC9FA613122423 /* LaunchScreen.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

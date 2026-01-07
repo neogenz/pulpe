@@ -58,8 +58,7 @@ targets:
         CFBundlePackageType: APPL
         CFBundleExecutable: $(EXECUTABLE_NAME)
         LSRequiresIPhoneOS: true
-        UILaunchScreen:
-          UIColorName: AccentColor
+        UILaunchStoryboardName: LaunchScreen
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         UISupportedInterfaceOrientations~ipad:
