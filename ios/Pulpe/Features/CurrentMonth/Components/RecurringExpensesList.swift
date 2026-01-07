@@ -6,6 +6,7 @@ struct BudgetSection: View {
     let items: [BudgetLine]
     let transactions: [Transaction]
     let onToggle: (BudgetLine) -> Void
+    let onDelete: (BudgetLine) -> Void
     let onAddTransaction: (BudgetLine) -> Void
     let onLongPress: (BudgetLine, [Transaction]) -> Void
 
@@ -38,8 +39,14 @@ struct BudgetSection: View {
                     }
                 )
                 .listRowSeparator(.hidden)
-                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     if !item.isVirtualRollover {
+                        Button(role: .destructive) {
+                            onDelete(item)
+                        } label: {
+                            Label("Supprimer", systemImage: "trash")
+                        }
+
                         Button {
                             onToggle(item)
                         } label: {
@@ -284,6 +291,7 @@ struct BudgetLineRow: View {
                 )
             ],
             onToggle: { _ in },
+            onDelete: { _ in },
             onAddTransaction: { _ in },
             onLongPress: { _, _ in }
         )

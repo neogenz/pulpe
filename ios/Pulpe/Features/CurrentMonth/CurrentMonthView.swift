@@ -7,6 +7,7 @@ struct CurrentMonthView: View {
     @State private var showRealizedBalanceSheet = false
     @State private var selectedLineForTransaction: BudgetLine?
     @State private var linkedTransactionsContext: LinkedTransactionsContext?
+    @State private var budgetLineToDelete: BudgetLine?
 
     var body: some View {
         ZStack {
@@ -102,6 +103,25 @@ struct CurrentMonthView: View {
                 realizedMetrics: viewModel.realizedMetrics
             )
         }
+        .confirmationDialog(
+            "Supprimer cette prévision ?",
+            isPresented: .init(
+                get: { budgetLineToDelete != nil },
+                set: { if !$0 { budgetLineToDelete = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            if let line = budgetLineToDelete {
+                Button("Supprimer", role: .destructive) {
+                    Task { await viewModel.deleteBudgetLine(line) }
+                }
+            }
+            Button("Annuler", role: .cancel) {
+                budgetLineToDelete = nil
+            }
+        } message: {
+            Text("Cette action est irréversible")
+        }
         .task {
             await viewModel.loadData()
         }
@@ -136,6 +156,9 @@ struct CurrentMonthView: View {
                     onToggle: { line in
                         Task { await viewModel.toggleBudgetLine(line) }
                     },
+                    onDelete: { line in
+                        budgetLineToDelete = line
+                    },
                     onAddTransaction: { line in
                         selectedLineForTransaction = line
                     },
@@ -156,6 +179,9 @@ struct CurrentMonthView: View {
                     transactions: viewModel.transactions,
                     onToggle: { line in
                         Task { await viewModel.toggleBudgetLine(line) }
+                    },
+                    onDelete: { line in
+                        budgetLineToDelete = line
                     },
                     onAddTransaction: { line in
                         selectedLineForTransaction = line
@@ -328,6 +354,23 @@ final class CurrentMonthViewModel {
             try await transactionService.deleteTransaction(id: transaction.id)
         } catch {
             transactions = originalTransactions
+            self.error = error
+        }
+    }
+
+    @MainActor
+    func deleteBudgetLine(_ line: BudgetLine) async {
+        // Skip virtual rollover lines
+        guard !(line.isRollover ?? false) else { return }
+
+        // Optimistic update
+        let originalLines = budgetLines
+        budgetLines.removeAll { $0.id == line.id }
+
+        do {
+            try await budgetLineService.deleteBudgetLine(id: line.id)
+        } catch {
+            budgetLines = originalLines
             self.error = error
         }
     }

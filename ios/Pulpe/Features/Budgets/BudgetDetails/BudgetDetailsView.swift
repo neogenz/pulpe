@@ -5,6 +5,8 @@ struct BudgetDetailsView: View {
     @State private var viewModel: BudgetDetailsViewModel
     @State private var selectedLineForTransaction: BudgetLine?
     @State private var showAddBudgetLine = false
+    @State private var budgetLineToDelete: BudgetLine?
+    @State private var linkedTransactionsContext: LinkedTransactionsContext?
 
     init(budgetId: String) {
         self.budgetId = budgetId
@@ -47,6 +49,41 @@ struct BudgetDetailsView: View {
                 viewModel.addBudgetLine(budgetLine)
             }
         }
+        .sheet(item: $linkedTransactionsContext) { context in
+            LinkedTransactionsSheet(
+                budgetLine: context.budgetLine,
+                transactions: context.transactions,
+                onToggle: { transaction in
+                    Task { await viewModel.toggleTransaction(transaction) }
+                },
+                onDelete: { transaction in
+                    Task { await viewModel.deleteTransaction(transaction) }
+                },
+                onAddTransaction: {
+                    linkedTransactionsContext = nil
+                    selectedLineForTransaction = context.budgetLine
+                }
+            )
+        }
+        .confirmationDialog(
+            "Supprimer cette prévision ?",
+            isPresented: .init(
+                get: { budgetLineToDelete != nil },
+                set: { if !$0 { budgetLineToDelete = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            if let line = budgetLineToDelete {
+                Button("Supprimer", role: .destructive) {
+                    Task { await viewModel.deleteBudgetLine(line) }
+                }
+            }
+            Button("Annuler", role: .cancel) {
+                budgetLineToDelete = nil
+            }
+        } message: {
+            Text("Cette action est irréversible")
+        }
     }
 
     private var content: some View {
@@ -70,10 +107,18 @@ struct BudgetDetailsView: View {
                     onToggle: { line in
                         Task { await viewModel.toggleBudgetLine(line) }
                     },
+                    onDelete: { line in
+                        budgetLineToDelete = line
+                    },
                     onAddTransaction: { line in
                         selectedLineForTransaction = line
                     },
-                    onLongPress: { _, _ in }
+                    onLongPress: { line, transactions in
+                        linkedTransactionsContext = LinkedTransactionsContext(
+                            budgetLine: line,
+                            transactions: transactions
+                        )
+                    }
                 )
             }
 
@@ -86,10 +131,18 @@ struct BudgetDetailsView: View {
                     onToggle: { line in
                         Task { await viewModel.toggleBudgetLine(line) }
                     },
+                    onDelete: { line in
+                        budgetLineToDelete = line
+                    },
                     onAddTransaction: { line in
                         selectedLineForTransaction = line
                     },
-                    onLongPress: { _, _ in }
+                    onLongPress: { line, transactions in
+                        linkedTransactionsContext = LinkedTransactionsContext(
+                            budgetLine: line,
+                            transactions: transactions
+                        )
+                    }
                 )
             }
 
@@ -102,10 +155,18 @@ struct BudgetDetailsView: View {
                     onToggle: { line in
                         Task { await viewModel.toggleBudgetLine(line) }
                     },
+                    onDelete: { line in
+                        budgetLineToDelete = line
+                    },
                     onAddTransaction: { line in
                         selectedLineForTransaction = line
                     },
-                    onLongPress: { _, _ in }
+                    onLongPress: { line, transactions in
+                        linkedTransactionsContext = LinkedTransactionsContext(
+                            budgetLine: line,
+                            transactions: transactions
+                        )
+                    }
                 )
             }
 
@@ -240,6 +301,30 @@ final class BudgetDetailsViewModel {
     func addBudgetLine(_ budgetLine: BudgetLine) {
         budgetLines.append(budgetLine)
     }
+
+    @MainActor
+    func deleteBudgetLine(_ line: BudgetLine) async {
+        guard !(line.isRollover ?? false) else { return }
+
+        // Optimistic update
+        let originalLines = budgetLines
+        budgetLines.removeAll { $0.id == line.id }
+
+        do {
+            try await budgetLineService.deleteBudgetLine(id: line.id)
+        } catch {
+            budgetLines = originalLines
+            self.error = error
+        }
+    }
+}
+
+// MARK: - Linked Transactions Context
+
+private struct LinkedTransactionsContext: Identifiable {
+    let id = UUID()
+    let budgetLine: BudgetLine
+    let transactions: [Transaction]
 }
 
 #Preview {
