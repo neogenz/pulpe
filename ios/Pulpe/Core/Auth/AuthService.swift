@@ -95,6 +95,7 @@ actor AuthService {
 
         // Clear local tokens
         await keychain.clearTokens()
+        await keychain.clearBiometricTokens()
     }
 
     // MARK: - Token Access (for API Client)
@@ -112,6 +113,50 @@ actor AuthService {
 
         // Fallback to stored token
         return await keychain.getAccessToken()
+    }
+
+    // MARK: - Biometric Session
+
+    func saveBiometricTokens() async throws {
+        let session = try await supabase.auth.session
+
+        await keychain.saveBiometricTokens(
+            accessToken: session.accessToken,
+            refreshToken: session.refreshToken
+        )
+    }
+
+    func validateBiometricSession() async throws -> UserInfo? {
+        guard await keychain.hasBiometricTokens() else {
+            return nil
+        }
+
+        let refreshToken = try await keychain.getBiometricRefreshToken()
+
+        guard let refreshToken else {
+            return nil
+        }
+
+        let session = try await supabase.auth.refreshSession(refreshToken: refreshToken)
+
+        await keychain.saveTokens(
+            accessToken: session.accessToken,
+            refreshToken: session.refreshToken
+        )
+
+        await keychain.saveBiometricTokens(
+            accessToken: session.accessToken,
+            refreshToken: session.refreshToken
+        )
+
+        return UserInfo(
+            id: session.user.id.uuidString,
+            email: session.user.email ?? ""
+        )
+    }
+
+    func clearBiometricTokens() async {
+        await keychain.clearBiometricTokens()
     }
 }
 

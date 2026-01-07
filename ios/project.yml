@@ -69,6 +69,7 @@ targets:
         UIRequiredDeviceCapabilities:
           - arm64
         ITSAppUsesNonExemptEncryption: false
+        NSFaceIDUsageDescription: "Utilisez Face ID pour vous connecter rapidement et en toute sécurité."
 
 schemes:
   Pulpe:

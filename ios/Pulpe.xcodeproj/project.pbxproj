@@ -61,6 +61,7 @@
 		D198ADB48C9C0E11C90BF235 /* PulpeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F24CDAB50DD41CF603A787D2 /* PulpeApp.swift */; };
 		D6933C7FF2F6CE51966FB2FB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4AD1FCFD448FFC39ED3DEEE8 /* Assets.xcassets */; };
 		D9F9EAFCA6B92964B8CE5606 /* PersonalInfoStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9E904C52E1E5F2BF3E1EB84 /* PersonalInfoStep.swift */; };
+		DCFE9F54A5FDE7751D51152B /* BiometricService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8217BB2D2B30DEBF5E4F4798 /* BiometricService.swift */; };
 		DDAAA3DDA45E5B0FF93BD616 /* KindBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = C81B7DA6BF84774DCD938E37 /* KindBadge.swift */; };
 		DEC7748A44A2C465AB32B024 /* FinancialSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 471EA2FDC0D36113B6F2AEA9 /* FinancialSummaryCard.swift */; };
 		DEF2727B91E4F998B8EEF7B5 /* BudgetDetailsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 698F0684A80FD2BFB998D92A /* BudgetDetailsView.swift */; };
@@ -113,6 +114,7 @@
 		7D23A76488CE35949FDA3B08 /* PulpeLogo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PulpeLogo.swift; sourceTree = "<group>"; };
 		7EB719150BD8F123D596C901 /* AccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountView.swift; sourceTree = "<group>"; };
 		7F7722947386A7CD78FE3B05 /* OnboardingFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlow.swift; sourceTree = "<group>"; };
+		8217BB2D2B30DEBF5E4F4798 /* BiometricService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricService.swift; sourceTree = "<group>"; };
 		94570CEB6CD57FB35C06DE92 /* Pulpe.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Pulpe.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		94DA9F16798B6DC1691A2DB8 /* CreateTemplateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateTemplateView.swift; sourceTree = "<group>"; };
 		9A05FA792057CD53B266EE9F /* TransactionEnums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionEnums.swift; sourceTree = "<group>"; };
@@ -325,6 +327,7 @@
 			children = (
 				357C61A34E9CA60F73EF5441 /* AuthErrorLocalizer.swift */,
 				19358B36831C40F5A674FBDA /* AuthService.swift */,
+				8217BB2D2B30DEBF5E4F4798 /* BiometricService.swift */,
 				57A624A40CC91AC97C743441 /* KeychainManager.swift */,
 			);
 			path = Auth;
@@ -561,6 +564,7 @@
 				626E386E73A2C807D70E799A /* AppState.swift in Sources */,
 				94129CA9F8DE35A23853772A /* AuthErrorLocalizer.swift in Sources */,
 				78F733179BB5B59703022BCA /* AuthService.swift in Sources */,
+				DCFE9F54A5FDE7751D51152B /* BiometricService.swift in Sources */,
 				6BDB2182575FA1AB04F061CC /* Budget.swift in Sources */,
 				DEF2727B91E4F998B8EEF7B5 /* BudgetDetailsView.swift in Sources */,
 				7E995CCFD4F86681A8C2ABA9 /* BudgetFormulas.swift in Sources */,

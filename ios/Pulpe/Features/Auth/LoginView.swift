@@ -3,6 +3,7 @@ import SwiftUI
 struct LoginView: View {
     @Environment(AppState.self) private var appState
     @State private var viewModel = LoginViewModel()
+    @State private var showBiometricPrompt = false
 
     var isPresented: Binding<Bool>?
 
@@ -147,6 +148,17 @@ struct LoginView: View {
                 }
             }
             .dismissKeyboardOnTap()
+            .alert(
+                "Activer \(BiometricService.shared.biometryDisplayName) ?",
+                isPresented: $showBiometricPrompt
+            ) {
+                Button("Activer") {
+                    Task { await appState.enableBiometric() }
+                }
+                Button("Plus tard", role: .cancel) {}
+            } message: {
+                Text("Utilisez la reconnaissance biométrique pour vous connecter plus rapidement")
+            }
         }
     }
 
@@ -156,7 +168,12 @@ struct LoginView: View {
 
         do {
             try await appState.login(email: viewModel.email, password: viewModel.password)
-            isPresented?.wrappedValue = false
+
+            if let isPresented {
+                isPresented.wrappedValue = false
+            } else if appState.shouldPromptBiometricEnrollment() {
+                showBiometricPrompt = true
+            }
         } catch {
             viewModel.errorMessage = AuthErrorLocalizer.localize(error)
             viewModel.isLoading = false

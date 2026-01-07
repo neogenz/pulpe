@@ -33,12 +33,20 @@ final class AppState {
         !tutorialCompleted && authState == .authenticated
     }
 
+    // MARK: - Biometric
+
+    var biometricEnabled: Bool = UserDefaults.standard.bool(forKey: "pulpe-biometric-enabled") {
+        didSet { UserDefaults.standard.set(biometricEnabled, forKey: "pulpe-biometric-enabled") }
+    }
+
     // MARK: - Services
 
     private let authService: AuthService
+    private let biometricService: BiometricService
 
-    init(authService: AuthService = .shared) {
+    init(authService: AuthService = .shared, biometricService: BiometricService = .shared) {
         self.authService = authService
+        self.biometricService = biometricService
     }
 
     // MARK: - Actions
@@ -47,8 +55,14 @@ final class AppState {
     func checkAuthState() async {
         authState = .loading
 
+        guard biometricEnabled else {
+            await authService.logout()
+            authState = .unauthenticated
+            return
+        }
+
         do {
-            if let user = try await authService.validateSession() {
+            if let user = try await authService.validateBiometricSession() {
                 currentUser = user
                 authState = .authenticated
             } else {
@@ -71,6 +85,7 @@ final class AppState {
         await authService.logout()
         currentUser = nil
         authState = .unauthenticated
+        biometricEnabled = false
 
         // Reset navigation
         budgetPath = NavigationPath()
@@ -87,6 +102,30 @@ final class AppState {
 
     func completeTutorial() {
         tutorialCompleted = true
+    }
+
+    // MARK: - Biometric Actions
+
+    func shouldPromptBiometricEnrollment() -> Bool {
+        biometricService.canUseBiometrics() && !biometricEnabled && authState == .authenticated
+    }
+
+    @MainActor
+    func enableBiometric() async {
+        guard biometricService.canUseBiometrics() else { return }
+
+        do {
+            try await authService.saveBiometricTokens()
+            biometricEnabled = true
+        } catch {
+            // Silently fail - user can retry from settings
+        }
+    }
+
+    @MainActor
+    func disableBiometric() async {
+        await authService.clearBiometricTokens()
+        biometricEnabled = false
     }
 }
 
