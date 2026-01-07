@@ -7,6 +7,9 @@ struct TransactionSection: View {
     let onToggle: (Transaction) -> Void
     let onDelete: (Transaction) -> Void
 
+    @State private var transactionToDelete: Transaction?
+    @State private var showDeleteAlert = false
+
     private var totalAmount: Decimal {
         transactions.reduce(0) { sum, t in
             switch t.kind {
@@ -27,12 +30,14 @@ struct TransactionSection: View {
             ForEach(transactions) { transaction in
                 TransactionRow(transaction: transaction)
                     .listRowSeparator(.hidden)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                        Button(role: .destructive) {
-                            onDelete(transaction)
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        Button {
+                            transactionToDelete = transaction
+                            showDeleteAlert = true
                         } label: {
                             Label("Supprimer", systemImage: "trash")
                         }
+                        .tint(.red)
 
                         Button {
                             onToggle(transaction)
@@ -53,6 +58,18 @@ struct TransactionSection: View {
                 totalColor: totalColor
             )
             .textCase(nil)
+        }
+        .alert(
+            "Supprimer cette transaction ?",
+            isPresented: $showDeleteAlert,
+            presenting: transactionToDelete
+        ) { transaction in
+            Button("Annuler", role: .cancel) {}
+            Button("Supprimer", role: .destructive) {
+                onDelete(transaction)
+            }
+        } message: { _ in
+            Text("Cette action est irréversible.")
         }
     }
 }

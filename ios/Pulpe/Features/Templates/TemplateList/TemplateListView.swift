@@ -5,6 +5,7 @@ struct TemplateListView: View {
     @State private var viewModel = TemplateListViewModel()
     @State private var showCreateTemplate = false
     @State private var templateToDelete: BudgetTemplate?
+    @State private var showDeleteAlert = false
 
     var body: some View {
         Group {
@@ -44,25 +45,6 @@ struct TemplateListView: View {
                 appState.templatePath.append(TemplateDestination.details(templateId: template.id))
             }
         }
-        .confirmationDialog(
-            "Supprimer ce modèle ?",
-            isPresented: .init(
-                get: { templateToDelete != nil },
-                set: { if !$0 { templateToDelete = nil } }
-            ),
-            titleVisibility: .visible
-        ) {
-            if let template = templateToDelete {
-                Button("Supprimer", role: .destructive) {
-                    Task { await viewModel.deleteTemplate(template) }
-                }
-            }
-            Button("Annuler", role: .cancel) {
-                templateToDelete = nil
-            }
-        } message: {
-            Text("Cette action est irréversible")
-        }
         .refreshable {
             await viewModel.loadTemplates()
         }
@@ -78,17 +60,31 @@ struct TemplateListView: View {
                     TemplateRow(template: template) {
                         appState.templatePath.append(TemplateDestination.details(templateId: template.id))
                     }
-                    .swipeActions(edge: .trailing) {
-                        Button(role: .destructive) {
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        Button {
                             templateToDelete = template
+                            showDeleteAlert = true
                         } label: {
                             Label("Supprimer", systemImage: "trash")
                         }
+                        .tint(.red)
                     }
                 }
             } footer: {
                 Text("\(viewModel.templates.count)/\(AppConfiguration.maxTemplates) modèles")
             }
+        }
+        .alert(
+            "Supprimer ce modèle ?",
+            isPresented: $showDeleteAlert,
+            presenting: templateToDelete
+        ) { template in
+            Button("Annuler", role: .cancel) {}
+            Button("Supprimer", role: .destructive) {
+                Task { await viewModel.deleteTemplate(template) }
+            }
+        } message: { _ in
+            Text("Cette action est irréversible.")
         }
     }
 }

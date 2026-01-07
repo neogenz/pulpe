@@ -3,7 +3,7 @@ import SwiftUI
 struct LoginView: View {
     @Environment(AppState.self) private var appState
     @State private var viewModel = LoginViewModel()
-    @State private var showBiometricPrompt = false
+    @State private var canRetryBiometric = false
 
     var isPresented: Binding<Bool>?
 
@@ -38,6 +38,43 @@ struct LoginView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(.red, in: RoundedRectangle(cornerRadius: 12))
                         .padding(.horizontal)
+                    }
+
+                    // Biometric retry button
+                    if canRetryBiometric {
+                        VStack(spacing: 16) {
+                            Button {
+                                Task {
+                                    await appState.retryBiometricLogin()
+                                }
+                            } label: {
+                                HStack(spacing: 12) {
+                                    Image(systemName: biometricIcon)
+                                        .font(.title2)
+                                    Text("Se connecter avec \(BiometricService.shared.biometryDisplayName)")
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.accentColor)
+                                .foregroundStyle(.white)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                            }
+                            .padding(.horizontal)
+
+                            // Separator
+                            HStack {
+                                Rectangle()
+                                    .fill(Color.secondary.opacity(0.3))
+                                    .frame(height: 1)
+                                Text("ou")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                Rectangle()
+                                    .fill(Color.secondary.opacity(0.3))
+                                    .frame(height: 1)
+                            }
+                            .padding(.horizontal)
+                        }
                     }
 
                     // Form
@@ -148,17 +185,22 @@ struct LoginView: View {
                 }
             }
             .dismissKeyboardOnTap()
-            .alert(
-                "Activer \(BiometricService.shared.biometryDisplayName) ?",
-                isPresented: $showBiometricPrompt
-            ) {
-                Button("Activer") {
-                    Task { await appState.enableBiometric() }
-                }
-                Button("Plus tard", role: .cancel) {}
-            } message: {
-                Text("Utilisez la reconnaissance biométrique pour vous connecter plus rapidement")
+            .task {
+                canRetryBiometric = await appState.canRetryBiometric()
             }
+        }
+    }
+
+    private var biometricIcon: String {
+        switch BiometricService.shared.biometryType {
+        case .faceID:
+            return "faceid"
+        case .touchID:
+            return "touchid"
+        case .opticID:
+            return "opticid"
+        default:
+            return "lock.fill"
         }
     }
 
@@ -168,12 +210,7 @@ struct LoginView: View {
 
         do {
             try await appState.login(email: viewModel.email, password: viewModel.password)
-
-            if let isPresented {
-                isPresented.wrappedValue = false
-            } else if appState.shouldPromptBiometricEnrollment() {
-                showBiometricPrompt = true
-            }
+            isPresented?.wrappedValue = false
         } catch {
             viewModel.errorMessage = AuthErrorLocalizer.localize(error)
             viewModel.isLoading = false

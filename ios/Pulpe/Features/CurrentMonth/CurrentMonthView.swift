@@ -7,7 +7,6 @@ struct CurrentMonthView: View {
     @State private var showRealizedBalanceSheet = false
     @State private var selectedLineForTransaction: BudgetLine?
     @State private var linkedTransactionsContext: LinkedTransactionsContext?
-    @State private var budgetLineToDelete: BudgetLine?
     @State private var showAccount = false
 
     var body: some View {
@@ -95,25 +94,6 @@ struct CurrentMonthView: View {
         .sheet(isPresented: $showAccount) {
             AccountView()
         }
-        .confirmationDialog(
-            "Supprimer cette prévision ?",
-            isPresented: .init(
-                get: { budgetLineToDelete != nil },
-                set: { if !$0 { budgetLineToDelete = nil } }
-            ),
-            titleVisibility: .visible
-        ) {
-            if let line = budgetLineToDelete {
-                Button("Supprimer", role: .destructive) {
-                    Task { await viewModel.deleteBudgetLine(line) }
-                }
-            }
-            Button("Annuler", role: .cancel) {
-                budgetLineToDelete = nil
-            }
-        } message: {
-            Text("Cette action est irréversible")
-        }
         .task {
             await viewModel.loadData()
         }
@@ -149,7 +129,7 @@ struct CurrentMonthView: View {
                         Task { await viewModel.toggleBudgetLine(line) }
                     },
                     onDelete: { line in
-                        budgetLineToDelete = line
+                        Task { await viewModel.deleteBudgetLine(line) }
                     },
                     onAddTransaction: { line in
                         selectedLineForTransaction = line
@@ -173,7 +153,7 @@ struct CurrentMonthView: View {
                         Task { await viewModel.toggleBudgetLine(line) }
                     },
                     onDelete: { line in
-                        budgetLineToDelete = line
+                        Task { await viewModel.deleteBudgetLine(line) }
                     },
                     onAddTransaction: { line in
                         selectedLineForTransaction = line

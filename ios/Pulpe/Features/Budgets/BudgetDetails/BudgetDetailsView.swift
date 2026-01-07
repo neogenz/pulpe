@@ -5,7 +5,6 @@ struct BudgetDetailsView: View {
     @State private var viewModel: BudgetDetailsViewModel
     @State private var selectedLineForTransaction: BudgetLine?
     @State private var showAddBudgetLine = false
-    @State private var budgetLineToDelete: BudgetLine?
     @State private var linkedTransactionsContext: LinkedTransactionsContext?
 
     init(budgetId: String) {
@@ -65,25 +64,6 @@ struct BudgetDetailsView: View {
                 }
             )
         }
-        .confirmationDialog(
-            "Supprimer cette prévision ?",
-            isPresented: .init(
-                get: { budgetLineToDelete != nil },
-                set: { if !$0 { budgetLineToDelete = nil } }
-            ),
-            titleVisibility: .visible
-        ) {
-            if let line = budgetLineToDelete {
-                Button("Supprimer", role: .destructive) {
-                    Task { await viewModel.deleteBudgetLine(line) }
-                }
-            }
-            Button("Annuler", role: .cancel) {
-                budgetLineToDelete = nil
-            }
-        } message: {
-            Text("Cette action est irréversible")
-        }
     }
 
     private var content: some View {
@@ -108,7 +88,7 @@ struct BudgetDetailsView: View {
                         Task { await viewModel.toggleBudgetLine(line) }
                     },
                     onDelete: { line in
-                        budgetLineToDelete = line
+                        Task { await viewModel.deleteBudgetLine(line) }
                     },
                     onAddTransaction: { line in
                         selectedLineForTransaction = line
@@ -132,7 +112,7 @@ struct BudgetDetailsView: View {
                         Task { await viewModel.toggleBudgetLine(line) }
                     },
                     onDelete: { line in
-                        budgetLineToDelete = line
+                        Task { await viewModel.deleteBudgetLine(line) }
                     },
                     onAddTransaction: { line in
                         selectedLineForTransaction = line
@@ -156,7 +136,7 @@ struct BudgetDetailsView: View {
                         Task { await viewModel.toggleBudgetLine(line) }
                     },
                     onDelete: { line in
-                        budgetLineToDelete = line
+                        Task { await viewModel.deleteBudgetLine(line) }
                     },
                     onAddTransaction: { line in
                         selectedLineForTransaction = line

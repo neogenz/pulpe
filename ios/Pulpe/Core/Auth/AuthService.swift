@@ -158,6 +158,10 @@ actor AuthService {
     func clearBiometricTokens() async {
         await keychain.clearBiometricTokens()
     }
+
+    func hasBiometricTokens() async -> Bool {
+        await keychain.hasBiometricTokens()
+    }
 }
 
 // MARK: - Auth Errors

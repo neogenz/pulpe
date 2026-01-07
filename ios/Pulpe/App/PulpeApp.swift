@@ -16,6 +16,8 @@ struct RootView: View {
     @Environment(AppState.self) private var appState
 
     var body: some View {
+        @Bindable var appState = appState
+
         Group {
             switch appState.authState {
             case .loading:
@@ -40,6 +42,17 @@ struct RootView: View {
         .animation(.easeInOut(duration: 0.3), value: appState.authState)
         .task {
             await appState.checkAuthState()
+        }
+        .alert(
+            "Activer \(BiometricService.shared.biometryDisplayName) ?",
+            isPresented: $appState.showBiometricEnrollment
+        ) {
+            Button("Activer") {
+                Task { await appState.enableBiometric() }
+            }
+            Button("Plus tard", role: .cancel) {}
+        } message: {
+            Text("Utilisez la reconnaissance biométrique pour vous connecter plus rapidement")
         }
     }
 }

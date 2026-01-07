@@ -39,6 +39,8 @@ final class AppState {
         didSet { UserDefaults.standard.set(biometricEnabled, forKey: "pulpe-biometric-enabled") }
     }
 
+    var showBiometricEnrollment = false
+
     // MARK: - Services
 
     private let authService: AuthService
@@ -56,7 +58,8 @@ final class AppState {
         authState = .loading
 
         guard biometricEnabled else {
-            await authService.logout()
+            // Clear any stale tokens from previous install
+            await authService.clearBiometricTokens()
             authState = .unauthenticated
             return
         }
@@ -66,9 +69,11 @@ final class AppState {
                 currentUser = user
                 authState = .authenticated
             } else {
+                // No tokens found
                 authState = .unauthenticated
             }
         } catch {
+            // Face ID cancelled, lockout, or server error - keep tokens for retry button
             authState = .unauthenticated
         }
     }
@@ -77,7 +82,13 @@ final class AppState {
     func login(email: String, password: String) async throws {
         let user = try await authService.login(email: email, password: password)
         currentUser = user
+        hasCompletedOnboarding = true
         authState = .authenticated
+
+        // Prompt biometric enrollment after successful login
+        if shouldPromptBiometricEnrollment() {
+            showBiometricEnrollment = true
+        }
     }
 
     @MainActor
@@ -108,6 +119,16 @@ final class AppState {
 
     func shouldPromptBiometricEnrollment() -> Bool {
         biometricService.canUseBiometrics() && !biometricEnabled && authState == .authenticated
+    }
+
+    func canRetryBiometric() async -> Bool {
+        guard biometricService.canUseBiometrics() else { return false }
+        return await authService.hasBiometricTokens()
+    }
+
+    @MainActor
+    func retryBiometricLogin() async {
+        await checkAuthState()
     }
 
     @MainActor

@@ -10,7 +10,7 @@ enum AppConfiguration {
         URL(string: ProcessInfo.processInfo.environment["API_BASE_URL"] ?? "http://localhost:3000/api/v1")!
         #else
         // Production (includes /api/v1 prefix)
-        URL(string: "https://api.pulpe.app/api/v1")!
+        URL(string: "https://backend-production-e7df.up.railway.app/api/v1")!
         #endif
     }
 
@@ -21,7 +21,7 @@ enum AppConfiguration {
         URL(string: ProcessInfo.processInfo.environment["SUPABASE_URL"] ?? "http://localhost:54321")!
         #else
         // Production - replace with your Supabase project URL
-        URL(string: "https://your-project.supabase.co")!
+        URL(string: "https://xvrbcvltpkqwiiexvfxh.supabase.co")!
         #endif
     }
 
@@ -31,7 +31,7 @@ enum AppConfiguration {
             ?? "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0"
         #else
         // Production - replace with your Supabase anon key
-        "your-production-anon-key"
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2cmJjdmx0cGtxd2lpZXh2ZnhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkwNjM2NTgsImV4cCI6MjA2NDYzOTY1OH0.xkOV-IR9h5T08YH1_BZ8VevlWF0VCoZDctiO4lbeLmc"
         #endif
     }
 

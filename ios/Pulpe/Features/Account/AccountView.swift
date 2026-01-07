@@ -27,6 +27,7 @@ struct AccountView: View {
                                 } else {
                                     await appState.disableBiometric()
                                 }
+                                biometricToggle = appState.biometricEnabled
                             }
                         }
                     } header: {

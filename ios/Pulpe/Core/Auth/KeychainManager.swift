@@ -149,7 +149,7 @@ actor KeychainManager {
         guard let accessControl = SecAccessControlCreateWithFlags(
             nil,
             kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
-            .biometryAny,
+            .biometryCurrentSet,
             &error
         ) else {
             print("Keychain access control error: \(String(describing: error))")

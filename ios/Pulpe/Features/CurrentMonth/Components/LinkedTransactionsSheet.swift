@@ -277,15 +277,16 @@ private struct LinkedTransactionRow: View {
                     .padding(.leading, 16)
             }
         }
-        .confirmationDialog(
+        .alert(
             "Supprimer cette transaction ?",
-            isPresented: $showDeleteConfirmation,
-            titleVisibility: .visible
+            isPresented: $showDeleteConfirmation
         ) {
+            Button("Annuler", role: .cancel) {}
             Button("Supprimer", role: .destructive) {
                 onDelete()
             }
-            Button("Annuler", role: .cancel) {}
+        } message: {
+            Text("Cette action est irréversible.")
         }
     }
 }

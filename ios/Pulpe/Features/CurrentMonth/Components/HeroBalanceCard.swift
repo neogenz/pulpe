@@ -164,7 +164,6 @@ private struct HeroCardStyleModifier: ViewModifier {
             content
                 .glassEffect(
                         .regular
-                            .tint(.white.opacity(0.5)) // Couleur de fond du verre
                             .interactive(), // Active les animations au toucher
                         in: .rect(cornerRadius: 20)
                     )

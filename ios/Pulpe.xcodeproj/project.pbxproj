@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -115,7 +115,7 @@
 		7EB719150BD8F123D596C901 /* AccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountView.swift; sourceTree = "<group>"; };
 		7F7722947386A7CD78FE3B05 /* OnboardingFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlow.swift; sourceTree = "<group>"; };
 		8217BB2D2B30DEBF5E4F4798 /* BiometricService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricService.swift; sourceTree = "<group>"; };
-		94570CEB6CD57FB35C06DE92 /* Pulpe.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Pulpe.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		94570CEB6CD57FB35C06DE92 /* Pulpe.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pulpe.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		94DA9F16798B6DC1691A2DB8 /* CreateTemplateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateTemplateView.swift; sourceTree = "<group>"; };
 		9A05FA792057CD53B266EE9F /* TransactionEnums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionEnums.swift; sourceTree = "<group>"; };
 		9E56340C03DD8EE1F7DF7638 /* BudgetService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetService.swift; sourceTree = "<group>"; };
@@ -509,7 +509,6 @@
 				LastUpgradeCheck = 1500;
 				TargetAttributes = {
 					4E3C22AB1CE882331E727F8E = {
-						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -527,7 +526,6 @@
 			packageReferences = (
 				09998022D4D87255D2EAE15A /* XCRemoteSwiftPackageReference "supabase-swift" */,
 			);
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -629,6 +627,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = AJ37X7C82G;
 				INFOPLIST_FILE = Pulpe/Resources/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -717,6 +716,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = AJ37X7C82G;
 				INFOPLIST_FILE = Pulpe/Resources/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (

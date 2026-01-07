@@ -10,6 +10,9 @@ struct BudgetSection: View {
     let onAddTransaction: (BudgetLine) -> Void
     let onLongPress: (BudgetLine, [Transaction]) -> Void
 
+    @State private var itemToDelete: BudgetLine?
+    @State private var showDeleteAlert = false
+
     private var totalAmount: Decimal {
         items.reduce(0) { sum, item in
             switch item.kind {
@@ -41,11 +44,13 @@ struct BudgetSection: View {
                 .listRowSeparator(.hidden)
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     if !item.isVirtualRollover {
-                        Button(role: .destructive) {
-                            onDelete(item)
+                        Button {
+                            itemToDelete = item
+                            showDeleteAlert = true
                         } label: {
                             Label("Supprimer", systemImage: "trash")
                         }
+                        .tint(.red)
 
                         Button {
                             onToggle(item)
@@ -67,6 +72,18 @@ struct BudgetSection: View {
                 totalColor: totalColor
             )
             .textCase(nil)
+        }
+        .alert(
+            "Supprimer cette prévision ?",
+            isPresented: $showDeleteAlert,
+            presenting: itemToDelete
+        ) { item in
+            Button("Annuler", role: .cancel) {}
+            Button("Supprimer", role: .destructive) {
+                onDelete(item)
+            }
+        } message: { _ in
+            Text("Cette action est irréversible.")
         }
     }
 }
