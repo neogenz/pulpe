@@ -22,7 +22,10 @@ import {
   SupabaseClient,
   type AuthenticatedUser,
 } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
+import {
+  SupabaseService,
+  type AuthenticatedSupabaseClient,
+} from '@modules/supabase/supabase.service';
 import {
   UpdateProfileDto,
   UserProfileResponseDto,
@@ -49,6 +52,7 @@ export class UserController {
   constructor(
     @InjectPinoLogger(UserController.name)
     private readonly logger: PinoLogger,
+    private readonly supabaseService: SupabaseService,
   ) {}
   @Get('me')
   @ApiOperation({
@@ -162,7 +166,7 @@ export class UserController {
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<SuccessMessageResponseDto> {
     try {
-      await this.updateOnboardingStatus(supabase);
+      await this.updateOnboardingStatus(user.id, supabase);
       return {
         success: true as const,
         message: 'Onboarding marqué comme terminé',
@@ -176,18 +180,25 @@ export class UserController {
   }
 
   private async updateOnboardingStatus(
+    userId: string,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<void> {
     const currentUserData = await this.getCurrentUserData(supabase);
+    const serviceClient = this.supabaseService.getServiceRoleClient();
 
-    const { data: updatedUser, error } = await supabase.auth.updateUser({
-      data: {
-        ...currentUserData.user.user_metadata,
-        onboardingCompleted: true,
-      },
-    });
+    const { data: updatedUser, error } =
+      await serviceClient.auth.admin.updateUserById(userId, {
+        user_metadata: {
+          ...currentUserData.user.user_metadata,
+          onboardingCompleted: true,
+        },
+      });
 
     if (error || !updatedUser.user) {
+      this.logger.error(
+        { supabaseError: error, hasUser: !!updatedUser?.user },
+        'Supabase updateUserById failed for onboarding',
+      );
       throw new InternalServerErrorException(
         "Erreur lors de la mise à jour du statut d'onboarding",
       );
@@ -297,19 +308,26 @@ export class UserController {
   })
   async updateSettings(
     @Body() updateData: UpdateUserSettingsDto,
+    @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<UserSettingsResponseDto> {
     try {
       const currentUserData = await this.getCurrentUserData(supabase);
+      const serviceClient = this.supabaseService.getServiceRoleClient();
 
-      const { data: updatedUser, error } = await supabase.auth.updateUser({
-        data: {
-          ...currentUserData.user.user_metadata,
-          payDayOfMonth: updateData.payDayOfMonth ?? null,
-        },
-      });
+      const { data: updatedUser, error } =
+        await serviceClient.auth.admin.updateUserById(user.id, {
+          user_metadata: {
+            ...currentUserData.user.user_metadata,
+            payDayOfMonth: updateData.payDayOfMonth ?? null,
+          },
+        });
 
       if (error || !updatedUser.user) {
+        this.logger.error(
+          { supabaseError: error, hasUser: !!updatedUser?.user },
+          'Supabase updateUserById failed',
+        );
         throw new InternalServerErrorException(
           'Erreur lors de la mise à jour des paramètres',
         );
