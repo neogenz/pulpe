@@ -11,6 +11,9 @@ packages:
   supabase-swift:
     url: https://github.com/supabase/supabase-swift
     from: "2.0.0"
+  lottie-spm:
+    url: https://github.com/airbnb/lottie-spm
+    from: "4.0.0"
 
 settings:
   base:
@@ -40,6 +43,8 @@ targets:
     dependencies:
       - package: supabase-swift
         product: Supabase
+      - package: lottie-spm
+        product: Lottie
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.pulpe.ios

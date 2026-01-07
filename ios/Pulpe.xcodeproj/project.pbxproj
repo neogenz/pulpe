@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 63;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -35,8 +35,10 @@
 		626E386E73A2C807D70E799A /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4377A27005BBA73FC6616969 /* AppState.swift */; };
 		6BDB2182575FA1AB04F061CC /* Budget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 375A017C49DE46C9C5B8D8DB /* Budget.swift */; };
 		6CDB77CCB53255B0897278CC /* LinkedTransactionsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8334F2FD3ED442FCC576A91 /* LinkedTransactionsSheet.swift */; };
+		72C131FA19CE8B13A888F19D /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 09618739B66AA92F99246D88 /* Lottie */; };
 		78F733179BB5B59703022BCA /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19358B36831C40F5A674FBDA /* AuthService.swift */; };
 		7D8DD48CD5C6688A74753599 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 606435140AB22BD250F34C36 /* MainTabView.swift */; };
+		7E36837E1844ECEFA60958A5 /* WelcomeLottieView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F15A109E95BBEA3CE6EA04C7 /* WelcomeLottieView.swift */; };
 		7E995CCFD4F86681A8C2ABA9 /* BudgetFormulas.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAAA7ED54F25794213D540FE /* BudgetFormulas.swift */; };
 		7FDE6E7EF6B2084A2D298452 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2880F0C22312339FA0DA2633 /* APIClient.swift */; };
 		80BAC93003BA8CCBE291A779 /* WelcomeStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = D86B67782D2A720349211B65 /* WelcomeStep.swift */; };
@@ -48,6 +50,7 @@
 		9DF3E7C14A96A5E7AC8EC4C3 /* LinkedTransactionsContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = D45C40FA08472FA75B62A6AC /* LinkedTransactionsContext.swift */; };
 		A22726A5F8810386134F4846 /* OnboardingFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7722947386A7CD78FE3B05 /* OnboardingFlow.swift */; };
 		A4E6EAB35F1BCADF80152CDA /* RegistrationStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AACF1F7B6CEC915EF32C2D8 /* RegistrationStep.swift */; };
+		A7E4073AAFDDD31C39F5D6F7 /* welcome-animation.json in Resources */ = {isa = PBXBuildFile; fileRef = 88250064A726B3B6AAAE9ADF /* welcome-animation.json */; };
 		A7FBBEBBCCE704C3AAA740E5 /* TransportStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24760BF421846CAFAD51DF62 /* TransportStep.swift */; };
 		A9D815E799971DE27B7770E9 /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A0EA391775C63723A83BF3 /* LoadingView.swift */; };
 		B430D670EFE75193B7F237D6 /* SectionHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA4C37DF55207E4B0DEF28A0 /* SectionHeader.swift */; };
@@ -115,7 +118,8 @@
 		7EB719150BD8F123D596C901 /* AccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountView.swift; sourceTree = "<group>"; };
 		7F7722947386A7CD78FE3B05 /* OnboardingFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlow.swift; sourceTree = "<group>"; };
 		8217BB2D2B30DEBF5E4F4798 /* BiometricService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricService.swift; sourceTree = "<group>"; };
-		94570CEB6CD57FB35C06DE92 /* Pulpe.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pulpe.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		88250064A726B3B6AAAE9ADF /* welcome-animation.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "welcome-animation.json"; sourceTree = "<group>"; };
+		94570CEB6CD57FB35C06DE92 /* Pulpe.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Pulpe.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		94DA9F16798B6DC1691A2DB8 /* CreateTemplateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateTemplateView.swift; sourceTree = "<group>"; };
 		9A05FA792057CD53B266EE9F /* TransactionEnums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionEnums.swift; sourceTree = "<group>"; };
 		9E56340C03DD8EE1F7DF7638 /* BudgetService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetService.swift; sourceTree = "<group>"; };
@@ -143,6 +147,7 @@
 		E7A8C7ACFFD4118A786F4A2C /* View+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+Extensions.swift"; sourceTree = "<group>"; };
 		EFC463766B410987FE96534C /* APIError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIError.swift; sourceTree = "<group>"; };
 		F0B8C94F0B71D25CF2D5D563 /* IncomeStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncomeStep.swift; sourceTree = "<group>"; };
+		F15A109E95BBEA3CE6EA04C7 /* WelcomeLottieView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeLottieView.swift; sourceTree = "<group>"; };
 		F24CDAB50DD41CF603A787D2 /* PulpeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PulpeApp.swift; sourceTree = "<group>"; };
 		F3A3C49B0B8A78283AB987AD /* TemplateDetailsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemplateDetailsView.swift; sourceTree = "<group>"; };
 		F76CA89C404286DF9CAF27D5 /* CurrentMonthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrentMonthView.swift; sourceTree = "<group>"; };
@@ -155,6 +160,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E44DBC6596E8B65A93A5C72F /* Supabase in Frameworks */,
+				72C131FA19CE8B13A888F19D /* Lottie in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -213,6 +219,7 @@
 				C81B7DA6BF84774DCD938E37 /* KindBadge.swift */,
 				A1A0EA391775C63723A83BF3 /* LoadingView.swift */,
 				7D23A76488CE35949FDA3B08 /* PulpeLogo.swift */,
+				F15A109E95BBEA3CE6EA04C7 /* WelcomeLottieView.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -254,6 +261,7 @@
 		52AEE8905DBBA9F068E03236 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				535700FAAA05B304CC95CDEC /* Lottie */,
 				4AD1FCFD448FFC39ED3DEEE8 /* Assets.xcassets */,
 				C4E26A1733C140437FFB1B7D /* Info.plist */,
 				E1ED9277251CACDC297FEFA3 /* LaunchScreen.storyboard */,
@@ -268,6 +276,14 @@
 				29D91A4D1401A217165EAD49 /* CreateBudgetView.swift */,
 			);
 			path = BudgetList;
+			sourceTree = "<group>";
+		};
+		535700FAAA05B304CC95CDEC /* Lottie */ = {
+			isa = PBXGroup;
+			children = (
+				88250064A726B3B6AAAE9ADF /* welcome-animation.json */,
+			);
+			path = Lottie;
 			sourceTree = "<group>";
 		};
 		536AF1B90CD3B9EDF6E6357F /* Steps */ = {
@@ -494,6 +510,7 @@
 			name = Pulpe;
 			packageProductDependencies = (
 				CA19A781CBCEDB20DD80697D /* Supabase */,
+				09618739B66AA92F99246D88 /* Lottie */,
 			);
 			productName = Pulpe;
 			productReference = 94570CEB6CD57FB35C06DE92 /* Pulpe.app */;
@@ -509,6 +526,7 @@
 				LastUpgradeCheck = 1500;
 				TargetAttributes = {
 					4E3C22AB1CE882331E727F8E = {
+						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -524,8 +542,10 @@
 			mainGroup = BD1EE6F7D43070B7056ECA8D;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				104B6E33E10617F89EF7ECD9 /* XCRemoteSwiftPackageReference "lottie-spm" */,
 				09998022D4D87255D2EAE15A /* XCRemoteSwiftPackageReference "supabase-swift" */,
 			);
+			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -541,6 +561,7 @@
 			files = (
 				D6933C7FF2F6CE51966FB2FB /* Assets.xcassets in Resources */,
 				4A0D647CD0FC9FA613122423 /* LaunchScreen.storyboard in Resources */,
+				A7E4073AAFDDD31C39F5D6F7 /* welcome-animation.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -615,6 +636,7 @@
 				A7FBBEBBCCE704C3AAA740E5 /* TransportStep.swift in Sources */,
 				E9E6E43DD7D2C2577EC982F5 /* TutorialOverlay.swift in Sources */,
 				1623C2D7A07E71A04BAF5EB9 /* View+Extensions.swift in Sources */,
+				7E36837E1844ECEFA60958A5 /* WelcomeLottieView.swift in Sources */,
 				80BAC93003BA8CCBE291A779 /* WelcomeStep.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -627,7 +649,6 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = AJ37X7C82G;
 				INFOPLIST_FILE = Pulpe/Resources/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -716,7 +737,6 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = AJ37X7C82G;
 				INFOPLIST_FILE = Pulpe/Resources/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -825,9 +845,22 @@
 				minimumVersion = 2.0.0;
 			};
 		};
+		104B6E33E10617F89EF7ECD9 /* XCRemoteSwiftPackageReference "lottie-spm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/airbnb/lottie-spm";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		09618739B66AA92F99246D88 /* Lottie */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 104B6E33E10617F89EF7ECD9 /* XCRemoteSwiftPackageReference "lottie-spm" */;
+			productName = Lottie;
+		};
 		CA19A781CBCEDB20DD80697D /* Supabase */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 09998022D4D87255D2EAE15A /* XCRemoteSwiftPackageReference "supabase-swift" */;

@@ -13,10 +13,7 @@ struct WelcomeStep: View {
             onNext: { state.nextStep() }
         ) {
             VStack(spacing: 32) {
-                // Logo
-                Image(systemName: "banknote.fill")
-                    .font(.system(size: 80))
-                    .foregroundStyle(.tint)
+                WelcomeLottieView()
                     .padding(.top, 40)
 
                 // Features
