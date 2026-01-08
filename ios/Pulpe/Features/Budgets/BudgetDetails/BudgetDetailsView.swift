@@ -6,6 +6,8 @@ struct BudgetDetailsView: View {
     @State private var selectedLineForTransaction: BudgetLine?
     @State private var showAddBudgetLine = false
     @State private var linkedTransactionsContext: LinkedTransactionsContext?
+    @State private var selectedBudgetLineForEdit: BudgetLine?
+    @State private var selectedTransactionForEdit: Transaction?
 
     init(budgetId: String) {
         self.budgetId = budgetId
@@ -64,6 +66,16 @@ struct BudgetDetailsView: View {
                 }
             )
         }
+        .sheet(item: $selectedBudgetLineForEdit) { line in
+            EditBudgetLineSheet(budgetLine: line) { updatedLine in
+                Task { await viewModel.updateBudgetLine(updatedLine) }
+            }
+        }
+        .sheet(item: $selectedTransactionForEdit) { transaction in
+            EditTransactionSheet(transaction: transaction) { updatedTransaction in
+                Task { await viewModel.updateTransaction(updatedTransaction) }
+            }
+        }
     }
 
     private var content: some View {
@@ -98,6 +110,9 @@ struct BudgetDetailsView: View {
                             budgetLine: line,
                             transactions: transactions
                         )
+                    },
+                    onEdit: { line in
+                        selectedBudgetLineForEdit = line
                     }
                 )
             }
@@ -122,6 +137,9 @@ struct BudgetDetailsView: View {
                             budgetLine: line,
                             transactions: transactions
                         )
+                    },
+                    onEdit: { line in
+                        selectedBudgetLineForEdit = line
                     }
                 )
             }
@@ -146,6 +164,9 @@ struct BudgetDetailsView: View {
                             budgetLine: line,
                             transactions: transactions
                         )
+                    },
+                    onEdit: { line in
+                        selectedBudgetLineForEdit = line
                     }
                 )
             }
@@ -160,6 +181,9 @@ struct BudgetDetailsView: View {
                     },
                     onDelete: { transaction in
                         Task { await viewModel.deleteTransaction(transaction) }
+                    },
+                    onEdit: { transaction in
+                        selectedTransactionForEdit = transaction
                     }
                 )
             }
@@ -296,6 +320,30 @@ final class BudgetDetailsViewModel {
             budgetLines = originalLines
             self.error = error
         }
+    }
+
+    @MainActor
+    func updateBudgetLine(_ line: BudgetLine) async {
+        guard !(line.isRollover ?? false) else { return }
+
+        // Optimistic update
+        if let index = budgetLines.firstIndex(where: { $0.id == line.id }) {
+            budgetLines[index] = line
+        }
+
+        // Reload to sync with server
+        await loadDetails()
+    }
+
+    @MainActor
+    func updateTransaction(_ transaction: Transaction) async {
+        // Optimistic update
+        if let index = transactions.firstIndex(where: { $0.id == transaction.id }) {
+            transactions[index] = transaction
+        }
+
+        // Reload to sync with server
+        await loadDetails()
     }
 }
 

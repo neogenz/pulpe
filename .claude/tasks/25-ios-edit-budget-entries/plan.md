@@ -9,6 +9,25 @@ Add the ability to edit budget lines, transactions, and template lines by **tapp
 
 **Approach**: Create Edit sheets following the existing Add sheets pattern. Modify section components to accept an `onEdit` callback and add tap gesture to rows.
 
+## Critical Implementation Notes
+
+> **Ces points sont issus d'une review croisée avec la documentation officielle Apple SwiftUI.**
+
+### 1. Initialisation des @State dans les Edit Sheets
+**NE PAS utiliser `.onAppear`** pour initialiser les @State avec les valeurs existantes. Utiliser `State(initialValue:)` dans l'`init()` pour éviter des comportements inattendus si le sheet est réaffiché.
+
+### 2. Coexistence Tap + Long Press Gestures
+SwiftUI gère naturellement les deux gestes :
+- **Tap** : reconnu immédiatement au relâchement
+- **Long Press** : reconnu après le délai (0.4s dans notre cas)
+
+Ordre des modifiers : `.onTapGesture` → `.onLongPressGesture`
+
+### 3. Accessibilité VoiceOver
+Ajouter `.accessibilityAddTraits(.isButton)` et `.accessibilityHint()` sur les rows tappables pour une expérience VoiceOver correcte.
+
+---
+
 ## Dependencies
 
 **Order of implementation:**
@@ -33,7 +52,17 @@ Add the ability to edit budget lines, transactions, and template lines by **tapp
 - Create new file based on `AddBudgetLineSheet.swift` pattern
 - Accept `budgetLine: BudgetLine` prop (the line to edit)
 - Accept `onUpdate: (BudgetLine) -> Void` callback
-- Initialize form state from `budgetLine` values in `.onAppear`
+- **IMPORTANT**: Initialize @State in `init()` using `State(initialValue:)` syntax:
+  ```swift
+  init(budgetLine: BudgetLine, onUpdate: @escaping (BudgetLine) -> Void) {
+      self.budgetLine = budgetLine
+      self.onUpdate = onUpdate
+      _name = State(initialValue: budgetLine.name)
+      _amount = State(initialValue: budgetLine.amount)
+      _kind = State(initialValue: budgetLine.kind)
+      _recurrence = State(initialValue: budgetLine.recurrence)
+  }
+  ```
 - Form fields: name (TextField), amount (CurrencyField), kind (Picker), recurrence (Picker)
 - Add recurrence Picker (unlike Add sheet which hardcodes `.oneOff`)
 - Navigation title: "Modifier la prévision"
@@ -51,7 +80,17 @@ Add the ability to edit budget lines, transactions, and template lines by **tapp
 - Create new file based on `AddTransactionSheet.swift` pattern
 - Accept `transaction: Transaction` prop (the transaction to edit)
 - Accept `onUpdate: (Transaction) -> Void` callback
-- Initialize form state from `transaction` values in `.onAppear`
+- **IMPORTANT**: Initialize @State in `init()` using `State(initialValue:)` syntax:
+  ```swift
+  init(transaction: Transaction, onUpdate: @escaping (Transaction) -> Void) {
+      self.transaction = transaction
+      self.onUpdate = onUpdate
+      _name = State(initialValue: transaction.name)
+      _amount = State(initialValue: transaction.amount)
+      _kind = State(initialValue: transaction.kind)
+      _transactionDate = State(initialValue: transaction.transactionDate)
+  }
+  ```
 - Form fields: name (TextField), amount (CurrencyField), kind (Picker), transactionDate (DatePicker)
 - Navigation title: "Modifier la transaction"
 - Toolbar buttons: "Annuler" (cancel), "Enregistrer" (confirm)
@@ -68,7 +107,17 @@ Add the ability to edit budget lines, transactions, and template lines by **tapp
 - Create new file similar to other edit sheets
 - Accept `templateLine: TemplateLine` prop
 - Accept `onUpdate: (TemplateLine) -> Void` callback
-- Initialize form state from `templateLine` values in `.onAppear`
+- **IMPORTANT**: Initialize @State in `init()` using `State(initialValue:)` syntax:
+  ```swift
+  init(templateLine: TemplateLine, onUpdate: @escaping (TemplateLine) -> Void) {
+      self.templateLine = templateLine
+      self.onUpdate = onUpdate
+      _name = State(initialValue: templateLine.name)
+      _amount = State(initialValue: templateLine.amount)
+      _kind = State(initialValue: templateLine.kind)
+      _recurrence = State(initialValue: templateLine.recurrence)
+  }
+  ```
 - Form fields: name (TextField), amount (CurrencyField), kind (Picker), recurrence (Picker)
 - Navigation title: "Modifier la ligne"
 - Toolbar buttons: "Annuler" (cancel), "Enregistrer" (confirm)
@@ -89,10 +138,23 @@ Add the ability to edit budget lines, transactions, and template lines by **tapp
 
 #### BudgetLineRow component (lines 93-244)
 - Add new prop: `let onEdit: () -> Void`
-- Wrap the entire VStack content in `.contentShape(Rectangle())`
-- Add `.onTapGesture { onEdit() }` to the VStack
-- Keep existing `.onLongPressGesture` for linked transactions view
-- Consider: Only enable tap for non-rollover lines (`!line.isVirtualRollover`)
+- **GESTURE HANDLING**: Le tap et long press coexistent naturellement en SwiftUI:
+  - Tap gesture est reconnu immédiatement
+  - Long press gesture est reconnu après le délai (0.4s)
+  - Ajouter `.onTapGesture` AVANT `.onLongPressGesture` dans la chaîne de modifiers
+- Implementation:
+  ```swift
+  VStack(spacing: 0) { /* content */ }
+      .contentShape(Rectangle())
+      .onTapGesture {
+          guard !line.isVirtualRollover else { return }
+          onEdit()
+      }
+      .onLongPressGesture(minimumDuration: 0.4, ...) { /* existing code */ }
+      .accessibilityAddTraits(.isButton)
+      .accessibilityHint("Toucher pour modifier, maintenir pour voir les transactions")
+  ```
+- Skip tap for rollover lines via guard in gesture handler
 
 ---
 
@@ -107,8 +169,15 @@ Add the ability to edit budget lines, transactions, and template lines by **tapp
 
 #### TransactionRow component (lines 78-131)
 - Add new prop: `let onEdit: () -> Void`
-- Wrap the HStack in `.contentShape(Rectangle())`
-- Add `.onTapGesture { onEdit() }` to the HStack
+- Implementation:
+  ```swift
+  HStack(spacing: 12) { /* content */ }
+      .padding(.vertical, 8)
+      .contentShape(Rectangle())
+      .onTapGesture { onEdit() }
+      .accessibilityAddTraits(.isButton)
+      .accessibilityHint("Toucher pour modifier")
+  ```
 
 ---
 
@@ -232,8 +301,14 @@ Add the ability to edit budget lines, transactions, and template lines by **tapp
 
 #### TemplateLineRow component (lines 110-128)
 - Add prop: `var onEdit: (() -> Void)? = nil`
-- Wrap HStack in `.contentShape(Rectangle())`
-- Add `.onTapGesture { onEdit?() }` if onEdit is provided
+- Implementation:
+  ```swift
+  HStack { /* content */ }
+      .contentShape(Rectangle())
+      .onTapGesture { onEdit?() }
+      .accessibilityAddTraits(.isButton)
+      .accessibilityHint("Toucher pour modifier")
+  ```
 
 ---
 

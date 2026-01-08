@@ -3,6 +3,7 @@ import SwiftUI
 struct TemplateDetailsView: View {
     let templateId: String
     @State private var viewModel: TemplateDetailsViewModel
+    @State private var selectedLineForEdit: TemplateLine?
 
     init(templateId: String) {
         self.templateId = templateId
@@ -25,6 +26,11 @@ struct TemplateDetailsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await viewModel.loadDetails()
+        }
+        .sheet(item: $selectedLineForEdit) { line in
+            EditTemplateLineSheet(templateLine: line) { updatedLine in
+                Task { await viewModel.updateTemplateLine(updatedLine) }
+            }
         }
     }
 
@@ -92,7 +98,9 @@ struct TemplateDetailsView: View {
     private func templateLineSection(title: String, lines: [TemplateLine]) -> some View {
         Section {
             ForEach(lines) { line in
-                TemplateLineRow(line: line)
+                TemplateLineRow(line: line) {
+                    selectedLineForEdit = line
+                }
             }
         } header: {
             HStack {
@@ -109,6 +117,7 @@ struct TemplateDetailsView: View {
 
 struct TemplateLineRow: View {
     let line: TemplateLine
+    let onEdit: () -> Void
 
     var body: some View {
         HStack {
@@ -124,6 +133,10 @@ struct TemplateLineRow: View {
             CurrencyText(line.amount)
                 .foregroundStyle(line.kind.color)
         }
+        .contentShape(Rectangle())
+        .onTapGesture { onEdit() }
+        .accessibilityAddTraits(.isButton)
+        .accessibilityHint("Toucher pour modifier")
     }
 }
 
@@ -176,6 +189,17 @@ final class TemplateDetailsViewModel {
         }
 
         isLoading = false
+    }
+
+    @MainActor
+    func updateTemplateLine(_ line: TemplateLine) async {
+        // Optimistic update
+        if let index = lines.firstIndex(where: { $0.id == line.id }) {
+            lines[index] = line
+        }
+
+        // Reload to sync with server
+        await loadDetails()
     }
 }
 

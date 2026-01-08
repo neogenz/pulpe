@@ -8,6 +8,8 @@ struct CurrentMonthView: View {
     @State private var selectedLineForTransaction: BudgetLine?
     @State private var linkedTransactionsContext: LinkedTransactionsContext?
     @State private var showAccount = false
+    @State private var selectedBudgetLineForEdit: BudgetLine?
+    @State private var selectedTransactionForEdit: Transaction?
 
     var body: some View {
         ZStack {
@@ -94,6 +96,16 @@ struct CurrentMonthView: View {
         .sheet(isPresented: $showAccount) {
             AccountView()
         }
+        .sheet(item: $selectedBudgetLineForEdit) { line in
+            EditBudgetLineSheet(budgetLine: line) { updatedLine in
+                Task { await viewModel.updateBudgetLine(updatedLine) }
+            }
+        }
+        .sheet(item: $selectedTransactionForEdit) { transaction in
+            EditTransactionSheet(transaction: transaction) { updatedTransaction in
+                Task { await viewModel.updateTransaction(updatedTransaction) }
+            }
+        }
         .task {
             await viewModel.loadData()
         }
@@ -139,6 +151,9 @@ struct CurrentMonthView: View {
                             budgetLine: line,
                             transactions: transactions
                         )
+                    },
+                    onEdit: { line in
+                        selectedBudgetLineForEdit = line
                     }
                 )
             }
@@ -163,6 +178,9 @@ struct CurrentMonthView: View {
                             budgetLine: line,
                             transactions: transactions
                         )
+                    },
+                    onEdit: { line in
+                        selectedBudgetLineForEdit = line
                     }
                 )
             }
@@ -177,6 +195,9 @@ struct CurrentMonthView: View {
                     },
                     onDelete: { transaction in
                         Task { await viewModel.deleteTransaction(transaction) }
+                    },
+                    onEdit: { transaction in
+                        selectedTransactionForEdit = transaction
                     }
                 )
             }
@@ -345,6 +366,26 @@ final class CurrentMonthViewModel {
             budgetLines = originalLines
             self.error = error
         }
+    }
+
+    @MainActor
+    func updateBudgetLine(_ line: BudgetLine) async {
+        guard !(line.isRollover ?? false) else { return }
+
+        if let index = budgetLines.firstIndex(where: { $0.id == line.id }) {
+            budgetLines[index] = line
+        }
+
+        await loadData()
+    }
+
+    @MainActor
+    func updateTransaction(_ transaction: Transaction) async {
+        if let index = transactions.firstIndex(where: { $0.id == transaction.id }) {
+            transactions[index] = transaction
+        }
+
+        await loadData()
     }
 }
 

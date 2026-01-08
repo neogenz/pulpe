@@ -71,10 +71,10 @@ struct BudgetLineCreate: Encodable {
 }
 
 struct BudgetLineUpdate: Encodable {
+    let id: String
     var name: String?
     var amount: Decimal?
     var kind: TransactionKind?
-    var recurrence: TransactionRecurrence?
     var isManuallyAdjusted: Bool?
     var checkedAt: Date?
 }

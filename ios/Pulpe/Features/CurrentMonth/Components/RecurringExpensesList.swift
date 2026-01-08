@@ -9,6 +9,7 @@ struct BudgetSection: View {
     let onDelete: (BudgetLine) -> Void
     let onAddTransaction: (BudgetLine) -> Void
     let onLongPress: (BudgetLine, [Transaction]) -> Void
+    let onEdit: (BudgetLine) -> Void
 
     @State private var itemToDelete: BudgetLine?
     @State private var showDeleteAlert = false
@@ -39,7 +40,8 @@ struct BudgetSection: View {
                     onAddTransaction: { onAddTransaction(item) },
                     onLongPress: { linkedTransactions in
                         onLongPress(item, linkedTransactions)
-                    }
+                    },
+                    onEdit: { onEdit(item) }
                 )
                 .listRowSeparator(.hidden)
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
@@ -97,6 +99,7 @@ struct BudgetLineRow: View {
     let onToggle: () -> Void
     let onAddTransaction: () -> Void
     let onLongPress: ([Transaction]) -> Void
+    let onEdit: () -> Void
 
     @State private var isPressed = false
     @State private var triggerSuccessFeedback = false
@@ -174,6 +177,11 @@ struct BudgetLineRow: View {
                 progressBar
             }
         }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            guard !line.isVirtualRollover else { return }
+            onEdit()
+        }
         .scaleEffect(isPressed ? 0.97 : 1.0)
         .animation(.spring(duration: 0.25), value: isPressed)
         .onLongPressGesture(
@@ -188,6 +196,8 @@ struct BudgetLineRow: View {
         )
         .sensoryFeedback(.success, trigger: triggerSuccessFeedback)
         .sensoryFeedback(.warning, trigger: triggerWarningFeedback)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityHint("Toucher pour modifier, maintenir pour voir les transactions")
     }
 
     // MARK: - Kind Icon Circle (Revolut-style)
@@ -310,7 +320,8 @@ struct BudgetLineRow: View {
             onToggle: { _ in },
             onDelete: { _ in },
             onAddTransaction: { _ in },
-            onLongPress: { _, _ in }
+            onLongPress: { _, _ in },
+            onEdit: { _ in }
         )
     }
     .listStyle(.insetGrouped)

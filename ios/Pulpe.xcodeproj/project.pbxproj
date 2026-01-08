@@ -33,6 +33,7 @@
 		5B556B010CD1598EAA240A4A /* IncomeStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0B8C94F0B71D25CF2D5D563 /* IncomeStep.swift */; };
 		5EB9DD65C1AD7312A87E4133 /* AddTransactionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054A9E4A9CCF915305B08CC0 /* AddTransactionSheet.swift */; };
 		626E386E73A2C807D70E799A /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4377A27005BBA73FC6616969 /* AppState.swift */; };
+		62C63F22DEB9936488CD9959 /* EditBudgetLineSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF22EAF0B1EFD57653917072 /* EditBudgetLineSheet.swift */; };
 		6BDB2182575FA1AB04F061CC /* Budget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 375A017C49DE46C9C5B8D8DB /* Budget.swift */; };
 		6CDB77CCB53255B0897278CC /* LinkedTransactionsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8334F2FD3ED442FCC576A91 /* LinkedTransactionsSheet.swift */; };
 		72C131FA19CE8B13A888F19D /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 09618739B66AA92F99246D88 /* Lottie */; };
@@ -44,11 +45,13 @@
 		80BAC93003BA8CCBE291A779 /* WelcomeStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = D86B67782D2A720349211B65 /* WelcomeStep.swift */; };
 		83A455CF99981A6CD2A65ED3 /* CreateBudgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29D91A4D1401A217165EAD49 /* CreateBudgetView.swift */; };
 		846573A9906007B79BC2B2C2 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35BEAF310518B6EE5375776E /* LoginView.swift */; };
+		8A9258041ABC040E6A3C3223 /* EditTemplateLineSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F534FB3E2E33B3F35909729 /* EditTemplateLineSheet.swift */; };
 		91B28D61C5AD8F09EAD10E8A /* CurrentMonthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F76CA89C404286DF9CAF27D5 /* CurrentMonthView.swift */; };
 		94129CA9F8DE35A23853772A /* AuthErrorLocalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 357C61A34E9CA60F73EF5441 /* AuthErrorLocalizer.swift */; };
 		94CAF603E4F31F628C48B76C /* Transaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 316F2D062F9E6DD584B93A84 /* Transaction.swift */; };
 		9DF3E7C14A96A5E7AC8EC4C3 /* LinkedTransactionsContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = D45C40FA08472FA75B62A6AC /* LinkedTransactionsContext.swift */; };
 		A22726A5F8810386134F4846 /* OnboardingFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7722947386A7CD78FE3B05 /* OnboardingFlow.swift */; };
+		A430A8669EF9FAFF545766BC /* EditTransactionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E18D4C745E8A27CA92B99037 /* EditTransactionSheet.swift */; };
 		A4E6EAB35F1BCADF80152CDA /* RegistrationStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AACF1F7B6CEC915EF32C2D8 /* RegistrationStep.swift */; };
 		A7E4073AAFDDD31C39F5D6F7 /* welcome-animation.json in Resources */ = {isa = PBXBuildFile; fileRef = 88250064A726B3B6AAAE9ADF /* welcome-animation.json */; };
 		A7FBBEBBCCE704C3AAA740E5 /* TransportStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24760BF421846CAFAD51DF62 /* TransportStep.swift */; };
@@ -108,6 +111,7 @@
 		4D6D73BC1D11C6EC1A1E313C /* PhonePlanStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhonePlanStep.swift; sourceTree = "<group>"; };
 		4EA095E32B5C5AC4B0FCE485 /* OneTimeExpensesList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneTimeExpensesList.swift; sourceTree = "<group>"; };
 		57A624A40CC91AC97C743441 /* KeychainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainManager.swift; sourceTree = "<group>"; };
+		5F534FB3E2E33B3F35909729 /* EditTemplateLineSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditTemplateLineSheet.swift; sourceTree = "<group>"; };
 		606435140AB22BD250F34C36 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		698F0684A80FD2BFB998D92A /* BudgetDetailsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetDetailsView.swift; sourceTree = "<group>"; };
 		6B63C48FA85869F486C3CBE3 /* TemplateListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemplateListView.swift; sourceTree = "<group>"; };
@@ -136,10 +140,12 @@
 		CAAA7ED54F25794213D540FE /* BudgetFormulas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetFormulas.swift; sourceTree = "<group>"; };
 		CB27A675F26502F512836C4A /* TutorialOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TutorialOverlay.swift; sourceTree = "<group>"; };
 		CDE22DCB355C9C3F1FC0E520 /* CurrencyField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrencyField.swift; sourceTree = "<group>"; };
+		CF22EAF0B1EFD57653917072 /* EditBudgetLineSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditBudgetLineSheet.swift; sourceTree = "<group>"; };
 		D45C40FA08472FA75B62A6AC /* LinkedTransactionsContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkedTransactionsContext.swift; sourceTree = "<group>"; };
 		D4614F485D865898B139E965 /* ErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorView.swift; sourceTree = "<group>"; };
 		D576CD613CD0E637C83249E9 /* Formatters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Formatters.swift; sourceTree = "<group>"; };
 		D86B67782D2A720349211B65 /* WelcomeStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeStep.swift; sourceTree = "<group>"; };
+		E18D4C745E8A27CA92B99037 /* EditTransactionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditTransactionSheet.swift; sourceTree = "<group>"; };
 		E1ED9277251CACDC297FEFA3 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		E3AD93EA890CC61B4AA606B7 /* Endpoints.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Endpoints.swift; sourceTree = "<group>"; };
 		E4BC53510F1748B0FB8407CE /* TemplateService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemplateService.swift; sourceTree = "<group>"; };
@@ -191,6 +197,7 @@
 		25D0AEE5BA1903AEA211CED1 /* TemplateDetails */ = {
 			isa = PBXGroup;
 			children = (
+				5F534FB3E2E33B3F35909729 /* EditTemplateLineSheet.swift */,
 				F3A3C49B0B8A78283AB987AD /* TemplateDetailsView.swift */,
 			);
 			path = TemplateDetails;
@@ -214,6 +221,8 @@
 			children = (
 				B628F99B27B621909E09CF7D /* BudgetProgressBar.swift */,
 				CDE22DCB355C9C3F1FC0E520 /* CurrencyField.swift */,
+				CF22EAF0B1EFD57653917072 /* EditBudgetLineSheet.swift */,
+				E18D4C745E8A27CA92B99037 /* EditTransactionSheet.swift */,
 				D4614F485D865898B139E965 /* ErrorView.swift */,
 				471EA2FDC0D36113B6F2AEA9 /* FinancialSummaryCard.swift */,
 				C81B7DA6BF84774DCD938E37 /* KindBadge.swift */,
@@ -600,6 +609,9 @@
 				91B28D61C5AD8F09EAD10E8A /* CurrentMonthView.swift in Sources */,
 				E3BA82ABFFC6695DE1311D13 /* Date+Extensions.swift in Sources */,
 				F5D9B6FD484997E69677F7E2 /* Decimal+Extensions.swift in Sources */,
+				62C63F22DEB9936488CD9959 /* EditBudgetLineSheet.swift in Sources */,
+				8A9258041ABC040E6A3C3223 /* EditTemplateLineSheet.swift in Sources */,
+				A430A8669EF9FAFF545766BC /* EditTransactionSheet.swift in Sources */,
 				40867D66318D1675AC21C5EE /* Endpoints.swift in Sources */,
 				355EAC39C5277062B617B41A /* ErrorView.swift in Sources */,
 				DEC7748A44A2C465AB32B024 /* FinancialSummaryCard.swift in Sources */,

@@ -6,6 +6,7 @@ struct TransactionSection: View {
     let transactions: [Transaction]
     let onToggle: (Transaction) -> Void
     let onDelete: (Transaction) -> Void
+    let onEdit: (Transaction) -> Void
 
     @State private var transactionToDelete: Transaction?
     @State private var showDeleteAlert = false
@@ -28,7 +29,10 @@ struct TransactionSection: View {
     var body: some View {
         Section {
             ForEach(transactions) { transaction in
-                TransactionRow(transaction: transaction)
+                TransactionRow(
+                    transaction: transaction,
+                    onEdit: { onEdit(transaction) }
+                )
                     .listRowSeparator(.hidden)
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         Button {
@@ -77,6 +81,7 @@ struct TransactionSection: View {
 /// Single transaction row - Revolut-inspired design
 struct TransactionRow: View {
     let transaction: Transaction
+    let onEdit: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
@@ -105,6 +110,10 @@ struct TransactionRow: View {
                 .foregroundStyle(transaction.isChecked ? .secondary : transaction.kind.color)
         }
         .padding(.vertical, 8)
+        .contentShape(Rectangle())
+        .onTapGesture { onEdit() }
+        .accessibilityAddTraits(.isButton)
+        .accessibilityHint("Toucher pour modifier")
     }
 
     // MARK: - Kind Icon Circle (Revolut-style)
@@ -176,7 +185,8 @@ struct TransactionRow: View {
                 )
             ],
             onToggle: { _ in },
-            onDelete: { _ in }
+            onDelete: { _ in },
+            onEdit: { _ in }
         )
     }
     .listStyle(.insetGrouped)
