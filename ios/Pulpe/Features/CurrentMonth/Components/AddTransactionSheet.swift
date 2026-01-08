@@ -12,8 +12,11 @@ struct AddTransactionSheet: View {
     @State private var transactionDate = Date()
     @State private var isLoading = false
     @State private var error: Error?
+    @FocusState private var isAmountFocused: Bool
+    @State private var pendingQuickAmount: Int?
 
     private let transactionService = TransactionService.shared
+    private let quickAmounts = [10, 15, 20, 30]
 
     private var canSubmit: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty &&
@@ -25,18 +28,51 @@ struct AddTransactionSheet: View {
     var body: some View {
         NavigationStack {
             Form {
+                // Amount (first for auto-focus)
+                Section {
+                    CurrencyField(
+                        value: $amount,
+                        placeholder: "0.00",
+                        externalFocus: $isAmountFocused
+                    )
+                } header: {
+                    Text("Montant")
+                }
+
+                // Quick amounts
+                Section {
+                    HStack(spacing: 8) {
+                        ForEach(quickAmounts, id: \.self) { quickAmount in
+                            Button {
+                                if isAmountFocused {
+                                    pendingQuickAmount = quickAmount
+                                    isAmountFocused = false
+                                } else {
+                                    amount = Decimal(quickAmount)
+                                }
+                            } label: {
+                                Text("\(quickAmount) CHF")
+                                    .font(.subheadline.weight(.medium))
+                                    .fixedSize()
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .frame(maxWidth: .infinity)
+                                    .background(Color.accentColor.opacity(0.15))
+                                    .foregroundStyle(Color.accentColor)
+                                    .clipShape(Capsule())
+                            }
+                            .buttonStyle(.borderless)
+                        }
+                    }
+                } header: {
+                    Text("Montants rapides")
+                }
+
                 // Name
                 Section {
                     TextField("Description", text: $name)
                 } header: {
                     Text("Description")
-                }
-
-                // Amount
-                Section {
-                    CurrencyField(value: $amount, placeholder: "0.00")
-                } header: {
-                    Text("Montant")
                 }
 
                 // Kind
@@ -90,6 +126,17 @@ struct AddTransactionSheet: View {
                 }
             }
             .loadingOverlay(isLoading)
+            .onAppear {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    isAmountFocused = true
+                }
+            }
+            .onChange(of: isAmountFocused) { _, isFocused in
+                if !isFocused, let quickAmount = pendingQuickAmount {
+                    amount = Decimal(quickAmount)
+                    pendingQuickAmount = nil
+                }
+            }
         }
     }
 

@@ -6,17 +6,25 @@ struct CurrencyField: View {
     let placeholder: String
     let label: String?
 
-    @FocusState private var isFocused: Bool
+    @FocusState private var internalFocus: Bool
     @State private var textValue: String = ""
+
+    private let externalFocus: FocusState<Bool>.Binding?
+
+    private var effectiveFocus: Bool {
+        externalFocus?.wrappedValue ?? internalFocus
+    }
 
     init(
         value: Binding<Decimal?>,
         placeholder: String = "0.00",
-        label: String? = nil
+        label: String? = nil,
+        externalFocus: FocusState<Bool>.Binding? = nil
     ) {
         self._value = value
         self.placeholder = placeholder
         self.label = label
+        self.externalFocus = externalFocus
     }
 
     var body: some View {
@@ -34,7 +42,7 @@ struct CurrencyField: View {
 
                 TextField(placeholder, text: $textValue)
                     .keyboardType(.decimalPad)
-                    .focused($isFocused)
+                    .focused(externalFocus ?? $internalFocus)
                     .onChange(of: textValue) { _, newValue in
                         updateValue(from: newValue)
                     }
@@ -47,7 +55,7 @@ struct CurrencyField: View {
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(isFocused ? Color.accentColor : Color.secondary.opacity(0.3), lineWidth: 1)
+                    .stroke(effectiveFocus ? Color.accentColor : Color.secondary.opacity(0.3), lineWidth: 1)
             )
         }
         .onAppear {
@@ -79,14 +87,14 @@ struct CurrencyField: View {
 
     private func updateText(from decimal: Decimal?) {
         guard let decimal else {
-            if !isFocused {
+            if !effectiveFocus {
                 textValue = ""
             }
             return
         }
 
         // Only update if not focused (avoid cursor jumping)
-        if !isFocused {
+        if !effectiveFocus {
             let formatter = NumberFormatter()
             formatter.numberStyle = .decimal
             formatter.minimumFractionDigits = 0
