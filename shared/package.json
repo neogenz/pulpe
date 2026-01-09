@@ -1,6 +1,6 @@
 {
   "name": "@pulpe/shared",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "packageManager": "pnpm@10.12.1",
   "description": "Shared models and types for Pulpe application",
   "type": "module",

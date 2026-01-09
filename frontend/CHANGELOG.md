@@ -1,5 +1,27 @@
 # pulpe-frontend
 
+## 2026.1.0
+
+### Minor Changes
+
+- ### Nouvelles fonctionnalités
+  - **Export des budgets en JSON** : Exportez tous vos budgets avec leurs transactions et lignes budgétaires dans un fichier JSON depuis la liste des budgets
+  - **Vérification des transactions** : Cochez vos transactions et lignes budgétaires pour suivre ce qui a été vérifié. Le cochage d'une ligne propage automatiquement aux transactions associées
+  - **Barre de progression** : Visualisez l'avancement de vos éléments exécutés avec une barre de progression sur le solde réalisé
+  - **Boîte "À propos"** : Accédez aux informations de version de l'application depuis le menu utilisateur
+
+  ### Améliorations
+  - **Fréquence automatique** : La fréquence des lignes est maintenant définie automatiquement selon le contexte (Prévu pour les budgets, Récurrent pour les templates)
+
+  ### Corrections
+  - **Sécurité des données** : Les données utilisateur sont maintenant correctement effacées à la déconnexion pour éviter toute fuite entre comptes
+  - **Format de date** : Les dates s'affichent maintenant au format français (JJ.MM)
+
+### Patch Changes
+
+- Updated dependencies
+  - @pulpe/shared@0.3.1
+
 ## 2025.16.0
 
 ### Minor Changes
