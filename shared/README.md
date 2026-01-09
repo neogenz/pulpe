@@ -1,4 +1,4 @@
-# @pulpe/shared - Package Partagé
+# pulpe-shared - Package Partagé
 
 Package TypeScript contenant les types, schémas et DTOs partagés entre le frontend Angular et le backend NestJS de l'application Pulpe.
 
@@ -97,7 +97,7 @@ Le package est automatiquement installé via le workspace :
 // frontend/package.json ou backend-nest/package.json
 {
   "dependencies": {
-    "@pulpe/shared": "workspace:*"
+    "pulpe-shared": "workspace:*"
   }
 }
 ```
@@ -106,7 +106,7 @@ Le package est automatiquement installé via le workspace :
 
 ```typescript
 // Validation côté client
-import { BudgetSchema, type Budget } from '@pulpe/shared';
+import { BudgetSchema, type Budget } from 'pulpe-shared';
 
 @Component({...})
 export class BudgetComponent {
@@ -121,7 +121,7 @@ export class BudgetComponent {
 ```typescript
 // DTOs et validation
 import { createZodDto } from 'nestjs-zod';
-import { BudgetSchema } from '@pulpe/shared';
+import { BudgetSchema } from 'pulpe-shared';
 
 export class CreateBudgetDto extends createZodDto(BudgetSchema) {}
 
@@ -312,7 +312,7 @@ async create(@Body() dto: CreateBudgetDto) {
 ### ❌ À éviter
 
 - Types TypeScript manuels (duplication)
-- Imports directs depuis `schemas.ts` (toujours passer par `@pulpe/shared`)
+- Imports directs depuis `schemas.ts` (toujours passer par `pulpe-shared`)
 - Schémas sans validation
 - Breaking changes sans version bump
 - Dependencies runtime supplémentaires

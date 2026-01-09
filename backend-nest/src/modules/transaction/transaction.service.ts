@@ -12,7 +12,7 @@ import {
   type TransactionListResponse,
   type TransactionResponse,
   type TransactionUpdate,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 import * as transactionMappers from './transaction.mappers';
 import { TRANSACTION_CONSTANTS } from './entities';
 import type { Database } from '../../types/database.types';

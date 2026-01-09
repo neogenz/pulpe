@@ -51,7 +51,7 @@
     "@nestjs/schedule": "^6.0.0",
     "@nestjs/swagger": "^11.2.0",
     "@nestjs/throttler": "^6.4.0",
-    "@pulpe/shared": "workspace:*",
+    "pulpe-shared": "workspace:*",
     "@supabase/supabase-js": "^2.50.0",
     "@types/compression": "^1.8.1",
     "class-transformer": "^0.5.1",

@@ -14,7 +14,7 @@ import {
   type TemplateLinesBulkOperations,
   type TemplateLinesBulkOperationsResponse,
   type TemplateUsageResponse,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 
 @Injectable()

@@ -8,7 +8,7 @@ import {
 } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
-import { type BudgetLine, type Transaction } from '@pulpe/shared';
+import { type BudgetLine, type Transaction } from 'pulpe-shared';
 import { BudgetCalculator, calculateAllConsumptions } from '@core/budget';
 import { RealizedBalanceProgressBar } from '@ui/realized-balance-progress-bar/realized-balance-progress-bar';
 import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-balance-tooltip';

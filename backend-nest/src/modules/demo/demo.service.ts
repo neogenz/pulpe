@@ -5,7 +5,7 @@ import { DemoDataGeneratorService } from './demo-data-generator.service';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { handleServiceError } from '@common/utils/error-handler';
-import type { DemoSessionResponse } from '@pulpe/shared';
+import type { DemoSessionResponse } from 'pulpe-shared';
 import { v4 as uuidv4 } from 'uuid';
 import type { SupabaseClient } from '@supabase/supabase-js';
 

@@ -9,7 +9,7 @@ import {
   type TransactionUpdateResponse,
   transactionListResponseSchema,
   transactionResponseSchema,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 import { type Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { ApplicationConfiguration } from '../config/application-configuration';

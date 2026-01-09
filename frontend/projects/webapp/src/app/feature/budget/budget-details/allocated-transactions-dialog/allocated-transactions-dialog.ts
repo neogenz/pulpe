@@ -10,7 +10,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import type { BudgetLine, Transaction } from '@pulpe/shared';
+import type { BudgetLine, Transaction } from 'pulpe-shared';
 import type { BudgetLineConsumption } from '@core/budget';
 
 export interface AllocatedTransactionsDialogData {

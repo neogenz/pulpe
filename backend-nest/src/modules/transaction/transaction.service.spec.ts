@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { TransactionService } from './transaction.service';
 import { BudgetService } from '../budget/budget.service';
 import { PinoLogger } from 'nestjs-pino';
-import type { TransactionCreate, TransactionUpdate } from '@pulpe/shared';
+import type { TransactionCreate, TransactionUpdate } from 'pulpe-shared';
 import {
   createMockSupabaseClient,
   expectBusinessExceptionThrown,

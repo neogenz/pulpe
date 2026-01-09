@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import type { Transaction, BudgetLine } from '@pulpe/shared';
+import type { Transaction, BudgetLine } from 'pulpe-shared';
 import type { TableRowItem } from './budget-table-models';
 import type { BudgetTableViewMode } from './budget-table-view-mode';
 import { buildNestedTransactionViewData } from './nested-transaction-view-builder';

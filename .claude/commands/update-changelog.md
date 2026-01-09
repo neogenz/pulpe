@@ -66,7 +66,7 @@ For each user-facing change, determine:
 Identify affected packages:
 - `@pulpe/frontend` - Angular webapp changes
 - `@pulpe/backend-nest` - NestJS API changes
-- `@pulpe/shared` - Shared schemas/types changes
+- `pulpe-shared` - Shared schemas/types changes
 
 ## Phase 3: PROPOSE
 

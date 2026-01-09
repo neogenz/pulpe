@@ -3,10 +3,10 @@ description: Explain how to use shared packages to use DTO
 globs: 
 alwaysApply: false
 ---
-# Shared Package (@pulpe/shared)
+# Shared Package (pulpe-shared)
 
 ## Purpose
-The [@pulpe/shared](mdc:shared) package serves as the **contract layer** between frontend and backend, ensuring type safety and consistency across the entire application.
+The [pulpe-shared](mdc:shared) package serves as the **contract layer** between frontend and backend, ensuring type safety and consistency across the entire application.
 
 ## Package Structure
 ```
@@ -58,7 +58,7 @@ Centralized exports for both schemas and types, making them easily importable ac
 ### In Backend (NestJS)
 ```typescript
 // Import shared schemas for DTO validation
-import { transactionCreateSchema, type TransactionCreate } from '@pulpe/shared';
+import { transactionCreateSchema, type TransactionCreate } from 'pulpe-shared';
 
 // Use in mappers for validation
 toDbCreate(createDto: TransactionCreate, userId: string) {
@@ -73,7 +73,7 @@ toDbCreate(createDto: TransactionCreate, userId: string) {
 ### In Frontend (Angular)
 ```typescript
 // Import shared types for type safety
-import { Transaction, BudgetCreate } from '@pulpe/shared';
+import { Transaction, BudgetCreate } from 'pulpe-shared';
 
 // Use in services and components
 private createBudget(budget: BudgetCreate): Observable<Budget> {
@@ -85,7 +85,7 @@ private createBudget(budget: BudgetCreate): Observable<Budget> {
 ```typescript
 // Use shared schemas for API documentation
 import { createZodDto } from 'nestjs-zod';
-import { transactionCreateSchema } from '@pulpe/shared';
+import { transactionCreateSchema } from 'pulpe-shared';
 
 export class TransactionCreateDto extends createZodDto(transactionCreateSchema) {}
 ```

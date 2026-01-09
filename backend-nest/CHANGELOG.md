@@ -18,7 +18,7 @@
   - **Format de date** : Les dates s'affichent maintenant au format français (JJ.MM)
 
 - Updated dependencies
-  - @pulpe/shared@0.3.1
+  - pulpe-shared@0.3.1
 
 ## 0.4.1
 
@@ -44,7 +44,7 @@
 ### Patch Changes
 
 - Updated dependencies
-  - @pulpe/shared@0.3.0
+  - pulpe-shared@0.3.0
 
 ## 0.3.0
 
@@ -61,7 +61,7 @@
 ### Patch Changes
 
 - Updated dependencies
-  - @pulpe/shared@0.2.1
+  - pulpe-shared@0.2.1
 
 ## 0.2.0
 
@@ -94,4 +94,4 @@
 ### Patch Changes
 
 - Updated dependencies
-  - @pulpe/shared@0.2.0
+  - pulpe-shared@0.2.0

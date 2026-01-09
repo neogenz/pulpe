@@ -45,7 +45,7 @@ Frontend (Zod) → Backend DTO (createZodDto) → Service → Database (RLS)
 DB Row (snake_case) → Mapper → API Response (camelCase)
 ```
 
-- Shared schemas from `@pulpe/shared`
+- Shared schemas from `pulpe-shared`
 - Runtime validation with Zod
 - TypeScript strict mode
 

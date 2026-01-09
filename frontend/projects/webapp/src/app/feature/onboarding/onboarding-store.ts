@@ -9,7 +9,7 @@ import { StorageService, STORAGE_KEYS } from '@core/storage';
 import {
   type BudgetCreate,
   type BudgetTemplateCreateFromOnboarding,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 import { firstValueFrom } from 'rxjs';
 import { filter, map } from 'rxjs/operators';
 import {

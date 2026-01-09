@@ -5,7 +5,7 @@ import { firstValueFrom, map } from 'rxjs';
 import {
   type DemoSessionCreate,
   demoSessionResponseSchema,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { ROUTES } from '@core/routing/routes-constants';
 import { Logger } from '@core/logging/logger';

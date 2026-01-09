@@ -23,7 +23,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { type BudgetTemplateCreate } from '@pulpe/shared';
+import { type BudgetTemplateCreate } from 'pulpe-shared';
 import { DefaultWarningPanel } from '../ui/default-warning-panel';
 import {
   duplicateNameValidator,

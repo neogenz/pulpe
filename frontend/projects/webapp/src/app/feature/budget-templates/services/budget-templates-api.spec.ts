@@ -4,7 +4,7 @@ import {
   type BudgetTemplateResponse,
   type TemplateLine,
   type TemplateLineListResponse,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 import { describe, expect, it } from 'vitest';
 import type { BudgetTemplateDetailViewModel } from './budget-templates-api';
 

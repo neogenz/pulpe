@@ -1,5 +1,5 @@
 import { Pipe, type PipeTransform } from '@angular/core';
-import type { TransactionKind } from '@pulpe/shared';
+import type { TransactionKind } from 'pulpe-shared';
 
 @Pipe({
   name: 'transactionLabel',

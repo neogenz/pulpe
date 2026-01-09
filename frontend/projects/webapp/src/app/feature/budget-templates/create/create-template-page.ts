@@ -9,7 +9,7 @@ import { Router } from '@angular/router';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { type BudgetTemplateCreate } from '@pulpe/shared';
+import { type BudgetTemplateCreate } from 'pulpe-shared';
 import { BudgetTemplatesState } from '../services/budget-templates-state';
 import { CreateTemplateForm } from './components/create-template-form';
 import { Logger } from '@core/logging/logger';

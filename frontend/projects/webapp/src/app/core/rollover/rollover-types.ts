@@ -1,4 +1,4 @@
-import type { BudgetLine } from '@pulpe/shared';
+import type { BudgetLine } from 'pulpe-shared';
 
 /**
  * Represents a virtual rollover line for display purposes

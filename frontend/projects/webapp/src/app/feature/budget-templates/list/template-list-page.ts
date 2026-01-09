@@ -11,7 +11,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { firstValueFrom } from 'rxjs';
-import { type BudgetTemplate } from '@pulpe/shared';
+import { type BudgetTemplate } from 'pulpe-shared';
 import { BudgetTemplatesState } from '../services/budget-templates-state';
 import { BudgetTemplatesApi } from '../services/budget-templates-api';
 import { TemplateList } from '../components/template-list';

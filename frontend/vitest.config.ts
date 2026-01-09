@@ -12,7 +12,7 @@ export default defineConfig({
       '@layout': resolve(__dirname, './projects/webapp/src/app/layout'),
       '@pattern': resolve(__dirname, './projects/webapp/src/app/pattern'),
       '@app': resolve(__dirname, './projects/webapp/src/app'),
-      '@pulpe/shared': resolve(__dirname, '../shared/index.ts'),
+      'pulpe-shared': resolve(__dirname, '../shared/index.ts'),
     },
   },
   test: {

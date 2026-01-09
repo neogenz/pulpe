@@ -43,7 +43,7 @@ import {
   type BudgetLine,
   type Transaction,
   type TransactionCreate,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 import type { BudgetLineConsumption } from '@core/budget';
 import {
   AllocatedTransactionsDialog,

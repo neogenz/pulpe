@@ -21,7 +21,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
-import { type Transaction, type TransactionCreate } from '@pulpe/shared';
+import { type Transaction, type TransactionCreate } from 'pulpe-shared';
 import { startOfMonth, endOfMonth } from 'date-fns';
 import { TransactionValidators } from '../utils/transaction-form-validators';
 import { TransactionLabelPipe } from '@ui/transaction-display';

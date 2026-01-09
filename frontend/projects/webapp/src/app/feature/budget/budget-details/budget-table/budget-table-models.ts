@@ -2,7 +2,7 @@ import {
   type BudgetLine,
   type Transaction,
   type TransactionKind,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 
 /**
  * Métadonnées d'affichage pré-calculées pour éviter les appels de fonctions dans le template

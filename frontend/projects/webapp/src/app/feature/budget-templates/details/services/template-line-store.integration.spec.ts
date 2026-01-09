@@ -8,7 +8,7 @@ import {
   TransactionFormService,
   type TransactionFormData,
 } from '../../services/transaction-form';
-import { type TransactionKind, type TemplateLine } from '@pulpe/shared';
+import { type TransactionKind, type TemplateLine } from 'pulpe-shared';
 
 describe('TemplateLineStore - Integration Tests', () => {
   let store: TemplateLineStore;

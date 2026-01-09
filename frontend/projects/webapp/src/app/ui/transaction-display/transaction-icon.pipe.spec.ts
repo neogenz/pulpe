@@ -1,6 +1,6 @@
 import { describe, beforeEach, it, expect } from 'vitest';
 import { TransactionIconPipe } from './transaction-icon.pipe';
-import type { TransactionKind } from '@pulpe/shared';
+import type { TransactionKind } from 'pulpe-shared';
 
 describe('TransactionIconPipe', () => {
   let pipe: TransactionIconPipe;

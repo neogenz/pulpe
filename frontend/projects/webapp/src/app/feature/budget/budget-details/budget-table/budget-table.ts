@@ -33,7 +33,7 @@ import {
   type BudgetLineConsumption,
 } from '@core/budget';
 import { Logger } from '@core/logging/logger';
-import { type BudgetLine, type BudgetLineUpdate } from '@pulpe/shared';
+import { type BudgetLine, type BudgetLineUpdate } from 'pulpe-shared';
 import {
   ConfirmationDialog,
   type ConfirmationDialogData,

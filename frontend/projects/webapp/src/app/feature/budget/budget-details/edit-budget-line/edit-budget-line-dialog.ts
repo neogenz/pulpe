@@ -15,7 +15,7 @@ import {
   type BudgetLineUpdate,
   type TransactionKind,
   type TransactionRecurrence,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 import {
   TransactionIconPipe,
   TransactionLabelPipe,

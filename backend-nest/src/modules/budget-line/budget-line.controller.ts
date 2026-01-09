@@ -23,7 +23,7 @@ import {
   type BudgetLineResponse,
   type BudgetLineListResponse,
   type BudgetLineDeleteResponse,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 import { AuthGuard } from '@common/guards/auth.guard';
 import {
   User,

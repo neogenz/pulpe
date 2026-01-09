@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { BudgetLineCreate, BudgetLineUpdate } from '@pulpe/shared';
+import type { BudgetLineCreate, BudgetLineUpdate } from 'pulpe-shared';
 
 /**
  * Tests unitaires métier pour BudgetDetailsStore

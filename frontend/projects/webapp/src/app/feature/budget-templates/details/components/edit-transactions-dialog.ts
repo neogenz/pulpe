@@ -23,7 +23,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import {
   type TemplateLine,
   type TemplateLinesPropagationSummary,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 import {
   ConfirmationDialog,
   type ConfirmationDialogData,

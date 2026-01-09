@@ -6,7 +6,7 @@ API backend moderne pour l'application Pulpe Budget, construite avec NestJS, Bun
 
 - **🏗️ NestJS Framework** : Architecture moderne avec decorators et dependency injection
 - **📚 OpenAPI/Swagger** : Documentation API auto-générée accessible à `/docs`
-- **✅ Validation Zod** : Validation robuste via schemas partagés `@pulpe/shared`
+- **✅ Validation Zod** : Validation robuste via schemas partagés `pulpe-shared`
 - **🔐 Supabase Auth** : Authentification JWT + Row Level Security (RLS)
 - **🔒 TypeScript Strict** : Type safety complète de la DB aux réponses API
 - **📡 DTOs Partagés** : Types cohérents entre frontend et backend
@@ -198,7 +198,7 @@ SUPABASE_SERVICE_ROLE_KEY=votre_clé_service_supabase
 - **Runtime** : Bun (JavaScript/TypeScript)
 - **Framework** : NestJS 11+ avec TypeScript strict
 - **Base de données** : Supabase (PostgreSQL + Auth + RLS)
-- **Validation** : Zod schemas depuis `@pulpe/shared`
+- **Validation** : Zod schemas depuis `pulpe-shared`
 - **Documentation** : OpenAPI/Swagger auto-générée
 - **Logging** : Pino avec structured logging
 - **Tests** : Bun test intégré + Supertest
@@ -237,7 +237,7 @@ SUPABASE_SERVICE_ROLE_KEY=votre_clé_service_supabase
 
 ### **Validation Multi-Couches**
 
-- **Frontend** : Validation UX avec `@pulpe/shared`
+- **Frontend** : Validation UX avec `pulpe-shared`
 - **Backend** : Validation métier avec Zod
 - **Database** : Contraintes SQL et politiques RLS
 
@@ -257,7 +257,7 @@ SUPABASE_SERVICE_ROLE_KEY=votre_clé_service_supabase
 1. **Avant commit** : `bun run quality:fix && bun run test:all`
 2. **Architecture** : Suivre les patterns décrits dans [ARCHITECTURE.md](./ARCHITECTURE.md)
 3. **Database** : Respecter les règles RLS de [DATABASE.md](./DATABASE.md)
-4. **Types** : Utiliser `@pulpe/shared` pour les DTOs REST
+4. **Types** : Utiliser `pulpe-shared` pour les DTOs REST
 
 ### **Standards de code**
 

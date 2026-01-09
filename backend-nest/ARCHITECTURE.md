@@ -19,7 +19,7 @@ Guide complet de l'architecture backend NestJS pour comprendre la structure, les
 
 ### **Shared Contracts**
 
-- **DTOs REST** : Package `@pulpe/shared` pour cohérence frontend/backend
+- **DTOs REST** : Package `pulpe-shared` pour cohérence frontend/backend
 - **Types Supabase** : Isolés dans le backend (`src/types/`)
 
 ## 📁 **Structure du Projet**
@@ -217,7 +217,7 @@ Frontend DTO (Zod) → Backend DTO (createZodDto) → Service (Business Logic) �
 
 ```typescript
 // Import du schema partagé
-import { budgetCreateSchema } from '@pulpe/shared';
+import { budgetCreateSchema } from 'pulpe-shared';
 import { createZodDto } from 'nestjs-zod';
 
 // DTO NestJS généré automatiquement

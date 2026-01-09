@@ -88,7 +88,7 @@ Les erreurs Zod seront capturées par le `catchError` existant et transformées 
 ## Risques
 
 1. **Performance** : Négligeable - validation Zod très rapide
-2. **Schémas incomplets** : Vérifier que tous les schémas existent dans `@pulpe/shared`
+2. **Schémas incomplets** : Vérifier que tous les schémas existent dans `pulpe-shared`
 3. **Erreurs runtime** : Si le backend renvoie des données incorrectes, l'app plantera de façon explicite (comportement souhaité)
 
 ## Tests

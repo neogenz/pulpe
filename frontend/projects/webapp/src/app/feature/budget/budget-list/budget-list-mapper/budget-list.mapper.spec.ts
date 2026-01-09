@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { mapToCalendarYear } from './budget-list.mapper';
-import type { Budget } from '@pulpe/shared';
+import type { Budget } from 'pulpe-shared';
 import type { BudgetPlaceholder } from '../budget-list-store';
 
 describe('mapToCalendarYear', () => {

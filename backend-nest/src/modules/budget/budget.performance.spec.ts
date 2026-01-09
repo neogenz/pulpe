@@ -11,7 +11,7 @@ import {
   createMockBudgetEntity,
   MockSupabaseClient,
 } from '../../test/test-mocks';
-import type { BudgetCreate } from '@pulpe/shared';
+import type { BudgetCreate } from 'pulpe-shared';
 
 describe('BudgetService (Performance)', () => {
   let service: BudgetService;

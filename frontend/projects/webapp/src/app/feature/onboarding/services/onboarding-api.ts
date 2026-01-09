@@ -4,7 +4,7 @@ import { type Observable } from 'rxjs';
 import {
   type BudgetTemplateCreateFromOnboarding,
   type BudgetTemplateCreateResponse,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 
 @Injectable()

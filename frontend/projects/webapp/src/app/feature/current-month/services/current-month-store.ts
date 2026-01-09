@@ -11,7 +11,7 @@ import {
   type TransactionCreate,
   type TransactionUpdate,
   BudgetFormulas,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 import { format } from 'date-fns';
 import { firstValueFrom, type Observable } from 'rxjs';
 import {

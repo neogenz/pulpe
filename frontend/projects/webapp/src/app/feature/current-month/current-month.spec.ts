@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { signal, computed } from '@angular/core';
-import { type BudgetLine, type Transaction, type Budget } from '@pulpe/shared';
+import { type BudgetLine, type Transaction, type Budget } from 'pulpe-shared';
 import { of } from 'rxjs';
 
 // Test data factories

@@ -7,7 +7,7 @@ import type {
   TemplateLinesBulkOperations,
   TemplateLineCreateWithoutTemplateId,
   TemplateLineUpdateWithId,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 import type { EditableLine, SaveResult } from './template-line-state';
 
 /**

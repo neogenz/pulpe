@@ -7,7 +7,7 @@ import {
 } from '@angular/common/http/testing';
 import { of, throwError, Subject } from 'rxjs';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import type { BudgetLineCreate, BudgetLineUpdate } from '@pulpe/shared';
+import type { BudgetLineCreate, BudgetLineUpdate } from 'pulpe-shared';
 
 import { BudgetDetailsStore } from './budget-details-store';
 import { BudgetApi } from '@core/budget/budget-api';

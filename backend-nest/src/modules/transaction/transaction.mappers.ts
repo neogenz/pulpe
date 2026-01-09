@@ -4,7 +4,7 @@ import {
   type TransactionCreate,
   type TransactionUpdate,
   transactionCreateSchema,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 import {
   type TransactionRow,
   type TransactionInsert,

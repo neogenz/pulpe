@@ -104,5 +104,5 @@ xcodebuild test -scheme Pulpe -destination 'platform=iOS Simulator,name=iPhone 1
 ## Notes
 
 - L'app utilise la même API que le frontend Angular
-- Les formules de calcul sont identiques (port de `@pulpe/shared`)
+- Les formules de calcul sont identiques (port de `pulpe-shared`)
 - Tokens stockés dans le Keychain (pas de persistance locale des données)

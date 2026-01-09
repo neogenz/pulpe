@@ -119,7 +119,7 @@ async #performOptimisticUpdate<T>(
 ### 2. BudgetFormulas pour les calculs
 
 ```typescript
-import { BudgetFormulas } from '@pulpe/shared';
+import { BudgetFormulas } from 'pulpe-shared';
 
 // Calcul du solde réalisé (dépend de checkedAt)
 BudgetFormulas.calculateRealizedBalance(budgetLines, transactions);
@@ -130,7 +130,7 @@ BudgetFormulas.calculateRealizedBalance(budgetLines, transactions);
 ## Dependencies
 
 - `@angular/material/slide-toggle` - MatSlideToggleModule
-- `@pulpe/shared` - BudgetFormulas pour recalcul local
+- `pulpe-shared` - BudgetFormulas pour recalcul local
 - API endpoint existant : `POST /budget-lines/{id}/toggle-check`
 
 ---

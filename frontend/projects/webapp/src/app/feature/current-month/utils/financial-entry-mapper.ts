@@ -1,5 +1,5 @@
 import { isRolloverLine } from '@core/rollover/rollover-types';
-import type { BudgetLine, Transaction } from '@pulpe/shared';
+import type { BudgetLine, Transaction } from 'pulpe-shared';
 import type { FinancialEntryModel } from '../models/financial-entry.model';
 
 /**

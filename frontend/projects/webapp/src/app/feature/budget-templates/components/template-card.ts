@@ -9,7 +9,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
-import { type BudgetTemplate } from '@pulpe/shared';
+import { type BudgetTemplate } from 'pulpe-shared';
 
 @Component({
   selector: 'pulpe-template-card',

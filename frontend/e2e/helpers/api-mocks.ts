@@ -4,7 +4,7 @@ import type {
   Budget,
   BudgetLine,
   Transaction,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 
 /**
  * Type-safe helper functions for creating E2E API mocks using shared Zod schemas

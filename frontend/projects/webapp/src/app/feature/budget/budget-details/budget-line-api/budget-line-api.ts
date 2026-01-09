@@ -7,7 +7,7 @@ import {
   type BudgetLineDeleteResponse,
   type BudgetLineCreate,
   type BudgetLineUpdate,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { Logger } from '@core/logging/logger';
 

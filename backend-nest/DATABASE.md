@@ -12,12 +12,12 @@ Guide complet pour comprendre la gestion des données, la sécurité Row Level S
 Frontend ←--JWT Bearer--> Backend ←--Auth Client--> Supabase Database
    ↓                         ↓                           ↓
 Type Safety            Validation Zod                RLS Policies
-@pulpe/shared         Backend Types                 auth.uid()
+pulpe-shared         Backend Types                 auth.uid()
 ```
 
 ### **Couches de Validation**
 
-1. **Frontend** : Validation UX avec `@pulpe/shared`
+1. **Frontend** : Validation UX avec `pulpe-shared`
 2. **Backend** : Validation métier avec Zod + business rules
 3. **Database** : Validation structurelle avec RLS + contraintes
 
@@ -262,8 +262,8 @@ export class BudgetService {
 #### **1. Validation d'Entrée (Frontend → Backend)**
 
 ```typescript
-// Utilise les schemas de @pulpe/shared
-import { budgetCreateSchema } from '@pulpe/shared';
+// Utilise les schemas de pulpe-shared
+import { budgetCreateSchema } from 'pulpe-shared';
 
 export class BudgetService {
   async create(dto: BudgetCreate, userId: string) {

@@ -1,4 +1,4 @@
-import { transactionKindSchema } from '@pulpe/shared';
+import { transactionKindSchema } from 'pulpe-shared';
 import { z } from 'zod';
 
 export const financialEntrySchema = z.object({

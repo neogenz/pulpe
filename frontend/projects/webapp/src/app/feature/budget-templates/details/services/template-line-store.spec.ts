@@ -12,7 +12,7 @@ import {
   type TransactionKind,
   type TemplateLine,
   type TemplateLinesBulkOperations,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 
 describe('TemplateLineStore - Unit Tests', () => {
   let store: TemplateLineStore;

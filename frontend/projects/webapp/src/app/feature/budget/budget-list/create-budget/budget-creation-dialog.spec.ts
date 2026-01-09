@@ -22,7 +22,7 @@ import { Subject, defer, of, throwError } from 'rxjs';
 
 import { BudgetApi } from '@core/budget/budget-api';
 import { TemplateApi } from '@core/template/template-api';
-import { type BudgetTemplate } from '@pulpe/shared';
+import { type BudgetTemplate } from 'pulpe-shared';
 import { CreateBudgetDialogComponent } from './budget-creation-dialog';
 import { TemplateStore, type TemplateTotals } from './services/template-store';
 import { TemplateTotalsCalculator } from './services/template-totals-calculator';

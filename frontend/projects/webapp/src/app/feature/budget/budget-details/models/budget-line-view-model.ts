@@ -1,4 +1,4 @@
-import { type BudgetLine } from '@pulpe/shared';
+import { type BudgetLine } from 'pulpe-shared';
 
 export type BudgetLineViewModel = BudgetLine & {
   isEditing?: boolean;

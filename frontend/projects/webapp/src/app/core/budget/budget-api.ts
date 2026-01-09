@@ -13,7 +13,7 @@ import {
   budgetSchema,
   type ErrorResponse,
   errorResponseSchema,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 import { type Observable, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { ApplicationConfiguration } from '../config/application-configuration';

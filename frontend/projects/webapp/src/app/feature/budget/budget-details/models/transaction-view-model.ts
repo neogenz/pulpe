@@ -1,4 +1,4 @@
-import { type Transaction } from '@pulpe/shared';
+import { type Transaction } from 'pulpe-shared';
 
 export type TransactionViewModel = Transaction & {
   isEditing?: boolean;

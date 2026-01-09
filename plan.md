@@ -65,7 +65,7 @@ Refactor `budget-details-store.ts` to address three code quality issues:
   - **Files**: `frontend/projects/webapp/src/app/feature/budget/budget-details/store/budget-details-check.utils.ts`
   - **Action**:
     1. Create new file
-    2. Add imports: `import type { BudgetLine, Transaction } from '@pulpe/shared';`
+    2. Add imports: `import type { BudgetLine, Transaction } from 'pulpe-shared';`
     3. Define interfaces:
 
        ```typescript
@@ -484,7 +484,7 @@ frontend/projects/webapp/src/app/feature/budget/budget-details/store/
 
 - **BudgetDetailsStore**: Signal-based store managing budget details, CRUD operations, and toggle state
 - **budget-details-check.utils.ts**: Pure functions for cascade toggle logic (no Angular dependencies)
-- **BudgetFormulas** (from @pulpe/shared): Existing pattern for pure calculation functions
+- **BudgetFormulas** (from pulpe-shared): Existing pattern for pure calculation functions
 
 ### Design Principles
 

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { of, throwError, firstValueFrom } from 'rxjs';
-import type { BudgetTemplate } from '@pulpe/shared';
+import type { BudgetTemplate } from 'pulpe-shared';
 
 // Interface for budget usage data
 interface BudgetUsageItem {

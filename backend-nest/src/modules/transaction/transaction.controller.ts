@@ -23,7 +23,7 @@ import {
   type TransactionResponse,
   type TransactionListResponse,
   type TransactionDeleteResponse,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 import { AuthGuard } from '@common/guards/auth.guard';
 import {
   User,

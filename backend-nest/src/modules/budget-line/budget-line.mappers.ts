@@ -4,7 +4,7 @@ import {
   type BudgetLineCreate,
   type BudgetLineUpdate,
   budgetLineCreateSchema,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 import {
   type BudgetLineRow,
   type BudgetLineInsert,

@@ -26,7 +26,7 @@ import {
   type BudgetResponse,
   type BudgetDeleteResponse,
   type BudgetDetailsResponse,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 import { AuthGuard } from '@common/guards/auth.guard';
 import {
   User,

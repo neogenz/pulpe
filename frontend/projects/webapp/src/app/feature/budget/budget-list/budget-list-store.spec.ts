@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { of } from 'rxjs';
-import { type Budget } from '@pulpe/shared';
+import { type Budget } from 'pulpe-shared';
 import { BudgetListStore } from './budget-list-store';
 import { BudgetApi } from '@core/budget/budget-api';
 import { Logger } from '@core/logging/logger';

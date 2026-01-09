@@ -11,7 +11,7 @@ import {
   MOCK_BUDGET_ID,
   MockSupabaseClient,
 } from '../../test/test-mocks';
-import type { BudgetCreate, BudgetUpdate } from '@pulpe/shared';
+import type { BudgetCreate, BudgetUpdate } from 'pulpe-shared';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { BusinessException } from '@common/exceptions/business.exception';
 

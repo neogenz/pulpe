@@ -1,6 +1,6 @@
 import { describe, beforeEach, it, expect } from 'vitest';
 import { RecurrenceLabelPipe } from './recurrence-label.pipe';
-import type { TransactionRecurrence } from '@pulpe/shared';
+import type { TransactionRecurrence } from 'pulpe-shared';
 
 describe('RecurrenceLabelPipe', () => {
   let pipe: RecurrenceLabelPipe;

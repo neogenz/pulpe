@@ -22,7 +22,7 @@ import { PulpeTitleStrategy } from '@core/routing/title-strategy';
 import {
   type TemplateLine,
   type TemplateLinesPropagationSummary,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
 import {
   FinancialSummary,

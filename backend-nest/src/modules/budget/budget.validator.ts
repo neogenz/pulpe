@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import type { BudgetCreate, BudgetUpdate } from '@pulpe/shared';
+import type { BudgetCreate, BudgetUpdate } from 'pulpe-shared';
 import { BUDGET_CONSTANTS } from './budget.constants';
 
 /**

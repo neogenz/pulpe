@@ -4,7 +4,7 @@ import { BudgetLineService } from './budget-line.service';
 import { BudgetService } from '../budget/budget.service';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { PinoLogger } from 'nestjs-pino';
-import type { BudgetLineCreate, BudgetLineUpdate } from '@pulpe/shared';
+import type { BudgetLineCreate, BudgetLineUpdate } from 'pulpe-shared';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import type { BudgetLineRow } from './entities/budget-line.entity';

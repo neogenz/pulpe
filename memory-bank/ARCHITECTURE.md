@@ -10,7 +10,7 @@
 - Frontend: Angular 20 (Standalone + Signals), Tailwind v4, Material v20
 - Backend: NestJS 11 (Bun runtime)
 - Database: Supabase (PostgreSQL + Auth + RLS)
-- Shared: Zod schemas (@pulpe/shared)
+- Shared: Zod schemas (pulpe-shared)
 
 ## Monorepo Structure
 
@@ -85,7 +85,7 @@ Frontend DTO (Zod) → Backend DTO (createZodDto) → Service → Supabase Clien
 - Template system: Reusable budget structures
 - Financial calculations: Server-side computed values
 
-## @pulpe/shared Package
+## pulpe-shared Package
 
 Single source of truth for API contracts:
 - **Include**: API types, form validation schemas, enums
@@ -93,10 +93,10 @@ Single source of truth for API contracts:
 
 ```typescript
 // Frontend
-import { budgetCreateSchema, type BudgetCreate } from '@pulpe/shared';
+import { budgetCreateSchema, type BudgetCreate } from 'pulpe-shared';
 
 // Backend
-import { budgetCreateSchema } from '@pulpe/shared';
+import { budgetCreateSchema } from 'pulpe-shared';
 export class CreateBudgetDto extends createZodDto(budgetCreateSchema) {}
 ```
 

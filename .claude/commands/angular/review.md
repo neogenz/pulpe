@@ -172,7 +172,7 @@ fixed code...
 | -------------------------- | -------------------------- | -------------------------- |
 | No validation at boundary  | `schema.parse(data)`       | zod.dev                    |
 | Manual type definition     | `z.infer<typeof schema>`   | Same                       |
-| Import types from backend  | Import from `@pulpe/shared` | `memory-bank/ARCHITECTURE.md` |
+| Import types from backend  | Import from `pulpe-shared` | `memory-bank/ARCHITECTURE.md` |
 
 </checklist>
 

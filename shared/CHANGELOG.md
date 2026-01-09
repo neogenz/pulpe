@@ -1,4 +1,4 @@
-# @pulpe/shared
+# pulpe-shared
 
 ## 0.3.1
 

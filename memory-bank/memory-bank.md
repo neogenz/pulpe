@@ -438,9 +438,9 @@ pulpe-workspace/
 ```
 
 ### Package Dependencies
-- **@pulpe/shared**: Core package with REST DTOs (Zod schemas only)
-- **frontend**: Depends on @pulpe/shared for API contracts
-- **backend-nest**: Depends on @pulpe/shared for DTO validation
+- **pulpe-shared**: Core package with REST DTOs (Zod schemas only)
+- **frontend**: Depends on pulpe-shared for API contracts
+- **backend-nest**: Depends on pulpe-shared for DTO validation
 - **mobile**: Future dependency on shared for API consistency
 
 ### Build Orchestration (Turborepo)
@@ -576,7 +576,7 @@ Frontend DTO (Zod) → Backend DTO (createZodDto) → Service Logic → Supabase
 - **Template System**: Reusable budget structures
 - **Financial Calculations**: Server-side computed values
 
-## Shared Package (@pulpe/shared)
+## Shared Package (pulpe-shared)
 
 ### Purpose
 Single source of truth for API contracts between frontend and backend.
@@ -599,10 +599,10 @@ Single source of truth for API contracts between frontend and backend.
 ### Usage Pattern
 ```typescript
 // Frontend
-import { budgetCreateSchema, type BudgetCreate } from '@pulpe/shared';
+import { budgetCreateSchema, type BudgetCreate } from 'pulpe-shared';
 
 // Backend
-import { budgetCreateSchema } from '@pulpe/shared';
+import { budgetCreateSchema } from 'pulpe-shared';
 export class CreateBudgetDto extends createZodDto(budgetCreateSchema) {}
 ```
 
@@ -743,7 +743,7 @@ pnpm dev                   # Orchestrates: shared build  frontend + backend dev 
 **Package Structure**:
 ```
 pulpe-workspace/
-   shared/                # @pulpe/shared - API contracts (Zod schemas)
+   shared/                # pulpe-shared - API contracts (Zod schemas)
    frontend/              # pulpe-frontend - Angular 20 application
    backend-nest/          # backend-nest - NestJS API with Bun
    mobile/                # PulpeApp - iOS SwiftUI (future)
@@ -753,7 +753,7 @@ pulpe-workspace/
 
 **Dependency Graph**:
 ```
-@pulpe/shared (ESM package)
+pulpe-shared (ESM package)
      workspace:* dependency
 frontend + backend (parallel consumption)
      build outputs
@@ -941,7 +941,7 @@ graph TD
 ```bash
 # Vercel build steps
 1. Install dependencies (pnpm install)
-2. Build shared package (turbo build --filter=@pulpe/shared)
+2. Build shared package (turbo build --filter=pulpe-shared)
 3. Generate config.json (from PUBLIC_* env vars)
 4. Build Angular app (ng build --configuration=production)
 5. Deploy to edge network
@@ -1250,7 +1250,7 @@ supabase status             # Check local services
 supabase stop && supabase start  # Restart services
 
 # Type sync issues (shared package)
-pnpm build --filter=@pulpe/shared
+pnpm build --filter=pulpe-shared
 # Restart TypeScript in IDE
 ```
 

@@ -6,7 +6,7 @@ import {
   budgetListResponseSchema,
   budgetDeleteResponseSchema,
   budgetDetailsResponseSchema,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 
 // DTOs pour la documentation Swagger basés sur les schémas Zod partagés
 export class BudgetCreateDto extends createZodDto(budgetCreateSchema) {}

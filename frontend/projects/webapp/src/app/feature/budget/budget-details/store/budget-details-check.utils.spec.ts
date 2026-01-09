@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { BudgetLine, Transaction } from '@pulpe/shared';
+import type { BudgetLine, Transaction } from 'pulpe-shared';
 import {
   findAllocatedTransactions,
   areAllAllocatedTransactionsChecked,

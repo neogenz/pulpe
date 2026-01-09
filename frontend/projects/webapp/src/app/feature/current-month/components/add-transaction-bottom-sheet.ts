@@ -20,7 +20,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import type { TransactionCreate } from '@pulpe/shared';
+import type { TransactionCreate } from 'pulpe-shared';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 
 type TransactionFormData = Pick<

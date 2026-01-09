@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'bun:test';
 import { toApi, toUpdate } from './budget-line.mappers';
 import type { BudgetLineRow } from './entities/budget-line.entity';
-import type { BudgetLineUpdate } from '@pulpe/shared';
+import type { BudgetLineUpdate } from 'pulpe-shared';
 
 describe('BudgetLine Mappers', () => {
   describe('toApi', () => {

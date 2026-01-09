@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { type TemplateLine, BudgetFormulas } from '@pulpe/shared';
+import { type TemplateLine, BudgetFormulas } from 'pulpe-shared';
 
 export interface TemplateTotals {
   income: number;

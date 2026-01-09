@@ -4,7 +4,7 @@ import {
   type BudgetLine,
   type TransactionKind,
   BudgetFormulas,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 
 @Injectable({ providedIn: 'root' })
 export class BudgetCalculator {

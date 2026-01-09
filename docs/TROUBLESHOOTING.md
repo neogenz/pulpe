@@ -142,7 +142,7 @@ cd shared && pnpm build
 # Restart TypeScript dans VS Code: Ctrl+Shift+P → "Restart TS Server"
 
 # 3. Check workspace sync
-pnpm build --filter=@pulpe/shared
+pnpm build --filter=pulpe-shared
 ```
 
 ### Environment Variables Setup

@@ -4,7 +4,7 @@ import { of, throwError } from 'rxjs';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { BudgetTemplatesState } from './budget-templates-state';
 import { BudgetTemplatesApi } from './budget-templates-api';
-import type { BudgetTemplate, BudgetTemplateCreate } from '@pulpe/shared';
+import type { BudgetTemplate, BudgetTemplateCreate } from 'pulpe-shared';
 
 describe('BudgetTemplatesState', () => {
   let state: BudgetTemplatesState;

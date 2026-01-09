@@ -5,7 +5,7 @@ import {
   type BudgetTemplateUpdate,
   type TemplateLineCreateWithoutTemplateId,
   type TemplateLineUpdate,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 import { Tables, TablesInsert } from '@/types/database.types';
 
 // Simple mapping functions - no need for a class

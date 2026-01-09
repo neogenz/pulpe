@@ -17,7 +17,7 @@ import {
   templateLinesBulkOperationsSchema,
   templateLinesBulkOperationsResponseSchema,
   templateUsageResponseSchema,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 
 // DTOs pour la documentation Swagger basés sur les schémas Zod partagés
 

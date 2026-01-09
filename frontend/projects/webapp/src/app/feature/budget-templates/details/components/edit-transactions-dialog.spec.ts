@@ -15,7 +15,7 @@ import { TransactionFormService } from '../../services/transaction-form';
 import { BudgetTemplatesApi } from '../../services/budget-templates-api';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import type { TransactionFormData } from '../../services/transaction-form';
-import type { TemplateLine } from '@pulpe/shared';
+import type { TemplateLine } from 'pulpe-shared';
 import { MatDialog } from '@angular/material/dialog';
 import { TemplatePropagationDialog } from './template-propagation-dialog';
 

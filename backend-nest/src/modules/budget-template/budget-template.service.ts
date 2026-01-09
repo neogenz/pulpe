@@ -36,7 +36,7 @@ import {
   templateLineUpdateSchema,
   templateLinesBulkOperationsSchema,
   templateLinesBulkUpdateSchema,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import * as budgetTemplateMappers from './budget-template.mappers';
 

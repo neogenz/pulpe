@@ -2,7 +2,7 @@ import {
   type Budget,
   type BudgetCreate,
   type BudgetUpdate,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 import { Tables, TablesInsert } from '@/types/database.types';
 
 /**

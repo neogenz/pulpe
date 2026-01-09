@@ -8,7 +8,7 @@ import {
   budgetTemplateResponseSchema,
   type TemplateLine,
   templateLineListResponseSchema,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 import { ApplicationConfiguration } from '../config/application-configuration';
 
 @Injectable({

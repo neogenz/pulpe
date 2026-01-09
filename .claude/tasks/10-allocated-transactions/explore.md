@@ -52,7 +52,7 @@ Cette Epic introduit le concept de **Transaction allouée** : une transaction op
 #### Travaux
 - [ ] Migration Supabase : ajouter colonne `budget_line_id UUID NULL` à table `transaction`
 - [ ] Ajouter contrainte FK : `transaction.budget_line_id → budget_line.id`
-- [ ] Mettre à jour schéma Zod dans `@pulpe/shared` : `transactionCreateSchema` avec `budgetLineId?: z.uuid()`
+- [ ] Mettre à jour schéma Zod dans `pulpe-shared` : `transactionCreateSchema` avec `budgetLineId?: z.uuid()`
 - [ ] Régénérer types backend : `bun run generate-types:local`
 - [ ] Backend : Validation dans `TransactionService.create()` :
   - Si `budgetLineId` fourni : vérifier `budgetLine.budgetId === transaction.budgetId`

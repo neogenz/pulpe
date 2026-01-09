@@ -14,7 +14,7 @@
       "@layout/*": ["app/layout/*"],
       "@pattern/*": ["app/pattern/*"],
       "@app/*": ["app/*"],
-      "@pulpe/shared": ["../../../shared/index.ts"]
+      "pulpe-shared": ["../../../shared/index.ts"]
     }
   },
   "include": ["src/**/*.ts"]

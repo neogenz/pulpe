@@ -31,7 +31,7 @@ import {
   TOUR_START_DELAY,
 } from '@core/product-tour/product-tour.service';
 import { TitleDisplay } from '@core/routing';
-import { type TransactionCreate } from '@pulpe/shared';
+import { type TransactionCreate } from 'pulpe-shared';
 import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
 import { BaseLoading } from '@ui/loading';
 import { firstValueFrom } from 'rxjs';

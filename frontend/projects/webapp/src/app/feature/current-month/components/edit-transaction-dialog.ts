@@ -13,7 +13,7 @@ import {
 import { MatIconModule } from '@angular/material/icon';
 import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
 import { EditTransactionForm } from './edit-transaction-form';
-import { type Transaction, type TransactionCreate } from '@pulpe/shared';
+import { type Transaction, type TransactionCreate } from 'pulpe-shared';
 
 type EditTransactionFormData = Pick<
   TransactionCreate,

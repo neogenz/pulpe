@@ -197,7 +197,7 @@ export const environment = {
 
 ### Shared Package
 
-- **Types** : `@pulpe/shared` pour cohérence
+- **Types** : `pulpe-shared` pour cohérence
 - **Validation** : Schemas Zod partagés
 - **DTOs** : Interfaces communes frontend/backend
 

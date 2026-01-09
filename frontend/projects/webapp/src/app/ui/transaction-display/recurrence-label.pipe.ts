@@ -1,5 +1,5 @@
 import { Pipe, type PipeTransform } from '@angular/core';
-import type { TransactionRecurrence } from '@pulpe/shared';
+import type { TransactionRecurrence } from 'pulpe-shared';
 
 @Pipe({
   name: 'recurrenceLabel',

@@ -12,7 +12,7 @@ import type {
   BudgetLine,
   Transaction,
   TransactionCreate,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 
 import { CurrentMonthStore } from './current-month-store';
 import { BudgetApi, BudgetCalculator } from '@core/budget';

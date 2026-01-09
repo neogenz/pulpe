@@ -5,7 +5,7 @@ import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { handleServiceError } from '@common/utils/error-handler';
 import { ZodError } from 'zod';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import { BudgetFormulas } from '@pulpe/shared';
+import { BudgetFormulas } from 'pulpe-shared';
 import { BudgetRepository } from './budget.repository';
 import { validateBudgetWithRolloverResponse } from './schemas/rpc-responses.schema';
 

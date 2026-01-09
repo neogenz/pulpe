@@ -5,7 +5,7 @@ import {
   publicInfoResponseSchema,
   onboardingStatusResponseSchema,
   successMessageResponseSchema,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 
 // DTOs pour la documentation Swagger basés sur les schémas Zod partagés
 export class UpdateProfileDto extends createZodDto(updateProfileSchema) {}

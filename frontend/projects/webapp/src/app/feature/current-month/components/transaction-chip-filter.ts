@@ -4,7 +4,7 @@ import {
   MatChipsModule,
 } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
-import type { TransactionKind } from '@pulpe/shared';
+import type { TransactionKind } from 'pulpe-shared';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 
 export interface TransactionFilters {

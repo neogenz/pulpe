@@ -7,7 +7,7 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import type { Transaction } from '@pulpe/shared';
+import type { Transaction } from 'pulpe-shared';
 import type {
   AllocatedTransactionsDialogData,
   AllocatedTransactionsDialogResult,

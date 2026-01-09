@@ -10,7 +10,7 @@ import {
   type Transaction,
   type TransactionCreate,
   BudgetFormulas,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 
 import { firstValueFrom } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';

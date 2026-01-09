@@ -23,7 +23,7 @@ Implemented **Option A: Remove Skipped Tests** as selected by user.
 
 5. **Cleaned up unused imports**
    - Removed: `input`, `output` from `@angular/core`
-   - Removed: `BudgetLine` from `@pulpe/shared`
+   - Removed: `BudgetLine` from `pulpe-shared`
    - Removed: `BudgetLineTableItem` from `./budget-table-models`
    - Removed: `EditBudgetLineDialog` from `../edit-budget-line/edit-budget-line-dialog`
 

@@ -2,7 +2,7 @@ import type {
   TransactionKind,
   TransactionRecurrence,
   BudgetLine,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 
 export const KIND_ICONS: Record<TransactionKind, string> = {
   income: 'arrow_upward',

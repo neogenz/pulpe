@@ -31,7 +31,7 @@ import {
   type TemplateLineDeleteResponse as _TemplateLineDeleteResponse,
   type TemplateLinesBulkUpdateResponse as _TemplateLinesBulkUpdateResponse,
   type TemplateLinesBulkOperationsResponse as _TemplateLinesBulkOperationsResponse,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 import { AuthGuard } from '@common/guards/auth.guard';
 import {
   User,

@@ -20,7 +20,7 @@
 ### Patch Changes
 
 - Updated dependencies
-  - @pulpe/shared@0.3.1
+  - pulpe-shared@0.3.1
 
 ## 2025.16.0
 
@@ -73,7 +73,7 @@
 ### Patch Changes
 
 - Updated dependencies
-  - @pulpe/shared@0.3.0
+  - pulpe-shared@0.3.0
 
 ## 2025.13.0
 
@@ -98,7 +98,7 @@
 ### Patch Changes
 
 - Updated dependencies
-  - @pulpe/shared@0.2.1
+  - pulpe-shared@0.2.1
 
 ## 2025.11.1
 
@@ -174,4 +174,4 @@
 ### Patch Changes
 
 - Updated dependencies
-  - @pulpe/shared@0.2.0
+  - pulpe-shared@0.2.0

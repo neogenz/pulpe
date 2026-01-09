@@ -1,4 +1,4 @@
-# Notes Techniques ESM - Package @pulpe/shared
+# Notes Techniques ESM - Package pulpe-shared
 
 ## Contexte du Problème
 
@@ -8,8 +8,8 @@ Le 13 septembre 2025, après le merge de la branche `fix-total-amount` dans `mai
 
 ```
 Error [ERR_MODULE_NOT_FOUND]: Cannot find module
-'/app/node_modules/.pnpm/@pulpe+shared@file+shared/node_modules/@pulpe/shared/dist/esm/src/calculators/budget-formulas'
-imported from /app/node_modules/.pnpm/@pulpe+shared@file+shared/node_modules/@pulpe/shared/dist/esm/src/calculators/index.js
+'/app/node_modules/.pnpm/@pulpe+shared@file+shared/node_modules/pulpe-shared/dist/esm/src/calculators/budget-formulas'
+imported from /app/node_modules/.pnpm/@pulpe+shared@file+shared/node_modules/pulpe-shared/dist/esm/src/calculators/index.js
 ```
 
 ### Diagnostic
@@ -99,7 +99,7 @@ shared/src/calculators/
 
 ↓ pnpm utilise des symlinks
 
-node_modules/@pulpe/shared → ../../shared (symlink)
+node_modules/pulpe-shared → ../../shared (symlink)
 ```
 
 **Résultat** : La résolution flexible masque les problèmes d'extensions
@@ -107,7 +107,7 @@ node_modules/@pulpe/shared → ../../shared (symlink)
 ### Environnement Production (Railway/Docker)
 
 ```
-node_modules/@pulpe/shared/dist/esm/src/calculators/
+node_modules/pulpe-shared/dist/esm/src/calculators/
 ├── index.js          # Compilé
 ├── index.d.ts        # Types
 └── budget-formulas.js

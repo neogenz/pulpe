@@ -17,7 +17,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 import { RolloverFormatPipe } from '@app/ui/rollover-format';
-import { type BudgetLine } from '@pulpe/shared';
+import { type BudgetLine } from 'pulpe-shared';
 import {
   RecurrenceLabelPipe,
   TransactionLabelPipe,

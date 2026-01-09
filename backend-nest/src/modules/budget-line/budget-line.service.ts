@@ -11,7 +11,7 @@ import {
   type BudgetLineResponse,
   type BudgetLineUpdate,
   type BudgetLineDeleteResponse,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 import * as budgetLineMappers from './budget-line.mappers';
 import type { Database } from '../../types/database.types';
 import { BudgetService } from '../budget/budget.service';

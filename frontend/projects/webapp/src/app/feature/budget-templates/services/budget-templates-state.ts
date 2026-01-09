@@ -3,7 +3,7 @@ import {
   type BudgetTemplate,
   type BudgetTemplateCreate,
   type BudgetTemplateCreateResponse,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 import { catchError, firstValueFrom, map } from 'rxjs';
 import { BudgetTemplatesApi } from './budget-templates-api';
 import { rxResource } from '@angular/core/rxjs-interop';

@@ -19,7 +19,7 @@ import {
   type Budget,
   type Transaction,
   type BudgetLine,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 import * as budgetMappers from './budget.mappers';
 import { type Tables } from '../../types/database.types';
 import * as transactionMappers from '../transaction/transaction.mappers';

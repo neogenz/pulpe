@@ -1,4 +1,4 @@
-import type { BudgetLine, Transaction } from '@pulpe/shared';
+import type { BudgetLine, Transaction } from 'pulpe-shared';
 
 export interface CascadeContext {
   budgetLines: BudgetLine[];

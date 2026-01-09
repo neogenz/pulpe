@@ -2,7 +2,7 @@ import { describe, beforeEach, it, expect } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { BudgetTableDataProvider } from './budget-table-data-provider';
-import type { BudgetLine, Transaction } from '@pulpe/shared';
+import type { BudgetLine, Transaction } from 'pulpe-shared';
 import {
   createMockBudgetLine,
   createMockTransaction,

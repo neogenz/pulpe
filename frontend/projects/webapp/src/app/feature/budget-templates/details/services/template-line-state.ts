@@ -1,7 +1,7 @@
 import type {
   TemplateLine,
   TemplateLinesPropagationSummary,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 import type { TransactionFormData } from '../../services/transaction-form';
 
 /**

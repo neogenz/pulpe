@@ -7,7 +7,7 @@ import {
 } from '@angular/core';
 import { BudgetApi } from '@core/budget/budget-api';
 import { Logger } from '@core/logging/logger';
-import { type Budget } from '@pulpe/shared';
+import { type Budget } from 'pulpe-shared';
 import { firstValueFrom } from 'rxjs';
 
 export interface BudgetPlaceholder {

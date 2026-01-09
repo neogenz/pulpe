@@ -1,4 +1,4 @@
-import type { Budget, BudgetLine, Transaction } from '@pulpe/shared';
+import type { Budget, BudgetLine, Transaction } from 'pulpe-shared';
 
 /**
  * State interface for CurrentMonthStore following the single state signal pattern

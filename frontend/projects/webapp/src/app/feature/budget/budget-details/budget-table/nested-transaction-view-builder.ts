@@ -1,4 +1,4 @@
-import type { Transaction, BudgetLine, TransactionKind } from '@pulpe/shared';
+import type { Transaction, BudgetLine, TransactionKind } from 'pulpe-shared';
 import { calculateAllConsumptions } from '@core/budget/budget-line-consumption';
 import { isRolloverLine } from '@core/rollover/rollover-types';
 import type {

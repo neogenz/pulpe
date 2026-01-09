@@ -4,7 +4,7 @@ import type {
   Budget,
   BudgetTemplate,
   TemplateLine,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 
 // ============================================================================
 // Default Mock Objects

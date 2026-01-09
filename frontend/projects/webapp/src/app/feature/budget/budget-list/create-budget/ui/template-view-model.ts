@@ -1,4 +1,4 @@
-import { type BudgetTemplate } from '@pulpe/shared';
+import { type BudgetTemplate } from 'pulpe-shared';
 
 /**
  * ViewModel interface for template display in the UI component.

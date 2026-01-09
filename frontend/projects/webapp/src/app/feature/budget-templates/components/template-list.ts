@@ -5,7 +5,7 @@ import {
   output,
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
-import { type BudgetTemplate } from '@pulpe/shared';
+import { type BudgetTemplate } from 'pulpe-shared';
 import { TemplateCard } from './template-card';
 
 @Component({

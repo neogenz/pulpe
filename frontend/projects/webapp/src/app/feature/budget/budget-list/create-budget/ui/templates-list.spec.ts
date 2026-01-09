@@ -9,7 +9,7 @@ import {
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { type BudgetTemplate } from '@pulpe/shared';
+import { type BudgetTemplate } from 'pulpe-shared';
 import { TemplatesList } from './templates-list';
 
 // Mock component for testing without template rendering issues

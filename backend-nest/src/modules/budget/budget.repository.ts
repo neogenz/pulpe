@@ -3,7 +3,7 @@ import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import type { BudgetUpdate } from '@pulpe/shared';
+import type { BudgetUpdate } from 'pulpe-shared';
 import type { Tables } from '../../types/database.types';
 import type { PostgrestError } from '@supabase/supabase-js';
 

@@ -51,7 +51,7 @@
     "@angular/material-date-fns-adapter": "21.0.5",
     "@angular/platform-browser": "^21.0.6",
     "@angular/router": "^21.0.6",
-    "@pulpe/shared": "workspace:*",
+    "pulpe-shared": "workspace:*",
     "@supabase/supabase-js": "^2.49.10",
     "@tailwindcss/postcss": "^4.1.17",
     "date-fns": "^4.1.0",
