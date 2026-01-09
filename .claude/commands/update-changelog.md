@@ -64,8 +64,8 @@ For each user-facing change, determine:
 | Bug fix | **PATCH** | Correction de bug (rétrocompatible) |
 
 Identify affected packages:
-- `@pulpe/frontend` - Angular webapp changes
-- `@pulpe/backend-nest` - NestJS API changes
+- `pulpe-frontend` - Angular webapp changes
+- `backend-nest` - NestJS API changes
 - `pulpe-shared` - Shared schemas/types changes
 
 ## Phase 3: PROPOSE
@@ -76,8 +76,9 @@ Present the changelog proposal to the user:
 ## Proposition de Changelog
 
 ### Packages affectés
-- `@pulpe/frontend`: [MAJOR|MINOR|PATCH]
-- `@pulpe/backend-nest`: [MAJOR|MINOR|PATCH]
+- `pulpe-frontend`: [MAJOR|MINOR|PATCH]
+- `backend-nest`: [MAJOR|MINOR|PATCH]
+- `pulpe-shared`: [MAJOR|MINOR|PATCH]
 
 ### Changements
 1. [Description en français orientée utilisateur]
@@ -115,7 +116,43 @@ This will:
 - Update CHANGELOG.md files
 - Handle internal package dependencies
 
+## Phase 6: TAG & RELEASE (optional)
+
+After committing the version changes, create tags following the convention:
+
+```bash
+# Create tag for each bumped package
+git tag "pulpe-frontend@X.Y.Z" -m "Release pulpe-frontend vX.Y.Z"
+git tag "backend-nest@X.Y.Z" -m "Release backend-nest vX.Y.Z"
+git tag "pulpe-shared@X.Y.Z" -m "Release pulpe-shared vX.Y.Z"
+
+# Push with tags
+git push origin main --tags
+
+# Create GitHub Release (optional)
+gh release create "pulpe-frontend@X.Y.Z" --title "pulpe-frontend vX.Y.Z" --generate-notes
+```
+
 </workflow>
+
+<versioning_convention>
+
+## SemVer Convention
+
+All packages use **Semantic Versioning** (SemVer): `MAJOR.MINOR.PATCH`
+
+| Package | Current | Tag format |
+|---------|---------|------------|
+| `pulpe-frontend` | 0.9.0 | `pulpe-frontend@0.9.0` |
+| `backend-nest` | 0.4.2 | `backend-nest@0.4.2` |
+| `pulpe-shared` | 0.3.1 | `pulpe-shared@0.3.1` |
+
+**Rules:**
+- No `@scope/` prefix in package names
+- No CalVer (YYYY.x.x) - use SemVer only
+- Tags follow `package-name@version` format
+
+</versioning_convention>
 
 <version_guidelines>
 
@@ -140,7 +177,7 @@ refactor(core): extract shared utilities
 ## Proposition de Changelog
 
 ### Packages affectés
-- `@pulpe/frontend`: MINOR
+- `pulpe-frontend`: MINOR
 
 ### Changements
 1. **Ajout des transactions récurrentes** - Possibilité de définir des dépenses et revenus qui se répètent automatiquement chaque mois
