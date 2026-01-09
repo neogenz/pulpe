@@ -1,0 +1,58 @@
+# Xcode
+*.xcodeproj/project.xcworkspace/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+xcuserdata/
+DerivedData/
+*.xccheckout
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Build products
+build/
+*.o
+*.LinkFileList
+*.mode1v3
+*.mode2v3
+*.pbxuser
+!default.pbxuser
+*.perspectivev3
+!default.perspectivev3
+
+# CocoaPods
+Pods/
+!Podfile.lock
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+
+# Carthage
+Carthage/Build/
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# Code Injection
+iOSInjectionProject/
+
+# Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Secrets (if any)
+*.xcconfig.local
+Secrets.swift

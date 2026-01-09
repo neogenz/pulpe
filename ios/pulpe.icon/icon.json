@@ -1,0 +1,54 @@
+{
+  "fill" : {
+    "automatic-gradient" : "srgb:0.00000,0.84951,0.55847,1.00000"
+  },
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "fill" : {
+            "solid" : "srgb:0.91391,1.00000,0.93587,1.00000"
+          },
+          "image-name" : "Frame 25 2.png",
+          "name" : "Frame 25 2",
+          "position" : {
+            "scale" : 0.61,
+            "translation-in-points" : [
+              0,
+              0
+            ]
+          }
+        },
+        {
+          "blend-mode" : "normal",
+          "fill" : "automatic",
+          "glass" : true,
+          "hidden" : true,
+          "image-name" : "PULPE.png",
+          "name" : "PULPE",
+          "position" : {
+            "scale" : 1,
+            "translation-in-points" : [
+              0,
+              0
+            ]
+          }
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
+  }
+}
