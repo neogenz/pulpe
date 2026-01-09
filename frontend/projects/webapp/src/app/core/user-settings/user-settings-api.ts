@@ -5,7 +5,7 @@ import {
   type UserSettingsResponse,
   type UpdateUserSettings,
   userSettingsResponseSchema,
-} from '@pulpe/shared';
+} from 'pulpe-shared';
 import { type Observable, firstValueFrom, throwError } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
 import { ApplicationConfiguration } from '../config/application-configuration';
