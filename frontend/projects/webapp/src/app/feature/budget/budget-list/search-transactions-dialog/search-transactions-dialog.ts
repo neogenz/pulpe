@@ -3,6 +3,7 @@ import {
   Component,
   computed,
   inject,
+  linkedSignal,
   signal,
 } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
@@ -48,6 +49,7 @@ import { Logger } from '@core/logging/logger';
             matIconPrefix
             mode="indeterminate"
             [diameter]="20"
+            class="mx-4"
           />
         } @else {
           <mat-icon matIconPrefix>search</mat-icon>
@@ -200,9 +202,13 @@ export class SearchTransactionsDialogComponent {
     },
   });
 
-  readonly searchResults = computed(
-    () => this.searchResource.value()?.data ?? [],
-  );
+  readonly searchResults = linkedSignal<
+    TransactionSearchResult[] | undefined,
+    TransactionSearchResult[]
+  >({
+    source: () => this.searchResource.value()?.data,
+    computation: (newData, previous) => newData ?? previous?.value ?? [],
+  });
   readonly hasSearched = computed(() => this.#validQuery() !== null);
 
   readonly displayedColumns = ['period', 'name', 'amount'];

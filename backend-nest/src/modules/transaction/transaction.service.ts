@@ -773,8 +773,10 @@ export class TransactionService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionSearchResponse> {
     try {
+      // Escape PostgREST special characters to prevent query errors
+      const escapedQuery = query.replace(/[*.()[\]\\]/g, '\\$&');
       // PostgREST uses * as wildcard in filter strings (not %)
-      const searchPattern = `*${query}*`;
+      const searchPattern = `*${escapedQuery}*`;
 
       // Search in transactions
       const { data: transactionsDb, error: txError } = await supabase

@@ -12,13 +12,13 @@
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 -- Index for transaction name search (ILIKE '%query%')
-CREATE INDEX idx_transaction_name_trgm
+CREATE INDEX IF NOT EXISTS idx_transaction_name_trgm
   ON transaction USING GIN (name gin_trgm_ops);
 
 -- Index for transaction category search (ILIKE '%query%')
-CREATE INDEX idx_transaction_category_trgm
+CREATE INDEX IF NOT EXISTS idx_transaction_category_trgm
   ON transaction USING GIN (category gin_trgm_ops);
 
 -- Index for budget_line name search (ILIKE '%query%')
-CREATE INDEX idx_budget_line_name_trgm
+CREATE INDEX IF NOT EXISTS idx_budget_line_name_trgm
   ON budget_line USING GIN (name gin_trgm_ops);
