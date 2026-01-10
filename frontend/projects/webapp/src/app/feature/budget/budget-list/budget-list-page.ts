@@ -362,9 +362,8 @@ export default class BudgetListPage {
 
   async openSearchDialog(): Promise<void> {
     try {
-      const dialogConfig = this.#dialogConfig();
       const dialogRef = this.#dialog.open(SearchTransactionsDialogComponent, {
-        ...dialogConfig,
+        ...this.#dialogConfig(),
       });
 
       const result = await firstValueFrom<TransactionSearchResult | undefined>(

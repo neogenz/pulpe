@@ -14,7 +14,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { debounce, Field, form } from '@angular/forms/signals';
 import { catchError, of } from 'rxjs';
 import type { TransactionSearchResult } from '@pulpe/shared';
@@ -31,56 +30,49 @@ import { Logger } from '@core/logging/logger';
     MatButtonModule,
     MatTableModule,
     MatProgressSpinnerModule,
-    MatTooltipModule,
     Field,
     CurrencyPipe,
   ],
   template: `
     <h2 mat-dialog-title>Rechercher dans le budget</h2>
 
-    <mat-dialog-content class="!max-h-[70vh]">
-      <div class="flex flex-col gap-4">
-        <!-- Search input -->
-        <mat-form-field
-          appearance="outline"
-          subscriptSizing="dynamic"
-          class="w-full"
-        >
-          <mat-label>Rechercher</mat-label>
-          <mat-icon matIconPrefix>search</mat-icon>
-          <input
-            matInput
-            [field]="searchForm.query"
-            placeholder="Nom ou description..."
-            autocomplete="off"
-            data-testid="search-input"
-          />
-          @if (searchForm.query().value()) {
-            <button
-              matIconButton
-              matIconSuffix
-              (click)="clearSearch()"
-              aria-label="Effacer"
-              type="button"
-            >
-              <mat-icon>close</mat-icon>
-            </button>
-          }
-        </mat-form-field>
+    <mat-dialog-content class="flex flex-col gap-4 pt-2!">
+      <mat-form-field
+        appearance="outline"
+        subscriptSizing="dynamic"
+        class="w-full"
+      >
+        <mat-label>Rechercher</mat-label>
+        <mat-icon matIconPrefix>search</mat-icon>
+        <input
+          matInput
+          [field]="searchForm.query"
+          placeholder="Nom ou description..."
+          autocomplete="off"
+          data-testid="search-input"
+        />
+        @if (searchForm.query().value()) {
+          <button
+            matIconButton
+            matIconSuffix
+            (click)="clearSearch()"
+            aria-label="Effacer"
+            type="button"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+      </mat-form-field>
 
-        <!-- Loading state -->
-        @if (searchResource.isLoading()) {
-          <div class="flex flex-col items-center justify-center py-8 gap-2">
-            <mat-progress-spinner
-              mode="indeterminate"
-              [diameter]="40"
-            ></mat-progress-spinner>
-            <span class="text-body-medium text-on-surface-variant">
-              Recherche en cours...
-            </span>
-          </div>
-        } @else if (searchResults().length > 0) {
-          <!-- Results table -->
+      @if (searchResource.isLoading()) {
+        <div class="flex flex-col items-center justify-center py-8 gap-2">
+          <mat-progress-spinner mode="indeterminate" [diameter]="40" />
+          <span class="text-body-medium text-on-surface-variant">
+            Recherche en cours...
+          </span>
+        </div>
+      } @else if (searchResults().length > 0) {
+        <div class="overflow-auto">
           <table
             mat-table
             [dataSource]="searchResults()"
@@ -95,22 +87,6 @@ import { Logger } from '@core/logging/logger';
                 class="text-body-small text-on-surface-variant"
               >
                 {{ row.year }} / {{ row.monthLabel }}
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="type">
-              <th mat-header-cell *matHeaderCellDef class="!w-10"></th>
-              <td mat-cell *matCellDef="let row" class="!w-10">
-                <mat-icon
-                  class="!text-base text-on-surface-variant"
-                  [matTooltip]="
-                    row.itemType === 'transaction' ? 'Réel' : 'Prévision'
-                  "
-                >
-                  {{
-                    row.itemType === 'transaction' ? 'receipt' : 'event_note'
-                  }}
-                </mat-icon>
               </td>
             </ng-container>
 
@@ -142,27 +118,25 @@ import { Logger } from '@core/logging/logger';
               class="cursor-pointer hover:bg-surface-container-highest"
             ></tr>
           </table>
-        } @else if (hasSearched() && !searchResource.isLoading()) {
-          <!-- Empty state -->
-          <div class="text-center py-8 text-on-surface-variant">
-            <mat-icon class="!text-5xl mb-2">search_off</mat-icon>
-            <p class="text-body-medium">Aucun résultat trouvé</p>
-            <p class="text-body-small">
-              Essayez avec un autre terme de recherche
-            </p>
-          </div>
-        } @else {
-          <!-- Initial state -->
-          <div class="text-center py-8 text-on-surface-variant">
-            <mat-icon class="!text-5xl mb-2">search</mat-icon>
-            <p class="text-body-medium">Recherchez dans vos budgets</p>
-            <p class="text-body-small">
-              Saisissez au moins 2 caractères pour rechercher dans les
-              prévisions et transactions
-            </p>
-          </div>
-        }
-      </div>
+        </div>
+      } @else if (hasSearched() && !searchResource.isLoading()) {
+        <div class="text-center py-8 text-on-surface-variant">
+          <mat-icon class="text-5xl! w-auto! h-auto! mb-2">search_off</mat-icon>
+          <p class="text-body-medium">Aucun résultat trouvé</p>
+          <p class="text-body-small">
+            Essayez avec un autre terme de recherche
+          </p>
+        </div>
+      } @else {
+        <div class="text-center py-8 text-on-surface-variant">
+          <mat-icon class="text-5xl! w-auto! h-auto! mb-2">search</mat-icon>
+          <p class="text-body-medium">Recherchez dans vos budgets</p>
+          <p class="text-body-small">
+            Saisissez au moins 2 caractères pour rechercher dans les prévisions
+            et transactions
+          </p>
+        </div>
+      }
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
@@ -170,10 +144,6 @@ import { Logger } from '@core/logging/logger';
     </mat-dialog-actions>
   `,
   styles: `
-    :host {
-      display: block;
-    }
-
     table {
       background: transparent;
     }
@@ -194,19 +164,16 @@ export class SearchTransactionsDialogComponent {
   readonly #transactionApi = inject(TransactionApi);
   readonly #logger = inject(Logger);
 
-  // Signal Forms: data model + form with debounce
   readonly #searchModel = signal({ query: '' });
   readonly searchForm = form(this.#searchModel, (path) => {
     debounce(path.query, 300);
   });
 
-  // Derived: valid search query (>= 2 chars)
   readonly #validQuery = computed(() => {
     const query = this.searchForm.query().value().trim();
     return query.length >= 2 ? query : null;
   });
 
-  // rxResource: auto-cancels previous requests (like switchMap)
   readonly searchResource = rxResource({
     params: () => this.#validQuery(),
     stream: ({ params: query }) => {
@@ -222,13 +189,12 @@ export class SearchTransactionsDialogComponent {
     },
   });
 
-  // Derived state from resource
   readonly searchResults = computed(
     () => this.searchResource.value()?.data ?? [],
   );
   readonly hasSearched = computed(() => this.#validQuery() !== null);
 
-  readonly displayedColumns = ['period', 'type', 'name', 'amount'];
+  readonly displayedColumns = ['period', 'name', 'amount'];
 
   clearSearch(): void {
     this.#searchModel.set({ query: '' });
