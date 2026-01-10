@@ -28,7 +28,9 @@ import { MonthsError } from '../ui/budget-error';
 import { mapToCalendarYear } from './budget-list-mapper/budget-list.mapper';
 import { BudgetListStore } from './budget-list-store';
 import { CreateBudgetDialogComponent } from './create-budget/budget-creation-dialog';
+import { SearchTransactionsDialogComponent } from './search-transactions-dialog/search-transactions-dialog';
 import { Logger } from '@core/logging/logger';
+import type { TransactionSearchResult } from 'pulpe-shared';
 import {
   ProductTourService,
   TOUR_START_DELAY,
@@ -77,6 +79,15 @@ const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
             } @else {
               <mat-icon>download</mat-icon>
             }
+          </button>
+          <button
+            matIconButton
+            (click)="openSearchDialog()"
+            matTooltip="Rechercher dans les transactions"
+            aria-label="Rechercher"
+            data-testid="search-transactions-btn"
+          >
+            <mat-icon>search</mat-icon>
           </button>
           <button
             matButton="filled"
@@ -346,6 +357,31 @@ export default class BudgetListPage {
     } finally {
       this.isExporting.set(false);
       this.#loadingIndicator.setLoading(false);
+    }
+  }
+
+  async openSearchDialog(): Promise<void> {
+    try {
+      const dialogRef = this.#dialog.open(SearchTransactionsDialogComponent, {
+        ...this.#dialogConfig(),
+      });
+
+      const result = await firstValueFrom<TransactionSearchResult | undefined>(
+        dialogRef.afterClosed(),
+      );
+
+      if (result) {
+        this.#router.navigate([ROUTES.APP, ROUTES.BUDGET, result.budgetId]);
+      }
+    } catch (error) {
+      this.#logger.error('Error opening search dialog', error);
+      this.#snackBar.open(
+        `Une erreur est survenue lors de l'ouverture du dialogue: ${error}`,
+        'Fermer',
+        {
+          duration: 5000,
+        },
+      );
     }
   }
 }

@@ -5,10 +5,12 @@ import {
   type TransactionCreateResponse,
   type TransactionFindOneResponse,
   type TransactionListResponse,
+  type TransactionSearchResponse,
   type TransactionUpdate,
   type TransactionUpdateResponse,
   transactionListResponseSchema,
   transactionResponseSchema,
+  transactionSearchResponseSchema,
 } from 'pulpe-shared';
 import { type Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -59,9 +61,14 @@ export class TransactionApi {
   }
 
   toggleCheck$(id: string): Observable<TransactionUpdateResponse> {
-    return this.#http.post<TransactionUpdateResponse>(
-      `${this.#apiUrl}/${id}/toggle-check`,
-      {},
-    );
+    return this.#http
+      .post<unknown>(`${this.#apiUrl}/${id}/toggle-check`, {})
+      .pipe(map((response) => transactionResponseSchema.parse(response)));
+  }
+
+  search$(query: string): Observable<TransactionSearchResponse> {
+    return this.#http
+      .get<unknown>(`${this.#apiUrl}/search`, { params: { q: query } })
+      .pipe(map((response) => transactionSearchResponseSchema.parse(response)));
   }
 }
