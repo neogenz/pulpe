@@ -771,6 +771,7 @@ export class TransactionService {
   async search(
     query: string,
     supabase: AuthenticatedSupabaseClient,
+    years?: number[],
   ): Promise<TransactionSearchResponse> {
     try {
       // Escape PostgREST special characters to prevent query errors
@@ -778,8 +779,34 @@ export class TransactionService {
       // PostgREST uses * as wildcard in filter strings (not %)
       const searchPattern = `*${escapedQuery}*`;
 
+      let budgetIds: string[] | undefined;
+      if (years && years.length > 0) {
+        const { data: budgets, error: budgetError } = await supabase
+          .from('monthly_budget')
+          .select('id')
+          .in('year', years);
+
+        if (budgetError) {
+          throw new BusinessException(
+            ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+            undefined,
+            {
+              operation: 'searchBudgetsByYear',
+              entityType: 'monthly_budget',
+              supabaseError: budgetError,
+            },
+            { cause: budgetError },
+          );
+        }
+
+        budgetIds = budgets?.map((b) => b.id) ?? [];
+        if (budgetIds.length === 0) {
+          return { success: true, data: [] };
+        }
+      }
+
       // Search in transactions
-      const { data: transactionsDb, error: txError } = await supabase
+      let transactionQuery = supabase
         .from('transaction')
         .select(
           `
@@ -797,7 +824,13 @@ export class TransactionService {
           )
         `,
         )
-        .or(`name.ilike.${searchPattern},category.ilike.${searchPattern}`)
+        .or(`name.ilike.${searchPattern},category.ilike.${searchPattern}`);
+
+      if (budgetIds) {
+        transactionQuery = transactionQuery.in('budget_id', budgetIds);
+      }
+
+      const { data: transactionsDb, error: txError } = await transactionQuery
         .order('transaction_date', { ascending: false })
         .limit(25);
 
@@ -815,7 +848,7 @@ export class TransactionService {
       }
 
       // Search in budget lines
-      const { data: budgetLinesDb, error: blError } = await supabase
+      let budgetLineQuery = supabase
         .from('budget_line')
         .select(
           `
@@ -832,7 +865,13 @@ export class TransactionService {
           )
         `,
         )
-        .ilike('name', searchPattern)
+        .ilike('name', searchPattern);
+
+      if (budgetIds) {
+        budgetLineQuery = budgetLineQuery.in('budget_id', budgetIds);
+      }
+
+      const { data: budgetLinesDb, error: blError } = await budgetLineQuery
         .order('created_at', { ascending: false })
         .limit(25);
 
