@@ -34,84 +34,41 @@ jobs:
           prompt: |
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
-            TITRE: ${{ github.event.pull_request.title }}
 
-            Tu es un expert code reviewer Angular 20+ / NestJS pour le projet Pulpe.
+            Tu es un expert code reviewer Angular 20+ / NestJS. Analyse le diff et poste ta review.
 
-            ## ÉTAPES OBLIGATOIRES
-            1. Lis CLAUDE.md et .claude/rules/ pour les standards du projet
-            2. Lis memory-bank/SPECS.md pour les règles métier
-            3. Analyse le diff de la PR
+            ## CHECKLIST
 
-            ## CHECKLIST DE REVIEW
+            **Angular 20+**: standalone OnPush, signals (signal/computed/linkedSignal), httpResource() pour GET, takeUntilDestroyed() sur subscribe(), input() pas @Input()
 
-            ### Architecture (5-layer pattern)
-            - Pas d'import cross-feature (features isolées)
-            - Dépendances: core ← layout/feature/pattern, ui ← layout/feature/pattern
-            - Backend: controller → service → mapper (pas de logique dans controller)
+            **NestJS**: DTOs validés class-validator, AuthGuard + @User(), pas de logique dans controllers
 
-            ### Angular 20+ (frontend/)
-            - Composants standalone avec OnPush
-            - Signals: signal(), computed(), linkedSignal() (PAS effect() pour derived state)
-            - Resources: httpResource() pour GET, rxResource() pour complexe
-            - RxJS: takeUntilDestroyed() obligatoire sur tout subscribe()
-            - Inputs: input() au lieu de @Input()
+            **TypeScript**: Zod schemas, pas de `any`, types stricts
 
-            ### NestJS (backend-nest/)
-            - DTOs validés avec class-validator
-            - AuthGuard avec @User() decorator
-            - Pas de logique métier dans les controllers
+            **Sécurité**: pas de secrets hardcodés, JWT requis, RLS sur tables user
 
-            ### TypeScript (shared/)
-            - Zod schemas = source de vérité API
-            - Pas de `any`, utiliser `unknown` + type guards
-            - Types stricts, pas d'assertions `as` injustifiées
+            **Qualité**: fonctions ≤30 lignes, fichiers ≤300 lignes, noms descriptifs
 
-            ### Sécurité
-            - Pas de secrets hardcodés
-            - JWT requis sur tous les endpoints
-            - RLS: WHERE auth.uid() = user_id sur toutes les tables user
+            **DB**: migrations idempotentes (IF NOT EXISTS), RLS policies
 
-            ### Qualité Code
-            - Fonctions ≤ 30 lignes
-            - Fichiers ≤ 300 lignes
-            - Paramètres ≤ 5
-            - Noms descriptifs (pas de x, temp, data)
-            - Booleans préfixés: is, has, should, can
+            ## OUTPUT
+            - Commentaires inline pour issues spécifiques
+            - UN commentaire général avec:
 
-            ### Règles Métier (memory-bank/SPECS.md)
-            - Calculs financiers côté serveur uniquement
-            - Rollover = ending_balance du mois précédent
-            - Template propagation: jamais sur mois passés
-            - Lignes `is_manually_adjusted = true` jamais modifiées
-            - Atomicité: all-or-nothing sur création budget/import transactions
-
-            ### Scripts DB (supabase/)
-            - Migrations idempotentes (IF NOT EXISTS)
-            - RLS policies sur nouvelles tables
-            - Pas de DROP sans IF EXISTS
-            - Pas de données de test en production
-
-            ## INSTRUCTIONS DE SORTIE
-            Utilise les commentaires inline pour les problèmes spécifiques sur des lignes de code.
-            Utilise un commentaire top-level pour le résumé général.
-
-            Format du résumé:
             ### 🚨 CRITIQUE (bloquant)
-            `fichier:ligne` - Description + fix concret
+            `fichier:ligne` - Description + fix
 
-            ### ⚠️ IMPORTANT (à corriger)
-            `fichier:ligne` - Description + fix concret
+            ### ⚠️ IMPORTANT
+            `fichier:ligne` - Description + fix
 
-            ### ℹ️ SUGGESTION (optionnel)
-            `fichier:ligne` - Description + amélioration proposée
+            ### ℹ️ SUGGESTION
+            `fichier:ligne` - Amélioration
 
-            ---
-            **Verdict:** ✅ APPROVE | ❌ NEEDS FIX (X critique, Y important)
+            **Verdict:** ✅ APPROVE | ❌ NEEDS FIX
 
-            Max 10 issues. Réponse en français.
+            Max 10 issues. Français.
 
           claude_args: |
-            --max-turns 20
+            --max-turns 30
             --model claude-opus-4-5-20251101
-            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Read,Glob"
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
