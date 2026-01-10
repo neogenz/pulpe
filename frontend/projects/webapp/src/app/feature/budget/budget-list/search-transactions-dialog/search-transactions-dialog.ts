@@ -43,7 +43,15 @@ import { Logger } from '@core/logging/logger';
         class="w-full"
       >
         <mat-label>Rechercher</mat-label>
-        <mat-icon matIconPrefix>search</mat-icon>
+        @if (searchResource.isLoading()) {
+          <mat-progress-spinner
+            matIconPrefix
+            mode="indeterminate"
+            [diameter]="20"
+          />
+        } @else {
+          <mat-icon matIconPrefix>search</mat-icon>
+        }
         <input
           matInput
           [field]="searchForm.query"
@@ -64,15 +72,11 @@ import { Logger } from '@core/logging/logger';
         }
       </mat-form-field>
 
-      @if (searchResource.isLoading()) {
-        <div class="flex flex-col items-center justify-center py-8 gap-2">
-          <mat-progress-spinner mode="indeterminate" [diameter]="40" />
-          <span class="text-body-medium text-on-surface-variant">
-            Recherche en cours...
-          </span>
-        </div>
-      } @else if (searchResults().length > 0) {
-        <div class="overflow-auto">
+      @if (searchResults().length > 0) {
+        <div
+          class="overflow-auto transition-opacity duration-150"
+          [class.opacity-60]="searchResource.isLoading()"
+        >
           <table
             mat-table
             [dataSource]="searchResults()"
@@ -119,7 +123,14 @@ import { Logger } from '@core/logging/logger';
             ></tr>
           </table>
         </div>
-      } @else if (hasSearched() && !searchResource.isLoading()) {
+      } @else if (searchResource.isLoading()) {
+        <div class="flex flex-col items-center justify-center py-8 gap-2">
+          <mat-progress-spinner mode="indeterminate" [diameter]="40" />
+          <span class="text-body-medium text-on-surface-variant">
+            Recherche en cours...
+          </span>
+        </div>
+      } @else if (hasSearched()) {
         <div class="text-center py-8 text-on-surface-variant">
           <mat-icon class="text-5xl! w-auto! h-auto! mb-2">search_off</mat-icon>
           <p class="text-body-medium">Aucun résultat trouvé</p>
