@@ -268,6 +268,51 @@ export const transactionUpdateSchema = z.object({
 });
 export type TransactionUpdate = z.infer<typeof transactionUpdateSchema>;
 
+/**
+ * SEARCH RESULT - Unified search result for global search across budget items
+ *
+ * Supports both transactions and budget lines with a discriminator field:
+ * - itemType: 'transaction' | 'budget_line'
+ * - budgetName: Name of the parent budget
+ * - year/month/monthLabel: Period info for breadcrumb display
+ */
+const searchItemTypeSchema = z.enum(['transaction', 'budget_line']);
+export type SearchItemType = z.infer<typeof searchItemTypeSchema>;
+
+export const transactionSearchResultSchema = z.object({
+  id: z.uuid(),
+  itemType: searchItemTypeSchema,
+  name: z.string(),
+  amount: z.number(),
+  kind: transactionKindSchema,
+  recurrence: transactionRecurrenceSchema.or(z.null()),
+  transactionDate: z.iso.datetime({ offset: true }).or(z.null()),
+  category: z.string().nullable(),
+  budgetId: z.uuid(),
+  budgetName: z.string(),
+  year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
+  month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
+  monthLabel: z.string(),
+});
+export type TransactionSearchResult = z.infer<
+  typeof transactionSearchResultSchema
+>;
+
+export const transactionSearchResultListSchema = z.array(
+  transactionSearchResultSchema,
+);
+export type TransactionSearchResultList = z.infer<
+  typeof transactionSearchResultListSchema
+>;
+
+export const transactionSearchResponseSchema = z.object({
+  success: z.literal(true),
+  data: transactionSearchResultListSchema,
+});
+export type TransactionSearchResponse = z.infer<
+  typeof transactionSearchResponseSchema
+>;
+
 // Budget template schemas
 export const budgetTemplateSchema = z.object({
   id: z.uuid(),

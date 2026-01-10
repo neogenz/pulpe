@@ -6,7 +6,9 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -14,6 +16,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
+  ApiQuery,
   ApiBadRequestResponse,
   ApiNotFoundResponse,
   ApiUnauthorizedResponse,
@@ -23,6 +26,7 @@ import {
   type TransactionResponse,
   type TransactionListResponse,
   type TransactionDeleteResponse,
+  type TransactionSearchResponse,
 } from 'pulpe-shared';
 import { AuthGuard } from '@common/guards/auth.guard';
 import {
@@ -38,6 +42,7 @@ import {
   TransactionResponseDto,
   TransactionListResponseDto,
   TransactionDeleteResponseDto,
+  TransactionSearchResponseDto,
 } from './dto/transaction-swagger.dto';
 import { ErrorResponseDto } from '@common/dto/response.dto';
 
@@ -96,6 +101,39 @@ export class TransactionController {
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionListResponse> {
     return this.transactionService.findByBudgetLineId(budgetLineId, supabase);
+  }
+
+  @Get('search')
+  @ApiOperation({
+    summary: 'Recherche globale dans toutes les transactions',
+    description:
+      'Recherche par nom ou catégorie dans toutes les transactions de tous les budgets',
+  })
+  @ApiQuery({
+    name: 'q',
+    description: 'Terme de recherche (minimum 2 caractères)',
+    required: true,
+    example: 'Restaurant',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Résultats de recherche',
+    type: TransactionSearchResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Query trop courte (minimum 2 caractères)',
+    type: ErrorResponseDto,
+  })
+  async search(
+    @Query('q') query: string,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<TransactionSearchResponse> {
+    if (!query || query.length < 2) {
+      throw new BadRequestException(
+        'Le terme de recherche doit contenir au moins 2 caractères',
+      );
+    }
+    return this.transactionService.search(query, supabase);
   }
 
   @Post()

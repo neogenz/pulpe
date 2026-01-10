@@ -11,6 +11,8 @@ import {
   type TransactionKind,
   type TransactionListResponse,
   type TransactionResponse,
+  type TransactionSearchResponse,
+  type TransactionSearchResult,
   type TransactionUpdate,
 } from 'pulpe-shared';
 import * as transactionMappers from './transaction.mappers';
@@ -759,5 +761,186 @@ export class TransactionService {
         },
       );
     }
+  }
+
+  /**
+   * Search globally across all user's transactions and budget lines
+   * Searches in name and category fields using ILIKE
+   * Returns enriched results with budget context for display
+   */
+  async search(
+    query: string,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<TransactionSearchResponse> {
+    try {
+      // PostgREST uses * as wildcard in filter strings (not %)
+      const searchPattern = `*${query}*`;
+
+      // Search in transactions
+      const { data: transactionsDb, error: txError } = await supabase
+        .from('transaction')
+        .select(
+          `
+          id,
+          name,
+          amount,
+          kind,
+          transaction_date,
+          category,
+          budget_id,
+          budget:budget_id (
+            description,
+            month,
+            year
+          )
+        `,
+        )
+        .or(`name.ilike.${searchPattern},category.ilike.${searchPattern}`)
+        .order('transaction_date', { ascending: false })
+        .limit(25);
+
+      if (txError) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+          undefined,
+          {
+            operation: 'searchTransactions',
+            entityType: 'transaction',
+            supabaseError: txError,
+          },
+          { cause: txError },
+        );
+      }
+
+      // Search in budget lines
+      const { data: budgetLinesDb, error: blError } = await supabase
+        .from('budget_line')
+        .select(
+          `
+          id,
+          name,
+          amount,
+          kind,
+          recurrence,
+          budget_id,
+          budget:budget_id (
+            description,
+            month,
+            year
+          )
+        `,
+        )
+        .ilike('name', searchPattern)
+        .order('created_at', { ascending: false })
+        .limit(25);
+
+      if (blError) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+          undefined,
+          {
+            operation: 'searchBudgetLines',
+            entityType: 'budget_line',
+            supabaseError: blError,
+          },
+          { cause: blError },
+        );
+      }
+
+      // Map transactions
+      const transactionResults: TransactionSearchResult[] = (
+        transactionsDb || []
+      ).map((t) => {
+        const budget = t.budget as {
+          description: string;
+          month: number;
+          year: number;
+        } | null;
+
+        return {
+          id: t.id,
+          itemType: 'transaction' as const,
+          name: t.name,
+          amount: t.amount,
+          kind: t.kind,
+          recurrence: null,
+          transactionDate: t.transaction_date,
+          category: t.category,
+          budgetId: t.budget_id,
+          budgetName: budget?.description ?? '',
+          year: budget?.year ?? new Date().getFullYear(),
+          month: budget?.month ?? 1,
+          monthLabel: this.#getMonthLabel(budget?.month ?? 1),
+        };
+      });
+
+      // Map budget lines
+      const budgetLineResults: TransactionSearchResult[] = (
+        budgetLinesDb || []
+      ).map((bl) => {
+        const budget = bl.budget as {
+          description: string;
+          month: number;
+          year: number;
+        } | null;
+
+        return {
+          id: bl.id,
+          itemType: 'budget_line' as const,
+          name: bl.name,
+          amount: bl.amount,
+          kind: bl.kind,
+          recurrence: bl.recurrence,
+          transactionDate: null,
+          category: null,
+          budgetId: bl.budget_id,
+          budgetName: budget?.description ?? '',
+          year: budget?.year ?? new Date().getFullYear(),
+          month: budget?.month ?? 1,
+          monthLabel: this.#getMonthLabel(budget?.month ?? 1),
+        };
+      });
+
+      // Combine and sort by year/month descending
+      const allResults = [...transactionResults, ...budgetLineResults].sort(
+        (a, b) => {
+          if (a.year !== b.year) return b.year - a.year;
+          return b.month - a.month;
+        },
+      );
+
+      return {
+        success: true as const,
+        data: allResults.slice(0, 50),
+      };
+    } catch (error) {
+      handleServiceError(
+        error,
+        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'searchTransactions',
+          entityType: 'transaction',
+        },
+      );
+    }
+  }
+
+  #getMonthLabel(month: number): string {
+    const months = [
+      'Janvier',
+      'Février',
+      'Mars',
+      'Avril',
+      'Mai',
+      'Juin',
+      'Juillet',
+      'Août',
+      'Septembre',
+      'Octobre',
+      'Novembre',
+      'Décembre',
+    ];
+    return months[month - 1] || '';
   }
 }
