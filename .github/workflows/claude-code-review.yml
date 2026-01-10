@@ -42,10 +42,9 @@ jobs:
             1. Lis CLAUDE.md et .claude/rules/ pour les standards du projet
             2. Lis memory-bank/SPECS.md pour les règles métier
             3. Exécute `gh pr diff ${{ github.event.pull_request.number }}` pour voir les changements
-            4. Poste ta review avec cette commande EXACTE:
-               ```
-               gh pr comment ${{ github.event.pull_request.number }} --body "CONTENU_DE_TA_REVIEW"
-               ```
+            4. Poste ta review:
+               - Écris ta review dans le fichier `/tmp/review.md`
+               - Exécute: `gh pr comment ${{ github.event.pull_request.number }} --body-file /tmp/review.md`
 
             ## CHECKLIST DE REVIEW
 
@@ -115,4 +114,4 @@ jobs:
           claude_args: |
             --max-turns 30
             --model claude-opus-4-5-20251101
-            --allowedTools "Bash(gh:*),Read,Glob"
+            --allowedTools "Bash(gh:*),Read,Glob,Write"
