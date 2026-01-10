@@ -36,6 +36,7 @@ import {
   TOUR_START_DELAY,
 } from '@core/product-tour/product-tour.service';
 import { LoadingIndicator } from '@core/loading/loading-indicator';
+import { UserSettingsApi } from '@core/user-settings/user-settings-api';
 
 const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
 
@@ -161,6 +162,7 @@ export default class BudgetListPage {
   readonly #loadingIndicator = inject(LoadingIndicator);
   readonly #destroyRef = inject(DestroyRef);
   readonly #budgetApi = inject(BudgetApi);
+  readonly #userSettingsApi = inject(UserSettingsApi);
 
   protected readonly isExporting = signal(false);
 
@@ -195,6 +197,7 @@ export default class BudgetListPage {
   protected readonly calendarYears = computed<CalendarYear[]>(() => {
     const currentYear = new Date().getFullYear();
     const budgetsGroupedByYears = this.state.allMonthsGroupedByYears();
+    const payDayOfMonth = this.#userSettingsApi.payDayOfMonth();
 
     // Récupérer toutes les années existantes dans budgetsGroupedByYears
     const existingYears = Array.from(budgetsGroupedByYears.keys());
@@ -215,14 +218,14 @@ export default class BudgetListPage {
       const existingBudgets = budgetsGroupedByYears.get(year);
 
       if (existingBudgets) {
-        return mapToCalendarYear(year, existingBudgets);
+        return mapToCalendarYear(year, existingBudgets, payDayOfMonth);
       } else {
         // Créer 12 mois vides pour l'année
         const emptyMonths = Array.from({ length: 12 }, (_, monthIndex) => ({
           month: monthIndex + 1,
           year,
         }));
-        return mapToCalendarYear(year, emptyMonths);
+        return mapToCalendarYear(year, emptyMonths, payDayOfMonth);
       }
     });
   });

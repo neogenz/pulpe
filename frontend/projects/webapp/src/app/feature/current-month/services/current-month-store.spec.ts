@@ -555,9 +555,17 @@ describe('CurrentMonthStore - Business Scenarios', () => {
  * Pay-Day Integration Tests
  *
  * Tests that verify the behavior when a custom pay day is configured.
- * Key business rule: Budget is named after the month where payDay occurred.
- * - If day >= payDay → current calendar month's budget
- * - If day < payDay → previous calendar month's budget
+ * Key business rule (QUINZAINE): Budget is named after the month with MAJORITY of days.
+ *
+ * - payDay <= 15 (1ère quinzaine): Budget starts on payDay of SAME month
+ *   → Budget "Mars" covers: 5 mars - 4 avril (majority in March)
+ * - payDay > 15 (2ème quinzaine): Budget starts on payDay of PREVIOUS month
+ *   → Budget "Mars" covers: 27 fév - 26 mars (majority in March)
+ *
+ * Examples with payDay=27:
+ * - Jan 28 → February budget (27 jan - 26 fév)
+ * - Jan 26 → January budget (27 déc - 26 jan)
+ * - Dec 27 → January next year (27 déc - 26 jan)
  */
 describe('CurrentMonthStore - Pay Day Integration', () => {
   let store: CurrentMonthStore;
@@ -638,40 +646,40 @@ describe('CurrentMonthStore - Pay Day Integration', () => {
   });
 
   describe('Budget period calculation with custom pay day', () => {
-    it('should compute January period when today is Jan 28 and payDay is 27', () => {
-      // Business scenario: User is paid on the 27th.
-      // On January 28, they already received their January paycheck on the 27th.
+    it('should compute February period when today is Jan 28 and payDay is 27', () => {
+      // Business scenario: User is paid on the 27th (2ème quinzaine).
+      // On January 28, they're in the February budget period (27 jan - 26 fév).
       payDaySignal.set(27);
       store.setCurrentDate(new Date('2024-01-28'));
 
       const period = store.currentBudgetPeriod();
 
-      // 28 >= 27 → current month (January)
-      expect(period).toEqual({ month: 1, year: 2024 });
+      // 28 >= 27, payDay > 15 → +1 month → February
+      expect(period).toEqual({ month: 2, year: 2024 });
     });
 
-    it('should compute December period when today is Jan 26 and payDay is 27', () => {
-      // Business scenario: User is paid on the 27th.
-      // On January 26, they haven't received their January paycheck yet (still on December's).
+    it('should compute January period when today is Jan 26 and payDay is 27', () => {
+      // Business scenario: User is paid on the 27th (2ème quinzaine).
+      // On January 26, they're in the January budget period (27 déc - 26 jan).
       payDaySignal.set(27);
       store.setCurrentDate(new Date('2024-01-26'));
 
       const period = store.currentBudgetPeriod();
 
-      // 26 < 27 → previous month (December)
-      expect(period).toEqual({ month: 12, year: 2023 });
+      // 26 < 27 → December, then payDay > 15 → +1 month → January
+      expect(period).toEqual({ month: 1, year: 2024 });
     });
 
-    it('should compute December period when today is Dec 27 and payDay is 27', () => {
+    it('should compute January 2025 period when today is Dec 27 and payDay is 27', () => {
       // Business scenario: Year boundary.
-      // On December 27, user just received their December paycheck.
+      // On December 27, user starts the January 2025 budget period (27 déc - 26 jan).
       payDaySignal.set(27);
       store.setCurrentDate(new Date('2024-12-27'));
 
       const period = store.currentBudgetPeriod();
 
-      // 27 >= 27 → current month (December)
-      expect(period).toEqual({ month: 12, year: 2024 });
+      // 27 >= 27 → December, then payDay > 15 → +1 month → January 2025
+      expect(period).toEqual({ month: 1, year: 2025 });
     });
 
     it('should use calendar month when payDay is null', () => {
@@ -709,8 +717,9 @@ describe('CurrentMonthStore - Pay Day Integration', () => {
   });
 
   describe('Dashboard loads correct budget based on pay day', () => {
-    it('should request January budget when today is Jan 28 and payDay is 27', async () => {
+    it('should request February budget when today is Jan 28 and payDay is 27', async () => {
       // Business scenario: Dashboard should load the budget for the computed period
+      // With quinzaine logic, Jan 28 + payDay=27 → February budget
       payDaySignal.set(27);
       store.setCurrentDate(new Date('2024-01-28'));
 
@@ -719,9 +728,9 @@ describe('CurrentMonthStore - Pay Day Integration', () => {
         expect(mockBudgetApi.getBudgetForMonth$).toHaveBeenCalled();
       });
 
-      // Verify the API was called with January (month=1)
+      // Verify the API was called with February (month=2)
       expect(mockBudgetApi.getBudgetForMonth$).toHaveBeenCalledWith(
-        '01',
+        '02',
         '2024',
       );
     });

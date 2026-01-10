@@ -112,7 +112,10 @@ export {
   isInCurrentBudgetPeriod,
   compareBudgetPeriods,
   isPastBudgetPeriod,
+  getBudgetPeriodDates,
+  formatBudgetPeriod,
   type BudgetPeriod,
+  type BudgetPeriodDates,
 } from './src/calculators/index.js';
 
 // Export all types from types.ts
