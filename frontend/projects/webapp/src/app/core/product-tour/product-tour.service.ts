@@ -6,7 +6,7 @@
  */
 
 import { inject, Injectable } from '@angular/core';
-import { driver, type DriveStep, type Config } from 'driver.js';
+import { driver, type DriveStep, type Config, type Driver } from 'driver.js';
 import { StorageService, STORAGE_KEYS } from '@core/storage';
 
 export type TourPageId =
@@ -38,6 +38,9 @@ export const TOUR_STORAGE_KEYS = {
 })
 export class ProductTourService {
   readonly #storageService = inject(StorageService);
+
+  /** Active Driver.js instance to prevent concurrent tours */
+  #activeDriver: Driver | null = null;
 
   /**
    * Check if user has seen the intro (welcome + navigation)
@@ -79,15 +82,31 @@ export class ProductTourService {
   }
 
   /**
+   * Cancel active tour if running
+   */
+  cancelActiveTour(): void {
+    if (this.#activeDriver) {
+      this.#activeDriver.destroy();
+      this.#activeDriver = null;
+    }
+  }
+
+  /**
    * Start a page-specific tour
    * Includes intro steps if user hasn't seen them yet
    */
   startPageTour(pageId: TourPageId): void {
+    // Prevent concurrent tours
+    if (this.#activeDriver) {
+      return;
+    }
+
     const includeIntro = !this.hasSeenIntro();
     const steps = this.#getStepsForPage(pageId, includeIntro);
 
     // Create driver instance first to avoid closure timing issues
     const tourDriver = driver();
+    this.#activeDriver = tourDriver;
 
     const driverConfig: Config = {
       showProgress: true,
@@ -106,6 +125,7 @@ export class ProductTourService {
       stageRadius: 8,
       popoverOffset: 16,
       onDestroyed: () => {
+        this.#activeDriver = null;
         if (includeIntro) {
           this.#markIntroCompleted();
         }

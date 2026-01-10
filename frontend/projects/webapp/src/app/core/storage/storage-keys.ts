@@ -13,10 +13,6 @@ export const STORAGE_KEYS = {
   // Budget
   CURRENT_BUDGET: 'pulpe-current-budget',
 
-  // Onboarding
-  ONBOARDING_DATA: 'pulpe-onboarding-data',
-  ONBOARDING_COMPLETED: 'pulpe-onboarding-completed',
-
   // Demo mode
   DEMO_MODE: 'pulpe-demo-mode',
   DEMO_USER_EMAIL: 'pulpe-demo-user-email',

@@ -117,5 +117,26 @@ describe('ProductTourService', () => {
     it('should not throw when called with valid pageId', () => {
       expect(() => service.startPageTour('current-month')).not.toThrow();
     });
+
+    it('should prevent concurrent tours (second call is ignored)', () => {
+      // GIVEN: A tour is already running
+      service.startPageTour('current-month');
+
+      // WHEN: Another tour is started
+      // THEN: No error occurs (call is silently ignored)
+      expect(() => service.startPageTour('budget-list')).not.toThrow();
+    });
+  });
+
+  describe('cancelActiveTour', () => {
+    it('should not throw when no tour is active', () => {
+      expect(() => service.cancelActiveTour()).not.toThrow();
+    });
+
+    it('should not throw when a tour is active', () => {
+      service.startPageTour('current-month');
+
+      expect(() => service.cancelActiveTour()).not.toThrow();
+    });
   });
 });

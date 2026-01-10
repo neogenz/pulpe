@@ -12,8 +12,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 
 @Component({
-  selector: 'pulpe-onboarding-currency-input',
-
+  selector: 'pulpe-currency-input',
   imports: [FormsModule, MatFormFieldModule, MatInputModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -27,34 +26,40 @@ import { MatInputModule } from '@angular/material/input';
         (input)="onInput($event)"
         [placeholder]="placeholder()"
         [attr.aria-describedby]="ariaDescribedBy()"
-        [attr.aria-label]="label() + ' in Swiss Francs'"
+        [attr.aria-label]="label() + ' in ' + currency()"
         [required]="required()"
         [attr.min]="required() ? '0' : null"
         step="0.01"
         [attr.data-testid]="testId()"
       />
-      <span matTextSuffix class="text-gray-600 font-medium">CHF</span>
+      <span matTextSuffix class="text-gray-600 font-medium">{{
+        currency()
+      }}</span>
       @if (ariaDescribedBy()) {
         <mat-hint [id]="ariaDescribedBy()!" class="ph-no-capture"
-          >Entre le montant en francs suisses (CHF)</mat-hint
+          >Entre le montant en {{ currency() }}</mat-hint
         >
       }
     </mat-form-field>
   `,
 })
-export class OnboardingCurrencyInput {
-  #elementRef = inject(ElementRef);
+export class CurrencyInput {
+  readonly #elementRef = inject(ElementRef);
 
-  label = input.required<string>();
-  value = model<number | null>(null);
-  placeholder = input<string>('0.00');
-  ariaDescribedBy = input<string>();
-  required = input<boolean>(false);
-  testId = input<string>('currency-input');
+  readonly label = input.required<string>();
+  readonly value = model<number | null>(null);
+  readonly placeholder = input<string>('0.00');
+  readonly ariaDescribedBy = input<string>();
+  readonly required = input<boolean>(false);
+  readonly testId = input<string>('currency-input');
+  readonly currency = input<string>('CHF');
+  readonly autoFocus = input<boolean>(true);
 
   constructor() {
     afterNextRender(() => {
-      this.#elementRef.nativeElement.querySelector('input')?.focus();
+      if (this.autoFocus()) {
+        this.#elementRef.nativeElement.querySelector('input')?.focus();
+      }
     });
   }
 

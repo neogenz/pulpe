@@ -179,7 +179,7 @@ import { Logger } from '@core/logging/logger';
               matButton
               color="primary"
               class="ml-1"
-              routerLink="/onboarding/welcome"
+              routerLink="/welcome"
             >
               Créer un compte
             </button>
