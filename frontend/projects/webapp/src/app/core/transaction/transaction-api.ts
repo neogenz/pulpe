@@ -61,10 +61,9 @@ export class TransactionApi {
   }
 
   toggleCheck$(id: string): Observable<TransactionUpdateResponse> {
-    return this.#http.post<TransactionUpdateResponse>(
-      `${this.#apiUrl}/${id}/toggle-check`,
-      {},
-    );
+    return this.#http
+      .post<unknown>(`${this.#apiUrl}/${id}/toggle-check`, {})
+      .pipe(map((response) => transactionResponseSchema.parse(response)));
   }
 
   search$(query: string): Observable<TransactionSearchResponse> {

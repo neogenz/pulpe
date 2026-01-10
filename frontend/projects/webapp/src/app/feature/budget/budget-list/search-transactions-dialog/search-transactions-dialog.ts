@@ -3,7 +3,6 @@ import {
   Component,
   DestroyRef,
   inject,
-  type OnInit,
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -27,6 +26,7 @@ import {
 import { catchError, of } from 'rxjs';
 import type { TransactionSearchResult } from '@pulpe/shared';
 import { TransactionApi } from '@core/transaction/transaction-api';
+import { Logger } from '@core/logging/logger';
 
 @Component({
   selector: 'pulpe-search-transactions-dialog',
@@ -191,7 +191,7 @@ import { TransactionApi } from '@core/transaction/transaction-api';
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class SearchTransactionsDialogComponent implements OnInit {
+export class SearchTransactionsDialogComponent {
   readonly #dialogRef = inject(
     MatDialogRef<
       SearchTransactionsDialogComponent,
@@ -200,6 +200,7 @@ export class SearchTransactionsDialogComponent implements OnInit {
   );
   readonly #transactionApi = inject(TransactionApi);
   readonly #destroyRef = inject(DestroyRef);
+  readonly #logger = inject(Logger);
 
   readonly searchControl = new FormControl<string>('', { nonNullable: true });
   readonly searchResults = signal<TransactionSearchResult[]>([]);
@@ -208,7 +209,7 @@ export class SearchTransactionsDialogComponent implements OnInit {
 
   readonly displayedColumns = ['period', 'type', 'name', 'amount'];
 
-  ngOnInit(): void {
+  constructor() {
     this.searchControl.valueChanges
       .pipe(
         debounceTime(300),
@@ -224,7 +225,7 @@ export class SearchTransactionsDialogComponent implements OnInit {
         switchMap((term) =>
           this.#transactionApi.search$(term).pipe(
             catchError((error) => {
-              console.error('Search error:', error);
+              this.#logger.error('Search error', error);
               return of({ success: true as const, data: [] });
             }),
           ),
