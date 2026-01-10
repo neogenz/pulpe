@@ -1,12 +1,11 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  DestroyRef,
+  computed,
   inject,
   signal,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { rxResource } from '@angular/core/rxjs-interop';
 import { CurrencyPipe } from '@angular/common';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -16,13 +15,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import {
-  debounceTime,
-  distinctUntilChanged,
-  filter,
-  switchMap,
-  tap,
-} from 'rxjs';
+import { debounce, Field, form } from '@angular/forms/signals';
 import { catchError, of } from 'rxjs';
 import type { TransactionSearchResult } from '@pulpe/shared';
 import { TransactionApi } from '@core/transaction/transaction-api';
@@ -39,7 +32,7 @@ import { Logger } from '@core/logging/logger';
     MatTableModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
-    ReactiveFormsModule,
+    Field,
     CurrencyPipe,
   ],
   template: `
@@ -57,12 +50,12 @@ import { Logger } from '@core/logging/logger';
           <mat-icon matIconPrefix>search</mat-icon>
           <input
             matInput
-            [formControl]="searchControl"
+            [field]="searchForm.query"
             placeholder="Nom ou description..."
             autocomplete="off"
             data-testid="search-input"
           />
-          @if (searchControl.value) {
+          @if (searchForm.query().value()) {
             <button
               matIconButton
               matIconSuffix
@@ -76,7 +69,7 @@ import { Logger } from '@core/logging/logger';
         </mat-form-field>
 
         <!-- Loading state -->
-        @if (isLoading()) {
+        @if (searchResource.isLoading()) {
           <div class="flex flex-col items-center justify-center py-8 gap-2">
             <mat-progress-spinner
               mode="indeterminate"
@@ -149,7 +142,7 @@ import { Logger } from '@core/logging/logger';
               class="cursor-pointer hover:bg-surface-container-highest"
             ></tr>
           </table>
-        } @else if (hasSearched() && !isLoading()) {
+        } @else if (hasSearched() && !searchResource.isLoading()) {
           <!-- Empty state -->
           <div class="text-center py-8 text-on-surface-variant">
             <mat-icon class="!text-5xl mb-2">search_off</mat-icon>
@@ -199,50 +192,46 @@ export class SearchTransactionsDialogComponent {
     >,
   );
   readonly #transactionApi = inject(TransactionApi);
-  readonly #destroyRef = inject(DestroyRef);
   readonly #logger = inject(Logger);
 
-  readonly searchControl = new FormControl<string>('', { nonNullable: true });
-  readonly searchResults = signal<TransactionSearchResult[]>([]);
-  readonly isLoading = signal(false);
-  readonly hasSearched = signal(false);
+  // Signal Forms: data model + form with debounce
+  readonly #searchModel = signal({ query: '' });
+  readonly searchForm = form(this.#searchModel, (path) => {
+    debounce(path.query, 300);
+  });
+
+  // Derived: valid search query (>= 2 chars)
+  readonly #validQuery = computed(() => {
+    const query = this.searchForm.query().value().trim();
+    return query.length >= 2 ? query : null;
+  });
+
+  // rxResource: auto-cancels previous requests (like switchMap)
+  readonly searchResource = rxResource({
+    params: () => this.#validQuery(),
+    stream: ({ params: query }) => {
+      if (!query) {
+        return of({ success: true as const, data: [] });
+      }
+      return this.#transactionApi.search$(query).pipe(
+        catchError((error) => {
+          this.#logger.error('Search error', error);
+          return of({ success: true as const, data: [] });
+        }),
+      );
+    },
+  });
+
+  // Derived state from resource
+  readonly searchResults = computed(
+    () => this.searchResource.value()?.data ?? [],
+  );
+  readonly hasSearched = computed(() => this.#validQuery() !== null);
 
   readonly displayedColumns = ['period', 'type', 'name', 'amount'];
 
-  constructor() {
-    this.searchControl.valueChanges
-      .pipe(
-        debounceTime(300),
-        distinctUntilChanged(),
-        tap((term) => {
-          if (term.trim().length < 2) {
-            this.searchResults.set([]);
-            this.hasSearched.set(false);
-          }
-        }),
-        filter((term) => term.trim().length >= 2),
-        tap(() => this.isLoading.set(true)),
-        switchMap((term) =>
-          this.#transactionApi.search$(term).pipe(
-            catchError((error) => {
-              this.#logger.error('Search error', error);
-              return of({ success: true as const, data: [] });
-            }),
-          ),
-        ),
-        takeUntilDestroyed(this.#destroyRef),
-      )
-      .subscribe((response) => {
-        this.searchResults.set(response.data);
-        this.isLoading.set(false);
-        this.hasSearched.set(true);
-      });
-  }
-
   clearSearch(): void {
-    this.searchControl.reset();
-    this.searchResults.set([]);
-    this.hasSearched.set(false);
+    this.#searchModel.set({ query: '' });
   }
 
   selectResult(result: TransactionSearchResult): void {
