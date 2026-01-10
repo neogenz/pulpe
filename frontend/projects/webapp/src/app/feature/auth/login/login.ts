@@ -152,6 +152,26 @@ import { Logger } from '@core/logging/logger';
           </button>
         </form>
 
+        <div class="flex items-center gap-4 my-6">
+          <mat-divider class="flex-1" />
+          <span class="text-body-medium text-on-surface-variant">ou</span>
+          <mat-divider class="flex-1" />
+        </div>
+
+        <button
+          matButton="outlined"
+          type="button"
+          data-testid="google-login-button"
+          class="w-full h-12"
+          [disabled]="isSubmitting()"
+          (click)="signInWithGoogle()"
+        >
+          <div class="flex items-center justify-center gap-2">
+            <mat-icon svgIcon="google" />
+            <span>Continuer avec Google</span>
+          </div>
+        </button>
+
         <div class="text-center mt-6">
           <p class="text-body-medium text-on-surface-variant">
             Nouveau sur Pulpe ?
@@ -243,6 +263,28 @@ export default class Login {
         "Une erreur inattendue s'est produite. Veuillez réessayer.",
       );
     } finally {
+      this.isSubmitting.set(false);
+    }
+  }
+
+  protected async signInWithGoogle(): Promise<void> {
+    this.isSubmitting.set(true);
+    this.clearMessages();
+
+    try {
+      const result = await this.#authService.signInWithGoogle();
+
+      if (!result.success) {
+        this.errorMessage.set(
+          result.error || 'Erreur lors de la connexion avec Google',
+        );
+        this.isSubmitting.set(false);
+      }
+    } catch (error) {
+      this.#logger.error('Erreur lors de la connexion Google:', error);
+      this.errorMessage.set(
+        "Une erreur inattendue s'est produite. Veuillez réessayer.",
+      );
       this.isSubmitting.set(false);
     }
   }
