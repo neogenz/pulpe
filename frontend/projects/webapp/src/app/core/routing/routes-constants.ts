@@ -6,12 +6,14 @@ export const ROUTES = {
   CURRENT_MONTH: 'current-month',
   BUDGET: 'budget',
   BUDGET_TEMPLATES: 'budget-templates',
+  SETTINGS: 'settings',
   LEGAL: 'legal',
 
   // Onboarding step paths
   ONBOARDING_WELCOME: 'welcome',
   ONBOARDING_PERSONAL_INFO: 'personal-info',
   ONBOARDING_income: 'income',
+  ONBOARDING_PAY_DAY: 'pay-day',
   ONBOARDING_HOUSING: 'housing',
   ONBOARDING_HEALTH_INSURANCE: 'health-insurance',
   ONBOARDING_PHONE_PLAN: 'phone-plan',
@@ -36,6 +38,7 @@ export const PAGE_TITLES = {
   PERSONAL_INFO: 'Informations personnelles',
   HOUSING: 'Logement',
   income: 'Revenus',
+  PAY_DAY: 'Jour de paie',
   HEALTH_INSURANCE: 'Assurance maladie',
   PHONE_PLAN: 'Abonnement téléphonique',
   TRANSPORT: 'Transport',
@@ -50,4 +53,5 @@ export const PAGE_TITLES = {
   LEGAL: 'Mentions légales',
   LEGAL_TERMS: "Conditions Générales d'Utilisation",
   LEGAL_PRIVACY: 'Politique de Confidentialité',
+  SETTINGS: 'Paramètres',
 } as const;

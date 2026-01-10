@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigModule } from '@nestjs/config';
+import { BudgetCalculator } from '../budget/budget.calculator';
 import { DemoService } from './demo.service';
 import { DemoDataGeneratorService } from './demo-data-generator.service';
 import { SupabaseService } from '../supabase/supabase.service';
@@ -27,6 +28,12 @@ describe('DemoService - Business Value Tests', () => {
           useValue: {
             getServiceRoleClient: mock() as any,
             createAuthenticatedClient: mock() as any,
+          },
+        },
+        {
+          provide: BudgetCalculator,
+          useValue: {
+            recalculateAndPersist: async () => {},
           },
         },
         {

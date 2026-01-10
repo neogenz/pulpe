@@ -30,9 +30,7 @@ import { type CalendarMonth } from './calendar-types';
       role="button"
       matRipple
     >
-      <mat-card-header
-        class="flex-shrink-0 flex flex-row items-center justify-center"
-      >
+      <mat-card-header>
         <mat-card-title class="capitalize">
           {{ monthName() }}
         </mat-card-title>

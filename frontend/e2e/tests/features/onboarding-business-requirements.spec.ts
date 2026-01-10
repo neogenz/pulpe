@@ -6,7 +6,7 @@ import { setupApiMocks } from '../../utils/auth-bypass';
  * Simplified version focusing on core business workflow
  */
 test.describe('Onboarding Business Requirements Validation', () => {
-  test('BUSINESS REQUIREMENT: Complete 8-step onboarding flow', async ({ page, onboardingPage }) => {
+  test('BUSINESS REQUIREMENT: Complete 9-step onboarding flow', async ({ page, onboardingPage }) => {
     // Setup E2E auth bypass flag (without mock authenticated state)
     // This allows onboarding to work while mocking Supabase auth calls
     await page.addInitScript(() => {
@@ -38,7 +38,7 @@ test.describe('Onboarding Business Requirements Validation', () => {
 
   test('BUSINESS REQUIREMENT: Budget data collection completeness', async ({ page, onboardingPage }) => {
     await onboardingPage.goto();
-    const steps = ['welcome', 'personal-info', 'income', 'housing'];
+    const steps = ['welcome', 'personal-info', 'income', 'pay-day', 'housing'];
     for (const step of steps) {
       await page.goto(`/onboarding/${step}`);
       await expect(page.locator('body')).toBeVisible();

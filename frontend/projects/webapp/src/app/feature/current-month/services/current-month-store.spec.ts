@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import {
   HttpTestingController,
@@ -19,6 +19,7 @@ import { BudgetApi, BudgetCalculator } from '@core/budget';
 import { TransactionApi } from '@core/transaction/transaction-api';
 import { Logger } from '@core/logging/logger';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
+import { UserSettingsApi } from '@core/user-settings';
 
 // Mock data aligned with business scenarios
 const mockBudget: Budget = {
@@ -148,6 +149,11 @@ describe('CurrentMonthStore - Business Scenarios', () => {
       backendApiUrl: vi.fn().mockReturnValue('http://localhost:3000/api'),
     };
 
+    const mockUserSettingsApi = {
+      payDayOfMonth: signal<number | null>(null),
+      isLoading: signal(false),
+    };
+
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
@@ -159,6 +165,7 @@ describe('CurrentMonthStore - Business Scenarios', () => {
         { provide: BudgetCalculator, useValue: mockBudgetCalculator },
         { provide: Logger, useValue: mockLogger },
         { provide: ApplicationConfiguration, useValue: mockAppConfig },
+        { provide: UserSettingsApi, useValue: mockUserSettingsApi },
       ],
     });
 
@@ -496,6 +503,11 @@ describe('CurrentMonthStore - Business Scenarios', () => {
         backendApiUrl: vi.fn().mockReturnValue('http://localhost:3000/api'),
       };
 
+      const mockUserSettingsApi = {
+        payDayOfMonth: signal<number | null>(null),
+        isLoading: signal(false),
+      };
+
       TestBed.resetTestingModule();
       TestBed.configureTestingModule({
         providers: [
@@ -507,6 +519,7 @@ describe('CurrentMonthStore - Business Scenarios', () => {
           { provide: TransactionApi, useValue: mockTransactionApi },
           { provide: BudgetCalculator, useValue: mockBudgetCalculator },
           { provide: ApplicationConfiguration, useValue: mockAppConfig },
+          { provide: UserSettingsApi, useValue: mockUserSettingsApi },
         ],
       });
       store = TestBed.inject(CurrentMonthStore);
@@ -534,6 +547,192 @@ describe('CurrentMonthStore - Business Scenarios', () => {
       // Store should still be created without crashing
       expect(store).toBeTruthy();
       expect(store.budgetLines()).toEqual([]);
+    });
+  });
+});
+
+/**
+ * Pay-Day Integration Tests
+ *
+ * Tests that verify the behavior when a custom pay day is configured.
+ * Key business rule (QUINZAINE): Budget is named after the month with MAJORITY of days.
+ *
+ * - payDay <= 15 (1ère quinzaine): Budget starts on payDay of SAME month
+ *   → Budget "Mars" covers: 5 mars - 4 avril (majority in March)
+ * - payDay > 15 (2ème quinzaine): Budget starts on payDay of PREVIOUS month
+ *   → Budget "Mars" covers: 27 fév - 26 mars (majority in March)
+ *
+ * Examples with payDay=27:
+ * - Jan 28 → February budget (27 jan - 26 fév)
+ * - Jan 26 → January budget (27 déc - 26 jan)
+ * - Dec 27 → January next year (27 déc - 26 jan)
+ */
+describe('CurrentMonthStore - Pay Day Integration', () => {
+  let store: CurrentMonthStore;
+  let payDaySignal: ReturnType<typeof signal<number | null>>;
+  let mockBudgetApi: {
+    getBudgetForMonth$: Mock;
+    getBudgetWithDetails$: Mock;
+    getBudgetById$: Mock;
+  };
+
+  const mockJanuaryBudget: Budget = {
+    id: 'budget-jan',
+    userId: 'user-1',
+    templateId: 'template-1',
+    month: 1,
+    year: 2024,
+    description: 'January Budget',
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+    endingBalance: 0,
+    rollover: 500,
+  };
+
+  beforeEach(() => {
+    payDaySignal = signal<number | null>(null);
+
+    mockBudgetApi = {
+      getBudgetForMonth$: vi.fn().mockReturnValue(of(mockJanuaryBudget)),
+      getBudgetWithDetails$: vi.fn().mockReturnValue(
+        of({
+          data: {
+            budget: mockJanuaryBudget,
+            transactions: [],
+            budgetLines: [],
+          },
+        }),
+      ),
+      getBudgetById$: vi.fn().mockReturnValue(of(mockJanuaryBudget)),
+    };
+
+    const mockTransactionApi = {
+      create$: vi.fn(),
+      update$: vi.fn(),
+      remove$: vi.fn(),
+    };
+
+    const mockBudgetCalculator = {
+      calculateLocalEndingBalance: vi.fn().mockReturnValue(0),
+      calculatePlannedIncome: vi.fn().mockReturnValue(0),
+      calculateActualTransactionsAmount: vi.fn().mockReturnValue(0),
+      calculateTotalAvailable: vi.fn().mockReturnValue(0),
+    };
+
+    const mockAppConfig = {
+      backendApiUrl: vi.fn().mockReturnValue('http://localhost:3000/api'),
+    };
+
+    const mockUserSettingsApi = {
+      payDayOfMonth: payDaySignal.asReadonly(),
+      isLoading: signal(false),
+    };
+
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        CurrentMonthStore,
+        { provide: BudgetApi, useValue: mockBudgetApi },
+        { provide: TransactionApi, useValue: mockTransactionApi },
+        { provide: BudgetCalculator, useValue: mockBudgetCalculator },
+        { provide: ApplicationConfiguration, useValue: mockAppConfig },
+        { provide: UserSettingsApi, useValue: mockUserSettingsApi },
+      ],
+    });
+
+    store = TestBed.inject(CurrentMonthStore);
+  });
+
+  describe('Budget period calculation with custom pay day', () => {
+    it('should compute February period when today is Jan 28 and payDay is 27', () => {
+      // Business scenario: User is paid on the 27th (2ème quinzaine).
+      // On January 28, they're in the February budget period (27 jan - 26 fév).
+      payDaySignal.set(27);
+      store.setCurrentDate(new Date('2024-01-28'));
+
+      const period = store.currentBudgetPeriod();
+
+      // 28 >= 27, payDay > 15 → +1 month → February
+      expect(period).toEqual({ month: 2, year: 2024 });
+    });
+
+    it('should compute January period when today is Jan 26 and payDay is 27', () => {
+      // Business scenario: User is paid on the 27th (2ème quinzaine).
+      // On January 26, they're in the January budget period (27 déc - 26 jan).
+      payDaySignal.set(27);
+      store.setCurrentDate(new Date('2024-01-26'));
+
+      const period = store.currentBudgetPeriod();
+
+      // 26 < 27 → December, then payDay > 15 → +1 month → January
+      expect(period).toEqual({ month: 1, year: 2024 });
+    });
+
+    it('should compute January 2025 period when today is Dec 27 and payDay is 27', () => {
+      // Business scenario: Year boundary.
+      // On December 27, user starts the January 2025 budget period (27 déc - 26 jan).
+      payDaySignal.set(27);
+      store.setCurrentDate(new Date('2024-12-27'));
+
+      const period = store.currentBudgetPeriod();
+
+      // 27 >= 27 → December, then payDay > 15 → +1 month → January 2025
+      expect(period).toEqual({ month: 1, year: 2025 });
+    });
+
+    it('should use calendar month when payDay is null', () => {
+      // Business scenario: User has no custom pay day configured.
+      // Standard calendar behavior: January 28 = January budget.
+      payDaySignal.set(null);
+      store.setCurrentDate(new Date('2024-01-28'));
+
+      const period = store.currentBudgetPeriod();
+
+      expect(period).toEqual({ month: 1, year: 2024 });
+    });
+
+    it('should use calendar month when payDay is 1', () => {
+      // Business scenario: User is paid on the 1st (standard calendar).
+      payDaySignal.set(1);
+      store.setCurrentDate(new Date('2024-01-28'));
+
+      const period = store.currentBudgetPeriod();
+
+      expect(period).toEqual({ month: 1, year: 2024 });
+    });
+
+    it('should compute January when today is Jan 6 and payDay is 3', () => {
+      // Business scenario: User is paid on the 3rd.
+      // On January 6, they already received their January paycheck on the 3rd.
+      payDaySignal.set(3);
+      store.setCurrentDate(new Date('2024-01-06'));
+
+      const period = store.currentBudgetPeriod();
+
+      // 6 >= 3 → current month (January)
+      expect(period).toEqual({ month: 1, year: 2024 });
+    });
+  });
+
+  describe('Dashboard loads correct budget based on pay day', () => {
+    it('should request February budget when today is Jan 28 and payDay is 27', async () => {
+      // Business scenario: Dashboard should load the budget for the computed period
+      // With quinzaine logic, Jan 28 + payDay=27 → February budget
+      payDaySignal.set(27);
+      store.setCurrentDate(new Date('2024-01-28'));
+
+      // Wait for resource to trigger
+      await vi.waitFor(() => {
+        expect(mockBudgetApi.getBudgetForMonth$).toHaveBeenCalled();
+      });
+
+      // Verify the API was called with February (month=2)
+      expect(mockBudgetApi.getBudgetForMonth$).toHaveBeenCalledWith(
+        '02',
+        '2024',
+      );
     });
   });
 });

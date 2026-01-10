@@ -65,16 +65,21 @@ export class BudgetCalculator {
   /**
    * Gets rollover amount and previous budget ID from previous months
    * @param budgetId - Budget ID to get rollover for
+   * @param payDayOfMonth - Day of month when pay period starts (1-31)
    * @param supabase - Authenticated Supabase client
    * @returns Rollover amount and previous budget ID from previous months
    */
   async getRollover(
     budgetId: string,
+    payDayOfMonth: number,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<{ rollover: number; previousBudgetId: string | null }> {
     try {
       const { data, error } = await supabase
-        .rpc('get_budget_with_rollover', { p_budget_id: budgetId })
+        .rpc('get_budget_with_rollover', {
+          p_budget_id: budgetId,
+          p_pay_day_of_month: payDayOfMonth,
+        })
         .single();
 
       if (error) {

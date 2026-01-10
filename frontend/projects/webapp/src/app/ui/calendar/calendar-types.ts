@@ -24,6 +24,9 @@ export interface CalendarMonth {
 
   /** Visual status for styling purposes */
   status?: 'positive' | 'negative' | 'neutral' | 'warning';
+
+  /** Optional period display string (e.g., "27 fév - 26 mars") */
+  period?: string;
 }
 
 export interface CalendarYear {

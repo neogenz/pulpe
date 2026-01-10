@@ -5,6 +5,8 @@ import {
   publicInfoResponseSchema,
   onboardingStatusResponseSchema,
   successMessageResponseSchema,
+  updateUserSettingsSchema,
+  userSettingsResponseSchema,
 } from 'pulpe-shared';
 
 // DTOs pour la documentation Swagger basés sur les schémas Zod partagés
@@ -20,4 +22,12 @@ export class OnboardingStatusResponseDto extends createZodDto(
 ) {}
 export class SuccessMessageResponseDto extends createZodDto(
   successMessageResponseSchema,
+) {}
+
+// DTOs pour les paramètres utilisateur
+export class UpdateUserSettingsDto extends createZodDto(
+  updateUserSettingsSchema,
+) {}
+export class UserSettingsResponseDto extends createZodDto(
+  userSettingsResponseSchema,
 ) {}
