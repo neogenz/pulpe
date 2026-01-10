@@ -16,7 +16,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { debounce, Field, form } from '@angular/forms/signals';
-import { catchError, of } from 'rxjs';
+import { of, tap } from 'rxjs';
 import type { TransactionSearchResult } from 'pulpe-shared';
 import { TransactionApi } from '@core/transaction/transaction-api';
 import { Logger } from '@core/logging/logger';
@@ -125,6 +125,14 @@ import { Logger } from '@core/logging/logger';
             ></tr>
           </table>
         </div>
+      } @else if (searchResource.error()) {
+        <div class="text-center py-8 text-error">
+          <mat-icon class="text-5xl! w-auto! h-auto! mb-2"
+            >error_outline</mat-icon
+          >
+          <p class="text-body-medium">Erreur lors de la recherche</p>
+          <p class="text-body-small">Veuillez réessayer ultérieurement</p>
+        </div>
       } @else if (searchResource.isLoading()) {
         <div class="flex flex-col items-center justify-center py-8 gap-2">
           <mat-progress-spinner mode="indeterminate" [diameter]="40" />
@@ -193,12 +201,9 @@ export class SearchTransactionsDialogComponent {
       if (!query) {
         return of({ success: true as const, data: [] });
       }
-      return this.#transactionApi.search$(query).pipe(
-        catchError((error) => {
-          this.#logger.error('Search error', error);
-          return of({ success: true as const, data: [] });
-        }),
-      );
+      return this.#transactionApi
+        .search$(query)
+        .pipe(tap({ error: (err) => this.#logger.error('Search error', err) }));
     },
   });
 
