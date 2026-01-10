@@ -4,6 +4,9 @@ import WidgetKit
 actor WidgetDataSyncService {
     static let shared = WidgetDataSyncService()
 
+    private static let currentMonthWidgetKind = "CurrentMonthWidget"
+    private static let yearOverviewWidgetKind = "YearOverviewWidget"
+
     private let coordinator = WidgetDataCoordinator()
 
     func sync(
@@ -46,8 +49,12 @@ actor WidgetDataSyncService {
             lastUpdated: Date()
         )
 
-        coordinator.save(cache)
-        WidgetCenter.shared.reloadAllTimelines()
+        let didSave = coordinator.save(cache)
+
+        guard didSave else { return }
+
+        WidgetCenter.shared.reloadTimelines(ofKind: Self.currentMonthWidgetKind)
+        WidgetCenter.shared.reloadTimelines(ofKind: Self.yearOverviewWidgetKind)
     }
 
     private nonisolated func buildYearBudgets(

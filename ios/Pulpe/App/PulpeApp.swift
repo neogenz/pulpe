@@ -10,6 +10,10 @@ struct PulpeApp: App {
     @State private var appState = AppState()
     @State private var deepLinkDestination: DeepLinkDestination?
 
+    init() {
+        BackgroundTaskService.shared.registerTasks()
+    }
+
     var body: some Scene {
         WindowGroup {
             RootView(deepLinkDestination: $deepLinkDestination)
@@ -38,8 +42,10 @@ struct PulpeApp: App {
 
 struct RootView: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.scenePhase) private var scenePhase
     @Binding var deepLinkDestination: DeepLinkDestination?
     @State private var showAddExpenseSheet = false
+    @State private var widgetSyncViewModel = WidgetSyncViewModel()
 
     var body: some View {
         @Bindable var appState = appState
@@ -71,6 +77,12 @@ struct RootView: View {
         .task {
             await appState.checkAuthState()
         }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .background, appState.authState == .authenticated {
+                Task { await widgetSyncViewModel.syncWidgetData() }
+                BackgroundTaskService.shared.scheduleWidgetRefresh()
+            }
+        }
         .alert(
             "Activer \(BiometricService.shared.biometryDisplayName) ?",
             isPresented: $appState.showBiometricEnrollment
@@ -92,6 +104,26 @@ struct RootView: View {
         } content: {
             DeepLinkAddExpenseSheet()
         }
+    }
+}
+
+@Observable
+final class WidgetSyncViewModel {
+    private let budgetService = BudgetService.shared
+
+    @MainActor
+    func syncWidgetData() async {
+        guard let currentBudget = try? await budgetService.getCurrentMonthBudget(),
+              let details = try? await budgetService.getBudgetWithDetails(id: currentBudget.id) else {
+            await WidgetDataSyncService.shared.sync(budgetsWithDetails: [], currentBudgetDetails: nil)
+            return
+        }
+
+        let exportData = try? await budgetService.exportAllBudgets()
+        await WidgetDataSyncService.shared.sync(
+            budgetsWithDetails: exportData?.budgets ?? [],
+            currentBudgetDetails: details
+        )
     }
 }
 

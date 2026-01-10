@@ -8,21 +8,23 @@ struct WidgetDataCoordinator: Sendable {
         UserDefaults(suiteName: Self.appGroupId)
     }
 
-    func save(_ cache: WidgetDataCache) {
-        guard let defaults = sharedDefaults else { return }
+    @discardableResult
+    func save(_ cache: WidgetDataCache) -> Bool {
+        guard let defaults = sharedDefaults else { return false }
         do {
             let data = try JSONEncoder().encode(cache)
             defaults.set(data, forKey: Self.cacheKey)
+            return defaults.synchronize()
         } catch {
             print("WidgetDataCoordinator: Failed to encode cache - \(error)")
+            return false
         }
     }
 
     func load() -> WidgetDataCache? {
-        guard let defaults = sharedDefaults,
-              let data = defaults.data(forKey: Self.cacheKey) else {
-            return nil
-        }
+        guard let defaults = sharedDefaults else { return nil }
+        defaults.synchronize()
+        guard let data = defaults.data(forKey: Self.cacheKey) else { return nil }
         do {
             return try JSONDecoder().decode(WidgetDataCache.self, from: data)
         } catch {
@@ -32,6 +34,8 @@ struct WidgetDataCoordinator: Sendable {
     }
 
     func clear() {
-        sharedDefaults?.removeObject(forKey: Self.cacheKey)
+        guard let defaults = sharedDefaults else { return }
+        defaults.removeObject(forKey: Self.cacheKey)
+        defaults.synchronize()
     }
 }

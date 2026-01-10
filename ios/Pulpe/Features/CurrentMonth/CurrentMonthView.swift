@@ -370,6 +370,23 @@ final class CurrentMonthViewModel {
     @MainActor
     func addTransaction(_ transaction: Transaction) {
         transactions.append(transaction)
+        Task { await syncWidgetAfterChange() }
+    }
+
+    private func syncWidgetAfterChange() async {
+        guard let budget else { return }
+
+        let details = BudgetDetails(
+            budget: budget,
+            transactions: transactions,
+            budgetLines: budgetLines
+        )
+
+        let exportData = try? await budgetService.exportAllBudgets()
+        await WidgetDataSyncService.shared.sync(
+            budgetsWithDetails: exportData?.budgets ?? [],
+            currentBudgetDetails: details
+        )
     }
 
     @MainActor
