@@ -7,10 +7,9 @@ import {
   viewChild,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { AuthApi } from '@core/auth/auth-api';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { DemoInitializerService } from '@core/demo/demo-initializer.service';
@@ -20,13 +19,9 @@ import { LottieComponent, type AnimationOptions } from 'ngx-lottie';
 import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
 
 @Component({
-  selector: 'pulpe-welcome',
-  host: {
-    '(keydown.enter)': 'onNext()',
-  },
+  selector: 'pulpe-welcome-page',
   imports: [
     MatButtonModule,
-    MatDividerModule,
     MatIconModule,
     MatProgressSpinnerModule,
     LottieComponent,
@@ -36,110 +31,97 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
-      class="flex flex-col items-center justify-center h-full md:gap-10 gap-6"
-      data-testid="onboarding-welcome-page"
+      class="min-h-screen pulpe-gradient flex items-center justify-center p-4"
     >
-      <div class="text-center">
-        <h1 class="text-headline-large text-on-surface">
-          Bienvenue dans Pulpe
-        </h1>
-
-        @defer (on idle) {
-          <div class="flex justify-center md:mb-6">
-            <!-- Animation offset: Compensates for Lottie container padding (Mobile: -86px, Desktop: -100px) -->
-            <ng-lottie
-              [options]="lottieOptions"
-              class="md:w-80 md:h-80 mt-[-86px] md:mt-[-100px]"
-              style="background: transparent !important;"
-            />
-          </div>
-        } @placeholder {
-          <div
-            class="flex justify-center mb-6 md:w-80 md:h-80 mt-[-86px] md:mt-[-100px] items-center"
-          >
-            <div
-              class="w-24 h-24 bg-primary/10 rounded-full animate-pulse"
-            ></div>
-          </div>
-        } @loading {
-          <div
-            class="flex justify-center mb-6 md:w-80 md:h-80 mt-[-86px] md:mt-[-100px] items-center"
-          >
-            <div
-              class="w-24 h-24 bg-primary/20 rounded-full animate-pulse"
-            ></div>
-          </div>
-        } @error {
-          <div
-            class="flex justify-center mb-6 md:w-80 md:h-80 mt-[-86px] md:mt-[-100px] items-center"
-          >
-            <span class="text-on-surface-variant text-4xl">🎨</span>
-          </div>
-        }
-
-        <p
-          class="text-body-large text-on-surface-variant md:leading-relaxed px-4"
-        >
-          Planifie ton année en 5 minutes. Dépense l'esprit tranquille.
-        </p>
-      </div>
       <div
-        class="flex gap-4 flex-col items-center justify-center flex-1 w-full"
+        class="w-full max-w-3xl min-h-[600px] md:h-[800px] bg-surface rounded-2xl md:p-16 p-8 flex flex-col items-center justify-center gap-6 md:gap-10"
+        data-testid="welcome-page"
       >
-        <div class="flex gap-4 flex-col items-center w-full">
+        <div class="text-center">
+          <h1 class="text-headline-large text-on-surface">
+            Bienvenue dans Pulpe
+          </h1>
+
+          @defer (on idle) {
+            <div class="flex justify-center md:mb-6">
+              <ng-lottie
+                [options]="lottieOptions"
+                class="md:w-80 md:h-80 mt-[-86px] md:mt-[-100px]"
+                style="background: transparent !important;"
+              />
+            </div>
+          } @placeholder {
+            <div
+              class="flex justify-center mb-6 md:w-80 md:h-80 mt-[-86px] md:mt-[-100px] items-center"
+            >
+              <div
+                class="w-24 h-24 bg-primary/10 rounded-full animate-pulse"
+              ></div>
+            </div>
+          } @loading {
+            <div
+              class="flex justify-center mb-6 md:w-80 md:h-80 mt-[-86px] md:mt-[-100px] items-center"
+            >
+              <div
+                class="w-24 h-24 bg-primary/20 rounded-full animate-pulse"
+              ></div>
+            </div>
+          } @error {
+            <div
+              class="flex justify-center mb-6 md:w-80 md:h-80 mt-[-86px] md:mt-[-100px] items-center"
+            >
+              <span class="text-on-surface-variant text-4xl"></span>
+            </div>
+          }
+
+          <p
+            class="text-body-large text-on-surface-variant md:leading-relaxed px-4"
+          >
+            Reprends le contrôle de tes finances en quelques minutes
+          </p>
+        </div>
+
+        <div class="flex gap-4 flex-col items-center justify-center w-full">
           <button
             matButton="filled"
             color="primary"
-            class="w-full max-w-sm"
-            data-testid="welcome-start-button"
-            (click)="onNext()"
-          >
-            Commencer
-          </button>
-
-          <div class="flex items-center gap-4 w-full max-w-sm">
-            <mat-divider class="flex-1" />
-            <span class="text-body-small text-on-surface-variant">ou</span>
-            <mat-divider class="flex-1" />
-          </div>
-
-          <button
-            matButton="outlined"
-            type="button"
-            data-testid="google-signup-button"
-            class="w-full max-w-sm"
-            [disabled]="isLoading() || isGoogleLoading()"
+            class="w-full max-w-sm h-12"
+            data-testid="google-oauth-button"
+            [disabled]="isLoading()"
             (click)="signInWithGoogle()"
           >
             @if (isGoogleLoading()) {
-              <div class="flex justify-center items-center">
+              <div class="flex items-center justify-center">
                 <mat-progress-spinner
                   mode="indeterminate"
                   [diameter]="20"
-                  aria-label="Connexion avec Google en cours"
+                  aria-label="Connexion en cours"
                   role="progressbar"
                   class="pulpe-loading-indicator pulpe-loading-small mr-2"
                 ></mat-progress-spinner>
-                <span aria-live="polite">Connexion...</span>
+                <span aria-live="polite">Connexion en cours...</span>
               </div>
             } @else {
-              <div class="flex justify-center items-center gap-2">
+              <div class="flex items-center justify-center gap-2">
                 <mat-icon svgIcon="google" />
-                Continuer avec Google
+                <span>Continuer avec Google</span>
               </div>
             }
           </button>
 
-          @if (googleErrorMessage()) {
-            <div
-              class="bg-error-container text-on-error-container p-3 rounded-lg text-body-small flex items-center gap-2 w-full max-w-sm"
-            >
-              <mat-icon class="flex-shrink-0 text-base">error_outline</mat-icon>
-              <span>{{ googleErrorMessage() }}</span>
+          <button
+            matButton="outlined"
+            class="w-full max-w-sm h-12"
+            data-testid="email-signup-button"
+            [disabled]="isLoading()"
+            [routerLink]="['/', ROUTES.LOGIN]"
+          >
+            <div class="flex items-center justify-center gap-2">
+              <mat-icon>email</mat-icon>
+              <span>Utiliser mon email</span>
             </div>
-          }
+          </button>
 
-          <!-- Turnstile Widget - Rendered on-demand when user clicks demo button -->
           @if (shouldRenderTurnstile() && shouldUseTurnstile()) {
             <ngx-turnstile
               #turnstileWidget
@@ -156,11 +138,11 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
             matButton="tonal"
             type="button"
             data-testid="demo-mode-button"
-            class="w-full max-w-sm"
+            class="w-full max-w-sm h-12"
             [disabled]="isLoading()"
             (click)="startDemoMode()"
           >
-            @if (isLoading()) {
+            @if (isDemoLoading()) {
               <div class="flex justify-center items-center">
                 <mat-progress-spinner
                   mode="indeterminate"
@@ -179,32 +161,33 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
             }
           </button>
 
-          @if (demoErrorMessage()) {
+          @if (errorMessage()) {
             <div
-              class="bg-error-container text-on-error-container p-3 rounded-lg mt-3 text-body-small flex items-center gap-2"
+              class="bg-error-container text-on-error-container p-3 rounded-lg mt-3 text-body-small flex items-center gap-2 w-full max-w-sm"
             >
               <mat-icon class="flex-shrink-0 text-base">error_outline</mat-icon>
-              <span>{{ demoErrorMessage() }}</span>
+              <span>{{ errorMessage() }}</span>
             </div>
           }
         </div>
-      </div>
 
-      <div class="w-full flex-col gap-2 flex justify-center items-center">
-        <p class="text-body-small">Tu as déjà un compte ?</p>
-        <button
-          matButton
-          [routerLink]="['/', ROUTES.LOGIN]"
-          class="w-full max-w-sm"
-        >
-          Se connecter
-        </button>
+        <div class="w-full flex-col gap-2 flex justify-center items-center">
+          <p class="text-body-small text-on-surface-variant">
+            Tu as déjà un compte ?
+          </p>
+          <button
+            matButton
+            [routerLink]="['/', ROUTES.LOGIN]"
+            class="w-full max-w-sm"
+          >
+            Se connecter
+          </button>
+        </div>
       </div>
     </div>
   `,
 })
-export default class Welcome {
-  readonly #router = inject(Router);
+export default class WelcomePage {
   readonly #authApi = inject(AuthApi);
   readonly #demoInitializer = inject(DemoInitializerService);
   readonly #logger = inject(Logger);
@@ -218,19 +201,23 @@ export default class Welcome {
       'Échec de la vérification anti-robot. Veuillez réessayer.',
     DEMO_INIT_FAILED:
       'Impossible de démarrer le mode démo. Veuillez réessayer.',
+    GOOGLE_AUTH_FAILED:
+      'Erreur lors de la connexion avec Google. Veuillez réessayer.',
   } as const;
 
   readonly #TURNSTILE_TIMEOUT_MS = 5000;
   #turnstileTimeoutId: ReturnType<typeof setTimeout> | null = null;
   #turnstileResolutionHandled = false;
 
-  protected readonly demoErrorMessage = signal('');
-  protected readonly googleErrorMessage = signal('');
+  protected readonly errorMessage = signal('');
+  protected readonly isGoogleLoading = signal(false);
   protected readonly isDemoInitializing = this.#demoInitializer.isInitializing;
   protected readonly isTurnstileProcessing = signal(false);
-  protected readonly isGoogleLoading = signal(false);
-  protected readonly isLoading = computed(
+  protected readonly isDemoLoading = computed(
     () => this.isTurnstileProcessing() || this.isDemoInitializing(),
+  );
+  protected readonly isLoading = computed(
+    () => this.isGoogleLoading() || this.isDemoLoading(),
   );
 
   protected readonly turnstileSiteKey = computed(
@@ -240,7 +227,6 @@ export default class Welcome {
     () => !this.#config.isLocal(),
   );
 
-  // Control when to render Turnstile widget (lazy rendering on user click)
   protected readonly shouldRenderTurnstile = signal(false);
 
   protected readonly turnstileWidget =
@@ -259,8 +245,24 @@ export default class Welcome {
     assetsPath: '/lottie/',
   };
 
-  onNext(): void {
-    this.#continueToNext();
+  async signInWithGoogle(): Promise<void> {
+    this.errorMessage.set('');
+    this.isGoogleLoading.set(true);
+
+    try {
+      const result = await this.#authApi.signInWithGoogle();
+
+      if (!result.success) {
+        this.errorMessage.set(
+          result.error || this.#ERROR_MESSAGES.GOOGLE_AUTH_FAILED,
+        );
+        this.isGoogleLoading.set(false);
+      }
+    } catch (error) {
+      this.#logger.error('Erreur lors de la connexion Google:', error);
+      this.errorMessage.set(this.#ERROR_MESSAGES.GOOGLE_AUTH_FAILED);
+      this.isGoogleLoading.set(false);
+    }
   }
 
   onTurnstileResolved(token: string | null): void {
@@ -274,7 +276,7 @@ export default class Welcome {
 
     if (!token) {
       this.#logger.error('Turnstile resolved with null token');
-      this.demoErrorMessage.set(this.#ERROR_MESSAGES.TURNSTILE_FAILED);
+      this.errorMessage.set(this.#ERROR_MESSAGES.TURNSTILE_FAILED);
       this.shouldRenderTurnstile.set(false);
       this.#turnstileResolutionHandled = false;
       return;
@@ -287,18 +289,17 @@ export default class Welcome {
   onTurnstileError(): void {
     this.#clearTurnstileTimeout();
     this.#logger.error('Turnstile verification failed');
-    this.demoErrorMessage.set(this.#ERROR_MESSAGES.TURNSTILE_FAILED);
+    this.errorMessage.set(this.#ERROR_MESSAGES.TURNSTILE_FAILED);
     this.isTurnstileProcessing.set(false);
     this.shouldRenderTurnstile.set(false);
     this.#turnstileResolutionHandled = false;
   }
 
   async startDemoMode(): Promise<void> {
-    this.demoErrorMessage.set('');
+    this.errorMessage.set('');
     this.isTurnstileProcessing.set(true);
     this.#turnstileResolutionHandled = false;
 
-    // E2E Test Bypass - skip Turnstile widget entirely
     if (
       typeof window !== 'undefined' &&
       (window as { __E2E_DEMO_BYPASS__?: boolean }).__E2E_DEMO_BYPASS__ === true
@@ -308,28 +309,22 @@ export default class Welcome {
       return;
     }
 
-    // In local environment, bypass Turnstile and call backend directly
-    // Backend already skips Turnstile verification in non-production environments
     if (!this.shouldUseTurnstile()) {
       this.#logger.debug('Turnstile skipped in local environment');
       await this.#startDemoWithToken('');
       return;
     }
 
-    // Safari iOS bypass - Turnstile cross-origin communication is blocked
-    // Protection maintained via backend rate limiting (30 req/h/IP)
     if (this.#isSafariIOS()) {
       this.#logger.info('Safari iOS detected, bypassing Turnstile');
       await this.#startDemoWithToken('');
       return;
     }
 
-    // Start timeout - if Turnstile doesn't respond in 5s, bypass it
     this.#turnstileTimeoutId = setTimeout(() => {
       this.#handleTurnstileTimeout();
     }, this.#TURNSTILE_TIMEOUT_MS);
 
-    // Try to reset existing widget first, otherwise render new one
     const widget = this.turnstileWidget();
     if (widget) {
       this.#logger.debug('Resetting existing Turnstile widget');
@@ -343,28 +338,18 @@ export default class Welcome {
   async #startDemoWithToken(token: string): Promise<void> {
     try {
       await this.#demoInitializer.startDemoSession(token);
-      // Navigation is handled by the service
     } catch (error) {
       this.#logger.error('Failed to start demo mode', { error });
 
       if (error instanceof Error && error.message.includes('anti-robot')) {
-        this.demoErrorMessage.set(this.#ERROR_MESSAGES.ANTI_ROBOT_FAILED);
+        this.errorMessage.set(this.#ERROR_MESSAGES.ANTI_ROBOT_FAILED);
       } else {
-        this.demoErrorMessage.set(this.#ERROR_MESSAGES.DEMO_INIT_FAILED);
+        this.errorMessage.set(this.#ERROR_MESSAGES.DEMO_INIT_FAILED);
       }
 
-      // Reset processing state and widget for retry
       this.isTurnstileProcessing.set(false);
       this.shouldRenderTurnstile.set(false);
     }
-  }
-
-  #continueToNext(): void {
-    this.#router.navigate([
-      '/',
-      ROUTES.ONBOARDING,
-      ROUTES.ONBOARDING_PERSONAL_INFO,
-    ]);
   }
 
   #isSafariIOS(): boolean {
@@ -400,28 +385,6 @@ export default class Welcome {
     if (this.#turnstileTimeoutId) {
       clearTimeout(this.#turnstileTimeoutId);
       this.#turnstileTimeoutId = null;
-    }
-  }
-
-  async signInWithGoogle(): Promise<void> {
-    this.googleErrorMessage.set('');
-    this.isGoogleLoading.set(true);
-
-    try {
-      const result = await this.#authApi.signInWithGoogle();
-
-      if (!result.success) {
-        this.googleErrorMessage.set(
-          result.error || 'Erreur lors de la connexion avec Google',
-        );
-        this.isGoogleLoading.set(false);
-      }
-    } catch (error) {
-      this.#logger.error('Erreur lors de la connexion Google:', error);
-      this.googleErrorMessage.set(
-        "Une erreur inattendue s'est produite. Veuillez réessayer.",
-      );
-      this.isGoogleLoading.set(false);
     }
   }
 }
