@@ -62,7 +62,7 @@ export const budgetSchema = z.object({
   id: z.uuid(),
   month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
   year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
-  description: z.string().min(1).max(500),
+  description: z.string().max(500),
   userId: z.uuid().optional(),
   templateId: z.uuid(),
   // ending_balance : STOCKÉ en base selon SPECS.md section 3
@@ -85,7 +85,7 @@ export type Budget = z.infer<typeof budgetSchema>;
 export const budgetCreateSchema = z.object({
   month: z.number().int().min(MONTH_MIN).max(MONTH_MAX),
   year: z.number().int().min(MIN_YEAR).max(MAX_YEAR),
-  description: z.string().min(1).max(500).trim(),
+  description: z.string().max(500).trim().optional().default(''),
   templateId: z.uuid(),
 });
 export type BudgetCreate = z.infer<typeof budgetCreateSchema>;
