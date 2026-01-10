@@ -3,6 +3,7 @@ import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
 import type { AuthenticatedSupabaseClient } from '../supabase/supabase.service';
 import { addMonths, startOfMonth } from 'date-fns';
 import type { Tables } from '../../types/database.types';
+import { BudgetCalculator } from '../budget/budget.calculator';
 
 type TemplateRow = Tables<'template'>;
 type TemplateLineRow = Tables<'template_line'>;
@@ -24,6 +25,7 @@ export class DemoDataGeneratorService {
   constructor(
     @InjectPinoLogger(DemoDataGeneratorService.name)
     private readonly logger: PinoLogger,
+    private readonly budgetCalculator: BudgetCalculator,
   ) {}
 
   /**
@@ -71,6 +73,13 @@ export class DemoDataGeneratorService {
       this.logger.info(
         { userId, count: transactions.length },
         'Transactions created',
+      );
+
+      // 6. Recalculate ending_balance for all budgets (enables rollover calculation)
+      await this.recalculateAllBudgetBalances(budgets, supabase);
+      this.logger.info(
+        { userId, count: budgets.length },
+        'Budget balances recalculated',
       );
 
       this.logger.info({ userId }, 'Demo data generation completed');
@@ -668,5 +677,23 @@ export class DemoDataGeneratorService {
       ).toISOString(),
       checked_at: null,
     };
+  }
+
+  /**
+   * Recalculates ending_balance for all budgets in chronological order
+   * This ensures rollover values cascade correctly from oldest to newest
+   */
+  private async recalculateAllBudgetBalances(
+    budgets: BudgetRow[],
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<void> {
+    const sortedBudgets = [...budgets].sort((a, b) => {
+      if (a.year !== b.year) return a.year - b.year;
+      return a.month - b.month;
+    });
+
+    for (const budget of sortedBudgets) {
+      await this.budgetCalculator.recalculateAndPersist(budget.id, supabase);
+    }
   }
 }
