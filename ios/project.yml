@@ -40,11 +40,24 @@ targets:
       - path: Pulpe
         excludes:
           - "**/.DS_Store"
+      - path: PulpeWidget/Models
+        excludes:
+          - "**/.DS_Store"
+      - path: PulpeWidget/Services
+        excludes:
+          - "**/.DS_Store"
     dependencies:
       - package: supabase-swift
         product: Supabase
       - package: lottie-spm
         product: Lottie
+      - target: PulpeWidget
+        embed: true
+    entitlements:
+      path: Pulpe/Pulpe.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.app.pulpe.ios
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.pulpe.ios
@@ -75,14 +88,78 @@ targets:
           - arm64
         ITSAppUsesNonExemptEncryption: false
         NSFaceIDUsageDescription: "Utilisez Face ID pour vous connecter rapidement et en toute sécurité."
+        CFBundleURLTypes:
+          - CFBundleURLSchemes:
+              - pulpe
+            CFBundleURLName: app.pulpe.ios
+
+  PulpeWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: PulpeWidget
+        excludes:
+          - "**/.DS_Store"
+      - path: Pulpe/Domain/Models
+        excludes:
+          - "**/.DS_Store"
+      - path: Pulpe/Domain/Formulas
+        excludes:
+          - "**/.DS_Store"
+      - path: Pulpe/Shared/Extensions
+        excludes:
+          - "**/.DS_Store"
+          - "**/View+Extensions.swift"
+      - path: Pulpe/Shared/Formatters
+        excludes:
+          - "**/.DS_Store"
+    entitlements:
+      path: PulpeWidget/PulpeWidget.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.app.pulpe.ios
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.pulpe.ios.widget
+        INFOPLIST_FILE: PulpeWidget/Info.plist
+        SKIP_INSTALL: true
+        IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+        TARGETED_DEVICE_FAMILY: "1,2"
+    info:
+      path: PulpeWidget/Info.plist
+      properties:
+        CFBundleDisplayName: Pulpe Widget
+        CFBundleName: $(PRODUCT_NAME)
+        CFBundleIdentifier: $(PRODUCT_BUNDLE_IDENTIFIER)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundlePackageType: XPC!
+        CFBundleExecutable: $(EXECUTABLE_NAME)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
 
 schemes:
   Pulpe:
     build:
       targets:
         Pulpe: all
+        PulpeWidget: all
     run:
       config: Debug
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
+
+  PulpeWidget:
+    build:
+      targets:
+        PulpeWidget: all
+    run:
+      config: Debug
+      askForAppToLaunch: true
     profile:
       config: Release
     analyze:

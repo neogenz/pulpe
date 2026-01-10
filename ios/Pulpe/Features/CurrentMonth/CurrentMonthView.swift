@@ -1,4 +1,5 @@
 import SwiftUI
+import WidgetKit
 
 struct CurrentMonthView: View {
     @Environment(AppState.self) private var appState
@@ -287,6 +288,7 @@ final class CurrentMonthViewModel {
                 budgetLines = []
                 transactions = []
                 isLoading = false
+                await syncWidgetData(details: nil)
                 return
             }
 
@@ -295,11 +297,21 @@ final class CurrentMonthViewModel {
             budget = details.budget
             budgetLines = details.budgetLines
             transactions = details.transactions
+
+            await syncWidgetData(details: details)
         } catch {
             self.error = error
         }
 
         isLoading = false
+    }
+
+    private func syncWidgetData(details: BudgetDetails?) async {
+        let exportData = try? await budgetService.exportAllBudgets()
+        await WidgetDataSyncService.shared.sync(
+            budgetsWithDetails: exportData?.budgets ?? [],
+            currentBudgetDetails: details
+        )
     }
 
     @MainActor
