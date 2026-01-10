@@ -59,12 +59,12 @@ import { Logger } from '@core/logging/logger';
           }
           <input
             matInput
-            [field]="searchForm.query"
+            [field]="filterForm.query"
             placeholder="Nom ou description..."
             autocomplete="off"
             data-testid="search-input"
           />
-          @if (searchForm.query().value()) {
+          @if (filterForm.query().value()) {
             <button
               matIconButton
               matIconSuffix
@@ -84,8 +84,7 @@ import { Logger } from '@core/logging/logger';
         >
           <mat-label>Filtrer par année</mat-label>
           <mat-select
-            [value]="selectedYears()"
-            (selectionChange)="selectedYears.set($event.value)"
+            [field]="filterForm.years"
             multiple
             data-testid="year-filter"
           >
@@ -197,7 +196,7 @@ import { Logger } from '@core/logging/logger';
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class SearchTransactionsDialogComponent {
+export default class SearchTransactionsDialogComponent {
   readonly #dialogRef = inject(
     MatDialogRef<
       SearchTransactionsDialogComponent,
@@ -208,14 +207,12 @@ export class SearchTransactionsDialogComponent {
   readonly #budgetApi = inject(BudgetApi);
   readonly #logger = inject(Logger);
 
-  readonly #searchModel = signal({ query: '' });
-  readonly searchForm = form(this.#searchModel, (path) => {
+  readonly #filterModel = signal({ query: '', years: [] as number[] });
+  protected readonly filterForm = form(this.#filterModel, (path) => {
     debounce(path.query, 300);
   });
 
-  readonly selectedYears = signal<number[]>([]);
-
-  readonly availableYearsResource = rxResource({
+  protected readonly availableYearsResource = rxResource({
     stream: () =>
       this.#budgetApi.getAllBudgets$().pipe(
         map((budgets) => {
@@ -226,11 +223,15 @@ export class SearchTransactionsDialogComponent {
   });
 
   readonly #validQuery = computed(() => {
-    const query = this.searchForm.query().value().trim();
+    const query = this.filterForm.query().value().trim();
     return query.length >= 2 ? query : null;
   });
 
-  readonly searchResource = rxResource({
+  protected readonly selectedYears = computed(() =>
+    this.filterForm.years().value(),
+  );
+
+  protected readonly searchResource = rxResource({
     params: () => ({ query: this.#validQuery(), years: this.selectedYears() }),
     stream: ({ params }) => {
       if (!params.query) {
@@ -243,18 +244,18 @@ export class SearchTransactionsDialogComponent {
     },
   });
 
-  readonly searchResults = computed(
+  protected readonly searchResults = computed(
     () => this.searchResource.value()?.data ?? [],
   );
-  readonly hasSearched = computed(() => this.#validQuery() !== null);
+  protected readonly hasSearched = computed(() => this.#validQuery() !== null);
 
-  readonly displayedColumns = ['period', 'name', 'amount'];
+  protected readonly displayedColumns = ['period', 'name', 'amount'] as const;
 
-  clearSearch(): void {
-    this.#searchModel.set({ query: '' });
+  protected clearSearch(): void {
+    this.#filterModel.update((model) => ({ ...model, query: '' }));
   }
 
-  selectResult(result: TransactionSearchResult): void {
+  protected selectResult(result: TransactionSearchResult): void {
     this.#dialogRef.close(result);
   }
 }

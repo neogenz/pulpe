@@ -28,7 +28,7 @@ import { MonthsError } from '../ui/budget-error';
 import { mapToCalendarYear } from './budget-list-mapper/budget-list.mapper';
 import { BudgetListStore } from './budget-list-store';
 import { CreateBudgetDialogComponent } from './create-budget/budget-creation-dialog';
-import { SearchTransactionsDialogComponent } from './search-transactions-dialog/search-transactions-dialog';
+import SearchTransactionsDialogComponent from './search-transactions-dialog/search-transactions-dialog';
 import { Logger } from '@core/logging/logger';
 import type { TransactionSearchResult } from 'pulpe-shared';
 import {
