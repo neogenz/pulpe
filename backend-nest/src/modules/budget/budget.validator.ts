@@ -90,7 +90,7 @@ export class BudgetValidator {
     const missingFields = [];
     if (!createBudgetDto.month) missingFields.push('month');
     if (!createBudgetDto.year) missingFields.push('year');
-    if (!createBudgetDto.description) missingFields.push('description');
+    // Description is optional - no validation needed
     if (!createBudgetDto.templateId) missingFields.push('templateId');
 
     if (missingFields.length > 0) {
@@ -131,10 +131,11 @@ export class BudgetValidator {
    * @param createBudgetDto - Budget creation data
    */
   private validateBusinessRules(createBudgetDto: BudgetCreate): void {
-    // Description length validation
+    // Description length validation (only if description is provided)
     if (
+      createBudgetDto.description &&
       createBudgetDto.description.length >
-      BUDGET_CONSTANTS.DESCRIPTION_MAX_LENGTH
+        BUDGET_CONSTANTS.DESCRIPTION_MAX_LENGTH
     ) {
       throw new BusinessException(ERROR_DEFINITIONS.VALIDATION_FAILED, {
         reason: `Description cannot exceed ${BUDGET_CONSTANTS.DESCRIPTION_MAX_LENGTH} characters`,

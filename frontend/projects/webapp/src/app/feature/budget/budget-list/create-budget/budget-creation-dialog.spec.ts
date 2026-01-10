@@ -628,7 +628,8 @@ describe('CreateBudgetDialogComponent', () => {
 
   describe('Form Validation Integration', () => {
     it('should prevent budget creation when form is invalid', async () => {
-      // Make form invalid by clearing required fields
+      // Make form invalid by clearing required fields (monthYear and templateId)
+      // Note: description is optional, so empty string is valid
       component.budgetForm.patchValue({
         monthYear: undefined,
         description: '',
@@ -644,6 +645,14 @@ describe('CreateBudgetDialogComponent', () => {
 
       expect(createBudgetSpy).not.toHaveBeenCalled();
       expect(component.isCreating()).toBe(false);
+    });
+
+    it('should allow empty description (optional field)', () => {
+      component.budgetForm.patchValue({ description: '' });
+      component.budgetForm.get('description')?.markAsTouched();
+
+      expect(component.budgetForm.get('description')?.valid).toBe(true);
+      expect(component.budgetForm.get('description')?.errors).toBeNull();
     });
 
     it('should validate description length correctly', () => {

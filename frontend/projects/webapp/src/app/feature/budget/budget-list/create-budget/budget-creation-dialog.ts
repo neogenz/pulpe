@@ -37,7 +37,6 @@ const BUDGET_CREATION_CONSTANTS = {
 
   // Error messages
   ERROR_MESSAGES: {
-    INVALID_DESCRIPTION: 'La description est requise',
     DESCRIPTION_TOO_LONG: 'La description ne peut pas dépasser 100 caractères',
   } as const,
 
@@ -124,7 +123,7 @@ const MONTH_YEAR_FORMATS = {
 
           <!-- Description Field -->
           <mat-form-field appearance="outline" class="w-full">
-            <mat-label>Description</mat-label>
+            <mat-label>Description (optionnelle)</mat-label>
             <input
               matInput
               formControlName="description"
@@ -136,17 +135,9 @@ const MONTH_YEAR_FORMATS = {
                 constants.DESCRIPTION_MAX_LENGTH
               }}</mat-hint
             >
-            @if (
-              budgetForm.get('description')?.invalid &&
-              budgetForm.get('description')?.touched
-            ) {
+            @if (budgetForm.get('description')?.errors?.['maxlength']) {
               <mat-error>
-                @if (budgetForm.get('description')?.errors?.['required']) {
-                  {{ constants.ERROR_MESSAGES.INVALID_DESCRIPTION }}
-                }
-                @if (budgetForm.get('description')?.errors?.['maxlength']) {
-                  {{ constants.ERROR_MESSAGES.DESCRIPTION_TOO_LONG }}
-                }
+                {{ constants.ERROR_MESSAGES.DESCRIPTION_TOO_LONG }}
               </mat-error>
             }
           </mat-form-field>
@@ -255,10 +246,7 @@ export class CreateBudgetDialogComponent {
     monthYear: [this.#getInitialDate(), Validators.required],
     description: [
       '',
-      [
-        Validators.required,
-        Validators.maxLength(BUDGET_CREATION_CONSTANTS.DESCRIPTION_MAX_LENGTH),
-      ],
+      [Validators.maxLength(BUDGET_CREATION_CONSTANTS.DESCRIPTION_MAX_LENGTH)],
     ],
     templateId: ['', Validators.required],
   });
