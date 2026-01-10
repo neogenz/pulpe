@@ -22,81 +22,81 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Claude Code Review
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          track_progress: true
           prompt: |
-            Tu es un expert code reviewer Angular 20+ / NestJS pour le projet Pulpe.
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+            TITRE: ${{ github.event.pull_request.title }}
 
-            ## CONTEXTE PR
-            - Repository: ${{ github.repository }}
-            - PR: #${{ github.event.pull_request.number }}
-            - Titre: ${{ github.event.pull_request.title }}
+            Tu es un expert code reviewer Angular 20+ / NestJS pour le projet Pulpe.
 
             ## ÉTAPES OBLIGATOIRES
             1. Lis CLAUDE.md et .claude/rules/ pour les standards du projet
             2. Lis memory-bank/SPECS.md pour les règles métier
-            3. Exécute `gh pr diff ${{ github.event.pull_request.number }}` pour voir les changements
-            4. Poste ta review:
-               - Écris ta review dans le fichier `/tmp/review.md`
-               - Exécute: `gh pr comment ${{ github.event.pull_request.number }} --body-file /tmp/review.md`
+            3. Analyse le diff de la PR
 
             ## CHECKLIST DE REVIEW
 
             ### Architecture (5-layer pattern)
-            - [ ] Pas d'import cross-feature (features isolées)
-            - [ ] Dépendances: core ← layout/feature/pattern, ui ← layout/feature/pattern
-            - [ ] Backend: controller → service → mapper (pas de logique dans controller)
+            - Pas d'import cross-feature (features isolées)
+            - Dépendances: core ← layout/feature/pattern, ui ← layout/feature/pattern
+            - Backend: controller → service → mapper (pas de logique dans controller)
 
             ### Angular 20+ (frontend/)
-            - [ ] Composants standalone avec OnPush
-            - [ ] Signals: signal(), computed(), linkedSignal() (PAS effect() pour derived state)
-            - [ ] Resources: httpResource() pour GET, rxResource() pour complexe
-            - [ ] RxJS: takeUntilDestroyed() obligatoire sur tout subscribe()
-            - [ ] Inputs: input() au lieu de @Input()
+            - Composants standalone avec OnPush
+            - Signals: signal(), computed(), linkedSignal() (PAS effect() pour derived state)
+            - Resources: httpResource() pour GET, rxResource() pour complexe
+            - RxJS: takeUntilDestroyed() obligatoire sur tout subscribe()
+            - Inputs: input() au lieu de @Input()
 
             ### NestJS (backend-nest/)
-            - [ ] DTOs validés avec class-validator
-            - [ ] AuthGuard avec @User() decorator
-            - [ ] Pas de logique métier dans les controllers
+            - DTOs validés avec class-validator
+            - AuthGuard avec @User() decorator
+            - Pas de logique métier dans les controllers
 
             ### TypeScript (shared/)
-            - [ ] Zod schemas = source de vérité API
-            - [ ] Pas de `any`, utiliser `unknown` + type guards
-            - [ ] Types stricts, pas d'assertions `as` injustifiées
+            - Zod schemas = source de vérité API
+            - Pas de `any`, utiliser `unknown` + type guards
+            - Types stricts, pas d'assertions `as` injustifiées
 
             ### Sécurité
-            - [ ] Pas de secrets hardcodés
-            - [ ] JWT requis sur tous les endpoints
-            - [ ] RLS: WHERE auth.uid() = user_id sur toutes les tables user
+            - Pas de secrets hardcodés
+            - JWT requis sur tous les endpoints
+            - RLS: WHERE auth.uid() = user_id sur toutes les tables user
 
             ### Qualité Code
-            - [ ] Fonctions ≤ 30 lignes
-            - [ ] Fichiers ≤ 300 lignes
-            - [ ] Paramètres ≤ 5
-            - [ ] Noms descriptifs (pas de x, temp, data)
-            - [ ] Booleans préfixés: is, has, should, can
+            - Fonctions ≤ 30 lignes
+            - Fichiers ≤ 300 lignes
+            - Paramètres ≤ 5
+            - Noms descriptifs (pas de x, temp, data)
+            - Booleans préfixés: is, has, should, can
 
             ### Règles Métier (memory-bank/SPECS.md)
-            - [ ] Calculs financiers côté serveur uniquement
-            - [ ] Rollover = ending_balance du mois précédent
-            - [ ] Template propagation: jamais sur mois passés
-            - [ ] Lignes `is_manually_adjusted = true` jamais modifiées
-            - [ ] Atomicité: all-or-nothing sur création budget/import transactions
+            - Calculs financiers côté serveur uniquement
+            - Rollover = ending_balance du mois précédent
+            - Template propagation: jamais sur mois passés
+            - Lignes `is_manually_adjusted = true` jamais modifiées
+            - Atomicité: all-or-nothing sur création budget/import transactions
 
             ### Scripts DB (supabase/)
-            - [ ] Migrations idempotentes (IF NOT EXISTS)
-            - [ ] RLS policies sur nouvelles tables
-            - [ ] Pas de DROP sans IF EXISTS
-            - [ ] Pas de données de test en production
+            - Migrations idempotentes (IF NOT EXISTS)
+            - RLS policies sur nouvelles tables
+            - Pas de DROP sans IF EXISTS
+            - Pas de données de test en production
 
-            ## FORMAT DE SORTIE
+            ## INSTRUCTIONS DE SORTIE
+            Utilise les commentaires inline pour les problèmes spécifiques sur des lignes de code.
+            Utilise un commentaire top-level pour le résumé général.
 
+            Format du résumé:
             ### 🚨 CRITIQUE (bloquant)
             `fichier:ligne` - Description + fix concret
 
@@ -112,6 +112,6 @@ jobs:
             Max 10 issues. Réponse en français.
 
           claude_args: |
-            --max-turns 30
-            --model claude-opus-4-5-20251101
-            --allowedTools "Bash(gh:*),Read,Glob,Write"
+            --max-turns 15
+            --model claude-sonnet-4-5-20250514
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Read,Glob"
