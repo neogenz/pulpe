@@ -30,17 +30,10 @@ import { type CalendarMonth } from './calendar-types';
       role="button"
       matRipple
     >
-      <mat-card-header
-        class="flex-shrink-0 flex flex-col items-center justify-center gap-0"
-      >
+      <mat-card-header>
         <mat-card-title class="capitalize">
           {{ monthName() }}
         </mat-card-title>
-        @if (month().period) {
-          <mat-card-subtitle class="text-label-small text-on-surface-variant">
-            {{ month().period }}
-          </mat-card-subtitle>
-        }
       </mat-card-header>
 
       <mat-card-content
