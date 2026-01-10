@@ -16,7 +16,7 @@ import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { debounce, Field, form } from '@angular/forms/signals';
 import { catchError, of } from 'rxjs';
-import type { TransactionSearchResult } from '@pulpe/shared';
+import type { TransactionSearchResult } from 'pulpe-shared';
 import { TransactionApi } from '@core/transaction/transaction-api';
 import { Logger } from '@core/logging/logger';
 

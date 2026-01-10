@@ -30,7 +30,7 @@ import { BudgetListStore } from './budget-list-store';
 import { CreateBudgetDialogComponent } from './create-budget/budget-creation-dialog';
 import { SearchTransactionsDialogComponent } from './search-transactions-dialog/search-transactions-dialog';
 import { Logger } from '@core/logging/logger';
-import type { TransactionSearchResult } from '@pulpe/shared';
+import type { TransactionSearchResult } from 'pulpe-shared';
 import {
   ProductTourService,
   TOUR_START_DELAY,
