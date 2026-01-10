@@ -362,7 +362,7 @@ export type Database = {
         Returns: Json;
       };
       get_budget_with_rollover: {
-        Args: { p_budget_id: string };
+        Args: { p_budget_id: string; p_pay_day_of_month?: number };
         Returns: {
           available_to_spend: number;
           ending_balance: number;

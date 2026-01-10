@@ -28,6 +28,10 @@ import { BudgetCalculator } from './budget.calculator';
 import { BudgetValidator } from './budget.validator';
 import { BudgetRepository } from './budget.repository';
 
+const DEFAULT_PAY_DAY = 1;
+const MIN_PAY_DAY = 1;
+const MAX_PAY_DAY = 31;
+
 interface BudgetDetailsData {
   budget: Budget;
   transactions: Transaction[];
@@ -43,6 +47,19 @@ export class BudgetService {
     private readonly validator: BudgetValidator,
     private readonly repository: BudgetRepository,
   ) {}
+
+  private async getPayDayOfMonth(
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<number> {
+    const { data } = await supabase.auth.getUser();
+    const raw = data?.user?.user_metadata?.payDayOfMonth;
+
+    if (typeof raw !== 'number' || !Number.isInteger(raw)) {
+      return DEFAULT_PAY_DAY;
+    }
+
+    return Math.max(MIN_PAY_DAY, Math.min(MAX_PAY_DAY, raw));
+  }
 
   async findAll(
     user: AuthenticatedUser,
@@ -69,10 +86,12 @@ export class BudgetService {
         );
       }
 
-      // Enrichir chaque budget avec le calcul du 'remaining'
+      const payDayOfMonth = await this.getPayDayOfMonth(supabase);
+
       const enrichedBudgets = await this.enrichBudgetsWithRemaining(
         budgets || [],
         supabase,
+        payDayOfMonth,
       );
 
       const apiData = budgetMappers.toApiList(enrichedBudgets);
@@ -101,10 +120,12 @@ export class BudgetService {
   ): Promise<BudgetExportResponse> {
     try {
       const startTime = Date.now();
+      const payDayOfMonth = await this.getPayDayOfMonth(supabase);
       const budgets = await this.fetchAllBudgetsForExport(user.id, supabase);
       const budgetsWithDetails = await this.enrichBudgetsForExport(
         budgets,
         supabase,
+        payDayOfMonth,
       );
 
       this.logExportSuccess(user.id, budgetsWithDetails.length, startTime);
@@ -154,15 +175,19 @@ export class BudgetService {
   private async enrichBudgetsForExport(
     budgets: Tables<'monthly_budget'>[],
     supabase: AuthenticatedSupabaseClient,
+    payDayOfMonth: number,
   ): Promise<BudgetWithDetails[]> {
     return Promise.all(
-      budgets.map((budget) => this.enrichBudgetForExport(budget, supabase)),
+      budgets.map((budget) =>
+        this.enrichBudgetForExport(budget, supabase, payDayOfMonth),
+      ),
     );
   }
 
   private async enrichBudgetForExport(
     budget: Tables<'monthly_budget'>,
     supabase: AuthenticatedSupabaseClient,
+    payDayOfMonth: number,
   ): Promise<BudgetWithDetails> {
     const { transactions, budgetLines } = await this.repository.fetchBudgetData(
       budget.id,
@@ -170,8 +195,16 @@ export class BudgetService {
       { selectFields: '*', orderTransactions: true },
     );
 
-    const rolloverData = await this.calculator.getRollover(budget.id, supabase);
-    const remaining = await this.calculateRemainingForBudget(budget, supabase);
+    const rolloverData = await this.calculator.getRollover(
+      budget.id,
+      payDayOfMonth,
+      supabase,
+    );
+    const remaining = await this.calculateRemainingForBudget(
+      budget,
+      supabase,
+      payDayOfMonth,
+    );
 
     return {
       ...budgetMappers.toApi(budget),
@@ -295,13 +328,19 @@ export class BudgetService {
     supabase: AuthenticatedSupabaseClient,
   ): Promise<BudgetDetailsResponse> {
     try {
+      const payDayOfMonth = await this.getPayDayOfMonth(supabase);
       const budgetData = await this.validateBudgetExists(budgetId, supabase);
       const responseData = await this.buildDetailsResponse(
         budgetId,
         budgetData,
         supabase,
       );
-      await this.addRolloverToBudget(budgetId, responseData, supabase);
+      await this.addRolloverToBudget(
+        budgetId,
+        responseData,
+        supabase,
+        payDayOfMonth,
+      );
 
       this.logBudgetDetailsFetch(budgetId, responseData);
 
@@ -373,8 +412,13 @@ export class BudgetService {
     budgetId: string,
     responseData: BudgetDetailsData,
     supabase: AuthenticatedSupabaseClient,
+    payDayOfMonth: number,
   ) {
-    const rolloverData = await this.calculator.getRollover(budgetId, supabase);
+    const rolloverData = await this.calculator.getRollover(
+      budgetId,
+      payDayOfMonth,
+      supabase,
+    );
 
     responseData.budget = {
       ...responseData.budget,
@@ -730,21 +774,18 @@ export class BudgetService {
     }
   }
 
-  /**
-   * Enrichit chaque budget avec le calcul du 'remaining'
-   * Calcule remaining = endingBalance + rollover depuis les données stockées
-   */
   private async enrichBudgetsWithRemaining(
     budgets: Tables<'monthly_budget'>[],
     supabase: AuthenticatedSupabaseClient,
+    payDayOfMonth: number,
   ): Promise<(Tables<'monthly_budget'> & { remaining: number })[]> {
     const enrichedBudgets = await Promise.all(
       budgets.map(async (budget) => {
         try {
-          // Calculer le remaining pour ce budget
           const remaining = await this.calculateRemainingForBudget(
             budget,
             supabase,
+            payDayOfMonth,
           );
 
           return {
@@ -763,7 +804,6 @@ export class BudgetService {
             'Failed to calculate remaining for budget, using fallback',
           );
 
-          // Fallback: utiliser endingBalance ou 0 si pas disponible
           return {
             ...budget,
             remaining: budget.ending_balance ?? 0,
@@ -775,28 +815,24 @@ export class BudgetService {
     return enrichedBudgets;
   }
 
-  /**
-   * Calcule le 'remaining' pour un budget spécifique
-   * Formule: remaining = (revenus + rollover) - dépenses
-   */
   private async calculateRemainingForBudget(
     budget: Tables<'monthly_budget'>,
     supabase: AuthenticatedSupabaseClient,
+    payDayOfMonth: number,
   ): Promise<number> {
     try {
-      // Calculer le montant disponible dynamiquement depuis les budget_lines et transactions
       const currentBalance = await this.calculator.calculateEndingBalance(
         budget.id,
         supabase,
       );
       const rolloverData = await this.calculator.getRollover(
         budget.id,
+        payDayOfMonth,
         supabase,
       );
 
       return currentBalance + rolloverData.rollover;
     } catch (error) {
-      // Fallback vers ending_balance stocké si le calcul échoue
       this.logger.warn(
         {
           budgetId: budget.id,
@@ -808,6 +844,7 @@ export class BudgetService {
 
       const rolloverData = await this.calculator.getRollover(
         budget.id,
+        payDayOfMonth,
         supabase,
       );
       const endingBalanceStored = budget.ending_balance ?? 0;
