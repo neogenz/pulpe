@@ -128,7 +128,7 @@ const MONTH_YEAR_FORMATS = {
               matInput
               formControlName="description"
               [maxlength]="constants.DESCRIPTION_MAX_LENGTH"
-              placeholder="Saisissez une description pour ce budget"
+              placeholder="Ex: Budget vacances d'été"
             />
             <mat-hint align="end"
               >{{ descriptionLength() }}/{{
