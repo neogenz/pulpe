@@ -11,6 +11,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Router, RouterLink } from '@angular/router';
+import { AuthApi } from '@core/auth/auth-api';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { DemoInitializerService } from '@core/demo/demo-initializer.service';
 import { Logger } from '@core/logging/logger';
@@ -96,6 +97,48 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
             Commencer
           </button>
 
+          <div class="flex items-center gap-4 w-full max-w-sm">
+            <mat-divider class="flex-1" />
+            <span class="text-body-small text-on-surface-variant">ou</span>
+            <mat-divider class="flex-1" />
+          </div>
+
+          <button
+            matButton="outlined"
+            type="button"
+            data-testid="google-signup-button"
+            class="w-full max-w-sm"
+            [disabled]="isLoading() || isGoogleLoading()"
+            (click)="signInWithGoogle()"
+          >
+            @if (isGoogleLoading()) {
+              <div class="flex justify-center items-center">
+                <mat-progress-spinner
+                  mode="indeterminate"
+                  [diameter]="20"
+                  aria-label="Connexion avec Google en cours"
+                  role="progressbar"
+                  class="pulpe-loading-indicator pulpe-loading-small mr-2"
+                ></mat-progress-spinner>
+                <span aria-live="polite">Connexion...</span>
+              </div>
+            } @else {
+              <div class="flex justify-center items-center gap-2">
+                <mat-icon svgIcon="google" />
+                Continuer avec Google
+              </div>
+            }
+          </button>
+
+          @if (googleErrorMessage()) {
+            <div
+              class="bg-error-container text-on-error-container p-3 rounded-lg text-body-small flex items-center gap-2 w-full max-w-sm"
+            >
+              <mat-icon class="flex-shrink-0 text-base">error_outline</mat-icon>
+              <span>{{ googleErrorMessage() }}</span>
+            </div>
+          }
+
           <!-- Turnstile Widget - Rendered on-demand when user clicks demo button -->
           @if (shouldRenderTurnstile() && shouldUseTurnstile()) {
             <ngx-turnstile
@@ -162,6 +205,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
 })
 export default class Welcome {
   readonly #router = inject(Router);
+  readonly #authApi = inject(AuthApi);
   readonly #demoInitializer = inject(DemoInitializerService);
   readonly #logger = inject(Logger);
   readonly #config = inject(ApplicationConfiguration);
@@ -181,8 +225,10 @@ export default class Welcome {
   #turnstileResolutionHandled = false;
 
   protected readonly demoErrorMessage = signal('');
+  protected readonly googleErrorMessage = signal('');
   protected readonly isDemoInitializing = this.#demoInitializer.isInitializing;
   protected readonly isTurnstileProcessing = signal(false);
+  protected readonly isGoogleLoading = signal(false);
   protected readonly isLoading = computed(
     () => this.isTurnstileProcessing() || this.isDemoInitializing(),
   );
@@ -354,6 +400,28 @@ export default class Welcome {
     if (this.#turnstileTimeoutId) {
       clearTimeout(this.#turnstileTimeoutId);
       this.#turnstileTimeoutId = null;
+    }
+  }
+
+  async signInWithGoogle(): Promise<void> {
+    this.googleErrorMessage.set('');
+    this.isGoogleLoading.set(true);
+
+    try {
+      const result = await this.#authApi.signInWithGoogle();
+
+      if (!result.success) {
+        this.googleErrorMessage.set(
+          result.error || 'Erreur lors de la connexion avec Google',
+        );
+        this.isGoogleLoading.set(false);
+      }
+    } catch (error) {
+      this.#logger.error('Erreur lors de la connexion Google:', error);
+      this.googleErrorMessage.set(
+        "Une erreur inattendue s'est produite. Veuillez réessayer.",
+      );
+      this.isGoogleLoading.set(false);
     }
   }
 }
