@@ -13,6 +13,6 @@ import { BudgetRepository } from './budget.repository';
     BudgetValidator,
     BudgetRepository,
   ],
-  exports: [BudgetService],
+  exports: [BudgetService, BudgetCalculator],
 })
 export class BudgetModule {}
