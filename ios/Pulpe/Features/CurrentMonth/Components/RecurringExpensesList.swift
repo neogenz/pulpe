@@ -14,6 +14,24 @@ struct BudgetSection: View {
 
     @State private var itemToDelete: BudgetLine?
     @State private var showDeleteAlert = false
+    @State private var isExpanded = false
+
+    private let collapsedItemCount = 3
+
+    private var displayedItems: [BudgetLine] {
+        if isExpanded || items.count <= collapsedItemCount {
+            return items
+        }
+        return Array(items.prefix(collapsedItemCount))
+    }
+
+    private var hasMoreItems: Bool {
+        items.count > collapsedItemCount
+    }
+
+    private var hiddenItemsCount: Int {
+        items.count - collapsedItemCount
+    }
 
     private var totalAmount: Decimal {
         items.reduce(0) { sum, item in
@@ -32,7 +50,7 @@ struct BudgetSection: View {
 
     var body: some View {
         Section {
-            ForEach(items) { item in
+            ForEach(displayedItems) { item in
                 BudgetLineRow(
                     line: item,
                     consumption: BudgetFormulas.calculateConsumption(for: item, transactions: transactions),
@@ -67,6 +85,24 @@ struct BudgetSection: View {
                         .tint(item.isChecked ? .orange : .pulpePrimary)
                     }
                 }
+            }
+
+            if hasMoreItems {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        isExpanded.toggle()
+                    }
+                } label: {
+                    HStack {
+                        Text(isExpanded ? "Voir moins" : "Voir plus (+\(hiddenItemsCount))")
+                            .font(.subheadline)
+                        Spacer()
+                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .listRowSeparator(.hidden)
             }
         } header: {
             SectionHeader(

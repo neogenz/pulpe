@@ -11,6 +11,24 @@ struct TransactionSection: View {
 
     @State private var transactionToDelete: Transaction?
     @State private var showDeleteAlert = false
+    @State private var isExpanded = false
+
+    private let collapsedItemCount = 3
+
+    private var displayedTransactions: [Transaction] {
+        if isExpanded || transactions.count <= collapsedItemCount {
+            return transactions
+        }
+        return Array(transactions.prefix(collapsedItemCount))
+    }
+
+    private var hasMoreItems: Bool {
+        transactions.count > collapsedItemCount
+    }
+
+    private var hiddenItemsCount: Int {
+        transactions.count - collapsedItemCount
+    }
 
     private var totalAmount: Decimal {
         transactions.reduce(0) { sum, t in
@@ -29,7 +47,7 @@ struct TransactionSection: View {
 
     var body: some View {
         Section {
-            ForEach(transactions) { transaction in
+            ForEach(displayedTransactions) { transaction in
                 TransactionRow(
                     transaction: transaction,
                     isSyncing: syncingIds.contains(transaction.id),
@@ -55,6 +73,24 @@ struct TransactionSection: View {
                         }
                         .tint(transaction.isChecked ? .orange : .pulpePrimary)
                     }
+            }
+
+            if hasMoreItems {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        isExpanded.toggle()
+                    }
+                } label: {
+                    HStack {
+                        Text(isExpanded ? "Voir moins" : "Voir plus (+\(hiddenItemsCount))")
+                            .font(.subheadline)
+                        Spacer()
+                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .listRowSeparator(.hidden)
             }
         } header: {
             SectionHeader(
