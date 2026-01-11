@@ -106,6 +106,7 @@ struct RootView: View {
         }
         .sheet(isPresented: $showAddExpenseSheet) {
             DeepLinkAddExpenseSheet()
+                .environment(appState.toastManager)
         }
     }
 
