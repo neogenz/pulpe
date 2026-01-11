@@ -6,11 +6,8 @@ struct CurrentMonthView: View {
     @State private var viewModel = CurrentMonthViewModel()
     @State private var showAddTransaction = false
     @State private var showRealizedBalanceSheet = false
-    @State private var selectedLineForTransaction: BudgetLine?
-    @State private var linkedTransactionsContext: LinkedTransactionsContext?
     @State private var showAccount = false
-    @State private var selectedBudgetLineForEdit: BudgetLine?
-    @State private var selectedTransactionForEdit: Transaction?
+    @State private var navigateToBudget = false
 
     var body: some View {
         ZStack {
@@ -27,36 +24,16 @@ struct CurrentMonthView: View {
                     systemImage: "calendar.badge.plus"
                 )
             } else {
-                content
+                dashboardContent
             }
         }
         .navigationTitle("Ce mois-ci")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
-                    showRealizedBalanceSheet = true
-                } label: {
-                    Image(systemName: "chart.bar.fill")
-                }
-            }
-
-            ToolbarItem(placement: .primaryAction) {
-                Button {
                     showAccount = true
                 } label: {
                     Image(systemName: "person.circle")
-                }
-            }
-
-            if #available(iOS 26, *) {
-                ToolbarSpacer(.fixed, placement: .primaryAction)
-            }
-
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    showAddTransaction = true
-                } label: {
-                    Image(systemName: "plus")
                 }
             }
         }
@@ -67,27 +44,6 @@ struct CurrentMonthView: View {
                 }
             }
         }
-        .sheet(item: $selectedLineForTransaction) { line in
-            AddAllocatedTransactionSheet(budgetLine: line) { transaction in
-                viewModel.addTransaction(transaction)
-            }
-        }
-        .sheet(item: $linkedTransactionsContext) { context in
-            LinkedTransactionsSheet(
-                budgetLine: context.budgetLine,
-                transactions: context.transactions,
-                onToggle: { transaction in
-                    Task { await viewModel.toggleTransaction(transaction) }
-                },
-                onDelete: { transaction in
-                    Task { await viewModel.deleteTransaction(transaction) }
-                },
-                onAddTransaction: {
-                    linkedTransactionsContext = nil
-                    selectedLineForTransaction = context.budgetLine
-                }
-            )
-        }
         .sheet(isPresented: $showRealizedBalanceSheet) {
             RealizedBalanceSheet(
                 metrics: viewModel.metrics,
@@ -97,121 +53,73 @@ struct CurrentMonthView: View {
         .sheet(isPresented: $showAccount) {
             AccountView()
         }
-        .sheet(item: $selectedBudgetLineForEdit) { line in
-            EditBudgetLineSheet(budgetLine: line) { updatedLine in
-                Task { await viewModel.updateBudgetLine(updatedLine) }
-            }
-        }
-        .sheet(item: $selectedTransactionForEdit) { transaction in
-            EditTransactionSheet(transaction: transaction) { updatedTransaction in
-                Task { await viewModel.updateTransaction(updatedTransaction) }
-            }
-        }
         .task {
             await viewModel.loadData()
         }
-    }
-
-    private var content: some View {
-        listContent
-            .applyScrollEdgeEffect()
-            .refreshable {
-                await viewModel.loadData()
+        .onChange(of: navigateToBudget) { _, shouldNavigate in
+            if shouldNavigate, let budgetId = viewModel.budget?.id {
+                // Navigate to budget details: switch tab + push destination
+                appState.budgetPath.append(BudgetDestination.details(budgetId: budgetId))
+                appState.selectedTab = .budgets
+                navigateToBudget = false
             }
+        }
     }
 
-    private var listContent: some View {
+    // MARK: - Dashboard Content
+
+    private var dashboardContent: some View {
         List {
-            // Hero balance card (Revolut-style)
+            // Hero balance card with daily insight
             Section {
                 HeroBalanceCard(
                     metrics: viewModel.metrics,
+                    daysRemaining: viewModel.daysRemaining,
+                    dailyBudget: viewModel.dailyBudget,
                     onTapProgress: { showRealizedBalanceSheet = true }
                 )
             }
             .listRowInsets(EdgeInsets())
             .listRowBackground(Color.clear)
 
-            // Recurring expenses section
-            if !viewModel.recurringBudgetLines.isEmpty {
-                BudgetSection(
-                    title: "Dépenses récurrentes",
-                    items: viewModel.recurringBudgetLines,
-                    transactions: viewModel.transactions,
-                    syncingIds: viewModel.syncingBudgetLineIds,
-                    onToggle: { line in
-                        Task { await viewModel.toggleBudgetLine(line) }
-                    },
-                    onDelete: { line in
-                        Task { await viewModel.deleteBudgetLine(line) }
-                    },
-                    onAddTransaction: { line in
-                        selectedLineForTransaction = line
-                    },
-                    onLongPress: { line, transactions in
-                        linkedTransactionsContext = LinkedTransactionsContext(
-                            budgetLine: line,
-                            transactions: transactions
-                        )
-                    },
-                    onEdit: { line in
-                        selectedBudgetLineForEdit = line
-                    }
+            // Quick actions bar
+            Section {
+                QuickActionsBar(
+                    onAddTransaction: { showAddTransaction = true },
+                    onShowStats: { showRealizedBalanceSheet = true },
+                    onShowBudget: { navigateToBudget = true }
                 )
             }
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
 
-            // One-off expenses section
-            if !viewModel.oneOffBudgetLines.isEmpty {
-                BudgetSection(
-                    title: "Dépenses prévues",
-                    items: viewModel.oneOffBudgetLines,
-                    transactions: viewModel.transactions,
-                    syncingIds: viewModel.syncingBudgetLineIds,
-                    onToggle: { line in
-                        Task { await viewModel.toggleBudgetLine(line) }
-                    },
-                    onDelete: { line in
-                        Task { await viewModel.deleteBudgetLine(line) }
-                    },
-                    onAddTransaction: { line in
-                        selectedLineForTransaction = line
-                    },
-                    onLongPress: { line, transactions in
-                        linkedTransactionsContext = LinkedTransactionsContext(
-                            budgetLine: line,
-                            transactions: transactions
-                        )
-                    },
-                    onEdit: { line in
-                        selectedBudgetLineForEdit = line
-                    }
-                )
-            }
+            // Alerts section (categories at 80%+)
+            AlertsSection(
+                alerts: viewModel.alertBudgetLines,
+                onTapViewBudget: { navigateToBudget = true }
+            )
 
-            // Free transactions
-            if !viewModel.freeTransactions.isEmpty {
-                TransactionSection(
-                    title: "Autres dépenses",
-                    transactions: viewModel.freeTransactions,
-                    syncingIds: viewModel.syncingTransactionIds,
-                    onToggle: { transaction in
-                        Task { await viewModel.toggleTransaction(transaction) }
-                    },
-                    onDelete: { transaction in
-                        Task { await viewModel.deleteTransaction(transaction) }
-                    },
-                    onEdit: { transaction in
-                        selectedTransactionForEdit = transaction
-                    }
-                )
-            }
+            // Recent transactions (read-only)
+            RecentTransactionsSection(
+                transactions: viewModel.recentTransactions,
+                onTapViewAll: { navigateToBudget = true }
+            )
+
+            // Unchecked transactions (not yet pointed)
+            UncheckedTransactionsSection(
+                transactions: viewModel.uncheckedTransactions,
+                onTapViewBudget: { navigateToBudget = true }
+            )
         }
         .listStyle(.insetGrouped)
         .listSectionSpacing(16)
         .scrollContentBackground(.hidden)
         .background(Color(.systemGroupedBackground))
+        .applyScrollEdgeEffect()
+        .refreshable {
+            await viewModel.loadData()
+        }
     }
-
 }
 
 // MARK: - ViewModel
@@ -249,6 +157,62 @@ final class CurrentMonthViewModel {
         )
     }
 
+    // MARK: - Dashboard computed properties
+
+    /// Days remaining in current month
+    var daysRemaining: Int {
+        let calendar = Calendar.current
+        let today = Date()
+        guard let range = calendar.range(of: .day, in: .month, for: today),
+              let lastDay = calendar.date(from: DateComponents(
+                year: calendar.component(.year, from: today),
+                month: calendar.component(.month, from: today),
+                day: range.count
+              )) else { return 0 }
+
+        let remaining = calendar.dateComponents([.day], from: today, to: lastDay).day ?? 0
+        return max(remaining + 1, 1) // Include today
+    }
+
+    /// Daily budget available (remaining / days left)
+    var dailyBudget: Decimal {
+        guard daysRemaining > 0, metrics.remaining > 0 else { return 0 }
+        return metrics.remaining / Decimal(daysRemaining)
+    }
+
+    /// Budget lines that are at or above 80% consumption (alerts)
+    var alertBudgetLines: [(line: BudgetLine, consumption: BudgetFormulas.Consumption)] {
+        budgetLines
+            .filter { $0.kind.isOutflow && !($0.isRollover ?? false) }
+            .compactMap { line -> (BudgetLine, BudgetFormulas.Consumption)? in
+                let consumption = BudgetFormulas.calculateConsumption(for: line, transactions: transactions)
+                guard consumption.percentage >= 80 else { return nil }
+                return (line, consumption)
+            }
+            .sorted { $0.1.percentage > $1.1.percentage }
+    }
+
+    /// 5 most recent transactions (all types)
+    var recentTransactions: [Transaction] {
+        Array(
+            transactions
+                .sorted { $0.transactionDate > $1.transactionDate }
+                .prefix(5)
+        )
+    }
+
+    /// Unchecked transactions (not yet pointed, sorted by date desc)
+    var uncheckedTransactions: [Transaction] {
+        Array(
+            transactions
+                .filter { !$0.isChecked }
+                .sorted { $0.transactionDate > $1.transactionDate }
+                .prefix(5)
+        )
+    }
+
+    // MARK: - Legacy computed (kept for compatibility during transition)
+
     var displayBudgetLines: [BudgetLine] {
         guard let budget, let rollover = budget.rollover, rollover != 0 else {
             return budgetLines
@@ -263,15 +227,21 @@ final class CurrentMonthViewModel {
     }
 
     var recurringBudgetLines: [BudgetLine] {
-        displayBudgetLines.filter { $0.recurrence == .fixed }
+        displayBudgetLines
+            .filter { $0.recurrence == .fixed }
+            .sorted { $0.createdAt > $1.createdAt }
     }
 
     var oneOffBudgetLines: [BudgetLine] {
-        displayBudgetLines.filter { $0.recurrence == .oneOff && !($0.isRollover ?? false) }
+        displayBudgetLines
+            .filter { $0.recurrence == .oneOff && !($0.isRollover ?? false) }
+            .sorted { $0.createdAt > $1.createdAt }
     }
 
     var freeTransactions: [Transaction] {
-        transactions.filter { $0.budgetLineId == nil }
+        transactions
+            .filter { $0.budgetLineId == nil }
+            .sorted { $0.transactionDate > $1.transactionDate }
     }
 
     // MARK: - Actions

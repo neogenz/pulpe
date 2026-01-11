@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0157030A5AF0AA8ED66650F2 /* TemplateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4BC53510F1748B0FB8407CE /* TemplateService.swift */; };
+		01C708D90EF921ADC8F0E663 /* ToastManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A77FEC48FC6CEA8465118A09 /* ToastManager.swift */; };
 		0252AB91572198782A8F04E6 /* AddBudgetLineSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D05E8BCE893AAA486F2F8BE /* AddBudgetLineSheet.swift */; };
 		1623C2D7A07E71A04BAF5EB9 /* View+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7A8C7ACFFD4118A786F4A2C /* View+Extensions.swift */; };
 		194F56EEAE3B2C2EF5B15A3A /* PhonePlanStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6D73BC1D11C6EC1A1E313C /* PhonePlanStep.swift */; };
@@ -28,6 +29,7 @@
 		355EAC39C5277062B617B41A /* ErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4614F485D865898B139E965 /* ErrorView.swift */; };
 		36D240411A8032729B6D29AA /* HealthInsuranceStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2462651BA94AFFA96E88027 /* HealthInsuranceStep.swift */; };
 		384564FD30EE399F24833457 /* PulpeLogo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D23A76488CE35949FDA3B08 /* PulpeLogo.swift */; };
+		398CE2254BF633E3D3D45D74 /* UncheckedTransactionsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED65AA01579D6F54056E2672 /* UncheckedTransactionsSection.swift */; };
 		3A4F017B5B7D8F61564A40BC /* BudgetLine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 150C0AA658E75766BDC017EB /* BudgetLine.swift */; };
 		3BF2AAAEDD2456443E233D23 /* BudgetLine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 150C0AA658E75766BDC017EB /* BudgetLine.swift */; };
 		3C754ABC64CCC7FB68006C9D /* KeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57A624A40CC91AC97C743441 /* KeychainManager.swift */; };
@@ -38,6 +40,7 @@
 		4491DFC84F384660F238F4F8 /* BudgetTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27F72011B11153235E828030 /* BudgetTemplate.swift */; };
 		4A0D647CD0FC9FA613122423 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = E1ED9277251CACDC297FEFA3 /* LaunchScreen.storyboard */; };
 		4D613852DBBBCCEF9960A4C5 /* PulpeWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = B157DB64FA5B4252F58D08EF /* PulpeWidgetBundle.swift */; };
+		52E9A1293AA9DD073BBB6D77 /* RecentTransactionsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A73FC67CE08CBE1E23B7251 /* RecentTransactionsSection.swift */; };
 		547E46730E438D89507B7693 /* CreateTemplateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94DA9F16798B6DC1691A2DB8 /* CreateTemplateView.swift */; };
 		56C95E28B17F927063FCB76C /* TemplateListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B63C48FA85869F486C3CBE3 /* TemplateListView.swift */; };
 		5B556B010CD1598EAA240A4A /* IncomeStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0B8C94F0B71D25CF2D5D563 /* IncomeStep.swift */; };
@@ -57,6 +60,7 @@
 		7E995CCFD4F86681A8C2ABA9 /* BudgetFormulas.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAAA7ED54F25794213D540FE /* BudgetFormulas.swift */; };
 		7FDE6E7EF6B2084A2D298452 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2880F0C22312339FA0DA2633 /* APIClient.swift */; };
 		80BAC93003BA8CCBE291A779 /* WelcomeStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = D86B67782D2A720349211B65 /* WelcomeStep.swift */; };
+		8215A03F881853E6A5060D59 /* AlertsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8F1C23CE0EC52738271BB2E /* AlertsSection.swift */; };
 		83A455CF99981A6CD2A65ED3 /* CreateBudgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29D91A4D1401A217165EAD49 /* CreateBudgetView.swift */; };
 		846573A9906007B79BC2B2C2 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35BEAF310518B6EE5375776E /* LoginView.swift */; };
 		860A9EF4311E9D49AC4AE945 /* PulpeWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A40110A09E6DF69EDAD88EFA /* PulpeWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -66,6 +70,7 @@
 		91B28D61C5AD8F09EAD10E8A /* CurrentMonthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F76CA89C404286DF9CAF27D5 /* CurrentMonthView.swift */; };
 		94129CA9F8DE35A23853772A /* AuthErrorLocalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 357C61A34E9CA60F73EF5441 /* AuthErrorLocalizer.swift */; };
 		94CAF603E4F31F628C48B76C /* Transaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 316F2D062F9E6DD584B93A84 /* Transaction.swift */; };
+		95A9876A9CECA96F254C3958 /* QuickActionsBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E4E8AD4F9F049348AB1563B /* QuickActionsBar.swift */; };
 		96B2D8240E7022D68C4712D3 /* CurrentMonthWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCDF82135ABE1A6AA7A29167 /* CurrentMonthWidget.swift */; };
 		9DF3E7C14A96A5E7AC8EC4C3 /* LinkedTransactionsContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = D45C40FA08472FA75B62A6AC /* LinkedTransactionsContext.swift */; };
 		A22726A5F8810386134F4846 /* OnboardingFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7722947386A7CD78FE3B05 /* OnboardingFlow.swift */; };
@@ -84,6 +89,7 @@
 		C3D7AA5AEDC8F320ADA32BF9 /* OnboardingState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4984437F60E14525E1E6BD20 /* OnboardingState.swift */; };
 		C60DD41963FD1AA7424B73E7 /* APIResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = B654CD12D41DA45B3326BAC4 /* APIResponse.swift */; };
 		C8FCFDF15A7AE0AD6F385F87 /* WidgetDataCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34ECAA4ED629633771F020F4 /* WidgetDataCoordinator.swift */; };
+		CA928317D4CABA7414102C73 /* ToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77C8421EEBFDB74A00EE05B5 /* ToastView.swift */; };
 		CE62EAA27CA668035390137F /* AccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EB719150BD8F123D596C901 /* AccountView.swift */; };
 		CFC21993371F1E2553931AC2 /* RealizedBalanceSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20D3CD9F4165D2DBB8ED8DC1 /* RealizedBalanceSheet.swift */; };
 		D089B1AD077036EE44E5F027 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02D25BA5A5074D1D86441DDC /* AppConfiguration.swift */; };
@@ -105,11 +111,9 @@
 		EC88348DD8DBF4F6B166D265 /* Formatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = D576CD613CD0E637C83249E9 /* Formatters.swift */; };
 		EDDD3545AF89F29F118A14A8 /* APIError.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFC463766B410987FE96534C /* APIError.swift */; };
 		F28AE4EA87CA967C9EAE1B9F /* RecurringExpensesList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2947DBEF8A6264E9FF73AEDA /* RecurringExpensesList.swift */; };
-		TOAST001MANAGER00BUILD01 /* ToastManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = TOAST001MANAGER00FILE01 /* ToastManager.swift */; };
-		TOAST002VIEW0000BUILD01 /* ToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = TOAST002VIEW0000FILE01 /* ToastView.swift */; };
-		SYNC0001INDICATOR0BUILD /* SyncIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = SYNC0001INDICATOR0FILE1 /* SyncIndicator.swift */; };
 		F2F1195BE9107FF339538B3E /* Color+Pulpe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E4F47F7A88B6744CA6D788C /* Color+Pulpe.swift */; };
 		F5D9B6FD484997E69677F7E2 /* Decimal+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BE2934837CC4349E12F1EE2 /* Decimal+Extensions.swift */; };
+		FDFF9F61572FD2273B6B5818 /* SyncIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = C40A3D67DE85A1A1DCF3277A /* SyncIndicator.swift */; };
 		FE6501D7F3A0BBA2FA54CD7C /* BudgetListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E68DC6A301F7687197817A0 /* BudgetListView.swift */; };
 /* End PBXBuildFile section */
 
@@ -172,6 +176,7 @@
 		4EA095E32B5C5AC4B0FCE485 /* OneTimeExpensesList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneTimeExpensesList.swift; sourceTree = "<group>"; };
 		57A624A40CC91AC97C743441 /* KeychainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainManager.swift; sourceTree = "<group>"; };
 		582814846F9F2F4CA61E10CC /* CurrentMonthProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrentMonthProvider.swift; sourceTree = "<group>"; };
+		5A73FC67CE08CBE1E23B7251 /* RecentTransactionsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentTransactionsSection.swift; sourceTree = "<group>"; };
 		5BBEC66513D98B75F7F241BD /* YearOverviewWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YearOverviewWidgetView.swift; sourceTree = "<group>"; };
 		5F534FB3E2E33B3F35909729 /* EditTemplateLineSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditTemplateLineSheet.swift; sourceTree = "<group>"; };
 		606435140AB22BD250F34C36 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
@@ -180,8 +185,10 @@
 		6B63C48FA85869F486C3CBE3 /* TemplateListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemplateListView.swift; sourceTree = "<group>"; };
 		6E4F47F7A88B6744CA6D788C /* Color+Pulpe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Pulpe.swift"; sourceTree = "<group>"; };
 		6E873F06201D0A4D69F356ED /* AddAllocatedTransactionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddAllocatedTransactionSheet.swift; sourceTree = "<group>"; };
+		77C8421EEBFDB74A00EE05B5 /* ToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastView.swift; sourceTree = "<group>"; };
 		7D01817526FAA87D773269A9 /* TransactionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionService.swift; sourceTree = "<group>"; };
 		7D23A76488CE35949FDA3B08 /* PulpeLogo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PulpeLogo.swift; sourceTree = "<group>"; };
+		7E4E8AD4F9F049348AB1563B /* QuickActionsBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionsBar.swift; sourceTree = "<group>"; };
 		7EB719150BD8F123D596C901 /* AccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountView.swift; sourceTree = "<group>"; };
 		7F7722947386A7CD78FE3B05 /* OnboardingFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlow.swift; sourceTree = "<group>"; };
 		8217BB2D2B30DEBF5E4F4798 /* BiometricService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricService.swift; sourceTree = "<group>"; };
@@ -194,16 +201,19 @@
 		9E56340C03DD8EE1F7DF7638 /* BudgetService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetService.swift; sourceTree = "<group>"; };
 		A1A0EA391775C63723A83BF3 /* LoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingView.swift; sourceTree = "<group>"; };
 		A40110A09E6DF69EDAD88EFA /* PulpeWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = PulpeWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		A77FEC48FC6CEA8465118A09 /* ToastManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastManager.swift; sourceTree = "<group>"; };
 		A97A17DE833B65153924BB0A /* BudgetLineService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetLineService.swift; sourceTree = "<group>"; };
 		A9E904C52E1E5F2BF3E1EB84 /* PersonalInfoStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalInfoStep.swift; sourceTree = "<group>"; };
 		B157DB64FA5B4252F58D08EF /* PulpeWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PulpeWidgetBundle.swift; sourceTree = "<group>"; };
 		B628F99B27B621909E09CF7D /* BudgetProgressBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetProgressBar.swift; sourceTree = "<group>"; };
 		B654CD12D41DA45B3326BAC4 /* APIResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIResponse.swift; sourceTree = "<group>"; };
+		B8F1C23CE0EC52738271BB2E /* AlertsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertsSection.swift; sourceTree = "<group>"; };
 		B91CC0F49D6D3BC490F1955B /* YearOverviewWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YearOverviewWidget.swift; sourceTree = "<group>"; };
 		BA4C37DF55207E4B0DEF28A0 /* SectionHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionHeader.swift; sourceTree = "<group>"; };
 		BCDF82135ABE1A6AA7A29167 /* CurrentMonthWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrentMonthWidget.swift; sourceTree = "<group>"; };
 		BF72C3AFECE05BCF77785C5F /* Date+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Date+Extensions.swift"; sourceTree = "<group>"; };
 		C2462651BA94AFFA96E88027 /* HealthInsuranceStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthInsuranceStep.swift; sourceTree = "<group>"; };
+		C40A3D67DE85A1A1DCF3277A /* SyncIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncIndicator.swift; sourceTree = "<group>"; };
 		C4E26A1733C140437FFB1B7D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		C81B7DA6BF84774DCD938E37 /* KindBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KindBadge.swift; sourceTree = "<group>"; };
 		CAAA7ED54F25794213D540FE /* BudgetFormulas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetFormulas.swift; sourceTree = "<group>"; };
@@ -222,6 +232,7 @@
 		E4BC53510F1748B0FB8407CE /* TemplateService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemplateService.swift; sourceTree = "<group>"; };
 		E5BB996AAB135A9A73AF8762 /* HeroBalanceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeroBalanceCard.swift; sourceTree = "<group>"; };
 		E7A8C7ACFFD4118A786F4A2C /* View+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+Extensions.swift"; sourceTree = "<group>"; };
+		ED65AA01579D6F54056E2672 /* UncheckedTransactionsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UncheckedTransactionsSection.swift; sourceTree = "<group>"; };
 		EFC463766B410987FE96534C /* APIError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIError.swift; sourceTree = "<group>"; };
 		F0B8C94F0B71D25CF2D5D563 /* IncomeStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncomeStep.swift; sourceTree = "<group>"; };
 		F15A109E95BBEA3CE6EA04C7 /* WelcomeLottieView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeLottieView.swift; sourceTree = "<group>"; };
@@ -229,9 +240,6 @@
 		F3A3C49B0B8A78283AB987AD /* TemplateDetailsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemplateDetailsView.swift; sourceTree = "<group>"; };
 		F76CA89C404286DF9CAF27D5 /* CurrentMonthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrentMonthView.swift; sourceTree = "<group>"; };
 		F8334F2FD3ED442FCC576A91 /* LinkedTransactionsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkedTransactionsSheet.swift; sourceTree = "<group>"; };
-		TOAST001MANAGER00FILE01 /* ToastManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastManager.swift; sourceTree = "<group>"; };
-		TOAST002VIEW0000FILE01 /* ToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastView.swift; sourceTree = "<group>"; };
-		SYNC0001INDICATOR0FILE1 /* SyncIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncIndicator.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -303,9 +311,9 @@
 				C81B7DA6BF84774DCD938E37 /* KindBadge.swift */,
 				A1A0EA391775C63723A83BF3 /* LoadingView.swift */,
 				7D23A76488CE35949FDA3B08 /* PulpeLogo.swift */,
-				SYNC0001INDICATOR0FILE1 /* SyncIndicator.swift */,
-				TOAST001MANAGER00FILE01 /* ToastManager.swift */,
-				TOAST002VIEW0000FILE01 /* ToastView.swift */,
+				C40A3D67DE85A1A1DCF3277A /* SyncIndicator.swift */,
+				A77FEC48FC6CEA8465118A09 /* ToastManager.swift */,
+				77C8421EEBFDB74A00EE05B5 /* ToastView.swift */,
 				F15A109E95BBEA3CE6EA04C7 /* WelcomeLottieView.swift */,
 			);
 			path = Components;
@@ -324,12 +332,16 @@
 			isa = PBXGroup;
 			children = (
 				054A9E4A9CCF915305B08CC0 /* AddTransactionSheet.swift */,
+				B8F1C23CE0EC52738271BB2E /* AlertsSection.swift */,
 				E5BB996AAB135A9A73AF8762 /* HeroBalanceCard.swift */,
 				F8334F2FD3ED442FCC576A91 /* LinkedTransactionsSheet.swift */,
 				4EA095E32B5C5AC4B0FCE485 /* OneTimeExpensesList.swift */,
+				7E4E8AD4F9F049348AB1563B /* QuickActionsBar.swift */,
 				20D3CD9F4165D2DBB8ED8DC1 /* RealizedBalanceSheet.swift */,
+				5A73FC67CE08CBE1E23B7251 /* RecentTransactionsSection.swift */,
 				2947DBEF8A6264E9FF73AEDA /* RecurringExpensesList.swift */,
 				BA4C37DF55207E4B0DEF28A0 /* SectionHeader.swift */,
+				ED65AA01579D6F54056E2672 /* UncheckedTransactionsSection.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -803,6 +815,7 @@
 				3D7531C34481474D2EDD7DC0 /* AddAllocatedTransactionSheet.swift in Sources */,
 				0252AB91572198782A8F04E6 /* AddBudgetLineSheet.swift in Sources */,
 				5EB9DD65C1AD7312A87E4133 /* AddTransactionSheet.swift in Sources */,
+				8215A03F881853E6A5060D59 /* AlertsSection.swift in Sources */,
 				D089B1AD077036EE44E5F027 /* AppConfiguration.swift in Sources */,
 				626E386E73A2C807D70E799A /* AppState.swift in Sources */,
 				94129CA9F8DE35A23853772A /* AuthErrorLocalizer.swift in Sources */,
@@ -852,21 +865,24 @@
 				194F56EEAE3B2C2EF5B15A3A /* PhonePlanStep.swift in Sources */,
 				D198ADB48C9C0E11C90BF235 /* PulpeApp.swift in Sources */,
 				384564FD30EE399F24833457 /* PulpeLogo.swift in Sources */,
+				95A9876A9CECA96F254C3958 /* QuickActionsBar.swift in Sources */,
 				CFC21993371F1E2553931AC2 /* RealizedBalanceSheet.swift in Sources */,
+				52E9A1293AA9DD073BBB6D77 /* RecentTransactionsSection.swift in Sources */,
 				F28AE4EA87CA967C9EAE1B9F /* RecurringExpensesList.swift in Sources */,
 				A4E6EAB35F1BCADF80152CDA /* RegistrationStep.swift in Sources */,
 				B430D670EFE75193B7F237D6 /* SectionHeader.swift in Sources */,
-				SYNC0001INDICATOR0BUILD /* SyncIndicator.swift in Sources */,
+				FDFF9F61572FD2273B6B5818 /* SyncIndicator.swift in Sources */,
 				3EBBC9D5EDE6B6B316A3A074 /* TemplateDetailsView.swift in Sources */,
-				TOAST001MANAGER00BUILD01 /* ToastManager.swift in Sources */,
-				TOAST002VIEW0000BUILD01 /* ToastView.swift in Sources */,
 				56C95E28B17F927063FCB76C /* TemplateListView.swift in Sources */,
 				0157030A5AF0AA8ED66650F2 /* TemplateService.swift in Sources */,
+				01C708D90EF921ADC8F0E663 /* ToastManager.swift in Sources */,
+				CA928317D4CABA7414102C73 /* ToastView.swift in Sources */,
 				94CAF603E4F31F628C48B76C /* Transaction.swift in Sources */,
 				337582D8464C681222B2141F /* TransactionEnums.swift in Sources */,
 				2E0E70844EE2D8F27D02C720 /* TransactionService.swift in Sources */,
 				A7FBBEBBCCE704C3AAA740E5 /* TransportStep.swift in Sources */,
 				E9E6E43DD7D2C2577EC982F5 /* TutorialOverlay.swift in Sources */,
+				398CE2254BF633E3D3D45D74 /* UncheckedTransactionsSection.swift in Sources */,
 				1623C2D7A07E71A04BAF5EB9 /* View+Extensions.swift in Sources */,
 				7E36837E1844ECEFA60958A5 /* WelcomeLottieView.swift in Sources */,
 				80BAC93003BA8CCBE291A779 /* WelcomeStep.swift in Sources */,

@@ -3,6 +3,8 @@ import SwiftUI
 /// Revolut-style hero card displaying the available balance prominently
 struct HeroBalanceCard: View {
     let metrics: BudgetFormulas.Metrics
+    var daysRemaining: Int? = nil
+    var dailyBudget: Decimal? = nil
     let onTapProgress: () -> Void
 
     // MARK: - Computed Properties
@@ -71,6 +73,10 @@ struct HeroBalanceCard: View {
                         .font(.caption)
                         .fontWeight(.medium)
                         .foregroundStyle(.red)
+                } else if let days = daysRemaining, let daily = dailyBudget, daily > 0 {
+                    Text("\(days) jours restants · ~\(daily.asCompactCHF)/jour")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
 
@@ -198,6 +204,8 @@ extension View {
                     remaining: 3000.45,
                     rollover: 500
                 ),
+                daysRemaining: 15,
+                dailyBudget: 200,
                 onTapProgress: {}
             )
 
@@ -212,6 +220,8 @@ extension View {
                     remaining: 200,
                     rollover: 0
                 ),
+                daysRemaining: 8,
+                dailyBudget: 25,
                 onTapProgress: {}
             )
 
@@ -226,6 +236,8 @@ extension View {
                     remaining: -700,
                     rollover: 0
                 ),
+                daysRemaining: 20,
+                dailyBudget: 0,
                 onTapProgress: {}
             )
         }
