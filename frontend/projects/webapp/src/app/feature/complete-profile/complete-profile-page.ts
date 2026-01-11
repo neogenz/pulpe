@@ -7,11 +7,13 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSelectModule } from '@angular/material/select';
 import { CurrencyInput } from '@ui/currency-input';
 import { ErrorAlert } from '@ui/error-alert';
 import { LoadingButton } from '@ui/loading-button';
 import { ROUTES } from '@core/routing/routes-constants';
 import { CompleteProfileStore } from './complete-profile-store';
+import { PAY_DAY_MAX } from 'pulpe-shared';
 
 @Component({
   selector: 'pulpe-complete-profile-page',
@@ -23,6 +25,7 @@ import { CompleteProfileStore } from './complete-profile-store';
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    MatSelectModule,
     CurrencyInput,
     ErrorAlert,
     LoadingButton,
@@ -45,7 +48,7 @@ import { CompleteProfileStore } from './complete-profile-store';
           </p>
         </div>
 
-        <mat-stepper #stepper linear class="bg-transparent">
+        <mat-stepper #stepper linear class="complete-profile-stepper">
           <!-- Step 1: Essential info -->
           <mat-step [completed]="store.isStep1Valid()">
             <ng-template matStepLabel>Informations essentielles</ng-template>
@@ -94,8 +97,41 @@ import { CompleteProfileStore } from './complete-profile-store';
 
             <div class="py-6 space-y-4">
               <p class="text-body-medium text-on-surface-variant mb-4">
-                Tu peux ajouter tes charges fixes pour un budget plus précis.
-                Cette étape est optionnelle.
+                Tu peux personnaliser ton budget. Cette étape est optionnelle.
+              </p>
+
+              <!-- Pay day selector -->
+              <mat-form-field class="w-full" appearance="fill">
+                <mat-label>Jour de paie</mat-label>
+                <mat-select
+                  [ngModel]="store.payDayOfMonth()"
+                  (ngModelChange)="store.updatePayDayOfMonth($event)"
+                  data-testid="pay-day-select"
+                >
+                  <mat-option [value]="null"
+                    >1er du mois (calendaire)</mat-option
+                  >
+                  @for (day of availableDays; track day) {
+                    <mat-option [value]="day">Le {{ day }}</mat-option>
+                  }
+                </mat-select>
+                <mat-icon matPrefix>calendar_today</mat-icon>
+                <mat-hint>
+                  @if (store.payDayOfMonth(); as day) {
+                    @if (day > 28) {
+                      Ton budget commencera le {{ day }}. Si le mois a moins de
+                      jours, il débutera le dernier jour disponible.
+                    } @else {
+                      Ton budget commencera le {{ day }} de chaque mois
+                    }
+                  } @else {
+                    Ton budget suivra le calendrier standard (1er au dernier)
+                  }
+                </mat-hint>
+              </mat-form-field>
+
+              <p class="text-body-small text-on-surface-variant mt-2 mb-4">
+                Charges fixes (optionnel)
               </p>
 
               <pulpe-currency-input
@@ -163,23 +199,16 @@ import { CompleteProfileStore } from './complete-profile-store';
       </div>
     }
   `,
-  styles: `
-    :host {
-      display: block;
-    }
-
-    ::ng-deep .mat-stepper-horizontal {
-      background: transparent !important;
-    }
-
-    ::ng-deep .mat-horizontal-stepper-header-container {
-      padding: 0 !important;
-    }
-  `,
+  host: { class: 'block' },
 })
 export default class CompleteProfilePage {
   protected readonly store = inject(CompleteProfileStore);
   readonly #router = inject(Router);
+
+  protected readonly availableDays = Array.from(
+    { length: PAY_DAY_MAX },
+    (_, i) => i + 1,
+  );
 
   protected async onSubmit(): Promise<void> {
     const success = await this.store.submitProfile();

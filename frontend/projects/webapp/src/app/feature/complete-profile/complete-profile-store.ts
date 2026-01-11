@@ -3,6 +3,7 @@ import { ProfileSetupService, type ProfileData } from '@core/profile';
 import { BudgetApi } from '@core/budget';
 import { Logger } from '@core/logging/logger';
 import { PostHogService } from '@core/analytics/posthog';
+import { UserSettingsApi } from '@core/user-settings';
 import { firstValueFrom } from 'rxjs';
 
 interface CompleteProfileState {
@@ -13,6 +14,7 @@ interface CompleteProfileState {
   phonePlan: number | null;
   transportCosts: number | null;
   leasingCredit: number | null;
+  payDayOfMonth: number | null;
   isLoading: boolean;
   isCheckingExistingBudget: boolean;
   error: string;
@@ -27,6 +29,7 @@ function createInitialState(): CompleteProfileState {
     phonePlan: null,
     transportCosts: null,
     leasingCredit: null,
+    payDayOfMonth: null,
     isLoading: false,
     isCheckingExistingBudget: false,
     error: '',
@@ -37,6 +40,7 @@ function createInitialState(): CompleteProfileState {
 export class CompleteProfileStore {
   readonly #profileSetupService = inject(ProfileSetupService);
   readonly #budgetApi = inject(BudgetApi);
+  readonly #userSettingsApi = inject(UserSettingsApi);
   readonly #logger = inject(Logger);
   readonly #postHogService = inject(PostHogService);
 
@@ -49,6 +53,7 @@ export class CompleteProfileStore {
   readonly phonePlan = computed(() => this.#state().phonePlan);
   readonly transportCosts = computed(() => this.#state().transportCosts);
   readonly leasingCredit = computed(() => this.#state().leasingCredit);
+  readonly payDayOfMonth = computed(() => this.#state().payDayOfMonth);
   readonly isLoading = computed(() => this.#state().isLoading);
   readonly isCheckingExistingBudget = computed(
     () => this.#state().isCheckingExistingBudget,
@@ -90,6 +95,10 @@ export class CompleteProfileStore {
 
   updateLeasingCredit(value: number | null): void {
     this.#state.update((s) => ({ ...s, leasingCredit: value }));
+  }
+
+  updatePayDayOfMonth(value: number | null): void {
+    this.#state.update((s) => ({ ...s, payDayOfMonth: value }));
   }
 
   clearError(): void {
@@ -157,6 +166,25 @@ export class CompleteProfileStore {
           error: result.error || 'Erreur lors de la création du budget',
         }));
         return false;
+      }
+
+      // Save pay day setting if user configured it
+      if (state.payDayOfMonth !== null) {
+        try {
+          await this.#userSettingsApi.updateSettings({
+            payDayOfMonth: state.payDayOfMonth,
+          });
+          this.#logger.info('Pay day setting saved', {
+            payDayOfMonth: state.payDayOfMonth,
+          });
+        } catch (settingsError) {
+          // Log but don't fail - budget was created successfully
+          this.#logger.warn('Failed to save pay day setting', settingsError);
+          this.#postHogService.captureException(settingsError, {
+            context: 'complete-profile',
+            action: 'savePayDaySetting',
+          });
+        }
       }
 
       this.#logger.info('Profile setup completed successfully');

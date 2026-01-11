@@ -10,10 +10,8 @@ import { NgTemplateOutlet } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { AuthApi } from '@core/auth/auth-api';
+import { AUTH_ERROR_MESSAGES, AuthApi } from '@core/auth';
 import { Logger } from '@core/logging/logger';
-
-const DEFAULT_ERROR = 'Erreur lors de la connexion avec Google';
 
 @Component({
   selector: 'pulpe-google-oauth-button',
@@ -92,13 +90,15 @@ export class GoogleOAuthButton {
       const result = await this.#authApi.signInWithGoogle();
 
       if (!result.success) {
-        this.authError.emit(result.error ?? DEFAULT_ERROR);
+        this.authError.emit(
+          result.error ?? AUTH_ERROR_MESSAGES.GOOGLE_CONNECTION_ERROR,
+        );
         this.isLoading.set(false);
         this.loadingChange.emit(false);
       }
     } catch (err) {
       this.#logger.error('Google OAuth error', err);
-      this.authError.emit(DEFAULT_ERROR);
+      this.authError.emit(AUTH_ERROR_MESSAGES.GOOGLE_CONNECTION_ERROR);
       this.isLoading.set(false);
       this.loadingChange.emit(false);
     }

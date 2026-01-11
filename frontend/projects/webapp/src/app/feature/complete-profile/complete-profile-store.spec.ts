@@ -6,6 +6,7 @@ import { ProfileSetupService } from '@core/profile';
 import { BudgetApi } from '@core/budget';
 import { Logger } from '@core/logging/logger';
 import { PostHogService } from '@core/analytics/posthog';
+import { UserSettingsApi } from '@core/user-settings';
 
 describe('CompleteProfileStore', () => {
   let store: CompleteProfileStore;
@@ -15,8 +16,12 @@ describe('CompleteProfileStore', () => {
   let mockBudgetApi: {
     getAllBudgets$: ReturnType<typeof vi.fn>;
   };
+  let mockUserSettingsApi: {
+    updateSettings: ReturnType<typeof vi.fn>;
+  };
   let mockLogger: {
     info: ReturnType<typeof vi.fn>;
+    warn: ReturnType<typeof vi.fn>;
     error: ReturnType<typeof vi.fn>;
   };
   let mockPostHogService: {
@@ -32,8 +37,13 @@ describe('CompleteProfileStore', () => {
       getAllBudgets$: vi.fn().mockReturnValue(of([])),
     };
 
+    mockUserSettingsApi = {
+      updateSettings: vi.fn().mockResolvedValue({ payDayOfMonth: null }),
+    };
+
     mockLogger = {
       info: vi.fn(),
+      warn: vi.fn(),
       error: vi.fn(),
     };
 
@@ -46,6 +56,7 @@ describe('CompleteProfileStore', () => {
         CompleteProfileStore,
         { provide: ProfileSetupService, useValue: mockProfileSetupService },
         { provide: BudgetApi, useValue: mockBudgetApi },
+        { provide: UserSettingsApi, useValue: mockUserSettingsApi },
         { provide: Logger, useValue: mockLogger },
         { provide: PostHogService, useValue: mockPostHogService },
       ],
@@ -77,6 +88,10 @@ describe('CompleteProfileStore', () => {
 
     it('should have no error', () => {
       expect(store.error()).toBe('');
+    });
+
+    it('should have null payDayOfMonth', () => {
+      expect(store.payDayOfMonth()).toBeNull();
     });
 
     it('should be invalid for step 1', () => {
@@ -143,6 +158,21 @@ describe('CompleteProfileStore', () => {
       store.updateMonthlyIncome(5000);
 
       expect(store.monthlyIncome()).toBe(5000);
+    });
+  });
+
+  describe('updatePayDayOfMonth', () => {
+    it('should update payDayOfMonth', () => {
+      store.updatePayDayOfMonth(27);
+
+      expect(store.payDayOfMonth()).toBe(27);
+    });
+
+    it('should allow setting to null', () => {
+      store.updatePayDayOfMonth(15);
+      store.updatePayDayOfMonth(null);
+
+      expect(store.payDayOfMonth()).toBeNull();
     });
   });
 
@@ -217,6 +247,69 @@ describe('CompleteProfileStore', () => {
 
       expect(result).toBe(false);
       expect(store.error()).toBe('API Error');
+    });
+
+    it('should save payDayOfMonth when set', async () => {
+      mockProfileSetupService.createInitialBudget.mockResolvedValue({
+        success: true,
+      });
+
+      store.updateFirstName('John');
+      store.updateMonthlyIncome(5000);
+      store.updatePayDayOfMonth(27);
+
+      const result = await store.submitProfile();
+
+      expect(result).toBe(true);
+      expect(mockUserSettingsApi.updateSettings).toHaveBeenCalledWith({
+        payDayOfMonth: 27,
+      });
+      expect(mockLogger.info).toHaveBeenCalledWith('Pay day setting saved', {
+        payDayOfMonth: 27,
+      });
+    });
+
+    it('should not save payDayOfMonth when null', async () => {
+      mockProfileSetupService.createInitialBudget.mockResolvedValue({
+        success: true,
+      });
+
+      store.updateFirstName('John');
+      store.updateMonthlyIncome(5000);
+      // payDayOfMonth is null by default
+
+      const result = await store.submitProfile();
+
+      expect(result).toBe(true);
+      expect(mockUserSettingsApi.updateSettings).not.toHaveBeenCalled();
+    });
+
+    it('should succeed even if saving payDayOfMonth fails', async () => {
+      mockProfileSetupService.createInitialBudget.mockResolvedValue({
+        success: true,
+      });
+      mockUserSettingsApi.updateSettings.mockRejectedValue(
+        new Error('Settings API Error'),
+      );
+
+      store.updateFirstName('John');
+      store.updateMonthlyIncome(5000);
+      store.updatePayDayOfMonth(15);
+
+      const result = await store.submitProfile();
+
+      expect(result).toBe(true);
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        'Failed to save pay day setting',
+        expect.any(Error),
+      );
+      expect(mockPostHogService.captureException).toHaveBeenCalledWith(
+        expect.any(Error),
+        {
+          context: 'complete-profile',
+          action: 'savePayDaySetting',
+        },
+      );
     });
   });
 });
