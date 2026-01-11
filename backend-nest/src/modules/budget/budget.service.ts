@@ -19,6 +19,8 @@ import {
   type Budget,
   type Transaction,
   type BudgetLine,
+  PAY_DAY_MIN,
+  PAY_DAY_MAX,
 } from 'pulpe-shared';
 import * as budgetMappers from './budget.mappers';
 import { type Tables } from '../../types/database.types';
@@ -28,9 +30,7 @@ import { BudgetCalculator } from './budget.calculator';
 import { BudgetValidator } from './budget.validator';
 import { BudgetRepository } from './budget.repository';
 
-const DEFAULT_PAY_DAY = 1;
-const MIN_PAY_DAY = 1;
-const MAX_PAY_DAY = 31;
+const DEFAULT_PAY_DAY = PAY_DAY_MIN;
 
 interface BudgetDetailsData {
   budget: Budget;
@@ -58,7 +58,7 @@ export class BudgetService {
       return DEFAULT_PAY_DAY;
     }
 
-    return Math.max(MIN_PAY_DAY, Math.min(MAX_PAY_DAY, raw));
+    return Math.max(PAY_DAY_MIN, Math.min(PAY_DAY_MAX, raw));
   }
 
   async findAll(

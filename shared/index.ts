@@ -1,5 +1,9 @@
 // Export all schemas from schemas.ts
 export {
+  // Constants
+  PAY_DAY_MIN,
+  PAY_DAY_MAX,
+
   // Enums
   transactionRecurrenceSchema,
   transactionKindSchema,

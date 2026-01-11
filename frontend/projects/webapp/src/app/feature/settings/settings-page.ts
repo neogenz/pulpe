@@ -18,6 +18,7 @@ import {
 } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { UserSettingsApi } from '@core/user-settings';
+import { PAY_DAY_MAX } from 'pulpe-shared';
 
 @Component({
   selector: 'pulpe-settings-page',
@@ -142,7 +143,7 @@ export default class SettingsPage {
   readonly #snackBar = inject(MatSnackBar);
 
   readonly isSaving = signal(false);
-  readonly availableDays = Array.from({ length: 31 }, (_, i) => i + 1);
+  readonly availableDays = Array.from({ length: PAY_DAY_MAX }, (_, i) => i + 1);
 
   // linkedSignal syncs with API value but can be locally modified by user
   readonly selectedPayDay = linkedSignal(

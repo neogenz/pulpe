@@ -21,6 +21,8 @@
  * - 27 janvier 2025 → février 2025 (période fév: 27 jan - 26 fév)
  */
 
+import { PAY_DAY_MIN, PAY_DAY_MAX } from '../../schemas.js';
+
 /**
  * Représente une période budgétaire (mois/année)
  */
@@ -69,7 +71,10 @@ export function getBudgetPeriodForDate(
   }
 
   // Valider le jour de paie (1-31)
-  const validPayDay = Math.max(1, Math.min(31, Math.floor(payDayOfMonth)));
+  const validPayDay = Math.max(
+    PAY_DAY_MIN,
+    Math.min(PAY_DAY_MAX, Math.floor(payDayOfMonth)),
+  );
 
   // Calculer la période de base
   let resultMonth: number;
@@ -207,7 +212,7 @@ export function getBudgetPeriodDates(
   // Normaliser le jour de paie
   const payDay =
     payDayOfMonth && payDayOfMonth > 1
-      ? Math.max(1, Math.min(31, Math.floor(payDayOfMonth)))
+      ? Math.max(PAY_DAY_MIN, Math.min(PAY_DAY_MAX, Math.floor(payDayOfMonth)))
       : 1;
 
   let startMonth: number;
