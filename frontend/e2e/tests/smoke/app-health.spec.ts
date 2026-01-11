@@ -34,11 +34,11 @@ test.describe('App Health Check', () => {
     await expect(page.locator('pulpe-root')).toBeVisible();
   });
 
-  test('redirects to onboarding for new users', async ({ page }) => {
+  test('redirects to welcome page for new users', async ({ page }) => {
     await page.goto('/');
 
-    // Should be redirected to onboarding welcome page for new users
-    await expect(page).toHaveURL(/\/onboarding\/welcome/);
+    // Should be redirected to welcome page for new users
+    await expect(page).toHaveURL(/\/welcome/);
 
     // Should have some content on the page (any visible element)
     const pageContent = page.locator('body');
@@ -129,8 +129,8 @@ test.describe('App Health Check', () => {
     await page.goto('/login');
     await expect(page).toHaveURL(/\/login/);
 
-    await page.goto('/onboarding');
-    await expect(page).toHaveURL(/\/onboarding/);
+    await page.goto('/welcome');
+    await expect(page).toHaveURL(/\/welcome/);
 
     // Should not show 404 or error pages - check for error headings, not UI elements like icons
     const errorHeading = page.locator('h1, h2, h3').filter({ hasText: /404|not found/i });
