@@ -66,9 +66,16 @@ export class TransactionApi {
       .pipe(map((response) => transactionResponseSchema.parse(response)));
   }
 
-  search$(query: string): Observable<TransactionSearchResponse> {
+  search$(
+    query: string,
+    years?: number[],
+  ): Observable<TransactionSearchResponse> {
+    const params: Record<string, string | string[]> = { q: query };
+    if (years && years.length > 0) {
+      params['years'] = years.map(String);
+    }
     return this.#http
-      .get<unknown>(`${this.#apiUrl}/search`, { params: { q: query } })
+      .get<unknown>(`${this.#apiUrl}/search`, { params })
       .pipe(map((response) => transactionSearchResponseSchema.parse(response)));
   }
 }

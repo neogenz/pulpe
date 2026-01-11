@@ -115,6 +115,14 @@ export class TransactionController {
     required: true,
     example: 'Restaurant',
   })
+  @ApiQuery({
+    name: 'years',
+    description: 'Filtrer par années (optionnel)',
+    required: false,
+    isArray: true,
+    type: Number,
+    example: [2024, 2025],
+  })
   @ApiResponse({
     status: 200,
     description: 'Résultats de recherche',
@@ -126,6 +134,7 @@ export class TransactionController {
   })
   async search(
     @Query('q') query: string,
+    @Query('years') yearsParam: string | string[] | undefined,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<TransactionSearchResponse> {
     if (!query || query.length < 2) {
@@ -133,7 +142,18 @@ export class TransactionController {
         'Le terme de recherche doit contenir au moins 2 caractères',
       );
     }
-    return this.transactionService.search(query, supabase);
+
+    const years = this.#parseYearsParam(yearsParam);
+    return this.transactionService.search(query, supabase, years);
+  }
+
+  #parseYearsParam(yearsParam: string | string[] | undefined): number[] {
+    if (!yearsParam) return [];
+    const arr = Array.isArray(yearsParam) ? yearsParam : [yearsParam];
+    const maxYear = new Date().getFullYear() + 100;
+    return arr
+      .map((y) => parseInt(y, 10))
+      .filter((y) => !isNaN(y) && y >= 1900 && y <= maxYear);
   }
 
   @Post()

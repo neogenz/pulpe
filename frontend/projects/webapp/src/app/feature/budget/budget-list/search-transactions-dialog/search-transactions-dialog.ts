@@ -3,7 +3,6 @@ import {
   Component,
   computed,
   inject,
-  linkedSignal,
   signal,
 } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
@@ -15,10 +14,12 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSelectModule } from '@angular/material/select';
 import { debounce, Field, form } from '@angular/forms/signals';
-import { of, tap } from 'rxjs';
+import { map, of, tap } from 'rxjs';
 import type { TransactionSearchResult } from 'pulpe-shared';
 import { TransactionApi } from '@core/transaction/transaction-api';
+import { BudgetApi } from '@core/budget/budget-api';
 import { Logger } from '@core/logging/logger';
 
 @Component({
@@ -31,6 +32,7 @@ import { Logger } from '@core/logging/logger';
     MatButtonModule,
     MatTableModule,
     MatProgressSpinnerModule,
+    MatSelectModule,
     Field,
     CurrencyPipe,
   ],
@@ -38,41 +40,63 @@ import { Logger } from '@core/logging/logger';
     <h2 mat-dialog-title>Rechercher dans le budget</h2>
 
     <mat-dialog-content class="flex flex-col gap-4 pt-2!">
-      <mat-form-field
-        appearance="outline"
-        subscriptSizing="dynamic"
-        class="w-full"
-      >
-        <mat-label>Rechercher</mat-label>
-        @if (searchResource.isLoading()) {
-          <mat-progress-spinner
-            matIconPrefix
-            mode="indeterminate"
-            [diameter]="20"
-            class="mx-4"
+      <div class="flex flex-col sm:flex-row gap-4">
+        <mat-form-field
+          appearance="outline"
+          subscriptSizing="dynamic"
+          class="flex-1"
+        >
+          <mat-label>Rechercher</mat-label>
+          @if (searchResource.isLoading()) {
+            <mat-progress-spinner
+              matIconPrefix
+              mode="indeterminate"
+              [diameter]="20"
+              class="mx-4"
+            />
+          } @else {
+            <mat-icon matIconPrefix>search</mat-icon>
+          }
+          <input
+            matInput
+            [field]="filterForm.query"
+            placeholder="Nom ou description..."
+            autocomplete="off"
+            data-testid="search-input"
           />
-        } @else {
-          <mat-icon matIconPrefix>search</mat-icon>
-        }
-        <input
-          matInput
-          [field]="searchForm.query"
-          placeholder="Nom ou description..."
-          autocomplete="off"
-          data-testid="search-input"
-        />
-        @if (searchForm.query().value()) {
-          <button
-            matIconButton
-            matIconSuffix
-            (click)="clearSearch()"
-            aria-label="Effacer"
-            type="button"
+          @if (filterForm.query().value()) {
+            <button
+              matIconButton
+              matIconSuffix
+              (click)="clearSearch()"
+              aria-label="Effacer"
+              type="button"
+            >
+              <mat-icon>close</mat-icon>
+            </button>
+          }
+        </mat-form-field>
+
+        <mat-form-field
+          appearance="outline"
+          subscriptSizing="dynamic"
+          class="sm:w-48"
+        >
+          <mat-label>Filtrer par année</mat-label>
+          <mat-select
+            [field]="filterForm.years"
+            multiple
+            data-testid="year-filter"
           >
-            <mat-icon>close</mat-icon>
-          </button>
-        }
-      </mat-form-field>
+            @for (year of availableYearsResource.value(); track year) {
+              <mat-option [value]="year">{{ year }}</mat-option>
+            }
+          </mat-select>
+          @if (availableYearsResource.error()) {
+            <mat-hint class="text-error">Erreur de chargement</mat-hint>
+          }
+        </mat-form-field>
+      </div>
 
       @if (searchResults().length > 0) {
         <div
@@ -98,7 +122,14 @@ import { Logger } from '@core/logging/logger';
 
             <ng-container matColumnDef="name">
               <th mat-header-cell *matHeaderCellDef>Nom</th>
-              <td mat-cell *matCellDef="let row" class="text-body-medium">
+              <td
+                mat-cell
+                *matCellDef="let row"
+                class="text-body-medium"
+                [class.text-financial-income]="row.kind === 'income'"
+                [class.text-financial-expense]="row.kind === 'expense'"
+                [class.text-financial-savings]="row.kind === 'saving'"
+              >
                 {{ row.name }}
               </td>
             </ng-container>
@@ -110,7 +141,10 @@ import { Logger } from '@core/logging/logger';
               <td
                 mat-cell
                 *matCellDef="let row"
-                class="text-right text-body-medium font-medium"
+                class="text-right text-body-medium font-bold"
+                [class.text-financial-income]="row.kind === 'income'"
+                [class.text-financial-expense]="row.kind === 'expense'"
+                [class.text-financial-savings]="row.kind === 'saving'"
               >
                 {{ row.amount | currency: 'CHF' : 'symbol' : '1.2-2' }}
               </td>
@@ -175,7 +209,7 @@ import { Logger } from '@core/logging/logger';
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class SearchTransactionsDialogComponent {
+export default class SearchTransactionsDialogComponent {
   readonly #dialogRef = inject(
     MatDialogRef<
       SearchTransactionsDialogComponent,
@@ -183,46 +217,61 @@ export class SearchTransactionsDialogComponent {
     >,
   );
   readonly #transactionApi = inject(TransactionApi);
+  readonly #budgetApi = inject(BudgetApi);
   readonly #logger = inject(Logger);
 
-  readonly #searchModel = signal({ query: '' });
-  readonly searchForm = form(this.#searchModel, (path) => {
+  readonly #filterModel = signal({ query: '', years: [] as number[] });
+  protected readonly filterForm = form(this.#filterModel, (path) => {
     debounce(path.query, 300);
   });
 
+  protected readonly availableYearsResource = rxResource({
+    stream: () =>
+      this.#budgetApi.getAllBudgets$().pipe(
+        map((budgets) => {
+          const years = [...new Set(budgets.map((b) => b.year))];
+          return years.sort((a, b) => b - a);
+        }),
+        tap({
+          error: (err) => this.#logger.error('Failed to load years', err),
+        }),
+      ),
+  });
+
   readonly #validQuery = computed(() => {
-    const query = this.searchForm.query().value().trim();
+    const query = this.filterForm.query().value().trim();
     return query.length >= 2 ? query : null;
   });
 
-  readonly searchResource = rxResource({
-    params: () => this.#validQuery(),
-    stream: ({ params: query }) => {
-      if (!query) {
+  protected readonly selectedYears = computed(() =>
+    this.filterForm.years().value(),
+  );
+
+  protected readonly searchResource = rxResource({
+    params: () => ({ query: this.#validQuery(), years: this.selectedYears() }),
+    stream: ({ params }) => {
+      if (!params.query) {
         return of({ success: true as const, data: [] });
       }
+      const years = params.years.length > 0 ? params.years : undefined;
       return this.#transactionApi
-        .search$(query)
+        .search$(params.query, years)
         .pipe(tap({ error: (err) => this.#logger.error('Search error', err) }));
     },
   });
 
-  readonly searchResults = linkedSignal<
-    TransactionSearchResult[] | undefined,
-    TransactionSearchResult[]
-  >({
-    source: () => this.searchResource.value()?.data,
-    computation: (newData, previous) => newData ?? previous?.value ?? [],
-  });
-  readonly hasSearched = computed(() => this.#validQuery() !== null);
+  protected readonly searchResults = computed(
+    () => this.searchResource.value()?.data ?? [],
+  );
+  protected readonly hasSearched = computed(() => this.#validQuery() !== null);
 
-  readonly displayedColumns = ['period', 'name', 'amount'];
+  protected readonly displayedColumns = ['period', 'name', 'amount'] as const;
 
-  clearSearch(): void {
-    this.#searchModel.set({ query: '' });
+  protected clearSearch(): void {
+    this.#filterModel.update((model) => ({ ...model, query: '' }));
   }
 
-  selectResult(result: TransactionSearchResult): void {
+  protected selectResult(result: TransactionSearchResult): void {
     this.#dialogRef.close(result);
   }
 }
