@@ -22,6 +22,12 @@ export const routes: Routes = [
     loadComponent: () => import('./feature/auth/login/login'),
   },
   {
+    path: ROUTES.SIGNUP,
+    title: PAGE_TITLES.SIGNUP,
+    canActivate: [publicGuard],
+    loadComponent: () => import('./feature/auth/signup/signup'),
+  },
+  {
     path: ROUTES.LEGAL,
     title: PAGE_TITLES.LEGAL,
     loadChildren: () => import('./feature/legal/legal.routes'),

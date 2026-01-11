@@ -114,7 +114,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
             class="w-full max-w-sm h-12"
             data-testid="email-signup-button"
             [disabled]="isLoading()"
-            [routerLink]="['/', ROUTES.LOGIN]"
+            [routerLink]="['/', ROUTES.SIGNUP]"
           >
             <div class="flex items-center justify-center gap-2">
               <mat-icon>email</mat-icon>

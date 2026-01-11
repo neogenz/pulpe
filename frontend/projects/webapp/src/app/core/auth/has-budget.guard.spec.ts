@@ -62,7 +62,7 @@ describe('hasBudgetGuard', () => {
     ]);
   });
 
-  it('should allow navigation on API error', async () => {
+  it('should redirect to complete-profile on API error', async () => {
     mockBudgetApi.getAllBudgets$.mockReturnValue(
       throwError(() => new Error('API Error')),
     );
@@ -71,6 +71,11 @@ describe('hasBudgetGuard', () => {
       hasBudgetGuard(mockRoute, mockState),
     );
 
-    expect(result).toBe(true);
+    expect(result).toEqual({});
+    expect(mockRouter.createUrlTree).toHaveBeenCalledWith([
+      '/',
+      'app',
+      'complete-profile',
+    ]);
   });
 });

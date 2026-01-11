@@ -1,6 +1,9 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { ProfileSetupService, type ProfileData } from '@core/profile';
+import { BudgetApi } from '@core/budget';
 import { Logger } from '@core/logging/logger';
+import { PostHogService } from '@core/analytics/posthog';
+import { firstValueFrom } from 'rxjs';
 
 interface CompleteProfileState {
   firstName: string;
@@ -11,6 +14,7 @@ interface CompleteProfileState {
   transportCosts: number | null;
   leasingCredit: number | null;
   isLoading: boolean;
+  isCheckingExistingBudget: boolean;
   error: string;
 }
 
@@ -24,6 +28,7 @@ function createInitialState(): CompleteProfileState {
     transportCosts: null,
     leasingCredit: null,
     isLoading: false,
+    isCheckingExistingBudget: true,
     error: '',
   };
 }
@@ -31,7 +36,9 @@ function createInitialState(): CompleteProfileState {
 @Injectable()
 export class CompleteProfileStore {
   readonly #profileSetupService = inject(ProfileSetupService);
+  readonly #budgetApi = inject(BudgetApi);
   readonly #logger = inject(Logger);
+  readonly #postHogService = inject(PostHogService);
 
   readonly #state = signal<CompleteProfileState>(createInitialState());
 
@@ -44,6 +51,9 @@ export class CompleteProfileStore {
   readonly transportCosts = computed(() => this.#state().transportCosts);
   readonly leasingCredit = computed(() => this.#state().leasingCredit);
   readonly isLoading = computed(() => this.#state().isLoading);
+  readonly isCheckingExistingBudget = computed(
+    () => this.#state().isCheckingExistingBudget,
+  );
   readonly error = computed(() => this.#state().error);
 
   readonly isStep1Valid = computed(() => {
@@ -86,6 +96,33 @@ export class CompleteProfileStore {
 
   clearError(): void {
     this.#state.update((s) => ({ ...s, error: '' }));
+  }
+
+  async checkExistingBudgets(): Promise<boolean> {
+    this.#state.update((s) => ({ ...s, isCheckingExistingBudget: true }));
+
+    try {
+      const budgets = await firstValueFrom(this.#budgetApi.getAllBudgets$());
+      const hasExisting = budgets.length > 0;
+
+      this.#state.update((s) => ({ ...s, isCheckingExistingBudget: false }));
+
+      if (hasExisting) {
+        this.#logger.info(
+          'User already has budgets, should redirect to dashboard',
+        );
+      }
+
+      return hasExisting;
+    } catch (error) {
+      this.#logger.error('Error checking existing budgets:', error);
+      this.#postHogService.captureException(error, {
+        context: 'complete-profile',
+        action: 'checkExistingBudgets',
+      });
+      this.#state.update((s) => ({ ...s, isCheckingExistingBudget: false }));
+      return false;
+    }
   }
 
   async submitProfile(): Promise<boolean> {

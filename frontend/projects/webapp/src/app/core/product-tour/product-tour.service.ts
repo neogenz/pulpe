@@ -7,7 +7,8 @@
 
 import { inject, Injectable } from '@angular/core';
 import { driver, type DriveStep, type Config, type Driver } from 'driver.js';
-import { StorageService, STORAGE_KEYS } from '@core/storage';
+import { StorageService, type StorageKey } from '@core/storage';
+import { AuthApi } from '@core/auth/auth-api';
 
 export type TourPageId =
   | 'current-month'
@@ -22,15 +23,15 @@ export type TourPageId =
 export const TOUR_START_DELAY = 500;
 
 /**
- * Storage keys for tour completion tracking
- * Exported for E2E test utilities
+ * Tour identifiers used to generate user-specific storage keys.
+ * Keys are stored as `pulpe-tour-{tourId}-{userId}` to persist across logout/login.
  */
-export const TOUR_STORAGE_KEYS = {
-  intro: STORAGE_KEYS.TOUR_INTRO,
-  'current-month': STORAGE_KEYS.TOUR_CURRENT_MONTH,
-  'budget-list': STORAGE_KEYS.TOUR_BUDGET_LIST,
-  'budget-details': STORAGE_KEYS.TOUR_BUDGET_DETAILS,
-  'templates-list': STORAGE_KEYS.TOUR_TEMPLATES_LIST,
+const TOUR_IDS = {
+  intro: 'intro',
+  'current-month': 'current-month',
+  'budget-list': 'budget-list',
+  'budget-details': 'budget-details',
+  'templates-list': 'templates-list',
 } as const;
 
 @Injectable({
@@ -38,47 +39,66 @@ export const TOUR_STORAGE_KEYS = {
 })
 export class ProductTourService {
   readonly #storageService = inject(StorageService);
+  readonly #authApi = inject(AuthApi);
 
   /** Active Driver.js instance to prevent concurrent tours */
   #activeDriver: Driver | null = null;
 
   /**
+   * Generate a user-specific storage key for a tour.
+   * Format: pulpe-tour-{tourId}-{userId}
+   */
+  #getTourKey(tourId: string): StorageKey {
+    const userId = this.#authApi.currentUser?.id;
+    if (!userId) {
+      return `pulpe-tour-${tourId}` as StorageKey;
+    }
+    return `pulpe-tour-${tourId}-${userId}` as StorageKey;
+  }
+
+  /**
    * Check if user has seen the intro (welcome + navigation)
    */
   hasSeenIntro(): boolean {
-    return this.#storageService.getString(TOUR_STORAGE_KEYS.intro) === 'true';
+    return (
+      this.#storageService.getString(this.#getTourKey(TOUR_IDS.intro)) ===
+      'true'
+    );
   }
 
   /**
    * Check if user has seen a specific page tour
    */
   hasSeenPageTour(pageId: TourPageId): boolean {
-    return this.#storageService.getString(TOUR_STORAGE_KEYS[pageId]) === 'true';
+    return (
+      this.#storageService.getString(this.#getTourKey(TOUR_IDS[pageId])) ===
+      'true'
+    );
   }
 
   /**
    * Mark intro as completed
    */
   #markIntroCompleted(): void {
-    this.#storageService.setString(TOUR_STORAGE_KEYS.intro, 'true');
+    this.#storageService.setString(this.#getTourKey(TOUR_IDS.intro), 'true');
   }
 
   /**
    * Mark a page tour as completed
    */
   #markPageTourCompleted(pageId: TourPageId): void {
-    this.#storageService.setString(TOUR_STORAGE_KEYS[pageId], 'true');
+    this.#storageService.setString(this.#getTourKey(TOUR_IDS[pageId]), 'true');
   }
 
   /**
-   * Reset all tours (for testing)
+   * Reset all tours for the current user
    */
   resetAllTours(): void {
-    this.#storageService.remove(TOUR_STORAGE_KEYS.intro);
-    this.#storageService.remove(TOUR_STORAGE_KEYS['current-month']);
-    this.#storageService.remove(TOUR_STORAGE_KEYS['budget-list']);
-    this.#storageService.remove(TOUR_STORAGE_KEYS['budget-details']);
-    this.#storageService.remove(TOUR_STORAGE_KEYS['templates-list']);
+    this.#storageService.remove(this.#getTourKey(TOUR_IDS.intro));
+    this.#storageService.remove(this.#getTourKey(TOUR_IDS['current-month']));
+    this.#storageService.remove(this.#getTourKey(TOUR_IDS['budget-list']));
+    this.#storageService.remove(this.#getTourKey(TOUR_IDS['budget-details']));
+    this.#storageService.remove(this.#getTourKey(TOUR_IDS['templates-list']));
   }
 
   /**
