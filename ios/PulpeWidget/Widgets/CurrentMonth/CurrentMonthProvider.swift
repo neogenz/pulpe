@@ -11,8 +11,11 @@ struct CurrentMonthProvider: TimelineProvider {
     }
 
     func getSnapshot(in context: Context, completion: @escaping (CurrentMonthEntry) -> Void) {
-        let entry = loadEntry() ?? .placeholder
-        completion(entry)
+        if context.isPreview {
+            completion(.placeholder)
+            return
+        }
+        completion(loadEntry() ?? .placeholder)
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<CurrentMonthEntry>) -> Void) {

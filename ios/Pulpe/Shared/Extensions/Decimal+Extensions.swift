@@ -32,8 +32,7 @@ extension Decimal {
 
     /// Format as percentage
     func asPercentage(maximumFractionDigits: Int = 0) -> String {
-        Formatters.percentage.maximumFractionDigits = maximumFractionDigits
-        return Formatters.percentage.string(from: (self / 100) as NSDecimalNumber) ?? "\(self)%"
+        (self / 100).formatted(.percent.precision(.fractionLength(0...maximumFractionDigits)))
     }
 }
 

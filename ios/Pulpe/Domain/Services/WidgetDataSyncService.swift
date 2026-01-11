@@ -62,10 +62,6 @@ actor WidgetDataSyncService {
         forYear year: Int,
         currentMonth: Int
     ) -> [BudgetWidgetData] {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "fr_FR")
-        formatter.dateFormat = "MMMM yyyy"
-
         return (1...12).map { month in
             let budget = budgets.first { $0.month == month && $0.year == year }
 
@@ -74,7 +70,7 @@ actor WidgetDataSyncService {
             components.year = year
             components.day = 1
             let monthName = Calendar.current.date(from: components)
-                .map { formatter.string(from: $0).capitalized } ?? "\(month)/\(year)"
+                .map { Formatters.monthYear.string(from: $0).capitalized } ?? "\(month)/\(year)"
 
             return BudgetWidgetData(
                 id: budget?.id ?? "placeholder-\(month)-\(year)",

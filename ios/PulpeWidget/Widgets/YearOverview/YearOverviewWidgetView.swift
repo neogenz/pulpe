@@ -37,6 +37,7 @@ struct YearOverviewWidgetView: View {
                     .foregroundColor(available >= 0 ? Color.primary : Color.red)
                     .minimumScaleFactor(0.7)
                     .lineLimit(1)
+                    .privacySensitive()
             } else {
                 Text("—")
                     .font(.caption)
@@ -49,5 +50,9 @@ struct YearOverviewWidgetView: View {
             RoundedRectangle(cornerRadius: 6)
                 .fill(month.isCurrentMonth ? Color.accentColor.opacity(0.15) : Color.clear)
         )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(month.shortName)
+        .accessibilityValue(month.available.map { "\($0.asCompactCHF)" } ?? "Pas de données")
+        .accessibilityAddTraits(month.isCurrentMonth ? .isSelected : [])
     }
 }

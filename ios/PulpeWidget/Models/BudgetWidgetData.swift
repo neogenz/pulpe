@@ -9,17 +9,13 @@ struct BudgetWidgetData: Codable, Sendable, Identifiable {
     let isCurrentMonth: Bool
 
     var shortMonthName: String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "fr_FR")
-        formatter.dateFormat = "MMM"
-
         var components = DateComponents()
         components.month = month
         components.year = year
         components.day = 1
 
         if let date = Calendar.current.date(from: components) {
-            return formatter.string(from: date).capitalized
+            return Formatters.shortMonth.string(from: date).capitalized
         }
         return "\(month)"
     }

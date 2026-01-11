@@ -59,17 +59,13 @@ struct YearOverviewEntry: TimelineEntry, Sendable {
     }
 
     private static func shortMonthName(for month: Int) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "fr_FR")
-        formatter.dateFormat = "MMM"
-
         var components = DateComponents()
         components.month = month
-        components.year = 2025
+        components.year = Calendar.current.component(.year, from: Date())
         components.day = 1
 
         if let date = Calendar.current.date(from: components) {
-            return formatter.string(from: date).capitalized
+            return Formatters.shortMonth.string(from: date).capitalized
         }
         return "\(month)"
     }

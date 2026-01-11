@@ -14,7 +14,7 @@ struct WidgetDataCoordinator: Sendable {
         do {
             let data = try JSONEncoder().encode(cache)
             defaults.set(data, forKey: Self.cacheKey)
-            return defaults.synchronize()
+            return true
         } catch {
             print("WidgetDataCoordinator: Failed to encode cache - \(error)")
             return false
@@ -23,7 +23,6 @@ struct WidgetDataCoordinator: Sendable {
 
     func load() -> WidgetDataCache? {
         guard let defaults = sharedDefaults else { return nil }
-        defaults.synchronize()
         guard let data = defaults.data(forKey: Self.cacheKey) else { return nil }
         do {
             return try JSONDecoder().decode(WidgetDataCache.self, from: data)
@@ -36,6 +35,5 @@ struct WidgetDataCoordinator: Sendable {
     func clear() {
         guard let defaults = sharedDefaults else { return }
         defaults.removeObject(forKey: Self.cacheKey)
-        defaults.synchronize()
     }
 }

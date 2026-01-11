@@ -1,4 +1,5 @@
 import SwiftUI
+import WidgetKit
 
 @Observable
 final class AppState {
@@ -101,6 +102,10 @@ final class AppState {
         currentUser = nil
         authState = .unauthenticated
         biometricEnabled = false
+
+        // Clear sensitive widget data
+        WidgetDataCoordinator().clear()
+        WidgetCenter.shared.reloadAllTimelines()
 
         // Reset navigation
         budgetPath = NavigationPath()

@@ -11,8 +11,11 @@ struct YearOverviewProvider: TimelineProvider {
     }
 
     func getSnapshot(in context: Context, completion: @escaping (YearOverviewEntry) -> Void) {
-        let entry = loadEntry() ?? .placeholder
-        completion(entry)
+        if context.isPreview {
+            completion(.placeholder)
+            return
+        }
+        completion(loadEntry() ?? .placeholder)
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<YearOverviewEntry>) -> Void) {

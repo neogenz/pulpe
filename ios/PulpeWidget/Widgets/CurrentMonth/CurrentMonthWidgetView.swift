@@ -39,6 +39,7 @@ struct CurrentMonthWidgetView: View {
                 .fontWeight(.semibold)
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
+                .privacySensitive()
 
             Text(entry.monthName)
                 .font(.caption2)
@@ -46,6 +47,10 @@ struct CurrentMonthWidgetView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .widgetURL(URL(string: "pulpe://add-expense"))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Budget \(entry.monthName)")
+        .accessibilityValue("\(entry.available.asCHF) disponible")
+        .accessibilityHint("Toucher pour ajouter une dépense")
     }
 
     private var mediumWidgetView: some View {
@@ -60,11 +65,15 @@ struct CurrentMonthWidgetView: View {
                     .fontWeight(.semibold)
                     .minimumScaleFactor(0.7)
                     .lineLimit(1)
+                    .privacySensitive()
 
                 Text(entry.monthName)
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Budget \(entry.monthName)")
+            .accessibilityValue("\(entry.available.asCHF) disponible à dépenser")
 
             Spacer()
 
@@ -73,6 +82,7 @@ struct CurrentMonthWidgetView: View {
                     .font(.system(size: 44))
                     .foregroundStyle(.tint)
             }
+            .accessibilityLabel("Ajouter une dépense")
         }
         .padding()
     }
