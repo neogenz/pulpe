@@ -87,7 +87,7 @@ struct YearOverviewWidgetView: View {
             } else {
                 Text("—")
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(Color("TextTertiary"))
             }
         }
         .frame(maxWidth: .infinity)

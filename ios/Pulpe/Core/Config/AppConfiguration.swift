@@ -7,7 +7,7 @@ enum AppConfiguration {
     static var apiBaseURL: URL {
         #if DEBUG
         // Development - use local or staging (includes /api/v1 prefix)
-        URL(string: ProcessInfo.processInfo.environment["API_BASE_URL"] ?? "http://localhost:3000/api/v1")!
+        URL(string: ProcessInfo.processInfo.environment["API_BASE_URL"] ?? "https://backend-production-e7df.up.railway.app/api/v1")!
         #else
         // Production (includes /api/v1 prefix)
         URL(string: "https://backend-production-e7df.up.railway.app/api/v1")!
@@ -18,7 +18,7 @@ enum AppConfiguration {
 
     static var supabaseURL: URL {
         #if DEBUG
-        URL(string: ProcessInfo.processInfo.environment["SUPABASE_URL"] ?? "http://localhost:54321")!
+        URL(string: ProcessInfo.processInfo.environment["SUPABASE_URL"] ?? "https://xvrbcvltpkqwiiexvfxh.supabase.co")!
         #else
         // Production - replace with your Supabase project URL
         URL(string: "https://xvrbcvltpkqwiiexvfxh.supabase.co")!
@@ -28,7 +28,7 @@ enum AppConfiguration {
     static var supabaseAnonKey: String {
         #if DEBUG
         ProcessInfo.processInfo.environment["SUPABASE_ANON_KEY"]
-            ?? "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0"
+            ?? "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2cmJjdmx0cGtxd2lpZXh2ZnhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkwNjM2NTgsImV4cCI6MjA2NDYzOTY1OH0.xkOV-IR9h5T08YH1_BZ8VevlWF0VCoZDctiO4lbeLmc"
         #else
         // Production - replace with your Supabase anon key
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2cmJjdmx0cGtxd2lpZXh2ZnhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkwNjM2NTgsImV4cCI6MjA2NDYzOTY1OH0.xkOV-IR9h5T08YH1_BZ8VevlWF0VCoZDctiO4lbeLmc"

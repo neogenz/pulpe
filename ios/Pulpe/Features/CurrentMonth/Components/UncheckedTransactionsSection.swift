@@ -22,7 +22,7 @@ struct UncheckedTransactionsSection: View {
                         Spacer()
                         Image(systemName: "chevron.right")
                             .font(.caption)
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(Color.textTertiary)
                     }
                 }
             } header: {
@@ -65,7 +65,7 @@ private struct UncheckedTransactionRow: View {
 
                 Text(transaction.transactionDate.relativeFormatted)
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(Color.textTertiary)
             }
 
             Spacer()

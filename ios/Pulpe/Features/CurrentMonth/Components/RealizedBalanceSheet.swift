@@ -71,7 +71,7 @@ struct RealizedBalanceSheet: View {
             // Completion info
             Text("Basé sur \(realizedMetrics.checkedItemsCount) éléments pointés sur \(realizedMetrics.totalItemsCount)")
                 .font(.caption)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(Color.textTertiary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 24)
@@ -195,7 +195,7 @@ private struct ProgressRow: View {
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(Color(.systemGray5))
+                        .fill(Color.progressTrack)
 
                     Capsule()
                         .fill(iconColor)
@@ -207,7 +207,7 @@ private struct ProgressRow: View {
             // Percentage label
             Text("\(percentageText) réalisé")
                 .font(.caption)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(Color.textTertiary)
         }
     }
 }

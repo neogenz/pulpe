@@ -3,11 +3,12 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
 		0157030A5AF0AA8ED66650F2 /* TemplateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4BC53510F1748B0FB8407CE /* TemplateService.swift */; };
+		01A99D19CB83ABBFB272CE4D /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 955B1199FD862E3761B3435A /* DesignTokens.swift */; };
 		01C708D90EF921ADC8F0E663 /* ToastManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A77FEC48FC6CEA8465118A09 /* ToastManager.swift */; };
 		0252AB91572198782A8F04E6 /* AddBudgetLineSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D05E8BCE893AAA486F2F8BE /* AddBudgetLineSheet.swift */; };
 		1623C2D7A07E71A04BAF5EB9 /* View+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7A8C7ACFFD4118A786F4A2C /* View+Extensions.swift */; };
@@ -31,6 +32,7 @@
 		384564FD30EE399F24833457 /* PulpeLogo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D23A76488CE35949FDA3B08 /* PulpeLogo.swift */; };
 		398CE2254BF633E3D3D45D74 /* UncheckedTransactionsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED65AA01579D6F54056E2672 /* UncheckedTransactionsSection.swift */; };
 		3A4F017B5B7D8F61564A40BC /* BudgetLine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 150C0AA658E75766BDC017EB /* BudgetLine.swift */; };
+		3B640AF55B1CFF33ECE822B1 /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 955B1199FD862E3761B3435A /* DesignTokens.swift */; };
 		3BF2AAAEDD2456443E233D23 /* BudgetLine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 150C0AA658E75766BDC017EB /* BudgetLine.swift */; };
 		3C754ABC64CCC7FB68006C9D /* KeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57A624A40CC91AC97C743441 /* KeychainManager.swift */; };
 		3D7531C34481474D2EDD7DC0 /* AddAllocatedTransactionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E873F06201D0A4D69F356ED /* AddAllocatedTransactionSheet.swift */; };
@@ -100,6 +102,7 @@
 		DCFE9F54A5FDE7751D51152B /* BiometricService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8217BB2D2B30DEBF5E4F4798 /* BiometricService.swift */; };
 		DD543D40C2FDC4FEE11D8283 /* Color+Pulpe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E4F47F7A88B6744CA6D788C /* Color+Pulpe.swift */; };
 		DDAAA3DDA45E5B0FF93BD616 /* KindBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = C81B7DA6BF84774DCD938E37 /* KindBadge.swift */; };
+		DE6A49B974593C5495CD67B6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 33D16CC3E2E695C0743E99B7 /* Assets.xcassets */; };
 		DEC7748A44A2C465AB32B024 /* FinancialSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 471EA2FDC0D36113B6F2AEA9 /* FinancialSummaryCard.swift */; };
 		DEF2727B91E4F998B8EEF7B5 /* BudgetDetailsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 698F0684A80FD2BFB998D92A /* BudgetDetailsView.swift */; };
 		E3BA82ABFFC6695DE1311D13 /* Date+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF72C3AFECE05BCF77785C5F /* Date+Extensions.swift */; };
@@ -159,6 +162,7 @@
 		2D05E8BCE893AAA486F2F8BE /* AddBudgetLineSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddBudgetLineSheet.swift; sourceTree = "<group>"; };
 		30CFADFD464BFA965E68F5F0 /* HousingStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HousingStep.swift; sourceTree = "<group>"; };
 		316F2D062F9E6DD584B93A84 /* Transaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transaction.swift; sourceTree = "<group>"; };
+		33D16CC3E2E695C0743E99B7 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		34ECAA4ED629633771F020F4 /* WidgetDataCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetDataCoordinator.swift; sourceTree = "<group>"; };
 		357C61A34E9CA60F73EF5441 /* AuthErrorLocalizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthErrorLocalizer.swift; sourceTree = "<group>"; };
 		35BEAF310518B6EE5375776E /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
@@ -193,14 +197,15 @@
 		7F7722947386A7CD78FE3B05 /* OnboardingFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlow.swift; sourceTree = "<group>"; };
 		8217BB2D2B30DEBF5E4F4798 /* BiometricService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricService.swift; sourceTree = "<group>"; };
 		88250064A726B3B6AAAE9ADF /* welcome-animation.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "welcome-animation.json"; sourceTree = "<group>"; };
-		94570CEB6CD57FB35C06DE92 /* Pulpe.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Pulpe.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		94570CEB6CD57FB35C06DE92 /* Pulpe.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pulpe.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		94DA9F16798B6DC1691A2DB8 /* CreateTemplateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateTemplateView.swift; sourceTree = "<group>"; };
+		955B1199FD862E3761B3435A /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
 		9A05FA792057CD53B266EE9F /* TransactionEnums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionEnums.swift; sourceTree = "<group>"; };
 		9BB8AFF47FF273694E987E2A /* Pulpe.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Pulpe.entitlements; sourceTree = "<group>"; };
 		9C02340FB2A3D93553E9CA15 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		9E56340C03DD8EE1F7DF7638 /* BudgetService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetService.swift; sourceTree = "<group>"; };
 		A1A0EA391775C63723A83BF3 /* LoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingView.swift; sourceTree = "<group>"; };
-		A40110A09E6DF69EDAD88EFA /* PulpeWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = PulpeWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		A40110A09E6DF69EDAD88EFA /* PulpeWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PulpeWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		A77FEC48FC6CEA8465118A09 /* ToastManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastManager.swift; sourceTree = "<group>"; };
 		A97A17DE833B65153924BB0A /* BudgetLineService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetLineService.swift; sourceTree = "<group>"; };
 		A9E904C52E1E5F2BF3E1EB84 /* PersonalInfoStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalInfoStep.swift; sourceTree = "<group>"; };
@@ -346,6 +351,14 @@
 			path = Components;
 			sourceTree = "<group>";
 		};
+		4A88A413C309C37537FA3215 /* Design */ = {
+			isa = PBXGroup;
+			children = (
+				955B1199FD862E3761B3435A /* DesignTokens.swift */,
+			);
+			path = Design;
+			sourceTree = "<group>";
+		};
 		4F1A04F7722D40174AF6029F /* TemplateList */ = {
 			isa = PBXGroup;
 			children = (
@@ -449,8 +462,7 @@
 			isa = PBXGroup;
 			children = (
 				827C3DDE057CBE6774A41934 /* Intents */,
-				BF32797555067F58F521F8FD /* Models */,
-				35A07FFF4A09B0C4045409BF /* Services */,
+				AD0CAF35FBFF805D67F8AD1C /* Resources */,
 				5CCD294071AF1411A6856A16 /* Widgets */,
 				9C02340FB2A3D93553E9CA15 /* Info.plist */,
 				1D358058CCE0A379A8189DA6 /* PulpeWidget.entitlements */,
@@ -557,6 +569,14 @@
 				F24CDAB50DD41CF603A787D2 /* PulpeApp.swift */,
 			);
 			path = App;
+			sourceTree = "<group>";
+		};
+		AD0CAF35FBFF805D67F8AD1C /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				33D16CC3E2E695C0743E99B7 /* Assets.xcassets */,
+			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
 		BD1EE6F7D43070B7056ECA8D = {
@@ -669,6 +689,7 @@
 			isa = PBXGroup;
 			children = (
 				341B72692B89F61C2BA080AF /* Components */,
+				4A88A413C309C37537FA3215 /* Design */,
 				513DABDD517355E952C1BFFF /* Extensions */,
 				AA27D0E039D471EAA6765EC6 /* Formatters */,
 			);
@@ -683,6 +704,7 @@
 			buildConfigurationList = 053230DC078079D23190D45B /* Build configuration list for PBXNativeTarget "PulpeWidget" */;
 			buildPhases = (
 				33727A9AC5F2FDCC8D9074CF /* Sources */,
+				20FC5F1B90D7EEEF2C45ADF4 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -728,11 +750,9 @@
 				LastUpgradeCheck = 1500;
 				TargetAttributes = {
 					07BEE599D482CF9B6643DCEB = {
-						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 					4E3C22AB1CE882331E727F8E = {
-						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -751,7 +771,6 @@
 				104B6E33E10617F89EF7ECD9 /* XCRemoteSwiftPackageReference "lottie-spm" */,
 				09998022D4D87255D2EAE15A /* XCRemoteSwiftPackageReference "supabase-swift" */,
 			);
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -762,6 +781,14 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		20FC5F1B90D7EEEF2C45ADF4 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DE6A49B974593C5495CD67B6 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		9FFAF2BC030071F4B1521B68 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -791,6 +818,7 @@
 				1AB75CDA93B6DA9794027640 /* CurrentMonthWidgetView.swift in Sources */,
 				8A115E5957CE70A534579CD4 /* Date+Extensions.swift in Sources */,
 				19A14676593410AFA5021013 /* Decimal+Extensions.swift in Sources */,
+				3B640AF55B1CFF33ECE822B1 /* DesignTokens.swift in Sources */,
 				401748FBC2FA450B43CAF432 /* Formatters.swift in Sources */,
 				6CEA4A81B6B02D7395FEFAED /* LinkedTransactionsContext.swift in Sources */,
 				4D613852DBBBCCEF9960A4C5 /* PulpeWidgetBundle.swift in Sources */,
@@ -839,6 +867,7 @@
 				91B28D61C5AD8F09EAD10E8A /* CurrentMonthView.swift in Sources */,
 				E3BA82ABFFC6695DE1311D13 /* Date+Extensions.swift in Sources */,
 				F5D9B6FD484997E69677F7E2 /* Decimal+Extensions.swift in Sources */,
+				01A99D19CB83ABBFB272CE4D /* DesignTokens.swift in Sources */,
 				62C63F22DEB9936488CD9959 /* EditBudgetLineSheet.swift in Sources */,
 				8A9258041ABC040E6A3C3223 /* EditTemplateLineSheet.swift in Sources */,
 				A430A8669EF9FAFF545766BC /* EditTransactionSheet.swift in Sources */,
@@ -908,6 +937,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Pulpe/Pulpe.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = AJ37X7C82G;
 				INFOPLIST_FILE = Pulpe/Resources/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -994,7 +1024,10 @@
 		6C4907A4ED8BD7091742FF0B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
 				CODE_SIGN_ENTITLEMENTS = PulpeWidget/PulpeWidget.entitlements;
+				DEVELOPMENT_TEAM = AJ37X7C82G;
 				INFOPLIST_FILE = PulpeWidget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1015,6 +1048,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Pulpe/Pulpe.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = AJ37X7C82G;
 				INFOPLIST_FILE = Pulpe/Resources/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1094,7 +1128,10 @@
 		CBCAC068EA9FEAC1FADC4805 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
 				CODE_SIGN_ENTITLEMENTS = PulpeWidget/PulpeWidget.entitlements;
+				DEVELOPMENT_TEAM = AJ37X7C82G;
 				INFOPLIST_FILE = PulpeWidget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (

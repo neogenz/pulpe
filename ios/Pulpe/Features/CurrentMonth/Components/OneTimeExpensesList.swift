@@ -138,7 +138,7 @@ struct TransactionRow: View {
                 // Date (relative formatting)
                 Text(transaction.transactionDate.relativeFormatted)
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(Color.textTertiary)
             }
 
             Spacer(minLength: 8)
@@ -163,7 +163,7 @@ struct TransactionRow: View {
     private var kindIconCircle: some View {
         ZStack {
             Circle()
-                .fill(transaction.isChecked ? Color(.systemGray5) : transaction.kind.color.opacity(0.15))
+                .fill(transaction.isChecked ? Color.progressTrack : transaction.kind.color.opacity(DesignTokens.Opacity.badgeBackground))
                 .frame(width: 40, height: 40)
 
             if transaction.isChecked {

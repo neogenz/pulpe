@@ -43,7 +43,7 @@ struct CurrentMonthWidgetView: View {
 
             Text(entry.monthName)
                 .font(.caption2)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(Color("TextTertiary"))
 
             Spacer()
 
@@ -77,7 +77,7 @@ struct CurrentMonthWidgetView: View {
 
                 Text(entry.monthName)
                     .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(Color("TextTertiary"))
             }
             .accessibilityElement(children: .combine)
             .accessibilityLabel("Budget \(entry.monthName)")

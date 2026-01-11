@@ -93,11 +93,11 @@ struct HeroBalanceCard: View {
         Button(action: onTapProgress) {
             ZStack {
                 Circle()
-                    .stroke(Color(.systemGray5), lineWidth: 6)
+                    .stroke(Color.progressTrack, lineWidth: DesignTokens.ProgressBar.circularLineWidth)
 
                 Circle()
                     .trim(from: 0, to: CGFloat(progressPercentage))
-                    .stroke(progressColor, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                    .stroke(progressColor, style: StrokeStyle(lineWidth: DesignTokens.ProgressBar.circularLineWidth, lineCap: .round))
                     .rotationEffect(.degrees(-90))
                     .animation(.spring(duration: 0.6), value: progressPercentage)
 
@@ -152,7 +152,7 @@ struct HeroBalanceCard: View {
         VStack(alignment: .center, spacing: 2) {
             Text(label)
                 .font(.caption)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(Color.textTertiary)
 
             Text(value.formatted())
                 .font(.system(.subheadline, design: .rounded, weight: .semibold))
@@ -169,15 +169,14 @@ private struct HeroCardStyleModifier: ViewModifier {
         if #available(iOS 26, *) {
             content
                 .glassEffect(
-                        .regular
-                            .interactive(), // Active les animations au toucher
-                        in: .rect(cornerRadius: 20)
-                    )
+                    .regular.interactive(),
+                    in: .rect(cornerRadius: DesignTokens.CornerRadius.xl)
+                )
         } else {
             content
                 .background(Color(.secondarySystemGroupedBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 20))
-                .shadow(color: .black.opacity(0.08), radius: 8, y: 4)
+                .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
+                .shadow(DesignTokens.Shadow.elevated)
         }
     }
 }

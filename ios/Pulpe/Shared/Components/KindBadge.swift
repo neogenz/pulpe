@@ -32,7 +32,7 @@ struct KindBadge: View {
         .padding(.horizontal, style == .compact ? 6 : 8)
         .padding(.vertical, 4)
         .foregroundStyle(kind.color)
-        .background(kind.color.opacity(0.15), in: Capsule())
+        .background(kind.color.opacity(DesignTokens.Opacity.badgeBackground), in: Capsule())
     }
 }
 
@@ -68,7 +68,7 @@ struct RecurrenceBadge: View {
         .padding(.horizontal, style == .compact ? 6 : 8)
         .padding(.vertical, 4)
         .foregroundStyle(.secondary)
-        .background(.secondary.opacity(0.15), in: Capsule())
+        .background(.secondary.opacity(DesignTokens.Opacity.badgeBackground), in: Capsule())
     }
 }
 

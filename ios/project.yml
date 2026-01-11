@@ -115,6 +115,9 @@ targets:
       - path: Pulpe/Shared/Formatters
         excludes:
           - "**/.DS_Store"
+      - path: Pulpe/Shared/Design
+        excludes:
+          - "**/.DS_Store"
     entitlements:
       path: PulpeWidget/PulpeWidget.entitlements
       properties:
@@ -127,6 +130,8 @@ targets:
         SKIP_INSTALL: true
         IPHONEOS_DEPLOYMENT_TARGET: "17.0"
         TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: ""
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: ""
     info:
       path: PulpeWidget/Info.plist
       properties:

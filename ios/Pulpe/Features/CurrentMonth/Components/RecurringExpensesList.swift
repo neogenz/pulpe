@@ -187,7 +187,7 @@ struct BudgetLineRow: View {
                     } else {
                         Text(line.recurrence.label)
                             .font(.caption)
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(Color.textTertiary)
                     }
                 }
 
@@ -249,7 +249,7 @@ struct BudgetLineRow: View {
     private var kindIconCircle: some View {
         ZStack {
             Circle()
-                .fill(line.isChecked ? Color(.systemGray5) : line.kind.color.opacity(0.15))
+                .fill(line.isChecked ? Color.progressTrack : line.kind.color.opacity(DesignTokens.Opacity.badgeBackground))
                 .frame(width: 40, height: 40)
 
             if line.isChecked {
@@ -271,7 +271,7 @@ struct BudgetLineRow: View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
                 Rectangle()
-                    .fill(Color(.systemGray5))
+                    .fill(Color.progressTrack)
 
                 Rectangle()
                     .fill(consumptionColor)
@@ -279,7 +279,7 @@ struct BudgetLineRow: View {
                     .animation(.spring(duration: 0.4), value: consumption.percentage)
             }
         }
-        .frame(height: 3)
+        .frame(height: DesignTokens.ProgressBar.height)
         .clipShape(RoundedRectangle(cornerRadius: 1.5))
     }
 

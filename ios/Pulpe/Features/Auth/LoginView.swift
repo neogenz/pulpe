@@ -64,13 +64,13 @@ struct LoginView: View {
                             // Separator
                             HStack {
                                 Rectangle()
-                                    .fill(Color.secondary.opacity(0.3))
+                                    .fill(Color.inputBorder)
                                     .frame(height: 1)
                                 Text("ou")
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
                                 Rectangle()
-                                    .fill(Color.secondary.opacity(0.3))
+                                    .fill(Color.inputBorder)
                                     .frame(height: 1)
                             }
                             .padding(.horizontal)
@@ -95,7 +95,7 @@ struct LoginView: View {
                                 .clipShape(RoundedRectangle(cornerRadius: 12))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 12)
-                                        .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+                                        .stroke(Color.inputBorder, lineWidth: 1)
                                 )
                         }
 
@@ -125,7 +125,7 @@ struct LoginView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+                                    .stroke(Color.inputBorder, lineWidth: 1)
                             )
                         }
 

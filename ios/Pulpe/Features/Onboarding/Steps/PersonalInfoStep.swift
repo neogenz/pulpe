@@ -25,10 +25,10 @@ struct PersonalInfoStep: View {
                 .focused($isFocused)
                 .padding()
                 .background(.background)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(isFocused ? Color.accentColor : Color.secondary.opacity(0.3), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
+                        .stroke(isFocused ? Color.accentColor : Color.inputBorder, lineWidth: 1)
                 )
                 .onSubmit {
                     if state.isFirstNameValid {

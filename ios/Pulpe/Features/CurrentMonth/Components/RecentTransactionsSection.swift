@@ -22,7 +22,7 @@ struct RecentTransactionsSection: View {
                         Spacer()
                         Image(systemName: "chevron.right")
                             .font(.caption)
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(Color.textTertiary)
                     }
                 }
             } header: {
@@ -44,7 +44,7 @@ private struct RecentTransactionRow: View {
             // Kind icon circle
             ZStack {
                 Circle()
-                    .fill(transaction.kind.color.opacity(0.15))
+                    .fill(transaction.kind.color.opacity(DesignTokens.Opacity.badgeBackground))
                     .frame(width: 36, height: 36)
 
                 Image(systemName: transaction.kind.listIcon)
@@ -61,7 +61,7 @@ private struct RecentTransactionRow: View {
 
                 Text(transaction.transactionDate.relativeFormatted)
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(Color.textTertiary)
             }
 
             Spacer()
