@@ -118,7 +118,10 @@ import { UserSettingsApi } from '@core/user-settings/user-settings-api';
               {{ displayName() }}
             </h1>
             @if (periodDisplay()) {
-              <p class="text-label-medium text-on-surface-variant mb-1">
+              <p
+                class="text-label-medium text-on-surface-variant mb-1"
+                data-testid="budget-period-display"
+              >
                 {{ periodDisplay() }}
               </p>
             }

@@ -78,6 +78,32 @@ export async function setupApiMocks(page: Page) {
       });
     }
 
+    // User settings endpoint
+    if (url.includes('users/settings')) {
+      if (method === 'GET') {
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            data: { payDayOfMonth: null },
+          }),
+        });
+      }
+      if (method === 'PUT') {
+        // Echo back the payload for PUT requests
+        const body = route.request().postDataJSON();
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            data: body,
+          }),
+        });
+      }
+    }
+
     // Template endpoints - handle different patterns
     if (url.includes('budget-templates')) {
       // Template lines endpoint: /api/v1/budget-templates/{id}/lines

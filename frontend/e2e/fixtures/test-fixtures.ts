@@ -5,6 +5,7 @@ import { CurrentMonthPage } from '../pages/current-month.page';
 import { BudgetTemplatesPage } from '../pages/budget-templates.page';
 import { BudgetDetailsPage } from '../pages/budget-details.page';
 import { MainLayoutPage } from '../pages/main-layout.page';
+import { SettingsPage } from '../pages/settings.page';
 import { setupAuthBypass } from '../utils/auth-bypass';
 
 // Simple fixture types - only what we actually use
@@ -15,6 +16,7 @@ interface AppFixtures {
   budgetTemplatesPage: BudgetTemplatesPage;
   budgetDetailsPage: BudgetDetailsPage;
   mainLayoutPage: MainLayoutPage;
+  settingsPage: SettingsPage;
   authenticatedPage: Page;
 }
 
@@ -43,6 +45,10 @@ export const test = base.extend<AppFixtures>({
 
   mainLayoutPage: async ({ page }, use) => {
     await use(new MainLayoutPage(page));
+  },
+
+  settingsPage: async ({ page }, use) => {
+    await use(new SettingsPage(page));
   },
 
   // Authenticated page - for feature tests with mocks
