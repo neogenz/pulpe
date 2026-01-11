@@ -59,7 +59,7 @@ test.describe('Template Selection', () => {
       });
     });
 
-    // Mock budget creation endpoint
+    // Mock budget creation endpoint (POST only, fallback to fixture mocks for GET)
     await authenticatedPage.route('**/api/v1/budgets', async (route) => {
       if (route.request().method() === 'POST') {
         await route.fulfill({
@@ -71,7 +71,8 @@ test.describe('Template Selection', () => {
           }),
         });
       } else {
-        await route.continue();
+        // Use fallback() to pass to fixture's mock handler, not continue() which goes to network
+        await route.fallback();
       }
     });
 
