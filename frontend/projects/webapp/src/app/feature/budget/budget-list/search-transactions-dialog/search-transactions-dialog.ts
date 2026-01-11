@@ -92,6 +92,9 @@ import { Logger } from '@core/logging/logger';
               <mat-option [value]="year">{{ year }}</mat-option>
             }
           </mat-select>
+          @if (availableYearsResource.error()) {
+            <mat-hint class="text-error">Erreur de chargement</mat-hint>
+          }
         </mat-form-field>
       </div>
 
@@ -228,6 +231,9 @@ export default class SearchTransactionsDialogComponent {
         map((budgets) => {
           const years = [...new Set(budgets.map((b) => b.year))];
           return years.sort((a, b) => b - a);
+        }),
+        tap({
+          error: (err) => this.#logger.error('Failed to load years', err),
         }),
       ),
   });

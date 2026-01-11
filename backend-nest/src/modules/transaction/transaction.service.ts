@@ -774,181 +774,25 @@ export class TransactionService {
     years?: number[],
   ): Promise<TransactionSearchResponse> {
     try {
-      // Escape PostgREST special characters to prevent query errors
-      const escapedQuery = query.replace(/[*.()[\]\\]/g, '\\$&');
-      // PostgREST uses * as wildcard in filter strings (not %)
-      const searchPattern = `*${escapedQuery}*`;
+      const searchPattern = this.#buildSearchPattern(query);
 
-      let budgetIds: string[] | undefined;
-      if (years && years.length > 0) {
-        const { data: budgets, error: budgetError } = await supabase
-          .from('monthly_budget')
-          .select('id')
-          .in('year', years);
+      const budgetIds = years?.length
+        ? await this.#fetchBudgetIdsByYears(years, supabase)
+        : undefined;
 
-        if (budgetError) {
-          throw new BusinessException(
-            ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
-            undefined,
-            {
-              operation: 'searchBudgetsByYear',
-              entityType: 'monthly_budget',
-              supabaseError: budgetError,
-            },
-            { cause: budgetError },
-          );
-        }
-
-        budgetIds = budgets?.map((b) => b.id) ?? [];
-        if (budgetIds.length === 0) {
-          return { success: true, data: [] };
-        }
+      if (years?.length && budgetIds?.length === 0) {
+        return { success: true, data: [] };
       }
 
-      // Search in transactions
-      let transactionQuery = supabase
-        .from('transaction')
-        .select(
-          `
-          id,
-          name,
-          amount,
-          kind,
-          transaction_date,
-          category,
-          budget_id,
-          budget:budget_id (
-            description,
-            month,
-            year
-          )
-        `,
-        )
-        .or(`name.ilike.${searchPattern},category.ilike.${searchPattern}`);
+      const [transactionsDb, budgetLinesDb] = await Promise.all([
+        this.#fetchTransactionsByPattern(searchPattern, budgetIds, supabase),
+        this.#fetchBudgetLinesByPattern(searchPattern, budgetIds, supabase),
+      ]);
 
-      if (budgetIds) {
-        transactionQuery = transactionQuery.in('budget_id', budgetIds);
-      }
-
-      const { data: transactionsDb, error: txError } = await transactionQuery
-        .order('transaction_date', { ascending: false })
-        .limit(25);
-
-      if (txError) {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
-          undefined,
-          {
-            operation: 'searchTransactions',
-            entityType: 'transaction',
-            supabaseError: txError,
-          },
-          { cause: txError },
-        );
-      }
-
-      // Search in budget lines
-      let budgetLineQuery = supabase
-        .from('budget_line')
-        .select(
-          `
-          id,
-          name,
-          amount,
-          kind,
-          recurrence,
-          budget_id,
-          budget:budget_id (
-            description,
-            month,
-            year
-          )
-        `,
-        )
-        .ilike('name', searchPattern);
-
-      if (budgetIds) {
-        budgetLineQuery = budgetLineQuery.in('budget_id', budgetIds);
-      }
-
-      const { data: budgetLinesDb, error: blError } = await budgetLineQuery
-        .order('created_at', { ascending: false })
-        .limit(25);
-
-      if (blError) {
-        throw new BusinessException(
-          ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
-          undefined,
-          {
-            operation: 'searchBudgetLines',
-            entityType: 'budget_line',
-            supabaseError: blError,
-          },
-          { cause: blError },
-        );
-      }
-
-      // Map transactions
-      const transactionResults: TransactionSearchResult[] = (
-        transactionsDb || []
-      ).map((t) => {
-        const budget = t.budget as {
-          description: string;
-          month: number;
-          year: number;
-        } | null;
-
-        return {
-          id: t.id,
-          itemType: 'transaction' as const,
-          name: t.name,
-          amount: t.amount,
-          kind: t.kind,
-          recurrence: null,
-          transactionDate: t.transaction_date,
-          category: t.category,
-          budgetId: t.budget_id,
-          budgetName: budget?.description ?? '',
-          year: budget?.year ?? new Date().getFullYear(),
-          month: budget?.month ?? 1,
-          monthLabel: this.#getMonthLabel(budget?.month ?? 1),
-        };
-      });
-
-      // Map budget lines
-      const budgetLineResults: TransactionSearchResult[] = (
-        budgetLinesDb || []
-      ).map((bl) => {
-        const budget = bl.budget as {
-          description: string;
-          month: number;
-          year: number;
-        } | null;
-
-        return {
-          id: bl.id,
-          itemType: 'budget_line' as const,
-          name: bl.name,
-          amount: bl.amount,
-          kind: bl.kind,
-          recurrence: bl.recurrence,
-          transactionDate: null,
-          category: null,
-          budgetId: bl.budget_id,
-          budgetName: budget?.description ?? '',
-          year: budget?.year ?? new Date().getFullYear(),
-          month: budget?.month ?? 1,
-          monthLabel: this.#getMonthLabel(budget?.month ?? 1),
-        };
-      });
-
-      // Combine and sort by year/month descending
-      const allResults = [...transactionResults, ...budgetLineResults].sort(
-        (a, b) => {
-          if (a.year !== b.year) return b.year - a.year;
-          return b.month - a.month;
-        },
-      );
+      const allResults = [
+        ...transactionsDb.map((t) => this.#mapTransactionToSearchResult(t)),
+        ...budgetLinesDb.map((bl) => this.#mapBudgetLineToSearchResult(bl)),
+      ].sort((a, b) => b.year - a.year || b.month - a.month);
 
       return {
         success: true as const,
@@ -960,11 +804,203 @@ export class TransactionService {
         ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
         undefined,
         {
-          operation: 'searchTransactions',
+          operation: 'search',
           entityType: 'transaction',
         },
       );
     }
+  }
+
+  #buildSearchPattern(query: string): string {
+    const escapedQuery = query.replace(/[*.()[\]\\]/g, '\\$&');
+    return `*${escapedQuery}*`;
+  }
+
+  async #fetchBudgetIdsByYears(
+    years: number[],
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<string[]> {
+    const { data: budgets, error } = await supabase
+      .from('monthly_budget')
+      .select('id')
+      .in('year', years);
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'fetchBudgetIdsByYears',
+          entityType: 'monthly_budget',
+          supabaseError: error,
+        },
+        { cause: error },
+      );
+    }
+
+    return budgets?.map((b) => b.id) ?? [];
+  }
+
+  async #fetchTransactionsByPattern(
+    searchPattern: string,
+    budgetIds: string[] | undefined,
+    supabase: AuthenticatedSupabaseClient,
+  ) {
+    let query = supabase
+      .from('transaction')
+      .select(
+        `
+        id,
+        name,
+        amount,
+        kind,
+        transaction_date,
+        category,
+        budget_id,
+        budget:budget_id (
+          description,
+          month,
+          year
+        )
+      `,
+      )
+      .or(`name.ilike.${searchPattern},category.ilike.${searchPattern}`);
+
+    if (budgetIds) {
+      query = query.in('budget_id', budgetIds);
+    }
+
+    const { data, error } = await query
+      .order('transaction_date', { ascending: false })
+      .limit(25);
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'fetchTransactionsByPattern',
+          entityType: 'transaction',
+          supabaseError: error,
+        },
+        { cause: error },
+      );
+    }
+
+    return data ?? [];
+  }
+
+  async #fetchBudgetLinesByPattern(
+    searchPattern: string,
+    budgetIds: string[] | undefined,
+    supabase: AuthenticatedSupabaseClient,
+  ) {
+    let query = supabase
+      .from('budget_line')
+      .select(
+        `
+        id,
+        name,
+        amount,
+        kind,
+        recurrence,
+        budget_id,
+        budget:budget_id (
+          description,
+          month,
+          year
+        )
+      `,
+      )
+      .ilike('name', searchPattern);
+
+    if (budgetIds) {
+      query = query.in('budget_id', budgetIds);
+    }
+
+    const { data, error } = await query
+      .order('created_at', { ascending: false })
+      .limit(25);
+
+    if (error) {
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'fetchBudgetLinesByPattern',
+          entityType: 'budget_line',
+          supabaseError: error,
+        },
+        { cause: error },
+      );
+    }
+
+    return data ?? [];
+  }
+
+  #mapTransactionToSearchResult(t: {
+    id: string;
+    name: string;
+    amount: number;
+    kind: string;
+    transaction_date: string;
+    category: string | null;
+    budget_id: string;
+    budget: unknown;
+  }): TransactionSearchResult {
+    const budget = t.budget as {
+      description: string;
+      month: number;
+      year: number;
+    } | null;
+
+    return {
+      id: t.id,
+      itemType: 'transaction' as const,
+      name: t.name,
+      amount: t.amount,
+      kind: t.kind as TransactionKind,
+      recurrence: null,
+      transactionDate: t.transaction_date,
+      category: t.category,
+      budgetId: t.budget_id,
+      budgetName: budget?.description ?? '',
+      year: budget?.year ?? new Date().getFullYear(),
+      month: budget?.month ?? 1,
+      monthLabel: this.#getMonthLabel(budget?.month ?? 1),
+    };
+  }
+
+  #mapBudgetLineToSearchResult(bl: {
+    id: string;
+    name: string;
+    amount: number;
+    kind: string;
+    recurrence: 'fixed' | 'one_off';
+    budget_id: string;
+    budget: unknown;
+  }): TransactionSearchResult {
+    const budget = bl.budget as {
+      description: string;
+      month: number;
+      year: number;
+    } | null;
+
+    return {
+      id: bl.id,
+      itemType: 'budget_line' as const,
+      name: bl.name,
+      amount: bl.amount,
+      kind: bl.kind as TransactionKind,
+      recurrence: bl.recurrence,
+      transactionDate: null,
+      category: null,
+      budgetId: bl.budget_id,
+      budgetName: budget?.description ?? '',
+      year: budget?.year ?? new Date().getFullYear(),
+      month: budget?.month ?? 1,
+      monthLabel: this.#getMonthLabel(budget?.month ?? 1),
+    };
   }
 
   #getMonthLabel(month: number): string {

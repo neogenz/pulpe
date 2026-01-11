@@ -150,7 +150,10 @@ export class TransactionController {
   #parseYearsParam(yearsParam: string | string[] | undefined): number[] {
     if (!yearsParam) return [];
     const arr = Array.isArray(yearsParam) ? yearsParam : [yearsParam];
-    return arr.map((y) => parseInt(y, 10)).filter((y) => !isNaN(y));
+    const maxYear = new Date().getFullYear() + 100;
+    return arr
+      .map((y) => parseInt(y, 10))
+      .filter((y) => !isNaN(y) && y >= 1900 && y <= maxYear);
   }
 
   @Post()
