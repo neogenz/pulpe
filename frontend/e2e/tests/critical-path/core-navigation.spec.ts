@@ -6,15 +6,15 @@ test.describe('Core Application Navigation (Unauthenticated)', () => {
     await expect(page).toHaveURL(/.*login.*/);
   });
 
-  test('should show onboarding welcome page', async ({ page }) => {
-    await page.goto('/onboarding/welcome');
-    await expect(page).toHaveURL(/.*onboarding.*welcome.*/);
-    await expect(page.getByTestId('onboarding-welcome-page')).toBeVisible();
+  test('should show welcome page for unauthenticated users', async ({ page }) => {
+    await page.goto('/welcome');
+    await expect(page).toHaveURL(/.*welcome.*/);
+    await expect(page.getByTestId('welcome-page')).toBeVisible();
   });
 
-  test('should redirect unauthenticated users to onboarding', async ({ page }) => {
+  test('should redirect unauthenticated users to welcome page', async ({ page }) => {
     await page.goto('/app/current-month');
-    await expect(page).toHaveURL(/.*onboarding.*/);
+    await expect(page).toHaveURL(/.*welcome.*/);
   });
 });
 
@@ -37,6 +37,6 @@ test.describe('Core Application Navigation (Authenticated)', () => {
     await expect(authenticatedPage.getByTestId('logout-button')).toBeVisible();
     
     await authenticatedPage.getByTestId('logout-button').click();
-    await expect(authenticatedPage).toHaveURL(/.*login.*|.*onboarding.*/);
+    await expect(authenticatedPage).toHaveURL(/.*login.*|.*welcome.*/);
   });
 });

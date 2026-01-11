@@ -1,6 +1,5 @@
 import { test as base, type Page } from '@playwright/test';
 import { LoginPage } from '../pages/auth/login.page';
-import { OnboardingPage } from '../pages/onboarding.page';
 import { CurrentMonthPage } from '../pages/current-month.page';
 import { BudgetTemplatesPage } from '../pages/budget-templates.page';
 import { BudgetDetailsPage } from '../pages/budget-details.page';
@@ -10,7 +9,6 @@ import { setupAuthBypass } from '../utils/auth-bypass';
 // Simple fixture types - only what we actually use
 interface AppFixtures {
   loginPage: LoginPage;
-  onboardingPage: OnboardingPage;
   currentMonthPage: CurrentMonthPage;
   budgetTemplatesPage: BudgetTemplatesPage;
   budgetDetailsPage: BudgetDetailsPage;
@@ -23,10 +21,6 @@ export const test = base.extend<AppFixtures>({
   // Page Objects - simple instantiation
   loginPage: async ({ page }, use) => {
     await use(new LoginPage(page));
-  },
-
-  onboardingPage: async ({ page }, use) => {
-    await use(new OnboardingPage(page));
   },
 
   currentMonthPage: async ({ page }, use) => {
