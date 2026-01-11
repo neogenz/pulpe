@@ -470,9 +470,7 @@ export default class MainLayout {
       }
     }
 
-    // Force full page reload to clear all in-memory state (stores, signals, resources)
-    // This prevents stale data from previous user from persisting after login
-    window.location.href = '/' + ROUTES.LOGIN;
+    this.#forceLogoutRedirect();
   }
 
   /**
@@ -490,7 +488,15 @@ export default class MainLayout {
       this.#logger.error('Failed to exit demo mode', { error });
     }
 
-    // Force full page reload to clear all in-memory state
+    this.#forceLogoutRedirect();
+  }
+
+  /**
+   * Force redirect to login page with full page reload.
+   * Clears all in-memory state (stores, signals, resources).
+   */
+  #forceLogoutRedirect(): void {
+    this.#logger.info('Forcing logout redirect to login page');
     window.location.href = '/' + ROUTES.LOGIN;
   }
 }

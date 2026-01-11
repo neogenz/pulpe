@@ -21,6 +21,51 @@ import { AuthApi } from '../core/auth/auth-api';
 import { BreadcrumbState } from '../core/routing/breadcrumb-state';
 import { ROUTES } from '../core/routing/routes-constants';
 
+/**
+ * Helper to mock window.location for testing navigation redirects.
+ * Returns a spy for href assignments and a restore function.
+ */
+function mockWindowLocation(): {
+  locationHrefSpy: ReturnType<typeof vi.fn>;
+  restore: () => void;
+} {
+  const locationHrefSpy = vi.fn();
+  const originalDescriptor = Object.getOwnPropertyDescriptor(
+    window,
+    'location',
+  );
+
+  Object.defineProperty(window, 'location', {
+    value: {
+      href: '',
+      assign: vi.fn(),
+      replace: vi.fn(),
+      reload: vi.fn(),
+      origin: 'http://localhost',
+      pathname: '/',
+      search: '',
+      hash: '',
+    },
+    writable: true,
+    configurable: true,
+  });
+
+  Object.defineProperty(window.location, 'href', {
+    set: locationHrefSpy as (v: string) => void,
+    get: () => '',
+    configurable: true,
+  });
+
+  return {
+    locationHrefSpy,
+    restore: () => {
+      if (originalDescriptor) {
+        Object.defineProperty(window, 'location', originalDescriptor);
+      }
+    },
+  };
+}
+
 // Type for testing protected members (using unknown cast)
 type MainLayoutWithPrivates = MainLayout & {
   isHandset(): boolean;
@@ -248,42 +293,18 @@ describe('MainLayout', () => {
 
   describe('Logout Functionality', () => {
     let locationHrefSpy: ReturnType<typeof vi.fn>;
-    let originalDescriptor: PropertyDescriptor | undefined;
+    let restoreLocation: () => void;
 
     beforeEach(() => {
       fixture.detectChanges();
 
-      // Mock window.location.href to prevent actual navigation during tests
-      locationHrefSpy = vi.fn();
-      originalDescriptor = Object.getOwnPropertyDescriptor(window, 'location');
-
-      Object.defineProperty(window, 'location', {
-        value: {
-          href: '',
-          assign: vi.fn(),
-          replace: vi.fn(),
-          reload: vi.fn(),
-          origin: 'http://localhost',
-          pathname: '/',
-          search: '',
-          hash: '',
-        },
-        writable: true,
-        configurable: true,
-      });
-
-      Object.defineProperty(window.location, 'href', {
-        set: locationHrefSpy as (v: string) => void,
-        get: () => '',
-        configurable: true,
-      });
+      const locationMock = mockWindowLocation();
+      locationHrefSpy = locationMock.locationHrefSpy;
+      restoreLocation = locationMock.restore;
     });
 
     afterEach(() => {
-      // Restore original window.location
-      if (originalDescriptor) {
-        Object.defineProperty(window, 'location', originalDescriptor);
-      }
+      restoreLocation();
     });
 
     it('should not allow multiple logout attempts', async () => {
