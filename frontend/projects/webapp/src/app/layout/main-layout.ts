@@ -463,28 +463,14 @@ export default class MainLayout {
 
       // Sign out and wait for session to be cleared
       await this.#authApi.signOut();
-
-      await this.#router.navigate([ROUTES.LOGIN]);
     } catch (error) {
       // Only log detailed errors in development
       if (!this.#applicationConfig.isProduction()) {
         this.#logger.error('Erreur lors de la déconnexion:', error);
       }
-
-      // Always navigate to login on error to ensure user is signed out
-      try {
-        await this.#router.navigate([ROUTES.LOGIN]);
-      } catch (navError) {
-        if (!this.#applicationConfig.isProduction()) {
-          this.#logger.error(
-            'Erreur lors de la navigation vers login:',
-            navError,
-          );
-        }
-      }
-    } finally {
-      this.#isLoggingOut.set(false);
     }
+
+    this.#forceLogoutRedirect();
   }
 
   /**
@@ -500,10 +486,17 @@ export default class MainLayout {
       await this.#demoInitializer.exitDemoMode();
     } catch (error) {
       this.#logger.error('Failed to exit demo mode', { error });
-    } finally {
-      // Always navigate to login, even if exit fails
-      // This ensures user is signed out even on error
-      await this.#router.navigate([ROUTES.LOGIN]);
     }
+
+    this.#forceLogoutRedirect();
+  }
+
+  /**
+   * Force redirect to login page with full page reload.
+   * Clears all in-memory state (stores, signals, resources).
+   */
+  #forceLogoutRedirect(): void {
+    this.#logger.info('Forcing logout redirect to login page');
+    window.location.href = '/' + ROUTES.LOGIN;
   }
 }

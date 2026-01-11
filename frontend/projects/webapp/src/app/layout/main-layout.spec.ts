@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { Router, type NavigationEnd, ActivatedRoute } from '@angular/router';
@@ -20,6 +20,51 @@ import MainLayout from './main-layout';
 import { AuthApi } from '../core/auth/auth-api';
 import { BreadcrumbState } from '../core/routing/breadcrumb-state';
 import { ROUTES } from '../core/routing/routes-constants';
+
+/**
+ * Helper to mock window.location for testing navigation redirects.
+ * Returns a spy for href assignments and a restore function.
+ */
+function mockWindowLocation(): {
+  locationHrefSpy: ReturnType<typeof vi.fn>;
+  restore: () => void;
+} {
+  const locationHrefSpy = vi.fn();
+  const originalDescriptor = Object.getOwnPropertyDescriptor(
+    window,
+    'location',
+  );
+
+  Object.defineProperty(window, 'location', {
+    value: {
+      href: '',
+      assign: vi.fn(),
+      replace: vi.fn(),
+      reload: vi.fn(),
+      origin: 'http://localhost',
+      pathname: '/',
+      search: '',
+      hash: '',
+    },
+    writable: true,
+    configurable: true,
+  });
+
+  Object.defineProperty(window.location, 'href', {
+    set: locationHrefSpy as (v: string) => void,
+    get: () => '',
+    configurable: true,
+  });
+
+  return {
+    locationHrefSpy,
+    restore: () => {
+      if (originalDescriptor) {
+        Object.defineProperty(window, 'location', originalDescriptor);
+      }
+    },
+  };
+}
 
 // Type for testing protected members (using unknown cast)
 type MainLayoutWithPrivates = MainLayout & {
@@ -247,8 +292,19 @@ describe('MainLayout', () => {
   });
 
   describe('Logout Functionality', () => {
+    let locationHrefSpy: ReturnType<typeof vi.fn>;
+    let restoreLocation: () => void;
+
     beforeEach(() => {
       fixture.detectChanges();
+
+      const locationMock = mockWindowLocation();
+      locationHrefSpy = locationMock.locationHrefSpy;
+      restoreLocation = locationMock.restore;
+    });
+
+    afterEach(() => {
+      restoreLocation();
     });
 
     it('should not allow multiple logout attempts', async () => {
@@ -263,12 +319,11 @@ describe('MainLayout', () => {
 
       // Should only be called once from the first logout
       expect(mockAuthApi.signOut).toHaveBeenCalledTimes(1);
-      expect(mockRouter.navigate).toHaveBeenCalledTimes(1);
+      expect(locationHrefSpy).toHaveBeenCalledTimes(1);
     });
 
-    it('should successfully logout and navigate to login', async () => {
+    it('should successfully logout and redirect via full page reload', async () => {
       mockAuthApi.signOut.mockResolvedValue(undefined);
-      mockRouter.navigate.mockResolvedValue(true);
 
       const logoutPromise = component.onLogout();
 
@@ -278,45 +333,21 @@ describe('MainLayout', () => {
       await logoutPromise;
 
       expect(mockAuthApi.signOut).toHaveBeenCalledOnce();
-      expect(mockRouter.navigate).toHaveBeenCalledWith([ROUTES.LOGIN]);
-      expect(component.isLoggingOut()).toBe(false);
+      // Verify full page reload to login (clears all in-memory state)
+      expect(locationHrefSpy).toHaveBeenCalledWith('/' + ROUTES.LOGIN);
     });
 
-    it('should handle auth service errors gracefully', async () => {
+    it('should handle auth service errors gracefully and still redirect', async () => {
       const authError = new Error('Auth service error');
       mockAuthApi.signOut.mockRejectedValue(authError);
-      mockRouter.navigate.mockResolvedValue(true);
 
       // Test the business behavior: error handling should not crash the app
       await component.onLogout();
 
       // Verify business requirements
       expect(mockAuthApi.signOut).toHaveBeenCalledOnce();
-      expect(mockRouter.navigate).toHaveBeenCalledWith([ROUTES.LOGIN]);
-      expect(component.isLoggingOut()).toBe(false);
-    });
-
-    it('should handle navigation errors during logout', async () => {
-      const navError = new Error('Navigation error');
-      mockAuthApi.signOut.mockResolvedValue(undefined);
-      mockRouter.navigate.mockRejectedValue(navError);
-
-      // Test the business behavior: navigation errors should not crash the app
-      await component.onLogout();
-
-      // Verify business requirements
-      expect(mockAuthApi.signOut).toHaveBeenCalledOnce();
-      expect(mockRouter.navigate).toHaveBeenCalledWith([ROUTES.LOGIN]);
-      expect(component.isLoggingOut()).toBe(false);
-    });
-
-    it('should ensure loading state is reset even if both auth and navigation fail', async () => {
-      mockAuthApi.signOut.mockRejectedValue(new Error('Auth error'));
-      mockRouter.navigate.mockRejectedValue(new Error('Navigation error'));
-
-      await component.onLogout();
-
-      expect(component.isLoggingOut()).toBe(false);
+      // Even on error, should redirect to clear state
+      expect(locationHrefSpy).toHaveBeenCalledWith('/' + ROUTES.LOGIN);
     });
   });
 
