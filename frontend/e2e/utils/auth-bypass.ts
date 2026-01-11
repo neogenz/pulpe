@@ -76,8 +76,17 @@ export async function setupApiMocks(page: Page) {
       });
     }
 
-    // Budget list endpoints only (not details - let tests override those)
-    if (url.includes('budgets') && !url.includes('/details')) {
+    // Budget details endpoint: /api/v1/budgets/{id}/details
+    if (url.includes('budgets') && url.includes('/details')) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(MOCK_API_RESPONSES.budgetDetails)
+      });
+    }
+
+    // Budget list endpoints (not details)
+    if (url.includes('budgets')) {
       return route.fulfill({
         status: 200,
         contentType: 'application/json',

@@ -20,13 +20,20 @@ export interface MockAuthResponse {
 }
 
 export interface MockBudgetResponse {
+  success: boolean;
   data: Array<{
     id: string;
     month: number;
     year: number;
-    total_income: number;
-    total_expenses: number;
-    available_to_spend: number;
+    description: string;
+    userId: string;
+    templateId: string;
+    endingBalance: number;
+    rollover: number;
+    remaining: number;
+    previousBudgetId: string | null;
+    createdAt: string;
+    updatedAt: string;
   }>;
 }
 
@@ -63,6 +70,53 @@ export interface MockGenericResponse {
   data: Record<string, unknown>;
 }
 
+export interface MockBudgetDetailsResponse {
+  success: boolean;
+  data: {
+    budget: {
+      id: string;
+      month: number;
+      year: number;
+      description: string;
+      userId: string;
+      templateId: string;
+      endingBalance: number;
+      rollover: number;
+      remaining: number;
+      previousBudgetId: string | null;
+      createdAt: string;
+      updatedAt: string;
+    };
+    transactions: Array<{
+      id: string;
+      budgetId: string;
+      budgetLineId: string | null;
+      name: string;
+      amount: number;
+      kind: 'income' | 'expense' | 'saving';
+      transactionDate: string;
+      category: string | null;
+      createdAt: string;
+      updatedAt: string;
+      checkedAt: string | null;
+    }>;
+    budgetLines: Array<{
+      id: string;
+      budgetId: string;
+      templateLineId: string | null;
+      savingsGoalId: string | null;
+      name: string;
+      amount: number;
+      kind: 'income' | 'expense' | 'saving';
+      recurrence: 'fixed' | 'one_off';
+      isManuallyAdjusted: boolean;
+      checkedAt: string | null;
+      createdAt: string;
+      updatedAt: string;
+    }>;
+  };
+}
+
 // Factory functions for creating mock responses
 export const createMockAuthResponse = (): MockAuthResponse => ({
   user: {
@@ -78,9 +132,26 @@ export const createMockAuthResponse = (): MockAuthResponse => ({
   }
 });
 
-export const createMockBudgetResponse = (): MockBudgetResponse => ({
-  data: [TEST_CONFIG.BUDGETS.CURRENT_MONTH]
-});
+export const createMockBudgetResponse = (): MockBudgetResponse => {
+  const now = new Date().toISOString();
+  return {
+    success: true,
+    data: [{
+      id: TEST_CONFIG.BUDGETS.CURRENT_MONTH.id,
+      month: TEST_CONFIG.BUDGETS.CURRENT_MONTH.month,
+      year: TEST_CONFIG.BUDGETS.CURRENT_MONTH.year,
+      description: 'E2E Test Budget',
+      userId: TEST_CONFIG.USER.ID,
+      templateId: TEST_CONFIG.TEMPLATES.DEFAULT.id,
+      endingBalance: TEST_CONFIG.BUDGETS.CURRENT_MONTH.available_to_spend,
+      rollover: 0,
+      remaining: TEST_CONFIG.BUDGETS.CURRENT_MONTH.available_to_spend,
+      previousBudgetId: null,
+      createdAt: now,
+      updatedAt: now,
+    }]
+  };
+};
 
 export const createMockTemplateResponse = (): MockTemplateResponse => ({
   data: [TEST_CONFIG.TEMPLATES.DEFAULT]
@@ -112,10 +183,81 @@ export const createMockSuccessResponse = (): MockGenericResponse => ({
   data: {}
 });
 
+export const createMockBudgetDetailsResponse = (): MockBudgetDetailsResponse => {
+  const now = new Date().toISOString();
+  const budgetId = TEST_CONFIG.BUDGETS.CURRENT_MONTH.id;
+
+  return {
+    success: true,
+    data: {
+      budget: {
+        id: budgetId,
+        month: TEST_CONFIG.BUDGETS.CURRENT_MONTH.month,
+        year: TEST_CONFIG.BUDGETS.CURRENT_MONTH.year,
+        description: 'E2E Test Budget',
+        userId: TEST_CONFIG.USER.ID,
+        templateId: TEST_CONFIG.TEMPLATES.DEFAULT.id,
+        endingBalance: TEST_CONFIG.BUDGETS.CURRENT_MONTH.available_to_spend,
+        rollover: 0,
+        remaining: TEST_CONFIG.BUDGETS.CURRENT_MONTH.available_to_spend,
+        previousBudgetId: null,
+        createdAt: now,
+        updatedAt: now,
+      },
+      transactions: [],
+      budgetLines: [
+        {
+          id: 'e2e-budget-line-1',
+          budgetId,
+          templateLineId: null,
+          savingsGoalId: null,
+          name: 'Salaire',
+          amount: TEST_CONFIG.BUDGETS.CURRENT_MONTH.total_income,
+          kind: 'income',
+          recurrence: 'fixed',
+          isManuallyAdjusted: false,
+          checkedAt: null,
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          id: 'e2e-budget-line-2',
+          budgetId,
+          templateLineId: null,
+          savingsGoalId: null,
+          name: 'Loyer',
+          amount: 1500,
+          kind: 'expense',
+          recurrence: 'fixed',
+          isManuallyAdjusted: false,
+          checkedAt: null,
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          id: 'e2e-budget-line-3',
+          budgetId,
+          templateLineId: null,
+          savingsGoalId: null,
+          name: 'Courses',
+          amount: 500,
+          kind: 'expense',
+          recurrence: 'fixed',
+          isManuallyAdjusted: false,
+          checkedAt: null,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+    },
+  };
+};
+
 // Centralized mock responses
 export const MOCK_API_RESPONSES = {
   auth: createMockAuthResponse(),
   budgets: createMockBudgetResponse(),
+  budgetDetails: createMockBudgetDetailsResponse(),
   templates: createMockTemplateResponse(),
   templateDetail: createMockTemplateDetailResponse(),
   templateLines: createMockTemplateLinesResponse(),

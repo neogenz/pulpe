@@ -39,39 +39,39 @@ test.describe('Monthly Budget Management', () => {
     }
   });
 
-  test('should handle budget data loading errors gracefully', async ({
+  test('should redirect to complete-profile when budget data loading fails', async ({
     authenticatedPage,
-    currentMonthPage,
   }) => {
-    // Mock error response
-    await authenticatedPage.route('**/api/v1/budgets**', route => 
-      route.fulfill({ 
-        status: 500, 
+    // Mock error response - hasBudgetGuard will redirect to complete-profile
+    await authenticatedPage.route('**/api/v1/budgets**', route =>
+      route.fulfill({
+        status: 500,
         contentType: 'text/plain',
-        body: 'Server Error' 
+        body: 'Server Error'
       })
     );
-    
-    await currentMonthPage.goto();
-    // Page should still load even with error
+
+    await authenticatedPage.goto('/app/current-month');
+    // Should be redirected to complete-profile page
+    await expect(authenticatedPage).toHaveURL(/complete-profile/);
     await expect(authenticatedPage.locator('body')).toBeVisible();
   });
 
-  test('should display empty state when no budget exists', async ({
+  test('should redirect to complete-profile when no budget exists', async ({
     authenticatedPage,
-    currentMonthPage,
   }) => {
-    // Mock empty response using centralized helper
-    await authenticatedPage.route('**/api/v1/budgets**', route => 
-      route.fulfill({ 
+    // Mock empty response - hasBudgetGuard will redirect to complete-profile
+    await authenticatedPage.route('**/api/v1/budgets**', route =>
+      route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ data: [] }) 
+        body: JSON.stringify({ success: true, data: [] })
       })
     );
-    
-    await currentMonthPage.goto();
-    await currentMonthPage.expectPageLoaded();
+
+    await authenticatedPage.goto('/app/current-month');
+    // Should be redirected to complete-profile page (no budgets = must complete profile)
+    await expect(authenticatedPage).toHaveURL(/complete-profile/);
   });
 
   test('should maintain page state after browser refresh', async ({

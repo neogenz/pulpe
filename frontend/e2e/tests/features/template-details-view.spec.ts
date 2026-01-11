@@ -1,6 +1,7 @@
 import { test as base, expect } from '@playwright/test';
 import { test } from '../../fixtures/test-fixtures';
 import { setupAuthBypass } from '../../utils/auth-bypass';
+import { MOCK_API_RESPONSES } from '../../mocks/api-responses';
 
 test.describe.configure({ mode: 'parallel' });
 
@@ -103,6 +104,15 @@ test.describe('Template Details View', () => {
         });
       },
     );
+
+    // Mock budgets endpoint to pass hasBudgetGuard (required for protected routes)
+    await page.route('**/api/v1/budgets', (route) => {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(MOCK_API_RESPONSES.budgets),
+      });
+    });
 
     // Setup auth bypass AFTER routes (with no API mocks to avoid conflicts)
     await setupAuthBypass(page, {
