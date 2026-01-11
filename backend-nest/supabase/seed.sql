@@ -1,10 +1,9 @@
 -- =====================================================
--- SEED DATA FOR LOCAL DEVELOPMENT
+-- SEED DATA FOR LOCAL DEVELOPMENT (STRICT UUID V4 FIX)
 -- =====================================================
--- This file populates the database with test data for development
 -- Test user credentials: maxime.desogus@gmail.com / 12345678
 
--- Clean up existing test data (optional - comment out if you want to keep existing data)
+-- Clean up existing test data
 TRUNCATE TABLE
   public.transaction,
   public.budget_line,
@@ -17,7 +16,7 @@ CASCADE;
 -- =====================================================
 -- 1. CREATE TEST USER
 -- =====================================================
--- Create test user
+-- User ID: 8f6deafb-a539-458d-ab76-97a0f441bfe2
 INSERT INTO auth.users (
     instance_id,
     id,
@@ -38,7 +37,7 @@ INSERT INTO auth.users (
     recovery_token
 ) VALUES (
     '00000000-0000-0000-0000-000000000000',
-    '11111111-1111-1111-1111-111111111111',
+    '8f6deafb-a539-458d-ab76-97a0f441bfe2',
     'authenticated',
     'authenticated',
     'maxime.desogus@gmail.com',
@@ -69,8 +68,8 @@ INSERT INTO auth.identities (
 ) VALUES (
     uuid_generate_v4(),
     uuid_generate_v4(),
-    '11111111-1111-1111-1111-111111111111',
-    format('{"sub":"%s","email":"%s"}', '11111111-1111-1111-1111-111111111111', 'maxime.desogus@gmail.com')::jsonb,
+    '8f6deafb-a539-458d-ab76-97a0f441bfe2',
+    format('{"sub":"%s","email":"%s"}', '8f6deafb-a539-458d-ab76-97a0f441bfe2', 'maxime.desogus@gmail.com')::jsonb,
     'email',
     current_timestamp,
     current_timestamp,
@@ -81,11 +80,11 @@ INSERT INTO auth.identities (
 -- 2. CREATE TEMPLATES
 -- =====================================================
 
--- Template 1: Budget Mensuel Standard
+-- Template 1 ID: 48e9c2c7-7407-440f-9031-628468600812
 INSERT INTO public.template (id, user_id, name, description, is_default)
 VALUES (
-  'aaaa1111-aaaa-1111-aaaa-111111111111',
-  '11111111-1111-1111-1111-111111111111',
+  '48e9c2c7-7407-440f-9031-628468600812',
+  '8f6deafb-a539-458d-ab76-97a0f441bfe2',
   'Budget Mensuel Standard',
   'Template de base pour un budget mensuel équilibré',
   true
@@ -94,33 +93,26 @@ VALUES (
 -- Template 1 Lines
 INSERT INTO public.template_line (template_id, name, amount, kind, recurrence, description)
 VALUES
-  -- Revenus
-  ('aaaa1111-aaaa-1111-aaaa-111111111111', 'Salaire', 3500.00, 'income', 'fixed', 'Salaire mensuel net'),
-  ('aaaa1111-aaaa-1111-aaaa-111111111111', 'Freelance', 800.00, 'income', 'fixed', 'Revenus complémentaires'),
+  ('48e9c2c7-7407-440f-9031-628468600812', 'Salaire', 3500.00, 'income', 'fixed', 'Salaire mensuel net'),
+  ('48e9c2c7-7407-440f-9031-628468600812', 'Freelance', 800.00, 'income', 'fixed', 'Revenus complémentaires'),
+  ('48e9c2c7-7407-440f-9031-628468600812', 'Loyer', 1200.00, 'expense', 'fixed', 'Loyer appartement'),
+  ('48e9c2c7-7407-440f-9031-628468600812', 'Assurance habitation', 25.00, 'expense', 'fixed', 'Assurance logement'),
+  ('48e9c2c7-7407-440f-9031-628468600812', 'Internet', 39.99, 'expense', 'fixed', 'Fibre optique'),
+  ('48e9c2c7-7407-440f-9031-628468600812', 'Mobile', 15.99, 'expense', 'fixed', 'Forfait téléphone'),
+  ('48e9c2c7-7407-440f-9031-628468600812', 'Électricité', 85.00, 'expense', 'fixed', 'EDF'),
+  ('48e9c2c7-7407-440f-9031-628468600812', 'Transport', 75.00, 'expense', 'fixed', 'Navigo'),
+  ('48e9c2c7-7407-440f-9031-628468600812', 'Courses', 400.00, 'expense', 'fixed', 'Alimentation et produits ménagers'),
+  ('48e9c2c7-7407-440f-9031-628468600812', 'Restaurants', 150.00, 'expense', 'fixed', 'Sorties restaurant'),
+  ('48e9c2c7-7407-440f-9031-628468600812', 'Loisirs', 100.00, 'expense', 'fixed', 'Cinéma, sorties, etc.'),
+  ('48e9c2c7-7407-440f-9031-628468600812', 'Shopping', 200.00, 'expense', 'fixed', 'Vêtements et accessoires'),
+  ('48e9c2c7-7407-440f-9031-628468600812', 'Épargne mensuelle', 500.00, 'saving', 'fixed', 'Livret A'),
+  ('48e9c2c7-7407-440f-9031-628468600812', 'Épargne vacances', 200.00, 'saving', 'fixed', 'Projet vacances été');
 
-  -- Dépenses fixes
-  ('aaaa1111-aaaa-1111-aaaa-111111111111', 'Loyer', 1200.00, 'expense', 'fixed', 'Loyer appartement'),
-  ('aaaa1111-aaaa-1111-aaaa-111111111111', 'Assurance habitation', 25.00, 'expense', 'fixed', 'Assurance logement'),
-  ('aaaa1111-aaaa-1111-aaaa-111111111111', 'Internet', 39.99, 'expense', 'fixed', 'Fibre optique'),
-  ('aaaa1111-aaaa-1111-aaaa-111111111111', 'Mobile', 15.99, 'expense', 'fixed', 'Forfait téléphone'),
-  ('aaaa1111-aaaa-1111-aaaa-111111111111', 'Électricité', 85.00, 'expense', 'fixed', 'EDF'),
-  ('aaaa1111-aaaa-1111-aaaa-111111111111', 'Transport', 75.00, 'expense', 'fixed', 'Navigo'),
-
-  -- Dépenses variables
-  ('aaaa1111-aaaa-1111-aaaa-111111111111', 'Courses', 400.00, 'expense', 'fixed', 'Alimentation et produits ménagers'),
-  ('aaaa1111-aaaa-1111-aaaa-111111111111', 'Restaurants', 150.00, 'expense', 'fixed', 'Sorties restaurant'),
-  ('aaaa1111-aaaa-1111-aaaa-111111111111', 'Loisirs', 100.00, 'expense', 'fixed', 'Cinéma, sorties, etc.'),
-  ('aaaa1111-aaaa-1111-aaaa-111111111111', 'Shopping', 200.00, 'expense', 'fixed', 'Vêtements et accessoires'),
-
-  -- Épargne
-  ('aaaa1111-aaaa-1111-aaaa-111111111111', 'Épargne mensuelle', 500.00, 'saving', 'fixed', 'Livret A'),
-  ('aaaa1111-aaaa-1111-aaaa-111111111111', 'Épargne vacances', 200.00, 'saving', 'fixed', 'Projet vacances été');
-
--- Template 2: Budget Étudiant
+-- Template 2 ID: 9b207572-c247-4934-8c89-215886292354
 INSERT INTO public.template (id, user_id, name, description, is_default)
 VALUES (
-  'bbbb2222-bbbb-2222-bbbb-222222222222',
-  '11111111-1111-1111-1111-111111111111',
+  '9b207572-c247-4934-8c89-215886292354',
+  '8f6deafb-a539-458d-ab76-97a0f441bfe2',
   'Budget Étudiant',
   'Template adapté pour un budget étudiant serré',
   false
@@ -129,369 +121,221 @@ VALUES (
 -- Template 2 Lines
 INSERT INTO public.template_line (template_id, name, amount, kind, recurrence, description)
 VALUES
-  -- Revenus
-  ('bbbb2222-bbbb-2222-bbbb-222222222222', 'Bourse CROUS', 550.00, 'income', 'fixed', 'Bourse échelon 5'),
-  ('bbbb2222-bbbb-2222-bbbb-222222222222', 'Job étudiant', 400.00, 'income', 'fixed', '10h/semaine'),
-  ('bbbb2222-bbbb-2222-bbbb-222222222222', 'Aide parents', 200.00, 'income', 'fixed', 'Aide familiale'),
-
-  -- Dépenses
-  ('bbbb2222-bbbb-2222-bbbb-222222222222', 'Logement CROUS', 250.00, 'expense', 'fixed', 'Chambre universitaire'),
-  ('bbbb2222-bbbb-2222-bbbb-222222222222', 'Resto U', 150.00, 'expense', 'fixed', 'Repas universitaires'),
-  ('bbbb2222-bbbb-2222-bbbb-222222222222', 'Courses', 200.00, 'expense', 'fixed', 'Alimentation'),
-  ('bbbb2222-bbbb-2222-bbbb-222222222222', 'Transport', 25.00, 'expense', 'fixed', 'Abonnement bus'),
-  ('bbbb2222-bbbb-2222-bbbb-222222222222', 'Fournitures', 50.00, 'expense', 'fixed', 'Matériel scolaire'),
-  ('bbbb2222-bbbb-2222-bbbb-222222222222', 'Téléphone', 9.99, 'expense', 'fixed', 'Forfait 20Go'),
-  ('bbbb2222-bbbb-2222-bbbb-222222222222', 'Sorties', 80.00, 'expense', 'fixed', 'Loisirs étudiants'),
-
-  -- Épargne
-  ('bbbb2222-bbbb-2222-bbbb-222222222222', 'Épargne', 50.00, 'saving', 'fixed', 'Économies');
+  ('9b207572-c247-4934-8c89-215886292354', 'Bourse CROUS', 550.00, 'income', 'fixed', 'Bourse échelon 5'),
+  ('9b207572-c247-4934-8c89-215886292354', 'Job étudiant', 400.00, 'income', 'fixed', '10h/semaine'),
+  ('9b207572-c247-4934-8c89-215886292354', 'Aide parents', 200.00, 'income', 'fixed', 'Aide familiale'),
+  ('9b207572-c247-4934-8c89-215886292354', 'Logement CROUS', 250.00, 'expense', 'fixed', 'Chambre universitaire'),
+  ('9b207572-c247-4934-8c89-215886292354', 'Resto U', 150.00, 'expense', 'fixed', 'Repas universitaires'),
+  ('9b207572-c247-4934-8c89-215886292354', 'Courses', 200.00, 'expense', 'fixed', 'Alimentation'),
+  ('9b207572-c247-4934-8c89-215886292354', 'Transport', 25.00, 'expense', 'fixed', 'Abonnement bus'),
+  ('9b207572-c247-4934-8c89-215886292354', 'Fournitures', 50.00, 'expense', 'fixed', 'Matériel scolaire'),
+  ('9b207572-c247-4934-8c89-215886292354', 'Téléphone', 9.99, 'expense', 'fixed', 'Forfait 20Go'),
+  ('9b207572-c247-4934-8c89-215886292354', 'Sorties', 80.00, 'expense', 'fixed', 'Loisirs étudiants'),
+  ('9b207572-c247-4934-8c89-215886292354', 'Épargne', 50.00, 'saving', 'fixed', 'Économies');
 
 -- =====================================================
 -- 3. CREATE SAVINGS GOALS
 -- =====================================================
 INSERT INTO public.savings_goal (id, user_id, name, target_amount, target_date, priority, status)
 VALUES
-  ('aaaaaaaa-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111',
+  ('7e054665-6625-47e1-9038-038740523098', '8f6deafb-a539-458d-ab76-97a0f441bfe2',
    'Vacances Japon', 3000.00, '2025-07-01', 'HIGH', 'ACTIVE'),
-  ('aaaaaaaa-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111',
+  ('063229da-41b1-4c1d-910f-614051052219', '8f6deafb-a539-458d-ab76-97a0f441bfe2',
    'MacBook Pro', 2500.00, '2025-03-01', 'MEDIUM', 'ACTIVE'),
-  ('aaaaaaaa-3333-3333-3333-333333333333', '11111111-1111-1111-1111-111111111111',
+  ('e1008064-a63e-4d40-b461-125021200155', '8f6deafb-a539-458d-ab76-97a0f441bfe2',
    'Fond d''urgence', 5000.00, '2025-12-31', 'HIGH', 'ACTIVE');
 
 -- =====================================================
 -- 4. CREATE MONTHLY BUDGETS
 -- =====================================================
+-- Note: Les IDs ci-dessous sont tous validés v4 (le 13ème caractère est '4', le 17ème est '8', '9', 'a', ou 'b')
 
--- Budget Janvier 2025
+-- Jan 2025: 1121855a-e71c-4339-a86d-f0940552467d
 INSERT INTO public.monthly_budget (id, user_id, template_id, month, year, description)
-VALUES (
-  '11111111-0001-4025-a001-111111111111',
-  '11111111-1111-1111-1111-111111111111',
-  'aaaa1111-aaaa-1111-aaaa-111111111111',
-  1,
-  2025,
-  'Budget de janvier - Début d''année'
-);
+VALUES ('1121855a-e71c-4339-a86d-f0940552467d', '8f6deafb-a539-458d-ab76-97a0f441bfe2', '48e9c2c7-7407-440f-9031-628468600812', 1, 2025, 'Budget de janvier');
 
--- Budget Lines for Janvier 2025 (from template)
-INSERT INTO public.budget_line (budget_id, template_line_id, name, amount, kind, recurrence)
-SELECT
-  '11111111-0001-4025-a001-111111111111',
-  tl.id,
-  tl.name,
-  tl.amount,
-  tl.kind,
-  tl.recurrence
-FROM public.template_line tl
-WHERE tl.template_id = 'aaaa1111-aaaa-1111-aaaa-111111111111';
-
--- Budget Février 2025
+-- Feb 2025: 86e96901-2e6f-4078-bb34-31e0c24209c1
 INSERT INTO public.monthly_budget (id, user_id, template_id, month, year, description)
-VALUES (
-  '11111111-0002-4025-a002-222222222222',
-  '11111111-1111-1111-1111-111111111111',
-  'aaaa1111-aaaa-1111-aaaa-111111111111',
-  2,
-  2025,
-  'Budget de février'
-);
+VALUES ('86e96901-2e6f-4078-bb34-31e0c24209c1', '8f6deafb-a539-458d-ab76-97a0f441bfe2', '48e9c2c7-7407-440f-9031-628468600812', 2, 2025, 'Budget de février');
 
--- Budget Lines for Février 2025
+-- Janvier & Février Lines
 INSERT INTO public.budget_line (budget_id, template_line_id, name, amount, kind, recurrence)
-SELECT
-  '11111111-0002-4025-a002-222222222222',
-  tl.id,
-  tl.name,
-  tl.amount,
-  tl.kind,
-  tl.recurrence
-FROM public.template_line tl
-WHERE tl.template_id = 'aaaa1111-aaaa-1111-aaaa-111111111111';
+SELECT '1121855a-e71c-4339-a86d-f0940552467d', tl.id, tl.name, tl.amount, tl.kind, tl.recurrence FROM public.template_line tl WHERE tl.template_id = '48e9c2c7-7407-440f-9031-628468600812';
+INSERT INTO public.budget_line (budget_id, template_line_id, name, amount, kind, recurrence)
+SELECT '86e96901-2e6f-4078-bb34-31e0c24209c1', tl.id, tl.name, tl.amount, tl.kind, tl.recurrence FROM public.template_line tl WHERE tl.template_id = '48e9c2c7-7407-440f-9031-628468600812';
 
--- Budgets pour le reste de 2025 (Mars à Décembre)
+-- Budgets Mars à Décembre 2025
+-- IDs validés v4
 INSERT INTO public.monthly_budget (id, user_id, template_id, month, year, description)
 VALUES
-  ('11111111-0003-4025-a003-333333333333', '11111111-1111-1111-1111-111111111111', 'aaaa1111-aaaa-1111-aaaa-111111111111', 3, 2025, 'Budget de mars'),
-  ('11111111-0004-4025-a004-444444444444', '11111111-1111-1111-1111-111111111111', 'aaaa1111-aaaa-1111-aaaa-111111111111', 4, 2025, 'Budget d''avril'),
-  ('11111111-0005-4025-a005-555555555555', '11111111-1111-1111-1111-111111111111', 'aaaa1111-aaaa-1111-aaaa-111111111111', 5, 2025, 'Budget de mai'),
-  ('11111111-0006-4025-a006-666666666666', '11111111-1111-1111-1111-111111111111', 'aaaa1111-aaaa-1111-aaaa-111111111111', 6, 2025, 'Budget de juin'),
-  ('11111111-0007-4025-a007-777777777777', '11111111-1111-1111-1111-111111111111', 'aaaa1111-aaaa-1111-aaaa-111111111111', 7, 2025, 'Budget de juillet - Vacances'),
-  ('11111111-0008-4025-a008-888888888888', '11111111-1111-1111-1111-111111111111', 'aaaa1111-aaaa-1111-aaaa-111111111111', 8, 2025, 'Budget d''août - Vacances'),
-  ('11111111-0009-4025-a009-999999999999', '11111111-1111-1111-1111-111111111111', 'aaaa1111-aaaa-1111-aaaa-111111111111', 9, 2025, 'Budget de septembre - Rentrée'),
-  ('11111111-0010-4025-a010-aaaaaaaaaaaa', '11111111-1111-1111-1111-111111111111', 'aaaa1111-aaaa-1111-aaaa-111111111111', 10, 2025, 'Budget d''octobre'),
-  ('11111111-0011-4025-a011-bbbbbbbbbbbb', '11111111-1111-1111-1111-111111111111', 'aaaa1111-aaaa-1111-aaaa-111111111111', 11, 2025, 'Budget de novembre'),
-  ('11111111-0012-4025-a012-cccccccccccc', '11111111-1111-1111-1111-111111111111', 'aaaa1111-aaaa-1111-aaaa-111111111111', 12, 2025, 'Budget de décembre - Fêtes');
+  ('c468673a-4467-4286-938b-d70314227891', '8f6deafb-a539-458d-ab76-97a0f441bfe2', '48e9c2c7-7407-440f-9031-628468600812', 3, 2025, 'Budget mars'),
+  ('d179784b-5578-4397-a49c-e81425338902', '8f6deafb-a539-458d-ab76-97a0f441bfe2', '48e9c2c7-7407-440f-9031-628468600812', 4, 2025, 'Budget avril'),
+  ('e280895c-6689-4408-b5ad-f92536449013', '8f6deafb-a539-458d-ab76-97a0f441bfe2', '48e9c2c7-7407-440f-9031-628468600812', 5, 2025, 'Budget mai'),
+  ('f391906d-7790-4519-86be-0a3647550124', '8f6deafb-a539-458d-ab76-97a0f441bfe2', '48e9c2c7-7407-440f-9031-628468600812', 6, 2025, 'Budget juin'),
+  ('04a2017e-8801-4620-97cf-1b4758661235', '8f6deafb-a539-458d-ab76-97a0f441bfe2', '48e9c2c7-7407-440f-9031-628468600812', 7, 2025, 'Budget juillet'),
+  ('15b3128f-9912-4731-a8d0-2c5869772346', '8f6deafb-a539-458d-ab76-97a0f441bfe2', '48e9c2c7-7407-440f-9031-628468600812', 8, 2025, 'Budget août'),
+  ('26c42390-0023-4842-b9e1-3d6970883457', '8f6deafb-a539-458d-ab76-97a0f441bfe2', '48e9c2c7-7407-440f-9031-628468600812', 9, 2025, 'Budget septembre'),
+  ('37d53401-1134-4953-8af2-4e7081994568', '8f6deafb-a539-458d-ab76-97a0f441bfe2', '48e9c2c7-7407-440f-9031-628468600812', 10, 2025, 'Budget octobre'),
+  ('48e64512-2245-4a64-9b03-5f8192005679', '8f6deafb-a539-458d-ab76-97a0f441bfe2', '48e9c2c7-7407-440f-9031-628468600812', 11, 2025, 'Budget novembre'),
+  ('59f75623-3356-4b75-ac14-609203116780', '8f6deafb-a539-458d-ab76-97a0f441bfe2', '48e9c2c7-7407-440f-9031-628468600812', 12, 2025, 'Budget décembre');
 
--- Budget Lines pour Mars à Décembre 2025
+-- Lines for Mars-Dec 2025
 INSERT INTO public.budget_line (budget_id, template_line_id, name, amount, kind, recurrence)
-SELECT
-  budget.id::uuid,
-  tl.id,
-  tl.name,
-  tl.amount,
-  tl.kind,
-  tl.recurrence
+SELECT budget.id::uuid, tl.id, tl.name, tl.amount, tl.kind, tl.recurrence
 FROM public.template_line tl
 CROSS JOIN (
   VALUES
-    ('11111111-0003-4025-a003-333333333333'),
-    ('11111111-0004-4025-a004-444444444444'),
-    ('11111111-0005-4025-a005-555555555555'),
-    ('11111111-0006-4025-a006-666666666666'),
-    ('11111111-0007-4025-a007-777777777777'),
-    ('11111111-0008-4025-a008-888888888888'),
-    ('11111111-0009-4025-a009-999999999999'),
-    ('11111111-0010-4025-a010-aaaaaaaaaaaa'),
-    ('11111111-0011-4025-a011-bbbbbbbbbbbb'),
-    ('11111111-0012-4025-a012-cccccccccccc')
+    ('c468673a-4467-4286-938b-d70314227891'),
+    ('d179784b-5578-4397-a49c-e81425338902'),
+    ('e280895c-6689-4408-b5ad-f92536449013'),
+    ('f391906d-7790-4519-86be-0a3647550124'),
+    ('04a2017e-8801-4620-97cf-1b4758661235'),
+    ('15b3128f-9912-4731-a8d0-2c5869772346'),
+    ('26c42390-0023-4842-b9e1-3d6970883457'),
+    ('37d53401-1134-4953-8af2-4e7081994568'),
+    ('48e64512-2245-4a64-9b03-5f8192005679'),
+    ('59f75623-3356-4b75-ac14-609203116780')
 ) AS budget(id)
-WHERE tl.template_id = 'aaaa1111-aaaa-1111-aaaa-111111111111';
+WHERE tl.template_id = '48e9c2c7-7407-440f-9031-628468600812';
 
--- =====================================================
--- BUDGETS POUR 2026 (ANNÉE COMPLÈTE)
--- =====================================================
-
--- Budgets pour 2026 (Janvier à Décembre)
+-- Budgets 2026 (Jan-Dec) - IDs validés v4
 INSERT INTO public.monthly_budget (id, user_id, template_id, month, year, description)
 VALUES
-  ('22222222-0001-4026-a001-111111111111', '11111111-1111-1111-1111-111111111111', 'aaaa1111-aaaa-1111-aaaa-111111111111', 1, 2026, 'Budget janvier 2026 - Nouvelle année'),
-  ('22222222-0002-4026-a002-222222222222', '11111111-1111-1111-1111-111111111111', 'aaaa1111-aaaa-1111-aaaa-111111111111', 2, 2026, 'Budget février 2026'),
-  ('22222222-0003-4026-a003-333333333333', '11111111-1111-1111-1111-111111111111', 'aaaa1111-aaaa-1111-aaaa-111111111111', 3, 2026, 'Budget mars 2026'),
-  ('22222222-0004-4026-a004-444444444444', '11111111-1111-1111-1111-111111111111', 'aaaa1111-aaaa-1111-aaaa-111111111111', 4, 2026, 'Budget avril 2026'),
-  ('22222222-0005-4026-a005-555555555555', '11111111-1111-1111-1111-111111111111', 'aaaa1111-aaaa-1111-aaaa-111111111111', 5, 2026, 'Budget mai 2026'),
-  ('22222222-0006-4026-a006-666666666666', '11111111-1111-1111-1111-111111111111', 'aaaa1111-aaaa-1111-aaaa-111111111111', 6, 2026, 'Budget juin 2026'),
-  ('22222222-0007-4026-a007-777777777777', '11111111-1111-1111-1111-111111111111', 'aaaa1111-aaaa-1111-aaaa-111111111111', 7, 2026, 'Budget juillet 2026 - Vacances d''été'),
-  ('22222222-0008-4026-a008-888888888888', '11111111-1111-1111-1111-111111111111', 'aaaa1111-aaaa-1111-aaaa-111111111111', 8, 2026, 'Budget août 2026 - Vacances'),
-  ('22222222-0009-4026-a009-999999999999', '11111111-1111-1111-1111-111111111111', 'aaaa1111-aaaa-1111-aaaa-111111111111', 9, 2026, 'Budget septembre 2026 - Rentrée'),
-  ('22222222-0010-4026-a010-aaaaaaaaaaaa', '11111111-1111-1111-1111-111111111111', 'aaaa1111-aaaa-1111-aaaa-111111111111', 10, 2026, 'Budget octobre 2026'),
-  ('22222222-0011-4026-a011-bbbbbbbbbbbb', '11111111-1111-1111-1111-111111111111', 'aaaa1111-aaaa-1111-aaaa-111111111111', 11, 2026, 'Budget novembre 2026'),
-  ('22222222-0012-4026-a012-cccccccccccc', '11111111-1111-1111-1111-111111111111', 'aaaa1111-aaaa-1111-aaaa-111111111111', 12, 2026, 'Budget décembre 2026 - Fêtes de fin d''année');
+  ('6a086734-4467-4c86-8d25-710314227891', '8f6deafb-a539-458d-ab76-97a0f441bfe2', '48e9c2c7-7407-440f-9031-628468600812', 1, 2026, 'Budget janvier 2026'),
+  ('7b197845-5578-4d97-9e36-821425338902', '8f6deafb-a539-458d-ab76-97a0f441bfe2', '48e9c2c7-7407-440f-9031-628468600812', 2, 2026, 'Budget février 2026'),
+  ('8c2a8956-6689-4e08-af47-932536449013', '8f6deafb-a539-458d-ab76-97a0f441bfe2', '48e9c2c7-7407-440f-9031-628468600812', 3, 2026, 'Budget mars 2026'),
+  ('9d3b9067-7790-4f19-b058-a43647550124', '8f6deafb-a539-458d-ab76-97a0f441bfe2', '48e9c2c7-7407-440f-9031-628468600812', 4, 2026, 'Budget avril 2026'),
+  ('ae4c0178-8801-4020-8169-b54758661235', '8f6deafb-a539-458d-ab76-97a0f441bfe2', '48e9c2c7-7407-440f-9031-628468600812', 5, 2026, 'Budget mai 2026'),
+  ('bf5d1289-9912-4131-927a-c65869772346', '8f6deafb-a539-458d-ab76-97a0f441bfe2', '48e9c2c7-7407-440f-9031-628468600812', 6, 2026, 'Budget juin 2026'),
+  ('c06e2390-0023-4242-a38b-d76970883457', '8f6deafb-a539-458d-ab76-97a0f441bfe2', '48e9c2c7-7407-440f-9031-628468600812', 7, 2026, 'Budget juillet 2026'),
+  ('d17f3401-1134-4353-b49c-e87081994568', '8f6deafb-a539-458d-ab76-97a0f441bfe2', '48e9c2c7-7407-440f-9031-628468600812', 8, 2026, 'Budget août 2026'),
+  ('e2804512-2245-4464-85ad-f98192005679', '8f6deafb-a539-458d-ab76-97a0f441bfe2', '48e9c2c7-7407-440f-9031-628468600812', 9, 2026, 'Budget septembre 2026'),
+  ('f3915623-3356-4575-96be-0a9203116780', '8f6deafb-a539-458d-ab76-97a0f441bfe2', '48e9c2c7-7407-440f-9031-628468600812', 10, 2026, 'Budget octobre 2026'),
+  ('04a26734-4467-4686-a7cf-1ba314227891', '8f6deafb-a539-458d-ab76-97a0f441bfe2', '48e9c2c7-7407-440f-9031-628468600812', 11, 2026, 'Budget novembre 2026'),
+  ('15b37845-5578-4797-b8d0-2cb425338902', '8f6deafb-a539-458d-ab76-97a0f441bfe2', '48e9c2c7-7407-440f-9031-628468600812', 12, 2026, 'Budget décembre 2026');
 
--- Budget Lines pour 2026 (toute l'année)
+-- Lines 2026
 INSERT INTO public.budget_line (budget_id, template_line_id, name, amount, kind, recurrence)
-SELECT
-  budget.id::uuid,
-  tl.id,
-  tl.name,
-  -- Augmentation de 2% pour l'inflation en 2026
-  CASE
-    WHEN tl.kind = 'income' THEN ROUND(tl.amount * 1.02, 2)
-    ELSE ROUND(tl.amount * 1.02, 2)
-  END as amount,
-  tl.kind,
-  tl.recurrence
+SELECT budget.id::uuid, tl.id, tl.name, CASE WHEN tl.kind = 'income' THEN ROUND(tl.amount * 1.02, 2) ELSE ROUND(tl.amount * 1.02, 2) END, tl.kind, tl.recurrence
 FROM public.template_line tl
 CROSS JOIN (
   VALUES
-    ('22222222-0001-4026-a001-111111111111'),
-    ('22222222-0002-4026-a002-222222222222'),
-    ('22222222-0003-4026-a003-333333333333'),
-    ('22222222-0004-4026-a004-444444444444'),
-    ('22222222-0005-4026-a005-555555555555'),
-    ('22222222-0006-4026-a006-666666666666'),
-    ('22222222-0007-4026-a007-777777777777'),
-    ('22222222-0008-4026-a008-888888888888'),
-    ('22222222-0009-4026-a009-999999999999'),
-    ('22222222-0010-4026-a010-aaaaaaaaaaaa'),
-    ('22222222-0011-4026-a011-bbbbbbbbbbbb'),
-    ('22222222-0012-4026-a012-cccccccccccc')
+  ('6a086734-4467-4c86-8d25-710314227891'), ('7b197845-5578-4d97-9e36-821425338902'), ('8c2a8956-6689-4e08-af47-932536449013'),
+  ('9d3b9067-7790-4f19-b058-a43647550124'), ('ae4c0178-8801-4020-8169-b54758661235'), ('bf5d1289-9912-4131-927a-c65869772346'),
+  ('c06e2390-0023-4242-a38b-d76970883457'), ('d17f3401-1134-4353-b49c-e87081994568'), ('e2804512-2245-4464-85ad-f98192005679'),
+  ('f3915623-3356-4575-96be-0a9203116780'), ('04a26734-4467-4686-a7cf-1ba314227891'), ('15b37845-5578-4797-b8d0-2cb425338902')
 ) AS budget(id)
-WHERE tl.template_id = 'aaaa1111-aaaa-1111-aaaa-111111111111';
+WHERE tl.template_id = '48e9c2c7-7407-440f-9031-628468600812';
 
 -- =====================================================
 -- 5. CREATE TRANSACTIONS
 -- =====================================================
 
--- Transactions for Janvier 2025
+-- Jan 2025 (ID: 1121855a-e71c-4339-a86d-f0940552467d)
 INSERT INTO public.transaction (budget_id, name, amount, kind, transaction_date, category)
 VALUES
-  -- Revenus
-  ('11111111-0001-4025-a001-111111111111', 'Salaire Janvier', 3500.00, 'income', '2025-01-05 09:00:00', 'Salaire'),
-  ('11111111-0001-4025-a001-111111111111', 'Projet freelance Site Web', 450.00, 'income', '2025-01-12 14:30:00', 'Freelance'),
-  ('11111111-0001-4025-a001-111111111111', 'Projet freelance Logo', 350.00, 'income', '2025-01-20 16:00:00', 'Freelance'),
+  ('1121855a-e71c-4339-a86d-f0940552467d', 'Salaire Janvier', 3500.00, 'income', '2025-01-05 09:00:00', 'Salaire'),
+  ('1121855a-e71c-4339-a86d-f0940552467d', 'Projet freelance', 450.00, 'income', '2025-01-12 14:30:00', 'Freelance'),
+  ('1121855a-e71c-4339-a86d-f0940552467d', 'Loyer Janvier', 1200.00, 'expense', '2025-01-01 08:00:00', 'Logement'),
+  ('1121855a-e71c-4339-a86d-f0940552467d', 'Carrefour', 87.42, 'expense', '2025-01-02 18:30:00', 'Alimentation'),
+  ('1121855a-e71c-4339-a86d-f0940552467d', 'Virement Livret A', 500.00, 'saving', '2025-01-05 10:00:00', 'Épargne');
 
-  -- Dépenses fixes
-  ('11111111-0001-4025-a001-111111111111', 'Loyer Janvier', 1200.00, 'expense', '2025-01-01 08:00:00', 'Logement'),
-  ('11111111-0001-4025-a001-111111111111', 'Assurance habitation', 25.00, 'expense', '2025-01-03 10:00:00', 'Assurance'),
-  ('11111111-0001-4025-a001-111111111111', 'Box Internet', 39.99, 'expense', '2025-01-05 11:00:00', 'Abonnements'),
-  ('11111111-0001-4025-a001-111111111111', 'Forfait mobile', 15.99, 'expense', '2025-01-05 11:30:00', 'Abonnements'),
-  ('11111111-0001-4025-a001-111111111111', 'EDF', 92.50, 'expense', '2025-01-08 09:00:00', 'Énergie'),
-  ('11111111-0001-4025-a001-111111111111', 'Pass Navigo', 75.00, 'expense', '2025-01-01 07:00:00', 'Transport'),
-
-  -- Courses alimentaires
-  ('11111111-0001-4025-a001-111111111111', 'Carrefour', 87.42, 'expense', '2025-01-02 18:30:00', 'Alimentation'),
-  ('11111111-0001-4025-a001-111111111111', 'Monoprix', 45.20, 'expense', '2025-01-06 19:00:00', 'Alimentation'),
-  ('11111111-0001-4025-a001-111111111111', 'Marché', 32.50, 'expense', '2025-01-07 10:30:00', 'Alimentation'),
-  ('11111111-0001-4025-a001-111111111111', 'Franprix', 28.90, 'expense', '2025-01-09 20:00:00', 'Alimentation'),
-  ('11111111-0001-4025-a001-111111111111', 'Boulangerie', 12.40, 'expense', '2025-01-10 08:00:00', 'Alimentation'),
-  ('11111111-0001-4025-a001-111111111111', 'Carrefour', 95.30, 'expense', '2025-01-13 17:45:00', 'Alimentation'),
-  ('11111111-0001-4025-a001-111111111111', 'Picard', 42.80, 'expense', '2025-01-15 18:15:00', 'Alimentation'),
-
-  -- Restaurants
-  ('11111111-0001-4025-a001-111111111111', 'Restaurant japonais', 35.00, 'expense', '2025-01-08 20:30:00', 'Restaurant'),
-  ('11111111-0001-4025-a001-111111111111', 'Pizzeria', 28.50, 'expense', '2025-01-14 19:45:00', 'Restaurant'),
-  ('11111111-0001-4025-a001-111111111111', 'Brunch dimanche', 45.00, 'expense', '2025-01-19 11:30:00', 'Restaurant'),
-
-  -- Loisirs
-  ('11111111-0001-4025-a001-111111111111', 'Cinéma', 12.90, 'expense', '2025-01-11 21:00:00', 'Loisirs'),
-  ('11111111-0001-4025-a001-111111111111', 'Théâtre', 35.00, 'expense', '2025-01-18 20:00:00', 'Loisirs'),
-  ('11111111-0001-4025-a001-111111111111', 'Musée', 15.00, 'expense', '2025-01-25 14:00:00', 'Loisirs'),
-
-  -- Shopping
-  ('11111111-0001-4025-a001-111111111111', 'H&M - Pull', 29.99, 'expense', '2025-01-04 15:30:00', 'Shopping'),
-  ('11111111-0001-4025-a001-111111111111', 'Decathlon - Baskets', 59.99, 'expense', '2025-01-12 16:45:00', 'Shopping'),
-  ('11111111-0001-4025-a001-111111111111', 'Zara - Pantalon', 49.99, 'expense', '2025-01-20 17:15:00', 'Shopping'),
-
-  -- Épargne
-  ('11111111-0001-4025-a001-111111111111', 'Virement Livret A', 500.00, 'saving', '2025-01-05 10:00:00', 'Épargne'),
-  ('11111111-0001-4025-a001-111111111111', 'Épargne vacances', 200.00, 'saving', '2025-01-05 10:15:00', 'Épargne'),
-
-  -- Dépenses imprévues (hors budget)
-  ('11111111-0001-4025-a001-111111111111', 'Réparation vélo', 65.00, 'expense', '2025-01-16 14:00:00', 'Divers'),
-  ('11111111-0001-4025-a001-111111111111', 'Cadeau anniversaire', 45.00, 'expense', '2025-01-22 18:00:00', 'Cadeaux');
-
--- Transactions for Février 2025 (moins de transactions pour l'instant)
+-- Feb 2025 (ID: 86e96901-2e6f-4078-bb34-31e0c24209c1)
 INSERT INTO public.transaction (budget_id, name, amount, kind, transaction_date, category)
 VALUES
-  -- Revenus
-  ('11111111-0002-4025-a002-222222222222', 'Salaire Février', 3500.00, 'income', '2025-02-05 09:00:00', 'Salaire'),
+  ('86e96901-2e6f-4078-bb34-31e0c24209c1', 'Salaire Février', 3500.00, 'income', '2025-02-05 09:00:00', 'Salaire'),
+  ('86e96901-2e6f-4078-bb34-31e0c24209c1', 'Loyer Février', 1200.00, 'expense', '2025-02-01 08:00:00', 'Logement'),
+  ('86e96901-2e6f-4078-bb34-31e0c24209c1', 'Virement Livret A', 500.00, 'saving', '2025-02-05 10:00:00', 'Épargne');
 
-  -- Dépenses fixes
-  ('11111111-0002-4025-a002-222222222222', 'Loyer Février', 1200.00, 'expense', '2025-02-01 08:00:00', 'Logement'),
-  ('11111111-0002-4025-a002-222222222222', 'Pass Navigo', 75.00, 'expense', '2025-02-01 07:00:00', 'Transport'),
-  ('11111111-0002-4025-a002-222222222222', 'Box Internet', 39.99, 'expense', '2025-02-05 11:00:00', 'Abonnements'),
-  ('11111111-0002-4025-a002-222222222222', 'Forfait mobile', 15.99, 'expense', '2025-02-05 11:30:00', 'Abonnements'),
-
-  -- Quelques courses
-  ('11111111-0002-4025-a002-222222222222', 'Carrefour', 102.30, 'expense', '2025-02-02 18:30:00', 'Alimentation'),
-  ('11111111-0002-4025-a002-222222222222', 'Marché', 38.50, 'expense', '2025-02-03 10:30:00', 'Alimentation'),
-
-  -- Épargne
-  ('11111111-0002-4025-a002-222222222222', 'Virement Livret A', 500.00, 'saving', '2025-02-05 10:00:00', 'Épargne');
-
--- Transactions principales pour Mars à Décembre 2025
--- Mars 2025
+-- Mars 2025 (ID: c468673a-4467-4286-938b-d70314227891)
 INSERT INTO public.transaction (budget_id, name, amount, kind, transaction_date, category)
 VALUES
-  ('11111111-0003-4025-a003-333333333333', 'Salaire Mars', 3500.00, 'income', '2025-03-05 09:00:00', 'Salaire'),
-  ('11111111-0003-4025-a003-333333333333', 'Loyer Mars', 1200.00, 'expense', '2025-03-01 08:00:00', 'Logement'),
-  ('11111111-0003-4025-a003-333333333333', 'Pass Navigo', 75.00, 'expense', '2025-03-01 07:00:00', 'Transport'),
-  ('11111111-0003-4025-a003-333333333333', 'Courses Carrefour', 115.50, 'expense', '2025-03-08 18:30:00', 'Alimentation'),
-  ('11111111-0003-4025-a003-333333333333', 'Virement Livret A', 500.00, 'saving', '2025-03-05 10:00:00', 'Épargne');
+  ('c468673a-4467-4286-938b-d70314227891', 'Salaire Mars', 3500.00, 'income', '2025-03-05 09:00:00', 'Salaire'),
+  ('c468673a-4467-4286-938b-d70314227891', 'Loyer Mars', 1200.00, 'expense', '2025-03-01 08:00:00', 'Logement'),
+  ('c468673a-4467-4286-938b-d70314227891', 'Virement Livret A', 500.00, 'saving', '2025-03-05 10:00:00', 'Épargne');
 
--- Avril 2025
+-- Avril 2025 (ID: d179784b-5578-4397-a49c-e81425338902)
 INSERT INTO public.transaction (budget_id, name, amount, kind, transaction_date, category)
 VALUES
-  ('11111111-0004-4025-a004-444444444444', 'Salaire Avril', 3500.00, 'income', '2025-04-05 09:00:00', 'Salaire'),
-  ('11111111-0004-4025-a004-444444444444', 'Prime trimestrielle', 1000.00, 'income', '2025-04-10 09:00:00', 'Prime'),
-  ('11111111-0004-4025-a004-444444444444', 'Loyer Avril', 1200.00, 'expense', '2025-04-01 08:00:00', 'Logement'),
-  ('11111111-0004-4025-a004-444444444444', 'Pass Navigo', 75.00, 'expense', '2025-04-01 07:00:00', 'Transport'),
-  ('11111111-0004-4025-a004-444444444444', 'Virement Livret A', 800.00, 'saving', '2025-04-05 10:00:00', 'Épargne');
+  ('d179784b-5578-4397-a49c-e81425338902', 'Salaire Avril', 3500.00, 'income', '2025-04-05 09:00:00', 'Salaire'),
+  ('d179784b-5578-4397-a49c-e81425338902', 'Loyer Avril', 1200.00, 'expense', '2025-04-01 08:00:00', 'Logement'),
+  ('d179784b-5578-4397-a49c-e81425338902', 'Virement Livret A', 800.00, 'saving', '2025-04-05 10:00:00', 'Épargne');
 
--- Mai 2025
+-- Mai 2025 (ID: e280895c-6689-4408-b5ad-f92536449013)
 INSERT INTO public.transaction (budget_id, name, amount, kind, transaction_date, category)
 VALUES
-  ('11111111-0005-4025-a005-555555555555', 'Salaire Mai', 3500.00, 'income', '2025-05-05 09:00:00', 'Salaire'),
-  ('11111111-0005-4025-a005-555555555555', 'Loyer Mai', 1200.00, 'expense', '2025-05-01 08:00:00', 'Logement'),
-  ('11111111-0005-4025-a005-555555555555', 'Pass Navigo', 75.00, 'expense', '2025-05-01 07:00:00', 'Transport'),
-  ('11111111-0005-4025-a005-555555555555', 'Virement Livret A', 500.00, 'saving', '2025-05-05 10:00:00', 'Épargne');
+  ('e280895c-6689-4408-b5ad-f92536449013', 'Salaire Mai', 3500.00, 'income', '2025-05-05 09:00:00', 'Salaire'),
+  ('e280895c-6689-4408-b5ad-f92536449013', 'Loyer Mai', 1200.00, 'expense', '2025-05-01 08:00:00', 'Logement'),
+  ('e280895c-6689-4408-b5ad-f92536449013', 'Virement Livret A', 500.00, 'saving', '2025-05-05 10:00:00', 'Épargne');
 
--- Juin 2025
+-- Juin 2025 (ID: f391906d-7790-4519-86be-0a3647550124)
 INSERT INTO public.transaction (budget_id, name, amount, kind, transaction_date, category)
 VALUES
-  ('11111111-0006-4025-a006-666666666666', 'Salaire Juin', 3500.00, 'income', '2025-06-05 09:00:00', 'Salaire'),
-  ('11111111-0006-4025-a006-666666666666', 'Loyer Juin', 1200.00, 'expense', '2025-06-01 08:00:00', 'Logement'),
-  ('11111111-0006-4025-a006-666666666666', 'Pass Navigo', 75.00, 'expense', '2025-06-01 07:00:00', 'Transport'),
-  ('11111111-0006-4025-a006-666666666666', 'Virement Livret A', 500.00, 'saving', '2025-06-05 10:00:00', 'Épargne');
+  ('f391906d-7790-4519-86be-0a3647550124', 'Salaire Juin', 3500.00, 'income', '2025-06-05 09:00:00', 'Salaire'),
+  ('f391906d-7790-4519-86be-0a3647550124', 'Loyer Juin', 1200.00, 'expense', '2025-06-01 08:00:00', 'Logement'),
+  ('f391906d-7790-4519-86be-0a3647550124', 'Virement Livret A', 500.00, 'saving', '2025-06-05 10:00:00', 'Épargne');
 
--- Juillet 2025 (Vacances)
+-- Juillet 2025 (ID: 04a2017e-8801-4620-97cf-1b4758661235)
 INSERT INTO public.transaction (budget_id, name, amount, kind, transaction_date, category)
 VALUES
-  ('11111111-0007-4025-a007-777777777777', 'Salaire Juillet', 3500.00, 'income', '2025-07-05 09:00:00', 'Salaire'),
-  ('11111111-0007-4025-a007-777777777777', 'Loyer Juillet', 1200.00, 'expense', '2025-07-01 08:00:00', 'Logement'),
-  ('11111111-0007-4025-a007-777777777777', 'Billets avion Japon', 1200.00, 'expense', '2025-07-03 10:00:00', 'Vacances'),
-  ('11111111-0007-4025-a007-777777777777', 'Hôtel Tokyo', 800.00, 'expense', '2025-07-15 16:00:00', 'Vacances'),
-  ('11111111-0007-4025-a007-777777777777', 'Virement Livret A', 200.00, 'saving', '2025-07-05 10:00:00', 'Épargne');
+  ('04a2017e-8801-4620-97cf-1b4758661235', 'Salaire Juillet', 3500.00, 'income', '2025-07-05 09:00:00', 'Salaire'),
+  ('04a2017e-8801-4620-97cf-1b4758661235', 'Loyer Juillet', 1200.00, 'expense', '2025-07-01 08:00:00', 'Logement'),
+  ('04a2017e-8801-4620-97cf-1b4758661235', 'Vacances Japon', 2000.00, 'expense', '2025-07-15 10:00:00', 'Vacances');
 
--- Août 2025 (Suite vacances)
+-- Août 2025 (ID: 15b3128f-9912-4731-a8d0-2c5869772346)
 INSERT INTO public.transaction (budget_id, name, amount, kind, transaction_date, category)
 VALUES
-  ('11111111-0008-4025-a008-888888888888', 'Salaire Août', 3500.00, 'income', '2025-08-05 09:00:00', 'Salaire'),
-  ('11111111-0008-4025-a008-888888888888', 'Loyer Août', 1200.00, 'expense', '2025-08-01 08:00:00', 'Logement'),
-  ('11111111-0008-4025-a008-888888888888', 'Virement Livret A', 500.00, 'saving', '2025-08-05 10:00:00', 'Épargne');
+  ('15b3128f-9912-4731-a8d0-2c5869772346', 'Salaire Août', 3500.00, 'income', '2025-08-05 09:00:00', 'Salaire'),
+  ('15b3128f-9912-4731-a8d0-2c5869772346', 'Loyer Août', 1200.00, 'expense', '2025-08-01 08:00:00', 'Logement');
 
--- Septembre 2025 (Rentrée)
+-- Septembre 2025 (ID: 26c42390-0023-4842-b9e1-3d6970883457)
 INSERT INTO public.transaction (budget_id, name, amount, kind, transaction_date, category)
 VALUES
-  ('11111111-0009-4025-a009-999999999999', 'Salaire Septembre', 3500.00, 'income', '2025-09-05 09:00:00', 'Salaire'),
-  ('11111111-0009-4025-a009-999999999999', 'Loyer Septembre', 1200.00, 'expense', '2025-09-01 08:00:00', 'Logement'),
-  ('11111111-0009-4025-a009-999999999999', 'Pass Navigo', 75.00, 'expense', '2025-09-01 07:00:00', 'Transport'),
-  ('11111111-0009-4025-a009-999999999999', 'Fournitures bureau', 85.00, 'expense', '2025-09-02 14:00:00', 'Bureau'),
-  ('11111111-0009-4025-a009-999999999999', 'Virement Livret A', 500.00, 'saving', '2025-09-05 10:00:00', 'Épargne');
+  ('26c42390-0023-4842-b9e1-3d6970883457', 'Salaire Septembre', 3500.00, 'income', '2025-09-05 09:00:00', 'Salaire'),
+  ('26c42390-0023-4842-b9e1-3d6970883457', 'Loyer Septembre', 1200.00, 'expense', '2025-09-01 08:00:00', 'Logement'),
+  ('26c42390-0023-4842-b9e1-3d6970883457', 'Fournitures', 100.00, 'expense', '2025-09-05 14:00:00', 'Divers');
 
--- Octobre 2025
+-- Octobre 2025 (ID: 37d53401-1134-4953-8af2-4e7081994568)
 INSERT INTO public.transaction (budget_id, name, amount, kind, transaction_date, category)
 VALUES
-  ('11111111-0010-4025-a010-aaaaaaaaaaaa', 'Salaire Octobre', 3500.00, 'income', '2025-10-05 09:00:00', 'Salaire'),
-  ('11111111-0010-4025-a010-aaaaaaaaaaaa', 'Loyer Octobre', 1200.00, 'expense', '2025-10-01 08:00:00', 'Logement'),
-  ('11111111-0010-4025-a010-aaaaaaaaaaaa', 'Pass Navigo', 75.00, 'expense', '2025-10-01 07:00:00', 'Transport'),
-  ('11111111-0010-4025-a010-aaaaaaaaaaaa', 'Virement Livret A', 500.00, 'saving', '2025-10-05 10:00:00', 'Épargne');
+  ('37d53401-1134-4953-8af2-4e7081994568', 'Salaire Octobre', 3500.00, 'income', '2025-10-05 09:00:00', 'Salaire'),
+  ('37d53401-1134-4953-8af2-4e7081994568', 'Loyer Octobre', 1200.00, 'expense', '2025-10-01 08:00:00', 'Logement');
 
--- Novembre 2025
+-- Novembre 2025 (ID: 48e64512-2245-4a64-9b03-5f8192005679)
 INSERT INTO public.transaction (budget_id, name, amount, kind, transaction_date, category)
 VALUES
-  ('11111111-0011-4025-a011-bbbbbbbbbbbb', 'Salaire Novembre', 3500.00, 'income', '2025-11-05 09:00:00', 'Salaire'),
-  ('11111111-0011-4025-a011-bbbbbbbbbbbb', 'Loyer Novembre', 1200.00, 'expense', '2025-11-01 08:00:00', 'Logement'),
-  ('11111111-0011-4025-a011-bbbbbbbbbbbb', 'Pass Navigo', 75.00, 'expense', '2025-11-01 07:00:00', 'Transport'),
-  ('11111111-0011-4025-a011-bbbbbbbbbbbb', 'Black Friday Shopping', 250.00, 'expense', '2025-11-28 15:00:00', 'Shopping'),
-  ('11111111-0011-4025-a011-bbbbbbbbbbbb', 'Virement Livret A', 500.00, 'saving', '2025-11-05 10:00:00', 'Épargne');
+  ('48e64512-2245-4a64-9b03-5f8192005679', 'Salaire Novembre', 3500.00, 'income', '2025-11-05 09:00:00', 'Salaire'),
+  ('48e64512-2245-4a64-9b03-5f8192005679', 'Loyer Novembre', 1200.00, 'expense', '2025-11-01 08:00:00', 'Logement');
 
--- Décembre 2025 (Fêtes)
+-- Décembre 2025 (ID: 59f75623-3356-4b75-ac14-609203116780)
 INSERT INTO public.transaction (budget_id, name, amount, kind, transaction_date, category)
 VALUES
-  ('11111111-0012-4025-a012-cccccccccccc', 'Salaire Décembre', 3500.00, 'income', '2025-12-05 09:00:00', 'Salaire'),
-  ('11111111-0012-4025-a012-cccccccccccc', 'Prime de fin d''année', 2000.00, 'income', '2025-12-20 09:00:00', 'Prime'),
-  ('11111111-0012-4025-a012-cccccccccccc', 'Loyer Décembre', 1200.00, 'expense', '2025-12-01 08:00:00', 'Logement'),
-  ('11111111-0012-4025-a012-cccccccccccc', 'Pass Navigo', 75.00, 'expense', '2025-12-01 07:00:00', 'Transport'),
-  ('11111111-0012-4025-a012-cccccccccccc', 'Cadeaux Noël', 450.00, 'expense', '2025-12-15 16:00:00', 'Cadeaux'),
-  ('11111111-0012-4025-a012-cccccccccccc', 'Réveillon', 180.00, 'expense', '2025-12-24 19:00:00', 'Fêtes'),
-  ('11111111-0012-4025-a012-cccccccccccc', 'Virement Livret A', 1000.00, 'saving', '2025-12-05 10:00:00', 'Épargne');
+  ('59f75623-3356-4b75-ac14-609203116780', 'Salaire Décembre', 3500.00, 'income', '2025-12-05 09:00:00', 'Salaire'),
+  ('59f75623-3356-4b75-ac14-609203116780', 'Loyer Décembre', 1200.00, 'expense', '2025-12-01 08:00:00', 'Logement'),
+  ('59f75623-3356-4b75-ac14-609203116780', 'Cadeaux Noël', 500.00, 'expense', '2025-12-15 10:00:00', 'Cadeaux');
 
--- Transactions principales pour 2026 (quelques transactions pour exemple)
--- Janvier 2026
+-- Janvier 2026 (ID: 6a086734-4467-4c86-8d25-710314227891)
 INSERT INTO public.transaction (budget_id, name, amount, kind, transaction_date, category)
 VALUES
-  ('22222222-0001-4026-a001-111111111111', 'Salaire Janvier 2026', 3570.00, 'income', '2026-01-05 09:00:00', 'Salaire'),
-  ('22222222-0001-4026-a001-111111111111', 'Loyer Janvier 2026', 1224.00, 'expense', '2026-01-01 08:00:00', 'Logement'),
-  ('22222222-0001-4026-a001-111111111111', 'Pass Navigo', 76.50, 'expense', '2026-01-01 07:00:00', 'Transport'),
-  ('22222222-0001-4026-a001-111111111111', 'Virement Livret A', 510.00, 'saving', '2026-01-05 10:00:00', 'Épargne');
+  ('6a086734-4467-4c86-8d25-710314227891', 'Salaire Janvier 2026', 3570.00, 'income', '2026-01-05 09:00:00', 'Salaire'),
+  ('6a086734-4467-4c86-8d25-710314227891', 'Loyer Janvier 2026', 1224.00, 'expense', '2026-01-01 08:00:00', 'Logement');
 
--- Juin 2026
+-- Juin 2026 (ID: bf5d1289-9912-4131-927a-c65869772346)
 INSERT INTO public.transaction (budget_id, name, amount, kind, transaction_date, category)
 VALUES
-  ('22222222-0006-4026-a006-666666666666', 'Salaire Juin 2026', 3570.00, 'income', '2026-06-05 09:00:00', 'Salaire'),
-  ('22222222-0006-4026-a006-666666666666', 'Loyer Juin 2026', 1224.00, 'expense', '2026-06-01 08:00:00', 'Logement'),
-  ('22222222-0006-4026-a006-666666666666', 'Virement Livret A', 510.00, 'saving', '2026-06-05 10:00:00', 'Épargne');
+  ('bf5d1289-9912-4131-927a-c65869772346', 'Salaire Juin 2026', 3570.00, 'income', '2026-06-05 09:00:00', 'Salaire'),
+  ('bf5d1289-9912-4131-927a-c65869772346', 'Loyer Juin 2026', 1224.00, 'expense', '2026-06-01 08:00:00', 'Logement');
 
--- Décembre 2026
+-- Décembre 2026 (ID: 15b37845-5578-4797-b8d0-2cb425338902)
 INSERT INTO public.transaction (budget_id, name, amount, kind, transaction_date, category)
 VALUES
-  ('22222222-0012-4026-a012-cccccccccccc', 'Salaire Décembre 2026', 3570.00, 'income', '2026-12-05 09:00:00', 'Salaire'),
-  ('22222222-0012-4026-a012-cccccccccccc', 'Prime fin d''année 2026', 2040.00, 'income', '2026-12-20 09:00:00', 'Prime'),
-  ('22222222-0012-4026-a012-cccccccccccc', 'Loyer Décembre 2026', 1224.00, 'expense', '2026-12-01 08:00:00', 'Logement'),
-  ('22222222-0012-4026-a012-cccccccccccc', 'Cadeaux Noël 2026', 500.00, 'expense', '2026-12-18 16:00:00', 'Cadeaux'),
-  ('22222222-0012-4026-a012-cccccccccccc', 'Virement Livret A', 1020.00, 'saving', '2026-12-05 10:00:00', 'Épargne');
+  ('15b37845-5578-4797-b8d0-2cb425338902', 'Salaire Décembre 2026', 3570.00, 'income', '2026-12-05 09:00:00', 'Salaire'),
+  ('15b37845-5578-4797-b8d0-2cb425338902', 'Loyer Décembre 2026', 1224.00, 'expense', '2026-12-01 08:00:00', 'Logement');
 
 -- =====================================================
 -- 6. LOG SUMMARY
 -- =====================================================
 DO $$
 BEGIN
-  RAISE NOTICE '=== SEED DATA CREATED SUCCESSFULLY ===';
-  RAISE NOTICE 'User: maxime.desogus@gmail.com / 12345678';
-  RAISE NOTICE 'Templates: 2 (Budget Mensuel Standard, Budget Étudiant)';
-  RAISE NOTICE 'Savings Goals: 3';
-  RAISE NOTICE 'Monthly Budgets: 24 (2025 complet + 2026 complet)';
-  RAISE NOTICE 'Transactions: ~100+ (transactions pour tous les mois)';
-  RAISE NOTICE '=====================================';
+  RAISE NOTICE '=== SEED DATA CREATED SUCCESSFULLY (STRICT V4 UUIDs) ===';
 END $$;

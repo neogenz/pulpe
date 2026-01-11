@@ -1,1 +1,0 @@
-export const ONBOARDING_TOTAL_STEPS = 9;

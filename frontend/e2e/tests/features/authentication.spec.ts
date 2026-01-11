@@ -18,8 +18,8 @@ test.describe('Authentication', () => {
     // Try to access protected route
     await page.goto('/app/current-month');
     
-    // Should redirect to login or onboarding
-    await expect(page).toHaveURL(/(\/auth\/login|\/onboarding\/welcome)/);
+    // Should redirect to login or welcome page
+    await expect(page).toHaveURL(/(\/login|\/welcome)/);
   });
 
   test('should have login form with required fields', async ({ page, loginPage }) => {

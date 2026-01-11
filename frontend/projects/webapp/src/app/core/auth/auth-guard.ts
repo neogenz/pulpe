@@ -9,7 +9,7 @@ import { AuthApi } from './auth-api';
  * Protects routes from unauthenticated access.
  *
  * This guard is intended for private pages that require a logged-in user.
- * If the user is not authenticated, it redirects them to the onboarding page.
+ * If the user is not authenticated, it redirects them to the welcome page.
  * It reactively waits for the authentication state to be resolved before making a decision.
  */
 export const authGuard: CanActivateFn = () => {
@@ -24,8 +24,8 @@ export const authGuard: CanActivateFn = () => {
       if (state.isAuthenticated) {
         return true; // Allow navigation
       }
-      // Redirect to onboarding for unauthenticated users
-      return router.createUrlTree([ROUTES.ONBOARDING]);
+      // Redirect to welcome for unauthenticated users
+      return router.createUrlTree([ROUTES.WELCOME]);
     }),
   );
 };

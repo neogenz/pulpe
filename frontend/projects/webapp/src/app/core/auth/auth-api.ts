@@ -238,6 +238,36 @@ export class AuthApi {
     }
   }
 
+  async signInWithGoogle(): Promise<{ success: boolean; error?: string }> {
+    if (
+      (window as unknown as { __E2E_AUTH_BYPASS__: boolean })
+        .__E2E_AUTH_BYPASS__
+    ) {
+      this.#logger.info('🎭 Mode test E2E: Simulation du signin Google');
+      return { success: true };
+    }
+
+    try {
+      const { error } = await this.#supabaseClient!.auth.signInWithOAuth({
+        provider: 'google',
+      });
+
+      if (error) {
+        return {
+          success: false,
+          error: this.#errorLocalizer.localizeError(error.message),
+        };
+      }
+
+      return { success: true };
+    } catch {
+      return {
+        success: false,
+        error: 'Erreur lors de la connexion avec Google',
+      };
+    }
+  }
+
   /**
    * Set a Supabase session programmatically (e.g., for demo mode)
    * This allows setting a session obtained from a backend endpoint

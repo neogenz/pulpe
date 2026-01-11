@@ -21,7 +21,7 @@ test.describe('Demo Mode', () => {
     });
 
     // Navigate to any page
-    await page.goto('/onboarding/welcome');
+    await page.goto('/welcome');
 
     // Verify the bypass flags were injected
     const bypassFlags = await page.evaluate(() => {

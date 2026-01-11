@@ -66,7 +66,7 @@ test.describe('Authenticated Session Management', () => {
     await page.getByTestId('user-menu-trigger').click();
     await page.getByTestId('logout-button').click();
 
-    // Should be redirected to login or onboarding
-    await expect(page).toHaveURL(/\/(login|onboarding)/);
+    // Should be redirected to login or welcome page
+    await expect(page).toHaveURL(/\/(login|welcome)/);
   });
 });

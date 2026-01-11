@@ -2,7 +2,12 @@ import type { Page, Route } from '@playwright/test';
 import type { E2EWindow } from '../types/e2e.types';
 import { TEST_CONFIG } from '../config/test-config';
 import { MOCK_API_RESPONSES } from '../mocks/api-responses';
-import { TOUR_STORAGE_KEYS } from '../../projects/webapp/src/app/core/product-tour/product-tour.service';
+
+/**
+ * Tour IDs that match the ProductTourService.
+ * We define them here to avoid importing Angular code into Playwright.
+ */
+const TOUR_IDS = ['intro', 'current-month', 'budget-list', 'budget-details', 'templates-list'] as const;
 
 /**
  * Shared utility for E2E auth bypass setup
@@ -40,10 +45,12 @@ export async function setupAuthBypass(page: Page, options: {
     }
 
     // Disable product tours in E2E tests by marking them as already seen
-    for (const key of Object.values(config.tourKeys)) {
+    // Key format matches ProductTourService: pulpe-tour-{tourId}-{userId}
+    for (const tourId of config.tourIds) {
+      const key = `pulpe-tour-${tourId}-${config.USER.ID}`;
       localStorage.setItem(key, 'true');
     }
-  }, { ...TEST_CONFIG, setLocalStorage, tourKeys: TOUR_STORAGE_KEYS });
+  }, { ...TEST_CONFIG, setLocalStorage, tourIds: TOUR_IDS });
 
   // Setup API mocks if requested
   if (includeApiMocks) {

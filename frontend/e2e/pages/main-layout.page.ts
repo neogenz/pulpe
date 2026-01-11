@@ -22,11 +22,11 @@ export class MainLayoutPage {
     // Use data-testid for logout button
     await this.page.getByTestId('logout-button').click();
     // Wait for navigation to complete
-    await this.page.waitForURL(/\/(login|onboarding)/, { timeout: 10000 });
+    await this.page.waitForURL(/\/(login|welcome)/, { timeout: 10000 });
   }
 
   async expectLogoutSuccess() {
-    // Verify we're back at login or onboarding
-    await expect(this.page).toHaveURL(/\/(login|onboarding)/);
+    // Verify we're back at login or welcome page
+    await expect(this.page).toHaveURL(/\/(login|welcome)/);
   }
 }
