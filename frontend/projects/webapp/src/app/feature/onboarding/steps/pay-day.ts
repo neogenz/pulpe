@@ -7,6 +7,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { OnboardingStore } from '../onboarding-store';
 import { ROUTES } from '@core/routing';
+import { PAY_DAY_MAX } from 'pulpe-shared';
 
 @Component({
   selector: 'pulpe-pay-day',
@@ -87,7 +88,7 @@ export default class PayDay {
   protected readonly payDayControl = new FormControl<number | null>(null);
 
   protected readonly availableDays = Array.from(
-    { length: 31 },
+    { length: PAY_DAY_MAX },
     (_, i) => i + 1,
   );
 

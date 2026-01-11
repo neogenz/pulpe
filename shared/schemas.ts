@@ -6,8 +6,8 @@ const MIN_YEAR = 2020;
 const MAX_YEAR = CURRENT_YEAR + 10;
 const MONTH_MIN = 1;
 const MONTH_MAX = 12;
-const PAY_DAY_MIN = 1;
-const PAY_DAY_MAX = 31;
+export const PAY_DAY_MIN = 1;
+export const PAY_DAY_MAX = 31;
 
 /**
  * ENUMS - Types métier selon SPECS.md section 2
