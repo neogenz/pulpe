@@ -6,6 +6,7 @@ struct AddTransactionSheet: View {
     let onAdd: (Transaction) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(ToastManager.self) private var toastManager
     @State private var name = ""
     @State private var amount: Decimal?
     @State private var kind: TransactionKind = .expense
@@ -157,6 +158,7 @@ struct AddTransactionSheet: View {
         do {
             let transaction = try await transactionService.createTransaction(data)
             onAdd(transaction)
+            toastManager.show("Transaction ajoutée")
             dismiss()
         } catch {
             self.error = error

@@ -39,6 +39,8 @@ struct RootView: View {
                     }
             }
         }
+        .toastOverlay(appState.toastManager)
+        .environment(appState.toastManager)
         .animation(.easeInOut(duration: 0.3), value: appState.authState)
         .task {
             await appState.checkAuthState()

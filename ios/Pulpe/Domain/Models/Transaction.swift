@@ -27,6 +27,23 @@ struct Transaction: Codable, Identifiable, Hashable, Sendable {
     var isFree: Bool {
         budgetLineId == nil
     }
+
+    /// Returns a copy with toggled check status
+    func toggled() -> Transaction {
+        Transaction(
+            id: id,
+            budgetId: budgetId,
+            budgetLineId: budgetLineId,
+            name: name,
+            amount: amount,
+            kind: kind,
+            transactionDate: transactionDate,
+            category: category,
+            checkedAt: isChecked ? nil : Date(),
+            createdAt: createdAt,
+            updatedAt: Date()
+        )
+    }
 }
 
 // MARK: - Create/Update DTOs
