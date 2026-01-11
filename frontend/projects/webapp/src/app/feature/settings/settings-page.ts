@@ -37,7 +37,7 @@ import { UserSettingsApi } from '@core/user-settings';
     }
   `,
   template: `
-    <div class="max-w-2xl mx-auto">
+    <div class="max-w-2xl mx-auto" data-testid="settings-page">
       <h1 class="text-headline-medium mb-6">Paramètres</h1>
 
       <mat-card appearance="outlined" class="mb-6">
@@ -64,6 +64,7 @@ import { UserSettingsApi } from '@core/user-settings';
           >
             <mat-label>Jour de paie</mat-label>
             <mat-select
+              data-testid="pay-day-select"
               [value]="selectedPayDay()"
               (selectionChange)="onPayDayChange($event)"
             >
@@ -72,7 +73,7 @@ import { UserSettingsApi } from '@core/user-settings';
                 <mat-option [value]="day"> Le {{ day }} </mat-option>
               }
             </mat-select>
-            <mat-hint>
+            <mat-hint data-testid="pay-day-hint">
               @if (selectedPayDay(); as day) {
                 @if (day > 28) {
                   Votre budget commence le {{ day }}. Si le mois a moins de
@@ -92,6 +93,7 @@ import { UserSettingsApi } from '@core/user-settings';
             <button
               matButton
               color="warn"
+              data-testid="cancel-settings-button"
               [disabled]="isSaving()"
               (click)="resetChanges()"
             >
@@ -100,6 +102,7 @@ import { UserSettingsApi } from '@core/user-settings';
             <button
               matButton="filled"
               color="primary"
+              data-testid="save-settings-button"
               [disabled]="isSaving()"
               (click)="saveSettings()"
             >
