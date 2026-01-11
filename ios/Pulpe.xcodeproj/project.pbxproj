@@ -78,6 +78,9 @@
 		EC88348DD8DBF4F6B166D265 /* Formatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = D576CD613CD0E637C83249E9 /* Formatters.swift */; };
 		EDDD3545AF89F29F118A14A8 /* APIError.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFC463766B410987FE96534C /* APIError.swift */; };
 		F28AE4EA87CA967C9EAE1B9F /* RecurringExpensesList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2947DBEF8A6264E9FF73AEDA /* RecurringExpensesList.swift */; };
+		TOAST001MANAGER00BUILD01 /* ToastManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = TOAST001MANAGER00FILE01 /* ToastManager.swift */; };
+		TOAST002VIEW0000BUILD01 /* ToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = TOAST002VIEW0000FILE01 /* ToastView.swift */; };
+		SYNC0001INDICATOR0BUILD /* SyncIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = SYNC0001INDICATOR0FILE1 /* SyncIndicator.swift */; };
 		F2F1195BE9107FF339538B3E /* Color+Pulpe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E4F47F7A88B6744CA6D788C /* Color+Pulpe.swift */; };
 		F5D9B6FD484997E69677F7E2 /* Decimal+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BE2934837CC4349E12F1EE2 /* Decimal+Extensions.swift */; };
 		FE6501D7F3A0BBA2FA54CD7C /* BudgetListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E68DC6A301F7687197817A0 /* BudgetListView.swift */; };
@@ -158,6 +161,9 @@
 		F3A3C49B0B8A78283AB987AD /* TemplateDetailsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemplateDetailsView.swift; sourceTree = "<group>"; };
 		F76CA89C404286DF9CAF27D5 /* CurrentMonthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrentMonthView.swift; sourceTree = "<group>"; };
 		F8334F2FD3ED442FCC576A91 /* LinkedTransactionsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkedTransactionsSheet.swift; sourceTree = "<group>"; };
+		TOAST001MANAGER00FILE01 /* ToastManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastManager.swift; sourceTree = "<group>"; };
+		TOAST002VIEW0000FILE01 /* ToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastView.swift; sourceTree = "<group>"; };
+		SYNC0001INDICATOR0FILE1 /* SyncIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncIndicator.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -228,6 +234,9 @@
 				C81B7DA6BF84774DCD938E37 /* KindBadge.swift */,
 				A1A0EA391775C63723A83BF3 /* LoadingView.swift */,
 				7D23A76488CE35949FDA3B08 /* PulpeLogo.swift */,
+				SYNC0001INDICATOR0FILE1 /* SyncIndicator.swift */,
+				TOAST001MANAGER00FILE01 /* ToastManager.swift */,
+				TOAST002VIEW0000FILE01 /* ToastView.swift */,
 				F15A109E95BBEA3CE6EA04C7 /* WelcomeLottieView.swift */,
 			);
 			path = Components;
@@ -637,7 +646,10 @@
 				F28AE4EA87CA967C9EAE1B9F /* RecurringExpensesList.swift in Sources */,
 				A4E6EAB35F1BCADF80152CDA /* RegistrationStep.swift in Sources */,
 				B430D670EFE75193B7F237D6 /* SectionHeader.swift in Sources */,
+				SYNC0001INDICATOR0BUILD /* SyncIndicator.swift in Sources */,
 				3EBBC9D5EDE6B6B316A3A074 /* TemplateDetailsView.swift in Sources */,
+				TOAST001MANAGER00BUILD01 /* ToastManager.swift in Sources */,
+				TOAST002VIEW0000BUILD01 /* ToastView.swift in Sources */,
 				56C95E28B17F927063FCB76C /* TemplateListView.swift in Sources */,
 				0157030A5AF0AA8ED66650F2 /* TemplateService.swift in Sources */,
 				94CAF603E4F31F628C48B76C /* Transaction.swift in Sources */,

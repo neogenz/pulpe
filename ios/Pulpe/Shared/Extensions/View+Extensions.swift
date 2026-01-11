@@ -38,6 +38,21 @@ extension View {
         }
     }
 
+    /// Apply toast overlay
+    func toastOverlay(_ manager: ToastManager) -> some View {
+        overlay(alignment: .top) {
+            if let toast = manager.currentToast {
+                ToastView(toast: toast) {
+                    manager.dismiss()
+                }
+                .safeAreaPadding(.top)
+                .padding(.top, 8)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .animation(.spring(duration: 0.3), value: manager.currentToast)
+    }
+
     /// Standard card styling
     func cardStyle() -> some View {
         self

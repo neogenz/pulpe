@@ -32,6 +32,26 @@ struct BudgetLine: Codable, Identifiable, Hashable, Sendable {
     var isVirtualRollover: Bool {
         isRollover == true
     }
+
+    /// Returns a copy with toggled check status
+    func toggled() -> BudgetLine {
+        BudgetLine(
+            id: id,
+            budgetId: budgetId,
+            templateLineId: templateLineId,
+            savingsGoalId: savingsGoalId,
+            name: name,
+            amount: amount,
+            kind: kind,
+            recurrence: recurrence,
+            isManuallyAdjusted: isManuallyAdjusted,
+            checkedAt: isChecked ? nil : Date(),
+            createdAt: createdAt,
+            updatedAt: Date(),
+            isRollover: isRollover,
+            rolloverSourceBudgetId: rolloverSourceBudgetId
+        )
+    }
 }
 
 // MARK: - Create/Update DTOs

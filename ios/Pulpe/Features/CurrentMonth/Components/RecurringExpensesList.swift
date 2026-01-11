@@ -5,6 +5,7 @@ struct BudgetSection: View {
     let title: String
     let items: [BudgetLine]
     let transactions: [Transaction]
+    let syncingIds: Set<String>
     let onToggle: (BudgetLine) -> Void
     let onDelete: (BudgetLine) -> Void
     let onAddTransaction: (BudgetLine) -> Void
@@ -36,6 +37,7 @@ struct BudgetSection: View {
                     line: item,
                     consumption: BudgetFormulas.calculateConsumption(for: item, transactions: transactions),
                     allTransactions: transactions,
+                    isSyncing: syncingIds.contains(item.id),
                     onToggle: { onToggle(item) },
                     onAddTransaction: { onAddTransaction(item) },
                     onLongPress: { linkedTransactions in
@@ -96,6 +98,7 @@ struct BudgetLineRow: View {
     let line: BudgetLine
     let consumption: BudgetFormulas.Consumption
     let allTransactions: [Transaction]
+    let isSyncing: Bool
     let onToggle: () -> Void
     let onAddTransaction: () -> Void
     let onLongPress: ([Transaction]) -> Void
@@ -151,6 +154,9 @@ struct BudgetLineRow: View {
                 }
 
                 Spacer(minLength: 8)
+
+                // Sync indicator
+                SyncIndicator(isSyncing: isSyncing)
 
                 // Amount
                 Text(line.amount.asCHF)
@@ -317,6 +323,7 @@ struct BudgetLineRow: View {
                     updatedAt: Date()
                 )
             ],
+            syncingIds: ["1"],
             onToggle: { _ in },
             onDelete: { _ in },
             onAddTransaction: { _ in },

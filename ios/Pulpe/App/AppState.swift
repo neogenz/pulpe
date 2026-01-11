@@ -46,6 +46,10 @@ final class AppState {
     private let authService: AuthService
     private let biometricService: BiometricService
 
+    // MARK: - Toast
+
+    let toastManager = ToastManager()
+
     init(authService: AuthService = .shared, biometricService: BiometricService = .shared) {
         self.authService = authService
         self.biometricService = biometricService

@@ -4,6 +4,7 @@ import SwiftUI
 struct TransactionSection: View {
     let title: String
     let transactions: [Transaction]
+    let syncingIds: Set<String>
     let onToggle: (Transaction) -> Void
     let onDelete: (Transaction) -> Void
     let onEdit: (Transaction) -> Void
@@ -31,6 +32,7 @@ struct TransactionSection: View {
             ForEach(transactions) { transaction in
                 TransactionRow(
                     transaction: transaction,
+                    isSyncing: syncingIds.contains(transaction.id),
                     onEdit: { onEdit(transaction) }
                 )
                     .listRowSeparator(.hidden)
@@ -81,6 +83,7 @@ struct TransactionSection: View {
 /// Single transaction row - Revolut-inspired design
 struct TransactionRow: View {
     let transaction: Transaction
+    let isSyncing: Bool
     let onEdit: () -> Void
 
     var body: some View {
@@ -103,6 +106,9 @@ struct TransactionRow: View {
             }
 
             Spacer(minLength: 8)
+
+            // Sync indicator
+            SyncIndicator(isSyncing: isSyncing)
 
             // Amount
             Text(transaction.amount.asCHF)
@@ -184,6 +190,7 @@ struct TransactionRow: View {
                     updatedAt: Date()
                 )
             ],
+            syncingIds: ["1"],
             onToggle: { _ in },
             onDelete: { _ in },
             onEdit: { _ in }

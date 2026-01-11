@@ -137,6 +137,7 @@ struct CurrentMonthView: View {
                     title: "Dépenses récurrentes",
                     items: viewModel.recurringBudgetLines,
                     transactions: viewModel.transactions,
+                    syncingIds: viewModel.syncingBudgetLineIds,
                     onToggle: { line in
                         Task { await viewModel.toggleBudgetLine(line) }
                     },
@@ -164,6 +165,7 @@ struct CurrentMonthView: View {
                     title: "Dépenses prévues",
                     items: viewModel.oneOffBudgetLines,
                     transactions: viewModel.transactions,
+                    syncingIds: viewModel.syncingBudgetLineIds,
                     onToggle: { line in
                         Task { await viewModel.toggleBudgetLine(line) }
                     },
@@ -190,6 +192,7 @@ struct CurrentMonthView: View {
                 TransactionSection(
                     title: "Autres dépenses",
                     transactions: viewModel.freeTransactions,
+                    syncingIds: viewModel.syncingTransactionIds,
                     onToggle: { transaction in
                         Task { await viewModel.toggleTransaction(transaction) }
                     },
@@ -219,6 +222,10 @@ final class CurrentMonthViewModel {
     private(set) var transactions: [Transaction] = []
     private(set) var isLoading = false
     private(set) var error: Error?
+
+    // Track IDs of items currently syncing for visual feedback
+    private(set) var syncingTransactionIds: Set<String> = []
+    private(set) var syncingBudgetLineIds: Set<String> = []
 
     private let budgetService = BudgetService.shared
     private let budgetLineService = BudgetLineService.shared
@@ -300,28 +307,42 @@ final class CurrentMonthViewModel {
         // Skip virtual rollover lines
         guard !(line.isRollover ?? false) else { return }
 
+        // Skip if already syncing
+        guard !syncingBudgetLineIds.contains(line.id) else { return }
+
+        // Mark as syncing
+        syncingBudgetLineIds.insert(line.id)
+
         // Optimistic update
         let originalLines = budgetLines
         if let index = budgetLines.firstIndex(where: { $0.id == line.id }) {
-            // Create toggled version (simplified - real implementation would update checkedAt)
-            budgetLines[index] = line
+            budgetLines[index] = line.toggled()
         }
 
         do {
             _ = try await budgetLineService.toggleCheck(id: line.id)
-            // Reload to get updated state
             await loadData()
         } catch {
-            // Rollback
             budgetLines = originalLines
             self.error = error
         }
+
+        syncingBudgetLineIds.remove(line.id)
     }
 
     @MainActor
     func toggleTransaction(_ transaction: Transaction) async {
+        // Skip if already syncing
+        guard !syncingTransactionIds.contains(transaction.id) else { return }
+
+        // Mark as syncing
+        syncingTransactionIds.insert(transaction.id)
+
         // Optimistic update
         let originalTransactions = transactions
+        if let index = transactions.firstIndex(where: { $0.id == transaction.id }) {
+            transactions[index] = transaction.toggled()
+        }
 
         do {
             _ = try await transactionService.toggleCheck(id: transaction.id)
@@ -330,6 +351,8 @@ final class CurrentMonthViewModel {
             transactions = originalTransactions
             self.error = error
         }
+
+        syncingTransactionIds.remove(transaction.id)
     }
 
     @MainActor

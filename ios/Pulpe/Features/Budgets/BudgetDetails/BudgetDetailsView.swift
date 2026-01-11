@@ -96,6 +96,7 @@ struct BudgetDetailsView: View {
                     title: "Revenus",
                     items: viewModel.incomeLines,
                     transactions: viewModel.transactions,
+                    syncingIds: viewModel.syncingBudgetLineIds,
                     onToggle: { line in
                         Task { await viewModel.toggleBudgetLine(line) }
                     },
@@ -123,6 +124,7 @@ struct BudgetDetailsView: View {
                     title: "Dépenses",
                     items: viewModel.expenseLines,
                     transactions: viewModel.transactions,
+                    syncingIds: viewModel.syncingBudgetLineIds,
                     onToggle: { line in
                         Task { await viewModel.toggleBudgetLine(line) }
                     },
@@ -150,6 +152,7 @@ struct BudgetDetailsView: View {
                     title: "Épargne",
                     items: viewModel.savingLines,
                     transactions: viewModel.transactions,
+                    syncingIds: viewModel.syncingBudgetLineIds,
                     onToggle: { line in
                         Task { await viewModel.toggleBudgetLine(line) }
                     },
@@ -176,6 +179,7 @@ struct BudgetDetailsView: View {
                 TransactionSection(
                     title: "Transactions libres",
                     transactions: viewModel.freeTransactions,
+                    syncingIds: viewModel.syncingTransactionIds,
                     onToggle: { transaction in
                         Task { await viewModel.toggleTransaction(transaction) }
                     },
@@ -210,6 +214,10 @@ final class BudgetDetailsViewModel {
     private(set) var transactions: [Transaction] = []
     private(set) var isLoading = false
     private(set) var error: Error?
+
+    // Track IDs of items currently syncing for visual feedback
+    private(set) var syncingBudgetLineIds: Set<String> = []
+    private(set) var syncingTransactionIds: Set<String> = []
 
     private let budgetService = BudgetService.shared
     private let budgetLineService = BudgetLineService.shared
@@ -263,23 +271,46 @@ final class BudgetDetailsViewModel {
     @MainActor
     func toggleBudgetLine(_ line: BudgetLine) async {
         guard !(line.isRollover ?? false) else { return }
+        guard !syncingBudgetLineIds.contains(line.id) else { return }
+
+        syncingBudgetLineIds.insert(line.id)
+
+        let originalLines = budgetLines
+        if let index = budgetLines.firstIndex(where: { $0.id == line.id }) {
+            budgetLines[index] = line.toggled()
+        }
 
         do {
             _ = try await budgetLineService.toggleCheck(id: line.id)
             await loadDetails()
         } catch {
+            budgetLines = originalLines
             self.error = error
         }
+
+        syncingBudgetLineIds.remove(line.id)
     }
 
     @MainActor
     func toggleTransaction(_ transaction: Transaction) async {
+        guard !syncingTransactionIds.contains(transaction.id) else { return }
+
+        syncingTransactionIds.insert(transaction.id)
+
+        let originalTransactions = transactions
+        if let index = transactions.firstIndex(where: { $0.id == transaction.id }) {
+            transactions[index] = transaction.toggled()
+        }
+
         do {
             _ = try await transactionService.toggleCheck(id: transaction.id)
             await loadDetails()
         } catch {
+            transactions = originalTransactions
             self.error = error
         }
+
+        syncingTransactionIds.remove(transaction.id)
     }
 
     @MainActor
