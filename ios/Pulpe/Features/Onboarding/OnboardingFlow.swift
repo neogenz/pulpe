@@ -8,20 +8,21 @@ struct OnboardingFlow: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Background
-                Color(.systemGroupedBackground)
+                // Enhanced background
+                Color.onboardingBackground
                     .ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    // Progress bar (except welcome)
+                    // New segmented progress indicator (except welcome)
                     if state.currentStep.showProgressBar {
-                        ProgressView(value: state.progressPercentage, total: 100)
-                            .tint(.accentColor)
-                            .padding(.horizontal)
-                            .padding(.top, 8)
+                        OnboardingProgressIndicator(
+                            currentStep: state.currentStep,
+                            totalSteps: OnboardingStep.allCases.count
+                        )
+                        .transition(.opacity.combined(with: .move(edge: .top)))
                     }
 
-                    // Step content
+                    // Step content with smooth transitions
                     TabView(selection: $state.currentStep) {
                         WelcomeStep(state: state)
                             .tag(OnboardingStep.welcome)
@@ -52,13 +53,12 @@ struct OnboardingFlow: View {
                         }
                         .tag(OnboardingStep.registration)
                     }
-                    .id(state.currentStep) // Force re-render when step changes
                     .tabViewStyle(.page(indexDisplayMode: .never))
                     .scrollDisabled(true)
-                    .animation(.easeInOut(duration: 0.3), value: state.currentStep)
                 }
             }
             .navigationBarHidden(true)
+            .animation(PulpeAnimations.stepTransition, value: state.currentStep)
         }
     }
 }
@@ -72,33 +72,25 @@ struct OnboardingStepView<Content: View>: View {
     let onNext: () -> Void
     @ViewBuilder let content: () -> Content
 
+    @State private var contentOpacity: Double = 0
+    @State private var contentOffset: CGFloat = 20
+
     var body: some View {
-        VStack(spacing: 24) {
-            // Title section
-            VStack(spacing: 8) {
-                Text(step.title)
-                    .font(.title)
-                    .fontWeight(.bold)
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(spacing: 24) {
+                    // New animated header with icon
+                    OnboardingStepHeader(step: step)
+                        .padding(.top, 24)
 
-                Text(step.subtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-
-                if step.isOptional {
-                    Text("Optionnel")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 4)
-                        .background(.secondary.opacity(0.1), in: Capsule())
+                    // Content with entrance animation
+                    content()
+                        .padding(.horizontal, 24)
+                        .opacity(contentOpacity)
+                        .offset(y: contentOffset)
                 }
             }
-            .padding(.top, 32)
-
-            // Content
-            content()
-                .padding(.horizontal)
+            .scrollBounceBehavior(.basedOnSize)
 
             Spacer()
 
@@ -107,43 +99,27 @@ struct OnboardingStepView<Content: View>: View {
                 ErrorBanner(message: error.localizedDescription) {
                     state.error = nil
                 }
-                .padding(.horizontal)
+                .padding(.horizontal, 24)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
 
-            // Navigation buttons
-            VStack(spacing: 12) {
-                // Next button
-                Button {
-                    onNext()
-                } label: {
-                    HStack {
-                        if state.isLoading {
-                            ProgressView()
-                                .tint(.white)
-                        } else {
-                            Text(step == .registration ? "Créer mon compte" : "Continuer")
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(canProceed ? Color.accentColor : Color.secondary)
-                    .foregroundStyle(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-                .disabled(!canProceed || state.isLoading)
-
-                // Back button (except welcome)
-                if step != .welcome {
-                    Button("Retour") {
-                        state.previousStep()
-                    }
-                    .foregroundStyle(.secondary)
-                }
-            }
-            .padding(.horizontal)
-            .padding(.bottom, 32)
+            // New gradient navigation buttons
+            OnboardingNavigationButtons(
+                step: step,
+                canProceed: canProceed,
+                isLoading: state.isLoading,
+                onNext: onNext,
+                onBack: { state.previousStep() }
+            )
         }
+        .background(Color.onboardingBackground)
         .dismissKeyboardOnTap()
+        .onAppear {
+            withAnimation(.easeOut(duration: 0.4).delay(0.2)) {
+                contentOpacity = 1
+                contentOffset = 0
+            }
+        }
     }
 }
 

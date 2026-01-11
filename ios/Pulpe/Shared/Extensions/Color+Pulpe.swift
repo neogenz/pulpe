@@ -46,6 +46,36 @@ extension Color {
         Color(hex: 0x88FF44)
     ]
 
+    // MARK: - Onboarding & Tutorial Colors
+
+    /// High-contrast text colors for onboarding
+    static let textPrimaryOnboarding = Color(hex: 0x1A1A1A)
+    static let textSecondaryOnboarding = Color(hex: 0x4A4A4A)
+    static let textTertiaryOnboarding = Color(hex: 0x6B6B6B)
+
+    /// Onboarding backgrounds
+    static let onboardingBackground = Color(hex: 0xF8FAF9)
+    static let onboardingCardBackground = Color.white
+
+    /// Tutorial overlay with better contrast
+    static let tutorialOverlay = Color.black.opacity(0.85)
+    static let tutorialSpotlightGlow = Color(hex: 0x00C853).opacity(0.3)
+
+    /// Step category colors for visual distinction
+    static let stepIncome = Color(hex: 0x2E7D32)
+    static let stepHousing = Color(hex: 0x1565C0)
+    static let stepHealth = Color(hex: 0xC62828)
+    static let stepPhone = Color(hex: 0x6A1B9A)
+    static let stepTransport = Color(hex: 0xEF6C00)
+    static let stepCredit = Color(hex: 0x37474F)
+
+    /// Onboarding accent gradient
+    static let onboardingGradient = LinearGradient(
+        colors: [Color(hex: 0x006E25), Color(hex: 0x00A838)],
+        startPoint: .leading,
+        endPoint: .trailing
+    )
+
     // MARK: - Hex Initializer (for gradients only)
 
     init(hex: UInt) {

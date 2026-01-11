@@ -1,40 +1,50 @@
 import SwiftUI
 
-/// Interactive tutorial overlay with spotlight effect
+/// Interactive tutorial overlay with enhanced spotlight effect
 struct TutorialOverlay: View {
     @Environment(AppState.self) private var appState
     @State private var state = TutorialState()
+    @State private var isTransitioning = false
 
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // Dark overlay - taps pass through to tooltip
-                SpotlightMask(targetFrame: state.currentTargetFrame)
-                    .fill(.black.opacity(0.7))
-                    .ignoresSafeArea()
-                    .allowsHitTesting(false)
+                // Enhanced spotlight mask with glow
+                EnhancedSpotlightMask(targetFrame: state.currentTargetFrame)
+                    .id(state.currentStepIndex)
 
-                // Tooltip (must be interactive)
-                TutorialTooltip(
+                // Enhanced tooltip with dark gradient
+                EnhancedTutorialTooltip(
                     step: state.currentStep,
                     currentIndex: state.currentStepIndex,
                     totalSteps: TutorialStep.allCases.count,
                     targetFrame: state.currentTargetFrame,
                     containerSize: geometry.size,
                     onNext: {
+                        guard !isTransitioning else { return }
+
                         if state.hasNextStep {
+                            isTransitioning = true
                             state.nextStep()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                isTransitioning = false
+                            }
                         } else {
-                            appState.completeTutorial()
+                            withAnimation(.easeOut(duration: 0.3)) {
+                                appState.completeTutorial()
+                            }
                         }
                     },
                     onSkip: {
-                        appState.completeTutorial()
+                        withAnimation(.easeOut(duration: 0.3)) {
+                            appState.completeTutorial()
+                        }
                     }
                 )
             }
         }
-        .animation(.easeInOut(duration: 0.3), value: state.currentStepIndex)
+        .animation(PulpeAnimations.smoothEaseInOut, value: state.currentStepIndex)
+        .transition(.opacity)
     }
 }
 
@@ -194,6 +204,15 @@ enum TutorialStep: String, CaseIterable, Identifiable {
             "Vos dépenses récurrentes apparaissent ici. Cochez-les quand elles sont payées."
         case .navigation:
             "Utilisez ces onglets pour accéder à vos budgets et modèles."
+        }
+    }
+
+    var iconName: String {
+        switch self {
+        case .progressBar: "chart.bar.fill"
+        case .addTransaction: "plus.circle.fill"
+        case .recurringExpenses: "repeat.circle.fill"
+        case .navigation: "rectangle.3.group.fill"
         }
     }
 
