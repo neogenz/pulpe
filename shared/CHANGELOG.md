@@ -1,5 +1,17 @@
 # pulpe-shared
 
+## 0.4.0
+
+### Minor Changes
+
+- ### Nouvelles fonctionnalités
+  - **Recherche globale de transactions** : Recherchez des transactions sur l'ensemble de vos budgets depuis la liste des budgets, avec filtrage par texte et année
+  - **Filtre par année** : Affinez vos recherches de transactions en sélectionnant une année spécifique
+  - **Description de budget optionnelle** : La description n'est plus obligatoire lors de la création d'un budget
+
+  ### Corrections
+  - **Déconnexion améliorée** : La déconnexion effectue maintenant un rechargement complet de la page pour garantir l'effacement de toutes les données en mémoire
+
 ## 0.3.1
 
 ### Patch Changes

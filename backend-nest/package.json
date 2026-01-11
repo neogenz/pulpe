@@ -1,6 +1,6 @@
 {
   "name": "backend-nest",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "packageManager": "pnpm@10.12.1",
   "description": "NestJS backend for Pulpe Budget API",
   "main": "dist/main.js",
