@@ -1,5 +1,12 @@
 # pulpe-shared
 
+## 0.5.0
+
+### Minor Changes
+
+- ### Nouvelles fonctionnalités
+  - **Jour de début de période personnalisable** : Configurez le jour du mois où commence votre période budgétaire (jour de paie). Le calcul du report et l'affichage des périodes s'adaptent automatiquement à votre cycle de paie. Accessible depuis les paramètres et l'onboarding.
+
 ## 0.4.0
 
 ### Minor Changes
