@@ -34,6 +34,7 @@ import {
   UpdateUserSettingsDto,
   UserSettingsResponseDto,
 } from './dto/user-profile.dto';
+import { payDayOfMonthSchema } from 'pulpe-shared';
 import { ErrorResponseDto } from '@common/dto/response.dto';
 
 @ApiTags('User')
@@ -274,8 +275,9 @@ export class UserController {
   ): Promise<UserSettingsResponseDto> {
     try {
       const currentUserData = await this.getCurrentUserData(supabase);
-      const payDayOfMonth =
-        currentUserData.user.user_metadata?.payDayOfMonth ?? null;
+      const rawPayDay = currentUserData.user.user_metadata?.payDayOfMonth;
+      const parsed = payDayOfMonthSchema.safeParse(rawPayDay);
+      const payDayOfMonth = parsed.success ? parsed.data : null;
 
       return {
         success: true as const,
@@ -284,6 +286,9 @@ export class UserController {
         },
       };
     } catch (error) {
+      if (error instanceof InternalServerErrorException) {
+        throw error;
+      }
       this.logger.error({ err: error }, 'Failed to fetch user settings');
       throw new InternalServerErrorException(
         'Erreur lors de la récupération des paramètres',
@@ -340,6 +345,9 @@ export class UserController {
         },
       };
     } catch (error) {
+      if (error instanceof InternalServerErrorException) {
+        throw error;
+      }
       this.logger.error({ err: error }, 'Failed to update user settings');
       throw new InternalServerErrorException(
         'Erreur lors de la mise à jour des paramètres',
