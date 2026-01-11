@@ -5,7 +5,6 @@ import {
   Body,
   UseGuards,
   InternalServerErrorException,
-  ValidationPipe,
 } from '@nestjs/common';
 import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
 import {
@@ -23,13 +22,19 @@ import {
   SupabaseClient,
   type AuthenticatedUser,
 } from '@common/decorators/user.decorator';
-import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
+import {
+  SupabaseService,
+  type AuthenticatedSupabaseClient,
+} from '@modules/supabase/supabase.service';
 import {
   UpdateProfileDto,
   UserProfileResponseDto,
   OnboardingStatusResponseDto,
   SuccessMessageResponseDto,
+  UpdateUserSettingsDto,
+  UserSettingsResponseDto,
 } from './dto/user-profile.dto';
+import { payDayOfMonthSchema } from 'pulpe-shared';
 import { ErrorResponseDto } from '@common/dto/response.dto';
 
 @ApiTags('User')
@@ -48,6 +53,7 @@ export class UserController {
   constructor(
     @InjectPinoLogger(UserController.name)
     private readonly logger: PinoLogger,
+    private readonly supabaseService: SupabaseService,
   ) {}
   @Get('me')
   @ApiOperation({
@@ -89,7 +95,7 @@ export class UserController {
     type: ErrorResponseDto,
   })
   async updateProfile(
-    @Body(ValidationPipe) updateData: UpdateProfileDto,
+    @Body() updateData: UpdateProfileDto,
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<UserProfileResponseDto> {
@@ -161,7 +167,7 @@ export class UserController {
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<SuccessMessageResponseDto> {
     try {
-      await this.updateOnboardingStatus(supabase);
+      await this.updateOnboardingStatus(user.id, supabase);
       return {
         success: true as const,
         message: 'Onboarding marqué comme terminé',
@@ -175,18 +181,25 @@ export class UserController {
   }
 
   private async updateOnboardingStatus(
+    userId: string,
     supabase: AuthenticatedSupabaseClient,
   ): Promise<void> {
     const currentUserData = await this.getCurrentUserData(supabase);
+    const serviceClient = this.supabaseService.getServiceRoleClient();
 
-    const { data: updatedUser, error } = await supabase.auth.updateUser({
-      data: {
-        ...currentUserData.user.user_metadata,
-        onboardingCompleted: true,
-      },
-    });
+    const { data: updatedUser, error } =
+      await serviceClient.auth.admin.updateUserById(userId, {
+        user_metadata: {
+          ...currentUserData.user.user_metadata,
+          onboardingCompleted: true,
+        },
+      });
 
     if (error || !updatedUser.user) {
+      this.logger.error(
+        { supabaseError: error, hasUser: !!updatedUser?.user },
+        'Supabase updateUserById failed for onboarding',
+      );
       throw new InternalServerErrorException(
         "Erreur lors de la mise à jour du statut d'onboarding",
       );
@@ -242,6 +255,102 @@ export class UserController {
       this.logger.error({ err: error }, 'Failed to fetch onboarding status');
       throw new InternalServerErrorException(
         "Erreur lors de la récupération du statut d'onboarding",
+      );
+    }
+  }
+
+  @Get('settings')
+  @ApiOperation({
+    summary: 'Get user settings',
+    description:
+      'Retrieves the current settings for the user (e.g., payDayOfMonth)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Settings retrieved successfully',
+    type: UserSettingsResponseDto,
+  })
+  async getSettings(
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<UserSettingsResponseDto> {
+    try {
+      const currentUserData = await this.getCurrentUserData(supabase);
+      const rawPayDay = currentUserData.user.user_metadata?.payDayOfMonth;
+      const parsed = payDayOfMonthSchema.safeParse(rawPayDay);
+      const payDayOfMonth = parsed.success ? parsed.data : null;
+
+      return {
+        success: true as const,
+        data: {
+          payDayOfMonth,
+        },
+      };
+    } catch (error) {
+      if (error instanceof InternalServerErrorException) {
+        throw error;
+      }
+      this.logger.error({ err: error }, 'Failed to fetch user settings');
+      throw new InternalServerErrorException(
+        'Erreur lors de la récupération des paramètres',
+      );
+    }
+  }
+
+  @Put('settings')
+  @ApiOperation({
+    summary: 'Update user settings',
+    description:
+      'Updates the user settings (e.g., payDayOfMonth for custom budget period)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Settings updated successfully',
+    type: UserSettingsResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid input data',
+    type: ErrorResponseDto,
+  })
+  async updateSettings(
+    @Body() updateData: UpdateUserSettingsDto,
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<UserSettingsResponseDto> {
+    try {
+      const currentUserData = await this.getCurrentUserData(supabase);
+      const serviceClient = this.supabaseService.getServiceRoleClient();
+
+      const { data: updatedUser, error } =
+        await serviceClient.auth.admin.updateUserById(user.id, {
+          user_metadata: {
+            ...currentUserData.user.user_metadata,
+            payDayOfMonth: updateData.payDayOfMonth ?? null,
+          },
+        });
+
+      if (error || !updatedUser.user) {
+        this.logger.error(
+          { supabaseError: error, hasUser: !!updatedUser?.user },
+          'Supabase updateUserById failed',
+        );
+        throw new InternalServerErrorException(
+          'Erreur lors de la mise à jour des paramètres',
+        );
+      }
+
+      return {
+        success: true as const,
+        data: {
+          payDayOfMonth: updatedUser.user.user_metadata?.payDayOfMonth ?? null,
+        },
+      };
+    } catch (error) {
+      if (error instanceof InternalServerErrorException) {
+        throw error;
+      }
+      this.logger.error({ err: error }, 'Failed to update user settings');
+      throw new InternalServerErrorException(
+        'Erreur lors de la mise à jour des paramètres',
       );
     }
   }

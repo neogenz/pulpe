@@ -108,6 +108,6 @@ export default class Income {
     }
 
     this.#store.updateField('monthlyIncome', this.incomeValue());
-    this.#router.navigate(['/', ROUTES.ONBOARDING, ROUTES.ONBOARDING_HOUSING]);
+    this.#router.navigate(['/', ROUTES.ONBOARDING, ROUTES.ONBOARDING_PAY_DAY]);
   }
 }

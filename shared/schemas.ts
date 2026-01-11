@@ -6,6 +6,8 @@ const MIN_YEAR = 2020;
 const MAX_YEAR = CURRENT_YEAR + 10;
 const MONTH_MIN = 1;
 const MONTH_MAX = 12;
+export const PAY_DAY_MIN = 1;
+export const PAY_DAY_MAX = 31;
 
 /**
  * ENUMS - Types métier selon SPECS.md section 2
@@ -679,11 +681,33 @@ export type TransactionResponse = {
 };
 
 // User schemas
+/**
+ * PAY DAY OF MONTH - Jour de début de mois budgétaire
+ *
+ * Permet de définir le jour où commence un nouveau mois budgétaire,
+ * typiquement basé sur le jour de réception du salaire.
+ *
+ * Exemple: payDayOfMonth = 27
+ * - Le 26 décembre → mois budgétaire de décembre
+ * - Le 27 décembre → mois budgétaire de janvier
+ *
+ * Si null ou undefined: comportement calendaire standard (1er du mois)
+ */
+export const payDayOfMonthSchema = z
+  .number()
+  .int()
+  .min(PAY_DAY_MIN)
+  .max(PAY_DAY_MAX)
+  .nullable()
+  .optional();
+export type PayDayOfMonth = z.infer<typeof payDayOfMonthSchema>;
+
 export const userProfileSchema = z.object({
   id: z.uuid(),
   email: z.email(),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
+  payDayOfMonth: payDayOfMonthSchema,
 });
 export type UserProfile = z.infer<typeof userProfileSchema>;
 
@@ -692,6 +716,31 @@ export const updateProfileSchema = z.object({
   lastName: z.string().min(1).max(50).trim(),
 });
 export type UpdateProfile = z.infer<typeof updateProfileSchema>;
+
+/**
+ * Schema pour mettre à jour les préférences utilisateur
+ */
+export const updateUserSettingsSchema = z.object({
+  payDayOfMonth: z
+    .number()
+    .int()
+    .min(PAY_DAY_MIN)
+    .max(PAY_DAY_MAX)
+    .nullable()
+    .optional(),
+});
+export type UpdateUserSettings = z.infer<typeof updateUserSettingsSchema>;
+
+export const userSettingsSchema = z.object({
+  payDayOfMonth: payDayOfMonthSchema,
+});
+export type UserSettings = z.infer<typeof userSettingsSchema>;
+
+export const userSettingsResponseSchema = z.object({
+  success: z.literal(true),
+  data: userSettingsSchema,
+});
+export type UserSettingsResponse = z.infer<typeof userSettingsResponseSchema>;
 
 export const userProfileResponseSchema = z.object({
   success: z.literal(true),

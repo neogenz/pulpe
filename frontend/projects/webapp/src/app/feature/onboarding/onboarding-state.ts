@@ -36,6 +36,7 @@ export interface OnboardingData {
   firstName: string;
   email: string;
   monthlyIncome: number | null;
+  payDayOfMonth: number | null;
   housingCosts: number | null;
   healthInsurance: number | null;
   leasingCredit: number | null;
@@ -51,6 +52,7 @@ export type OnboardingStep =
   | 'welcome'
   | 'personal-info'
   | 'income'
+  | 'pay-day'
   | 'housing'
   | 'health-insurance'
   | 'phone-plan'
@@ -67,6 +69,7 @@ export function createInitialOnboardingState(): OnboardingState {
       firstName: '',
       email: '',
       monthlyIncome: null,
+      payDayOfMonth: null,
       housingCosts: null,
       healthInsurance: null,
       leasingCredit: null,

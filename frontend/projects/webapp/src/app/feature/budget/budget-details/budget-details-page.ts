@@ -43,6 +43,7 @@ import {
   type BudgetLine,
   type Transaction,
   type TransactionCreate,
+  formatBudgetPeriod,
 } from 'pulpe-shared';
 import type { BudgetLineConsumption } from '@core/budget';
 import {
@@ -59,6 +60,7 @@ import {
   ProductTourService,
   TOUR_START_DELAY,
 } from '@core/product-tour/product-tour.service';
+import { UserSettingsApi } from '@core/user-settings/user-settings-api';
 
 @Component({
   selector: 'pulpe-budget-details-page',
@@ -111,10 +113,18 @@ import {
           </button>
           <div class="flex-1 min-w-0">
             <h1
-              class="text-headline-medium sm:text-display-small mb-2 truncate"
+              class="text-headline-medium sm:text-display-small mb-1 truncate"
             >
               {{ displayName() }}
             </h1>
+            @if (periodDisplay()) {
+              <p
+                class="text-label-medium text-on-surface-variant mb-1"
+                data-testid="budget-period-display"
+              >
+                {{ periodDisplay() }}
+              </p>
+            }
             @if (budget.description) {
               <p class="text-body-large text-on-surface-variant">
                 {{ budget.description }}
@@ -241,6 +251,7 @@ export default class BudgetDetailsPage {
   readonly #productTourService = inject(ProductTourService);
   readonly #breadcrumbState = inject(BreadcrumbState);
   readonly #breakpointObserver = inject(BreakpointObserver);
+  readonly #userSettingsApi = inject(UserSettingsApi);
 
   readonly #isMobile = toSignal(
     this.#breakpointObserver
@@ -298,6 +309,13 @@ export default class BudgetDetailsPage {
     if (!budget) return '';
     const date = new Date(budget.year, budget.month - 1, 1);
     return formatDate(date, 'MMMM yyyy', { locale: frCH });
+  });
+
+  periodDisplay = computed(() => {
+    const budget = this.store.budgetDetails();
+    const payDayOfMonth = this.#userSettingsApi.payDayOfMonth();
+    if (!budget || !payDayOfMonth || payDayOfMonth === 1) return null;
+    return formatBudgetPeriod(budget.month, budget.year, payDayOfMonth);
   });
 
   async openAddBudgetLineDialog(): Promise<void> {

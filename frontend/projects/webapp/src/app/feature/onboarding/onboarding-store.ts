@@ -6,6 +6,7 @@ import { AuthApi } from '@core/auth/auth-api';
 import { BudgetApi } from '@core/budget';
 import { Logger } from '@core/logging/logger';
 import { StorageService, STORAGE_KEYS } from '@core/storage';
+import { UserSettingsApi } from '@core/user-settings';
 import {
   type BudgetCreate,
   type BudgetTemplateCreateFromOnboarding,
@@ -27,6 +28,7 @@ export const STEP_ORDER: readonly OnboardingStep[] = [
   'welcome',
   'personal-info',
   'income',
+  'pay-day',
   'housing',
   'health-insurance',
   'phone-plan',
@@ -55,6 +57,7 @@ export class OnboardingStore {
   readonly #authApi = inject(AuthApi);
   readonly #budgetApi = inject(BudgetApi);
   readonly #onboardingApi = inject(OnboardingApi);
+  readonly #userSettingsApi = inject(UserSettingsApi);
   readonly #router = inject(Router);
   readonly #logger = inject(Logger);
   readonly #postHogService = inject(PostHogService);
@@ -199,7 +202,19 @@ export class OnboardingStore {
         }));
       }
 
-      // 2. Créer le template
+      // 2. Sauvegarder les paramètres utilisateur (payDayOfMonth)
+      if (currentData.payDayOfMonth !== null) {
+        try {
+          await this.#userSettingsApi.updateSettings({
+            payDayOfMonth: currentData.payDayOfMonth,
+          });
+        } catch {
+          this.#logger.warn('Failed to save payDayOfMonth, continuing...');
+          // Continue even if settings save fails - not critical
+        }
+      }
+
+      // 3. Créer le template de budget
       const templateRequest: BudgetTemplateCreateFromOnboarding = {
         name: 'Mois Standard',
         description: `Template personnel de ${currentData.firstName}`,
