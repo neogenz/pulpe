@@ -3,6 +3,8 @@ export * from './breadcrumb/breadcrumb-item.directive';
 export * from './breadcrumb/breadcrumb-separator.directive';
 export * from './currency-input';
 export * from './dialogs/confirmation-dialog';
+export * from './error-alert';
 export * from './error-card';
 export * from './financial-summary/financial-summary';
+export * from './loading-button';
 export * from './transaction-display';

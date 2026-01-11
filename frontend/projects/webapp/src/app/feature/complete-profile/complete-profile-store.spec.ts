@@ -71,8 +71,8 @@ describe('CompleteProfileStore', () => {
       expect(store.isLoading()).toBe(false);
     });
 
-    it('should be checking existing budget initially', () => {
-      expect(store.isCheckingExistingBudget()).toBe(true);
+    it('should not be checking existing budget initially', () => {
+      expect(store.isCheckingExistingBudget()).toBe(false);
     });
 
     it('should have no error', () => {

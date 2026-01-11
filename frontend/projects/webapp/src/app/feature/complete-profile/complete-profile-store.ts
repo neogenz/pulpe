@@ -28,7 +28,7 @@ function createInitialState(): CompleteProfileState {
     transportCosts: null,
     leasingCredit: null,
     isLoading: false,
-    isCheckingExistingBudget: true,
+    isCheckingExistingBudget: false,
     error: '',
   };
 }
@@ -42,7 +42,6 @@ export class CompleteProfileStore {
 
   readonly #state = signal<CompleteProfileState>(createInitialState());
 
-  // Public selectors
   readonly firstName = computed(() => this.#state().firstName);
   readonly monthlyIncome = computed(() => this.#state().monthlyIncome);
   readonly housingCosts = computed(() => this.#state().housingCosts);
@@ -65,7 +64,6 @@ export class CompleteProfileStore {
     );
   });
 
-  // Actions
   updateFirstName(value: string): void {
     this.#state.update((s) => ({ ...s, firstName: value }));
   }

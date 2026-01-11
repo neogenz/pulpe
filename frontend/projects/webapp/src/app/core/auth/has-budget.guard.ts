@@ -1,32 +1,39 @@
 import { inject } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { type CanActivateFn, Router } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, retry, timer } from 'rxjs';
 import { BudgetApi } from '@core/budget';
+import { Logger } from '@core/logging/logger';
 import { ROUTES } from '@core/routing/routes-constants';
 
-/**
- * Guard that checks if the user has at least one budget.
- * If not, redirects to complete-profile page to create initial budget.
- *
- * This guard is intended to be used after authGuard on protected routes.
- * It ensures OAuth users who bypassed onboarding complete their profile setup.
- */
 export const hasBudgetGuard: CanActivateFn = async () => {
   const budgetApi = inject(BudgetApi);
   const router = inject(Router);
+  const logger = inject(Logger);
 
   try {
-    const budgets = await firstValueFrom(budgetApi.getAllBudgets$());
+    const budgets = await firstValueFrom(
+      budgetApi
+        .getAllBudgets$()
+        .pipe(retry({ count: 2, delay: () => timer(1000) })),
+    );
 
     if (budgets.length === 0) {
-      // User has no budgets - redirect to complete profile
       return router.createUrlTree(['/', ROUTES.APP, ROUTES.COMPLETE_PROFILE]);
     }
 
     return true;
-  } catch {
-    // On error (API failure or validation error), redirect to complete-profile
-    // A new user without budgets should be redirected to setup, not shown errors
+  } catch (error) {
+    if (error instanceof HttpErrorResponse) {
+      if (error.status === 0 || error.status >= 500) {
+        logger.warn(
+          'hasBudgetGuard: Network or server error, allowing navigation',
+          { status: error.status },
+        );
+        return true;
+      }
+    }
+
     return router.createUrlTree(['/', ROUTES.APP, ROUTES.COMPLETE_PROFILE]);
   }
 };

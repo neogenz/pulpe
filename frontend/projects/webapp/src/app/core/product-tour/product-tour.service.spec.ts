@@ -149,15 +149,46 @@ describe('ProductTourService', () => {
       // THEN: Current user should not see that tour as completed
       expect(service.hasSeenIntro()).toBe(false);
     });
+  });
 
-    it('should use fallback key when no user is logged in', () => {
-      // GIVEN: No user is logged in
+  describe('isReady', () => {
+    it('should return true when user is authenticated', () => {
+      expect(service.isReady()).toBe(true);
+    });
+
+    it('should return false when user is not authenticated', () => {
       mockCurrentUser = null;
 
-      // WHEN: Checking tour status with key set without userId
-      localStorage.setItem('pulpe-tour-intro', 'true');
+      expect(service.isReady()).toBe(false);
+    });
+  });
 
-      // THEN: Should use fallback key (without userId)
+  describe('graceful degradation when not authenticated', () => {
+    it('should return true for hasSeenIntro when not ready (prevent tour)', () => {
+      mockCurrentUser = null;
+
+      expect(service.hasSeenIntro()).toBe(true);
+    });
+
+    it('should return true for hasSeenPageTour when not ready (prevent tour)', () => {
+      mockCurrentUser = null;
+
+      expect(service.hasSeenPageTour('current-month')).toBe(true);
+    });
+
+    it('should not start tour when not ready', () => {
+      mockCurrentUser = null;
+
+      expect(() => service.startPageTour('current-month')).not.toThrow();
+    });
+
+    it('should not reset tours when not ready', () => {
+      localStorage.setItem(getTourKey('intro'), 'true');
+      mockCurrentUser = null;
+
+      service.resetAllTours();
+
+      mockCurrentUser = { id: TEST_USER_ID };
       expect(service.hasSeenIntro()).toBe(true);
     });
   });

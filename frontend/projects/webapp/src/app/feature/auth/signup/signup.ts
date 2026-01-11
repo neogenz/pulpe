@@ -8,8 +8,7 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop';
 import {
   type AbstractControl,
-  FormControl,
-  FormGroup,
+  FormBuilder,
   ReactiveFormsModule,
   type ValidationErrors,
   Validators,
@@ -20,11 +19,13 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Router, RouterLink } from '@angular/router';
-import { AuthApi } from '@core/auth/auth-api';
+import { AuthApi, PASSWORD_MIN_LENGTH } from '@core/auth';
 import { Logger } from '@core/logging/logger';
+import { GoogleOAuthButton } from '@app/pattern/google-oauth';
 import { ROUTES } from '@core/routing/routes-constants';
+import { ErrorAlert } from '@ui/error-alert';
+import { LoadingButton } from '@ui/loading-button';
 
 function passwordsMatchValidator(
   control: AbstractControl,
@@ -53,9 +54,11 @@ function passwordsMatchValidator(
     MatButtonModule,
     MatIconModule,
     MatDividerModule,
-    MatProgressSpinnerModule,
     MatCheckboxModule,
     RouterLink,
+    GoogleOAuthButton,
+    ErrorAlert,
+    LoadingButton,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -224,41 +227,18 @@ function passwordsMatchValidator(
             }
           </div>
 
-          @if (errorMessage()) {
-            <div
-              class="bg-error-container text-on-error-container p-3 rounded-lg flex items-center gap-2"
-            >
-              <mat-icon class="flex-shrink-0">error_outline</mat-icon>
-              <span>{{ errorMessage() }}</span>
-            </div>
-          }
+          <pulpe-error-alert [message]="errorMessage()" />
 
-          <button
-            matButton="filled"
-            color="primary"
-            type="submit"
-            data-testid="signup-submit-button"
-            class="w-full h-12 mt-4"
-            [disabled]="!canSubmit() || isSubmitting()"
+          <pulpe-loading-button
+            [loading]="isSubmitting()"
+            [disabled]="!canSubmit()"
+            loadingText="Création en cours..."
+            icon="person_add"
+            testId="signup-submit-button"
+            class="mt-4"
           >
-            @if (isSubmitting()) {
-              <div class="flex items-center justify-center">
-                <mat-progress-spinner
-                  mode="indeterminate"
-                  [diameter]="24"
-                  aria-label="Création en cours"
-                  role="progressbar"
-                  class="pulpe-loading-indicator pulpe-loading-small mr-2 flex-shrink-0"
-                ></mat-progress-spinner>
-                <span aria-live="polite">Création en cours...</span>
-              </div>
-            } @else {
-              <div class="flex items-center justify-center">
-                <mat-icon>person_add</mat-icon>
-                <span class="ml-2">Créer mon compte</span>
-              </div>
-            }
-          </button>
+            <span class="ml-2">Créer mon compte</span>
+          </pulpe-loading-button>
         </form>
 
         <div class="flex items-center gap-4 my-6">
@@ -267,19 +247,11 @@ function passwordsMatchValidator(
           <mat-divider class="flex-1" />
         </div>
 
-        <button
-          matButton="outlined"
-          type="button"
-          data-testid="google-signup-button"
-          class="w-full h-12"
-          [disabled]="isSubmitting()"
-          (click)="signUpWithGoogle()"
-        >
-          <div class="flex items-center justify-center gap-2">
-            <mat-icon svgIcon="google" />
-            <span>Continuer avec Google</span>
-          </div>
-        </button>
+        <pulpe-google-oauth-button
+          testId="google-signup-button"
+          (authError)="errorMessage.set($event)"
+          (loadingChange)="isSubmitting.set($event)"
+        />
 
         <div class="text-center mt-6">
           <p class="text-body-medium text-on-surface-variant">
@@ -302,6 +274,7 @@ export default class Signup {
   readonly #authService = inject(AuthApi);
   readonly #router = inject(Router);
   readonly #logger = inject(Logger);
+  readonly #formBuilder = inject(FormBuilder);
 
   protected readonly ROUTES = ROUTES;
 
@@ -310,24 +283,15 @@ export default class Signup {
   protected isSubmitting = signal<boolean>(false);
   protected errorMessage = signal<string>('');
 
-  protected signupForm = new FormGroup(
+  protected signupForm = this.#formBuilder.nonNullable.group(
     {
-      email: new FormControl('', {
-        validators: [Validators.required, Validators.email],
-        nonNullable: true,
-      }),
-      password: new FormControl('', {
-        validators: [Validators.required, Validators.minLength(8)],
-        nonNullable: true,
-      }),
-      confirmPassword: new FormControl('', {
-        validators: [Validators.required],
-        nonNullable: true,
-      }),
-      acceptTerms: new FormControl(false, {
-        validators: [Validators.requiredTrue],
-        nonNullable: true,
-      }),
+      email: ['', [Validators.required, Validators.email]],
+      password: [
+        '',
+        [Validators.required, Validators.minLength(PASSWORD_MIN_LENGTH)],
+      ],
+      confirmPassword: ['', [Validators.required]],
+      acceptTerms: [false, [Validators.requiredTrue]],
     },
     { validators: passwordsMatchValidator },
   );
@@ -381,28 +345,6 @@ export default class Signup {
       }
     } catch (error) {
       this.#logger.error('Erreur lors de la création du compte:', error);
-      this.errorMessage.set(
-        "Une erreur inattendue s'est produite. Veuillez réessayer.",
-      );
-      this.isSubmitting.set(false);
-    }
-  }
-
-  protected async signUpWithGoogle(): Promise<void> {
-    this.isSubmitting.set(true);
-    this.clearMessages();
-
-    try {
-      const result = await this.#authService.signInWithGoogle();
-
-      if (!result.success) {
-        this.errorMessage.set(
-          result.error || 'Erreur lors de la connexion avec Google',
-        );
-        this.isSubmitting.set(false);
-      }
-    } catch (error) {
-      this.#logger.error('Erreur lors de la connexion Google:', error);
       this.errorMessage.set(
         "Une erreur inattendue s'est produite. Veuillez réessayer.",
       );

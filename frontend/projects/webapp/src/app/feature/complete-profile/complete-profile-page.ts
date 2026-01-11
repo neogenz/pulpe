@@ -8,6 +8,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CurrencyInput } from '@ui/currency-input';
+import { ErrorAlert } from '@ui/error-alert';
+import { LoadingButton } from '@ui/loading-button';
 import { ROUTES } from '@core/routing/routes-constants';
 import { CompleteProfileStore } from './complete-profile-store';
 
@@ -22,6 +24,8 @@ import { CompleteProfileStore } from './complete-profile-store';
     MatIconModule,
     MatProgressSpinnerModule,
     CurrencyInput,
+    ErrorAlert,
+    LoadingButton,
   ],
   providers: [CompleteProfileStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -142,38 +146,20 @@ import { CompleteProfileStore } from './complete-profile-store';
 
             <div class="flex justify-between">
               <button matButton="outlined" matStepperPrevious>Précédent</button>
-              <button
-                matButton="filled"
-                color="primary"
-                [disabled]="store.isLoading()"
+              <pulpe-loading-button
+                [loading]="store.isLoading()"
+                loadingText="Création..."
+                testId="submit-button"
+                [fullWidth]="false"
                 (click)="onSubmit()"
-                data-testid="submit-button"
               >
-                @if (store.isLoading()) {
-                  <div class="flex items-center gap-2">
-                    <mat-progress-spinner
-                      mode="indeterminate"
-                      [diameter]="20"
-                      class="pulpe-loading-indicator pulpe-loading-small"
-                    />
-                    Création...
-                  </div>
-                } @else {
-                  Créer mon budget
-                }
-              </button>
+                Créer mon budget
+              </pulpe-loading-button>
             </div>
           </mat-step>
         </mat-stepper>
 
-        @if (store.error()) {
-          <div
-            class="mt-6 bg-error-container text-on-error-container p-4 rounded-lg flex items-center gap-2"
-          >
-            <mat-icon>error_outline</mat-icon>
-            <span>{{ store.error() }}</span>
-          </div>
-        }
+        <pulpe-error-alert [message]="store.error()" class="mt-6" />
       </div>
     }
   `,
@@ -194,18 +180,6 @@ import { CompleteProfileStore } from './complete-profile-store';
 export default class CompleteProfilePage {
   protected readonly store = inject(CompleteProfileStore);
   readonly #router = inject(Router);
-
-  constructor() {
-    this.#checkExistingBudgetsAndRedirect();
-  }
-
-  async #checkExistingBudgetsAndRedirect(): Promise<void> {
-    const hasExisting = await this.store.checkExistingBudgets();
-
-    if (hasExisting) {
-      this.#router.navigate(['/', ROUTES.APP, ROUTES.CURRENT_MONTH]);
-    }
-  }
 
   protected async onSubmit(): Promise<void> {
     const success = await this.store.submitProfile();

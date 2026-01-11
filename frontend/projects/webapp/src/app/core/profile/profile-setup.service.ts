@@ -15,10 +15,6 @@ import {
   type ProfileSetupResult,
 } from './profile-setup.types';
 
-/**
- * Service for creating initial template and budget from profile data.
- * Used by both onboarding flow and complete-profile flow (for OAuth users).
- */
 @Injectable({
   providedIn: 'root',
 })
@@ -29,10 +25,6 @@ export class ProfileSetupService {
   readonly #postHogService = inject(PostHogService);
   readonly #logger = inject(Logger);
 
-  /**
-   * Creates initial template and budget from profile data.
-   * This is the core logic shared between onboarding and complete-profile flows.
-   */
   async createInitialBudget(
     profileData: ProfileData,
   ): Promise<ProfileSetupResult> {
@@ -118,10 +110,6 @@ export class ProfileSetupService {
     }
   }
 
-  /**
-   * Creates a template from profile/onboarding data.
-   * Uses the specialized onboarding endpoint.
-   */
   #createTemplateFromOnboarding$(
     onboardingData: BudgetTemplateCreateFromOnboarding,
   ) {

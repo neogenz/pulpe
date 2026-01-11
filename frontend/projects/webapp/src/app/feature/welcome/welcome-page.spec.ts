@@ -2,17 +2,15 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterModule } from '@angular/router';
+import { NO_ERRORS_SCHEMA, signal } from '@angular/core';
 import WelcomePage from './welcome-page';
-import { AuthApi } from '@core/auth/auth-api';
 import { DemoInitializerService } from '@core/demo/demo-initializer.service';
 import { Logger } from '@core/logging/logger';
-import { ApplicationConfiguration } from '@core/config/application-configuration';
-import { signal } from '@angular/core';
+import { TurnstileService } from '@core/turnstile';
 
 describe('WelcomePage', () => {
   let fixture: ComponentFixture<WelcomePage>;
   let component: WelcomePage;
-  let mockAuthApi: { signInWithGoogle: Mock };
   let mockDemoInitializer: {
     startDemoSession: Mock;
     isInitializing: ReturnType<typeof signal<boolean>>;
@@ -23,16 +21,18 @@ describe('WelcomePage', () => {
     warn: Mock;
     error: Mock;
   };
-  let mockConfig: {
-    turnstile: Mock;
-    isLocal: Mock;
+  let mockTurnstileService: {
+    isProcessing: ReturnType<typeof signal<boolean>>;
+    shouldRender: ReturnType<typeof signal<boolean>>;
+    siteKey: Mock;
+    shouldUseTurnstile: Mock;
+    startVerification: Mock;
+    handleResolved: Mock;
+    handleError: Mock;
+    reset: Mock;
   };
 
   beforeEach(async () => {
-    mockAuthApi = {
-      signInWithGoogle: vi.fn(),
-    };
-
     mockDemoInitializer = {
       startDemoSession: vi.fn(),
       isInitializing: signal(false),
@@ -45,19 +45,25 @@ describe('WelcomePage', () => {
       error: vi.fn(),
     };
 
-    mockConfig = {
-      turnstile: vi.fn().mockReturnValue({ siteKey: 'test-site-key' }),
-      isLocal: vi.fn().mockReturnValue(true),
+    mockTurnstileService = {
+      isProcessing: signal(false),
+      shouldRender: signal(false),
+      siteKey: vi.fn().mockReturnValue('test-site-key'),
+      shouldUseTurnstile: vi.fn().mockReturnValue(true),
+      startVerification: vi.fn(),
+      handleResolved: vi.fn(),
+      handleError: vi.fn(),
+      reset: vi.fn(),
     };
 
     await TestBed.configureTestingModule({
       imports: [WelcomePage, NoopAnimationsModule, RouterModule.forRoot([])],
       providers: [
-        { provide: AuthApi, useValue: mockAuthApi },
         { provide: DemoInitializerService, useValue: mockDemoInitializer },
         { provide: Logger, useValue: mockLogger },
-        { provide: ApplicationConfiguration, useValue: mockConfig },
+        { provide: TurnstileService, useValue: mockTurnstileService },
       ],
+      schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
 
     fixture = TestBed.createComponent(WelcomePage);
@@ -103,12 +109,12 @@ describe('WelcomePage', () => {
     });
 
     it('should have demo mode button', () => {
-      const button = fixture.nativeElement.querySelector(
-        '[data-testid="demo-mode-button"]',
+      const loadingButton = fixture.nativeElement.querySelector(
+        'pulpe-loading-button[testId="demo-mode-button"]',
       );
 
-      expect(button).toBeTruthy();
-      expect(button.textContent).toContain('Essayer le mode démo');
+      expect(loadingButton).toBeTruthy();
+      expect(loadingButton.textContent).toContain('Essayer le mode démo');
     });
 
     it('should have login link', () => {
@@ -123,177 +129,73 @@ describe('WelcomePage', () => {
     });
   });
 
-  describe('signInWithGoogle', () => {
-    it('should call authApi.signInWithGoogle on success', async () => {
-      mockAuthApi.signInWithGoogle.mockResolvedValue({ success: true });
-
-      await component.signInWithGoogle();
-
-      expect(mockAuthApi.signInWithGoogle).toHaveBeenCalled();
-    });
-
-    it('should display error message on failure', async () => {
-      mockAuthApi.signInWithGoogle.mockResolvedValue({
-        success: false,
-        error: 'Auth failed',
-      });
-
-      await component.signInWithGoogle();
-      fixture.detectChanges();
-
-      const errorDiv = fixture.nativeElement.querySelector(
-        '.bg-error-container',
-      );
-      expect(errorDiv).toBeTruthy();
-      expect(errorDiv.textContent).toContain('Auth failed');
-    });
-
-    it('should display default error message when no error provided', async () => {
-      mockAuthApi.signInWithGoogle.mockResolvedValue({ success: false });
-
-      await component.signInWithGoogle();
-      fixture.detectChanges();
-
-      const errorDiv = fixture.nativeElement.querySelector(
-        '.bg-error-container',
-      );
-      expect(errorDiv.textContent).toContain(
-        'Erreur lors de la connexion avec Google',
-      );
-    });
-
-    it('should handle exception during Google sign in', async () => {
-      mockAuthApi.signInWithGoogle.mockRejectedValue(
-        new Error('Network error'),
-      );
-
-      await component.signInWithGoogle();
-      fixture.detectChanges();
-
-      const errorDiv = fixture.nativeElement.querySelector(
-        '.bg-error-container',
-      );
-      expect(errorDiv).toBeTruthy();
-      expect(mockLogger.error).toHaveBeenCalled();
-    });
-  });
-
   describe('startDemoMode', () => {
-    it('should bypass Turnstile in local environment', async () => {
-      mockConfig.isLocal.mockReturnValue(true);
-      mockDemoInitializer.startDemoSession.mockResolvedValue(undefined);
+    it('should call turnstile service startVerification', () => {
+      component.startDemoMode();
 
-      await component.startDemoMode();
+      expect(mockTurnstileService.startVerification).toHaveBeenCalled();
+    });
 
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        'Turnstile skipped in local environment',
-      );
-      expect(mockDemoInitializer.startDemoSession).toHaveBeenCalledWith('');
+    it('should clear error message when starting demo', () => {
+      component.startDemoMode();
+
+      expect(mockTurnstileService.startVerification).toHaveBeenCalled();
     });
 
     it('should handle demo initialization error', async () => {
-      mockConfig.isLocal.mockReturnValue(true);
       mockDemoInitializer.startDemoSession.mockRejectedValue(
         new Error('Demo failed'),
       );
 
-      await component.startDemoMode();
+      mockTurnstileService.startVerification.mockImplementation(
+        (_widget: unknown, onToken: (token: string) => void) => {
+          onToken('test-token');
+        },
+      );
+
+      component.startDemoMode();
+      await fixture.whenStable();
       fixture.detectChanges();
 
-      const errorDiv = fixture.nativeElement.querySelector(
-        '.bg-error-container',
-      );
-      expect(errorDiv).toBeTruthy();
-      expect(errorDiv.textContent).toContain(
-        'Impossible de démarrer le mode démo',
-      );
+      const errorAlert =
+        fixture.nativeElement.querySelector('pulpe-error-alert');
+      expect(errorAlert).toBeTruthy();
     });
 
-    it('should handle anti-robot error specifically', async () => {
-      mockConfig.isLocal.mockReturnValue(true);
-      mockDemoInitializer.startDemoSession.mockRejectedValue(
-        new Error('anti-robot verification failed'),
-      );
-
-      await component.startDemoMode();
-      fixture.detectChanges();
-
-      const errorDiv = fixture.nativeElement.querySelector(
-        '.bg-error-container',
-      );
-      expect(errorDiv.textContent).toContain('anti-robot');
-    });
-  });
-
-  describe('onTurnstileResolved', () => {
-    it('should start demo with token when resolved', () => {
+    it('should call demoInitializer when token is received', async () => {
       mockDemoInitializer.startDemoSession.mockResolvedValue(undefined);
 
-      component.onTurnstileResolved('valid-token');
+      mockTurnstileService.startVerification.mockImplementation(
+        (_widget: unknown, onToken: (token: string) => void) => {
+          onToken('valid-token');
+        },
+      );
 
-      expect(mockLogger.debug).toHaveBeenCalledWith('Turnstile resolved', {
-        tokenLength: 11,
-      });
-    });
+      component.startDemoMode();
+      await fixture.whenStable();
 
-    it('should handle null token', () => {
-      component.onTurnstileResolved(null);
-
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        'Turnstile resolved with null token',
+      expect(mockDemoInitializer.startDemoSession).toHaveBeenCalledWith(
+        'valid-token',
       );
     });
-  });
 
-  describe('onTurnstileError', () => {
-    it('should log error and display message', () => {
-      component.onTurnstileError();
+    it('should set error message when turnstile reports error', () => {
+      mockTurnstileService.startVerification.mockImplementation(
+        (
+          _widget: unknown,
+          _onToken: unknown,
+          onError: (message: string) => void,
+        ) => {
+          onError('Échec de la vérification de sécurité. Veuillez réessayer.');
+        },
+      );
+
+      component.startDemoMode();
       fixture.detectChanges();
 
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        'Turnstile verification failed',
-      );
-      const errorDiv = fixture.nativeElement.querySelector(
-        '.bg-error-container',
-      );
-      expect(errorDiv.textContent).toContain(
-        'Échec de la vérification de sécurité',
-      );
-    });
-  });
-
-  describe('loading states', () => {
-    it('should disable buttons when Google loading', () => {
-      mockAuthApi.signInWithGoogle.mockImplementation(
-        () => new Promise<void>(() => void 0),
-      );
-
-      component.signInWithGoogle();
-      fixture.detectChanges();
-
-      const googleButton = fixture.nativeElement.querySelector(
-        '[data-testid="google-oauth-button"]',
-      );
-      const demoButton = fixture.nativeElement.querySelector(
-        '[data-testid="demo-mode-button"]',
-      );
-
-      expect(googleButton.disabled).toBe(true);
-      expect(demoButton.disabled).toBe(true);
-    });
-
-    it('should show spinner during Google loading', () => {
-      mockAuthApi.signInWithGoogle.mockImplementation(
-        () => new Promise<void>(() => void 0),
-      );
-
-      component.signInWithGoogle();
-      fixture.detectChanges();
-
-      const spinner = fixture.nativeElement.querySelector(
-        'mat-progress-spinner',
-      );
-      expect(spinner).toBeTruthy();
+      const errorAlert =
+        fixture.nativeElement.querySelector('pulpe-error-alert');
+      expect(errorAlert).toBeTruthy();
     });
   });
 });

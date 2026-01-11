@@ -1,6 +1,3 @@
-/**
- * Profile data required to create initial template and budget
- */
 export interface ProfileData {
   firstName: string;
   monthlyIncome: number;
@@ -11,9 +8,6 @@ export interface ProfileData {
   leasingCredit?: number;
 }
 
-/**
- * Result of profile setup operation
- */
 export interface ProfileSetupResult {
   success: boolean;
   error?: string;
