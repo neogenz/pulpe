@@ -236,19 +236,27 @@ final class BudgetDetailsViewModel {
     }
 
     var incomeLines: [BudgetLine] {
-        budgetLines.filter { $0.kind == .income }
+        budgetLines
+            .filter { $0.kind == .income }
+            .sorted { $0.createdAt > $1.createdAt }
     }
 
     var expenseLines: [BudgetLine] {
-        budgetLines.filter { $0.kind == .expense }
+        budgetLines
+            .filter { $0.kind == .expense }
+            .sorted { $0.createdAt > $1.createdAt }
     }
 
     var savingLines: [BudgetLine] {
-        budgetLines.filter { $0.kind == .saving }
+        budgetLines
+            .filter { $0.kind == .saving }
+            .sorted { $0.createdAt > $1.createdAt }
     }
 
     var freeTransactions: [Transaction] {
-        transactions.filter { $0.budgetLineId == nil }
+        transactions
+            .filter { $0.budgetLineId == nil }
+            .sorted { $0.transactionDate > $1.transactionDate }
     }
 
     @MainActor

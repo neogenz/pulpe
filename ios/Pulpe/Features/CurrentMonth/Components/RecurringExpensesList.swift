@@ -119,7 +119,9 @@ struct BudgetLineRow: View {
     }
 
     private var linkedTransactions: [Transaction] {
-        allTransactions.filter { $0.budgetLineId == line.id }
+        allTransactions
+            .filter { $0.budgetLineId == line.id }
+            .sorted { $0.transactionDate > $1.transactionDate }
     }
 
     private var consumptionPercentage: Int {
