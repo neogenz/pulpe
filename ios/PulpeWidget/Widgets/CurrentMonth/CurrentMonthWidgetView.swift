@@ -29,13 +29,13 @@ struct CurrentMonthWidgetView: View {
     }
 
     private var smallWidgetView: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 4) {
             Text("Disponible")
-                .font(.caption)
+                .font(.caption2)
                 .foregroundStyle(.secondary)
 
             Text(entry.available.asCHF)
-                .font(.title2)
+                .font(.title3)
                 .fontWeight(.semibold)
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
@@ -44,13 +44,21 @@ struct CurrentMonthWidgetView: View {
             Text(entry.monthName)
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
+
+            Spacer()
+
+            Link(destination: URL(string: "pulpe://add-expense")!) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 32))
+                    .foregroundStyle(.tint)
+            }
+            .accessibilityLabel("Ajouter une dépense")
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .widgetURL(URL(string: "pulpe://add-expense"))
-        .accessibilityElement(children: .combine)
+        .padding(.vertical, 8)
+        .accessibilityElement(children: .contain)
         .accessibilityLabel("Budget \(entry.monthName)")
         .accessibilityValue("\(entry.available.asCHF) disponible")
-        .accessibilityHint("Toucher pour ajouter une dépense")
     }
 
     private var mediumWidgetView: some View {

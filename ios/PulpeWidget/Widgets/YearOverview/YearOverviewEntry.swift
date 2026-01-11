@@ -7,6 +7,11 @@ struct MonthData: Identifiable, Sendable {
     let shortName: String
     let available: Decimal?
     let isCurrentMonth: Bool
+
+    /// Returns true if this month has a real budget (not a placeholder)
+    var hasBudget: Bool {
+        !id.hasPrefix("placeholder-") && !id.hasPrefix("empty-")
+    }
 }
 
 struct YearOverviewEntry: TimelineEntry, Sendable {

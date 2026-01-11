@@ -6,6 +6,10 @@ struct YearOverviewWidgetView: View {
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 4)
 
+    private var currentMonth: MonthData? {
+        entry.months.first { $0.isCurrentMonth }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("\(String(entry.year))")
@@ -14,13 +18,55 @@ struct YearOverviewWidgetView: View {
 
             LazyVGrid(columns: columns, spacing: 8) {
                 ForEach(entry.months) { month in
-                    monthCell(month)
+                    if month.hasBudget {
+                        Link(destination: URL(string: "pulpe://budget?id=\(month.id)")!) {
+                            monthCell(month)
+                        }
+                    } else {
+                        monthCell(month)
+                    }
                 }
+            }
+
+            if let month = currentMonth {
+                Divider()
+
+                currentMonthSummary(month)
             }
         }
         .padding()
         .containerBackground(.fill.tertiary, for: .widget)
-        .widgetURL(URL(string: "pulpe://budget"))
+    }
+
+    @ViewBuilder
+    private func currentMonthSummary(_ month: MonthData) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Disponible \(month.shortName.lowercased())")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                if let available = month.available {
+                    Text(available.asCHF)
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                        .foregroundColor(available >= 0 ? .primary : .red)
+                        .privacySensitive()
+                }
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Disponible \(month.shortName)")
+            .accessibilityValue(month.available.map { "\($0.asCHF)" } ?? "Pas de données")
+
+            Spacer()
+
+            Link(destination: URL(string: "pulpe://add-expense")!) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 44))
+                    .foregroundStyle(.tint)
+            }
+            .accessibilityLabel("Ajouter une dépense")
+        }
     }
 
     @ViewBuilder

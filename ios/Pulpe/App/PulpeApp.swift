@@ -3,6 +3,7 @@ import WidgetKit
 
 enum DeepLinkDestination: Hashable {
     case addExpense(budgetId: String?)
+    case viewBudget(budgetId: String)
 }
 
 @main
@@ -27,13 +28,16 @@ struct PulpeApp: App {
     private func handleDeepLink(_ url: URL) {
         guard url.scheme == "pulpe" else { return }
 
+        let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+
         switch url.host {
         case "add-expense":
-            let budgetId = URLComponents(url: url, resolvingAgainstBaseURL: false)?
-                .queryItems?
-                .first { $0.name == "budgetId" }?
-                .value
+            let budgetId = components?.queryItems?.first { $0.name == "budgetId" }?.value
             deepLinkDestination = .addExpense(budgetId: budgetId)
+        case "budget":
+            if let budgetId = components?.queryItems?.first(where: { $0.name == "id" })?.value {
+                deepLinkDestination = .viewBudget(budgetId: budgetId)
+            }
         default:
             break
         }
@@ -95,8 +99,17 @@ struct RootView: View {
             Text("Utilisez la reconnaissance biométrique pour vous connecter plus rapidement")
         }
         .onChange(of: deepLinkDestination) { _, newValue in
-            if case .addExpense = newValue, appState.authState == .authenticated {
+            guard appState.authState == .authenticated else { return }
+
+            switch newValue {
+            case .addExpense:
                 showAddExpenseSheet = true
+            case .viewBudget(let budgetId):
+                appState.selectedTab = .budgets
+                appState.budgetPath.append(BudgetDestination.details(budgetId: budgetId))
+                deepLinkDestination = nil
+            case nil:
+                break
             }
         }
         .sheet(isPresented: $showAddExpenseSheet) {
