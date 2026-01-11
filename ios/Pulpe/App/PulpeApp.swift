@@ -98,23 +98,29 @@ struct RootView: View {
         } message: {
             Text("Utilisez la reconnaissance biométrique pour vous connecter plus rapidement")
         }
-        .onChange(of: deepLinkDestination) { _, newValue in
-            guard appState.authState == .authenticated else { return }
-
-            switch newValue {
-            case .addExpense:
-                deepLinkDestination = nil
-                showAddExpenseSheet = true
-            case .viewBudget(let budgetId):
-                deepLinkDestination = nil
-                appState.selectedTab = .budgets
-                appState.budgetPath.append(BudgetDestination.details(budgetId: budgetId))
-            case nil:
-                break
-            }
+        .onChange(of: deepLinkDestination) { _, _ in
+            handlePendingDeepLink()
+        }
+        .onChange(of: appState.authState) { _, _ in
+            handlePendingDeepLink()
         }
         .sheet(isPresented: $showAddExpenseSheet) {
             DeepLinkAddExpenseSheet()
+        }
+    }
+
+    private func handlePendingDeepLink() {
+        guard appState.authState == .authenticated,
+              let destination = deepLinkDestination else { return }
+
+        deepLinkDestination = nil
+
+        switch destination {
+        case .addExpense:
+            showAddExpenseSheet = true
+        case .viewBudget(let budgetId):
+            appState.selectedTab = .budgets
+            appState.budgetPath.append(BudgetDestination.details(budgetId: budgetId))
         }
     }
 }
