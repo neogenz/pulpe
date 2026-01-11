@@ -2,6 +2,7 @@ export const ROUTES = {
   HOME: '',
   WELCOME: 'welcome',
   LOGIN: 'login',
+  SIGNUP: 'signup',
   APP: 'app',
   CURRENT_MONTH: 'current-month',
   COMPLETE_PROFILE: 'complete-profile',
@@ -17,6 +18,7 @@ export const ROUTES = {
 // Titres de pages pour la TitleStrategy
 export const PAGE_TITLES = {
   LOGIN: 'Connexion',
+  SIGNUP: 'Créer un compte',
   DASHBOARD: 'Dashboard',
   CURRENT_MONTH: 'Mois en cours',
   COMPLETE_PROFILE: 'Finaliser mon profil',

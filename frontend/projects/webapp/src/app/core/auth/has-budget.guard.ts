@@ -25,8 +25,8 @@ export const hasBudgetGuard: CanActivateFn = async () => {
 
     return true;
   } catch {
-    // On error, allow navigation (don't block user)
-    // The actual page will handle any API errors
-    return true;
+    // On error (API failure or validation error), redirect to complete-profile
+    // A new user without budgets should be redirected to setup, not shown errors
+    return router.createUrlTree(['/', ROUTES.APP, ROUTES.COMPLETE_PROFILE]);
   }
 };
