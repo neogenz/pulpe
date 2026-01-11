@@ -103,18 +103,17 @@ struct RootView: View {
 
             switch newValue {
             case .addExpense:
+                deepLinkDestination = nil
                 showAddExpenseSheet = true
             case .viewBudget(let budgetId):
+                deepLinkDestination = nil
                 appState.selectedTab = .budgets
                 appState.budgetPath.append(BudgetDestination.details(budgetId: budgetId))
-                deepLinkDestination = nil
             case nil:
                 break
             }
         }
         .sheet(isPresented: $showAddExpenseSheet) {
-            deepLinkDestination = nil
-        } content: {
             DeepLinkAddExpenseSheet()
         }
     }

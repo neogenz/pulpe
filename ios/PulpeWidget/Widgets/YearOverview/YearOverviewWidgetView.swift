@@ -19,7 +19,7 @@ struct YearOverviewWidgetView: View {
             LazyVGrid(columns: columns, spacing: 8) {
                 ForEach(entry.months) { month in
                     if month.hasBudget {
-                        Link(destination: URL(string: "pulpe://budget?id=\(month.id)")!) {
+                        Link(destination: DeepLinks.budget(id: month.id)) {
                             monthCell(month)
                         }
                     } else {
@@ -60,7 +60,7 @@ struct YearOverviewWidgetView: View {
 
             Spacer()
 
-            Link(destination: URL(string: "pulpe://add-expense")!) {
+            Link(destination: DeepLinks.addExpense) {
                 Image(systemName: "plus.circle.fill")
                     .font(.system(size: 44))
                     .foregroundStyle(.tint)

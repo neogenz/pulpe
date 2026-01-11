@@ -30,7 +30,9 @@ struct YearOverviewProvider: TimelineProvider {
             return nil
         }
 
-        let currentMonth = Calendar.current.component(.month, from: Date())
+        let now = Date()
+        let currentMonth = Calendar.current.component(.month, from: now)
+        let currentYear = Calendar.current.component(.year, from: now)
 
         let months = cache.yearBudgets.map { budget in
             MonthData(
@@ -38,7 +40,7 @@ struct YearOverviewProvider: TimelineProvider {
                 month: budget.month,
                 shortName: budget.shortMonthName,
                 available: budget.available,
-                isCurrentMonth: budget.month == currentMonth
+                isCurrentMonth: budget.month == currentMonth && budget.year == currentYear
             )
         }
 

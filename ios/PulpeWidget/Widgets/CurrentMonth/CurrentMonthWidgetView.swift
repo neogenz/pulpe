@@ -47,7 +47,7 @@ struct CurrentMonthWidgetView: View {
 
             Spacer()
 
-            Link(destination: URL(string: "pulpe://add-expense")!) {
+            Link(destination: DeepLinks.addExpense) {
                 Image(systemName: "plus.circle.fill")
                     .font(.system(size: 32))
                     .foregroundStyle(.tint)
@@ -85,7 +85,7 @@ struct CurrentMonthWidgetView: View {
 
             Spacer()
 
-            Link(destination: URL(string: "pulpe://add-expense")!) {
+            Link(destination: DeepLinks.addExpense) {
                 Image(systemName: "plus.circle.fill")
                     .font(.system(size: 44))
                     .foregroundStyle(.tint)

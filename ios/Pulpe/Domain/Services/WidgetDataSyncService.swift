@@ -76,7 +76,7 @@ actor WidgetDataSyncService {
                 id: budget?.id ?? "placeholder-\(month)-\(year)",
                 month: month,
                 year: year,
-                available: budget?.remaining ?? 0,
+                available: budget?.remaining,
                 monthName: monthName,
                 isCurrentMonth: month == currentMonth
             )

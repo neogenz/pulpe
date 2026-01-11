@@ -33,7 +33,7 @@ struct CurrentMonthProvider: TimelineProvider {
 
         return CurrentMonthEntry(
             date: cache.lastUpdated,
-            available: currentMonth.available,
+            available: currentMonth.available ?? 0,
             monthName: currentMonth.monthName,
             budgetId: currentMonth.id,
             hasData: true
