@@ -17,6 +17,7 @@ import {
   MatSelectModule,
 } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { Logger } from '@core/logging/logger';
 import { UserSettingsApi } from '@core/user-settings';
 import { PAY_DAY_MAX } from 'pulpe-shared';
 
@@ -139,6 +140,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class SettingsPage {
+  readonly #logger = inject(Logger);
   readonly #userSettingsApi = inject(UserSettingsApi);
   readonly #snackBar = inject(MatSnackBar);
 
@@ -175,7 +177,8 @@ export default class SettingsPage {
         horizontalPosition: 'center',
         verticalPosition: 'bottom',
       });
-    } catch {
+    } catch (error) {
+      this.#logger.error('Failed to save settings', error);
       this.#snackBar.open('Erreur lors de la sauvegarde', 'OK', {
         duration: 5000,
         horizontalPosition: 'center',
