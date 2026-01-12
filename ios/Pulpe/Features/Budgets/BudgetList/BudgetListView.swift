@@ -5,6 +5,7 @@ struct BudgetListView: View {
     @State private var viewModel = BudgetListViewModel()
     @State private var showCreateBudget = false
     @State private var hasAppeared = false
+    @State private var expandedYears: Set<Int> = []
 
     var body: some View {
         Group {
@@ -49,6 +50,9 @@ struct BudgetListView: View {
         }
         .task {
             await viewModel.loadBudgets()
+            // Expand only the current year by default
+            let currentYear = Date().year
+            expandedYears = [currentYear]
             withAnimation(.easeOut(duration: 0.4).delay(0.1)) {
                 hasAppeared = true
             }
@@ -70,15 +74,26 @@ struct BudgetListView: View {
 
     private var budgetList: some View {
         ScrollView {
-            LazyVStack(spacing: 28) {
+            LazyVStack(spacing: 20) {
                 ForEach(Array(viewModel.groupedByYear.enumerated()), id: \.element.year) { index, group in
                     YearSection(
                         year: group.year,
                         budgets: group.budgets,
-                        appearDelay: Double(index) * 0.08
-                    ) { budget in
-                        appState.budgetPath.append(BudgetDestination.details(budgetId: budget.id))
-                    }
+                        isExpanded: expandedYears.contains(group.year),
+                        appearDelay: Double(index) * 0.08,
+                        onToggle: {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                if expandedYears.contains(group.year) {
+                                    expandedYears.remove(group.year)
+                                } else {
+                                    expandedYears.insert(group.year)
+                                }
+                            }
+                        },
+                        onSelect: { budget in
+                            appState.budgetPath.append(BudgetDestination.details(budgetId: budget.id))
+                        }
+                    )
                     .opacity(hasAppeared ? 1 : 0)
                     .offset(y: hasAppeared ? 0 : 20)
                     .animation(
@@ -100,7 +115,9 @@ struct BudgetListView: View {
 struct YearSection: View {
     let year: Int
     let budgets: [Budget]
+    let isExpanded: Bool
     var appearDelay: Double = 0
+    let onToggle: () -> Void
     let onSelect: (Budget) -> Void
 
     @State private var cardsAppeared = false
@@ -109,15 +126,33 @@ struct YearSection: View {
         year == Date().year
     }
 
+    private var isPastYear: Bool {
+        year < Date().year
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
             yearHeader
 
-            monthGrid
+            if isExpanded {
+                monthGrid
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
         }
         .onAppear {
-            withAnimation(.easeOut(duration: 0.3).delay(appearDelay + 0.15)) {
-                cardsAppeared = true
+            if isExpanded {
+                withAnimation(.easeOut(duration: 0.3).delay(appearDelay + 0.15)) {
+                    cardsAppeared = true
+                }
+            }
+        }
+        .onChange(of: isExpanded) { _, newValue in
+            if newValue {
+                withAnimation(.easeOut(duration: 0.3)) {
+                    cardsAppeared = true
+                }
+            } else {
+                cardsAppeared = false
             }
         }
     }
@@ -125,30 +160,41 @@ struct YearSection: View {
     // MARK: - Year Header
 
     private var yearHeader: some View {
-        HStack(alignment: .center, spacing: 10) {
-            Text(String(year))
-                .font(.system(.title2, design: .rounded, weight: .bold))
-                .foregroundStyle(.primary)
+        Button(action: onToggle) {
+            HStack(alignment: .center, spacing: 10) {
+                // Chevron indicator
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .rotationEffect(.degrees(isExpanded ? 90 : 0))
 
-            if isCurrentYear {
-                Text("En cours")
-                    .font(.caption2)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(Color.pulpePrimary)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.pulpePrimary.opacity(0.12), in: Capsule())
+                Text(String(year))
+                    .font(.system(.title3, design: .rounded, weight: .bold))
+                    .foregroundStyle(isPastYear ? .secondary : .primary)
+
+                if isCurrentYear {
+                    Text("En cours")
+                        .font(.caption2)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(Color.pulpePrimary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.pulpePrimary.opacity(0.12), in: Capsule())
+                }
+
+                Spacer()
+
+                // Budget count badge
+                let budgetCount = budgets.count
+                Text("\(budgetCount) budget\(budgetCount > 1 ? "s" : "")")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
             }
-
-            Spacer()
-
-            // Budget count badge
-            let budgetCount = budgets.count
-            Text("\(budgetCount) budget\(budgetCount > 1 ? "s" : "")")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            .padding(.vertical, 8)
+            .padding(.horizontal, 4)
+            .contentShape(Rectangle())
         }
-        .padding(.horizontal, 4)
+        .buttonStyle(.plain)
     }
 
     // MARK: - Month Grid
@@ -237,9 +283,6 @@ struct BudgetMonthCard: View {
                         .font(.system(.caption, design: .rounded, weight: .medium))
                         .foregroundStyle(displayColor)
                 }
-
-                // Status indicator
-                statusIndicator
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
@@ -287,22 +330,6 @@ struct BudgetMonthCard: View {
                     : Color(.separator).opacity(0.3),
                 lineWidth: budget.isCurrentMonth ? 1.5 : 0.5
             )
-    }
-
-    // MARK: - Status Indicator
-
-    private var statusIndicator: some View {
-        HStack(spacing: 3) {
-            Circle()
-                .fill(displayColor)
-                .frame(width: 6, height: 6)
-
-            if budget.isCurrentMonth {
-                Text("Actif")
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(Color.pulpePrimary)
-            }
-        }
     }
 
     // MARK: - Remaining Status
@@ -353,11 +380,6 @@ struct EmptyMonthCard: View {
             Text("—")
                 .font(.caption)
                 .foregroundStyle(.quaternary)
-
-            // Empty placeholder for alignment
-            Circle()
-                .fill(.clear)
-                .frame(width: 6, height: 6)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)
@@ -393,7 +415,7 @@ final class BudgetListViewModel {
     var groupedByYear: [YearGroup] {
         let grouped = Dictionary(grouping: budgets) { $0.year }
         return grouped
-            .sorted { $0.key > $1.key }
+            .sorted { $0.key < $1.key } // Oldest first, newest last
             .map { year, budgets in
                 YearGroup(year: year, budgets: budgets.sorted { $0.month < $1.month })
             }
