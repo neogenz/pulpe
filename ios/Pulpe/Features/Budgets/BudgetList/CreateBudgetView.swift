@@ -7,6 +7,7 @@ struct CreateBudgetView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: CreateBudgetViewModel
+    @State private var hasAppeared = false
 
     init(month: Int, year: Int, onCreate: @escaping (Budget) -> Void) {
         self.month = month
@@ -17,57 +18,35 @@ struct CreateBudgetView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                // Month display
-                Section {
-                    HStack {
-                        Image(systemName: "calendar")
-                            .foregroundStyle(Color.accentColor)
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Period header card
+                    periodCard
+                        .opacity(hasAppeared ? 1 : 0)
+                        .offset(y: hasAppeared ? 0 : 15)
 
-                        Text(viewModel.monthYearFormatted)
-                            .font(.headline)
-                    }
-                } header: {
-                    Text("Période")
-                }
+                    // Template selection
+                    templateSection
+                        .opacity(hasAppeared ? 1 : 0)
+                        .offset(y: hasAppeared ? 0 : 15)
 
-                // Template selection
-                Section {
-                    if viewModel.isLoadingTemplates {
-                        HStack {
-                            ProgressView()
-                            Text("Chargement des modèles...")
-                                .foregroundStyle(.secondary)
-                        }
-                    } else if viewModel.templates.isEmpty {
-                        Text("Aucun modèle disponible")
-                            .foregroundStyle(.secondary)
-                    } else {
-                        ForEach(viewModel.templates) { template in
-                            TemplateSelectionRow(
-                                template: template,
-                                totals: viewModel.templateTotals[template.id],
-                                isSelected: viewModel.selectedTemplateId == template.id
-                            ) {
-                                viewModel.selectedTemplateId = template.id
-                            }
-                        }
-                    }
-                } header: {
-                    Text("Modèle")
-                } footer: {
-                    Text("Le budget sera créé à partir du modèle sélectionné")
-                }
-
-                // Error
-                if let error = viewModel.error {
-                    Section {
+                    // Error display
+                    if let error = viewModel.error {
                         ErrorBanner(message: error.localizedDescription) {
                             viewModel.error = nil
                         }
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .top).combined(with: .opacity),
+                            removal: .opacity
+                        ))
                     }
                 }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 32)
             }
+            .scrollIndicators(.hidden)
+            .background(Color(.systemGroupedBackground))
             .navigationTitle("Nouveau budget")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -75,21 +54,183 @@ struct CreateBudgetView: View {
                     Button("Annuler") {
                         dismiss()
                     }
+                    .foregroundStyle(.secondary)
                 }
 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Créer") {
-                        Task { await createBudget() }
-                    }
-                    .disabled(!viewModel.canCreate)
+                    createButton
                 }
             }
             .loadingOverlay(viewModel.isCreating, message: "Création...")
             .task {
                 await viewModel.loadTemplates()
+                withAnimation(.easeOut(duration: 0.4).delay(0.1)) {
+                    hasAppeared = true
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+        .presentationCornerRadius(24)
+        .presentationBackground(Color(.systemGroupedBackground))
+    }
+
+    // MARK: - Create Button
+
+    private var createButton: some View {
+        Button {
+            Task { await createBudget() }
+        } label: {
+            Text("Créer")
+                .fontWeight(.semibold)
+        }
+        .disabled(!viewModel.canCreate)
+    }
+
+    // MARK: - Period Card
+
+    private var periodCard: some View {
+        HStack(spacing: 16) {
+            // Calendar icon with gradient background
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.pulpePrimary.opacity(0.15), Color.pulpePrimary.opacity(0.08)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 52, height: 52)
+
+                Image(systemName: "calendar")
+                    .font(.system(size: 22, weight: .medium))
+                    .foregroundStyle(Color.pulpePrimary)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Période du budget")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Text(viewModel.monthYearFormatted)
+                    .font(.system(.title3, design: .rounded, weight: .semibold))
+                    .foregroundStyle(.primary)
+            }
+
+            Spacer()
+
+            // Month indicator badge
+            Text(String(format: "%02d/%d", month, year))
+                .font(.system(.caption, design: .monospaced, weight: .medium))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color(.tertiarySystemGroupedBackground), in: Capsule())
+        }
+        .padding(16)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.lg))
+        .shadow(DesignTokens.Shadow.subtle)
+    }
+
+    // MARK: - Template Section
+
+    private var templateSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Section header
+            HStack {
+                Text("Choisir un modèle")
+                    .font(.system(.headline, design: .rounded, weight: .semibold))
+
+                Spacer()
+
+                if viewModel.isLoadingTemplates {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                }
+            }
+            .padding(.horizontal, 4)
+
+            // Template list
+            if viewModel.isLoadingTemplates && viewModel.templates.isEmpty {
+                loadingTemplates
+            } else if viewModel.templates.isEmpty {
+                emptyTemplates
+            } else {
+                templateList
+            }
+
+            // Footer hint
+            Text("Le budget sera créé avec les prévisions du modèle sélectionné")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+                .padding(.horizontal, 4)
+                .padding(.top, 4)
+        }
+    }
+
+    // MARK: - Loading Templates
+
+    private var loadingTemplates: some View {
+        VStack(spacing: 12) {
+            ForEach(0..<2, id: \.self) { _ in
+                RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
+                    .fill(Color(.tertiarySystemGroupedBackground))
+                    .frame(height: 80)
+                    .shimmering()
             }
         }
     }
+
+    // MARK: - Empty Templates
+
+    private var emptyTemplates: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "doc.text.magnifyingglass")
+                .font(.system(size: 32))
+                .foregroundStyle(.tertiary)
+
+            Text("Aucun modèle disponible")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            Text("Créez d'abord un modèle dans l'onglet Modèles")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 32)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
+    }
+
+    // MARK: - Template List
+
+    private var templateList: some View {
+        VStack(spacing: 10) {
+            ForEach(Array(viewModel.templates.enumerated()), id: \.element.id) { index, template in
+                TemplateSelectionCard(
+                    template: template,
+                    totals: viewModel.templateTotals[template.id],
+                    isSelected: viewModel.selectedTemplateId == template.id
+                ) {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        viewModel.selectedTemplateId = template.id
+                    }
+                }
+                .opacity(hasAppeared ? 1 : 0)
+                .offset(y: hasAppeared ? 0 : 10)
+                .animation(
+                    .spring(response: 0.4, dampingFraction: 0.8).delay(Double(index) * 0.05 + 0.15),
+                    value: hasAppeared
+                )
+            }
+        }
+    }
+
+    // MARK: - Actions
 
     private func createBudget() async {
         if let budget = await viewModel.createBudget() {
@@ -99,54 +240,185 @@ struct CreateBudgetView: View {
     }
 }
 
-// MARK: - Template Row
+// MARK: - Template Selection Card
 
-struct TemplateSelectionRow: View {
+struct TemplateSelectionCard: View {
     let template: BudgetTemplate
     let totals: BudgetFormulas.TemplateTotals?
     let isSelected: Bool
     let onSelect: () -> Void
 
+    @State private var isPressed = false
+
     var body: some View {
         Button(action: onSelect) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
+            HStack(spacing: 14) {
+                // Selection indicator
+                selectionIndicator
+
+                // Template info
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 8) {
                         Text(template.name)
-                            .font(.subheadline)
-                            .fontWeight(.medium)
+                            .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                            .foregroundStyle(.primary)
 
                         if template.isDefaultTemplate {
-                            Text("Par défaut")
-                                .font(.caption2)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.accentColor.opacity(0.15), in: Capsule())
-                                .foregroundStyle(Color.accentColor)
+                            defaultBadge
                         }
                     }
 
                     if let totals {
-                        HStack(spacing: 12) {
-                            Label(totals.totalIncome.asCompactCHF, systemImage: "arrow.down")
-                                .font(.caption)
-                                .foregroundStyle(.green)
-
-                            Label(totals.totalExpenses.asCompactCHF, systemImage: "arrow.up")
-                                .font(.caption)
-                                .foregroundStyle(.red)
-                        }
+                        totalsRow(totals)
                     }
                 }
 
                 Spacer()
-
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
-                    .font(.title3)
             }
+            .padding(14)
+            .background(cardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
+            .overlay(cardBorder)
+            .shadow(isSelected ? DesignTokens.Shadow.card : DesignTokens.Shadow.subtle)
+            .scaleEffect(isPressed ? 0.98 : 1)
+            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isPressed)
         }
         .buttonStyle(.plain)
+        .onLongPressGesture(minimumDuration: .infinity, pressing: { pressing in
+            isPressed = pressing
+        }, perform: {})
+    }
+
+    // MARK: - Selection Indicator
+
+    private var selectionIndicator: some View {
+        ZStack {
+            Circle()
+                .strokeBorder(isSelected ? Color.pulpePrimary : Color(.separator), lineWidth: 2)
+                .frame(width: 24, height: 24)
+
+            if isSelected {
+                Circle()
+                    .fill(Color.pulpePrimary)
+                    .frame(width: 14, height: 14)
+                    .transition(.scale.combined(with: .opacity))
+            }
+        }
+        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isSelected)
+    }
+
+    // MARK: - Default Badge
+
+    private var defaultBadge: some View {
+        Text("Par défaut")
+            .font(.system(size: 10, weight: .semibold))
+            .foregroundStyle(Color.pulpePrimary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(Color.pulpePrimary.opacity(0.12), in: Capsule())
+    }
+
+    // MARK: - Totals Row
+
+    private func totalsRow(_ totals: BudgetFormulas.TemplateTotals) -> some View {
+        HStack(spacing: 16) {
+            HStack(spacing: 4) {
+                Image(systemName: "arrow.down.circle.fill")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color.financialIncome)
+
+                Text(totals.totalIncome.asCompactCHF)
+                    .font(.system(.caption, design: .rounded, weight: .medium))
+                    .foregroundStyle(Color.financialIncome)
+            }
+
+            HStack(spacing: 4) {
+                Image(systemName: "arrow.up.circle.fill")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color.financialExpense)
+
+                Text(totals.totalExpenses.asCompactCHF)
+                    .font(.system(.caption, design: .rounded, weight: .medium))
+                    .foregroundStyle(Color.financialExpense)
+            }
+
+            // Balance indicator
+            HStack(spacing: 4) {
+                Image(systemName: totals.balance >= 0 ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                    .font(.system(size: 12))
+                    .foregroundStyle(totals.balance >= 0 ? Color.financialSavings : .red)
+
+                Text(totals.balance.asCompactCHF)
+                    .font(.system(.caption, design: .rounded, weight: .medium))
+                    .foregroundStyle(totals.balance >= 0 ? Color.financialSavings : .red)
+            }
+        }
+    }
+
+    // MARK: - Card Background
+
+    @ViewBuilder
+    private var cardBackground: some View {
+        if isSelected {
+            LinearGradient(
+                colors: [
+                    Color.pulpePrimary.opacity(0.06),
+                    Color.pulpePrimary.opacity(0.02)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        } else {
+            Color(.secondarySystemGroupedBackground)
+        }
+    }
+
+    // MARK: - Card Border
+
+    private var cardBorder: some View {
+        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
+            .stroke(
+                isSelected ? Color.pulpePrimary.opacity(0.4) : Color(.separator).opacity(0.2),
+                lineWidth: isSelected ? 1.5 : 0.5
+            )
+    }
+}
+
+// MARK: - Shimmer Effect
+
+extension View {
+    @ViewBuilder
+    func shimmering() -> some View {
+        self.modifier(ShimmerModifier())
+    }
+}
+
+private struct ShimmerModifier: ViewModifier {
+    @State private var phase: CGFloat = 0
+
+    func body(content: Content) -> some View {
+        content
+            .overlay(
+                GeometryReader { geometry in
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0),
+                            Color.white.opacity(0.3),
+                            Color.white.opacity(0)
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                    .frame(width: geometry.size.width * 0.6)
+                    .offset(x: phase * geometry.size.width * 1.6 - geometry.size.width * 0.3)
+                }
+            )
+            .mask(content)
+            .onAppear {
+                withAnimation(.linear(duration: 1.5).repeatForever(autoreverses: false)) {
+                    phase = 1
+                }
+            }
     }
 }
 
@@ -233,7 +505,9 @@ final class CreateBudgetViewModel {
     }
 }
 
-#Preview {
+// MARK: - Preview
+
+#Preview("Create Budget") {
     CreateBudgetView(month: 1, year: 2025) { budget in
         print("Created: \(budget)")
     }
