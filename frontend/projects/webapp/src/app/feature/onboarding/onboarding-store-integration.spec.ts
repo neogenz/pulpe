@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { OnboardingStore } from './onboarding-store';
 import { AuthApi } from '@core/auth/auth-api';
@@ -36,6 +36,7 @@ const createMockBudgetResponse = (
 // Mock des dépendances API
 const mockAuthApi = {
   signUpWithEmail: vi.fn(),
+  isAuthenticated: signal(false).asReadonly(),
 };
 
 const mockTemplateApi = {

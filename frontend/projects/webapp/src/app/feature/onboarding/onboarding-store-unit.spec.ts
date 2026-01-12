@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { provideZonelessChangeDetection } from '@angular/core';
+import {
+  provideZonelessChangeDetection,
+  signal,
+  type Signal,
+} from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { OnboardingStore } from './onboarding-store';
 import { AuthApi } from '@core/auth/auth-api';
@@ -10,7 +14,7 @@ import {
 import { TemplateApi } from '@core/template/template-api';
 import { OnboardingApi } from './services/onboarding-api';
 import { NavigationEnd, Router } from '@angular/router';
-import { Subject, of, throwError } from 'rxjs'; // Import Subject and observables
+import { Subject, of, throwError } from 'rxjs';
 import { provideHttpClient } from '@angular/common/http';
 
 describe('OnboardingStore - Unit Tests', () => {
@@ -35,6 +39,7 @@ describe('OnboardingStore - Unit Tests', () => {
   let store: OnboardingStore;
   let mockAuthApi: {
     signUpWithEmail: ReturnType<typeof vi.fn>;
+    isAuthenticated: Signal<boolean>;
   };
   let mockBudgetApi: {
     createBudget$: ReturnType<typeof vi.fn>;
@@ -57,6 +62,7 @@ describe('OnboardingStore - Unit Tests', () => {
     // Create mocks
     mockAuthApi = {
       signUpWithEmail: vi.fn(),
+      isAuthenticated: signal(false).asReadonly(),
     };
     mockBudgetApi = {
       createBudget$: vi.fn(),
