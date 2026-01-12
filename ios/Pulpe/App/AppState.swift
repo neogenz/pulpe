@@ -64,7 +64,6 @@ final class AppState {
 
     // MARK: - Actions
 
-    @MainActor
     func checkAuthState() async {
         authState = .loading
 
@@ -89,7 +88,6 @@ final class AppState {
         }
     }
 
-    @MainActor
     func login(email: String, password: String) async throws {
         let user = try await authService.login(email: email, password: password)
         currentUser = user
@@ -102,7 +100,6 @@ final class AppState {
         }
     }
 
-    @MainActor
     func logout() async {
         await authService.logout()
         currentUser = nil
@@ -119,7 +116,6 @@ final class AppState {
         selectedTab = .currentMonth
     }
 
-    @MainActor
     func completeOnboarding(user: UserInfo) {
         currentUser = user
         hasCompletedOnboarding = true
@@ -141,12 +137,10 @@ final class AppState {
         return await authService.hasBiometricTokens()
     }
 
-    @MainActor
     func retryBiometricLogin() async {
         await checkAuthState()
     }
 
-    @MainActor
     func enableBiometric() async {
         guard biometricService.canUseBiometrics() else { return }
 
@@ -158,7 +152,6 @@ final class AppState {
         }
     }
 
-    @MainActor
     func disableBiometric() async {
         await authService.clearBiometricTokens()
         biometricEnabled = false
