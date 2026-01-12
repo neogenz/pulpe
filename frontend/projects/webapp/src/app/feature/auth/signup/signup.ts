@@ -356,4 +356,5 @@ export default class Signup {
     } finally {
       this.isSubmitting.set(false);
     }
+  }
 }

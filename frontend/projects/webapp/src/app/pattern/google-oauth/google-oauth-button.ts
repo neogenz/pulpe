@@ -103,4 +103,5 @@ export class GoogleOAuthButton {
       this.isLoading.set(false);
       this.loadingChange.emit(false);
     }
+  }
 }

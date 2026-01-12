@@ -39,10 +39,10 @@ test.describe('Monthly Budget Management', () => {
     }
   });
 
-  test('should redirect to complete-profile when budget data loading fails', async ({
+  test('should allow navigation when server returns 500 (resilient behavior)', async ({
     authenticatedPage,
   }) => {
-    // Mock error response - hasBudgetGuard will redirect to complete-profile
+    // Mock error response - hasBudgetGuard allows navigation on server errors
     await authenticatedPage.route('**/api/v1/budgets**', route =>
       route.fulfill({
         status: 500,
@@ -52,8 +52,8 @@ test.describe('Monthly Budget Management', () => {
     );
 
     await authenticatedPage.goto('/app/current-month');
-    // Should be redirected to complete-profile page
-    await expect(authenticatedPage).toHaveURL(/complete-profile/);
+    // Guard allows navigation on 500 errors (resilient behavior)
+    await expect(authenticatedPage).toHaveURL(/current-month/);
     await expect(authenticatedPage.locator('body')).toBeVisible();
   });
 
