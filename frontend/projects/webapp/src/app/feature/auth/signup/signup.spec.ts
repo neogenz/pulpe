@@ -300,12 +300,12 @@ describe('Signup', () => {
       );
     });
 
-    it('should not reset isSubmitting on success (navigation happens)', async () => {
+    it('should reset isSubmitting after signUp completes (finally block)', async () => {
       mockAuthApi.signUpWithEmail.mockResolvedValue({ success: true });
 
       await component['signUp']();
 
-      expect(component['isSubmitting']()).toBe(true);
+      expect(component['isSubmitting']()).toBe(false);
     });
   });
 

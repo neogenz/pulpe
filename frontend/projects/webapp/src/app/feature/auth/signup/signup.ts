@@ -347,13 +347,13 @@ export default class Signup {
         this.errorMessage.set(
           result.error || 'Erreur lors de la création du compte.',
         );
-        this.isSubmitting.set(false);
       }
     } catch (error) {
       this.#logger.error('Erreur lors de la création du compte:', error);
       this.errorMessage.set(
         "Une erreur inattendue s'est produite. Veuillez réessayer.",
       );
+    } finally {
       this.isSubmitting.set(false);
     }
   }

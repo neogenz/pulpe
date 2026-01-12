@@ -103,12 +103,12 @@ describe('GoogleOAuthButton', () => {
       expect(errorEmitSpy).not.toHaveBeenCalled();
     });
 
-    it('should not reset isLoading on success (OAuth redirect)', async () => {
+    it('should reset isLoading after signInWithGoogle completes (finally block)', async () => {
       mockAuthApi.signInWithGoogle.mockResolvedValue({ success: true });
 
       await component.signInWithGoogle();
 
-      expect(component.isLoading()).toBe(true);
+      expect(component.isLoading()).toBe(false);
     });
   });
 
