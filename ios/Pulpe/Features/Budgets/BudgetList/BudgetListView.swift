@@ -136,7 +136,7 @@ struct YearSection: View {
 
             if isExpanded {
                 monthGrid
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .transition(.opacity)
             }
         }
         .onAppear {
@@ -152,7 +152,9 @@ struct YearSection: View {
                     cardsAppeared = true
                 }
             } else {
-                cardsAppeared = false
+                withAnimation(.easeIn(duration: 0.15)) {
+                    cardsAppeared = false
+                }
             }
         }
     }
