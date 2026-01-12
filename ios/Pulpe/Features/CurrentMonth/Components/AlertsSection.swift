@@ -37,7 +37,7 @@ struct AlertsSection: View {
                 HStack {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundStyle(.orange)
-                    Text("Catégories à surveiller")
+                    Text("Dépenses à surveiller")
                         .font(.subheadline)
                         .fontWeight(.semibold)
                 }

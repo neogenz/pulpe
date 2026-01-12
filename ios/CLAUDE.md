@@ -52,7 +52,7 @@ cd .. && pnpm dev:backend
 | `BudgetLine` | Catégorie / Ligne budgétaire |
 | `Transaction` (allocated) | Transaction liée à une catégorie |
 | `Transaction` (free) | Transaction libre |
-| `checkedAt != nil` | Transaction pointée |
+| `checkedAt != nil` | Transaction comptabilisée |
 
 ## Critical Files
 

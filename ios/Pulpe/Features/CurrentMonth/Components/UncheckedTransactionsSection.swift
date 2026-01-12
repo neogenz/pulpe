@@ -16,7 +16,7 @@ struct UncheckedTransactionsSection: View {
 
                 Button(action: onTapViewBudget) {
                     HStack {
-                        Text("Pointer dans le budget")
+                        Text("Comptabiliser dans le budget")
                             .font(.subheadline)
                             .fontWeight(.medium)
                         Spacer()
@@ -29,7 +29,7 @@ struct UncheckedTransactionsSection: View {
                 HStack(spacing: 6) {
                     Image(systemName: "clock.arrow.circlepath")
                         .foregroundStyle(.orange)
-                    Text("À pointer")
+                    Text("À comptabiliser")
                         .font(.subheadline)
                         .fontWeight(.semibold)
                 }

@@ -69,7 +69,7 @@ struct RealizedBalanceSheet: View {
             .clipShape(Capsule())
 
             // Completion info
-            Text("Basé sur \(realizedMetrics.checkedItemsCount) éléments pointés sur \(realizedMetrics.totalItemsCount)")
+            Text("Basé sur \(realizedMetrics.checkedItemsCount) éléments comptabilisés sur \(realizedMetrics.totalItemsCount)")
                 .font(.caption)
                 .foregroundStyle(Color.textTertiary)
         }
@@ -141,7 +141,7 @@ struct RealizedBalanceSheet: View {
                     .font(.subheadline)
                     .fontWeight(.semibold)
 
-                Text("Comparez ce solde avec votre compte bancaire. S'il y a un écart, vérifiez que toutes vos dépenses sont bien pointées.")
+                Text("Comparez ce solde avec votre compte bancaire. S'il y a un écart, vérifiez que toutes vos dépenses sont bien comptabilisées.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
