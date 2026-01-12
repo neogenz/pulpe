@@ -9,6 +9,7 @@ import {
 import { type Observable, firstValueFrom, throwError } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
 import { ApplicationConfiguration } from '../config/application-configuration';
+import { AuthApi } from '../auth/auth-api';
 import { Logger } from '../logging/logger';
 
 /**
@@ -23,19 +24,21 @@ import { Logger } from '../logging/logger';
 export class UserSettingsApi {
   readonly #httpClient = inject(HttpClient);
   readonly #applicationConfig = inject(ApplicationConfiguration);
+  readonly #authApi = inject(AuthApi);
   readonly #logger = inject(Logger);
 
-  /**
-   * Signal to trigger settings reload
-   */
   readonly #reloadTrigger = signal(0);
 
-  /**
-   * Resource for loading user settings
-   */
-  readonly #settingsResource = resource<UserSettings, number>({
-    params: () => this.#reloadTrigger(),
-    loader: async () => this.#loadSettings(),
+  readonly #settingsResource = resource<
+    UserSettings | null,
+    { isAuthenticated: boolean; trigger: number }
+  >({
+    params: () => ({
+      isAuthenticated: this.#authApi.isAuthenticated(),
+      trigger: this.#reloadTrigger(),
+    }),
+    loader: async ({ params }) =>
+      params.isAuthenticated ? this.#loadSettings() : null,
   });
 
   get #apiUrl(): string {
