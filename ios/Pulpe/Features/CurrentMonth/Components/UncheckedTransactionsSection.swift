@@ -78,17 +78,6 @@ private struct UncheckedTransactionRow: View {
     }
 }
 
-// MARK: - Transaction extension for signed amount
-
-private extension Transaction {
-    var signedAmount: Decimal {
-        switch kind {
-        case .income: amount
-        case .expense, .saving: -amount
-        }
-    }
-}
-
 #Preview {
     List {
         UncheckedTransactionsSection(

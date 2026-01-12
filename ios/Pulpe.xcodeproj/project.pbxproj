@@ -43,6 +43,7 @@
 		4491DFC84F384660F238F4F8 /* BudgetTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27F72011B11153235E828030 /* BudgetTemplate.swift */; };
 		48DC27FC8EC7FE2633017934 /* EnhancedSpotlightMask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23D69C043EF1D43D50CB5490 /* EnhancedSpotlightMask.swift */; };
 		4A0D647CD0FC9FA613122423 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = E1ED9277251CACDC297FEFA3 /* LaunchScreen.storyboard */; };
+		4AE5D0489770F91DC072D500 /* Transaction+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4090237752EF9DF63F659AA /* Transaction+Extensions.swift */; };
 		4D613852DBBBCCEF9960A4C5 /* PulpeWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = B157DB64FA5B4252F58D08EF /* PulpeWidgetBundle.swift */; };
 		52E9A1293AA9DD073BBB6D77 /* RecentTransactionsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A73FC67CE08CBE1E23B7251 /* RecentTransactionsSection.swift */; };
 		547E46730E438D89507B7693 /* CreateTemplateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94DA9F16798B6DC1691A2DB8 /* CreateTemplateView.swift */; };
@@ -102,6 +103,7 @@
 		CE62EAA27CA668035390137F /* AccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EB719150BD8F123D596C901 /* AccountView.swift */; };
 		CFC21993371F1E2553931AC2 /* RealizedBalanceSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20D3CD9F4165D2DBB8ED8DC1 /* RealizedBalanceSheet.swift */; };
 		D089B1AD077036EE44E5F027 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02D25BA5A5074D1D86441DDC /* AppConfiguration.swift */; };
+		D16C982314DE3DBF6A8C62ED /* Transaction+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4090237752EF9DF63F659AA /* Transaction+Extensions.swift */; };
 		D189B4BF576DC1596EF13C66 /* BudgetProgressBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = B628F99B27B621909E09CF7D /* BudgetProgressBar.swift */; };
 		D198ADB48C9C0E11C90BF235 /* PulpeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F24CDAB50DD41CF603A787D2 /* PulpeApp.swift */; };
 		D6933C7FF2F6CE51966FB2FB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4AD1FCFD448FFC39ED3DEEE8 /* Assets.xcassets */; };
@@ -217,6 +219,7 @@
 		9E56340C03DD8EE1F7DF7638 /* BudgetService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetService.swift; sourceTree = "<group>"; };
 		A1A0EA391775C63723A83BF3 /* LoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingView.swift; sourceTree = "<group>"; };
 		A40110A09E6DF69EDAD88EFA /* PulpeWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = PulpeWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		A4090237752EF9DF63F659AA /* Transaction+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Transaction+Extensions.swift"; sourceTree = "<group>"; };
 		A77FEC48FC6CEA8465118A09 /* ToastManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastManager.swift; sourceTree = "<group>"; };
 		A97A17DE833B65153924BB0A /* BudgetLineService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetLineService.swift; sourceTree = "<group>"; };
 		A9E904C52E1E5F2BF3E1EB84 /* PersonalInfoStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalInfoStep.swift; sourceTree = "<group>"; };
@@ -408,6 +411,7 @@
 				6E4F47F7A88B6744CA6D788C /* Color+Pulpe.swift */,
 				BF72C3AFECE05BCF77785C5F /* Date+Extensions.swift */,
 				3BE2934837CC4349E12F1EE2 /* Decimal+Extensions.swift */,
+				A4090237752EF9DF63F659AA /* Transaction+Extensions.swift */,
 				E7A8C7ACFFD4118A786F4A2C /* View+Extensions.swift */,
 			);
 			path = Extensions;
@@ -872,6 +876,7 @@
 				401748FBC2FA450B43CAF432 /* Formatters.swift in Sources */,
 				6CEA4A81B6B02D7395FEFAED /* LinkedTransactionsContext.swift in Sources */,
 				4D613852DBBBCCEF9960A4C5 /* PulpeWidgetBundle.swift in Sources */,
+				D16C982314DE3DBF6A8C62ED /* Transaction+Extensions.swift in Sources */,
 				BB4950D1CAE5CD80802EEA21 /* Transaction.swift in Sources */,
 				6DA0F437C7AF227F27F83082 /* TransactionEnums.swift in Sources */,
 				C8FCFDF15A7AE0AD6F385F87 /* WidgetDataCoordinator.swift in Sources */,
@@ -962,6 +967,7 @@
 				0157030A5AF0AA8ED66650F2 /* TemplateService.swift in Sources */,
 				01C708D90EF921ADC8F0E663 /* ToastManager.swift in Sources */,
 				CA928317D4CABA7414102C73 /* ToastView.swift in Sources */,
+				4AE5D0489770F91DC072D500 /* Transaction+Extensions.swift in Sources */,
 				94CAF603E4F31F628C48B76C /* Transaction.swift in Sources */,
 				337582D8464C681222B2141F /* TransactionEnums.swift in Sources */,
 				2E0E70844EE2D8F27D02C720 /* TransactionService.swift in Sources */,

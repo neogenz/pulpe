@@ -6,9 +6,7 @@ struct RecentTransactionsSection: View {
     let onTapViewAll: () -> Void
 
     var body: some View {
-        if transactions.isEmpty { return AnyView(EmptyView()) }
-
-        return AnyView(
+        if !transactions.isEmpty {
             Section {
                 ForEach(transactions) { transaction in
                     RecentTransactionRow(transaction: transaction)
@@ -31,7 +29,7 @@ struct RecentTransactionsSection: View {
                     .fontWeight(.semibold)
                     .textCase(nil)
             }
-        )
+        }
     }
 }
 
@@ -73,17 +71,6 @@ private struct RecentTransactionRow: View {
                 .foregroundStyle(transaction.kind.color)
         }
         .padding(.vertical, 4)
-    }
-}
-
-// MARK: - Transaction extension for signed amount
-
-private extension Transaction {
-    var signedAmount: Decimal {
-        switch kind {
-        case .income: amount
-        case .expense, .saving: -amount
-        }
     }
 }
 
