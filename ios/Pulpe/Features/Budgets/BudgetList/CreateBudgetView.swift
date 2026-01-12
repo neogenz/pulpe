@@ -287,6 +287,9 @@ struct TemplateSelectionCard: View {
         .onLongPressGesture(minimumDuration: .infinity, pressing: { pressing in
             isPressed = pressing
         }, perform: {})
+        .accessibilityLabel("\(template.name)\(template.isDefaultTemplate ? ", modèle par défaut" : "")")
+        .accessibilityHint(isSelected ? "Sélectionné" : "Appuyer pour sélectionner")
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 
     // MARK: - Selection Indicator
@@ -424,7 +427,7 @@ private struct ShimmerModifier: ViewModifier {
 
 // MARK: - ViewModel
 
-@Observable
+@Observable @MainActor
 final class CreateBudgetViewModel {
     let month: Int
     let year: Int
@@ -453,17 +456,24 @@ final class CreateBudgetViewModel {
         selectedTemplateId != nil && !isCreating && !isLoadingTemplates
     }
 
-    @MainActor
     func loadTemplates() async {
         isLoadingTemplates = true
 
         do {
             templates = try await templateService.getAllTemplates()
 
-            // Load totals for each template
-            for template in templates {
-                let lines = try await templateService.getTemplateLines(templateId: template.id)
-                templateTotals[template.id] = BudgetFormulas.calculateTemplateTotals(lines: lines)
+            // Load totals for each template in parallel
+            await withTaskGroup(of: (String, BudgetFormulas.TemplateTotals?).self) { group in
+                for template in templates {
+                    group.addTask {
+                        let lines = try? await self.templateService.getTemplateLines(templateId: template.id)
+                        let totals = lines.map { BudgetFormulas.calculateTemplateTotals(lines: $0) }
+                        return (template.id, totals)
+                    }
+                }
+                for await (id, totals) in group {
+                    if let totals { self.templateTotals[id] = totals }
+                }
             }
 
             // Auto-select default template
@@ -479,7 +489,6 @@ final class CreateBudgetViewModel {
         isLoadingTemplates = false
     }
 
-    @MainActor
     func createBudget() async -> Budget? {
         guard let templateId = selectedTemplateId else { return nil }
 

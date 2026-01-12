@@ -68,6 +68,7 @@ struct BudgetListView: View {
             Image(systemName: "plus")
         }
         .disabled(viewModel.nextAvailableMonth == nil)
+        .accessibilityLabel("Créer un nouveau budget")
     }
 
     // MARK: - Budget List
@@ -197,6 +198,8 @@ struct YearSection: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("Année \(year), \(budgets.count) budget\(budgets.count > 1 ? "s" : "")")
+        .accessibilityHint(isExpanded ? "Appuyer pour réduire" : "Appuyer pour développer")
     }
 
     // MARK: - Month Grid
@@ -248,12 +251,7 @@ struct BudgetMonthCard: View {
 
     /// Check if this budget month is in the past
     private var isPastMonth: Bool {
-        let now = Date()
-        let currentYear = now.year
-        let currentMonth = now.month
-        if budget.year < currentYear { return true }
-        if budget.year == currentYear && budget.month < currentMonth { return true }
-        return false
+        Date.isPast(month: budget.month, year: budget.year)
     }
 
     private var remainingStatus: RemainingStatus {
@@ -301,6 +299,9 @@ struct BudgetMonthCard: View {
         .onLongPressGesture(minimumDuration: .infinity, pressing: { pressing in
             isPressed = pressing
         }, perform: {})
+        .accessibilityLabel("\(monthName), solde \(budget.remaining?.asCompactCHF ?? "non défini")")
+        .accessibilityHint("Appuyer pour voir les détails")
+        .accessibilityAddTraits(.isButton)
     }
 
     // MARK: - Card Background
@@ -362,15 +363,11 @@ struct EmptyMonthCard: View {
     }
 
     private var isPast: Bool {
-        let now = Date()
-        if year < now.year { return true }
-        if year == now.year && month < now.month { return true }
-        return false
+        Date.isPast(month: month, year: year)
     }
 
     private var isCurrent: Bool {
-        let now = Date()
-        return year == now.year && month == now.month
+        Date.isCurrent(month: month, year: year)
     }
 
     var body: some View {
@@ -396,12 +393,14 @@ struct EmptyMonthCard: View {
                 )
         )
         .opacity(isPast ? 0.5 : 1)
+        .accessibilityLabel("\(monthName), aucun budget")
+        .accessibilityAddTraits(.isStaticText)
     }
 }
 
 // MARK: - ViewModel
 
-@Observable
+@Observable @MainActor
 final class BudgetListViewModel {
     private(set) var budgets: [Budget] = []
     private(set) var isLoading = false
@@ -427,7 +426,6 @@ final class BudgetListViewModel {
         budgetService.getNextAvailableMonth(existingBudgets: budgets)
     }
 
-    @MainActor
     func loadBudgets() async {
         isLoading = true
         error = nil
