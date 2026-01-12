@@ -99,8 +99,8 @@ export class GoogleOAuthButton {
     } catch (err) {
       this.#logger.error('Google OAuth error', err);
       this.authError.emit(AUTH_ERROR_MESSAGES.GOOGLE_CONNECTION_ERROR);
+    } finally {
       this.isLoading.set(false);
       this.loadingChange.emit(false);
     }
-  }
 }
