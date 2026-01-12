@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>app.pulpe.ios.widget-refresh</string>
+	</array>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
@@ -37,9 +41,9 @@
 	<true/>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Utilisez Face ID pour vous connecter rapidement et en toute sécurité.</string>
-	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<key>UIBackgroundModes</key>
 	<array>
-		<string>app.pulpe.ios.widget-refresh</string>
+		<string>fetch</string>
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>

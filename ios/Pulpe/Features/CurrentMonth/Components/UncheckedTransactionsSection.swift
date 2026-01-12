@@ -6,9 +6,7 @@ struct UncheckedTransactionsSection: View {
     let onTapViewBudget: () -> Void
 
     var body: some View {
-        if transactions.isEmpty { return AnyView(EmptyView()) }
-
-        return AnyView(
+        if !transactions.isEmpty {
             Section {
                 ForEach(transactions) { transaction in
                     UncheckedTransactionRow(transaction: transaction)
@@ -35,7 +33,7 @@ struct UncheckedTransactionsSection: View {
                 }
                 .textCase(nil)
             }
-        )
+        }
     }
 }
 

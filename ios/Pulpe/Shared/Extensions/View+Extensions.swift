@@ -71,25 +71,6 @@ extension View {
     }
 }
 
-// MARK: - Navigation Extensions
-
-extension View {
-    /// Navigate to destination when binding is true
-    func navigate<Destination: View>(
-        isActive: Binding<Bool>,
-        @ViewBuilder destination: () -> Destination
-    ) -> some View {
-        background(
-            NavigationLink(
-                destination: destination(),
-                isActive: isActive,
-                label: { EmptyView() }
-            )
-            .hidden()
-        )
-    }
-}
-
 // MARK: - Alert Extensions
 
 extension View {
@@ -129,15 +110,13 @@ extension View {
     }
 }
 
-// MARK: - iOS 26 Scroll Edge Effect
+// MARK: - Scroll Edge Effect
 
 extension View {
     @ViewBuilder
     func applyScrollEdgeEffect() -> some View {
-        if #available(iOS 26, *) {
-            self.scrollEdgeEffectStyle(.soft, for: .top)
-        } else {
-            self
-        }
+        // scrollEdgeEffectStyle is a future iOS API - this is a no-op placeholder
+        // When the API becomes available, update the availability check
+        self
     }
 }

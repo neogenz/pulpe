@@ -124,7 +124,7 @@ struct CurrentMonthView: View {
 
 // MARK: - ViewModel
 
-@Observable
+@Observable @MainActor
 final class CurrentMonthViewModel {
     private(set) var budget: Budget?
     private(set) var budgetLines: [BudgetLine] = []
@@ -415,4 +415,5 @@ final class CurrentMonthViewModel {
     NavigationStack {
         CurrentMonthView()
     }
+    .environment(AppState())
 }

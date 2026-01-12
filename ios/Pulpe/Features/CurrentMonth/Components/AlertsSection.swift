@@ -6,9 +6,7 @@ struct AlertsSection: View {
     let onTapViewBudget: () -> Void
 
     var body: some View {
-        if alerts.isEmpty { return AnyView(EmptyView()) }
-
-        return AnyView(
+        if !alerts.isEmpty {
             Section {
                 VStack(alignment: .leading, spacing: 12) {
                     ForEach(alerts.prefix(3), id: \.line.id) { alert in
@@ -43,7 +41,7 @@ struct AlertsSection: View {
                 }
                 .textCase(nil)
             }
-        )
+        }
     }
 }
 

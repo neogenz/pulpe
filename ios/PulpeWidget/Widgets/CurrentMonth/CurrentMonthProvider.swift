@@ -25,6 +25,13 @@ struct CurrentMonthProvider: TimelineProvider {
         completion(timeline)
     }
 
+    func relevance(of entry: CurrentMonthEntry) -> TimelineEntryRelevance? {
+        guard entry.hasData else { return nil }
+        return entry.available < 0
+            ? TimelineEntryRelevance(score: 1.0)
+            : TimelineEntryRelevance(score: 0.5)
+    }
+
     private func loadEntry() -> CurrentMonthEntry? {
         guard let cache = coordinator.load(),
               let currentMonth = cache.currentMonth else {

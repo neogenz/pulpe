@@ -92,6 +92,8 @@ targets:
           - CFBundleURLSchemes:
               - pulpe
             CFBundleURLName: app.pulpe.ios
+        UIBackgroundModes:
+          - fetch
         BGTaskSchedulerPermittedIdentifiers:
           - app.pulpe.ios.widget-refresh
 

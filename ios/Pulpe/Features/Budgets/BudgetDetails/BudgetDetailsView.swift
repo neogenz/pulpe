@@ -212,7 +212,7 @@ struct BudgetDetailsView: View {
 
 // MARK: - ViewModel
 
-@Observable
+@Observable @MainActor
 final class BudgetDetailsViewModel {
     let budgetId: String
 

@@ -5,7 +5,13 @@ struct WidgetDataCoordinator: Sendable {
     private static let cacheKey = "widget_budget_cache"
 
     private var sharedDefaults: UserDefaults? {
-        UserDefaults(suiteName: Self.appGroupId)
+        guard let defaults = UserDefaults(suiteName: Self.appGroupId) else {
+            #if DEBUG
+            print("WidgetDataCoordinator: CRITICAL - Failed to create UserDefaults for App Group '\(Self.appGroupId)'")
+            #endif
+            return nil
+        }
+        return defaults
     }
 
     @discardableResult

@@ -1,7 +1,13 @@
 import SwiftUI
 import WidgetKit
 
-@Observable
+private enum UserDefaultsKey {
+    static let onboardingCompleted = "pulpe-onboarding-completed"
+    static let tutorialCompleted = "pulpe-tutorial-completed"
+    static let biometricEnabled = "pulpe-biometric-enabled"
+}
+
+@Observable @MainActor
 final class AppState {
     // MARK: - Auth State
 
@@ -22,12 +28,12 @@ final class AppState {
 
     // MARK: - Onboarding & Tutorial
 
-    var hasCompletedOnboarding: Bool = UserDefaults.standard.bool(forKey: "pulpe-onboarding-completed") {
-        didSet { UserDefaults.standard.set(hasCompletedOnboarding, forKey: "pulpe-onboarding-completed") }
+    var hasCompletedOnboarding: Bool = UserDefaults.standard.bool(forKey: UserDefaultsKey.onboardingCompleted) {
+        didSet { UserDefaults.standard.set(hasCompletedOnboarding, forKey: UserDefaultsKey.onboardingCompleted) }
     }
 
-    private var tutorialCompleted: Bool = UserDefaults.standard.bool(forKey: "pulpe-tutorial-completed") {
-        didSet { UserDefaults.standard.set(tutorialCompleted, forKey: "pulpe-tutorial-completed") }
+    private var tutorialCompleted: Bool = UserDefaults.standard.bool(forKey: UserDefaultsKey.tutorialCompleted) {
+        didSet { UserDefaults.standard.set(tutorialCompleted, forKey: UserDefaultsKey.tutorialCompleted) }
     }
 
     var showTutorial: Bool {
@@ -36,8 +42,8 @@ final class AppState {
 
     // MARK: - Biometric
 
-    var biometricEnabled: Bool = UserDefaults.standard.bool(forKey: "pulpe-biometric-enabled") {
-        didSet { UserDefaults.standard.set(biometricEnabled, forKey: "pulpe-biometric-enabled") }
+    var biometricEnabled: Bool = UserDefaults.standard.bool(forKey: UserDefaultsKey.biometricEnabled) {
+        didSet { UserDefaults.standard.set(biometricEnabled, forKey: UserDefaultsKey.biometricEnabled) }
     }
 
     var showBiometricEnrollment = false
