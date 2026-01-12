@@ -441,14 +441,14 @@ private struct RolloverInfoRow: View {
 
     private var isPositive: Bool { amount >= 0 }
 
+    @ViewBuilder
     var body: some View {
-        Button {
-            onTap?()
-        } label: {
+        if let onTap {
+            Button(action: onTap) { content }
+                .buttonStyle(.plain)
+        } else {
             content
         }
-        .buttonStyle(.plain)
-        .disabled(onTap == nil)
     }
 
     private var content: some View {
@@ -479,6 +479,12 @@ private struct RolloverInfoRow: View {
             RoundedRectangle(cornerRadius: 12)
                 .fill((isPositive ? Color.green : Color.red).opacity(0.08))
         )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Report du mois précédent")
+        .accessibilityValue("\(isPositive ? "Excédent" : "Déficit") de \(amount.asCHF)")
+        .ifLet(onTap) { view, _ in
+            view.accessibilityHint("Appuyez deux fois pour voir le budget précédent")
+        }
     }
 }
 
