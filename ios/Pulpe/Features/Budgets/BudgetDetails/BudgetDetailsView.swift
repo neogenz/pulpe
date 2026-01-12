@@ -37,6 +37,7 @@ struct BudgetDetailsView: View {
                 } label: {
                     Image(systemName: "plus")
                 }
+                .accessibilityLabel("Ajouter une prévision")
             }
         }
         .task {
@@ -306,7 +307,6 @@ final class BudgetDetailsViewModel {
         }
     }
 
-    @MainActor
     func loadDetails() async {
         isLoading = true
         error = nil
@@ -323,7 +323,6 @@ final class BudgetDetailsViewModel {
         isLoading = false
     }
 
-    @MainActor
     func toggleBudgetLine(_ line: BudgetLine) async {
         guard !(line.isRollover ?? false) else { return }
         guard !syncingBudgetLineIds.contains(line.id) else { return }
@@ -346,7 +345,6 @@ final class BudgetDetailsViewModel {
         syncingBudgetLineIds.remove(line.id)
     }
 
-    @MainActor
     func toggleTransaction(_ transaction: Transaction) async {
         guard !syncingTransactionIds.contains(transaction.id) else { return }
 
@@ -368,7 +366,6 @@ final class BudgetDetailsViewModel {
         syncingTransactionIds.remove(transaction.id)
     }
 
-    @MainActor
     func deleteTransaction(_ transaction: Transaction) async {
         // Optimistic update
         let originalTransactions = transactions
@@ -382,17 +379,14 @@ final class BudgetDetailsViewModel {
         }
     }
 
-    @MainActor
     func addTransaction(_ transaction: Transaction) {
         transactions.append(transaction)
     }
 
-    @MainActor
     func addBudgetLine(_ budgetLine: BudgetLine) {
         budgetLines.append(budgetLine)
     }
 
-    @MainActor
     func deleteBudgetLine(_ line: BudgetLine) async {
         guard !(line.isRollover ?? false) else { return }
 
@@ -408,7 +402,6 @@ final class BudgetDetailsViewModel {
         }
     }
 
-    @MainActor
     func updateBudgetLine(_ line: BudgetLine) async {
         guard !(line.isRollover ?? false) else { return }
 
@@ -421,7 +414,6 @@ final class BudgetDetailsViewModel {
         await loadDetails()
     }
 
-    @MainActor
     func updateTransaction(_ transaction: Transaction) async {
         // Optimistic update
         if let index = transactions.firstIndex(where: { $0.id == transaction.id }) {
