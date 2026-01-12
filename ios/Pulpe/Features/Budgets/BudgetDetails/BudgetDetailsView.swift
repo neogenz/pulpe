@@ -2,6 +2,7 @@ import SwiftUI
 
 struct BudgetDetailsView: View {
     let budgetId: String
+    @Environment(AppState.self) private var appState
     @State private var viewModel: BudgetDetailsViewModel
     @State private var selectedLineForTransaction: BudgetLine?
     @State private var showAddBudgetLine = false
@@ -97,18 +98,15 @@ struct BudgetDetailsView: View {
             .listRowBackground(Color.clear)
 
             // Rollover section (toujours en premier)
-            if let rollover = viewModel.rolloverLine {
-                BudgetSection(
-                    title: "Report du mois précédent",
-                    items: [rollover],
-                    transactions: viewModel.transactions,
-                    syncingIds: viewModel.syncingBudgetLineIds,
-                    onToggle: { _ in },
-                    onDelete: { _ in },
-                    onAddTransaction: { _ in },
-                    onLongPress: { _, _ in },
-                    onEdit: { _ in }
+            if let rolloverInfo = viewModel.rolloverInfo {
+                RolloverInfoRow(
+                    amount: rolloverInfo.amount,
+                    onTap: rolloverInfo.previousBudgetId.map { id in
+                        { appState.budgetPath.append(BudgetDestination.details(budgetId: id)) }
+                    }
                 )
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                .listRowBackground(Color.clear)
             }
 
             // Income section
@@ -281,15 +279,11 @@ final class BudgetDetailsViewModel {
             .sorted { $0.transactionDate > $1.transactionDate }
     }
 
-    var rolloverLine: BudgetLine? {
+    var rolloverInfo: (amount: Decimal, previousBudgetId: String?)? {
         guard let budget, let rollover = budget.rollover, rollover != 0 else {
             return nil
         }
-        return BudgetLine.rolloverLine(
-            amount: rollover,
-            budgetId: budget.id,
-            sourceBudgetId: budget.previousBudgetId
-        )
+        return (amount: rollover, previousBudgetId: budget.previousBudgetId)
     }
 
     /// Filters budget lines by name or by linked transaction names (accent and case insensitive)
@@ -436,6 +430,55 @@ final class BudgetDetailsViewModel {
 
         // Reload to sync with server
         await loadDetails()
+    }
+}
+
+// MARK: - Rollover Info Row
+
+private struct RolloverInfoRow: View {
+    let amount: Decimal
+    let onTap: (() -> Void)?
+
+    private var isPositive: Bool { amount >= 0 }
+
+    var body: some View {
+        Button {
+            onTap?()
+        } label: {
+            content
+        }
+        .buttonStyle(.plain)
+        .disabled(onTap == nil)
+    }
+
+    private var content: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "arrow.uturn.backward.circle.fill")
+                .font(.title2)
+                .foregroundStyle(isPositive ? .green : .red)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Report du mois précédent")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.primary)
+                Text(isPositive ? "Excédent reporté" : "Déficit reporté")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Text(amount.asCHF)
+                .font(.headline)
+                .fontWeight(.semibold)
+                .foregroundStyle(isPositive ? .green : .red)
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill((isPositive ? Color.green : Color.red).opacity(0.08))
+        )
     }
 }
 
