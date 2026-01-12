@@ -16,7 +16,9 @@ struct WidgetDataCoordinator: Sendable {
             defaults.set(data, forKey: Self.cacheKey)
             return true
         } catch {
+            #if DEBUG
             print("WidgetDataCoordinator: Failed to encode cache - \(error)")
+            #endif
             return false
         }
     }
@@ -27,7 +29,9 @@ struct WidgetDataCoordinator: Sendable {
         do {
             return try JSONDecoder().decode(WidgetDataCache.self, from: data)
         } catch {
+            #if DEBUG
             print("WidgetDataCoordinator: Failed to decode cache - \(error)")
+            #endif
             return nil
         }
     }

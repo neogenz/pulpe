@@ -26,7 +26,9 @@ actor BackgroundTaskService {
         do {
             try BGTaskScheduler.shared.submit(request)
         } catch {
+            #if DEBUG
             print("BackgroundTaskService: Failed to schedule widget refresh - \(error)")
+            #endif
         }
     }
 

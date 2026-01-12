@@ -190,9 +190,11 @@ final class BudgetListViewModel {
 
     var groupedByYear: [YearGroup] {
         let grouped = Dictionary(grouping: budgets) { $0.year }
-        return grouped.keys.sorted(by: >).map { year in
-            YearGroup(year: year, budgets: grouped[year]!.sorted { $0.month < $1.month })
-        }
+        return grouped
+            .sorted { $0.key > $1.key }
+            .map { year, budgets in
+                YearGroup(year: year, budgets: budgets.sorted { $0.month < $1.month })
+            }
     }
 
     var nextAvailableMonth: (month: Int, year: Int)? {
