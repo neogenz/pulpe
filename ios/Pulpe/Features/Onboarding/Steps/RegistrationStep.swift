@@ -5,6 +5,11 @@ struct RegistrationStep: View {
     let onComplete: (UserInfo) -> Void
 
     @State private var showPassword = false
+    @State private var showPasswordConfirmation = false
+
+    private var passwordMismatch: Bool {
+        !state.passwordConfirmation.isEmpty && state.password != state.passwordConfirmation
+    }
 
     var body: some View {
         OnboardingStepView(
@@ -30,10 +35,10 @@ struct RegistrationStep: View {
                     .autocorrectionDisabled()
                     .padding()
                     .background(.background)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
+                            .stroke(Color.inputBorder, lineWidth: 1)
                     )
                 }
 
@@ -66,15 +71,57 @@ struct RegistrationStep: View {
                     .textContentType(.newPassword)
                     .padding()
                     .background(.background)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
+                            .stroke(Color.inputBorder, lineWidth: 1)
                     )
 
                     Text("Minimum 8 caractères")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                }
+
+                // Password confirmation
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Confirmer le mot de passe")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+
+                    HStack {
+                        if showPasswordConfirmation {
+                            TextField("••••••••", text: Binding(
+                                get: { state.passwordConfirmation },
+                                set: { state.passwordConfirmation = $0 }
+                            ))
+                        } else {
+                            SecureField("••••••••", text: Binding(
+                                get: { state.passwordConfirmation },
+                                set: { state.passwordConfirmation = $0 }
+                            ))
+                        }
+
+                        Button {
+                            showPasswordConfirmation.toggle()
+                        } label: {
+                            Image(systemName: showPasswordConfirmation ? "eye.slash" : "eye")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .textContentType(.newPassword)
+                    .padding()
+                    .background(.background)
+                    .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.md)
+                            .stroke(passwordMismatch ? Color.red : Color.inputBorder, lineWidth: 1)
+                    )
+
+                    if passwordMismatch {
+                        Text("Les mots de passe ne correspondent pas")
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
                 }
 
                 // Terms acceptance

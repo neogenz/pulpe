@@ -45,7 +45,7 @@ struct FinancialSummaryCard: View {
                     Text("CHF")
                         .font(.subheadline)
                         .fontWeight(.regular)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(Color.textTertiary)
 
                     Text(amount.formatted(.number.grouping(.automatic)))
                         .font(.title2)

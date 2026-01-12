@@ -21,7 +21,7 @@ struct SectionHeader: View {
                 .foregroundStyle(.white)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 3)
-                .background(Color(.systemGray3))
+                .background(Color.countBadge)
                 .clipShape(Capsule())
 
             Spacer()

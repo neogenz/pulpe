@@ -1,6 +1,13 @@
 import SwiftUI
+import WidgetKit
 
-@Observable
+private enum UserDefaultsKey {
+    static let onboardingCompleted = "pulpe-onboarding-completed"
+    static let tutorialCompleted = "pulpe-tutorial-completed"
+    static let biometricEnabled = "pulpe-biometric-enabled"
+}
+
+@Observable @MainActor
 final class AppState {
     // MARK: - Auth State
 
@@ -21,12 +28,12 @@ final class AppState {
 
     // MARK: - Onboarding & Tutorial
 
-    var hasCompletedOnboarding: Bool = UserDefaults.standard.bool(forKey: "pulpe-onboarding-completed") {
-        didSet { UserDefaults.standard.set(hasCompletedOnboarding, forKey: "pulpe-onboarding-completed") }
+    var hasCompletedOnboarding: Bool = UserDefaults.standard.bool(forKey: UserDefaultsKey.onboardingCompleted) {
+        didSet { UserDefaults.standard.set(hasCompletedOnboarding, forKey: UserDefaultsKey.onboardingCompleted) }
     }
 
-    private var tutorialCompleted: Bool = UserDefaults.standard.bool(forKey: "pulpe-tutorial-completed") {
-        didSet { UserDefaults.standard.set(tutorialCompleted, forKey: "pulpe-tutorial-completed") }
+    private var tutorialCompleted: Bool = UserDefaults.standard.bool(forKey: UserDefaultsKey.tutorialCompleted) {
+        didSet { UserDefaults.standard.set(tutorialCompleted, forKey: UserDefaultsKey.tutorialCompleted) }
     }
 
     var showTutorial: Bool {
@@ -35,8 +42,8 @@ final class AppState {
 
     // MARK: - Biometric
 
-    var biometricEnabled: Bool = UserDefaults.standard.bool(forKey: "pulpe-biometric-enabled") {
-        didSet { UserDefaults.standard.set(biometricEnabled, forKey: "pulpe-biometric-enabled") }
+    var biometricEnabled: Bool = UserDefaults.standard.bool(forKey: UserDefaultsKey.biometricEnabled) {
+        didSet { UserDefaults.standard.set(biometricEnabled, forKey: UserDefaultsKey.biometricEnabled) }
     }
 
     var showBiometricEnrollment = false
@@ -57,7 +64,6 @@ final class AppState {
 
     // MARK: - Actions
 
-    @MainActor
     func checkAuthState() async {
         authState = .loading
 
@@ -82,7 +88,6 @@ final class AppState {
         }
     }
 
-    @MainActor
     func login(email: String, password: String) async throws {
         let user = try await authService.login(email: email, password: password)
         currentUser = user
@@ -95,12 +100,15 @@ final class AppState {
         }
     }
 
-    @MainActor
     func logout() async {
         await authService.logout()
         currentUser = nil
         authState = .unauthenticated
         biometricEnabled = false
+
+        // Clear sensitive widget data
+        WidgetDataCoordinator().clear()
+        WidgetCenter.shared.reloadAllTimelines()
 
         // Reset navigation
         budgetPath = NavigationPath()
@@ -108,7 +116,6 @@ final class AppState {
         selectedTab = .currentMonth
     }
 
-    @MainActor
     func completeOnboarding(user: UserInfo) {
         currentUser = user
         hasCompletedOnboarding = true
@@ -130,12 +137,10 @@ final class AppState {
         return await authService.hasBiometricTokens()
     }
 
-    @MainActor
     func retryBiometricLogin() async {
         await checkAuthState()
     }
 
-    @MainActor
     func enableBiometric() async {
         guard biometricService.canUseBiometrics() else { return }
 
@@ -147,7 +152,6 @@ final class AppState {
         }
     }
 
-    @MainActor
     func disableBiometric() async {
         await authService.clearBiometricTokens()
         biometricEnabled = false

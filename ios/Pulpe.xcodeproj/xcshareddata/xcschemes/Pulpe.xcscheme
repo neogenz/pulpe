@@ -21,6 +21,20 @@
                ReferencedContainer = "container:Pulpe.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "07BEE599D482CF9B6643DCEB"
+               BuildableName = "PulpeWidget.appex"
+               BlueprintName = "PulpeWidget"
+               ReferencedContainer = "container:Pulpe.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction

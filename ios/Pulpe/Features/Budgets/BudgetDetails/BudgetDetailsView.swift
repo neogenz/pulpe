@@ -8,6 +8,7 @@ struct BudgetDetailsView: View {
     @State private var linkedTransactionsContext: LinkedTransactionsContext?
     @State private var selectedBudgetLineForEdit: BudgetLine?
     @State private var selectedTransactionForEdit: Transaction?
+    @State private var searchText = ""
 
     init(budgetId: String) {
         self.budgetId = budgetId
@@ -79,7 +80,12 @@ struct BudgetDetailsView: View {
     }
 
     private var content: some View {
-        List {
+        let filteredIncome = viewModel.filteredLines(viewModel.incomeLines, searchText: searchText)
+        let filteredExpenses = viewModel.filteredLines(viewModel.expenseLines, searchText: searchText)
+        let filteredSavings = viewModel.filteredLines(viewModel.savingLines, searchText: searchText)
+        let filteredFree = viewModel.filteredFreeTransactions(searchText: searchText)
+
+        return List {
             // Hero balance card (Revolut-style)
             Section {
                 HeroBalanceCard(
@@ -91,10 +97,10 @@ struct BudgetDetailsView: View {
             .listRowBackground(Color.clear)
 
             // Income section
-            if !viewModel.incomeLines.isEmpty {
+            if !filteredIncome.isEmpty {
                 BudgetSection(
                     title: "Revenus",
-                    items: viewModel.incomeLines,
+                    items: filteredIncome,
                     transactions: viewModel.transactions,
                     syncingIds: viewModel.syncingBudgetLineIds,
                     onToggle: { line in
@@ -119,10 +125,10 @@ struct BudgetDetailsView: View {
             }
 
             // Expense section
-            if !viewModel.expenseLines.isEmpty {
+            if !filteredExpenses.isEmpty {
                 BudgetSection(
                     title: "Dépenses",
-                    items: viewModel.expenseLines,
+                    items: filteredExpenses,
                     transactions: viewModel.transactions,
                     syncingIds: viewModel.syncingBudgetLineIds,
                     onToggle: { line in
@@ -147,10 +153,10 @@ struct BudgetDetailsView: View {
             }
 
             // Saving section
-            if !viewModel.savingLines.isEmpty {
+            if !filteredSavings.isEmpty {
                 BudgetSection(
                     title: "Épargne",
-                    items: viewModel.savingLines,
+                    items: filteredSavings,
                     transactions: viewModel.transactions,
                     syncingIds: viewModel.syncingBudgetLineIds,
                     onToggle: { line in
@@ -175,10 +181,10 @@ struct BudgetDetailsView: View {
             }
 
             // Free transactions
-            if !viewModel.freeTransactions.isEmpty {
+            if !filteredFree.isEmpty {
                 TransactionSection(
                     title: "Transactions libres",
-                    transactions: viewModel.freeTransactions,
+                    transactions: filteredFree,
                     syncingIds: viewModel.syncingTransactionIds,
                     onToggle: { transaction in
                         Task { await viewModel.toggleTransaction(transaction) }
@@ -200,12 +206,13 @@ struct BudgetDetailsView: View {
         .refreshable {
             await viewModel.loadDetails()
         }
+        .searchable(text: $searchText, prompt: "Rechercher...")
     }
 }
 
 // MARK: - ViewModel
 
-@Observable
+@Observable @MainActor
 final class BudgetDetailsViewModel {
     let budgetId: String
 
@@ -236,19 +243,47 @@ final class BudgetDetailsViewModel {
     }
 
     var incomeLines: [BudgetLine] {
-        budgetLines.filter { $0.kind == .income }
+        budgetLines
+            .filter { $0.kind == .income }
+            .sorted { $0.createdAt > $1.createdAt }
     }
 
     var expenseLines: [BudgetLine] {
-        budgetLines.filter { $0.kind == .expense }
+        budgetLines
+            .filter { $0.kind == .expense }
+            .sorted { $0.createdAt > $1.createdAt }
     }
 
     var savingLines: [BudgetLine] {
-        budgetLines.filter { $0.kind == .saving }
+        budgetLines
+            .filter { $0.kind == .saving }
+            .sorted { $0.createdAt > $1.createdAt }
     }
 
     var freeTransactions: [Transaction] {
-        transactions.filter { $0.budgetLineId == nil }
+        transactions
+            .filter { $0.budgetLineId == nil }
+            .sorted { $0.transactionDate > $1.transactionDate }
+    }
+
+    /// Filters budget lines by name or by linked transaction names (accent and case insensitive)
+    func filteredLines(_ lines: [BudgetLine], searchText: String) -> [BudgetLine] {
+        guard !searchText.isEmpty else { return lines }
+        return lines.filter { line in
+            line.name.localizedStandardContains(searchText) ||
+                transactions.contains {
+                    $0.budgetLineId == line.id &&
+                        $0.name.localizedStandardContains(searchText)
+                }
+        }
+    }
+
+    /// Filters free transactions by name (accent and case insensitive)
+    func filteredFreeTransactions(searchText: String) -> [Transaction] {
+        guard !searchText.isEmpty else { return freeTransactions }
+        return freeTransactions.filter {
+            $0.name.localizedStandardContains(searchText)
+        }
     }
 
     @MainActor

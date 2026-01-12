@@ -115,7 +115,7 @@ struct LinkedTransactionsSheet: View {
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(Color(.systemGray5))
+                        .fill(Color.progressTrack)
 
                     Capsule()
                         .fill(progressColor)
@@ -145,7 +145,7 @@ struct LinkedTransactionsSheet: View {
 
                 Text("Ajoutez une transaction pour suivre vos dépenses")
                     .font(.subheadline)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(Color.textTertiary)
                     .multilineTextAlignment(.center)
             }
         }

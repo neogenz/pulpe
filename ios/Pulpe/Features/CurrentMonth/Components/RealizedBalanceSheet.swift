@@ -6,27 +6,27 @@ struct RealizedBalanceSheet: View {
 
     @Environment(\.dismiss) private var dismiss
 
-    private var balanceColor: Color {
-        realizedMetrics.realizedBalance >= 0 ? .financialIncome : .red
-    }
-
-    private var progressPercentage: Double {
-        realizedMetrics.completionPercentage
+    private var isPositiveBalance: Bool {
+        realizedMetrics.realizedBalance >= 0
     }
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 20) {
-                    financialOverviewSection
-                    realizedBalanceSection
-                    explanationSection
+                VStack(spacing: 24) {
+                    // Main balance card
+                    balanceCard
+
+                    // Progress comparison
+                    progressSection
+
+                    // Tip
+                    tipSection
                 }
-                .padding(.top, 8)
-                .padding(.bottom, 32)
+                .padding()
             }
             .background(Color(.systemGroupedBackground))
-            .navigationTitle("Vue d'ensemble")
+            .navigationTitle("Suivi du budget")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -40,121 +40,181 @@ struct RealizedBalanceSheet: View {
         .presentationDragIndicator(.visible)
     }
 
-    // MARK: - Financial Overview (4 cards)
+    // MARK: - Balance Card
 
-    private var financialOverviewSection: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
-                FinancialSummaryCard(
-                    title: "Revenus",
-                    amount: metrics.totalIncome,
-                    type: .income
-                )
-                .frame(width: 160)
+    private var balanceCard: some View {
+        VStack(spacing: 16) {
+            // Label
+            Text("Solde à date")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
 
-                FinancialSummaryCard(
-                    title: "Dépenses",
-                    amount: metrics.totalExpenses,
-                    type: .expense
-                )
-                .frame(width: 160)
+            // Amount
+            Text(realizedMetrics.realizedBalance.asCHF)
+                .font(.system(size: 40, weight: .bold, design: .rounded))
+                .foregroundColor(isPositiveBalance ? .primary : .red)
 
-                FinancialSummaryCard(
-                    title: "Épargne",
-                    amount: metrics.totalSavings,
-                    type: .savings
-                )
-                .frame(width: 160)
-
-                FinancialSummaryCard(
-                    title: "Disponible",
-                    amount: metrics.remaining,
-                    type: .balance
-                )
-                .frame(width: 160)
+            // Status badge
+            HStack(spacing: 6) {
+                Image(systemName: isPositiveBalance ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                    .font(.caption)
+                Text(isPositiveBalance ? "Dans les clous" : "Attention, solde négatif")
+                    .font(.caption)
+                    .fontWeight(.medium)
             }
-            .padding(.horizontal)
+            .foregroundStyle(isPositiveBalance ? .green : .red)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background((isPositiveBalance ? Color.green : Color.red).opacity(0.12))
+            .clipShape(Capsule())
+
+            // Completion info
+            Text("Basé sur \(realizedMetrics.checkedItemsCount) éléments comptabilisés sur \(realizedMetrics.totalItemsCount)")
+                .font(.caption)
+                .foregroundStyle(Color.textTertiary)
         }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 24)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
-    // MARK: - Realized Balance Section
+    // MARK: - Progress Section
 
-    private var realizedBalanceSection: some View {
-        VStack(spacing: 16) {
-            // Header with realized expenses and current balance
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Dépenses réalisées CHF")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+    private var progressSection: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Text("Prévu vs Réalisé")
+                .font(.headline)
 
-                    Text(realizedMetrics.realizedExpenses.asCHF)
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                }
+            // Income row
+            ProgressRow(
+                label: "Revenus",
+                icon: "arrow.down.circle.fill",
+                iconColor: .financialIncome,
+                realized: realizedMetrics.realizedIncome,
+                planned: metrics.totalIncome
+            )
 
-                Spacer()
+            // Expenses row
+            ProgressRow(
+                label: "Dépenses",
+                icon: "arrow.up.circle.fill",
+                iconColor: .financialExpense,
+                realized: realizedMetrics.realizedExpenses,
+                planned: metrics.totalExpenses - metrics.totalSavings
+            )
 
-                VStack(alignment: .trailing, spacing: 4) {
-                    Text("Solde actuel CHF")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+            // Savings row
+            ProgressRow(
+                label: "Épargne",
+                icon: "banknote.fill",
+                iconColor: .financialSavings,
+                realized: realizedSavings,
+                planned: metrics.totalSavings
+            )
+        }
+        .padding()
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
 
-                    Text(realizedMetrics.realizedBalance.asCHF)
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(balanceColor)
-                }
-            }
+    /// Calculate realized savings from realized metrics
+    private var realizedSavings: Decimal {
+        // Savings are part of realized expenses in the formula
+        // For simplicity, show proportion based on completion
+        let completionRatio = realizedMetrics.totalItemsCount > 0
+            ? Decimal(realizedMetrics.checkedItemsCount) / Decimal(realizedMetrics.totalItemsCount)
+            : 0
+        return metrics.totalSavings * completionRatio
+    }
 
-            // Progress bar
-            VStack(spacing: 8) {
-                GeometryReader { geometry in
-                    ZStack(alignment: .leading) {
-                        Capsule()
-                            .fill(Color(.systemGray5))
+    // MARK: - Tip Section
 
-                        Capsule()
-                            .fill(Color.pulpePrimary)
-                            .frame(width: geometry.size.width * CGFloat(min(progressPercentage / 100, 1)))
-                    }
-                }
-                .frame(height: 10)
+    private var tipSection: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "lightbulb.fill")
+                .font(.body)
+                .foregroundStyle(.yellow)
 
-                Text("\(realizedMetrics.checkedItemsCount)/\(realizedMetrics.totalItemsCount) éléments exécutés")
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Astuce")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+
+                Text("Comparez ce solde avec votre compte bancaire. S'il y a un écart, vérifiez que toutes vos dépenses sont bien comptabilisées.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
         }
         .padding()
-        .background(Color(.secondarySystemGroupedBackground))
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.yellow.opacity(0.1))
         .clipShape(RoundedRectangle(cornerRadius: 12))
-        .padding(.horizontal)
+    }
+}
+
+// MARK: - Progress Row Component
+
+private struct ProgressRow: View {
+    let label: String
+    let icon: String
+    let iconColor: Color
+    let realized: Decimal
+    let planned: Decimal
+
+    private var percentage: Double {
+        guard planned > 0 else { return 0 }
+        return min(Double(truncating: (realized / planned) as NSDecimalNumber), 1.0)
     }
 
-    // MARK: - Explanation Section
+    private var percentageText: String {
+        guard planned > 0 else { return "0%" }
+        let pct = Int((realized / planned * 100) as NSDecimalNumber)
+        return "\(min(pct, 100))%"
+    }
 
-    private var explanationSection: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "info.circle")
-                .font(.title3)
-                .foregroundStyle(.secondary)
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // Header
+            HStack {
+                Image(systemName: icon)
+                    .foregroundStyle(iconColor)
 
-            Text("Ce solde est calculé en fonction des dépenses que vous avez cochées comme effectuées. Comparez-le à votre solde bancaire pour vérifier qu'il n'y a pas d'écart.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                Text(label)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+
+                Spacer()
+
+                Text("\(realized.asCompactCHF) / \(planned.asCompactCHF)")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            // Progress bar
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Color.progressTrack)
+
+                    Capsule()
+                        .fill(iconColor)
+                        .frame(width: geometry.size.width * CGFloat(percentage))
+                }
+            }
+            .frame(height: 8)
+
+            // Percentage label
+            Text("\(percentageText) réalisé")
+                .font(.caption)
+                .foregroundStyle(Color.textTertiary)
         }
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .padding(.horizontal)
     }
 }
 
 // MARK: - Previews
 
-#Preview("Normal Balance") {
+#Preview("Positive Balance") {
     Color.clear
         .sheet(isPresented: .constant(true)) {
             RealizedBalanceSheet(

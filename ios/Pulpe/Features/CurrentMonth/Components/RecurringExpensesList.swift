@@ -14,6 +14,24 @@ struct BudgetSection: View {
 
     @State private var itemToDelete: BudgetLine?
     @State private var showDeleteAlert = false
+    @State private var isExpanded = false
+
+    private let collapsedItemCount = 3
+
+    private var displayedItems: [BudgetLine] {
+        if isExpanded || items.count <= collapsedItemCount {
+            return items
+        }
+        return Array(items.prefix(collapsedItemCount))
+    }
+
+    private var hasMoreItems: Bool {
+        items.count > collapsedItemCount
+    }
+
+    private var hiddenItemsCount: Int {
+        items.count - collapsedItemCount
+    }
 
     private var totalAmount: Decimal {
         items.reduce(0) { sum, item in
@@ -32,7 +50,7 @@ struct BudgetSection: View {
 
     var body: some View {
         Section {
-            ForEach(items) { item in
+            ForEach(displayedItems) { item in
                 BudgetLineRow(
                     line: item,
                     consumption: BudgetFormulas.calculateConsumption(for: item, transactions: transactions),
@@ -67,6 +85,24 @@ struct BudgetSection: View {
                         .tint(item.isChecked ? .orange : .pulpePrimary)
                     }
                 }
+            }
+
+            if hasMoreItems {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        isExpanded.toggle()
+                    }
+                } label: {
+                    HStack {
+                        Text(isExpanded ? "Voir moins" : "Voir plus (+\(hiddenItemsCount))")
+                            .font(.subheadline)
+                        Spacer()
+                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .listRowSeparator(.hidden)
             }
         } header: {
             SectionHeader(
@@ -119,7 +155,9 @@ struct BudgetLineRow: View {
     }
 
     private var linkedTransactions: [Transaction] {
-        allTransactions.filter { $0.budgetLineId == line.id }
+        allTransactions
+            .filter { $0.budgetLineId == line.id }
+            .sorted { $0.transactionDate > $1.transactionDate }
     }
 
     private var consumptionPercentage: Int {
@@ -149,7 +187,7 @@ struct BudgetLineRow: View {
                     } else {
                         Text(line.recurrence.label)
                             .font(.caption)
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(Color.textTertiary)
                     }
                 }
 
@@ -211,7 +249,7 @@ struct BudgetLineRow: View {
     private var kindIconCircle: some View {
         ZStack {
             Circle()
-                .fill(line.isChecked ? Color(.systemGray5) : line.kind.color.opacity(0.15))
+                .fill(line.isChecked ? Color.progressTrack : line.kind.color.opacity(DesignTokens.Opacity.badgeBackground))
                 .frame(width: 40, height: 40)
 
             if line.isChecked {
@@ -233,7 +271,7 @@ struct BudgetLineRow: View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
                 Rectangle()
-                    .fill(Color(.systemGray5))
+                    .fill(Color.progressTrack)
 
                 Rectangle()
                     .fill(consumptionColor)
@@ -241,7 +279,7 @@ struct BudgetLineRow: View {
                     .animation(.spring(duration: 0.4), value: consumption.percentage)
             }
         }
-        .frame(height: 3)
+        .frame(height: DesignTokens.ProgressBar.height)
         .clipShape(RoundedRectangle(cornerRadius: 1.5))
     }
 

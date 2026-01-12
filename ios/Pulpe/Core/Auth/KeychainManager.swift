@@ -102,9 +102,11 @@ actor KeychainManager {
 
         let status = SecItemAdd(query as CFDictionary, nil)
 
+        #if DEBUG
         if status != errSecSuccess {
             print("Keychain save error: \(status)")
         }
+        #endif
     }
 
     private func get(key: String) -> String? {
@@ -152,7 +154,9 @@ actor KeychainManager {
             .biometryCurrentSet,
             &error
         ) else {
+            #if DEBUG
             print("Keychain access control error: \(String(describing: error))")
+            #endif
             return
         }
 
@@ -166,9 +170,11 @@ actor KeychainManager {
 
         let status = SecItemAdd(query as CFDictionary, nil)
 
+        #if DEBUG
         if status != errSecSuccess {
             print("Keychain biometric save error: \(status)")
         }
+        #endif
     }
 
     private func getBiometric(key: String) throws -> String? {

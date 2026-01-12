@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 /// State for the onboarding flow
 @Observable
@@ -17,6 +18,7 @@ final class OnboardingState {
 
     var email: String = ""
     var password: String = ""
+    var passwordConfirmation: String = ""
     var acceptTerms: Bool = false
 
     // MARK: - UI State
@@ -55,8 +57,12 @@ final class OnboardingState {
         password.count >= 8
     }
 
+    var isPasswordConfirmed: Bool {
+        !passwordConfirmation.isEmpty && password == passwordConfirmation
+    }
+
     var canSubmitRegistration: Bool {
-        isFirstNameValid && isIncomeValid && isEmailValid && isPasswordValid && acceptTerms && !isLoading
+        isFirstNameValid && isIncomeValid && isEmailValid && isPasswordValid && isPasswordConfirmed && acceptTerms && !isLoading
     }
 
     var progressPercentage: Double {
@@ -218,6 +224,34 @@ enum OnboardingStep: String, CaseIterable, Identifiable {
 
     var showProgressBar: Bool {
         self != .welcome
+    }
+
+    var iconName: String {
+        switch self {
+        case .welcome: "sparkles"
+        case .personalInfo: "person.circle.fill"
+        case .income: "banknote.fill"
+        case .housing: "house.fill"
+        case .healthInsurance: "cross.circle.fill"
+        case .phonePlan: "iphone"
+        case .transport: "car.fill"
+        case .leasingCredit: "creditcard.fill"
+        case .registration: "checkmark.seal.fill"
+        }
+    }
+
+    var iconColor: Color {
+        switch self {
+        case .welcome: .pulpePrimary
+        case .personalInfo: .pulpePrimary
+        case .income: .stepIncome
+        case .housing: .stepHousing
+        case .healthInsurance: .stepHealth
+        case .phonePlan: .stepPhone
+        case .transport: .stepTransport
+        case .leasingCredit: .stepCredit
+        case .registration: .pulpePrimary
+        }
     }
 }
 

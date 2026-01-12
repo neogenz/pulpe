@@ -53,6 +53,7 @@ enum Formatters {
     static let shortMonth: DateFormatter = {
         let f = DateFormatter()
         f.locale = Locale(identifier: "fr_FR")
+        f.dateFormat = "MMM"
         return f
     }()
 

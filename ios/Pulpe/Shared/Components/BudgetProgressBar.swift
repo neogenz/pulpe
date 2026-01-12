@@ -108,7 +108,7 @@ struct BudgetProgressBar: View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
                 RoundedRectangle(cornerRadius: 5)
-                    .fill(Color.secondary.opacity(0.2))
+                    .fill(Color.progressTrack)
 
                 RoundedRectangle(cornerRadius: 5)
                     .fill(progressColor)
@@ -159,7 +159,7 @@ struct CircularProgressView: View {
     var body: some View {
         ZStack {
             Circle()
-                .stroke(Color.secondary.opacity(0.2), lineWidth: lineWidth)
+                .stroke(Color.progressTrack, lineWidth: lineWidth)
 
             Circle()
                 .trim(from: 0, to: min(CGFloat(progress), 1))

@@ -6,50 +6,78 @@ struct WelcomeStep: View {
     let state: OnboardingState
 
     var body: some View {
-        OnboardingStepView(
-            step: .welcome,
-            state: state,
-            canProceed: true,
-            onNext: { state.nextStep() }
-        ) {
-            VStack(spacing: 32) {
-                WelcomeLottieView()
-                    .padding(.top, 40)
-
-                // Features
+        VStack(spacing: 0) {
+            ScrollView {
                 VStack(spacing: 24) {
-                    FeatureRow(
-                        icon: "chart.bar.fill",
-                        title: "Suivez vos dépenses",
-                        description: "Visualisez où va votre argent chaque mois"
-                    )
+                    // Header with icon
+                    OnboardingStepHeader(step: .welcome)
+                        .padding(.top, 24)
 
-                    FeatureRow(
-                        icon: "target",
-                        title: "Atteignez vos objectifs",
-                        description: "Planifiez et épargnez efficacement"
-                    )
+                    // Lottie animation
+                    WelcomeLottieView()
 
-                    FeatureRow(
-                        icon: "calendar",
-                        title: "Budget mensuel",
-                        description: "Un budget clair pour chaque mois"
-                    )
+                    // Features
+                    VStack(spacing: 20) {
+                        FeatureRow(
+                            icon: "chart.bar.fill",
+                            title: "Suivez vos dépenses",
+                            description: "Visualisez où va votre argent chaque mois"
+                        )
+
+                        FeatureRow(
+                            icon: "target",
+                            title: "Atteignez vos objectifs",
+                            description: "Planifiez et épargnez efficacement"
+                        )
+
+                        FeatureRow(
+                            icon: "calendar",
+                            title: "Budget mensuel",
+                            description: "Un budget clair pour chaque mois"
+                        )
+                    }
+                    .padding(.horizontal, 24)
+                }
+            }
+            .scrollBounceBehavior(.basedOnSize)
+
+            Spacer()
+
+            // Bottom buttons
+            VStack(spacing: 16) {
+                // Primary button
+                Button {
+                    state.nextStep()
+                } label: {
+                    HStack(spacing: 8) {
+                        Text("Commencer")
+                            .font(PulpeTypography.buttonPrimary)
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 14, weight: .semibold))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 54)
+                    .background(Color.onboardingGradient)
+                    .foregroundStyle(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .shadow(color: Color.pulpePrimary.opacity(0.3), radius: 8, y: 4)
                 }
 
                 // Login link
-                VStack(spacing: 8) {
+                HStack(spacing: 4) {
                     Text("Déjà un compte ?")
                         .foregroundStyle(.secondary)
-
                     Button("Se connecter") {
                         showLogin = true
                     }
-                    .fontWeight(.medium)
+                    .fontWeight(.semibold)
                 }
                 .font(.subheadline)
             }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 32)
         }
+        .background(Color.onboardingBackground)
         .sheet(isPresented: $showLogin) {
             LoginView(isPresented: $showLogin)
         }

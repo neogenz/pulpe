@@ -18,33 +18,25 @@ struct Budget: Codable, Identifiable, Hashable, Sendable {
     // MARK: - Computed Properties
 
     var monthYear: String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "fr_FR")
-        formatter.dateFormat = "MMMM yyyy"
-
         var components = DateComponents()
         components.month = month
         components.year = year
         components.day = 1
 
         if let date = Calendar.current.date(from: components) {
-            return formatter.string(from: date).capitalized
+            return Formatters.monthYear.string(from: date).capitalized
         }
         return "\(month)/\(year)"
     }
 
     var shortMonthYear: String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "fr_FR")
-        formatter.dateFormat = "MMM yyyy"
-
         var components = DateComponents()
         components.month = month
         components.year = year
         components.day = 1
 
         if let date = Calendar.current.date(from: components) {
-            return formatter.string(from: date).capitalized
+            return Formatters.shortMonthYear.string(from: date).capitalized
         }
         return "\(month)/\(year)"
     }

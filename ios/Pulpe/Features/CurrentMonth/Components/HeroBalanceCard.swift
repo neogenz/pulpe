@@ -3,6 +3,8 @@ import SwiftUI
 /// Revolut-style hero card displaying the available balance prominently
 struct HeroBalanceCard: View {
     let metrics: BudgetFormulas.Metrics
+    var daysRemaining: Int? = nil
+    var dailyBudget: Decimal? = nil
     let onTapProgress: () -> Void
 
     // MARK: - Computed Properties
@@ -71,6 +73,10 @@ struct HeroBalanceCard: View {
                         .font(.caption)
                         .fontWeight(.medium)
                         .foregroundStyle(.red)
+                } else if let days = daysRemaining, let daily = dailyBudget, daily > 0 {
+                    Text("\(days) jours restants · ~\(daily.asCompactCHF)/jour")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
 
@@ -87,11 +93,11 @@ struct HeroBalanceCard: View {
         Button(action: onTapProgress) {
             ZStack {
                 Circle()
-                    .stroke(Color(.systemGray5), lineWidth: 6)
+                    .stroke(Color.progressTrack, lineWidth: DesignTokens.ProgressBar.circularLineWidth)
 
                 Circle()
                     .trim(from: 0, to: CGFloat(progressPercentage))
-                    .stroke(progressColor, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                    .stroke(progressColor, style: StrokeStyle(lineWidth: DesignTokens.ProgressBar.circularLineWidth, lineCap: .round))
                     .rotationEffect(.degrees(-90))
                     .animation(.spring(duration: 0.6), value: progressPercentage)
 
@@ -146,7 +152,7 @@ struct HeroBalanceCard: View {
         VStack(alignment: .center, spacing: 2) {
             Text(label)
                 .font(.caption)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(Color.textTertiary)
 
             Text(value.formatted())
                 .font(.system(.subheadline, design: .rounded, weight: .semibold))
@@ -160,19 +166,12 @@ struct HeroBalanceCard: View {
 
 private struct HeroCardStyleModifier: ViewModifier {
     func body(content: Content) -> some View {
-        if #available(iOS 26, *) {
-            content
-                .glassEffect(
-                        .regular
-                            .interactive(), // Active les animations au toucher
-                        in: .rect(cornerRadius: 20)
-                    )
-        } else {
-            content
-                .background(Color(.secondarySystemGroupedBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 20))
-                .shadow(color: .black.opacity(0.08), radius: 8, y: 4)
-        }
+        // glassEffect is a future iOS API - using fallback styling
+        // When the API becomes available, add iOS 26+ branch with glassEffect
+        content
+            .background(Color(.secondarySystemGroupedBackground))
+            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.CornerRadius.xl))
+            .shadow(DesignTokens.Shadow.elevated)
     }
 }
 
@@ -198,6 +197,8 @@ extension View {
                     remaining: 3000.45,
                     rollover: 500
                 ),
+                daysRemaining: 15,
+                dailyBudget: 200,
                 onTapProgress: {}
             )
 
@@ -212,6 +213,8 @@ extension View {
                     remaining: 200,
                     rollover: 0
                 ),
+                daysRemaining: 8,
+                dailyBudget: 25,
                 onTapProgress: {}
             )
 
@@ -226,6 +229,8 @@ extension View {
                     remaining: -700,
                     rollover: 0
                 ),
+                daysRemaining: 20,
+                dailyBudget: 0,
                 onTapProgress: {}
             )
         }
