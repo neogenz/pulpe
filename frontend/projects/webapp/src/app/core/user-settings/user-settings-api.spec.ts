@@ -117,13 +117,4 @@ describe('UserSettingsApi', () => {
       secondReq.flush({ data: { payDayOfMonth: 20 } });
     });
   });
-
-  describe('API endpoint construction', () => {
-    it('should construct correct endpoint URL', () => {
-      const backendUrl = 'http://localhost:3000/api/v1';
-      const expectedUrl = `${backendUrl}/users/settings`;
-
-      expect(expectedUrl).toBe('http://localhost:3000/api/v1/users/settings');
-    });
-  });
 });
