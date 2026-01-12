@@ -1,6 +1,60 @@
 import SwiftUI
 
+// MARK: - Month Navigation Bar
+
+struct MonthNavigationBar: View {
+    let monthYear: String
+    let hasPrevious: Bool
+    let hasNext: Bool
+    let onPrevious: () -> Void
+    let onNext: () -> Void
+
+    var body: some View {
+        HStack(spacing: 16) {
+            Button {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                onPrevious()
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(hasPrevious ? .primary : .tertiary)
+            }
+            .disabled(!hasPrevious)
+
+            Text(monthYear)
+                .font(.headline)
+                .lineLimit(1)
+
+            Button {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                onNext()
+            } label: {
+                Image(systemName: "chevron.right")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(hasNext ? .primary : .tertiary)
+            }
+            .disabled(!hasNext)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .modifier(GlassBackgroundModifier())
+    }
+}
+
+// MARK: - Glass Background Modifier
+
+private struct GlassBackgroundModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content.glassEffect(in: .capsule)
+        } else {
+            content.background(.ultraThinMaterial, in: Capsule())
+        }
+    }
+}
+
 struct BudgetDetailsView: View {
+    @Environment(AppState.self) private var appState
     let budgetId: String
     @State private var viewModel: BudgetDetailsViewModel
     @State private var selectedLineForTransaction: BudgetLine?
@@ -27,9 +81,17 @@ struct BudgetDetailsView: View {
                 content
             }
         }
-        .navigationTitle(viewModel.budget?.monthYear ?? "Budget")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .principal) {
+                MonthNavigationBar(
+                    monthYear: viewModel.budget?.monthYear ?? "Budget",
+                    hasPrevious: viewModel.hasPreviousBudget,
+                    hasNext: viewModel.hasNextBudget,
+                    onPrevious: navigateToPreviousMonth,
+                    onNext: navigateToNextMonth
+                )
+            }
             ToolbarItem(placement: .primaryAction) {
                 Button {
                     showAddBudgetLine = true
@@ -38,6 +100,25 @@ struct BudgetDetailsView: View {
                 }
             }
         }
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 30)
+                .onEnded { value in
+                    let horizontal = value.translation.width
+                    let vertical = value.translation.height
+
+                    // Only trigger on mostly horizontal swipes
+                    guard abs(horizontal) > abs(vertical) * 1.5 else { return }
+                    guard abs(horizontal) > 80 else { return }
+
+                    if horizontal > 0 && viewModel.hasPreviousBudget {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        navigateToPreviousMonth()
+                    } else if horizontal < 0 && viewModel.hasNextBudget {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        navigateToNextMonth()
+                    }
+                }
+        )
         .task {
             await viewModel.loadDetails()
         }
@@ -76,6 +157,22 @@ struct BudgetDetailsView: View {
             EditTransactionSheet(transaction: transaction) { updatedTransaction in
                 Task { await viewModel.updateTransaction(updatedTransaction) }
             }
+        }
+    }
+
+    // MARK: - Navigation
+
+    private func navigateToPreviousMonth() {
+        guard let previousId = viewModel.previousBudgetId else { return }
+        Task {
+            await viewModel.navigateToBudget(id: previousId)
+        }
+    }
+
+    private func navigateToNextMonth() {
+        guard let nextId = viewModel.nextBudgetId else { return }
+        Task {
+            await viewModel.navigateToBudget(id: nextId)
         }
     }
 
@@ -214,7 +311,7 @@ struct BudgetDetailsView: View {
 
 @Observable @MainActor
 final class BudgetDetailsViewModel {
-    let budgetId: String
+    private(set) var budgetId: String
 
     private(set) var budget: Budget?
     private(set) var budgetLines: [BudgetLine] = []
@@ -226,12 +323,26 @@ final class BudgetDetailsViewModel {
     private(set) var syncingBudgetLineIds: Set<String> = []
     private(set) var syncingTransactionIds: Set<String> = []
 
+    // Navigation between months
+    private(set) var allBudgets: [Budget] = []
+    private(set) var previousBudgetId: String?
+    private(set) var nextBudgetId: String?
+
     private let budgetService = BudgetService.shared
     private let budgetLineService = BudgetLineService.shared
     private let transactionService = TransactionService.shared
 
     init(budgetId: String) {
         self.budgetId = budgetId
+    }
+
+    var hasPreviousBudget: Bool { previousBudgetId != nil }
+    var hasNextBudget: Bool { nextBudgetId != nil }
+
+    /// Navigate to a different budget by changing the budgetId and reloading
+    func navigateToBudget(id: String) async {
+        budgetId = id
+        await loadDetails()
     }
 
     var metrics: BudgetFormulas.Metrics {
@@ -292,15 +403,45 @@ final class BudgetDetailsViewModel {
         error = nil
 
         do {
-            let details = try await budgetService.getBudgetWithDetails(id: budgetId)
+            async let detailsTask = budgetService.getBudgetWithDetails(id: budgetId)
+            async let budgetsTask = budgetService.getAllBudgets()
+
+            let (details, budgets) = try await (detailsTask, budgetsTask)
+
             budget = details.budget
             budgetLines = details.budgetLines
             transactions = details.transactions
+            allBudgets = budgets
+
+            updateAdjacentBudgets()
         } catch {
             self.error = error
         }
 
         isLoading = false
+    }
+
+    private func updateAdjacentBudgets() {
+        guard let currentBudget = budget else {
+            previousBudgetId = nil
+            nextBudgetId = nil
+            return
+        }
+
+        // Sort budgets chronologically
+        let sorted = allBudgets.sorted { lhs, rhs in
+            if lhs.year != rhs.year { return lhs.year < rhs.year }
+            return lhs.month < rhs.month
+        }
+
+        guard let currentIndex = sorted.firstIndex(where: { $0.id == currentBudget.id }) else {
+            previousBudgetId = nil
+            nextBudgetId = nil
+            return
+        }
+
+        previousBudgetId = currentIndex > 0 ? sorted[currentIndex - 1].id : nil
+        nextBudgetId = currentIndex < sorted.count - 1 ? sorted[currentIndex + 1].id : nil
     }
 
     @MainActor
