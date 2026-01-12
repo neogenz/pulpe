@@ -23,7 +23,6 @@ import { MatInputModule } from '@angular/material/input';
         type="number"
         class="ph-no-capture"
         [(ngModel)]="value"
-        (input)="onInput($event)"
         [placeholder]="placeholder()"
         [attr.aria-describedby]="ariaDescribedBy()"
         [attr.aria-label]="label() + ' in ' + currency()"
@@ -61,11 +60,5 @@ export class CurrencyInput {
         this.#elementRef.nativeElement.querySelector('input')?.focus();
       }
     });
-  }
-
-  protected onInput(event: Event): void {
-    const target = event.target as HTMLInputElement;
-    const numericValue = target.value ? parseFloat(target.value) : null;
-    this.value.set(numericValue);
   }
 }

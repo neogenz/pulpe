@@ -189,10 +189,6 @@ export default class Login {
     return isValid && isNotSubmitting;
   });
 
-  constructor() {
-    // Form validity is now tracked reactively via formStatus signal
-  }
-
   protected togglePasswordVisibility(): void {
     this.hidePassword.set(!this.hidePassword());
   }

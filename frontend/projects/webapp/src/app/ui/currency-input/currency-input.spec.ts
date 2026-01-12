@@ -67,57 +67,6 @@ describe('CurrencyInput', () => {
     });
   });
 
-  describe('onInput method', () => {
-    it('should parse valid numeric input and set value', () => {
-      const event = createInputEvent('100');
-
-      component['onInput'](event);
-
-      expect(component.value()).toBe(100);
-    });
-
-    it('should handle decimal values correctly', () => {
-      const event = createInputEvent('123.45');
-
-      component['onInput'](event);
-
-      expect(component.value()).toBe(123.45);
-    });
-
-    it('should set null for empty input', () => {
-      component.value.set(100);
-      const event = createInputEvent('');
-
-      component['onInput'](event);
-
-      expect(component.value()).toBeNull();
-    });
-
-    it('should set null for non-numeric input (NaN case)', () => {
-      const event = createInputEvent('abc');
-
-      component['onInput'](event);
-
-      expect(component.value()).toBeNull();
-    });
-
-    it('should handle zero value', () => {
-      const event = createInputEvent('0');
-
-      component['onInput'](event);
-
-      expect(component.value()).toBe(0);
-    });
-
-    it('should handle negative values', () => {
-      const event = createInputEvent('-50');
-
-      component['onInput'](event);
-
-      expect(component.value()).toBe(-50);
-    });
-  });
-
   describe('Model Binding', () => {
     it('should allow setting value via model', () => {
       component.value.set(250);
@@ -131,10 +80,3 @@ describe('CurrencyInput', () => {
     });
   });
 });
-
-function createInputEvent(value: string): Event {
-  const input = document.createElement('input');
-  input.type = 'number';
-  input.value = value;
-  return { target: input } as unknown as Event;
-}

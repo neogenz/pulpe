@@ -74,29 +74,22 @@ export class ProfileSetupService {
       this.#logger.info('PostHog tracking enabled after profile setup');
 
       return { success: true };
-    } catch (error) {
+    } catch (error: unknown) {
       this.#logger.error(
         'Erreur lors de la création du budget initial:',
         error,
       );
 
-      const errorMessage = error?.toString() || '';
-      const errorObj = error as { message?: string };
+      const errorMessage = this.#getErrorMessage(error);
 
-      if (
-        errorMessage.includes('template') ||
-        errorObj?.message?.includes('template')
-      ) {
+      if (errorMessage.includes('template')) {
         return {
           success: false,
           error: 'Erreur lors de la création de votre template budgétaire.',
         };
       }
 
-      if (
-        errorMessage.includes('budget') ||
-        errorObj?.message?.includes('budget')
-      ) {
+      if (errorMessage.includes('budget')) {
         return {
           success: false,
           error: 'Erreur lors de la création de votre budget initial.',
@@ -117,5 +110,18 @@ export class ProfileSetupService {
       `${this.#applicationConfig.backendApiUrl()}/budget-templates/from-onboarding`,
       onboardingData,
     );
+  }
+
+  #getErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    if (typeof error === 'string') {
+      return error;
+    }
+    if (error && typeof error === 'object' && 'message' in error) {
+      return String(error.message);
+    }
+    return String(error ?? '');
   }
 }
