@@ -18,19 +18,8 @@ struct BudgetWidgetData: Codable, Sendable, Identifiable {
     let year: Int
     let available: Decimal?
     let monthName: String
+    let shortMonthName: String
     let isCurrentMonth: Bool
-
-    var shortMonthName: String {
-        var components = DateComponents()
-        components.month = month
-        components.year = year
-        components.day = 1
-
-        if let date = Calendar.current.date(from: components) {
-            return Formatters.shortMonth.string(from: date).capitalized
-        }
-        return "\(month)"
-    }
 }
 
 struct WidgetDataCache: Codable, Sendable {

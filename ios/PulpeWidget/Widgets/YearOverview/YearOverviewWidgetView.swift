@@ -50,7 +50,7 @@ struct YearOverviewWidgetView: View {
                     Text(available.asCHF)
                         .font(.title2)
                         .fontWeight(.semibold)
-                        .foregroundColor(available >= 0 ? .primary : .red)
+                        .foregroundColor(available >= 0 ? .primary : .financialExpense)
                         .privacySensitive()
                 }
             }
@@ -80,7 +80,7 @@ struct YearOverviewWidgetView: View {
                 Text(available.asCompactCHF)
                     .font(.caption)
                     .fontWeight(month.isCurrentMonth ? .semibold : .regular)
-                    .foregroundColor(available >= 0 ? Color.primary : Color.red)
+                    .foregroundColor(available >= 0 ? Color.primary : Color.financialExpense)
                     .minimumScaleFactor(0.7)
                     .lineLimit(1)
                     .privacySensitive()
