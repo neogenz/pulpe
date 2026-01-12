@@ -353,7 +353,7 @@ export default class Signup {
       this.errorMessage.set(
         "Une erreur inattendue s'est produite. Veuillez réessayer.",
       );
+    } finally {
       this.isSubmitting.set(false);
     }
-  }
 }
