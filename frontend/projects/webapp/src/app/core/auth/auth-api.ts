@@ -12,6 +12,12 @@ import { Logger } from '../logging/logger';
 import { DemoModeService } from '../demo/demo-mode.service';
 import { PostHogService } from '../analytics/posthog';
 import { StorageService } from '../storage';
+import { ROUTES } from '../routing/routes-constants';
+
+export interface OAuthUserMetadata {
+  givenName?: string;
+  fullName?: string;
+}
 
 export interface AuthState {
   readonly user: User | null;
@@ -70,6 +76,29 @@ export class AuthApi {
     isLoading: this.#isLoadingSignal(),
     isAuthenticated: this.isAuthenticated(),
   }));
+
+  getOAuthUserMetadata(): OAuthUserMetadata | null {
+    const session = this.#sessionSignal();
+    if (!session?.user?.user_metadata) {
+      return null;
+    }
+
+    const metadata = session.user.user_metadata as Record<string, unknown>;
+    const givenName =
+      typeof metadata['given_name'] === 'string'
+        ? metadata['given_name']
+        : undefined;
+    const fullName =
+      typeof metadata['full_name'] === 'string'
+        ? metadata['full_name']
+        : undefined;
+
+    if (!givenName && !fullName) {
+      return null;
+    }
+
+    return { givenName, fullName };
+  }
 
   async initializeAuthState(): Promise<void> {
     // À ce point, applicationConfig.initialize() a déjà été appelé
@@ -259,6 +288,9 @@ export class AuthApi {
     try {
       const { error } = await this.#supabaseClient!.auth.signInWithOAuth({
         provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/${ROUTES.APP}`,
+        },
       });
 
       if (error) {

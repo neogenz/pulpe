@@ -10,6 +10,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 import { GoogleOAuthButton } from '@app/pattern/google-oauth';
+import { PostHogService } from '@core/analytics/posthog';
 import { DemoInitializerService } from '@core/demo/demo-initializer.service';
 import { Logger } from '@core/logging/logger';
 import { ROUTES } from '@core/routing';
@@ -90,8 +91,27 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
             buttonType="filled"
             testId="google-oauth-button"
             (authError)="errorMessage.set($event)"
-            (loadingChange)="isGoogleLoading.set($event)"
+            (loadingChange)="onGoogleLoadingChange($event)"
           />
+
+          <p
+            class="text-body-small text-on-surface-variant text-center max-w-sm"
+          >
+            En continuant avec Google, j'accepte les
+            <a
+              [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_TERMS]"
+              target="_blank"
+              class="text-primary underline"
+              >CGU</a
+            >
+            et la
+            <a
+              [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_PRIVACY]"
+              target="_blank"
+              class="text-primary underline"
+              >Politique de Confidentialité</a
+            >
+          </p>
 
           <button
             matButton="outlined"
@@ -99,6 +119,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
             data-testid="email-signup-button"
             [disabled]="isLoading()"
             [routerLink]="['/', ROUTES.SIGNUP]"
+            (click)="onEmailSignupClick()"
           >
             <div class="flex items-center justify-center gap-2">
               <mat-icon>email</mat-icon>
@@ -160,6 +181,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
 export default class WelcomePage {
   readonly #demoInitializer = inject(DemoInitializerService);
   readonly #logger = inject(Logger);
+  readonly #postHogService = inject(PostHogService);
   protected readonly turnstileService = inject(TurnstileService);
   protected readonly ROUTES = ROUTES;
 
@@ -193,6 +215,17 @@ export default class WelcomePage {
     },
     assetsPath: '/lottie/',
   };
+
+  onGoogleLoadingChange(isLoading: boolean): void {
+    this.isGoogleLoading.set(isLoading);
+    if (isLoading) {
+      this.#postHogService.captureEvent('signup_started', { method: 'google' });
+    }
+  }
+
+  onEmailSignupClick(): void {
+    this.#postHogService.captureEvent('signup_started', { method: 'email' });
+  }
 
   startDemoMode(): void {
     this.errorMessage.set('');

@@ -3,18 +3,30 @@ import type { Request, Route } from '@playwright/test';
 /**
  * Extended Window interface for E2E testing
  */
+/**
+ * OAuth user metadata from identity providers (Google, Apple, etc.)
+ */
+export interface OAuthUserMetadata {
+  given_name?: string;
+  full_name?: string;
+  avatar_url?: string;
+  [key: string]: unknown;
+}
+
 export interface E2EWindow extends Window {
   __E2E_AUTH_BYPASS__?: boolean;
   __E2E_MOCK_AUTH_STATE__?: {
     user: {
       id: string;
       email: string;
+      user_metadata?: OAuthUserMetadata;
     };
     session: {
       access_token: string;
       user: {
         id: string;
         email: string;
+        user_metadata?: OAuthUserMetadata;
       };
     };
     isLoading: boolean;

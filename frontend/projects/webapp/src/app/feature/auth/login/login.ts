@@ -151,7 +151,7 @@ import { LoadingButton } from '@ui/loading-button';
               matButton
               color="primary"
               class="ml-1"
-              routerLink="/welcome"
+              [routerLink]="['/', ROUTES.SIGNUP]"
             >
               Créer un compte
             </button>
@@ -167,6 +167,7 @@ export default class Login {
   readonly #router = inject(Router);
   readonly #logger = inject(Logger);
 
+  protected readonly ROUTES = ROUTES;
   protected hidePassword = signal<boolean>(true);
   protected isSubmitting = signal<boolean>(false);
   protected errorMessage = signal<string>('');

@@ -7,6 +7,7 @@ import WelcomePage from './welcome-page';
 import { DemoInitializerService } from '@core/demo/demo-initializer.service';
 import { Logger } from '@core/logging/logger';
 import { TurnstileService } from '@core/turnstile';
+import { PostHogService } from '@core/analytics/posthog';
 
 describe('WelcomePage', () => {
   let fixture: ComponentFixture<WelcomePage>;
@@ -30,6 +31,9 @@ describe('WelcomePage', () => {
     handleResolved: Mock;
     handleError: Mock;
     reset: Mock;
+  };
+  let mockPostHogService: {
+    captureEvent: Mock;
   };
 
   beforeEach(async () => {
@@ -56,12 +60,17 @@ describe('WelcomePage', () => {
       reset: vi.fn(),
     };
 
+    mockPostHogService = {
+      captureEvent: vi.fn(),
+    };
+
     await TestBed.configureTestingModule({
       imports: [WelcomePage, NoopAnimationsModule, RouterModule.forRoot([])],
       providers: [
         { provide: DemoInitializerService, useValue: mockDemoInitializer },
         { provide: Logger, useValue: mockLogger },
         { provide: TurnstileService, useValue: mockTurnstileService },
+        { provide: PostHogService, useValue: mockPostHogService },
       ],
       schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
@@ -196,6 +205,44 @@ describe('WelcomePage', () => {
       const errorAlert =
         fixture.nativeElement.querySelector('pulpe-error-alert');
       expect(errorAlert).toBeTruthy();
+    });
+  });
+
+  describe('CGU text', () => {
+    it('should display CGU text under Google OAuth button', () => {
+      const cguText = fixture.nativeElement.querySelector(
+        'p.text-body-small.text-on-surface-variant.text-center',
+      );
+
+      expect(cguText).toBeTruthy();
+      expect(cguText.textContent).toContain('CGU');
+      expect(cguText.textContent).toContain('Politique de Confidentialité');
+    });
+  });
+
+  describe('analytics', () => {
+    it('should track signup_started with google method when OAuth loading', () => {
+      component.onGoogleLoadingChange(true);
+
+      expect(mockPostHogService.captureEvent).toHaveBeenCalledWith(
+        'signup_started',
+        { method: 'google' },
+      );
+    });
+
+    it('should not track signup_started when OAuth stops loading', () => {
+      component.onGoogleLoadingChange(false);
+
+      expect(mockPostHogService.captureEvent).not.toHaveBeenCalled();
+    });
+
+    it('should track signup_started with email method on email click', () => {
+      component.onEmailSignupClick();
+
+      expect(mockPostHogService.captureEvent).toHaveBeenCalledWith(
+        'signup_started',
+        { method: 'email' },
+      );
     });
   });
 });

@@ -46,7 +46,9 @@ export class AuthErrorLocalizer {
     'OAuth error': 'Erreur de connexion avec Google',
     'Provider error': "Erreur du fournisseur d'authentification",
     'Popup closed': 'La fenêtre de connexion a été fermée',
-    'Access denied': 'Accès refusé par Google',
+    'Access denied': 'Connexion annulée',
+    access_denied: 'Connexion annulée',
+    user_cancelled_login: 'Connexion annulée',
     'OAuth callback error': 'Erreur lors du retour de Google',
     'Provider not enabled':
       "Ce fournisseur d'authentification n'est pas activé",

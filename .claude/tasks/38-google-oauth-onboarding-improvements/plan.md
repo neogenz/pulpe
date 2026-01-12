@@ -6,18 +6,18 @@ This plan addresses critical issues in the OAuth/onboarding flow, improves UX co
 
 **Key decisions from user:**
 - Scope: All phases (critical + UX + analytics + E2E tests)
-- CGU for OAuth: Checkbox obligatoire on welcome page
+- CGU for OAuth: Mention texte sous le bouton Google (pas de checkbox)
 - Container width: Keep `max-w-2xl` on complete-profile (current)
 
 ## Dependencies
 
 Files must be modified in this order due to dependencies:
-1. `auth-api.ts` - Add OAuth user metadata access helper
-2. `complete-profile-store.ts` - Add init method with OAuth prefill + analytics
-3. `complete-profile-page.ts` - Call store init on component creation
-4. `welcome-page.ts` - Add CGU checkbox for OAuth
+1. `auth-api.ts` - Add OAuth user metadata access helper + explicit redirectTo
+2. `complete-profile-store.ts` - Add prefill method + analytics
+3. `complete-profile-page.ts` - Call store methods on init
+4. `welcome-page.ts` - Add CGU text mention + analytics
 5. `login.ts` - Fix link to direct signup
-6. `google-oauth-button.ts` - Add redirectTo option
+6. `auth-error-localizer.ts` - Handle OAuth cancellation error
 7. Tests for each modified file
 8. E2E tests for complete-profile flow
 
@@ -40,19 +40,26 @@ Files must be modified in this order due to dependencies:
   - If `givenName` exists, call `updateFirstName(givenName)`
   - Else if `fullName` exists, call `updateFirstName(fullName.split(' ')[0])`
   - This is synchronous, no state flags needed
-- Modify `checkExistingBudgets()` to update internal state with `hasExistingBudgets: boolean` (already logs but doesn't store)
-- Add computed `readonly shouldRedirectToDashboard = computed(() => this.#state().hasExistingBudgets)`
-- Note: State interface needs `hasExistingBudgets: boolean` field (default `false`)
+- **No change to state interface** - `checkExistingBudgets()` already returns a boolean directly
+- Keep the method as-is, the component will use the return value
 
 ### `frontend/projects/webapp/src/app/feature/complete-profile/complete-profile-page.ts`
 
-- Import `effect` from `@angular/core`
-- In constructor:
-  1. Call `this.store.prefillFromOAuthMetadata()` (sync - prefills firstName if OAuth)
-  2. Call `void this.store.checkExistingBudgets()` (async - sets spinner, checks budgets)
-- Add `effect()` to watch `store.shouldRedirectToDashboard()`:
-  - If `true`, navigate to `['/', ROUTES.APP, ROUTES.CURRENT_MONTH]`
-  - Use `untracked()` for router navigation to avoid tracking
+- In constructor, add initialization logic:
+  ```typescript
+  constructor() {
+    this.store.prefillFromOAuthMetadata(); // sync - prefills firstName if OAuth
+    void this.#initPage();
+  }
+
+  async #initPage(): Promise<void> {
+    const hasExisting = await this.store.checkExistingBudgets();
+    if (hasExisting) {
+      this.#router.navigate(['/', ROUTES.APP, ROUTES.CURRENT_MONTH]);
+    }
+  }
+  ```
+- **Simple approach**: Use the boolean return directly, no need for signals/effects/computed
 - Order matters: prefill runs immediately, spinner shows while checking budgets
 
 ---
@@ -61,28 +68,18 @@ Files must be modified in this order due to dependencies:
 
 ### `frontend/projects/webapp/src/app/feature/welcome/welcome-page.ts`
 
-- Import `MatCheckboxModule` from `@angular/material/checkbox`
-- Add to imports array
-- Add signal: `readonly #acceptedTerms = signal(false)`
-- Expose: `readonly acceptedTerms = this.#acceptedTerms.asReadonly()`
-- Add computed: `readonly canUseOAuth = computed(() => this.#acceptedTerms())`
-- Add checkbox before Google OAuth button in template:
+- Add CGU text mention **under** the Google OAuth button (not a checkbox):
   ```html
-  <mat-checkbox
-    [ngModel]="acceptedTerms()"
-    (ngModelChange)="onTermsChange($event)"
-    data-testid="oauth-accept-terms-checkbox"
-  >
-    <span class="text-body-small">
-      J'accepte les <a routerLink="/legal/terms" target="_blank">CGU</a>
-      et la <a routerLink="/legal/privacy" target="_blank">Politique de Confidentialité</a>
-    </span>
-  </mat-checkbox>
+  <pulpe-google-oauth-button ... />
+  <p class="text-body-small text-on-surface-variant text-center mt-2 max-w-sm">
+    En continuant avec Google, j'accepte les
+    <a [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_TERMS]" target="_blank" class="text-primary underline">CGU</a>
+    et la
+    <a [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_PRIVACY]" target="_blank" class="text-primary underline">Politique de Confidentialité</a>
+  </p>
   ```
-- Add method `onTermsChange(value: boolean): void { this.#acceptedTerms.set(value); }`
-- Disable Google OAuth button when `!canUseOAuth()`
-- Import `FormsModule` for `ngModel` binding
-- Consider: Update existing `isLoading()` computed to include `!canUseOAuth()` check for disabled state
+- No checkbox, no blocking - just informational text
+- Consistent with email signup flow (which has its own checkbox in /signup)
 
 ### `frontend/projects/webapp/src/app/feature/auth/login/login.ts`
 
@@ -93,24 +90,26 @@ Files must be modified in this order due to dependencies:
 ### `frontend/projects/webapp/src/app/core/auth/auth-api.ts` (additional change)
 
 - Modify `signInWithGoogle()` method (lines 253-278)
-- Add explicit `redirectTo` option:
+- Add explicit `redirectTo` option pointing to `/app` (let guards handle the rest):
   ```typescript
   const { error } = await this.#supabaseClient!.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${window.location.origin}/${ROUTES.APP}/${ROUTES.CURRENT_MONTH}`
+      redirectTo: `${window.location.origin}/${ROUTES.APP}`
     }
   });
   ```
 - Import `ROUTES` from `@core/routing/routes-constants`
-- Consider: This makes the redirect explicit rather than relying on Supabase dashboard config
+- **Rationale**: Redirect to `/app` instead of `/app/current-month` to let `hasBudgetGuard` handle routing to complete-profile if needed (avoids flash)
 
 ### `frontend/projects/webapp/src/app/core/auth/auth-error-localizer.ts`
 
 - Check if OAuth cancellation error is handled
-- If not, add localization for "user_cancelled" or equivalent Supabase error
+- If not, add localization for Supabase OAuth errors:
+  - `access_denied` → "Connexion annulée"
+  - `user_cancelled_login` → "Connexion annulée"
 - Pattern: Follow existing error message mapping in `AUTH_ERROR_MESSAGES`
-- Need to verify exact error message from Supabase for OAuth cancellation
+- **Note**: OAuth cancellation testing will be unit tests only (E2E impossible due to external Google redirect)
 
 ---
 
@@ -132,25 +131,35 @@ Files must be modified in this order due to dependencies:
 - In `signUp()` method after successful signup:
   - Event: `signup_completed`
   - Properties: `{ method: 'email' }`
-- In Google OAuth button handler (via output):
-  - Event already captured in welcome-page (if user came from there)
-  - If direct access to signup, capture `signup_started` with method 'google'
+- Note: Google OAuth users don't go through signup.ts, they go directly to complete-profile
 
 ### `frontend/projects/webapp/src/app/feature/complete-profile/complete-profile-store.ts` (additional changes)
 
-- Add analytics events:
-  1. In `submitProfile()` after successful budget creation:
-     - Event: `profile_completed`
-     - Properties: `{ signup_method: 'google' | 'email', has_pay_day: boolean, charges_count: number }`
-  2. Need to track signup method - add to state or read from AuthApi metadata
-- Add method to count optional charges filled (housing, health, phone, transport, leasing)
-- Pattern: Follow existing PostHog usage in the store
+- Add analytics events in `submitProfile()` after successful budget creation:
+  - Event: `first_budget_created` (more accurate than `signup_completed` for OAuth users)
+  - Properties:
+    ```typescript
+    {
+      signup_method: this.#determineSignupMethod(), // 'google' | 'email'
+      has_pay_day: state.payDayOfMonth !== null,
+      charges_count: this.#countOptionalCharges(state)
+    }
+    ```
+- Add private method `#determineSignupMethod(): 'google' | 'email'`:
+  - Check `AuthApi.getOAuthUserMetadata()` - if has Google metadata → 'google'
+  - Else → 'email'
+- Add private method `#countOptionalCharges(state)`: count non-null optional charges (housing, health, phone, transport, leasing)
+- **Distinguishing first-time vs returning**: `first_budget_created` only fires when budget is actually created in complete-profile. Returning users with existing budgets are redirected before reaching submitProfile.
 
 ### `frontend/projects/webapp/src/app/feature/complete-profile/complete-profile-page.ts` (additional changes)
 
-- Track step completion:
-  - When user clicks "Suivant" on step 1: `profile_step1_completed`
-  - When user clicks "Créer mon budget": `profile_step2_completed` or `profile_step2_skipped` (based on optional fields)
+- Inject `PostHogService`
+- Track step 1 completion when user clicks "Suivant":
+  - Add click handler or intercept stepper navigation
+  - Event: `profile_step1_completed`
+- Track step 2 completion when user clicks "Créer mon budget":
+  - Event: `profile_step2_completed` if any optional charge filled
+  - Event: `profile_step2_skipped` if all optional charges are null/zero
 
 ---
 
@@ -161,22 +170,29 @@ Files must be modified in this order due to dependencies:
 #### `frontend/projects/webapp/src/app/feature/complete-profile/complete-profile-store.spec.ts`
 
 - Add test for `prefillFromOAuthMetadata()`:
-  - Mock AuthApi with OAuth metadata → firstName should be set
+  - Mock AuthApi with OAuth metadata (givenName) → firstName should be set
+  - Mock AuthApi with OAuth metadata (fullName only) → firstName should be first word
   - Mock AuthApi without metadata → firstName should remain empty
-- Add test for `shouldRedirectToDashboard` computed
 - Add tests for analytics events captured during profile completion
+- Add test for `#determineSignupMethod()` logic
 - Mock PostHogService.captureEvent and verify calls
 
 #### `frontend/projects/webapp/src/app/feature/welcome/welcome-page.spec.ts`
 
-- Add test: CGU checkbox unchecked → Google OAuth button disabled
-- Add test: CGU checkbox checked → Google OAuth button enabled
-- Add test: Analytics event fired when signup methods clicked
+- Add test: CGU text is visible below Google OAuth button
+- Add test: Analytics event fired when Google OAuth clicked
+- Add test: Analytics event fired when email signup clicked
 
 #### `frontend/projects/webapp/src/app/core/auth/auth-api.spec.ts` (create if doesn't exist)
 
 - Test `getOAuthUserMetadata()` returns correct data from session
-- Test `signInWithGoogle()` includes redirectTo option
+- Test `getOAuthUserMetadata()` returns null when no session
+- Test `signInWithGoogle()` includes redirectTo option with correct URL
+
+#### `frontend/projects/webapp/src/app/core/auth/auth-error-localizer.spec.ts`
+
+- Test OAuth cancellation errors are properly localized
+- Test `access_denied` → "Connexion annulée"
 
 ### E2E Tests to Create
 
@@ -189,6 +205,8 @@ Files must be modified in this order due to dependencies:
 - Test: Fill step 2 charges and create budget
 - Pattern: Follow existing `authentication.spec.ts` structure
 - Use authenticated fixture with mock session containing OAuth metadata
+
+**Note**: OAuth flow E2E tests are limited to mocked scenarios. Real OAuth redirect (Google) cannot be tested in E2E.
 
 ---
 
@@ -209,17 +227,20 @@ No documentation updates required - these are internal implementation changes.
 ### Migration Steps
 1. Deploy auth-api changes first (backward compatible)
 2. Deploy complete-profile changes
-3. Deploy welcome-page CGU checkbox
-4. Deploy analytics last (least critical)
+3. Deploy welcome-page CGU text + analytics
+4. Deploy login link fix
+5. Deploy analytics last (least critical)
 
 ### Risk Assessment
-- **Low risk**: Login link change, analytics additions
-- **Medium risk**: CGU checkbox (may affect conversion - monitor)
+- **Low risk**: Login link change, CGU text mention, analytics additions
+- **Medium risk**: redirectTo change (verify Supabase handles it correctly)
 - **High risk**: checkExistingBudgets redirect (test thoroughly to avoid loops)
 
 ### Monitoring
-- Watch PostHog funnel events after deployment
-- Monitor for increased dropout at CGU checkbox step
+- Watch PostHog funnel events after deployment:
+  - `signup_started` (method: google vs email)
+  - `first_budget_created`
+  - `profile_step1_completed`, `profile_step2_completed/skipped`
 - Check for redirect loops in complete-profile
 
 ---
@@ -232,3 +253,14 @@ No documentation updates required - these are internal implementation changes.
 | 2 | welcome-page.ts, login.ts, auth-error-localizer.ts | UX/Legal |
 | 3 | welcome-page.ts, signup.ts, complete-profile-store.ts, complete-profile-page.ts | Analytics |
 | Tests | *.spec.ts, complete-profile.spec.ts (E2E) | Quality |
+
+---
+
+## Corrections Applied (from review)
+
+1. **redirectTo**: Changed from `/app/current-month` to `/app` to let guards handle routing
+2. **google-oauth-button.ts**: Removed from dependencies (no changes needed)
+3. **CGU**: Changed from checkbox to text mention (UX consistency)
+4. **hasExistingBudgets**: Simplified - use return value directly, no computed/signal needed
+5. **Analytics**: Use `first_budget_created` event, distinguish first-time vs returning via existing budget check
+6. **OAuth cancellation test**: Clarified as unit test only (E2E impossible)

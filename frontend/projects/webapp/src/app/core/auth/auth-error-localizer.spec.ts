@@ -66,4 +66,12 @@ describe('AuthErrorLocalizer', () => {
       "Une erreur inattendue s'est produite. Veuillez réessayer",
     );
   });
+
+  it('should localize OAuth cancellation errors', () => {
+    expect(service.localizeError('access_denied')).toBe('Connexion annulée');
+    expect(service.localizeError('user_cancelled_login')).toBe(
+      'Connexion annulée',
+    );
+    expect(service.localizeError('Access denied')).toBe('Connexion annulée');
+  });
 });

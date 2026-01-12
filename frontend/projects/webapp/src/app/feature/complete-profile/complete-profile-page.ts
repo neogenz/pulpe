@@ -11,6 +11,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { CurrencyInput } from '@ui/currency-input';
 import { ErrorAlert } from '@ui/error-alert';
 import { LoadingButton } from '@ui/loading-button';
+import { PostHogService } from '@core/analytics/posthog';
 import { ROUTES } from '@core/routing/routes-constants';
 import { CompleteProfileStore } from './complete-profile-store';
 import { PAY_DAY_MAX } from 'pulpe-shared';
@@ -85,6 +86,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
                 matStepperNext
                 [disabled]="!store.isStep1Valid()"
                 data-testid="next-step-button"
+                (click)="onStep1Complete()"
               >
                 Suivant
               </button>
@@ -204,17 +206,52 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
 export default class CompleteProfilePage {
   protected readonly store = inject(CompleteProfileStore);
   readonly #router = inject(Router);
+  readonly #postHogService = inject(PostHogService);
 
   protected readonly availableDays = Array.from(
     { length: PAY_DAY_MAX },
     (_, i) => i + 1,
   );
 
+  constructor() {
+    this.store.prefillFromOAuthMetadata();
+    void this.#initPage();
+  }
+
+  async #initPage(): Promise<void> {
+    const hasExisting = await this.store.checkExistingBudgets();
+    if (hasExisting) {
+      this.#router.navigate(['/', ROUTES.APP, ROUTES.CURRENT_MONTH]);
+    }
+  }
+
+  onStep1Complete(): void {
+    if (this.store.isStep1Valid()) {
+      this.#postHogService.captureEvent('profile_step1_completed');
+    }
+  }
+
   protected async onSubmit(): Promise<void> {
+    this.#trackStep2Completion();
     const success = await this.store.submitProfile();
 
     if (success) {
       this.#router.navigate(['/', ROUTES.APP, ROUTES.CURRENT_MONTH]);
     }
+  }
+
+  #trackStep2Completion(): void {
+    const hasAnyCharge =
+      this.store.housingCosts() !== null ||
+      this.store.healthInsurance() !== null ||
+      this.store.phonePlan() !== null ||
+      this.store.transportCosts() !== null ||
+      this.store.leasingCredit() !== null ||
+      this.store.payDayOfMonth() !== null;
+
+    const event = hasAnyCharge
+      ? 'profile_step2_completed'
+      : 'profile_step2_skipped';
+    this.#postHogService.captureEvent(event);
   }
 }

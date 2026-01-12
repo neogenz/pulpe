@@ -7,6 +7,7 @@ import { BudgetApi } from '@core/budget';
 import { Logger } from '@core/logging/logger';
 import { PostHogService } from '@core/analytics/posthog';
 import { UserSettingsApi } from '@core/user-settings';
+import { AuthApi } from '@core/auth/auth-api';
 
 describe('CompleteProfileStore', () => {
   let store: CompleteProfileStore;
@@ -19,6 +20,9 @@ describe('CompleteProfileStore', () => {
   let mockUserSettingsApi: {
     updateSettings: ReturnType<typeof vi.fn>;
   };
+  let mockAuthApi: {
+    getOAuthUserMetadata: ReturnType<typeof vi.fn>;
+  };
   let mockLogger: {
     info: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
@@ -26,6 +30,7 @@ describe('CompleteProfileStore', () => {
   };
   let mockPostHogService: {
     captureException: ReturnType<typeof vi.fn>;
+    captureEvent: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
@@ -41,6 +46,10 @@ describe('CompleteProfileStore', () => {
       updateSettings: vi.fn().mockResolvedValue({ payDayOfMonth: null }),
     };
 
+    mockAuthApi = {
+      getOAuthUserMetadata: vi.fn().mockReturnValue(null),
+    };
+
     mockLogger = {
       info: vi.fn(),
       warn: vi.fn(),
@@ -49,6 +58,7 @@ describe('CompleteProfileStore', () => {
 
     mockPostHogService = {
       captureException: vi.fn(),
+      captureEvent: vi.fn(),
     };
 
     TestBed.configureTestingModule({
@@ -57,6 +67,7 @@ describe('CompleteProfileStore', () => {
         { provide: ProfileSetupService, useValue: mockProfileSetupService },
         { provide: BudgetApi, useValue: mockBudgetApi },
         { provide: UserSettingsApi, useValue: mockUserSettingsApi },
+        { provide: AuthApi, useValue: mockAuthApi },
         { provide: Logger, useValue: mockLogger },
         { provide: PostHogService, useValue: mockPostHogService },
       ],
@@ -142,6 +153,65 @@ describe('CompleteProfileStore', () => {
           action: 'checkExistingBudgets',
         },
       );
+    });
+  });
+
+  describe('prefillFromOAuthMetadata', () => {
+    it('should not change firstName when no OAuth metadata', () => {
+      mockAuthApi.getOAuthUserMetadata.mockReturnValue(null);
+
+      store.prefillFromOAuthMetadata();
+
+      expect(store.firstName()).toBe('');
+    });
+
+    it('should prefill firstName from givenName', () => {
+      mockAuthApi.getOAuthUserMetadata.mockReturnValue({
+        givenName: 'John',
+        fullName: 'John Doe',
+      });
+
+      store.prefillFromOAuthMetadata();
+
+      expect(store.firstName()).toBe('John');
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        'Prefilled firstName from OAuth metadata',
+        { source: 'givenName' },
+      );
+    });
+
+    it('should prefill firstName from fullName first word when givenName missing', () => {
+      mockAuthApi.getOAuthUserMetadata.mockReturnValue({
+        fullName: 'Jane Smith',
+      });
+
+      store.prefillFromOAuthMetadata();
+
+      expect(store.firstName()).toBe('Jane');
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        'Prefilled firstName from OAuth metadata',
+        { source: 'fullName' },
+      );
+    });
+
+    it('should not change firstName when metadata has no name fields', () => {
+      mockAuthApi.getOAuthUserMetadata.mockReturnValue({});
+
+      store.prefillFromOAuthMetadata();
+
+      expect(store.firstName()).toBe('');
+      expect(mockLogger.info).not.toHaveBeenCalled();
+    });
+
+    it('should prefer givenName over fullName', () => {
+      mockAuthApi.getOAuthUserMetadata.mockReturnValue({
+        givenName: 'Johnny',
+        fullName: 'John Doe',
+      });
+
+      store.prefillFromOAuthMetadata();
+
+      expect(store.firstName()).toBe('Johnny');
     });
   });
 
@@ -308,6 +378,70 @@ describe('CompleteProfileStore', () => {
         {
           context: 'complete-profile',
           action: 'savePayDaySetting',
+        },
+      );
+    });
+
+    it('should track first_budget_created event on success', async () => {
+      mockProfileSetupService.createInitialBudget.mockResolvedValue({
+        success: true,
+      });
+
+      store.updateFirstName('John');
+      store.updateMonthlyIncome(5000);
+
+      await store.submitProfile();
+
+      expect(mockPostHogService.captureEvent).toHaveBeenCalledWith(
+        'first_budget_created',
+        {
+          signup_method: 'email',
+          has_pay_day: false,
+          charges_count: 0,
+        },
+      );
+    });
+
+    it('should track first_budget_created with google method when OAuth metadata exists', async () => {
+      mockProfileSetupService.createInitialBudget.mockResolvedValue({
+        success: true,
+      });
+      mockAuthApi.getOAuthUserMetadata.mockReturnValue({
+        givenName: 'John',
+      });
+
+      store.updateFirstName('John');
+      store.updateMonthlyIncome(5000);
+
+      await store.submitProfile();
+
+      expect(mockPostHogService.captureEvent).toHaveBeenCalledWith(
+        'first_budget_created',
+        expect.objectContaining({
+          signup_method: 'google',
+        }),
+      );
+    });
+
+    it('should count optional charges correctly', async () => {
+      mockProfileSetupService.createInitialBudget.mockResolvedValue({
+        success: true,
+      });
+
+      store.updateFirstName('John');
+      store.updateMonthlyIncome(5000);
+      store.updateHousingCosts(1000);
+      store.updatePhonePlan(50);
+      store.updatePayDayOfMonth(27);
+
+      await store.submitProfile();
+
+      expect(mockPostHogService.captureEvent).toHaveBeenCalledWith(
+        'first_budget_created',
+        {
+          signup_method: 'email',
+          has_pay_day: true,
+          charges_count: 2,
         },
       );
     });

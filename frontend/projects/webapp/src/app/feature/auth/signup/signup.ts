@@ -21,6 +21,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { Router, RouterLink } from '@angular/router';
 import { AuthApi, PASSWORD_MIN_LENGTH } from '@core/auth';
+import { PostHogService } from '@core/analytics/posthog';
 import { Logger } from '@core/logging/logger';
 import { GoogleOAuthButton } from '@app/pattern/google-oauth';
 import { ROUTES } from '@core/routing/routes-constants';
@@ -275,6 +276,7 @@ export default class Signup {
   readonly #router = inject(Router);
   readonly #logger = inject(Logger);
   readonly #formBuilder = inject(FormBuilder);
+  readonly #postHogService = inject(PostHogService);
 
   protected readonly ROUTES = ROUTES;
 
@@ -336,6 +338,9 @@ export default class Signup {
       const result = await this.#authService.signUpWithEmail(email, password);
 
       if (result.success) {
+        this.#postHogService.captureEvent('signup_completed', {
+          method: 'email',
+        });
         this.#router.navigate(['/', ROUTES.APP, ROUTES.CURRENT_MONTH]);
       } else {
         this.errorMessage.set(
