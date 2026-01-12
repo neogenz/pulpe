@@ -96,6 +96,21 @@ struct BudgetDetailsView: View {
             .listRowInsets(EdgeInsets())
             .listRowBackground(Color.clear)
 
+            // Rollover section (toujours en premier)
+            if let rollover = viewModel.rolloverLine {
+                BudgetSection(
+                    title: "Report du mois précédent",
+                    items: [rollover],
+                    transactions: viewModel.transactions,
+                    syncingIds: viewModel.syncingBudgetLineIds,
+                    onToggle: { _ in },
+                    onDelete: { _ in },
+                    onAddTransaction: { _ in },
+                    onLongPress: { _, _ in },
+                    onEdit: { _ in }
+                )
+            }
+
             // Income section
             if !filteredIncome.isEmpty {
                 BudgetSection(
@@ -264,6 +279,17 @@ final class BudgetDetailsViewModel {
         transactions
             .filter { $0.budgetLineId == nil }
             .sorted { $0.transactionDate > $1.transactionDate }
+    }
+
+    var rolloverLine: BudgetLine? {
+        guard let budget, let rollover = budget.rollover, rollover != 0 else {
+            return nil
+        }
+        return BudgetLine.rolloverLine(
+            amount: rollover,
+            budgetId: budget.id,
+            sourceBudgetId: budget.previousBudgetId
+        )
     }
 
     /// Filters budget lines by name or by linked transaction names (accent and case insensitive)
