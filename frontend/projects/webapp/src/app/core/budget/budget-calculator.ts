@@ -129,7 +129,7 @@ export class BudgetCalculator {
 
   /**
    * Calcule le ending balance localement selon les spécifications métier
-   * ending_balance = available - totalExpenses
+   * ending_balance = available - totalExpenses (avec logique d'enveloppe)
    * Délègue au shared BudgetFormulas
    *
    * @param budgetLines Les lignes budgétaires planifiées
@@ -142,7 +142,7 @@ export class BudgetCalculator {
     transactions: Transaction[],
     rollover = 0,
   ): number {
-    return BudgetFormulas.calculateAllMetrics(
+    return BudgetFormulas.calculateAllMetricsWithEnvelopes(
       budgetLines,
       transactions,
       rollover,

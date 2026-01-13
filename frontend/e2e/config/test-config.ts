@@ -1,6 +1,9 @@
 /**
  * Centralized test configuration
  * All test data and credentials in one place
+ *
+ * IMPORTANT: All IDs must be valid UUIDs to pass Zod runtime validation.
+ * Using static UUIDs ensures consistency across test runs.
  */
 
 // Security check: Only allow in test environments
@@ -8,39 +11,57 @@ if (typeof process !== 'undefined' && process.env['NODE_ENV'] === 'production') 
   throw new Error('Test configuration cannot be loaded in production environment');
 }
 
+// Static UUIDs for test consistency (matches helpers/api-mocks.ts TEST_UUIDS)
+const TEST_USER_ID =
+  process.env['E2E_TEST_USER_ID'] ||
+  '00000000-0000-4000-a000-000000000201';
+const TEST_TEMPLATE_ID = '00000000-0000-4000-a000-000000000101';
+const TEST_BUDGET_ID = '00000000-0000-4000-a000-000000000001';
+
+const now = new Date().toISOString();
+const currentMonth = new Date().getMonth() + 1;
+const currentYear = new Date().getFullYear();
+
 export const TEST_CONFIG = {
   // User credentials (can be overridden by environment variables)
   USER: {
-    ID: process.env['E2E_TEST_USER_ID'] || 'e2e-test-user-' + Date.now(),
-    EMAIL: process.env['E2E_TEST_EMAIL'] || `e2e-test-${Date.now()}@pulpe.local`,
-    PASSWORD: process.env['E2E_TEST_PASSWORD'] || 'E2E-Test-Pass-123!'
+    ID: TEST_USER_ID,
+    EMAIL: process.env['E2E_TEST_EMAIL'] || 'e2e-test@pulpe.local',
+    PASSWORD: process.env['E2E_TEST_PASSWORD'] || 'E2E-Test-Pass-123!',
   },
-  
-  // Auth tokens
+
+  // Auth tokens (static for test consistency)
   TOKENS: {
-    ACCESS: process.env['E2E_ACCESS_TOKEN'] || `mock-access-token-${Date.now()}`,
-    REFRESH: process.env['E2E_REFRESH_TOKEN'] || `mock-refresh-token-${Date.now()}`
+    ACCESS:
+      process.env['E2E_ACCESS_TOKEN'] || 'mock-access-token-e2e-static',
+    REFRESH:
+      process.env['E2E_REFRESH_TOKEN'] || 'mock-refresh-token-e2e-static',
   },
-  
-  // Test data
+
+  // Test data - follows budgetSchema from shared/schemas.ts
   BUDGETS: {
     CURRENT_MONTH: {
-      id: 'e2e-budget-current',
-      month: new Date().getMonth() + 1,
-      year: new Date().getFullYear(),
-      total_income: 5000,
-      total_expenses: 3000,
-      available_to_spend: 2000
-    }
+      id: TEST_BUDGET_ID,
+      userId: TEST_USER_ID,
+      templateId: TEST_TEMPLATE_ID,
+      month: currentMonth,
+      year: currentYear,
+      description: 'E2E Test Budget',
+      endingBalance: 0,
+      rollover: 0,
+      remaining: 2000,
+      createdAt: now,
+      updatedAt: now,
+    },
   },
-  
+
   TEMPLATES: {
     DEFAULT: {
-      id: 'e2e-template-default',
+      id: TEST_TEMPLATE_ID,
       name: 'E2E Test Template',
-      is_default: true
-    }
-  }
+      isDefault: true,
+    },
+  },
 } as const;
 
 // Type exports for type safety

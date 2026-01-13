@@ -104,3 +104,44 @@ export function createMultipleBudgetLinesMock(
     })
   );
 }
+
+export function createTransactionMock(
+  id: string,
+  budgetId: string,
+  overrides?: Partial<Transaction>
+): Transaction {
+  return {
+    id,
+    budgetId,
+    budgetLineId: null,
+    name: 'Test Transaction',
+    amount: 50,
+    kind: 'expense',
+    transactionDate: '2025-01-15T12:00:00Z',
+    category: null,
+    createdAt: '2025-01-01T00:00:00Z',
+    updatedAt: '2025-01-01T00:00:00Z',
+    checkedAt: null,
+    ...overrides,
+  };
+}
+
+export function createMultipleTransactionsMock(
+  budgetId: string,
+  transactions: {
+    id: string;
+    name: string;
+    amount: number;
+    kind?: Transaction['kind'];
+    budgetLineId?: string | null;
+  }[]
+): Transaction[] {
+  return transactions.map((tx) =>
+    createTransactionMock(tx.id, budgetId, {
+      name: tx.name,
+      amount: tx.amount,
+      kind: tx.kind || 'expense',
+      budgetLineId: tx.budgetLineId ?? null,
+    })
+  );
+}

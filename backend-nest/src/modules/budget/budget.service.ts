@@ -192,7 +192,11 @@ export class BudgetService {
     const { transactions, budgetLines } = await this.repository.fetchBudgetData(
       budget.id,
       supabase,
-      { selectFields: '*', orderTransactions: true },
+      {
+        budgetLineFields: '*',
+        transactionFields: '*',
+        orderTransactions: true,
+      },
     );
 
     const rolloverData = await this.calculator.getRollover(
@@ -395,7 +399,8 @@ export class BudgetService {
     supabase: AuthenticatedSupabaseClient,
   ) {
     const results = await this.repository.fetchBudgetData(budgetId, supabase, {
-      selectFields: '*',
+      budgetLineFields: '*',
+      transactionFields: '*',
       orderTransactions: true,
     });
 

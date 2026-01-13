@@ -1,5 +1,8 @@
 /**
  * Type-safe mock API responses for E2E tests
+ *
+ * All response shapes follow Zod schemas from shared/schemas.ts
+ * for Zod runtime validation compatibility.
  */
 
 import { TEST_CONFIG } from '../config/test-config';
@@ -19,22 +22,64 @@ export interface MockAuthResponse {
   };
 }
 
+// Follows budgetListResponseSchema from shared/schemas.ts:510-514
 export interface MockBudgetResponse {
+  success: true;
   data: Array<{
     id: string;
+    userId: string;
+    templateId: string;
     month: number;
     year: number;
-    total_income: number;
-    total_expenses: number;
-    available_to_spend: number;
+    description: string;
+    endingBalance: number | null;
+    rollover?: number;
+    remaining?: number;
+    createdAt: string;
+    updatedAt: string;
   }>;
+}
+
+// Follows budgetDetailsResponseSchema from shared/schemas.ts:527-535
+export interface MockBudgetDetailsResponse {
+  success: true;
+  data: {
+    budget: MockBudgetResponse['data'][0];
+    transactions: Array<{
+      id: string;
+      budgetId: string;
+      budgetLineId: string | null;
+      name: string;
+      amount: number;
+      kind: 'income' | 'expense' | 'saving';
+      transactionDate: string;
+      category: string | null;
+      createdAt: string;
+      updatedAt: string;
+      checkedAt: string | null;
+    }>;
+    budgetLines: Array<{
+      id: string;
+      budgetId: string;
+      name: string;
+      amount: number;
+      kind: 'income' | 'expense' | 'saving';
+      recurrence: 'fixed' | 'one_off';
+      isManuallyAdjusted: boolean;
+      templateLineId: string | null;
+      savingsGoalId: string | null;
+      checkedAt: string | null;
+      createdAt: string;
+      updatedAt: string;
+    }>;
+  };
 }
 
 export interface MockTemplateResponse {
   data: Array<{
     id: string;
     name: string;
-    is_default: boolean;
+    isDefault: boolean;
   }>;
 }
 
@@ -79,11 +124,21 @@ export const createMockAuthResponse = (): MockAuthResponse => ({
 });
 
 export const createMockBudgetResponse = (): MockBudgetResponse => ({
-  data: [TEST_CONFIG.BUDGETS.CURRENT_MONTH]
+  success: true,
+  data: [TEST_CONFIG.BUDGETS.CURRENT_MONTH],
+});
+
+export const createMockBudgetDetailsResponse = (): MockBudgetDetailsResponse => ({
+  success: true,
+  data: {
+    budget: TEST_CONFIG.BUDGETS.CURRENT_MONTH,
+    transactions: [],
+    budgetLines: [],
+  },
 });
 
 export const createMockTemplateResponse = (): MockTemplateResponse => ({
-  data: [TEST_CONFIG.TEMPLATES.DEFAULT]
+  data: [TEST_CONFIG.TEMPLATES.DEFAULT],
 });
 
 export const createMockTemplateDetailResponse = (): MockTemplateDetailResponse => ({
@@ -92,8 +147,8 @@ export const createMockTemplateDetailResponse = (): MockTemplateDetailResponse =
     id: TEST_CONFIG.TEMPLATES.DEFAULT.id,
     name: TEST_CONFIG.TEMPLATES.DEFAULT.name,
     description: 'Default test template for E2E testing',
-    isDefault: TEST_CONFIG.TEMPLATES.DEFAULT.is_default
-  }
+    isDefault: TEST_CONFIG.TEMPLATES.DEFAULT.isDefault,
+  },
 });
 
 export const createMockTemplateLinesResponse = (): MockTemplateLinesResponse => ({
@@ -116,8 +171,9 @@ export const createMockSuccessResponse = (): MockGenericResponse => ({
 export const MOCK_API_RESPONSES = {
   auth: createMockAuthResponse(),
   budgets: createMockBudgetResponse(),
+  budgetDetails: createMockBudgetDetailsResponse(),
   templates: createMockTemplateResponse(),
   templateDetail: createMockTemplateDetailResponse(),
   templateLines: createMockTemplateLinesResponse(),
-  success: createMockSuccessResponse()
+  success: createMockSuccessResponse(),
 } as const;

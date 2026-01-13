@@ -35,6 +35,18 @@ interface FinancialItem {
 }
 
 /**
+ * Extended interface for envelope-aware calculations
+ * Requires `id` on budget lines and `budgetLineId` on transactions
+ */
+interface FinancialItemWithId extends FinancialItem {
+  id: string;
+}
+
+interface TransactionWithBudgetLineId extends FinancialItem {
+  budgetLineId?: string | null;
+}
+
+/**
  * Classe contenant toutes les formules métier selon SPECS
  * Toutes les méthodes sont statiques et pures (pas d'effets de bord)
  */
@@ -85,6 +97,50 @@ export class BudgetFormulas {
       .reduce((sum, t) => sum + t.amount, 0);
 
     return budgetExpenses + transactionExpenses;
+  }
+
+  /**
+   * Calcule les dépenses totales avec logique d'enveloppe
+   *
+   * Business Rule:
+   * - Allocated transactions are "covered" by their envelope (budget line)
+   * - Only the OVERAGE (consumed > envelope.amount) impacts the budget
+   * - Free transactions (no budgetLineId) impact the budget directly
+   *
+   * @param budgetLines - Budget lines with `id` field
+   * @param transactions - Transactions with optional `budgetLineId` field
+   * @returns Total expenses accounting for envelope coverage
+   */
+  static calculateTotalExpensesWithEnvelopes(
+    budgetLines: FinancialItemWithId[],
+    transactions: TransactionWithBudgetLineId[] = [],
+  ): number {
+    let total = 0;
+
+    // For each expense/saving budget line, use max(envelope, consumed)
+    budgetLines.forEach((line) => {
+      if (line.kind === 'expense' || line.kind === 'saving') {
+        // Skip virtual rollover lines
+        if (line.id.startsWith('rollover-')) return;
+
+        // Calculate consumed amount for this envelope
+        const consumed = transactions
+          .filter((tx) => tx.budgetLineId === line.id)
+          .reduce((sum, tx) => sum + tx.amount, 0);
+
+        const effectiveAmount = Math.max(line.amount, consumed);
+        total += effectiveAmount;
+      }
+    });
+
+    // Add free transactions (those without budgetLineId)
+    transactions.forEach((tx) => {
+      if (!tx.budgetLineId && (tx.kind === 'expense' || tx.kind === 'saving')) {
+        total += tx.amount;
+      }
+    });
+
+    return total;
   }
 
   /**
@@ -206,27 +262,31 @@ export class BudgetFormulas {
   }
 
   /**
-   * Calcule toutes les métriques en une seule fois
-   * Optimisation pour éviter les calculs redondants
+   * Calcule toutes les métriques avec logique d'enveloppe
    *
-   * @param budgetLines - Lignes budgétaires planifiées
-   * @param transactions - Transactions réelles
+   * Business Rule:
+   * - Les transactions allouées sont "couvertes" par leur enveloppe
+   * - Seul le DÉPASSEMENT (consumed > envelope.amount) impacte le budget
+   * - Les transactions libres impactent directement le budget
+   *
+   * @param budgetLines - Lignes budgétaires avec IDs (pour calcul enveloppe)
+   * @param transactions - Transactions avec budgetLineId optionnel
    * @param rollover - Report du mois précédent
-   * @returns Toutes les métriques calculées
+   * @returns Toutes les métriques calculées avec logique d'enveloppe
    */
-  static calculateAllMetrics(
-    budgetLines: FinancialItem[],
-    transactions: FinancialItem[] = [],
+  static calculateAllMetricsWithEnvelopes(
+    budgetLines: FinancialItemWithId[],
+    transactions: TransactionWithBudgetLineId[] = [],
     rollover: number = 0,
   ) {
     const totalIncome = this.calculateTotalIncome(budgetLines, transactions);
-    const totalExpenses = this.calculateTotalExpenses(
+    const totalExpenses = this.calculateTotalExpensesWithEnvelopes(
       budgetLines,
       transactions,
     );
     const available = this.calculateAvailable(totalIncome, rollover);
     const endingBalance = this.calculateEndingBalance(available, totalExpenses);
-    const remaining = endingBalance; // Same as ending balance per SPECS
+    const remaining = endingBalance;
 
     return {
       totalIncome,
@@ -246,7 +306,7 @@ export class BudgetFormulas {
    * @returns True si cohérent, false sinon
    */
   static validateMetricsCoherence(
-    metrics: ReturnType<typeof BudgetFormulas.calculateAllMetrics>,
+    metrics: ReturnType<typeof BudgetFormulas.calculateAllMetricsWithEnvelopes>,
   ): boolean {
     // Tolérance epsilon pour les comparaisons de nombres décimaux
     const EPSILON = 0.01;
