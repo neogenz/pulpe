@@ -287,6 +287,27 @@ describe('StorageService', () => {
         expect.stringContaining('3'),
       );
     });
+
+    it('should preserve product tour keys (pulpe-tour-*)', () => {
+      // GIVEN: Both regular and tour keys exist
+      localStorage.setItem('pulpe-budget', 'budget-data');
+      localStorage.setItem('pulpe-user', 'user-data');
+      localStorage.setItem('pulpe-tour-intro-user@example.com', 'true');
+      localStorage.setItem('pulpe-tour-current-month-user@example.com', 'true');
+
+      // WHEN: Clearing all
+      service.clearAll();
+
+      // THEN: Regular keys are removed, tour keys are preserved
+      expect(localStorage.getItem('pulpe-budget')).toBeNull();
+      expect(localStorage.getItem('pulpe-user')).toBeNull();
+      expect(localStorage.getItem('pulpe-tour-intro-user@example.com')).toBe(
+        'true',
+      );
+      expect(
+        localStorage.getItem('pulpe-tour-current-month-user@example.com'),
+      ).toBe('true');
+    });
   });
 
   describe('Error handling - localStorage failures', () => {

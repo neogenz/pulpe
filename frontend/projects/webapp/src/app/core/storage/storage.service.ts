@@ -113,14 +113,15 @@ export class StorageService {
   }
 
   /**
-   * Clear ALL app data from localStorage.
-   * This removes all keys starting with 'pulpe-' or 'pulpe_'.
+   * Clear ALL app data from localStorage except persistent keys.
+   * This removes all keys starting with 'pulpe-' or 'pulpe_',
+   * but preserves product tour completion state (pulpe-tour-*).
    * Called on user logout to prevent data leakage between users.
    */
   clearAll(): void {
     try {
-      const keysToRemove = Object.keys(localStorage).filter((key) =>
-        key.startsWith('pulpe'),
+      const keysToRemove = Object.keys(localStorage).filter(
+        (key) => key.startsWith('pulpe') && !key.startsWith('pulpe-tour-'),
       );
 
       keysToRemove.forEach((key) => localStorage.removeItem(key));
