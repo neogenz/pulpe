@@ -94,7 +94,6 @@ export class GoogleOAuthButton {
           result.error ?? AUTH_ERROR_MESSAGES.GOOGLE_CONNECTION_ERROR,
         );
       }
-      // On success, keep isLoading=true (OAuth redirect will happen)
     } catch (err) {
       this.#logger.error('Google OAuth error', err);
       this.authError.emit(AUTH_ERROR_MESSAGES.GOOGLE_CONNECTION_ERROR);
