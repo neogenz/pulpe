@@ -1,0 +1,359 @@
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import {
+  type AbstractControl,
+  FormBuilder,
+  ReactiveFormsModule,
+  type ValidationErrors,
+  Validators,
+} from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+import { Router, RouterLink } from '@angular/router';
+import { AuthApi, PASSWORD_MIN_LENGTH } from '@core/auth';
+import { PostHogService } from '@core/analytics/posthog';
+import { Logger } from '@core/logging/logger';
+import { GoogleOAuthButton } from '@app/pattern/google-oauth';
+import { ROUTES } from '@core/routing/routes-constants';
+import { ErrorAlert } from '@ui/error-alert';
+import { LoadingButton } from '@ui/loading-button';
+
+function passwordsMatchValidator(
+  control: AbstractControl,
+): ValidationErrors | null {
+  const password = control.get('password')?.value as string;
+  const confirmPassword = control.get('confirmPassword')?.value as string;
+
+  if (!password || !confirmPassword) {
+    return null;
+  }
+
+  if (password !== confirmPassword) {
+    control.get('confirmPassword')?.setErrors({ passwordsMismatch: true });
+    return { passwordsMismatch: true };
+  }
+
+  return null;
+}
+
+@Component({
+  selector: 'pulpe-signup',
+  imports: [
+    ReactiveFormsModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatIconModule,
+    MatDividerModule,
+    MatCheckboxModule,
+    RouterLink,
+    GoogleOAuthButton,
+    ErrorAlert,
+    LoadingButton,
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <div
+      class="min-h-screen pulpe-gradient flex items-center justify-center p-4"
+    >
+      <div
+        class="w-full max-w-md bg-surface rounded-2xl p-8 flex flex-col shadow-lg"
+      >
+        <div class="text-center mb-8">
+          <h1 class="text-headline-large text-on-surface mb-2">
+            Créer un compte
+          </h1>
+          <p class="text-body-large text-on-surface-variant">
+            Rejoins Pulpe pour gérer ton budget
+          </p>
+        </div>
+
+        <form
+          [formGroup]="signupForm"
+          (ngSubmit)="signUp()"
+          class="space-y-4"
+          data-testid="signup-form"
+        >
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Email</mat-label>
+            <input
+              matInput
+              type="email"
+              formControlName="email"
+              data-testid="email-input"
+              (input)="clearMessages()"
+              placeholder="votre@email.com"
+              [disabled]="isSubmitting()"
+            />
+            <mat-icon matPrefix>email</mat-icon>
+            @if (
+              signupForm.get('email')?.invalid &&
+              signupForm.get('email')?.touched
+            ) {
+              <mat-error>
+                @if (signupForm.get('email')?.hasError('required')) {
+                  L'email est requis.
+                } @else if (signupForm.get('email')?.hasError('email')) {
+                  Une adresse email valide est requise.
+                }
+              </mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Mot de passe</mat-label>
+            <input
+              matInput
+              [type]="hidePassword() ? 'password' : 'text'"
+              formControlName="password"
+              data-testid="password-input"
+              (input)="clearMessages()"
+              placeholder="Mot de passe"
+              [disabled]="isSubmitting()"
+            />
+            <mat-icon matPrefix>lock</mat-icon>
+            <button
+              type="button"
+              matIconButton
+              matSuffix
+              (click)="togglePasswordVisibility()"
+              [attr.aria-label]="'Afficher le mot de passe'"
+              [attr.aria-pressed]="!hidePassword()"
+            >
+              <mat-icon>{{
+                hidePassword() ? 'visibility_off' : 'visibility'
+              }}</mat-icon>
+            </button>
+            <mat-hint>Minimum 8 caractères</mat-hint>
+            @if (
+              signupForm.get('password')?.invalid &&
+              signupForm.get('password')?.touched
+            ) {
+              <mat-error>
+                @if (signupForm.get('password')?.hasError('required')) {
+                  Le mot de passe est requis.
+                } @else if (signupForm.get('password')?.hasError('minlength')) {
+                  Le mot de passe doit contenir au moins 8 caractères.
+                }
+              </mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Confirmer le mot de passe</mat-label>
+            <input
+              matInput
+              [type]="hideConfirmPassword() ? 'password' : 'text'"
+              formControlName="confirmPassword"
+              data-testid="confirm-password-input"
+              (input)="clearMessages()"
+              placeholder="Confirmer le mot de passe"
+              [disabled]="isSubmitting()"
+            />
+            <mat-icon matPrefix>lock</mat-icon>
+            <button
+              type="button"
+              matIconButton
+              matSuffix
+              (click)="toggleConfirmPasswordVisibility()"
+              [attr.aria-label]="'Afficher le mot de passe'"
+              [attr.aria-pressed]="!hideConfirmPassword()"
+            >
+              <mat-icon>{{
+                hideConfirmPassword() ? 'visibility_off' : 'visibility'
+              }}</mat-icon>
+            </button>
+            @if (
+              signupForm.get('confirmPassword')?.invalid &&
+              signupForm.get('confirmPassword')?.touched
+            ) {
+              <mat-error>
+                @if (signupForm.get('confirmPassword')?.hasError('required')) {
+                  La confirmation est requise.
+                } @else if (
+                  signupForm
+                    .get('confirmPassword')
+                    ?.hasError('passwordsMismatch')
+                ) {
+                  Les mots de passe ne correspondent pas.
+                }
+              </mat-error>
+            }
+          </mat-form-field>
+
+          <div class="pt-2">
+            <mat-checkbox
+              formControlName="acceptTerms"
+              [disabled]="isSubmitting()"
+              data-testid="accept-terms-checkbox"
+            >
+              <span class="text-body-medium">
+                J'accepte les
+                <a
+                  [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_TERMS]"
+                  target="_blank"
+                  class="text-primary underline"
+                  (click)="$event.stopPropagation()"
+                >
+                  Conditions d'Utilisation
+                </a>
+                et la
+                <a
+                  [routerLink]="['/', ROUTES.LEGAL, ROUTES.LEGAL_PRIVACY]"
+                  target="_blank"
+                  class="text-primary underline"
+                  (click)="$event.stopPropagation()"
+                >
+                  Politique de Confidentialité
+                </a>
+              </span>
+            </mat-checkbox>
+            @if (
+              signupForm.get('acceptTerms')?.invalid &&
+              signupForm.get('acceptTerms')?.touched
+            ) {
+              <p class="text-error text-body-small mt-1">
+                Vous devez accepter les conditions pour continuer.
+              </p>
+            }
+          </div>
+
+          <pulpe-error-alert [message]="errorMessage()" />
+
+          <pulpe-loading-button
+            [loading]="isSubmitting()"
+            [disabled]="!canSubmit()"
+            loadingText="Création en cours..."
+            icon="person_add"
+            testId="signup-submit-button"
+            class="mt-4"
+          >
+            <span class="ml-2">Créer mon compte</span>
+          </pulpe-loading-button>
+        </form>
+
+        <div class="flex items-center gap-4 my-6">
+          <mat-divider class="flex-1" />
+          <span class="text-body-medium text-on-surface-variant">ou</span>
+          <mat-divider class="flex-1" />
+        </div>
+
+        <pulpe-google-oauth-button
+          testId="google-signup-button"
+          (authError)="errorMessage.set($event)"
+          (loadingChange)="isSubmitting.set($event)"
+        />
+
+        <div class="text-center mt-6">
+          <p class="text-body-medium text-on-surface-variant">
+            Déjà un compte ?
+            <button
+              matButton
+              color="primary"
+              class="ml-1"
+              [routerLink]="['/', ROUTES.LOGIN]"
+            >
+              Se connecter
+            </button>
+          </p>
+        </div>
+      </div>
+    </div>
+  `,
+})
+export default class Signup {
+  readonly #authService = inject(AuthApi);
+  readonly #router = inject(Router);
+  readonly #logger = inject(Logger);
+  readonly #formBuilder = inject(FormBuilder);
+  readonly #postHogService = inject(PostHogService);
+
+  protected readonly ROUTES = ROUTES;
+
+  protected hidePassword = signal<boolean>(true);
+  protected hideConfirmPassword = signal<boolean>(true);
+  protected isSubmitting = signal<boolean>(false);
+  protected errorMessage = signal<string>('');
+
+  protected signupForm = this.#formBuilder.nonNullable.group(
+    {
+      email: ['', [Validators.required, Validators.email]],
+      password: [
+        '',
+        [Validators.required, Validators.minLength(PASSWORD_MIN_LENGTH)],
+      ],
+      confirmPassword: ['', [Validators.required]],
+      acceptTerms: [false, [Validators.requiredTrue]],
+    },
+    { validators: passwordsMatchValidator },
+  );
+
+  protected formStatus = toSignal(this.signupForm.statusChanges, {
+    initialValue: this.signupForm.status,
+  });
+
+  protected canSubmit = computed(() => {
+    const isValid = this.formStatus() === 'VALID';
+    const isNotSubmitting = !this.isSubmitting();
+    return isValid && isNotSubmitting;
+  });
+
+  protected togglePasswordVisibility(): void {
+    this.hidePassword.set(!this.hidePassword());
+  }
+
+  protected toggleConfirmPasswordVisibility(): void {
+    this.hideConfirmPassword.set(!this.hideConfirmPassword());
+  }
+
+  protected clearMessages(): void {
+    this.errorMessage.set('');
+  }
+
+  protected async signUp(): Promise<void> {
+    if (!this.signupForm.valid) {
+      this.signupForm.markAllAsTouched();
+      this.errorMessage.set(
+        'Veuillez corriger les erreurs dans le formulaire.',
+      );
+      return;
+    }
+
+    this.isSubmitting.set(true);
+    this.clearMessages();
+
+    const { email, password } = this.signupForm.getRawValue();
+
+    try {
+      const result = await this.#authService.signUpWithEmail(email, password);
+
+      if (result.success) {
+        this.#postHogService.captureEvent('signup_completed', {
+          method: 'email',
+        });
+        this.#router.navigate(['/', ROUTES.APP, ROUTES.CURRENT_MONTH]);
+      } else {
+        this.errorMessage.set(
+          result.error || 'Erreur lors de la création du compte.',
+        );
+      }
+    } catch (error) {
+      this.#logger.error('Erreur lors de la création du compte:', error);
+      this.errorMessage.set(
+        "Une erreur inattendue s'est produite. Veuillez réessayer.",
+      );
+    } finally {
+      this.isSubmitting.set(false);
+    }
+  }
+}

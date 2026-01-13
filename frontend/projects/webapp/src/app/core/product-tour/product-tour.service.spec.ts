@@ -1,20 +1,45 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
-import {
-  ProductTourService,
-  TOUR_STORAGE_KEYS,
-  type TourPageId,
-} from './product-tour.service';
+import { ProductTourService, type TourPageId } from './product-tour.service';
+import { AuthApi } from '@core/auth/auth-api';
+
+const TEST_USER_ID = 'test-user-123';
+
+/**
+ * Generate a tour storage key for testing.
+ * Mirrors the internal logic of ProductTourService.
+ */
+function getTourKey(
+  tourId: string,
+  userId: string | null = TEST_USER_ID,
+): string {
+  if (!userId) {
+    return `pulpe-tour-${tourId}`;
+  }
+  return `pulpe-tour-${tourId}-${userId}`;
+}
 
 describe('ProductTourService', () => {
   let service: ProductTourService;
+  let mockCurrentUser: { id: string } | null;
 
   beforeEach(() => {
     localStorage.clear();
+    mockCurrentUser = { id: TEST_USER_ID };
+
+    const mockAuthApi = {
+      get currentUser() {
+        return mockCurrentUser;
+      },
+    };
 
     TestBed.configureTestingModule({
-      providers: [provideZonelessChangeDetection(), ProductTourService],
+      providers: [
+        provideZonelessChangeDetection(),
+        ProductTourService,
+        { provide: AuthApi, useValue: mockAuthApi },
+      ],
     });
 
     service = TestBed.inject(ProductTourService);
@@ -30,13 +55,13 @@ describe('ProductTourService', () => {
     });
 
     it('should return true when intro has been seen', () => {
-      localStorage.setItem(TOUR_STORAGE_KEYS.intro, 'true');
+      localStorage.setItem(getTourKey('intro'), 'true');
 
       expect(service.hasSeenIntro()).toBe(true);
     });
 
     it('should return false for non-true values', () => {
-      localStorage.setItem(TOUR_STORAGE_KEYS.intro, 'false');
+      localStorage.setItem(getTourKey('intro'), 'false');
 
       expect(service.hasSeenIntro()).toBe(false);
     });
@@ -56,7 +81,7 @@ describe('ProductTourService', () => {
       });
 
       it(`should return true when ${pageId} tour has been seen`, () => {
-        localStorage.setItem(TOUR_STORAGE_KEYS[pageId], 'true');
+        localStorage.setItem(getTourKey(pageId), 'true');
 
         expect(service.hasSeenPageTour(pageId)).toBe(true);
       });
@@ -66,8 +91,15 @@ describe('ProductTourService', () => {
   describe('resetAllTours', () => {
     it('should clear all tour keys from localStorage', () => {
       // GIVEN: All tours have been seen
-      Object.values(TOUR_STORAGE_KEYS).forEach((key) => {
-        localStorage.setItem(key, 'true');
+      const tourIds = [
+        'intro',
+        'current-month',
+        'budget-list',
+        'budget-details',
+        'templates-list',
+      ];
+      tourIds.forEach((tourId) => {
+        localStorage.setItem(getTourKey(tourId), 'true');
       });
 
       // Verify setup
@@ -94,28 +126,97 @@ describe('ProductTourService', () => {
     });
   });
 
-  describe('TOUR_STORAGE_KEYS', () => {
-    it('should have correct key format for intro', () => {
-      expect(TOUR_STORAGE_KEYS.intro).toBe('pulpe-tour-intro');
+  describe('user-specific storage keys', () => {
+    it('should store tour state with user-specific key', () => {
+      // GIVEN: User has not seen intro
+      expect(service.hasSeenIntro()).toBe(false);
+
+      // WHEN: User completes intro tour (simulated by setting localStorage)
+      localStorage.setItem(getTourKey('intro'), 'true');
+
+      // THEN: Tour is marked as seen with user-specific key
+      expect(service.hasSeenIntro()).toBe(true);
+      expect(localStorage.getItem(`pulpe-tour-intro-${TEST_USER_ID}`)).toBe(
+        'true',
+      );
     });
 
-    it('should have correct key format for page tours', () => {
-      expect(TOUR_STORAGE_KEYS['current-month']).toBe(
-        'pulpe-tour-current-month',
-      );
-      expect(TOUR_STORAGE_KEYS['budget-list']).toBe('pulpe-tour-budget-list');
-      expect(TOUR_STORAGE_KEYS['budget-details']).toBe(
-        'pulpe-tour-budget-details',
-      );
-      expect(TOUR_STORAGE_KEYS['templates-list']).toBe(
-        'pulpe-tour-templates-list',
-      );
+    it('should not see tours completed by another user', () => {
+      // GIVEN: Another user has completed the tour
+      const otherUserId = 'other-user-456';
+      localStorage.setItem(getTourKey('intro', otherUserId), 'true');
+
+      // THEN: Current user should not see that tour as completed
+      expect(service.hasSeenIntro()).toBe(false);
+    });
+  });
+
+  describe('isReady', () => {
+    it('should return true when user is authenticated', () => {
+      expect(service.isReady()).toBe(true);
+    });
+
+    it('should return false when user is not authenticated', () => {
+      mockCurrentUser = null;
+
+      expect(service.isReady()).toBe(false);
+    });
+  });
+
+  describe('graceful degradation when not authenticated', () => {
+    it('should return true for hasSeenIntro when not ready (prevent tour)', () => {
+      mockCurrentUser = null;
+
+      expect(service.hasSeenIntro()).toBe(true);
+    });
+
+    it('should return true for hasSeenPageTour when not ready (prevent tour)', () => {
+      mockCurrentUser = null;
+
+      expect(service.hasSeenPageTour('current-month')).toBe(true);
+    });
+
+    it('should not start tour when not ready', () => {
+      mockCurrentUser = null;
+
+      expect(() => service.startPageTour('current-month')).not.toThrow();
+    });
+
+    it('should not reset tours when not ready', () => {
+      localStorage.setItem(getTourKey('intro'), 'true');
+      mockCurrentUser = null;
+
+      service.resetAllTours();
+
+      mockCurrentUser = { id: TEST_USER_ID };
+      expect(service.hasSeenIntro()).toBe(true);
     });
   });
 
   describe('startPageTour', () => {
     it('should not throw when called with valid pageId', () => {
       expect(() => service.startPageTour('current-month')).not.toThrow();
+    });
+
+    it('should prevent concurrent tours (second call is ignored)', () => {
+      // GIVEN: A tour is already running
+      service.startPageTour('current-month');
+
+      // WHEN: Another tour is started
+      // THEN: No error occurs (call is silently ignored)
+      expect(() => service.startPageTour('budget-list')).not.toThrow();
+    });
+  });
+
+  describe('cancelActiveTour', () => {
+    it('should not throw when no tour is active', () => {
+      expect(() => service.cancelActiveTour()).not.toThrow();
+    });
+
+    it('should not throw when a tour is active', () => {
+      service.startPageTour('current-month');
+
+      expect(() => service.cancelActiveTour()).not.toThrow();
     });
   });
 });

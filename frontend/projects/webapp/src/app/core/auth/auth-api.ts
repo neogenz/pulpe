@@ -5,18 +5,34 @@ import {
   type User,
   type SupabaseClient,
 } from '@supabase/supabase-js';
+import { AUTH_ERROR_MESSAGES } from './auth-constants';
 import { AuthErrorLocalizer } from './auth-error-localizer';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
 import { DemoModeService } from '../demo/demo-mode.service';
 import { PostHogService } from '../analytics/posthog';
 import { StorageService } from '../storage';
+import { ROUTES } from '../routing/routes-constants';
+
+export interface OAuthUserMetadata {
+  givenName?: string;
+  fullName?: string;
+}
 
 export interface AuthState {
   readonly user: User | null;
   readonly session: Session | null;
   readonly isLoading: boolean;
   readonly isAuthenticated: boolean;
+}
+
+/**
+ * Extended Window interface for E2E testing.
+ * Matches the E2EWindow type from e2e/types/e2e.types.ts
+ */
+interface E2EWindow extends Window {
+  __E2E_AUTH_BYPASS__?: boolean;
+  __E2E_MOCK_AUTH_STATE__?: AuthState;
 }
 
 @Injectable({
@@ -61,6 +77,29 @@ export class AuthApi {
     isAuthenticated: this.isAuthenticated(),
   }));
 
+  getOAuthUserMetadata(): OAuthUserMetadata | null {
+    const session = this.#sessionSignal();
+    if (!session?.user?.user_metadata) {
+      return null;
+    }
+
+    const metadata = session.user.user_metadata as Record<string, unknown>;
+    const givenName =
+      typeof metadata['given_name'] === 'string'
+        ? metadata['given_name']
+        : undefined;
+    const fullName =
+      typeof metadata['full_name'] === 'string'
+        ? metadata['full_name']
+        : undefined;
+
+    if (!givenName && !fullName) {
+      return null;
+    }
+
+    return { givenName, fullName };
+  }
+
   async initializeAuthState(): Promise<void> {
     // À ce point, applicationConfig.initialize() a déjà été appelé
     // Les valeurs sont garanties d'être disponibles
@@ -75,13 +114,8 @@ export class AuthApi {
     this.#supabaseClient = createClient(url, key);
 
     // Vérifier si on est en mode test E2E et utiliser les mocks
-    if (
-      (window as unknown as { __E2E_AUTH_BYPASS__: boolean })
-        .__E2E_AUTH_BYPASS__
-    ) {
-      const mockState = (
-        window as unknown as { __E2E_MOCK_AUTH_STATE__: AuthState }
-      ).__E2E_MOCK_AUTH_STATE__;
+    if (this.#isE2EBypass()) {
+      const mockState = this.#getE2EMockState();
       if (mockState) {
         this.#logger.info(
           '🎭 Mode test E2E détecté, utilisation des mocks auth',
@@ -150,6 +184,21 @@ export class AuthApi {
     );
   }
 
+  #isE2EBypass(): boolean {
+    return (
+      typeof window !== 'undefined' &&
+      (window as E2EWindow).__E2E_AUTH_BYPASS__ === true
+    );
+  }
+
+  #getE2EMockState(): AuthState | undefined {
+    return (window as E2EWindow).__E2E_MOCK_AUTH_STATE__;
+  }
+
+  #setE2EMockState(state: AuthState): void {
+    (window as E2EWindow).__E2E_MOCK_AUTH_STATE__ = state;
+  }
+
   private updateAuthState(session: Session | null): void {
     this.#sessionSignal.set(session);
     this.#isLoadingSignal.set(false);
@@ -172,11 +221,7 @@ export class AuthApi {
     email: string,
     password: string,
   ): Promise<{ success: boolean; error?: string }> {
-    // E2E test bypass
-    if (
-      (window as unknown as { __E2E_AUTH_BYPASS__: boolean })
-        .__E2E_AUTH_BYPASS__
-    ) {
+    if (this.#isE2EBypass()) {
       this.#logger.info('🎭 Mode test E2E: Simulation du signin');
       return { success: true };
     }
@@ -198,7 +243,7 @@ export class AuthApi {
     } catch {
       return {
         success: false,
-        error: 'Erreur inattendue lors de la connexion',
+        error: AUTH_ERROR_MESSAGES.UNEXPECTED_LOGIN_ERROR,
       };
     }
   }
@@ -207,11 +252,7 @@ export class AuthApi {
     email: string,
     password: string,
   ): Promise<{ success: boolean; error?: string }> {
-    // E2E test bypass
-    if (
-      (window as unknown as { __E2E_AUTH_BYPASS__: boolean })
-        .__E2E_AUTH_BYPASS__
-    ) {
+    if (this.#isE2EBypass()) {
       this.#logger.info('🎭 Mode test E2E: Simulation du signup');
       return { success: true };
     }
@@ -233,7 +274,37 @@ export class AuthApi {
     } catch {
       return {
         success: false,
-        error: "Erreur inattendue lors de l'inscription",
+        error: AUTH_ERROR_MESSAGES.UNEXPECTED_SIGNUP_ERROR,
+      };
+    }
+  }
+
+  async signInWithGoogle(): Promise<{ success: boolean; error?: string }> {
+    if (this.#isE2EBypass()) {
+      this.#logger.info('🎭 Mode test E2E: Simulation du signin Google');
+      return { success: true };
+    }
+
+    try {
+      const { error } = await this.#supabaseClient!.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/${ROUTES.APP}`,
+        },
+      });
+
+      if (error) {
+        return {
+          success: false,
+          error: this.#errorLocalizer.localizeError(error.message),
+        };
+      }
+
+      return { success: true };
+    } catch {
+      return {
+        success: false,
+        error: AUTH_ERROR_MESSAGES.GOOGLE_CONNECTION_ERROR,
       };
     }
   }
@@ -279,31 +350,21 @@ export class AuthApi {
       this.#logger.error('Error setting session:', error);
       return {
         success: false,
-        error: 'Erreur inattendue lors de la définition de la session',
+        error: AUTH_ERROR_MESSAGES.UNEXPECTED_SESSION_ERROR,
       };
     }
   }
 
   async signOut(): Promise<void> {
     try {
-      // Gérer le logout en mode test E2E mocké
-      if (
-        (window as unknown as { __E2E_AUTH_BYPASS__: boolean })
-          .__E2E_AUTH_BYPASS__
-      ) {
+      if (this.#isE2EBypass()) {
         this.#logger.info('🎭 Mode test E2E: Simulation du logout');
-
-        // Réinitialiser l'état mocké
-        (
-          window as unknown as { __E2E_MOCK_AUTH_STATE__: AuthState }
-        ).__E2E_MOCK_AUTH_STATE__ = {
+        this.#setE2EMockState({
           user: null,
           session: null,
           isLoading: false,
           isAuthenticated: false,
-        };
-
-        // Mettre à jour les signaux locaux
+        });
         this.updateAuthState(null);
         this.handleSignOut();
         return;

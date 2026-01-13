@@ -5,37 +5,26 @@ import { filter, map, take } from 'rxjs/operators';
 
 import { AuthApi } from './auth-api';
 import { ROUTES } from '@core/routing/routes-constants';
-import { Logger } from '../logging/logger';
 
 /**
  * Prevents authenticated users from accessing routes.
  *
  * This guard is intended for public-only pages like login or registration.
- * If the user is authenticated, it redirects them to the main application page.
- * It reactively waits for the authentication state to be resolved before making a decision.
+ * If the user is authenticated, it redirects them to the main application.
+ * Child route guards (hasBudgetGuard) will handle further routing decisions.
  */
 export const publicGuard: CanActivateFn = () => {
   const authApi = inject(AuthApi);
   const router = inject(Router);
-  const logger = inject(Logger);
 
   return toObservable(authApi.authState).pipe(
     filter((state) => !state.isLoading),
     take(1),
     map((state) => {
       if (state.isAuthenticated) {
-        router
-          .navigate(['/', ROUTES.APP, ROUTES.CURRENT_MONTH])
-          .catch((error) => {
-            logger.error(
-              'Navigation to the main application page failed, redirecting to onboarding.',
-              error,
-            );
-            router.navigate([ROUTES.ONBOARDING]);
-          });
-        return false;
+        // Redirect to /app - child guards (hasBudgetGuard) will handle further routing
+        return router.createUrlTree(['/', ROUTES.APP]);
       }
-
       return true;
     }),
   );

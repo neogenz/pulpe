@@ -13,10 +13,12 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
-import { AuthApi } from '@core/auth/auth-api';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { AuthApi, PASSWORD_MIN_LENGTH } from '@core/auth';
+import { GoogleOAuthButton } from '@app/pattern/google-oauth';
 import { ROUTES } from '@core/routing/routes-constants';
 import { Logger } from '@core/logging/logger';
+import { ErrorAlert } from '@ui/error-alert';
+import { LoadingButton } from '@ui/loading-button';
 
 @Component({
   selector: 'pulpe-login',
@@ -28,8 +30,10 @@ import { Logger } from '@core/logging/logger';
     MatButtonModule,
     MatIconModule,
     MatDividerModule,
-    MatProgressSpinnerModule,
     RouterLink,
+    GoogleOAuthButton,
+    ErrorAlert,
+    LoadingButton,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -115,42 +119,30 @@ import { Logger } from '@core/logging/logger';
             }
           </mat-form-field>
 
-          @if (errorMessage()) {
-            <div
-              class="bg-error-container text-on-error-container p-3 rounded-lg flex items-center gap-2"
-            >
-              <mat-icon class="flex-shrink-0">error_outline</mat-icon>
-              <span>{{ errorMessage() }}</span>
-            </div>
-          }
+          <pulpe-error-alert [message]="errorMessage()" />
 
-          <button
-            matButton="filled"
-            color="primary"
-            type="submit"
-            data-testid="login-submit-button"
-            class="w-full h-12"
-            [disabled]="!canSubmit() || isSubmitting()"
+          <pulpe-loading-button
+            [loading]="isSubmitting()"
+            [disabled]="!canSubmit()"
+            loadingText="Connexion en cours..."
+            icon="login"
+            testId="login-submit-button"
           >
-            @if (isSubmitting()) {
-              <div class="flex items-center justify-center">
-                <mat-progress-spinner
-                  mode="indeterminate"
-                  [diameter]="24"
-                  aria-label="Connexion en cours"
-                  role="progressbar"
-                  class="pulpe-loading-indicator pulpe-loading-small mr-2 flex-shrink-0"
-                ></mat-progress-spinner>
-                <span aria-live="polite">Connexion en cours...</span>
-              </div>
-            } @else {
-              <div class="flex items-center justify-center">
-                <mat-icon>login</mat-icon>
-                <span class="ml-2">Se connecter</span>
-              </div>
-            }
-          </button>
+            <span class="ml-2">Se connecter</span>
+          </pulpe-loading-button>
         </form>
+
+        <div class="flex items-center gap-4 my-6">
+          <mat-divider class="flex-1" />
+          <span class="text-body-medium text-on-surface-variant">ou</span>
+          <mat-divider class="flex-1" />
+        </div>
+
+        <pulpe-google-oauth-button
+          testId="google-login-button"
+          (authError)="errorMessage.set($event)"
+          (loadingChange)="isSubmitting.set($event)"
+        />
 
         <div class="text-center mt-6">
           <p class="text-body-medium text-on-surface-variant">
@@ -159,7 +151,7 @@ import { Logger } from '@core/logging/logger';
               matButton
               color="primary"
               class="ml-1"
-              routerLink="/onboarding/welcome"
+              [routerLink]="['/', ROUTES.SIGNUP]"
             >
               Créer un compte
             </button>
@@ -175,13 +167,17 @@ export default class Login {
   readonly #router = inject(Router);
   readonly #logger = inject(Logger);
 
+  protected readonly ROUTES = ROUTES;
   protected hidePassword = signal<boolean>(true);
   protected isSubmitting = signal<boolean>(false);
   protected errorMessage = signal<string>('');
 
-  protected loginForm = this.#formBuilder.group({
+  protected loginForm = this.#formBuilder.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(8)]],
+    password: [
+      '',
+      [Validators.required, Validators.minLength(PASSWORD_MIN_LENGTH)],
+    ],
   });
 
   protected formStatus = toSignal(this.loginForm.statusChanges, {
@@ -193,10 +189,6 @@ export default class Login {
     const isNotSubmitting = !this.isSubmitting();
     return isValid && isNotSubmitting;
   });
-
-  constructor() {
-    // Form validity is now tracked reactively via formStatus signal
-  }
 
   protected togglePasswordVisibility(): void {
     this.hidePassword.set(!this.hidePassword());
@@ -218,14 +210,7 @@ export default class Login {
     this.isSubmitting.set(true);
     this.clearMessages();
 
-    const { email, password } = this.loginForm.value;
-
-    // Explicit null checks for safety
-    if (!email || !password) {
-      this.errorMessage.set('Email et mot de passe requis.');
-      this.isSubmitting.set(false);
-      return;
-    }
+    const { email, password } = this.loginForm.getRawValue();
 
     try {
       const result = await this.#authService.signInWithEmail(email, password);

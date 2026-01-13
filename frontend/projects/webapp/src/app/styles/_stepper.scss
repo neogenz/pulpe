@@ -1,0 +1,17 @@
+@use "@angular/material" as mat;
+
+// Stepper styles for complete-profile page
+// Customizes stepper appearance using Material's official API
+.complete-profile-stepper {
+  @include mat.stepper-overrides(
+    (
+      container-color: transparent,
+      header-edit-state-icon-background-color: var(--mat-sys-primary),
+      header-done-state-icon-background-color: var(--mat-sys-primary),
+    )
+  );
+
+  .mat-horizontal-stepper-header-container {
+    padding: 0;
+  }
+}

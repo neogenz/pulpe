@@ -13,18 +13,7 @@ export const STORAGE_KEYS = {
   // Budget
   CURRENT_BUDGET: 'pulpe-current-budget',
 
-  // Onboarding
-  ONBOARDING_DATA: 'pulpe-onboarding-data',
-  ONBOARDING_COMPLETED: 'pulpe-onboarding-completed',
-
   // Demo mode
   DEMO_MODE: 'pulpe-demo-mode',
   DEMO_USER_EMAIL: 'pulpe-demo-user-email',
-
-  // Product tours
-  TOUR_INTRO: 'pulpe-tour-intro',
-  TOUR_CURRENT_MONTH: 'pulpe-tour-current-month',
-  TOUR_BUDGET_LIST: 'pulpe-tour-budget-list',
-  TOUR_BUDGET_DETAILS: 'pulpe-tour-budget-details',
-  TOUR_TEMPLATES_LIST: 'pulpe-tour-templates-list',
 } as const satisfies Record<string, StorageKey>;

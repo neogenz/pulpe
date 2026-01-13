@@ -13,6 +13,7 @@
     "dump:db": "bunx supabase db dump --schema public --file schema.sql",
     "generate-types": "bun x supabase gen types typescript --project-id xvrbcvltpkqwiiexvfxh --schema public > src/types/database.types.ts",
     "supabase:start": "supabase start",
+    "supabase:start:local": "bash -c 'set -a && source .env.local && supabase start'",
     "supabase:stop": "supabase stop",
     "supabase:status": "supabase status",
     "supabase:reset": "supabase db reset",
