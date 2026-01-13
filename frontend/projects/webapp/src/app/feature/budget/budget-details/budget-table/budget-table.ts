@@ -29,7 +29,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 import { RolloverFormatPipe } from '@app/ui/rollover-format';
 import {
-  calculateAllConsumptions,
+  calculateAllEnrichedConsumptions,
   type BudgetLineConsumption,
 } from '@core/budget';
 import { Logger } from '@core/logging/logger';
@@ -786,7 +786,7 @@ export class BudgetTable {
 
   // Full consumption data for outputs (needed for parent component)
   readonly #consumptions = computed(() =>
-    calculateAllConsumptions(this.budgetLines(), this.transactions()),
+    calculateAllEnrichedConsumptions(this.budgetLines(), this.transactions()),
   );
 
   // View Model with pre-computed values

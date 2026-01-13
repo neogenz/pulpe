@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, resource, signal } from '@angular/core';
-import { BudgetApi, calculateAllConsumptions } from '@core/budget';
+import { BudgetApi } from '@core/budget';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { TransactionApi } from '@core/transaction';
 import { UserSettingsApi } from '@core/user-settings';
@@ -172,32 +172,12 @@ export class CurrentMonthStore {
    * - Seul le DÉPASSEMENT (consumed > envelope.amount) impacte le budget
    * - Les transactions LIBRES impactent directement le budget
    */
-  readonly totalExpenses = computed<number>(() => {
-    const budgetLines = this.budgetLines();
-    const transactions = this.transactions();
-    const consumptionMap = calculateAllConsumptions(budgetLines, transactions);
-
-    let total = 0;
-
-    budgetLines.forEach((line) => {
-      if (line.kind === 'expense' || line.kind === 'saving') {
-        const consumption = consumptionMap.get(line.id);
-        const effectiveAmount = consumption
-          ? Math.max(line.amount, consumption.consumed)
-          : line.amount;
-        total += effectiveAmount;
-      }
-    });
-
-    const freeTransactions = transactions.filter((tx) => !tx.budgetLineId);
-    freeTransactions.forEach((tx) => {
-      if (tx.kind === 'expense' || tx.kind === 'saving') {
-        total += tx.amount;
-      }
-    });
-
-    return total;
-  });
+  readonly totalExpenses = computed<number>(() =>
+    BudgetFormulas.calculateTotalExpensesWithEnvelopes(
+      this.budgetLines(),
+      this.transactions(),
+    ),
+  );
 
   /**
    * Montant total disponible = revenu + rollover (formule SPECS)

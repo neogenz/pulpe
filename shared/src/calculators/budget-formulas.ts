@@ -15,7 +15,6 @@
  */
 
 import type { TransactionKind } from '../types.js';
-import { calculateAllConsumptions } from './budget-line-consumption.js';
 
 /**
  * Interface d'abstraction pour les entités financières
@@ -116,8 +115,6 @@ export class BudgetFormulas {
     budgetLines: FinancialItemWithId[],
     transactions: TransactionWithBudgetLineId[] = [],
   ): number {
-    const consumptionMap = calculateAllConsumptions(budgetLines, transactions);
-
     let total = 0;
 
     // For each expense/saving budget line, use max(envelope, consumed)
@@ -126,10 +123,12 @@ export class BudgetFormulas {
         // Skip virtual rollover lines
         if (line.id.startsWith('rollover-')) return;
 
-        const consumption = consumptionMap.get(line.id);
-        const effectiveAmount = consumption
-          ? Math.max(line.amount, consumption.consumed)
-          : line.amount;
+        // Calculate consumed amount for this envelope
+        const consumed = transactions
+          .filter((tx) => tx.budgetLineId === line.id)
+          .reduce((sum, tx) => sum + tx.amount, 0);
+
+        const effectiveAmount = Math.max(line.amount, consumed);
         total += effectiveAmount;
       }
     });

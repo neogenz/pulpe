@@ -1,23 +1,31 @@
+/**
+ * Budget Line Consumption Calculator
+ *
+ * Frontend-specific implementation for calculating envelope consumption.
+ * Returns full objects for UI display (dialogs, tables).
+ *
+ * Business Rule (SPECS):
+ * - Allocated transactions are "covered" by their envelope
+ * - Only the OVERAGE (consumed > envelope.amount) impacts the budget
+ * - Free transactions (no budgetLineId) impact the budget directly
+ */
 import type { BudgetLine, Transaction } from 'pulpe-shared';
 
 /**
- * Represents the consumption state of a budget line
+ * Represents the consumption state of a budget line.
+ * Includes references to original objects for UI display.
  */
 export interface BudgetLineConsumption {
-  /** The budget line */
   budgetLine: BudgetLine;
-  /** Total amount consumed (sum of allocated transactions) */
   consumed: number;
-  /** Amount remaining (budgetLine.amount - consumed). Can be negative if overspent */
   remaining: number;
-  /** Transactions allocated to this budget line */
   allocatedTransactions: Transaction[];
-  /** Number of allocated transactions */
   transactionCount: number;
 }
 
 /**
- * Calculate consumption for a single budget line
+ * Calculate consumption for a single budget line.
+ * Returns full objects for UI display (dialogs, tables).
  */
 export function calculateBudgetLineConsumption(
   budgetLine: BudgetLine,
@@ -44,8 +52,8 @@ export function calculateBudgetLineConsumption(
 }
 
 /**
- * Calculate consumption for all budget lines
- * Returns a Map keyed by budget line ID for O(1) lookup
+ * Calculate consumption for all budget lines.
+ * Returns a Map keyed by budget line ID for O(1) lookup.
  */
 export function calculateAllConsumptions(
   budgetLines: BudgetLine[],
@@ -63,3 +71,6 @@ export function calculateAllConsumptions(
 
   return consumptionMap;
 }
+
+// Alias for backwards compatibility
+export const calculateAllEnrichedConsumptions = calculateAllConsumptions;

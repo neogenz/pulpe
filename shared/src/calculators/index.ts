@@ -11,11 +11,6 @@
 
 export { BudgetFormulas } from './budget-formulas.js';
 export {
-  calculateBudgetLineConsumption,
-  calculateAllConsumptions,
-  type BudgetLineConsumption,
-} from './budget-line-consumption.js';
-export {
   getBudgetPeriodForDate,
   isInCurrentBudgetPeriod,
   compareBudgetPeriods,

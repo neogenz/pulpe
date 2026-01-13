@@ -110,13 +110,6 @@ export {
 // Export calculators
 export { BudgetFormulas } from './src/calculators/index.js';
 
-// Export envelope consumption functions
-export {
-  calculateBudgetLineConsumption,
-  calculateAllConsumptions,
-  type BudgetLineConsumption,
-} from './src/calculators/index.js';
-
 // Export budget period utilities
 export {
   getBudgetPeriodForDate,
