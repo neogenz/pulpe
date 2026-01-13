@@ -277,11 +277,21 @@ final class CurrentMonthViewModel {
     }
 
     private func syncWidgetData(details: BudgetDetails?) async {
-        let exportData = try? await budgetService.exportAllBudgets()
-        await WidgetDataSyncService.shared.sync(
-            budgetsWithDetails: exportData?.budgets ?? [],
-            currentBudgetDetails: details
-        )
+        do {
+            let exportData = try await budgetService.exportAllBudgets()
+            await WidgetDataSyncService.shared.sync(
+                budgetsWithDetails: exportData.budgets,
+                currentBudgetDetails: details
+            )
+        } catch {
+            #if DEBUG
+            print("syncWidgetData: exportAllBudgets failed - \(error)")
+            #endif
+            await WidgetDataSyncService.shared.sync(
+                budgetsWithDetails: [],
+                currentBudgetDetails: details
+            )
+        }
     }
 
     @MainActor
@@ -352,11 +362,21 @@ final class CurrentMonthViewModel {
             budgetLines: budgetLines
         )
 
-        let exportData = try? await budgetService.exportAllBudgets()
-        await WidgetDataSyncService.shared.sync(
-            budgetsWithDetails: exportData?.budgets ?? [],
-            currentBudgetDetails: details
-        )
+        do {
+            let exportData = try await budgetService.exportAllBudgets()
+            await WidgetDataSyncService.shared.sync(
+                budgetsWithDetails: exportData.budgets,
+                currentBudgetDetails: details
+            )
+        } catch {
+            #if DEBUG
+            print("syncWidgetAfterChange: exportAllBudgets failed - \(error)")
+            #endif
+            await WidgetDataSyncService.shared.sync(
+                budgetsWithDetails: [],
+                currentBudgetDetails: details
+            )
+        }
     }
 
     @MainActor

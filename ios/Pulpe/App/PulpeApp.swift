@@ -137,11 +137,21 @@ final class WidgetSyncViewModel {
             return
         }
 
-        let exportData = try? await budgetService.exportAllBudgets()
-        await WidgetDataSyncService.shared.sync(
-            budgetsWithDetails: exportData?.budgets ?? [],
-            currentBudgetDetails: details
-        )
+        do {
+            let exportData = try await budgetService.exportAllBudgets()
+            await WidgetDataSyncService.shared.sync(
+                budgetsWithDetails: exportData.budgets,
+                currentBudgetDetails: details
+            )
+        } catch {
+            #if DEBUG
+            print("WidgetSyncViewModel: exportAllBudgets failed - \(error)")
+            #endif
+            await WidgetDataSyncService.shared.sync(
+                budgetsWithDetails: [],
+                currentBudgetDetails: details
+            )
+        }
     }
 }
 
