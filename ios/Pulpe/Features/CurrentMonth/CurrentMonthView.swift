@@ -35,6 +35,7 @@ struct CurrentMonthView: View {
                 } label: {
                     Image(systemName: "person.circle")
                 }
+                .accessibilityLabel("Mon compte")
             }
         }
         .sheet(isPresented: $showAddTransaction) {
@@ -246,7 +247,6 @@ final class CurrentMonthViewModel {
 
     // MARK: - Actions
 
-    @MainActor
     func loadData() async {
         isLoading = true
         error = nil
@@ -284,7 +284,6 @@ final class CurrentMonthViewModel {
         )
     }
 
-    @MainActor
     func toggleBudgetLine(_ line: BudgetLine) async {
         // Skip virtual rollover lines
         guard !(line.isRollover ?? false) else { return }
@@ -312,7 +311,6 @@ final class CurrentMonthViewModel {
         syncingBudgetLineIds.remove(line.id)
     }
 
-    @MainActor
     func toggleTransaction(_ transaction: Transaction) async {
         // Skip if already syncing
         guard !syncingTransactionIds.contains(transaction.id) else { return }
@@ -337,7 +335,6 @@ final class CurrentMonthViewModel {
         syncingTransactionIds.remove(transaction.id)
     }
 
-    @MainActor
     func addTransaction(_ transaction: Transaction) {
         transactions.append(transaction)
         Task { await syncWidgetAfterChange() }
@@ -359,7 +356,6 @@ final class CurrentMonthViewModel {
         )
     }
 
-    @MainActor
     func deleteTransaction(_ transaction: Transaction) async {
         // Optimistic update
         let originalTransactions = transactions
@@ -373,7 +369,6 @@ final class CurrentMonthViewModel {
         }
     }
 
-    @MainActor
     func deleteBudgetLine(_ line: BudgetLine) async {
         // Skip virtual rollover lines
         guard !(line.isRollover ?? false) else { return }
@@ -390,7 +385,6 @@ final class CurrentMonthViewModel {
         }
     }
 
-    @MainActor
     func updateBudgetLine(_ line: BudgetLine) async {
         guard !(line.isRollover ?? false) else { return }
 
@@ -401,7 +395,6 @@ final class CurrentMonthViewModel {
         await loadData()
     }
 
-    @MainActor
     func updateTransaction(_ transaction: Transaction) async {
         if let index = transactions.firstIndex(where: { $0.id == transaction.id }) {
             transactions[index] = transaction
