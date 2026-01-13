@@ -1,5 +1,17 @@
 # pulpe-shared
 
+## 0.5.1
+
+### Patch Changes
+
+- Correction du calcul des enveloppes budgétaires et amélioration de l'interface
+
+  **Calcul des enveloppes:** Les transactions allouées à une enveloppe n'impactent plus le budget disponible deux fois. Seul le dépassement de l'enveloppe affecte maintenant le budget restant.
+
+  **Interface:** Animations staggered sur la liste, sections d'années repliables, meilleure typographie et indicateurs de statut.
+
+  **Fixe:** Widgets budgétaires n'affichant que 2 mois au lieu de tous. Amélioration d'accessibilité iOS. Données de test cohérentes.
+
 ## 0.5.0
 
 ### Minor Changes
