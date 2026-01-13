@@ -1,5 +1,4 @@
 import { test, expect } from '../../fixtures/test-fixtures';
-import { setupAuthBypass } from '../../utils/auth-bypass';
 import type { Page } from '@playwright/test';
 
 // Valid UUIDs for Zod validation
@@ -28,80 +27,78 @@ async function setupBudgetMocks(page: Page) {
 
   const dateNow = new Date().toISOString();
 
-  // Mock 1: Budget list endpoint (returns current month budget)
-  await page.route('**/api/v1/budgets', route =>
-    route.fulfill({
-      status: 200,
-      body: JSON.stringify({
-        success: true,
-        data: [{
-          id: TEST_UUIDS.BUDGET,
-          description: budgetName,
-          month: currentMonth,
-          year: currentYear,
-          userId: TEST_UUIDS.USER,
-          templateId: TEST_UUIDS.TEMPLATE,
-          createdAt: '2025-01-01T00:00:00Z',
-          updatedAt: '2025-01-01T00:00:00Z',
-        }]
-      })
-    })
-  );
+  const budget = {
+    id: TEST_UUIDS.BUDGET,
+    description: budgetName,
+    month: currentMonth,
+    year: currentYear,
+    userId: TEST_UUIDS.USER,
+    templateId: TEST_UUIDS.TEMPLATE,
+    createdAt: '2025-01-01T00:00:00Z',
+    updatedAt: '2025-01-01T00:00:00Z',
+  };
 
-  // Mock 2: Budget details endpoint (budgetLines + transactions)
-  await page.route(`**/api/v1/budgets/${TEST_UUIDS.BUDGET}/details`, route =>
-    route.fulfill({
+  const budgetLines = [
+    { id: TEST_UUIDS.LINE_1, budgetId: TEST_UUIDS.BUDGET, name: 'Salary', amount: 5000, kind: 'income', recurrence: 'fixed', isManuallyAdjusted: false, templateLineId: null, savingsGoalId: null, checkedAt: null, createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-01-01T00:00:00Z' },
+    { id: TEST_UUIDS.LINE_2, budgetId: TEST_UUIDS.BUDGET, name: 'Groceries', amount: 400, kind: 'expense', recurrence: 'fixed', isManuallyAdjusted: false, templateLineId: null, savingsGoalId: null, checkedAt: null, createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-01-01T00:00:00Z' },
+    { id: TEST_UUIDS.LINE_3, budgetId: TEST_UUIDS.BUDGET, name: 'Transport', amount: 150, kind: 'expense', recurrence: 'fixed', isManuallyAdjusted: false, templateLineId: null, savingsGoalId: null, checkedAt: null, createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-01-01T00:00:00Z' }
+  ];
+
+  const transactions = [
+    {
+      id: TEST_UUIDS.TXN_1,
+      budgetId: TEST_UUIDS.BUDGET,
+      budgetLineId: null,
+      name: 'Coffee',
+      amount: 5,
+      kind: 'expense',
+      transactionDate: dateNow,
+      category: null,
+      createdAt: dateNow,
+      updatedAt: dateNow,
+      checkedAt: null
+    },
+    {
+      id: TEST_UUIDS.TXN_2,
+      budgetId: TEST_UUIDS.BUDGET,
+      budgetLineId: null,
+      name: 'Lunch',
+      amount: 12,
+      kind: 'expense',
+      transactionDate: dateNow,
+      category: null,
+      createdAt: dateNow,
+      updatedAt: dateNow,
+      checkedAt: null
+    }
+  ];
+
+  // Use unified handler to avoid pattern conflicts
+  await page.route('**/api/v1/budgets**', (route) => {
+    const url = route.request().url();
+
+    // Budget details endpoint: /api/v1/budgets/{id}/details
+    if (url.includes('/details')) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: { budget, budgetLines, transactions }
+        })
+      });
+    }
+
+    // Budget list endpoint: /api/v1/budgets
+    return route.fulfill({
       status: 200,
+      contentType: 'application/json',
       body: JSON.stringify({
         success: true,
-        data: {
-          budget: {
-            id: TEST_UUIDS.BUDGET,
-            description: budgetName,
-            month: currentMonth,
-            year: currentYear,
-            userId: TEST_UUIDS.USER,
-            templateId: TEST_UUIDS.TEMPLATE,
-            createdAt: '2025-01-01T00:00:00Z',
-            updatedAt: '2025-01-01T00:00:00Z',
-          },
-          budgetLines: [
-            { id: TEST_UUIDS.LINE_1, budgetId: TEST_UUIDS.BUDGET, name: 'Salary', amount: 5000, kind: 'income', recurrence: 'fixed', isManuallyAdjusted: false, templateLineId: null, savingsGoalId: null, checkedAt: null, createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-01-01T00:00:00Z' },
-            { id: TEST_UUIDS.LINE_2, budgetId: TEST_UUIDS.BUDGET, name: 'Groceries', amount: 400, kind: 'expense', recurrence: 'fixed', isManuallyAdjusted: false, templateLineId: null, savingsGoalId: null, checkedAt: null, createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-01-01T00:00:00Z' },
-            { id: TEST_UUIDS.LINE_3, budgetId: TEST_UUIDS.BUDGET, name: 'Transport', amount: 150, kind: 'expense', recurrence: 'fixed', isManuallyAdjusted: false, templateLineId: null, savingsGoalId: null, checkedAt: null, createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-01-01T00:00:00Z' }
-          ],
-          transactions: [
-            {
-              id: TEST_UUIDS.TXN_1,
-              budgetId: TEST_UUIDS.BUDGET,
-              budgetLineId: null,
-              name: 'Coffee',
-              amount: 5,
-              kind: 'expense',
-              transactionDate: dateNow,
-              category: null,
-              createdAt: dateNow,
-              updatedAt: dateNow,
-              checkedAt: null
-            },
-            {
-              id: TEST_UUIDS.TXN_2,
-              budgetId: TEST_UUIDS.BUDGET,
-              budgetLineId: null,
-              name: 'Lunch',
-              amount: 12,
-              kind: 'expense',
-              transactionDate: dateNow,
-              category: null,
-              createdAt: dateNow,
-              updatedAt: dateNow,
-              checkedAt: null
-            }
-          ]
-        }
+        data: [budget]
       })
-    })
-  );
+    });
+  });
 }
 
 test.describe('Financial Entry Mobile Menu', () => {
@@ -111,21 +108,15 @@ test.describe('Financial Entry Mobile Menu', () => {
       isMobile: true,
     });
 
-    test.beforeEach(async ({ page }) => {
-      // Setup auth bypass FIRST (injects window flags via addInitScript)
-      await setupAuthBypass(page, {
-        includeApiMocks: false,
-        setLocalStorage: true
-      });
-
+    test.beforeEach(async ({ authenticatedPage: page }) => {
       // Setup budget mocks with current month/year (prevents test failures when month changes)
       await setupBudgetMocks(page);
 
-      // Navigate (addInitScript will inject flags before this navigation)
+      // Navigate to current month page
       await page.goto('/app/current-month', { waitUntil: 'domcontentloaded' });
     });
 
-    test('should show menu button instead of separate edit/delete buttons on mobile', async ({ page }) => {
+    test('should show menu button instead of separate edit/delete buttons on mobile', async ({ authenticatedPage: page }) => {
       // Wait for financial entries to load by checking for action buttons
       const oneTimeList = page.locator('pulpe-one-time-expenses-list');
       const firstActionButton = oneTimeList.locator('[data-testid^="actions-menu-"]').first();
@@ -142,7 +133,7 @@ test.describe('Financial Entry Mobile Menu', () => {
       expect(separateDeleteButtons).toBe(0);
     });
 
-    test('should open menu when clicking menu button', async ({ page }) => {
+    test('should open menu when clicking menu button', async ({ authenticatedPage: page }) => {
       // Wait for financial entries to load
       const oneTimeList = page.locator('pulpe-one-time-expenses-list');
       const actionMenus = oneTimeList.locator('[data-testid^="actions-menu-"]');
@@ -167,7 +158,7 @@ test.describe('Financial Entry Mobile Menu', () => {
       expect(editCount + deleteCount).toBeGreaterThan(0);
     });
 
-    test('should close menu when clicking outside', async ({ page }) => {
+    test('should close menu when clicking outside', async ({ authenticatedPage: page }) => {
       // Wait for financial entries to load
       const oneTimeList = page.locator('pulpe-one-time-expenses-list');
       const actionMenus = oneTimeList.locator('[data-testid^="actions-menu-"]');
@@ -190,7 +181,7 @@ test.describe('Financial Entry Mobile Menu', () => {
       await expect(menu).not.toBeVisible();
     });
 
-    test('should show correct menu items text', async ({ page }) => {
+    test('should show correct menu items text', async ({ authenticatedPage: page }) => {
       // Wait for financial entries to load
       const oneTimeList = page.locator('pulpe-one-time-expenses-list');
       const actionMenus = oneTimeList.locator('[data-testid^="actions-menu-"]');
@@ -219,7 +210,7 @@ test.describe('Financial Entry Mobile Menu', () => {
       }
     });
 
-    test('should emit edit action when clicking edit menu item', async ({ page }) => {
+    test('should emit edit action when clicking edit menu item', async ({ authenticatedPage: page }) => {
       // Wait for financial entries to load
       const oneTimeList = page.locator('pulpe-one-time-expenses-list');
       const actionMenus = oneTimeList.locator('[data-testid^="actions-menu-"]');
@@ -250,22 +241,16 @@ test.describe('Financial Entry Mobile Menu', () => {
       viewport: { width: 1280, height: 720 }, // Desktop viewport
     });
 
-    test.beforeEach(async ({ page }) => {
-      // Setup auth bypass FIRST (injects window flags via addInitScript)
-      await setupAuthBypass(page, {
-        includeApiMocks: false,
-        setLocalStorage: true
-      });
-
+    test.beforeEach(async ({ authenticatedPage: page }) => {
       // Setup budget mocks with current month/year (prevents test failures when month changes)
       await setupBudgetMocks(page);
 
-      // Navigate (addInitScript will inject flags before this navigation)
+      // Navigate to current month page
       await page.goto('/app/current-month', { waitUntil: 'domcontentloaded' });
     });
 
     test('should show separate edit and delete buttons instead of menu on desktop', async ({
-      page,
+      authenticatedPage: page,
     }) => {
       // Wait for financial entries to load
       const oneTimeList = page.locator('pulpe-one-time-expenses-list');
@@ -283,7 +268,7 @@ test.describe('Financial Entry Mobile Menu', () => {
     });
 
     test('should trigger edit action directly when clicking edit button on desktop', async ({
-      page,
+      authenticatedPage: page,
     }) => {
       // Wait for financial entries to load
       const oneTimeList = page.locator('pulpe-one-time-expenses-list');
@@ -302,22 +287,16 @@ test.describe('Financial Entry Mobile Menu', () => {
   });
 
   test.describe('Responsive Behavior', () => {
-    test.beforeEach(async ({ page }) => {
-      // Setup auth bypass FIRST (injects window flags via addInitScript)
-      await setupAuthBypass(page, {
-        includeApiMocks: false,
-        setLocalStorage: true
-      });
-
+    test.beforeEach(async ({ authenticatedPage: page }) => {
       // Setup budget mocks with current month/year (prevents test failures when month changes)
       await setupBudgetMocks(page);
 
-      // Navigate (addInitScript will inject flags before this navigation)
+      // Navigate to current month page
       await page.goto('/app/current-month', { waitUntil: 'domcontentloaded' });
     });
 
     test('should switch between menu and separate buttons when viewport changes', async ({
-      page,
+      authenticatedPage: page,
     }) => {
       // Start with desktop viewport
       await page.setViewportSize({ width: 1280, height: 720 });
