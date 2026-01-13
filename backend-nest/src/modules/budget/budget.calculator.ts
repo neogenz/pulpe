@@ -34,7 +34,10 @@ export class BudgetCalculator {
     const { budgetLines, transactions } = await this.repository.fetchBudgetData(
       budgetId,
       supabase,
-      { selectFields: 'id, kind, amount, budget_line_id' },
+      {
+        budgetLineFields: 'id, kind, amount',
+        transactionFields: 'id, kind, amount, budget_line_id',
+      },
     );
 
     // Map snake_case budget_line_id to camelCase budgetLineId for shared calculation

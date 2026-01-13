@@ -20,7 +20,10 @@ interface QueryResult<T> {
  * Options for fetching budget data
  */
 interface BudgetDataOptions {
-  selectFields?: string;
+  /** Fields to select from budget_line table (default: 'kind, amount') */
+  budgetLineFields?: string;
+  /** Fields to select from transaction table (default: 'kind, amount') */
+  transactionFields?: string;
   includeBudget?: boolean;
   orderTransactions?: boolean;
 }
@@ -123,7 +126,8 @@ export class BudgetRepository {
     options: BudgetDataOptions = {},
   ): Promise<BudgetDataResult> {
     const {
-      selectFields = 'kind, amount',
+      budgetLineFields = 'kind, amount',
+      transactionFields = 'kind, amount',
       includeBudget = false,
       orderTransactions = false,
     } = options;
@@ -131,7 +135,8 @@ export class BudgetRepository {
     const queries = this.buildFetchQueries(
       budgetId,
       supabase,
-      selectFields,
+      budgetLineFields,
+      transactionFields,
       orderTransactions,
       includeBudget,
     );
@@ -146,7 +151,8 @@ export class BudgetRepository {
    * Builds the queries for fetching budget data
    * @param budgetId - Budget ID
    * @param supabase - Authenticated Supabase client
-   * @param selectFields - Fields to select
+   * @param budgetLineFields - Fields to select from budget_line
+   * @param transactionFields - Fields to select from transaction
    * @param orderTransactions - Whether to order transactions
    * @param includeBudget - Whether to include budget data
    * @returns Array of query promises
@@ -154,16 +160,17 @@ export class BudgetRepository {
   private buildFetchQueries(
     budgetId: string,
     supabase: AuthenticatedSupabaseClient,
-    selectFields: string,
+    budgetLineFields: string,
+    transactionFields: string,
     orderTransactions: boolean,
     includeBudget: boolean,
   ): Array<PromiseLike<QueryResult<unknown>>> {
     const queries = [
-      this.createBudgetLineQuery(budgetId, supabase, selectFields),
+      this.createBudgetLineQuery(budgetId, supabase, budgetLineFields),
       this.createTransactionQuery(
         budgetId,
         supabase,
-        selectFields,
+        transactionFields,
         orderTransactions,
       ),
     ];
@@ -178,12 +185,12 @@ export class BudgetRepository {
   private createTransactionQuery(
     budgetId: string,
     supabase: AuthenticatedSupabaseClient,
-    selectFields: string,
+    transactionFields: string,
     orderTransactions: boolean,
   ): PromiseLike<QueryResult<unknown>> {
     let query = supabase
       .from('transaction')
-      .select(selectFields)
+      .select(transactionFields)
       .eq('budget_id', budgetId);
 
     if (orderTransactions) {
@@ -200,14 +207,14 @@ export class BudgetRepository {
   private createBudgetLineQuery(
     budgetId: string,
     supabase: AuthenticatedSupabaseClient,
-    selectFields: string,
+    budgetLineFields: string,
   ): PromiseLike<QueryResult<unknown>> {
     let query = supabase
       .from('budget_line')
-      .select(selectFields)
+      .select(budgetLineFields)
       .eq('budget_id', budgetId);
 
-    if (selectFields === '*') {
+    if (budgetLineFields === '*') {
       query = query.order('created_at', { ascending: false });
     }
 

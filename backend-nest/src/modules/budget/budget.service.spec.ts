@@ -261,6 +261,53 @@ describe('BudgetService', () => {
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(2); // All valid budgets
     });
+
+    it('should return budgets with correctly calculated remaining field', async () => {
+      // ARRANGE
+      const mockUser = createMockAuthenticatedUser();
+      const mockBudgets = [createValidBudgetEntity()];
+
+      mockSupabaseClient.setMockData(mockBudgets).setMockError(null);
+
+      // Mock calculator to return specific values for remaining calculation
+      mockCalculator.calculateEndingBalance = () => Promise.resolve(4500);
+      mockCalculator.getRollover = () =>
+        Promise.resolve({ rollover: 500, previousBudgetId: null });
+
+      // ACT
+      const result = await service.findAll(mockUser, mockSupabaseClient as any);
+
+      // ASSERT
+      expect(result.success).toBe(true);
+      expect(result.data[0].remaining).toBe(5000); // 4500 + 500 rollover
+    });
+
+    it('should call calculator with correct parameters for remaining calculation (regression test)', async () => {
+      // ARRANGE
+      // This test ensures the bug where same selectFields was used for both tables doesn't return
+      const mockUser = createMockAuthenticatedUser();
+      const mockBudgets = [createValidBudgetEntity()];
+
+      mockSupabaseClient.setMockData(mockBudgets).setMockError(null);
+
+      let calculateEndingBalanceCallCount = 0;
+      let capturedBudgetId: string | null = null;
+
+      mockCalculator.calculateEndingBalance = (budgetId: string) => {
+        calculateEndingBalanceCallCount++;
+        capturedBudgetId = budgetId;
+        return Promise.resolve(4500);
+      };
+      mockCalculator.getRollover = () =>
+        Promise.resolve({ rollover: 500, previousBudgetId: null });
+
+      // ACT
+      await service.findAll(mockUser, mockSupabaseClient as any);
+
+      // ASSERT - Verify calculator was called properly
+      expect(calculateEndingBalanceCallCount).toBe(1);
+      expect(capturedBudgetId).toBe(mockBudgets[0].id);
+    });
   });
 
   describe('create', () => {

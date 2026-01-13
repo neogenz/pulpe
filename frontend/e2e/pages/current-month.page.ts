@@ -39,12 +39,27 @@ export class CurrentMonthPage {
 
   async expectRemainingAmount(expectedAmount: string) {
     const element = this.page.getByTestId('remaining-amount');
-    await expect(element).toContainText(expectedAmount);
+    await expect(element).toBeVisible();
+    const text = await element.textContent();
+    const normalizedText = this.normalizeSwissNumber(text ?? '');
+    const normalizedExpected = this.normalizeSwissNumber(expectedAmount);
+    expect(normalizedText).toContain(normalizedExpected);
   }
 
   async expectExpensesAmount(expectedAmount: string) {
     const element = this.page.getByTestId('expenses-amount');
-    await expect(element).toContainText(expectedAmount);
+    await expect(element).toBeVisible();
+    const text = await element.textContent();
+    const normalizedText = this.normalizeSwissNumber(text ?? '');
+    const normalizedExpected = this.normalizeSwissNumber(expectedAmount);
+    expect(normalizedText).toContain(normalizedExpected);
+  }
+
+  private normalizeSwissNumber(text: string): string {
+    return text
+      .replace(/[\u2019\u0027\u2018]/g, "'")
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 
   /**
