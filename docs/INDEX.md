@@ -21,6 +21,7 @@
 - **[FRONTEND_CONFIG.md](./FRONTEND_CONFIG.md)** - Configuration Angular + variables E2E + tests
 - **[MONITORING.md](./MONITORING.md)** - PostHog sourcemaps + error tracking complet
 - **[BACKEND_PRACTICES.md](./BACKEND_PRACTICES.md)** - Error handling + guidelines NestJS
+- **[IOS_VERSIONING.md](./IOS_VERSIONING.md)** - Versioning iOS selon standards Apple
 
 ### 📖 Référence (Consultation)
 - **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Vue d'ensemble système (focus développeur)
@@ -54,6 +55,7 @@
 - **[CLAUDE.md (Projet)](../CLAUDE.md)** - Instructions générales projet
 - **[Frontend CLAUDE.md](../frontend/CLAUDE.md)** - Instructions spécifiques frontend
 - **[Backend CLAUDE.md](../backend-nest/CLAUDE.md)** - Instructions spécifiques backend
+- **[iOS CLAUDE.md](../ios/CLAUDE.md)** - Instructions spécifiques iOS
 
 ---
 

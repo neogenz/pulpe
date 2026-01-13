@@ -499,7 +499,6 @@
 		6D00927D5E35AD49432F228E /* PulpeWidget */ = {
 			isa = PBXGroup;
 			children = (
-				827C3DDE057CBE6774A41934 /* Intents */,
 				BF32797555067F58F521F8FD /* Models */,
 				AD0CAF35FBFF805D67F8AD1C /* Resources */,
 				35A07FFF4A09B0C4045409BF /* Services */,
@@ -530,13 +529,6 @@
 				57A624A40CC91AC97C743441 /* KeychainManager.swift */,
 			);
 			path = Auth;
-			sourceTree = "<group>";
-		};
-		827C3DDE057CBE6774A41934 /* Intents */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Intents;
 			sourceTree = "<group>";
 		};
 		83DCB2988FE54F6853221DD3 /* Auth */ = {

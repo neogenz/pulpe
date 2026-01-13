@@ -3,66 +3,74 @@
 ## Commands
 
 ```bash
-# Generate Xcode project (required after modifying project.yml)
-xcodegen generate
-
-# Build
+xcodegen generate                        # Regenerate Xcode project (required after modifying project.yml)
 xcodebuild -scheme Pulpe -sdk iphonesimulator build
+cd .. && pnpm dev:backend                # Run backend
+```
 
-# Run backend (from ios/ parent directory)
-cd .. && pnpm dev:backend
+## Versioning
+
+| Variable                  | Usage              | Quand incrémenter            |
+| ------------------------- | ------------------ | ---------------------------- |
+| `MARKETING_VERSION`       | App Store (1.0.0)  | Nouvelle release utilisateur |
+| `CURRENT_PROJECT_VERSION` | Build (1, 2, 3...) | Chaque upload TestFlight     |
+
+```bash
+./scripts/bump-version.sh           # Show current version
+./scripts/bump-version.sh patch     # 1.0.0 → 1.0.1 (reset build to 1)
+./scripts/bump-version.sh build     # build 1 → 2
 ```
 
 ## Architecture Rules
 
-| Layer | Location | Rule |
-|-------|----------|------|
-| App | `App/` | Entry point, AppState only - NO business logic |
-| Core | `Core/` | Services are **actors** (thread-safe), infrastructure only |
-| Domain | `Domain/` | Models are `Sendable`, services wrap APIClient |
-| Features | `Features/` | Views + ViewModels, use sheets for forms |
-| Shared | `Shared/` | Reusable components, extensions, formatters |
+| Layer    | Location    | Rule                                                       |
+| -------- | ----------- | ---------------------------------------------------------- |
+| App      | `App/`      | Entry point, AppState only - NO business logic             |
+| Core     | `Core/`     | Services are **actors** (thread-safe), infrastructure only |
+| Domain   | `Domain/`   | Models are `Sendable`, services wrap APIClient             |
+| Features | `Features/` | Views + ViewModels, use sheets for forms                   |
+| Shared   | `Shared/`   | Reusable components, extensions, formatters                |
 
 ## Key Patterns
 
-| Pattern | Implementation |
-|---------|----------------|
-| State | `@Observable` + `.environment()` - no 3rd party |
-| Navigation | `NavigationStack(path:)` with typed destinations |
+| Pattern     | Implementation                                     |
+| ----------- | -------------------------------------------------- |
+| State       | `@Observable` + `.environment()` - no 3rd party    |
+| Navigation  | `NavigationStack(path:)` with typed destinations   |
 | Concurrency | **Actors** for services, all models are `Sendable` |
-| Forms | Sheet-based with completion callback |
-| Dependency | Constructor injection with `.shared` defaults |
+| Forms       | Sheet-based with completion callback               |
+| Dependency  | Constructor injection with `.shared` defaults      |
 
 ## Forbidden
 
-| Action | Reason |
-|--------|--------|
-| Add external dependencies | SPM only (Supabase + Lottie already added) |
-| Use `ObservableObject` | iOS 17+ uses `@Observable` only |
-| Store data locally | Keychain for tokens only, API is source of truth |
-| Mix UI in Domain layer | Keep Domain pure (models, services, formulas) |
+| Action                    | Reason                                           |
+| ------------------------- | ------------------------------------------------ |
+| Add external dependencies | SPM only (Supabase + Lottie already added)       |
+| Use `ObservableObject`    | iOS 17+ uses `@Observable` only                  |
+| Store data locally        | Keychain for tokens only, API is source of truth |
+| Mix UI in Domain layer    | Keep Domain pure (models, services, formulas)    |
 
 ## Business Vocabulary
 
-| Code | French UI |
-|------|-----------|
-| `expense` | Dépense |
-| `income` | Revenu |
-| `saving` | Épargne |
-| `BudgetLine` | Catégorie / Ligne budgétaire |
+| Code                      | French UI                        |
+| ------------------------- | -------------------------------- |
+| `expense`                 | Dépense                          |
+| `income`                  | Revenu                           |
+| `saving`                  | Épargne                          |
+| `BudgetLine`              | Catégorie / Ligne budgétaire     |
 | `Transaction` (allocated) | Transaction liée à une catégorie |
-| `Transaction` (free) | Transaction libre |
-| `checkedAt != nil` | Transaction comptabilisée |
+| `Transaction` (free)      | Transaction libre                |
+| `checkedAt != nil`        | Transaction comptabilisée        |
 
 ## Critical Files
 
-| Purpose | Path |
-|---------|------|
-| Global state machine | `App/AppState.swift` |
-| API contract | `Core/Network/Endpoints.swift` |
-| Business logic | `Domain/Formulas/BudgetFormulas.swift` |
-| Auth + biometric | `Core/Auth/AuthService.swift` |
-| Runtime config | `Core/Config/AppConfiguration.swift` |
+| Purpose              | Path                                   |
+| -------------------- | -------------------------------------- |
+| Global state machine | `App/AppState.swift`                   |
+| API contract         | `Core/Network/Endpoints.swift`         |
+| Business logic       | `Domain/Formulas/BudgetFormulas.swift` |
+| Auth + biometric     | `Core/Auth/AuthService.swift`          |
+| Runtime config       | `Core/Config/AppConfiguration.swift`   |
 
 ## Currency & Formatting
 
@@ -75,9 +83,9 @@ amount.asCompactCHF // "CHF 1'235" (whole numbers only)
 
 ## API Configuration
 
-| Build | API Base URL |
-|-------|--------------|
-| Debug | `http://localhost:3000/api/v1` |
-| Release | Production Railway URL |
+| Build   | API Base URL                   |
+| ------- | ------------------------------ |
+| Debug   | `http://localhost:3000/api/v1` |
+| Release | Production Railway URL         |
 
 Backend must be running for the app to work (no offline mode).
