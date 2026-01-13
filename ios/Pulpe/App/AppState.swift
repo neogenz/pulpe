@@ -187,23 +187,7 @@ enum Tab: String, CaseIterable, Identifiable {
 // MARK: - Navigation Destinations
 
 enum BudgetDestination: Hashable {
-    case details(budgetId: String, timestamp: Date = Date())
-
-    // Hash only by budgetId for path comparison, but timestamp ensures uniqueness for recreation
-    func hash(into hasher: inout Hasher) {
-        switch self {
-        case .details(let budgetId, _):
-            hasher.combine(budgetId)
-        }
-    }
-
-    static func == (lhs: BudgetDestination, rhs: BudgetDestination) -> Bool {
-        switch (lhs, rhs) {
-        case (.details(let lhsId, let lhsTime), .details(let rhsId, let rhsTime)):
-            // Different timestamps = different destinations (forces view recreation)
-            return lhsId == rhsId && lhsTime == rhsTime
-        }
-    }
+    case details(budgetId: String)
 }
 
 enum TemplateDestination: Hashable {

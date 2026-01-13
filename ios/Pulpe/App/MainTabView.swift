@@ -50,7 +50,7 @@ struct BudgetsTab: View {
             BudgetListView()
                 .navigationDestination(for: BudgetDestination.self) { destination in
                     switch destination {
-                    case .details(let budgetId, _):
+                    case .details(let budgetId):
                         BudgetDetailsView(budgetId: budgetId)
                     }
                 }
