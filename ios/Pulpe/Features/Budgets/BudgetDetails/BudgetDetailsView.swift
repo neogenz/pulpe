@@ -1,5 +1,58 @@
 import SwiftUI
 
+// MARK: - Month Navigation Bar
+
+struct MonthNavigationBar: View {
+    let monthYear: String
+    let hasPrevious: Bool
+    let hasNext: Bool
+    let onPrevious: () -> Void
+    let onNext: () -> Void
+
+    var body: some View {
+        HStack(spacing: 16) {
+            Button {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                onPrevious()
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(hasPrevious ? .primary : .tertiary)
+            }
+            .disabled(!hasPrevious)
+
+            Text(monthYear)
+                .font(.headline)
+                .lineLimit(1)
+
+            Button {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                onNext()
+            } label: {
+                Image(systemName: "chevron.right")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(hasNext ? .primary : .tertiary)
+            }
+            .disabled(!hasNext)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .modifier(GlassBackgroundModifier())
+    }
+}
+
+// MARK: - Glass Background Modifier
+
+private struct GlassBackgroundModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content.glassEffect(in: .capsule)
+        } else {
+            content.background(.ultraThinMaterial, in: Capsule())
+        }
+    }
+}
+
 struct BudgetDetailsView: View {
     let budgetId: String
     @Environment(AppState.self) private var appState
@@ -10,6 +63,7 @@ struct BudgetDetailsView: View {
     @State private var selectedBudgetLineForEdit: BudgetLine?
     @State private var selectedTransactionForEdit: Transaction?
     @State private var searchText = ""
+    @State private var slideFromEdge: Edge = .trailing
 
     init(budgetId: String) {
         self.budgetId = budgetId
@@ -26,11 +80,21 @@ struct BudgetDetailsView: View {
                 }
             } else if viewModel.budget != nil {
                 content
+                    .id(viewModel.budgetId)
+                    .transition(.push(from: slideFromEdge))
             }
         }
-        .navigationTitle(viewModel.budget?.monthYear ?? "Budget")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .principal) {
+                MonthNavigationBar(
+                    monthYear: viewModel.budget?.monthYear ?? "Budget",
+                    hasPrevious: viewModel.hasPreviousBudget,
+                    hasNext: viewModel.hasNextBudget,
+                    onPrevious: navigateToPreviousMonth,
+                    onNext: navigateToNextMonth
+                )
+            }
             ToolbarItem(placement: .primaryAction) {
                 Button {
                     showAddBudgetLine = true
@@ -78,6 +142,30 @@ struct BudgetDetailsView: View {
             EditTransactionSheet(transaction: transaction) { updatedTransaction in
                 Task { await viewModel.updateTransaction(updatedTransaction) }
             }
+        }
+    }
+
+    // MARK: - Navigation
+
+    private func navigateToPreviousMonth() {
+        guard let previousId = viewModel.previousBudgetId else { return }
+        slideFromEdge = .leading
+        withAnimation(.easeInOut(duration: 0.25)) {
+            viewModel.prepareNavigation(to: previousId)
+        }
+        Task {
+            await viewModel.reloadCurrentBudget()
+        }
+    }
+
+    private func navigateToNextMonth() {
+        guard let nextId = viewModel.nextBudgetId else { return }
+        slideFromEdge = .trailing
+        withAnimation(.easeInOut(duration: 0.25)) {
+            viewModel.prepareNavigation(to: nextId)
+        }
+        Task {
+            await viewModel.reloadCurrentBudget()
         }
     }
 
@@ -228,7 +316,7 @@ struct BudgetDetailsView: View {
 
 @Observable @MainActor
 final class BudgetDetailsViewModel {
-    let budgetId: String
+    private(set) var budgetId: String
 
     private(set) var budget: Budget?
     private(set) var budgetLines: [BudgetLine] = []
@@ -240,12 +328,25 @@ final class BudgetDetailsViewModel {
     private(set) var syncingBudgetLineIds: Set<String> = []
     private(set) var syncingTransactionIds: Set<String> = []
 
+    // Navigation between months
+    private(set) var allBudgets: [Budget] = []
+    private(set) var previousBudgetId: String?
+    private(set) var nextBudgetId: String?
+
     private let budgetService = BudgetService.shared
     private let budgetLineService = BudgetLineService.shared
     private let transactionService = TransactionService.shared
 
     init(budgetId: String) {
         self.budgetId = budgetId
+    }
+
+    var hasPreviousBudget: Bool { previousBudgetId != nil }
+    var hasNextBudget: Bool { nextBudgetId != nil }
+
+    /// Prepare navigation by changing the budgetId (synchronous, can be animated)
+    func prepareNavigation(to id: String) {
+        budgetId = id
     }
 
     var metrics: BudgetFormulas.Metrics {
@@ -307,8 +408,36 @@ final class BudgetDetailsViewModel {
         }
     }
 
+    /// Full load: fetches budget details AND all budgets list (for month navigation)
+    /// Use for: initial load, pull-to-refresh
+    @MainActor
     func loadDetails() async {
         isLoading = true
+        error = nil
+
+        do {
+            async let detailsTask = budgetService.getBudgetWithDetails(id: budgetId)
+            async let budgetsTask = budgetService.getAllBudgets()
+
+            let (details, budgets) = try await (detailsTask, budgetsTask)
+
+            budget = details.budget
+            budgetLines = details.budgetLines
+            transactions = details.transactions
+            allBudgets = budgets
+
+            updateAdjacentBudgets()
+        } catch {
+            self.error = error
+        }
+
+        isLoading = false
+    }
+
+    /// Light reload: fetches only current budget details (no allBudgets)
+    /// Use for: after toggle, update, or month navigation
+    @MainActor
+    func reloadCurrentBudget() async {
         error = nil
 
         do {
@@ -316,11 +445,33 @@ final class BudgetDetailsViewModel {
             budget = details.budget
             budgetLines = details.budgetLines
             transactions = details.transactions
+            updateAdjacentBudgets()
         } catch {
             self.error = error
         }
+    }
 
-        isLoading = false
+    private func updateAdjacentBudgets() {
+        guard let currentBudget = budget else {
+            previousBudgetId = nil
+            nextBudgetId = nil
+            return
+        }
+
+        // Sort budgets chronologically
+        let sorted = allBudgets.sorted { lhs, rhs in
+            if lhs.year != rhs.year { return lhs.year < rhs.year }
+            return lhs.month < rhs.month
+        }
+
+        guard let currentIndex = sorted.firstIndex(where: { $0.id == currentBudget.id }) else {
+            previousBudgetId = nil
+            nextBudgetId = nil
+            return
+        }
+
+        previousBudgetId = currentIndex > 0 ? sorted[currentIndex - 1].id : nil
+        nextBudgetId = currentIndex < sorted.count - 1 ? sorted[currentIndex + 1].id : nil
     }
 
     func toggleBudgetLine(_ line: BudgetLine) async {
@@ -336,7 +487,7 @@ final class BudgetDetailsViewModel {
 
         do {
             _ = try await budgetLineService.toggleCheck(id: line.id)
-            await loadDetails()
+            await reloadCurrentBudget()
         } catch {
             budgetLines = originalLines
             self.error = error
@@ -357,7 +508,7 @@ final class BudgetDetailsViewModel {
 
         do {
             _ = try await transactionService.toggleCheck(id: transaction.id)
-            await loadDetails()
+            await reloadCurrentBudget()
         } catch {
             transactions = originalTransactions
             self.error = error
@@ -411,7 +562,7 @@ final class BudgetDetailsViewModel {
         }
 
         // Reload to sync with server
-        await loadDetails()
+        await reloadCurrentBudget()
     }
 
     func updateTransaction(_ transaction: Transaction) async {
@@ -421,7 +572,7 @@ final class BudgetDetailsViewModel {
         }
 
         // Reload to sync with server
-        await loadDetails()
+        await reloadCurrentBudget()
     }
 }
 
