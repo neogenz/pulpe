@@ -342,7 +342,6 @@ export default class Signup {
           method: 'email',
         });
         this.#router.navigate(['/', ROUTES.APP, ROUTES.CURRENT_MONTH]);
-        // Keep isSubmitting=true (navigation will happen)
       } else {
         this.errorMessage.set(
           result.error || 'Erreur lors de la création du compte.',
