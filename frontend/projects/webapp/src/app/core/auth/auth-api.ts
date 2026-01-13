@@ -158,10 +158,13 @@ export class AuthApi {
           case 'TOKEN_REFRESHED':
             this.updateAuthState(session);
             break;
-          case 'SIGNED_OUT':
+          case 'SIGNED_OUT': {
+            // Capture user ID BEFORE clearing state to preserve their tour keys
+            const userId = this.#userSignal()?.id;
             this.updateAuthState(null);
-            this.handleSignOut();
+            this.handleSignOut(userId);
             break;
+          }
           case 'USER_UPDATED':
             this.updateAuthState(session);
             break;
@@ -204,7 +207,7 @@ export class AuthApi {
     this.#isLoadingSignal.set(false);
   }
 
-  private handleSignOut(): void {
+  private handleSignOut(userId?: string): void {
     // Clear demo mode state BEFORE clearing other data
     // This ensures demo state is reset on ALL logout paths (menu, auth errors, etc.)
     // Note: This also updates internal signals, not just localStorage
@@ -214,7 +217,8 @@ export class AuthApi {
     this.#postHogService.reset();
 
     // Clear all user data from localStorage (type-safe via StorageService)
-    this.#storageService.clearAll();
+    // Pass userId to preserve only this user's tour keys, remove other users' tour data
+    this.#storageService.clearAll(userId);
   }
 
   async signInWithEmail(
@@ -359,6 +363,8 @@ export class AuthApi {
     try {
       if (this.#isE2EBypass()) {
         this.#logger.info('🎭 Mode test E2E: Simulation du logout');
+        // Capture user ID BEFORE clearing state to preserve their tour keys
+        const userId = this.#userSignal()?.id;
         this.#setE2EMockState({
           user: null,
           session: null,
@@ -366,7 +372,7 @@ export class AuthApi {
           isAuthenticated: false,
         });
         this.updateAuthState(null);
-        this.handleSignOut();
+        this.handleSignOut(userId);
         return;
       }
 
