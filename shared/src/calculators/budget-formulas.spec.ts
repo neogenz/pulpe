@@ -873,4 +873,126 @@ describe('BudgetFormulas', () => {
       });
     });
   });
+
+  describe('calculateAllMetricsWithEnvelopes', () => {
+    function createBudgetLine(
+      id: string,
+      kind: TransactionKind,
+      amount: number,
+    ) {
+      return { id, kind, amount };
+    }
+
+    function createTransaction(
+      kind: TransactionKind,
+      amount: number,
+      budgetLineId?: string | null,
+    ) {
+      return { kind, amount, budgetLineId };
+    }
+
+    it('should calculate all metrics with envelope-aware expenses', () => {
+      const budgetLines = [
+        createBudgetLine('income-1', 'income', 5000),
+        createBudgetLine('expense-1', 'expense', 500),
+      ];
+      const transactions = [createTransaction('expense', 100, 'expense-1')];
+      const rollover = 200;
+
+      const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
+        budgetLines,
+        transactions,
+        rollover,
+      );
+
+      expect(metrics.totalIncome).toBe(5000);
+      expect(metrics.totalExpenses).toBe(500); // envelope-aware: max(500, 100) = 500
+      expect(metrics.available).toBe(5200); // 5000 + 200
+      expect(metrics.endingBalance).toBe(4700); // 5200 - 500
+      expect(metrics.remaining).toBe(4700);
+      expect(metrics.rollover).toBe(200);
+    });
+
+    it('should count overage when transactions exceed envelope', () => {
+      const budgetLines = [
+        createBudgetLine('income-1', 'income', 3000),
+        createBudgetLine('expense-1', 'expense', 200),
+      ];
+      const transactions = [createTransaction('expense', 300, 'expense-1')];
+
+      const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
+        budgetLines,
+        transactions,
+        0,
+      );
+
+      expect(metrics.totalExpenses).toBe(300); // max(200, 300) = 300
+      expect(metrics.endingBalance).toBe(2700); // 3000 - 300
+    });
+
+    it('should add free transactions directly', () => {
+      const budgetLines = [
+        createBudgetLine('income-1', 'income', 3000),
+        createBudgetLine('expense-1', 'expense', 200),
+      ];
+      const transactions = [
+        createTransaction('expense', 100, 'expense-1'),
+        createTransaction('expense', 50, null), // free transaction
+      ];
+
+      const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
+        budgetLines,
+        transactions,
+        0,
+      );
+
+      // envelope: max(200, 100) = 200 + free: 50 = 250
+      expect(metrics.totalExpenses).toBe(250);
+      expect(metrics.endingBalance).toBe(2750);
+    });
+
+    it('should produce coherent metrics (validates formulas)', () => {
+      const budgetLines = [
+        createBudgetLine('income-1', 'income', 5000),
+        createBudgetLine('expense-1', 'expense', 1500),
+        createBudgetLine('expense-2', 'expense', 800),
+        createBudgetLine('saving-1', 'saving', 500),
+      ];
+      const transactions = [
+        createTransaction('expense', 200, 'expense-1'),
+        createTransaction('expense', 1000, 'expense-2'), // exceeds envelope
+        createTransaction('income', 300, null),
+      ];
+      const rollover = 250;
+
+      const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
+        budgetLines,
+        transactions,
+        rollover,
+      );
+
+      // Validate coherence
+      expect(metrics.available).toBe(metrics.totalIncome + metrics.rollover);
+      expect(metrics.endingBalance).toBe(
+        metrics.available - metrics.totalExpenses,
+      );
+      expect(metrics.remaining).toBe(metrics.endingBalance);
+      expect(BudgetFormulas.validateMetricsCoherence(metrics)).toBe(true);
+    });
+
+    it('should handle empty data', () => {
+      const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
+        [],
+        [],
+        0,
+      );
+
+      expect(metrics.totalIncome).toBe(0);
+      expect(metrics.totalExpenses).toBe(0);
+      expect(metrics.available).toBe(0);
+      expect(metrics.endingBalance).toBe(0);
+      expect(metrics.remaining).toBe(0);
+      expect(metrics.rollover).toBe(0);
+    });
+  });
 });

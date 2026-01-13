@@ -289,9 +289,9 @@ export class CurrentMonthStore {
       if (currentData && currentData.budget) {
         const updatedData = updateData(currentData, response);
 
-        // Recalculate ending balance locally avec les formules partagées
+        // Recalculate ending balance locally avec les formules partagées (envelope-aware)
         const rollover = updatedData.budget?.rollover || 0;
-        const metrics = BudgetFormulas.calculateAllMetrics(
+        const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
           updatedData.budgetLines,
           updatedData.transactions,
           rollover,
@@ -355,9 +355,9 @@ export class CurrentMonthStore {
       if (currentData && currentData.budget) {
         const updatedData = updateData(currentData);
 
-        // Recalculate ending balance locally avec les formules partagées
+        // Recalculate ending balance locally avec les formules partagées (envelope-aware)
         const rollover = updatedData.budget?.rollover || 0;
-        const metrics = BudgetFormulas.calculateAllMetrics(
+        const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
           updatedData.budgetLines,
           updatedData.transactions,
           rollover,

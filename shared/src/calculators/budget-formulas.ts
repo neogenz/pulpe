@@ -295,6 +295,43 @@ export class BudgetFormulas {
   }
 
   /**
+   * Calcule toutes les métriques avec logique d'enveloppe
+   *
+   * Business Rule:
+   * - Les transactions allouées sont "couvertes" par leur enveloppe
+   * - Seul le DÉPASSEMENT (consumed > envelope.amount) impacte le budget
+   * - Les transactions libres impactent directement le budget
+   *
+   * @param budgetLines - Lignes budgétaires avec IDs (pour calcul enveloppe)
+   * @param transactions - Transactions avec budgetLineId optionnel
+   * @param rollover - Report du mois précédent
+   * @returns Toutes les métriques calculées avec logique d'enveloppe
+   */
+  static calculateAllMetricsWithEnvelopes(
+    budgetLines: FinancialItemWithId[],
+    transactions: TransactionWithBudgetLineId[] = [],
+    rollover: number = 0,
+  ) {
+    const totalIncome = this.calculateTotalIncome(budgetLines, transactions);
+    const totalExpenses = this.calculateTotalExpensesWithEnvelopes(
+      budgetLines,
+      transactions,
+    );
+    const available = this.calculateAvailable(totalIncome, rollover);
+    const endingBalance = this.calculateEndingBalance(available, totalExpenses);
+    const remaining = endingBalance;
+
+    return {
+      totalIncome,
+      totalExpenses,
+      available,
+      endingBalance,
+      remaining,
+      rollover,
+    };
+  }
+
+  /**
    * Valide la cohérence des calculs selon les règles métier
    * Utile pour les tests et la validation
    *
