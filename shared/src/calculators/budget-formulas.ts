@@ -262,39 +262,6 @@ export class BudgetFormulas {
   }
 
   /**
-   * Calcule toutes les métriques en une seule fois
-   * Optimisation pour éviter les calculs redondants
-   *
-   * @param budgetLines - Lignes budgétaires planifiées
-   * @param transactions - Transactions réelles
-   * @param rollover - Report du mois précédent
-   * @returns Toutes les métriques calculées
-   */
-  static calculateAllMetrics(
-    budgetLines: FinancialItem[],
-    transactions: FinancialItem[] = [],
-    rollover: number = 0,
-  ) {
-    const totalIncome = this.calculateTotalIncome(budgetLines, transactions);
-    const totalExpenses = this.calculateTotalExpenses(
-      budgetLines,
-      transactions,
-    );
-    const available = this.calculateAvailable(totalIncome, rollover);
-    const endingBalance = this.calculateEndingBalance(available, totalExpenses);
-    const remaining = endingBalance; // Same as ending balance per SPECS
-
-    return {
-      totalIncome,
-      totalExpenses,
-      available,
-      endingBalance,
-      remaining,
-      rollover,
-    };
-  }
-
-  /**
    * Calcule toutes les métriques avec logique d'enveloppe
    *
    * Business Rule:
@@ -339,7 +306,7 @@ export class BudgetFormulas {
    * @returns True si cohérent, false sinon
    */
   static validateMetricsCoherence(
-    metrics: ReturnType<typeof BudgetFormulas.calculateAllMetrics>,
+    metrics: ReturnType<typeof BudgetFormulas.calculateAllMetricsWithEnvelopes>,
   ): boolean {
     // Tolérance epsilon pour les comparaisons de nombres décimaux
     const EPSILON = 0.01;

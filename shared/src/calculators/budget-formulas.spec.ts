@@ -10,14 +10,42 @@ import { BudgetFormulas } from './budget-formulas.js';
 import type { TransactionKind } from '../types.js';
 
 /**
- * Helper pour créer des items financiers de test
+ * Helper pour créer des items financiers de test (sans id)
  */
 function createFinancialItem(kind: TransactionKind, amount: number) {
   return { kind, amount };
 }
 
+let idCounter = 0;
+
 /**
- * Dataset de test complexe simulant un mois réel
+ * Helper pour créer des items financiers avec id (pour calculateAllMetricsWithEnvelopes)
+ */
+function createFinancialItemWithId(kind: TransactionKind, amount: number) {
+  return { id: `item-${++idCounter}`, kind, amount };
+}
+
+/**
+ * Dataset de test complexe simulant un mois réel (avec ids pour envelope-aware)
+ */
+const complexTestDataWithIds = {
+  budgetLines: [
+    createFinancialItemWithId('income', 5000), // Salaire
+    createFinancialItemWithId('expense', 1500), // Loyer
+    createFinancialItemWithId('expense', 800), // Courses
+    createFinancialItemWithId('saving', 500), // Épargne planifiée
+  ],
+  transactions: [
+    { ...createFinancialItem('expense', 200), budgetLineId: null }, // Restaurant (libre)
+    { ...createFinancialItem('expense', 150), budgetLineId: null }, // Essence (libre)
+    { ...createFinancialItem('income', 300), budgetLineId: null }, // Freelance
+    { ...createFinancialItem('saving', 100), budgetLineId: null }, // Épargne supplémentaire
+  ],
+  rollover: 250, // Report positif
+};
+
+/**
+ * Dataset de test complexe simulant un mois réel (legacy - sans ids)
  */
 const complexTestData = {
   budgetLines: [
@@ -345,67 +373,10 @@ describe('BudgetFormulas', () => {
     });
   });
 
-  describe('calculateAllMetrics', () => {
-    it('should calculate all metrics coherently with complex data', () => {
-      const { budgetLines, transactions, rollover } = complexTestData;
-
-      const metrics = BudgetFormulas.calculateAllMetrics(
-        budgetLines,
-        transactions,
-        rollover,
-      );
-
-      // Vérifications individuelles
-      expect(metrics.totalIncome).toBe(5300); // 5000 + 300
-      expect(metrics.totalExpenses).toBe(3250); // 1500 + 800 + 500 + 200 + 150 + 100
-      expect(metrics.available).toBe(5550); // 5300 + 250
-      expect(metrics.endingBalance).toBe(2300); // 5550 - 3250
-      expect(metrics.remaining).toBe(2300); // Same as ending balance
-      expect(metrics.rollover).toBe(250);
-    });
-
-    it('should handle simple case', () => {
-      const budgetLines = [
-        createFinancialItem('income', 5000),
-        createFinancialItem('expense', 2000),
-      ];
-
-      const metrics = BudgetFormulas.calculateAllMetrics(budgetLines, [], 0);
-
-      expect(metrics.totalIncome).toBe(5000);
-      expect(metrics.totalExpenses).toBe(2000);
-      expect(metrics.available).toBe(5000);
-      expect(metrics.endingBalance).toBe(3000);
-      expect(metrics.remaining).toBe(3000);
-      expect(metrics.rollover).toBe(0);
-    });
-
-    it('should handle deficit scenario', () => {
-      const budgetLines = [
-        createFinancialItem('income', 3000),
-        createFinancialItem('expense', 4000),
-      ];
-      const rollover = -500; // Déficit précédent
-
-      const metrics = BudgetFormulas.calculateAllMetrics(
-        budgetLines,
-        [],
-        rollover,
-      );
-
-      expect(metrics.totalIncome).toBe(3000);
-      expect(metrics.totalExpenses).toBe(4000);
-      expect(metrics.available).toBe(2500); // 3000 - 500
-      expect(metrics.endingBalance).toBe(-1500); // 2500 - 4000 (déficit)
-      expect(metrics.remaining).toBe(-1500);
-      expect(metrics.rollover).toBe(-500);
-    });
-  });
-
   describe('validateMetricsCoherence', () => {
     it('should validate coherent metrics', () => {
-      const { budgetLines, transactions, rollover } = complexTestData;
-      const metrics = BudgetFormulas.calculateAllMetrics(
+      const { budgetLines, transactions, rollover } = complexTestDataWithIds;
+      const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
         budgetLines,
         transactions,
         rollover,
@@ -446,11 +417,15 @@ describe('BudgetFormulas', () => {
     it('should follow SPECS example: Janvier calculation', () => {
       // Exemple SPECS: "Janvier : income=5000 CHF, expenses=4500 CHF, rollover=0 → ending_balance=500 CHF"
       const budgetLines = [
-        createFinancialItem('income', 5000),
-        createFinancialItem('expense', 4500),
+        createFinancialItemWithId('income', 5000),
+        createFinancialItemWithId('expense', 4500),
       ];
 
-      const metrics = BudgetFormulas.calculateAllMetrics(budgetLines, [], 0);
+      const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
+        budgetLines,
+        [],
+        0,
+      );
 
       expect(metrics.totalIncome).toBe(5000);
       expect(metrics.totalExpenses).toBe(4500);
@@ -462,12 +437,12 @@ describe('BudgetFormulas', () => {
     it('should follow SPECS example: Février with rollover', () => {
       // Exemple SPECS: "Février : income=5200 CHF, expenses=4800 CHF, rollover=500 CHF → ending_balance=900 CHF"
       const budgetLines = [
-        createFinancialItem('income', 5200),
-        createFinancialItem('expense', 4800),
+        createFinancialItemWithId('income', 5200),
+        createFinancialItemWithId('expense', 4800),
       ];
       const rollover = 500; // Depuis janvier
 
-      const metrics = BudgetFormulas.calculateAllMetrics(
+      const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
         budgetLines,
         [],
         rollover,
@@ -483,12 +458,16 @@ describe('BudgetFormulas', () => {
     it('should handle SPECS savings as expenses', () => {
       // Vérification SPECS: "Le saving est volontairement traité comme une expense"
       const budgetLines = [
-        createFinancialItem('income', 5000),
-        createFinancialItem('expense', 3000),
-        createFinancialItem('saving', 1000), // Doit être traité comme expense
+        createFinancialItemWithId('income', 5000),
+        createFinancialItemWithId('expense', 3000),
+        createFinancialItemWithId('saving', 1000), // Doit être traité comme expense
       ];
 
-      const metrics = BudgetFormulas.calculateAllMetrics(budgetLines, [], 0);
+      const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
+        budgetLines,
+        [],
+        0,
+      );
 
       expect(metrics.totalExpenses).toBe(4000); // 3000 + 1000 (saving inclus)
       expect(metrics.endingBalance).toBe(1000); // 5000 - 4000
@@ -497,12 +476,12 @@ describe('BudgetFormulas', () => {
     it('should follow SPECS example: Mars with rollover from Février', () => {
       // Exemple SPECS: "Mars : income=5100 CHF, expenses=5200 CHF, rollover=900 CHF → ending_balance=800 CHF"
       const budgetLines = [
-        createFinancialItem('income', 5100),
-        createFinancialItem('expense', 5200),
+        createFinancialItemWithId('income', 5100),
+        createFinancialItemWithId('expense', 5200),
       ];
       const rollover = 900; // Depuis février
 
-      const metrics = BudgetFormulas.calculateAllMetrics(
+      const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
         budgetLines,
         [],
         rollover,
@@ -518,12 +497,12 @@ describe('BudgetFormulas', () => {
     it('should follow SPECS example: Avril with rollover from Mars', () => {
       // Exemple SPECS: "Avril : income=5000 CHF, expenses=5500 CHF, rollover=800 CHF → ending_balance=300 CHF"
       const budgetLines = [
-        createFinancialItem('income', 5000),
-        createFinancialItem('expense', 5500),
+        createFinancialItemWithId('income', 5000),
+        createFinancialItemWithId('expense', 5500),
       ];
       const rollover = 800; // Depuis mars
 
-      const metrics = BudgetFormulas.calculateAllMetrics(
+      const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
         budgetLines,
         [],
         rollover,
@@ -571,11 +550,11 @@ describe('BudgetFormulas', () => {
 
       months.forEach((month, index) => {
         const budgetLines = [
-          createFinancialItem('income', month.income),
-          createFinancialItem('expense', month.expenses),
+          createFinancialItemWithId('income', month.income),
+          createFinancialItemWithId('expense', month.expenses),
         ];
 
-        const metrics = BudgetFormulas.calculateAllMetrics(
+        const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
           budgetLines,
           [],
           month.rollover,
@@ -594,24 +573,25 @@ describe('BudgetFormulas', () => {
 
   describe('Performance Tests', () => {
     it('should handle large datasets efficiently', () => {
-      // Créer un gros dataset
+      // Créer un gros dataset avec ids
       const largeBudgetLines = Array.from({ length: 1000 }, (_, i) =>
-        createFinancialItem(i % 3 === 0 ? 'income' : 'expense', 100),
+        createFinancialItemWithId(i % 3 === 0 ? 'income' : 'expense', 100),
       );
-      const largeTransactions = Array.from({ length: 1000 }, (_, i) =>
-        createFinancialItem(i % 2 === 0 ? 'expense' : 'income', 50),
-      );
+      const largeTransactions = Array.from({ length: 1000 }, (_, i) => ({
+        ...createFinancialItem(i % 2 === 0 ? 'expense' : 'income', 50),
+        budgetLineId: null,
+      }));
 
       const start = performance.now();
-      const metrics = BudgetFormulas.calculateAllMetrics(
+      const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
         largeBudgetLines,
         largeTransactions,
         0,
       );
       const duration = performance.now() - start;
 
-      // Test de performance (< 10ms pour 2000 items)
-      expect(duration).toBeLessThan(10);
+      // Test de performance (< 50ms pour 2000 items avec envelope logic)
+      expect(duration).toBeLessThan(50);
 
       // Validation des résultats
       expect(metrics.totalIncome).toBeGreaterThan(0);
