@@ -55,6 +55,7 @@ private struct GlassBackgroundModifier: ViewModifier {
 
 struct BudgetDetailsView: View {
     let budgetId: String
+    @Environment(AppState.self) private var appState
     @State private var viewModel: BudgetDetailsViewModel
     @State private var selectedLineForTransaction: BudgetLine?
     @State private var showAddBudgetLine = false
@@ -100,6 +101,7 @@ struct BudgetDetailsView: View {
                 } label: {
                     Image(systemName: "plus")
                 }
+                .accessibilityLabel("Ajouter une prévision")
             }
         }
         .task {
@@ -183,6 +185,18 @@ struct BudgetDetailsView: View {
             }
             .listRowInsets(EdgeInsets())
             .listRowBackground(Color.clear)
+
+            // Rollover section (toujours en premier)
+            if let rolloverInfo = viewModel.rolloverInfo {
+                RolloverInfoRow(
+                    amount: rolloverInfo.amount,
+                    onTap: rolloverInfo.previousBudgetId.map { id in
+                        { appState.budgetPath.append(BudgetDestination.details(budgetId: id)) }
+                    }
+                )
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                .listRowBackground(Color.clear)
+            }
 
             // Income section
             if !filteredIncome.isEmpty {
@@ -367,6 +381,13 @@ final class BudgetDetailsViewModel {
             .sorted { $0.transactionDate > $1.transactionDate }
     }
 
+    var rolloverInfo: (amount: Decimal, previousBudgetId: String?)? {
+        guard let budget, let rollover = budget.rollover, rollover != 0 else {
+            return nil
+        }
+        return (amount: rollover, previousBudgetId: budget.previousBudgetId)
+    }
+
     /// Filters budget lines by name or by linked transaction names (accent and case insensitive)
     func filteredLines(_ lines: [BudgetLine], searchText: String) -> [BudgetLine] {
         guard !searchText.isEmpty else { return lines }
@@ -453,7 +474,6 @@ final class BudgetDetailsViewModel {
         nextBudgetId = currentIndex < sorted.count - 1 ? sorted[currentIndex + 1].id : nil
     }
 
-    @MainActor
     func toggleBudgetLine(_ line: BudgetLine) async {
         guard !(line.isRollover ?? false) else { return }
         guard !syncingBudgetLineIds.contains(line.id) else { return }
@@ -476,7 +496,6 @@ final class BudgetDetailsViewModel {
         syncingBudgetLineIds.remove(line.id)
     }
 
-    @MainActor
     func toggleTransaction(_ transaction: Transaction) async {
         guard !syncingTransactionIds.contains(transaction.id) else { return }
 
@@ -498,7 +517,6 @@ final class BudgetDetailsViewModel {
         syncingTransactionIds.remove(transaction.id)
     }
 
-    @MainActor
     func deleteTransaction(_ transaction: Transaction) async {
         // Optimistic update
         let originalTransactions = transactions
@@ -512,17 +530,14 @@ final class BudgetDetailsViewModel {
         }
     }
 
-    @MainActor
     func addTransaction(_ transaction: Transaction) {
         transactions.append(transaction)
     }
 
-    @MainActor
     func addBudgetLine(_ budgetLine: BudgetLine) {
         budgetLines.append(budgetLine)
     }
 
-    @MainActor
     func deleteBudgetLine(_ line: BudgetLine) async {
         guard !(line.isRollover ?? false) else { return }
 
@@ -538,7 +553,6 @@ final class BudgetDetailsViewModel {
         }
     }
 
-    @MainActor
     func updateBudgetLine(_ line: BudgetLine) async {
         guard !(line.isRollover ?? false) else { return }
 
@@ -551,7 +565,6 @@ final class BudgetDetailsViewModel {
         await reloadCurrentBudget()
     }
 
-    @MainActor
     func updateTransaction(_ transaction: Transaction) async {
         // Optimistic update
         if let index = transactions.firstIndex(where: { $0.id == transaction.id }) {
@@ -560,6 +573,61 @@ final class BudgetDetailsViewModel {
 
         // Reload to sync with server
         await reloadCurrentBudget()
+    }
+}
+
+// MARK: - Rollover Info Row
+
+private struct RolloverInfoRow: View {
+    let amount: Decimal
+    let onTap: (() -> Void)?
+
+    private var isPositive: Bool { amount >= 0 }
+
+    @ViewBuilder
+    var body: some View {
+        if let onTap {
+            Button(action: onTap) { content }
+                .buttonStyle(.plain)
+        } else {
+            content
+        }
+    }
+
+    private var content: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "arrow.uturn.backward.circle.fill")
+                .font(.title2)
+                .foregroundStyle(isPositive ? .green : .red)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Report du mois précédent")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.primary)
+                Text(isPositive ? "Excédent reporté" : "Déficit reporté")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Text(amount.asCHF)
+                .font(.headline)
+                .fontWeight(.semibold)
+                .foregroundStyle(isPositive ? .green : .red)
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill((isPositive ? Color.green : Color.red).opacity(0.08))
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Report du mois précédent")
+        .accessibilityValue("\(isPositive ? "Excédent" : "Déficit") de \(amount.asCHF)")
+        .ifLet(onTap) { view, _ in
+            view.accessibilityHint("Appuyez deux fois pour voir le budget précédent")
+        }
     }
 }
 
