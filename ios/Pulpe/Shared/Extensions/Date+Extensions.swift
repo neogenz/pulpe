@@ -67,6 +67,22 @@ extension Date {
         return false
     }
 
+    // MARK: - Static Month/Year Comparisons
+
+    /// Check if a given month/year is in the past relative to now
+    static func isPast(month: Int, year: Int) -> Bool {
+        let now = Date()
+        if year < now.year { return true }
+        if year == now.year && month < now.month { return true }
+        return false
+    }
+
+    /// Check if a given month/year is the current month
+    static func isCurrent(month: Int, year: Int) -> Bool {
+        let now = Date()
+        return year == now.year && month == now.month
+    }
+
     /// Format as relative date (Aujourd'hui, Hier, Lundi, etc.)
     var relativeFormatted: String {
         let calendar = Calendar.current

@@ -35,9 +35,7 @@ struct YearOverviewProvider: TimelineProvider {
     }
 
     private func loadEntry() -> YearOverviewEntry? {
-        guard let cache = coordinator.load() else {
-            return nil
-        }
+        guard let cache = coordinator.load() else { return nil }
 
         let now = Date()
         let currentMonth = Calendar.current.component(.month, from: now)
