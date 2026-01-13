@@ -150,7 +150,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
             loadingText="Préparation..."
             icon="science"
             testId="demo-mode-button"
-            class="max-w-sm"
+            class=" w-full max-w-sm"
             (click)="startDemoMode()"
           >
             Essayer le mode démo
