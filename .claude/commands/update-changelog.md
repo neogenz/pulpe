@@ -1,10 +1,14 @@
 ---
-description: Compare changes between the current branch and main branch to update the changelog
-allowed-tools: Read, Glob, Grep, Bash(git *), Bash(pnpm changeset*), AskUserQuestion
+description: Unified release command - analyzes git changes and bumps frontend, backend, shared AND iOS automatically
+argument-hint: [depuis le dernier tag | depuis main]
+allowed-tools: Read, Glob, Grep, Bash(git *), Bash(pnpm changeset*), Bash(cd ios && *), AskUserQuestion
+model: sonnet
 ---
 
 <role>
 You are the **Product Owner** of this project. You analyze code changes to produce clear, user-focused changelog entries in French. You understand business impact and prioritize user-facing changes over technical details.
+
+**CRITICAL:** This is a **unified release command**. You automatically detect ALL affected packages (frontend, backend, shared, iOS) by analyzing git changes, and apply the appropriate versioning strategy for each.
 </role>
 
 <rules>
@@ -53,7 +57,24 @@ git log main..HEAD --oneline
 
 If skipping, output: "Aucun changeset nécessaire - modifications techniques uniquement." and stop.
 
-## Phase 2: CATEGORIZE
+## Phase 2: AUTO-DETECT PACKAGES
+
+Analyze `git diff main --name-only` to automatically detect affected packages:
+
+```bash
+git diff main..HEAD --name-only
+```
+
+**Detection Rules:**
+- `frontend/**` → `pulpe-frontend`
+- `backend-nest/**` → `backend-nest`
+- `shared/**` → `pulpe-shared`
+- `ios/**` → `ios` (native app)
+
+**Analyze commits for each package:**
+```bash
+git log main..HEAD --oneline --grep="feat:" --grep="fix:" --grep="feat!:"
+```
 
 For each user-facing change, determine:
 
@@ -63,11 +84,6 @@ For each user-facing change, determine:
 | New feature/enhancement | **MINOR** | Nouvelle fonctionnalité (rétrocompatible) |
 | Bug fix | **PATCH** | Correction de bug (rétrocompatible) |
 
-Identify affected packages:
-- `pulpe-frontend` - Angular webapp changes
-- `backend-nest` - NestJS API changes
-- `pulpe-shared` - Shared schemas/types changes
-
 ## Phase 3: PROPOSE
 
 Present the changelog proposal to the user:
@@ -76,9 +92,10 @@ Present the changelog proposal to the user:
 ## Proposition de Changelog
 
 ### Packages affectés
-- `pulpe-frontend`: [MAJOR|MINOR|PATCH]
-- `backend-nest`: [MAJOR|MINOR|PATCH]
-- `pulpe-shared`: [MAJOR|MINOR|PATCH]
+- `pulpe-frontend`: [MAJOR|MINOR|PATCH] (if detected)
+- `backend-nest`: [MAJOR|MINOR|PATCH] (if detected)
+- `pulpe-shared`: [MAJOR|MINOR|PATCH] (if detected)
+- `ios`: [MAJOR|MINOR|PATCH] (if detected)
 
 ### Changements
 1. [Description en français orientée utilisateur]
@@ -90,48 +107,77 @@ Present the changelog proposal to the user:
 
 Use `AskUserQuestion` to get explicit validation.
 
-## Phase 4: CREATE CHANGESET
+## Phase 4: BUMP VERSIONS
 
-Only after user approval:
+Only after user approval. Use different strategies per package type:
+
+### JS/TS Packages (frontend, backend, shared)
+
+Create changeset if any JS/TS package is affected:
 
 ```bash
 pnpm changeset
 ```
 
-Interactive prompts:
-1. Select affected packages
-2. Choose version bump type
-3. Write French description (user-focused)
-
-## Phase 5: APPLY VERSIONS
-
-Only after changeset creation is confirmed:
+Then apply versions:
 
 ```bash
 pnpm changeset version
 ```
 
-This will:
-- Bump package versions according to changesets
-- Update CHANGELOG.md files
-- Handle internal package dependencies
+### iOS Package
 
-## Phase 6: TAG & RELEASE (optional)
-
-After committing the version changes, create tags following the convention:
+If iOS is affected, use the bump script:
 
 ```bash
-# Create tag for each bumped package
+cd ios && ./scripts/bump-version.sh [major|minor|patch]
+```
+
+**Rules:**
+- `feat!:` or `BREAKING CHANGE:` → `major`
+- `feat:` → `minor`
+- `fix:` → `patch`
+
+After bump, regenerate Xcode project:
+
+```bash
+cd ios && xcodegen generate
+```
+
+## Phase 5: COMMIT
+
+Commit all version changes:
+
+```bash
+git add -A
+git commit -m "chore(release): bump versions
+
+- pulpe-frontend: X.Y.Z
+- backend-nest: X.Y.Z
+- pulpe-shared: X.Y.Z
+- ios: X.Y.Z
+
+Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+```
+
+## Phase 6: TAG & PUSH
+
+Create tags for all bumped packages:
+
+```bash
+# JS/TS packages
 git tag "pulpe-frontend@X.Y.Z" -m "Release pulpe-frontend vX.Y.Z"
 git tag "backend-nest@X.Y.Z" -m "Release backend-nest vX.Y.Z"
 git tag "pulpe-shared@X.Y.Z" -m "Release pulpe-shared vX.Y.Z"
 
-# Push with tags
-git push origin main --tags
+# iOS (independent versioning)
+git tag "ios@X.Y.Z" -m "Release iOS vX.Y.Z (build N)"
 
-# Create GitHub Release (optional)
-gh release create "pulpe-frontend@X.Y.Z" --title "pulpe-frontend vX.Y.Z" --generate-notes
+# Push everything
+git push origin main --tags
 ```
+
+**Note:** Only create tags for packages that were actually bumped.
 
 </workflow>
 
@@ -141,16 +187,23 @@ gh release create "pulpe-frontend@X.Y.Z" --title "pulpe-frontend vX.Y.Z" --gener
 
 All packages use **Semantic Versioning** (SemVer): `MAJOR.MINOR.PATCH`
 
-| Package | Current | Tag format |
-|---------|---------|------------|
-| `pulpe-frontend` | 0.9.0 | `pulpe-frontend@0.9.0` |
-| `backend-nest` | 0.4.2 | `backend-nest@0.4.2` |
-| `pulpe-shared` | 0.3.1 | `pulpe-shared@0.3.1` |
+| Package | Type | Current Version | Tag format |
+|---------|------|-----------------|------------|
+| `pulpe-frontend` | JS/TS | 0.11.1 | `pulpe-frontend@0.11.1` |
+| `backend-nest` | JS/TS | 0.6.1 | `backend-nest@0.6.1` |
+| `pulpe-shared` | JS/TS | 0.5.1 | `pulpe-shared@0.5.1` |
+| `ios` | Native | 1.0.0 (build 1) | `ios@1.0.0` |
 
 **Rules:**
+- JS/TS packages: Managed via `changesets`
+- iOS: Managed via `ios/scripts/bump-version.sh` + build number
 - No `@scope/` prefix in package names
-- No CalVer (YYYY.x.x) - use SemVer only
 - Tags follow `package-name@version` format
+
+**iOS Specifics:**
+- Version: SemVer (1.0.0)
+- Build: Integer, reset to 1 for each new version
+- Defined in `ios/project.yml` (XcodeGen)
 
 </versioning_convention>
 
@@ -168,7 +221,14 @@ All packages use **Semantic Versioning** (SemVer): `MAJOR.MINOR.PATCH`
 
 <example>
 <git_diff>
+Modified files:
+- frontend/src/app/features/budget/budget.component.ts
+- backend-nest/src/modules/budget/budget.service.ts
+- ios/Pulpe/Features/Budget/BudgetView.swift
+
+Commits:
 feat(budget): add recurring transactions support
+feat(ios): add Face ID authentication
 fix(auth): resolve token refresh race condition
 refactor(core): extract shared utilities
 </git_diff>
@@ -176,18 +236,36 @@ refactor(core): extract shared utilities
 <assistant_response>
 ## Proposition de Changelog
 
+### Packages détectés (via git diff)
+✓ `frontend/**` → pulpe-frontend
+✓ `backend-nest/**` → backend-nest
+✓ `ios/**` → ios
+
 ### Packages affectés
 - `pulpe-frontend`: MINOR
+- `backend-nest`: MINOR
+- `ios`: MINOR
 
 ### Changements
-1. **Ajout des transactions récurrentes** - Possibilité de définir des dépenses et revenus qui se répètent automatiquement chaque mois
-2. **Correction de la déconnexion intempestive** - Résolution d'un problème où les utilisateurs étaient déconnectés de manière inattendue
+1. **Transactions récurrentes** - Définir des dépenses/revenus qui se répètent automatiquement
+2. **Authentification Face ID** (iOS) - Connexion rapide et sécurisée via biométrie
+3. **Correction déconnexion intempestive** - Résolution du problème de token refresh
 
 *Note: Le refactoring interne n'est pas inclus car il n'a pas d'impact utilisateur.*
 
 ---
 **Cette proposition reflète-t-elle correctement les changements ? (oui/non)**
 </assistant_response>
+
+<execution>
+After "oui" confirmation:
+1. Run `pnpm changeset` for JS packages
+2. Run `cd ios && ./scripts/bump-version.sh minor`
+3. Run `cd ios && xcodegen generate`
+4. Commit: "chore(release): bump versions"
+5. Tag: pulpe-frontend@0.12.0, backend-nest@0.7.0, ios@1.1.0
+6. Push with tags
+</execution>
 </example>
 
 <output_format>
