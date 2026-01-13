@@ -132,7 +132,7 @@ struct RegistrationStep: View {
                     Text("J'accepte les [conditions d'utilisation](https://pulpe.app/terms) et la [politique de confidentialité](https://pulpe.app/privacy)")
                         .font(.caption)
                 }
-                .toggleStyle(.checkbox)
+                .toggleStyle(.pulpeCheckbox)
             }
         }
     }
@@ -203,7 +203,7 @@ struct CheckboxToggleStyle: ToggleStyle {
 }
 
 extension ToggleStyle where Self == CheckboxToggleStyle {
-    static var checkbox: CheckboxToggleStyle { CheckboxToggleStyle() }
+    static var pulpeCheckbox: CheckboxToggleStyle { CheckboxToggleStyle() }
 }
 
 #Preview {
