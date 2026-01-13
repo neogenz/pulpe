@@ -15,6 +15,7 @@
  */
 
 import type { TransactionKind } from '../types.js';
+import { calculateAllConsumptions } from './budget-line-consumption.js';
 
 /**
  * Interface d'abstraction pour les entités financières
@@ -32,6 +33,18 @@ interface FinancialItem {
   kind: TransactionKind;
   amount: number;
   checkedAt?: string | null;
+}
+
+/**
+ * Extended interface for envelope-aware calculations
+ * Requires `id` on budget lines and `budgetLineId` on transactions
+ */
+interface FinancialItemWithId extends FinancialItem {
+  id: string;
+}
+
+interface TransactionWithBudgetLineId extends FinancialItem {
+  budgetLineId?: string | null;
 }
 
 /**
@@ -85,6 +98,50 @@ export class BudgetFormulas {
       .reduce((sum, t) => sum + t.amount, 0);
 
     return budgetExpenses + transactionExpenses;
+  }
+
+  /**
+   * Calcule les dépenses totales avec logique d'enveloppe
+   *
+   * Business Rule:
+   * - Allocated transactions are "covered" by their envelope (budget line)
+   * - Only the OVERAGE (consumed > envelope.amount) impacts the budget
+   * - Free transactions (no budgetLineId) impact the budget directly
+   *
+   * @param budgetLines - Budget lines with `id` field
+   * @param transactions - Transactions with optional `budgetLineId` field
+   * @returns Total expenses accounting for envelope coverage
+   */
+  static calculateTotalExpensesWithEnvelopes(
+    budgetLines: FinancialItemWithId[],
+    transactions: TransactionWithBudgetLineId[] = [],
+  ): number {
+    const consumptionMap = calculateAllConsumptions(budgetLines, transactions);
+
+    let total = 0;
+
+    // For each expense/saving budget line, use max(envelope, consumed)
+    budgetLines.forEach((line) => {
+      if (line.kind === 'expense' || line.kind === 'saving') {
+        // Skip virtual rollover lines
+        if (line.id.startsWith('rollover-')) return;
+
+        const consumption = consumptionMap.get(line.id);
+        const effectiveAmount = consumption
+          ? Math.max(line.amount, consumption.consumed)
+          : line.amount;
+        total += effectiveAmount;
+      }
+    });
+
+    // Add free transactions (those without budgetLineId)
+    transactions.forEach((tx) => {
+      if (!tx.budgetLineId && (tx.kind === 'expense' || tx.kind === 'saving')) {
+        total += tx.amount;
+      }
+    });
+
+    return total;
   }
 
   /**

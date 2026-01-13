@@ -15,9 +15,8 @@ import type {
 } from 'pulpe-shared';
 
 import { CurrentMonthStore } from './current-month-store';
-import { BudgetApi, BudgetCalculator } from '@core/budget';
+import { BudgetApi } from '@core/budget';
 import { TransactionApi } from '@core/transaction/transaction-api';
-import { Logger } from '@core/logging/logger';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { UserSettingsApi } from '@core/user-settings';
 
@@ -103,12 +102,7 @@ describe('CurrentMonthStore - Business Scenarios', () => {
     create$: Mock;
     update$: Mock;
     remove$: Mock;
-  };
-  let mockBudgetCalculator: {
-    calculateLocalEndingBalance: Mock;
-    calculatePlannedIncome: Mock;
-    calculateActualTransactionsAmount: Mock;
-    calculateTotalAvailable: Mock;
+    toggleCheck$: Mock;
   };
 
   beforeEach(() => {
@@ -131,18 +125,7 @@ describe('CurrentMonthStore - Business Scenarios', () => {
       create$: vi.fn(),
       update$: vi.fn(),
       remove$: vi.fn(),
-    };
-
-    mockBudgetCalculator = {
-      calculateLocalEndingBalance: vi.fn().mockReturnValue(3426),
-      calculatePlannedIncome: vi.fn().mockReturnValue(5000),
-      calculateActualTransactionsAmount: vi.fn().mockReturnValue(50),
-      calculateTotalAvailable: vi.fn().mockReturnValue(5000),
-    };
-
-    const mockLogger = {
-      info: vi.fn(),
-      error: vi.fn(),
+      toggleCheck$: vi.fn(),
     };
 
     const mockAppConfig = {
@@ -162,8 +145,6 @@ describe('CurrentMonthStore - Business Scenarios', () => {
         CurrentMonthStore,
         { provide: BudgetApi, useValue: mockBudgetApi },
         { provide: TransactionApi, useValue: mockTransactionApi },
-        { provide: BudgetCalculator, useValue: mockBudgetCalculator },
-        { provide: Logger, useValue: mockLogger },
         { provide: ApplicationConfiguration, useValue: mockAppConfig },
         { provide: UserSettingsApi, useValue: mockUserSettingsApi },
       ],
@@ -497,7 +478,6 @@ describe('CurrentMonthStore - Business Scenarios', () => {
       mockBudgetApi.getBudgetWithDetails$.mockReturnValue(
         of({ data: { budget: null, transactions: [], budgetLines: [] } }),
       );
-      mockBudgetCalculator.calculateTotalAvailable.mockReturnValue(0);
 
       const mockAppConfig = {
         backendApiUrl: vi.fn().mockReturnValue('http://localhost:3000/api'),
@@ -517,7 +497,6 @@ describe('CurrentMonthStore - Business Scenarios', () => {
           CurrentMonthStore,
           { provide: BudgetApi, useValue: mockBudgetApi },
           { provide: TransactionApi, useValue: mockTransactionApi },
-          { provide: BudgetCalculator, useValue: mockBudgetCalculator },
           { provide: ApplicationConfiguration, useValue: mockAppConfig },
           { provide: UserSettingsApi, useValue: mockUserSettingsApi },
         ],
@@ -610,13 +589,7 @@ describe('CurrentMonthStore - Pay Day Integration', () => {
       create$: vi.fn(),
       update$: vi.fn(),
       remove$: vi.fn(),
-    };
-
-    const mockBudgetCalculator = {
-      calculateLocalEndingBalance: vi.fn().mockReturnValue(0),
-      calculatePlannedIncome: vi.fn().mockReturnValue(0),
-      calculateActualTransactionsAmount: vi.fn().mockReturnValue(0),
-      calculateTotalAvailable: vi.fn().mockReturnValue(0),
+      toggleCheck$: vi.fn(),
     };
 
     const mockAppConfig = {
@@ -636,7 +609,6 @@ describe('CurrentMonthStore - Pay Day Integration', () => {
         CurrentMonthStore,
         { provide: BudgetApi, useValue: mockBudgetApi },
         { provide: TransactionApi, useValue: mockTransactionApi },
-        { provide: BudgetCalculator, useValue: mockBudgetCalculator },
         { provide: ApplicationConfiguration, useValue: mockAppConfig },
         { provide: UserSettingsApi, useValue: mockUserSettingsApi },
       ],
@@ -733,6 +705,324 @@ describe('CurrentMonthStore - Pay Day Integration', () => {
         '02',
         '2024',
       );
+    });
+  });
+});
+
+/**
+ * Envelope Allocation Integration Tests
+ *
+ * These tests verify the business rule for allocated transactions:
+ * - Transactions allocated to an envelope (budgetLineId != null) should NOT
+ *   impact the remaining budget, UNLESS they exceed the envelope amount.
+ * - Only the OVERAGE (consumed - envelope.amount) should impact remaining.
+ * - Free transactions (budgetLineId = null) should impact remaining normally.
+ *
+ * IMPORTANT: These tests do NOT mock BudgetFormulas - they test the real
+ * calculation logic in CurrentMonthStore.
+ */
+describe('CurrentMonthStore - Envelope Allocation Logic', () => {
+  let store: CurrentMonthStore;
+  let mockBudgetApi: {
+    getBudgetForMonth$: Mock;
+    getBudgetWithDetails$: Mock;
+    getBudgetById$: Mock;
+  };
+
+  // Helper to create budget lines
+  const createBudgetLine = (
+    id: string,
+    name: string,
+    amount: number,
+    kind: 'income' | 'expense' | 'saving',
+  ): BudgetLine => ({
+    id,
+    budgetId: 'budget-1',
+    templateLineId: `tpl-${id}`,
+    isManuallyAdjusted: false,
+    savingsGoalId: null,
+    name,
+    amount,
+    kind,
+    recurrence: 'fixed',
+    checkedAt: null,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+  });
+
+  // Helper to create transactions
+  const createTransaction = (
+    id: string,
+    name: string,
+    amount: number,
+    kind: 'income' | 'expense' | 'saving',
+    budgetLineId: string | null = null,
+  ): Transaction => ({
+    id,
+    budgetId: 'budget-1',
+    budgetLineId,
+    amount,
+    category: null,
+    name,
+    kind,
+    transactionDate: '2024-01-15T10:00:00Z',
+    createdAt: '2024-01-15T10:00:00Z',
+    updatedAt: '2024-01-15T10:00:00Z',
+    checkedAt: null,
+  });
+
+  const setupStore = (
+    budgetLines: BudgetLine[],
+    transactions: Transaction[],
+  ) => {
+    const budget: Budget = {
+      id: 'budget-1',
+      userId: 'user-1',
+      templateId: 'template-1',
+      month: 1,
+      year: 2024,
+      description: 'January Budget',
+      createdAt: '2024-01-01T00:00:00Z',
+      updatedAt: '2024-01-01T00:00:00Z',
+      endingBalance: 0,
+      rollover: 0,
+    };
+
+    mockBudgetApi = {
+      getBudgetForMonth$: vi.fn().mockReturnValue(of(budget)),
+      getBudgetWithDetails$: vi.fn().mockReturnValue(
+        of({
+          data: {
+            budget,
+            transactions,
+            budgetLines,
+          },
+        }),
+      ),
+      getBudgetById$: vi.fn().mockReturnValue(of(budget)),
+    };
+
+    const mockTransactionApi = {
+      create$: vi.fn(),
+      update$: vi.fn(),
+      remove$: vi.fn(),
+      toggleCheck$: vi.fn(),
+    };
+
+    const mockAppConfig = {
+      backendApiUrl: vi.fn().mockReturnValue('http://localhost:3000/api'),
+    };
+
+    const mockUserSettingsApi = {
+      payDayOfMonth: signal<number | null>(null),
+      isLoading: signal(false),
+    };
+
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        CurrentMonthStore,
+        { provide: BudgetApi, useValue: mockBudgetApi },
+        { provide: TransactionApi, useValue: mockTransactionApi },
+        { provide: ApplicationConfiguration, useValue: mockAppConfig },
+        { provide: UserSettingsApi, useValue: mockUserSettingsApi },
+      ],
+    });
+
+    return TestBed.inject(CurrentMonthStore);
+  };
+
+  describe('Allocated transactions within envelope limits', () => {
+    it('should NOT impact remaining when allocated transaction is within envelope budget', async () => {
+      // Arrange: Income 5000, Envelope expense 500, Allocated transaction 100
+      // Business rule: The 100 CHF transaction is "covered" by the envelope,
+      // so remaining should be: 5000 - 500 = 4500 (NOT 5000 - 500 - 100 = 4400)
+      const budgetLines = [
+        createBudgetLine('income-1', 'Salary', 5000, 'income'),
+        createBudgetLine('envelope-1', 'Groceries', 500, 'expense'),
+      ];
+      const transactions = [
+        createTransaction('tx-1', 'Supermarket', 100, 'expense', 'envelope-1'),
+      ];
+
+      store = setupStore(budgetLines, transactions);
+
+      // Act: Wait for data to load
+      await vi.waitFor(() => {
+        expect(store.dashboardData()).toBeTruthy();
+      });
+
+      // Assert: Remaining should NOT include the allocated transaction
+      // Expected: 5000 (income) - 500 (envelope) = 4500
+      // Bug behavior: 5000 - 500 - 100 = 4400 (incorrectly counts allocated tx)
+      expect(store.remaining()).toBe(4500);
+    });
+
+    it('should NOT impact remaining when multiple allocated transactions stay within envelope', async () => {
+      // Arrange: Envelope 500, three transactions totaling 400 (within limit)
+      const budgetLines = [
+        createBudgetLine('income-1', 'Salary', 5000, 'income'),
+        createBudgetLine('envelope-1', 'Groceries', 500, 'expense'),
+      ];
+      const transactions = [
+        createTransaction('tx-1', 'Shop A', 150, 'expense', 'envelope-1'),
+        createTransaction('tx-2', 'Shop B', 150, 'expense', 'envelope-1'),
+        createTransaction('tx-3', 'Shop C', 100, 'expense', 'envelope-1'),
+      ];
+
+      store = setupStore(budgetLines, transactions);
+
+      await vi.waitFor(() => {
+        expect(store.dashboardData()).toBeTruthy();
+      });
+
+      // Assert: 400 CHF consumed within 500 CHF envelope = no additional impact
+      // Expected: 5000 - 500 = 4500
+      expect(store.remaining()).toBe(4500);
+    });
+  });
+
+  describe('Allocated transactions exceeding envelope limits', () => {
+    it('should impact remaining ONLY by the overage amount', async () => {
+      // Arrange: Envelope 100, Transaction 150 = 50 CHF overage
+      const budgetLines = [
+        createBudgetLine('income-1', 'Salary', 5000, 'income'),
+        createBudgetLine('envelope-1', 'Groceries', 100, 'expense'),
+      ];
+      const transactions = [
+        createTransaction(
+          'tx-1',
+          'Expensive groceries',
+          150,
+          'expense',
+          'envelope-1',
+        ),
+      ];
+
+      store = setupStore(budgetLines, transactions);
+
+      await vi.waitFor(() => {
+        expect(store.dashboardData()).toBeTruthy();
+      });
+
+      // Assert: Only 50 CHF overage should impact remaining
+      // Expected: 5000 - 100 (envelope) - 50 (overage) = 4850
+      // Or with effective amount: 5000 - 150 (max of envelope and consumed) = 4850
+      expect(store.remaining()).toBe(4850);
+    });
+
+    it('should correctly calculate 88 CHF overage (real user scenario)', async () => {
+      // Arrange: Exact scenario from user bug report
+      // Envelope 100 CHF, Transaction 188 CHF = 88 CHF overage
+      const budgetLines = [
+        createBudgetLine('income-1', 'Salary', 1000, 'income'),
+        createBudgetLine('envelope-1', 'Test Envelope', 100, 'expense'),
+      ];
+      const transactions = [
+        createTransaction(
+          'tx-1',
+          'test_feature_dev_1',
+          188,
+          'expense',
+          'envelope-1',
+        ),
+      ];
+
+      store = setupStore(budgetLines, transactions);
+
+      await vi.waitFor(() => {
+        expect(store.dashboardData()).toBeTruthy();
+      });
+
+      // Assert: Remaining = 1000 - 100 - 88 = 812 (or 1000 - 188 = 812)
+      // Bug behavior: 1000 - 100 - 188 = 712 (double counting)
+      expect(store.remaining()).toBe(812);
+    });
+  });
+
+  describe('Mixed free and allocated transactions', () => {
+    it('should count free transactions normally while ignoring allocated within envelope', async () => {
+      // Arrange: Mix of free and allocated transactions
+      const budgetLines = [
+        createBudgetLine('income-1', 'Salary', 5000, 'income'),
+        createBudgetLine('envelope-1', 'Groceries', 500, 'expense'),
+      ];
+      const transactions = [
+        // Allocated within envelope - should NOT impact remaining
+        createTransaction('tx-1', 'Supermarket', 200, 'expense', 'envelope-1'),
+        // Free transaction - SHOULD impact remaining
+        createTransaction('tx-2', 'Restaurant', 50, 'expense', null),
+      ];
+
+      store = setupStore(budgetLines, transactions);
+
+      await vi.waitFor(() => {
+        expect(store.dashboardData()).toBeTruthy();
+      });
+
+      // Assert: Only the free transaction (50 CHF) should reduce remaining
+      // Expected: 5000 - 500 - 50 = 4450
+      // Bug behavior: 5000 - 500 - 200 - 50 = 4250
+      expect(store.remaining()).toBe(4450);
+    });
+
+    it('should count free income transactions as positive impact', async () => {
+      // Arrange: Free income transaction
+      const budgetLines = [
+        createBudgetLine('income-1', 'Salary', 5000, 'income'),
+        createBudgetLine('envelope-1', 'Groceries', 500, 'expense'),
+      ];
+      const transactions = [
+        createTransaction('tx-1', 'Freelance bonus', 100, 'income', null),
+      ];
+
+      store = setupStore(budgetLines, transactions);
+
+      await vi.waitFor(() => {
+        expect(store.dashboardData()).toBeTruthy();
+      });
+
+      // Assert: Free income increases remaining
+      // Expected: 5000 - 500 + 100 = 4600
+      expect(store.remaining()).toBe(4600);
+    });
+  });
+
+  describe('Multiple envelopes with different states', () => {
+    it('should handle multiple envelopes: one within limit, one with overage', async () => {
+      // Arrange: Two envelopes with different consumption states
+      const budgetLines = [
+        createBudgetLine('income-1', 'Salary', 5000, 'income'),
+        createBudgetLine('envelope-1', 'Groceries', 500, 'expense'), // Will stay within
+        createBudgetLine('envelope-2', 'Restaurant', 200, 'expense'), // Will exceed
+      ];
+      const transactions = [
+        // Envelope 1: 300/500 = within limit, no impact
+        createTransaction('tx-1', 'Supermarket', 300, 'expense', 'envelope-1'),
+        // Envelope 2: 350/200 = 150 overage
+        createTransaction('tx-2', 'Fancy dinner', 200, 'expense', 'envelope-2'),
+        createTransaction(
+          'tx-3',
+          'Another dinner',
+          150,
+          'expense',
+          'envelope-2',
+        ),
+      ];
+
+      store = setupStore(budgetLines, transactions);
+
+      await vi.waitFor(() => {
+        expect(store.dashboardData()).toBeTruthy();
+      });
+
+      // Assert: Only the 150 CHF overage from envelope-2 should impact
+      // Expected: 5000 - 500 - 200 - 150 = 4150
+      // Or: 5000 - 500 - 350 (max of 200 and 350) = 4150
+      expect(store.remaining()).toBe(4150);
     });
   });
 });

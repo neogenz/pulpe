@@ -11,17 +11,40 @@ export class CurrentMonthPage {
   async addTransaction(amount: string, description: string) {
     await this.page.getByTestId('add-transaction-fab').click();
     await expect(this.page.getByTestId('transaction-form')).toBeVisible();
-    
+
     await this.page.getByTestId('transaction-amount-input').fill(amount);
-    await this.page.getByTestId('transaction-description-input').fill(description);
+    await this.page
+      .getByTestId('transaction-description-input')
+      .fill(description);
     await this.page.getByTestId('transaction-submit-button').click();
-    
+
     await expect(this.page.getByTestId('transaction-form')).toBeHidden();
   }
 
-
   async expectPageLoaded() {
     await expect(this.page.getByTestId('current-month-page')).toBeVisible();
+  }
+
+  async getRemainingAmount(): Promise<string> {
+    const element = this.page.getByTestId('remaining-amount');
+    await expect(element).toBeVisible();
+    return (await element.textContent()) ?? '';
+  }
+
+  async getExpensesAmount(): Promise<string> {
+    const element = this.page.getByTestId('expenses-amount');
+    await expect(element).toBeVisible();
+    return (await element.textContent()) ?? '';
+  }
+
+  async expectRemainingAmount(expectedAmount: string) {
+    const element = this.page.getByTestId('remaining-amount');
+    await expect(element).toContainText(expectedAmount);
+  }
+
+  async expectExpensesAmount(expectedAmount: string) {
+    const element = this.page.getByTestId('expenses-amount');
+    await expect(element).toContainText(expectedAmount);
   }
 
   /**

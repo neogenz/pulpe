@@ -22,7 +22,7 @@ export class BudgetCalculator {
 
   /**
    * Calculates the ending balance for a specific month
-   * Uses shared BudgetFormulas for consistency
+   * Uses shared BudgetFormulas with envelope-aware expense calculation
    * @param budgetId - The budget ID
    * @param supabase - Authenticated Supabase client
    * @returns The calculated ending balance
@@ -34,16 +34,22 @@ export class BudgetCalculator {
     const { budgetLines, transactions } = await this.repository.fetchBudgetData(
       budgetId,
       supabase,
-      { selectFields: 'kind, amount' },
+      { selectFields: 'id, kind, amount, budget_line_id' },
     );
+
+    // Map snake_case budget_line_id to camelCase budgetLineId for shared calculation
+    const mappedTransactions = transactions.map((tx) => ({
+      ...tx,
+      budgetLineId: tx.budget_line_id,
+    }));
 
     const totalIncome = BudgetFormulas.calculateTotalIncome(
       budgetLines,
       transactions,
     );
-    const totalExpenses = BudgetFormulas.calculateTotalExpenses(
+    const totalExpenses = BudgetFormulas.calculateTotalExpensesWithEnvelopes(
       budgetLines,
-      transactions,
+      mappedTransactions,
     );
 
     return totalIncome - totalExpenses;

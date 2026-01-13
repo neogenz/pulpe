@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, resource, signal } from '@angular/core';
-import { BudgetApi } from '@core/budget';
+import { BudgetApi, calculateAllConsumptions } from '@core/budget';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { TransactionApi } from '@core/transaction';
 import { UserSettingsApi } from '@core/user-settings';
@@ -165,13 +165,38 @@ export class CurrentMonthStore {
   });
 
   /**
-   * Total dépensé (expenses + savings) depuis les budget lines ET transactions
-   * Utilise les formules partagées
+   * Total dépensé (expenses + savings) avec logique d'enveloppe
+   *
+   * Règle métier:
+   * - Les transactions ALLOUÉES sont "couvertes" par leur enveloppe
+   * - Seul le DÉPASSEMENT (consumed > envelope.amount) impacte le budget
+   * - Les transactions LIBRES impactent directement le budget
    */
   readonly totalExpenses = computed<number>(() => {
     const budgetLines = this.budgetLines();
     const transactions = this.transactions();
-    return BudgetFormulas.calculateTotalExpenses(budgetLines, transactions);
+    const consumptionMap = calculateAllConsumptions(budgetLines, transactions);
+
+    let total = 0;
+
+    budgetLines.forEach((line) => {
+      if (line.kind === 'expense' || line.kind === 'saving') {
+        const consumption = consumptionMap.get(line.id);
+        const effectiveAmount = consumption
+          ? Math.max(line.amount, consumption.consumed)
+          : line.amount;
+        total += effectiveAmount;
+      }
+    });
+
+    const freeTransactions = transactions.filter((tx) => !tx.budgetLineId);
+    freeTransactions.forEach((tx) => {
+      if (tx.kind === 'expense' || tx.kind === 'saving') {
+        total += tx.amount;
+      }
+    });
+
+    return total;
   });
 
   /**

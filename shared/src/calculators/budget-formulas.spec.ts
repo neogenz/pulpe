@@ -619,4 +619,258 @@ describe('BudgetFormulas', () => {
       expect(BudgetFormulas.validateMetricsCoherence(metrics)).toBe(true);
     });
   });
+
+  describe('calculateTotalExpensesWithEnvelopes', () => {
+    function createBudgetLine(
+      id: string,
+      kind: TransactionKind,
+      amount: number,
+    ) {
+      return { id, kind, amount };
+    }
+
+    function createTransaction(
+      kind: TransactionKind,
+      amount: number,
+      budgetLineId?: string | null,
+    ) {
+      return { kind, amount, budgetLineId };
+    }
+
+    describe('Envelope allocation business rules', () => {
+      describe('when transaction is allocated within its envelope', () => {
+        it('should only count the envelope amount in total expenses', () => {
+          const budgetLines = [createBudgetLine('line-1', 'expense', 500)];
+          const transactions = [createTransaction('expense', 100, 'line-1')];
+
+          const result = BudgetFormulas.calculateTotalExpensesWithEnvelopes(
+            budgetLines,
+            transactions,
+          );
+
+          // Envelope is 500, consumed is 100 -> max(500, 100) = 500
+          expect(result).toBe(500);
+        });
+
+        it('should not double-count the transaction amount', () => {
+          // Without envelope logic: 500 (line) + 100 (tx) = 600 (WRONG)
+          // With envelope logic: max(500, 100) = 500 (CORRECT)
+          const budgetLines = [createBudgetLine('line-1', 'expense', 500)];
+          const transactions = [createTransaction('expense', 100, 'line-1')];
+
+          const naiveResult = BudgetFormulas.calculateTotalExpenses(
+            budgetLines,
+            transactions,
+          );
+          const envelopeResult =
+            BudgetFormulas.calculateTotalExpensesWithEnvelopes(
+              budgetLines,
+              transactions,
+            );
+
+          expect(naiveResult).toBe(600); // Naive double-counts
+          expect(envelopeResult).toBe(500); // Envelope-aware is correct
+        });
+      });
+
+      describe('when transaction exceeds its envelope', () => {
+        it('should count the actual consumed amount (overage)', () => {
+          const budgetLines = [createBudgetLine('line-1', 'expense', 100)];
+          const transactions = [createTransaction('expense', 150, 'line-1')];
+
+          const result = BudgetFormulas.calculateTotalExpensesWithEnvelopes(
+            budgetLines,
+            transactions,
+          );
+
+          // Envelope is 100, consumed is 150 -> max(100, 150) = 150
+          expect(result).toBe(150);
+        });
+
+        it('should calculate overage from user scenario (188/100)', () => {
+          const budgetLines = [createBudgetLine('line-1', 'expense', 100)];
+          const transactions = [createTransaction('expense', 188, 'line-1')];
+
+          const result = BudgetFormulas.calculateTotalExpensesWithEnvelopes(
+            budgetLines,
+            transactions,
+          );
+
+          // Envelope is 100, consumed is 188 -> max(100, 188) = 188
+          expect(result).toBe(188);
+        });
+      });
+
+      describe('when transaction has no envelope allocation (free)', () => {
+        it('should count the full transaction amount directly', () => {
+          const budgetLines: ReturnType<typeof createBudgetLine>[] = [];
+          const transactions = [createTransaction('expense', 50, null)];
+
+          const result = BudgetFormulas.calculateTotalExpensesWithEnvelopes(
+            budgetLines,
+            transactions,
+          );
+
+          expect(result).toBe(50);
+        });
+
+        it('should add free transactions to envelope totals', () => {
+          const budgetLines = [createBudgetLine('line-1', 'expense', 500)];
+          const transactions = [
+            createTransaction('expense', 100, 'line-1'),
+            createTransaction('expense', 75, null), // Free transaction
+          ];
+
+          const result = BudgetFormulas.calculateTotalExpensesWithEnvelopes(
+            budgetLines,
+            transactions,
+          );
+
+          // Envelope: max(500, 100) = 500
+          // Free: 75
+          // Total: 500 + 75 = 575
+          expect(result).toBe(575);
+        });
+      });
+
+      describe('when multiple transactions are allocated to same envelope', () => {
+        it('should sum transactions and compare to envelope once', () => {
+          const budgetLines = [createBudgetLine('line-1', 'expense', 500)];
+          const transactions = [
+            createTransaction('expense', 200, 'line-1'),
+            createTransaction('expense', 150, 'line-1'),
+          ];
+
+          const result = BudgetFormulas.calculateTotalExpensesWithEnvelopes(
+            budgetLines,
+            transactions,
+          );
+
+          // Envelope is 500, consumed is 200 + 150 = 350 -> max(500, 350) = 500
+          expect(result).toBe(500);
+        });
+
+        it('should handle multiple transactions exceeding envelope', () => {
+          const budgetLines = [createBudgetLine('line-1', 'expense', 300)];
+          const transactions = [
+            createTransaction('expense', 200, 'line-1'),
+            createTransaction('expense', 250, 'line-1'),
+          ];
+
+          const result = BudgetFormulas.calculateTotalExpensesWithEnvelopes(
+            budgetLines,
+            transactions,
+          );
+
+          // Envelope is 300, consumed is 200 + 250 = 450 -> max(300, 450) = 450
+          expect(result).toBe(450);
+        });
+      });
+
+      describe('with mixed envelope and free transactions', () => {
+        it('should apply envelope rules to allocated and direct impact for free', () => {
+          const budgetLines = [
+            createBudgetLine('line-1', 'expense', 500), // Within envelope
+            createBudgetLine('line-2', 'expense', 100), // Exceeded
+          ];
+          const transactions = [
+            createTransaction('expense', 200, 'line-1'), // Allocated within envelope
+            createTransaction('expense', 188, 'line-2'), // Allocated exceeds envelope
+            createTransaction('expense', 50, null), // Free transaction
+          ];
+
+          const result = BudgetFormulas.calculateTotalExpensesWithEnvelopes(
+            budgetLines,
+            transactions,
+          );
+
+          // line-1: max(500, 200) = 500
+          // line-2: max(100, 188) = 188
+          // free: 50
+          // Total: 500 + 188 + 50 = 738
+          expect(result).toBe(738);
+        });
+      });
+
+      describe('with savings (treated as expense)', () => {
+        it('should apply envelope logic to savings budget lines', () => {
+          const budgetLines = [createBudgetLine('line-1', 'saving', 500)];
+          const transactions = [createTransaction('saving', 100, 'line-1')];
+
+          const result = BudgetFormulas.calculateTotalExpensesWithEnvelopes(
+            budgetLines,
+            transactions,
+          );
+
+          expect(result).toBe(500);
+        });
+      });
+
+      describe('with income transactions', () => {
+        it('should not count free income transactions', () => {
+          const budgetLines = [createBudgetLine('line-1', 'expense', 500)];
+          const transactions = [
+            createTransaction('expense', 100, 'line-1'),
+            createTransaction('income', 300, null), // Free income - should be ignored
+          ];
+
+          const result = BudgetFormulas.calculateTotalExpensesWithEnvelopes(
+            budgetLines,
+            transactions,
+          );
+
+          expect(result).toBe(500);
+        });
+      });
+
+      describe('edge cases', () => {
+        it('should return 0 for empty arrays', () => {
+          expect(
+            BudgetFormulas.calculateTotalExpensesWithEnvelopes([], []),
+          ).toBe(0);
+        });
+
+        it('should handle budget lines with no transactions', () => {
+          const budgetLines = [
+            createBudgetLine('line-1', 'expense', 500),
+            createBudgetLine('line-2', 'expense', 300),
+          ];
+
+          const result = BudgetFormulas.calculateTotalExpensesWithEnvelopes(
+            budgetLines,
+            [],
+          );
+
+          expect(result).toBe(800);
+        });
+
+        it('should skip rollover budget lines', () => {
+          const budgetLines = [
+            createBudgetLine('line-1', 'expense', 500),
+            createBudgetLine('rollover-previous', 'expense', 100), // Virtual line
+          ];
+
+          const result = BudgetFormulas.calculateTotalExpensesWithEnvelopes(
+            budgetLines,
+            [],
+          );
+
+          expect(result).toBe(500);
+        });
+
+        it('should handle transactions without budgetLineId field', () => {
+          const budgetLines = [createBudgetLine('line-1', 'expense', 500)];
+          const transactions = [{ kind: 'expense' as const, amount: 50 }]; // No budgetLineId field
+
+          const result = BudgetFormulas.calculateTotalExpensesWithEnvelopes(
+            budgetLines,
+            transactions,
+          );
+
+          // Budget line: 500, free transaction: 50 -> 550
+          expect(result).toBe(550);
+        });
+      });
+    });
+  });
 });
