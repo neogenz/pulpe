@@ -5,6 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
   selector: 'pulpe-error-alert',
   imports: [MatIconModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { class: 'block' },
   template: `
     @if (message()) {
       <div
