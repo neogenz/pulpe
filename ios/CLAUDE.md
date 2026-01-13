@@ -89,3 +89,17 @@ amount.asCompactCHF // "CHF 1'235" (whole numbers only)
 | Release | Production Railway URL         |
 
 Backend must be running for the app to work (no offline mode).
+
+## CI/CD
+
+Build is validated on every PR that modifies `ios/`.
+
+```bash
+# Local command equivalent to CI build
+xcodegen generate && xcodebuild build -scheme Pulpe -destination 'platform=iOS Simulator,name=iPhone 15' CODE_SIGNING_ALLOWED=NO
+```
+
+| Phase | Status | Description |
+| ----- | ------ | ----------- |
+| Build validation | Active | Compiles on every PR |
+| TestFlight | Planned | After Apple Developer Program |
