@@ -69,7 +69,15 @@ function passwordsMatchValidator(
       <div
         class="w-full max-w-md bg-surface rounded-2xl p-8 flex flex-col shadow-lg"
       >
-        <div class="text-center mb-8">
+        <a
+          [routerLink]="['/', ROUTES.WELCOME]"
+          class="flex items-center gap-1 text-body-medium text-on-surface-variant hover:text-primary self-start"
+        >
+          <mat-icon class="text-lg">arrow_back</mat-icon>
+          <span>Retour à l'accueil</span>
+        </a>
+
+        <div class="text-center mb-8 mt-4">
           <h1 class="text-headline-large text-on-surface mb-2">
             Créer un compte
           </h1>
