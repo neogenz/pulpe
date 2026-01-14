@@ -4,6 +4,7 @@ import { BudgetService } from './budget.service';
 import { BudgetCalculator } from './budget.calculator';
 import { BudgetValidator } from './budget.validator';
 import { BudgetRepository } from './budget.repository';
+import { createInfoLoggerProvider } from '@common/logger';
 
 @Module({
   controllers: [BudgetController],
@@ -12,6 +13,7 @@ import { BudgetRepository } from './budget.repository';
     BudgetCalculator,
     BudgetValidator,
     BudgetRepository,
+    createInfoLoggerProvider(BudgetService.name),
   ],
   exports: [BudgetService, BudgetCalculator],
 })

@@ -1,10 +1,10 @@
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import { Injectable } from '@nestjs/common';
-import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { handleServiceError } from '@common/utils/error-handler';
+import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import { ZodError } from 'zod';
 import { validateCreateBudgetResponse } from './schemas/rpc-responses.schema';
 import {
@@ -41,8 +41,8 @@ interface BudgetDetailsData {
 @Injectable()
 export class BudgetService {
   constructor(
-    @InjectPinoLogger(BudgetService.name)
-    private readonly logger: PinoLogger,
+    @InjectInfoLogger(BudgetService.name)
+    private readonly logger: InfoLogger,
     private readonly calculator: BudgetCalculator,
     private readonly validator: BudgetValidator,
     private readonly repository: BudgetRepository,
@@ -628,16 +628,7 @@ export class BudgetService {
     userId: string,
     templateId: string,
   ): never {
-    this.logger.error(
-      {
-        err: error,
-        userId,
-        templateId,
-        operation: 'create_budget_from_template_rpc',
-      },
-      'Supabase RPC failed at database level',
-    );
-
+    // Pattern "Log or Throw" - GlobalExceptionFilter handles logging
     const businessException = this.mapPostgreSQLErrorToBusinessException(
       error,
       userId,
@@ -753,17 +744,7 @@ export class BudgetService {
       };
     } catch (error) {
       if (error instanceof ZodError) {
-        this.logger.error(
-          {
-            userId,
-            templateId,
-            result,
-            validationErrors: error.issues,
-            operation: 'processBudgetCreationResult.validation',
-          },
-          'RPC response validation failed',
-        );
-
+        // Pattern "Log or Throw" - GlobalExceptionFilter handles logging
         throw new BusinessException(
           ERROR_DEFINITIONS.BUDGET_CREATE_FAILED,
           { reason: 'Invalid result structure from RPC' },
@@ -773,6 +754,7 @@ export class BudgetService {
             validationErrors: error.issues,
             operation: 'processBudgetCreationResult',
           },
+          { cause: error },
         );
       }
       throw error;
@@ -803,7 +785,7 @@ export class BudgetService {
               budgetId: budget.id,
               month: budget.month,
               year: budget.year,
-              error: error instanceof Error ? error.message : String(error),
+              err: error, // Pino extracts message, stack automatically
               operation: 'enrichBudgetsWithRemaining',
             },
             'Failed to calculate remaining for budget, using fallback',
@@ -841,10 +823,10 @@ export class BudgetService {
       this.logger.warn(
         {
           budgetId: budget.id,
-          error: error instanceof Error ? error.message : String(error),
+          err: error, // Pino extracts message, stack automatically
           operation: 'calculateRemainingForBudget.fallback',
         },
-        'Échec du calcul dynamique, utilisation de ending_balance stocké',
+        'Failed to calculate dynamic remaining, using stored ending_balance',
       );
 
       const rolloverData = await this.calculator.getRollover(
