@@ -5,6 +5,7 @@ import { Logger } from '@core/logging/logger';
 import { PostHogService } from '@core/analytics/posthog';
 import { UserSettingsApi } from '@core/user-settings';
 import { AuthApi } from '@core/auth/auth-api';
+import { HasBudgetState } from '@core/auth/has-budget-state';
 import { firstValueFrom } from 'rxjs';
 
 interface CompleteProfileState {
@@ -43,6 +44,7 @@ export class CompleteProfileStore {
   readonly #budgetApi = inject(BudgetApi);
   readonly #userSettingsApi = inject(UserSettingsApi);
   readonly #authApi = inject(AuthApi);
+  readonly #hasBudgetState = inject(HasBudgetState);
   readonly #logger = inject(Logger);
   readonly #postHogService = inject(PostHogService);
 
@@ -203,6 +205,9 @@ export class CompleteProfileStore {
           });
         }
       }
+
+      // Update cache so hasBudgetGuard doesn't re-fetch on navigation
+      this.#hasBudgetState.setHasBudget();
 
       this.#postHogService.captureEvent('first_budget_created', {
         signup_method: this.#determineSignupMethod(),
