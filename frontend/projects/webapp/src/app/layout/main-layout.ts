@@ -18,7 +18,10 @@ import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import {
+  NavigationCancel,
   NavigationEnd,
+  NavigationError,
+  NavigationStart,
   Router,
   RouterLink,
   RouterLinkActive,
@@ -163,12 +166,12 @@ interface NavigationItem {
           [class.p-2]="!isHandset()"
           [class.rounded-xl]="!isHandset()"
         >
-          @if (loadingIndicator.isLoading()) {
+          @if (loadingIndicator.isLoading() || isNavigating()) {
             <div class="absolute top-0 left-0 right-0">
               <mat-progress-bar
                 mode="indeterminate"
-                aria-label="Mise à jour en cours"
-                data-testid="budget-list-refresh-progress"
+                aria-label="Chargement en cours"
+                data-testid="loading-progress"
               />
             </div>
           }
@@ -449,6 +452,21 @@ export default class MainLayout {
         return top > 0;
       }),
       startWith(false),
+    ),
+    { initialValue: false },
+  );
+
+  // Navigation state for progress bar feedback
+  protected readonly isNavigating = toSignal(
+    this.#router.events.pipe(
+      filter(
+        (e) =>
+          e instanceof NavigationStart ||
+          e instanceof NavigationEnd ||
+          e instanceof NavigationCancel ||
+          e instanceof NavigationError,
+      ),
+      map((e) => e instanceof NavigationStart),
     ),
     { initialValue: false },
   );

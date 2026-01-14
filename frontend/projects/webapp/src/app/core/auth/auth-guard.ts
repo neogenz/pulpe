@@ -10,22 +10,28 @@ import { AuthApi } from './auth-api';
  *
  * This guard is intended for private pages that require a logged-in user.
  * If the user is not authenticated, it redirects them to the welcome page.
- * It reactively waits for the authentication state to be resolved before making a decision.
+ *
+ * Optimized for zoneless: reads signal synchronously when auth state is already resolved,
+ * only falls back to async observable for initial load (refresh, direct URL access).
  */
 export const authGuard: CanActivateFn = () => {
   const authApi = inject(AuthApi);
   const router = inject(Router);
 
-  // Reactive approach: wait for auth state to be determined
+  // SYNC: If auth is already resolved, return immediately (intra-app navigation)
+  const currentState = authApi.authState();
+  if (!currentState.isLoading) {
+    return currentState.isAuthenticated
+      ? true
+      : router.createUrlTree([ROUTES.WELCOME]);
+  }
+
+  // ASYNC: Only for initial load when auth state is still loading
   return toObservable(authApi.authState).pipe(
-    filter((state) => !state.isLoading), // Wait until loading is complete
-    take(1), // Take only the first non-loading state
-    map((state) => {
-      if (state.isAuthenticated) {
-        return true; // Allow navigation
-      }
-      // Redirect to welcome for unauthenticated users
-      return router.createUrlTree([ROUTES.WELCOME]);
-    }),
+    filter((state) => !state.isLoading),
+    take(1),
+    map((state) =>
+      state.isAuthenticated ? true : router.createUrlTree([ROUTES.WELCOME]),
+    ),
   );
 };
