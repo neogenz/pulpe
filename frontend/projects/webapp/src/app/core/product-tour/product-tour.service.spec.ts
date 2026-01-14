@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ProductTourService, type TourPageId } from './product-tour.service';
@@ -47,6 +47,7 @@ describe('ProductTourService', () => {
 
   afterEach(() => {
     localStorage.clear();
+    vi.restoreAllMocks();
   });
 
   describe('hasSeenIntro', () => {
@@ -102,7 +103,6 @@ describe('ProductTourService', () => {
         localStorage.setItem(getTourKey(tourId), 'true');
       });
 
-      // Verify setup
       expect(service.hasSeenIntro()).toBe(true);
       expect(service.hasSeenPageTour('current-month')).toBe(true);
 
