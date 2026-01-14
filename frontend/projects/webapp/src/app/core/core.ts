@@ -97,7 +97,11 @@ export function provideCore({ routes }: CoreOptions) {
 
     provideRouter(
       routes,
-      withRouterConfig({ onSameUrlNavigation: 'reload' }),
+      withRouterConfig({
+        onSameUrlNavigation: 'reload',
+        urlUpdateStrategy: 'eager',
+        canceledNavigationResolution: 'computed',
+      }),
       withComponentInputBinding(),
       withInMemoryScrolling({
         anchorScrolling: 'enabled',
