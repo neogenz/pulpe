@@ -39,64 +39,162 @@ LoggerModule.forRootAsync({
 
 ## 🏗️ **Utilisation dans les Services**
 
-### **Pattern Standard**
+### **Architecture Split Logger**
+
+Le système utilise deux types de loggers :
+
+| Type | Usage | Méthodes disponibles |
+|------|-------|---------------------|
+| **InfoLogger** | Services métier | `info`, `debug`, `warn`, `trace` |
+| **ErrorLogger** | GlobalExceptionFilter uniquement | `error`, `fatal` |
+
+**Principe fondamental** : Les services ne peuvent PAS utiliser `logger.error()`. Ceci est garanti au compile-time par TypeScript.
+
+### **Pattern Standard (InfoLogger)**
 
 ```typescript
-import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
+import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 
 @Injectable()
 export class MyService {
   constructor(
-    @InjectPinoLogger(MyService.name)
-    private readonly logger: PinoLogger,
+    @InjectInfoLogger(MyService.name)
+    private readonly logger: InfoLogger, // ← Pas de méthode error !
   ) {}
 
   async businessMethod(user: User, data: SomeData) {
     const startTime = Date.now();
 
-    try {
-      // Business logic...
+    // Business logic...
+    const result = await this.repository.create(data);
 
-      // ✅ Success logging with metrics
-      this.logger.info(
-        {
-          operation: 'business_method',
-          userId: user.id,
-          entityId: result.id,
-          duration: Date.now() - startTime,
-        },
-        'Business operation completed successfully',
-      );
+    // ✅ Success logging with metrics
+    this.logger.info(
+      {
+        operation: 'business_method',
+        userId: user.id,
+        entityId: result.id,
+        duration: Date.now() - startTime,
+      },
+      'Business operation completed successfully',
+    );
 
-      return result;
-    } catch (error) {
-      // ✅ Error logging with context
-      this.logger.error(
-        {
-          operation: 'business_method',
-          userId: user.id,
-          err: error, // Pino automatically handles Error objects
-          duration: Date.now() - startTime,
-        },
-        'Business operation failed',
-      );
-      throw error;
-    }
+    return result;
   }
 }
 ```
 
 ### **Injection par Token**
 
-L'injection utilise des tokens spécifiques : `PinoLogger:ServiceName`
+L'injection utilise des tokens spécifiques :
+
+| Logger | Token | Usage |
+|--------|-------|-------|
+| **InfoLogger** | `INFO_LOGGER:ServiceName` | Services métier |
+| **PinoLogger** | `PinoLogger:ServiceName` | Legacy, GlobalExceptionFilter |
 
 **Tests** : Utiliser le token correct dans les mocks :
 
 ```typescript
+import { INFO_LOGGER_TOKEN } from '@common/logger';
+
+// Pour InfoLogger (services migrés)
+{
+  provide: `${INFO_LOGGER_TOKEN}:${MyService.name}`,
+  useValue: mockLogger,
+}
+
+// Pour PinoLogger (legacy)
 {
   provide: `PinoLogger:${MyService.name}`,
   useValue: mockPinoLogger,
 }
+```
+
+## 🚫 **Anti-Patterns : Log or Throw, Never Both**
+
+### **Principe Fondamental**
+
+> **Log OR Throw, Never Both**
+
+Les services métier **NE DOIVENT JAMAIS** logger une erreur puis la throw. Le logging des erreurs est la responsabilité **exclusive** du `GlobalExceptionFilter`.
+
+### **❌ Anti-Pattern : Double Logging**
+
+```typescript
+// ❌ MAUVAIS : Log + Throw = logs dupliqués !
+async create(dto: TransactionCreate) {
+  try {
+    return await this.repository.insert(dto);
+  } catch (error) {
+    this.logger.error({ err: error }, 'Failed to create');  // ❌ Log
+    throw new BusinessException(                            // ❌ Et throw
+      ERROR_DEFINITIONS.CREATE_FAILED,
+      undefined,
+      { operation: 'create' },
+      { cause: error },
+    );
+  }
+}
+```
+
+### **✅ Pattern Correct : Throw avec contexte**
+
+```typescript
+// ✅ BON : Throw uniquement, le filtre log !
+async create(dto: TransactionCreate) {
+  try {
+    return await this.repository.insert(dto);
+  } catch (error) {
+    throw new BusinessException(
+      ERROR_DEFINITIONS.CREATE_FAILED,
+      undefined,
+      { operation: 'create', userId: dto.userId },  // Contexte pour le log
+      { cause: error },                              // Cause chain préservée
+    );
+  }
+}
+```
+
+### **Garanties TypeScript**
+
+Le type `InfoLogger` n'expose PAS la méthode `error` :
+
+```typescript
+export type InfoLogger = Pick<PinoLogger, 'info' | 'debug' | 'warn' | 'trace'>;
+
+// Dans un service avec InfoLogger :
+this.logger.error({ err }, 'msg');  // ❌ Erreur TypeScript !
+//         ~~~~~ Property 'error' does not exist on type 'InfoLogger'
+```
+
+### **Cas d'Usage pour warn**
+
+`logger.warn()` est approprié pour les situations **non-bloquantes** :
+
+```typescript
+// ✅ Warning pour situation anormale mais gérée
+if (!this.config.externalApiKey) {
+  this.logger.warn({}, 'External API key not configured, using fallback');
+}
+
+// ✅ Warning pour dégradation gracieuse
+this.logger.warn(
+  { err: networkError },  // err: pour la stack trace
+  'External service unreachable, returning cached data',
+);
+```
+
+### **Le champ `err` pour les objets Error**
+
+Pino sérialise automatiquement les erreurs via le champ `err` :
+
+```typescript
+// ✅ BON : Pino extraira message, stack, name automatiquement
+this.logger.warn({ err: error }, 'Connection failed');
+
+// ❌ MAUVAIS : Perd la stack trace
+this.logger.warn({ error: error.message }, 'Connection failed');
 ```
 
 ## 📊 **Standards de Logging**
@@ -208,7 +306,27 @@ autoLogging: {
 
 ## 🧪 **Testing**
 
-### **Mocks dans les Tests**
+### **Mocks pour InfoLogger**
+
+```typescript
+import { INFO_LOGGER_TOKEN } from '@common/logger';
+
+// Mock InfoLogger (sans error/fatal)
+const mockInfoLogger = {
+  info: jest.fn(),
+  debug: jest.fn(),
+  warn: jest.fn(),
+  trace: jest.fn(),
+};
+
+// Dans le TestingModule
+{
+  provide: `${INFO_LOGGER_TOKEN}:${MyService.name}`,
+  useValue: mockInfoLogger,
+}
+```
+
+### **Mocks pour PinoLogger (legacy)**
 
 ```typescript
 const mockPinoLogger = {
@@ -230,14 +348,18 @@ const mockPinoLogger = {
 ### **Vérification des Logs**
 
 ```typescript
-expect(mockPinoLogger.error).toHaveBeenCalledWith(
+// Vérifier qu'un log info a été émis
+expect(mockInfoLogger.info).toHaveBeenCalledWith(
   expect.objectContaining({
     operation: 'expected_operation',
     userId: 'expected-user-id',
-    err: expect.any(Error),
   }),
-  'Expected error message',
+  'Expected success message',
 );
+
+// Vérifier que AUCUN error log n'a été émis (pattern Log or Throw)
+// Note: Si le mock inclut `error` pour vérification
+expect(mockLogger.error).not.toHaveBeenCalled();
 ```
 
 ## 📈 **Monitoring et Observabilité**
@@ -289,56 +411,114 @@ Logs JSON natifs évitent le parsing côté monitoring.
 
 ## 📋 **Exemples Concrets**
 
-### **Service Business**
+### **Service Business (avec InfoLogger)**
 
 ```typescript
-// Transaction creation avec audit complet
-this.logger.info(
-  {
-    operation: 'create_transaction',
-    userId: user.id,
-    budgetId: dto.budgetId,
-    transactionType: dto.type,
-    amount: dto.amount,
-    duration: Date.now() - startTime,
-  },
-  'Transaction created successfully',
-);
+import { type InfoLogger, InjectInfoLogger } from '@common/logger';
+
+@Injectable()
+export class TransactionService {
+  constructor(
+    @InjectInfoLogger(TransactionService.name)
+    private readonly logger: InfoLogger,
+  ) {}
+
+  async create(dto: TransactionCreate, user: User) {
+    const startTime = Date.now();
+
+    try {
+      const result = await this.repository.insert(dto);
+
+      // ✅ Log success avec métriques
+      this.logger.info(
+        {
+          operation: 'create_transaction',
+          userId: user.id,
+          budgetId: dto.budgetId,
+          transactionType: dto.type,
+          amount: dto.amount,
+          duration: Date.now() - startTime,
+        },
+        'Transaction created successfully',
+      );
+
+      return result;
+    } catch (error) {
+      // ✅ Throw avec contexte complet, PAS de log error
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TRANSACTION_CREATE_FAILED,
+        undefined,
+        { operation: 'create_transaction', userId: user.id },
+        { cause: error },
+      );
+    }
+  }
+}
 ```
 
-### **Exception Filter**
+### **GlobalExceptionFilter (seul à utiliser error)**
 
 ```typescript
-// Erreur globale avec contexte de requête
-this.logger.error(
-  {
-    operation: 'handle_exception',
-    requestId: context.requestId,
-    userId: context.userId,
-    method: request.method,
-    url: request.url,
-    statusCode: errorData.status,
-    err: errorData.originalError,
-  },
-  'Server error occurred',
-);
+// GlobalExceptionFilter - SEUL autorisé à utiliser logger.error()
+@Catch()
+export class GlobalExceptionFilter {
+  constructor(private readonly logger: PinoLogger) {}
+
+  catch(exception: unknown, host: ArgumentsHost) {
+    // ... extraction des données
+
+    if (statusCode >= 500) {
+      this.logger.error(
+        {
+          operation: 'handle_exception',
+          requestId: context.requestId,
+          ...serviceContext,  // Contexte mergé depuis BusinessException
+          err: rootCause,     // Stack trace complète
+          causeChain,         // Chaîne des causes
+        },
+        'SERVER ERROR: Internal server error',
+      );
+    } else {
+      this.logger.warn(
+        { ... },
+        'CLIENT ERROR: Resource not found',
+      );
+    }
+  }
+}
 ```
 
-### **Guard Authentication**
+### **Guard/Service avec dégradation gracieuse**
 
 ```typescript
-// Échec d'authentification
+// ✅ warn approprié pour situation non-bloquante
 this.logger.warn(
   {
     operation: 'authenticate_user',
     requestId: req.headers['x-request-id'],
     ip: req.ip,
-    userAgent: req.headers['user-agent'],
+    err: networkError,  // Stack trace préservée avec err:
   },
-  'Authentication failed - invalid token',
+  'External auth service unreachable, using cached session',
 );
+```
+
+## 📦 **Module Configuration**
+
+### **Ajouter InfoLogger à un Module**
+
+```typescript
+import { createInfoLoggerProvider } from '@common/logger';
+
+@Module({
+  providers: [
+    MyService,
+    createInfoLoggerProvider(MyService.name),  // ← Ajouter le provider
+  ],
+})
+export class MyModule {}
 ```
 
 ---
 
-**💡 Ce système offre une observabilité complète avec des performances optimales et une sécurité renforcée.**
+**💡 Ce système garantit un logging centralisé, sans duplication, avec validation au compile-time grâce au pattern Split Logger.**

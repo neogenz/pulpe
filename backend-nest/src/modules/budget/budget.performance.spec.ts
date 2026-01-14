@@ -75,7 +75,7 @@ describe('BudgetService (Performance)', () => {
       providers: [
         BudgetService,
         {
-          provide: `PinoLogger:${BudgetService.name}`,
+          provide: `INFO_LOGGER:${BudgetService.name}`,
           useValue: mockPinoLogger,
         },
         {

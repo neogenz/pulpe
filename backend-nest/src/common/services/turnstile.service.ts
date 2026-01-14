@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { isProductionLike } from '@config/environment';
+import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 
 interface TurnstileVerifyResponse {
   success: boolean;
@@ -17,11 +18,14 @@ interface TurnstileVerifyResponse {
  */
 @Injectable()
 export class TurnstileService {
-  private readonly logger = new Logger(TurnstileService.name);
   private readonly secretKey: string;
   private readonly skipVerification: boolean;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    @InjectInfoLogger(TurnstileService.name)
+    private readonly logger: InfoLogger,
+    private readonly configService: ConfigService,
+  ) {
     this.secretKey = this.configService.get<string>('TURNSTILE_SECRET_KEY', '');
     const nodeEnv = this.configService.get('NODE_ENV');
 
@@ -29,9 +33,7 @@ export class TurnstileService {
     this.skipVerification = !isProductionLike(nodeEnv);
 
     if (this.skipVerification) {
-      this.logger.debug(
-        `Turnstile verification disabled (NODE_ENV=${nodeEnv})`,
-      );
+      this.logger.debug({ nodeEnv }, 'Turnstile verification disabled');
     }
   }
 
@@ -49,12 +51,15 @@ export class TurnstileService {
     }
 
     if (!token) {
-      this.logger.log('Empty Turnstile token accepted (rate-limited endpoint)');
+      this.logger.info(
+        {},
+        'Empty Turnstile token accepted (rate-limited endpoint)',
+      );
       return true;
     }
 
     if (!this.secretKey) {
-      this.logger.error('TURNSTILE_SECRET_KEY not configured');
+      this.logger.warn({}, 'TURNSTILE_SECRET_KEY not configured');
       return false;
     }
 
@@ -82,18 +87,20 @@ export class TurnstileService {
       const data = (await response.json()) as TurnstileVerifyResponse;
 
       if (data.success) {
-        this.logger.log('Turnstile verification successful', {
-          hostname: data.hostname,
-        });
+        this.logger.info(
+          { hostname: data.hostname },
+          'Turnstile verification successful',
+        );
         return true;
       }
 
-      this.logger.warn('Turnstile verification failed', {
-        errorCodes: data['error-codes'],
-      });
+      this.logger.warn(
+        { errorCodes: data['error-codes'] },
+        'Turnstile verification failed',
+      );
       return false;
     } catch (error) {
-      this.logger.error('Turnstile verification error', { error });
+      this.logger.warn({ err: error }, 'Turnstile verification error');
       return false;
     }
   }

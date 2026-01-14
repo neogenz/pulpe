@@ -12,6 +12,7 @@ import {
   MockSupabaseClient,
 } from '../../../test/test-mocks';
 import { getLoggerToken } from 'nestjs-pino';
+import { INFO_LOGGER_TOKEN } from '@common/logger';
 
 describe('Rollover with payDayOfMonth', () => {
   let service: BudgetService;
@@ -58,7 +59,7 @@ describe('Rollover with payDayOfMonth', () => {
           },
         },
         {
-          provide: getLoggerToken(BudgetService.name),
+          provide: `${INFO_LOGGER_TOKEN}:${BudgetService.name}`,
           useValue: mockPinoLogger,
         },
       ],

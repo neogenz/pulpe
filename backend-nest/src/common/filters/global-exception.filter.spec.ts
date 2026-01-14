@@ -1,9 +1,9 @@
 import { ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
-import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, it, spyOn } from 'bun:test';
 import { Request, Response } from 'express';
 import { ZodValidationException } from 'nestjs-zod';
 import { ZodError } from 'zod';
-// Remove testErrorSilencer import - not needed with simplified tests
+import type { PinoLogger } from 'nestjs-pino';
 import { GlobalExceptionFilter } from './global-exception.filter';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
@@ -1063,6 +1063,219 @@ describe('GlobalExceptionFilter', () => {
 
       const sanitized = (filter as any).sanitizeContext(context);
       expect(sanitized).toBeDefined();
+    });
+  });
+
+  describe('Single Logging Guarantee', () => {
+    it('should log BusinessException exactly once with merged service context', () => {
+      const spiedLogger = {
+        error: () => {},
+        warn: () => {},
+        info: () => {},
+        debug: () => {},
+        trace: () => {},
+        fatal: () => {},
+      } as unknown as PinoLogger;
+
+      const errorSpy = spyOn(spiedLogger, 'error');
+      const warnSpy = spyOn(spiedLogger, 'warn');
+
+      const spiedFilter = new GlobalExceptionFilter(spiedLogger);
+
+      const exception = new BusinessException(
+        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+        { id: 'tx-123' },
+        {
+          operation: 'insertTransaction',
+          userId: 'user-1',
+          supabaseErrorCode: 'PGRST301',
+        },
+        { cause: new Error('Connection refused') },
+      );
+
+      const request = createMockRequest();
+      const response = createMockResponse();
+      const host = createMockArgumentsHost(request, response);
+
+      spiedFilter.catch(exception, host);
+
+      // CRITICAL: logger.error should be called exactly once
+      expect(errorSpy).toHaveBeenCalledTimes(1);
+      expect(warnSpy).not.toHaveBeenCalled();
+
+      // Verify merged context from service
+      const logCall = errorSpy.mock.calls[0] as unknown[];
+      const logContext = logCall[0] as Record<string, unknown>;
+
+      expect(logContext).toMatchObject({
+        operation: 'insertTransaction',
+        userId: 'user-1',
+        supabaseErrorCode: 'PGRST301',
+      });
+
+      // Verify cause chain is included
+      expect(logContext.causeChain).toBeDefined();
+      expect(Array.isArray(logContext.causeChain)).toBe(true);
+      expect((logContext.causeChain as unknown[]).length).toBeGreaterThan(0);
+      expect((logContext.causeChain as { message: string }[])[0]).toMatchObject(
+        {
+          message: 'Connection refused',
+        },
+      );
+
+      // Verify message format
+      const logMessage = logCall[1] as string;
+      expect(logMessage).toContain('SERVER ERROR');
+    });
+
+    it('should include full stack trace in causeChain in development', () => {
+      process.env.NODE_ENV = 'development';
+
+      const spiedLogger = {
+        error: () => {},
+        warn: () => {},
+        info: () => {},
+        debug: () => {},
+        trace: () => {},
+        fatal: () => {},
+      } as unknown as PinoLogger;
+
+      const errorSpy = spyOn(spiedLogger, 'error');
+      const spiedFilter = new GlobalExceptionFilter(spiedLogger);
+
+      const rootCause = new Error('ECONNREFUSED');
+      const exception = new BusinessException(
+        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+        undefined,
+        { operation: 'query' },
+        { cause: rootCause },
+      );
+
+      const request = createMockRequest();
+      const response = createMockResponse();
+      const host = createMockArgumentsHost(request, response);
+
+      spiedFilter.catch(exception, host);
+
+      expect(errorSpy).toHaveBeenCalledTimes(1);
+
+      const logCall = errorSpy.mock.calls[0] as unknown[];
+      const logContext = logCall[0] as Record<string, unknown>;
+
+      // In development, stack trace should be included
+      const causeChain = logContext.causeChain as { stack?: string }[];
+      expect(causeChain[0].stack).toBeDefined();
+      expect(causeChain[0].stack).toContain('ECONNREFUSED');
+    });
+
+    it('should NOT include stack trace in causeChain in production', () => {
+      process.env.NODE_ENV = 'production';
+
+      const spiedLogger = {
+        error: () => {},
+        warn: () => {},
+        info: () => {},
+        debug: () => {},
+        trace: () => {},
+        fatal: () => {},
+      } as unknown as PinoLogger;
+
+      const errorSpy = spyOn(spiedLogger, 'error');
+      const spiedFilter = new GlobalExceptionFilter(spiedLogger);
+
+      const rootCause = new Error('ECONNREFUSED');
+      const exception = new BusinessException(
+        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+        undefined,
+        { operation: 'query' },
+        { cause: rootCause },
+      );
+
+      const request = createMockRequest();
+      const response = createMockResponse();
+      const host = createMockArgumentsHost(request, response);
+
+      spiedFilter.catch(exception, host);
+
+      expect(errorSpy).toHaveBeenCalledTimes(1);
+
+      const logCall = errorSpy.mock.calls[0] as unknown[];
+      const logContext = logCall[0] as Record<string, unknown>;
+
+      // In production, stack trace should NOT be in causeChain
+      const causeChain = logContext.causeChain as { stack?: string }[];
+      expect(causeChain[0].stack).toBeUndefined();
+    });
+
+    it('should preserve rootCause info in log context', () => {
+      const spiedLogger = {
+        error: () => {},
+        warn: () => {},
+        info: () => {},
+        debug: () => {},
+        trace: () => {},
+        fatal: () => {},
+      } as unknown as PinoLogger;
+
+      const errorSpy = spyOn(spiedLogger, 'error');
+      const spiedFilter = new GlobalExceptionFilter(spiedLogger);
+
+      const rootCause = new Error('Database connection timeout');
+      const exception = new BusinessException(
+        ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
+        undefined,
+        { operation: 'fetchBudget', userId: 'user-123' },
+        { cause: rootCause },
+      );
+
+      const request = createMockRequest();
+      const response = createMockResponse();
+      const host = createMockArgumentsHost(request, response);
+
+      spiedFilter.catch(exception, host);
+
+      const logCall = errorSpy.mock.calls[0] as unknown[];
+      const logContext = logCall[0] as Record<string, unknown>;
+
+      expect(logContext.rootCause).toBeDefined();
+      expect(logContext.rootCause).toMatchObject({
+        name: 'Error',
+        message: 'Database connection timeout',
+      });
+    });
+
+    it('should use warn for 4xx errors and error for 5xx', () => {
+      const spiedLogger = {
+        error: () => {},
+        warn: () => {},
+        info: () => {},
+        debug: () => {},
+        trace: () => {},
+        fatal: () => {},
+      } as unknown as PinoLogger;
+
+      const errorSpy = spyOn(spiedLogger, 'error');
+      const warnSpy = spyOn(spiedLogger, 'warn');
+      const spiedFilter = new GlobalExceptionFilter(spiedLogger);
+
+      // Test 4xx - should use warn
+      const notFoundException = new BusinessException(
+        ERROR_DEFINITIONS.BUDGET_NOT_FOUND,
+        { id: 'budget-123' },
+        { operation: 'findBudget', userId: 'user-1' },
+      );
+
+      const request = createMockRequest();
+      const response = createMockResponse();
+      const host = createMockArgumentsHost(request, response);
+
+      spiedFilter.catch(notFoundException, host);
+
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      expect(errorSpy).not.toHaveBeenCalled();
+      expect((warnSpy.mock.calls[0] as unknown[])[1] as string).toContain(
+        'CLIENT ERROR',
+      );
     });
   });
 });

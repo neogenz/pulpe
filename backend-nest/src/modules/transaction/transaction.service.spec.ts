@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { TransactionService } from './transaction.service';
 import { BudgetService } from '../budget/budget.service';
-import { PinoLogger } from 'nestjs-pino';
+import type { InfoLogger } from '@common/logger';
 import type { TransactionCreate, TransactionUpdate } from 'pulpe-shared';
 import {
   createMockSupabaseClient,
@@ -15,9 +15,12 @@ import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 const MOCK_BUDGET_ID = 'budget-123';
 const MOCK_TRANSACTION_ID = 'transaction-456';
 
+// Extended mock type for testing - includes error for verification even though InfoLogger doesn't have it
+type MockInfoLogger = InfoLogger & { error: ReturnType<typeof mock> };
+
 describe('TransactionService', () => {
   let service: TransactionService;
-  let mockLogger: Partial<PinoLogger>;
+  let mockLogger: MockInfoLogger;
   let mockBudgetService: Partial<BudgetService>;
   let mockSupabaseClient: MockSupabaseClient;
 
@@ -25,16 +28,17 @@ describe('TransactionService', () => {
     const { mockClient } = createMockSupabaseClient();
     mockSupabaseClient = mockClient;
     mockLogger = {
-      error: mock(() => {}),
+      error: mock(() => {}), // For test verification - InfoLogger doesn't expose this
       warn: mock(() => {}),
       info: mock(() => {}),
       debug: mock(() => {}),
+      trace: mock(() => {}),
     };
     mockBudgetService = {
       recalculateBalances: mock(() => Promise.resolve()),
     };
     service = new TransactionService(
-      mockLogger as PinoLogger,
+      mockLogger as InfoLogger,
       mockBudgetService as BudgetService,
     );
   });
@@ -472,6 +476,57 @@ describe('TransactionService', () => {
       // Assert
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(0);
+    });
+  });
+
+  describe('Log or Throw Pattern', () => {
+    it('should NOT call logger.error when Supabase insert fails', async () => {
+      // Arrange
+      const mockUser = createMockAuthenticatedUser();
+      const createDto: TransactionCreate = {
+        budgetId: MOCK_BUDGET_ID,
+        name: 'Test Transaction',
+        amount: 100,
+        kind: 'expense',
+      };
+      mockSupabaseClient
+        .reset()
+        .setMockError({ code: 'PGRST301', message: 'Connection error' });
+
+      // Act & Assert
+      await expectBusinessExceptionThrown(
+        () => service.create(createDto, mockUser, mockSupabaseClient as any),
+        ERROR_DEFINITIONS.TRANSACTION_CREATE_FAILED,
+      );
+
+      // CRITICAL: The service must NOT log the error - GlobalExceptionFilter handles logging
+      expect(mockLogger.error).not.toHaveBeenCalled();
+    });
+
+    it('should include complete context in BusinessException for filter logging', async () => {
+      // Arrange
+      const mockUser = createMockAuthenticatedUser();
+      const createDto: TransactionCreate = {
+        budgetId: MOCK_BUDGET_ID,
+        name: 'Test Transaction',
+        amount: 100,
+        kind: 'expense',
+      };
+      mockSupabaseClient
+        .reset()
+        .setMockError({ code: 'PGRST301', message: 'Connection error' });
+
+      // Act
+      let thrownException: Error | undefined;
+      try {
+        await service.create(createDto, mockUser, mockSupabaseClient as any);
+      } catch (e) {
+        thrownException = e as Error;
+      }
+
+      // Assert - BusinessException should have cause for filter to log
+      expect(thrownException).toBeDefined();
+      expect(thrownException?.cause).toBeDefined();
     });
   });
 });

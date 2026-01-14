@@ -1,5 +1,6 @@
 import { Module, Global } from '@nestjs/common';
 import { TurnstileService } from './services/turnstile.service';
+import { createInfoLoggerProvider } from '@common/logger';
 
 /**
  * Common module providing shared services across the application
@@ -9,7 +10,10 @@ import { TurnstileService } from './services/turnstile.service';
  */
 @Global()
 @Module({
-  providers: [TurnstileService],
+  providers: [
+    TurnstileService,
+    createInfoLoggerProvider(TurnstileService.name),
+  ],
   exports: [TurnstileService],
 })
 export class CommonModule {}
