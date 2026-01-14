@@ -13,6 +13,7 @@ import { DemoModeService } from '../demo/demo-mode.service';
 import { PostHogService } from '../analytics/posthog';
 import { StorageService } from '../storage';
 import { ROUTES } from '../routing/routes-constants';
+import { HasBudgetState } from './has-budget-state';
 
 export interface OAuthUserMetadata {
   givenName?: string;
@@ -45,6 +46,7 @@ export class AuthApi {
   readonly #demoModeService = inject(DemoModeService);
   readonly #postHogService = inject(PostHogService);
   readonly #storageService = inject(StorageService);
+  readonly #hasBudgetState = inject(HasBudgetState);
 
   // Supabase client - créé dans initializeAuthState() après le chargement de la config
   #supabaseClient: SupabaseClient | null = null;
@@ -212,6 +214,9 @@ export class AuthApi {
     // This ensures demo state is reset on ALL logout paths (menu, auth errors, etc.)
     // Note: This also updates internal signals, not just localStorage
     this.#demoModeService.deactivateDemoMode();
+
+    // Clear budget state cache so guard re-checks on next login
+    this.#hasBudgetState.clear();
 
     // Reset analytics identity to prevent tracking new user with old identity
     this.#postHogService.reset();

@@ -100,6 +100,8 @@ interface NavigationItem {
                 routerLinkActive
                 #rla="routerLinkActive"
                 [activated]="rla.isActive"
+                [class.pointer-events-none]="isNavigating()"
+                [class.opacity-50]="isNavigating()"
                 (click)="closeDrawerOnMobile(drawer)"
               >
                 <mat-icon matListItemIcon [class.icon-filled]="rla.isActive">{{
@@ -121,7 +123,9 @@ interface NavigationItem {
                 [routerLink]="item.route"
                 routerLinkActive
                 #rla="routerLinkActive"
-                class="flex flex-col items-center mb-3 group"
+                class="flex flex-col items-center mb-3 group transition-opacity"
+                [class.pointer-events-none]="isNavigating()"
+                [class.opacity-50]="isNavigating()"
                 [matTooltip]="item.tooltip || item.label"
                 matTooltipPosition="right"
               >
