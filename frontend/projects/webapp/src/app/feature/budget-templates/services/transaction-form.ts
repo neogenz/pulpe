@@ -30,7 +30,7 @@ export function getTransactionTypes() {
   ] as const;
 }
 
-@Injectable()
+@Injectable({ providedIn: 'root' })
 export class TransactionFormService {
   createTransactionFormGroup(
     transaction?: TransactionFormData,

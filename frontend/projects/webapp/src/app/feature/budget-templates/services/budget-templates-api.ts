@@ -17,7 +17,7 @@ import {
 } from 'pulpe-shared';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 
-@Injectable()
+@Injectable({ providedIn: 'root' })
 export class BudgetTemplatesApi {
   #http = inject(HttpClient);
   #applicationConfig = inject(ApplicationConfiguration);

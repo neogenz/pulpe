@@ -2,6 +2,8 @@ import {
   afterNextRender,
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
+  effect,
   inject,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
@@ -12,7 +14,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { firstValueFrom } from 'rxjs';
 import { type BudgetTemplate } from 'pulpe-shared';
-import { BudgetTemplatesState } from '../services/budget-templates-state';
+import { BudgetTemplatesStore } from '../services/budget-templates-store';
 import { BudgetTemplatesApi } from '../services/budget-templates-api';
 import { TemplateList } from '../components/template-list';
 import { BaseLoading } from '@ui/loading';
@@ -21,6 +23,7 @@ import { TitleDisplay } from '@core/routing';
 import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
 import { TemplateUsageDialogComponent } from '../components/dialogs/template-usage-dialog';
 import { getDeleteConfirmationConfig } from '../delete/template-delete-dialog';
+import { LoadingIndicator } from '@core/loading/loading-indicator';
 import { Logger } from '@core/logging/logger';
 import {
   ProductTourService,
@@ -52,16 +55,16 @@ import {
           >
             {{ title.currentTitle() }}
           </h1>
-          @if (state.templateCount() > 0) {
+          @if (store.templateCount() > 0) {
             <p
               class="text-body-medium text-on-surface-variant mt-1"
               data-testid="template-counter"
               data-tour="template-counter"
             >
-              {{ state.templateCount() }} modèle{{
-                state.templateCount() > 1 ? 's' : ''
+              {{ store.templateCount() }} modèle{{
+                store.templateCount() > 1 ? 's' : ''
               }}
-              sur {{ state.MAX_TEMPLATES }} maximum
+              sur {{ store.MAX_TEMPLATES }} maximum
             </p>
           }
         </div>
@@ -79,10 +82,10 @@ import {
             matButton="filled"
             class="shrink-0"
             routerLink="create"
-            [disabled]="state.isTemplateLimitReached()"
+            [disabled]="store.isTemplateLimitReached()"
             [matTooltip]="
-              state.isTemplateLimitReached()
-                ? 'Limite de ' + state.MAX_TEMPLATES + ' modèles atteinte'
+              store.isTemplateLimitReached()
+                ? 'Limite de ' + store.MAX_TEMPLATES + ' modèles atteinte'
                 : 'Créer un nouveau modèle'
             "
             data-testid="create-template-button"
@@ -94,8 +97,8 @@ import {
           </button>
           <button
             matIconButton
-            (click)="state.refreshData()"
-            [disabled]="state.budgetTemplates.isLoading()"
+            (click)="store.refreshData()"
+            [disabled]="store.budgetTemplates.isLoading()"
             aria-label="Actualiser"
             data-testid="refresh-button"
           >
@@ -105,26 +108,27 @@ import {
       </header>
 
       @switch (true) {
-        @case (state.budgetTemplates.isLoading()) {
+        @case (store.budgetTemplates.status() === 'loading') {
           <pulpe-base-loading
             message="Chargement des modèles de budget..."
             size="large"
             testId="templates-loading"
           />
         }
-        @case (state.budgetTemplates.status() === 'error') {
+        @case (store.budgetTemplates.status() === 'error') {
           <pulpe-templates-error
-            [error]="state.budgetTemplates.error()"
-            (reload)="state.refreshData()"
+            [error]="store.budgetTemplates.error()"
+            (reload)="store.refreshData()"
             data-testid="templates-error"
           />
         }
         @case (
-          state.budgetTemplates.status() === 'resolved' ||
-          state.budgetTemplates.status() === 'local'
+          store.budgetTemplates.status() === 'resolved' ||
+          store.budgetTemplates.status() === 'local' ||
+          store.budgetTemplates.status() === 'reloading'
         ) {
           <pulpe-template-list
-            [templates]="state.budgetTemplates.value() ?? []"
+            [templates]="store.budgetTemplates.value() ?? []"
             (deleteTemplate)="onDeleteTemplate($event)"
             data-testid="templates-list"
             data-tour="templates-list"
@@ -143,15 +147,28 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class TemplateListPage {
-  protected readonly state = inject(BudgetTemplatesState);
+  protected readonly store = inject(BudgetTemplatesStore);
   protected readonly title = inject(TitleDisplay);
   readonly #productTourService = inject(ProductTourService);
+  readonly #destroyRef = inject(DestroyRef);
+  readonly #loadingIndicator = inject(LoadingIndicator);
   readonly #dialog = inject(MatDialog);
   readonly #snackBar = inject(MatSnackBar);
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
   readonly #logger = inject(Logger);
 
   constructor() {
+    this.store.refreshData();
+
+    effect(() => {
+      const status = this.store.budgetTemplates.status();
+      this.#loadingIndicator.setLoading(status === 'reloading');
+    });
+
+    this.#destroyRef.onDestroy(() => {
+      this.#loadingIndicator.setLoading(false);
+    });
+
     afterNextRender(() => {
       if (!this.#productTourService.hasSeenPageTour('templates-list')) {
         setTimeout(
@@ -214,7 +231,7 @@ export default class TemplateListPage {
 
   async #performDeletion(template: BudgetTemplate) {
     try {
-      await this.state.deleteTemplate(template.id);
+      await this.store.deleteTemplate(template.id);
 
       this.#snackBar.open('Modèle supprimé avec succès', undefined, {
         duration: 3000,
