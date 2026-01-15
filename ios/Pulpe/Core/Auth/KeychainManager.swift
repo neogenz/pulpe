@@ -1,4 +1,5 @@
 import Foundation
+import LocalAuthentication
 import Security
 
 /// Thread-safe Keychain manager for secure token storage
@@ -58,11 +59,14 @@ actor KeychainManager {
     }
 
     func hasBiometricTokens() -> Bool {
+        let context = LAContext()
+        context.interactionNotAllowed = true
+
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: biometricAccessTokenKey,
-            kSecUseAuthenticationUI as String: kSecUseAuthenticationUIFail
+            kSecUseAuthenticationContext as String: context
         ]
 
         var result: AnyObject?

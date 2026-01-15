@@ -100,6 +100,7 @@ struct OnboardingStepView<Content: View>: View {
                     state.error = nil
                 }
                 .padding(.horizontal, 24)
+                .padding(.bottom, 16)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
 

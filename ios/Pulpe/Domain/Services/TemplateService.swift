@@ -34,7 +34,12 @@ actor TemplateService {
 
     /// Create template from onboarding data
     func createTemplateFromOnboarding(_ data: BudgetTemplateCreateFromOnboarding) async throws -> BudgetTemplate {
-        try await apiClient.request(.templateFromOnboarding, body: data, method: .post)
+        let response: BudgetTemplateCreateResponse = try await apiClient.request(
+            .templateFromOnboarding,
+            body: data,
+            method: .post
+        )
+        return response.data.template
     }
 
     /// Update a template

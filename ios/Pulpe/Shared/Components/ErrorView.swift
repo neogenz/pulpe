@@ -39,13 +39,14 @@ struct ErrorBanner: View {
     }
 
     var body: some View {
-        HStack {
+        HStack(spacing: 12) {
             Image(systemName: "exclamationmark.circle.fill")
                 .foregroundStyle(.red)
 
             Text(message)
                 .font(.subheadline)
                 .foregroundStyle(.primary)
+                .multilineTextAlignment(.leading)
 
             Spacer()
 
@@ -54,8 +55,9 @@ struct ErrorBanner: View {
                     dismissAction()
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.red.opacity(0.8))
                 }
+                .accessibilityLabel("Fermer")
             }
         }
         .padding()
