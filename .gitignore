@@ -93,3 +93,7 @@ docs/angular-architecture-doc.md
 docs/angular-architecture-for-enterprise.md
 
 .mcp.local.json
+
+# Design assets (generated files)
+design/icons/**/*.png
+icon/
