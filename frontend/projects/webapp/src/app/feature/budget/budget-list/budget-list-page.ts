@@ -107,7 +107,7 @@ const YEARS_TO_DISPLAY = 8; // Current year + 7 future years for planning
       @switch (true) {
         @case (state.budgets.status() === 'loading') {
           <pulpe-base-loading
-            message="Chargement des données mensuelles..."
+            message="Récupération de tes budgets..."
             size="large"
             testId="months-loading"
           />
@@ -288,7 +288,7 @@ export default class BudgetListPage {
     } catch (error) {
       this.#logger.error('Error opening create budget dialog', error);
       this.#snackBar.open(
-        `Une erreur est survenue lors de l'ouverture du dialogue: ${error}`,
+        'Impossible d\'ouvrir le dialogue — réessaie',
         'Fermer',
         {
           duration: 5000,
@@ -323,7 +323,7 @@ export default class BudgetListPage {
     } catch (error) {
       this.#logger.error('Error opening create budget dialog', error);
       this.#snackBar.open(
-        `Une erreur est survenue lors de l'ouverture du dialogue: ${error}`,
+        'Impossible d\'ouvrir le dialogue — réessaie',
         'Fermer',
         {
           duration: 5000,
@@ -342,7 +342,7 @@ export default class BudgetListPage {
       downloadAsJsonFile(data, `pulpe-export-${today}`);
 
       this.#snackBar.open(
-        'Export réussi ! Le fichier a été téléchargé.',
+        'Export terminé — fichier téléchargé',
         'Fermer',
         { duration: 3000 },
       );
@@ -351,7 +351,7 @@ export default class BudgetListPage {
       const errorMessage =
         error instanceof Error ? error.message : 'Erreur inconnue';
       this.#snackBar.open(
-        `Erreur lors de l'export: ${errorMessage}`,
+        'L\'export a échoué — réessaie',
         'Fermer',
         {
           duration: 5000,
@@ -379,7 +379,7 @@ export default class BudgetListPage {
     } catch (error) {
       this.#logger.error('Error opening search dialog', error);
       this.#snackBar.open(
-        `Une erreur est survenue lors de l'ouverture du dialogue: ${error}`,
+        'Impossible d\'ouvrir le dialogue — réessaie',
         'Fermer',
         {
           duration: 5000,

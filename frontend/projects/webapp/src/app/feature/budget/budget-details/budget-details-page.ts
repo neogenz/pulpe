@@ -81,7 +81,7 @@ import { UserSettingsApi } from '@core/user-settings/user-settings-api';
     <div class="flex flex-col gap-6 min-w-0" data-testid="budget-detail-page">
       @if (store.isLoading()) {
         <pulpe-base-loading
-          message="Chargement des détails du budget..."
+          message="Préparation des détails..."
           size="large"
           [fullHeight]="true"
           testId="budget-details-loading"
@@ -91,7 +91,7 @@ import { UserSettingsApi } from '@core/user-settings/user-settings-api';
           <mat-card-content>
             <div class="flex items-center gap-2 text-on-error-container">
               <mat-icon>error</mat-icon>
-              <span>Erreur lors du chargement du budget</span>
+              <span>Le budget n'a pas pu être chargé — réessaie</span>
             </div>
           </mat-card-content>
         </mat-card>
@@ -227,7 +227,7 @@ import { UserSettingsApi } from '@core/user-settings/user-settings-api';
         }
       } @else {
         <div class="flex justify-center items-center h-full">
-          <p class="text-body-large">Aucun budget trouvé</p>
+          <p class="text-body-large">Budget introuvable</p>
         </div>
       }
     </div>
@@ -343,7 +343,7 @@ export default class BudgetDetailsPage {
   async handleUpdateBudgetLine(data: BudgetLineUpdate): Promise<void> {
     await this.store.updateBudgetLine(data);
 
-    this.#snackBar.open('Prévision modifiée.', 'Fermer', {
+    this.#snackBar.open('Modification enregistrée', 'Fermer', {
       duration: 5000,
       panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
     });
@@ -368,11 +368,11 @@ export default class BudgetDetailsPage {
 
     const isBudgetLine = !!budgetLine;
     const title = isBudgetLine
-      ? 'Supprimer la prévision'
-      : 'Supprimer la transaction';
+      ? 'Supprimer cette prévision ?'
+      : 'Supprimer cette transaction ?';
     const message = isBudgetLine
-      ? 'Êtes-vous sûr de vouloir supprimer cette prévision ?'
-      : 'Êtes-vous sûr de vouloir supprimer cette transaction ?';
+      ? 'Cette action est irréversible.'
+      : 'Cette action est irréversible.';
 
     const dialogRef = this.#dialog.open(ConfirmationDialog, {
       data: {
@@ -395,7 +395,7 @@ export default class BudgetDetailsPage {
     } else {
       await this.store.deleteTransaction(id);
 
-      this.#snackBar.open('Transaction supprimée.', 'Fermer', {
+      this.#snackBar.open('Transaction supprimée', 'Fermer', {
         duration: 5000,
         panelClass: ['bg-[color-primary]', 'text-[color-on-primary]'],
       });
@@ -465,7 +465,7 @@ export default class BudgetDetailsPage {
     if (transaction) {
       await this.store.createAllocatedTransaction(transaction);
 
-      this.#snackBar.open('Transaction ajoutée.', 'Fermer', {
+      this.#snackBar.open('Transaction ajoutée', 'Fermer', {
         duration: 3000,
       });
     }
@@ -477,8 +477,8 @@ export default class BudgetDetailsPage {
   async handleDeleteTransaction(transaction: Transaction): Promise<void> {
     const dialogRef = this.#dialog.open(ConfirmationDialog, {
       data: {
-        title: 'Supprimer la transaction',
-        message: `Voulez-vous supprimer la transaction "${transaction.name}" ?`,
+        title: 'Supprimer cette transaction ?',
+        message: `Tu vas supprimer « ${transaction.name} ». Cette action est irréversible.`,
         confirmText: 'Supprimer',
         confirmColor: 'warn',
       } satisfies ConfirmationDialogData,
@@ -490,7 +490,7 @@ export default class BudgetDetailsPage {
     if (confirmed) {
       await this.store.deleteTransaction(transaction.id);
 
-      this.#snackBar.open('Transaction supprimée.', 'Fermer', {
+      this.#snackBar.open('Transaction supprimée', 'Fermer', {
         duration: 3000,
       });
     }
@@ -501,7 +501,7 @@ export default class BudgetDetailsPage {
       await this.store.resetBudgetLineFromTemplate(budgetLineId);
 
       this.#snackBar.open(
-        'Prévision réinitialisée depuis le modèle.',
+        'Prévision réinitialisée depuis le modèle',
         'Fermer',
         {
           duration: 5000,
