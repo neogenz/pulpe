@@ -18,26 +18,21 @@ export const hasBudgetGuard: CanActivateFn = async () => {
   const router = inject(Router);
   const logger = inject(Logger);
 
+  const redirectToCompleteProfile = () =>
+    router.createUrlTree(['/', ROUTES.APP, ROUTES.COMPLETE_PROFILE]);
+
   const cached = hasBudgetCache.get();
 
   // Fast path: cache hit (90% of cases after pre-load)
   if (cached !== null) {
-    if (!cached) {
-      return router.createUrlTree(['/', ROUTES.APP, ROUTES.COMPLETE_PROFILE]);
-    }
-    return true;
+    return cached ? true : redirectToCompleteProfile();
   }
 
   // Slow path: cache miss - fetch from API
   // Router automatically shows loading indicator during async operation
   try {
     const hasBudget = await firstValueFrom(budgetApi.checkBudgetExists$());
-
-    if (!hasBudget) {
-      return router.createUrlTree(['/', ROUTES.APP, ROUTES.COMPLETE_PROFILE]);
-    }
-
-    return true;
+    return hasBudget ? true : redirectToCompleteProfile();
   } catch (error) {
     logger.warn(
       'hasBudgetGuard: API error during cache miss, allowing navigation (fail-safe)',
