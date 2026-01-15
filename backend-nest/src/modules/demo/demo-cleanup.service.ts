@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import { SupabaseService } from '../supabase/supabase.service';
 
 interface DemoUser {
@@ -29,8 +29,8 @@ interface DemoUser {
 @Injectable()
 export class DemoCleanupService {
   constructor(
-    @InjectPinoLogger(DemoCleanupService.name)
-    private readonly logger: PinoLogger,
+    @InjectInfoLogger(DemoCleanupService.name)
+    private readonly logger: InfoLogger,
     private readonly supabaseService: SupabaseService,
   ) {}
 
@@ -77,7 +77,7 @@ export class DemoCleanupService {
       );
       this.logCleanupResults(deleteResults, expiredUsers.length, startTime);
     } catch (error) {
-      this.logger.error(
+      this.logger.warn(
         { err: error, duration: Date.now() - startTime },
         'Demo users cleanup job failed',
       );
@@ -111,15 +111,14 @@ export class DemoCleanupService {
       });
 
       if (error) {
-        this.logger.error(
-          { err: error, page },
-          'Failed to list users for cleanup',
-        );
-
         if (throwOnError) {
           throw error;
         }
 
+        this.logger.warn(
+          { err: error, page },
+          'Failed to list users for cleanup',
+        );
         break;
       }
 
@@ -167,10 +166,6 @@ export class DemoCleanupService {
         const { error } = await adminClient.auth.admin.deleteUser(user.id);
 
         if (error) {
-          this.logger.error(
-            { userId: user.id, err: error },
-            'Failed to delete demo user',
-          );
           throw error;
         }
 

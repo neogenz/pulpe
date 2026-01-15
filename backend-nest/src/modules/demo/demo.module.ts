@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { createInfoLoggerProvider } from '@common/logger';
 import { DevOnlyGuard } from '../../common/guards/dev-only.guard';
 import { BudgetModule } from '../budget/budget.module';
 import { BudgetTemplateModule } from '../budget-template/budget-template.module';
@@ -15,6 +16,9 @@ import { DemoService } from './demo.service';
     DemoDataGeneratorService,
     DemoCleanupService,
     DevOnlyGuard,
+    createInfoLoggerProvider(DemoService.name),
+    createInfoLoggerProvider(DemoDataGeneratorService.name),
+    createInfoLoggerProvider(DemoCleanupService.name),
   ],
   exports: [DemoService, DemoCleanupService],
 })

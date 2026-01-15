@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
+import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { handleServiceError } from '@common/utils/error-handler';
@@ -15,8 +15,8 @@ import { validateBudgetWithRolloverResponse } from './schemas/rpc-responses.sche
 @Injectable()
 export class BudgetCalculator {
   constructor(
-    @InjectPinoLogger(BudgetCalculator.name)
-    private readonly logger: PinoLogger,
+    @InjectInfoLogger(BudgetCalculator.name)
+    private readonly logger: InfoLogger,
     private readonly repository: BudgetRepository,
   ) {}
 
@@ -127,15 +127,6 @@ export class BudgetCalculator {
 
   private handleRolloverError(error: unknown, budgetId: string): never {
     if (error instanceof ZodError) {
-      this.logger.error(
-        {
-          budgetId,
-          validationErrors: error.issues,
-          operation: 'getBudgetRollover.validation',
-        },
-        'RPC response validation failed for get_budget_with_rollover',
-      );
-
       throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
         { budgetId },
@@ -145,6 +136,7 @@ export class BudgetCalculator {
           entityType: 'budget',
           validationErrors: error.issues,
         },
+        { cause: error },
       );
     }
 

@@ -1,5 +1,6 @@
 import { Module, Global } from '@nestjs/common';
 import { TurnstileService } from './services/turnstile.service';
+import { AuthGuard } from './guards/auth.guard';
 import { createInfoLoggerProvider } from '@common/logger';
 
 /**
@@ -12,8 +13,10 @@ import { createInfoLoggerProvider } from '@common/logger';
 @Module({
   providers: [
     TurnstileService,
+    AuthGuard,
     createInfoLoggerProvider(TurnstileService.name),
+    createInfoLoggerProvider(AuthGuard.name),
   ],
-  exports: [TurnstileService],
+  exports: [TurnstileService, AuthGuard],
 })
 export class CommonModule {}
