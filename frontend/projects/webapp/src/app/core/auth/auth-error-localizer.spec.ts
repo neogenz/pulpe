@@ -33,10 +33,10 @@ describe('AuthErrorLocalizer', () => {
 
   it('should detect weak password errors', () => {
     expect(service.localizeError('Password is too weak for user')).toBe(
-      'Choisis un mot de passe plus sécurisé (8 caractères avec lettres et chiffres)',
+      'Choisis un mot de passe plus sécurisé — 8 caractères avec lettres et chiffres',
     );
     expect(service.localizeError('Weak password detected')).toBe(
-      'Choisis un mot de passe plus sécurisé (8 caractères avec lettres et chiffres)',
+      'Choisis un mot de passe plus sécurisé — 8 caractères avec lettres et chiffres',
     );
   });
 

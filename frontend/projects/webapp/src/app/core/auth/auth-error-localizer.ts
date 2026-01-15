@@ -69,7 +69,7 @@ export class AuthErrorLocalizer {
     }
 
     if (this.containsWeakPasswordError(trimmedMessage)) {
-      return 'Choisis un mot de passe plus sécurisé (8 caractères avec lettres et chiffres)';
+      return 'Choisis un mot de passe plus sécurisé — 8 caractères avec lettres et chiffres';
     }
 
     if (this.containsRateLimitError(trimmedMessage)) {

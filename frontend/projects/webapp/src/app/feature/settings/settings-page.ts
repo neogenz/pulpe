@@ -179,7 +179,7 @@ export default class SettingsPage {
       });
     } catch (error) {
       this.#logger.error('Failed to save settings', error);
-      this.#snackBar.open('La sauvegarde a échoué — réessaie', 'OK', {
+      this.#snackBar.open("L'enregistrement a échoué — on réessaie ?", 'OK', {
         duration: 5000,
         horizontalPosition: 'center',
         verticalPosition: 'bottom',

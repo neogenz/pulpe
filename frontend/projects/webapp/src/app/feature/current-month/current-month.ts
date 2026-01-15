@@ -429,7 +429,7 @@ export default class CurrentMonth {
     } catch (error) {
       this.#logger.error('Error toggling budget line check:', error);
       this.#snackBar.open(
-        "Le statut n'a pas pu être mis à jour — réessaie",
+        "Le statut n'a pas pu être mis à jour — on réessaie ?",
         'Fermer',
         {
           duration: 5000,
@@ -444,7 +444,7 @@ export default class CurrentMonth {
     } catch (error) {
       this.#logger.error('Error toggling transaction check:', error);
       this.#snackBar.open(
-        "Le statut n'a pas pu être mis à jour — réessaie",
+        "Le statut n'a pas pu être mis à jour — on réessaie ?",
         'Fermer',
         {
           duration: 5000,
