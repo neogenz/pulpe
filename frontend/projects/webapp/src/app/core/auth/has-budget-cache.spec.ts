@@ -1,33 +1,33 @@
 import { TestBed } from '@angular/core/testing';
 import { describe, it, expect, beforeEach } from 'vitest';
-import { HasBudgetState } from './has-budget-state';
+import { HasBudgetCache } from './has-budget-cache';
 
-describe('HasBudgetState', () => {
-  let service: HasBudgetState;
+describe('HasBudgetCache', () => {
+  let service: HasBudgetCache;
 
   beforeEach(() => {
     TestBed.configureTestingModule({});
-    service = TestBed.inject(HasBudgetState);
+    service = TestBed.inject(HasBudgetCache);
   });
 
   it('should start with null (unknown state)', () => {
     expect(service.get()).toBeNull();
   });
 
-  it('should return true after setHasBudget', () => {
-    service.setHasBudget();
+  it('should return true when cache is set to true', () => {
+    service.setHasBudget(true);
 
     expect(service.get()).toBe(true);
   });
 
-  it('should return false after setNoBudget', () => {
-    service.setNoBudget();
+  it('should return false when cache is set to false', () => {
+    service.setHasBudget(false);
 
     expect(service.get()).toBe(false);
   });
 
   it('should return null after clear', () => {
-    service.setHasBudget();
+    service.setHasBudget(true);
 
     service.clear();
 
@@ -37,10 +37,10 @@ describe('HasBudgetState', () => {
   it('should allow state transitions', () => {
     expect(service.get()).toBeNull();
 
-    service.setHasBudget();
+    service.setHasBudget(true);
     expect(service.get()).toBe(true);
 
-    service.setNoBudget();
+    service.setHasBudget(false);
     expect(service.get()).toBe(false);
 
     service.clear();

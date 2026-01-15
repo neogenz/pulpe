@@ -27,7 +27,15 @@ import {
   RouterLinkActive,
   RouterOutlet,
 } from '@angular/router';
-import { filter, map, shareReplay, startWith } from 'rxjs/operators';
+import {
+  delay,
+  filter,
+  map,
+  shareReplay,
+  startWith,
+  switchMap,
+} from 'rxjs/operators';
+import { of } from 'rxjs';
 import { PulpeBreadcrumb } from '@ui/breadcrumb/breadcrumb';
 import { BreadcrumbState } from '@core/routing/breadcrumb-state';
 import { AuthApi } from '@core/auth/auth-api';
@@ -460,7 +468,7 @@ export default class MainLayout {
     { initialValue: false },
   );
 
-  // Navigation state for progress bar feedback
+  // Navigation state for progress bar feedback (debounced to prevent flicker)
   protected readonly isNavigating = toSignal(
     this.#router.events.pipe(
       filter(
@@ -470,7 +478,12 @@ export default class MainLayout {
           e instanceof NavigationCancel ||
           e instanceof NavigationError,
       ),
-      map((e) => e instanceof NavigationStart),
+      switchMap(
+        (e) =>
+          e instanceof NavigationStart
+            ? of(true).pipe(delay(100)) // Show loader only if navigation > 100ms
+            : of(false), // Hide immediately
+      ),
     ),
     { initialValue: false },
   );
