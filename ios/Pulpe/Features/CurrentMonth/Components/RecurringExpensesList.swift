@@ -241,7 +241,7 @@ struct BudgetLineRow: View {
         .sensoryFeedback(.success, trigger: triggerSuccessFeedback)
         .sensoryFeedback(.warning, trigger: triggerWarningFeedback)
         .accessibilityAddTraits(.isButton)
-        .accessibilityHint("Toucher pour modifier, maintenir pour voir les transactions")
+        .accessibilityHint("Touche pour modifier, maintiens pour voir les transactions")
     }
 
     // MARK: - Kind Icon Circle (Revolut-style)

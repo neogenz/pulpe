@@ -58,7 +58,7 @@ struct RealizedBalanceSheet: View {
             HStack(spacing: 6) {
                 Image(systemName: isPositiveBalance ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                     .font(.caption)
-                Text(isPositiveBalance ? "Dans les clous" : "Attention, solde négatif")
+                Text(isPositiveBalance ? "Tout va bien" : "Solde négatif — on y remédie ?")
                     .font(.caption)
                     .fontWeight(.medium)
             }
@@ -141,7 +141,7 @@ struct RealizedBalanceSheet: View {
                     .font(.subheadline)
                     .fontWeight(.semibold)
 
-                Text("Comparez ce solde avec votre compte bancaire. S'il y a un écart, vérifiez que toutes vos dépenses sont bien comptabilisées.")
+                Text("Compare ce solde avec ton compte bancaire. S'il y a un écart, vérifie que toutes tes dépenses sont bien cochées.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

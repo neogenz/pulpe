@@ -139,11 +139,11 @@ struct LinkedTransactionsSheet: View {
                 .foregroundStyle(.quaternary)
 
             VStack(spacing: 4) {
-                Text("Aucune transaction")
+                Text("Pas encore de transaction")
                     .font(.headline)
                     .foregroundStyle(.secondary)
 
-                Text("Ajoutez une transaction pour suivre vos dépenses")
+                Text("Ajoute une transaction pour suivre tes dépenses")
                     .font(.subheadline)
                     .foregroundStyle(Color.textTertiary)
                     .multilineTextAlignment(.center)

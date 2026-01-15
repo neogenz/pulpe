@@ -19,7 +19,7 @@ struct LoginView: View {
                             .font(.largeTitle)
                             .fontWeight(.bold)
 
-                        Text("Accédez à votre espace personnel")
+                        Text("Retrouve ton espace")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
@@ -85,7 +85,7 @@ struct LoginView: View {
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
 
-                            TextField("votre@email.com", text: $viewModel.email)
+                            TextField("ton@email.com", text: $viewModel.email)
                                 .textContentType(.emailAddress)
                                 .keyboardType(.emailAddress)
                                 .textInputAutocapitalization(.never)

@@ -12,15 +12,15 @@ struct CurrentMonthView: View {
     var body: some View {
         ZStack {
             if viewModel.isLoading && viewModel.budget == nil {
-                LoadingView(message: "Chargement du budget...")
+                LoadingView(message: "Préparation de ton tableau de bord...")
             } else if let error = viewModel.error, viewModel.budget == nil {
                 ErrorView(error: error) {
                     await viewModel.loadData()
                 }
             } else if viewModel.budget == nil {
                 EmptyStateView(
-                    title: "Aucun budget",
-                    description: "Créez un budget pour ce mois dans l'onglet Budgets",
+                    title: "Pas encore de budget ce mois-ci",
+                    description: "Crée ton budget dans l'onglet Budgets pour commencer",
                     systemImage: "calendar.badge.plus"
                 )
             } else {

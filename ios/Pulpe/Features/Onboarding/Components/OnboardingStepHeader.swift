@@ -53,7 +53,7 @@ struct OptionalBadge: View {
         HStack(spacing: 4) {
             Image(systemName: "arrow.right.circle")
                 .font(.caption2)
-            Text("Optionnel - Vous pouvez passer")
+            Text("Optionnel — tu peux passer")
                 .font(.caption)
                 .fontWeight(.medium)
         }

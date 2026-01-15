@@ -96,7 +96,7 @@ struct RootView: View {
             }
             Button("Plus tard", role: .cancel) {}
         } message: {
-            Text("Utilisez la reconnaissance biométrique pour vous connecter plus rapidement")
+            Text("Utilise la reconnaissance biométrique pour te connecter plus rapidement")
         }
         .onChange(of: deepLinkDestination) { _, _ in
             handlePendingDeepLink()
@@ -181,9 +181,9 @@ struct DeepLinkAddExpenseSheet: View {
                     }
                 } else {
                     ContentUnavailableView(
-                        "Aucun budget",
+                        "Pas encore de budget",
                         systemImage: "calendar.badge.exclamationmark",
-                        description: Text("Créez d'abord un budget pour ce mois")
+                        description: Text("Crée d'abord un budget pour ce mois")
                     )
                 }
             }

@@ -8,18 +8,18 @@ enum AuthErrorLocalizer {
             return "Email ou mot de passe incorrect"
         }
         if message.contains("too many requests") || message.contains("rate limit") {
-            return "Trop de tentatives. Réessayez plus tard."
+            return "Trop de tentatives — patiente quelques minutes"
         }
         if message.contains("email not confirmed") {
-            return "Veuillez confirmer votre email avant de vous connecter."
+            return "Confirme ton email pour pouvoir te connecter"
         }
         if message.contains("network") || message.contains("connection") {
-            return "Erreur de connexion réseau. Vérifiez votre connexion."
+            return "Erreur de connexion — vérifie ta connexion internet"
         }
         if message.contains("user not found") {
-            return "Aucun compte trouvé avec cet email."
+            return "Aucun compte trouvé avec cet email"
         }
 
-        return "Erreur de connexion. Veuillez réessayer."
+        return "Erreur de connexion — réessaie"
     }
 }

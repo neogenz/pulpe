@@ -188,28 +188,28 @@ enum OnboardingStep: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .welcome: "Bienvenue"
-        case .personalInfo: "Qui êtes-vous ?"
-        case .income: "Vos revenus"
+        case .personalInfo: "Qui es-tu ?"
+        case .income: "Tes revenus"
         case .housing: "Logement"
         case .healthInsurance: "Assurance maladie"
         case .phonePlan: "Téléphone"
         case .transport: "Transport"
         case .leasingCredit: "Leasing / Crédit"
-        case .registration: "Inscription"
+        case .registration: "Dernière étape"
         }
     }
 
     var subtitle: String {
         switch self {
-        case .welcome: "Gérez votre budget simplement"
-        case .personalInfo: "Nous aimerions mieux vous connaître"
-        case .income: "Combien gagnez-vous par mois ?"
-        case .housing: "Quel est votre loyer mensuel ?"
-        case .healthInsurance: "Combien payez-vous par mois ?"
-        case .phonePlan: "Quel est le coût de votre forfait ?"
+        case .welcome: "Reprends le contrôle de tes finances"
+        case .personalInfo: "On fait connaissance"
+        case .income: "Combien gagnes-tu par mois ?"
+        case .housing: "Quel est ton loyer mensuel ?"
+        case .healthInsurance: "Combien paies-tu par mois ?"
+        case .phonePlan: "Quel est le coût de ton forfait ?"
         case .transport: "Abonnement, essence, etc."
         case .leasingCredit: "Mensualités de leasing ou crédit"
-        case .registration: "Dernière étape !"
+        case .registration: "On y est presque !"
         }
     }
 

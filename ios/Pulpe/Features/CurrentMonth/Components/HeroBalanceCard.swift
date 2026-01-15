@@ -69,7 +69,7 @@ struct HeroBalanceCard: View {
                 }
 
                 if isOverBudget {
-                    Label("Budget dépassé", systemImage: "exclamationmark.triangle.fill")
+                    Label("Tu as dépassé ton budget — ça arrive", systemImage: "info.circle.fill")
                         .font(.caption)
                         .fontWeight(.medium)
                         .foregroundStyle(.red)

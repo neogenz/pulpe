@@ -10,15 +10,15 @@ struct TemplateListView: View {
     var body: some View {
         Group {
             if viewModel.isLoading && viewModel.templates.isEmpty {
-                LoadingView(message: "Chargement des modèles...")
+                LoadingView(message: "Récupération de tes modèles...")
             } else if let error = viewModel.error, viewModel.templates.isEmpty {
                 ErrorView(error: error) {
                     await viewModel.loadTemplates()
                 }
             } else if viewModel.templates.isEmpty {
                 EmptyStateView(
-                    title: "Aucun modèle",
-                    description: "Créez un modèle pour vos budgets mensuels",
+                    title: "Tu n'as pas encore de modèle",
+                    description: "Crée ton premier modèle pour gagner du temps chaque mois",
                     systemImage: "doc.badge.plus",
                     actionTitle: "Créer un modèle"
                 ) {

@@ -136,7 +136,7 @@ struct TemplateLineRow: View {
         .contentShape(Rectangle())
         .onTapGesture { onEdit() }
         .accessibilityAddTraits(.isButton)
-        .accessibilityHint("Toucher pour modifier")
+        .accessibilityHint("Touche pour modifier")
     }
 }
 
