@@ -6,11 +6,7 @@ import {
 } from '@/test/test-mocks';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { Tables } from '@/types/database.types';
-import {
-  NotFoundException,
-  ForbiddenException,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { BusinessException } from '@common/exceptions/business.exception';
 
 describe('BudgetTemplateService - Simplified Tests', () => {
   let service: BudgetTemplateService;
@@ -136,7 +132,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
 
       await expect(
         service.deleteTemplateLine('line-123', mockUser, mockSupabase as any),
-      ).rejects.toThrow(ForbiddenException);
+      ).rejects.toThrow(BusinessException);
     });
   });
 
@@ -425,7 +421,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
 
       await expect(
         service.findOne('non-existent', mockUser, mockSupabase as any),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(BusinessException);
     });
 
     it('should handle database errors gracefully', async () => {
@@ -433,7 +429,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
 
       await expect(
         service.findAll(mockUser, mockSupabase as any),
-      ).rejects.toThrow(InternalServerErrorException);
+      ).rejects.toThrow(BusinessException);
     });
   });
 
@@ -517,7 +513,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
 
       await expect(
         service.create(createDto, mockUser, mockSupabase as any),
-      ).rejects.toThrow('Vous avez atteint la limite de 5 modèles');
+      ).rejects.toThrow(BusinessException);
     });
 
     it('should handle errors when checking template count', async () => {
@@ -541,7 +537,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
 
       await expect(
         service.create(createDto, mockUser, mockSupabase as any),
-      ).rejects.toThrow(InternalServerErrorException);
+      ).rejects.toThrow(BusinessException);
     });
   });
 
@@ -694,7 +690,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
 
       await expect(
         service.create(createDto, mockUser, mockSupabase as any),
-      ).rejects.toThrow(InternalServerErrorException);
+      ).rejects.toThrow(BusinessException);
     });
 
     it('should create default template when no existing default exists', async () => {
@@ -822,7 +818,7 @@ describe('BudgetTemplateService - Simplified Tests', () => {
 
       await expect(
         service.create(createDto, mockUser, mockSupabase as any),
-      ).rejects.toThrow('Vous avez atteint la limite de 5 modèles');
+      ).rejects.toThrow(BusinessException);
     });
   });
 });

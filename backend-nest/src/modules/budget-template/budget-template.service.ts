@@ -2,13 +2,10 @@ import { type Database, Tables, TablesInsert } from '@/types/database.types';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import { BudgetService } from '@modules/budget/budget.service';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
-import {
-  BadRequestException,
-  ForbiddenException,
-  Injectable,
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { BusinessException } from '@common/exceptions/business.exception';
+import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import { handleServiceError } from '@common/utils/error-handler';
 import {
   type BudgetTemplateCreate,
   type BudgetTemplateCreateFromOnboarding,
@@ -87,8 +84,8 @@ export class BudgetTemplateService {
         success: true,
         data: budgetTemplateMappers.toApiTemplateList(data || []),
       };
-    } catch {
-      throw new InternalServerErrorException('Failed to retrieve templates');
+    } catch (error) {
+      handleServiceError(error, ERROR_DEFINITIONS.TEMPLATE_FETCH_FAILED);
     }
   }
 
@@ -108,7 +105,11 @@ export class BudgetTemplateService {
         .eq('id', id)
         .single();
 
-      if (error || !data) throw new NotFoundException('Template not found');
+      if (error || !data) {
+        throw new BusinessException(ERROR_DEFINITIONS.TEMPLATE_NOT_FOUND, {
+          id,
+        });
+      }
 
       this.logger.info(
         {
@@ -122,8 +123,9 @@ export class BudgetTemplateService {
 
       return { success: true, data: budgetTemplateMappers.toApiTemplate(data) };
     } catch (error) {
-      if (error instanceof NotFoundException) throw error;
-      throw new InternalServerErrorException('Failed to retrieve template');
+      handleServiceError(error, ERROR_DEFINITIONS.TEMPLATE_FETCH_FAILED, {
+        id,
+      });
     }
   }
 
@@ -158,8 +160,7 @@ export class BudgetTemplateService {
 
       return result;
     } catch (error) {
-      if (error instanceof BadRequestException) throw error;
-      throw new InternalServerErrorException('Failed to create template');
+      handleServiceError(error, ERROR_DEFINITIONS.TEMPLATE_CREATE_FAILED);
     }
   }
 
@@ -224,8 +225,9 @@ export class BudgetTemplateService {
     );
 
     if (error) throw error;
-    if (!templateRecord)
-      throw new InternalServerErrorException('Failed to create template');
+    if (!templateRecord) {
+      throw new BusinessException(ERROR_DEFINITIONS.TEMPLATE_CREATE_FAILED);
+    }
 
     return templateRecord as unknown as Tables<'template'>;
   }
@@ -260,12 +262,9 @@ export class BudgetTemplateService {
 
       return { success: true, data: budgetTemplateMappers.toApiTemplate(data) };
     } catch (error) {
-      if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException
-      )
-        throw error;
-      throw new InternalServerErrorException('Failed to update template');
+      handleServiceError(error, ERROR_DEFINITIONS.TEMPLATE_UPDATE_FAILED, {
+        id,
+      });
     }
   }
 
@@ -292,13 +291,18 @@ export class BudgetTemplateService {
       .eq('user_id', userId);
 
     if (error) {
-      throw new InternalServerErrorException('Failed to check template count');
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TEMPLATE_FETCH_FAILED,
+        undefined,
+        undefined,
+        { cause: error },
+      );
     }
 
     if (count && count >= this.MAX_TEMPLATES_PER_USER) {
-      throw new BadRequestException(
-        `Vous avez atteint la limite de ${this.MAX_TEMPLATES_PER_USER} modèles`,
-      );
+      throw new BusinessException(ERROR_DEFINITIONS.TEMPLATE_LIMIT_EXCEEDED, {
+        limit: this.MAX_TEMPLATES_PER_USER,
+      });
     }
   }
 
@@ -314,7 +318,9 @@ export class BudgetTemplateService {
       .select()
       .single();
 
-    if (error || !data) throw new NotFoundException('Template not found');
+    if (error || !data) {
+      throw new BusinessException(ERROR_DEFINITIONS.TEMPLATE_NOT_FOUND, { id });
+    }
     return data;
   }
 
@@ -334,7 +340,9 @@ export class BudgetTemplateService {
 
       return { success: true, message: 'Template deleted successfully' };
     } catch (error) {
-      this.handleTemplateDeletionError(error);
+      handleServiceError(error, ERROR_DEFINITIONS.TEMPLATE_DELETE_FAILED, {
+        id,
+      });
     }
   }
 
@@ -365,7 +373,9 @@ export class BudgetTemplateService {
 
       return this.buildTemplateUsageResponse(budgets);
     } catch (error) {
-      this.handleTemplateUsageError(error);
+      handleServiceError(error, ERROR_DEFINITIONS.TEMPLATE_FETCH_FAILED, {
+        id,
+      });
     }
   }
 
@@ -401,10 +411,7 @@ export class BudgetTemplateService {
 
       return this.create(templateCreateDto, user, supabase);
     } catch (error) {
-      if (error instanceof BadRequestException) throw error;
-      throw new InternalServerErrorException(
-        'Failed to create template from onboarding',
-      );
+      handleServiceError(error, ERROR_DEFINITIONS.TEMPLATE_CREATE_FAILED);
     }
   }
 
@@ -423,8 +430,8 @@ export class BudgetTemplateService {
       .gte('created_at', twentyFourHoursAgo.toISOString());
 
     if (recentTemplates && recentTemplates.length > 0) {
-      throw new BadRequestException(
-        'You can only create one template from onboarding per 24 hours',
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TEMPLATE_ONBOARDING_RATE_LIMIT,
       );
     }
   }
@@ -535,10 +542,9 @@ export class BudgetTemplateService {
         data: budgetTemplateMappers.toApiTemplateLineList(lines),
       };
     } catch (error) {
-      if (error instanceof NotFoundException) throw error;
-      throw new InternalServerErrorException(
-        'Failed to retrieve template lines',
-      );
+      handleServiceError(error, ERROR_DEFINITIONS.TEMPLATE_LINES_FETCH_FAILED, {
+        templateId,
+      });
     }
   }
 
@@ -588,7 +594,9 @@ export class BudgetTemplateService {
         data: budgetTemplateMappers.toApiTemplateLine(data),
       };
     } catch (error) {
-      this.handleTemplateLineError(error, 'createTemplateLine');
+      handleServiceError(error, ERROR_DEFINITIONS.TEMPLATE_LINE_CREATE_FAILED, {
+        templateId,
+      });
     }
   }
 
@@ -603,18 +611,6 @@ export class BudgetTemplateService {
       templateLineCreateWithoutTemplateIdSchema.parse(createDto);
 
     return this.insertTemplateLine(validated, templateId, supabase);
-  }
-
-  private handleTemplateLineError(error: unknown, operation: string): never {
-    if (
-      error instanceof NotFoundException ||
-      error instanceof BadRequestException ||
-      error instanceof ForbiddenException
-    )
-      throw error;
-    throw new InternalServerErrorException(
-      `Failed to ${operation.replace(/([A-Z])/g, ' $1').toLowerCase()}`,
-    );
   }
 
   private async insertTemplateLine(
@@ -663,14 +659,9 @@ export class BudgetTemplateService {
         data: budgetTemplateMappers.toApiTemplateLine(line),
       };
     } catch (error) {
-      if (
-        error instanceof NotFoundException ||
-        error instanceof ForbiddenException
-      )
-        throw error;
-      throw new InternalServerErrorException(
-        'Failed to retrieve template line',
-      );
+      handleServiceError(error, ERROR_DEFINITIONS.TEMPLATE_LINE_FETCH_FAILED, {
+        id: templateLineId,
+      });
     }
   }
 
@@ -685,11 +676,18 @@ export class BudgetTemplateService {
       .eq('id', templateLineId)
       .single();
 
-    if (error || !data) throw new NotFoundException('Template line not found');
+    if (error || !data) {
+      throw new BusinessException(ERROR_DEFINITIONS.TEMPLATE_LINE_NOT_FOUND, {
+        id: templateLineId,
+      });
+    }
 
     if (data.template.user_id !== user.id) {
-      throw new ForbiddenException(
-        'You do not have access to this template line',
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TEMPLATE_LINE_ACCESS_FORBIDDEN,
+        {
+          id: templateLineId,
+        },
       );
     }
 
@@ -727,7 +725,9 @@ export class BudgetTemplateService {
         data: budgetTemplateMappers.toApiTemplateLine(data),
       };
     } catch (error) {
-      this.handleTemplateLineError(error, 'updateTemplateLine');
+      handleServiceError(error, ERROR_DEFINITIONS.TEMPLATE_LINE_UPDATE_FAILED, {
+        id: templateLineId,
+      });
     }
   }
 
@@ -742,10 +742,17 @@ export class BudgetTemplateService {
       .eq('id', templateLineId)
       .single();
 
-    if (!existingLine) throw new NotFoundException('Template line not found');
+    if (!existingLine) {
+      throw new BusinessException(ERROR_DEFINITIONS.TEMPLATE_LINE_NOT_FOUND, {
+        id: templateLineId,
+      });
+    }
     if (existingLine.template.user_id !== user.id) {
-      throw new ForbiddenException(
-        'You do not have access to this template line',
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TEMPLATE_LINE_ACCESS_FORBIDDEN,
+        {
+          id: templateLineId,
+        },
       );
     }
   }
@@ -762,8 +769,14 @@ export class BudgetTemplateService {
       .select()
       .single();
 
-    if (error || !data)
-      throw error || new NotFoundException('Template line not found');
+    if (error || !data) {
+      throw (
+        error ||
+        new BusinessException(ERROR_DEFINITIONS.TEMPLATE_LINE_NOT_FOUND, {
+          id: templateLineId,
+        })
+      );
+    }
     return data;
   }
 
@@ -796,7 +809,11 @@ export class BudgetTemplateService {
 
       return { success: true, data };
     } catch (error) {
-      this.handleBulkUpdateError(error);
+      handleServiceError(
+        error,
+        ERROR_DEFINITIONS.TEMPLATE_LINES_BULK_UPDATE_FAILED,
+        { templateId },
+      );
     }
   }
 
@@ -815,17 +832,6 @@ export class BudgetTemplateService {
     return budgetTemplateMappers.toApiTemplateLineList(allUpdatedLines);
   }
 
-  private handleBulkUpdateError(error: unknown): never {
-    if (
-      error instanceof NotFoundException ||
-      error instanceof BadRequestException
-    )
-      throw error;
-    throw new InternalServerErrorException(
-      'Failed to bulk update template lines',
-    );
-  }
-
   private async validateBulkUpdateLines(
     validated: TemplateLinesBulkUpdate,
     templateId: string,
@@ -838,12 +844,15 @@ export class BudgetTemplateService {
       .in('id', lineIds);
 
     if (!existingLines || existingLines.length !== lineIds.length) {
-      throw new NotFoundException('Some template lines not found');
+      throw new BusinessException(ERROR_DEFINITIONS.TEMPLATE_LINE_NOT_FOUND);
     }
 
     if (existingLines.some((l) => l.template_id !== templateId)) {
-      throw new BadRequestException(
-        'All template lines must belong to the same template',
+      throw new BusinessException(
+        ERROR_DEFINITIONS.TEMPLATE_LINE_TEMPLATE_MISMATCH,
+        {
+          templateId,
+        },
       );
     }
   }
@@ -936,7 +945,11 @@ export class BudgetTemplateService {
       );
       return data;
     } catch (error) {
-      this.handleBulkOperationsError(error);
+      handleServiceError(
+        error,
+        ERROR_DEFINITIONS.TEMPLATE_LINES_BULK_OPERATIONS_FAILED,
+        { templateId },
+      );
     }
   }
 
@@ -1441,7 +1454,7 @@ export class BudgetTemplateService {
       .in('id', lineIds);
 
     if (!existingLines || existingLines.length !== lineIds.length) {
-      throw new NotFoundException('Some template lines to delete not found');
+      throw new BusinessException(ERROR_DEFINITIONS.TEMPLATE_LINE_NOT_FOUND);
     }
   }
 
@@ -1480,7 +1493,7 @@ export class BudgetTemplateService {
       .in('id', updateIds);
 
     if (!existingLines || existingLines.length !== updateIds.length) {
-      throw new NotFoundException('Some template lines to update not found');
+      throw new BusinessException(ERROR_DEFINITIONS.TEMPLATE_LINE_NOT_FOUND);
     }
 
     // Group updates by properties to optimize database queries
@@ -1534,18 +1547,6 @@ export class BudgetTemplateService {
     return data || [];
   }
 
-  private handleBulkOperationsError(error: unknown): never {
-    if (
-      error instanceof NotFoundException ||
-      error instanceof BadRequestException ||
-      error instanceof ForbiddenException
-    )
-      throw error;
-    throw new InternalServerErrorException(
-      'Failed to perform bulk operations on template lines',
-    );
-  }
-
   async deleteTemplateLine(
     templateLineId: string,
     user: AuthenticatedUser,
@@ -1569,12 +1570,9 @@ export class BudgetTemplateService {
 
       return { success: true, message: 'Template line deleted successfully' };
     } catch (error) {
-      if (
-        error instanceof NotFoundException ||
-        error instanceof ForbiddenException
-      )
-        throw error;
-      throw new InternalServerErrorException('Failed to delete template line');
+      handleServiceError(error, ERROR_DEFINITIONS.TEMPLATE_LINE_DELETE_FAILED, {
+        id: templateLineId,
+      });
     }
   }
 
@@ -1620,9 +1618,16 @@ export class BudgetTemplateService {
       .eq('id', templateId)
       .single();
 
-    if (error || !data) throw new NotFoundException('Template not found');
-    if (data.user_id !== user.id)
-      throw new ForbiddenException('You do not have access to this template');
+    if (error || !data) {
+      throw new BusinessException(ERROR_DEFINITIONS.TEMPLATE_NOT_FOUND, {
+        id: templateId,
+      });
+    }
+    if (data.user_id !== user.id) {
+      throw new BusinessException(ERROR_DEFINITIONS.TEMPLATE_ACCESS_FORBIDDEN, {
+        id: templateId,
+      });
+    }
   }
 
   // ============ TEMPLATE DELETION HELPERS ============
@@ -1638,9 +1643,9 @@ export class BudgetTemplateService {
       .limit(1);
 
     if (budgets && budgets.length > 0) {
-      throw new BadRequestException(
-        'Cannot delete template. It is currently used in one or more budgets.',
-      );
+      throw new BusinessException(ERROR_DEFINITIONS.TEMPLATE_IN_USE, {
+        id: templateId,
+      });
     }
   }
 
@@ -1669,16 +1674,6 @@ export class BudgetTemplateService {
       },
       'Template deleted successfully',
     );
-  }
-
-  private handleTemplateDeletionError(error: unknown): never {
-    if (
-      error instanceof NotFoundException ||
-      error instanceof BadRequestException ||
-      error instanceof ForbiddenException
-    )
-      throw error;
-    throw new InternalServerErrorException('Failed to delete template');
   }
 
   // ============ TEMPLATE USAGE HELPERS ============
@@ -1734,14 +1729,5 @@ export class BudgetTemplateService {
       },
       'Template usage checked successfully',
     );
-  }
-
-  private handleTemplateUsageError(error: unknown): never {
-    if (
-      error instanceof NotFoundException ||
-      error instanceof ForbiddenException
-    )
-      throw error;
-    throw new InternalServerErrorException('Failed to check template usage');
   }
 }
