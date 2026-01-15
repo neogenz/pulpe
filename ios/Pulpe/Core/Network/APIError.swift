@@ -31,7 +31,7 @@ enum APIError: LocalizedError {
         case .invalidResponse:
             return "Réponse invalide du serveur"
         case .unauthorized:
-            return "Session expirée. Veuillez vous reconnecter."
+            return "Session expirée — reconnecte-toi pour continuer"
         case .forbidden:
             return "Accès non autorisé"
         case .notFound:
@@ -43,7 +43,7 @@ enum APIError: LocalizedError {
         case .serverError(let message):
             return message
         case .networkError:
-            return "Erreur de connexion. Vérifiez votre connexion internet."
+            return "Erreur de connexion — vérifie ta connexion internet"
         case .decodingError:
             return "Erreur lors du traitement des données"
         case .unknown(let code):
@@ -51,19 +51,19 @@ enum APIError: LocalizedError {
 
         // Known error codes
         case .budgetAlreadyExists:
-            return "Un budget existe déjà pour cette période. Veuillez sélectionner un autre mois."
+            return "Un budget existe déjà pour cette période — choisis un autre mois"
         case .templateNotFound:
-            return "Le modèle sélectionné n'existe plus. Veuillez en choisir un autre."
+            return "Ce modèle n'existe plus — choisis-en un autre"
         case .templateLimitReached:
-            return "Vous avez atteint la limite de 5 modèles. Supprimez-en un pour en créer un nouveau."
+            return "Tu as atteint la limite de 5 modèles — supprime-en un pour en créer un nouveau"
         case .invalidCredentials:
-            return "Email ou mot de passe incorrect"
+            return "Email ou mot de passe incorrect — on réessaie ?"
         case .userAlreadyExists:
             return "Cet email est déjà utilisé"
         case .weakPassword:
             return "Le mot de passe doit contenir au moins 8 caractères"
         case .rateLimited:
-            return "Trop de tentatives. Veuillez réessayer dans quelques minutes."
+            return "Trop de tentatives — patiente quelques minutes"
         }
     }
 

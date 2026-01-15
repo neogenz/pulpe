@@ -256,7 +256,7 @@ describe('Signup', () => {
     it('should set error message when form is invalid', async () => {
       await component['signUp']();
       expect(component['errorMessage']()).toBe(
-        'Veuillez corriger les erreurs dans le formulaire.',
+        'Quelques champs à vérifier avant de continuer',
       );
     });
   });
@@ -336,7 +336,7 @@ describe('Signup', () => {
       await component['signUp']();
 
       expect(component['errorMessage']()).toBe(
-        'Erreur lors de la création du compte.',
+        'La création du compte a échoué — on réessaie ?',
       );
     });
 
@@ -365,7 +365,7 @@ describe('Signup', () => {
       await component['signUp']();
 
       expect(component['errorMessage']()).toBe(
-        "Une erreur inattendue s'est produite. Veuillez réessayer.",
+        "Quelque chose n'a pas fonctionné — réessayons",
       );
     });
 

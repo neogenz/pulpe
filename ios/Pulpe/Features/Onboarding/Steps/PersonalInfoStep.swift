@@ -16,7 +16,7 @@ struct PersonalInfoStep: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 
-                TextField("Votre prénom", text: Binding(
+                TextField("Ton prénom", text: Binding(
                     get: { state.firstName },
                     set: { state.firstName = $0 }
                 ))

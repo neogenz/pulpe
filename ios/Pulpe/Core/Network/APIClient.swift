@@ -175,7 +175,7 @@ actor APIClient {
         // Fallback to status code
         switch statusCode {
         case 400:
-            return .validationError(details: ["Requête invalide"])
+            return .validationError(details: ["Quelque chose ne colle pas — vérifie ta saisie"])
         case 401:
             return .unauthorized
         case 403:
@@ -183,11 +183,11 @@ actor APIClient {
         case 404:
             return .notFound
         case 409:
-            return .conflict(message: "Conflit avec une ressource existante")
+            return .conflict(message: "Cette action entre en conflit — réessaie")
         case 429:
             return .rateLimited
         case 500...599:
-            return .serverError(message: "Erreur serveur")
+            return .serverError(message: "Quelque chose n'a pas fonctionné — réessaie")
         default:
             return .unknown(statusCode: statusCode)
         }

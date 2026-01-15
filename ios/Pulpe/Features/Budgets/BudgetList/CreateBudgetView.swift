@@ -191,11 +191,11 @@ struct CreateBudgetView: View {
                 .font(.system(size: 32))
                 .foregroundStyle(.tertiary)
 
-            Text("Aucun modèle disponible")
+            Text("Pas encore de modèle")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
-            Text("Créez d'abord un modèle dans l'onglet Modèles")
+            Text("Crée d'abord un modèle dans l'onglet Modèles")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
@@ -288,7 +288,7 @@ struct TemplateSelectionCard: View {
             isPressed = pressing
         }, perform: {})
         .accessibilityLabel("\(template.name)\(template.isDefaultTemplate ? ", modèle par défaut" : "")")
-        .accessibilityHint(isSelected ? "Sélectionné" : "Appuyer pour sélectionner")
+        .accessibilityHint(isSelected ? "Sélectionné" : "Appuie pour sélectionner")
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 

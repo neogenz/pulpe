@@ -19,15 +19,14 @@ import { TemplateCard } from './template-card';
       >
         <mat-icon class="text-6xl mb-4 text-primary">library_books</mat-icon>
         <h2 class="text-headline-medium mb-2" data-testid="empty-state-title">
-          Aucun modèle de budget
+          Tu n'as pas encore de modèle
         </h2>
         <p
           class="text-body-large text-on-surface-variant max-w-md"
           data-testid="empty-state-subtitle"
         >
-          Créez votre premier modèle de budget pour planifier vos mois
-          facilement. Un modèle vous permet de réutiliser la même structure
-          chaque mois.
+          Crée ton premier modèle pour gagner du temps chaque mois. Un modèle te
+          permet de réutiliser la même structure en un clic.
         </p>
       </div>
     } @else {

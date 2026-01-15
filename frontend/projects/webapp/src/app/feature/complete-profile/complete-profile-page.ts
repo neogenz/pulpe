@@ -42,10 +42,10 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
       <div class="max-w-2xl mx-auto p-6">
         <div class="text-center mb-8">
           <h1 class="text-headline-large text-on-surface mb-2">
-            Finaliser ton profil
+            Encore quelques détails
           </h1>
           <p class="text-body-large text-on-surface-variant">
-            Quelques informations pour créer ton premier budget
+            On prépare ton espace — c'est rapide
           </p>
         </div>
 

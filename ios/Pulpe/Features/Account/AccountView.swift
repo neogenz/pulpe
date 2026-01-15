@@ -9,7 +9,7 @@ struct AccountView: View {
         NavigationStack {
             List {
                 Section {
-                    LabeledContent("E-mail", value: appState.currentUser?.email ?? "Non connecté")
+                    LabeledContent("E-mail", value: appState.currentUser?.email ?? "Non connecté(e)")
                 } header: {
                     Text("INFORMATIONS PERSONNELLES")
                 }

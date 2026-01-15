@@ -54,7 +54,7 @@ import { LoadingButton } from '@ui/loading-button';
         <div class="text-center mb-8 mt-4">
           <h1 class="text-headline-large text-on-surface mb-2">Connexion</h1>
           <p class="text-body-large text-on-surface-variant">
-            Accédez à votre espace personnel
+            Retrouve ton espace
           </p>
         </div>
 
@@ -81,9 +81,9 @@ import { LoadingButton } from '@ui/loading-button';
             ) {
               <mat-error>
                 @if (loginForm.get('email')?.hasError('required')) {
-                  L'email est requis.
+                  Ton email est nécessaire pour continuer
                 } @else if (loginForm.get('email')?.hasError('email')) {
-                  Une adresse email valide est requise.
+                  Cette adresse email ne semble pas valide
                 }
               </mat-error>
             }
@@ -119,9 +119,9 @@ import { LoadingButton } from '@ui/loading-button';
             ) {
               <mat-error>
                 @if (loginForm.get('password')?.hasError('required')) {
-                  Le mot de passe est requis.
+                  Ton mot de passe est nécessaire
                 } @else if (loginForm.get('password')?.hasError('minlength')) {
-                  Le mot de passe doit contenir au moins 8 caractères.
+                  8 caractères minimum
                 }
               </mat-error>
             }
@@ -132,7 +132,7 @@ import { LoadingButton } from '@ui/loading-button';
           <pulpe-loading-button
             [loading]="isSubmitting()"
             [disabled]="!canSubmit()"
-            loadingText="Connexion en cours..."
+            loadingText="Connexion..."
             icon="login"
             testId="login-submit-button"
           >
@@ -209,9 +209,7 @@ export default class Login {
   protected async signIn(): Promise<void> {
     if (!this.loginForm.valid) {
       this.loginForm.markAllAsTouched();
-      this.errorMessage.set(
-        'Veuillez corriger les erreurs dans le formulaire.',
-      );
+      this.errorMessage.set('Quelques champs à vérifier avant de continuer');
       return;
     }
 
@@ -227,14 +225,12 @@ export default class Login {
         this.#router.navigate(['/', ROUTES.APP, ROUTES.CURRENT_MONTH]);
       } else {
         this.errorMessage.set(
-          result.error || 'Email ou mot de passe incorrect.',
+          result.error || 'Email ou mot de passe incorrect — on réessaie ?',
         );
       }
     } catch (error) {
       this.#logger.error('Erreur lors de la connexion:', error);
-      this.errorMessage.set(
-        "Une erreur inattendue s'est produite. Veuillez réessayer.",
-      );
+      this.errorMessage.set("Quelque chose n'a pas fonctionné — réessayons");
     } finally {
       this.isSubmitting.set(false);
     }

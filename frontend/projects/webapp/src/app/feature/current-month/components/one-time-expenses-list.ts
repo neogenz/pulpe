@@ -66,8 +66,8 @@ export class OneTimeExpensesList {
         }
       }, 0),
       emptyStateIcon: 'swap_vert',
-      emptyStateTitle: 'Aucune transaction ponctuelle',
-      emptyStateSubtitle: 'Vos transactions ponctuelles apparaîtront ici',
+      emptyStateTitle: 'Pas de transaction ce mois-ci',
+      emptyStateSubtitle: "Ajoute tes dépenses au fil de l'eau",
       selectable: false,
       deletable: true,
       editable: true,

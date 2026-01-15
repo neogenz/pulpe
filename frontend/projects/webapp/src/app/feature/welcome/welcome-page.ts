@@ -186,8 +186,7 @@ export default class WelcomePage {
   protected readonly ROUTES = ROUTES;
 
   readonly #ERROR_MESSAGES = {
-    DEMO_INIT_FAILED:
-      'Impossible de démarrer le mode démo. Veuillez réessayer.',
+    DEMO_INIT_FAILED: 'Le mode démo ne démarre pas — réessayons',
   } as const;
 
   protected readonly errorMessage = signal('');

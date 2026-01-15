@@ -187,9 +187,9 @@ enum TutorialStep: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .progressBar: "Votre budget disponible"
+        case .progressBar: "Ton budget disponible"
         case .addTransaction: "Ajouter une dépense"
-        case .recurringExpenses: "Vos dépenses récurrentes"
+        case .recurringExpenses: "Tes dépenses récurrentes"
         case .navigation: "Navigation"
         }
     }
@@ -197,13 +197,13 @@ enum TutorialStep: String, CaseIterable, Identifiable {
     var description: String {
         switch self {
         case .progressBar:
-            "Cette barre vous montre combien il vous reste à dépenser ce mois-ci. Le vert représente ce qui est disponible."
+            "Cette barre te montre combien il te reste à dépenser ce mois-ci. Le vert représente ce qui est disponible."
         case .addTransaction:
-            "Appuyez ici pour ajouter rapidement une dépense ou un revenu."
+            "Appuie ici pour ajouter rapidement une dépense ou un revenu."
         case .recurringExpenses:
-            "Vos dépenses récurrentes apparaissent ici. Cochez-les quand elles sont payées."
+            "Tes dépenses récurrentes apparaissent ici. Coche-les quand elles sont payées."
         case .navigation:
-            "Utilisez ces onglets pour accéder à vos budgets et modèles."
+            "Utilise ces onglets pour accéder à tes budgets et modèles."
         }
     }
 
