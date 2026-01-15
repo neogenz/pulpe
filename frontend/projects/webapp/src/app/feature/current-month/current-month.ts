@@ -358,7 +358,7 @@ export default class CurrentMonth {
 
         // Show specific error message
         this.#snackBar.open(
-          "Quelque chose n'a pas fonctionné — réessayons",
+          'La suppression a échoué — vérifie ta connexion et réessaie',
           'Fermer',
           {
             duration: 5000,
@@ -414,7 +414,7 @@ export default class CurrentMonth {
 
       // Show specific error message
       this.#snackBar.open(
-        "Quelque chose n'a pas fonctionné — réessayons",
+        'La modification a échoué — vérifie ta connexion et réessaie',
         'Fermer',
         {
           duration: 5000,
