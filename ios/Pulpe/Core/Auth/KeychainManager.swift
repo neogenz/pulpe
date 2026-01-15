@@ -1,4 +1,5 @@
 import Foundation
+import LocalAuthentication
 import Security
 
 /// Thread-safe Keychain manager for secure token storage
@@ -58,11 +59,14 @@ actor KeychainManager {
     }
 
     func hasBiometricTokens() -> Bool {
+        let context = LAContext()
+        context.interactionNotAllowed = true
+
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: biometricAccessTokenKey,
-            kSecUseAuthenticationUI as String: kSecUseAuthenticationUIFail
+            kSecUseAuthenticationContext as String: context
         ]
 
         var result: AnyObject?
@@ -178,13 +182,16 @@ actor KeychainManager {
     }
 
     private func getBiometric(key: String) throws -> String? {
+        let context = LAContext()
+        context.interactionNotAllowed = false
+
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: key,
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne,
-            kSecUseAuthenticationUI as String: kSecUseAuthenticationUIAllow
+            kSecUseAuthenticationContext as String: context
         ]
 
         var result: AnyObject?
@@ -219,11 +226,11 @@ enum KeychainError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .userCanceled:
-            return "L'authentification a été annulée."
+            return "Authentification annulée"
         case .authFailed:
-            return "L'authentification a échoué."
+            return "L'authentification n'a pas fonctionné — réessaye"
         case .unknown(let status):
-            return "Erreur Keychain: \(status)"
+            return "Quelque chose n'a pas fonctionné (code: \(status))"
         }
     }
 }

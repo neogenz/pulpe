@@ -5,7 +5,7 @@ enum AuthErrorLocalizer {
         let message = error.localizedDescription.lowercased()
 
         if message.contains("invalid login credentials") {
-            return "Email ou mot de passe incorrect"
+            return "Email ou mot de passe incorrect — on réessaie ?"
         }
         if message.contains("too many requests") || message.contains("rate limit") {
             return "Trop de tentatives — patiente quelques minutes"
@@ -14,12 +14,12 @@ enum AuthErrorLocalizer {
             return "Confirme ton email pour pouvoir te connecter"
         }
         if message.contains("network") || message.contains("connection") {
-            return "Erreur de connexion — vérifie ta connexion internet"
+            return "Connexion impossible — vérifie ta connexion internet"
         }
         if message.contains("user not found") {
-            return "Aucun compte trouvé avec cet email"
+            return "Aucun compte trouvé avec cet email — crée-en un ?"
         }
 
-        return "Erreur de connexion — réessaie"
+        return "Quelque chose n'a pas fonctionné — réessaye"
     }
 }

@@ -27,15 +27,15 @@ enum APIError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidURL:
-            return "URL invalide"
+            return "L'adresse n'est pas valide — vérifie le lien"
         case .invalidResponse:
-            return "Réponse invalide du serveur"
+            return "Le serveur a répondu de façon inattendue — réessaye"
         case .unauthorized:
             return "Session expirée — reconnecte-toi pour continuer"
         case .forbidden:
-            return "Accès non autorisé"
+            return "Tu n'as pas accès à cette ressource"
         case .notFound:
-            return "Ressource introuvable"
+            return "Cette page n'existe plus ou a été déplacée"
         case .conflict(let message):
             return message
         case .validationError(let details):
@@ -43,11 +43,11 @@ enum APIError: LocalizedError {
         case .serverError(let message):
             return message
         case .networkError:
-            return "Erreur de connexion — vérifie ta connexion internet"
+            return "Connexion impossible — vérifie ta connexion internet"
         case .decodingError:
-            return "Erreur lors du traitement des données"
+            return "Les données reçues sont illisibles — réessaye"
         case .unknown(let code):
-            return "Erreur inattendue (code: \(code))"
+            return "Quelque chose n'a pas fonctionné (code: \(code))"
 
         // Known error codes
         case .budgetAlreadyExists:
@@ -59,9 +59,9 @@ enum APIError: LocalizedError {
         case .invalidCredentials:
             return "Email ou mot de passe incorrect — on réessaie ?"
         case .userAlreadyExists:
-            return "Cet email est déjà utilisé"
+            return "Cet email est déjà utilisé — connecte-toi ou utilise un autre"
         case .weakPassword:
-            return "Le mot de passe doit contenir au moins 8 caractères"
+            return "8 caractères minimum pour sécuriser ton compte"
         case .rateLimited:
             return "Trop de tentatives — patiente quelques minutes"
         }
@@ -70,7 +70,7 @@ enum APIError: LocalizedError {
     /// Create APIError from server error code
     static func from(code: String?, message: String?) -> APIError {
         guard let code else {
-            return .serverError(message: message ?? "Erreur inconnue")
+            return .serverError(message: message ?? "Quelque chose n'a pas fonctionné")
         }
 
         switch code {

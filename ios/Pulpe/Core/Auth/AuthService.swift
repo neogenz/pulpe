@@ -173,9 +173,9 @@ enum AuthServiceError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .signupFailed(let message):
-            return "Inscription échouée: \(message)"
+            return "L'inscription n'a pas abouti — \(message)"
         case .loginFailed(let message):
-            return "Connexion échouée: \(message)"
+            return "La connexion n'a pas abouti — \(message)"
         }
     }
 }
