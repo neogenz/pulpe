@@ -15,7 +15,7 @@ export interface BudgetPlaceholder {
   year: number;
 }
 
-@Injectable()
+@Injectable({ providedIn: 'root' })
 export class BudgetListStore {
   #budgetApi = inject(BudgetApi);
   #logger = inject(Logger);

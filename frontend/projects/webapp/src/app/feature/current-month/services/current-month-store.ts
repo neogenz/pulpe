@@ -35,7 +35,7 @@ import { createInitialCurrentMonthInternalState } from './current-month-state';
  * - Simplified state management without complex optimistic updates
  * - Relies on resource reload for data consistency after mutations
  */
-@Injectable()
+@Injectable({ providedIn: 'root' })
 export class CurrentMonthStore {
   #budgetApi = inject(BudgetApi);
   #transactionApi = inject(TransactionApi);
@@ -141,6 +141,23 @@ export class CurrentMonthStore {
   );
   readonly hasValue = computed(() => this.#dashboardResource.hasValue());
   readonly error = computed(() => this.#dashboardResource.error());
+  readonly status = computed(() => this.#dashboardResource.status());
+
+  /**
+   * Initial loading state - determines when to show full-page spinner.
+   *
+   * Returns true only when:
+   * - Dashboard resource is in initial 'loading' state (not 'reloading')
+   * - OR settings are still loading and we have no cached data yet
+   *
+   * This enables "stale-while-revalidate": show cached data immediately
+   * while refreshing in background (status === 'reloading').
+   */
+  readonly isInitialLoading = computed(
+    () =>
+      this.status() === 'loading' ||
+      (this.isSettingsLoading() && !this.hasValue()),
+  );
 
   /**
    * Current date selector

@@ -5,6 +5,7 @@ import {
   Component,
   computed,
   DestroyRef,
+  effect,
   inject,
   signal,
 } from '@angular/core';
@@ -25,6 +26,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { LoadingIndicator } from '@core/loading/loading-indicator';
 import { Logger } from '@core/logging/logger';
 import {
   ProductTourService,
@@ -120,84 +122,97 @@ type EditTransactionFormData = Pick<
         </div>
       </header>
 
-      @if (store.isLoading()) {
-        <pulpe-base-loading
-          message="Préparation de ton tableau de bord..."
-          size="large"
-          testId="dashboard-loading"
-        />
-      } @else if (store.error()) {
-        <pulpe-dashboard-error
-          (reload)="store.refreshData()"
-          data-testid="dashboard-error"
-        />
-      } @else if (store.hasValue()) {
-        @if (store.dashboardData()?.budget) {
-          <pulpe-budget-progress-bar
-            [expenses]="store.totalExpenses()"
-            [available]="store.totalAvailable()"
-            data-tour="progress-bar"
+@switch (true) {
+        @case (store.isInitialLoading()) {
+          <pulpe-base-loading
+            message="Chargement du tableau de bord..."
+            size="large"
+            testId="dashboard-loading"
           />
-          <div
-            class="flex flex-col gap-4"
-            data-testid="dashboard-content"
-            data-tour="expense-lists"
-          >
-            <!--<pulpe-transaction-chip-filter
-                data-testid="transaction-chip-filter"
-              />-->
-            <h3 class="text-title-medium md:text-title-large">
-              Liste des dépenses
-            </h3>
-            @if (selectedTransactions().length > 1) {
-              <div class="flex gap-4" data-testid="bulk-actions">
-                <!--<button
-                    matButton="tonal"
-                    (click)="deleteSelectedTransactions()"
-                    data-testid="delete-selected-button"
-                  >
-                    <mat-icon>delete_sweep</mat-icon>
-                    Supprimer ({{ selectedTransactions().length }})
-                  </button>-->
-                <button
-                  matButton="tonal"
-                  class="icon-text-btn"
-                  data-testid="merge-selected-button"
-                >
-                  <mat-icon>call_merge</mat-icon>
-                  Fusionner ({{ selectedTransactions().length }})
-                </button>
-              </div>
-            }
-
-            <pulpe-recurring-expenses-list
-              [financialEntries]="recurringFinancialItems()"
-              (toggleCheckFinancialEntry)="handleToggleBudgetLineCheck($event)"
-              data-testid="recurring-expenses-list"
+        }
+        @case (store.status() === 'error') {
+          <pulpe-dashboard-error
+            (reload)="store.refreshData()"
+            data-testid="dashboard-error"
+          />
+        }
+        @case (
+          store.status() === 'resolved' ||
+          store.status() === 'local' ||
+          store.status() === 'reloading'
+        ) {
+          @if (store.dashboardData()?.budget) {
+            <pulpe-budget-progress-bar
+              [expenses]="store.totalExpenses()"
+              [available]="store.totalAvailable()"
+              data-tour="progress-bar"
             />
-            <pulpe-one-time-expenses-list
-              [financialEntries]="oneTimeFinancialItems()"
-              [(selectedFinancialEntries)]="selectedTransactions"
-              (deleteFinancialEntry)="deleteTransaction($event)"
-              (editFinancialEntry)="openEditTransactionDialogAndUpdate($event)"
-              (toggleCheckFinancialEntry)="handleToggleTransactionCheck($event)"
-              data-testid="one-time-expenses-list"
-            />
-          </div>
-        } @else {
-          <div class="empty-state" data-testid="empty-state">
-            <h2 class="text-title-large mt-4" data-testid="empty-state-title">
-              Pas encore de budget ce mois-ci
-            </h2>
-            <p
-              class="text-body-large text-on-surface-variant mt-2"
-              data-testid="empty-state-description"
+            <div
+              class="flex flex-col gap-4"
+              data-testid="dashboard-content"
+              data-tour="expense-lists"
             >
-              Crée ton budget pour
-              {{ store.budgetDate() | date: 'MMMM yyyy' : '' : 'fr-CH' }}
-              et reprends le contrôle.
-            </p>
-          </div>
+              <!--<pulpe-transaction-chip-filter
+                  data-testid="transaction-chip-filter"
+                />-->
+              <h3 class="text-title-medium md:text-title-large">
+                Liste des dépenses
+              </h3>
+              @if (selectedTransactions().length > 1) {
+                <div class="flex gap-4" data-testid="bulk-actions">
+                  <!--<button
+                      matButton="tonal"
+                      (click)="deleteSelectedTransactions()"
+                      data-testid="delete-selected-button"
+                    >
+                      <mat-icon>delete_sweep</mat-icon>
+                      Supprimer ({{ selectedTransactions().length }})
+                    </button>-->
+                  <button
+                    matButton="tonal"
+                    class="icon-text-btn"
+                    data-testid="merge-selected-button"
+                  >
+                    <mat-icon>call_merge</mat-icon>
+                    Fusionner ({{ selectedTransactions().length }})
+                  </button>
+                </div>
+              }
+
+              <pulpe-recurring-expenses-list
+                [financialEntries]="recurringFinancialItems()"
+                (toggleCheckFinancialEntry)="
+                  handleToggleBudgetLineCheck($event)
+                "
+                data-testid="recurring-expenses-list"
+              />
+              <pulpe-one-time-expenses-list
+                [financialEntries]="oneTimeFinancialItems()"
+                [(selectedFinancialEntries)]="selectedTransactions"
+                (deleteFinancialEntry)="deleteTransaction($event)"
+                (editFinancialEntry)="
+                  openEditTransactionDialogAndUpdate($event)
+                "
+                (toggleCheckFinancialEntry)="
+                  handleToggleTransactionCheck($event)
+                "
+                data-testid="one-time-expenses-list"
+              />
+            </div>
+          } @else {
+            <div class="empty-state" data-testid="empty-state">
+              <h2 class="text-title-large mt-4" data-testid="empty-state-title">
+                Aucun budget trouvé
+              </h2>
+              <p
+                class="text-body-large text-on-surface-variant mt-2"
+                data-testid="empty-state-description"
+              >
+                Aucun budget n'a été créé pour
+                {{ store.budgetDate() | date: 'MMMM yyyy' : '' : 'fr-CH' }}.
+              </p>
+            </div>
+          }
         }
       }
     </div>
@@ -237,12 +252,24 @@ export default class CurrentMonth {
   protected readonly titleDisplay = inject(TitleDisplay);
   readonly #productTourService = inject(ProductTourService);
   readonly #destroyRef = inject(DestroyRef);
+  readonly #loadingIndicator = inject(LoadingIndicator);
   #bottomSheet = inject(MatBottomSheet);
   #dialog = inject(MatDialog);
   #snackBar = inject(MatSnackBar);
   #logger = inject(Logger);
 
   constructor() {
+    this.store.refreshData();
+
+    effect(() => {
+      const status = this.store.status();
+      this.#loadingIndicator.setLoading(status === 'reloading');
+    });
+
+    this.#destroyRef.onDestroy(() => {
+      this.#loadingIndicator.setLoading(false);
+    });
+
     afterNextRender(() => {
       if (!this.#productTourService.hasSeenPageTour('current-month')) {
         setTimeout(

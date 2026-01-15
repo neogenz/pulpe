@@ -1,17 +1,9 @@
 import { type Routes } from '@angular/router';
-import { BudgetTemplatesApi } from './services/budget-templates-api';
-import { BudgetTemplatesState } from './services/budget-templates-state';
-import { TransactionFormService } from './services/transaction-form';
 import { PAGE_TITLES } from '@core/routing';
 
 export const budgetTemplatesRoutes: Routes = [
   {
     path: '',
-    providers: [
-      BudgetTemplatesApi,
-      BudgetTemplatesState,
-      TransactionFormService,
-    ],
     children: [
       {
         path: '',
