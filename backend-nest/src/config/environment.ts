@@ -18,6 +18,7 @@ const envSchema = z.object({
     .min(1, { error: 'TURNSTILE_SECRET_KEY is required' }),
   CORS_ORIGIN: z.string().optional(),
   DEBUG_HTTP_FULL: z.string().optional(),
+  MAINTENANCE_MODE: z.string().optional(),
 });
 
 export type Environment = z.infer<typeof envSchema>;
@@ -32,6 +33,7 @@ export function validateEnvironment(configService: ConfigService): Environment {
     TURNSTILE_SECRET_KEY: configService.get('TURNSTILE_SECRET_KEY'),
     CORS_ORIGIN: configService.get('CORS_ORIGIN'),
     DEBUG_HTTP_FULL: configService.get('DEBUG_HTTP_FULL'),
+    MAINTENANCE_MODE: configService.get('MAINTENANCE_MODE'),
   };
 
   const result = envSchema.safeParse(config);

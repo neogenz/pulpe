@@ -28,6 +28,11 @@ export const routes: Routes = [
     loadComponent: () => import('./feature/auth/signup/signup'),
   },
   {
+    path: ROUTES.MAINTENANCE,
+    title: PAGE_TITLES.MAINTENANCE,
+    loadChildren: () => import('./feature/maintenance/maintenance.routes'),
+  },
+  {
     path: ROUTES.LEGAL,
     title: PAGE_TITLES.LEGAL,
     loadChildren: () => import('./feature/legal/legal.routes'),

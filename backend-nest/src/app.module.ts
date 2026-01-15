@@ -2,6 +2,7 @@ import {
   MiddlewareConsumer,
   Module,
   NestModule,
+  RequestMethod,
   type ExecutionContext,
 } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -34,6 +35,7 @@ import { CommonModule } from '@common/common.module';
 import { UserThrottlerGuard } from '@common/guards/user-throttler.guard';
 
 // Middleware
+import { MaintenanceMiddleware } from '@common/middleware/maintenance.middleware';
 import { PayloadSizeMiddleware } from '@common/middleware/payload-size.middleware';
 import { ResponseLoggerMiddleware } from '@common/middleware/response-logger.middleware';
 
@@ -285,12 +287,21 @@ function createPinoLoggerConfig(configService: ConfigService) {
       provide: APP_GUARD,
       useClass: UserThrottlerGuard,
     },
+    MaintenanceMiddleware,
     ResponseLoggerMiddleware,
     PayloadSizeMiddleware,
   ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(MaintenanceMiddleware)
+      .exclude(
+        { path: 'health', method: RequestMethod.GET },
+        { path: '/', method: RequestMethod.GET },
+        { path: 'api/v1/maintenance/status', method: RequestMethod.GET },
+      )
+      .forRoutes('*');
     consumer.apply(ResponseLoggerMiddleware).forRoutes('*');
     consumer.apply(PayloadSizeMiddleware).forRoutes('*');
   }
