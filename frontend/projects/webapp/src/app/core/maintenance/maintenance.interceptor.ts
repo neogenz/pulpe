@@ -13,10 +13,11 @@ export const maintenanceInterceptor: HttpInterceptorFn = (req, next) => {
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
       if (error.status === 503 && error.error?.code === 'MAINTENANCE') {
-        if (!window.location.pathname.startsWith('/' + ROUTES.MAINTENANCE)) {
-          logger.info('Maintenance mode detected, redirecting...');
-          window.location.href = '/' + ROUTES.MAINTENANCE;
+        if (window.location.pathname.startsWith('/' + ROUTES.MAINTENANCE)) {
+          return EMPTY;
         }
+        logger.info('Maintenance mode detected, redirecting...');
+        window.location.href = '/' + ROUTES.MAINTENANCE;
         return EMPTY;
       }
       return throwError(() => error);

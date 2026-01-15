@@ -22,6 +22,6 @@ export class MaintenanceMiddleware implements NestMiddleware {
       });
     }
 
-    next();
+    return next();
   }
 }
