@@ -54,7 +54,7 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
           </div>
           <mat-card-title>Jour de paie</mat-card-title>
           <mat-card-subtitle>
-            Votre budget commence le jour où vous recevez votre salaire
+            Ton budget commence le jour où tu reçois ton salaire
           </mat-card-subtitle>
         </mat-card-header>
 
@@ -78,13 +78,13 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
             <mat-hint data-testid="pay-day-hint">
               @if (selectedPayDay(); as day) {
                 @if (day > 28) {
-                  Votre budget commence le {{ day }}. Si le mois a moins de
+                  Ton budget commence le {{ day }}. Si le mois a moins de
                   jours, il débutera le dernier jour disponible.
                 } @else {
-                  Votre budget commence le {{ day }} de chaque mois
+                  Ton budget commence le {{ day }} de chaque mois
                 }
               } @else {
-                Votre budget suit le calendrier standard
+                Ton budget suit le calendrier standard
               }
             </mat-hint>
           </mat-form-field>
@@ -128,9 +128,9 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
               Comment ça marche ?
             </p>
             <p class="text-body-small text-on-secondary-container mt-1">
-              Si vous êtes payé le 27, votre budget de janvier couvrira la
-              période du 27 décembre au 26 janvier. Vous planifiez ainsi vos
-              dépenses selon votre vrai rythme financier.
+              Si tu es payé le 27, ton budget de janvier couvrira la
+              période du 27 décembre au 26 janvier. Tu planifies ainsi tes
+              dépenses selon ton vrai rythme financier.
             </p>
           </div>
         </mat-card-content>
@@ -172,14 +172,14 @@ export default class SettingsPage {
         payDayOfMonth: this.selectedPayDay(),
       });
 
-      this.#snackBar.open('Paramètres enregistrés', 'OK', {
+      this.#snackBar.open('C\'est enregistré', 'OK', {
         duration: 3000,
         horizontalPosition: 'center',
         verticalPosition: 'bottom',
       });
     } catch (error) {
       this.#logger.error('Failed to save settings', error);
-      this.#snackBar.open('Erreur lors de la sauvegarde', 'OK', {
+      this.#snackBar.open('La sauvegarde a échoué — réessaie', 'OK', {
         duration: 5000,
         horizontalPosition: 'center',
         verticalPosition: 'bottom',

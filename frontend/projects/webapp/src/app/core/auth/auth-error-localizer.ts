@@ -7,56 +7,56 @@ export type AuthErrorTranslations = Record<string, string>;
 })
 export class AuthErrorLocalizer {
   private readonly errorTranslations: AuthErrorTranslations = {
-    'Invalid login credentials': 'Email ou mot de passe incorrect',
+    'Invalid login credentials': 'Email ou mot de passe incorrect — on réessaie ?',
     'Email not confirmed':
-      'Veuillez confirmer votre email avant de vous connecter',
+      'Confirme ton email pour continuer — vérifie ta boîte mail',
     'Too many requests':
-      'Trop de tentatives de connexion. Veuillez réessayer plus tard',
-    'User already registered': 'Cet email est déjà utilisé',
-    'Signup requires a valid password': 'Le mot de passe doit être valide',
+      'Trop de tentatives — patiente quelques minutes',
+    'User already registered': 'Cet email est déjà utilisé — tu as peut-être déjà un compte ?',
+    'Signup requires a valid password': 'Choisis un mot de passe valide',
     'Password should be at least 6 characters':
-      'Le mot de passe doit contenir au moins 6 caractères',
+      '6 caractères minimum pour le mot de passe',
     'Password should be at least 8 characters':
-      'Le mot de passe doit contenir au moins 8 caractères',
-    'Invalid email': 'Adresse email invalide',
-    'User not found': 'Utilisateur introuvable',
+      '8 caractères minimum pour sécuriser ton compte',
+    'Invalid email': 'Cette adresse email ne semble pas valide',
+    'User not found': 'Compte introuvable — vérifie ton email',
     'Email link is invalid or has expired':
-      'Le lien email est invalide ou a expiré',
-    'Token has expired or is invalid': 'Le token a expiré ou est invalide',
+      'Ce lien a expiré — demande-en un nouveau',
+    'Token has expired or is invalid': 'Ce lien a expiré — demande-en un nouveau',
     'The new email address provided is invalid':
-      'La nouvelle adresse email fournie est invalide',
+      'Cette adresse email ne semble pas valide',
     'Signups not allowed for this instance':
-      'Les inscriptions ne sont pas autorisées',
-    'Email signups are disabled': 'Les inscriptions par email sont désactivées',
+      'Les inscriptions sont fermées pour le moment',
+    'Email signups are disabled': 'Les inscriptions par email sont fermées',
     'Only an email address or phone number should be provided on signup':
-      "Seul un email ou un numéro de téléphone doit être fourni lors de l'inscription",
+      'Utilise ton email pour t\'inscrire',
     'To signup, please provide your email':
-      'Pour vous inscrire, veuillez fournir votre email',
-    'Weak password': 'Mot de passe trop faible',
-    'Password is too weak': 'Le mot de passe est trop faible',
-    'Session not found': 'Session introuvable',
-    'Session expired': 'Session expirée',
+      'Ton email est nécessaire pour t\'inscrire',
+    'Weak password': 'Choisis un mot de passe plus sécurisé',
+    'Password is too weak': 'Ce mot de passe est trop simple — ajoute des caractères',
+    'Session not found': 'Ta session a expiré — reconnecte-toi',
+    'Session expired': 'Ta session a expiré — reconnecte-toi',
     'Network request failed':
-      'Erreur de réseau. Vérifiez votre connexion internet',
+      'Problème de connexion — vérifie ton réseau',
     'Unable to validate email address: invalid format':
-      "Format d'email invalide",
-    'Database error saving new user': 'Erreur lors de la création du compte',
+      'Cette adresse email ne semble pas valide',
+    'Database error saving new user': 'La création du compte a échoué — réessayons',
     'A user with this email address has already been registered':
-      'Un utilisateur avec cet email est déjà inscrit',
-    'OAuth error': 'Erreur de connexion avec Google',
-    'Provider error': "Erreur du fournisseur d'authentification",
-    'Popup closed': 'La fenêtre de connexion a été fermée',
+      'Cet email est déjà utilisé — tu as peut-être déjà un compte ?',
+    'OAuth error': 'La connexion avec Google a échoué — réessayons',
+    'Provider error': 'La connexion a échoué — réessayons',
+    'Popup closed': 'Tu as fermé la fenêtre de connexion',
     'Access denied': 'Connexion annulée',
     access_denied: 'Connexion annulée',
     user_cancelled_login: 'Connexion annulée',
-    'OAuth callback error': 'Erreur lors du retour de Google',
+    'OAuth callback error': 'La connexion avec Google a échoué — réessayons',
     'Provider not enabled':
-      "Ce fournisseur d'authentification n'est pas activé",
+      'Cette méthode de connexion n\'est pas disponible',
   };
 
   localizeError(originalErrorMessage: string): string {
     if (!originalErrorMessage) {
-      return "Une erreur inattendue s'est produite";
+      return "Quelque chose n'a pas fonctionné — réessayons";
     }
 
     const trimmedMessage = originalErrorMessage.trim();
@@ -67,18 +67,18 @@ export class AuthErrorLocalizer {
     }
 
     if (this.containsWeakPasswordError(trimmedMessage)) {
-      return 'Le mot de passe doit contenir au moins 8 caractères avec des lettres et des chiffres';
+      return 'Choisis un mot de passe plus sécurisé (8 caractères avec lettres et chiffres)';
     }
 
     if (this.containsRateLimitError(trimmedMessage)) {
-      return 'Trop de tentatives. Veuillez patienter avant de réessayer';
+      return 'Trop de tentatives — patiente quelques minutes';
     }
 
     if (this.containsNetworkError(trimmedMessage)) {
-      return 'Problème de connexion. Vérifiez votre connexion internet';
+      return 'Problème de connexion — vérifie ton réseau';
     }
 
-    return "Une erreur inattendue s'est produite. Veuillez réessayer";
+    return "Quelque chose n'a pas fonctionné — réessayons";
   }
 
   private containsWeakPasswordError(message: string): boolean {

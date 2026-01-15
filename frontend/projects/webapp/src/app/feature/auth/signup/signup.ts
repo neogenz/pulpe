@@ -82,7 +82,7 @@ function passwordsMatchValidator(
             Créer un compte
           </h1>
           <p class="text-body-large text-on-surface-variant">
-            Rejoins Pulpe pour gérer ton budget
+            Rejoins Pulpe et reprends le contrôle
           </p>
         </div>
 
@@ -110,9 +110,9 @@ function passwordsMatchValidator(
             ) {
               <mat-error>
                 @if (signupForm.get('email')?.hasError('required')) {
-                  L'email est requis.
+                  Ton email est nécessaire pour continuer
                 } @else if (signupForm.get('email')?.hasError('email')) {
-                  Une adresse email valide est requise.
+                  Cette adresse email ne semble pas valide
                 }
               </mat-error>
             }
@@ -142,16 +142,16 @@ function passwordsMatchValidator(
                 hidePassword() ? 'visibility_off' : 'visibility'
               }}</mat-icon>
             </button>
-            <mat-hint>Minimum 8 caractères</mat-hint>
+            <mat-hint>8 caractères minimum pour sécuriser ton compte</mat-hint>
             @if (
               signupForm.get('password')?.invalid &&
               signupForm.get('password')?.touched
             ) {
               <mat-error>
                 @if (signupForm.get('password')?.hasError('required')) {
-                  Le mot de passe est requis.
+                  Ton mot de passe est nécessaire
                 } @else if (signupForm.get('password')?.hasError('minlength')) {
-                  Le mot de passe doit contenir au moins 8 caractères.
+                  8 caractères minimum
                 }
               </mat-error>
             }
@@ -187,13 +187,13 @@ function passwordsMatchValidator(
             ) {
               <mat-error>
                 @if (signupForm.get('confirmPassword')?.hasError('required')) {
-                  La confirmation est requise.
+                  Confirme ton mot de passe
                 } @else if (
                   signupForm
                     .get('confirmPassword')
                     ?.hasError('passwordsMismatch')
                 ) {
-                  Les mots de passe ne correspondent pas.
+                  Les mots de passe ne correspondent pas
                 }
               </mat-error>
             }
@@ -231,7 +231,7 @@ function passwordsMatchValidator(
               signupForm.get('acceptTerms')?.touched
             ) {
               <p class="text-error text-body-small mt-1">
-                Vous devez accepter les conditions pour continuer.
+                Accepte les conditions pour continuer
               </p>
             }
           </div>
@@ -332,7 +332,7 @@ export default class Signup {
     if (!this.signupForm.valid) {
       this.signupForm.markAllAsTouched();
       this.errorMessage.set(
-        'Veuillez corriger les erreurs dans le formulaire.',
+        'Quelques champs à vérifier avant de continuer',
       );
       return;
     }
@@ -352,13 +352,13 @@ export default class Signup {
         this.#router.navigate(['/', ROUTES.APP, ROUTES.CURRENT_MONTH]);
       } else {
         this.errorMessage.set(
-          result.error || 'Erreur lors de la création du compte.',
+          result.error || 'La création du compte a échoué — on réessaie ?',
         );
       }
     } catch (error) {
       this.#logger.error('Erreur lors de la création du compte:', error);
       this.errorMessage.set(
-        "Une erreur inattendue s'est produite. Veuillez réessayer.",
+        "Quelque chose n'a pas fonctionné — réessayons",
       );
     } finally {
       this.isSubmitting.set(false);

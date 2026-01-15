@@ -122,7 +122,7 @@ type EditTransactionFormData = Pick<
 
       @if (store.isLoading()) {
         <pulpe-base-loading
-          message="Chargement du tableau de bord..."
+          message="Préparation de ton tableau de bord..."
           size="large"
           testId="dashboard-loading"
         />
@@ -187,14 +187,15 @@ type EditTransactionFormData = Pick<
         } @else {
           <div class="empty-state" data-testid="empty-state">
             <h2 class="text-title-large mt-4" data-testid="empty-state-title">
-              Aucun budget trouvé
+              Pas encore de budget ce mois-ci
             </h2>
             <p
               class="text-body-large text-on-surface-variant mt-2"
               data-testid="empty-state-description"
             >
-              Aucun budget n'a été créé pour
-              {{ store.budgetDate() | date: 'MMMM yyyy' : '' : 'fr-CH' }}.
+              Crée ton budget pour
+              {{ store.budgetDate() | date: 'MMMM yyyy' : '' : 'fr-CH' }}
+              et reprends le contrôle.
             </p>
           </div>
         }
@@ -323,7 +324,7 @@ export default class CurrentMonth {
     );
 
     if (!transaction) {
-      this.#snackBar.open('Transaction non trouvée', 'Fermer', {
+      this.#snackBar.open('Transaction introuvable', 'Fermer', {
         duration: 3000,
       });
       return;
@@ -332,8 +333,8 @@ export default class CurrentMonth {
     // Open confirmation dialog
     const dialogRef = this.#dialog.open(ConfirmationDialog, {
       data: {
-        title: 'Supprimer la transaction',
-        message: `Êtes-vous sûr de vouloir supprimer « ${transaction.name} » ?`,
+        title: 'Supprimer cette transaction ?',
+        message: `Tu vas supprimer « ${transaction.name} ». Cette action est irréversible.`,
         confirmText: 'Supprimer',
         cancelText: 'Annuler',
         confirmColor: 'warn' as const,
@@ -357,7 +358,7 @@ export default class CurrentMonth {
 
         // Show specific error message
         this.#snackBar.open(
-          'Une erreur inattendue est survenue. Veuillez réessayer.',
+          'Quelque chose n\'a pas fonctionné — réessayons',
           'Fermer',
           {
             duration: 5000,
@@ -413,7 +414,7 @@ export default class CurrentMonth {
 
       // Show specific error message
       this.#snackBar.open(
-        'Une erreur inattendue est survenue. Veuillez réessayer.',
+        'Quelque chose n\'a pas fonctionné — réessayons',
         'Fermer',
         {
           duration: 5000,
@@ -427,7 +428,7 @@ export default class CurrentMonth {
       await this.store.toggleBudgetLineCheck(budgetLineId);
     } catch (error) {
       this.#logger.error('Error toggling budget line check:', error);
-      this.#snackBar.open('Erreur lors du basculement du statut', 'Fermer', {
+      this.#snackBar.open('Le statut n\'a pas pu être mis à jour — réessaie', 'Fermer', {
         duration: 5000,
       });
     }
@@ -438,7 +439,7 @@ export default class CurrentMonth {
       await this.store.toggleTransactionCheck(transactionId);
     } catch (error) {
       this.#logger.error('Error toggling transaction check:', error);
-      this.#snackBar.open('Erreur lors du basculement du statut', 'Fermer', {
+      this.#snackBar.open('Le statut n\'a pas pu être mis à jour — réessaie', 'Fermer', {
         duration: 5000,
       });
     }

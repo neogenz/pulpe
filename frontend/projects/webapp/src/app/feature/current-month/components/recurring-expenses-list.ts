@@ -60,8 +60,8 @@ export class RecurringExpensesList {
         }
       }, 0),
       emptyStateIcon: 'event_repeat',
-      emptyStateTitle: 'Aucune prévision récurrente',
-      emptyStateSubtitle: 'Vos prévisions récurrentes apparaîtront ici',
+      emptyStateTitle: 'Aucune prévision récurrente pour l\'instant',
+      emptyStateSubtitle: 'Tes charges fixes et revenus réguliers apparaîtront ici',
       defaultExpanded: false,
     }),
   );

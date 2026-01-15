@@ -107,7 +107,7 @@ import {
       @switch (true) {
         @case (state.budgetTemplates.isLoading()) {
           <pulpe-base-loading
-            message="Chargement des modèles de budget..."
+            message="Récupération de tes modèles..."
             size="large"
             testId="templates-loading"
           />
@@ -203,7 +203,7 @@ export default class TemplateListPage {
     } catch (error) {
       this.#logger.error('Error checking template usage:', error);
       this.#snackBar.open(
-        'Une erreur est survenue lors de la vérification',
+        'La vérification a échoué — réessaie',
         'Fermer',
         {
           duration: 5000,
@@ -216,13 +216,13 @@ export default class TemplateListPage {
     try {
       await this.state.deleteTemplate(template.id);
 
-      this.#snackBar.open('Modèle supprimé avec succès', undefined, {
+      this.#snackBar.open('Modèle supprimé', undefined, {
         duration: 3000,
       });
     } catch (error) {
       this.#logger.error('Error deleting template:', error);
       this.#snackBar.open(
-        'Une erreur est survenue lors de la suppression',
+        'La suppression a échoué — réessaie',
         'Fermer',
         {
           duration: 5000,
