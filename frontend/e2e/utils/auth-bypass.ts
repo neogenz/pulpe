@@ -76,6 +76,15 @@ export async function setupApiMocks(page: Page) {
       });
     }
 
+    // Budget exists endpoint (for hasBudgetGuard - must check BEFORE other budget endpoints)
+    if (url.includes('budgets/exists')) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ hasBudget: true }),
+      });
+    }
+
     // Budget details endpoint (must check BEFORE budget list due to url.includes)
     if (url.includes('budgets') && url.includes('/details')) {
       return route.fulfill({
