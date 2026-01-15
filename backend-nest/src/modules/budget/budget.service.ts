@@ -232,7 +232,7 @@ export class BudgetService {
         duration: Date.now() - startTime,
         operation: 'budget.export.success',
       },
-      'Export de tous les budgets réussi',
+      'All budgets exported successfully',
     );
   }
 
@@ -443,7 +443,7 @@ export class BudgetService {
         budgetLineCount: responseData.budgetLines.length,
         operation: 'budget.details.fetched',
       },
-      'Budget avec détails récupéré avec succès',
+      'Budget details fetched successfully',
     );
   }
 
@@ -587,7 +587,7 @@ export class BudgetService {
         duration: Date.now() - startTime,
         operation: 'budget.create.success',
       },
-      'Budget créé depuis template avec transaction atomique',
+      'Budget created from template with atomic transaction',
     );
 
     return processedResult;
