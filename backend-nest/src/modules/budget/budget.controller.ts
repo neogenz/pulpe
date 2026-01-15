@@ -117,6 +117,30 @@ export class BudgetController {
     return this.budgetService.exportAll(user, supabase);
   }
 
+  @Get('exists')
+  @ApiOperation({
+    summary: 'Check if user has any budgets',
+    description:
+      'Lightweight endpoint that returns whether the authenticated user has at least one budget. Optimized for guard checks.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Budget existence check completed',
+    schema: {
+      type: 'object',
+      properties: {
+        hasBudget: { type: 'boolean' },
+      },
+    },
+  })
+  async checkBudgetExists(
+    @User() user: AuthenticatedUser,
+    @SupabaseClient() supabase: AuthenticatedSupabaseClient,
+  ): Promise<{ hasBudget: boolean }> {
+    const count = await this.budgetService.countUserBudgets(user, supabase);
+    return { hasBudget: count > 0 };
+  }
+
   @Get(':id')
   @ApiOperation({
     summary: 'Get budget by ID',
