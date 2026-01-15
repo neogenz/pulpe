@@ -4,7 +4,7 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
+import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import { Request } from 'express';
 import { SupabaseService } from '@modules/supabase/supabase.service';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
@@ -19,8 +19,8 @@ interface RequestWithCache extends Request {
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
-    @InjectPinoLogger(AuthGuard.name)
-    private readonly logger: PinoLogger,
+    @InjectInfoLogger(AuthGuard.name)
+    private readonly logger: InfoLogger,
     private readonly supabaseService: SupabaseService,
   ) {}
 
@@ -60,10 +60,6 @@ export class AuthGuard implements CanActivate {
       if (error instanceof UnauthorizedException) {
         throw error;
       }
-      this.logger.error(
-        { err: error },
-        'Authentication error while using cached user',
-      );
       throw new UnauthorizedException("Erreur d'authentification");
     }
   }
@@ -100,7 +96,6 @@ export class AuthGuard implements CanActivate {
       if (error instanceof UnauthorizedException) {
         throw error;
       }
-      this.logger.error({ err: error }, 'Authentication middleware error');
       throw new UnauthorizedException("Erreur d'authentification");
     }
   }

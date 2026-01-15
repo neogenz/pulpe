@@ -52,7 +52,7 @@ describe('AuthGuard', () => {
           useValue: mockReflector,
         },
         {
-          provide: `PinoLogger:${AuthGuard.name}`,
+          provide: `INFO_LOGGER:${AuthGuard.name}`,
           useValue: mockPinoLogger,
         },
       ],
@@ -296,7 +296,7 @@ describe('AuthGuard', () => {
             useValue: { get: () => undefined },
           },
           {
-            provide: `PinoLogger:${AuthGuard.name}`,
+            provide: `INFO_LOGGER:${AuthGuard.name}`,
             useValue: {
               error: () => {},
               debug: () => {},

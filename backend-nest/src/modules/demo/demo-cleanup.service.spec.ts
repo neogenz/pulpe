@@ -26,7 +26,7 @@ describe('DemoCleanupService - Business Value Tests', () => {
           },
         },
         {
-          provide: `PinoLogger:${DemoCleanupService.name}`,
+          provide: `INFO_LOGGER:${DemoCleanupService.name}`,
           useValue: {
             error: mock(() => {}),
             info: mock(() => {}),

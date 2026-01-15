@@ -14,6 +14,7 @@ import { createInfoLoggerProvider } from '@common/logger';
     BudgetValidator,
     BudgetRepository,
     createInfoLoggerProvider(BudgetService.name),
+    createInfoLoggerProvider(BudgetCalculator.name),
   ],
   exports: [BudgetService, BudgetCalculator],
 })

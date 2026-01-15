@@ -434,8 +434,6 @@ describe('BudgetTemplateService - Simplified Tests', () => {
       await expect(
         service.findAll(mockUser, mockSupabase as any),
       ).rejects.toThrow(InternalServerErrorException);
-
-      expect(mockLogger.error).toHaveBeenCalled();
     });
   });
 

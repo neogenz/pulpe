@@ -3,7 +3,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BudgetLineService } from './budget-line.service';
 import { BudgetService } from '../budget/budget.service';
 import { BusinessException } from '@common/exceptions/business.exception';
-import { PinoLogger } from 'nestjs-pino';
 import type { BudgetLineCreate, BudgetLineUpdate } from 'pulpe-shared';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
@@ -11,7 +10,6 @@ import type { BudgetLineRow } from './entities/budget-line.entity';
 
 describe('BudgetLineService', () => {
   let service: BudgetLineService;
-  let _logger: PinoLogger;
   type MockSupabaseResponse<T> = {
     data: T | null;
     error: Error | null;
@@ -98,15 +96,6 @@ describe('BudgetLineService', () => {
   };
 
   beforeEach(async () => {
-    const mockLoggerInstance = {
-      error: jest.fn(),
-      info: jest.fn(),
-      debug: jest.fn(),
-      warn: jest.fn(),
-      fatal: jest.fn(),
-      trace: jest.fn(),
-    };
-
     mockSupabase = {
       from: jest.fn(),
     };
@@ -122,10 +111,6 @@ describe('BudgetLineService', () => {
       providers: [
         BudgetLineService,
         {
-          provide: `PinoLogger:${BudgetLineService.name}`,
-          useValue: mockLoggerInstance,
-        },
-        {
           provide: BudgetService,
           useValue: {
             recalculateBalances: jest.fn().mockResolvedValue(undefined),
@@ -135,7 +120,6 @@ describe('BudgetLineService', () => {
     }).compile();
 
     service = module.get<BudgetLineService>(BudgetLineService);
-    _logger = module.get<PinoLogger>(`PinoLogger:${BudgetLineService.name}`);
   });
 
   describe('findByBudgetId', () => {

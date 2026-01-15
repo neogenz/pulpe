@@ -37,7 +37,7 @@ import {
   templateLinesBulkOperationsSchema,
   templateLinesBulkUpdateSchema,
 } from 'pulpe-shared';
-import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import * as budgetTemplateMappers from './budget-template.mappers';
 
 type TemplateBulkOperationsResult = {
@@ -51,8 +51,8 @@ export class BudgetTemplateService {
   private readonly MAX_TEMPLATES_PER_USER = 5;
 
   constructor(
-    @InjectPinoLogger(BudgetTemplateService.name)
-    private readonly logger: PinoLogger,
+    @InjectInfoLogger(BudgetTemplateService.name)
+    private readonly logger: InfoLogger,
     private readonly budgetService: BudgetService,
   ) {}
 
@@ -87,16 +87,7 @@ export class BudgetTemplateService {
         success: true,
         data: budgetTemplateMappers.toApiTemplateList(data || []),
       };
-    } catch (error) {
-      this.logger.error(
-        {
-          operation: 'findAll',
-          userId: user.id,
-          duration: Date.now() - startTime,
-          err: error,
-        },
-        'Failed to list templates',
-      );
+    } catch {
       throw new InternalServerErrorException('Failed to retrieve templates');
     }
   }
@@ -132,17 +123,6 @@ export class BudgetTemplateService {
       return { success: true, data: budgetTemplateMappers.toApiTemplate(data) };
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
-
-      this.logger.error(
-        {
-          operation: 'findOne',
-          userId: user.id,
-          entityId: id,
-          duration: Date.now() - startTime,
-          err: error,
-        },
-        'Failed to retrieve template',
-      );
       throw new InternalServerErrorException('Failed to retrieve template');
     }
   }
@@ -178,16 +158,6 @@ export class BudgetTemplateService {
 
       return result;
     } catch (error) {
-      this.logger.error(
-        {
-          operation: 'create',
-          userId: user.id,
-          duration: Date.now() - startTime,
-          err: error,
-        },
-        'Failed to create template',
-      );
-
       if (error instanceof BadRequestException) throw error;
       throw new InternalServerErrorException('Failed to create template');
     }
@@ -295,17 +265,6 @@ export class BudgetTemplateService {
         error instanceof BadRequestException
       )
         throw error;
-
-      this.logger.error(
-        {
-          operation: 'update',
-          userId: user.id,
-          entityId: id,
-          duration: Date.now() - startTime,
-          err: error,
-        },
-        'Failed to update template',
-      );
       throw new InternalServerErrorException('Failed to update template');
     }
   }
@@ -375,7 +334,7 @@ export class BudgetTemplateService {
 
       return { success: true, message: 'Template deleted successfully' };
     } catch (error) {
-      this.handleTemplateDeletionError(error, user.id, id, startTime);
+      this.handleTemplateDeletionError(error);
     }
   }
 
@@ -406,7 +365,7 @@ export class BudgetTemplateService {
 
       return this.buildTemplateUsageResponse(budgets);
     } catch (error) {
-      this.handleTemplateUsageError(error, user.id, id, startTime);
+      this.handleTemplateUsageError(error);
     }
   }
 
@@ -443,16 +402,6 @@ export class BudgetTemplateService {
       return this.create(templateCreateDto, user, supabase);
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
-
-      this.logger.error(
-        {
-          operation: 'createFromOnboarding',
-          userId: user.id,
-          duration: Date.now() - startTime,
-          err: error,
-        },
-        'Failed to create template from onboarding',
-      );
       throw new InternalServerErrorException(
         'Failed to create template from onboarding',
       );
@@ -586,17 +535,6 @@ export class BudgetTemplateService {
         data: budgetTemplateMappers.toApiTemplateLineList(lines),
       };
     } catch (error) {
-      this.logger.error(
-        {
-          operation: 'findTemplateLines',
-          userId: user.id,
-          entityId: templateId,
-          duration: Date.now() - startTime,
-          err: error,
-        },
-        'Failed to retrieve template lines',
-      );
-
       if (error instanceof NotFoundException) throw error;
       throw new InternalServerErrorException(
         'Failed to retrieve template lines',
@@ -650,11 +588,7 @@ export class BudgetTemplateService {
         data: budgetTemplateMappers.toApiTemplateLine(data),
       };
     } catch (error) {
-      this.handleTemplateLineError(error, 'createTemplateLine', {
-        userId: user.id,
-        entityId: templateId,
-        duration: Date.now() - startTime,
-      });
+      this.handleTemplateLineError(error, 'createTemplateLine');
     }
   }
 
@@ -671,16 +605,7 @@ export class BudgetTemplateService {
     return this.insertTemplateLine(validated, templateId, supabase);
   }
 
-  private handleTemplateLineError(
-    error: unknown,
-    operation: string,
-    context: Record<string, unknown>,
-  ): never {
-    this.logger.error(
-      { operation, ...context, err: error },
-      `Failed to ${operation.replace(/([A-Z])/g, ' $1').toLowerCase()}`,
-    );
-
+  private handleTemplateLineError(error: unknown, operation: string): never {
     if (
       error instanceof NotFoundException ||
       error instanceof BadRequestException ||
@@ -738,17 +663,6 @@ export class BudgetTemplateService {
         data: budgetTemplateMappers.toApiTemplateLine(line),
       };
     } catch (error) {
-      this.logger.error(
-        {
-          operation: 'findTemplateLine',
-          userId: user.id,
-          entityId: templateLineId,
-          duration: Date.now() - startTime,
-          err: error,
-        },
-        'Failed to retrieve template line',
-      );
-
       if (
         error instanceof NotFoundException ||
         error instanceof ForbiddenException
@@ -813,11 +727,7 @@ export class BudgetTemplateService {
         data: budgetTemplateMappers.toApiTemplateLine(data),
       };
     } catch (error) {
-      this.handleTemplateLineError(error, 'updateTemplateLine', {
-        userId: user.id,
-        entityId: templateLineId,
-        duration: Date.now() - startTime,
-      });
+      this.handleTemplateLineError(error, 'updateTemplateLine');
     }
   }
 
@@ -886,7 +796,7 @@ export class BudgetTemplateService {
 
       return { success: true, data };
     } catch (error) {
-      this.handleBulkUpdateError(error, user.id, templateId, startTime);
+      this.handleBulkUpdateError(error);
     }
   }
 
@@ -905,23 +815,7 @@ export class BudgetTemplateService {
     return budgetTemplateMappers.toApiTemplateLineList(allUpdatedLines);
   }
 
-  private handleBulkUpdateError(
-    error: unknown,
-    userId: string,
-    entityId: string,
-    startTime: number,
-  ): never {
-    this.logger.error(
-      {
-        operation: 'bulkUpdateTemplateLines',
-        userId,
-        entityId,
-        duration: Date.now() - startTime,
-        err: error,
-      },
-      'Failed to bulk update template lines',
-    );
-
+  private handleBulkUpdateError(error: unknown): never {
     if (
       error instanceof NotFoundException ||
       error instanceof BadRequestException
@@ -1042,7 +936,7 @@ export class BudgetTemplateService {
       );
       return data;
     } catch (error) {
-      this.handleBulkOperationsError(error, user.id, templateId, startTime);
+      this.handleBulkOperationsError(error);
     }
   }
 
@@ -1328,26 +1222,6 @@ export class BudgetTemplateService {
     return hasDeletes || hasBudgetMutations;
   }
 
-  private logOperationError(
-    error: unknown,
-    templateId: string,
-    budgetIds: string[],
-    operations: TemplateBulkOperationsResult,
-  ): void {
-    this.logger.error(
-      {
-        operation: 'apply_template_line_operations',
-        templateId,
-        budgetIds,
-        deleteCount: operations.deletedIds.length,
-        updateCount: operations.updatedLines.length,
-        createCount: operations.createdLines.length,
-        err: error,
-      },
-      'Failed to execute template line operations transaction',
-    );
-  }
-
   private processOperationResponse(data: unknown): string[] {
     if (!data) {
       return [];
@@ -1373,29 +1247,24 @@ export class BudgetTemplateService {
       (operations.updatedLines.length > 0 ||
         operations.createdLines.length > 0);
 
-    try {
-      const { data, error } = await supabase.rpc(
-        'apply_template_line_operations',
-        {
-          template_id: templateId,
-          budget_ids: budgetIds,
-          delete_ids: operations.deletedIds,
-          updated_lines: hasBudgetMutations
-            ? this.mapTemplateLinesForRpc(operations.updatedLines)
-            : [],
-          created_lines: hasBudgetMutations
-            ? this.mapTemplateLinesForRpc(operations.createdLines)
-            : [],
-        },
-      );
+    const { data, error } = await supabase.rpc(
+      'apply_template_line_operations',
+      {
+        template_id: templateId,
+        budget_ids: budgetIds,
+        delete_ids: operations.deletedIds,
+        updated_lines: hasBudgetMutations
+          ? this.mapTemplateLinesForRpc(operations.updatedLines)
+          : [],
+        created_lines: hasBudgetMutations
+          ? this.mapTemplateLinesForRpc(operations.createdLines)
+          : [],
+      },
+    );
 
-      if (error) throw error;
+    if (error) throw error;
 
-      return this.processOperationResponse(data);
-    } catch (error) {
-      this.logOperationError(error, templateId, budgetIds, operations);
-      throw error;
-    }
+    return this.processOperationResponse(data);
   }
 
   private async fetchFutureBudgetsForTemplate(
@@ -1519,13 +1388,6 @@ export class BudgetTemplateService {
       .or(futureFilter);
 
     if (error) {
-      this.logger.error({
-        operation: 'fetchFutureBudgetsForTemplate',
-        error: error.message,
-        templateId,
-        userId,
-        message: 'Failed to fetch future budgets',
-      });
       throw error;
     }
 
@@ -1672,23 +1534,7 @@ export class BudgetTemplateService {
     return data || [];
   }
 
-  private handleBulkOperationsError(
-    error: unknown,
-    userId: string,
-    entityId: string,
-    startTime: number,
-  ): never {
-    this.logger.error(
-      {
-        operation: 'bulkOperationsTemplateLines',
-        userId,
-        entityId,
-        duration: Date.now() - startTime,
-        err: error,
-      },
-      'Failed to perform bulk operations on template lines',
-    );
-
+  private handleBulkOperationsError(error: unknown): never {
     if (
       error instanceof NotFoundException ||
       error instanceof BadRequestException ||
@@ -1723,17 +1569,6 @@ export class BudgetTemplateService {
 
       return { success: true, message: 'Template line deleted successfully' };
     } catch (error) {
-      this.logger.error(
-        {
-          operation: 'deleteTemplateLine',
-          userId: user.id,
-          entityId: templateLineId,
-          duration: Date.now() - startTime,
-          err: error,
-        },
-        'Failed to delete template line',
-      );
-
       if (
         error instanceof NotFoundException ||
         error instanceof ForbiddenException
@@ -1836,29 +1671,13 @@ export class BudgetTemplateService {
     );
   }
 
-  private handleTemplateDeletionError(
-    error: unknown,
-    userId: string,
-    entityId: string,
-    startTime: number,
-  ): never {
+  private handleTemplateDeletionError(error: unknown): never {
     if (
       error instanceof NotFoundException ||
       error instanceof BadRequestException ||
       error instanceof ForbiddenException
     )
       throw error;
-
-    this.logger.error(
-      {
-        operation: 'remove',
-        userId,
-        entityId,
-        duration: Date.now() - startTime,
-        err: error,
-      },
-      'Failed to delete template',
-    );
     throw new InternalServerErrorException('Failed to delete template');
   }
 
@@ -1917,28 +1736,12 @@ export class BudgetTemplateService {
     );
   }
 
-  private handleTemplateUsageError(
-    error: unknown,
-    userId: string,
-    entityId: string,
-    startTime: number,
-  ): never {
+  private handleTemplateUsageError(error: unknown): never {
     if (
       error instanceof NotFoundException ||
       error instanceof ForbiddenException
     )
       throw error;
-
-    this.logger.error(
-      {
-        operation: 'checkTemplateUsage',
-        userId,
-        entityId,
-        duration: Date.now() - startTime,
-        err: error,
-      },
-      'Failed to check template usage',
-    );
     throw new InternalServerErrorException('Failed to check template usage');
   }
 }

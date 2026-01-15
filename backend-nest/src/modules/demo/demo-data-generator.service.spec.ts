@@ -20,7 +20,7 @@ describe('DemoDataGeneratorService - Integration Tests', () => {
       providers: [
         DemoDataGeneratorService,
         {
-          provide: `PinoLogger:${DemoDataGeneratorService.name}`,
+          provide: `INFO_LOGGER:${DemoDataGeneratorService.name}`,
           useValue: {
             error: () => {},
             info: () => {},

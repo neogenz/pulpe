@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
+import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import type { AuthenticatedSupabaseClient } from '../supabase/supabase.service';
 import { addMonths, startOfMonth } from 'date-fns';
 import type { Tables } from '../../types/database.types';
@@ -23,8 +23,8 @@ type TransactionRow = Tables<'transaction'>;
 @Injectable()
 export class DemoDataGeneratorService {
   constructor(
-    @InjectPinoLogger(DemoDataGeneratorService.name)
-    private readonly logger: PinoLogger,
+    @InjectInfoLogger(DemoDataGeneratorService.name)
+    private readonly logger: InfoLogger,
     private readonly budgetCalculator: BudgetCalculator,
   ) {}
 
@@ -38,55 +38,47 @@ export class DemoDataGeneratorService {
   ): Promise<void> {
     this.logger.info({ userId }, 'Starting demo data generation');
 
-    try {
-      // 1. Create templates
-      const templates = await this.createTemplates(userId, supabase);
-      this.logger.info(
-        { userId, count: templates.length },
-        'Templates created',
-      );
+    // 1. Create templates
+    const templates = await this.createTemplates(userId, supabase);
+    this.logger.info({ userId, count: templates.length }, 'Templates created');
 
-      // 2. Create template lines
-      const templateLines = await this.createTemplateLines(templates, supabase);
-      this.logger.info(
-        { userId, count: templateLines.length },
-        'Template lines created',
-      );
+    // 2. Create template lines
+    const templateLines = await this.createTemplateLines(templates, supabase);
+    this.logger.info(
+      { userId, count: templateLines.length },
+      'Template lines created',
+    );
 
-      // 3. Create budgets (6 past + 6 future months)
-      const budgets = await this.createBudgets(userId, templates, supabase);
-      this.logger.info({ userId, count: budgets.length }, 'Budgets created');
+    // 3. Create budgets (6 past + 6 future months)
+    const budgets = await this.createBudgets(userId, templates, supabase);
+    this.logger.info({ userId, count: budgets.length }, 'Budgets created');
 
-      // 4. Create budget lines
-      const budgetLines = await this.createBudgetLines(
-        budgets,
-        templateLines,
-        supabase,
-      );
-      this.logger.info(
-        { userId, count: budgetLines.length },
-        'Budget lines created',
-      );
+    // 4. Create budget lines
+    const budgetLines = await this.createBudgetLines(
+      budgets,
+      templateLines,
+      supabase,
+    );
+    this.logger.info(
+      { userId, count: budgetLines.length },
+      'Budget lines created',
+    );
 
-      // 5. Create sample transactions (for past months only)
-      const transactions = await this.createTransactions(budgets, supabase);
-      this.logger.info(
-        { userId, count: transactions.length },
-        'Transactions created',
-      );
+    // 5. Create sample transactions (for past months only)
+    const transactions = await this.createTransactions(budgets, supabase);
+    this.logger.info(
+      { userId, count: transactions.length },
+      'Transactions created',
+    );
 
-      // 6. Recalculate ending_balance for all budgets (enables rollover calculation)
-      await this.recalculateAllBudgetBalances(budgets, supabase);
-      this.logger.info(
-        { userId, count: budgets.length },
-        'Budget balances recalculated',
-      );
+    // 6. Recalculate ending_balance for all budgets (enables rollover calculation)
+    await this.recalculateAllBudgetBalances(budgets, supabase);
+    this.logger.info(
+      { userId, count: budgets.length },
+      'Budget balances recalculated',
+    );
 
-      this.logger.info({ userId }, 'Demo data generation completed');
-    } catch (error) {
-      this.logger.error({ userId, error }, 'Failed to generate demo data');
-      throw error;
-    }
+    this.logger.info({ userId }, 'Demo data generation completed');
   }
 
   private async createTemplates(
