@@ -331,9 +331,7 @@ export default class Signup {
   protected async signUp(): Promise<void> {
     if (!this.signupForm.valid) {
       this.signupForm.markAllAsTouched();
-      this.errorMessage.set(
-        'Quelques champs à vérifier avant de continuer',
-      );
+      this.errorMessage.set('Quelques champs à vérifier avant de continuer');
       return;
     }
 
@@ -357,9 +355,7 @@ export default class Signup {
       }
     } catch (error) {
       this.#logger.error('Erreur lors de la création du compte:', error);
-      this.errorMessage.set(
-        "Quelque chose n'a pas fonctionné — réessayons",
-      );
+      this.errorMessage.set("Quelque chose n'a pas fonctionné — réessayons");
     } finally {
       this.isSubmitting.set(false);
     }

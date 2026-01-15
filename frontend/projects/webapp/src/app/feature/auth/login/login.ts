@@ -209,9 +209,7 @@ export default class Login {
   protected async signIn(): Promise<void> {
     if (!this.loginForm.valid) {
       this.loginForm.markAllAsTouched();
-      this.errorMessage.set(
-        'Quelques champs à vérifier avant de continuer',
-      );
+      this.errorMessage.set('Quelques champs à vérifier avant de continuer');
       return;
     }
 
@@ -232,9 +230,7 @@ export default class Login {
       }
     } catch (error) {
       this.#logger.error('Erreur lors de la connexion:', error);
-      this.errorMessage.set(
-        "Quelque chose n'a pas fonctionné — réessayons",
-      );
+      this.errorMessage.set("Quelque chose n'a pas fonctionné — réessayons");
     } finally {
       this.isSubmitting.set(false);
     }

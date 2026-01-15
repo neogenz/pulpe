@@ -25,8 +25,8 @@ import { TemplateCard } from './template-card';
           class="text-body-large text-on-surface-variant max-w-md"
           data-testid="empty-state-subtitle"
         >
-          Crée ton premier modèle pour gagner du temps chaque mois.
-          Un modèle te permet de réutiliser la même structure en un clic.
+          Crée ton premier modèle pour gagner du temps chaque mois. Un modèle te
+          permet de réutiliser la même structure en un clic.
         </p>
       </div>
     } @else {

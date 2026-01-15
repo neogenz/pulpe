@@ -288,7 +288,7 @@ export default class BudgetListPage {
     } catch (error) {
       this.#logger.error('Error opening create budget dialog', error);
       this.#snackBar.open(
-        'Impossible d\'ouvrir le dialogue — réessaie',
+        "Impossible d'ouvrir le dialogue — réessaie",
         'Fermer',
         {
           duration: 5000,
@@ -323,7 +323,7 @@ export default class BudgetListPage {
     } catch (error) {
       this.#logger.error('Error opening create budget dialog', error);
       this.#snackBar.open(
-        'Impossible d\'ouvrir le dialogue — réessaie',
+        "Impossible d'ouvrir le dialogue — réessaie",
         'Fermer',
         {
           duration: 5000,
@@ -341,22 +341,14 @@ export default class BudgetListPage {
       const today = new Date().toISOString().split('T')[0];
       downloadAsJsonFile(data, `pulpe-export-${today}`);
 
-      this.#snackBar.open(
-        'Export terminé — fichier téléchargé',
-        'Fermer',
-        { duration: 3000 },
-      );
+      this.#snackBar.open('Export terminé — fichier téléchargé', 'Fermer', {
+        duration: 3000,
+      });
     } catch (error) {
       this.#logger.error('Error exporting budgets', error);
-      const errorMessage =
-        error instanceof Error ? error.message : 'Erreur inconnue';
-      this.#snackBar.open(
-        'L\'export a échoué — réessaie',
-        'Fermer',
-        {
-          duration: 5000,
-        },
-      );
+      this.#snackBar.open("L'export a échoué — réessaie", 'Fermer', {
+        duration: 5000,
+      });
     } finally {
       this.isExporting.set(false);
       this.#loadingIndicator.setLoading(false);
@@ -379,7 +371,7 @@ export default class BudgetListPage {
     } catch (error) {
       this.#logger.error('Error opening search dialog', error);
       this.#snackBar.open(
-        'Impossible d\'ouvrir le dialogue — réessaie',
+        "Impossible d'ouvrir le dialogue — réessaie",
         'Fermer',
         {
           duration: 5000,
