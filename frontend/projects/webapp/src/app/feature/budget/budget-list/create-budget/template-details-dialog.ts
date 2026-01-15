@@ -46,7 +46,9 @@ export interface TemplateDetailsDialogData {
         <div class="flex justify-between mb-4">
           <div class="flex flex-col">
             <div>Revenus total:</div>
-            <div class="ph-no-capture text-financial-income text-label-large">
+            <div
+              class="ph-no-capture text-financial-income text-label-large font-mono"
+            >
               {{
                 totalIncome() | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
               }}
@@ -54,7 +56,9 @@ export interface TemplateDetailsDialogData {
           </div>
           <div class="flex flex-col">
             <div>Dépenses total:</div>
-            <div class="ph-no-capture text-financial-negative text-label-large">
+            <div
+              class="ph-no-capture text-financial-negative text-label-large font-mono"
+            >
               {{
                 totalExpenses() | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
               }}
@@ -84,7 +88,7 @@ export interface TemplateDetailsDialogData {
                   }
                 </div>
                 <div
-                  class="ph-no-capture text-body-medium font-medium flex-shrink-0"
+                  class="ph-no-capture text-body-medium font-medium flex-shrink-0 font-mono"
                   [class.text-financial-savings]="line.kind === 'saving'"
                   [class.text-financial-negative]="line.kind === 'expense'"
                   [class.text-financial-income]="line.kind === 'income'"
@@ -106,7 +110,7 @@ export interface TemplateDetailsDialogData {
         <mat-divider class="mb-2!"></mat-divider>
         <div class="flex justify-between text-body-medium font-medium">
           <span>Solde net:</span>
-          <span class="ph-no-capture">
+          <span class="ph-no-capture font-mono">
             {{ netBalance() | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH' }}
           </span>
         </div>

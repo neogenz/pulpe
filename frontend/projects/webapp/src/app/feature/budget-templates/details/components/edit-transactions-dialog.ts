@@ -230,7 +230,7 @@ interface EditTransactionsDialogResult {
                 <span
                   [class.text-financial-income]="runningTotals()[i] >= 0"
                   [class.text-financial-negative]="runningTotals()[i] < 0"
-                  class="font-medium ph-no-capture"
+                  class="font-medium ph-no-capture font-mono"
                 >
                   {{
                     runningTotals()[i]

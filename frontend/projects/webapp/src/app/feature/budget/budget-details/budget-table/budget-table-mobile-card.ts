@@ -122,10 +122,10 @@ import { type BudgetLineTableItem } from './budget-table-models';
               </div>
               <div class="px-4 pb-2 text-label-medium">
                 Solde:
-                {{
+                <span class="font-mono">{{
                   item().metadata.cumulativeBalance
                     | currency: 'CHF' : 'symbol' : '1.0-0'
-                }}
+                }}</span>
               </div>
               <mat-divider />
               <button
@@ -172,7 +172,7 @@ import { type BudgetLineTableItem } from './budget-table-models';
         <!-- Amount display -->
         <div class="text-center py-2 mb-3">
           <div
-            class="text-headline-medium font-bold"
+            class="text-headline-medium font-bold font-mono"
             [class.text-financial-income]="item().data.kind === 'income'"
             [class.text-financial-expense]="item().data.kind === 'expense'"
             [class.text-financial-savings]="item().data.kind === 'saving'"

@@ -62,7 +62,11 @@ export interface FinancialEntry {
             >
               Dépensé
             </th>
-            <td mat-cell *matCellDef="let row" class="text-right px-4 py-2">
+            <td
+              mat-cell
+              *matCellDef="let row"
+              class="text-right px-4 py-2 font-mono"
+            >
               @if (row.spent !== 0) {
                 <span class="ph-no-capture">{{
                   row.spent | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
@@ -80,7 +84,11 @@ export interface FinancialEntry {
             >
               Gagné
             </th>
-            <td mat-cell *matCellDef="let row" class="text-right px-4 py-2">
+            <td
+              mat-cell
+              *matCellDef="let row"
+              class="text-right px-4 py-2 font-mono"
+            >
               @if (row.earned !== 0) {
                 <span class="ph-no-capture">{{
                   row.earned | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
@@ -98,7 +106,11 @@ export interface FinancialEntry {
             >
               Économisé
             </th>
-            <td mat-cell *matCellDef="let row" class="text-right px-4 py-2">
+            <td
+              mat-cell
+              *matCellDef="let row"
+              class="text-right px-4 py-2 font-mono"
+            >
               @if (row.saved !== 0) {
                 <span class="ph-no-capture">{{
                   row.saved | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
@@ -116,7 +128,11 @@ export interface FinancialEntry {
             >
               Total
             </th>
-            <td mat-cell *matCellDef="let row" class="text-right px-4 py-2">
+            <td
+              mat-cell
+              *matCellDef="let row"
+              class="text-right px-4 py-2 font-mono"
+            >
               <span class="ph-no-capture">{{
                 row.total | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'
               }}</span>

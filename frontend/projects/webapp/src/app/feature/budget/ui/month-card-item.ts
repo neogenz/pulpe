@@ -37,7 +37,7 @@ import { CurrencyPipe } from '@angular/common';
       <mat-card-content>
         <div class="flex justify-center gap-2 items-center">
           <p
-            class="ph-no-capture text-headline-small financial-amount overflow-hidden text-ellipsis"
+            class="ph-no-capture text-headline-small financial-amount overflow-hidden text-ellipsis font-mono"
             [attr.data-type]="totalAmount() >= 0 ? 'positive' : 'negative'"
             data-testid="month-card-amount"
           >

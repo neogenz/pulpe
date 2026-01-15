@@ -141,7 +141,7 @@ import { Logger } from '@core/logging/logger';
               <td
                 mat-cell
                 *matCellDef="let row"
-                class="text-right text-body-medium font-bold"
+                class="text-right text-body-medium font-bold font-mono"
                 [class.text-financial-income]="row.kind === 'income'"
                 [class.text-financial-expense]="row.kind === 'expense'"
                 [class.text-financial-savings]="row.kind === 'saving'"

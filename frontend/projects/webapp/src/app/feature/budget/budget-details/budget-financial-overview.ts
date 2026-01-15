@@ -36,7 +36,7 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
                 <span class="text-label-large"> Revenus CHF </span>
               </div>
               <div
-                class="text-title-large font-bold text-financial-income ph-no-capture"
+                class="text-title-large font-bold text-financial-income ph-no-capture font-mono"
               >
                 {{ totals().income | number: '1.0-0' : 'de-CH' }}
               </div>
@@ -51,7 +51,7 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
                 <span class="text-label-large"> Dépenses CHF </span>
               </div>
               <div
-                class="text-title-large font-bold text-financial-expense ph-no-capture"
+                class="text-title-large font-bold text-financial-expense ph-no-capture font-mono"
               >
                 {{ totals().expenses | number: '1.0-0' : 'de-CH' }}
               </div>
@@ -66,7 +66,7 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
                 <span class="text-label-large"> Épargne CHF </span>
               </div>
               <div
-                class="text-title-large font-bold text-financial-savings ph-no-capture"
+                class="text-title-large font-bold text-financial-savings ph-no-capture font-mono"
               >
                 {{ totals().savings | number: '1.0-0' : 'de-CH' }}
               </div>
@@ -91,7 +91,7 @@ import { RealizedBalanceTooltip } from '@ui/realized-balance-tooltip/realized-ba
                 </span>
               </div>
               <div
-                class="text-title-large font-bold ph-no-capture"
+                class="text-title-large font-bold ph-no-capture font-mono"
                 [class.text-financial-savings]="totals().remaining >= 0"
                 [class.text-error]="totals().remaining < 0"
               >

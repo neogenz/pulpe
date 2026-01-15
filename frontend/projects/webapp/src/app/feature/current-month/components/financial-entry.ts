@@ -95,7 +95,7 @@ export type FinancialEntryViewModel = FinancialEntryModel & {
         }
       </div>
       <div matListItemMeta class="flex! h-full! items-center!">
-        <span class="ph-no-capture" [class.italic]="isRollover()">
+        <span class="ph-no-capture font-mono" [class.italic]="isRollover()">
           {{ data().kind === 'income' ? '+' : '-'
           }}{{ data().amount | number: '1.2-2' : 'de-CH' }}
         </span>

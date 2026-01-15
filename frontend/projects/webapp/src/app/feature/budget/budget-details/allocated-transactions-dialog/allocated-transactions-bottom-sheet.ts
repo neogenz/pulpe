@@ -46,7 +46,7 @@ import type {
         <div class="text-center p-2 bg-surface-container rounded-lg">
           <div class="text-label-small text-on-surface-variant">Dépensé</div>
           <div
-            class="text-title-medium font-bold"
+            class="text-title-medium font-bold font-mono"
             [class.text-financial-income]="data.budgetLine.kind === 'income'"
             [class.text-financial-expense]="data.budgetLine.kind === 'expense'"
             [class.text-financial-savings]="data.budgetLine.kind === 'saving'"
@@ -59,7 +59,7 @@ import type {
         <!-- Prévu -->
         <div class="text-center p-2 bg-surface-container rounded-lg">
           <div class="text-label-small text-on-surface-variant">Prévu</div>
-          <div class="text-title-small font-semibold">
+          <div class="text-title-small font-semibold font-mono">
             {{ data.budgetLine.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
           </div>
         </div>
@@ -67,7 +67,7 @@ import type {
         <div class="text-center p-2 bg-surface-container rounded-lg">
           <div class="text-label-small text-on-surface-variant">Reste</div>
           <div
-            class="text-title-small font-semibold"
+            class="text-title-small font-semibold font-mono"
             [class.text-error]="data.consumption.remaining < 0"
             [class.text-financial-income]="data.consumption.remaining >= 0"
           >
@@ -108,7 +108,7 @@ import type {
                 </div>
                 <div class="flex items-center gap-2">
                   <span
-                    class="text-body-medium font-semibold whitespace-nowrap"
+                    class="text-body-medium font-semibold whitespace-nowrap font-mono"
                   >
                     {{ tx.amount | currency: 'CHF' : 'symbol' : '1.2-2' }}
                   </span>

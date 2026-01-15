@@ -30,7 +30,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
               Dépenses réalisées CHF
             </span>
             <span
-              class="text-headline-small md:text-headline-large ph-no-capture"
+              class="text-headline-small md:text-headline-large ph-no-capture font-mono"
             >
               {{ realizedExpenses() | number: '1.2-2' : 'de-CH' }}
             </span>
@@ -44,7 +44,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
               <ng-content select="[slot=title-info]" />
             </span>
             <span
-              class="text-headline-small md:text-headline-large ph-no-capture"
+              class="text-headline-small md:text-headline-large ph-no-capture font-mono"
               [class.text-financial-income]="realizedBalance() >= 0"
               [class.text-financial-negative]="realizedBalance() < 0"
             >

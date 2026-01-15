@@ -113,7 +113,7 @@ import { type TemplateViewModel } from './template-view-model';
               >
               <span
                 matListItemMeta
-                class="ph-no-capture text-body-medium! font-medium!"
+                class="ph-no-capture text-body-medium! font-medium! font-mono"
               >
                 {{
                   templateViewModel().income
@@ -134,7 +134,7 @@ import { type TemplateViewModel } from './template-view-model';
               >
               <span
                 matListItemMeta
-                class="ph-no-capture text-body-medium! font-medium!"
+                class="ph-no-capture text-body-medium! font-medium! font-mono"
               >
                 {{
                   templateViewModel().expenses
@@ -153,7 +153,7 @@ import { type TemplateViewModel } from './template-view-model';
               <span matListItemTitle class="text-body-medium">Disponible</span>
               <span
                 matListItemMeta
-                class="ph-no-capture text-body-medium! font-medium!"
+                class="ph-no-capture text-body-medium! font-medium! font-mono"
               >
                 {{
                   templateViewModel().netBalance

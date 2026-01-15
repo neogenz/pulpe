@@ -162,7 +162,7 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                           }
                         </div>
                         <div
-                          class="text-title-medium font-bold"
+                          class="text-title-medium font-bold font-mono"
                           [class.text-financial-income]="item.data.amount > 0"
                           [class.text-error]="item.data.amount < 0"
                         >
@@ -330,12 +330,13 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                     <div class="flex flex-col items-end gap-1">
                       <div class="flex flex-col items-center">
                         <span
-                          class="text-body-medium font-semibold"
+                          class="text-body-medium font-semibold font-mono"
                           [class.text-error]="isExceeded"
                         >
                           {{ remaining | currency: 'CHF' : 'symbol' : '1.0-0' }}
                           @if (isExceeded) {
-                            <span class="text-label-small font-normal ml-1"
+                            <span
+                              class="text-label-small font-normal font-sans ml-1"
                               >dépassé</span
                             >
                           }
@@ -392,7 +393,7 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                     </form>
                   } @else {
                     <span
-                      class="text-body-medium font-bold"
+                      class="text-body-medium font-bold font-mono"
                       [class.italic]="line.metadata.isRollover"
                       [class.text-financial-income]="
                         line.data.kind === 'income'
@@ -423,7 +424,7 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                   ) {
                     <button
                       matButton
-                      class="text-body-small h-8! px-3!"
+                      class="text-body-small h-8! px-3! font-mono"
                       [matBadge]="line.consumption.transactionCount"
                       matBadgeColor="primary"
                       (click)="onViewTransactionsFromLine(line)"
@@ -465,7 +466,7 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                       }
                     </mat-icon>
                     <span
-                      class="text-body-medium font-medium"
+                      class="text-body-medium font-medium font-mono"
                       [class.text-financial-income]="
                         line.metadata.cumulativeBalance >= 0
                       "

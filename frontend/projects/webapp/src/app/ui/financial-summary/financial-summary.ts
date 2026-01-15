@@ -38,7 +38,7 @@ export interface FinancialSummaryData {
               <ng-content select="[slot=title-info]" />
             </h3>
             <p
-              class="text-headline-small financial-amount ph-no-capture overflow-hidden text-ellipsis"
+              class="text-headline-small financial-amount ph-no-capture overflow-hidden text-ellipsis font-mono"
             >
               {{
                 data().amount | currency: 'CHF' : 'symbol' : '1.2-2' : 'de-CH'

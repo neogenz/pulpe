@@ -56,7 +56,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
               </span>
               <span class="text-headline-small md:text-headline-large">
                 <div
-                  class="flex flex-col ph-no-capture"
+                  class="flex flex-col ph-no-capture font-mono"
                   data-testid="expenses-amount"
                 >
                   {{ expenses() | number: '1.2-2' : 'de-CH' }}
@@ -66,7 +66,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
             <div class="flex flex-col text-right text-outline">
               <span class="text-body-small md:text-body">Disponible CHF</span>
               <span
-                class="text-headline-small md:text-headline-large ph-no-capture"
+                class="text-headline-small md:text-headline-large ph-no-capture font-mono"
                 data-testid="remaining-amount"
               >
                 {{ remaining() | number: '1.2-2' : 'de-CH' }}
