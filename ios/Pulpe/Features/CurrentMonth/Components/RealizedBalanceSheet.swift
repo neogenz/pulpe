@@ -164,12 +164,12 @@ private struct ProgressRow: View {
 
     private var percentage: Double {
         guard planned > 0 else { return 0 }
-        return min(Double(truncating: (realized / planned) as NSDecimalNumber), 1.0)
+        return min(Double(truncating: NSDecimalNumber(decimal: realized / planned)), 1.0)
     }
 
     private var percentageText: String {
         guard planned > 0 else { return "0%" }
-        let pct = Int((realized / planned * 100) as NSDecimalNumber)
+        let pct = Int(truncating: NSDecimalNumber(decimal: realized / planned * 100))
         return "\(min(pct, 100))%"
     }
 

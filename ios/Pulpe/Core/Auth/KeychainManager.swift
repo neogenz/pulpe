@@ -182,13 +182,16 @@ actor KeychainManager {
     }
 
     private func getBiometric(key: String) throws -> String? {
+        let context = LAContext()
+        context.interactionNotAllowed = false
+
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: key,
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne,
-            kSecUseAuthenticationUI as String: kSecUseAuthenticationUIAllow
+            kSecUseAuthenticationContext as String: context
         ]
 
         var result: AnyObject?
