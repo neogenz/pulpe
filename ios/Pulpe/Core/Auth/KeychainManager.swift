@@ -226,11 +226,11 @@ enum KeychainError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .userCanceled:
-            return "L'authentification a été annulée."
+            return "Authentification annulée"
         case .authFailed:
-            return "L'authentification a échoué."
+            return "L'authentification n'a pas fonctionné — réessaye"
         case .unknown(let status):
-            return "Erreur Keychain: \(status)"
+            return "Quelque chose n'a pas fonctionné (code: \(status))"
         }
     }
 }
