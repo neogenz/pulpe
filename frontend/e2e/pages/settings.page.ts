@@ -50,7 +50,7 @@ export class SettingsPage {
   async expectSuccessMessage(): Promise<void> {
     await expect(
       this.page.locator('.mat-mdc-snack-bar-label').last(),
-    ).toContainText('Paramètres enregistrés');
+    ).toContainText("C'est enregistré");
   }
 
   async expectSaveButtonVisible(): Promise<void> {

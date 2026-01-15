@@ -78,8 +78,8 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
             <mat-hint data-testid="pay-day-hint">
               @if (selectedPayDay(); as day) {
                 @if (day > 28) {
-                  Ton budget commence le {{ day }}. Si le mois a moins de
-                  jours, il débutera le dernier jour disponible.
+                  Ton budget commence le {{ day }}. Si le mois a moins de jours,
+                  il débutera le dernier jour disponible.
                 } @else {
                   Ton budget commence le {{ day }} de chaque mois
                 }
@@ -128,9 +128,9 @@ import { PAY_DAY_MAX } from 'pulpe-shared';
               Comment ça marche ?
             </p>
             <p class="text-body-small text-on-secondary-container mt-1">
-              Si tu es payé le 27, ton budget de janvier couvrira la
-              période du 27 décembre au 26 janvier. Tu planifies ainsi tes
-              dépenses selon ton vrai rythme financier.
+              Si tu es payé le 27, ton budget de janvier couvrira la période du
+              27 décembre au 26 janvier. Tu planifies ainsi tes dépenses selon
+              ton vrai rythme financier.
             </p>
           </div>
         </mat-card-content>
@@ -172,7 +172,7 @@ export default class SettingsPage {
         payDayOfMonth: this.selectedPayDay(),
       });
 
-      this.#snackBar.open('C\'est enregistré', 'OK', {
+      this.#snackBar.open("C'est enregistré", 'OK', {
         duration: 3000,
         horizontalPosition: 'center',
         verticalPosition: 'bottom',

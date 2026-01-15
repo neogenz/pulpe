@@ -202,13 +202,9 @@ export default class TemplateListPage {
       }
     } catch (error) {
       this.#logger.error('Error checking template usage:', error);
-      this.#snackBar.open(
-        'La vérification a échoué — réessaie',
-        'Fermer',
-        {
-          duration: 5000,
-        },
-      );
+      this.#snackBar.open('La vérification a échoué — réessaie', 'Fermer', {
+        duration: 5000,
+      });
     }
   }
 
@@ -221,13 +217,9 @@ export default class TemplateListPage {
       });
     } catch (error) {
       this.#logger.error('Error deleting template:', error);
-      this.#snackBar.open(
-        'La suppression a échoué — réessaie',
-        'Fermer',
-        {
-          duration: 5000,
-        },
-      );
+      this.#snackBar.open('La suppression a échoué — réessaie', 'Fermer', {
+        duration: 5000,
+      });
     }
   }
 }

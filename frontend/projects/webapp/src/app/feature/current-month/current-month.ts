@@ -358,7 +358,7 @@ export default class CurrentMonth {
 
         // Show specific error message
         this.#snackBar.open(
-          'Quelque chose n\'a pas fonctionné — réessayons',
+          "Quelque chose n'a pas fonctionné — réessayons",
           'Fermer',
           {
             duration: 5000,
@@ -414,7 +414,7 @@ export default class CurrentMonth {
 
       // Show specific error message
       this.#snackBar.open(
-        'Quelque chose n\'a pas fonctionné — réessayons',
+        "Quelque chose n'a pas fonctionné — réessayons",
         'Fermer',
         {
           duration: 5000,
@@ -428,9 +428,13 @@ export default class CurrentMonth {
       await this.store.toggleBudgetLineCheck(budgetLineId);
     } catch (error) {
       this.#logger.error('Error toggling budget line check:', error);
-      this.#snackBar.open('Le statut n\'a pas pu être mis à jour — réessaie', 'Fermer', {
-        duration: 5000,
-      });
+      this.#snackBar.open(
+        "Le statut n'a pas pu être mis à jour — réessaie",
+        'Fermer',
+        {
+          duration: 5000,
+        },
+      );
     }
   }
 
@@ -439,9 +443,13 @@ export default class CurrentMonth {
       await this.store.toggleTransactionCheck(transactionId);
     } catch (error) {
       this.#logger.error('Error toggling transaction check:', error);
-      this.#snackBar.open('Le statut n\'a pas pu être mis à jour — réessaie', 'Fermer', {
-        duration: 5000,
-      });
+      this.#snackBar.open(
+        "Le statut n'a pas pu être mis à jour — réessaie",
+        'Fermer',
+        {
+          duration: 5000,
+        },
+      );
     }
   }
 }

@@ -116,7 +116,7 @@ test.describe('Budget Line Editing', () => {
     await saveButton.click();
 
     // Wait for the API request to complete by waiting for the success message
-    await expect(authenticatedPage.locator('.mat-mdc-snack-bar-label').last()).toHaveText('Prévision modifiée.');
+    await expect(authenticatedPage.locator('.mat-mdc-snack-bar-label').last()).toHaveText('Modification enregistrée');
 
     // Wait for the DOM to update with the new values
     await expect(authenticatedPage.locator('tr:has-text("' + updatedName + '")')).toBeVisible();
