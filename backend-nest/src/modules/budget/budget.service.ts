@@ -61,6 +61,45 @@ export class BudgetService {
     return Math.max(PAY_DAY_MIN, Math.min(PAY_DAY_MAX, raw));
   }
 
+  async countUserBudgets(
+    user: AuthenticatedUser,
+    supabase: AuthenticatedSupabaseClient,
+  ): Promise<number> {
+    try {
+      const { count, error } = await supabase
+        .from('monthly_budget')
+        .select('*', { count: 'exact', head: true });
+
+      if (error) {
+        throw new BusinessException(
+          ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
+          undefined,
+          {
+            operation: 'countBudgets',
+            userId: user.id,
+            entityType: 'budget',
+            supabaseError: error,
+          },
+          { cause: error },
+        );
+      }
+
+      return count ?? 0;
+    } catch (error) {
+      if (error instanceof BusinessException) throw error;
+      throw handleServiceError(
+        error,
+        ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
+        undefined,
+        {
+          operation: 'countBudgets',
+          userId: user.id,
+          entityType: 'budget',
+        },
+      );
+    }
+  }
+
   async findAll(
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,

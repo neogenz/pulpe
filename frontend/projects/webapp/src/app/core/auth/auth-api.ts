@@ -5,6 +5,7 @@ import {
   type User,
   type SupabaseClient,
 } from '@supabase/supabase-js';
+import { firstValueFrom, EMPTY, catchError } from 'rxjs';
 import { AUTH_ERROR_MESSAGES } from './auth-constants';
 import { AuthErrorLocalizer } from './auth-error-localizer';
 import { ApplicationConfiguration } from '../config/application-configuration';
@@ -13,7 +14,8 @@ import { DemoModeService } from '../demo/demo-mode.service';
 import { PostHogService } from '../analytics/posthog';
 import { StorageService } from '../storage';
 import { ROUTES } from '../routing/routes-constants';
-import { HasBudgetState } from './has-budget-state';
+import { HasBudgetCache } from './has-budget-cache';
+import { BudgetApi } from '../budget/budget-api';
 
 export interface OAuthUserMetadata {
   givenName?: string;
@@ -46,7 +48,8 @@ export class AuthApi {
   readonly #demoModeService = inject(DemoModeService);
   readonly #postHogService = inject(PostHogService);
   readonly #storageService = inject(StorageService);
-  readonly #hasBudgetState = inject(HasBudgetState);
+  readonly #hasBudgetCache = inject(HasBudgetCache);
+  readonly #budgetApi = inject(BudgetApi);
 
   // Supabase client - créé dans initializeAuthState() après le chargement de la config
   #supabaseClient: SupabaseClient | null = null;
@@ -142,11 +145,15 @@ export class AuthApi {
           'Erreur lors de la récupération de la session:',
           error,
         );
-        this.updateAuthState(null);
+        this.#updateAuthState(null);
         return;
       }
 
-      this.updateAuthState(session);
+      this.#updateAuthState(session);
+
+      if (session) {
+        this.#preloadHasBudgetFlag();
+      }
 
       // Écouter les changements d'authentification
       this.#supabaseClient.auth.onAuthStateChange((event, session) => {
@@ -158,17 +165,18 @@ export class AuthApi {
         switch (event) {
           case 'SIGNED_IN':
           case 'TOKEN_REFRESHED':
-            this.updateAuthState(session);
+            this.#updateAuthState(session);
+            this.#preloadHasBudgetFlag();
             break;
           case 'SIGNED_OUT': {
             // Capture user ID BEFORE clearing state to preserve their tour keys
             const userId = this.#userSignal()?.id;
-            this.updateAuthState(null);
-            this.handleSignOut(userId);
+            this.#updateAuthState(null);
+            this.#handleSignOut(userId);
             break;
           }
           case 'USER_UPDATED':
-            this.updateAuthState(session);
+            this.#updateAuthState(session);
             break;
         }
       });
@@ -177,7 +185,7 @@ export class AuthApi {
         "Erreur lors de l'initialisation de l'authentification:",
         error,
       );
-      this.updateAuthState(null);
+      this.#updateAuthState(null);
     }
   }
 
@@ -204,19 +212,19 @@ export class AuthApi {
     (window as E2EWindow).__E2E_MOCK_AUTH_STATE__ = state;
   }
 
-  private updateAuthState(session: Session | null): void {
+  #updateAuthState(session: Session | null): void {
     this.#sessionSignal.set(session);
     this.#isLoadingSignal.set(false);
   }
 
-  private handleSignOut(userId?: string): void {
+  #handleSignOut(userId?: string): void {
     // Clear demo mode state BEFORE clearing other data
     // This ensures demo state is reset on ALL logout paths (menu, auth errors, etc.)
     // Note: This also updates internal signals, not just localStorage
     this.#demoModeService.deactivateDemoMode();
 
-    // Clear budget state cache so guard re-checks on next login
-    this.#hasBudgetState.clear();
+    // Clear budget cache so guard re-checks on next login
+    this.#hasBudgetCache.clear();
 
     // Reset analytics identity to prevent tracking new user with old identity
     this.#postHogService.reset();
@@ -224,6 +232,25 @@ export class AuthApi {
     // Clear all user data from localStorage (type-safe via StorageService)
     // Pass userId to preserve only this user's tour keys, remove other users' tour data
     this.#storageService.clearAll(userId);
+  }
+
+  async #preloadHasBudgetFlag(): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.#budgetApi.checkBudgetExists$().pipe(
+          catchError((error) => {
+            this.#logger.info(
+              'Pre-load hasBudget failed (non-blocking), guard will fetch on demand',
+              error,
+            );
+            return EMPTY;
+          }),
+        ),
+      );
+    } catch {
+      // firstValueFrom throws if EMPTY completes - this is expected for error case
+      // No action needed, guard will handle cache miss
+    }
   }
 
   async signInWithEmail(
@@ -348,7 +375,7 @@ export class AuthApi {
       }
 
       // Update auth state - this will trigger reactive updates
-      this.updateAuthState(data.session);
+      this.#updateAuthState(data.session);
 
       this.#logger.info('Session set successfully', {
         userId: data.session?.user?.id,
@@ -376,8 +403,8 @@ export class AuthApi {
           isLoading: false,
           isAuthenticated: false,
         });
-        this.updateAuthState(null);
-        this.handleSignOut(userId);
+        this.#updateAuthState(null);
+        this.#handleSignOut(userId);
         return;
       }
 

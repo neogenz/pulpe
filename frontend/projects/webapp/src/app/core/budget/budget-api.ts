@@ -19,6 +19,7 @@ import { catchError, map } from 'rxjs/operators';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
 import { StorageService, STORAGE_KEYS } from '../storage';
+import { HasBudgetCache } from '../auth/has-budget-cache';
 
 export interface CreateBudgetApiResponse {
   readonly budget: Budget;
@@ -43,6 +44,7 @@ export class BudgetApi {
   readonly #applicationConfig = inject(ApplicationConfiguration);
   readonly #logger = inject(Logger);
   readonly #storageService = inject(StorageService);
+  readonly #hasBudgetCache = inject(HasBudgetCache);
 
   get #apiUrl(): string {
     return `${this.#applicationConfig.backendApiUrl()}/budgets`;
@@ -82,7 +84,11 @@ export class BudgetApi {
    */
   getAllBudgets$(): Observable<Budget[]> {
     return this.#httpClient.get<unknown>(this.#apiUrl).pipe(
-      map((response) => budgetListResponseSchema.parse(response).data),
+      map((response) => {
+        const budgets = budgetListResponseSchema.parse(response).data;
+        this.#hasBudgetCache.setHasBudget(budgets.length > 0);
+        return budgets;
+      }),
       catchError((error) =>
         this.#handleApiError(
           error,
@@ -90,6 +96,27 @@ export class BudgetApi {
         ),
       ),
     );
+  }
+
+  /**
+   * Vérifie si l'utilisateur a au moins un budget (endpoint optimisé).
+   * Auto-sync le cache pour les guards et composants.
+   */
+  checkBudgetExists$(): Observable<boolean> {
+    return this.#httpClient
+      .get<{ hasBudget: boolean }>(`${this.#apiUrl}/exists`)
+      .pipe(
+        map((response) => {
+          this.#hasBudgetCache.setHasBudget(response.hasBudget);
+          return response.hasBudget;
+        }),
+        catchError((error) =>
+          this.#handleApiError(
+            error,
+            'Erreur lors de la vérification des budgets',
+          ),
+        ),
+      );
   }
 
   /**
