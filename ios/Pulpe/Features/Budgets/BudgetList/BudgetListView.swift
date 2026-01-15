@@ -10,15 +10,15 @@ struct BudgetListView: View {
     var body: some View {
         Group {
             if viewModel.isLoading && viewModel.budgets.isEmpty {
-                LoadingView(message: "Chargement des budgets...")
+                LoadingView(message: "Récupération de tes budgets...")
             } else if let error = viewModel.error, viewModel.budgets.isEmpty {
                 ErrorView(error: error) {
                     await viewModel.loadBudgets()
                 }
             } else if viewModel.budgets.isEmpty {
                 EmptyStateView(
-                    title: "Aucun budget",
-                    description: "Créez votre premier budget pour commencer",
+                    title: "Pas encore de budget",
+                    description: "Crée ton premier budget et reprends le contrôle",
                     systemImage: "calendar.badge.plus",
                     actionTitle: "Créer un budget"
                 ) {
@@ -199,7 +199,7 @@ struct YearSection: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Année \(year), \(budgets.count) budget\(budgets.count > 1 ? "s" : "")")
-        .accessibilityHint(isExpanded ? "Appuyer pour réduire" : "Appuyer pour développer")
+        .accessibilityHint(isExpanded ? "Appuie pour réduire" : "Appuie pour développer")
     }
 
     // MARK: - Month Grid
@@ -300,7 +300,7 @@ struct BudgetMonthCard: View {
             isPressed = pressing
         }, perform: {})
         .accessibilityLabel("\(monthName), solde \(budget.remaining?.asCompactCHF ?? "non défini")")
-        .accessibilityHint("Appuyer pour voir les détails")
+        .accessibilityHint("Appuie pour voir les détails")
         .accessibilityAddTraits(.isButton)
     }
 

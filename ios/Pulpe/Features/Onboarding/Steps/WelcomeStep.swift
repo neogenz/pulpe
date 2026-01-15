@@ -20,14 +20,14 @@ struct WelcomeStep: View {
                     VStack(spacing: 20) {
                         FeatureRow(
                             icon: "chart.bar.fill",
-                            title: "Suivez vos dépenses",
-                            description: "Visualisez où va votre argent chaque mois"
+                            title: "Suis tes dépenses",
+                            description: "Visualise où va ton argent chaque mois"
                         )
 
                         FeatureRow(
                             icon: "target",
-                            title: "Atteignez vos objectifs",
-                            description: "Planifiez et épargnez efficacement"
+                            title: "Atteins tes objectifs",
+                            description: "Planifie et épargne sereinement"
                         )
 
                         FeatureRow(

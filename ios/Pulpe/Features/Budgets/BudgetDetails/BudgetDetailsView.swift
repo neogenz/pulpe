@@ -630,7 +630,7 @@ private struct RolloverInfoRow: View {
         .accessibilityLabel("Report du mois précédent")
         .accessibilityValue("\(isPositive ? "Excédent" : "Déficit") de \(amount.asCHF)")
         .ifLet(onTap) { view, _ in
-            view.accessibilityHint("Appuyez deux fois pour voir le budget précédent")
+            view.accessibilityHint("Appuie deux fois pour voir le budget précédent")
         }
     }
 }

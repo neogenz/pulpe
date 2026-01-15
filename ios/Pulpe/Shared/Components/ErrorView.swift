@@ -12,7 +12,7 @@ struct ErrorView: View {
 
     var body: some View {
         ContentUnavailableView {
-            Label("Erreur", systemImage: "exclamationmark.triangle")
+            Label("Oups", systemImage: "exclamationmark.triangle")
         } description: {
             Text(error.localizedDescription)
         } actions: {
@@ -106,7 +106,7 @@ struct EmptyStateView: View {
 }
 
 #Preview("Error Banner") {
-    ErrorBanner(message: "Une erreur est survenue") {
+    ErrorBanner(message: "Quelque chose n'a pas fonctionné") {
         print("Dismissed")
     }
     .padding()

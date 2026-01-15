@@ -25,7 +25,7 @@ struct RegistrationStep: View {
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
 
-                    TextField("votre@email.com", text: Binding(
+                    TextField("ton@email.com", text: Binding(
                         get: { state.email },
                         set: { state.email = $0 }
                     ))
@@ -77,7 +77,7 @@ struct RegistrationStep: View {
                             .stroke(Color.inputBorder, lineWidth: 1)
                     )
 
-                    Text("Minimum 8 caractères")
+                    Text("8 caractères minimum pour sécuriser ton compte")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
