@@ -1,5 +1,5 @@
 import { Inject, type Provider } from '@nestjs/common';
-import { getLoggerToken, type PinoLogger } from 'nestjs-pino';
+import { PinoLogger } from 'nestjs-pino';
 import type { InfoLogger } from './info-logger.interface';
 
 export const INFO_LOGGER_TOKEN = 'INFO_LOGGER';
@@ -9,13 +9,16 @@ export function createInfoLoggerProvider(
 ): Provider<InfoLogger> {
   return {
     provide: `${INFO_LOGGER_TOKEN}:${context}`,
-    useFactory: (pinoLogger: PinoLogger): InfoLogger => ({
-      info: pinoLogger.info.bind(pinoLogger),
-      debug: pinoLogger.debug.bind(pinoLogger),
-      warn: pinoLogger.warn.bind(pinoLogger),
-      trace: pinoLogger.trace.bind(pinoLogger),
-    }),
-    inject: [getLoggerToken(context)],
+    useFactory: (pinoLogger: PinoLogger): InfoLogger => {
+      pinoLogger.setContext(context);
+      return {
+        info: pinoLogger.info.bind(pinoLogger),
+        debug: pinoLogger.debug.bind(pinoLogger),
+        warn: pinoLogger.warn.bind(pinoLogger),
+        trace: pinoLogger.trace.bind(pinoLogger),
+      };
+    },
+    inject: [PinoLogger],
   };
 }
 

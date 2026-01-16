@@ -204,7 +204,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           depth: index + 1,
           name: err.name || 'UnknownError',
           message: err.message || 'No message',
-          ...(this.isDevelopment() && err.stack && { stack: err.stack }),
+          ...(err.stack && { stack: err.stack }),
         };
       }
 
@@ -214,7 +214,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         depth: index + 1,
         name: errObj.name || 'UnknownError',
         message: errObj.message || JSON.stringify(err),
-        ...(this.isDevelopment() && errObj.stack && { stack: errObj.stack }),
+        ...(errObj.stack && { stack: errObj.stack }),
       };
     });
   }
@@ -226,7 +226,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       return {
         name: rootCause.name,
         message: rootCause.message,
-        ...(this.isDevelopment() && { stack: rootCause.stack }),
+        ...(rootCause.stack && { stack: rootCause.stack }),
       };
     }
 

@@ -850,7 +850,7 @@ describe('GlobalExceptionFilter', () => {
       );
     });
 
-    it('should exclude stack traces in cause chain during production', async () => {
+    it('should include stack traces in cause chain in production for logging', async () => {
       process.env.NODE_ENV = 'production';
 
       const rootError = new Error('Root cause');
@@ -865,8 +865,8 @@ describe('GlobalExceptionFilter', () => {
 
       const result = (filter as any).processException(businessException);
 
-      expect(result.loggingContext.causeChain[0]).not.toHaveProperty('stack');
-      expect(result.loggingContext.rootCause).not.toHaveProperty('stack');
+      expect(result.loggingContext.causeChain[0]).toHaveProperty('stack');
+      expect(result.loggingContext.rootCause).toHaveProperty('stack');
     });
 
     it('should handle BusinessException without cause', async () => {
@@ -1168,7 +1168,7 @@ describe('GlobalExceptionFilter', () => {
       expect(causeChain[0].stack).toContain('ECONNREFUSED');
     });
 
-    it('should NOT include stack trace in causeChain in production', () => {
+    it('should include stack trace in causeChain in production for logging', () => {
       process.env.NODE_ENV = 'production';
 
       const spiedLogger = {
@@ -1202,9 +1202,9 @@ describe('GlobalExceptionFilter', () => {
       const logCall = errorSpy.mock.calls[0] as unknown[];
       const logContext = logCall[0] as Record<string, unknown>;
 
-      // In production, stack trace should NOT be in causeChain
+      // In production, stack trace SHOULD be in causeChain for debugging
       const causeChain = logContext.causeChain as { stack?: string }[];
-      expect(causeChain[0].stack).toBeUndefined();
+      expect(causeChain[0].stack).toBeDefined();
     });
 
     it('should preserve rootCause info in log context', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, mock, beforeEach } from 'bun:test';
-import type { PinoLogger } from 'nestjs-pino';
+import { PinoLogger } from 'nestjs-pino';
 import type { FactoryProvider } from '@nestjs/common';
 import {
   createInfoLoggerProvider,
@@ -35,12 +35,16 @@ describe('InfoLogger Provider', () => {
       expect(provider.provide).toBe(`${INFO_LOGGER_TOKEN}:TestService`);
     });
 
-    it('should inject PinoLogger with correct context', () => {
+    it('should inject PinoLogger and set context', () => {
       const provider = createInfoLoggerProvider(
         'TestService',
       ) as FactoryProvider<InfoLogger>;
 
-      expect(provider.inject).toContain('PinoLogger:TestService');
+      expect(provider.inject).toContain(PinoLogger);
+
+      const infoLogger = provider.useFactory(mockPinoLogger);
+      expect(mockPinoLogger.setContext).toHaveBeenCalledWith('TestService');
+      expect(infoLogger).toBeDefined();
     });
 
     it('should create InfoLogger with only info, debug, warn, trace methods', () => {
