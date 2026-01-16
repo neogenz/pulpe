@@ -38,9 +38,7 @@ describe('AuthOAuthService', () => {
       session: sessionSignal.asReadonly(),
     };
 
-    mockConfig = {
-      baseUrl: vi.fn().mockReturnValue('https://example.com'),
-    };
+    mockConfig = {};
 
     mockErrorLocalizer = {
       localizeError: vi.fn().mockReturnValue('Erreur localisée'),
@@ -83,7 +81,7 @@ describe('AuthOAuthService', () => {
           aud: 'authenticated',
           role: 'authenticated',
         },
-      } as Session);
+      } as unknown as Session);
 
       const metadata = service.getOAuthUserMetadata();
 
@@ -101,7 +99,7 @@ describe('AuthOAuthService', () => {
             full_name: 'John Doe',
           },
         },
-      } as Session);
+      } as unknown as Session);
 
       const metadata = service.getOAuthUserMetadata();
 
@@ -121,7 +119,7 @@ describe('AuthOAuthService', () => {
             other_field: 'value',
           },
         },
-      } as Session);
+      } as unknown as Session);
 
       const metadata = service.getOAuthUserMetadata();
 

@@ -1,11 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
-import type {
-  AuthChangeEvent,
-  Session,
-  SupabaseClient,
-  User,
-} from '@supabase/supabase-js';
+import { signal } from '@angular/core';
+import type { AuthChangeEvent, Session, User } from '@supabase/supabase-js';
 import { AuthSessionService } from './auth-session.service';
 import { AuthStateService } from './auth-state.service';
 import { ApplicationConfiguration } from '../config/application-configuration';
@@ -30,7 +27,7 @@ describe('AuthSessionService', () => {
   let mockErrorLocalizer: Partial<AuthErrorLocalizer>;
   let mockSupabaseClient: MockSupabaseClient;
   let mockCleanup: Partial<AuthCleanupService>;
-  let userGetter: () => User | null;
+  let mockUserSignal: ReturnType<typeof signal<User | null>>;
 
   const mockSession: Session = {
     access_token: 'test-token',
@@ -57,17 +54,17 @@ describe('AuthSessionService', () => {
   };
 
   beforeEach(async () => {
-    userGetter = vi.fn<[], User | null>()!.mockReturnValue(null);
+    mockUserSignal = signal<User | null>(null);
 
     mockAuthState = {
       setSession: vi.fn(),
       setLoading: vi.fn(),
-      user: userGetter,
+      user: mockUserSignal.asReadonly(),
     };
 
     mockConfig = {
-      supabaseUrl: vi.fn()!.mockReturnValue('https://test.supabase.co'),
-      supabaseAnonKey: vi.fn()!.mockReturnValue('test-key'),
+      supabaseUrl: signal('https://test.supabase.co'),
+      supabaseAnonKey: signal('test-key'),
     };
 
     mockLogger = {
@@ -100,13 +97,13 @@ describe('AuthSessionService', () => {
     service = TestBed.inject(AuthSessionService);
 
     const { createClient } = await import('@supabase/supabase-js');
-    vi.mocked(createClient)!.mockReturnValue(
-      mockSupabaseClient as SupabaseClient,
+    (createClient as any).mockReturnValue(
+      mockSupabaseClient as any /* eslint-disable-line @typescript-eslint/no-explicit-any */,
     );
   });
 
   const captureAuthStateChangeCallback = (
-    client: Partial<SupabaseClient>,
+    client: any,
   ): ((event: AuthChangeEvent, session: Session | null) => void) => {
     let capturedCallback: (
       event: AuthChangeEvent,
@@ -118,10 +115,12 @@ describe('AuthSessionService', () => {
       ) => { data: { subscription: { unsubscribe: () => void } } };
     };
 
-    vi.mocked(auth.onAuthStateChange).mockImplementation((callback) => {
-      capturedCallback = callback;
-      return { data: { subscription: { unsubscribe: vi.fn() } } };
-    });
+    (auth.onAuthStateChange as any).mockImplementation(
+      (callback: (event: AuthChangeEvent, session: Session | null) => void) => {
+        capturedCallback = callback;
+        return { data: { subscription: { unsubscribe: vi.fn() } } };
+      },
+    );
 
     // Return a wrapper function that calls the captured callback
     return (event, session) => capturedCallback(event, session);
@@ -134,14 +133,16 @@ describe('AuthSessionService', () => {
   });
 
   it('should initialize Supabase client and load session', async () => {
-    vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
+    (mockSupabaseClient.auth.getSession as any).mockResolvedValue({
       data: { session: mockSession },
       error: null,
-    } satisfies Awaited<ReturnType<typeof mockSupabaseClient.auth.getSession>>);
+    });
 
-    vi.mocked(mockSupabaseClient.auth.onAuthStateChange)!.mockReturnValue({
-      data: { subscription: {} },
-    } as ReturnType<typeof mockSupabaseClient.auth.onAuthStateChange>);
+    (mockSupabaseClient.auth.onAuthStateChange as any).mockReturnValue(
+      {
+        data: { subscription: {} },
+      } as any /* eslint-disable-line @typescript-eslint/no-explicit-any */,
+    );
 
     await service.initializeAuthState();
 
@@ -151,20 +152,22 @@ describe('AuthSessionService', () => {
   });
 
   it('should not reinitialize if already initialized', async () => {
-    vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
+    (mockSupabaseClient.auth.getSession as any).mockResolvedValue({
       data: { session: mockSession },
       error: null,
-    } satisfies Awaited<ReturnType<typeof mockSupabaseClient.auth.getSession>>);
+    });
 
-    vi.mocked(mockSupabaseClient.auth.onAuthStateChange)!.mockReturnValue({
-      data: { subscription: {} },
-    } as ReturnType<typeof mockSupabaseClient.auth.onAuthStateChange>);
+    (mockSupabaseClient.auth.onAuthStateChange as any).mockReturnValue(
+      {
+        data: { subscription: {} },
+      } as any /* eslint-disable-line @typescript-eslint/no-explicit-any */,
+    );
 
     await service.initializeAuthState();
 
-    vi.mocked(mockAuthState.setSession)!.mockClear();
-    vi.mocked(mockAuthState.setLoading)!.mockClear();
-    vi.mocked(mockSupabaseClient.auth.onAuthStateChange)!.mockClear();
+    (mockAuthState.setSession as any).mockClear();
+    (mockAuthState.setLoading as any).mockClear();
+    (mockSupabaseClient.auth.onAuthStateChange as any).mockClear();
     vi.mocked(mockLogger.debug)!.mockClear();
 
     await service.initializeAuthState();
@@ -177,18 +180,18 @@ describe('AuthSessionService', () => {
   });
 
   it('should update auth state on SIGNED_IN event', async () => {
-    vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
+    (mockSupabaseClient.auth.getSession as any).mockResolvedValue({
       data: { session: mockSession },
       error: null,
-    } satisfies Awaited<ReturnType<typeof mockSupabaseClient.auth.getSession>>);
+    });
 
     const callback = captureAuthStateChangeCallback(mockSupabaseClient);
 
     await service.initializeAuthState();
 
     // Clear mocks after initialization
-    vi.mocked(mockAuthState.setSession)!.mockClear();
-    vi.mocked(mockAuthState.setLoading)!.mockClear();
+    (mockAuthState.setSession as any).mockClear();
+    (mockAuthState.setLoading as any).mockClear();
     vi.mocked(mockLogger.debug)!.mockClear();
 
     callback('SIGNED_IN', mockSession);
@@ -202,18 +205,18 @@ describe('AuthSessionService', () => {
   });
 
   it('should update auth state on TOKEN_REFRESHED event', async () => {
-    vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
+    (mockSupabaseClient.auth.getSession as any).mockResolvedValue({
       data: { session: mockSession },
       error: null,
-    } satisfies Awaited<ReturnType<typeof mockSupabaseClient.auth.getSession>>);
+    });
 
     const callback = captureAuthStateChangeCallback(mockSupabaseClient);
 
     await service.initializeAuthState();
 
     // Clear mocks after initialization
-    vi.mocked(mockAuthState.setSession)!.mockClear();
-    vi.mocked(mockAuthState.setLoading)!.mockClear();
+    (mockAuthState.setSession as any).mockClear();
+    (mockAuthState.setLoading as any).mockClear();
     vi.mocked(mockLogger.debug)!.mockClear();
 
     callback('TOKEN_REFRESHED', mockSession);
@@ -227,19 +230,19 @@ describe('AuthSessionService', () => {
   });
 
   it('should update auth state and cleanup on SIGNED_OUT event', async () => {
-    vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
+    (mockSupabaseClient.auth.getSession as any).mockResolvedValue({
       data: { session: mockSession },
       error: null,
-    } satisfies Awaited<ReturnType<typeof mockSupabaseClient.auth.getSession>>);
-    vi.mocked(userGetter)!.mockReturnValue(mockSession.user);
+    });
+    mockUserSignal.set(mockSession.user);
 
     const callback = captureAuthStateChangeCallback(mockSupabaseClient);
 
     await service.initializeAuthState();
 
     // Clear mocks after initialization
-    vi.mocked(mockAuthState.setSession)!.mockClear();
-    vi.mocked(mockAuthState.setLoading)!.mockClear();
+    (mockAuthState.setSession as any).mockClear();
+    (mockAuthState.setLoading as any).mockClear();
     vi.mocked(mockLogger.debug)!.mockClear();
 
     callback('SIGNED_OUT', null);
@@ -256,18 +259,18 @@ describe('AuthSessionService', () => {
   });
 
   it('should update auth state on USER_UPDATED event', async () => {
-    vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
+    (mockSupabaseClient.auth.getSession as any).mockResolvedValue({
       data: { session: mockSession },
       error: null,
-    } satisfies Awaited<ReturnType<typeof mockSupabaseClient.auth.getSession>>);
+    });
 
     const callback = captureAuthStateChangeCallback(mockSupabaseClient);
 
     await service.initializeAuthState();
 
     // Clear mocks after initialization
-    vi.mocked(mockAuthState.setSession)!.mockClear();
-    vi.mocked(mockAuthState.setLoading)!.mockClear();
+    (mockAuthState.setSession as any).mockClear();
+    (mockAuthState.setLoading as any).mockClear();
     vi.mocked(mockLogger.debug)!.mockClear();
 
     callback('USER_UPDATED', mockSession);
@@ -282,10 +285,10 @@ describe('AuthSessionService', () => {
 
   it('should handle session load error during initialization', async () => {
     const error = new Error('Session load failed');
-    vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
+    (mockSupabaseClient.auth.getSession as any).mockResolvedValue({
       data: { session: null },
       error,
-    } satisfies Awaited<ReturnType<typeof mockSupabaseClient.auth.getSession>>);
+    });
 
     await service.initializeAuthState();
 
@@ -322,13 +325,15 @@ describe('AuthSessionService', () => {
   });
 
   it('should get current session', async () => {
-    vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
+    (mockSupabaseClient.auth.getSession as any).mockResolvedValue({
       data: { session: mockSession },
       error: null,
-    } satisfies Awaited<ReturnType<typeof mockSupabaseClient.auth.getSession>>);
-    vi.mocked(mockSupabaseClient.auth.onAuthStateChange)!.mockReturnValue({
-      data: { subscription: {} },
-    } as ReturnType<typeof mockSupabaseClient.auth.onAuthStateChange>);
+    });
+    (mockSupabaseClient.auth.onAuthStateChange as any).mockReturnValue(
+      {
+        data: { subscription: {} },
+      } as any /* eslint-disable-line @typescript-eslint/no-explicit-any */,
+    );
 
     await service.initializeAuthState();
 
@@ -338,20 +343,22 @@ describe('AuthSessionService', () => {
   });
 
   it('should return null when getCurrentSession fails', async () => {
-    vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
+    (mockSupabaseClient.auth.getSession as any).mockResolvedValue({
       data: { session: mockSession },
       error: null,
-    } satisfies Awaited<ReturnType<typeof mockSupabaseClient.auth.getSession>>);
-    vi.mocked(mockSupabaseClient.auth.onAuthStateChange)!.mockReturnValue({
-      data: { subscription: {} },
-    } as ReturnType<typeof mockSupabaseClient.auth.onAuthStateChange>);
+    });
+    (mockSupabaseClient.auth.onAuthStateChange as any).mockReturnValue(
+      {
+        data: { subscription: {} },
+      } as any /* eslint-disable-line @typescript-eslint/no-explicit-any */,
+    );
 
     await service.initializeAuthState();
 
-    vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
+    (mockSupabaseClient.auth.getSession as any).mockResolvedValue({
       data: { session: null },
       error: new Error('Failed'),
-    } satisfies Awaited<ReturnType<typeof mockSupabaseClient.auth.getSession>>);
+    });
 
     const session = await service.getCurrentSession();
 
@@ -360,19 +367,19 @@ describe('AuthSessionService', () => {
   });
 
   it('should refresh session successfully', async () => {
-    vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
+    (mockSupabaseClient.auth.getSession as any).mockResolvedValue({
       data: { session: mockSession },
       error: null,
-    } satisfies Awaited<ReturnType<typeof mockSupabaseClient.auth.getSession>>);
-    vi.mocked(mockSupabaseClient.auth.onAuthStateChange)!.mockReturnValue({
-      data: { subscription: {} },
-    } as ReturnType<typeof mockSupabaseClient.auth.onAuthStateChange>);
-    vi.mocked(mockSupabaseClient.auth.refreshSession).mockResolvedValue({
+    });
+    (mockSupabaseClient.auth.onAuthStateChange as any).mockReturnValue(
+      {
+        data: { subscription: {} },
+      } as any /* eslint-disable-line @typescript-eslint/no-explicit-any */,
+    );
+    (mockSupabaseClient.auth.refreshSession as any).mockResolvedValue({
       data: { session: mockSession, user: mockSession.user },
       error: null,
-    } satisfies Awaited<
-      ReturnType<typeof mockSupabaseClient.auth.refreshSession>
-    >);
+    });
 
     await service.initializeAuthState();
 
@@ -382,22 +389,22 @@ describe('AuthSessionService', () => {
   });
 
   it('should return false when refreshSession fails', async () => {
-    vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
+    (mockSupabaseClient.auth.getSession as any).mockResolvedValue({
       data: { session: mockSession },
       error: null,
-    } satisfies Awaited<ReturnType<typeof mockSupabaseClient.auth.getSession>>);
-    vi.mocked(mockSupabaseClient.auth.onAuthStateChange)!.mockReturnValue({
-      data: { subscription: {} },
-    } as ReturnType<typeof mockSupabaseClient.auth.onAuthStateChange>);
+    });
+    (mockSupabaseClient.auth.onAuthStateChange as any).mockReturnValue(
+      {
+        data: { subscription: {} },
+      } as any /* eslint-disable-line @typescript-eslint/no-explicit-any */,
+    );
 
     await service.initializeAuthState();
 
-    vi.mocked(mockSupabaseClient.auth.refreshSession).mockResolvedValue({
+    (mockSupabaseClient.auth.refreshSession as any).mockResolvedValue({
       data: { session: null, user: null },
       error: new Error('Refresh failed'),
-    } satisfies Awaited<
-      ReturnType<typeof mockSupabaseClient.auth.refreshSession>
-    >);
+    });
 
     const result = await service.refreshSession();
 
@@ -406,20 +413,22 @@ describe('AuthSessionService', () => {
   });
 
   it('should set session successfully', async () => {
-    vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
+    (mockSupabaseClient.auth.getSession as any).mockResolvedValue({
       data: { session: mockSession },
       error: null,
-    } satisfies Awaited<ReturnType<typeof mockSupabaseClient.auth.getSession>>);
-    vi.mocked(mockSupabaseClient.auth.onAuthStateChange)!.mockReturnValue({
-      data: { subscription: {} },
-    } as ReturnType<typeof mockSupabaseClient.auth.onAuthStateChange>);
+    });
+    (mockSupabaseClient.auth.onAuthStateChange as any).mockReturnValue(
+      {
+        data: { subscription: {} },
+      } as any /* eslint-disable-line @typescript-eslint/no-explicit-any */,
+    );
 
     await service.initializeAuthState();
 
-    vi.mocked(mockSupabaseClient.auth.setSession).mockResolvedValue({
+    (mockSupabaseClient.auth.setSession as any).mockResolvedValue({
       data: { session: mockSession, user: mockSession.user },
       error: null,
-    } satisfies Awaited<ReturnType<typeof mockSupabaseClient.auth.setSession>>);
+    });
 
     const result = await service.setSession({
       access_token: 'test-token',
@@ -434,21 +443,23 @@ describe('AuthSessionService', () => {
   });
 
   it('should return error when setSession fails', async () => {
-    vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
+    (mockSupabaseClient.auth.getSession as any).mockResolvedValue({
       data: { session: mockSession },
       error: null,
-    } satisfies Awaited<ReturnType<typeof mockSupabaseClient.auth.getSession>>);
-    vi.mocked(mockSupabaseClient.auth.onAuthStateChange)!.mockReturnValue({
-      data: { subscription: {} },
-    } as ReturnType<typeof mockSupabaseClient.auth.onAuthStateChange>);
+    });
+    (mockSupabaseClient.auth.onAuthStateChange as any).mockReturnValue(
+      {
+        data: { subscription: {} },
+      } as any /* eslint-disable-line @typescript-eslint/no-explicit-any */,
+    );
 
     await service.initializeAuthState();
 
     const error: Error = { message: 'Invalid session' } as Error;
-    vi.mocked(mockSupabaseClient.auth.setSession).mockResolvedValue({
+    (mockSupabaseClient.auth.setSession as any).mockResolvedValue({
       data: { session: null, user: null },
       error,
-    } satisfies Awaited<ReturnType<typeof mockSupabaseClient.auth.setSession>>);
+    });
 
     const result = await service.setSession({
       access_token: 'invalid-token',
@@ -465,17 +476,19 @@ describe('AuthSessionService', () => {
   });
 
   it('should handle unexpected error in setSession', async () => {
-    vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
+    (mockSupabaseClient.auth.getSession as any).mockResolvedValue({
       data: { session: mockSession },
       error: null,
-    } satisfies Awaited<ReturnType<typeof mockSupabaseClient.auth.getSession>>);
-    vi.mocked(mockSupabaseClient.auth.onAuthStateChange)!.mockReturnValue({
-      data: { subscription: {} },
-    } as ReturnType<typeof mockSupabaseClient.auth.onAuthStateChange>);
+    });
+    (mockSupabaseClient.auth.onAuthStateChange as any).mockReturnValue(
+      {
+        data: { subscription: {} },
+      } as any /* eslint-disable-line @typescript-eslint/no-explicit-any */,
+    );
 
     await service.initializeAuthState();
 
-    vi.mocked(mockSupabaseClient.auth.setSession).mockRejectedValue(
+    (mockSupabaseClient.auth.setSession as any).mockRejectedValue(
       new Error('Unexpected error'),
     );
 
@@ -493,22 +506,24 @@ describe('AuthSessionService', () => {
   });
 
   it('should sign out and update state without calling cleanup directly', async () => {
-    vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
+    (mockSupabaseClient.auth.getSession as any).mockResolvedValue({
       data: { session: mockSession },
       error: null,
-    } satisfies Awaited<ReturnType<typeof mockSupabaseClient.auth.getSession>>);
-    vi.mocked(mockSupabaseClient.auth.onAuthStateChange)!.mockReturnValue({
-      data: { subscription: {} },
-    } as ReturnType<typeof mockSupabaseClient.auth.onAuthStateChange>);
-    vi.mocked(mockSupabaseClient.auth.signOut).mockResolvedValue({
+    });
+    (mockSupabaseClient.auth.onAuthStateChange as any).mockReturnValue(
+      {
+        data: { subscription: {} },
+      } as any /* eslint-disable-line @typescript-eslint/no-explicit-any */,
+    );
+    (mockSupabaseClient.auth.signOut as any).mockResolvedValue({
       error: null,
-    } satisfies Awaited<ReturnType<typeof mockSupabaseClient.auth.signOut>>);
+    });
 
     await service.initializeAuthState();
 
-    vi.mocked(mockAuthState.setSession)!.mockClear();
-    vi.mocked(mockAuthState.setLoading)!.mockClear();
-    vi.mocked(mockCleanup.performCleanup)!.mockClear();
+    (mockAuthState.setSession as any).mockClear();
+    (mockAuthState.setLoading as any).mockClear();
+    (mockCleanup.performCleanup as any).mockClear();
 
     await service.signOut();
 
@@ -529,17 +544,17 @@ describe('AuthSessionService', () => {
     (window as E2EWindow).__E2E_AUTH_BYPASS__ = true;
     (window as E2EWindow).__E2E_MOCK_AUTH_STATE__ = mockE2EState;
 
-    vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
+    (mockSupabaseClient.auth.getSession as any).mockResolvedValue({
       data: { session: mockSession },
       error: null,
-    } satisfies Awaited<ReturnType<typeof mockSupabaseClient.auth.getSession>>);
+    });
 
     await service.initializeAuthState();
 
-    vi.mocked(userGetter)!.mockReturnValue(mockSession.user);
-    vi.mocked(mockAuthState.setSession)!.mockClear();
-    vi.mocked(mockAuthState.setLoading)!.mockClear();
-    vi.mocked(mockCleanup.performCleanup)!.mockClear();
+    mockUserSignal.set(mockSession.user);
+    (mockAuthState.setSession as any).mockClear();
+    (mockAuthState.setLoading as any).mockClear();
+    (mockCleanup.performCleanup as any).mockClear();
 
     await service.signOut();
 
