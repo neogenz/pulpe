@@ -186,7 +186,6 @@ export class BudgetCalculator {
     this.logger.info(
       {
         budgetId,
-        endingBalance,
         operation: 'balance.recalculated',
       },
       'Balance de fin de mois recalculée et persistée',
