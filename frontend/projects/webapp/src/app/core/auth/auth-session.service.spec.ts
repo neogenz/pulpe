@@ -142,7 +142,7 @@ describe('AuthSessionService', () => {
     });
 
     mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
-      data: { subscription: {} },
+      data: { subscription: { unsubscribe: vi.fn() } },
     });
 
     await service.initializeAuthState();
@@ -159,7 +159,7 @@ describe('AuthSessionService', () => {
     });
 
     mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
-      data: { subscription: {} },
+      data: { subscription: { unsubscribe: vi.fn() } },
     });
 
     await service.initializeAuthState();
@@ -329,7 +329,7 @@ describe('AuthSessionService', () => {
       error: null,
     });
     mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
-      data: { subscription: {} },
+      data: { subscription: { unsubscribe: vi.fn() } },
     });
 
     await service.initializeAuthState();
@@ -345,7 +345,7 @@ describe('AuthSessionService', () => {
       error: null,
     });
     mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
-      data: { subscription: {} },
+      data: { subscription: { unsubscribe: vi.fn() } },
     });
 
     await service.initializeAuthState();
@@ -367,7 +367,7 @@ describe('AuthSessionService', () => {
       error: null,
     });
     mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
-      data: { subscription: {} },
+      data: { subscription: { unsubscribe: vi.fn() } },
     });
     mockSupabaseClient.auth.refreshSession.mockResolvedValue({
       data: { session: mockSession, user: mockSession.user },
@@ -387,7 +387,7 @@ describe('AuthSessionService', () => {
       error: null,
     });
     mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
-      data: { subscription: {} },
+      data: { subscription: { unsubscribe: vi.fn() } },
     });
 
     await service.initializeAuthState();
@@ -409,7 +409,7 @@ describe('AuthSessionService', () => {
       error: null,
     });
     mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
-      data: { subscription: {} },
+      data: { subscription: { unsubscribe: vi.fn() } },
     });
 
     await service.initializeAuthState();
@@ -437,7 +437,7 @@ describe('AuthSessionService', () => {
       error: null,
     });
     mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
-      data: { subscription: {} },
+      data: { subscription: { unsubscribe: vi.fn() } },
     });
 
     await service.initializeAuthState();
@@ -468,7 +468,7 @@ describe('AuthSessionService', () => {
       error: null,
     });
     mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
-      data: { subscription: {} },
+      data: { subscription: { unsubscribe: vi.fn() } },
     });
 
     await service.initializeAuthState();
@@ -486,17 +486,22 @@ describe('AuthSessionService', () => {
     expect(result.error).toBeDefined();
     expect(mockLogger.error).toHaveBeenCalledWith(
       'Error setting session:',
-      expect.any(Error),
+      expect.objectContaining({
+        error: expect.any(Error),
+        errorType: 'Error',
+        message: 'Unexpected error',
+      }),
     );
   });
 
-  it('should sign out and update state without calling cleanup directly', async () => {
+  it('should sign out and update state with explicit cleanup', async () => {
+    mockUserSignal.set(mockSession.user);
     mockSupabaseClient.auth.getSession.mockResolvedValue({
       data: { session: mockSession },
       error: null,
     });
     mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
-      data: { subscription: {} },
+      data: { subscription: { unsubscribe: vi.fn() } },
     });
     mockSupabaseClient.auth.signOut.mockResolvedValue({
       error: null,
@@ -513,7 +518,7 @@ describe('AuthSessionService', () => {
     expect(mockSupabaseClient.auth.signOut).toHaveBeenCalled();
     expect(mockAuthState.setSession).toHaveBeenCalledWith(null);
     expect(mockAuthState.setLoading).toHaveBeenCalledWith(false);
-    expect(mockCleanup.performCleanup).not.toHaveBeenCalled();
+    expect(mockCleanup.performCleanup).toHaveBeenCalledWith('user-123');
   });
 
   it('should sign out in E2E mode and call cleanup directly', async () => {
@@ -553,5 +558,75 @@ describe('AuthSessionService', () => {
 
     delete (window as E2EWindow).__E2E_AUTH_BYPASS__;
     delete (window as E2EWindow).__E2E_MOCK_AUTH_STATE__;
+  });
+
+  it('should cleanup auth subscription via DestroyRef on destruction', async () => {
+    const unsubscribeMock = vi.fn();
+    mockSupabaseClient.auth.getSession.mockResolvedValue({
+      data: { session: mockSession },
+      error: null,
+    });
+    mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
+      data: { subscription: { unsubscribe: unsubscribeMock } },
+    });
+
+    await service.initializeAuthState();
+
+    TestBed.resetTestingModule();
+
+    expect(unsubscribeMock).toHaveBeenCalled();
+  });
+
+  it('should handle SSR environment safely (window undefined)', async () => {
+    const originalWindow = globalThis.window;
+
+    try {
+      Object.defineProperty(globalThis, 'window', {
+        value: undefined,
+        writable: true,
+        configurable: true,
+      });
+
+      mockSupabaseClient.auth.getSession.mockResolvedValue({
+        data: { session: mockSession },
+        error: null,
+      });
+      mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
+        data: { subscription: { unsubscribe: vi.fn() } },
+      });
+
+      await service.initializeAuthState();
+
+      expect(mockAuthState.setSession).toHaveBeenCalledWith(mockSession);
+      expect(mockAuthState.setLoading).toHaveBeenCalledWith(false);
+    } finally {
+      Object.defineProperty(globalThis, 'window', {
+        value: originalWindow,
+        writable: true,
+        configurable: true,
+      });
+    }
+  });
+
+  it('should prevent concurrent initialization race condition', async () => {
+    mockSupabaseClient.auth.getSession.mockResolvedValue({
+      data: { session: mockSession },
+      error: null,
+    });
+    mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
+      data: { subscription: { unsubscribe: vi.fn() } },
+    });
+
+    const promise1 = service.initializeAuthState();
+    const promise2 = service.initializeAuthState();
+    const promise3 = service.initializeAuthState();
+
+    await Promise.all([promise1, promise2, promise3]);
+
+    expect(mockSupabaseClient.auth.getSession).toHaveBeenCalledTimes(1);
+    expect(mockSupabaseClient.auth.onAuthStateChange).toHaveBeenCalledTimes(1);
+    expect(mockLogger.debug).toHaveBeenCalledWith(
+      'Auth already initialized, skipping',
+    );
   });
 });

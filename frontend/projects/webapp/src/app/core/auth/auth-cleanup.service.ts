@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, DestroyRef } from '@angular/core';
 import { AuthStateService } from './auth-state.service';
 import { DemoModeService } from '../demo/demo-mode.service';
 import { HasBudgetCache } from './has-budget-cache';
@@ -18,8 +18,19 @@ export class AuthCleanupService {
   readonly #postHogService = inject(PostHogService);
   readonly #storageService = inject(StorageService);
   readonly #logger = inject(Logger);
+  readonly #destroyRef = inject(DestroyRef);
 
   #cleanupInProgress = false;
+  #resetTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  constructor() {
+    this.#destroyRef.onDestroy(() => {
+      if (this.#resetTimeoutId !== null) {
+        clearTimeout(this.#resetTimeoutId);
+        this.#resetTimeoutId = null;
+      }
+    });
+  }
 
   performCleanup(userId?: string): void {
     this.#handleSignOut(userId);
@@ -42,8 +53,13 @@ export class AuthCleanupService {
       this.#postHogService.reset();
       this.#storageService.clearAll(userId);
     } finally {
-      setTimeout(() => {
+      if (this.#resetTimeoutId !== null) {
+        clearTimeout(this.#resetTimeoutId);
+      }
+
+      this.#resetTimeoutId = setTimeout(() => {
         this.#cleanupInProgress = false;
+        this.#resetTimeoutId = null;
       }, CLEANUP_RESET_DELAY_MS);
     }
   }

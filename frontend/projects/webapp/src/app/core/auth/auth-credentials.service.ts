@@ -42,7 +42,13 @@ export class AuthCredentialsService {
 
       this.#state.setSession(data.session ?? null);
       return { success: true };
-    } catch {
+    } catch (error) {
+      this.#logger.error('Unexpected error during sign-in', {
+        error,
+        errorType:
+          error instanceof Error ? error.constructor.name : typeof error,
+        message: error instanceof Error ? error.message : String(error),
+      });
       return {
         success: false,
         error: AUTH_ERROR_MESSAGES.UNEXPECTED_LOGIN_ERROR,
@@ -77,7 +83,13 @@ export class AuthCredentialsService {
 
       this.#state.setSession(data.session ?? null);
       return { success: true };
-    } catch {
+    } catch (error) {
+      this.#logger.error('Unexpected error during sign-up', {
+        error,
+        errorType:
+          error instanceof Error ? error.constructor.name : typeof error,
+        message: error instanceof Error ? error.message : String(error),
+      });
       return {
         success: false,
         error: AUTH_ERROR_MESSAGES.UNEXPECTED_SIGNUP_ERROR,

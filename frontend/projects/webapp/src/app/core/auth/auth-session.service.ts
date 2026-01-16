@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, DestroyRef } from '@angular/core';
 import {
   createClient,
   type Session,
@@ -21,8 +21,10 @@ export class AuthSessionService {
   readonly #errorLocalizer = inject(AuthErrorLocalizer);
   readonly #logger = inject(Logger);
   readonly #cleanup = inject(AuthCleanupService);
+  readonly #destroyRef = inject(DestroyRef);
 
   #supabaseClient: SupabaseClient | null = null;
+  #authSubscription: (() => void) | null = null;
 
   getClient(): SupabaseClient {
     if (!this.#supabaseClient) {
@@ -55,7 +57,6 @@ export class AuthSessionService {
         );
         this.#state.setSession(mockState.session);
         this.#state.setLoading(mockState.isLoading);
-        this.#setupMockStateObserver();
         return;
       }
     }
@@ -77,32 +78,45 @@ export class AuthSessionService {
 
       this.#updateAuthState(session);
 
-      this.#supabaseClient.auth.onAuthStateChange((event, session) => {
-        this.#logger.debug('Auth event:', {
-          event,
-          session: session?.user?.id,
-        });
+      const { data } = this.#supabaseClient.auth.onAuthStateChange(
+        (event, session) => {
+          this.#logger.debug('Auth event:', {
+            event,
+            session: session?.user?.id,
+          });
 
-        switch (event) {
-          case 'SIGNED_IN':
-          case 'TOKEN_REFRESHED':
-            this.#updateAuthState(session);
-            break;
-          case 'SIGNED_OUT': {
-            const userId = this.#state.user()?.id;
-            this.#updateAuthState(null);
-            this.#cleanup.performCleanup(userId);
-            break;
+          switch (event) {
+            case 'SIGNED_IN':
+            case 'TOKEN_REFRESHED':
+              this.#updateAuthState(session);
+              break;
+            case 'SIGNED_OUT': {
+              const userId = this.#state.user()?.id;
+              this.#updateAuthState(null);
+              this.#cleanup.performCleanup(userId);
+              break;
+            }
+            case 'USER_UPDATED':
+              this.#updateAuthState(session);
+              break;
           }
-          case 'USER_UPDATED':
-            this.#updateAuthState(session);
-            break;
-        }
+        },
+      );
+
+      this.#authSubscription = () => data.subscription.unsubscribe();
+
+      this.#destroyRef.onDestroy(() => {
+        this.#authSubscription?.();
       });
     } catch (error) {
       this.#logger.error(
         "Erreur lors de l'initialisation de l'authentification:",
-        error,
+        {
+          error,
+          errorType:
+            error instanceof Error ? error.constructor.name : typeof error,
+          message: error instanceof Error ? error.message : String(error),
+        },
       );
       this.#updateAuthState(null);
     }
@@ -127,7 +141,12 @@ export class AuthSessionService {
     } catch (error) {
       this.#logger.error(
         'Erreur inattendue lors de la récupération de la session:',
-        error,
+        {
+          error,
+          errorType:
+            error instanceof Error ? error.constructor.name : typeof error,
+          message: error instanceof Error ? error.message : String(error),
+        },
       );
       return null;
     }
@@ -150,7 +169,12 @@ export class AuthSessionService {
     } catch (error) {
       this.#logger.error(
         'Erreur inattendue lors du rafraîchissement de la session:',
-        error,
+        {
+          error,
+          errorType:
+            error instanceof Error ? error.constructor.name : typeof error,
+          message: error instanceof Error ? error.message : String(error),
+        },
       );
       return false;
     }
@@ -181,7 +205,12 @@ export class AuthSessionService {
 
       return { success: true };
     } catch (error) {
-      this.#logger.error('Error setting session:', error);
+      this.#logger.error('Error setting session:', {
+        error,
+        errorType:
+          error instanceof Error ? error.constructor.name : typeof error,
+        message: error instanceof Error ? error.message : String(error),
+      });
       return {
         success: false,
         error: AUTH_ERROR_MESSAGES.UNEXPECTED_SESSION_ERROR,
@@ -195,8 +224,6 @@ export class AuthSessionService {
     try {
       if (this.#isE2EBypass()) {
         this.#logger.info('🎭 Mode test E2E: Simulation du logout');
-        this.#updateAuthState(null);
-        this.#cleanup.performCleanup(userId);
         return;
       }
 
@@ -204,9 +231,16 @@ export class AuthSessionService {
       if (error) {
         this.#logger.error('Erreur lors de la déconnexion:', error);
       }
-      this.#updateAuthState(null);
     } catch (error) {
-      this.#logger.error('Erreur inattendue lors de la déconnexion:', error);
+      this.#logger.error('Erreur inattendue lors de la déconnexion:', {
+        error,
+        errorType:
+          error instanceof Error ? error.constructor.name : typeof error,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    } finally {
+      this.#updateAuthState(null);
+      this.#cleanup.performCleanup(userId);
     }
   }
 
@@ -215,17 +249,14 @@ export class AuthSessionService {
     this.#state.setLoading(false);
   }
 
-  #setupMockStateObserver(): void {
-    this.#logger.debug(
-      '🎭 E2E mock auth state applied (one-time setup, no polling)',
-    );
-  }
-
   #isE2EBypass(): boolean {
     return isE2EMode();
   }
 
   #getE2EMockState(): AuthState | undefined {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
     return (window as E2EWindow).__E2E_MOCK_AUTH_STATE__;
   }
 }

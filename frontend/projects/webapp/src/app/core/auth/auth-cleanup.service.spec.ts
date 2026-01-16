@@ -110,4 +110,24 @@ describe('AuthCleanupService', () => {
     vi.runAllTimers();
     vi.useRealTimers();
   });
+
+  it('should clear timeout on service destruction', () => {
+    vi.useFakeTimers();
+    const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout');
+
+    userSignal.set({
+      id: 'user-123',
+      aud: 'authenticated',
+      role: 'authenticated',
+    } as User);
+
+    service.performCleanup('user-123');
+
+    TestBed.resetTestingModule();
+
+    expect(clearTimeoutSpy).toHaveBeenCalled();
+
+    clearTimeoutSpy.mockRestore();
+    vi.useRealTimers();
+  });
 });
