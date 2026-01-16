@@ -11,7 +11,7 @@ import { AuthStateService } from './auth-state.service';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
 import { AuthErrorLocalizer } from './auth-error-localizer';
-import type { E2EWindow } from './e2e-window';
+import { type E2EWindow } from './e2e-window';
 import { AuthCleanupService } from './auth-cleanup.service';
 import {
   createMockSupabaseClient,
@@ -464,5 +464,70 @@ describe('AuthSessionService', () => {
       'Error setting session:',
       expect.any(Error),
     );
+  });
+
+  it('should sign out and update state without calling cleanup directly', async () => {
+    vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
+      data: { session: mockSession },
+      error: null,
+    } satisfies Awaited<ReturnType<typeof mockSupabaseClient.auth.getSession>>);
+    vi.mocked(mockSupabaseClient.auth.onAuthStateChange).mockReturnValue({
+      data: { subscription: {} },
+    } as ReturnType<typeof mockSupabaseClient.auth.onAuthStateChange>);
+    vi.mocked(mockSupabaseClient.auth.signOut).mockResolvedValue({
+      error: null,
+    } satisfies Awaited<ReturnType<typeof mockSupabaseClient.auth.signOut>>);
+
+    await service.initializeAuthState();
+
+    (mockAuthState.setSession as ReturnType<typeof vi.fn>).mockClear();
+    (mockAuthState.setLoading as ReturnType<typeof vi.fn>).mockClear();
+    (mockCleanup.performCleanup as ReturnType<typeof vi.fn>).mockClear();
+
+    await service.signOut();
+
+    expect(mockSupabaseClient.auth.signOut).toHaveBeenCalled();
+    expect(mockAuthState.setSession).toHaveBeenCalledWith(null);
+    expect(mockAuthState.setLoading).toHaveBeenCalledWith(false);
+    expect(mockCleanup.performCleanup).not.toHaveBeenCalled();
+  });
+
+  it('should sign out in E2E mode and call cleanup directly', async () => {
+    const mockE2EState = {
+      user: mockSession.user,
+      session: mockSession,
+      isLoading: false,
+      isAuthenticated: true,
+    };
+
+    (window as E2EWindow).__E2E_AUTH_BYPASS__ = true;
+    (window as E2EWindow).__E2E_MOCK_AUTH_STATE__ = mockE2EState;
+
+    vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
+      data: { session: mockSession },
+      error: null,
+    } satisfies Awaited<ReturnType<typeof mockSupabaseClient.auth.getSession>>);
+
+    await service.initializeAuthState();
+
+    (userGetter as ReturnType<typeof vi.fn>).mockReturnValue(mockSession.user);
+    (mockAuthState.setSession as ReturnType<typeof vi.fn>).mockClear();
+    (mockAuthState.setLoading as ReturnType<typeof vi.fn>).mockClear();
+    (mockCleanup.performCleanup as ReturnType<typeof vi.fn>).mockClear();
+
+    await service.signOut();
+
+    expect(mockLogger.info).toHaveBeenCalledWith(
+      '🎭 Mode test E2E: Simulation du logout',
+    );
+    expect(mockAuthState.setSession).toHaveBeenCalledWith(null);
+    expect(mockAuthState.setLoading).toHaveBeenCalledWith(false);
+    expect(mockCleanup.performCleanup).toHaveBeenCalledWith(
+      mockSession.user.id,
+    );
+    expect(mockSupabaseClient.auth.signOut).not.toHaveBeenCalled();
+
+    delete (window as E2EWindow).__E2E_AUTH_BYPASS__;
+    delete (window as E2EWindow).__E2E_MOCK_AUTH_STATE__;
   });
 });

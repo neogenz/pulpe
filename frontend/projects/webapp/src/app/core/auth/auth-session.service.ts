@@ -200,7 +200,6 @@ export class AuthSessionService {
         this.#logger.error('Erreur lors de la déconnexion:', error);
       }
       this.#updateAuthState(null);
-      this.#cleanup.performCleanup(userId);
     } catch (error) {
       this.#logger.error('Erreur inattendue lors de la déconnexion:', error);
     }

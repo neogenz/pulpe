@@ -13,7 +13,7 @@ export type { OAuthUserMetadata };
  * - AuthStateService for state signals
  * - AuthCredentialsService for email/password auth
  * - AuthOAuthService for OAuth
- * - AuthCleanupService for logout
+ * - AuthSessionService for logout
  *
  * Will be removed in v2.0
  */

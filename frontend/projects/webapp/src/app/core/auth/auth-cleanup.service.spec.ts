@@ -9,7 +9,7 @@ import { HasBudgetCache } from './has-budget-cache';
 import { PostHogService } from '../analytics/posthog';
 import { StorageService } from '../storage';
 import { Logger } from '../logging/logger';
-import type { E2EWindow } from './e2e-window';
+import { type E2EWindow } from './e2e-window';
 
 describe('AuthCleanupService', () => {
   let service: AuthCleanupService;

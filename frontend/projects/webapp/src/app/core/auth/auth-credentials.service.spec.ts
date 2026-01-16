@@ -7,7 +7,7 @@ import { AuthStateService } from './auth-state.service';
 import { AuthErrorLocalizer } from './auth-error-localizer';
 import { Logger } from '../logging/logger';
 import { AUTH_ERROR_MESSAGES } from './auth-constants';
-import type { E2EWindow } from './e2e-window';
+import { type E2EWindow } from './e2e-window';
 import {
   createMockSupabaseClient,
   type AuthSessionResult,
