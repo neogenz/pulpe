@@ -2,7 +2,6 @@ import {
   type Routes,
   provideRouter,
   withComponentInputBinding,
-  withEnabledBlockingInitialNavigation,
   withInMemoryScrolling,
   withRouterConfig,
   withPreloading,
@@ -100,7 +99,6 @@ export function provideCore({ routes }: CoreOptions) {
       routes,
       withRouterConfig({ onSameUrlNavigation: 'reload' }),
       withComponentInputBinding(),
-      withEnabledBlockingInitialNavigation(),
       withInMemoryScrolling({
         anchorScrolling: 'enabled',
         scrollPositionRestoration: 'enabled',
