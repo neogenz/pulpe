@@ -3,7 +3,7 @@ import { toObservable } from '@angular/core/rxjs-interop';
 import { type CanActivateFn, Router } from '@angular/router';
 import { filter, map, take } from 'rxjs/operators';
 import { ROUTES } from '@core/routing/routes-constants';
-import { AuthApi } from './auth-api';
+import { AuthStateService } from './auth-state.service';
 
 /**
  * Protects routes from unauthenticated access.
@@ -15,11 +15,11 @@ import { AuthApi } from './auth-api';
  * only falls back to async observable for initial load (refresh, direct URL access).
  */
 export const authGuard: CanActivateFn = () => {
-  const authApi = inject(AuthApi);
+  const authState = inject(AuthStateService);
   const router = inject(Router);
 
   // SYNC: If auth is already resolved, return immediately (intra-app navigation)
-  const currentState = authApi.authState();
+  const currentState = authState.authState();
   if (!currentState.isLoading) {
     return currentState.isAuthenticated
       ? true
@@ -27,7 +27,7 @@ export const authGuard: CanActivateFn = () => {
   }
 
   // ASYNC: Only for initial load when auth state is still loading
-  return toObservable(authApi.authState).pipe(
+  return toObservable(authState.authState).pipe(
     filter((state) => !state.isLoading),
     take(1),
     map((state) =>

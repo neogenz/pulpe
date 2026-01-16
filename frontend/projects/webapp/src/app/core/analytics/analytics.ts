@@ -6,7 +6,7 @@ import {
   type EffectRef,
   type OnDestroy,
 } from '@angular/core';
-import { AuthApi } from '../auth/auth-api';
+import { AuthStateService } from '../auth/auth-state.service';
 import { PostHogService } from './posthog';
 import { Logger } from '../logging/logger';
 import { DemoModeService } from '../demo/demo-mode.service';
@@ -20,7 +20,7 @@ import type { Properties } from 'posthog-js';
   providedIn: 'root',
 })
 export class AnalyticsService implements OnDestroy {
-  readonly #authApi = inject(AuthApi);
+  readonly #authState = inject(AuthStateService);
   readonly #postHogService = inject(PostHogService);
   readonly #logger = inject(Logger);
   readonly #demoModeService = inject(DemoModeService);
@@ -53,7 +53,7 @@ export class AnalyticsService implements OnDestroy {
     try {
       this.#authEffect = effect(() => {
         const active = this.isActive();
-        const authState = this.#authApi.authState();
+        const authState = this.#authState.authState();
 
         if (active && authState.isAuthenticated && authState.user) {
           if (!this.#trackingEnabledForSession) {

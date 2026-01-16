@@ -38,7 +38,8 @@ import {
 import { of } from 'rxjs';
 import { PulpeBreadcrumb } from '@ui/breadcrumb/breadcrumb';
 import { BreadcrumbState } from '@core/routing/breadcrumb-state';
-import { AuthApi } from '@core/auth/auth-api';
+import { AuthStateService } from '@core/auth/auth-state.service';
+import { AuthSessionService } from '@core/auth/auth-session.service';
 import { ROUTES } from '@core/routing/routes-constants';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { Logger } from '@core/logging/logger';
@@ -383,7 +384,8 @@ export default class MainLayout {
   readonly #breakpointObserver = inject(BreakpointObserver);
   readonly #router = inject(Router);
   readonly #scrollDispatcher = inject(ScrollDispatcher);
-  readonly #authApi = inject(AuthApi);
+  readonly #authState = inject(AuthStateService);
+  readonly #authSession = inject(AuthSessionService);
   readonly #applicationConfig = inject(ApplicationConfiguration);
   readonly #demoModeService = inject(DemoModeService);
   readonly #demoInitializer = inject(DemoInitializerService);
@@ -396,7 +398,7 @@ export default class MainLayout {
     if (this.#demoModeService.isDemoMode()) {
       return 'demo@gmail.com';
     }
-    return this.#authApi.authState().user?.email;
+    return this.#authState.authState().user?.email;
   });
 
   // Route to settings page
@@ -512,7 +514,7 @@ export default class MainLayout {
       this.#isLoggingOut.set(true);
 
       // Sign out and wait for session to be cleared
-      await this.#authApi.signOut();
+      await this.#authSession.signOut();
     } catch (error) {
       // Only log detailed errors in development
       if (!this.#applicationConfig.isProduction()) {

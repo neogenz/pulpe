@@ -25,7 +25,7 @@ import {
 import { provideLocale } from './locale';
 import { provideAngularMaterial } from './angular-material';
 import { provideAuth } from './auth/auth-providers';
-import { AuthApi } from './auth/auth-api';
+import { AuthSessionService } from './auth/auth-session.service';
 import { PulpeTitleStrategy } from './routing/title-strategy';
 import { ApplicationConfiguration } from './config/application-configuration';
 import { PostHogService } from './analytics/posthog';
@@ -124,7 +124,7 @@ export function provideCore({ routes }: CoreOptions) {
     provideAppInitializer(async () => {
       const applicationConfig = inject(ApplicationConfiguration);
       const postHogService = inject(PostHogService);
-      const authService = inject(AuthApi);
+      const authSession = inject(AuthSessionService);
       const analyticsService = inject(AnalyticsService);
       const injector = inject(Injector);
       const logger = inject(Logger);
@@ -160,7 +160,7 @@ export function provideCore({ routes }: CoreOptions) {
         }
 
         // 4. Initialiser l'auth ensuite (config garantie disponible)
-        await authService.initializeAuthState();
+        await authSession.initializeAuthState();
       } catch (error) {
         logger.error("Erreur lors de l'initialisation", error);
         throw error; // Bloquer le démarrage de l'app en cas d'erreur critique

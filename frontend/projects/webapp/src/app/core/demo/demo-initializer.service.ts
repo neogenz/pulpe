@@ -9,7 +9,7 @@ import {
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { ROUTES } from '@core/routing/routes-constants';
 import { Logger } from '@core/logging/logger';
-import { AuthApi } from '@core/auth/auth-api';
+import { AuthSessionService } from '@core/auth/auth-session.service';
 import { DemoModeService } from './demo-mode.service';
 import { type E2EWindow } from '@core/auth';
 
@@ -27,7 +27,7 @@ export class DemoInitializerService {
   readonly #router = inject(Router);
   readonly #config = inject(ApplicationConfiguration);
   readonly #logger = inject(Logger);
-  readonly #authApi = inject(AuthApi);
+  readonly #authSession = inject(AuthSessionService);
   readonly #demoModeService = inject(DemoModeService);
 
   readonly #isInitializing = signal(false);
@@ -80,8 +80,8 @@ export class DemoInitializerService {
         email: session.user.email,
       });
 
-      // Set the session using AuthApi (centralized session management)
-      const sessionResult = await this.#authApi.setSession({
+      // Set the session using AuthSessionService (centralized session management)
+      const sessionResult = await this.#authSession.setSession({
         access_token: session.access_token,
         refresh_token: session.refresh_token,
       });
@@ -131,7 +131,7 @@ export class DemoInitializerService {
    */
   async exitDemoMode(): Promise<void> {
     this.#demoModeService.deactivateDemoMode();
-    await this.#authApi.signOut();
+    await this.#authSession.signOut();
     this.#logger.info('Demo mode exited and user signed out');
   }
 

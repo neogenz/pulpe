@@ -1,4 +1,3 @@
-export * from './auth-api';
 export * from './auth-state.service';
 export * from './auth-session.service';
 export * from './auth-credentials.service';

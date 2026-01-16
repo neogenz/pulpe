@@ -7,7 +7,7 @@ import { of, throwError } from 'rxjs';
 import { ZodError } from 'zod';
 import { DemoInitializerService } from './demo-initializer.service';
 import { DemoModeService } from './demo-mode.service';
-import { AuthApi } from '../auth/auth-api';
+import { AuthSessionService } from '../auth/auth-session.service';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
 import { ROUTES } from '../routing/routes-constants';
@@ -16,7 +16,7 @@ describe('DemoInitializerService', () => {
   let service: DemoInitializerService;
   let mockHttp: { post: Mock };
   let mockRouter: { navigate: Mock };
-  let mockAuthApi: { setSession: Mock; signOut: Mock };
+  let mockAuthSessionService: { setSession: Mock; signOut: Mock };
   let mockDemoModeService: { activateDemoMode: Mock; deactivateDemoMode: Mock };
   let mockConfig: { backendApiUrl: Mock };
 
@@ -50,7 +50,7 @@ describe('DemoInitializerService', () => {
       navigate: vi.fn().mockResolvedValue(true),
     };
 
-    mockAuthApi = {
+    mockAuthSessionService = {
       setSession: vi.fn().mockResolvedValue({ success: true }),
       signOut: vi.fn().mockResolvedValue(undefined),
     };
@@ -76,7 +76,7 @@ describe('DemoInitializerService', () => {
         DemoInitializerService,
         { provide: HttpClient, useValue: mockHttp },
         { provide: Router, useValue: mockRouter },
-        { provide: AuthApi, useValue: mockAuthApi },
+        { provide: AuthSessionService, useValue: mockAuthSessionService },
         { provide: DemoModeService, useValue: mockDemoModeService },
         { provide: ApplicationConfiguration, useValue: mockConfig },
         { provide: Logger, useValue: mockLogger },
@@ -94,8 +94,8 @@ describe('DemoInitializerService', () => {
       // WHEN: User clicks "Try Demo" button
       await service.startDemoSession(TEST_TURNSTILE_TOKEN);
 
-      // THEN: Session is set via AuthApi
-      expect(mockAuthApi.setSession).toHaveBeenCalledWith({
+      // THEN: Session is set via AuthSessionService
+      expect(mockAuthSessionService.setSession).toHaveBeenCalledWith({
         access_token: 'demo-access-token',
         refresh_token: 'demo-refresh-token',
       });
@@ -156,7 +156,7 @@ describe('DemoInitializerService', () => {
       ).rejects.toThrow('Network error');
 
       // THEN: Auth session is NOT set
-      expect(mockAuthApi.setSession).not.toHaveBeenCalled();
+      expect(mockAuthSessionService.setSession).not.toHaveBeenCalled();
 
       // AND: Demo mode is NOT activated
       expect(mockDemoModeService.activateDemoMode).not.toHaveBeenCalled();
@@ -176,7 +176,7 @@ describe('DemoInitializerService', () => {
       ).rejects.toThrow(ZodError);
 
       // THEN: Auth session is NOT set
-      expect(mockAuthApi.setSession).not.toHaveBeenCalled();
+      expect(mockAuthSessionService.setSession).not.toHaveBeenCalled();
     });
 
     it('should handle missing session data', async () => {
@@ -196,7 +196,7 @@ describe('DemoInitializerService', () => {
     it('should handle auth session errors gracefully', async () => {
       // GIVEN: Backend succeeds but setSession fails
       mockHttp.post.mockReturnValue(of(mockDemoSession));
-      mockAuthApi.setSession.mockResolvedValue({
+      mockAuthSessionService.setSession.mockResolvedValue({
         success: false,
         error: 'Session expired',
       });
@@ -247,7 +247,7 @@ describe('DemoInitializerService', () => {
       expect(mockHttp.post).toHaveBeenCalledTimes(1);
 
       // AND: Session is set only once
-      expect(mockAuthApi.setSession).toHaveBeenCalledTimes(1);
+      expect(mockAuthSessionService.setSession).toHaveBeenCalledTimes(1);
     });
 
     it('should allow new request after previous completes', async () => {
@@ -257,7 +257,7 @@ describe('DemoInitializerService', () => {
 
       // WHEN: New request is made after completion
       mockHttp.post.mockClear();
-      mockAuthApi.setSession.mockClear();
+      mockAuthSessionService.setSession.mockClear();
       await service.startDemoSession(TEST_TURNSTILE_TOKEN);
 
       // THEN: New request is allowed
@@ -295,12 +295,14 @@ describe('DemoInitializerService', () => {
       expect(mockDemoModeService.deactivateDemoMode).toHaveBeenCalled();
 
       // AND: User is signed out
-      expect(mockAuthApi.signOut).toHaveBeenCalled();
+      expect(mockAuthSessionService.signOut).toHaveBeenCalled();
     });
 
     it('should handle sign out errors gracefully', async () => {
       // GIVEN: Sign out throws error
-      mockAuthApi.signOut.mockRejectedValue(new Error('Sign out failed'));
+      mockAuthSessionService.signOut.mockRejectedValue(
+        new Error('Sign out failed'),
+      );
 
       // WHEN: User exits demo mode
       await expect(service.exitDemoMode()).rejects.toThrow('Sign out failed');
