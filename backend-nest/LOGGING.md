@@ -179,13 +179,27 @@ logger.info(
 );
 ```
 
+### **GDPR Compliance**
+
+Les logs HTTP sont automatiquement anonymisés pour respecter le RGPD :
+
+- **IP Address** : Masquée partiellement (`192.168.1.100` → `192.168.x.x`)
+- **User-Agent** : Simplifié en type de device (`mobile`, `tablet`, `desktop`, `unknown`)
+
+**Données à NE JAMAIS logger :**
+
+- Adresses IP brutes (non anonymisées)
+- Chaînes User-Agent complètes
+- Montants financiers (soldes, valeurs de transactions)
+- Identifiants personnels (email, nom, téléphone) - utiliser uniquement les UUIDs
+
 ## 🌐 **Auto-Logging HTTP**
 
 ### **Logs Automatiques des Requêtes**
 
 Pino HTTP génère automatiquement des logs pour chaque requête :
 
-- **Incoming** : Method, URL, User-Agent, Request ID
+- **Incoming** : Method, URL, Device Type (anonymisé), IP (anonymisée), Request ID
 - **Outgoing** : Status code, Response time, Content-Length
 
 ### **Correlation IDs**
@@ -328,12 +342,12 @@ this.logger.error(
 
 ```typescript
 // Échec d'authentification
+// Note: ip et deviceType sont anonymisés automatiquement par les serializers HTTP
 this.logger.warn(
   {
     operation: 'authenticate_user',
     requestId: req.headers['x-request-id'],
-    ip: req.ip,
-    userAgent: req.headers['user-agent'],
+    // ip et deviceType sont ajoutés automatiquement par pino-http
   },
   'Authentication failed - invalid token',
 );
