@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
+import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import { SupabaseService } from '../supabase/supabase.service';
 import { DemoDataGeneratorService } from './demo-data-generator.service';
 import { BusinessException } from '@common/exceptions/business.exception';
@@ -21,8 +21,8 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 @Injectable()
 export class DemoService {
   constructor(
-    @InjectPinoLogger(DemoService.name)
-    private readonly logger: PinoLogger,
+    @InjectInfoLogger(DemoService.name)
+    private readonly logger: InfoLogger,
     private readonly supabaseService: SupabaseService,
     private readonly dataGenerator: DemoDataGeneratorService,
   ) {}
@@ -62,15 +62,6 @@ export class DemoService {
 
       return this.buildDemoSessionResponse(session, userId, demoEmail);
     } catch (error) {
-      this.logger.error(
-        {
-          operation: 'create_demo_session',
-          error,
-          duration: Date.now() - startTime,
-        },
-        'Failed to create demo session',
-      );
-
       handleServiceError(
         error,
         ERROR_DEFINITIONS.INTERNAL_SERVER_ERROR,
@@ -192,12 +183,12 @@ export class DemoService {
         'Demo data seeded successfully',
       );
     } catch (seedError) {
-      this.logger.error(
+      this.logger.warn(
         {
           operation: 'create_demo_session',
           step: 'seed_data_failed',
           userId,
-          error: seedError,
+          err: seedError,
         },
         'Failed to seed demo data, but session is valid',
       );

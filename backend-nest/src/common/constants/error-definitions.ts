@@ -193,6 +193,74 @@ export const ERROR_DEFINITIONS = {
       'You can only create one template from onboarding per 24 hours',
     httpStatus: HttpStatus.TOO_MANY_REQUESTS,
   },
+  TEMPLATE_ACCESS_FORBIDDEN: {
+    code: 'ERR_TEMPLATE_ACCESS_FORBIDDEN',
+    message: (details?: Record<string, unknown>) =>
+      details?.id
+        ? `Access forbidden to template with ID '${details.id}'`
+        : 'Access forbidden to template',
+    httpStatus: HttpStatus.FORBIDDEN,
+  },
+  TEMPLATE_LINE_ACCESS_FORBIDDEN: {
+    code: 'ERR_TEMPLATE_LINE_ACCESS_FORBIDDEN',
+    message: (details?: Record<string, unknown>) =>
+      details?.id
+        ? `Access forbidden to template line with ID '${details.id}'`
+        : 'Access forbidden to template line',
+    httpStatus: HttpStatus.FORBIDDEN,
+  },
+  TEMPLATE_LINE_CREATE_FAILED: {
+    code: 'ERR_TEMPLATE_LINE_CREATE_FAILED',
+    message: () => 'Failed to create template line',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+  TEMPLATE_LINE_FETCH_FAILED: {
+    code: 'ERR_TEMPLATE_LINE_FETCH_FAILED',
+    message: () => 'Failed to fetch template line',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+  TEMPLATE_LIMIT_EXCEEDED: {
+    code: 'ERR_TEMPLATE_LIMIT_EXCEEDED',
+    message: (details?: Record<string, unknown>) =>
+      details?.limit
+        ? `Template limit of ${details.limit} exceeded`
+        : 'Template limit exceeded',
+    httpStatus: HttpStatus.BAD_REQUEST,
+  },
+  TEMPLATE_IN_USE: {
+    code: 'ERR_TEMPLATE_IN_USE',
+    message: (details?: Record<string, unknown>) =>
+      details?.id
+        ? `Template with ID '${details.id}' is in use and cannot be deleted`
+        : 'Template is in use and cannot be deleted',
+    httpStatus: HttpStatus.BAD_REQUEST,
+  },
+  TEMPLATE_LINES_BULK_UPDATE_FAILED: {
+    code: 'ERR_TEMPLATE_LINES_BULK_UPDATE_FAILED',
+    message: () => 'Failed to bulk update template lines',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+  TEMPLATE_LINES_BULK_OPERATIONS_FAILED: {
+    code: 'ERR_TEMPLATE_LINES_BULK_OPERATIONS_FAILED',
+    message: () => 'Failed to perform bulk operations on template lines',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+  TEMPLATE_LINES_VALIDATION_FAILED: {
+    code: 'ERR_TEMPLATE_LINES_VALIDATION_FAILED',
+    message: (details?: Record<string, unknown>) =>
+      details?.reason
+        ? `Template lines validation failed: ${details.reason}`
+        : 'Template lines validation failed',
+    httpStatus: HttpStatus.BAD_REQUEST,
+  },
+  TEMPLATE_LINE_TEMPLATE_MISMATCH: {
+    code: 'ERR_TEMPLATE_LINE_TEMPLATE_MISMATCH',
+    message: (details?: Record<string, unknown>) =>
+      details?.lineId && details?.templateId
+        ? `Template line '${details.lineId}' does not belong to template '${details.templateId}'`
+        : 'Template line does not belong to the specified template',
+    httpStatus: HttpStatus.BAD_REQUEST,
+  },
 
   // Transaction Errors
   TRANSACTION_NOT_FOUND: {
@@ -332,6 +400,31 @@ export const ERROR_DEFINITIONS = {
   USER_FETCH_FAILED: {
     code: 'ERR_USER_FETCH_FAILED',
     message: () => 'Failed to fetch user',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+  USER_PROFILE_UPDATE_FAILED: {
+    code: 'ERR_USER_PROFILE_UPDATE_FAILED',
+    message: () => 'Failed to update user profile',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+  USER_ONBOARDING_UPDATE_FAILED: {
+    code: 'ERR_USER_ONBOARDING_UPDATE_FAILED',
+    message: () => 'Failed to update onboarding status',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+  USER_ONBOARDING_FETCH_FAILED: {
+    code: 'ERR_USER_ONBOARDING_FETCH_FAILED',
+    message: () => 'Failed to fetch onboarding status',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+  USER_SETTINGS_UPDATE_FAILED: {
+    code: 'ERR_USER_SETTINGS_UPDATE_FAILED',
+    message: () => 'Failed to update user settings',
+    httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
+  },
+  USER_SETTINGS_FETCH_FAILED: {
+    code: 'ERR_USER_SETTINGS_FETCH_FAILED',
+    message: () => 'Failed to fetch user settings',
     httpStatus: HttpStatus.INTERNAL_SERVER_ERROR,
   },
 

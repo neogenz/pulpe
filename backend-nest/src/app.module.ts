@@ -227,12 +227,12 @@ function createPinoLoggerConfig(configService: ConfigService) {
       cache: true,
       validate: validateConfig,
     }),
-    CommonModule,
     LoggerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: createPinoLoggerConfig,
     }),
+    CommonModule,
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

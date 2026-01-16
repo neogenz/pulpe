@@ -1,10 +1,10 @@
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import { Injectable, HttpException } from '@nestjs/common';
-import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { handleServiceError } from '@common/utils/error-handler';
+import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import {
   type TransactionCreate,
   type TransactionDeleteResponse,
@@ -23,8 +23,8 @@ import { BudgetService } from '../budget/budget.service';
 @Injectable()
 export class TransactionService {
   constructor(
-    @InjectPinoLogger(TransactionService.name)
-    private readonly logger: PinoLogger,
+    @InjectInfoLogger(TransactionService.name)
+    private readonly logger: InfoLogger,
     private readonly budgetService: BudgetService,
   ) {}
 
@@ -193,18 +193,7 @@ export class TransactionService {
       .single();
 
     if (error) {
-      // Pattern "Enrichir et Relancer" - log technique + throw métier
-      this.logger.error(
-        {
-          err: error,
-          operation: 'insertTransaction',
-          userId,
-          entityType: 'transaction',
-          supabaseError: error,
-        },
-        'Supabase insert transaction failed',
-      );
-
+      // Pattern "Log or Throw" - GlobalExceptionFilter handles logging
       throw new BusinessException(
         ERROR_DEFINITIONS.TRANSACTION_CREATE_FAILED,
         undefined,
@@ -212,7 +201,7 @@ export class TransactionService {
           operation: 'insertTransaction',
           userId,
           entityType: 'transaction',
-          supabaseError: error,
+          supabaseErrorCode: error.code,
         },
         { cause: error },
       );
@@ -547,25 +536,14 @@ export class TransactionService {
     error: unknown,
     userId: string,
     entityId: string,
-    startTime: number,
+    _startTime: number,
   ): never {
     // Use the error handler for consistency (it will re-throw known exceptions)
     if (error instanceof BusinessException || error instanceof HttpException) {
       throw error;
     }
 
-    // Log unexpected errors before wrapping
-    this.logger.error(
-      {
-        operation: 'deleteTransaction',
-        userId,
-        entityId,
-        duration: Date.now() - startTime,
-        err: error,
-      },
-      'Unexpected error during transaction deletion',
-    );
-
+    // Pattern "Log or Throw" - GlobalExceptionFilter handles logging
     // Use error handler for the wrapping logic
     handleServiceError(
       error,

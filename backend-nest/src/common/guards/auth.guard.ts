@@ -1,11 +1,8 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
-import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { type InfoLogger, InjectInfoLogger } from '@common/logger';
 import { Request } from 'express';
+import { BusinessException } from '@common/exceptions/business.exception';
+import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { SupabaseService } from '@modules/supabase/supabase.service';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { SupabaseClient } from '@/types/supabase-helpers';
@@ -19,8 +16,8 @@ interface RequestWithCache extends Request {
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
-    @InjectPinoLogger(AuthGuard.name)
-    private readonly logger: PinoLogger,
+    @InjectInfoLogger(AuthGuard.name)
+    private readonly logger: InfoLogger,
     private readonly supabaseService: SupabaseService,
   ) {}
 
@@ -29,7 +26,7 @@ export class AuthGuard implements CanActivate {
     const accessToken = this.extractTokenFromHeader(request);
 
     if (!accessToken) {
-      throw new UnauthorizedException("Token d'accès requis");
+      throw new BusinessException(ERROR_DEFINITIONS.AUTH_TOKEN_MISSING);
     }
 
     if (request.__throttlerUserCache) {
@@ -57,14 +54,10 @@ export class AuthGuard implements CanActivate {
       request.supabase = supabase;
       return true;
     } catch (error) {
-      if (error instanceof UnauthorizedException) {
+      if (error instanceof BusinessException) {
         throw error;
       }
-      this.logger.error(
-        { err: error },
-        'Authentication error while using cached user',
-      );
-      throw new UnauthorizedException("Erreur d'authentification");
+      throw new BusinessException(ERROR_DEFINITIONS.AUTH_UNAUTHORIZED);
     }
   }
 
@@ -82,7 +75,7 @@ export class AuthGuard implements CanActivate {
       } = await supabase.auth.getUser();
 
       if (userError || !user) {
-        throw new UnauthorizedException("Token d'accès invalide ou expiré");
+        throw new BusinessException(ERROR_DEFINITIONS.AUTH_TOKEN_INVALID);
       }
 
       const authenticatedUser: AuthenticatedUser = {
@@ -97,11 +90,10 @@ export class AuthGuard implements CanActivate {
 
       return true;
     } catch (error) {
-      if (error instanceof UnauthorizedException) {
+      if (error instanceof BusinessException) {
         throw error;
       }
-      this.logger.error({ err: error }, 'Authentication middleware error');
-      throw new UnauthorizedException("Erreur d'authentification");
+      throw new BusinessException(ERROR_DEFINITIONS.AUTH_UNAUTHORIZED);
     }
   }
 

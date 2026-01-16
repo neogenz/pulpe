@@ -1,9 +1,5 @@
 import { describe, it, expect, mock, beforeEach } from 'bun:test';
-import {
-  BadRequestException,
-  ForbiddenException,
-  NotFoundException,
-} from '@nestjs/common';
+import { BusinessException } from '@common/exceptions/business.exception';
 import { BudgetTemplateService } from './budget-template.service';
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
@@ -127,7 +123,7 @@ describe('BudgetTemplateService - Template Deletion', () => {
 
       await expect(
         service.remove(templateId, mockUser, mockSupabase),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(BusinessException);
     });
 
     it('should throw NotFoundException when template does not exist', async () => {
@@ -148,10 +144,10 @@ describe('BudgetTemplateService - Template Deletion', () => {
 
       await expect(
         service.remove(templateId, mockUser, mockSupabase),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(BusinessException);
     });
 
-    it('should throw ForbiddenException when user does not own the template', async () => {
+    it('should throw BusinessException when user does not own the template', async () => {
       const selectMock = mock(() => ({
         eq: mock(() => ({
           single: mock(() =>
@@ -169,7 +165,7 @@ describe('BudgetTemplateService - Template Deletion', () => {
 
       await expect(
         service.remove(templateId, mockUser, mockSupabase),
-      ).rejects.toThrow(ForbiddenException);
+      ).rejects.toThrow(BusinessException);
     });
   });
 
@@ -295,7 +291,7 @@ describe('BudgetTemplateService - Template Deletion', () => {
       });
     });
 
-    it('should throw ForbiddenException when user does not own the template', async () => {
+    it('should throw BusinessException when user does not own the template', async () => {
       const selectMock = mock(() => ({
         eq: mock(() => ({
           single: mock(() =>
@@ -313,10 +309,10 @@ describe('BudgetTemplateService - Template Deletion', () => {
 
       await expect(
         service.checkTemplateUsage(templateId, mockUser, mockSupabase),
-      ).rejects.toThrow(ForbiddenException);
+      ).rejects.toThrow(BusinessException);
     });
 
-    it('should throw NotFoundException when template does not exist', async () => {
+    it('should throw BusinessException when template does not exist', async () => {
       const selectMock = mock(() => ({
         eq: mock(() => ({
           single: mock(() =>
@@ -334,7 +330,7 @@ describe('BudgetTemplateService - Template Deletion', () => {
 
       await expect(
         service.checkTemplateUsage(templateId, mockUser, mockSupabase),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(BusinessException);
     });
   });
 });

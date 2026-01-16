@@ -37,7 +37,7 @@ describe('DemoService - Business Value Tests', () => {
           },
         },
         {
-          provide: `PinoLogger:${DemoService.name}`,
+          provide: `INFO_LOGGER:${DemoService.name}`,
           useValue: {
             error: mock(() => {}),
             info: mock(() => {}),
@@ -46,7 +46,7 @@ describe('DemoService - Business Value Tests', () => {
           },
         },
         {
-          provide: `PinoLogger:${DemoDataGeneratorService.name}`,
+          provide: `INFO_LOGGER:${DemoDataGeneratorService.name}`,
           useValue: {
             error: mock(() => {}),
             info: mock(() => {}),

@@ -1,12 +1,7 @@
-import {
-  Controller,
-  Get,
-  Put,
-  Body,
-  UseGuards,
-  InternalServerErrorException,
-} from '@nestjs/common';
-import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
+import { Controller, Get, Put, Body, UseGuards } from '@nestjs/common';
+import { BusinessException } from '@common/exceptions/business.exception';
+import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
+import { handleServiceError } from '@common/utils/error-handler';
 import {
   ApiTags,
   ApiOperation,
@@ -50,11 +45,7 @@ import { ErrorResponseDto } from '@common/dto/response.dto';
   type: ErrorResponseDto,
 })
 export class UserController {
-  constructor(
-    @InjectPinoLogger(UserController.name)
-    private readonly logger: PinoLogger,
-    private readonly supabaseService: SupabaseService,
-  ) {}
+  constructor(private readonly supabaseService: SupabaseService) {}
   @Get('me')
   @ApiOperation({
     summary: 'Get current user profile',
@@ -103,9 +94,11 @@ export class UserController {
       const updatedUser = await this.performProfileUpdate(updateData, supabase);
       return this.buildProfileResponse(updatedUser);
     } catch (error) {
-      this.logger.error({ err: error }, 'Failed to update user profile');
-      throw new InternalServerErrorException(
-        'Erreur lors de la mise à jour du profil',
+      handleServiceError(
+        error,
+        ERROR_DEFINITIONS.USER_PROFILE_UPDATE_FAILED,
+        undefined,
+        { operation: 'updateProfile', userId: user.id },
       );
     }
   }
@@ -122,8 +115,11 @@ export class UserController {
     });
 
     if (error || !updatedUser.user) {
-      throw new InternalServerErrorException(
-        'Erreur lors de la mise à jour du profil',
+      throw new BusinessException(
+        ERROR_DEFINITIONS.USER_PROFILE_UPDATE_FAILED,
+        undefined,
+        undefined,
+        { cause: error },
       );
     }
 
@@ -173,9 +169,11 @@ export class UserController {
         message: 'Onboarding marqué comme terminé',
       };
     } catch (error) {
-      this.logger.error({ err: error }, 'Failed to update onboarding status');
-      throw new InternalServerErrorException(
-        "Erreur lors de la mise à jour du statut d'onboarding",
+      handleServiceError(
+        error,
+        ERROR_DEFINITIONS.USER_ONBOARDING_UPDATE_FAILED,
+        undefined,
+        { operation: 'completeOnboarding', userId: user.id },
       );
     }
   }
@@ -196,12 +194,11 @@ export class UserController {
       });
 
     if (error || !updatedUser.user) {
-      this.logger.error(
-        { supabaseError: error, hasUser: !!updatedUser?.user },
-        'Supabase updateUserById failed for onboarding',
-      );
-      throw new InternalServerErrorException(
-        "Erreur lors de la mise à jour du statut d'onboarding",
+      throw new BusinessException(
+        ERROR_DEFINITIONS.USER_ONBOARDING_UPDATE_FAILED,
+        undefined,
+        undefined,
+        { cause: error },
       );
     }
   }
@@ -211,8 +208,11 @@ export class UserController {
       await supabase.auth.getUser();
 
     if (getUserError || !currentUserData.user) {
-      throw new InternalServerErrorException(
-        'Erreur lors de la récupération des données utilisateur',
+      throw new BusinessException(
+        ERROR_DEFINITIONS.USER_FETCH_FAILED,
+        undefined,
+        undefined,
+        { cause: getUserError },
       );
     }
 
@@ -239,8 +239,11 @@ export class UserController {
         await supabase.auth.getUser();
 
       if (getUserError || !currentUserData.user) {
-        throw new InternalServerErrorException(
-          'Erreur lors de la récupération des données utilisateur',
+        throw new BusinessException(
+          ERROR_DEFINITIONS.USER_FETCH_FAILED,
+          undefined,
+          undefined,
+          { cause: getUserError },
         );
       }
 
@@ -252,9 +255,11 @@ export class UserController {
         onboardingCompleted: isOnboardingCompleted,
       };
     } catch (error) {
-      this.logger.error({ err: error }, 'Failed to fetch onboarding status');
-      throw new InternalServerErrorException(
-        "Erreur lors de la récupération du statut d'onboarding",
+      handleServiceError(
+        error,
+        ERROR_DEFINITIONS.USER_ONBOARDING_FETCH_FAILED,
+        undefined,
+        { operation: 'getOnboardingStatus', userId: user.id },
       );
     }
   }
@@ -286,12 +291,11 @@ export class UserController {
         },
       };
     } catch (error) {
-      if (error instanceof InternalServerErrorException) {
-        throw error;
-      }
-      this.logger.error({ err: error }, 'Failed to fetch user settings');
-      throw new InternalServerErrorException(
-        'Erreur lors de la récupération des paramètres',
+      handleServiceError(
+        error,
+        ERROR_DEFINITIONS.USER_SETTINGS_FETCH_FAILED,
+        undefined,
+        { operation: 'getSettings' },
       );
     }
   }
@@ -329,12 +333,11 @@ export class UserController {
         });
 
       if (error || !updatedUser.user) {
-        this.logger.error(
-          { supabaseError: error, hasUser: !!updatedUser?.user },
-          'Supabase updateUserById failed',
-        );
-        throw new InternalServerErrorException(
-          'Erreur lors de la mise à jour des paramètres',
+        throw new BusinessException(
+          ERROR_DEFINITIONS.USER_SETTINGS_UPDATE_FAILED,
+          undefined,
+          undefined,
+          { cause: error },
         );
       }
 
@@ -345,12 +348,11 @@ export class UserController {
         },
       };
     } catch (error) {
-      if (error instanceof InternalServerErrorException) {
-        throw error;
-      }
-      this.logger.error({ err: error }, 'Failed to update user settings');
-      throw new InternalServerErrorException(
-        'Erreur lors de la mise à jour des paramètres',
+      handleServiceError(
+        error,
+        ERROR_DEFINITIONS.USER_SETTINGS_UPDATE_FAILED,
+        undefined,
+        { operation: 'updateSettings', userId: user.id },
       );
     }
   }

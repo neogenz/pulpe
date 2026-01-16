@@ -1,7 +1,6 @@
 import type { AuthenticatedUser } from '@common/decorators/user.decorator';
 import type { AuthenticatedSupabaseClient } from '@modules/supabase/supabase.service';
 import { Injectable } from '@nestjs/common';
-import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
 import { ERROR_DEFINITIONS } from '@common/constants/error-definitions';
 import { BusinessException } from '@common/exceptions/business.exception';
 import { handleServiceError } from '@common/utils/error-handler';
@@ -18,11 +17,7 @@ import { BudgetService } from '../budget/budget.service';
 
 @Injectable()
 export class BudgetLineService {
-  constructor(
-    @InjectPinoLogger(BudgetLineService.name)
-    private readonly logger: PinoLogger,
-    private readonly budgetService: BudgetService,
-  ) {}
+  constructor(private readonly budgetService: BudgetService) {}
 
   async findAll(
     supabase: AuthenticatedSupabaseClient,
@@ -125,18 +120,6 @@ export class BudgetLineService {
       .single();
 
     if (error) {
-      // Pattern "Enrichir et Relancer" - log technique + throw métier
-      this.logger.error(
-        {
-          err: error,
-          operation: 'createBudgetLine',
-          userId: user.id,
-          entityType: 'budget_line',
-          supabaseError: error,
-        },
-        'Supabase insert budget line failed',
-      );
-
       throw new BusinessException(
         ERROR_DEFINITIONS.BUDGET_LINE_CREATE_FAILED,
         undefined,

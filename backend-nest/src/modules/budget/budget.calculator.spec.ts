@@ -30,7 +30,7 @@ describe('BudgetCalculator', () => {
         providers: [
           BudgetCalculator,
           {
-            provide: `PinoLogger:${BudgetCalculator.name}`,
+            provide: `INFO_LOGGER:${BudgetCalculator.name}`,
             useValue: createMockPinoLogger(),
           },
           {
@@ -79,7 +79,7 @@ describe('BudgetCalculator', () => {
         providers: [
           BudgetCalculator,
           {
-            provide: `PinoLogger:${BudgetCalculator.name}`,
+            provide: `INFO_LOGGER:${BudgetCalculator.name}`,
             useValue: createMockPinoLogger(),
           },
           {
@@ -127,7 +127,7 @@ describe('BudgetCalculator', () => {
         providers: [
           BudgetCalculator,
           {
-            provide: `PinoLogger:${BudgetCalculator.name}`,
+            provide: `INFO_LOGGER:${BudgetCalculator.name}`,
             useValue: createMockPinoLogger(),
           },
           {
@@ -175,7 +175,7 @@ describe('BudgetCalculator', () => {
         providers: [
           BudgetCalculator,
           {
-            provide: `PinoLogger:${BudgetCalculator.name}`,
+            provide: `INFO_LOGGER:${BudgetCalculator.name}`,
             useValue: createMockPinoLogger(),
           },
           {
@@ -230,7 +230,7 @@ describe('BudgetCalculator', () => {
         providers: [
           BudgetCalculator,
           {
-            provide: `PinoLogger:${BudgetCalculator.name}`,
+            provide: `INFO_LOGGER:${BudgetCalculator.name}`,
             useValue: createMockPinoLogger(),
           },
           {
@@ -273,7 +273,7 @@ describe('BudgetCalculator', () => {
         providers: [
           BudgetCalculator,
           {
-            provide: `PinoLogger:${BudgetCalculator.name}`,
+            provide: `INFO_LOGGER:${BudgetCalculator.name}`,
             useValue: createMockPinoLogger(),
           },
           {
@@ -312,7 +312,7 @@ describe('BudgetCalculator', () => {
         providers: [
           BudgetCalculator,
           {
-            provide: `PinoLogger:${BudgetCalculator.name}`,
+            provide: `INFO_LOGGER:${BudgetCalculator.name}`,
             useValue: createMockPinoLogger(),
           },
           {
@@ -350,7 +350,7 @@ describe('BudgetCalculator', () => {
         providers: [
           BudgetCalculator,
           {
-            provide: `PinoLogger:${BudgetCalculator.name}`,
+            provide: `INFO_LOGGER:${BudgetCalculator.name}`,
             useValue: createMockPinoLogger(),
           },
           {
