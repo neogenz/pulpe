@@ -122,7 +122,7 @@ type EditTransactionFormData = Pick<
         </div>
       </header>
 
-@switch (true) {
+      @switch (true) {
         @case (store.isInitialLoading()) {
           <pulpe-base-loading
             message="Chargement du tableau de bord..."

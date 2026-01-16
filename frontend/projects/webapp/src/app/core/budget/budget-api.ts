@@ -15,7 +15,7 @@ import {
   errorResponseSchema,
 } from 'pulpe-shared';
 import { type Observable, throwError } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, map, switchMap } from 'rxjs/operators';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
 import { StorageService, STORAGE_KEYS } from '../storage';
@@ -202,12 +202,16 @@ export class BudgetApi {
   }
 
   /**
-   * Supprime un budget
+   * Supprime un budget et resynchronise le cache HasBudgetCache.
    */
   deleteBudget$(budgetId: string): Observable<void> {
     return this.#httpClient.delete(`${this.#apiUrl}/${budgetId}`).pipe(
-      map(() => {
+      switchMap(() =>
+        this.#httpClient.get<{ hasBudget: boolean }>(`${this.#apiUrl}/exists`),
+      ),
+      map((response) => {
         this.#removeBudgetFromStorage(budgetId);
+        this.#hasBudgetCache.setHasBudget(response.hasBudget);
       }),
       catchError((error) =>
         this.#handleApiError(error, 'Erreur lors de la suppression du budget'),
