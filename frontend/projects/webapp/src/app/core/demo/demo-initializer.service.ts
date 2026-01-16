@@ -11,6 +11,7 @@ import { ROUTES } from '@core/routing/routes-constants';
 import { Logger } from '@core/logging/logger';
 import { AuthApi } from '@core/auth/auth-api';
 import { DemoModeService } from './demo-mode.service';
+import { type E2EWindow } from '@core/auth';
 
 /**
  * Service responsible for initializing demo mode
@@ -47,7 +48,7 @@ export class DemoInitializerService {
     // E2E Test Bypass - skip Turnstile & backend call
     if (
       typeof window !== 'undefined' &&
-      (window as { __E2E_DEMO_BYPASS__?: boolean }).__E2E_DEMO_BYPASS__ === true
+      (window as E2EWindow).__E2E_DEMO_BYPASS__ === true
     ) {
       await this.#handleE2EDemoBypass();
       return;

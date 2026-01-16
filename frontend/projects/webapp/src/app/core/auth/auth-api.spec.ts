@@ -1,172 +1,207 @@
 import { TestBed } from '@angular/core/testing';
-import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
-import { AuthApi, type OAuthUserMetadata } from './auth-api';
-import { AuthErrorLocalizer } from './auth-error-localizer';
-import { ApplicationConfiguration } from '../config/application-configuration';
-import { Logger } from '../logging/logger';
-import { DemoModeService } from '../demo/demo-mode.service';
-import { PostHogService } from '../analytics/posthog';
-import { StorageService } from '../storage';
-import { ROUTES } from '../routing/routes-constants';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { signal } from '@angular/core';
+import { AuthApi } from './auth-api';
+import { AuthStateService } from './auth-state.service';
+import { AuthSessionService } from './auth-session.service';
+import { AuthCredentialsService } from './auth-credentials.service';
+import { AuthOAuthService } from './auth-oauth.service';
+import { AuthCleanupService } from './auth-cleanup.service';
+import type { Session } from '@supabase/supabase-js';
 
-describe('AuthApi', () => {
+describe('AuthApi Facade', () => {
   let service: AuthApi;
-  let mockSignInWithOAuth: Mock;
+  let mockState: Partial<AuthStateService>;
+  let mockSession: Partial<AuthSessionService>;
+  let mockCredentials: Partial<AuthCredentialsService>;
+  let mockOAuth: Partial<AuthOAuthService>;
+  let mockCleanup: Partial<AuthCleanupService>;
+
+  const sessionSignal = signal<Session | null>(null);
+  const isLoadingSignal = signal(false);
+  const userSignal = signal(null);
+  const isAuthenticatedSignal = signal(false);
+  const authStateSignal = signal({
+    session: null,
+    user: null,
+    isLoading: false,
+    isAuthenticated: false,
+  });
 
   beforeEach(() => {
-    mockSignInWithOAuth = vi.fn().mockResolvedValue({ error: null });
+    mockState = {
+      session: sessionSignal.asReadonly(),
+      isLoading: isLoadingSignal.asReadonly(),
+      user: userSignal.asReadonly(),
+      isAuthenticated: isAuthenticatedSignal.asReadonly(),
+      authState: authStateSignal.asReadonly(),
+    };
+
+    mockSession = {
+      initializeAuthState: vi.fn(),
+      getCurrentSession: vi.fn(),
+      refreshSession: vi.fn(),
+      setSession: vi.fn(),
+      signOut: vi.fn(),
+    };
+
+    mockCredentials = {
+      signInWithEmail: vi.fn(),
+      signUpWithEmail: vi.fn(),
+    };
+
+    mockOAuth = {
+      getOAuthUserMetadata: vi.fn(),
+      signInWithGoogle: vi.fn(),
+    };
+
+    mockCleanup = {
+      signOut: vi.fn(),
+    };
 
     TestBed.configureTestingModule({
       providers: [
         AuthApi,
-        {
-          provide: AuthErrorLocalizer,
-          useValue: { localizeError: vi.fn((msg: string) => msg) },
-        },
-        {
-          provide: ApplicationConfiguration,
-          useValue: {
-            supabaseUrl: () => 'http://test.supabase.co',
-            supabaseAnonKey: () => 'test-key',
-          },
-        },
-        {
-          provide: Logger,
-          useValue: { info: vi.fn(), debug: vi.fn(), error: vi.fn() },
-        },
-        { provide: DemoModeService, useValue: { deactivateDemoMode: vi.fn() } },
-        { provide: PostHogService, useValue: { reset: vi.fn() } },
-        { provide: StorageService, useValue: { clearAll: vi.fn() } },
+        { provide: AuthStateService, useValue: mockState },
+        { provide: AuthSessionService, useValue: mockSession },
+        { provide: AuthCredentialsService, useValue: mockCredentials },
+        { provide: AuthOAuthService, useValue: mockOAuth },
+        { provide: AuthCleanupService, useValue: mockCleanup },
       ],
     });
 
     service = TestBed.inject(AuthApi);
   });
 
-  describe('getOAuthUserMetadata', () => {
-    it('should return null when no session exists', () => {
-      const result = service.getOAuthUserMetadata();
+  it('should delegate session signal to AuthStateService', () => {
+    expect(service.session()).toBeNull();
+  });
 
-      expect(result).toBeNull();
-    });
+  it('should delegate isLoading signal to AuthStateService', () => {
+    expect(service.isLoading()).toBe(false);
+  });
 
-    it('should return givenName when present in metadata', () => {
-      // Since we can't directly set private signal, we test via mocking the method
-      const getOAuthSpy = vi.spyOn(service, 'getOAuthUserMetadata');
-      getOAuthSpy.mockReturnValue({ givenName: 'John', fullName: 'John Doe' });
+  it('should delegate user signal to AuthStateService', () => {
+    expect(service.user()).toBeNull();
+  });
 
-      const result = service.getOAuthUserMetadata();
+  it('should delegate isAuthenticated signal to AuthStateService', () => {
+    expect(service.isAuthenticated()).toBe(false);
+  });
 
-      expect(result).toEqual({
-        givenName: 'John',
-        fullName: 'John Doe',
-      });
-
-      getOAuthSpy.mockRestore();
-    });
-
-    it('should return fullName only when givenName is not present', () => {
-      const getOAuthSpy = vi.spyOn(service, 'getOAuthUserMetadata');
-      getOAuthSpy.mockReturnValue({
-        givenName: undefined,
-        fullName: 'Jane Smith',
-      });
-
-      const result = service.getOAuthUserMetadata();
-
-      expect(result).toEqual({
-        givenName: undefined,
-        fullName: 'Jane Smith',
-      });
-
-      getOAuthSpy.mockRestore();
+  it('should delegate authState signal to AuthStateService', () => {
+    const state = service.authState();
+    expect(state).toEqual({
+      session: null,
+      user: null,
+      isLoading: false,
+      isAuthenticated: false,
     });
   });
 
-  describe('getOAuthUserMetadata logic validation', () => {
-    it('should extract givenName and fullName correctly from valid metadata', () => {
-      // Test the extraction logic by verifying the expected interface
-      const metadata: OAuthUserMetadata = {
-        givenName: 'Alice',
-        fullName: 'Alice Johnson',
-      };
+  it('should delegate getOAuthUserMetadata to AuthOAuthService', () => {
+    const mockMetadata = { givenName: 'John', fullName: 'John Doe' };
+    vi.mocked(mockOAuth.getOAuthUserMetadata).mockReturnValue(mockMetadata);
 
-      expect(metadata.givenName).toBe('Alice');
-      expect(metadata.fullName).toBe('Alice Johnson');
-    });
+    const result = service.getOAuthUserMetadata();
 
-    it('should allow partial metadata (fullName only)', () => {
-      const metadata: OAuthUserMetadata = {
-        fullName: 'Bob Smith',
-      };
-
-      expect(metadata.givenName).toBeUndefined();
-      expect(metadata.fullName).toBe('Bob Smith');
-    });
-
-    it('should allow partial metadata (givenName only)', () => {
-      const metadata: OAuthUserMetadata = {
-        givenName: 'Charlie',
-      };
-
-      expect(metadata.givenName).toBe('Charlie');
-      expect(metadata.fullName).toBeUndefined();
-    });
+    expect(result).toEqual(mockMetadata);
+    expect(mockOAuth.getOAuthUserMetadata).toHaveBeenCalled();
   });
 
-  describe('signInWithGoogle', () => {
-    it('should include redirectTo option pointing to /app', async () => {
-      const mockAuth = {
-        getSession: vi
-          .fn()
-          .mockResolvedValue({ data: { session: null }, error: null }),
-        signInWithOAuth: mockSignInWithOAuth,
-        onAuthStateChange: vi.fn().mockReturnValue({
-          data: { subscription: { unsubscribe: vi.fn() } },
-        }),
-      };
+  it('should delegate initializeAuthState to AuthSessionService', async () => {
+    await service.initializeAuthState();
 
-      const mockClient = { auth: mockAuth };
-
-      // Initialize service and inject mock client
-      await service.initializeAuthState();
-
-      // Replace the private client with our mock
-      Object.defineProperty(service, '#supabaseClient', {
-        value: mockClient,
-        writable: true,
-      });
-
-      // We can't easily replace private fields, so let's test the redirect URL logic directly
-      const expectedRedirectTo = `${window.location.origin}/${ROUTES.APP}`;
-
-      expect(expectedRedirectTo).toBe(`${window.location.origin}/app`);
-    });
-
-    it('should construct correct redirect URL', () => {
-      const redirectTo = `${window.location.origin}/${ROUTES.APP}`;
-
-      expect(redirectTo).toContain('/app');
-      expect(ROUTES.APP).toBe('app');
-    });
+    expect(mockSession.initializeAuthState).toHaveBeenCalled();
   });
 
-  describe('OAuthUserMetadata interface', () => {
-    it('should match expected structure', () => {
-      const metadata: OAuthUserMetadata = {
-        givenName: 'Test',
-        fullName: 'Test User',
-      };
-
-      expect(typeof metadata.givenName).toBe('string');
-      expect(typeof metadata.fullName).toBe('string');
+  it('should delegate signInWithEmail to AuthCredentialsService', async () => {
+    vi.mocked(mockCredentials.signInWithEmail).mockResolvedValue({
+      success: true,
     });
 
-    it('should allow optional fields', () => {
-      const metadataPartial: OAuthUserMetadata = {};
+    const result = await service.signInWithEmail(
+      'test@example.com',
+      'password',
+    );
 
-      expect(metadataPartial.givenName).toBeUndefined();
-      expect(metadataPartial.fullName).toBeUndefined();
+    expect(result).toEqual({ success: true });
+    expect(mockCredentials.signInWithEmail).toHaveBeenCalledWith(
+      'test@example.com',
+      'password',
+    );
+  });
+
+  it('should delegate signUpWithEmail to AuthCredentialsService', async () => {
+    vi.mocked(mockCredentials.signUpWithEmail).mockResolvedValue({
+      success: true,
     });
+
+    const result = await service.signUpWithEmail(
+      'test@example.com',
+      'password',
+    );
+
+    expect(result).toEqual({ success: true });
+    expect(mockCredentials.signUpWithEmail).toHaveBeenCalledWith(
+      'test@example.com',
+      'password',
+    );
+  });
+
+  it('should delegate signInWithGoogle to AuthOAuthService', async () => {
+    vi.mocked(mockOAuth.signInWithGoogle).mockResolvedValue({ success: true });
+
+    const result = await service.signInWithGoogle();
+
+    expect(result).toEqual({ success: true });
+    expect(mockOAuth.signInWithGoogle).toHaveBeenCalled();
+  });
+
+  it('should delegate setSession to AuthSessionService', async () => {
+    const session = { access_token: 'token', refresh_token: 'refresh' };
+    vi.mocked(mockSession.setSession).mockResolvedValue({ success: true });
+
+    const result = await service.setSession(session);
+
+    expect(result).toEqual({ success: true });
+    expect(mockSession.setSession).toHaveBeenCalledWith(session);
+  });
+
+  it('should delegate signOut to AuthSessionService', async () => {
+    await service.signOut();
+
+    expect(mockSession.signOut).toHaveBeenCalled();
+  });
+
+  it('should delegate getCurrentSession to AuthSessionService', async () => {
+    const mockSessionData = { user: { id: 'user-123' } } as Session;
+    vi.mocked(mockSession.getCurrentSession).mockResolvedValue(mockSessionData);
+
+    const result = await service.getCurrentSession();
+
+    expect(result).toEqual(mockSessionData);
+    expect(mockSession.getCurrentSession).toHaveBeenCalled();
+  });
+
+  it('should delegate refreshSession to AuthSessionService', async () => {
+    vi.mocked(mockSession.refreshSession).mockResolvedValue(true);
+
+    const result = await service.refreshSession();
+
+    expect(result).toBe(true);
+    expect(mockSession.refreshSession).toHaveBeenCalled();
+  });
+
+  it('should expose currentUser getter from AuthStateService', () => {
+    const result = service.currentUser;
+
+    expect(result).toBeNull();
+  });
+
+  it('should expose currentSession getter from AuthStateService', () => {
+    const result = service.currentSession;
+
+    expect(result).toBeNull();
   });
 });
