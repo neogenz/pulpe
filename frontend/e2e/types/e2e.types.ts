@@ -22,7 +22,7 @@ export type ErrorHandler = (error: Error) => void;
 export interface MockApiResponse {
   status: number;
   body?: string;
-  json?: any;
+  json?: unknown;
 }
 
 /**

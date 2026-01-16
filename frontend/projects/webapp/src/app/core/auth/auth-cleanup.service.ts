@@ -1,5 +1,4 @@
 import { Injectable, inject, DestroyRef } from '@angular/core';
-import { AuthStateService } from './auth-state.service';
 import { DemoModeService } from '../demo/demo-mode.service';
 import { HasBudgetCache } from './has-budget-cache';
 import { PostHogService } from '../analytics/posthog';
@@ -12,7 +11,6 @@ const CLEANUP_RESET_DELAY_MS = 100;
   providedIn: 'root',
 })
 export class AuthCleanupService {
-  readonly #state = inject(AuthStateService);
   readonly #demoModeService = inject(DemoModeService);
   readonly #hasBudgetCache = inject(HasBudgetCache);
   readonly #postHogService = inject(PostHogService);
@@ -47,11 +45,13 @@ export class AuthCleanupService {
     this.#cleanupInProgress = true;
 
     try {
-      this.#state.setLoading(false);
-      this.#demoModeService.deactivateDemoMode();
-      this.#hasBudgetCache.clear();
-      this.#postHogService.reset();
-      this.#storageService.clearAll(userId);
+      this.#safeCleanup(
+        () => this.#demoModeService.deactivateDemoMode(),
+        'demo mode',
+      );
+      this.#safeCleanup(() => this.#hasBudgetCache.clear(), 'budget cache');
+      this.#safeCleanup(() => this.#postHogService.reset(), 'PostHog');
+      this.#safeCleanup(() => this.#storageService.clearAll(userId), 'storage');
     } finally {
       if (this.#resetTimeoutId !== null) {
         clearTimeout(this.#resetTimeoutId);
@@ -61,6 +61,14 @@ export class AuthCleanupService {
         this.#cleanupInProgress = false;
         this.#resetTimeoutId = null;
       }, CLEANUP_RESET_DELAY_MS);
+    }
+  }
+
+  #safeCleanup(operation: () => void, name: string): void {
+    try {
+      operation();
+    } catch (error) {
+      this.#logger.error(`Cleanup failed: ${name}`, { error });
     }
   }
 }
