@@ -59,6 +59,20 @@ export async function setupAuthBypass(page: Page, options: {
 }
 
 /**
+ * Setup only the maintenance status mock
+ * Used for ALL tests (including unauthenticated) to prevent maintenance mode blocking navigation
+ */
+export async function setupMaintenanceMock(page: Page) {
+  await page.route('**/maintenance/status', (route: Route) => {
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ maintenanceMode: false, message: null })
+    });
+  });
+}
+
+/**
  * Setup API mocks for E2E testing
  * Uses route.fallback() to allow test-specific routes to override these defaults
  */
@@ -66,6 +80,15 @@ export async function setupApiMocks(page: Page) {
   await page.route('**/api/v1/**', (route: Route) => {
     const url = route.request().url();
     const method = route.request().method();
+
+    // Maintenance status endpoint - must return false to allow normal navigation
+    if (url.includes('maintenance/status')) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ maintenanceMode: false, message: null })
+      });
+    }
 
     // Auth endpoints
     if (url.includes('auth')) {

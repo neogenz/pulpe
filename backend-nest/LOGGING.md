@@ -505,12 +505,13 @@ export class GlobalExceptionFilter {
 ### **Guard/Service avec dégradation gracieuse**
 
 ```typescript
-// Échec d'authentification
+// ✅ warn approprié pour situation non-bloquante
 // Note: ip et deviceType sont anonymisés automatiquement par les serializers HTTP
 this.logger.warn(
   {
     operation: 'authenticate_user',
     requestId: req.headers['x-request-id'],
+    err: networkError,  // Stack trace préservée avec err:
     // ip et deviceType sont ajoutés automatiquement par pino-http
   },
   'External auth service unreachable, using cached session',

@@ -1,4 +1,4 @@
-import { test as base, expect } from '@playwright/test';
+import { test as base, expect } from '../../fixtures/test-fixtures';
 import { TEST_CONFIG } from '../../config/test-config';
 import { setupAuthBypass } from '../../utils/auth-bypass';
 

@@ -138,6 +138,8 @@ function setupHealthEndpoints(
   app: import('@nestjs/common').INestApplication,
   document?: import('@nestjs/swagger').OpenAPIObject,
 ): void {
+  const configService = app.get(ConfigService);
+
   app.getHttpAdapter().get('/', (req, res) => {
     res.json({
       message: 'Pulpe Budget API',
@@ -147,6 +149,16 @@ function setupHealthEndpoints(
 
   app.getHttpAdapter().get('/health', (req, res) => {
     res.json({ status: 'healthy' });
+  });
+
+  app.getHttpAdapter().get('/api/v1/maintenance/status', (req, res) => {
+    const maintenanceMode = configService.get('MAINTENANCE_MODE') === 'true';
+    res.json({
+      maintenanceMode,
+      message: maintenanceMode
+        ? 'Application en maintenance. Veuillez réessayer plus tard.'
+        : null,
+    });
   });
 
   // Only expose OpenAPI JSON in non-production environments

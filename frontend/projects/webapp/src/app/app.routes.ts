@@ -1,6 +1,7 @@
 import { type Routes } from '@angular/router';
 import { publicGuard, hasBudgetGuard } from '@core/auth';
 import { authGuard } from '@core/auth/auth-guard';
+import { maintenanceGuard } from '@core/maintenance';
 import { PAGE_TITLES, ROUTES } from '@core/routing';
 
 export const routes: Routes = [
@@ -12,30 +13,36 @@ export const routes: Routes = [
   {
     path: ROUTES.WELCOME,
     title: PAGE_TITLES.WELCOME,
-    canActivate: [publicGuard],
+    canActivate: [maintenanceGuard, publicGuard],
     loadChildren: () => import('./feature/welcome'),
   },
   {
     path: ROUTES.LOGIN,
     title: PAGE_TITLES.LOGIN,
-    canActivate: [publicGuard],
+    canActivate: [maintenanceGuard, publicGuard],
     loadComponent: () => import('./feature/auth/login/login'),
   },
   {
     path: ROUTES.SIGNUP,
     title: PAGE_TITLES.SIGNUP,
-    canActivate: [publicGuard],
+    canActivate: [maintenanceGuard, publicGuard],
     loadComponent: () => import('./feature/auth/signup/signup'),
+  },
+  {
+    path: ROUTES.MAINTENANCE,
+    title: PAGE_TITLES.MAINTENANCE,
+    loadChildren: () => import('./feature/maintenance/maintenance.routes'),
   },
   {
     path: ROUTES.LEGAL,
     title: PAGE_TITLES.LEGAL,
+    canActivate: [maintenanceGuard],
     loadChildren: () => import('./feature/legal/legal.routes'),
   },
   {
     path: ROUTES.APP,
     title: PAGE_TITLES.DASHBOARD,
-    canActivate: [authGuard],
+    canActivate: [maintenanceGuard, authGuard],
     loadComponent: () => import('@layout/main-layout'),
     children: [
       {

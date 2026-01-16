@@ -128,6 +128,7 @@ export function provideCore({ routes }: CoreOptions) {
       const logger = inject(Logger);
       // 1. Charger la configuration d'abord
       await applicationConfig.initialize();
+
       // 2. Logger les informations complètes après chargement
       logAppInfo(applicationConfig, logger);
 

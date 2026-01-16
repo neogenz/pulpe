@@ -1,5 +1,4 @@
-import { test as base, expect } from '@playwright/test';
-import { test } from '../../fixtures/test-fixtures';
+import { test, test as base, expect } from '../../fixtures/test-fixtures';
 import { setupAuthBypass } from '../../utils/auth-bypass';
 import { MOCK_API_RESPONSES } from '../../mocks/api-responses';
 
