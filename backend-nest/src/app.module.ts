@@ -41,6 +41,9 @@ import { ResponseLoggerMiddleware } from '@common/middleware/response-logger.mid
 import { isProductionLike, validateConfig } from '@config/environment';
 import { ScheduleModule } from '@nestjs/schedule';
 
+// Utils
+import { anonymizeIp, parseDeviceType } from '@common/utils/log-anonymization';
+
 // Logger configuration helpers
 function createRequestIdGenerator() {
   return (
@@ -161,8 +164,11 @@ function createProductionSerializers() {
     ) => ({
       method: req.method,
       url: req.url,
-      userAgent: req.headers?.['user-agent'],
-      ip: req.headers?.['x-forwarded-for'] || req.headers?.['x-real-ip'],
+      deviceType: parseDeviceType(req.headers?.['user-agent'] as string),
+      ip: anonymizeIp(
+        (req.headers?.['x-forwarded-for'] ||
+          req.headers?.['x-real-ip']) as string,
+      ),
     }),
     res: (res: ServerResponse & { statusCode?: number }) => ({
       statusCode: res.statusCode,
