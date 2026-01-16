@@ -47,10 +47,13 @@ const POSTHOG_KEY_PATTERN = /^phc_[A-Za-z0-9_-]+$/;
  * This is the source of truth for environment variable validation.
  */
 export const EnvSchema = z.object({
-  PUBLIC_ENVIRONMENT: z.enum(['development', 'production', 'local', 'test'], {
-    error:
-      "Environment must be 'development', 'production', 'local', or 'test'",
-  }),
+  PUBLIC_ENVIRONMENT: z.enum(
+    ['development', 'production', 'preview', 'local', 'test'],
+    {
+      error:
+        "Environment must be 'development', 'production', 'preview', 'local', or 'test'",
+    },
+  ),
   PUBLIC_SUPABASE_URL: z
     .url({ error: 'Supabase URL must be a valid URL' })
     .refine(
@@ -348,10 +351,13 @@ export const ConfigSchema = z.object({
         },
       ),
   }),
-  environment: z.enum(['development', 'production', 'local', 'test'], {
-    error:
-      "Environment must be 'development', 'production', 'local', or 'test'",
-  }),
+  environment: z.enum(
+    ['development', 'production', 'preview', 'local', 'test'],
+    {
+      error:
+        "Environment must be 'development', 'production', 'preview', 'local', or 'test'",
+    },
+  ),
 });
 
 /**
