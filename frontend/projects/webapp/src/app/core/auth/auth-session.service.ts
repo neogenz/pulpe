@@ -32,6 +32,11 @@ export class AuthSessionService {
   }
 
   async initializeAuthState(): Promise<void> {
+    if (this.#supabaseClient) {
+      this.#logger.debug('Auth already initialized, skipping');
+      return;
+    }
+
     this.#state.setLoading(true);
     const url = this.#applicationConfig.supabaseUrl();
     const key = this.#applicationConfig.supabaseAnonKey();

@@ -57,7 +57,7 @@ describe('AuthSessionService', () => {
   };
 
   beforeEach(async () => {
-    userGetter = vi.fn<[], User | null>().mockReturnValue(null);
+    userGetter = vi.fn<[], User | null>()!.mockReturnValue(null);
 
     mockAuthState = {
       setSession: vi.fn(),
@@ -66,8 +66,8 @@ describe('AuthSessionService', () => {
     };
 
     mockConfig = {
-      supabaseUrl: vi.fn().mockReturnValue('https://test.supabase.co'),
-      supabaseAnonKey: vi.fn().mockReturnValue('test-key'),
+      supabaseUrl: vi.fn()!.mockReturnValue('https://test.supabase.co'),
+      supabaseAnonKey: vi.fn()!.mockReturnValue('test-key'),
     };
 
     mockLogger = {
@@ -77,7 +77,7 @@ describe('AuthSessionService', () => {
     };
 
     mockErrorLocalizer = {
-      localizeError: vi.fn().mockReturnValue('Erreur localisée'),
+      localizeError: vi.fn()!.mockReturnValue('Erreur localisée'),
     };
 
     mockCleanup = {
@@ -100,7 +100,7 @@ describe('AuthSessionService', () => {
     service = TestBed.inject(AuthSessionService);
 
     const { createClient } = await import('@supabase/supabase-js');
-    vi.mocked(createClient).mockReturnValue(
+    vi.mocked(createClient)!.mockReturnValue(
       mockSupabaseClient as SupabaseClient,
     );
   });
@@ -139,7 +139,7 @@ describe('AuthSessionService', () => {
       error: null,
     } satisfies Awaited<ReturnType<typeof mockSupabaseClient.auth.getSession>>);
 
-    vi.mocked(mockSupabaseClient.auth.onAuthStateChange).mockReturnValue({
+    vi.mocked(mockSupabaseClient.auth.onAuthStateChange)!.mockReturnValue({
       data: { subscription: {} },
     } as ReturnType<typeof mockSupabaseClient.auth.onAuthStateChange>);
 
@@ -148,6 +148,32 @@ describe('AuthSessionService', () => {
     expect(mockAuthState.setSession).toHaveBeenCalledWith(mockSession);
     expect(mockAuthState.setLoading).toHaveBeenCalledWith(false);
     expect(mockSupabaseClient.auth.onAuthStateChange).toHaveBeenCalled();
+  });
+
+  it('should not reinitialize if already initialized', async () => {
+    vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
+      data: { session: mockSession },
+      error: null,
+    } satisfies Awaited<ReturnType<typeof mockSupabaseClient.auth.getSession>>);
+
+    vi.mocked(mockSupabaseClient.auth.onAuthStateChange)!.mockReturnValue({
+      data: { subscription: {} },
+    } as ReturnType<typeof mockSupabaseClient.auth.onAuthStateChange>);
+
+    await service.initializeAuthState();
+
+    vi.mocked(mockAuthState.setSession)!.mockClear();
+    vi.mocked(mockAuthState.setLoading)!.mockClear();
+    vi.mocked(mockSupabaseClient.auth.onAuthStateChange)!.mockClear();
+    vi.mocked(mockLogger.debug)!.mockClear();
+
+    await service.initializeAuthState();
+
+    expect(mockLogger.debug).toHaveBeenCalledWith(
+      'Auth already initialized, skipping',
+    );
+    expect(mockAuthState.setLoading).not.toHaveBeenCalled();
+    expect(mockSupabaseClient.auth.onAuthStateChange).not.toHaveBeenCalled();
   });
 
   it('should update auth state on SIGNED_IN event', async () => {
@@ -161,9 +187,9 @@ describe('AuthSessionService', () => {
     await service.initializeAuthState();
 
     // Clear mocks after initialization
-    vi.mocked(mockAuthState.setSession).mockClear();
-    vi.mocked(mockAuthState.setLoading).mockClear();
-    vi.mocked(mockLogger.debug).mockClear();
+    vi.mocked(mockAuthState.setSession)!.mockClear();
+    vi.mocked(mockAuthState.setLoading)!.mockClear();
+    vi.mocked(mockLogger.debug)!.mockClear();
 
     callback('SIGNED_IN', mockSession);
 
@@ -186,9 +212,9 @@ describe('AuthSessionService', () => {
     await service.initializeAuthState();
 
     // Clear mocks after initialization
-    vi.mocked(mockAuthState.setSession).mockClear();
-    vi.mocked(mockAuthState.setLoading).mockClear();
-    vi.mocked(mockLogger.debug).mockClear();
+    vi.mocked(mockAuthState.setSession)!.mockClear();
+    vi.mocked(mockAuthState.setLoading)!.mockClear();
+    vi.mocked(mockLogger.debug)!.mockClear();
 
     callback('TOKEN_REFRESHED', mockSession);
 
@@ -205,16 +231,16 @@ describe('AuthSessionService', () => {
       data: { session: mockSession },
       error: null,
     } satisfies Awaited<ReturnType<typeof mockSupabaseClient.auth.getSession>>);
-    vi.mocked(userGetter).mockReturnValue(mockSession.user);
+    vi.mocked(userGetter)!.mockReturnValue(mockSession.user);
 
     const callback = captureAuthStateChangeCallback(mockSupabaseClient);
 
     await service.initializeAuthState();
 
     // Clear mocks after initialization
-    vi.mocked(mockAuthState.setSession).mockClear();
-    vi.mocked(mockAuthState.setLoading).mockClear();
-    vi.mocked(mockLogger.debug).mockClear();
+    vi.mocked(mockAuthState.setSession)!.mockClear();
+    vi.mocked(mockAuthState.setLoading)!.mockClear();
+    vi.mocked(mockLogger.debug)!.mockClear();
 
     callback('SIGNED_OUT', null);
 
@@ -240,9 +266,9 @@ describe('AuthSessionService', () => {
     await service.initializeAuthState();
 
     // Clear mocks after initialization
-    vi.mocked(mockAuthState.setSession).mockClear();
-    vi.mocked(mockAuthState.setLoading).mockClear();
-    vi.mocked(mockLogger.debug).mockClear();
+    vi.mocked(mockAuthState.setSession)!.mockClear();
+    vi.mocked(mockAuthState.setLoading)!.mockClear();
+    vi.mocked(mockLogger.debug)!.mockClear();
 
     callback('USER_UPDATED', mockSession);
 
@@ -300,7 +326,7 @@ describe('AuthSessionService', () => {
       data: { session: mockSession },
       error: null,
     } satisfies Awaited<ReturnType<typeof mockSupabaseClient.auth.getSession>>);
-    vi.mocked(mockSupabaseClient.auth.onAuthStateChange).mockReturnValue({
+    vi.mocked(mockSupabaseClient.auth.onAuthStateChange)!.mockReturnValue({
       data: { subscription: {} },
     } as ReturnType<typeof mockSupabaseClient.auth.onAuthStateChange>);
 
@@ -316,7 +342,7 @@ describe('AuthSessionService', () => {
       data: { session: mockSession },
       error: null,
     } satisfies Awaited<ReturnType<typeof mockSupabaseClient.auth.getSession>>);
-    vi.mocked(mockSupabaseClient.auth.onAuthStateChange).mockReturnValue({
+    vi.mocked(mockSupabaseClient.auth.onAuthStateChange)!.mockReturnValue({
       data: { subscription: {} },
     } as ReturnType<typeof mockSupabaseClient.auth.onAuthStateChange>);
 
@@ -338,7 +364,7 @@ describe('AuthSessionService', () => {
       data: { session: mockSession },
       error: null,
     } satisfies Awaited<ReturnType<typeof mockSupabaseClient.auth.getSession>>);
-    vi.mocked(mockSupabaseClient.auth.onAuthStateChange).mockReturnValue({
+    vi.mocked(mockSupabaseClient.auth.onAuthStateChange)!.mockReturnValue({
       data: { subscription: {} },
     } as ReturnType<typeof mockSupabaseClient.auth.onAuthStateChange>);
     vi.mocked(mockSupabaseClient.auth.refreshSession).mockResolvedValue({
@@ -360,7 +386,7 @@ describe('AuthSessionService', () => {
       data: { session: mockSession },
       error: null,
     } satisfies Awaited<ReturnType<typeof mockSupabaseClient.auth.getSession>>);
-    vi.mocked(mockSupabaseClient.auth.onAuthStateChange).mockReturnValue({
+    vi.mocked(mockSupabaseClient.auth.onAuthStateChange)!.mockReturnValue({
       data: { subscription: {} },
     } as ReturnType<typeof mockSupabaseClient.auth.onAuthStateChange>);
 
@@ -384,7 +410,7 @@ describe('AuthSessionService', () => {
       data: { session: mockSession },
       error: null,
     } satisfies Awaited<ReturnType<typeof mockSupabaseClient.auth.getSession>>);
-    vi.mocked(mockSupabaseClient.auth.onAuthStateChange).mockReturnValue({
+    vi.mocked(mockSupabaseClient.auth.onAuthStateChange)!.mockReturnValue({
       data: { subscription: {} },
     } as ReturnType<typeof mockSupabaseClient.auth.onAuthStateChange>);
 
@@ -412,7 +438,7 @@ describe('AuthSessionService', () => {
       data: { session: mockSession },
       error: null,
     } satisfies Awaited<ReturnType<typeof mockSupabaseClient.auth.getSession>>);
-    vi.mocked(mockSupabaseClient.auth.onAuthStateChange).mockReturnValue({
+    vi.mocked(mockSupabaseClient.auth.onAuthStateChange)!.mockReturnValue({
       data: { subscription: {} },
     } as ReturnType<typeof mockSupabaseClient.auth.onAuthStateChange>);
 
@@ -443,7 +469,7 @@ describe('AuthSessionService', () => {
       data: { session: mockSession },
       error: null,
     } satisfies Awaited<ReturnType<typeof mockSupabaseClient.auth.getSession>>);
-    vi.mocked(mockSupabaseClient.auth.onAuthStateChange).mockReturnValue({
+    vi.mocked(mockSupabaseClient.auth.onAuthStateChange)!.mockReturnValue({
       data: { subscription: {} },
     } as ReturnType<typeof mockSupabaseClient.auth.onAuthStateChange>);
 
@@ -471,7 +497,7 @@ describe('AuthSessionService', () => {
       data: { session: mockSession },
       error: null,
     } satisfies Awaited<ReturnType<typeof mockSupabaseClient.auth.getSession>>);
-    vi.mocked(mockSupabaseClient.auth.onAuthStateChange).mockReturnValue({
+    vi.mocked(mockSupabaseClient.auth.onAuthStateChange)!.mockReturnValue({
       data: { subscription: {} },
     } as ReturnType<typeof mockSupabaseClient.auth.onAuthStateChange>);
     vi.mocked(mockSupabaseClient.auth.signOut).mockResolvedValue({
@@ -480,9 +506,9 @@ describe('AuthSessionService', () => {
 
     await service.initializeAuthState();
 
-    (mockAuthState.setSession as ReturnType<typeof vi.fn>).mockClear();
-    (mockAuthState.setLoading as ReturnType<typeof vi.fn>).mockClear();
-    (mockCleanup.performCleanup as ReturnType<typeof vi.fn>).mockClear();
+    vi.mocked(mockAuthState.setSession)!.mockClear();
+    vi.mocked(mockAuthState.setLoading)!.mockClear();
+    vi.mocked(mockCleanup.performCleanup)!.mockClear();
 
     await service.signOut();
 
@@ -510,10 +536,10 @@ describe('AuthSessionService', () => {
 
     await service.initializeAuthState();
 
-    (userGetter as ReturnType<typeof vi.fn>).mockReturnValue(mockSession.user);
-    (mockAuthState.setSession as ReturnType<typeof vi.fn>).mockClear();
-    (mockAuthState.setLoading as ReturnType<typeof vi.fn>).mockClear();
-    (mockCleanup.performCleanup as ReturnType<typeof vi.fn>).mockClear();
+    vi.mocked(userGetter)!.mockReturnValue(mockSession.user);
+    vi.mocked(mockAuthState.setSession)!.mockClear();
+    vi.mocked(mockAuthState.setLoading)!.mockClear();
+    vi.mocked(mockCleanup.performCleanup)!.mockClear();
 
     await service.signOut();
 
