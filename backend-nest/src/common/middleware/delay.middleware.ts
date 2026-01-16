@@ -12,10 +12,15 @@ export class DelayMiddleware implements NestMiddleware {
   private readonly delayMs: number;
 
   constructor() {
-    this.delayMs = parseInt(process.env.DELAY_MS || '500', 10);
+    const isProduction = process.env.NODE_ENV === 'production';
+    this.delayMs = isProduction ? 0 : parseInt(process.env.DELAY_MS || '0', 10);
   }
 
   use(_req: Request, _res: Response, next: NextFunction): void {
+    if (this.delayMs === 0) {
+      next();
+      return;
+    }
     setTimeout(next, this.delayMs);
   }
 }

@@ -1,9 +1,9 @@
 import { inject } from '@angular/core';
 import { type CanActivateFn, Router } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
 import { BudgetApi } from '@core/budget';
 import { Logger } from '@core/logging/logger';
 import { ROUTES } from '@core/routing/routes-constants';
+import { firstValueFrom } from 'rxjs';
 import { HasBudgetCache } from './has-budget-cache';
 
 /**
@@ -21,11 +21,11 @@ export const hasBudgetGuard: CanActivateFn = async () => {
   const redirectToCompleteProfile = () =>
     router.createUrlTree(['/', ROUTES.APP, ROUTES.COMPLETE_PROFILE]);
 
-  const cached = hasBudgetCache.get();
+  const hasBudgetFromCache = hasBudgetCache.hasBudget();
 
   // Fast path: cache hit (90% of cases after pre-load)
-  if (cached !== null) {
-    return cached ? true : redirectToCompleteProfile();
+  if (hasBudgetFromCache !== null) {
+    return hasBudgetFromCache ? true : redirectToCompleteProfile();
   }
 
   // Slow path: cache miss - fetch from API

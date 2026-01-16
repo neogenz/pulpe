@@ -220,6 +220,7 @@ type EditTransactionFormData = Pick<
     <!-- FAB pour ajouter une transaction -->
     <button
       matFab
+      [disabled]="!store.dashboardData()?.budget"
       (click)="openAddTransactionBottomSheet()"
       class="fab-button"
       aria-label="Ajouter une transaction"

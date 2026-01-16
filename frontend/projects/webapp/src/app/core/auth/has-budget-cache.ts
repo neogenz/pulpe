@@ -12,7 +12,7 @@ export class HasBudgetCache {
   /**
    * Returns cached value: true if user has budget, false if not, null if unknown.
    */
-  get(): boolean | null {
+  hasBudget(): boolean | null {
     return this.#hasBudget();
   }
 

@@ -19,7 +19,7 @@ describe('hasBudgetGuard', () => {
   let mockRouter: { createUrlTree: ReturnType<typeof vi.fn> };
   let mockLogger: { warn: ReturnType<typeof vi.fn> };
   let mockHasBudgetCache: {
-    get: ReturnType<typeof vi.fn>;
+    hasBudget: ReturnType<typeof vi.fn>;
     setHasBudget: ReturnType<typeof vi.fn>;
   };
 
@@ -40,7 +40,7 @@ describe('hasBudgetGuard', () => {
     };
 
     mockHasBudgetCache = {
-      get: vi.fn().mockReturnValue(null),
+      hasBudget: vi.fn().mockReturnValue(null),
       setHasBudget: vi.fn(),
     };
 
@@ -55,7 +55,7 @@ describe('hasBudgetGuard', () => {
   });
 
   it('should allow navigation when user has budgets', async () => {
-    mockHasBudgetCache.get.mockReturnValue(null);
+    mockHasBudgetCache.hasBudget.mockReturnValue(null);
     mockBudgetApi.checkBudgetExists$.mockReturnValue(of(true));
 
     const result = await TestBed.runInInjectionContext(() =>
@@ -67,7 +67,7 @@ describe('hasBudgetGuard', () => {
   });
 
   it('should redirect to complete-profile when user has no budgets', async () => {
-    mockHasBudgetCache.get.mockReturnValue(null);
+    mockHasBudgetCache.hasBudget.mockReturnValue(null);
     mockBudgetApi.checkBudgetExists$.mockReturnValue(of(false));
 
     const result = await TestBed.runInInjectionContext(() =>
@@ -83,7 +83,7 @@ describe('hasBudgetGuard', () => {
   });
 
   it('should allow navigation on API error (fail-safe)', async () => {
-    mockHasBudgetCache.get.mockReturnValue(null);
+    mockHasBudgetCache.hasBudget.mockReturnValue(null);
     mockBudgetApi.checkBudgetExists$.mockReturnValue(
       throwError(() => new Error('API Error')),
     );
@@ -102,7 +102,7 @@ describe('hasBudgetGuard', () => {
 
   describe('cache behavior', () => {
     it('should return true immediately when cache indicates user has budget (fast path)', async () => {
-      mockHasBudgetCache.get.mockReturnValue(true);
+      mockHasBudgetCache.hasBudget.mockReturnValue(true);
 
       const result = await TestBed.runInInjectionContext(() =>
         hasBudgetGuard(mockRoute, mockState),
@@ -113,7 +113,7 @@ describe('hasBudgetGuard', () => {
     });
 
     it('should redirect immediately when cache indicates no budget (fast path)', async () => {
-      mockHasBudgetCache.get.mockReturnValue(false);
+      mockHasBudgetCache.hasBudget.mockReturnValue(false);
 
       const result = await TestBed.runInInjectionContext(() =>
         hasBudgetGuard(mockRoute, mockState),
@@ -129,7 +129,7 @@ describe('hasBudgetGuard', () => {
     });
 
     it('should fetch from API when cache is empty (slow path)', async () => {
-      mockHasBudgetCache.get.mockReturnValue(null);
+      mockHasBudgetCache.hasBudget.mockReturnValue(null);
       mockBudgetApi.checkBudgetExists$.mockReturnValue(of(true));
 
       await TestBed.runInInjectionContext(() =>

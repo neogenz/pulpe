@@ -11,19 +11,19 @@ describe('HasBudgetCache', () => {
   });
 
   it('should start with null (unknown state)', () => {
-    expect(service.get()).toBeNull();
+    expect(service.hasBudget()).toBeNull();
   });
 
   it('should return true when cache is set to true', () => {
     service.setHasBudget(true);
 
-    expect(service.get()).toBe(true);
+    expect(service.hasBudget()).toBe(true);
   });
 
   it('should return false when cache is set to false', () => {
     service.setHasBudget(false);
 
-    expect(service.get()).toBe(false);
+    expect(service.hasBudget()).toBe(false);
   });
 
   it('should return null after clear', () => {
@@ -31,19 +31,19 @@ describe('HasBudgetCache', () => {
 
     service.clear();
 
-    expect(service.get()).toBeNull();
+    expect(service.hasBudget()).toBeNull();
   });
 
   it('should allow state transitions', () => {
-    expect(service.get()).toBeNull();
+    expect(service.hasBudget()).toBeNull();
 
     service.setHasBudget(true);
-    expect(service.get()).toBe(true);
+    expect(service.hasBudget()).toBe(true);
 
     service.setHasBudget(false);
-    expect(service.get()).toBe(false);
+    expect(service.hasBudget()).toBe(false);
 
     service.clear();
-    expect(service.get()).toBeNull();
+    expect(service.hasBudget()).toBeNull();
   });
 });

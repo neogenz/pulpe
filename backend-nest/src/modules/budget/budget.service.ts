@@ -61,21 +61,23 @@ export class BudgetService {
     return Math.max(PAY_DAY_MIN, Math.min(PAY_DAY_MAX, raw));
   }
 
-  async countUserBudgets(
+  async hasBudgets(
     user: AuthenticatedUser,
     supabase: AuthenticatedSupabaseClient,
-  ): Promise<number> {
+  ): Promise<boolean> {
     try {
-      const { count, error } = await supabase
+      const { data, error } = await supabase
         .from('monthly_budget')
-        .select('*', { count: 'exact', head: true });
+        .select('id')
+        .limit(1)
+        .maybeSingle();
 
       if (error) {
         throw new BusinessException(
           ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
           undefined,
           {
-            operation: 'countBudgets',
+            operation: 'hasBudgets',
             userId: user.id,
             entityType: 'budget',
             supabaseError: error,
@@ -84,7 +86,7 @@ export class BudgetService {
         );
       }
 
-      return count ?? 0;
+      return data !== null;
     } catch (error) {
       if (error instanceof BusinessException) throw error;
       throw handleServiceError(
@@ -92,7 +94,7 @@ export class BudgetService {
         ERROR_DEFINITIONS.BUDGET_FETCH_FAILED,
         undefined,
         {
-          operation: 'countBudgets',
+          operation: 'hasBudgets',
           userId: user.id,
           entityType: 'budget',
         },

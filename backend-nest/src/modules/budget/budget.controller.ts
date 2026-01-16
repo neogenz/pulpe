@@ -137,8 +137,8 @@ export class BudgetController {
     @User() user: AuthenticatedUser,
     @SupabaseClient() supabase: AuthenticatedSupabaseClient,
   ): Promise<{ hasBudget: boolean }> {
-    const count = await this.budgetService.countUserBudgets(user, supabase);
-    return { hasBudget: count > 0 };
+    const hasBudget = await this.budgetService.hasBudgets(user, supabase);
+    return { hasBudget };
   }
 
   @Get(':id')
