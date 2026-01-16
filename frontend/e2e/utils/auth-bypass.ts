@@ -67,6 +67,15 @@ export async function setupApiMocks(page: Page) {
     const url = route.request().url();
     const method = route.request().method();
 
+    // Maintenance status endpoint - must return false to allow normal navigation
+    if (url.includes('maintenance/status')) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ maintenanceMode: false, message: null })
+      });
+    }
+
     // Auth endpoints
     if (url.includes('auth')) {
       return route.fulfill({
