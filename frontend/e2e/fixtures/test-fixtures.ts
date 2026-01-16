@@ -5,7 +5,7 @@ import { BudgetTemplatesPage } from '../pages/budget-templates.page';
 import { BudgetDetailsPage } from '../pages/budget-details.page';
 import { MainLayoutPage } from '../pages/main-layout.page';
 import { SettingsPage } from '../pages/settings.page';
-import { setupAuthBypass } from '../utils/auth-bypass';
+import { setupAuthBypass, setupMaintenanceMock } from '../utils/auth-bypass';
 
 // Simple fixture types - only what we actually use
 interface AppFixtures {
@@ -20,6 +20,13 @@ interface AppFixtures {
 
 // Simple, direct fixture extension - KISS principle
 export const test = base.extend<AppFixtures>({
+  // Override base page to always mock maintenance status
+  // This ensures all tests can navigate without maintenance mode blocking
+  page: async ({ page }, use) => {
+    await setupMaintenanceMock(page);
+    await use(page);
+  },
+
   // Page Objects - simple instantiation
   loginPage: async ({ page }, use) => {
     await use(new LoginPage(page));
