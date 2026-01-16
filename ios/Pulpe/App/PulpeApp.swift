@@ -55,31 +55,42 @@ struct RootView: View {
         @Bindable var appState = appState
 
         Group {
-            switch appState.authState {
-            case .loading:
-                LoadingView(message: "Chargement...")
+            if appState.isInMaintenance {
+                MaintenanceView()
+            } else {
+                switch appState.authState {
+                case .loading:
+                    LoadingView(message: "Chargement...")
 
-            case .unauthenticated:
-                if appState.hasCompletedOnboarding {
-                    LoginView()
-                } else {
-                    OnboardingFlow()
-                }
-
-            case .authenticated:
-                MainTabView()
-                    .overlay {
-                        if appState.showTutorial {
-                            TutorialOverlay()
-                        }
+                case .unauthenticated:
+                    if appState.hasCompletedOnboarding {
+                        LoginView()
+                    } else {
+                        OnboardingFlow()
                     }
+
+                case .authenticated:
+                    MainTabView()
+                        .overlay {
+                            if appState.showTutorial {
+                                TutorialOverlay()
+                            }
+                        }
+                }
             }
         }
         .toastOverlay(appState.toastManager)
         .environment(appState.toastManager)
         .animation(.easeInOut(duration: 0.3), value: appState.authState)
+        .animation(.easeInOut(duration: 0.3), value: appState.isInMaintenance)
+        .onReceive(NotificationCenter.default.publisher(for: .maintenanceModeDetected)) { _ in
+            appState.setMaintenanceMode(true)
+        }
         .task {
-            await appState.checkAuthState()
+            await appState.checkMaintenanceStatus()
+            if !appState.isInMaintenance {
+                await appState.checkAuthState()
+            }
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .background, appState.authState == .authenticated {

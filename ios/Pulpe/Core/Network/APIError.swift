@@ -23,6 +23,7 @@ enum APIError: LocalizedError {
     case userAlreadyExists
     case weakPassword
     case rateLimited
+    case maintenance
 
     var errorDescription: String? {
         switch self {
@@ -64,6 +65,8 @@ enum APIError: LocalizedError {
             return "8 caractères minimum pour sécuriser ton compte"
         case .rateLimited:
             return "Trop de tentatives — patiente quelques minutes"
+        case .maintenance:
+            return "Application en maintenance — réessaie dans quelques instants"
         }
     }
 
@@ -88,6 +91,8 @@ enum APIError: LocalizedError {
             return .weakPassword
         case "over_request_rate_limit":
             return .rateLimited
+        case "MAINTENANCE":
+            return .maintenance
         default:
             return .serverError(message: message ?? code)
         }
