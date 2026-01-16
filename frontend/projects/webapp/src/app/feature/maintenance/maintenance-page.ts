@@ -4,6 +4,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { Router } from '@angular/router';
 import { LottieComponent, type AnimationOptions } from 'ngx-lottie';
 import { MaintenanceApi } from '@core/maintenance';
 import { LoadingButton } from '@ui/loading-button';
@@ -53,6 +54,7 @@ import { LoadingButton } from '@ui/loading-button';
 })
 export default class MaintenancePage {
   readonly #maintenanceApi = inject(MaintenanceApi);
+  readonly #router = inject(Router);
 
   protected readonly isChecking = signal(false);
   protected readonly statusMessage = signal('');
@@ -71,7 +73,7 @@ export default class MaintenancePage {
     try {
       const data = await this.#maintenanceApi.checkStatus();
       if (!data.maintenanceMode) {
-        window.location.href = '/';
+        await this.#router.navigate(['/']);
         return;
       }
       this.statusMessage.set(
