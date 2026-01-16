@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import type { AuthChangeEvent, Session, User } from '@supabase/supabase-js';
@@ -21,12 +20,24 @@ vi.mock('@supabase/supabase-js', () => ({
 
 describe('AuthSessionService', () => {
   let service: AuthSessionService;
-  let mockAuthState: Partial<AuthStateService>;
+  let mockAuthState: {
+    setSession: Mock;
+    setLoading: Mock;
+    user: () => User | null;
+  };
   let mockConfig: Partial<ApplicationConfiguration>;
-  let mockLogger: Partial<Logger>;
-  let mockErrorLocalizer: Partial<AuthErrorLocalizer>;
+  let mockLogger: {
+    info: Mock;
+    error: Mock;
+    debug: Mock;
+  };
+  let mockErrorLocalizer: {
+    localizeError: Mock;
+  };
   let mockSupabaseClient: MockSupabaseClient;
-  let mockCleanup: Partial<AuthCleanupService>;
+  let mockCleanup: {
+    performCleanup: Mock;
+  };
   let mockUserSignal: ReturnType<typeof signal<User | null>>;
 
   const mockSession: Session = {
@@ -97,25 +108,17 @@ describe('AuthSessionService', () => {
     service = TestBed.inject(AuthSessionService);
 
     const { createClient } = await import('@supabase/supabase-js');
-    (createClient as any).mockReturnValue(
-      mockSupabaseClient as any /* eslint-disable-line @typescript-eslint/no-explicit-any */,
-    );
+    (createClient as unknown as Mock).mockReturnValue(mockSupabaseClient);
   });
 
   const captureAuthStateChangeCallback = (
-    client: any,
+    client: MockSupabaseClient,
   ): ((event: AuthChangeEvent, session: Session | null) => void) => {
     let capturedCallback: (
       event: AuthChangeEvent,
       session: Session | null,
     ) => void = () => undefined;
-    const auth = client.auth as {
-      onAuthStateChange: (
-        callback: (event: AuthChangeEvent, session: Session | null) => void,
-      ) => { data: { subscription: { unsubscribe: () => void } } };
-    };
-
-    (auth.onAuthStateChange as any).mockImplementation(
+    client.auth.onAuthStateChange.mockImplementation(
       (callback: (event: AuthChangeEvent, session: Session | null) => void) => {
         capturedCallback = callback;
         return { data: { subscription: { unsubscribe: vi.fn() } } };
@@ -133,16 +136,14 @@ describe('AuthSessionService', () => {
   });
 
   it('should initialize Supabase client and load session', async () => {
-    (mockSupabaseClient.auth.getSession as any).mockResolvedValue({
+    mockSupabaseClient.auth.getSession.mockResolvedValue({
       data: { session: mockSession },
       error: null,
     });
 
-    (mockSupabaseClient.auth.onAuthStateChange as any).mockReturnValue(
-      {
-        data: { subscription: {} },
-      } as any /* eslint-disable-line @typescript-eslint/no-explicit-any */,
-    );
+    mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
+      data: { subscription: {} },
+    });
 
     await service.initializeAuthState();
 
@@ -152,22 +153,20 @@ describe('AuthSessionService', () => {
   });
 
   it('should not reinitialize if already initialized', async () => {
-    (mockSupabaseClient.auth.getSession as any).mockResolvedValue({
+    mockSupabaseClient.auth.getSession.mockResolvedValue({
       data: { session: mockSession },
       error: null,
     });
 
-    (mockSupabaseClient.auth.onAuthStateChange as any).mockReturnValue(
-      {
-        data: { subscription: {} },
-      } as any /* eslint-disable-line @typescript-eslint/no-explicit-any */,
-    );
+    mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
+      data: { subscription: {} },
+    });
 
     await service.initializeAuthState();
 
-    (mockAuthState.setSession as any).mockClear();
-    (mockAuthState.setLoading as any).mockClear();
-    (mockSupabaseClient.auth.onAuthStateChange as any).mockClear();
+    mockAuthState.setSession.mockClear();
+    mockAuthState.setLoading.mockClear();
+    mockSupabaseClient.auth.onAuthStateChange.mockClear();
     vi.mocked(mockLogger.debug)!.mockClear();
 
     await service.initializeAuthState();
@@ -180,7 +179,7 @@ describe('AuthSessionService', () => {
   });
 
   it('should update auth state on SIGNED_IN event', async () => {
-    (mockSupabaseClient.auth.getSession as any).mockResolvedValue({
+    mockSupabaseClient.auth.getSession.mockResolvedValue({
       data: { session: mockSession },
       error: null,
     });
@@ -190,8 +189,8 @@ describe('AuthSessionService', () => {
     await service.initializeAuthState();
 
     // Clear mocks after initialization
-    (mockAuthState.setSession as any).mockClear();
-    (mockAuthState.setLoading as any).mockClear();
+    mockAuthState.setSession.mockClear();
+    mockAuthState.setLoading.mockClear();
     vi.mocked(mockLogger.debug)!.mockClear();
 
     callback('SIGNED_IN', mockSession);
@@ -205,7 +204,7 @@ describe('AuthSessionService', () => {
   });
 
   it('should update auth state on TOKEN_REFRESHED event', async () => {
-    (mockSupabaseClient.auth.getSession as any).mockResolvedValue({
+    mockSupabaseClient.auth.getSession.mockResolvedValue({
       data: { session: mockSession },
       error: null,
     });
@@ -215,8 +214,8 @@ describe('AuthSessionService', () => {
     await service.initializeAuthState();
 
     // Clear mocks after initialization
-    (mockAuthState.setSession as any).mockClear();
-    (mockAuthState.setLoading as any).mockClear();
+    mockAuthState.setSession.mockClear();
+    mockAuthState.setLoading.mockClear();
     vi.mocked(mockLogger.debug)!.mockClear();
 
     callback('TOKEN_REFRESHED', mockSession);
@@ -230,7 +229,7 @@ describe('AuthSessionService', () => {
   });
 
   it('should update auth state and cleanup on SIGNED_OUT event', async () => {
-    (mockSupabaseClient.auth.getSession as any).mockResolvedValue({
+    mockSupabaseClient.auth.getSession.mockResolvedValue({
       data: { session: mockSession },
       error: null,
     });
@@ -241,8 +240,8 @@ describe('AuthSessionService', () => {
     await service.initializeAuthState();
 
     // Clear mocks after initialization
-    (mockAuthState.setSession as any).mockClear();
-    (mockAuthState.setLoading as any).mockClear();
+    mockAuthState.setSession.mockClear();
+    mockAuthState.setLoading.mockClear();
     vi.mocked(mockLogger.debug)!.mockClear();
 
     callback('SIGNED_OUT', null);
@@ -259,7 +258,7 @@ describe('AuthSessionService', () => {
   });
 
   it('should update auth state on USER_UPDATED event', async () => {
-    (mockSupabaseClient.auth.getSession as any).mockResolvedValue({
+    mockSupabaseClient.auth.getSession.mockResolvedValue({
       data: { session: mockSession },
       error: null,
     });
@@ -269,8 +268,8 @@ describe('AuthSessionService', () => {
     await service.initializeAuthState();
 
     // Clear mocks after initialization
-    (mockAuthState.setSession as any).mockClear();
-    (mockAuthState.setLoading as any).mockClear();
+    mockAuthState.setSession.mockClear();
+    mockAuthState.setLoading.mockClear();
     vi.mocked(mockLogger.debug)!.mockClear();
 
     callback('USER_UPDATED', mockSession);
@@ -285,7 +284,7 @@ describe('AuthSessionService', () => {
 
   it('should handle session load error during initialization', async () => {
     const error = new Error('Session load failed');
-    (mockSupabaseClient.auth.getSession as any).mockResolvedValue({
+    mockSupabaseClient.auth.getSession.mockResolvedValue({
       data: { session: null },
       error,
     });
@@ -325,15 +324,13 @@ describe('AuthSessionService', () => {
   });
 
   it('should get current session', async () => {
-    (mockSupabaseClient.auth.getSession as any).mockResolvedValue({
+    mockSupabaseClient.auth.getSession.mockResolvedValue({
       data: { session: mockSession },
       error: null,
     });
-    (mockSupabaseClient.auth.onAuthStateChange as any).mockReturnValue(
-      {
-        data: { subscription: {} },
-      } as any /* eslint-disable-line @typescript-eslint/no-explicit-any */,
-    );
+    mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
+      data: { subscription: {} },
+    });
 
     await service.initializeAuthState();
 
@@ -343,19 +340,17 @@ describe('AuthSessionService', () => {
   });
 
   it('should return null when getCurrentSession fails', async () => {
-    (mockSupabaseClient.auth.getSession as any).mockResolvedValue({
+    mockSupabaseClient.auth.getSession.mockResolvedValue({
       data: { session: mockSession },
       error: null,
     });
-    (mockSupabaseClient.auth.onAuthStateChange as any).mockReturnValue(
-      {
-        data: { subscription: {} },
-      } as any /* eslint-disable-line @typescript-eslint/no-explicit-any */,
-    );
+    mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
+      data: { subscription: {} },
+    });
 
     await service.initializeAuthState();
 
-    (mockSupabaseClient.auth.getSession as any).mockResolvedValue({
+    mockSupabaseClient.auth.getSession.mockResolvedValue({
       data: { session: null },
       error: new Error('Failed'),
     });
@@ -367,16 +362,14 @@ describe('AuthSessionService', () => {
   });
 
   it('should refresh session successfully', async () => {
-    (mockSupabaseClient.auth.getSession as any).mockResolvedValue({
+    mockSupabaseClient.auth.getSession.mockResolvedValue({
       data: { session: mockSession },
       error: null,
     });
-    (mockSupabaseClient.auth.onAuthStateChange as any).mockReturnValue(
-      {
-        data: { subscription: {} },
-      } as any /* eslint-disable-line @typescript-eslint/no-explicit-any */,
-    );
-    (mockSupabaseClient.auth.refreshSession as any).mockResolvedValue({
+    mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
+      data: { subscription: {} },
+    });
+    mockSupabaseClient.auth.refreshSession.mockResolvedValue({
       data: { session: mockSession, user: mockSession.user },
       error: null,
     });
@@ -389,19 +382,17 @@ describe('AuthSessionService', () => {
   });
 
   it('should return false when refreshSession fails', async () => {
-    (mockSupabaseClient.auth.getSession as any).mockResolvedValue({
+    mockSupabaseClient.auth.getSession.mockResolvedValue({
       data: { session: mockSession },
       error: null,
     });
-    (mockSupabaseClient.auth.onAuthStateChange as any).mockReturnValue(
-      {
-        data: { subscription: {} },
-      } as any /* eslint-disable-line @typescript-eslint/no-explicit-any */,
-    );
+    mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
+      data: { subscription: {} },
+    });
 
     await service.initializeAuthState();
 
-    (mockSupabaseClient.auth.refreshSession as any).mockResolvedValue({
+    mockSupabaseClient.auth.refreshSession.mockResolvedValue({
       data: { session: null, user: null },
       error: new Error('Refresh failed'),
     });
@@ -413,19 +404,17 @@ describe('AuthSessionService', () => {
   });
 
   it('should set session successfully', async () => {
-    (mockSupabaseClient.auth.getSession as any).mockResolvedValue({
+    mockSupabaseClient.auth.getSession.mockResolvedValue({
       data: { session: mockSession },
       error: null,
     });
-    (mockSupabaseClient.auth.onAuthStateChange as any).mockReturnValue(
-      {
-        data: { subscription: {} },
-      } as any /* eslint-disable-line @typescript-eslint/no-explicit-any */,
-    );
+    mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
+      data: { subscription: {} },
+    });
 
     await service.initializeAuthState();
 
-    (mockSupabaseClient.auth.setSession as any).mockResolvedValue({
+    mockSupabaseClient.auth.setSession.mockResolvedValue({
       data: { session: mockSession, user: mockSession.user },
       error: null,
     });
@@ -443,20 +432,18 @@ describe('AuthSessionService', () => {
   });
 
   it('should return error when setSession fails', async () => {
-    (mockSupabaseClient.auth.getSession as any).mockResolvedValue({
+    mockSupabaseClient.auth.getSession.mockResolvedValue({
       data: { session: mockSession },
       error: null,
     });
-    (mockSupabaseClient.auth.onAuthStateChange as any).mockReturnValue(
-      {
-        data: { subscription: {} },
-      } as any /* eslint-disable-line @typescript-eslint/no-explicit-any */,
-    );
+    mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
+      data: { subscription: {} },
+    });
 
     await service.initializeAuthState();
 
     const error: Error = { message: 'Invalid session' } as Error;
-    (mockSupabaseClient.auth.setSession as any).mockResolvedValue({
+    mockSupabaseClient.auth.setSession.mockResolvedValue({
       data: { session: null, user: null },
       error,
     });
@@ -476,19 +463,17 @@ describe('AuthSessionService', () => {
   });
 
   it('should handle unexpected error in setSession', async () => {
-    (mockSupabaseClient.auth.getSession as any).mockResolvedValue({
+    mockSupabaseClient.auth.getSession.mockResolvedValue({
       data: { session: mockSession },
       error: null,
     });
-    (mockSupabaseClient.auth.onAuthStateChange as any).mockReturnValue(
-      {
-        data: { subscription: {} },
-      } as any /* eslint-disable-line @typescript-eslint/no-explicit-any */,
-    );
+    mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
+      data: { subscription: {} },
+    });
 
     await service.initializeAuthState();
 
-    (mockSupabaseClient.auth.setSession as any).mockRejectedValue(
+    mockSupabaseClient.auth.setSession.mockRejectedValue(
       new Error('Unexpected error'),
     );
 
@@ -506,24 +491,22 @@ describe('AuthSessionService', () => {
   });
 
   it('should sign out and update state without calling cleanup directly', async () => {
-    (mockSupabaseClient.auth.getSession as any).mockResolvedValue({
+    mockSupabaseClient.auth.getSession.mockResolvedValue({
       data: { session: mockSession },
       error: null,
     });
-    (mockSupabaseClient.auth.onAuthStateChange as any).mockReturnValue(
-      {
-        data: { subscription: {} },
-      } as any /* eslint-disable-line @typescript-eslint/no-explicit-any */,
-    );
-    (mockSupabaseClient.auth.signOut as any).mockResolvedValue({
+    mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
+      data: { subscription: {} },
+    });
+    mockSupabaseClient.auth.signOut.mockResolvedValue({
       error: null,
     });
 
     await service.initializeAuthState();
 
-    (mockAuthState.setSession as any).mockClear();
-    (mockAuthState.setLoading as any).mockClear();
-    (mockCleanup.performCleanup as any).mockClear();
+    mockAuthState.setSession.mockClear();
+    mockAuthState.setLoading.mockClear();
+    mockCleanup.performCleanup.mockClear();
 
     await service.signOut();
 
@@ -544,7 +527,7 @@ describe('AuthSessionService', () => {
     (window as E2EWindow).__E2E_AUTH_BYPASS__ = true;
     (window as E2EWindow).__E2E_MOCK_AUTH_STATE__ = mockE2EState;
 
-    (mockSupabaseClient.auth.getSession as any).mockResolvedValue({
+    mockSupabaseClient.auth.getSession.mockResolvedValue({
       data: { session: mockSession },
       error: null,
     });
@@ -552,9 +535,9 @@ describe('AuthSessionService', () => {
     await service.initializeAuthState();
 
     mockUserSignal.set(mockSession.user);
-    (mockAuthState.setSession as any).mockClear();
-    (mockAuthState.setLoading as any).mockClear();
-    (mockCleanup.performCleanup as any).mockClear();
+    mockAuthState.setSession.mockClear();
+    mockAuthState.setLoading.mockClear();
+    mockCleanup.performCleanup.mockClear();
 
     await service.signOut();
 

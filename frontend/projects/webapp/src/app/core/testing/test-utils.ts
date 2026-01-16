@@ -1,5 +1,5 @@
 import { signal, type ResourceRef, type WritableSignal } from '@angular/core';
-import { vi } from 'vitest';
+import { vi, type Mock } from 'vitest';
 import type { Session, User } from '@supabase/supabase-js';
 
 /**
@@ -24,14 +24,14 @@ export type AuthSessionResult =
  * Mock interface for Supabase auth methods
  */
 export interface MockSupabaseAuth {
-  signOut: ReturnType<typeof vi.fn>;
-  signInWithPassword: ReturnType<typeof vi.fn>;
-  signUp: ReturnType<typeof vi.fn>;
-  signInWithOAuth: ReturnType<typeof vi.fn>;
-  getSession: ReturnType<typeof vi.fn>;
-  refreshSession: ReturnType<typeof vi.fn>;
-  setSession: ReturnType<typeof vi.fn>;
-  onAuthStateChange: ReturnType<typeof vi.fn>;
+  signOut: Mock;
+  signInWithPassword: Mock;
+  signUp: Mock;
+  signInWithOAuth: Mock;
+  getSession: Mock;
+  refreshSession: Mock;
+  setSession: Mock;
+  onAuthStateChange: Mock;
 }
 
 /**
