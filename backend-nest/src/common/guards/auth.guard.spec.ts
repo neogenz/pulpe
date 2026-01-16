@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { UnauthorizedException, type ExecutionContext } from '@nestjs/common';
+import { type ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from './auth.guard';
 import { SupabaseService } from '@modules/supabase/supabase.service';
+import { BusinessException } from '@common/exceptions/business.exception';
 import {
   createMockAuthenticatedUser,
   createMockSupabaseClient,
@@ -92,43 +93,43 @@ describe('AuthGuard', () => {
       expect(result).toBe(true);
     });
 
-    it('should throw UnauthorizedException when no authorization header', async () => {
+    it('should throw BusinessException when no authorization header', async () => {
       // Arrange
       const mockContext = createMockExecutionContext();
 
       // Act & Assert
       await expectErrorThrown(
         () => authGuard.canActivate(mockContext),
-        UnauthorizedException,
-        "Token d'accès requis",
+        BusinessException,
+        'Authentication token missing',
       );
     });
 
-    it('should throw UnauthorizedException when no token in header', async () => {
+    it('should throw BusinessException when no token in header', async () => {
       // Arrange
       const mockContext = createMockExecutionContext('Invalid header format');
 
       // Act & Assert
       await expectErrorThrown(
         () => authGuard.canActivate(mockContext),
-        UnauthorizedException,
-        "Token d'accès requis",
+        BusinessException,
+        'Authentication token missing',
       );
     });
 
-    it('should throw UnauthorizedException when Bearer prefix missing', async () => {
+    it('should throw BusinessException when Bearer prefix missing', async () => {
       // Arrange
       const mockContext = createMockExecutionContext('token-without-bearer');
 
       // Act & Assert
       await expectErrorThrown(
         () => authGuard.canActivate(mockContext),
-        UnauthorizedException,
-        "Token d'accès requis",
+        BusinessException,
+        'Authentication token missing',
       );
     });
 
-    it('should throw UnauthorizedException when user not found', async () => {
+    it('should throw BusinessException when user not found', async () => {
       // Arrange
       const mockContext = createMockExecutionContext('Bearer invalid-token');
 
@@ -137,12 +138,12 @@ describe('AuthGuard', () => {
       // Act & Assert
       await expectErrorThrown(
         () => authGuard.canActivate(mockContext),
-        UnauthorizedException,
-        "Token d'accès invalide ou expiré",
+        BusinessException,
+        'Invalid authentication token',
       );
     });
 
-    it('should throw UnauthorizedException when Supabase returns error', async () => {
+    it('should throw BusinessException when Supabase returns error', async () => {
       // Arrange
       const mockContext = createMockExecutionContext('Bearer expired-token');
 
@@ -153,8 +154,8 @@ describe('AuthGuard', () => {
       // Act & Assert
       await expectErrorThrown(
         () => authGuard.canActivate(mockContext),
-        UnauthorizedException,
-        "Token d'accès invalide ou expiré",
+        BusinessException,
+        'Invalid authentication token',
       );
     });
 
@@ -170,8 +171,8 @@ describe('AuthGuard', () => {
       // Act & Assert
       await expectErrorThrown(
         () => authGuard.canActivate(mockContext),
-        UnauthorizedException,
-        "Erreur d'authentification",
+        BusinessException,
+        'Unauthorized',
       );
 
       // Restore
@@ -310,8 +311,8 @@ describe('AuthGuard', () => {
       // Act & Assert
       await expectErrorThrown(
         () => guardWithFailingClient.canActivate(mockContext),
-        UnauthorizedException,
-        "Erreur d'authentification",
+        BusinessException,
+        'Unauthorized',
       );
     });
   });
