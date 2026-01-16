@@ -21,7 +21,7 @@ export class ApplicationConfiguration {
   readonly supabaseAnonKey = signal<string>('');
   readonly backendApiUrl = signal<string>('');
   readonly environment = signal<
-    'development' | 'production' | 'test' | 'local'
+    'development' | 'production' | 'preview' | 'test' | 'local'
   >('development');
 
   // PostHog configuration as a single signal object
