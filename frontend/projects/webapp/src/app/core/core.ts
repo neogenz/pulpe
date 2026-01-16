@@ -35,7 +35,6 @@ import { provideGlobalErrorHandler } from './analytics/global-error-handler';
 import { buildInfo } from '@env/build-info';
 import { environment } from '@env/environment';
 import { Logger } from './logging/logger';
-import { ROUTES } from './routing/routes-constants';
 
 export interface CoreOptions {
   routes: Routes; // possible to extend options with more props in the future
@@ -130,36 +129,11 @@ export function provideCore({ routes }: CoreOptions) {
       // 1. Charger la configuration d'abord
       await applicationConfig.initialize();
 
-      // 2. Check maintenance status before proceeding
-      if (!window.location.pathname.startsWith('/' + ROUTES.MAINTENANCE)) {
-        try {
-          const response = await fetch(
-            `${applicationConfig.backendApiUrl()}/v1/maintenance/status`,
-          );
-          if (response.ok) {
-            const data = (await response.json()) as {
-              maintenanceMode: boolean;
-            };
-            if (data.maintenanceMode) {
-              logger.info(
-                'Maintenance mode detected at startup, redirecting...',
-              );
-              window.location.href = '/' + ROUTES.MAINTENANCE;
-              return;
-            }
-          }
-        } catch {
-          logger.warn(
-            'Failed to check maintenance status, continuing normally',
-          );
-        }
-      }
-
-      // 3. Logger les informations complètes après chargement
+      // 2. Logger les informations complètes après chargement
       logAppInfo(applicationConfig, logger);
 
       try {
-        // 4. Initialiser PostHog (non-blocking, can fail gracefully)
+        // 3. Initialiser PostHog (non-blocking, can fail gracefully)
         try {
           await postHogService.initialize();
 
@@ -183,7 +157,7 @@ export function provideCore({ routes }: CoreOptions) {
           // Don't throw - PostHog failure shouldn't block app startup
         }
 
-        // 5. Initialiser l'auth ensuite (config garantie disponible)
+        // 4. Initialiser l'auth ensuite (config garantie disponible)
         await authService.initializeAuthState();
       } catch (error) {
         logger.error("Erreur lors de l'initialisation", error);

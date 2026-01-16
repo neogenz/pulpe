@@ -1,0 +1,30 @@
+import { inject, Injectable } from '@angular/core';
+import { ApplicationConfiguration } from '../config/application-configuration';
+
+export interface MaintenanceStatus {
+  maintenanceMode: boolean;
+}
+
+/**
+ * Service for checking maintenance mode status.
+ * Uses native fetch instead of HttpClient to avoid interceptor loops,
+ * since this is called before Angular interceptors are fully initialized.
+ */
+@Injectable({
+  providedIn: 'root',
+})
+export class MaintenanceApi {
+  readonly #config = inject(ApplicationConfiguration);
+
+  async checkStatus(): Promise<MaintenanceStatus> {
+    const response = await fetch(
+      `${this.#config.backendApiUrl()}/maintenance/status`,
+    );
+
+    if (!response.ok) {
+      throw new Error(`Maintenance check failed: ${response.status}`);
+    }
+
+    return (await response.json()) as MaintenanceStatus;
+  }
+}

@@ -1,10 +1,16 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  signal,
+} from '@angular/core';
+import { LottieComponent, type AnimationOptions } from 'ngx-lottie';
+import { MaintenanceApi } from '@core/maintenance';
+import { LoadingButton } from '@ui/loading-button';
 
 @Component({
   selector: 'pulpe-maintenance-page',
-  imports: [MatButtonModule, MatIconModule],
+  imports: [LottieComponent, LoadingButton],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
@@ -13,34 +19,68 @@ import { MatIconModule } from '@angular/material/icon';
       <div
         class="w-full max-w-lg bg-surface rounded-2xl p-8 md:p-12 flex flex-col items-center gap-6 text-center"
       >
-        <mat-icon class="text-primary !w-16 !h-16 !text-[64px]">
-          engineering
-        </mat-icon>
+        <ng-lottie [options]="lottieOptions" class="w-48 h-48" />
 
         <h1 class="text-headline-large text-on-surface">
           Maintenance en cours
         </h1>
 
         <p class="text-body-large text-on-surface-variant">
-          L'application est temporairement indisponible pour maintenance.
-          Veuillez réessayer dans quelques instants.
+          On améliore Pulpe pour toi — tes données sont bien au chaud, pas
+          d'inquiétude. Réessaie dans quelques instants.
         </p>
 
-        <button
-          mat-flat-button
+        @if (statusMessage()) {
+          <p class="text-body-medium text-error">{{ statusMessage() }}</p>
+        }
+
+        <pulpe-loading-button
+          [loading]="isChecking()"
+          [disabled]="isChecking()"
+          variant="filled"
+          type="button"
+          loadingText="Vérification..."
+          icon="refresh"
+          testId="maintenance-reload-button"
           class="mt-4"
-          (click)="reload()"
-          data-testid="maintenance-reload-button"
+          (click)="checkAndReload()"
         >
-          <mat-icon>refresh</mat-icon>
           Réessayer
-        </button>
+        </pulpe-loading-button>
       </div>
     </div>
   `,
 })
 export default class MaintenancePage {
-  reload(): void {
-    window.location.href = '/';
+  readonly #maintenanceApi = inject(MaintenanceApi);
+
+  protected readonly isChecking = signal(false);
+  protected readonly statusMessage = signal('');
+
+  protected readonly lottieOptions: AnimationOptions = {
+    path: '/lottie/maintenance-animation.json',
+    loop: true,
+    autoplay: true,
+    renderer: 'svg',
+  };
+
+  async checkAndReload(): Promise<void> {
+    this.isChecking.set(true);
+    this.statusMessage.set('');
+
+    try {
+      const data = await this.#maintenanceApi.checkStatus();
+      if (!data.maintenanceMode) {
+        window.location.href = '/';
+        return;
+      }
+      this.statusMessage.set(
+        'Toujours en maintenance — réessaie dans un instant',
+      );
+    } catch {
+      this.statusMessage.set('Connexion difficile — réessaie dans un instant');
+    } finally {
+      this.isChecking.set(false);
+    }
   }
 }
