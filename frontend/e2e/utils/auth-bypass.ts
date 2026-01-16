@@ -1,5 +1,5 @@
 import type { Page, Route } from '@playwright/test';
-import type { E2EWindow } from '../types/e2e.types';
+import type { E2ETestWindow } from '../types/e2e.types';
 import { TEST_CONFIG } from '../config/test-config';
 import { MOCK_API_RESPONSES } from '../mocks/api-responses';
 
@@ -21,7 +21,7 @@ export async function setupAuthBypass(page: Page, options: {
 
   // Inject E2E auth bypass
   await page.addInitScript((config) => {
-    const e2eWindow = window as unknown as E2EWindow;
+    const e2eWindow = window as unknown as E2ETestWindow;
     e2eWindow.__E2E_AUTH_BYPASS__ = true;
     e2eWindow.__E2E_MOCK_AUTH_STATE__ = {
       user: {
