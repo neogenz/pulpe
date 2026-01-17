@@ -105,13 +105,19 @@ fun BudgetDetailsScreen(
                                 )
                             }
 
-                            items(uiState.recurringBudgetLines) { line ->
-                                BudgetLineItem(
-                                    budgetLine = line,
-                                    consumption = uiState.getConsumption(line),
-                                    onClick = { /* TODO: Edit */ },
-                                    onAddTransaction = { selectedBudgetLineForTransaction = line }
-                                )
+                            items(uiState.recurringBudgetLines, key = { it.id }) { line ->
+                                SwipeableItemContainer(
+                                    onEdit = if (!line.isVirtualRollover) {{ viewModel.showEditBudgetLine(line) }} else null,
+                                    onDelete = if (!line.isVirtualRollover) {{ viewModel.showDeleteBudgetLineConfirmation(line) }} else null
+                                ) {
+                                    BudgetLineItem(
+                                        budgetLine = line,
+                                        consumption = uiState.getConsumption(line),
+                                        onClick = { viewModel.showBudgetLineDetails(line) },
+                                        onAddTransaction = { selectedBudgetLineForTransaction = line },
+                                        onToggleCheck = if (!line.isVirtualRollover) {{ viewModel.toggleBudgetLineCheck(line) }} else null
+                                    )
+                                }
                             }
                         }
 
@@ -124,13 +130,19 @@ fun BudgetDetailsScreen(
                                 )
                             }
 
-                            items(uiState.oneOffBudgetLines) { line ->
-                                BudgetLineItem(
-                                    budgetLine = line,
-                                    consumption = uiState.getConsumption(line),
-                                    onClick = { /* TODO: Edit */ },
-                                    onAddTransaction = { selectedBudgetLineForTransaction = line }
-                                )
+                            items(uiState.oneOffBudgetLines, key = { it.id }) { line ->
+                                SwipeableItemContainer(
+                                    onEdit = if (!line.isVirtualRollover) {{ viewModel.showEditBudgetLine(line) }} else null,
+                                    onDelete = if (!line.isVirtualRollover) {{ viewModel.showDeleteBudgetLineConfirmation(line) }} else null
+                                ) {
+                                    BudgetLineItem(
+                                        budgetLine = line,
+                                        consumption = uiState.getConsumption(line),
+                                        onClick = { viewModel.showBudgetLineDetails(line) },
+                                        onAddTransaction = { selectedBudgetLineForTransaction = line },
+                                        onToggleCheck = if (!line.isVirtualRollover) {{ viewModel.toggleBudgetLineCheck(line) }} else null
+                                    )
+                                }
                             }
                         }
 
@@ -143,11 +155,17 @@ fun BudgetDetailsScreen(
                                 )
                             }
 
-                            items(uiState.transactions) { transaction ->
-                                TransactionListItem(
-                                    transaction = transaction,
-                                    onClick = { /* TODO: Edit */ }
-                                )
+                            items(uiState.transactions, key = { it.id }) { transaction ->
+                                SwipeableItemContainer(
+                                    onEdit = { viewModel.showEditTransaction(transaction) },
+                                    onDelete = { viewModel.showDeleteConfirmation(transaction) }
+                                ) {
+                                    TransactionListItem(
+                                        transaction = transaction,
+                                        onClick = { viewModel.showEditTransaction(transaction) },
+                                        onToggleCheck = { viewModel.toggleTransactionCheck(transaction) }
+                                    )
+                                }
                             }
                         }
                     }
@@ -176,6 +194,76 @@ fun BudgetDetailsScreen(
                 viewModel.onTransactionAdded(transaction)
                 selectedBudgetLineForTransaction = null
             }
+        )
+    }
+
+    // Budget line details sheet (showing allocated transactions)
+    uiState.selectedBudgetLineForDetails?.let { budgetLine ->
+        AllocatedTransactionsSheet(
+            budgetLine = budgetLine,
+            consumption = uiState.getConsumption(budgetLine),
+            transactions = uiState.getAllocatedTransactions(budgetLine.id),
+            onDismiss = { viewModel.hideBudgetLineDetails() },
+            onToggleCheck = { transaction -> viewModel.toggleTransactionCheck(transaction) },
+            onEditTransaction = { transaction ->
+                viewModel.hideBudgetLineDetails()
+                viewModel.showEditTransaction(transaction)
+            },
+            onDeleteTransaction = { transaction -> viewModel.showDeleteConfirmation(transaction) },
+            onAddTransaction = {
+                viewModel.hideBudgetLineDetails()
+                selectedBudgetLineForTransaction = budgetLine
+            }
+        )
+    }
+
+    // Edit transaction sheet
+    uiState.selectedTransactionForEdit?.let { transaction ->
+        EditTransactionSheet(
+            transaction = transaction,
+            isLoading = uiState.isTransactionOperationLoading,
+            error = uiState.transactionOperationError,
+            onDismiss = { viewModel.hideEditTransaction() },
+            onSave = { update -> viewModel.updateTransaction(transaction.id, update) },
+            onClearError = { viewModel.clearTransactionOperationError() }
+        )
+    }
+
+    // Delete transaction confirmation dialog
+    uiState.transactionToDelete?.let { transaction ->
+        ConfirmationDialog(
+            title = "Supprimer la transaction",
+            message = "Voulez-vous vraiment supprimer \"${transaction.name}\" ?",
+            confirmText = "Supprimer",
+            cancelText = "Annuler",
+            isLoading = uiState.isTransactionOperationLoading,
+            onConfirm = { viewModel.confirmDeleteTransaction() },
+            onDismiss = { viewModel.hideDeleteConfirmation() }
+        )
+    }
+
+    // Edit budget line sheet
+    uiState.selectedBudgetLineForEdit?.let { budgetLine ->
+        EditBudgetLineSheet(
+            budgetLine = budgetLine,
+            isLoading = uiState.isBudgetLineOperationLoading,
+            error = uiState.budgetLineOperationError,
+            onDismiss = { viewModel.hideEditBudgetLine() },
+            onSave = { update -> viewModel.updateBudgetLine(update) },
+            onClearError = { viewModel.clearBudgetLineOperationError() }
+        )
+    }
+
+    // Delete budget line confirmation dialog
+    uiState.budgetLineToDelete?.let { budgetLine ->
+        ConfirmationDialog(
+            title = "Supprimer la prévision",
+            message = "Voulez-vous vraiment supprimer \"${budgetLine.name}\" ? Les transactions associées seront également supprimées.",
+            confirmText = "Supprimer",
+            cancelText = "Annuler",
+            isLoading = uiState.isBudgetLineOperationLoading,
+            onConfirm = { viewModel.confirmDeleteBudgetLine() },
+            onDismiss = { viewModel.hideDeleteBudgetLineConfirmation() }
         )
     }
 }
@@ -208,7 +296,8 @@ private fun BudgetLineItem(
     budgetLine: BudgetLine,
     consumption: app.pulpe.android.domain.model.BudgetFormulas.Consumption?,
     onClick: () -> Unit,
-    onAddTransaction: () -> Unit
+    onAddTransaction: () -> Unit,
+    onToggleCheck: (() -> Unit)? = null
 ) {
     val formatter = NumberFormat.getCurrencyInstance(Locale("fr", "CH")).apply {
         currency = java.util.Currency.getInstance("CHF")
@@ -231,12 +320,35 @@ private fun BudgetLineItem(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Toggle check button
+                if (onToggleCheck != null && !budgetLine.isVirtualRollover) {
+                    IconButton(
+                        onClick = onToggleCheck,
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (budgetLine.isChecked) {
+                                Icons.Default.CheckCircle
+                            } else {
+                                Icons.Default.RadioButtonUnchecked
+                            },
+                            contentDescription = if (budgetLine.isChecked) "Pointé" else "Non pointé",
+                            tint = if (budgetLine.isChecked) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(4.dp))
+                }
+
                 // Icon
                 Surface(
                     color = color.copy(alpha = 0.12f),
@@ -281,17 +393,19 @@ private fun BudgetLineItem(
                     }
                 }
 
-                // Add transaction button
-                IconButton(
-                    onClick = onAddTransaction,
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Ajouter une transaction",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
+                // Add transaction button (only for non-rollover lines)
+                if (!budgetLine.isVirtualRollover) {
+                    IconButton(
+                        onClick = onAddTransaction,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Ajouter une transaction",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
 
                 // Amount
@@ -301,8 +415,8 @@ private fun BudgetLineItem(
                     color = color
                 )
 
-                // Check indicator
-                if (budgetLine.isChecked) {
+                // Check indicator (only show if no toggle button)
+                if (onToggleCheck == null && budgetLine.isChecked) {
                     Spacer(modifier = Modifier.width(8.dp))
                     Icon(
                         imageVector = Icons.Default.CheckCircle,

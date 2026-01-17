@@ -67,7 +67,8 @@ class AddTransactionViewModel @Inject constructor(
                 budgetId = state.budgetId,
                 name = state.name.trim(),
                 amount = state.amount!!,
-                kind = state.kind
+                kind = state.kind,
+                transactionDate = java.time.Instant.now().toString()
             )
 
             val result = transactionRepository.createTransaction(transactionCreate)

@@ -169,6 +169,7 @@ private fun QuickActionButton(
 fun TransactionListItem(
     transaction: Transaction,
     onClick: () -> Unit,
+    onToggleCheck: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val color = when (transaction.kind) {
@@ -195,10 +196,33 @@ fun TransactionListItem(
     ) {
         Row(
             modifier = Modifier
-                .padding(16.dp)
+                .padding(horizontal = 12.dp, vertical = 8.dp)
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Toggle check button
+            if (onToggleCheck != null) {
+                IconButton(
+                    onClick = onToggleCheck,
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = if (transaction.isChecked) {
+                            Icons.Default.CheckCircle
+                        } else {
+                            Icons.Default.RadioButtonUnchecked
+                        },
+                        contentDescription = if (transaction.isChecked) "Pointé" else "Non pointé",
+                        tint = if (transaction.isChecked) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    )
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+            }
+
             // Icon
             Surface(
                 color = color.copy(alpha = 0.12f),
@@ -242,8 +266,8 @@ fun TransactionListItem(
                 color = color
             )
 
-            // Check indicator
-            if (transaction.isChecked) {
+            // Check indicator (only show if no toggle button)
+            if (onToggleCheck == null && transaction.isChecked) {
                 Spacer(modifier = Modifier.width(8.dp))
                 Icon(
                     imageVector = Icons.Default.CheckCircle,
