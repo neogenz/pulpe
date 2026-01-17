@@ -128,7 +128,7 @@ export function Header() {
               <a
                 key={link.href}
                 href={link.href}
-                className="px-4 py-2 text-sm text-text-secondary hover:text-text rounded-full hover:bg-white/30 active:bg-white/50 active:scale-95 transition-all duration-200"
+                className="px-4 py-2 text-sm text-text-secondary hover:text-primary hover:bg-primary/10 active:bg-primary/20 active:scale-95 rounded-full transition-all duration-200"
               >
                 {link.label}
               </a>
