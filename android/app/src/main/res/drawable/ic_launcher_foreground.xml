@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Pulpe P letter icon -->
+    <group android:translateX="27" android:translateY="27">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M10,8 L10,46 L18,46 L18,34 L30,34
+                C38,34 44,28 44,22 C44,16 38,8 30,8 L10,8 Z
+                M18,16 L28,16 C32,16 36,18 36,22 C36,26 32,26 28,26 L18,26 L18,16 Z"/>
+    </group>
+</vector>
