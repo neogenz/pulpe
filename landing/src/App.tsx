@@ -6,6 +6,7 @@ import {
   Solution,
   Features,
   HowItWorks,
+  Platforms,
   WhyFree,
   FinalCTA,
 } from './components/sections'
@@ -28,6 +29,7 @@ function App() {
         <Solution />
         <Features />
         <HowItWorks />
+        <Platforms />
         <WhyFree />
         <FinalCTA />
       </main>
