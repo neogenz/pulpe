@@ -217,8 +217,8 @@ final class TransactionTests: XCTestCase {
         // Act
         let formatted = transaction.amount.asCHF
 
-        // Assert
-        XCTAssertTrue(formatted.contains("1'234"), "Should format with Swiss thousand separator")
+        // Assert - Swiss locale uses RIGHT SINGLE QUOTATION MARK (U+2019) as thousand separator
+        XCTAssertTrue(formatted.contains("1\u{2019}234"), "Should format with Swiss thousand separator")
         XCTAssertTrue(formatted.contains("56"), "Should include cents")
     }
 
