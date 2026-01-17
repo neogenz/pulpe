@@ -166,10 +166,19 @@ actor APIClient {
     private func parseError(from data: Data, statusCode: Int) throws -> APIError {
         // Try to decode error response
         if let errorResponse = try? decoder.decode(APIResponse<EmptyResponse>.self, from: data) {
-            return APIError.from(
+            let error = APIError.from(
                 code: errorResponse.code,
                 message: errorResponse.error ?? errorResponse.message
             )
+
+            // Broadcast maintenance notification to trigger UI update
+            if case .maintenance = error {
+                Task { @MainActor in
+                    NotificationCenter.default.post(name: .maintenanceModeDetected, object: nil)
+                }
+            }
+
+            return error
         }
 
         // Fallback to status code

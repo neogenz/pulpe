@@ -20,6 +20,10 @@ final class AppState {
     private(set) var authState: AuthStatus = .loading
     private(set) var currentUser: UserInfo?
 
+    // MARK: - Maintenance State
+
+    private(set) var isInMaintenance = false
+
     // MARK: - Navigation
 
     var selectedTab: Tab = .currentMonth
@@ -155,6 +159,21 @@ final class AppState {
     func disableBiometric() async {
         await authService.clearBiometricTokens()
         biometricEnabled = false
+    }
+
+    // MARK: - Maintenance Actions
+
+    func setMaintenanceMode(_ active: Bool) {
+        isInMaintenance = active
+    }
+
+    func checkMaintenanceStatus() async {
+        do {
+            isInMaintenance = try await MaintenanceService.shared.checkStatus()
+        } catch {
+            // Fail-closed: assume maintenance on error
+            isInMaintenance = true
+        }
     }
 }
 
