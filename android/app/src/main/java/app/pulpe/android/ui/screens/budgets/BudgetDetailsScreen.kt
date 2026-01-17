@@ -19,6 +19,7 @@ import app.pulpe.android.domain.model.Transaction
 import app.pulpe.android.domain.model.TransactionKind
 import app.pulpe.android.domain.model.TransactionRecurrence
 import app.pulpe.android.ui.components.*
+import app.pulpe.android.ui.screens.currentmonth.AddTransactionSheet
 import app.pulpe.android.ui.theme.PulpeTheme
 import java.text.NumberFormat
 import java.util.Locale
@@ -31,6 +32,7 @@ fun BudgetDetailsScreen(
     viewModel: BudgetDetailsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var selectedBudgetLineForTransaction by remember { mutableStateOf<BudgetLine?>(null) }
 
     LaunchedEffect(budgetId) {
         viewModel.loadBudget(budgetId)
@@ -107,7 +109,8 @@ fun BudgetDetailsScreen(
                                 BudgetLineItem(
                                     budgetLine = line,
                                     consumption = uiState.getConsumption(line),
-                                    onClick = { /* TODO: Edit */ }
+                                    onClick = { /* TODO: Edit */ },
+                                    onAddTransaction = { selectedBudgetLineForTransaction = line }
                                 )
                             }
                         }
@@ -125,7 +128,8 @@ fun BudgetDetailsScreen(
                                 BudgetLineItem(
                                     budgetLine = line,
                                     consumption = uiState.getConsumption(line),
-                                    onClick = { /* TODO: Edit */ }
+                                    onClick = { /* TODO: Edit */ },
+                                    onAddTransaction = { selectedBudgetLineForTransaction = line }
                                 )
                             }
                         }
@@ -150,6 +154,29 @@ fun BudgetDetailsScreen(
                 }
             }
         }
+    }
+
+    // Free transaction sheet (from FAB)
+    if (uiState.showAddTransactionSheet) {
+        AddTransactionSheet(
+            budgetId = budgetId,
+            onDismiss = { viewModel.hideAddTransaction() },
+            onTransactionAdded = { transaction ->
+                viewModel.onTransactionAdded(transaction)
+            }
+        )
+    }
+
+    // Allocated transaction sheet (from budget line "+" button)
+    selectedBudgetLineForTransaction?.let { budgetLine ->
+        AddAllocatedTransactionSheet(
+            budgetLine = budgetLine,
+            onDismiss = { selectedBudgetLineForTransaction = null },
+            onTransactionAdded = { transaction ->
+                viewModel.onTransactionAdded(transaction)
+                selectedBudgetLineForTransaction = null
+            }
+        )
     }
 }
 
@@ -180,7 +207,8 @@ private fun SectionHeader(
 private fun BudgetLineItem(
     budgetLine: BudgetLine,
     consumption: app.pulpe.android.domain.model.BudgetFormulas.Consumption?,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onAddTransaction: () -> Unit
 ) {
     val formatter = NumberFormat.getCurrencyInstance(Locale("fr", "CH")).apply {
         currency = java.util.Currency.getInstance("CHF")
@@ -251,6 +279,19 @@ private fun BudgetLineItem(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+                }
+
+                // Add transaction button
+                IconButton(
+                    onClick = onAddTransaction,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Ajouter une transaction",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
 
                 // Amount

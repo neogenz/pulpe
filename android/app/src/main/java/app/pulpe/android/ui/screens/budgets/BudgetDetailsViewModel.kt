@@ -100,4 +100,14 @@ class BudgetDetailsViewModel @Inject constructor(
     fun hideAddTransaction() {
         _uiState.update { it.copy(showAddTransactionSheet = false) }
     }
+
+    fun onTransactionAdded(transaction: Transaction) {
+        _uiState.update { state ->
+            state.copy(
+                showAddTransactionSheet = false,
+                transactions = (state.transactions + transaction)
+                    .sortedByDescending { it.transactionDate }
+            )
+        }
+    }
 }
