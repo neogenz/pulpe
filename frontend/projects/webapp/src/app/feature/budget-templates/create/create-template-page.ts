@@ -6,7 +6,6 @@ import {
   signal,
 } from '@angular/core';
 import { Router } from '@angular/router';
-import { ROUTES } from '@core/routing';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -14,6 +13,12 @@ import { type BudgetTemplateCreate } from 'pulpe-shared';
 import { BudgetTemplatesStore } from '../services/budget-templates-store';
 import { CreateTemplateForm } from './components/create-template-form';
 import { Logger } from '@core/logging/logger';
+
+// Constants
+const ROUTES = {
+  BUDGET_TEMPLATES: '/app/budget-templates',
+  TEMPLATE_DETAILS: (id: string) => `/app/budget-templates/details/${id}`,
+} as const;
 
 const MESSAGES = {
   SUCCESS: 'Modèle créé avec succès',
@@ -88,25 +93,25 @@ const SNACKBAR_CONFIG = {
 })
 export default class CreateTemplatePage {
   // Injected dependencies
-  readonly #router = inject(Router);
-  readonly #store = inject(BudgetTemplatesStore);
-  readonly #snackBar = inject(MatSnackBar);
-  readonly #logger = inject(Logger);
+  #router = inject(Router);
+  #store = inject(BudgetTemplatesStore);
+  #snackBar = inject(MatSnackBar);
+  #logger = inject(Logger);
 
   // Local state
-  readonly isCreatingTemplate = signal(false);
+  isCreatingTemplate = signal(false);
 
   // Computed values to pass to child form (smart/dumb pattern)
   // These are computed ONCE from state and passed as stable inputs
-  readonly templateCount = computed(() => this.#store.templateCount());
-  readonly existingTemplateNames = computed(
+  templateCount = computed(() => this.#store.templateCount());
+  existingTemplateNames = computed(
     () =>
       this.#store.budgetTemplates
         .value()
         ?.filter((t) => !t.id.startsWith('temp-'))
         .map((t) => t.name.toLowerCase()) ?? [],
   );
-  readonly defaultTemplateName = computed(
+  defaultTemplateName = computed(
     () => this.#store.defaultBudgetTemplate()?.name ?? null,
   );
 
@@ -125,7 +130,7 @@ export default class CreateTemplatePage {
       if (response?.template.id) {
         // Pass POST response as router state for SWR (instant display)
         await this.#router.navigate(
-          ['/', ROUTES.BUDGET_TEMPLATES, 'details', response.template.id],
+          [ROUTES.TEMPLATE_DETAILS(response.template.id)],
           {
             state: {
               initialData: {
@@ -136,28 +141,28 @@ export default class CreateTemplatePage {
           },
         );
       } else {
-        await this.#router.navigate(['/', ROUTES.BUDGET_TEMPLATES]);
+        await this.#router.navigate([ROUTES.BUDGET_TEMPLATES]);
       }
     } catch (error) {
       // Only reset isCreating on error (user stays on page to retry)
       this.isCreatingTemplate.set(false);
-      this.#handleError(error);
+      this.handleError(error);
     }
   }
 
   navigateBack() {
-    this.#router.navigate(['/', ROUTES.BUDGET_TEMPLATES]);
+    this.#router.navigate([ROUTES.BUDGET_TEMPLATES]);
   }
 
-  #handleError(error: unknown): void {
+  private handleError(error: unknown): void {
     // Simple logging - in a real app, this would use a proper logging service
     this.#logger.error('Erreur lors de la création du template:', error);
 
-    const errorMessage = this.#getErrorMessage(error);
+    const errorMessage = this.getErrorMessage(error);
     this.#snackBar.open(errorMessage, 'Fermer', SNACKBAR_CONFIG.ERROR);
   }
 
-  #getErrorMessage(error: unknown): string {
+  private getErrorMessage(error: unknown): string {
     if (error instanceof Error) {
       // Check for specific error types that we can handle better
       if (

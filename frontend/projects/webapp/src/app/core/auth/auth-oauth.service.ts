@@ -4,7 +4,7 @@ import { AuthStateService } from './auth-state.service';
 import { AuthErrorLocalizer } from './auth-error-localizer';
 import { Logger } from '../logging/logger';
 import { AUTH_ERROR_MESSAGES } from './auth-constants';
-import { ROUTES } from '@core/routing/routes-constants';
+import { ROUTES } from '../routing/routes-constants';
 import { isE2EMode } from './e2e-window';
 
 export interface OAuthUserMetadata {
@@ -54,7 +54,7 @@ export class AuthOAuthService {
       const { error } = await this.#session.getClient().auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/${ROUTES.DASHBOARD}`,
+          redirectTo: `${window.location.origin}/${ROUTES.APP}`,
         },
       });
 

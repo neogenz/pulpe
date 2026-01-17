@@ -10,7 +10,6 @@ import { of, throwError } from 'rxjs';
 import { hasBudgetGuard } from './has-budget.guard';
 import { BudgetApi } from '@core/budget';
 import { Logger } from '@core/logging/logger';
-import { ROUTES } from '@core/routing/routes-constants';
 import { HasBudgetCache } from './has-budget-cache';
 
 describe('hasBudgetGuard', () => {
@@ -18,7 +17,7 @@ describe('hasBudgetGuard', () => {
     checkBudgetExists$: ReturnType<typeof vi.fn>;
   };
   let mockRouter: { createUrlTree: ReturnType<typeof vi.fn> };
-  let mockLogger: { error: ReturnType<typeof vi.fn> };
+  let mockLogger: { warn: ReturnType<typeof vi.fn> };
   let mockHasBudgetCache: {
     hasBudget: ReturnType<typeof vi.fn>;
     setHasBudget: ReturnType<typeof vi.fn>;
@@ -37,12 +36,7 @@ describe('hasBudgetGuard', () => {
     };
 
     mockLogger = {
-      error: vi.fn(),
-    };
-
-    mockHasBudgetCache = {
-      hasBudget: vi.fn().mockReturnValue(null),
-      setHasBudget: vi.fn(),
+      warn: vi.fn(),
     };
 
     mockHasBudgetCache = {
@@ -83,11 +77,12 @@ describe('hasBudgetGuard', () => {
     expect(result).toEqual({});
     expect(mockRouter.createUrlTree).toHaveBeenCalledWith([
       '/',
-      ROUTES.COMPLETE_PROFILE,
+      'app',
+      'complete-profile',
     ]);
   });
 
-  it('should redirect to complete-profile on API error (fail-closed)', async () => {
+  it('should allow navigation on API error (fail-safe)', async () => {
     mockHasBudgetCache.hasBudget.mockReturnValue(null);
     mockBudgetApi.checkBudgetExists$.mockReturnValue(
       throwError(() => new Error('API Error')),
@@ -97,13 +92,10 @@ describe('hasBudgetGuard', () => {
       hasBudgetGuard(mockRoute, mockState),
     );
 
-    expect(result).toEqual({});
-    expect(mockRouter.createUrlTree).toHaveBeenCalledWith([
-      '/',
-      ROUTES.COMPLETE_PROFILE,
-    ]);
-    expect(mockLogger.error).toHaveBeenCalledWith(
-      'hasBudgetGuard: API error during cache miss, redirecting to complete-profile (fail-closed)',
+    expect(result).toBe(true);
+    expect(mockRouter.createUrlTree).not.toHaveBeenCalled();
+    expect(mockLogger.warn).toHaveBeenCalledWith(
+      'hasBudgetGuard: API error during cache miss, allowing navigation (fail-safe)',
       expect.any(Error),
     );
   });
@@ -130,7 +122,8 @@ describe('hasBudgetGuard', () => {
       expect(result).toEqual({});
       expect(mockRouter.createUrlTree).toHaveBeenCalledWith([
         '/',
-        ROUTES.COMPLETE_PROFILE,
+        'app',
+        'complete-profile',
       ]);
       expect(mockBudgetApi.checkBudgetExists$).not.toHaveBeenCalled();
     });

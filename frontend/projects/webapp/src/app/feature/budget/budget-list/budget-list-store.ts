@@ -18,9 +18,9 @@ export interface BudgetPlaceholder {
 
 @Injectable()
 export class BudgetListStore {
-  readonly #budgetApi = inject(BudgetApi);
-  readonly #logger = inject(Logger);
-  readonly #invalidationService = inject(BudgetInvalidationService);
+  #budgetApi = inject(BudgetApi);
+  #logger = inject(Logger);
+  #invalidationService = inject(BudgetInvalidationService);
 
   // Maximum de mois à rechercher dans le futur (3 ans)
   private static readonly MAX_FUTURE_MONTHS_TO_SEARCH = 36;
@@ -29,7 +29,7 @@ export class BudgetListStore {
    * Resource that auto-reloads when budget invalidation version changes.
    * This enables automatic cache invalidation across stores.
    */
-  readonly budgets = resource<Budget[], { version: number }>({
+  budgets = resource<Budget[], { version: number }>({
     params: () => ({ version: this.#invalidationService.version() }),
     loader: async () => this.#loadBudgets(),
   });
@@ -38,7 +38,7 @@ export class BudgetListStore {
   readonly hasValue = computed(() => this.budgets.hasValue());
   readonly error = computed(() => this.budgets.error());
 
-  readonly plannedYears = computed(() => {
+  plannedYears = computed(() => {
     const months = this.budgets.value() ?? [];
     const years = [...new Set(months.map((month) => month.year))];
     return years.sort((a, b) => a - b); // Tri croissant
@@ -47,7 +47,7 @@ export class BudgetListStore {
   /**
    * Mensual budget planned, grouped by year
    */
-  readonly plannedBudgetsGroupedByYears = computed(() => {
+  plannedBudgetsGroupedByYears = computed(() => {
     const months = this.budgets.value() ?? [];
     const groupedByYear = new Map<number, Budget[]>();
 
@@ -70,7 +70,7 @@ export class BudgetListStore {
   /**
    * All months grouped by year, with empty months for years with unplanned budgets
    */
-  readonly allMonthsGroupedByYears = computed<
+  allMonthsGroupedByYears = computed<
     Map<number, (Budget | BudgetPlaceholder)[]>
   >(() => {
     const allMonths = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -98,7 +98,7 @@ export class BudgetListStore {
     return allMonthsGroupedByYears;
   });
 
-  readonly selectedYear = linkedSignal<number[], number | null>({
+  selectedYear = linkedSignal<number[], number | null>({
     source: this.plannedYears,
     computation: (years, previous) => {
       // Garder la sélection précédente si elle existe encore
@@ -113,7 +113,7 @@ export class BudgetListStore {
     },
   });
 
-  readonly selectedYearIndex = computed(() => {
+  selectedYearIndex = computed(() => {
     const year = this.selectedYear();
     const years = this.plannedYears();
 
@@ -126,7 +126,7 @@ export class BudgetListStore {
    * Calcule le prochain mois disponible sans budget existant
    * Recherche à partir du mois actuel jusqu'à 3 ans dans le futur
    */
-  readonly nextAvailableMonth = computed(() => {
+  nextAvailableMonth = computed(() => {
     const budgetsValue = this.budgets.value();
     const now = new Date();
     const currentMonth = now.getMonth() + 1; // getMonth() retourne 0-11

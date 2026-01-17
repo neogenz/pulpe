@@ -9,7 +9,7 @@ import { ApplicationConfiguration } from '../config/application-configuration';
 import { AuthErrorLocalizer } from './auth-error-localizer';
 import { Logger } from '../logging/logger';
 import { AUTH_ERROR_MESSAGES } from './auth-constants';
-import { ROUTES } from '@core/routing/routes-constants';
+import { ROUTES } from '../routing/routes-constants';
 import { type E2EWindow } from './e2e-window';
 import {
   createMockSupabaseClient,
@@ -140,7 +140,7 @@ describe('AuthOAuthService', () => {
       expect(mockSupabaseClient.auth.signInWithOAuth).toHaveBeenCalledWith({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/${ROUTES.DASHBOARD}`,
+          redirectTo: `${window.location.origin}/${ROUTES.APP}`,
         },
       });
     });

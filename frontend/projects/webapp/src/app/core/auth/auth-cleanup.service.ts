@@ -5,8 +5,6 @@ import { PostHogService } from '../analytics/posthog';
 import { StorageService } from '../storage';
 import { Logger } from '../logging/logger';
 
-// Debounce delay before allowing another cleanup. Prevents duplicate calls
-// when multiple logout events fire in quick succession (e.g., auth state change + manual signOut).
 const CLEANUP_RESET_DELAY_MS = 100;
 
 @Injectable({
@@ -32,11 +30,11 @@ export class AuthCleanupService {
     });
   }
 
-  performCleanup(): void {
-    this.#handleSignOut();
+  performCleanup(userId?: string): void {
+    this.#handleSignOut(userId);
   }
 
-  #handleSignOut(): void {
+  #handleSignOut(userId?: string): void {
     if (this.#cleanupInProgress) {
       this.#logger.debug(
         'Cleanup already in progress, skipping duplicate call',
@@ -53,7 +51,7 @@ export class AuthCleanupService {
       );
       this.#safeCleanup(() => this.#hasBudgetCache.clear(), 'budget cache');
       this.#safeCleanup(() => this.#postHogService.reset(), 'PostHog');
-      this.#safeCleanup(() => this.#storageService.clearAll(), 'storage');
+      this.#safeCleanup(() => this.#storageService.clearAll(userId), 'storage');
     } finally {
       if (this.#resetTimeoutId !== null) {
         clearTimeout(this.#resetTimeoutId);

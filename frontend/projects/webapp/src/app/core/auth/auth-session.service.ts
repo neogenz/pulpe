@@ -52,7 +52,7 @@ export class AuthSessionService {
     if (this.#isE2EBypass()) {
       const mockState = this.#getE2EMockState();
       if (mockState) {
-        this.#logger.debug(
+        this.#logger.info(
           '🎭 Mode test E2E détecté, utilisation des mocks auth',
         );
         this.#state.setSession(mockState.session);
@@ -90,10 +90,12 @@ export class AuthSessionService {
             case 'TOKEN_REFRESHED':
               this.#updateAuthState(session);
               break;
-            case 'SIGNED_OUT':
+            case 'SIGNED_OUT': {
+              const userId = this.#state.user()?.id;
               this.#updateAuthState(null);
-              this.#cleanup.performCleanup();
+              this.#cleanup.performCleanup(userId);
               break;
+            }
             case 'USER_UPDATED':
               this.#updateAuthState(session);
               break;
@@ -217,9 +219,11 @@ export class AuthSessionService {
   }
 
   async signOut(): Promise<void> {
+    const userId = this.#state.user()?.id;
+
     try {
       if (this.#isE2EBypass()) {
-        this.#logger.debug('🎭 Mode test E2E: Simulation du logout');
+        this.#logger.info('🎭 Mode test E2E: Simulation du logout');
         return;
       }
 
@@ -236,7 +240,7 @@ export class AuthSessionService {
       });
     } finally {
       this.#updateAuthState(null);
-      this.#cleanup.performCleanup();
+      this.#cleanup.performCleanup(userId);
     }
   }
 

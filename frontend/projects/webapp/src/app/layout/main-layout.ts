@@ -1,23 +1,19 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
+import { ScrollDispatcher } from '@angular/cdk/scrolling';
 import {
-  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   computed,
-  DestroyRef,
-  type ElementRef,
   inject,
   signal,
-  viewChild,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialog } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
+import { MatDialog } from '@angular/material/dialog';
 import { MatMenuModule } from '@angular/material/menu';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -31,20 +27,27 @@ import {
   RouterLinkActive,
   RouterOutlet,
 } from '@angular/router';
-import { AuthSessionService } from '@core/auth/auth-session.service';
-import { AuthStateService } from '@core/auth/auth-state.service';
-import { ApplicationConfiguration } from '@core/config/application-configuration';
-import { DemoInitializerService } from '@core/demo/demo-initializer.service';
-import { DemoModeService } from '@core/demo/demo-mode.service';
-import { LoadingIndicator } from '@core/loading/loading-indicator';
-import { Logger } from '@core/logging/logger';
-import { BreadcrumbState } from '@core/routing/breadcrumb-state';
-import { ROUTES } from '@core/routing/routes-constants';
-import { PulpeBreadcrumb } from '@ui/breadcrumb/breadcrumb';
+import {
+  delay,
+  filter,
+  map,
+  shareReplay,
+  startWith,
+  switchMap,
+} from 'rxjs/operators';
 import { of } from 'rxjs';
-import { delay, filter, map, shareReplay, switchMap } from 'rxjs/operators';
+import { PulpeBreadcrumb } from '@ui/breadcrumb/breadcrumb';
+import { BreadcrumbState } from '@core/routing/breadcrumb-state';
+import { AuthStateService } from '@core/auth/auth-state.service';
+import { AuthSessionService } from '@core/auth/auth-session.service';
+import { ROUTES } from '@core/routing/routes-constants';
+import { ApplicationConfiguration } from '@core/config/application-configuration';
+import { Logger } from '@core/logging/logger';
+import { DemoModeService } from '@core/demo/demo-mode.service';
+import { DemoInitializerService } from '@core/demo/demo-initializer.service';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { LoadingIndicator } from '@core/loading/loading-indicator';
 import { AboutDialog } from './about-dialog';
-import { LogoutDialog } from './logout-dialog';
 
 interface NavigationItem {
   readonly route: string;
@@ -85,13 +88,13 @@ interface NavigationItem {
         <!-- Sidenav Header -->
         @if (isHandset()) {
           <div class="py-4 px-6 flex items-center gap-3">
-            <img src="logo.svg" alt="Pulpe" class="w-10 h-auto" />
+            <div class="w-10 h-10 pulpe-gradient rounded-full"></div>
             <span class="text-lg font-medium text-on-surface">Pulpe</span>
           </div>
         } @else {
           <!-- Rail Mode Header -->
           <div class="py-6 flex justify-center items-center">
-            <img src="logo.svg" alt="Pulpe" class="w-10 h-auto" />
+            <div class="w-10 h-10 pulpe-gradient rounded-full"></div>
           </div>
         }
 
@@ -174,7 +177,6 @@ interface NavigationItem {
         <div
           class="flex flex-col h-full bg-surface relative overflow-hidden min-w-0"
           [class.p-2]="!isHandset()"
-          [class.pt-0]="!isHandset() && !isDemoMode()"
           [class.rounded-xl]="!isHandset()"
         >
           @if (loadingIndicator.isLoading() || isNavigating()) {
@@ -223,9 +225,8 @@ interface NavigationItem {
           <!-- Top App Bar - Fixed Header -->
           <mat-toolbar
             color="primary"
-            [class.toolbar-desktop]="!isHandset()"
             class="shrink-0"
-            [class.scrolled]="showToolbarShadow()"
+            [class.rounded-t-xl]="!isHandset()"
           >
             @if (isHandset()) {
               <button
@@ -237,15 +238,7 @@ interface NavigationItem {
                 <mat-icon>menu</mat-icon>
               </button>
             }
-            @if (!isHandset() && hasBreadcrumb()) {
-              <div
-                class="breadcrumb-scroll-fade flex-1 min-w-0 overflow-x-auto scrollbar-hide"
-              >
-                <pulpe-breadcrumb [items]="breadcrumbState.breadcrumbs()" />
-              </div>
-            } @else {
-              <span class="flex-1"></span>
-            }
+            <span class="flex-1"></span>
 
             <!-- Toolbar Actions -->
             <button
@@ -321,18 +314,17 @@ interface NavigationItem {
             </div>
           </mat-toolbar>
 
-          <!-- Breadcrumb (mobile only) -->
-          @if (isHandset() && breadcrumbState.breadcrumbs().length > 1) {
-            <div class="breadcrumb-mobile" [class.scrolled]="isScrolled()">
-              <pulpe-breadcrumb
-                class="px-4 pb-3"
-                [items]="breadcrumbState.breadcrumbs()"
-              />
-            </div>
+          <!-- Breadcrumb -->
+          @if (breadcrumbState.breadcrumbs().length > 1) {
+            <pulpe-breadcrumb
+              class="px-4 py-3"
+              [items]="breadcrumbState.breadcrumbs()"
+            />
           }
 
           <!-- Page Content - Scrollable Container -->
           <main
+            cdkScrollable
             class="flex-1 overflow-y-auto overflow-x-hidden bg-surface text-on-surface pt-2! min-w-0"
             [class.p-6]="!isHandset()"
             [class.md:p-8]="!isHandset()"
@@ -340,7 +332,6 @@ interface NavigationItem {
             data-testid="page-content"
             data-tour="page-content"
           >
-            <div #scrollSentinel class="h-0" aria-hidden="true"></div>
             <router-outlet />
           </main>
         </div>
@@ -385,51 +376,6 @@ interface NavigationItem {
       .active mat-icon {
         will-change: transform;
       }
-
-      /* Shadow on scroll - projects onto content below */
-      mat-toolbar,
-      .breadcrumb-mobile {
-        position: relative;
-        z-index: 10;
-      }
-
-      mat-toolbar.scrolled,
-      .breadcrumb-mobile.scrolled {
-        box-shadow: var(--mat-sys-level2);
-
-        /* Coupe tout ce qui dépasse en HAUT (0), mais laisse passer le reste (-20px) */
-        /* Ordre : Top, Right, Bottom, Left */
-        clip-path: inset(0px -20px -20px -20px);
-
-        position: relative;
-        z-index: 10;
-      }
-
-      .toolbar-desktop {
-        margin-left: -0.5rem !important;
-        margin-right: -0.5rem !important;
-        width: auto !important;
-      }
-
-      /* Gradient fade-out for horizontal scroll affordance */
-      .breadcrumb-scroll-fade {
-        position: relative;
-
-        &::after {
-          content: '';
-          position: absolute;
-          top: 0;
-          right: 0;
-          bottom: 0;
-          width: 24px;
-          background: linear-gradient(
-            to right,
-            transparent,
-            var(--mat-sys-surface)
-          );
-          pointer-events: none;
-        }
-      }
     `,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -437,18 +383,13 @@ interface NavigationItem {
 export default class MainLayout {
   readonly #breakpointObserver = inject(BreakpointObserver);
   readonly #router = inject(Router);
+  readonly #scrollDispatcher = inject(ScrollDispatcher);
   readonly #authState = inject(AuthStateService);
   readonly #authSession = inject(AuthSessionService);
   readonly #applicationConfig = inject(ApplicationConfiguration);
   readonly #demoModeService = inject(DemoModeService);
   readonly #demoInitializer = inject(DemoInitializerService);
   readonly breadcrumbState = inject(BreadcrumbState);
-  protected readonly hasBreadcrumb = computed(
-    () => this.breadcrumbState.breadcrumbs().length > 1,
-  );
-  private readonly scrollSentinel =
-    viewChild<ElementRef<HTMLElement>>('scrollSentinel');
-  readonly #destroyRef = inject(DestroyRef);
   readonly #logger = inject(Logger);
   readonly #dialog = inject(MatDialog);
   protected readonly loadingIndicator = inject(LoadingIndicator);
@@ -461,12 +402,12 @@ export default class MainLayout {
   });
 
   // Route to settings page
-  protected readonly settingsRoute = `/${ROUTES.SETTINGS}`;
+  protected readonly settingsRoute = `/${ROUTES.APP}/${ROUTES.SETTINGS}`;
 
   // Navigation items configuration
   protected readonly navigationItems: readonly NavigationItem[] = [
     {
-      route: ROUTES.DASHBOARD,
+      route: ROUTES.CURRENT_MONTH,
       label: 'Ce mois-ci',
       icon: 'today',
       tooltip: 'Suivez vos dépenses du mois',
@@ -515,32 +456,19 @@ export default class MainLayout {
     return navigationItem?.label || 'Pulpe Budget';
   });
 
-  // Scroll detection for toolbar shadow
-  protected readonly isScrolled = signal(false);
-
-  // Desktop: shadow on toolbar (breadcrumb inside)
-  // Mobile: shadow on toolbar only if no breadcrumb (otherwise breadcrumb has shadow)
-  protected readonly showToolbarShadow = computed(() => {
-    const isScrolled = this.isScrolled();
-    const isHandset = this.isHandset();
-    const hasBreadcrumb = this.hasBreadcrumb();
-    return isScrolled && (!isHandset || !hasBreadcrumb);
-  });
-
-  constructor() {
-    afterNextRender(() => {
-      const sentinel = this.scrollSentinel()?.nativeElement;
-      if (!sentinel) return;
-
-      const observer = new IntersectionObserver(
-        ([entry]) => this.isScrolled.set(!entry.isIntersecting),
-        { threshold: 0 },
-      );
-
-      observer.observe(sentinel);
-      this.#destroyRef.onDestroy(() => observer.disconnect());
-    });
-  }
+  // Scroll detection for header border
+  protected isScrolled = toSignal(
+    this.#scrollDispatcher.scrolled(100).pipe(
+      map((scrollable) => {
+        const top = scrollable
+          ? scrollable.getElementRef().nativeElement.scrollTop
+          : 0;
+        return top > 0;
+      }),
+      startWith(false),
+    ),
+    { initialValue: false },
+  );
 
   // Navigation state for progress bar feedback (debounced to prevent flicker)
   protected readonly isNavigating = toSignal(
@@ -582,18 +510,16 @@ export default class MainLayout {
   async onLogout(): Promise<void> {
     if (this.#isLoggingOut()) return;
 
-    this.#isLoggingOut.set(true);
-    this.#dialog.open(LogoutDialog, { disableClose: true });
-
     try {
+      this.#isLoggingOut.set(true);
+
+      // Sign out and wait for session to be cleared
       await this.#authSession.signOut();
     } catch (error) {
+      // Only log detailed errors in development
       if (!this.#applicationConfig.isProduction()) {
         this.#logger.error('Erreur lors de la déconnexion:', error);
       }
-    } finally {
-      // Reset flag in case redirect fails or flow changes in the future
-      this.#isLoggingOut.set(false);
     }
 
     this.#forceLogoutRedirect();
@@ -608,17 +534,10 @@ export default class MainLayout {
    * Exit demo mode and redirect to login
    */
   protected async exitDemoMode(): Promise<void> {
-    if (this.#isLoggingOut()) return;
-
-    this.#isLoggingOut.set(true);
-    this.#dialog.open(LogoutDialog, { disableClose: true });
-
     try {
       await this.#demoInitializer.exitDemoMode();
     } catch (error) {
-      if (!this.#applicationConfig.isProduction()) {
-        this.#logger.error('Failed to exit demo mode', { error });
-      }
+      this.#logger.error('Failed to exit demo mode', { error });
     }
 
     this.#forceLogoutRedirect();

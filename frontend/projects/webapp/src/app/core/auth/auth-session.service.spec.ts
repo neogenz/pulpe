@@ -1,12 +1,4 @@
-import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  afterEach,
-  vi,
-  type Mock,
-} from 'vitest';
+import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import type { AuthChangeEvent, Session, User } from '@supabase/supabase-js';
@@ -22,12 +14,8 @@ import {
   type MockSupabaseClient,
 } from '../testing/test-utils';
 
-const { createClientMock } = vi.hoisted(() => ({
-  createClientMock: vi.fn(),
-}));
-
 vi.mock('@supabase/supabase-js', () => ({
-  createClient: createClientMock,
+  createClient: vi.fn(),
 }));
 
 describe('AuthSessionService', () => {
@@ -76,11 +64,7 @@ describe('AuthSessionService', () => {
     },
   };
 
-  beforeEach(() => {
-    // Clean up E2E window properties before each test
-    delete (window as E2EWindow).__E2E_AUTH_BYPASS__;
-    delete (window as E2EWindow).__E2E_MOCK_AUTH_STATE__;
-
+  beforeEach(async () => {
     mockUserSignal = signal<User | null>(null);
 
     mockAuthState = {
@@ -110,9 +94,6 @@ describe('AuthSessionService', () => {
 
     mockSupabaseClient = createMockSupabaseClient();
 
-    // Configure the mock BEFORE creating the service
-    createClientMock.mockReturnValue(mockSupabaseClient);
-
     TestBed.configureTestingModule({
       providers: [
         AuthSessionService,
@@ -125,13 +106,9 @@ describe('AuthSessionService', () => {
     });
 
     service = TestBed.inject(AuthSessionService);
-  });
 
-  afterEach(() => {
-    // Always clean up E2E window properties after each test
-    delete (window as E2EWindow).__E2E_AUTH_BYPASS__;
-    delete (window as E2EWindow).__E2E_MOCK_AUTH_STATE__;
-    vi.clearAllMocks();
+    const { createClient } = await import('@supabase/supabase-js');
+    (createClient as unknown as Mock).mockReturnValue(mockSupabaseClient);
   });
 
   const captureAuthStateChangeCallback = (
@@ -271,7 +248,9 @@ describe('AuthSessionService', () => {
 
     expect(mockAuthState.setSession).toHaveBeenCalledWith(null);
     expect(mockAuthState.setLoading).toHaveBeenCalledWith(false);
-    expect(mockCleanup.performCleanup).toHaveBeenCalled();
+    expect(mockCleanup.performCleanup).toHaveBeenCalledWith(
+      mockSession.user.id,
+    );
     expect(mockLogger.debug).toHaveBeenCalledWith('Auth event:', {
       event: 'SIGNED_OUT',
       session: undefined,
@@ -333,13 +312,15 @@ describe('AuthSessionService', () => {
 
     await service.initializeAuthState();
 
-    expect(mockLogger.debug).toHaveBeenCalledWith(
+    expect(mockLogger.info).toHaveBeenCalledWith(
       '🎭 Mode test E2E détecté, utilisation des mocks auth',
     );
     expect(mockAuthState.setSession).toHaveBeenCalledWith(mockSession);
     expect(mockAuthState.setLoading).toHaveBeenCalledWith(false);
     expect(mockSupabaseClient.auth.getSession).not.toHaveBeenCalled();
-    // Cleanup handled by afterEach
+
+    delete (window as E2EWindow).__E2E_AUTH_BYPASS__;
+    delete (window as E2EWindow).__E2E_MOCK_AUTH_STATE__;
   });
 
   it('should get current session', async () => {
@@ -537,7 +518,7 @@ describe('AuthSessionService', () => {
     expect(mockSupabaseClient.auth.signOut).toHaveBeenCalled();
     expect(mockAuthState.setSession).toHaveBeenCalledWith(null);
     expect(mockAuthState.setLoading).toHaveBeenCalledWith(false);
-    expect(mockCleanup.performCleanup).toHaveBeenCalled();
+    expect(mockCleanup.performCleanup).toHaveBeenCalledWith('user-123');
   });
 
   it('should sign out in E2E mode and call cleanup directly', async () => {
@@ -562,18 +543,21 @@ describe('AuthSessionService', () => {
     mockAuthState.setSession.mockClear();
     mockAuthState.setLoading.mockClear();
     mockCleanup.performCleanup.mockClear();
-    mockLogger.info.mockClear();
 
     await service.signOut();
 
-    expect(mockLogger.debug).toHaveBeenCalledWith(
+    expect(mockLogger.info).toHaveBeenCalledWith(
       '🎭 Mode test E2E: Simulation du logout',
     );
     expect(mockAuthState.setSession).toHaveBeenCalledWith(null);
     expect(mockAuthState.setLoading).toHaveBeenCalledWith(false);
-    expect(mockCleanup.performCleanup).toHaveBeenCalled();
+    expect(mockCleanup.performCleanup).toHaveBeenCalledWith(
+      mockSession.user.id,
+    );
     expect(mockSupabaseClient.auth.signOut).not.toHaveBeenCalled();
-    // Cleanup handled by afterEach
+
+    delete (window as E2EWindow).__E2E_AUTH_BYPASS__;
+    delete (window as E2EWindow).__E2E_MOCK_AUTH_STATE__;
   });
 
   it('should cleanup auth subscription via DestroyRef on destruction', async () => {

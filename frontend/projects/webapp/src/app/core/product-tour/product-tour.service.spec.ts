@@ -4,12 +4,20 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { ProductTourService, type TourPageId } from './product-tour.service';
 import { AuthStateService } from '@core/auth';
 
+const TEST_USER_ID = 'test-user-123';
+
 /**
  * Generate a tour storage key for testing.
  * Mirrors the internal logic of ProductTourService.
  */
-function getTourKey(tourId: string): string {
-  return `pulpe-tour-${tourId}`;
+function getTourKey(
+  tourId: string,
+  userId: string | null = TEST_USER_ID,
+): string {
+  if (!userId) {
+    return `pulpe-tour-${tourId}`;
+  }
+  return `pulpe-tour-${tourId}-${userId}`;
 }
 
 describe('ProductTourService', () => {
@@ -18,7 +26,7 @@ describe('ProductTourService', () => {
 
   beforeEach(() => {
     localStorage.clear();
-    mockCurrentUser = { id: 'test-user-123' };
+    mockCurrentUser = { id: TEST_USER_ID };
 
     const mockAuthState = {
       user: () => mockCurrentUser,
@@ -116,46 +124,70 @@ describe('ProductTourService', () => {
     });
   });
 
-  describe('device-scoped storage keys', () => {
-    it('should store tour state with device-scoped key', () => {
-      // GIVEN: Tour has not been seen
+  describe('user-specific storage keys', () => {
+    it('should store tour state with user-specific key', () => {
+      // GIVEN: User has not seen intro
       expect(service.hasSeenIntro()).toBe(false);
 
-      // WHEN: Tour is completed (simulated by setting localStorage)
+      // WHEN: User completes intro tour (simulated by setting localStorage)
       localStorage.setItem(getTourKey('intro'), 'true');
 
-      // THEN: Tour is marked as seen with device-scoped key
+      // THEN: Tour is marked as seen with user-specific key
       expect(service.hasSeenIntro()).toBe(true);
-      expect(localStorage.getItem('pulpe-tour-intro')).toBe('true');
+      expect(localStorage.getItem(`pulpe-tour-intro-${TEST_USER_ID}`)).toBe(
+        'true',
+      );
+    });
+
+    it('should not see tours completed by another user', () => {
+      // GIVEN: Another user has completed the tour
+      const otherUserId = 'other-user-456';
+      localStorage.setItem(getTourKey('intro', otherUserId), 'true');
+
+      // THEN: Current user should not see that tour as completed
+      expect(service.hasSeenIntro()).toBe(false);
     });
   });
 
-  describe('isAuthenticated', () => {
+  describe('isReady', () => {
     it('should return true when user is authenticated', () => {
-      expect(service.isAuthenticated()).toBe(true);
+      expect(service.isReady()).toBe(true);
     });
 
     it('should return false when user is not authenticated', () => {
       mockCurrentUser = null;
 
-      expect(service.isAuthenticated()).toBe(false);
+      expect(service.isReady()).toBe(false);
     });
   });
 
-  describe('behavior when not authenticated', () => {
-    it('should still return tour state from device storage', () => {
-      localStorage.setItem(getTourKey('intro'), 'true');
+  describe('graceful degradation when not authenticated', () => {
+    it('should return true for hasSeenIntro when not ready (prevent tour)', () => {
       mockCurrentUser = null;
 
-      // Tours are device-scoped, so state is still readable
       expect(service.hasSeenIntro()).toBe(true);
+    });
+
+    it('should return true for hasSeenPageTour when not ready (prevent tour)', () => {
+      mockCurrentUser = null;
+
+      expect(service.hasSeenPageTour('current-month')).toBe(true);
     });
 
     it('should not start tour when not ready', () => {
       mockCurrentUser = null;
 
-      // Tours don't start when not authenticated (isReady check)
       expect(() => service.startPageTour('current-month')).not.toThrow();
+    });
+
+    it('should not reset tours when not ready', () => {
+      localStorage.setItem(getTourKey('intro'), 'true');
+      mockCurrentUser = null;
+
+      service.resetAllTours();
+
+      mockCurrentUser = { id: TEST_USER_ID };
+      expect(service.hasSeenIntro()).toBe(true);
     });
   });
 

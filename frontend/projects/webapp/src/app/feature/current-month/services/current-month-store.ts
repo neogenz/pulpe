@@ -1,6 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { computed, inject, Injectable, signal } from '@angular/core';
-import { rxResource, takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { computed, inject, Injectable, resource, signal } from '@angular/core';
 import { BudgetApi } from '@core/budget';
 import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
@@ -8,6 +7,7 @@ import { TransactionApi } from '@core/transaction';
 import { UserSettingsApi } from '@core/user-settings';
 import { createRolloverLine } from '@core/rollover/rollover-types';
 import {
+  type Budget,
   type BudgetLine,
   type Transaction,
   type TransactionCreate,
@@ -15,18 +15,7 @@ import {
   BudgetFormulas,
   getBudgetPeriodForDate,
 } from 'pulpe-shared';
-import {
-  catchError,
-  concatMap,
-  EMPTY,
-  firstValueFrom,
-  map,
-  of,
-  Subject,
-  switchMap,
-  tap,
-  type Observable,
-} from 'rxjs';
+import { firstValueFrom, type Observable } from 'rxjs';
 import {
   type CurrentMonthState,
   type DashboardData,
@@ -43,54 +32,18 @@ import { createInitialCurrentMonthInternalState } from './current-month-state';
  * - Calculated financial metrics
  *
  * Architecture:
- * - Uses Angular's rxResource() API for async data loading with RxJS integration
- * - Automatic request cancellation when parameters change
+ * - Uses Angular's resource() API for async data loading
  * - Simplified state management without complex optimistic updates
  * - Relies on resource reload for data consistency after mutations
  */
 @Injectable()
 export class CurrentMonthStore {
-  readonly #budgetApi = inject(BudgetApi);
-  readonly #transactionApi = inject(TransactionApi);
-  readonly #httpClient = inject(HttpClient);
-  readonly #appConfig = inject(ApplicationConfiguration);
-  readonly #userSettingsApi = inject(UserSettingsApi);
-  readonly #invalidationService = inject(BudgetInvalidationService);
-
-  /**
-   * Mutation queue - serializes all async operations to prevent race conditions
-   */
-  readonly #mutations$ = new Subject<() => Observable<unknown>>();
-
-  constructor() {
-    this.#mutations$
-      .pipe(
-        concatMap((operation) => operation()),
-        takeUntilDestroyed(),
-      )
-      .subscribe({
-        error: (err) =>
-          console.error('[CurrentMonthStore] Unexpected mutation error:', err),
-      });
-  }
-
-  /**
-   * Enqueue a mutation for serialized execution
-   * Prevents race conditions by ensuring operations run sequentially
-   */
-  #enqueueMutation<T>(operation: () => Observable<T>): Promise<T> {
-    return new Promise((resolve, reject) => {
-      this.#mutations$.next(() =>
-        operation().pipe(
-          tap((result) => resolve(result)),
-          catchError((err) => {
-            reject(err);
-            return EMPTY;
-          }),
-        ),
-      );
-    });
-  }
+  #budgetApi = inject(BudgetApi);
+  #transactionApi = inject(TransactionApi);
+  #httpClient = inject(HttpClient);
+  #appConfig = inject(ApplicationConfiguration);
+  #userSettingsApi = inject(UserSettingsApi);
+  #invalidationService = inject(BudgetInvalidationService);
 
   /**
    * Simple state signal for UI feedback during operations
@@ -118,9 +71,8 @@ export class CurrentMonthStore {
   /**
    * Resource for loading dashboard data - single source of truth for async data.
    * Includes invalidation version to auto-reload when budgets are mutated.
-   * Uses rxResource for automatic request cancellation and RxJS integration.
    */
-  readonly #dashboardResource = rxResource<
+  readonly #dashboardResource = resource<
     DashboardData,
     { month: string; year: string; version: number }
   >({
@@ -132,7 +84,7 @@ export class CurrentMonthStore {
         version: this.#invalidationService.version(),
       };
     },
-    stream: ({ params }) => this.#loadDashboardData$(params),
+    loader: async ({ params }) => this.#loadDashboardData(params),
   });
 
   /**
@@ -290,12 +242,15 @@ export class CurrentMonthStore {
    * Uses optimistic update with local calculation + backend sync
    */
   async addTransaction(transactionData: TransactionCreate): Promise<void> {
-    return this.#performOptimisticMutation<Transaction>(
+    return this.#performOptimisticUpdate<Transaction>(
       () => this.#transactionApi.create$(transactionData),
-      (currentData, response) => ({
-        ...currentData,
-        transactions: [...currentData.transactions, response],
-      }),
+      (currentData, response) => {
+        if (!response.data) return currentData;
+        return {
+          ...currentData,
+          transactions: [...currentData.transactions, response.data],
+        };
+      },
     );
   }
 
@@ -304,9 +259,9 @@ export class CurrentMonthStore {
    * Uses optimistic update with local calculation + backend sync
    */
   async deleteTransaction(transactionId: string): Promise<void> {
-    return this.#performOptimisticMutation(
+    return this.#performOptimisticUpdateDelete(
       () => this.#transactionApi.remove$(transactionId),
-      (currentData) => ({
+      (currentData: DashboardData) => ({
         ...currentData,
         transactions: currentData.transactions.filter(
           (t: Transaction) => t.id !== transactionId,
@@ -323,63 +278,53 @@ export class CurrentMonthStore {
     transactionId: string,
     transactionData: TransactionUpdate,
   ): Promise<void> {
-    return this.#performOptimisticMutation<Transaction>(
+    return this.#performOptimisticUpdate<Transaction>(
       () => this.#transactionApi.update$(transactionId, transactionData),
       (currentData, response) => ({
         ...currentData,
         transactions: currentData.transactions.map((t: Transaction) =>
-          t.id === transactionId ? response : t,
+          t.id === transactionId ? response.data : t,
         ),
       }),
     );
   }
 
   /**
-   * Generic optimistic update pattern for mutations
-   * Overloaded for operations returning data (create, update) and void operations (delete)
+   * Generic optimistic update pattern for operations returning data
    */
-  async #performOptimisticMutation<T>(
+  async #performOptimisticUpdate<T>(
     operation: () => Observable<{ data: T }>,
-    updateData: (currentData: DashboardData, response: T) => DashboardData,
-  ): Promise<void>;
-  async #performOptimisticMutation(
-    operation: () => Observable<void>,
-    updateData: (currentData: DashboardData) => DashboardData,
-  ): Promise<void>;
-  async #performOptimisticMutation<T>(
-    operation: () => Observable<{ data: T } | void>,
-    updateData: (currentData: DashboardData, response?: T) => DashboardData,
+    updateData: (
+      currentData: DashboardData,
+      response: { data: T },
+    ) => DashboardData,
   ): Promise<void> {
     const originalData = this.#dashboardResource.value();
 
     try {
-      // 1. Execute backend operation (queued to prevent race conditions)
-      const response = await this.#enqueueMutation(() => operation());
+      // 1. Execute backend operation first
+      const response = await firstValueFrom(operation());
 
       // 2. Apply optimistic update
       const currentData = this.#dashboardResource.value();
       if (currentData && currentData.budget) {
-        // Extract response data if present (create/update), undefined for delete
-        const responseData =
-          response && typeof response === 'object' && 'data' in response
-            ? response.data
-            : undefined;
-        const updatedData = updateData(currentData, responseData);
+        const updatedData = updateData(currentData, response);
 
-        // Recalculate ending balance locally (envelope-aware)
+        // Recalculate ending balance locally avec les formules partagées (envelope-aware)
         const rollover = updatedData.budget?.rollover || 0;
         const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
           updatedData.budgetLines,
           updatedData.transactions,
           rollover,
         );
+        const newEndingBalance = metrics.endingBalance;
 
         // Apply optimistic update
         this.#dashboardResource.set({
           ...updatedData,
           budget: {
             ...currentData.budget,
-            endingBalance: metrics.endingBalance,
+            endingBalance: newEndingBalance,
           },
         });
 
@@ -396,8 +341,74 @@ export class CurrentMonthStore {
             ...latestData,
             budget: {
               ...updatedBudget,
-              rollover: latestData.budget.rollover,
-              previousBudgetId: latestData.budget.previousBudgetId,
+              rollover: latestData.budget.rollover, // Préserver le rollover existant
+              previousBudgetId: latestData.budget.previousBudgetId, // Préserver aussi
+            },
+          });
+        }
+      }
+    } catch (error) {
+      // Rollback on error
+      if (originalData) {
+        this.#dashboardResource.set(originalData);
+      } else {
+        this.refreshData();
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Generic optimistic update pattern for delete operations
+   */
+  async #performOptimisticUpdateDelete(
+    operation: () => Observable<void>,
+    updateData: (currentData: DashboardData) => DashboardData,
+  ): Promise<void> {
+    const originalData = this.#dashboardResource.value();
+
+    try {
+      // 1. Execute backend operation first
+      await firstValueFrom(operation());
+
+      // 2. Apply optimistic update after successful backend operation
+      const currentData = this.#dashboardResource.value();
+      if (currentData && currentData.budget) {
+        const updatedData = updateData(currentData);
+
+        // Recalculate ending balance locally avec les formules partagées (envelope-aware)
+        const rollover = updatedData.budget?.rollover || 0;
+        const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
+          updatedData.budgetLines,
+          updatedData.transactions,
+          rollover,
+        );
+        const newEndingBalance = metrics.endingBalance;
+
+        // Apply optimistic update
+        this.#dashboardResource.set({
+          ...updatedData,
+          budget: {
+            ...currentData.budget,
+            endingBalance: newEndingBalance,
+          },
+        });
+
+        // 3. Sync with backend for accurate ending balance
+        const budgetId = currentData.budget.id;
+        const updatedBudget = await firstValueFrom(
+          this.#budgetApi.getBudgetById$(budgetId),
+        );
+
+        // 4. Update with real backend value
+        const latestData = this.#dashboardResource.value();
+        if (latestData && latestData.budget && updatedBudget) {
+          this.#dashboardResource.set({
+            ...latestData,
+            budget: {
+              ...updatedBudget,
+              rollover: latestData.budget.rollover, // Préserver le rollover existant
+              previousBudgetId: latestData.budget.previousBudgetId, // Préserver aussi
             },
           });
         }
@@ -416,55 +427,31 @@ export class CurrentMonthStore {
   /**
    * Toggle the checked state of a budget line
    * Uses optimistic update for instant UI feedback with rollback on error
-   *
-   * THREAD-SAFETY: Uses targeted rollback that only affects the specific item,
-   * preventing corruption of concurrent operations on other items.
-   * @throws Error if no dashboard data or budget line not found
    */
   async toggleBudgetLineCheck(budgetLineId: string): Promise<void> {
-    const currentData = this.#dashboardResource.value();
-    if (!currentData) {
-      throw new Error('Cannot toggle budget line: no dashboard data loaded');
-    }
+    const originalData = this.#dashboardResource.value();
+    if (!originalData) return;
 
-    const budgetLine = currentData.budgetLines.find(
+    const budgetLine = originalData.budgetLines.find(
       (line) => line.id === budgetLineId,
     );
-    if (!budgetLine) {
-      throw new Error(`Budget line not found: ${budgetLineId}`);
-    }
+    if (!budgetLine) return;
 
-    // Capture original value for targeted rollback
-    const originalCheckedAt = budgetLine.checkedAt;
     const newCheckedAt =
-      originalCheckedAt === null ? new Date().toISOString() : null;
+      budgetLine.checkedAt === null ? new Date().toISOString() : null;
 
-    // Apply optimistic update immediately
     this.#dashboardResource.set({
-      ...currentData,
-      budgetLines: currentData.budgetLines.map((line) =>
+      ...originalData,
+      budgetLines: originalData.budgetLines.map((line) =>
         line.id === budgetLineId ? { ...line, checkedAt: newCheckedAt } : line,
       ),
     });
 
     try {
       const apiUrl = `${this.#appConfig.backendApiUrl()}/budget-lines/${budgetLineId}/toggle-check`;
-      await this.#enqueueMutation(() =>
-        this.#httpClient.post<void>(apiUrl, {}),
-      );
+      await firstValueFrom(this.#httpClient.post(apiUrl, {}));
     } catch (error) {
-      // Targeted rollback: only restore THIS item's value, preserving concurrent changes
-      const latestData = this.#dashboardResource.value();
-      if (latestData) {
-        this.#dashboardResource.set({
-          ...latestData,
-          budgetLines: latestData.budgetLines.map((line) =>
-            line.id === budgetLineId
-              ? { ...line, checkedAt: originalCheckedAt }
-              : line,
-          ),
-        });
-      }
+      this.#dashboardResource.set(originalData);
       throw error;
     }
   }
@@ -472,79 +459,60 @@ export class CurrentMonthStore {
   /**
    * Toggle the checked state of a transaction
    * Uses optimistic update for instant UI feedback with rollback on error
-   *
-   * THREAD-SAFETY: Uses targeted rollback that only affects the specific item,
-   * preventing corruption of concurrent operations on other items.
-   * @throws Error if no dashboard data or transaction not found
    */
   async toggleTransactionCheck(transactionId: string): Promise<void> {
-    const currentData = this.#dashboardResource.value();
-    if (!currentData) {
-      throw new Error('Cannot toggle transaction: no dashboard data loaded');
-    }
+    const originalData = this.#dashboardResource.value();
+    if (!originalData) return;
 
-    const transaction = currentData.transactions.find(
+    const transaction = originalData.transactions.find(
       (tx) => tx.id === transactionId,
     );
-    if (!transaction) {
-      throw new Error(`Transaction not found: ${transactionId}`);
-    }
+    if (!transaction) return;
 
-    // Capture original value for targeted rollback
-    const originalCheckedAt = transaction.checkedAt;
     const newCheckedAt =
-      originalCheckedAt === null ? new Date().toISOString() : null;
+      transaction.checkedAt === null ? new Date().toISOString() : null;
 
-    // Apply optimistic update immediately
     this.#dashboardResource.set({
-      ...currentData,
-      transactions: currentData.transactions.map((tx) =>
+      ...originalData,
+      transactions: originalData.transactions.map((tx) =>
         tx.id === transactionId ? { ...tx, checkedAt: newCheckedAt } : tx,
       ),
     });
 
     try {
-      await this.#enqueueMutation(() =>
-        this.#transactionApi.toggleCheck$(transactionId),
-      );
+      await firstValueFrom(this.#transactionApi.toggleCheck$(transactionId));
     } catch (error) {
-      // Targeted rollback: only restore THIS item's value, preserving concurrent changes
-      const latestData = this.#dashboardResource.value();
-      if (latestData) {
-        this.#dashboardResource.set({
-          ...latestData,
-          transactions: latestData.transactions.map((tx) =>
-            tx.id === transactionId
-              ? { ...tx, checkedAt: originalCheckedAt }
-              : tx,
-          ),
-        });
-      }
+      this.#dashboardResource.set(originalData);
       throw error;
     }
   }
 
   /**
-   * Load dashboard data from API as Observable
-   * Chains two API calls: getBudgetForMonth → getBudgetWithDetails
+   * Load dashboard data from API
+   * Note: Uses two sequential calls for now. Could be optimized with a single endpoint.
    */
-  #loadDashboardData$(params: {
+  async #loadDashboardData(params: {
     month: string;
     year: string;
-  }): Observable<DashboardData> {
-    return this.#budgetApi.getBudgetForMonth$(params.month, params.year).pipe(
-      switchMap((budget) => {
-        if (!budget) {
-          return of({ budget: null, transactions: [], budgetLines: [] });
-        }
-        return this.#budgetApi.getBudgetWithDetails$(budget.id).pipe(
-          map((response) => ({
-            budget: response.data.budget,
-            transactions: response.data.transactions,
-            budgetLines: response.data.budgetLines,
-          })),
-        );
-      }),
+  }): Promise<DashboardData> {
+    // Load budget first to get its ID
+    const budget = await firstValueFrom<Budget | null>(
+      this.#budgetApi.getBudgetForMonth$(params.month, params.year),
     );
+
+    if (!budget) {
+      return { budget: null, transactions: [], budgetLines: [] };
+    }
+
+    // Use the budget ID to fetch everything in a single request
+    const detailsResponse = await firstValueFrom(
+      this.#budgetApi.getBudgetWithDetails$(budget.id),
+    );
+
+    return {
+      budget: detailsResponse.data.budget,
+      transactions: detailsResponse.data.transactions,
+      budgetLines: detailsResponse.data.budgetLines,
+    };
   }
 }
