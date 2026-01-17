@@ -36,7 +36,7 @@ import { createInitialCurrentMonthInternalState } from './current-month-state';
  * - Simplified state management without complex optimistic updates
  * - Relies on resource reload for data consistency after mutations
  */
-@Injectable({ providedIn: 'root' })
+@Injectable()
 export class CurrentMonthStore {
   #budgetApi = inject(BudgetApi);
   #transactionApi = inject(TransactionApi);

@@ -9,7 +9,7 @@ import { BudgetTemplatesApi } from './budget-templates-api';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { Logger } from '@core/logging/logger';
 
-@Injectable({ providedIn: 'root' })
+@Injectable()
 export class BudgetTemplatesStore {
   readonly #budgetTemplatesApi = inject(BudgetTemplatesApi);
   readonly #logger = inject(Logger);
