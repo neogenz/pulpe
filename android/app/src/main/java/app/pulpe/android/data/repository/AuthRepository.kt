@@ -112,4 +112,17 @@ class AuthRepository @Inject constructor(
     suspend fun signOut() {
         logout()
     }
+
+    suspend fun refreshToken(): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            supabaseClient.auth.refreshCurrentSession()
+            val session = supabaseClient.auth.currentSessionOrNull()
+                ?: return@withContext Result.failure(Exception("Impossible de rafraîchir la session"))
+
+            tokenStorage.saveTokens(session.accessToken, session.refreshToken ?: "")
+            Result.success(session.accessToken)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

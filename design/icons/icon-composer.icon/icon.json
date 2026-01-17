@@ -4,7 +4,7 @@
   },
   "groups" : [
     {
-      "hidden" : false,
+      "hidden" : true,
       "layers" : [
         {
           "glass" : true,
@@ -134,7 +134,7 @@
       }
     },
     {
-      "hidden" : true,
+      "hidden" : false,
       "layers" : [
         {
           "glass" : true,
@@ -219,7 +219,7 @@
       }
     },
     {
-      "hidden" : true,
+      "hidden" : false,
       "layers" : [
         {
           "fill" : "automatic",
@@ -253,7 +253,7 @@
       }
     },
     {
-      "hidden" : true,
+      "hidden" : false,
       "layers" : [
         {
           "blend-mode" : "normal",

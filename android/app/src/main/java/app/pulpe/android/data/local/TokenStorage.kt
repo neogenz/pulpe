@@ -1,45 +1,61 @@
 package app.pulpe.android.data.local
 
 import android.content.Context
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+import android.content.SharedPreferences
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
-
-private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "pulpe_tokens")
 
 @Singleton
 class TokenStorage @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     companion object {
-        private val ACCESS_TOKEN_KEY = stringPreferencesKey("access_token")
-        private val REFRESH_TOKEN_KEY = stringPreferencesKey("refresh_token")
+        private const val PREFS_NAME = "pulpe_secure_tokens"
+        private const val ACCESS_TOKEN_KEY = "access_token"
+        private const val REFRESH_TOKEN_KEY = "refresh_token"
     }
 
+    private val masterKey = MasterKey.Builder(context)
+        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+        .build()
+
+    private val encryptedPrefs: SharedPreferences = EncryptedSharedPreferences.create(
+        context,
+        PREFS_NAME,
+        masterKey,
+        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+    )
+
+    private val _accessTokenFlow = MutableStateFlow(encryptedPrefs.getString(ACCESS_TOKEN_KEY, null))
+    val accessTokenFlow: StateFlow<String?> = _accessTokenFlow.asStateFlow()
+
+    @Volatile
+    private var cachedAccessToken: String? = encryptedPrefs.getString(ACCESS_TOKEN_KEY, null)
+
+    fun getAccessTokenSync(): String? = cachedAccessToken
+
     suspend fun saveTokens(accessToken: String, refreshToken: String) {
-        context.dataStore.edit { prefs ->
-            prefs[ACCESS_TOKEN_KEY] = accessToken
-            prefs[REFRESH_TOKEN_KEY] = refreshToken
-        }
+        encryptedPrefs.edit()
+            .putString(ACCESS_TOKEN_KEY, accessToken)
+            .putString(REFRESH_TOKEN_KEY, refreshToken)
+            .apply()
+        cachedAccessToken = accessToken
+        _accessTokenFlow.value = accessToken
     }
 
     suspend fun getAccessToken(): String? {
-        return context.dataStore.data.map { prefs ->
-            prefs[ACCESS_TOKEN_KEY]
-        }.first()
+        return encryptedPrefs.getString(ACCESS_TOKEN_KEY, null)
     }
 
     suspend fun getRefreshToken(): String? {
-        return context.dataStore.data.map { prefs ->
-            prefs[REFRESH_TOKEN_KEY]
-        }.first()
+        return encryptedPrefs.getString(REFRESH_TOKEN_KEY, null)
     }
 
     suspend fun hasTokens(): Boolean {
@@ -47,9 +63,16 @@ class TokenStorage @Inject constructor(
     }
 
     suspend fun clearTokens() {
-        context.dataStore.edit { prefs ->
-            prefs.remove(ACCESS_TOKEN_KEY)
-            prefs.remove(REFRESH_TOKEN_KEY)
-        }
+        encryptedPrefs.edit()
+            .remove(ACCESS_TOKEN_KEY)
+            .remove(REFRESH_TOKEN_KEY)
+            .apply()
+        cachedAccessToken = null
+        _accessTokenFlow.value = null
+    }
+
+    fun updateCachedToken(token: String?) {
+        cachedAccessToken = token
+        _accessTokenFlow.value = token
     }
 }
