@@ -6,7 +6,7 @@ export function Footer() {
       <Container>
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2 font-bold text-xl text-text">
-            <span className="text-3xl" role="img" aria-hidden="true">🍊</span>
+            <img src="/icon.png" alt="" aria-hidden="true" className="h-8 w-auto" />
             <span>Pulpe</span>
           </div>
 
@@ -34,7 +34,7 @@ export function Footer() {
           </nav>
 
           <p className="text-sm text-text-secondary">
-            Fait avec <span role="img" aria-label="orange">🍊</span> en Suisse
+            Fait avec <span role="img" aria-label="amour">❤️</span> en Suisse
           </p>
         </div>
       </Container>

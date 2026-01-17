@@ -27,8 +27,8 @@ export function Hero() {
 
           <FadeIn delay={0.2} className="relative">
             <Screenshot
-              label="Dashboard"
-              className="aspect-[4/3] w-full"
+              src="/screenshots/webapp/dashboard.png"
+              label="Dashboard Pulpe - Vue du mois en cours"
             />
           </FadeIn>
         </div>

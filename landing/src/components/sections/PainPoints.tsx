@@ -1,16 +1,17 @@
+import { CalendarX, TableProperties, CircleHelp } from 'lucide-react'
 import { Section, Card, FadeIn } from '../ui'
 
 const PAIN_POINTS = [
   {
-    icon: '📅',
+    icon: CalendarX,
     text: 'Être surpris par les impôts ou une grosse dépense oubliée',
   },
   {
-    icon: '📱',
+    icon: TableProperties,
     text: 'Ouvrir Excel sur mobile pour noter une dépense... et abandonner',
   },
   {
-    icon: '🤷',
+    icon: CircleHelp,
     text: 'Ne jamais savoir combien tu peux vraiment dépenser ce mois-ci',
   },
 ]
@@ -28,9 +29,9 @@ export function PainPoints() {
         {PAIN_POINTS.map((point, index) => (
           <FadeIn key={index} delay={index * 0.1}>
             <Card variant="elevated" className="h-full text-center">
-              <span className="text-4xl mb-4 block" role="img" aria-hidden="true">
-                {point.icon}
-              </span>
+              <div className="flex justify-center mb-4">
+                <point.icon className="w-10 h-10 text-primary" strokeWidth={1.5} />
+              </div>
               <p className="text-text-secondary">{point.text}</p>
             </Card>
           </FadeIn>
