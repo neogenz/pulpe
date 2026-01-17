@@ -11,6 +11,8 @@
 		01A99D19CB83ABBFB272CE4D /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 955B1199FD862E3761B3435A /* DesignTokens.swift */; };
 		01C708D90EF921ADC8F0E663 /* ToastManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A77FEC48FC6CEA8465118A09 /* ToastManager.swift */; };
 		0252AB91572198782A8F04E6 /* AddBudgetLineSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D05E8BCE893AAA486F2F8BE /* AddBudgetLineSheet.swift */; };
+		0439BC81EC87CB64E4D2A804 /* StoreProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = C32141CA4F575218D6B417EF /* StoreProtocol.swift */; };
+		102AE579FE67D6F209FD2CF4 /* BudgetListStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13C1CFD332A0AB9A168D1A6F /* BudgetListStore.swift */; };
 		1623C2D7A07E71A04BAF5EB9 /* View+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7A8C7ACFFD4118A786F4A2C /* View+Extensions.swift */; };
 		194F56EEAE3B2C2EF5B15A3A /* PhonePlanStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6D73BC1D11C6EC1A1E313C /* PhonePlanStep.swift */; };
 		19A14676593410AFA5021013 /* Decimal+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BE2934837CC4349E12F1EE2 /* Decimal+Extensions.swift */; };
@@ -110,6 +112,7 @@
 		D189B4BF576DC1596EF13C66 /* BudgetProgressBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = B628F99B27B621909E09CF7D /* BudgetProgressBar.swift */; };
 		D198ADB48C9C0E11C90BF235 /* PulpeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F24CDAB50DD41CF603A787D2 /* PulpeApp.swift */; };
 		D6933C7FF2F6CE51966FB2FB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4AD1FCFD448FFC39ED3DEEE8 /* Assets.xcassets */; };
+		D97CDED0639CAF9FA3C1630A /* CurrentMonthStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B519F240FF08CED66DF96A4 /* CurrentMonthStore.swift */; };
 		D9F9EAFCA6B92964B8CE5606 /* PersonalInfoStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9E904C52E1E5F2BF3E1EB84 /* PersonalInfoStep.swift */; };
 		DCFE9F54A5FDE7751D51152B /* BiometricService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8217BB2D2B30DEBF5E4F4798 /* BiometricService.swift */; };
 		DD543D40C2FDC4FEE11D8283 /* Color+Pulpe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E4F47F7A88B6744CA6D788C /* Color+Pulpe.swift */; };
@@ -161,6 +164,7 @@
 		054A9E4A9CCF915305B08CC0 /* AddTransactionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddTransactionSheet.swift; sourceTree = "<group>"; };
 		060916C48CE3B2A130E94F6D /* EnhancedTutorialTooltip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnhancedTutorialTooltip.swift; sourceTree = "<group>"; };
 		0E68DC6A301F7687197817A0 /* BudgetListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetListView.swift; sourceTree = "<group>"; };
+		13C1CFD332A0AB9A168D1A6F /* BudgetListStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetListStore.swift; sourceTree = "<group>"; };
 		150C0AA658E75766BDC017EB /* BudgetLine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetLine.swift; sourceTree = "<group>"; };
 		189487F4CD907092391CEAE8 /* LeasingCreditStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeasingCreditStep.swift; sourceTree = "<group>"; };
 		19358B36831C40F5A674FBDA /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
@@ -197,6 +201,7 @@
 		57A624A40CC91AC97C743441 /* KeychainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainManager.swift; sourceTree = "<group>"; };
 		582814846F9F2F4CA61E10CC /* CurrentMonthProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrentMonthProvider.swift; sourceTree = "<group>"; };
 		5A73FC67CE08CBE1E23B7251 /* RecentTransactionsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentTransactionsSection.swift; sourceTree = "<group>"; };
+		5B519F240FF08CED66DF96A4 /* CurrentMonthStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrentMonthStore.swift; sourceTree = "<group>"; };
 		5BBEC66513D98B75F7F241BD /* YearOverviewWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YearOverviewWidgetView.swift; sourceTree = "<group>"; };
 		5F534FB3E2E33B3F35909729 /* EditTemplateLineSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditTemplateLineSheet.swift; sourceTree = "<group>"; };
 		606435140AB22BD250F34C36 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
@@ -240,6 +245,7 @@
 		BCDF82135ABE1A6AA7A29167 /* CurrentMonthWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrentMonthWidget.swift; sourceTree = "<group>"; };
 		BF72C3AFECE05BCF77785C5F /* Date+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Date+Extensions.swift"; sourceTree = "<group>"; };
 		C2462651BA94AFFA96E88027 /* HealthInsuranceStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthInsuranceStep.swift; sourceTree = "<group>"; };
+		C32141CA4F575218D6B417EF /* StoreProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreProtocol.swift; sourceTree = "<group>"; };
 		C40A3D67DE85A1A1DCF3277A /* SyncIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncIndicator.swift; sourceTree = "<group>"; };
 		C4E26A1733C140437FFB1B7D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		C81B7DA6BF84774DCD938E37 /* KindBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KindBadge.swift; sourceTree = "<group>"; };
@@ -356,6 +362,16 @@
 				F15A109E95BBEA3CE6EA04C7 /* WelcomeLottieView.swift */,
 			);
 			path = Components;
+			sourceTree = "<group>";
+		};
+		349D732C23DE1F6A3C4390F3 /* Store */ = {
+			isa = PBXGroup;
+			children = (
+				13C1CFD332A0AB9A168D1A6F /* BudgetListStore.swift */,
+				5B519F240FF08CED66DF96A4 /* CurrentMonthStore.swift */,
+				C32141CA4F575218D6B417EF /* StoreProtocol.swift */,
+			);
+			path = Store;
 			sourceTree = "<group>";
 		};
 		354316E2DE841BEC29F05FB3 /* Styles */ = {
@@ -491,6 +507,7 @@
 				5EADE2934E949F18B878498E /* Formulas */,
 				2A626721557D7DD80C5F3A48 /* Models */,
 				E3DB9D21FFB32FEEE651AE77 /* Services */,
+				349D732C23DE1F6A3C4390F3 /* Store */,
 			);
 			path = Domain;
 			sourceTree = "<group>";
@@ -929,6 +946,7 @@
 				7E995CCFD4F86681A8C2ABA9 /* BudgetFormulas.swift in Sources */,
 				3A4F017B5B7D8F61564A40BC /* BudgetLine.swift in Sources */,
 				19C0F3B21403950C503673A7 /* BudgetLineService.swift in Sources */,
+				102AE579FE67D6F209FD2CF4 /* BudgetListStore.swift in Sources */,
 				FE6501D7F3A0BBA2FA54CD7C /* BudgetListView.swift in Sources */,
 				D189B4BF576DC1596EF13C66 /* BudgetProgressBar.swift in Sources */,
 				E9723E285117007368341692 /* BudgetService.swift in Sources */,
@@ -938,6 +956,7 @@
 				83A455CF99981A6CD2A65ED3 /* CreateBudgetView.swift in Sources */,
 				547E46730E438D89507B7693 /* CreateTemplateView.swift in Sources */,
 				2D9213003E2378D76B409DC9 /* CurrencyField.swift in Sources */,
+				D97CDED0639CAF9FA3C1630A /* CurrentMonthStore.swift in Sources */,
 				91B28D61C5AD8F09EAD10E8A /* CurrentMonthView.swift in Sources */,
 				E3BA82ABFFC6695DE1311D13 /* Date+Extensions.swift in Sources */,
 				F5D9B6FD484997E69677F7E2 /* Decimal+Extensions.swift in Sources */,
@@ -981,6 +1000,7 @@
 				F28AE4EA87CA967C9EAE1B9F /* RecurringExpensesList.swift in Sources */,
 				A4E6EAB35F1BCADF80152CDA /* RegistrationStep.swift in Sources */,
 				B430D670EFE75193B7F237D6 /* SectionHeader.swift in Sources */,
+				0439BC81EC87CB64E4D2A804 /* StoreProtocol.swift in Sources */,
 				FDFF9F61572FD2273B6B5818 /* SyncIndicator.swift in Sources */,
 				3EBBC9D5EDE6B6B316A3A074 /* TemplateDetailsView.swift in Sources */,
 				56C95E28B17F927063FCB76C /* TemplateListView.swift in Sources */,

@@ -4,7 +4,7 @@
 
 ```bash
 xcodegen generate                        # Regenerate Xcode project (required after modifying project.yml)
-xcodebuild -scheme Pulpe -sdk iphonesimulator build
+xcodebuild build -scheme Pulpe -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max' CODE_SIGNING_ALLOWED=NO
 cd .. && pnpm dev:backend                # Run backend
 ```
 
@@ -96,7 +96,7 @@ Build is validated on every PR that modifies `ios/`.
 
 ```bash
 # Local command equivalent to CI build
-xcodegen generate && xcodebuild build -scheme Pulpe -destination 'platform=iOS Simulator,name=iPhone 15' CODE_SIGNING_ALLOWED=NO
+xcodegen generate && xcodebuild build -scheme Pulpe -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max' CODE_SIGNING_ALLOWED=NO
 ```
 
 | Phase | Status | Description |

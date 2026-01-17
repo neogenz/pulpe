@@ -7,9 +7,9 @@ import {
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
 import { BudgetApi } from './budget-api';
+import { BudgetInvalidationService } from './budget-invalidation.service';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
-import { StorageService, STORAGE_KEYS } from '../storage';
 import { HasBudgetCache } from '../auth/has-budget-cache';
 
 describe('BudgetApi', () => {
@@ -24,17 +24,16 @@ describe('BudgetApi', () => {
     backendApiUrl: () => 'http://localhost:3000/api/v1',
   };
 
-  function createTestBed(mockStorageValue: unknown = null) {
+  function createTestBed() {
     const mockHasBudgetCache = {
       hasBudget: vi.fn().mockReturnValue(null),
       setHasBudget: vi.fn(),
       clear: vi.fn(),
     };
 
-    const mockStorageService = {
-      get: vi.fn().mockReturnValue(mockStorageValue),
-      set: vi.fn(),
-      remove: vi.fn(),
+    const mockInvalidation = {
+      version: vi.fn().mockReturnValue(0),
+      invalidate: vi.fn(),
     };
 
     TestBed.configureTestingModule({
@@ -45,8 +44,8 @@ describe('BudgetApi', () => {
         BudgetApi,
         { provide: ApplicationConfiguration, useValue: mockApplicationConfig },
         { provide: Logger, useValue: mockLogger },
-        { provide: StorageService, useValue: mockStorageService },
         { provide: HasBudgetCache, useValue: mockHasBudgetCache },
+        { provide: BudgetInvalidationService, useValue: mockInvalidation },
       ],
     });
 
@@ -54,13 +53,13 @@ describe('BudgetApi', () => {
       service: TestBed.inject(BudgetApi),
       httpTesting: TestBed.inject(HttpTestingController),
       mockHasBudgetCache,
-      mockStorageService,
+      mockInvalidation,
     };
   }
 
   describe('createBudget$', () => {
-    it('should make HTTP POST request and sync cache', () => {
-      const { service, httpTesting, mockHasBudgetCache, mockStorageService } =
+    it('should make HTTP POST request and store budget ID', () => {
+      const { service, httpTesting, mockHasBudgetCache, mockInvalidation } =
         createTestBed();
       const templateData = {
         month: 2,
@@ -85,10 +84,7 @@ describe('BudgetApi', () => {
       req.flush({ success: true, data: responseBudget });
 
       expect(mockHasBudgetCache.setHasBudget).toHaveBeenCalledWith(true);
-      expect(mockStorageService.set).toHaveBeenCalledWith(
-        STORAGE_KEYS.CURRENT_BUDGET,
-        responseBudget,
-      );
+      expect(mockInvalidation.invalidate).toHaveBeenCalled();
     });
 
     it('should NOT sync cache on HTTP error', () => {
@@ -126,8 +122,9 @@ describe('BudgetApi', () => {
   describe('deleteBudget$', () => {
     const budgetId = '550e8400-e29b-41d4-a716-446655440000';
 
-    it('should make HTTP DELETE request and sync cache', () => {
-      const { service, httpTesting, mockHasBudgetCache } = createTestBed();
+    it('should make HTTP DELETE request, sync cache, and invalidate', () => {
+      const { service, httpTesting, mockHasBudgetCache, mockInvalidation } =
+        createTestBed();
 
       service.deleteBudget$(budgetId).subscribe();
 
@@ -143,66 +140,7 @@ describe('BudgetApi', () => {
       existsReq.flush({ hasBudget: true });
 
       expect(mockHasBudgetCache.setHasBudget).toHaveBeenCalledWith(true);
-    });
-
-    it('should remove budget from storage when deleted budget is the current budget', () => {
-      // Use a valid budget that passes Zod schema validation
-      const currentBudget = {
-        id: budgetId,
-        month: 1,
-        year: 2024,
-        description: 'Test Budget',
-        templateId: '550e8400-e29b-41d4-a716-446655440001',
-        createdAt: '2024-01-01T00:00:00+00:00',
-        updatedAt: '2024-01-01T00:00:00+00:00',
-      };
-      const { service, httpTesting, mockStorageService } =
-        createTestBed(currentBudget);
-
-      service.deleteBudget$(budgetId).subscribe();
-
-      const deleteReq = httpTesting.expectOne(
-        `http://localhost:3000/api/v1/budgets/${budgetId}`,
-      );
-      deleteReq.flush(null);
-
-      const existsReq = httpTesting.expectOne(
-        'http://localhost:3000/api/v1/budgets/exists',
-      );
-      existsReq.flush({ hasBudget: false });
-
-      expect(mockStorageService.remove).toHaveBeenCalledWith(
-        STORAGE_KEYS.CURRENT_BUDGET,
-      );
-    });
-
-    it('should NOT remove budget from storage when deleted budget is NOT the current budget', () => {
-      // Use a valid budget that passes Zod schema validation
-      const differentBudget = {
-        id: '550e8400-e29b-41d4-a716-446655440099',
-        month: 1,
-        year: 2024,
-        description: 'Other Budget',
-        templateId: '550e8400-e29b-41d4-a716-446655440001',
-        createdAt: '2024-01-01T00:00:00+00:00',
-        updatedAt: '2024-01-01T00:00:00+00:00',
-      };
-      const { service, httpTesting, mockStorageService } =
-        createTestBed(differentBudget);
-
-      service.deleteBudget$(budgetId).subscribe();
-
-      const deleteReq = httpTesting.expectOne(
-        `http://localhost:3000/api/v1/budgets/${budgetId}`,
-      );
-      deleteReq.flush(null);
-
-      expect(mockStorageService.remove).not.toHaveBeenCalled();
-
-      const existsReq = httpTesting.expectOne(
-        'http://localhost:3000/api/v1/budgets/exists',
-      );
-      existsReq.flush({ hasBudget: true });
+      expect(mockInvalidation.invalidate).toHaveBeenCalled();
     });
 
     it('should sync HasBudgetCache to false after deleting last budget', () => {
@@ -247,6 +185,34 @@ describe('BudgetApi', () => {
         code: undefined,
       });
       expect(mockHasBudgetCache.setHasBudget).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('updateBudget$', () => {
+    it('should call invalidate after successful update', () => {
+      const { service, httpTesting, mockInvalidation } = createTestBed();
+      const budgetId = '550e8400-e29b-41d4-a716-446655440000';
+
+      service.updateBudget$(budgetId, { description: 'Updated' }).subscribe();
+
+      const req = httpTesting.expectOne(
+        `http://localhost:3000/api/v1/budgets/${budgetId}`,
+      );
+      expect(req.request.method).toBe('PATCH');
+      req.flush({
+        success: true,
+        data: {
+          id: budgetId,
+          month: 1,
+          year: 2024,
+          description: 'Updated',
+          templateId: '550e8400-e29b-41d4-a716-446655440001',
+          createdAt: '2024-01-01T00:00:00+00:00',
+          updatedAt: '2024-01-01T00:00:00+00:00',
+        },
+      });
+
+      expect(mockInvalidation.invalidate).toHaveBeenCalled();
     });
   });
 
