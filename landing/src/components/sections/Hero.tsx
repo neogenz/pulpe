@@ -5,7 +5,7 @@ export function Hero() {
     <section className="min-h-screen flex items-center pt-24 pb-16 md:pt-32 md:pb-24 bg-background">
       <div className="w-full max-w-6xl mx-auto px-4 md:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-          <FadeIn>
+          <FadeIn animateOnMount>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight text-text mb-6">
               Planifie ton année.
               <br />
@@ -25,7 +25,7 @@ export function Hero() {
             </div>
           </FadeIn>
 
-          <FadeIn delay={0.2} className="relative">
+          <FadeIn animateOnMount delay={0.2} className="relative">
             <Screenshot
               src="/screenshots/webapp/dashboard.png"
               label="Dashboard Pulpe - Vue du mois en cours"
