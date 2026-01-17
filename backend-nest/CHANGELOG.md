@@ -1,5 +1,20 @@
 # backend-nest
 
+## 0.7.0
+
+### Minor Changes
+
+- ### Nouvelles fonctionnalités
+  - **Mode maintenance** : Nouvelle page de maintenance avec animation Lottie et guard pour bloquer l'accès
+  - **Nouvelles icônes** (iOS) : Design rafraîchi avec thème citron
+
+  ### Corrections
+  - **Navigation** : Résolution du problème de navigation bloquée au démarrage
+  - **Authentification** : Correction du flux de navigation depuis login/signup
+  - **Tutoriel** : Persistance de l'état du tutoriel entre les sessions
+  - **UI** : Amélioration de l'affichage du composant d'alerte d'erreur
+  - **iOS** : Résolution des warnings compilateur et espacement amélioré
+
 ## 0.6.1
 
 ### Patch Changes
