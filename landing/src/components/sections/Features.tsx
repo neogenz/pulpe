@@ -17,7 +17,7 @@ const FEATURES = [
     title: 'Plus jamais surpris',
     description: 'Tes dépenses récurrentes sont planifiées. Tu vois venir les gros moments.',
     badge: { icon: '🛡️', label: 'Contrôle' },
-    screenshot: { src: '/screenshots/webapp/liste-des-prévisions.png', label: 'Liste des prévisions' },
+    screenshot: { src: '/screenshots/webapp/liste-des-previsions.png', label: 'Liste des prévisions' },
   },
   {
     title: 'Ton budget se construit tout seul',

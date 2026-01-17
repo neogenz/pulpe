@@ -19,8 +19,9 @@ export function Solution() {
 
       <FadeIn delay={0.2}>
         <Screenshot
-          label="Vue annuelle"
-          className="aspect-video w-full max-w-4xl mx-auto"
+          src="/screenshots/webapp/vue-calendrier-annuel.png"
+          label="Vue annuelle des budgets"
+          className="w-full max-w-4xl mx-auto"
         />
       </FadeIn>
     </Section>
