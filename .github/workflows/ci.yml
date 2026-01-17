@@ -521,20 +521,71 @@ jobs:
         working-directory: backend-nest
         run: supabase stop || true
 
+  # 🍎 iOS UNIT TESTS
+  test-ios:
+    name: 🍎 iOS Unit Tests
+    runs-on: macos-14
+    timeout-minutes: 15
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "16.2"
+
+      - name: 📦 Install XcodeGen
+        run: brew install xcodegen
+
+      - name: 💾 Cache SPM packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
+            ~/Library/Caches/org.swift.swiftpm
+          key: spm-${{ hashFiles('ios/project.yml') }}
+          restore-keys: spm-
+
+      - name: 🔨 Generate Xcode project
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: 🧪 Run Unit Tests
+        working-directory: ios
+        run: |
+          xcodebuild test \
+            -scheme Pulpe \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.2' \
+            CODE_SIGNING_ALLOWED=NO \
+            -quiet
+
   # ✅ SUCCESS JOB pour status checks
   ci-success:
     name: ✅ CI Success
     runs-on: ubuntu-latest
     timeout-minutes: 1
-    needs: [build, test-unit, test-e2e, quality, test-performance]
+    needs: [build, test-unit, test-e2e, quality, test-performance, test-ios]
     if: always()
     steps:
       - name: ✅ Check all jobs
-        if: needs.build.result == 'success' && needs.test-unit.result == 'success' && needs.test-e2e.result == 'success' && needs.quality.result == 'success' && needs.test-performance.result == 'success'
+        if: >-
+          needs.build.result == 'success' &&
+          needs.test-unit.result == 'success' &&
+          needs.test-e2e.result == 'success' &&
+          needs.quality.result == 'success' &&
+          needs.test-performance.result == 'success' &&
+          needs.test-ios.result == 'success'
         run: echo "🎉 All CI checks passed!"
 
       - name: ❌ Check failures
-        if: needs.build.result != 'success' || needs.test-unit.result != 'success' || needs.test-e2e.result != 'success' || needs.quality.result != 'success' || needs.test-performance.result != 'success'
+        if: >-
+          needs.build.result != 'success' ||
+          needs.test-unit.result != 'success' ||
+          needs.test-e2e.result != 'success' ||
+          needs.quality.result != 'success' ||
+          needs.test-performance.result != 'success' ||
+          needs.test-ios.result != 'success'
         run: |
           echo "❌ Some CI checks failed"
           echo "Build: ${{ needs.build.result }}"
@@ -542,4 +593,5 @@ jobs:
           echo "E2E Tests: ${{ needs.test-e2e.result }}"
           echo "Quality: ${{ needs.quality.result }}"
           echo "Performance: ${{ needs.test-performance.result }}"
+          echo "iOS Tests: ${{ needs.test-ios.result }}"
           exit 1
