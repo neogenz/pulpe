@@ -35,6 +35,7 @@ import { CommonModule } from '@common/common.module';
 import { UserThrottlerGuard } from '@common/guards/user-throttler.guard';
 
 // Middleware
+import { DelayMiddleware } from '@common/middleware/delay.middleware';
 import { MaintenanceMiddleware } from '@common/middleware/maintenance.middleware';
 import { PayloadSizeMiddleware } from '@common/middleware/payload-size.middleware';
 import { ResponseLoggerMiddleware } from '@common/middleware/response-logger.middleware';
@@ -296,6 +297,7 @@ function createPinoLoggerConfig(configService: ConfigService) {
     MaintenanceMiddleware,
     ResponseLoggerMiddleware,
     PayloadSizeMiddleware,
+    DelayMiddleware,
   ],
 })
 export class AppModule implements NestModule {
@@ -310,5 +312,10 @@ export class AppModule implements NestModule {
       .forRoutes('*');
     consumer.apply(ResponseLoggerMiddleware).forRoutes('*');
     consumer.apply(PayloadSizeMiddleware).forRoutes('*');
+
+    // Development-only: add artificial delay to test loading states
+    if (process.env.DELAY_MS) {
+      consumer.apply(DelayMiddleware).forRoutes('*');
+    }
   }
 }

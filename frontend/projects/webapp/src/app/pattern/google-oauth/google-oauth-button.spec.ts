@@ -3,16 +3,16 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { GoogleOAuthButton } from './google-oauth-button';
-import { AuthApi } from '@core/auth/auth-api';
+import { AuthOAuthService } from '@core/auth';
 import { Logger } from '@core/logging/logger';
 
 describe('GoogleOAuthButton', () => {
   let component: GoogleOAuthButton;
-  let mockAuthApi: { signInWithGoogle: ReturnType<typeof vi.fn> };
+  let mockAuthOAuth: { signInWithGoogle: ReturnType<typeof vi.fn> };
   let mockLogger: { error: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
-    mockAuthApi = {
+    mockAuthOAuth = {
       signInWithGoogle: vi.fn(),
     };
 
@@ -25,7 +25,7 @@ describe('GoogleOAuthButton', () => {
       providers: [
         provideZonelessChangeDetection(),
         provideAnimationsAsync(),
-        { provide: AuthApi, useValue: mockAuthApi },
+        { provide: AuthOAuthService, useValue: mockAuthOAuth },
         { provide: Logger, useValue: mockLogger },
       ],
     }).compileComponents();
@@ -75,7 +75,7 @@ describe('GoogleOAuthButton', () => {
 
   describe('signInWithGoogle - Success Path', () => {
     it('should set isLoading to true when called', async () => {
-      mockAuthApi.signInWithGoogle.mockResolvedValue({ success: true });
+      mockAuthOAuth.signInWithGoogle.mockResolvedValue({ success: true });
 
       const promise = component.signInWithGoogle();
       expect(component.isLoading()).toBe(true);
@@ -84,7 +84,7 @@ describe('GoogleOAuthButton', () => {
     });
 
     it('should emit loading true when called', async () => {
-      mockAuthApi.signInWithGoogle.mockResolvedValue({ success: true });
+      mockAuthOAuth.signInWithGoogle.mockResolvedValue({ success: true });
       const loadingEmitSpy = vi.fn();
       component.loadingChange.subscribe(loadingEmitSpy);
 
@@ -94,7 +94,7 @@ describe('GoogleOAuthButton', () => {
     });
 
     it('should not emit error on success', async () => {
-      mockAuthApi.signInWithGoogle.mockResolvedValue({ success: true });
+      mockAuthOAuth.signInWithGoogle.mockResolvedValue({ success: true });
       const errorEmitSpy = vi.fn();
       component.authError.subscribe(errorEmitSpy);
 
@@ -104,7 +104,7 @@ describe('GoogleOAuthButton', () => {
     });
 
     it('should reset isLoading after signInWithGoogle completes (finally block)', async () => {
-      mockAuthApi.signInWithGoogle.mockResolvedValue({ success: true });
+      mockAuthOAuth.signInWithGoogle.mockResolvedValue({ success: true });
 
       await component.signInWithGoogle();
 
@@ -114,7 +114,7 @@ describe('GoogleOAuthButton', () => {
 
   describe('signInWithGoogle - Failure Path', () => {
     it('should emit error when API returns failure', async () => {
-      mockAuthApi.signInWithGoogle.mockResolvedValue({
+      mockAuthOAuth.signInWithGoogle.mockResolvedValue({
         success: false,
         error: 'Compte non autorisé',
       });
@@ -127,7 +127,7 @@ describe('GoogleOAuthButton', () => {
     });
 
     it('should emit default error when no error message provided', async () => {
-      mockAuthApi.signInWithGoogle.mockResolvedValue({ success: false });
+      mockAuthOAuth.signInWithGoogle.mockResolvedValue({ success: false });
       const errorEmitSpy = vi.fn();
       component.authError.subscribe(errorEmitSpy);
 
@@ -139,7 +139,7 @@ describe('GoogleOAuthButton', () => {
     });
 
     it('should reset isLoading on failure', async () => {
-      mockAuthApi.signInWithGoogle.mockResolvedValue({ success: false });
+      mockAuthOAuth.signInWithGoogle.mockResolvedValue({ success: false });
 
       await component.signInWithGoogle();
 
@@ -147,7 +147,7 @@ describe('GoogleOAuthButton', () => {
     });
 
     it('should emit loading false on failure', async () => {
-      mockAuthApi.signInWithGoogle.mockResolvedValue({ success: false });
+      mockAuthOAuth.signInWithGoogle.mockResolvedValue({ success: false });
       const loadingEmitSpy = vi.fn();
       component.loadingChange.subscribe(loadingEmitSpy);
 
@@ -159,7 +159,7 @@ describe('GoogleOAuthButton', () => {
 
   describe('signInWithGoogle - Exception Path', () => {
     it('should emit error when exception is thrown', async () => {
-      mockAuthApi.signInWithGoogle.mockRejectedValue(
+      mockAuthOAuth.signInWithGoogle.mockRejectedValue(
         new Error('Network error'),
       );
       const errorEmitSpy = vi.fn();
@@ -174,7 +174,7 @@ describe('GoogleOAuthButton', () => {
 
     it('should log error when exception is thrown', async () => {
       const error = new Error('Network error');
-      mockAuthApi.signInWithGoogle.mockRejectedValue(error);
+      mockAuthOAuth.signInWithGoogle.mockRejectedValue(error);
 
       await component.signInWithGoogle();
 
@@ -185,7 +185,7 @@ describe('GoogleOAuthButton', () => {
     });
 
     it('should reset isLoading on exception', async () => {
-      mockAuthApi.signInWithGoogle.mockRejectedValue(
+      mockAuthOAuth.signInWithGoogle.mockRejectedValue(
         new Error('Network error'),
       );
 
@@ -195,7 +195,7 @@ describe('GoogleOAuthButton', () => {
     });
 
     it('should emit loading false on exception', async () => {
-      mockAuthApi.signInWithGoogle.mockRejectedValue(
+      mockAuthOAuth.signInWithGoogle.mockRejectedValue(
         new Error('Network error'),
       );
       const loadingEmitSpy = vi.fn();

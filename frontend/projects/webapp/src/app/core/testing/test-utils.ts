@@ -1,5 +1,64 @@
 import { signal, type ResourceRef, type WritableSignal } from '@angular/core';
-import { vi } from 'vitest';
+import { vi, type Mock } from 'vitest';
+import type { Session, User } from '@supabase/supabase-js';
+
+/**
+ * Typed result for Supabase signOut operation
+ */
+export type SignOutResult = { error: null } | { error: Error };
+
+/**
+ * Typed result for Supabase auth operations that return session
+ */
+export type AuthSessionResult =
+  | {
+      data: { session: null; user: null };
+      error: Error;
+    }
+  | {
+      data: { session: Session; user: User };
+      error: null;
+    };
+
+/**
+ * Mock interface for Supabase auth methods
+ */
+export interface MockSupabaseAuth {
+  signOut: Mock;
+  signInWithPassword: Mock;
+  signUp: Mock;
+  signInWithOAuth: Mock;
+  getSession: Mock;
+  refreshSession: Mock;
+  setSession: Mock;
+  onAuthStateChange: Mock;
+}
+
+/**
+ * Mock interface for Supabase client
+ */
+export interface MockSupabaseClient {
+  auth: MockSupabaseAuth;
+}
+
+/**
+ * Creates a type-safe mock Supabase client for testing
+ * @returns A mocked SupabaseClient with all auth methods as vi.fn()
+ */
+export function createMockSupabaseClient(): MockSupabaseClient {
+  return {
+    auth: {
+      signOut: vi.fn(),
+      signInWithPassword: vi.fn(),
+      signUp: vi.fn(),
+      signInWithOAuth: vi.fn(),
+      getSession: vi.fn(),
+      refreshSession: vi.fn(),
+      setSession: vi.fn(),
+      onAuthStateChange: vi.fn(),
+    },
+  };
+}
 
 /**
  * Creates a type-safe mock ResourceRef for testing

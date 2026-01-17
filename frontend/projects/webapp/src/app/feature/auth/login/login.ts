@@ -13,7 +13,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
-import { AuthApi, PASSWORD_MIN_LENGTH } from '@core/auth';
+import { AuthCredentialsService, PASSWORD_MIN_LENGTH } from '@core/auth';
 import { GoogleOAuthButton } from '@app/pattern/google-oauth';
 import { ROUTES } from '@core/routing/routes-constants';
 import { Logger } from '@core/logging/logger';
@@ -170,7 +170,7 @@ import { LoadingButton } from '@ui/loading-button';
   `,
 })
 export default class Login {
-  readonly #authService = inject(AuthApi);
+  readonly #authCredentials = inject(AuthCredentialsService);
   readonly #formBuilder = inject(FormBuilder);
   readonly #router = inject(Router);
   readonly #logger = inject(Logger);
@@ -219,7 +219,10 @@ export default class Login {
     const { email, password } = this.loginForm.getRawValue();
 
     try {
-      const result = await this.#authService.signInWithEmail(email, password);
+      const result = await this.#authCredentials.signInWithEmail(
+        email,
+        password,
+      );
 
       if (result.success) {
         this.#router.navigate(['/', ROUTES.APP, ROUTES.CURRENT_MONTH]);

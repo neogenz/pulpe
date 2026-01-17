@@ -11,7 +11,7 @@ import {
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
 import { UserSettingsApi } from './user-settings-api';
-import { AuthApi } from '../auth/auth-api';
+import { AuthStateService } from '../auth/auth-state.service';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
 
@@ -34,7 +34,7 @@ describe('UserSettingsApi', () => {
   function setupTestBed(isAuthenticated: boolean) {
     mockIsAuthenticated = signal(isAuthenticated);
 
-    const mockAuthApi = {
+    const mockAuthStateService = {
       isAuthenticated: mockIsAuthenticated.asReadonly(),
     };
 
@@ -44,7 +44,7 @@ describe('UserSettingsApi', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         UserSettingsApi,
-        { provide: AuthApi, useValue: mockAuthApi },
+        { provide: AuthStateService, useValue: mockAuthStateService },
         { provide: ApplicationConfiguration, useValue: mockApplicationConfig },
         { provide: Logger, useValue: mockLogger },
       ],

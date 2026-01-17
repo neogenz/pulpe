@@ -4,16 +4,16 @@ import { provideAnimationsAsync } from '@angular/platform-browser/animations/asy
 import { provideRouter } from '@angular/router';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import Signup from './signup';
-import { AuthApi, PASSWORD_MIN_LENGTH } from '@core/auth';
+import { AuthCredentialsService, PASSWORD_MIN_LENGTH } from '@core/auth';
 import { Logger } from '@core/logging/logger';
 
 describe('Signup', () => {
   let component: Signup;
-  let mockAuthApi: { signUpWithEmail: ReturnType<typeof vi.fn> };
+  let mockAuthCredentials: { signUpWithEmail: ReturnType<typeof vi.fn> };
   let mockLogger: { error: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
-    mockAuthApi = {
+    mockAuthCredentials = {
       signUpWithEmail: vi.fn(),
     };
 
@@ -27,7 +27,7 @@ describe('Signup', () => {
         provideZonelessChangeDetection(),
         provideAnimationsAsync(),
         provideRouter([]),
-        { provide: AuthApi, useValue: mockAuthApi },
+        { provide: AuthCredentialsService, useValue: mockAuthCredentials },
         { provide: Logger, useValue: mockLogger },
       ],
     }).compileComponents();
@@ -239,7 +239,7 @@ describe('Signup', () => {
   describe('signUp - Invalid Form', () => {
     it('should not submit when form is invalid', async () => {
       await component['signUp']();
-      expect(mockAuthApi.signUpWithEmail).not.toHaveBeenCalled();
+      expect(mockAuthCredentials.signUpWithEmail).not.toHaveBeenCalled();
     });
 
     it('should mark form as touched when invalid', async () => {
@@ -272,7 +272,7 @@ describe('Signup', () => {
     });
 
     it('should set isSubmitting to true when called', async () => {
-      mockAuthApi.signUpWithEmail.mockResolvedValue({ success: true });
+      mockAuthCredentials.signUpWithEmail.mockResolvedValue({ success: true });
 
       const promise = component['signUp']();
       expect(component['isSubmitting']()).toBe(true);
@@ -282,7 +282,7 @@ describe('Signup', () => {
 
     it('should clear error message before submitting', async () => {
       component['errorMessage'].set('Previous error');
-      mockAuthApi.signUpWithEmail.mockResolvedValue({ success: true });
+      mockAuthCredentials.signUpWithEmail.mockResolvedValue({ success: true });
 
       await component['signUp']();
 
@@ -290,18 +290,18 @@ describe('Signup', () => {
     });
 
     it('should call authService.signUpWithEmail with correct params', async () => {
-      mockAuthApi.signUpWithEmail.mockResolvedValue({ success: true });
+      mockAuthCredentials.signUpWithEmail.mockResolvedValue({ success: true });
 
       await component['signUp']();
 
-      expect(mockAuthApi.signUpWithEmail).toHaveBeenCalledWith(
+      expect(mockAuthCredentials.signUpWithEmail).toHaveBeenCalledWith(
         'test@example.com',
         'password123',
       );
     });
 
     it('should reset isSubmitting after signUp completes (finally block)', async () => {
-      mockAuthApi.signUpWithEmail.mockResolvedValue({ success: true });
+      mockAuthCredentials.signUpWithEmail.mockResolvedValue({ success: true });
 
       await component['signUp']();
 
@@ -320,7 +320,7 @@ describe('Signup', () => {
     });
 
     it('should set error message from API response', async () => {
-      mockAuthApi.signUpWithEmail.mockResolvedValue({
+      mockAuthCredentials.signUpWithEmail.mockResolvedValue({
         success: false,
         error: 'Email déjà utilisé',
       });
@@ -331,7 +331,7 @@ describe('Signup', () => {
     });
 
     it('should set default error message when no error in response', async () => {
-      mockAuthApi.signUpWithEmail.mockResolvedValue({ success: false });
+      mockAuthCredentials.signUpWithEmail.mockResolvedValue({ success: false });
 
       await component['signUp']();
 
@@ -341,7 +341,7 @@ describe('Signup', () => {
     });
 
     it('should reset isSubmitting on failure', async () => {
-      mockAuthApi.signUpWithEmail.mockResolvedValue({ success: false });
+      mockAuthCredentials.signUpWithEmail.mockResolvedValue({ success: false });
 
       await component['signUp']();
 
@@ -360,7 +360,9 @@ describe('Signup', () => {
     });
 
     it('should set generic error message on exception', async () => {
-      mockAuthApi.signUpWithEmail.mockRejectedValue(new Error('Network error'));
+      mockAuthCredentials.signUpWithEmail.mockRejectedValue(
+        new Error('Network error'),
+      );
 
       await component['signUp']();
 
@@ -371,7 +373,7 @@ describe('Signup', () => {
 
     it('should log error on exception', async () => {
       const error = new Error('Network error');
-      mockAuthApi.signUpWithEmail.mockRejectedValue(error);
+      mockAuthCredentials.signUpWithEmail.mockRejectedValue(error);
 
       await component['signUp']();
 
@@ -382,7 +384,9 @@ describe('Signup', () => {
     });
 
     it('should reset isSubmitting on exception', async () => {
-      mockAuthApi.signUpWithEmail.mockRejectedValue(new Error('Network error'));
+      mockAuthCredentials.signUpWithEmail.mockRejectedValue(
+        new Error('Network error'),
+      );
 
       await component['signUp']();
 

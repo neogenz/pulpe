@@ -4,7 +4,8 @@ import { BudgetApi } from '@core/budget';
 import { Logger } from '@core/logging/logger';
 import { PostHogService } from '@core/analytics/posthog';
 import { UserSettingsApi } from '@core/user-settings';
-import { AuthApi } from '@core/auth/auth-api';
+import { AuthOAuthService } from '@core/auth/auth-oauth.service';
+import { HasBudgetCache } from '@core/auth/has-budget-cache';
 import { firstValueFrom } from 'rxjs';
 
 interface CompleteProfileState {
@@ -42,7 +43,8 @@ export class CompleteProfileStore {
   readonly #profileSetupService = inject(ProfileSetupService);
   readonly #budgetApi = inject(BudgetApi);
   readonly #userSettingsApi = inject(UserSettingsApi);
-  readonly #authApi = inject(AuthApi);
+  readonly #authOAuth = inject(AuthOAuthService);
+  readonly #hasBudgetCache = inject(HasBudgetCache);
   readonly #logger = inject(Logger);
   readonly #postHogService = inject(PostHogService);
 
@@ -108,7 +110,7 @@ export class CompleteProfileStore {
   }
 
   prefillFromOAuthMetadata(): void {
-    const metadata = this.#authApi.getOAuthUserMetadata();
+    const metadata = this.#authOAuth.getOAuthUserMetadata();
     if (!metadata) {
       return;
     }
@@ -204,6 +206,9 @@ export class CompleteProfileStore {
         }
       }
 
+      // Update cache so guard allows navigation immediately
+      this.#hasBudgetCache.setHasBudget(true);
+
       this.#postHogService.captureEvent('first_budget_created', {
         signup_method: this.#determineSignupMethod(),
         has_pay_day: state.payDayOfMonth !== null,
@@ -225,7 +230,7 @@ export class CompleteProfileStore {
   }
 
   #determineSignupMethod(): 'google' | 'email' {
-    const metadata = this.#authApi.getOAuthUserMetadata();
+    const metadata = this.#authOAuth.getOAuthUserMetadata();
     return metadata ? 'google' : 'email';
   }
 

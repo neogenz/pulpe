@@ -20,7 +20,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { Router, RouterLink } from '@angular/router';
-import { AuthApi, PASSWORD_MIN_LENGTH } from '@core/auth';
+import { AuthCredentialsService, PASSWORD_MIN_LENGTH } from '@core/auth';
 import { PostHogService } from '@core/analytics/posthog';
 import { Logger } from '@core/logging/logger';
 import { GoogleOAuthButton } from '@app/pattern/google-oauth';
@@ -280,7 +280,7 @@ function passwordsMatchValidator(
   `,
 })
 export default class Signup {
-  readonly #authService = inject(AuthApi);
+  readonly #authCredentials = inject(AuthCredentialsService);
   readonly #router = inject(Router);
   readonly #logger = inject(Logger);
   readonly #formBuilder = inject(FormBuilder);
@@ -341,7 +341,10 @@ export default class Signup {
     const { email, password } = this.signupForm.getRawValue();
 
     try {
-      const result = await this.#authService.signUpWithEmail(email, password);
+      const result = await this.#authCredentials.signUpWithEmail(
+        email,
+        password,
+      );
 
       if (result.success) {
         this.#postHogService.captureEvent('signup_completed', {

@@ -346,6 +346,147 @@ describe('StorageService', () => {
     });
   });
 
+  describe('TTL functionality', () => {
+    it('should return value when TTL has not expired', () => {
+      // GIVEN: A value with TTL far in the future
+      const data = { name: 'Test' };
+      const ttl = 60000; // 1 minute
+
+      // WHEN: Setting and getting the value
+      service.set('pulpe-ttl-test', data, ttl);
+      const result = service.get<{ name: string }>('pulpe-ttl-test', ttl);
+
+      // THEN: Value is returned
+      expect(result).toEqual(data);
+    });
+
+    it('should return null when TTL has expired', () => {
+      // GIVEN: A value with expired TTL
+      const expiredValue = { value: { name: 'Test' }, ttl: Date.now() - 1000 };
+      localStorage.setItem('pulpe-expired', JSON.stringify(expiredValue));
+
+      // WHEN: Getting the value
+      const result = service.get<{ name: string }>('pulpe-expired');
+
+      // THEN: null is returned
+      expect(result).toBeNull();
+    });
+
+    it('should remove expired value from storage on access', () => {
+      // GIVEN: An expired value
+      const expiredValue = { value: 'test', ttl: Date.now() - 1000 };
+      localStorage.setItem('pulpe-expired', JSON.stringify(expiredValue));
+
+      // WHEN: Getting the value
+      service.get('pulpe-expired');
+
+      // THEN: Value is removed from storage
+      expect(localStorage.getItem('pulpe-expired')).toBeNull();
+    });
+
+    it('should treat legacy values without TTL wrapper as valid when no ttlMs param provided', () => {
+      // GIVEN: A legacy value without TTL wrapper
+      localStorage.setItem('pulpe-legacy', JSON.stringify({ data: 'legacy' }));
+
+      // WHEN: Getting without ttlMs param
+      const result = service.get<{ data: string }>('pulpe-legacy');
+
+      // THEN: Legacy value is returned
+      expect(result).toEqual({ data: 'legacy' });
+    });
+
+    it('should treat legacy values as expired when ttlMs param is provided', () => {
+      // GIVEN: A legacy value without TTL wrapper
+      localStorage.setItem('pulpe-legacy', JSON.stringify({ data: 'legacy' }));
+
+      // WHEN: Getting with ttlMs param (expecting TTL behavior)
+      const result = service.get<{ data: string }>('pulpe-legacy', 60000);
+
+      // THEN: null is returned (legacy is treated as expired)
+      expect(result).toBeNull();
+    });
+
+    it('should handle getString with TTL wrapper', () => {
+      // GIVEN: A string value with TTL
+      service.setString('pulpe-str-ttl', 'hello', 60000);
+
+      // WHEN: Getting the string
+      const result = service.getString('pulpe-str-ttl', 60000);
+
+      // THEN: String is returned
+      expect(result).toBe('hello');
+    });
+
+    it('should return null for expired getString', () => {
+      // GIVEN: An expired string value
+      const expiredValue = { value: 'expired-string', ttl: Date.now() - 1000 };
+      localStorage.setItem('pulpe-str-expired', JSON.stringify(expiredValue));
+
+      // WHEN: Getting the string
+      const result = service.getString('pulpe-str-expired');
+
+      // THEN: null is returned
+      expect(result).toBeNull();
+    });
+
+    it('should handle legacy raw string in getString', () => {
+      // GIVEN: A legacy raw string (not JSON)
+      localStorage.setItem('pulpe-raw', 'raw-value');
+
+      // WHEN: Getting without ttlMs param
+      const result = service.getString('pulpe-raw');
+
+      // THEN: Raw string is returned
+      expect(result).toBe('raw-value');
+    });
+
+    it('should treat legacy raw string as expired when ttlMs provided', () => {
+      // GIVEN: A legacy raw string
+      localStorage.setItem('pulpe-raw', 'raw-value');
+
+      // WHEN: Getting with ttlMs param
+      const result = service.getString('pulpe-raw', 60000);
+
+      // THEN: null is returned
+      expect(result).toBeNull();
+    });
+
+    it('should return false for has() on expired value', () => {
+      // GIVEN: An expired value
+      const expiredValue = { value: 'test', ttl: Date.now() - 1000 };
+      localStorage.setItem('pulpe-has-expired', JSON.stringify(expiredValue));
+
+      // WHEN: Checking with has()
+      const result = service.has('pulpe-has-expired');
+
+      // THEN: false is returned
+      expect(result).toBe(false);
+    });
+
+    it('should return true for has() on valid TTL value', () => {
+      // GIVEN: A value with valid TTL
+      service.set('pulpe-has-valid', 'value', 60000);
+
+      // WHEN: Checking with has()
+      const result = service.has('pulpe-has-valid');
+
+      // THEN: true is returned
+      expect(result).toBe(true);
+    });
+
+    it('should clean up expired value when has() is called', () => {
+      // GIVEN: An expired value
+      const expiredValue = { value: 'test', ttl: Date.now() - 1000 };
+      localStorage.setItem('pulpe-has-cleanup', JSON.stringify(expiredValue));
+
+      // WHEN: Checking with has()
+      service.has('pulpe-has-cleanup');
+
+      // THEN: Expired value is removed
+      expect(localStorage.getItem('pulpe-has-cleanup')).toBeNull();
+    });
+  });
+
   describe('Error handling - localStorage failures', () => {
     it('should handle localStorage.getItem errors gracefully', () => {
       // GIVEN: localStorage throws on getItem

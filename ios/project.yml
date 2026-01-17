@@ -147,6 +147,21 @@ targets:
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
 
+  PulpeTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: PulpeTests
+        excludes:
+          - "**/.DS_Store"
+    dependencies:
+      - target: Pulpe
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.pulpe.ios.tests
+        IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+        TARGETED_DEVICE_FAMILY: "1,2"
+
 schemes:
   Pulpe:
     build:
@@ -175,3 +190,12 @@ schemes:
       config: Debug
     archive:
       config: Release
+
+  PulpeTests:
+    build:
+      targets:
+        PulpeTests: all
+    test:
+      config: Debug
+      targets:
+        - name: PulpeTests

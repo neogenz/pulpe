@@ -1,6 +1,7 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { Logger } from '@core/logging/logger';
+import { type E2EWindow } from '@core/auth';
 import type { NgxTurnstileComponent } from 'ngx-turnstile';
 
 const TURNSTILE_TIMEOUT_MS = 5000;
@@ -109,7 +110,7 @@ export class TurnstileService {
   #isE2EBypass(): boolean {
     return (
       typeof window !== 'undefined' &&
-      (window as { __E2E_DEMO_BYPASS__?: boolean }).__E2E_DEMO_BYPASS__ === true
+      (window as E2EWindow).__E2E_DEMO_BYPASS__ === true
     );
   }
 

@@ -10,9 +10,6 @@ import type { StorageKey } from './storage.service';
  * 3. Easy to find and maintain
  */
 export const STORAGE_KEYS = {
-  // Budget
-  CURRENT_BUDGET: 'pulpe-current-budget',
-
   // Demo mode
   DEMO_MODE: 'pulpe-demo-mode',
   DEMO_USER_EMAIL: 'pulpe-demo-user-email',

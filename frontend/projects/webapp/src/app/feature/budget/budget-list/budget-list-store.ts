@@ -6,6 +6,7 @@ import {
   resource,
 } from '@angular/core';
 import { BudgetApi } from '@core/budget/budget-api';
+import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
 import { Logger } from '@core/logging/logger';
 import { type Budget } from 'pulpe-shared';
 import { firstValueFrom } from 'rxjs';
@@ -19,11 +20,17 @@ export interface BudgetPlaceholder {
 export class BudgetListStore {
   #budgetApi = inject(BudgetApi);
   #logger = inject(Logger);
+  #invalidationService = inject(BudgetInvalidationService);
 
   // Maximum de mois à rechercher dans le futur (3 ans)
   private static readonly MAX_FUTURE_MONTHS_TO_SEARCH = 36;
 
-  budgets = resource<Budget[], void>({
+  /**
+   * Resource that auto-reloads when budget invalidation version changes.
+   * This enables automatic cache invalidation across stores.
+   */
+  budgets = resource<Budget[], { version: number }>({
+    params: () => ({ version: this.#invalidationService.version() }),
     loader: async () => this.#loadBudgets(),
   });
 

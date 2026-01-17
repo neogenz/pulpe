@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import type { E2EWindow } from '../types/e2e.types';
+import type { E2ETestWindow } from '../types/e2e.types';
 
 /**
  * Setup E2E bypass for demo mode
@@ -25,7 +25,7 @@ export async function setupDemoBypass(page: Page, options: {
 
   await page.addInitScript(
     ({ userId, userEmail, accessToken, refreshToken }) => {
-      const w = window as unknown as E2EWindow;
+      const w = window as unknown as E2ETestWindow;
       w.__E2E_DEMO_BYPASS__ = true;
       w.__E2E_DEMO_SESSION__ = {
         user: { id: userId, email: userEmail },

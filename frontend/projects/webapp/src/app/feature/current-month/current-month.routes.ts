@@ -1,6 +1,6 @@
 import { type Routes } from '@angular/router';
-import { CurrentMonthStore } from './services/current-month-store';
 import { PAGE_TITLES } from '@core/routing';
+import { CurrentMonthStore } from './services/current-month-store';
 
 export const currentMonthRoutes: Routes = [
   {

@@ -9,6 +9,8 @@ enum DeepLinkDestination: Hashable {
 @main
 struct PulpeApp: App {
     @State private var appState = AppState()
+    @State private var currentMonthStore = CurrentMonthStore()
+    @State private var budgetListStore = BudgetListStore()
     @State private var deepLinkDestination: DeepLinkDestination?
 
     init() {
@@ -19,6 +21,8 @@ struct PulpeApp: App {
         WindowGroup {
             RootView(deepLinkDestination: $deepLinkDestination)
                 .environment(appState)
+                .environment(currentMonthStore)
+                .environment(budgetListStore)
                 .onOpenURL { url in
                     handleDeepLink(url)
                 }
@@ -46,6 +50,8 @@ struct PulpeApp: App {
 
 struct RootView: View {
     @Environment(AppState.self) private var appState
+    @Environment(CurrentMonthStore.self) private var currentMonthStore
+    @Environment(BudgetListStore.self) private var budgetListStore
     @Environment(\.scenePhase) private var scenePhase
     @Binding var deepLinkDestination: DeepLinkDestination?
     @State private var showAddExpenseSheet = false
@@ -92,10 +98,26 @@ struct RootView: View {
                 await appState.checkAuthState()
             }
         }
-        .onChange(of: scenePhase) { _, newPhase in
+        .onChange(of: appState.isInMaintenance) { oldValue, newValue in
+            // Exiting maintenance mode: trigger auth check
+            if oldValue && !newValue {
+                Task { await appState.checkAuthState() }
+            }
+        }
+        .onChange(of: scenePhase) { oldPhase, newPhase in
             if newPhase == .background, appState.authState == .authenticated {
                 Task { await widgetSyncViewModel.syncWidgetData() }
                 BackgroundTaskService.shared.scheduleWidgetRefresh()
+            }
+
+            // CRITICAL: Always refresh when app comes to foreground
+            // This guarantees fresh data if user edited from web
+            if newPhase == .active, oldPhase == .background, appState.authState == .authenticated {
+                Task {
+                    async let refreshCurrent: Void = currentMonthStore.forceRefresh()
+                    async let refreshBudgets: Void = budgetListStore.forceRefresh()
+                    _ = await (refreshCurrent, refreshBudgets)
+                }
             }
         }
         .alert(

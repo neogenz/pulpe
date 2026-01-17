@@ -18,16 +18,28 @@ import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import {
+  NavigationCancel,
   NavigationEnd,
+  NavigationError,
+  NavigationStart,
   Router,
   RouterLink,
   RouterLinkActive,
   RouterOutlet,
 } from '@angular/router';
-import { filter, map, shareReplay, startWith } from 'rxjs/operators';
+import {
+  delay,
+  filter,
+  map,
+  shareReplay,
+  startWith,
+  switchMap,
+} from 'rxjs/operators';
+import { of } from 'rxjs';
 import { PulpeBreadcrumb } from '@ui/breadcrumb/breadcrumb';
 import { BreadcrumbState } from '@core/routing/breadcrumb-state';
-import { AuthApi } from '@core/auth/auth-api';
+import { AuthStateService } from '@core/auth/auth-state.service';
+import { AuthSessionService } from '@core/auth/auth-session.service';
 import { ROUTES } from '@core/routing/routes-constants';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { Logger } from '@core/logging/logger';
@@ -97,6 +109,8 @@ interface NavigationItem {
                 routerLinkActive
                 #rla="routerLinkActive"
                 [activated]="rla.isActive"
+                [class.pointer-events-none]="isNavigating()"
+                [class.opacity-50]="isNavigating()"
                 (click)="closeDrawerOnMobile(drawer)"
               >
                 <mat-icon matListItemIcon [class.icon-filled]="rla.isActive">{{
@@ -118,7 +132,9 @@ interface NavigationItem {
                 [routerLink]="item.route"
                 routerLinkActive
                 #rla="routerLinkActive"
-                class="flex flex-col items-center mb-3 group"
+                class="flex flex-col items-center mb-3 group transition-opacity"
+                [class.pointer-events-none]="isNavigating()"
+                [class.opacity-50]="isNavigating()"
                 [matTooltip]="item.tooltip || item.label"
                 matTooltipPosition="right"
               >
@@ -163,12 +179,12 @@ interface NavigationItem {
           [class.p-2]="!isHandset()"
           [class.rounded-xl]="!isHandset()"
         >
-          @if (loadingIndicator.isLoading()) {
+          @if (loadingIndicator.isLoading() || isNavigating()) {
             <div class="absolute top-0 left-0 right-0">
               <mat-progress-bar
                 mode="indeterminate"
-                aria-label="Mise à jour en cours"
-                data-testid="budget-list-refresh-progress"
+                aria-label="Chargement en cours"
+                data-testid="loading-progress"
               />
             </div>
           }
@@ -368,7 +384,8 @@ export default class MainLayout {
   readonly #breakpointObserver = inject(BreakpointObserver);
   readonly #router = inject(Router);
   readonly #scrollDispatcher = inject(ScrollDispatcher);
-  readonly #authApi = inject(AuthApi);
+  readonly #authState = inject(AuthStateService);
+  readonly #authSession = inject(AuthSessionService);
   readonly #applicationConfig = inject(ApplicationConfiguration);
   readonly #demoModeService = inject(DemoModeService);
   readonly #demoInitializer = inject(DemoInitializerService);
@@ -381,7 +398,7 @@ export default class MainLayout {
     if (this.#demoModeService.isDemoMode()) {
       return 'demo@gmail.com';
     }
-    return this.#authApi.authState().user?.email;
+    return this.#authState.authState().user?.email;
   });
 
   // Route to settings page
@@ -453,6 +470,26 @@ export default class MainLayout {
     { initialValue: false },
   );
 
+  // Navigation state for progress bar feedback (debounced to prevent flicker)
+  protected readonly isNavigating = toSignal(
+    this.#router.events.pipe(
+      filter(
+        (e) =>
+          e instanceof NavigationStart ||
+          e instanceof NavigationEnd ||
+          e instanceof NavigationCancel ||
+          e instanceof NavigationError,
+      ),
+      switchMap(
+        (e) =>
+          e instanceof NavigationStart
+            ? of(true).pipe(delay(100)) // Show loader only if navigation > 100ms
+            : of(false), // Hide immediately
+      ),
+    ),
+    { initialValue: false },
+  );
+
   // State for logout process
   readonly #isLoggingOut = signal<boolean>(false);
   readonly isLoggingOut = this.#isLoggingOut.asReadonly();
@@ -477,7 +514,7 @@ export default class MainLayout {
       this.#isLoggingOut.set(true);
 
       // Sign out and wait for session to be cleared
-      await this.#authApi.signOut();
+      await this.#authSession.signOut();
     } catch (error) {
       // Only log detailed errors in development
       if (!this.#applicationConfig.isProduction()) {

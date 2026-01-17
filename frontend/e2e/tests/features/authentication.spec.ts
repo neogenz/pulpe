@@ -68,15 +68,16 @@ test.describe('Authentication', () => {
     await expect(authenticatedPage).toHaveURL(/\/app\//);
   });
 
-  test('should handle logout properly', async ({ authenticatedPage, mainLayoutPage }) => {
+  test('should handle logout properly', async ({ authenticatedPage }) => {
     // Navigate to app
     await authenticatedPage.goto('/app/current-month');
     await authenticatedPage.waitForLoadState('domcontentloaded');
-    
-    // Perform logout
-    await mainLayoutPage.performLogout();
-    
+
+    // Perform logout directly on authenticatedPage
+    await authenticatedPage.getByTestId('user-menu-trigger').click();
+    await authenticatedPage.getByTestId('logout-button').click();
+
     // Should redirect away from app
-    await expect(authenticatedPage).not.toHaveURL(/\/app\//);
+    await expect(authenticatedPage).toHaveURL(/\/(login|welcome)/);
   });
 });

@@ -6,7 +6,8 @@ import {
   type HttpErrorResponse,
 } from '@angular/common/http';
 import { type Observable, throwError, from, switchMap, catchError } from 'rxjs';
-import { AuthApi } from './auth-api';
+import { AuthSessionService } from './auth-session.service';
+import { AuthStateService } from './auth-state.service';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { ROUTES } from '../routing/routes-constants';
 
@@ -14,7 +15,8 @@ export const authInterceptor: HttpInterceptorFn = (
   req: HttpRequest<unknown>,
   next,
 ): Observable<HttpEvent<unknown>> => {
-  const authApi = inject(AuthApi);
+  const authSession = inject(AuthSessionService);
+  const authState = inject(AuthStateService);
   const applicationConfig = inject(ApplicationConfiguration);
 
   // Vérifier si la requête va vers notre backend
@@ -23,9 +25,11 @@ export const authInterceptor: HttpInterceptorFn = (
   }
 
   // Obtenir le token actuel et l'ajouter à la requête
-  return from(addAuthToken(req, authApi)).pipe(
+  return from(addAuthToken(req, authSession)).pipe(
     switchMap((authReq) => next(authReq)),
-    catchError((error) => handleAuthError(error, req, next, authApi)),
+    catchError((error) =>
+      handleAuthError(error, req, next, authSession, authState),
+    ),
   );
 };
 
@@ -40,9 +44,9 @@ function shouldInterceptRequest(url: string, backendApiUrl: string): boolean {
 
 async function addAuthToken(
   req: HttpRequest<unknown>,
-  authApi: AuthApi,
+  authSession: AuthSessionService,
 ): Promise<HttpRequest<unknown>> {
-  const session = await authApi.getCurrentSession();
+  const session = await authSession.getCurrentSession();
 
   if (session?.access_token) {
     return req.clone({
@@ -60,16 +64,17 @@ function handleAuthError(
   error: HttpErrorResponse,
   originalReq: HttpRequest<unknown>,
   next: (req: HttpRequest<unknown>) => Observable<HttpEvent<unknown>>,
-  authApi: AuthApi,
+  authSession: AuthSessionService,
+  authState: AuthStateService,
 ): Observable<HttpEvent<unknown>> {
   // Only attempt refresh if it's a 401 and user is authenticated
-  if (error.status === 401 && authApi.isAuthenticated()) {
+  if (error.status === 401 && authState.isAuthenticated()) {
     // Convert the refresh promise to an observable and handle the flow
-    return from(authApi.refreshSession()).pipe(
+    return from(authSession.refreshSession()).pipe(
       switchMap((refreshSuccess) => {
         if (!refreshSuccess) {
           // Refresh failed, sign out and force full page reload
-          authApi.signOut();
+          authSession.signOut();
           window.location.href = '/' + ROUTES.LOGIN;
           return throwError(
             () => new Error('Session expirée, veuillez vous reconnecter'),
@@ -77,13 +82,13 @@ function handleAuthError(
         }
 
         // Refresh succeeded, retry the original request with new token
-        return from(addAuthToken(originalReq, authApi)).pipe(
+        return from(addAuthToken(originalReq, authSession)).pipe(
           switchMap((authReq) => next(authReq)),
         );
       }),
       catchError((refreshError) => {
         // Error during refresh attempt, sign out and force full page reload
-        authApi.signOut();
+        authSession.signOut();
         window.location.href = '/' + ROUTES.LOGIN;
         return throwError(() => refreshError);
       }),

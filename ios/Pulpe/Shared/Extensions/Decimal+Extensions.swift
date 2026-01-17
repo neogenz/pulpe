@@ -1,9 +1,9 @@
 import Foundation
 
 extension Decimal {
-    /// Format as CHF currency
+    /// Format as CHF currency using Swiss locale
     var asCHF: String {
-        formatted(.currency(code: "CHF"))
+        formatted(.currency(code: "CHF").locale(Locale(identifier: "de_CH")))
     }
 
     /// Format as compact CHF (no decimals for whole numbers)

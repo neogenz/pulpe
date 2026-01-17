@@ -9,7 +9,7 @@ import {
 import { type Observable, firstValueFrom, throwError } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
 import { ApplicationConfiguration } from '../config/application-configuration';
-import { AuthApi } from '../auth/auth-api';
+import { AuthStateService } from '../auth/auth-state.service';
 import { Logger } from '../logging/logger';
 
 /**
@@ -24,7 +24,7 @@ import { Logger } from '../logging/logger';
 export class UserSettingsApi {
   readonly #httpClient = inject(HttpClient);
   readonly #applicationConfig = inject(ApplicationConfiguration);
-  readonly #authApi = inject(AuthApi);
+  readonly #authState = inject(AuthStateService);
   readonly #logger = inject(Logger);
 
   readonly #reloadTrigger = signal(0);
@@ -34,7 +34,7 @@ export class UserSettingsApi {
     { isAuthenticated: boolean; trigger: number }
   >({
     params: () => ({
-      isAuthenticated: this.#authApi.isAuthenticated(),
+      isAuthenticated: this.#authState.isAuthenticated(),
       trigger: this.#reloadTrigger(),
     }),
     loader: async ({ params }) =>

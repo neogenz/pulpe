@@ -9,6 +9,7 @@ enum Formatters {
         let f = NumberFormatter()
         f.numberStyle = .currency
         f.currencyCode = "CHF"
+        f.locale = Locale(identifier: "de_CH")
         f.maximumFractionDigits = 2
         return f
     }()
@@ -17,6 +18,7 @@ enum Formatters {
         let f = NumberFormatter()
         f.numberStyle = .currency
         f.currencyCode = "CHF"
+        f.locale = Locale(identifier: "de_CH")
         f.maximumFractionDigits = 0
         return f
     }()

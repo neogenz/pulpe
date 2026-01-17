@@ -279,12 +279,8 @@ export default class BudgetListPage {
         },
       });
 
-      const result = await firstValueFrom(dialogRef.afterClosed());
-
-      // Only refresh data if budget was successfully created
-      if (result?.success) {
-        this.state.refreshData();
-      }
+      // Store auto-refreshes via BudgetInvalidationService when budget is created
+      await firstValueFrom(dialogRef.afterClosed());
     } catch (error) {
       this.#logger.error('Error opening create budget dialog', error);
       this.#snackBar.open(
@@ -315,11 +311,8 @@ export default class BudgetListPage {
         data: { month, year },
       });
 
-      const result = await firstValueFrom(dialogRef.afterClosed());
-
-      if (result?.success) {
-        this.state.refreshData();
-      }
+      // Store auto-refreshes via BudgetInvalidationService when budget is created
+      await firstValueFrom(dialogRef.afterClosed());
     } catch (error) {
       this.#logger.error('Error opening create budget dialog', error);
       this.#snackBar.open(
