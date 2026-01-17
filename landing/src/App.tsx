@@ -12,6 +12,7 @@ import {
   Smartphone,
   Check,
   ChevronRight,
+  Globe,
 } from "lucide-react";
 
 
@@ -661,9 +662,111 @@ function HowItWorks() {
   );
 }
 
-function WhyFree() {
+const IOS_APP_URL = "#"; // TODO: Replace with App Store link
+
+function Availability() {
   return (
     <section className="bg-sage-100 py-20 md:py-32">
+      <div className="mx-auto max-w-6xl px-6">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-100px" }}
+          variants={staggerContainer}
+          className="space-y-12"
+        >
+          {/* Header */}
+          <motion.div variants={fadeInUp} className="text-center">
+            <h2 className="mb-4 text-4xl font-extrabold text-sage-900 md:text-5xl">
+              Disponible <span className="text-pulpe-800">partout</span>
+            </h2>
+            <p className="mx-auto max-w-xl text-lg text-sage-500">
+              Sur ton téléphone, ta tablette ou ton ordinateur. Pulpe s'adapte à toi.
+            </p>
+          </motion.div>
+
+          {/* Options grid */}
+          <div className="grid gap-8 md:grid-cols-2">
+            {/* Web App */}
+            <motion.div
+              variants={fadeInUp}
+              whileHover={{ y: -4, transition: { type: "spring", stiffness: 300 } }}
+              className="rounded-2xl border-3 border-black bg-white p-8 shadow-brutal transition-shadow duration-200 hover:shadow-brutal-lg"
+            >
+              <div className="flex items-start gap-5">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border-2 border-black bg-ocean-400">
+                  <Globe className="h-8 w-8 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="mb-2 text-2xl font-bold text-sage-900">
+                    Dans ton navigateur
+                  </h3>
+                  <p className="mb-4 text-sage-500">
+                    Aucune installation. Ouvre Pulpe depuis Safari, Chrome ou n'importe quel navigateur sur ton téléphone. C'est instantané.
+                  </p>
+                  <Button variant="primary" href={APP_URL} className="!text-base !px-5 !py-2.5">
+                    Ouvrir Pulpe
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* iOS App */}
+            <motion.div
+              variants={fadeInUp}
+              whileHover={{ y: -4, transition: { type: "spring", stiffness: 300 } }}
+              className="rounded-2xl border-3 border-black bg-white p-8 shadow-brutal transition-shadow duration-200 hover:shadow-brutal-lg"
+            >
+              <div className="flex items-start gap-5">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border-2 border-black bg-sage-900">
+                  <svg className="h-8 w-8 text-white" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <div className="mb-2 flex items-center gap-3">
+                    <h3 className="text-2xl font-bold text-sage-900">App iOS</h3>
+                    <span className="rounded-full bg-pulpe-200 px-2.5 py-0.5 text-xs font-semibold text-pulpe-800">
+                      Nouveau
+                    </span>
+                  </div>
+                  <p className="mb-4 text-sage-500">
+                    L'expérience native sur iPhone. Notifications, widget, et accès rapide depuis ton écran d'accueil.
+                  </p>
+                  <a
+                    href={IOS_APP_URL}
+                    className="inline-block transition-transform hover:scale-105"
+                  >
+                    <img
+                      src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg"
+                      alt="Télécharger sur l'App Store"
+                      className="h-11"
+                    />
+                  </a>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Android coming soon */}
+          <motion.div variants={fadeInUp} className="text-center">
+            <div className="inline-flex items-center gap-3 rounded-full border-2 border-sage-300 bg-sage-50 px-5 py-3">
+              <Smartphone className="h-5 w-5 text-sage-500" />
+              <span className="text-sage-600">
+                <strong className="text-sage-700">Android</strong> arrive bientôt
+              </span>
+            </div>
+          </motion.div>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+function WhyFree() {
+  return (
+    <section className="bg-cream py-20 md:py-32">
       <div className="mx-auto max-w-4xl px-6">
         <motion.div
           initial="hidden"
@@ -861,6 +964,7 @@ export default function App() {
         <Solution />
         <Features />
         <HowItWorks />
+        <Availability />
         <WhyFree />
         <FinalCTA />
       </main>
