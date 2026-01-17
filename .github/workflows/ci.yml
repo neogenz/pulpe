@@ -555,7 +555,7 @@ jobs:
         working-directory: ios
         run: |
           xcodebuild test \
-            -scheme Pulpe \
+            -scheme PulpeTests \
             -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.2' \
             CODE_SIGNING_ALLOWED=NO \
             -quiet
