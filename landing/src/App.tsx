@@ -243,7 +243,7 @@ function Hero() {
               className="inline-flex items-center gap-2 rounded-full border-2 border-black bg-pulpe-200 px-4 py-2 text-sm font-semibold text-pulpe-900 shadow-brutal-sm"
             >
               <Sparkles className="h-4 w-4" />
-              Conçu pour la Suisse 🇨🇭
+              Ton allié budget en Suisse 🇨🇭
             </motion.div>
 
             <motion.h1
@@ -268,10 +268,9 @@ function Hero() {
               variants={fadeInUp}
               className="max-w-lg text-xl leading-relaxed text-sage-600"
             >
-              L'app budget hyper simple qui remplace ton Excel.{" "}
+              Fini le brouillard. Pulpe t'aide à voir loin pour dépenser l'esprit léger.{" "}
               <strong className="text-sage-800">
-                Anticipe les grosses dépenses, note tes achats en 2 clics, et
-                retrouve la sérénité financière.
+                Simple comme noter un achat, puissant comme prévoir ton année.
               </strong>
             </motion.p>
 
@@ -280,7 +279,7 @@ function Hero() {
               className="flex flex-col gap-4 sm:flex-row"
             >
               <Button variant="primary" href={APP_URL}>
-                Essayer gratuitement
+                Commencer gratuitement
                 <ArrowRight className="h-5 w-5" />
               </Button>
               <Button variant="outline" href="#how-it-works">
@@ -381,18 +380,18 @@ function PainPoints() {
   const painPoints = [
     {
       icon: CalendarDays,
-      title: "La surprise",
-      text: "Être surpris par les impôts ou une grosse dépense qu'on avait oubliée",
+      title: "L'angoisse",
+      text: "Ce moment où tu découvres une dépense que tu avais oubliée. Trop tard pour anticiper.",
     },
     {
       icon: Smartphone,
-      title: "La friction",
-      text: "Ouvrir Excel sur mobile pour noter une dépense... et abandonner",
+      title: "L'abandon",
+      text: "Tu voulais bien faire, mais ton outil est trop compliqué. Alors tu laisses tomber.",
     },
     {
       icon: TrendingUp,
-      title: "Le flou",
-      text: "Ne jamais savoir combien on peut vraiment dépenser ce mois-ci",
+      title: "Le doute",
+      text: "Cette question qui revient : « Est-ce que je peux me le permettre ? » Sans jamais avoir la réponse.",
     },
   ];
 
@@ -409,8 +408,8 @@ function PainPoints() {
           {/* Section header */}
           <motion.div variants={fadeInUp} className="text-center">
             <h2 className="mb-4 text-4xl font-extrabold text-sage-900 md:text-5xl">
-              Tu connais cette{" "}
-              <span className="text-tangerine-500">sensation</span> ?
+              Tu mérites{" "}
+              <span className="text-tangerine-500">mieux que ça</span>
             </h2>
           </motion.div>
 
@@ -439,8 +438,8 @@ function PainPoints() {
             variants={fadeInUp}
             className="text-center text-xl text-sage-500"
           >
-            <strong className="text-pulpe-800">Pulpe</strong> a été créée pour
-            en finir avec ça.
+            <strong className="text-pulpe-800">Pulpe</strong> existe pour que tu
+            puisses enfin souffler.
           </motion.p>
         </motion.div>
       </div>
@@ -462,18 +461,16 @@ function Solution() {
           {/* Header */}
           <motion.div variants={fadeInUp} className="text-center">
             <h2 className="mb-4 text-4xl font-extrabold text-sage-900 md:text-5xl">
-              Une app qui pense à{" "}
-              <span className="text-pulpe-800">l'année</span>
+              Vois <span className="text-pulpe-800">loin</span>.
               <br />
-              pour que tu profites du{" "}
-              <span className="text-tangerine-500">mois</span>
+              Dépense <span className="text-tangerine-500">sereinement</span>.
             </h2>
             <p className="mx-auto max-w-2xl text-lg text-sage-500">
-              Pulpe inverse la logique budgétaire. Au lieu de tracker ce qui est
-              passé, tu planifies ce qui arrive.{" "}
+              Pulpe ne te demande pas de tout noter. Elle t'aide à anticiper ce
+              qui compte : les grosses dépenses, les imprévus prévisibles, ton
+              reste à vivre.{" "}
               <strong className="text-sage-700">
-                Tu sais toujours où tu en es, et tu peux dépenser sans
-                culpabilité.
+                Tu sais où tu en es. Tu respires.
               </strong>
             </p>
           </motion.div>
@@ -487,33 +484,33 @@ function Features() {
   const features = [
     {
       icon: CalendarDays,
-      title: "Vois toute ton année d'un coup d'œil",
+      title: "12 mois devant toi, zéro surprise",
       description:
-        "Vacances, impôts, anniversaires... Tout est visible sur 12 mois. Tu sais exactement ce qui arrive et combien mettre de côté.",
+        "Impôts, vacances, cadeaux — tout ce qui peut te surprendre est déjà là, visible. Tu anticipes au lieu de subir.",
       badge: "Clarté",
       accent: "pulpe" as const,
     },
     {
       icon: Sparkles,
-      title: "2 clics, c'est noté",
+      title: "Noter une dépense ? 5 secondes.",
       description:
-        "Ajouter une dépense prend 5 secondes. Pas de friction, pas d'excuse. Tu notes sur le moment, tu n'oublies jamais.",
-      badge: "Simplicité",
+        "Pas de catégories à choisir, pas de formulaire interminable. Tu notes, c'est fait. Ton budget reste à jour sans effort.",
+      badge: "Légèreté",
       accent: "tangerine" as const,
     },
     {
       icon: Shield,
-      title: "Plus jamais surpris",
+      title: "Tu vois venir, tu gères",
       description:
-        "Tes dépenses récurrentes et événements ponctuels sont planifiés. Tu vois venir les gros moments au lieu de les subir.",
+        "Chaque dépense prévue est là, à sa place. Tu sais ce qui arrive, tu sais ce qu'il te reste. C'est ça, le contrôle.",
       badge: "Contrôle",
       accent: "ocean" as const,
     },
     {
       icon: RefreshCcw,
-      title: "Ton budget se construit tout seul",
+      title: "Configure une fois, oublie ensuite",
       description:
-        "Crée un modèle une fois, réutilise-le chaque mois. Tes prévisions récurrentes se propagent automatiquement.",
+        "Ton loyer, tes abonnements, tes charges — tu les rentres une fois. Pulpe s'occupe du reste, mois après mois.",
       badge: "Légèreté",
       accent: "pulpe" as const,
     },
@@ -532,8 +529,8 @@ function Features() {
           {/* Header */}
           <motion.div variants={fadeInUp} className="text-center">
             <h2 className="mb-4 text-4xl font-extrabold text-sage-900 md:text-5xl">
-              Comment Pulpe t'aide à{" "}
-              <span className="text-pulpe-800">voir clair</span>
+              Ce que Pulpe{" "}
+              <span className="text-pulpe-800">change pour toi</span>
             </h2>
           </motion.div>
 
@@ -578,20 +575,18 @@ function HowItWorks() {
   const steps = [
     {
       number: "01",
-      title: "Dis-nous tes revenus",
-      description: "On commence par ce qui rentre chaque mois.",
+      title: "Tes revenus",
+      description: "Ce qui rentre chaque mois. Simple.",
     },
     {
       number: "02",
-      title: "Ajoute tes dépenses récurrentes",
-      description:
-        "Loyer, abonnements, assurances... tout ce qui est prévisible.",
+      title: "Tes charges fixes",
+      description: "Loyer, abos, assurances — ce qui part tous les mois.",
     },
     {
       number: "03",
-      title: "Planifie tes événements",
-      description:
-        "Vacances, anniversaires, impôts... Pulpe t'aide à anticiper.",
+      title: "Ce qui arrive",
+      description: "Vacances, impôts, projets — Pulpe t'aide à voir loin.",
     },
   ];
 
@@ -608,7 +603,7 @@ function HowItWorks() {
           {/* Header */}
           <motion.div variants={fadeInUp} className="text-center">
             <h2 className="mb-4 text-4xl font-extrabold text-sage-900 md:text-5xl">
-              Prêt en <span className="text-pulpe-800">3 minutes</span>
+              Commence en <span className="text-pulpe-800">3 minutes</span>
             </h2>
           </motion.div>
 
@@ -638,13 +633,13 @@ function HowItWorks() {
 
                   {/* Arrow connector (desktop only) */}
                   {index < 2 && (
-                    <div className="absolute -right-4 top-1/2 z-10 hidden -translate-y-1/2 md:block">
+                    <div className="absolute -right-6 top-1/2 z-10 hidden -translate-y-1/2 md:block">
                       <motion.div
-                        animate={{ x: [0, 4, 0] }}
+                        animate={{ x: [0, 6, 0] }}
                         transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                        className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-black bg-pulpe-200 shadow-brutal-sm"
+                        className="flex h-12 w-12 items-center justify-center rounded-full border-3 border-black bg-pulpe-200 shadow-brutal"
                       >
-                        <ChevronRight className="h-5 w-5 text-pulpe-800" />
+                        <ChevronRight className="h-7 w-7 text-pulpe-800" />
                       </motion.div>
                     </div>
                   )}
@@ -656,7 +651,7 @@ function HowItWorks() {
           {/* CTA */}
           <motion.div variants={fadeInUp} className="text-center">
             <Button variant="primary" href={APP_URL}>
-              Créer mon budget
+              Créer mon espace
               <ArrowRight className="h-5 w-5" />
             </Button>
           </motion.div>
@@ -790,14 +785,14 @@ function FinalCTA() {
             variants={fadeInUp}
             className="text-4xl leading-tight font-extrabold tracking-tight text-white md:text-5xl lg:text-6xl"
           >
-            Prêt à reprendre le contrôle ?
+            Prêt à voir clair ?
           </motion.h2>
 
           <motion.p
             variants={fadeInUp}
             className="mx-auto max-w-xl text-xl leading-relaxed text-pulpe-200"
           >
-            Essaie Pulpe gratuitement. Pas de carte bancaire, pas d'engagement.
+            Crée ton espace en 3 minutes. Gratuit, sans carte bancaire.
           </motion.p>
 
           <motion.div variants={fadeInUp} className="pt-4">
@@ -827,7 +822,7 @@ function Footer() {
           </div>
 
           <p className="flex items-center gap-1.5 text-sm font-medium text-sage-300">
-            Fait avec <img src="/icon.png" alt="" className="inline h-4 w-auto" /> en Suisse
+            Fait avec soin en Suisse 🇨🇭
           </p>
 
           <div className="flex gap-6 text-sm font-medium text-sage-300">
