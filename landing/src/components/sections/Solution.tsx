@@ -1,0 +1,28 @@
+import { Section, Screenshot, FadeIn } from '../ui'
+
+export function Solution() {
+  return (
+    <Section id="solution">
+      <div className="max-w-3xl mx-auto text-center mb-12">
+        <FadeIn>
+          <h2 className="text-2xl md:text-4xl font-bold mb-6">
+            Une app qui pense à l'année
+            <br />
+            <span className="text-primary">pour que tu profites du mois</span>
+          </h2>
+          <p className="text-lg text-text-secondary">
+            Au lieu de tracker ce qui est passé, tu planifies ce qui arrive.
+            Résultat : tu sais toujours où tu en es.
+          </p>
+        </FadeIn>
+      </div>
+
+      <FadeIn delay={0.2}>
+        <Screenshot
+          label="Vue annuelle"
+          className="aspect-video w-full max-w-4xl mx-auto"
+        />
+      </FadeIn>
+    </Section>
+  )
+}
