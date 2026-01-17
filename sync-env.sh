@@ -15,7 +15,7 @@ set -e
 
 # Workspace principal contenant les .env de référence
 # Définir PULPE_MAIN_WORKSPACE dans ton shell ou modifier ce fallback
-SOURCE_WORKSPACE="${PULPE_MAIN_WORKSPACE:-$HOME/workspace/perso/pulpe-workspace}"
+SOURCE_WORKSPACE="${PULPE_MAIN_WORKSPACE:-$HOME/workspace/perso/_projets/pulpe-workspace}"
 
 # Répertoire du worktree courant
 CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
