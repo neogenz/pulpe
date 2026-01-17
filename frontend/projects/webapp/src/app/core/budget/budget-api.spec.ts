@@ -58,6 +58,71 @@ describe('BudgetApi', () => {
     };
   }
 
+  describe('createBudget$', () => {
+    it('should make HTTP POST request and sync cache', () => {
+      const { service, httpTesting, mockHasBudgetCache, mockStorageService } =
+        createTestBed();
+      const templateData = {
+        month: 2,
+        year: 2024,
+        description: 'Budget Février',
+        templateId: '550e8400-e29b-41d4-a716-446655440001',
+      };
+      const responseBudget = {
+        id: '550e8400-e29b-41d4-a716-446655440000',
+        month: 2,
+        year: 2024,
+        description: 'Budget Février',
+        templateId: '550e8400-e29b-41d4-a716-446655440001',
+        createdAt: '2024-02-01T00:00:00+00:00',
+        updatedAt: '2024-02-01T00:00:00+00:00',
+      };
+
+      service.createBudget$(templateData).subscribe();
+
+      const req = httpTesting.expectOne('http://localhost:3000/api/v1/budgets');
+      expect(req.request.method).toBe('POST');
+      req.flush({ success: true, data: responseBudget });
+
+      expect(mockHasBudgetCache.setHasBudget).toHaveBeenCalledWith(true);
+      expect(mockStorageService.set).toHaveBeenCalledWith(
+        STORAGE_KEYS.CURRENT_BUDGET,
+        responseBudget,
+      );
+    });
+
+    it('should NOT sync cache on HTTP error', () => {
+      const { service, httpTesting, mockHasBudgetCache } = createTestBed();
+      const templateData = {
+        month: 2,
+        year: 2024,
+        description: 'Budget Février',
+        templateId: '550e8400-e29b-41d4-a716-446655440001',
+      };
+      let error: unknown;
+
+      service.createBudget$(templateData).subscribe({
+        error: (e) => {
+          error = e;
+        },
+      });
+
+      const req = httpTesting.expectOne('http://localhost:3000/api/v1/budgets');
+      req.flush(
+        { message: 'Budget already exists', code: 'ERR_BUDGET_ALREADY_EXISTS' },
+        { status: 400, statusText: 'Bad Request' },
+      );
+
+      expect(error).toEqual({
+        message:
+          'Un budget existe déjà pour cette période. Veuillez sélectionner un autre mois.',
+        details: undefined,
+        code: 'ERR_BUDGET_ALREADY_EXISTS',
+      });
+      expect(mockHasBudgetCache.setHasBudget).not.toHaveBeenCalled();
+    });
+  });
+
   describe('deleteBudget$', () => {
     const budgetId = '550e8400-e29b-41d4-a716-446655440000';
 

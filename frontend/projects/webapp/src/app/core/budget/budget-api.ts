@@ -68,6 +68,7 @@ export class BudgetApi {
             message: 'Budget créé avec succès à partir du template',
           };
           this.#saveBudgetToStorage(validated.data);
+          this.#hasBudgetCache.setHasBudget(true);
           return result;
         }),
         catchError((error) =>
