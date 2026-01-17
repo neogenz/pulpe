@@ -15,6 +15,11 @@
   --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.08);
   --shadow-screenshot: 0 8px 32px rgba(0, 0, 0, 0.12);
   --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.1);
+  --shadow-liquid-glass:
+    0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 2px 4px rgba(0, 0, 0, 0.02),
+    0 8px 16px rgba(0, 0, 0, 0.04),
+    0 16px 32px rgba(0, 0, 0, 0.06);
 
   --radius-button: 12px;
   --radius-card: 16px;
