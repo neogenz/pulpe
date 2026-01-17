@@ -2,12 +2,12 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { provideZonelessChangeDetection } from '@angular/core';
-import { BudgetTemplatesState } from './budget-templates-state';
+import { BudgetTemplatesStore } from './budget-templates-store';
 import { BudgetTemplatesApi } from './budget-templates-api';
 import type { BudgetTemplate, BudgetTemplateCreate } from 'pulpe-shared';
 
-describe('BudgetTemplatesState', () => {
-  let state: BudgetTemplatesState;
+describe('BudgetTemplatesStore', () => {
+  let store: BudgetTemplatesStore;
   let mockApi: Partial<BudgetTemplatesApi>;
 
   const mockTemplates: BudgetTemplate[] = [
@@ -42,21 +42,21 @@ describe('BudgetTemplatesState', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
-        BudgetTemplatesState,
+        BudgetTemplatesStore,
         { provide: BudgetTemplatesApi, useValue: mockApi },
       ],
     });
 
-    state = TestBed.inject(BudgetTemplatesState);
+    store = TestBed.inject(BudgetTemplatesStore);
   });
 
   describe('Initialization', () => {
     it('should initialize with correct MAX_TEMPLATES constant', () => {
-      expect(state.MAX_TEMPLATES).toBe(5);
+      expect(store.MAX_TEMPLATES).toBe(5);
     });
 
     it('should initialize with null selected template', () => {
-      expect(state.selectedTemplate()).toBeNull();
+      expect(store.selectedTemplate()).toBeNull();
     });
   });
 
@@ -65,15 +65,15 @@ describe('BudgetTemplatesState', () => {
       // Wait for resource to load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      expect(state.templateCount()).toBe(2);
+      expect(store.templateCount()).toBe(2);
     });
 
     it('should compute isTemplateLimitReached correctly when under limit', async () => {
       // Wait for resource to load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      expect(state.isTemplateLimitReached()).toBe(false);
-      expect(state.remainingTemplates()).toBe(3);
+      expect(store.isTemplateLimitReached()).toBe(false);
+      expect(store.remainingTemplates()).toBe(3);
     });
 
     it('should compute isTemplateLimitReached as true when at limit', async () => {
@@ -89,14 +89,14 @@ describe('BudgetTemplatesState', () => {
         .mockReturnValue(of({ data: fiveTemplates, success: true }));
 
       // Reinitialize state with new mock data
-      state = TestBed.inject(BudgetTemplatesState);
+      store = TestBed.inject(BudgetTemplatesStore);
 
       // Wait for resource to load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      expect(state.templateCount()).toBe(5);
-      expect(state.isTemplateLimitReached()).toBe(true);
-      expect(state.remainingTemplates()).toBe(0);
+      expect(store.templateCount()).toBe(5);
+      expect(store.isTemplateLimitReached()).toBe(true);
+      expect(store.remainingTemplates()).toBe(0);
     });
   });
 
@@ -105,7 +105,7 @@ describe('BudgetTemplatesState', () => {
       // Wait for resource to load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      const defaultTemplate = state.defaultBudgetTemplate();
+      const defaultTemplate = store.defaultBudgetTemplate();
       expect(defaultTemplate).toBeTruthy();
       expect(defaultTemplate?.id).toBe('template-1');
       expect(defaultTemplate?.isDefault).toBe(true);
@@ -121,12 +121,12 @@ describe('BudgetTemplatesState', () => {
         .fn()
         .mockReturnValue(of({ data: noDefaultTemplates, success: true }));
 
-      state = TestBed.inject(BudgetTemplatesState);
+      store = TestBed.inject(BudgetTemplatesStore);
 
       // Wait for resource to load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      expect(state.defaultBudgetTemplate()).toBeNull();
+      expect(store.defaultBudgetTemplate()).toBeNull();
     });
   });
 
@@ -135,7 +135,7 @@ describe('BudgetTemplatesState', () => {
       // Wait for resource to load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      expect(state.isTemplateLimitReached()).toBe(false);
+      expect(store.isTemplateLimitReached()).toBe(false);
     });
 
     it('should prevent creation when at limit', async () => {
@@ -149,12 +149,12 @@ describe('BudgetTemplatesState', () => {
         .fn()
         .mockReturnValue(of({ data: fiveTemplates, success: true }));
 
-      state = TestBed.inject(BudgetTemplatesState);
+      store = TestBed.inject(BudgetTemplatesStore);
 
       // Wait for resource to load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      expect(state.isTemplateLimitReached()).toBe(true);
+      expect(store.isTemplateLimitReached()).toBe(true);
     });
   });
 
@@ -183,7 +183,7 @@ describe('BudgetTemplatesState', () => {
       // Wait for initial load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      await state.addTemplate(newTemplate);
+      await store.addTemplate(newTemplate);
 
       // Should NOT call update since backend handles default switching
       expect(mockApi.update$).not.toHaveBeenCalled();
@@ -214,7 +214,7 @@ describe('BudgetTemplatesState', () => {
       // Wait for initial load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      await state.addTemplate(newTemplate);
+      await store.addTemplate(newTemplate);
 
       expect(mockApi.update$).not.toHaveBeenCalled();
       expect(mockApi.create$).toHaveBeenCalledWith(newTemplate);
@@ -235,7 +235,7 @@ describe('BudgetTemplatesState', () => {
       // Wait for initial load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      await expect(state.addTemplate(newTemplate)).rejects.toThrow(
+      await expect(store.addTemplate(newTemplate)).rejects.toThrow(
         'Creation failed',
       );
     });
@@ -255,12 +255,12 @@ describe('BudgetTemplatesState', () => {
       // Wait for initial load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      const initialCount = state.templateCount();
+      const initialCount = store.templateCount();
 
-      await expect(state.addTemplate(newTemplate)).rejects.toThrow();
+      await expect(store.addTemplate(newTemplate)).rejects.toThrow();
 
       // Template count should remain the same after rollback
-      expect(state.templateCount()).toBe(initialCount);
+      expect(store.templateCount()).toBe(initialCount);
     });
 
     it('should throw error when trying to create beyond limit', async () => {
@@ -274,7 +274,7 @@ describe('BudgetTemplatesState', () => {
         .fn()
         .mockReturnValue(of({ data: fiveTemplates, success: true }));
 
-      state = TestBed.inject(BudgetTemplatesState);
+      store = TestBed.inject(BudgetTemplatesStore);
 
       // Wait for resource to load
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -286,7 +286,7 @@ describe('BudgetTemplatesState', () => {
         lines: [],
       };
 
-      await expect(state.addTemplate(newTemplate)).rejects.toThrow(
+      await expect(store.addTemplate(newTemplate)).rejects.toThrow(
         'Template limit reached',
       );
       expect(mockApi.create$).not.toHaveBeenCalled();
@@ -318,14 +318,14 @@ describe('BudgetTemplatesState', () => {
       // Wait for initial load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      const initialCount = state.templateCount();
+      const initialCount = store.templateCount();
 
-      await state.addTemplate(newTemplate);
+      await store.addTemplate(newTemplate);
 
       // Template should be added after successful creation
-      expect(state.templateCount()).toBe(initialCount + 1);
+      expect(store.templateCount()).toBe(initialCount + 1);
       expect(
-        state.budgetTemplates.value()?.find((t) => t.id === 'template-3'),
+        store.budgetTemplates.value()?.find((t) => t.id === 'template-3'),
       ).toBeTruthy();
     });
 
@@ -344,16 +344,16 @@ describe('BudgetTemplatesState', () => {
       // Wait for initial load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      const initialCount = state.templateCount();
+      const initialCount = store.templateCount();
 
       try {
-        await state.addTemplate(newTemplate);
+        await store.addTemplate(newTemplate);
       } catch {
         // Expected error
       }
 
       // Template count should remain unchanged
-      expect(state.templateCount()).toBe(initialCount);
+      expect(store.templateCount()).toBe(initialCount);
     });
   });
 
@@ -362,9 +362,9 @@ describe('BudgetTemplatesState', () => {
       // Wait for initial load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      state.selectTemplate('template-2');
+      store.selectTemplate('template-2');
 
-      const selected = state.selectedTemplate();
+      const selected = store.selectedTemplate();
       expect(selected).toBeTruthy();
       expect(selected?.id).toBe('template-2');
       expect(selected?.name).toBe('Template 2');
@@ -374,8 +374,8 @@ describe('BudgetTemplatesState', () => {
       // Wait for initial load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      state.selectTemplate('non-existent');
-      expect(state.selectedTemplate()).toBeNull();
+      store.selectTemplate('non-existent');
+      expect(store.selectedTemplate()).toBeNull();
     });
   });
 
@@ -386,13 +386,13 @@ describe('BudgetTemplatesState', () => {
       // Wait for initial load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      const initialCount = state.templateCount();
+      const initialCount = store.templateCount();
 
-      await state.deleteTemplate('template-2');
+      await store.deleteTemplate('template-2');
 
-      expect(state.templateCount()).toBe(initialCount - 1);
+      expect(store.templateCount()).toBe(initialCount - 1);
       expect(
-        state.budgetTemplates.value()?.find((t) => t.id === 'template-2'),
+        store.budgetTemplates.value()?.find((t) => t.id === 'template-2'),
       ).toBeFalsy();
       expect(mockApi.delete$).toHaveBeenCalledWith('template-2');
     });
@@ -405,14 +405,14 @@ describe('BudgetTemplatesState', () => {
       // Wait for initial load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      const initialTemplates = state.budgetTemplates.value();
+      const initialTemplates = store.budgetTemplates.value();
 
-      await expect(state.deleteTemplate('template-2')).rejects.toThrow(
+      await expect(store.deleteTemplate('template-2')).rejects.toThrow(
         'Deletion failed',
       );
 
       // Should be rolled back
-      expect(state.budgetTemplates.value()).toEqual(initialTemplates);
+      expect(store.budgetTemplates.value()).toEqual(initialTemplates);
     });
   });
 
@@ -421,9 +421,9 @@ describe('BudgetTemplatesState', () => {
       // Wait for initial load to complete
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      const reloadSpy = vi.spyOn(state.budgetTemplates, 'reload');
+      const reloadSpy = vi.spyOn(store.budgetTemplates, 'reload');
 
-      state.refreshData();
+      store.refreshData();
 
       expect(reloadSpy).toHaveBeenCalled();
     });
@@ -433,9 +433,9 @@ describe('BudgetTemplatesState', () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       // The current implementation always calls reload
-      const reloadSpy = vi.spyOn(state.budgetTemplates, 'reload');
+      const reloadSpy = vi.spyOn(store.budgetTemplates, 'reload');
 
-      state.refreshData();
+      store.refreshData();
 
       expect(reloadSpy).toHaveBeenCalled();
     });
@@ -449,14 +449,14 @@ describe('BudgetTemplatesState', () => {
           throwError(() => new Error('Failed to load templates')),
         );
 
-      state = TestBed.inject(BudgetTemplatesState);
+      store = TestBed.inject(BudgetTemplatesStore);
 
       // Wait for resource to attempt load
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      expect(state.budgetTemplates.error()).toBeTruthy();
+      expect(store.budgetTemplates.error()).toBeTruthy();
       // When in error state, resource doesn't return data, so these computed signals should handle it gracefully
-      expect(state.budgetTemplates.status()).toBe('error');
+      expect(store.budgetTemplates.status()).toBe('error');
     });
   });
 });

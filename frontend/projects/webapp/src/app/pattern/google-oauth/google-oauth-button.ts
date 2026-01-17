@@ -10,7 +10,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { AUTH_ERROR_MESSAGES, AuthApi } from '@core/auth';
+import { AUTH_ERROR_MESSAGES, AuthOAuthService } from '@core/auth';
 import { Logger } from '@core/logging/logger';
 
 @Component({
@@ -70,7 +70,7 @@ import { Logger } from '@core/logging/logger';
   `,
 })
 export class GoogleOAuthButton {
-  readonly #authApi = inject(AuthApi);
+  readonly #authOAuth = inject(AuthOAuthService);
   readonly #logger = inject(Logger);
 
   readonly buttonLabel = input<string>('Continuer avec Google');
@@ -87,7 +87,7 @@ export class GoogleOAuthButton {
     this.loadingChange.emit(true);
 
     try {
-      const result = await this.#authApi.signInWithGoogle();
+      const result = await this.#authOAuth.signInWithGoogle();
 
       if (!result.success) {
         this.authError.emit(

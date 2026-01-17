@@ -12,6 +12,15 @@ import { Logger } from '../logging/logger';
 export type StorageKey = `pulpe-${string}` | `pulpe_${string}`;
 
 /**
+ * Wrapper for cached values with TTL support.
+ * The `ttl` field contains the expiration timestamp (Date.now() + ttlMs).
+ */
+interface CachedValue<T> {
+  value: T;
+  ttl: number;
+}
+
+/**
  * Centralized localStorage service with type-safe keys.
  *
  * All storage keys MUST use the 'pulpe-' or 'pulpe_' prefix to ensure
@@ -38,28 +47,89 @@ export class StorageService {
 
   /**
    * Get a value from localStorage.
-   * Returns null if the key doesn't exist or parsing fails.
+   * Returns null if the key doesn't exist, parsing fails, or value is expired.
+   *
+   * @param key Storage key
+   * @param ttlMs Optional TTL in milliseconds. If provided and the stored value
+   *              is in legacy format (no TTL wrapper), it will be considered expired.
    */
-  get<T>(key: StorageKey): T | null {
+  get<T>(key: StorageKey, ttlMs?: number): T | null {
     try {
-      const value = localStorage.getItem(key);
-      if (value === null) {
+      const raw = localStorage.getItem(key);
+      if (raw === null) {
         return null;
       }
-      return JSON.parse(value) as T;
+
+      const parsed = JSON.parse(raw) as unknown;
+
+      // Check if it's a TTL-wrapped value
+      if (this.#isCachedValue(parsed)) {
+        if (Date.now() > parsed.ttl) {
+          this.remove(key);
+          return null;
+        }
+        return parsed.value as T;
+      }
+
+      // Legacy format (no TTL wrapper)
+      // If ttlMs is provided, treat legacy as expired (caller expects TTL behavior)
+      if (ttlMs !== undefined) {
+        return null;
+      }
+
+      return parsed as T;
     } catch (error) {
       this.#logger.warn(`Failed to read '${key}' from localStorage:`, error);
       return null;
     }
   }
 
+  #isCachedValue(value: unknown): value is CachedValue<unknown> {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      'value' in value &&
+      'ttl' in value &&
+      typeof (value as CachedValue<unknown>).ttl === 'number'
+    );
+  }
+
   /**
-   * Get a raw string value from localStorage (without JSON parsing).
-   * Useful for simple string values like 'true' or 'false'.
+   * Get a raw string value from localStorage.
+   * Handles both TTL-wrapped values and legacy raw strings.
+   *
+   * @param key Storage key
+   * @param ttlMs Optional TTL in milliseconds. If provided and the stored value
+   *              is in legacy format (no TTL wrapper), it will be considered expired.
    */
-  getString(key: StorageKey): string | null {
+  getString(key: StorageKey, ttlMs?: number): string | null {
     try {
-      return localStorage.getItem(key);
+      const raw = localStorage.getItem(key);
+      if (raw === null) {
+        return null;
+      }
+
+      // Try to parse as JSON to check for TTL wrapper
+      try {
+        const parsed = JSON.parse(raw) as unknown;
+        if (this.#isCachedValue(parsed)) {
+          if (Date.now() > parsed.ttl) {
+            this.remove(key);
+            return null;
+          }
+          return typeof parsed.value === 'string' ? parsed.value : null;
+        }
+      } catch {
+        // Not JSON, treat as raw string (legacy format)
+      }
+
+      // Legacy raw string format
+      // If ttlMs is provided, treat legacy as expired
+      if (ttlMs !== undefined) {
+        return null;
+      }
+
+      return raw;
     } catch (error) {
       this.#logger.warn(`Failed to read '${key}' from localStorage:`, error);
       return null;
@@ -69,22 +139,40 @@ export class StorageService {
   /**
    * Set a value in localStorage.
    * The value is automatically JSON-serialized.
+   *
+   * @param key Storage key
+   * @param value Value to store
+   * @param ttlMs Optional TTL in milliseconds. If provided, the value is wrapped
+   *              with an expiration timestamp.
    */
-  set<T>(key: StorageKey, value: T): void {
+  set<T>(key: StorageKey, value: T, ttlMs?: number): void {
     try {
-      localStorage.setItem(key, JSON.stringify(value));
+      const toStore =
+        ttlMs !== undefined
+          ? ({ value, ttl: Date.now() + ttlMs } satisfies CachedValue<T>)
+          : value;
+      localStorage.setItem(key, JSON.stringify(toStore));
     } catch (error) {
       this.#logger.warn(`Failed to write '${key}' to localStorage:`, error);
     }
   }
 
   /**
-   * Set a raw string value in localStorage (without JSON serialization).
-   * Useful for simple string values like 'true' or 'false'.
+   * Set a raw string value in localStorage.
+   *
+   * @param key Storage key
+   * @param value String value to store
+   * @param ttlMs Optional TTL in milliseconds. If provided, the value is wrapped
+   *              with an expiration timestamp (stored as JSON).
    */
-  setString(key: StorageKey, value: string): void {
+  setString(key: StorageKey, value: string, ttlMs?: number): void {
     try {
-      localStorage.setItem(key, value);
+      if (ttlMs !== undefined) {
+        const wrapped: CachedValue<string> = { value, ttl: Date.now() + ttlMs };
+        localStorage.setItem(key, JSON.stringify(wrapped));
+      } else {
+        localStorage.setItem(key, value);
+      }
     } catch (error) {
       this.#logger.warn(`Failed to write '${key}' to localStorage:`, error);
     }
@@ -102,11 +190,38 @@ export class StorageService {
   }
 
   /**
-   * Check if a key exists in localStorage.
+   * Check if a key exists in localStorage and is not expired.
+   *
+   * @param key Storage key
+   * @param ttlMs Optional TTL in milliseconds. If provided and the stored value
+   *              is in legacy format (no TTL wrapper), it will be considered not present.
    */
-  has(key: StorageKey): boolean {
+  has(key: StorageKey, ttlMs?: number): boolean {
     try {
-      return localStorage.getItem(key) !== null;
+      const raw = localStorage.getItem(key);
+      if (raw === null) {
+        return false;
+      }
+
+      // If no TTL check required, just check existence
+      if (ttlMs === undefined) {
+        // Still need to check if it's a TTL-wrapped value that's expired
+        try {
+          const parsed = JSON.parse(raw) as unknown;
+          if (this.#isCachedValue(parsed)) {
+            if (Date.now() > parsed.ttl) {
+              this.remove(key);
+              return false;
+            }
+          }
+        } catch {
+          // Not JSON, treat as raw value
+        }
+        return true;
+      }
+
+      // TTL check required - use get() logic
+      return this.get(key, ttlMs) !== null;
     } catch {
       return false;
     }

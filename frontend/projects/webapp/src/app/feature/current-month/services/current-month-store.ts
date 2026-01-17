@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, resource, signal } from '@angular/core';
 import { BudgetApi } from '@core/budget';
+import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { TransactionApi } from '@core/transaction';
 import { UserSettingsApi } from '@core/user-settings';
@@ -42,6 +43,7 @@ export class CurrentMonthStore {
   #httpClient = inject(HttpClient);
   #appConfig = inject(ApplicationConfiguration);
   #userSettingsApi = inject(UserSettingsApi);
+  #invalidationService = inject(BudgetInvalidationService);
 
   /**
    * Simple state signal for UI feedback during operations
@@ -67,17 +69,19 @@ export class CurrentMonthStore {
   });
 
   /**
-   * Resource for loading dashboard data - single source of truth for async data
+   * Resource for loading dashboard data - single source of truth for async data.
+   * Includes invalidation version to auto-reload when budgets are mutated.
    */
   readonly #dashboardResource = resource<
     DashboardData,
-    { month: string; year: string }
+    { month: string; year: string; version: number }
   >({
     params: () => {
       const period = this.currentBudgetPeriod();
       return {
         month: period.month.toString().padStart(2, '0'),
         year: period.year.toString(),
+        version: this.#invalidationService.version(),
       };
     },
     loader: async ({ params }) => this.#loadDashboardData(params),
@@ -141,6 +145,23 @@ export class CurrentMonthStore {
   );
   readonly hasValue = computed(() => this.#dashboardResource.hasValue());
   readonly error = computed(() => this.#dashboardResource.error());
+  readonly status = computed(() => this.#dashboardResource.status());
+
+  /**
+   * Initial loading state - determines when to show full-page spinner.
+   *
+   * Returns true only when:
+   * - Dashboard resource is in initial 'loading' state (not 'reloading')
+   * - OR settings are still loading and we have no cached data yet
+   *
+   * This enables "stale-while-revalidate": show cached data immediately
+   * while refreshing in background (status === 'reloading').
+   */
+  readonly isInitialLoading = computed(
+    () =>
+      this.status() === 'loading' ||
+      (this.isSettingsLoading() && !this.hasValue()),
+  );
 
   /**
    * Current date selector

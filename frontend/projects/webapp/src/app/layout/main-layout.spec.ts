@@ -17,7 +17,8 @@ import { RouterModule } from '@angular/router';
 import { Subject, EMPTY } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import MainLayout from './main-layout';
-import { AuthApi } from '../core/auth/auth-api';
+import { AuthStateService } from '../core/auth/auth-state.service';
+import { AuthSessionService } from '../core/auth/auth-session.service';
 import { BreadcrumbState } from '../core/routing/breadcrumb-state';
 import { ROUTES } from '../core/routing/routes-constants';
 
@@ -93,9 +94,12 @@ class MockPulpeBreadcrumbComponent {
 describe('MainLayout', () => {
   let component: MainLayout;
   let fixture: ComponentFixture<MainLayout>;
-  let mockAuthApi: {
+  let mockAuthStateService: {
     signOut: ReturnType<typeof vi.fn>;
     authState: ReturnType<typeof vi.fn>;
+  };
+  let mockAuthSessionService: {
+    signOut: ReturnType<typeof vi.fn>;
   };
   let mockRouter: {
     navigate: ReturnType<typeof vi.fn>;
@@ -126,7 +130,7 @@ describe('MainLayout', () => {
     breakpointSubject = new Subject<{ matches: boolean }>();
 
     // Create mocks
-    mockAuthApi = {
+    mockAuthStateService = {
       signOut: vi.fn().mockResolvedValue(undefined),
       authState: vi.fn().mockReturnValue({
         user: { email: 'test@example.com' },
@@ -134,6 +138,9 @@ describe('MainLayout', () => {
         isLoading: false,
         isAuthenticated: true,
       }),
+    };
+    mockAuthSessionService = {
+      signOut: vi.fn().mockResolvedValue(undefined),
     };
     mockRouter = {
       navigate: vi.fn().mockResolvedValue(true),
@@ -176,7 +183,8 @@ describe('MainLayout', () => {
       ],
       providers: [
         provideZonelessChangeDetection(),
-        { provide: AuthApi, useValue: mockAuthApi },
+        { provide: AuthStateService, useValue: mockAuthStateService },
+        { provide: AuthSessionService, useValue: mockAuthSessionService },
         { provide: Router, useValue: mockRouter },
         { provide: ActivatedRoute, useValue: {} },
         { provide: BreakpointObserver, useValue: mockBreakpointObserver },
@@ -318,12 +326,12 @@ describe('MainLayout', () => {
       await firstLogout;
 
       // Should only be called once from the first logout
-      expect(mockAuthApi.signOut).toHaveBeenCalledTimes(1);
+      expect(mockAuthSessionService.signOut).toHaveBeenCalledTimes(1);
       expect(locationHrefSpy).toHaveBeenCalledTimes(1);
     });
 
     it('should successfully logout and redirect via full page reload', async () => {
-      mockAuthApi.signOut.mockResolvedValue(undefined);
+      mockAuthSessionService.signOut.mockResolvedValue(undefined);
 
       const logoutPromise = component.onLogout();
 
@@ -332,20 +340,20 @@ describe('MainLayout', () => {
 
       await logoutPromise;
 
-      expect(mockAuthApi.signOut).toHaveBeenCalledOnce();
+      expect(mockAuthSessionService.signOut).toHaveBeenCalledOnce();
       // Verify full page reload to login (clears all in-memory state)
       expect(locationHrefSpy).toHaveBeenCalledWith('/' + ROUTES.LOGIN);
     });
 
     it('should handle auth service errors gracefully and still redirect', async () => {
       const authError = new Error('Auth service error');
-      mockAuthApi.signOut.mockRejectedValue(authError);
+      mockAuthSessionService.signOut.mockRejectedValue(authError);
 
       // Test the business behavior: error handling should not crash the app
       await component.onLogout();
 
       // Verify business requirements
-      expect(mockAuthApi.signOut).toHaveBeenCalledOnce();
+      expect(mockAuthSessionService.signOut).toHaveBeenCalledOnce();
       // Even on error, should redirect to clear state
       expect(locationHrefSpy).toHaveBeenCalledWith('/' + ROUTES.LOGIN);
     });

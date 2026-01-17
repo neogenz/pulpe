@@ -8,7 +8,7 @@
 import { inject, Injectable } from '@angular/core';
 import { driver, type DriveStep, type Config, type Driver } from 'driver.js';
 import { StorageService, type StorageKey } from '@core/storage';
-import { AuthApi } from '@core/auth/auth-api';
+import { AuthStateService } from '@core/auth/auth-state.service';
 
 export type TourPageId =
   | 'current-month'
@@ -39,7 +39,7 @@ const TOUR_IDS = {
 })
 export class ProductTourService {
   readonly #storageService = inject(StorageService);
-  readonly #authApi = inject(AuthApi);
+  readonly #authState = inject(AuthStateService);
 
   /** Active Driver.js instance to prevent concurrent tours */
   #activeDriver: Driver | null = null;
@@ -48,7 +48,7 @@ export class ProductTourService {
    * Check if the service is ready to operate (user is authenticated)
    */
   isReady(): boolean {
-    return !!this.#authApi.currentUser?.id;
+    return !!this.#authState.user()?.id;
   }
 
   /**
@@ -56,7 +56,7 @@ export class ProductTourService {
    * Requires authenticated user - returns null if not ready.
    */
   #getTourKey(tourId: string): StorageKey | null {
-    const userId = this.#authApi.currentUser?.id;
+    const userId = this.#authState.user()?.id;
     if (!userId) {
       return null;
     }

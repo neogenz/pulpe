@@ -2,20 +2,20 @@ import SwiftUI
 
 struct BudgetListView: View {
     @Environment(AppState.self) private var appState
-    @State private var viewModel = BudgetListViewModel()
+    @Environment(BudgetListStore.self) private var store
     @State private var showCreateBudget = false
     @State private var hasAppeared = false
     @State private var expandedYears: Set<Int> = []
 
     var body: some View {
         Group {
-            if viewModel.isLoading && viewModel.budgets.isEmpty {
+            if store.isLoading && store.budgets.isEmpty {
                 LoadingView(message: "Récupération de tes budgets...")
-            } else if let error = viewModel.error, viewModel.budgets.isEmpty {
+            } else if let error = store.error, store.budgets.isEmpty {
                 ErrorView(error: error) {
-                    await viewModel.loadBudgets()
+                    await store.forceRefresh()
                 }
-            } else if viewModel.budgets.isEmpty {
+            } else if store.budgets.isEmpty {
                 EmptyStateView(
                     title: "Pas encore de budget",
                     description: "Crée ton premier budget et reprends le contrôle",
@@ -35,21 +35,23 @@ struct BudgetListView: View {
             }
         }
         .sheet(isPresented: $showCreateBudget) {
-            if let nextMonth = viewModel.nextAvailableMonth {
+            if let nextMonth = store.nextAvailableMonth {
                 CreateBudgetView(
                     month: nextMonth.month,
                     year: nextMonth.year
                 ) { budget in
-                    viewModel.addBudget(budget)
-                    appState.budgetPath.append(BudgetDestination.details(budgetId: budget.id))
+                    Task {
+                        await store.addBudget(budget)
+                        appState.budgetPath.append(BudgetDestination.details(budgetId: budget.id))
+                    }
                 }
             }
         }
         .refreshable {
-            await viewModel.loadBudgets()
+            await store.forceRefresh()
         }
         .task {
-            await viewModel.loadBudgets()
+            await store.loadIfNeeded()
             // Expand only the current year by default
             let currentYear = Date().year
             expandedYears = [currentYear]
@@ -67,7 +69,7 @@ struct BudgetListView: View {
         } label: {
             Image(systemName: "plus")
         }
-        .disabled(viewModel.nextAvailableMonth == nil)
+        .disabled(store.nextAvailableMonth == nil)
         .accessibilityLabel("Créer un nouveau budget")
     }
 
@@ -76,7 +78,7 @@ struct BudgetListView: View {
     private var budgetList: some View {
         ScrollView {
             LazyVStack(spacing: 20) {
-                ForEach(Array(viewModel.groupedByYear.enumerated()), id: \.element.year) { index, group in
+                ForEach(Array(store.groupedByYear.enumerated()), id: \.element.year) { index, group in
                     YearSection(
                         year: group.year,
                         budgets: group.budgets,
@@ -398,57 +400,11 @@ struct EmptyMonthCard: View {
     }
 }
 
-// MARK: - ViewModel
-
-@Observable @MainActor
-final class BudgetListViewModel {
-    private(set) var budgets: [Budget] = []
-    private(set) var isLoading = false
-    private(set) var error: Error?
-
-    private let budgetService = BudgetService.shared
-
-    struct YearGroup {
-        let year: Int
-        let budgets: [Budget]
-    }
-
-    var groupedByYear: [YearGroup] {
-        let grouped = Dictionary(grouping: budgets) { $0.year }
-        return grouped
-            .sorted { $0.key < $1.key } // Oldest first, newest last
-            .map { year, budgets in
-                YearGroup(year: year, budgets: budgets.sorted { $0.month < $1.month })
-            }
-    }
-
-    var nextAvailableMonth: (month: Int, year: Int)? {
-        budgetService.getNextAvailableMonth(existingBudgets: budgets)
-    }
-
-    func loadBudgets() async {
-        isLoading = true
-        error = nil
-
-        do {
-            budgets = try await budgetService.getAllBudgets()
-        } catch {
-            self.error = error
-        }
-
-        isLoading = false
-    }
-
-    func addBudget(_ budget: Budget) {
-        budgets.append(budget)
-    }
-}
-
-// MARK: - Preview
-
 #Preview("Budget List") {
     NavigationStack {
         BudgetListView()
     }
     .environment(AppState())
+    .environment(CurrentMonthStore())
+    .environment(BudgetListStore())
 }
