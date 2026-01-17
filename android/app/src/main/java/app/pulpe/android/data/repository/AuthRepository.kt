@@ -1,13 +1,14 @@
 package app.pulpe.android.data.repository
 
 import app.pulpe.android.data.api.PulpeApiService
-import app.pulpe.android.data.local.TokenStorage
+import app.pulpe.android.data.local.SecureTokenStorage
 import app.pulpe.android.data.local.UserPreferences
+import app.pulpe.android.di.IoDispatcher
 import app.pulpe.android.domain.model.UserInfo
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -16,10 +17,11 @@ import javax.inject.Singleton
 class AuthRepository @Inject constructor(
     private val supabaseClient: SupabaseClient,
     private val apiService: PulpeApiService,
-    private val tokenStorage: TokenStorage,
-    private val userPreferences: UserPreferences
+    private val tokenStorage: SecureTokenStorage,
+    private val userPreferences: UserPreferences,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) {
-    suspend fun login(email: String, password: String): Result<UserInfo> = withContext(Dispatchers.IO) {
+    suspend fun login(email: String, password: String): Result<UserInfo> = withContext(ioDispatcher) {
         try {
             supabaseClient.auth.signInWith(Email) {
                 this.email = email
@@ -43,7 +45,7 @@ class AuthRepository @Inject constructor(
         }
     }
 
-    suspend fun signUp(email: String, password: String): Result<UserInfo> = withContext(Dispatchers.IO) {
+    suspend fun signUp(email: String, password: String): Result<UserInfo> = withContext(ioDispatcher) {
         try {
             supabaseClient.auth.signUpWith(Email) {
                 this.email = email
@@ -66,7 +68,7 @@ class AuthRepository @Inject constructor(
         }
     }
 
-    suspend fun validateSession(): Result<UserInfo> = withContext(Dispatchers.IO) {
+    suspend fun validateSession(): Result<UserInfo> = withContext(ioDispatcher) {
         try {
             val hasTokens = tokenStorage.hasTokens()
             if (!hasTokens) {
@@ -84,7 +86,7 @@ class AuthRepository @Inject constructor(
         }
     }
 
-    suspend fun logout() = withContext(Dispatchers.IO) {
+    suspend fun logout() = withContext(ioDispatcher) {
         try {
             supabaseClient.auth.signOut()
         } catch (_: Exception) {
@@ -113,7 +115,7 @@ class AuthRepository @Inject constructor(
         logout()
     }
 
-    suspend fun refreshToken(): Result<String> = withContext(Dispatchers.IO) {
+    suspend fun refreshToken(): Result<String> = withContext(ioDispatcher) {
         try {
             supabaseClient.auth.refreshCurrentSession()
             val session = supabaseClient.auth.currentSessionOrNull()

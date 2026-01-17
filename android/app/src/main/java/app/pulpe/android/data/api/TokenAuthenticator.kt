@@ -1,6 +1,6 @@
 package app.pulpe.android.data.api
 
-import app.pulpe.android.data.local.TokenStorage
+import app.pulpe.android.data.local.SecureTokenStorage
 import app.pulpe.android.data.repository.AuthRepository
 import kotlinx.coroutines.runBlocking
 import okhttp3.Authenticator
@@ -12,7 +12,7 @@ import javax.inject.Provider
 
 class TokenAuthenticator @Inject constructor(
     private val authRepositoryProvider: Provider<AuthRepository>,
-    private val tokenStorage: TokenStorage
+    private val tokenStorage: SecureTokenStorage
 ) : Authenticator {
 
     companion object {

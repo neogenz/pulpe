@@ -92,8 +92,10 @@ dependencies {
 
     // Data
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.datastore)
     implementation(libs.androidx.security.crypto)
     implementation(libs.androidx.biometric)
+    implementation(libs.tink.android)
 
     // Animation
     implementation(libs.lottie.compose)

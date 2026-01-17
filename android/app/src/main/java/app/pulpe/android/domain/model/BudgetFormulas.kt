@@ -25,6 +25,18 @@ object BudgetFormulas {
 
         val isDeficit: Boolean
             get() = remaining < BigDecimal.ZERO
+
+        companion object {
+            val EMPTY = Metrics(
+                totalIncome = BigDecimal.ZERO,
+                totalExpenses = BigDecimal.ZERO,
+                totalSavings = BigDecimal.ZERO,
+                available = BigDecimal.ZERO,
+                endingBalance = BigDecimal.ZERO,
+                remaining = BigDecimal.ZERO,
+                rollover = BigDecimal.ZERO
+            )
+        }
     }
 
     data class RealizedMetrics(
@@ -38,6 +50,16 @@ object BudgetFormulas {
             get() = if (totalItemsCount > 0) {
                 checkedItemsCount.toDouble() / totalItemsCount * 100
             } else 0.0
+
+        companion object {
+            val EMPTY = RealizedMetrics(
+                realizedIncome = BigDecimal.ZERO,
+                realizedExpenses = BigDecimal.ZERO,
+                realizedBalance = BigDecimal.ZERO,
+                checkedItemsCount = 0,
+                totalItemsCount = 0
+            )
+        }
     }
 
     data class Consumption(

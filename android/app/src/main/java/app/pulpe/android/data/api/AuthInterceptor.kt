@@ -1,12 +1,12 @@
 package app.pulpe.android.data.api
 
-import app.pulpe.android.data.local.TokenStorage
+import app.pulpe.android.data.local.SecureTokenStorage
 import okhttp3.Interceptor
 import okhttp3.Response
 import javax.inject.Inject
 
 class AuthInterceptor @Inject constructor(
-    private val tokenStorage: TokenStorage
+    private val tokenStorage: SecureTokenStorage
 ) : Interceptor {
 
     override fun intercept(chain: Interceptor.Chain): Response {

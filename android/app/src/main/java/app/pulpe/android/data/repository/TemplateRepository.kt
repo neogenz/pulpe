@@ -1,17 +1,19 @@
 package app.pulpe.android.data.repository
 
 import app.pulpe.android.data.api.PulpeApiService
+import app.pulpe.android.di.IoDispatcher
 import app.pulpe.android.domain.model.*
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class TemplateRepository @Inject constructor(
-    private val apiService: PulpeApiService
+    private val apiService: PulpeApiService,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) {
-    suspend fun getTemplates(): Result<List<BudgetTemplate>> = withContext(Dispatchers.IO) {
+    suspend fun getTemplates(): Result<List<BudgetTemplate>> = withContext(ioDispatcher) {
         try {
             val response = apiService.getTemplates()
             if (response.success) {
@@ -24,7 +26,7 @@ class TemplateRepository @Inject constructor(
         }
     }
 
-    suspend fun getTemplate(id: String): Result<BudgetTemplate> = withContext(Dispatchers.IO) {
+    suspend fun getTemplate(id: String): Result<BudgetTemplate> = withContext(ioDispatcher) {
         try {
             val response = apiService.getTemplate(id)
             if (response.success) {
@@ -37,7 +39,7 @@ class TemplateRepository @Inject constructor(
         }
     }
 
-    suspend fun getTemplateUsage(id: String): Result<TemplateUsageData> = withContext(Dispatchers.IO) {
+    suspend fun getTemplateUsage(id: String): Result<TemplateUsageData> = withContext(ioDispatcher) {
         try {
             val response = apiService.getTemplateUsage(id)
             if (response.success) {
@@ -50,7 +52,7 @@ class TemplateRepository @Inject constructor(
         }
     }
 
-    suspend fun createTemplate(template: BudgetTemplateCreate): Result<TemplateCreateData> = withContext(Dispatchers.IO) {
+    suspend fun createTemplate(template: BudgetTemplateCreate): Result<TemplateCreateData> = withContext(ioDispatcher) {
         try {
             val response = apiService.createTemplate(template)
             if (response.success) {
@@ -63,7 +65,7 @@ class TemplateRepository @Inject constructor(
         }
     }
 
-    suspend fun createTemplateFromOnboarding(data: BudgetTemplateCreateFromOnboarding): Result<TemplateCreateData> = withContext(Dispatchers.IO) {
+    suspend fun createTemplateFromOnboarding(data: BudgetTemplateCreateFromOnboarding): Result<TemplateCreateData> = withContext(ioDispatcher) {
         try {
             val response = apiService.createTemplateFromOnboarding(data)
             if (response.success) {
@@ -76,7 +78,7 @@ class TemplateRepository @Inject constructor(
         }
     }
 
-    suspend fun updateTemplate(id: String, update: BudgetTemplateUpdate): Result<BudgetTemplate> = withContext(Dispatchers.IO) {
+    suspend fun updateTemplate(id: String, update: BudgetTemplateUpdate): Result<BudgetTemplate> = withContext(ioDispatcher) {
         try {
             val response = apiService.updateTemplate(id, update)
             if (response.success) {
@@ -89,7 +91,7 @@ class TemplateRepository @Inject constructor(
         }
     }
 
-    suspend fun deleteTemplate(id: String): Result<Unit> = withContext(Dispatchers.IO) {
+    suspend fun deleteTemplate(id: String): Result<Unit> = withContext(ioDispatcher) {
         try {
             val response = apiService.deleteTemplate(id)
             if (response.success) {
@@ -102,7 +104,7 @@ class TemplateRepository @Inject constructor(
         }
     }
 
-    suspend fun getTemplateLines(templateId: String): Result<List<TemplateLine>> = withContext(Dispatchers.IO) {
+    suspend fun getTemplateLines(templateId: String): Result<List<TemplateLine>> = withContext(ioDispatcher) {
         try {
             val response = apiService.getTemplateLines(templateId)
             if (response.success) {
@@ -118,7 +120,7 @@ class TemplateRepository @Inject constructor(
     suspend fun bulkUpdateTemplateLines(
         templateId: String,
         operations: TemplateLinesBulkOperations
-    ): Result<List<TemplateLine>> = withContext(Dispatchers.IO) {
+    ): Result<List<TemplateLine>> = withContext(ioDispatcher) {
         try {
             val response = apiService.bulkUpdateTemplateLines(templateId, operations)
             if (response.success) {
@@ -131,7 +133,7 @@ class TemplateRepository @Inject constructor(
         }
     }
 
-    suspend fun updateTemplateLine(id: String, update: TemplateLineUpdate): Result<TemplateLine> = withContext(Dispatchers.IO) {
+    suspend fun updateTemplateLine(id: String, update: TemplateLineUpdate): Result<TemplateLine> = withContext(ioDispatcher) {
         try {
             val response = apiService.updateTemplateLine(id, update)
             if (response.success) {
@@ -144,7 +146,7 @@ class TemplateRepository @Inject constructor(
         }
     }
 
-    suspend fun deleteTemplateLine(id: String): Result<Unit> = withContext(Dispatchers.IO) {
+    suspend fun deleteTemplateLine(id: String): Result<Unit> = withContext(ioDispatcher) {
         try {
             val response = apiService.deleteTemplateLine(id)
             if (response.success) {

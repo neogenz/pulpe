@@ -22,57 +22,74 @@ data class CurrentMonthUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val showAddTransactionSheet: Boolean = false,
-    val showRealizedBalanceSheet: Boolean = false
+    val showRealizedBalanceSheet: Boolean = false,
+    // Pre-computed values (updated via computeValues())
+    val metrics: BudgetFormulas.Metrics = BudgetFormulas.Metrics.EMPTY,
+    val realizedMetrics: BudgetFormulas.RealizedMetrics = BudgetFormulas.RealizedMetrics.EMPTY,
+    val daysRemaining: Int = 1,
+    val dailyBudget: BigDecimal = BigDecimal.ZERO,
+    val alertBudgetLines: List<Pair<BudgetLine, BudgetFormulas.Consumption>> = emptyList(),
+    val recentTransactions: List<Transaction> = emptyList(),
+    val uncheckedTransactions: List<Transaction> = emptyList()
 ) {
-    val metrics: BudgetFormulas.Metrics
-        get() = BudgetFormulas.calculateAllMetrics(
-            budgetLines = budgetLines,
-            transactions = transactions,
-            rollover = budget?.rolloverOrZero ?: BigDecimal.ZERO
-        )
+    companion object {
+        fun computeValues(
+            budget: Budget?,
+            budgetLines: List<BudgetLine>,
+            transactions: List<Transaction>
+        ): CurrentMonthUiState {
+            val metrics = BudgetFormulas.calculateAllMetrics(
+                budgetLines = budgetLines,
+                transactions = transactions,
+                rollover = budget?.rolloverOrZero ?: BigDecimal.ZERO
+            )
 
-    val realizedMetrics: BudgetFormulas.RealizedMetrics
-        get() = BudgetFormulas.calculateRealizedMetrics(
-            budgetLines = budgetLines,
-            transactions = transactions
-        )
+            val realizedMetrics = BudgetFormulas.calculateRealizedMetrics(
+                budgetLines = budgetLines,
+                transactions = transactions
+            )
 
-    val daysRemaining: Int
-        get() {
             val today = LocalDate.now()
             val endOfMonth = YearMonth.now().atEndOfMonth()
-            return (endOfMonth.dayOfMonth - today.dayOfMonth + 1).coerceAtLeast(1)
-        }
+            val daysRemaining = (endOfMonth.dayOfMonth - today.dayOfMonth + 1).coerceAtLeast(1)
 
-    val dailyBudget: BigDecimal
-        get() {
-            if (daysRemaining <= 0 || metrics.remaining <= BigDecimal.ZERO) {
-                return BigDecimal.ZERO
+            val dailyBudget = if (daysRemaining <= 0 || metrics.remaining <= BigDecimal.ZERO) {
+                BigDecimal.ZERO
+            } else {
+                metrics.remaining.divide(BigDecimal(daysRemaining), 2, java.math.RoundingMode.HALF_UP)
             }
-            return metrics.remaining.divide(BigDecimal(daysRemaining), 2, java.math.RoundingMode.HALF_UP)
+
+            val alertBudgetLines = budgetLines
+                .filter { it.kind.isOutflow && it.isRollover != true }
+                .mapNotNull { line ->
+                    val consumption = BudgetFormulas.calculateConsumption(line, transactions)
+                    if (consumption.percentage >= 80) line to consumption else null
+                }
+                .sortedByDescending { it.second.percentage }
+
+            val recentTransactions = transactions
+                .sortedByDescending { it.transactionDate }
+                .take(5)
+
+            val uncheckedTransactions = transactions
+                .filter { !it.isChecked }
+                .sortedByDescending { it.transactionDate }
+                .take(5)
+
+            return CurrentMonthUiState(
+                budget = budget,
+                budgetLines = budgetLines,
+                transactions = transactions,
+                metrics = metrics,
+                realizedMetrics = realizedMetrics,
+                daysRemaining = daysRemaining,
+                dailyBudget = dailyBudget,
+                alertBudgetLines = alertBudgetLines,
+                recentTransactions = recentTransactions,
+                uncheckedTransactions = uncheckedTransactions
+            )
         }
-
-    val alertBudgetLines: List<Pair<BudgetLine, BudgetFormulas.Consumption>>
-        get() = budgetLines
-            .filter { it.kind.isOutflow && it.isRollover != true }
-            .mapNotNull { line ->
-                val consumption = BudgetFormulas.calculateConsumption(line, transactions)
-                if (consumption.percentage >= 80) {
-                    line to consumption
-                } else null
-            }
-            .sortedByDescending { it.second.percentage }
-
-    val recentTransactions: List<Transaction>
-        get() = transactions
-            .sortedByDescending { it.transactionDate }
-            .take(5)
-
-    val uncheckedTransactions: List<Transaction>
-        get() = transactions
-            .filter { !it.isChecked }
-            .sortedByDescending { it.transactionDate }
-            .take(5)
+    }
 }
 
 @HiltViewModel
@@ -119,13 +136,13 @@ class CurrentMonthViewModel @Inject constructor(
         val detailsResult = budgetRepository.getBudgetDetails(budgetId)
         detailsResult.fold(
             onSuccess = { details ->
+                val computed = CurrentMonthUiState.computeValues(
+                    budget = details.budget,
+                    budgetLines = details.budgetLines,
+                    transactions = details.transactions
+                )
                 _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        budget = details.budget,
-                        budgetLines = details.budgetLines,
-                        transactions = details.transactions
-                    )
+                    computed.copy(isLoading = false)
                 }
             },
             onFailure = { error ->
@@ -156,11 +173,14 @@ class CurrentMonthViewModel @Inject constructor(
     }
 
     fun onTransactionAdded(transaction: Transaction) {
-        _uiState.update {
-            it.copy(
-                transactions = it.transactions + transaction,
-                showAddTransactionSheet = false
+        _uiState.update { state ->
+            val newTransactions = state.transactions + transaction
+            val computed = CurrentMonthUiState.computeValues(
+                budget = state.budget,
+                budgetLines = state.budgetLines,
+                transactions = newTransactions
             )
+            computed.copy(showAddTransactionSheet = false)
         }
     }
 }

@@ -1,8 +1,9 @@
 package app.pulpe.android.data.repository
 
 import app.pulpe.android.data.api.PulpeApiService
+import app.pulpe.android.di.IoDispatcher
 import app.pulpe.android.domain.model.*
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import java.time.YearMonth
 import javax.inject.Inject
@@ -10,9 +11,10 @@ import javax.inject.Singleton
 
 @Singleton
 class BudgetRepository @Inject constructor(
-    private val apiService: PulpeApiService
+    private val apiService: PulpeApiService,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) {
-    suspend fun getBudgets(): Result<List<Budget>> = withContext(Dispatchers.IO) {
+    suspend fun getBudgets(): Result<List<Budget>> = withContext(ioDispatcher) {
         try {
             val response = apiService.getBudgets()
             if (response.success) {
@@ -25,7 +27,7 @@ class BudgetRepository @Inject constructor(
         }
     }
 
-    suspend fun getCurrentMonthBudget(): Result<Budget?> = withContext(Dispatchers.IO) {
+    suspend fun getCurrentMonthBudget(): Result<Budget?> = withContext(ioDispatcher) {
         try {
             val response = apiService.getBudgets()
             if (response.success) {
@@ -42,7 +44,7 @@ class BudgetRepository @Inject constructor(
         }
     }
 
-    suspend fun getBudget(id: String): Result<Budget> = withContext(Dispatchers.IO) {
+    suspend fun getBudget(id: String): Result<Budget> = withContext(ioDispatcher) {
         try {
             val response = apiService.getBudget(id)
             if (response.success) {
@@ -55,7 +57,7 @@ class BudgetRepository @Inject constructor(
         }
     }
 
-    suspend fun getBudgetDetails(id: String): Result<BudgetDetails> = withContext(Dispatchers.IO) {
+    suspend fun getBudgetDetails(id: String): Result<BudgetDetails> = withContext(ioDispatcher) {
         try {
             val response = apiService.getBudgetDetails(id)
             if (response.success) {
@@ -68,7 +70,7 @@ class BudgetRepository @Inject constructor(
         }
     }
 
-    suspend fun exportBudgets(): Result<BudgetExportData> = withContext(Dispatchers.IO) {
+    suspend fun exportBudgets(): Result<BudgetExportData> = withContext(ioDispatcher) {
         try {
             val response = apiService.exportBudgets()
             if (response.success) {
@@ -81,7 +83,7 @@ class BudgetRepository @Inject constructor(
         }
     }
 
-    suspend fun createBudget(budget: BudgetCreate): Result<Budget> = withContext(Dispatchers.IO) {
+    suspend fun createBudget(budget: BudgetCreate): Result<Budget> = withContext(ioDispatcher) {
         try {
             val response = apiService.createBudget(budget)
             if (response.success) {
@@ -94,7 +96,7 @@ class BudgetRepository @Inject constructor(
         }
     }
 
-    suspend fun updateBudget(id: String, update: BudgetUpdate): Result<Budget> = withContext(Dispatchers.IO) {
+    suspend fun updateBudget(id: String, update: BudgetUpdate): Result<Budget> = withContext(ioDispatcher) {
         try {
             val response = apiService.updateBudget(id, update)
             if (response.success) {
@@ -107,7 +109,7 @@ class BudgetRepository @Inject constructor(
         }
     }
 
-    suspend fun deleteBudget(id: String): Result<Unit> = withContext(Dispatchers.IO) {
+    suspend fun deleteBudget(id: String): Result<Unit> = withContext(ioDispatcher) {
         try {
             val response = apiService.deleteBudget(id)
             if (response.success) {

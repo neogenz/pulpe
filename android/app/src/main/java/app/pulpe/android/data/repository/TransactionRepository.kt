@@ -1,17 +1,19 @@
 package app.pulpe.android.data.repository
 
 import app.pulpe.android.data.api.PulpeApiService
+import app.pulpe.android.di.IoDispatcher
 import app.pulpe.android.domain.model.*
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class TransactionRepository @Inject constructor(
-    private val apiService: PulpeApiService
+    private val apiService: PulpeApiService,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) {
-    suspend fun getTransactionsByBudget(budgetId: String): Result<List<Transaction>> = withContext(Dispatchers.IO) {
+    suspend fun getTransactionsByBudget(budgetId: String): Result<List<Transaction>> = withContext(ioDispatcher) {
         try {
             val response = apiService.getTransactionsByBudget(budgetId)
             if (response.success) {
@@ -24,7 +26,7 @@ class TransactionRepository @Inject constructor(
         }
     }
 
-    suspend fun createTransaction(transaction: TransactionCreate): Result<Transaction> = withContext(Dispatchers.IO) {
+    suspend fun createTransaction(transaction: TransactionCreate): Result<Transaction> = withContext(ioDispatcher) {
         try {
             val response = apiService.createTransaction(transaction)
             if (response.success) {
@@ -37,7 +39,7 @@ class TransactionRepository @Inject constructor(
         }
     }
 
-    suspend fun getTransaction(id: String): Result<Transaction> = withContext(Dispatchers.IO) {
+    suspend fun getTransaction(id: String): Result<Transaction> = withContext(ioDispatcher) {
         try {
             val response = apiService.getTransaction(id)
             if (response.success) {
@@ -50,7 +52,7 @@ class TransactionRepository @Inject constructor(
         }
     }
 
-    suspend fun updateTransaction(id: String, update: TransactionUpdate): Result<Transaction> = withContext(Dispatchers.IO) {
+    suspend fun updateTransaction(id: String, update: TransactionUpdate): Result<Transaction> = withContext(ioDispatcher) {
         try {
             val response = apiService.updateTransaction(id, update)
             if (response.success) {
@@ -63,7 +65,7 @@ class TransactionRepository @Inject constructor(
         }
     }
 
-    suspend fun deleteTransaction(id: String): Result<Unit> = withContext(Dispatchers.IO) {
+    suspend fun deleteTransaction(id: String): Result<Unit> = withContext(ioDispatcher) {
         try {
             val response = apiService.deleteTransaction(id)
             if (response.success) {
@@ -76,7 +78,7 @@ class TransactionRepository @Inject constructor(
         }
     }
 
-    suspend fun toggleCheck(id: String): Result<Transaction> = withContext(Dispatchers.IO) {
+    suspend fun toggleCheck(id: String): Result<Transaction> = withContext(ioDispatcher) {
         try {
             val response = apiService.toggleTransactionCheck(id)
             if (response.success) {
