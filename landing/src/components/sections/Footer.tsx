@@ -1,0 +1,43 @@
+import { Container } from '../ui'
+
+export function Footer() {
+  return (
+    <footer className="py-12 bg-surface border-t border-text/5">
+      <Container>
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-2 font-bold text-xl text-text">
+            <span className="text-3xl" role="img" aria-hidden="true">🍊</span>
+            <span>Pulpe</span>
+          </div>
+
+          <nav className="flex flex-wrap items-center justify-center gap-4 md:gap-6 text-sm text-text-secondary">
+            <a
+              href="https://github.com/maximedesogus/pulpe"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-text transition-colors"
+            >
+              Code source
+            </a>
+            <a href="/cgu" className="hover:text-text transition-colors">
+              Conditions d'utilisation
+            </a>
+            <a href="/privacy" className="hover:text-text transition-colors">
+              Politique de confidentialité
+            </a>
+            <a
+              href="mailto:maxime.desogus@gmail.com"
+              className="hover:text-text transition-colors"
+            >
+              Contact
+            </a>
+          </nav>
+
+          <p className="text-sm text-text-secondary">
+            Fait avec <span role="img" aria-label="orange">🍊</span> en Suisse
+          </p>
+        </div>
+      </Container>
+    </footer>
+  )
+}

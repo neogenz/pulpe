@@ -1,0 +1,68 @@
+import { Section, Badge, FadeIn } from '../ui'
+
+export function WhyFree() {
+  return (
+    <Section background="alt" id="why-free">
+      <div className="max-w-3xl mx-auto">
+        <FadeIn>
+          <h2 className="text-2xl md:text-4xl font-bold text-center mb-12">
+            Pourquoi Pulpe est gratuit
+          </h2>
+        </FadeIn>
+
+        <FadeIn delay={0.1}>
+          <div className="space-y-8 text-text-secondary">
+            <div>
+              <h3 className="font-semibold text-text mb-2">Un projet né d'un vrai besoin</h3>
+              <p>
+                J'ai créé Pulpe parce que j'en avais marre de mon Excel budget sur mobile.
+                Si elle peut t'aider aussi, tant mieux.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-text mb-2">Gratuit et open source</h3>
+              <p>
+                Pas de publicité, pas d'abonnement caché. Un projet personnel développé par passion.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-text mb-2">Tes données sont protégées</h3>
+              <p>
+                Analytics hébergés en Europe, montants toujours masqués. Je ne vois jamais tes chiffres.
+              </p>
+            </div>
+
+            <p className="font-semibold text-text pt-4">
+              — Maxime, créateur de Pulpe
+            </p>
+          </div>
+        </FadeIn>
+
+        <FadeIn delay={0.2}>
+          <div className="flex flex-wrap gap-3 justify-center mt-10">
+            <Badge>Open Source</Badge>
+            <Badge>Hébergé en Europe</Badge>
+            <Badge>Données masquées</Badge>
+          </div>
+        </FadeIn>
+
+        <FadeIn delay={0.3}>
+          <div className="flex flex-wrap gap-4 justify-center mt-8 text-sm">
+            <a
+              href="https://github.com/maximedesogus/pulpe"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-accent hover:underline"
+            >
+              Voir le code source
+            </a>
+            <a href="/cgu" className="text-accent hover:underline">CGU</a>
+            <a href="/privacy" className="text-accent hover:underline">Confidentialité</a>
+          </div>
+        </FadeIn>
+      </div>
+    </Section>
+  )
+}
