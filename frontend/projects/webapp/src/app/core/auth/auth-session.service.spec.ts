@@ -316,7 +316,11 @@ describe('AuthSessionService', () => {
 
     await service.initializeAuthState();
 
+<<<<<<< HEAD
     expect(mockLogger.debug).toHaveBeenCalledWith(
+=======
+    expect(mockLogger.info).toHaveBeenCalledWith(
+>>>>>>> 35f02287 (fix: resolve webapp navigation delay with instant cache (#189))
       '🎭 Mode test E2E détecté, utilisation des mocks auth',
     );
     expect(mockAuthState.setSession).toHaveBeenCalledWith(mockSession);
@@ -550,7 +554,11 @@ describe('AuthSessionService', () => {
 
     await service.signOut();
 
+<<<<<<< HEAD
     expect(mockLogger.debug).toHaveBeenCalledWith(
+=======
+    expect(mockLogger.info).toHaveBeenCalledWith(
+>>>>>>> 35f02287 (fix: resolve webapp navigation delay with instant cache (#189))
       '🎭 Mode test E2E: Simulation du logout',
     );
     expect(mockAuthState.setSession).toHaveBeenCalledWith(null);
