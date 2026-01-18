@@ -10,14 +10,14 @@ export function Screenshot({ src, label, className = '' }: ScreenshotProps) {
       <img
         src={src}
         alt={label}
-        className={`rounded-[var(--radius-large)] shadow-[var(--shadow-screenshot)] ${className}`}
+        className={`rounded-xl md:rounded-[var(--radius-large)] shadow-[var(--shadow-screenshot)] ${className}`}
       />
     )
   }
 
   return (
     <div
-      className={`bg-surface-alt rounded-[var(--radius-large)] shadow-[var(--shadow-screenshot)] flex items-center justify-center text-text-secondary text-sm font-medium ${className}`}
+      className={`bg-surface-alt rounded-xl md:rounded-[var(--radius-large)] shadow-[var(--shadow-screenshot)] flex items-center justify-center text-text-secondary text-sm font-medium ${className}`}
       role="img"
       aria-label={label}
     >
