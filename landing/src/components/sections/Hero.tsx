@@ -208,7 +208,7 @@ export function Hero() {
               Fini le stress des dépenses oubliées. Anticipe tout et note en 2
               clics.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 items-center justify-center lg:justify-start">
+            <div className="flex flex-col sm:flex-row gap-4 items-center sm:items-start justify-center">
               <div className="flex flex-col items-center gap-1">
                 <ShineBorder
                   color={["#006E25", "#2B883B", "#0061A6"]}
