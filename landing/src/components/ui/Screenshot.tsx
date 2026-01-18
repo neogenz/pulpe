@@ -32,7 +32,8 @@ export function Screenshot({ src, desktopSrc, label, className = '' }: Screensho
           <img
             src={src}
             alt={label}
-            className={`rounded-xl md:rounded-[var(--radius-large)] shadow-[var(--shadow-screenshot)] w-full ${className}`}
+            loading="lazy"
+            className={`rounded-xl md:rounded-[var(--radius-large)] shadow-[var(--shadow-screenshot)] w-full aspect-[9/14] ${className}`}
           />
         </picture>
       </button>
