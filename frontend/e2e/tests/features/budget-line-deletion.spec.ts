@@ -35,6 +35,7 @@ test.describe('Budget Line Deletion', () => {
 
     await budgetDetailsPage.goto();
     await budgetDetailsPage.expectPageLoaded();
+    await budgetDetailsPage.switchToTableView();
     await budgetDetailsPage.expectBudgetLineVisible('Groceries');
 
     // Test actual deletion flow
@@ -68,6 +69,7 @@ test.describe('Budget Line Deletion', () => {
 
     await budgetDetailsPage.goto();
     await budgetDetailsPage.expectPageLoaded();
+    await budgetDetailsPage.switchToTableView();
     await budgetDetailsPage.expectBudgetLineVisible('Transport');
 
     // Test cancellation flow

@@ -78,9 +78,7 @@ test.describe('Budget Line Editing', () => {
 
     await budgetDetailsPage.goto(budgetId);
     await budgetDetailsPage.expectPageLoaded();
-
-    // Wait for the table to render
-    await authenticatedPage.waitForSelector('table[mat-table]');
+    await budgetDetailsPage.switchToTableView();
 
     // Find the inputs directly using data-testid
     const nameInput = authenticatedPage.locator(`[data-testid="edit-name-${TEST_UUIDS.LINE_1}"]`);
@@ -160,9 +158,9 @@ test.describe('Budget Line Editing', () => {
 
     await budgetDetailsPage.goto(budgetId);
     await budgetDetailsPage.expectPageLoaded();
+    await budgetDetailsPage.switchToTableView();
 
-    // Wait for the table to render and for the row to be visible
-    await authenticatedPage.waitForSelector('table[mat-table]');
+    // Wait for the row to be visible
     await authenticatedPage.waitForSelector('tr:has-text("Test Budget Line")');
 
     // Open the actions menu first

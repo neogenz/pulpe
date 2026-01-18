@@ -215,6 +215,9 @@ test.describe('Budget Table Mobile Menu', () => {
         page.goto(`/budget/${budgetId}`),
       ]);
       await expect(page.locator('pulpe-budget-table')).toBeVisible();
+      // Switch to table view (default is now envelopes view)
+      await page.getByTestId('table-mode-chip').click();
+      await expect(page.locator('table[mat-table]')).toBeVisible();
     });
 
     test('shows menu button for row actions', async ({ authenticatedPage: page }) => {
@@ -288,6 +291,9 @@ test.describe('Budget Table Mobile Menu', () => {
         page.goto(`/budget/${budgetId}`),
       ]);
       await expect(page.locator('pulpe-budget-table')).toBeVisible();
+      // Switch to table view (default is now envelopes view)
+      await page.getByTestId('table-mode-chip').click();
+      await expect(page.locator('table[mat-table]')).toBeVisible();
 
       // Desktop uses actions-menu-* prefix (table view)
       const desktopMenuButton = page.locator('[data-testid^="actions-menu-"]').first();
