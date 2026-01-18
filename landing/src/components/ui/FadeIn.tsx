@@ -7,12 +7,22 @@ interface FadeInProps {
   className?: string
   /** Use animate instead of whileInView for above-the-fold content (fixes Safari mobile timing issues) */
   animateOnMount?: boolean
+  /** Disable Y movement to prevent layout shift on page refresh */
+  noYMovement?: boolean
 }
 
-export function FadeIn({ children, delay = 0, className = '', animateOnMount = false }: FadeInProps) {
+export function FadeIn({
+  children,
+  delay = 0,
+  className = '',
+  animateOnMount = false,
+  noYMovement = false,
+}: FadeInProps) {
   const shouldReduceMotion = useReducedMotion()
 
-  const initial = shouldReduceMotion ? {} : { opacity: 0, y: 20 }
+  const initial = shouldReduceMotion
+    ? {}
+    : { opacity: 0, ...(noYMovement ? {} : { y: 20 }) }
   const animateTo = { opacity: 1, y: 0 }
 
   if (animateOnMount) {

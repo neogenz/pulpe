@@ -25,8 +25,8 @@ export function Hero() {
       />
 
       <div className="relative z-10 w-full max-w-6xl mx-auto px-4 md:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center mt-4 md:mt-0">
-          <FadeIn animateOnMount>
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+          <FadeIn animateOnMount noYMovement>
             <p className="text-sm font-medium text-primary mb-3 tracking-wide uppercase">
               L'app budget simple
             </p>
@@ -66,7 +66,7 @@ export function Hero() {
             </div>
           </FadeIn>
 
-          <FadeIn animateOnMount delay={0.2} className="relative">
+          <FadeIn animateOnMount noYMovement delay={0.2} className="relative">
             <Screenshot
               src="/screenshots/webapp/dashboard.png"
               label="Dashboard Pulpe - Vue du mois en cours"
