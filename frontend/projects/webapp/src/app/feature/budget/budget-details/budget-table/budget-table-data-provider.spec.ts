@@ -423,6 +423,59 @@ describe('BudgetTableDataProvider', () => {
       expect(dataItems[1].metadata.cumulativeBalance).toBe(-500); // Negative balance
     });
 
+    it('should calculate cumulative balance in display order (after grouping by kind)', () => {
+      // Arrange - items with different kinds that will be reordered by grouping
+      const budgetLines: BudgetLine[] = [
+        createMockBudgetLine({
+          id: 'expense-first',
+          name: 'Rent',
+          amount: 1000,
+          kind: 'expense',
+          recurrence: 'fixed',
+          createdAt: '2024-01-01T00:00:00Z',
+        }),
+        createMockBudgetLine({
+          id: 'income-second',
+          name: 'Salary',
+          amount: 3000,
+          kind: 'income',
+          recurrence: 'fixed',
+          createdAt: '2024-01-02T00:00:00Z',
+        }),
+        createMockBudgetLine({
+          id: 'saving-third',
+          name: 'Emergency Fund',
+          amount: 500,
+          kind: 'saving',
+          recurrence: 'fixed',
+          createdAt: '2024-01-03T00:00:00Z',
+        }),
+      ];
+
+      // Act
+      const result = service.provideTableData({
+        budgetLines,
+        transactions: [],
+        editingLineId: null,
+      });
+
+      // Assert - display order is grouped by kind: income → saving → expense
+      const dataItems = filterDataItems(result);
+      expect(dataItems).toHaveLength(3);
+
+      // Income first
+      expect(dataItems[0].data.name).toBe('Salary');
+      expect(dataItems[0].metadata.cumulativeBalance).toBe(3000); // +3000
+
+      // Saving second
+      expect(dataItems[1].data.name).toBe('Emergency Fund');
+      expect(dataItems[1].metadata.cumulativeBalance).toBe(2500); // 3000 - 500
+
+      // Expense last
+      expect(dataItems[2].data.name).toBe('Rent');
+      expect(dataItems[2].metadata.cumulativeBalance).toBe(1500); // 2500 - 1000
+    });
+
     it('should maintain balance continuity with mixed rollover and regular lines, grouped by kind', () => {
       // Arrange
       const budgetLines: BudgetLine[] = [
@@ -456,18 +509,18 @@ describe('BudgetTableDataProvider', () => {
       });
 
       // Assert - items are grouped by kind for display (income first, then expense)
-      // But cumulative balance is calculated BEFORE grouping based on sort order:
-      // Sort order: Salary (fixed) → Rent (fixed) → Rollover (one_off)
+      // Cumulative balance is calculated in display order (after grouping)
       const dataItems = filterDataItems(result);
       expect(dataItems).toHaveLength(3);
 
-      // Display order after grouping by kind:
+      // Display order: Salary → Rollover (both income) → Rent (expense)
+      // Balance calculated in this display order
       expect(dataItems[0].data.name).toBe('Salary');
-      expect(dataItems[0].metadata.cumulativeBalance).toBe(5000); // First in sort: +5000
+      expect(dataItems[0].metadata.cumulativeBalance).toBe(5000); // +5000
       expect(dataItems[1].data.name).toBe('rollover_12_2024');
-      expect(dataItems[1].metadata.cumulativeBalance).toBe(3700); // Third in sort: 5000 - 1500 + 200
+      expect(dataItems[1].metadata.cumulativeBalance).toBe(5200); // 5000 + 200
       expect(dataItems[2].data.name).toBe('Rent');
-      expect(dataItems[2].metadata.cumulativeBalance).toBe(3500); // Second in sort: 5000 - 1500
+      expect(dataItems[2].metadata.cumulativeBalance).toBe(3700); // 5200 - 1500
     });
   });
 
