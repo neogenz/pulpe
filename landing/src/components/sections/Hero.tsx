@@ -37,7 +37,7 @@ export function Hero() {
               <span className="text-primary md:hidden">
                 Profite de ton mois.
               </span>
-              <span className="text-primary hidden md:inline">
+              <span className="text-primary hidden md:block min-h-[7.5rem] lg:min-h-[9.375rem]">
                 <TypeWriter strings={TYPEWRITER_STRINGS} />
               </span>
             </h1>
