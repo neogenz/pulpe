@@ -50,16 +50,8 @@ import { MatIconModule } from '@angular/material/icon';
     :host {
       display: block;
     }
-
-    /* Override expansion panel styles for better integration */
-    ::ng-deep .mat-expansion-panel-body {
-      padding: 0 !important;
-    }
-
-    ::ng-deep .mat-expansion-panel-header {
-      padding: 0 16px !important;
-    }
   `,
+  host: { class: 'pulpe-budget-section-group' },
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BudgetSectionGroup {

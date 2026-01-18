@@ -79,6 +79,18 @@ body {
   );
 }
 
+// Budget section group - Material expansion panel overrides
+// Scoped via host class to avoid ViewEncapsulation issues
+.pulpe-budget-section-group {
+  .mat-expansion-panel-body {
+    padding: 0 !important;
+  }
+
+  .mat-expansion-panel-header {
+    padding: 0 16px !important;
+  }
+}
+
 // Side sheet dialog panel - slides from right edge
 .side-sheet-panel {
   position: fixed !important;
@@ -93,15 +105,15 @@ body {
     border-radius: 16px 0 0 16px !important;
   }
 
-  // Slide-in animation
-  @keyframes slide-in-right {
-    from {
-      transform: translateX(100%);
-    }
-    to {
-      transform: translateX(0);
-    }
-  }
+  animation: pulpe-slide-in-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
-  animation: slide-in-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+// Keyframes - declared at root level with pulpe- prefix to avoid collisions
+@keyframes pulpe-slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }
