@@ -5,73 +5,89 @@ import {
   computed,
   input,
 } from '@angular/core';
-import { MatCardModule } from '@angular/material/card';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
 
 /**
- * RealizedBalanceProgressBar - Displays progress of checked items
+ * RealizedBalanceProgressBar - "Journey Tracker" design
  *
- * Shows:
- * - Left: Total checked expenses (CHF)
- * - Right: Realized balance (CHF)
- * - Progress bar: Ratio of checked items
- * - Label: "X/Y éléments exécutés"
+ * Segmented progress visualization that makes each checked item tangible.
+ * Follows M3 Expressive patterns with personality-driven micro-copy.
  */
 @Component({
   selector: 'pulpe-realized-balance-progress-bar',
-  imports: [MatCardModule, MatProgressBarModule, DecimalPipe],
+  imports: [DecimalPipe],
   template: `
-    <mat-card appearance="outlined">
-      <mat-card-header class="mb-4">
-        <div class="flex justify-between items-baseline w-full">
-          <!-- Left: Realized expenses -->
-          <div class="flex flex-col gap-1">
-            <span class="text-body-small md:text-body text-on-surface-variant">
-              Dépenses réalisées CHF
-            </span>
-            <span
-              class="text-headline-small md:text-headline-large ph-no-capture"
-            >
-              {{ realizedExpenses() | number: '1.2-2' : 'de-CH' }}
-            </span>
-          </div>
-          <!-- Right: Realized balance -->
-          <div class="flex flex-col text-right">
-            <span
-              class="text-body-small md:text-body text-on-surface-variant flex items-center"
-            >
-              Solde actuel CHF
-              <ng-content select="[slot=title-info]" />
-            </span>
-            <span
-              class="text-headline-small md:text-headline-large ph-no-capture"
-              [class.text-financial-income]="realizedBalance() >= 0"
-              [class.text-financial-negative]="realizedBalance() < 0"
-            >
-              {{ realizedBalance() | number: '1.2-2' : 'de-CH' }}
-            </span>
+    <div class="bg-surface-container-low rounded-2xl p-5">
+      <!-- Header with inline info -->
+      <div class="flex justify-between items-end mb-5">
+        <div>
+          <span class="text-label-medium text-on-surface-variant">
+            Dépenses réalisées
+          </span>
+          <div
+            class="text-headline-small md:text-headline-medium font-semibold ph-no-capture"
+          >
+            {{ realizedExpenses() | number: '1.0-0' : 'de-CH' }} CHF
           </div>
         </div>
-      </mat-card-header>
-      <mat-card-content class="space-y-2">
-        <mat-progress-bar mode="determinate" [value]="progressPercentage()" />
-        <div class="text-label-small text-on-surface-variant ph-no-capture">
-          {{ checkedCount() }}/{{ totalCount() }} éléments exécutés
+        <div class="text-right">
+          <span
+            class="text-label-medium text-on-surface-variant flex items-center justify-end gap-1"
+          >
+            Solde actuel
+            <ng-content select="[slot=title-info]" />
+          </span>
+          <div
+            class="text-headline-small md:text-headline-medium font-semibold ph-no-capture"
+            [class.text-primary]="realizedBalance() >= 0"
+            [class.text-error]="realizedBalance() < 0"
+          >
+            {{ realizedBalance() | number: '1.0-0' : 'de-CH' }} CHF
+          </div>
         </div>
-      </mat-card-content>
-    </mat-card>
+      </div>
+
+      <!-- Segmented Progress: Visual representation of checked items -->
+      <div class="flex gap-1 h-2.5 mb-3">
+        @for (segment of progressSegments(); track $index) {
+          <div
+            class="flex-1 rounded-full transition-all duration-300 ease-out"
+            [class.bg-primary]="segment.filled"
+            [class.bg-outline-variant/50]="!segment.filled"
+            [class.scale-y-110]="segment.filled"
+          ></div>
+        }
+      </div>
+
+      <!-- Label with friendly tone -->
+      <p class="text-label-medium text-on-surface-variant text-center">
+        {{ checkedCount() }}/{{ totalCount() }} éléments pointés
+        @if (totalCount() > 0) {
+          <span class="text-on-surface-variant/70">
+            —
+            @if (progressPercentage() === 100) {
+              tout est fait 🎉
+            } @else if (progressPercentage() >= 75) {
+              presque fini
+            } @else if (progressPercentage() >= 50) {
+              plus de la moitié
+            } @else if (progressPercentage() > 0) {
+              on avance
+            } @else {
+              c'est parti
+            }
+          </span>
+        }
+      </p>
+    </div>
   `,
   styles: `
-    @use '@angular/material' as mat;
-
     :host {
       display: block;
-      @include mat.progress-bar-overrides(
-        (
-          track-height: 10px,
-          active-indicator-height: 10px,
-        )
-      );
+    }
+
+    /* Subtle animation for filled segments */
+    .scale-y-110 {
+      transform: scaleY(1.1);
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -85,4 +101,25 @@ export class RealizedBalanceProgressBar {
   readonly progressPercentage = computed(() =>
     this.totalCount() > 0 ? (this.checkedCount() / this.totalCount()) * 100 : 0,
   );
+
+  /**
+   * Creates an array of segments for the progress visualization.
+   * Limits to 12 segments max for visual clarity, distributing checked items proportionally.
+   */
+  readonly progressSegments = computed(() => {
+    const total = this.totalCount();
+    const checked = this.checkedCount();
+
+    if (total === 0) {
+      return [];
+    }
+
+    // Use actual count if small, otherwise cap at 12 for visual clarity
+    const segmentCount = Math.min(total, 12);
+    const filledRatio = checked / total;
+
+    return Array.from({ length: segmentCount }, (_, index) => ({
+      filled: index < Math.round(filledRatio * segmentCount),
+    }));
+  });
 }

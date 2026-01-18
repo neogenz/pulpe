@@ -78,20 +78,22 @@ import { UserSettingsApi } from '@core/user-settings/user-settings-api';
   ],
   providers: [BudgetDetailsStore, BudgetLineApi],
   template: `
-    <div class="flex flex-col gap-6 min-w-0" data-testid="budget-detail-page">
+    <div class="flex flex-col gap-8 min-w-0" data-testid="budget-detail-page">
       @if (store.isLoading()) {
         <pulpe-base-loading
-          message="Préparation des détails..."
+          message="Préparation de ton budget..."
           size="large"
           [fullHeight]="true"
           testId="budget-details-loading"
         ></pulpe-base-loading>
       } @else if (store.error()) {
-        <mat-card class="bg-error-container" appearance="outlined">
+        <mat-card class="bg-error-container/50 border-0" appearance="outlined">
           <mat-card-content>
-            <div class="flex items-center gap-2 text-on-error-container">
-              <mat-icon>error</mat-icon>
-              <span>Le budget n'a pas pu être chargé — réessaie</span>
+            <div class="flex items-center gap-3 text-on-error-container py-2">
+              <mat-icon>error_outline</mat-icon>
+              <span class="text-body-large"
+                >Impossible de charger ton budget — réessaie</span
+              >
             </div>
           </mat-card-content>
         </mat-card>
@@ -100,47 +102,49 @@ import { UserSettingsApi } from '@core/user-settings/user-settings-api';
         @let budgetLines = store.displayBudgetLines();
         @let transactions = budget.transactions;
 
-        <!-- Header -->
-        <header class="flex items-start gap-2 sm:gap-4 min-w-0">
-          <button
-            matIconButton
-            (click)="navigateBack()"
-            aria-label="Retour aux budgets"
-            data-testid="back-button"
-            class="mt-1 flex-shrink-0"
-          >
-            <mat-icon>arrow_back</mat-icon>
-          </button>
-          <div class="flex-1 min-w-0">
-            <h1
-              class="text-headline-medium sm:text-display-small mb-1 truncate"
+        <!-- Header: Expressive with breathing room -->
+        <header class="relative">
+          <div class="flex items-start gap-3 sm:gap-4 min-w-0">
+            <button
+              matIconButton
+              (click)="navigateBack()"
+              aria-label="Retour aux budgets"
+              data-testid="back-button"
+              class="flex-shrink-0 -ml-2"
             >
-              {{ displayName() }}
-            </h1>
-            @if (periodDisplay()) {
-              <p
-                class="text-label-medium text-on-surface-variant mb-1"
-                data-testid="budget-period-display"
+              <mat-icon>arrow_back</mat-icon>
+            </button>
+            <div class="flex-1 min-w-0 pt-1">
+              <h1
+                class="text-display-small sm:text-display-medium mb-2 truncate capitalize"
               >
-                {{ periodDisplay() }}
-              </p>
-            }
-            @if (budget.description) {
-              <p class="text-body-large text-on-surface-variant">
-                {{ budget.description }}
-              </p>
-            }
+                {{ displayName() }}
+              </h1>
+              @if (periodDisplay()) {
+                <p
+                  class="text-body-large text-on-surface-variant"
+                  data-testid="budget-period-display"
+                >
+                  {{ periodDisplay() }}
+                </p>
+              }
+              @if (budget.description) {
+                <p class="text-body-medium text-on-surface-variant mt-1">
+                  {{ budget.description }}
+                </p>
+              }
+            </div>
+            <button
+              matIconButton
+              (click)="startPageTour()"
+              matTooltip="Découvrir cette page"
+              aria-label="Aide"
+              data-testid="help-button"
+              class="flex-shrink-0 -mr-2"
+            >
+              <mat-icon>help_outline</mat-icon>
+            </button>
           </div>
-          <button
-            matIconButton
-            (click)="startPageTour()"
-            matTooltip="Découvrir cette page"
-            aria-label="Aide"
-            data-testid="help-button"
-            class="mt-1 flex-shrink-0"
-          >
-            <mat-icon>help_outline</mat-icon>
-          </button>
         </header>
 
         <!-- Financial Overview -->

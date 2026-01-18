@@ -1,0 +1,291 @@
+import { CurrencyPipe, DatePipe } from '@angular/common';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  type Signal,
+} from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
+import {
+  MAT_DIALOG_DATA,
+  MatDialogModule,
+  MatDialogRef,
+} from '@angular/material/dialog';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatIconModule } from '@angular/material/icon';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { type BudgetLine, type Transaction } from 'pulpe-shared';
+import { TransactionLabelPipe } from '@ui/transaction-display';
+import { type BudgetLineTableItem } from './budget-table-models';
+
+export interface BudgetEnvelopeDetailDialogData {
+  item: BudgetLineTableItem;
+  transactions: Signal<Transaction[]>;
+  onAddTransaction: (budgetLine: BudgetLine) => void;
+  onDeleteTransaction: (id: string) => void;
+  onToggleTransactionCheck: (id: string) => void;
+}
+
+/**
+ * Side panel showing envelope details and allocated transactions
+ *
+ * Visual structure:
+ * ┌────────────────────────────────────┐
+ * │ ● Courses              [X]         │
+ * │   Dépense                          │
+ * ├────────────────────────────────────┤
+ * │ Prévu      Dépensé      Reste      │
+ * │ CHF 500    CHF 400      CHF 100    │
+ * │ ████████████░░░░ 80%               │
+ * ├────────────────────────────────────┤
+ * │ Transactions (3)        [+ Ajouter]│
+ * │ ┌────────────────────────────────┐ │
+ * │ │ Migros         CHF 120   ○──── │ │
+ * │ └────────────────────────────────┘ │
+ * └────────────────────────────────────┘
+ */
+@Component({
+  selector: 'pulpe-budget-envelope-detail-panel',
+  imports: [
+    MatButtonModule,
+    MatDialogModule,
+    MatIconModule,
+    MatDividerModule,
+    MatSlideToggleModule,
+    MatTooltipModule,
+    CurrencyPipe,
+    DatePipe,
+    TransactionLabelPipe,
+  ],
+  template: `
+    @let envelope = data.item;
+    <div class="h-full flex flex-col bg-surface">
+      <!-- Header -->
+      <div class="p-5 border-b border-outline-variant">
+        <div class="flex items-start justify-between">
+          <div class="flex items-center gap-3 min-w-0 flex-1">
+            <div
+              class="w-3 h-3 rounded-full flex-shrink-0"
+              [style.background-color]="
+                envelope.data.kind === 'income'
+                  ? 'var(--pulpe-financial-income)'
+                  : envelope.data.kind === 'expense'
+                    ? 'var(--pulpe-financial-expense)'
+                    : 'var(--pulpe-financial-savings)'
+              "
+            ></div>
+            <div class="min-w-0">
+              <h2 class="text-title-large font-semibold truncate">
+                {{ envelope.data.name }}
+              </h2>
+              <span class="text-label-medium text-on-surface-variant">
+                {{ envelope.data.kind | transactionLabel }}
+              </span>
+            </div>
+          </div>
+          <button
+            matIconButton
+            (click)="close()"
+            matTooltip="Fermer"
+            class="shrink-0"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      </div>
+
+      <!-- Financial Summary -->
+      <div class="p-5 border-b border-outline-variant">
+        <div class="grid grid-cols-3 gap-4 mb-4">
+          <div class="text-center">
+            <div class="text-label-medium text-on-surface-variant">Prévu</div>
+            <div
+              class="text-title-medium font-bold"
+              [class.text-financial-income]="envelope.data.kind === 'income'"
+              [class.text-financial-expense]="envelope.data.kind === 'expense'"
+              [class.text-financial-savings]="envelope.data.kind === 'saving'"
+            >
+              {{ envelope.data.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
+            </div>
+          </div>
+          <div class="text-center">
+            <div class="text-label-medium text-on-surface-variant">Dépensé</div>
+            <div class="text-title-medium font-semibold">
+              {{
+                envelope.consumption?.consumed ?? 0
+                  | currency: 'CHF' : 'symbol' : '1.0-0'
+              }}
+            </div>
+          </div>
+          <div class="text-center">
+            <div class="text-label-medium text-on-surface-variant">Reste</div>
+            @let remaining =
+              envelope.data.amount - (envelope.consumption?.consumed ?? 0);
+            <div
+              class="text-title-medium font-semibold"
+              [class.text-error]="remaining < 0"
+              [class.text-primary]="remaining >= 0"
+            >
+              {{ remaining | currency: 'CHF' : 'symbol' : '1.0-0' }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Progress Bar (12 segments for more detail) -->
+        @if (envelope.consumption?.hasTransactions) {
+          <div class="flex gap-0.5 h-2.5 mb-2">
+            @for (i of progressSegments; track i) {
+              <div
+                class="flex-1 rounded-full transition-colors"
+                [class.bg-primary]="
+                  i <= envelope.consumption!.percentage / (100 / 12) &&
+                  envelope.consumption!.percentage <= 100
+                "
+                [class.bg-error]="envelope.consumption!.percentage > 100"
+                [class.bg-outline-variant/40]="
+                  i > envelope.consumption!.percentage / (100 / 12) ||
+                  (envelope.consumption!.percentage > 100 && i > 12)
+                "
+              ></div>
+            }
+          </div>
+          <div class="text-center text-label-medium text-on-surface-variant">
+            @if (envelope.consumption!.percentage > 100) {
+              Dépassé de
+              {{
+                envelope.consumption!.consumed - envelope.data.amount
+                  | currency: 'CHF' : 'symbol' : '1.0-0'
+              }}
+            } @else {
+              {{ envelope.consumption!.percentage }}% utilisé
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Transactions Section -->
+      <div class="flex-1 overflow-y-auto">
+        <div class="p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-title-medium font-semibold">
+              Transactions
+              @if (allocatedTransactions().length > 0) {
+                <span class="text-on-surface-variant font-normal">
+                  ({{ allocatedTransactions().length }})
+                </span>
+              }
+            </h3>
+            <button
+              matButton
+              (click)="onAddTransaction()"
+              class="!rounded-full"
+            >
+              <mat-icon>add</mat-icon>
+              Ajouter
+            </button>
+          </div>
+
+          @if (allocatedTransactions().length === 0) {
+            <div class="text-center py-8 text-on-surface-variant">
+              <mat-icon class="text-4xl! mb-2 opacity-50"
+                >receipt_long</mat-icon
+              >
+              <p class="text-body-medium">Aucune transaction</p>
+              <p class="text-body-small">
+                Ajoute une transaction pour suivre tes dépenses
+              </p>
+            </div>
+          } @else {
+            <div class="space-y-3">
+              @for (tx of allocatedTransactions(); track tx.id) {
+                <div
+                  class="bg-surface-container-low rounded-xl p-4 flex items-center gap-3"
+                  [attr.data-testid]="'detail-transaction-' + tx.id"
+                >
+                  <div class="flex-1 min-w-0">
+                    <div
+                      class="text-body-medium font-medium truncate"
+                      [class.line-through]="tx.checkedAt"
+                      [class.text-on-surface-variant]="tx.checkedAt"
+                    >
+                      {{ tx.name }}
+                    </div>
+                    <div class="text-label-small text-on-surface-variant">
+                      {{
+                        tx.transactionDate | date: 'dd.MM.yyyy' : '' : 'fr-CH'
+                      }}
+                    </div>
+                  </div>
+                  <div
+                    class="text-title-medium font-bold shrink-0"
+                    [class.text-financial-income]="tx.kind === 'income'"
+                    [class.text-error]="tx.kind !== 'income'"
+                  >
+                    {{ tx.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
+                  </div>
+                  <div class="flex items-center gap-1">
+                    <mat-slide-toggle
+                      [checked]="!!tx.checkedAt"
+                      (change)="onToggleCheck(tx.id)"
+                      (click)="$event.stopPropagation()"
+                      [attr.data-testid]="'toggle-tx-check-' + tx.id"
+                    />
+                    <button
+                      matIconButton
+                      (click)="onDeleteTransaction(tx.id)"
+                      matTooltip="Supprimer"
+                      [attr.data-testid]="'delete-tx-' + tx.id"
+                    >
+                      <mat-icon class="text-xl! text-error">delete</mat-icon>
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  `,
+  styles: `
+    :host {
+      display: block;
+      height: 100%;
+    }
+  `,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class BudgetEnvelopeDetailPanel {
+  readonly #dialogRef = inject(MatDialogRef<BudgetEnvelopeDetailPanel>);
+  protected readonly data =
+    inject<BudgetEnvelopeDetailDialogData>(MAT_DIALOG_DATA);
+
+  // Progress segments (12 for more detail in the panel)
+  readonly progressSegments = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+
+  // Computed: filter transactions allocated to this envelope
+  readonly allocatedTransactions = computed(() => {
+    const budgetLineId = this.data.item.data.id;
+    return this.data
+      .transactions()
+      .filter((tx) => tx.budgetLineId === budgetLineId);
+  });
+
+  close(): void {
+    this.#dialogRef.close();
+  }
+
+  onAddTransaction(): void {
+    this.data.onAddTransaction(this.data.item.data);
+  }
+
+  onDeleteTransaction(id: string): void {
+    this.data.onDeleteTransaction(id);
+  }
+
+  onToggleCheck(id: string): void {
+    this.data.onToggleTransactionCheck(id);
+  }
+}

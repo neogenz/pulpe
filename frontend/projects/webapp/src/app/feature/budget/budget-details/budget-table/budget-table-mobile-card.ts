@@ -13,7 +13,6 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 import { RolloverFormatPipe } from '@app/ui/rollover-format';
@@ -26,7 +25,7 @@ import { type BudgetLineTableItem } from './budget-table-models';
 
 /**
  * Mobile card component for displaying a single budget line
- * Uses pre-computed display values from the ViewModel
+ * "Breathing Cards" design with asymmetric layout and status strip
  */
 @Component({
   selector: 'pulpe-budget-table-mobile-card',
@@ -39,7 +38,6 @@ import { type BudgetLineTableItem } from './budget-table-models';
     MatChipsModule,
     MatMenuModule,
     MatTooltipModule,
-    MatProgressBarModule,
     MatDividerModule,
     RouterLink,
     CurrencyPipe,
@@ -50,31 +48,32 @@ import { type BudgetLineTableItem } from './budget-table-models';
   template: `
     <mat-card
       appearance="outlined"
-      [class.opacity-50]="item().metadata.isLoading"
+      class="!rounded-2xl"
+      [class.opacity-60]="item().metadata.isLoading"
       [attr.data-testid]="
         'envelope-card-' + (item().data.name | rolloverFormat)
       "
     >
-      <!-- Header -->
-      <mat-card-header class="pb-2">
-        <div class="flex items-center justify-between gap-2 w-full">
-          <div class="flex items-center gap-2 min-w-0 flex-1">
-            <mat-icon
-              class="text-base! shrink-0"
-              [class.text-financial-income]="item().data.kind === 'income'"
-              [class.text-financial-expense]="item().data.kind === 'expense'"
-              [class.text-financial-savings]="item().data.kind === 'saving'"
+      <mat-card-content class="p-4">
+        <!-- Row 1: Name and Menu -->
+        <div class="flex items-start justify-between mb-4">
+          <div class="flex items-center gap-2.5 min-w-0 flex-1">
+            <!-- Colored indicator dot -->
+            <div
+              class="w-3 h-3 rounded-full flex-shrink-0"
+              [style.background-color]="
+                item().data.kind === 'income'
+                  ? 'var(--pulpe-financial-income)'
+                  : item().data.kind === 'expense'
+                    ? 'var(--pulpe-financial-expense)'
+                    : 'var(--pulpe-financial-savings)'
+              "
               [matTooltip]="item().data.kind | transactionLabel"
-            >
-              {{ item().metadata.kindIcon }}
-            </mat-icon>
+            ></div>
             <span
               class="text-title-medium font-medium truncate"
-              [class.italic]="item().metadata.isRollover"
               [class.line-through]="item().data.checkedAt"
-              [class.text-financial-income]="item().data.kind === 'income'"
-              [class.text-financial-expense]="item().data.kind === 'expense'"
-              [class.text-financial-savings]="item().data.kind === 'saving'"
+              [class.text-on-surface-variant]="item().data.checkedAt"
             >
               @if (
                 item().metadata.isRollover &&
@@ -85,7 +84,7 @@ import { type BudgetLineTableItem } from './budget-table-models';
                     '/budget',
                     item().metadata.rolloverSourceBudgetId,
                   ]"
-                  class="text-primary underline"
+                  class="text-primary underline-offset-2 hover:underline"
                 >
                   {{ item().data.name | rolloverFormat }}
                 </a>
@@ -107,9 +106,9 @@ import { type BudgetLineTableItem } from './budget-table-models';
               matIconButton
               [matMenuTriggerFor]="cardActionMenu"
               [attr.data-testid]="'card-menu-' + item().data.id"
-              class="shrink-0"
+              class="shrink-0 !-mr-2 !-mt-1"
             >
-              <mat-icon>more_vert</mat-icon>
+              <mat-icon>more_horiz</mat-icon>
             </button>
 
             <mat-menu #cardActionMenu="matMenu" xPosition="before">
@@ -166,101 +165,122 @@ import { type BudgetLineTableItem } from './budget-table-models';
             </mat-menu>
           }
         </div>
-      </mat-card-header>
 
-      <mat-card-content class="pt-0">
-        <!-- Amount display -->
-        <div class="text-center py-2 mb-3">
-          <div
-            class="text-headline-medium font-bold"
-            [class.text-financial-income]="item().data.kind === 'income'"
-            [class.text-financial-expense]="item().data.kind === 'expense'"
-            [class.text-financial-savings]="item().data.kind === 'saving'"
-          >
-            {{ item().data.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
+        <!-- Row 2: Amount prominently left-aligned with consumption on right -->
+        <div class="flex items-end justify-between mb-4">
+          <div>
+            <div
+              class="text-headline-medium font-bold"
+              [class.text-financial-income]="item().data.kind === 'income'"
+              [class.text-financial-expense]="item().data.kind === 'expense'"
+              [class.text-financial-savings]="item().data.kind === 'saving'"
+            >
+              {{ item().data.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
+            </div>
+            <span class="text-label-small text-on-surface-variant">prévu</span>
           </div>
-          <div class="text-label-medium text-on-surface-variant">prévu</div>
-        </div>
 
-        @if (item().consumption; as consumption) {
-          @if (consumption.hasTransactions) {
-            <!-- Progress bar -->
-            <div class="mb-3">
-              <mat-progress-bar
-                mode="determinate"
-                [value]="
-                  consumption.percentage > 100 ? 100 : consumption.percentage
-                "
-                [class.warn-bar]="consumption.percentage > 100"
-                class="h-2! rounded-full"
-              />
-              <div
-                class="text-label-small text-on-surface-variant text-center mt-1"
-              >
-                {{ consumption.percentage }}% utilisé
+          <!-- Consumption mini-stat if applicable -->
+          @if (item().consumption?.hasTransactions) {
+            <div class="text-right">
+              <div class="text-title-medium font-semibold text-on-surface">
+                {{
+                  item().consumption!.consumed
+                    | currency: 'CHF' : 'symbol' : '1.0-0'
+                }}
               </div>
+              <span class="text-label-small text-on-surface-variant"
+                >dépensé</span
+              >
             </div>
           }
+        </div>
+
+        <!-- Row 3: Segmented Progress (if applicable) -->
+        @if (
+          item().consumption?.hasTransactions && !item().metadata.isRollover
+        ) {
+          <div class="mb-4">
+            <div class="flex gap-0.5 h-1.5">
+              @for (i of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]; track i) {
+                <div
+                  class="flex-1 rounded-full transition-colors"
+                  [class.bg-primary]="
+                    i <= item().consumption!.percentage / 10 &&
+                    item().consumption!.percentage <= 100
+                  "
+                  [class.bg-error]="item().consumption!.percentage > 100"
+                  [class.bg-outline-variant/40]="
+                    i > item().consumption!.percentage / 10 ||
+                    (item().consumption!.percentage > 100 && i > 10)
+                  "
+                ></div>
+              }
+            </div>
+            <div
+              class="text-label-small text-on-surface-variant text-center mt-1.5"
+            >
+              @if (item().consumption!.percentage > 100) {
+                Dépassé de
+                {{
+                  item().consumption!.consumed - item().data.amount
+                    | currency: 'CHF' : 'symbol' : '1.0-0'
+                }}
+              } @else {
+                {{ item().consumption!.percentage }}% utilisé
+              }
+            </div>
+          </div>
         }
 
-        <!-- Footer: Chip + Toggle + Action -->
+        <!-- Row 4: Actions footer -->
         @if (!item().metadata.isRollover) {
           <div
-            class="flex items-center justify-between pt-3 border-t border-outline-variant"
+            class="flex items-center justify-between pt-3 border-t border-outline-variant/30"
           >
-            <mat-chip
-              class="h-6! text-label-small! bg-secondary-container! chip-on-secondary-container"
-            >
+            <mat-chip class="!h-6 !text-label-small bg-surface-container">
               {{ item().data.recurrence | recurrenceLabel }}
             </mat-chip>
 
-            <mat-slide-toggle
-              [checked]="!!item().data.checkedAt"
-              (change)="toggleCheck.emit(item().data.id)"
-              (click)="$event.stopPropagation()"
-              [attr.data-testid]="'toggle-check-' + item().data.id"
-            />
-
-            @if (item().consumption; as consumption) {
-              @if (consumption.hasTransactions) {
+            <div class="flex items-center gap-2">
+              @if (item().consumption?.hasTransactions) {
                 <button
                   matButton
-                  class="h-8!"
-                  [matBadge]="consumption.transactionCount"
+                  class="!h-8 !px-3 !rounded-full !min-w-0"
+                  [matBadge]="item().consumption!.transactionCount"
                   matBadgeColor="primary"
+                  matBadgeSize="small"
                   (click)="viewTransactions.emit(item())"
+                  matTooltip="Voir les transactions"
                 >
-                  <mat-icon class="text-base! m-0!">receipt_long</mat-icon>
+                  <mat-icon class="!text-lg">receipt_long</mat-icon>
+                </button>
+              } @else {
+                <button
+                  matButton
+                  class="!h-8 !px-3 !rounded-full text-primary"
+                  (click)="addTransaction.emit(item().data)"
+                >
+                  <mat-icon class="!text-base mr-1">add</mat-icon>
+                  Saisir
                 </button>
               }
-            }
-            @if (!item().consumption?.hasTransactions) {
-              <button
-                matButton
-                class="h-8!"
-                (click)="addTransaction.emit(item().data)"
-              >
-                <mat-icon class="text-base!">add</mat-icon>
-                Saisir
-              </button>
-            }
+
+              <mat-slide-toggle
+                [checked]="!!item().data.checkedAt"
+                (change)="toggleCheck.emit(item().data.id)"
+                (click)="$event.stopPropagation()"
+                [attr.data-testid]="'toggle-check-' + item().data.id"
+              />
+            </div>
           </div>
         }
       </mat-card-content>
     </mat-card>
   `,
   styles: `
-    @reference "tailwindcss";
     :host {
       display: block;
-    }
-
-    .warn-bar {
-      --mat-progress-bar-active-indicator-color: var(--mat-sys-error);
-    }
-
-    .chip-on-secondary-container {
-      --mat-chip-label-text-color: var(--mat-sys-on-secondary-container);
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
