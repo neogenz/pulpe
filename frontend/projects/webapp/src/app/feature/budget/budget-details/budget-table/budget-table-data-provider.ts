@@ -2,7 +2,6 @@ import { Injectable } from '@angular/core';
 import type { Transaction, BudgetLine } from 'pulpe-shared';
 import type { TableRowItem } from './budget-table-models';
 import type { BudgetTableViewMode } from './budget-table-view-mode';
-import { buildNestedTransactionViewData } from './nested-transaction-view-builder';
 import { buildEnvelopesViewData } from './envelopes-view-builder';
 
 @Injectable()
@@ -13,9 +12,8 @@ export class BudgetTableDataProvider {
     editingLineId: string | null;
     viewMode?: BudgetTableViewMode;
   }): TableRowItem[] {
-    if (params.viewMode === 'transactions') {
-      return buildNestedTransactionViewData(params);
-    }
+    // Both 'envelopes' and 'table' view modes use the same data structure
+    // The difference is only in how the data is displayed (cards vs table)
     return buildEnvelopesViewData(params);
   }
 }
