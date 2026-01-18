@@ -1,31 +1,31 @@
-import { motion, useReducedMotion } from 'framer-motion'
+import { motion, useReducedMotion } from "framer-motion";
 import {
   Check,
-  Wallet,
-  TrendingUp,
-  ShoppingBag,
-  PiggyBank,
   Gamepad2,
-} from 'lucide-react'
+  PiggyBank,
+  ShoppingBag,
+  TrendingUp,
+  Wallet,
+} from "lucide-react";
 import {
   Button,
-  HeroScreenshot,
   FadeIn,
+  FloatingCard,
+  GridBackground,
+  HeroScreenshot,
   ShineBorder,
   TypeWriter,
-  GridBackground,
-  FloatingCard,
-} from '../ui'
+} from "../ui";
 
 const TYPEWRITER_STRINGS = [
-  'Profite de ton mois.',
-  'Anticipe tes dépenses.',
-  'Épargne sans y penser.',
-  'Reprends le contrôle.',
-]
+  "Profite de ton mois.",
+  "Anticipe tes dépenses.",
+  "Épargne sans y penser.",
+  "Reprends le contrôle.",
+];
 
 export function Hero() {
-  const shouldReduceMotion = useReducedMotion()
+  const shouldReduceMotion = useReducedMotion();
 
   const floatingVariants = {
     hidden: shouldReduceMotion ? {} : { opacity: 0, scale: 0.8 },
@@ -35,10 +35,10 @@ export function Hero() {
       transition: {
         duration: 0.5,
         delay: shouldReduceMotion ? 0 : delay,
-        ease: 'easeOut',
+        ease: "easeOut",
       },
     }),
-  }
+  };
 
   return (
     <section className="relative min-h-screen flex items-center pt-28 pb-16 md:pt-32 md:pb-24 bg-background overflow-hidden">
@@ -46,45 +46,45 @@ export function Hero() {
       <GridBackground />
 
       <div className="relative z-10 w-full max-w-6xl mx-auto px-4 md:px-6 lg:px-8">
-        {/* Floating cards - oval pattern around content */}
+        {/* Floating cards - organic gravitational arrangement around screenshot (right side only) */}
 
-        {/* Top-left: diagonal position on oval */}
+        {/* Top-left edge of screenshot zone */}
         <motion.div
-          className="absolute -top-10 left-8 hidden lg:block xl:left-4"
+          className="absolute top-8 right-[35%] hidden lg:block"
           variants={floatingVariants}
           initial="hidden"
           animate="visible"
           custom={0.2}
         >
-          <FloatingCard variant="pill" rotation={-4} animationDelay={-0.5}>
+          <FloatingCard variant="pill" rotation={-5} animationDelay={-0.5}>
             <ShoppingBag className="w-4 h-4 text-primary" />
             <span>Courses</span>
           </FloatingCard>
         </motion.div>
 
-        {/* Top-center: top of oval */}
+        {/* Top center-right, floating above */}
         <motion.div
-          className="absolute -top-24 left-1/2 -translate-x-1/2 hidden lg:block xl:-top-32"
+          className="absolute -top-2 right-[20%] hidden lg:block"
           variants={floatingVariants}
           initial="hidden"
           animate="visible"
           custom={0.4}
         >
-          <FloatingCard variant="trend" rotation={2} animationDelay={-1}>
+          <FloatingCard variant="trend" rotation={3} animationDelay={-1}>
             <TrendingUp className="w-3.5 h-3.5" />
             <span>+12%</span>
           </FloatingCard>
         </motion.div>
 
-        {/* Top-right: diagonal position on oval */}
+        {/* Top-right corner */}
         <motion.div
-          className="absolute -top-10 right-8 hidden lg:block xl:right-4"
+          className="absolute top-4 -right-2 hidden lg:block"
           variants={floatingVariants}
           initial="hidden"
           animate="visible"
           custom={0.6}
         >
-          <FloatingCard variant="highlight" rotation={4} animationDelay={-1.5}>
+          <FloatingCard variant="highlight" rotation={-2} animationDelay={-1.5}>
             <div className="flex items-center gap-3">
               <Wallet className="w-5 h-5" />
               <div>
@@ -95,78 +95,84 @@ export function Hero() {
           </FloatingCard>
         </motion.div>
 
-        {/* Left-middle: widest point of oval (far left) */}
+        {/* Left edge of screenshot, safe from text */}
         <motion.div
-          className="absolute top-1/3 -left-44 hidden xl:block 2xl:-left-56"
+          className="absolute top-[30%] right-[38%] hidden lg:block"
           variants={floatingVariants}
           initial="hidden"
           animate="visible"
           custom={0.8}
         >
-          <FloatingCard variant="large" rotation={-3} animationDelay={-2}>
+          <FloatingCard variant="large" rotation={-4} animationDelay={-2}>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                 <PiggyBank className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <div className="text-xs text-text-secondary">Épargné ce mois</div>
+                <div className="text-xs text-text-secondary">
+                  Épargné ce mois
+                </div>
                 <div className="text-lg font-bold text-primary">+120 CHF</div>
               </div>
             </div>
           </FloatingCard>
         </motion.div>
 
-        {/* Right-middle: widest point of oval (far right) */}
+        {/* Right side, mid-height */}
         <motion.div
-          className="absolute top-1/3 -right-32 hidden xl:block 2xl:-right-44"
+          className="absolute top-[48%] right-[-5%] hidden lg:block"
           variants={floatingVariants}
           initial="hidden"
           animate="visible"
           custom={1.0}
         >
-          <FloatingCard variant="pill" rotation={-2} animationDelay={-2.5}>
+          <FloatingCard variant="pill" rotation={5} animationDelay={-2.5}>
             <Gamepad2 className="w-4 h-4 text-primary" />
             <span>Loisirs</span>
           </FloatingCard>
         </motion.div>
 
-        {/* Bottom-left: diagonal position on oval */}
+        {/* Bottom-left of screenshot zone */}
         <motion.div
-          className="absolute -bottom-16 -left-4 hidden lg:block xl:-left-12"
+          className="absolute bottom-14 right-[38%] hidden lg:block"
           variants={floatingVariants}
           initial="hidden"
           animate="visible"
           custom={1.2}
         >
-          <FloatingCard variant="pill" rotation={3} animationDelay={-3}>
+          <FloatingCard variant="pill" rotation={-3} animationDelay={-3}>
             <PiggyBank className="w-4 h-4 text-primary" />
             <span>Épargne</span>
           </FloatingCard>
         </motion.div>
 
-        {/* Bottom-center: bottom of oval */}
+        {/* Bottom center-right */}
         <motion.div
-          className="absolute -bottom-28 left-1/2 -translate-x-1/2 hidden lg:block xl:-bottom-36"
+          className="absolute bottom-0 right-[24%] hidden lg:block"
           variants={floatingVariants}
           initial="hidden"
           animate="visible"
           custom={1.3}
         >
-          <FloatingCard variant="trend" rotation={-1} animationDelay={-3.5}>
+          <FloatingCard variant="trend" rotation={2} animationDelay={-3.5}>
             <Check className="w-3.5 h-3.5" />
             <span>À jour</span>
           </FloatingCard>
         </motion.div>
 
-        {/* Bottom-right: diagonal position on oval */}
+        {/* Bottom-right, drifting */}
         <motion.div
-          className="absolute -bottom-10 right-12 hidden lg:block xl:right-8"
+          className="absolute bottom-12 right-[-4%] hidden lg:block"
           variants={floatingVariants}
           initial="hidden"
           animate="visible"
           custom={1.4}
         >
-          <FloatingCard variant="notification" rotation={-4} animationDelay={-4}>
+          <FloatingCard
+            variant="notification"
+            rotation={-4}
+            animationDelay={-4}
+          >
             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
               <Check className="w-4 h-4 text-primary" />
             </div>
@@ -179,7 +185,11 @@ export function Hero() {
 
         {/* Main content grid */}
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-          <FadeIn animateOnMount noYMovement className="text-center md:text-left">
+          <FadeIn
+            animateOnMount
+            noYMovement
+            className="text-center md:text-left"
+          >
             <p className="text-sm font-medium text-primary mb-3 tracking-wide uppercase">
               L'app budget simple
             </p>
@@ -201,14 +211,16 @@ export function Hero() {
             <div className="flex flex-col sm:flex-row gap-4 items-center justify-center md:justify-start">
               <div className="flex flex-col items-center gap-1">
                 <ShineBorder
-                  color={['#006E25', '#2B883B', '#0061A6']}
+                  color={["#006E25", "#2B883B", "#0061A6"]}
                   borderWidth={2}
                   duration={6}
                   className="bg-transparent"
                 >
                   <Button>Commencer</Button>
                 </ShineBorder>
-                <span className="text-xs italic text-text-secondary">C'est gratuit</span>
+                <span className="text-xs italic text-text-secondary">
+                  C'est gratuit
+                </span>
               </div>
               <a
                 href="#features"
@@ -226,5 +238,5 @@ export function Hero() {
         </div>
       </div>
     </section>
-  )
+  );
 }

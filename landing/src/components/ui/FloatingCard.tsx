@@ -84,7 +84,7 @@ export function FloatingCard({
       className={`
         float-bob
         ${radius}
-        shadow-[var(--shadow-floating)]
+        shadow-sm
         ${base}
         ${colors}
         ${className}

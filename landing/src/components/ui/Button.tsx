@@ -14,11 +14,11 @@ export function Button({
   ...props
 }: ButtonProps) {
   const baseStyles =
-    'inline-flex items-center justify-center font-semibold transition-all duration-200 ease-out rounded-[var(--radius-button)] min-h-[48px] px-6 text-base cursor-pointer'
+    'inline-flex items-center justify-center font-semibold transition-all duration-200 ease-out rounded-[var(--radius-button)] min-h-[56px] px-8 text-lg cursor-pointer'
 
   const variantStyles: Record<ButtonVariant, string> = {
     primary:
-      'bg-primary text-white hover:bg-primary-hover hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]',
+      'bg-primary text-white hover:bg-primary-hover hover:scale-[1.02] active:scale-[0.98]',
     secondary:
       'bg-surface text-text border border-text/10 hover:bg-surface-alt hover:scale-[1.02] active:scale-[0.98]',
     ghost:
