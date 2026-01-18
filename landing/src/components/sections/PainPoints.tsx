@@ -30,7 +30,7 @@ export function PainPoints() {
 
       <div className="grid md:grid-cols-3 gap-6 mb-12">
         {PAIN_POINTS.map((point, index) => (
-          <FadeIn key={index} delay={index * 0.1}>
+          <FadeIn key={point.title} delay={index * 0.1}>
             <Card variant="elevated" className="h-full text-center">
               <div className="flex justify-center mb-4">
                 <point.icon className="w-10 h-10 text-primary" strokeWidth={1.5} />

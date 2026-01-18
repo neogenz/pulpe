@@ -12,7 +12,6 @@ type FloatingCardVariant =
 interface FloatingCardProps {
   variant: FloatingCardVariant
   children: ReactNode
-  rotation?: number
   animationDelay?: number
   className?: string
 }
@@ -68,14 +67,12 @@ const variantStyles: Record<
 export function FloatingCard({
   variant,
   children,
-  rotation = 0,
   animationDelay = 0,
   className = '',
 }: FloatingCardProps) {
-  const style: CSSProperties = {
-    '--rotation': `${rotation}deg`,
-    animationDelay: animationDelay ? `${animationDelay}s` : undefined,
-  } as CSSProperties
+  const style: CSSProperties = animationDelay
+    ? { animationDelay: `${animationDelay}s` }
+    : {}
 
   const { base, colors, radius } = variantStyles[variant]
 

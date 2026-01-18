@@ -54,7 +54,7 @@ export function Features() {
 
       <div className="space-y-24">
         {FEATURES.map((feature, index) => (
-          <FadeIn key={index} delay={0.1}>
+          <FadeIn key={feature.title} delay={0.1}>
             <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
               <div className={index % 2 === 1 ? 'lg:order-2' : ''}>
                 <Badge className="mb-4">

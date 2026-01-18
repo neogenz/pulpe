@@ -24,6 +24,13 @@ export function ImageLightboxProvider({ children }: ImageLightboxProviderProps) 
 
   const lightboxRoot = document.getElementById('lightbox-root')
 
+  if (!lightboxRoot && import.meta.env.DEV) {
+    console.warn(
+      '[ImageLightboxProvider] Missing #lightbox-root element. ' +
+        'Lightbox will not render. Add <div id="lightbox-root"></div> to index.html.'
+    )
+  }
+
   return (
     <ImageLightboxContext.Provider value={{ openLightbox, closeLightbox }}>
       {children}

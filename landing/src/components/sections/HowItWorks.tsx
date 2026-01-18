@@ -20,7 +20,7 @@ export function HowItWorks() {
 
       <div className="grid md:grid-cols-3 gap-8 mb-12">
         {STEPS.map((step, index) => (
-          <FadeIn key={index} delay={index * 0.1}>
+          <FadeIn key={step.title} delay={index * 0.1}>
             <div className="text-center">
               <div className="w-12 h-12 rounded-full bg-primary text-white font-bold text-xl flex items-center justify-center mx-auto mb-4">
                 {step.number}

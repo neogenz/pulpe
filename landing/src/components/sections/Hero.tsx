@@ -35,7 +35,7 @@ export function Hero() {
       transition: {
         duration: 0.5,
         delay: shouldReduceMotion ? 0 : delay,
-        ease: "easeOut",
+        ease: "easeOut" as const,
       },
     }),
   };
@@ -56,7 +56,7 @@ export function Hero() {
           animate="visible"
           custom={0.2}
         >
-          <FloatingCard variant="pill" rotation={-5} animationDelay={-0.5}>
+          <FloatingCard variant="pill" animationDelay={-0.5}>
             <ShoppingBag className="w-4 h-4 text-primary" />
             <span>Courses</span>
           </FloatingCard>
@@ -70,7 +70,7 @@ export function Hero() {
           animate="visible"
           custom={0.4}
         >
-          <FloatingCard variant="trend" rotation={3} animationDelay={-1}>
+          <FloatingCard variant="trend" animationDelay={-1}>
             <TrendingUp className="w-3.5 h-3.5" />
             <span>+12%</span>
           </FloatingCard>
@@ -84,7 +84,7 @@ export function Hero() {
           animate="visible"
           custom={0.6}
         >
-          <FloatingCard variant="highlight" rotation={-2} animationDelay={-1.5}>
+          <FloatingCard variant="highlight" animationDelay={-1.5}>
             <div className="flex items-center gap-3">
               <Wallet className="w-5 h-5" />
               <div>
@@ -103,7 +103,7 @@ export function Hero() {
           animate="visible"
           custom={0.8}
         >
-          <FloatingCard variant="large" rotation={-4} animationDelay={-2}>
+          <FloatingCard variant="large" animationDelay={-2}>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                 <PiggyBank className="w-5 h-5 text-primary" />
@@ -126,7 +126,7 @@ export function Hero() {
           animate="visible"
           custom={1.0}
         >
-          <FloatingCard variant="pill" rotation={5} animationDelay={-2.5}>
+          <FloatingCard variant="pill" animationDelay={-2.5}>
             <Gamepad2 className="w-4 h-4 text-primary" />
             <span>Loisirs</span>
           </FloatingCard>
@@ -140,7 +140,7 @@ export function Hero() {
           animate="visible"
           custom={1.2}
         >
-          <FloatingCard variant="pill" rotation={-3} animationDelay={-3}>
+          <FloatingCard variant="pill" animationDelay={-3}>
             <PiggyBank className="w-4 h-4 text-primary" />
             <span>Épargne</span>
           </FloatingCard>
@@ -154,7 +154,7 @@ export function Hero() {
           animate="visible"
           custom={1.3}
         >
-          <FloatingCard variant="trend" rotation={2} animationDelay={-3.5}>
+          <FloatingCard variant="trend" animationDelay={-3.5}>
             <Check className="w-3.5 h-3.5" />
             <span>À jour</span>
           </FloatingCard>
@@ -170,8 +170,7 @@ export function Hero() {
         >
           <FloatingCard
             variant="notification"
-            rotation={-4}
-            animationDelay={-4}
+                       animationDelay={-4}
           >
             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
               <Check className="w-4 h-4 text-primary" />
