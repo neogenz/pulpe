@@ -1,1 +1,1 @@
-export type BudgetTableViewMode = 'envelopes' | 'transactions';
+export type BudgetTableViewMode = 'envelopes' | 'table';
