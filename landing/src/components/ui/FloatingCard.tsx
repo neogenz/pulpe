@@ -51,16 +51,16 @@ const variantStyles: Record<
     colors: 'bg-surface text-text',
     radius: 'rounded-2xl',
   },
-  // Primary background highlight (focal point)
+  // Soft highlight card (light green bg, focal point)
   highlight: {
     base: 'px-6 py-5 text-sm font-semibold',
-    colors: 'bg-primary text-white',
+    colors: 'bg-surface-alt text-primary',
     radius: 'rounded-2xl',
   },
-  // Small primary badge for trends/percentages
+  // Small accent badge for trends/percentages (light green)
   trend: {
     base: 'px-3 py-1.5 text-xs font-bold flex items-center gap-1.5',
-    colors: 'bg-primary text-white',
+    colors: 'bg-surface-alt text-primary',
     radius: 'rounded-full',
   },
 }
