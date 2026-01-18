@@ -3,11 +3,13 @@ import { Screenshot } from './Screenshot'
 
 interface HeroScreenshotProps {
   screenshotSrc?: string
+  screenshotDesktopSrc?: string
   screenshotLabel: string
 }
 
 export function HeroScreenshot({
   screenshotSrc,
+  screenshotDesktopSrc,
   screenshotLabel,
 }: HeroScreenshotProps) {
   const shouldReduceMotion = useReducedMotion()
@@ -18,7 +20,7 @@ export function HeroScreenshot({
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.6, ease: 'easeOut' }}
     >
-      <Screenshot src={screenshotSrc} label={screenshotLabel} />
+      <Screenshot src={screenshotSrc} desktopSrc={screenshotDesktopSrc} label={screenshotLabel} />
     </motion.div>
   )
 }

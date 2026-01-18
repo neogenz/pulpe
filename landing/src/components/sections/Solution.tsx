@@ -19,7 +19,8 @@ export function Solution() {
 
       <FadeIn delay={0.2}>
         <Screenshot
-          src="/screenshots/webapp/vue-calendrier-annuel.png"
+          src="/screenshots/responsive/vue-calendrier-annuel.png"
+          desktopSrc="/screenshots/webapp/vue-calendrier-annuel.png"
           label="Vue annuelle des budgets"
           className="w-full max-w-4xl mx-auto"
         />

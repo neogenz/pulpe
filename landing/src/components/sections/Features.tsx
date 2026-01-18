@@ -5,25 +5,41 @@ const FEATURES = [
     title: "Vois toute ton année d'un coup d'œil",
     description: 'Vacances, impôts, anniversaires... Tout est visible sur 12 mois.',
     badge: { icon: '🎯', label: 'Clarté' },
-    screenshot: { src: '/screenshots/webapp/vue-calendrier-annuel.png', label: 'Vue calendrier annuel' },
+    screenshot: {
+      src: '/screenshots/responsive/vue-calendrier-annuel.png',
+      desktopSrc: '/screenshots/webapp/vue-calendrier-annuel.png',
+      label: 'Vue calendrier annuel',
+    },
   },
   {
     title: "2 clics, c'est noté",
     description: "Ajouter une dépense prend 5 secondes. Pas de friction, pas d'excuse.",
     badge: { icon: '⚡', label: 'Simplicité' },
-    screenshot: { src: '/screenshots/webapp/modal-ajout-transaction.png', label: 'Modal ajout de transaction' },
+    screenshot: {
+      src: '/screenshots/responsive/modal-ajout-transaction.png',
+      desktopSrc: '/screenshots/webapp/modal-ajout-transaction.png',
+      label: 'Modal ajout de transaction',
+    },
   },
   {
     title: 'Plus jamais surpris',
     description: 'Tes dépenses récurrentes sont planifiées. Tu vois venir les gros moments.',
     badge: { icon: '🛡️', label: 'Contrôle' },
-    screenshot: { src: '/screenshots/webapp/liste-des-previsions.png', label: 'Liste des prévisions' },
+    screenshot: {
+      src: '/screenshots/responsive/liste-des-previsions.png',
+      desktopSrc: '/screenshots/webapp/liste-des-previsions.png',
+      label: 'Liste des prévisions',
+    },
   },
   {
     title: 'Ton budget se construit tout seul',
     description: 'Crée un modèle une fois, réutilise-le chaque mois.',
     badge: { icon: '🌱', label: 'Légèreté' },
-    screenshot: { src: '/screenshots/webapp/ecran-des-modeles.png', label: 'Écran des modèles' },
+    screenshot: {
+      src: '/screenshots/responsive/ecran-des-modeles.png',
+      desktopSrc: '/screenshots/webapp/ecran-des-modeles.png',
+      label: 'Écran des modèles',
+    },
   },
 ]
 
@@ -59,6 +75,7 @@ export function Features() {
               <div className={index % 2 === 1 ? 'lg:order-1' : ''}>
                 <Screenshot
                   src={feature.screenshot.src}
+                  desktopSrc={feature.screenshot.desktopSrc}
                   label={feature.screenshot.label}
                 />
               </div>
