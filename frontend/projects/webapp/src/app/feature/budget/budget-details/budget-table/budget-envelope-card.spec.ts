@@ -5,8 +5,8 @@ import localeDeCH from '@angular/common/locales/de-CH';
 import localeFrCH from '@angular/common/locales/fr-CH';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { SIGNAL, signalSetFn } from '@angular/core/primitives/signals';
 import { type BudgetLine } from 'pulpe-shared';
+import { setTestInput } from '../../../../testing/signal-test-utils';
 import { BudgetEnvelopeCard } from './budget-envelope-card';
 import type {
   BudgetLineConsumptionDisplay,
@@ -81,8 +81,8 @@ describe('BudgetEnvelopeCard', () => {
     fixture = TestBed.createComponent(BudgetEnvelopeCard);
     component = fixture.componentInstance;
 
-    signalSetFn(component.item[SIGNAL], mockItem);
-    signalSetFn(component.isSelected[SIGNAL], false);
+    setTestInput(component.item, mockItem);
+    setTestInput(component.isSelected, false);
 
     fixture.detectChanges();
   });
@@ -103,7 +103,7 @@ describe('BudgetEnvelopeCard', () => {
       const checkedItem = createMockBudgetLineTableItem({
         data: { checkedAt: new Date().toISOString() },
       });
-      signalSetFn(component.item[SIGNAL], checkedItem);
+      setTestInput(component.item, checkedItem);
       fixture.detectChanges();
 
       const compiled = fixture.nativeElement as HTMLElement;
@@ -115,7 +115,7 @@ describe('BudgetEnvelopeCard', () => {
       const loadingItem = createMockBudgetLineTableItem({
         metadata: { isLoading: true },
       });
-      signalSetFn(component.item[SIGNAL], loadingItem);
+      setTestInput(component.item, loadingItem);
       fixture.detectChanges();
 
       const compiled = fixture.nativeElement as HTMLElement;
@@ -124,7 +124,7 @@ describe('BudgetEnvelopeCard', () => {
     });
 
     it('should apply selection ring when isSelected is true', () => {
-      signalSetFn(component.isSelected[SIGNAL], true);
+      setTestInput(component.isSelected, true);
       fixture.detectChanges();
 
       const compiled = fixture.nativeElement as HTMLElement;
@@ -138,7 +138,7 @@ describe('BudgetEnvelopeCard', () => {
       const incomeItem = createMockBudgetLineTableItem({
         data: { kind: 'income' },
       });
-      signalSetFn(component.item[SIGNAL], incomeItem);
+      setTestInput(component.item, incomeItem);
       fixture.detectChanges();
 
       const compiled = fixture.nativeElement as HTMLElement;
@@ -160,7 +160,7 @@ describe('BudgetEnvelopeCard', () => {
       const savingItem = createMockBudgetLineTableItem({
         data: { kind: 'saving' },
       });
-      signalSetFn(component.item[SIGNAL], savingItem);
+      setTestInput(component.item, savingItem);
       fixture.detectChanges();
 
       const compiled = fixture.nativeElement as HTMLElement;
@@ -184,7 +184,7 @@ describe('BudgetEnvelopeCard', () => {
       const noTxItem = createMockBudgetLineTableItem({
         consumption: { hasTransactions: false },
       });
-      signalSetFn(component.item[SIGNAL], noTxItem);
+      setTestInput(component.item, noTxItem);
       fixture.detectChanges();
 
       const compiled = fixture.nativeElement as HTMLElement;
@@ -199,7 +199,7 @@ describe('BudgetEnvelopeCard', () => {
         metadata: { isRollover: true },
         consumption: { hasTransactions: true },
       });
-      signalSetFn(component.item[SIGNAL], rolloverItem);
+      setTestInput(component.item, rolloverItem);
       fixture.detectChanges();
 
       const compiled = fixture.nativeElement as HTMLElement;
@@ -218,7 +218,7 @@ describe('BudgetEnvelopeCard', () => {
       const overspentItem = createMockBudgetLineTableItem({
         consumption: { percentage: 120, hasTransactions: true },
       });
-      signalSetFn(component.item[SIGNAL], overspentItem);
+      setTestInput(component.item, overspentItem);
       fixture.detectChanges();
 
       const compiled = fixture.nativeElement as HTMLElement;
@@ -231,7 +231,7 @@ describe('BudgetEnvelopeCard', () => {
       const rolloverItem = createMockBudgetLineTableItem({
         metadata: { isRollover: true },
       });
-      signalSetFn(component.item[SIGNAL], rolloverItem);
+      setTestInput(component.item, rolloverItem);
       fixture.detectChanges();
 
       const compiled = fixture.nativeElement as HTMLElement;
@@ -252,7 +252,7 @@ describe('BudgetEnvelopeCard', () => {
         data: { id: 'resetable-item' },
         metadata: { canResetFromTemplate: true },
       });
-      signalSetFn(component.item[SIGNAL], resetableItem);
+      setTestInput(component.item, resetableItem);
       fixture.detectChanges();
 
       const compiled = fixture.nativeElement as HTMLElement;
@@ -375,7 +375,7 @@ describe('BudgetEnvelopeCard', () => {
         data: { id: 'resetable-item' },
         metadata: { canResetFromTemplate: true },
       });
-      signalSetFn(component.item[SIGNAL], resetableItem);
+      setTestInput(component.item, resetableItem);
       fixture.detectChanges();
 
       const compiled = fixture.nativeElement as HTMLElement;

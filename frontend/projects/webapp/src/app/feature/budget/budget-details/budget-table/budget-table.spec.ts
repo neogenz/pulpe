@@ -26,11 +26,8 @@ import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Logger } from '@core/logging/logger';
 import { BehaviorSubject, of } from 'rxjs';
-// Import the internal API for signal manipulation in tests
-// This is a workaround for the signal inputs testing issue with Vitest
-import { SIGNAL, signalSetFn } from '@angular/core/primitives/signals';
+import { setTestInput } from '../../../../testing/signal-test-utils';
 import { createMockLogger } from '../../../../testing/mock-posthog';
-import { ConfirmationDialog } from '@ui/dialogs/confirmation-dialog';
 import { RolloverFormatPipe } from '@app/ui/rollover-format';
 import {
   RecurrenceLabelPipe,
@@ -165,66 +162,10 @@ describe('BudgetTable', () => {
     component = fixture.componentInstance;
 
     // Set required inputs using signal API workaround for Vitest compatibility
-    signalSetFn(component.budgetLines[SIGNAL], mockBudgetLines);
-    signalSetFn(component.transactions[SIGNAL], mockTransactions);
+    setTestInput(component.budgetLines, mockBudgetLines);
+    setTestInput(component.transactions, mockTransactions);
 
     fixture.detectChanges();
-  });
-
-  // Note: Desktop Card Grid tests are skipped because the new card-based layout
-  // uses Angular expansion panels which have lifecycle timing issues in jsdom test environment.
-  // The implementation is validated through E2E tests and visual testing.
-  describe.skip('Desktop View (Card Grid)', () => {
-    beforeEach(() => {
-      breakpointSubject.next({ matches: false, breakpoints: {} });
-      fixture.detectChanges();
-    });
-
-    it('should render sidenav container for desktop layout', () => {
-      const compiled = fixture.nativeElement as HTMLElement;
-      const sidenavContainer = compiled.querySelector('mat-sidenav-container');
-      expect(sidenavContainer).toBeTruthy();
-    });
-  });
-
-  // Note: Mobile view tests are skipped due to BudgetEnvelopeCard component lifecycle
-  // issues in the test environment when breakpoint changes occur.
-  // The BudgetTableMobileCard works correctly in production - validated via E2E.
-  describe.skip('Mobile View (Menu Actions)', () => {
-    beforeEach(() => {
-      breakpointSubject.next({ matches: true, breakpoints: {} });
-      fixture.detectChanges();
-    });
-
-    it('should show menu button for actions', () => {
-      const compiled = fixture.nativeElement as HTMLElement;
-      const menuButton = compiled.querySelector(
-        '[data-testid="card-menu-budget-line-1"]',
-      );
-      expect(menuButton).toBeTruthy();
-    });
-  });
-
-  describe.skip('Test ID Uniqueness', () => {
-    it('should have unique test IDs for each budget line (mobile)', () => {
-      breakpointSubject.next({ matches: true, breakpoints: {} });
-
-      const multipleBudgetLines: BudgetLineViewModel[] = [
-        { ...mockBudgetLines[0], id: 'line-1' },
-        { ...mockBudgetLines[0], id: 'line-2' },
-        { ...mockBudgetLines[0], id: 'line-3' },
-      ];
-
-      signalSetFn(component.budgetLines[SIGNAL], multipleBudgetLines);
-      fixture.detectChanges();
-
-      const compiled = fixture.nativeElement as HTMLElement;
-      const menuButtons = compiled.querySelectorAll(
-        '[data-testid^="card-menu-line-"]',
-      );
-
-      expect(menuButtons.length).toBe(3);
-    });
   });
 
   describe('Inline Editing (Component API)', () => {
@@ -323,186 +264,6 @@ describe('BudgetTable', () => {
       // Access protected property for testing purposes
       expect(component['inlineFormEditingItem']()).toBeNull();
       expect(component.editForm.value.name).toBe(null);
-    });
-  });
-
-  // Note: Reset tests are skipped due to BudgetEnvelopeCard lifecycle issues in test env.
-  // Validated via E2E tests.
-  describe.skip('Reset From Template (Mobile)', () => {
-    beforeEach(() => {
-      breakpointSubject.next({ matches: true, breakpoints: {} });
-      fixture.detectChanges();
-    });
-
-    const lockedBudgetLines: BudgetLineViewModel[] = [
-      {
-        id: 'locked-line-1',
-        name: 'Locked Budget Line',
-        amount: 1500,
-        kind: 'expense',
-        recurrence: 'fixed',
-        isManuallyAdjusted: true,
-        budgetId: 'budget-1',
-        templateLineId: 'template-1',
-        savingsGoalId: null,
-        checkedAt: null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    ];
-
-    const unlockedBudgetLines: BudgetLineViewModel[] = [
-      {
-        id: 'unlocked-line-1',
-        name: 'Unlocked Budget Line',
-        amount: 1000,
-        kind: 'expense',
-        recurrence: 'fixed',
-        isManuallyAdjusted: false,
-        budgetId: 'budget-1',
-        templateLineId: 'template-1',
-        savingsGoalId: null,
-        checkedAt: null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    ];
-
-    it('should show reset button only when canResetFromTemplate is true', () => {
-      signalSetFn(component.budgetLines[SIGNAL], lockedBudgetLines);
-      fixture.detectChanges();
-
-      const compiled = fixture.nativeElement as HTMLElement;
-
-      // Open the card menu (new card-based UI)
-      const menuTrigger = compiled.querySelector(
-        '[data-testid="card-menu-locked-line-1"]',
-      ) as HTMLButtonElement;
-      expect(menuTrigger).toBeTruthy();
-      menuTrigger?.click();
-      fixture.detectChanges();
-
-      // Query in document (overlay)
-      const resetButton = document.querySelector(
-        '[data-testid="reset-from-template-locked-line-1"]',
-      );
-
-      expect(resetButton).toBeTruthy();
-    });
-
-    it('should not show reset button when line is not locked', () => {
-      signalSetFn(component.budgetLines[SIGNAL], unlockedBudgetLines);
-      fixture.detectChanges();
-
-      const compiled = fixture.nativeElement as HTMLElement;
-
-      // Open the card menu (new card-based UI)
-      const menuTrigger = compiled.querySelector(
-        '[data-testid="card-menu-unlocked-line-1"]',
-      ) as HTMLButtonElement;
-      expect(menuTrigger).toBeTruthy();
-      menuTrigger?.click();
-      fixture.detectChanges();
-
-      // Query in document (overlay)
-      const resetButton = document.querySelector(
-        '[data-testid="reset-from-template-unlocked-line-1"]',
-      );
-
-      expect(resetButton).toBeFalsy();
-    });
-
-    it('should open confirmation dialog when reset button is clicked', () => {
-      signalSetFn(component.budgetLines[SIGNAL], lockedBudgetLines);
-      fixture.detectChanges();
-
-      const compiled = fixture.nativeElement as HTMLElement;
-
-      // Open the card menu (new card-based UI)
-      const menuTrigger = compiled.querySelector(
-        '[data-testid="card-menu-locked-line-1"]',
-      ) as HTMLButtonElement;
-      menuTrigger?.click();
-      fixture.detectChanges();
-
-      // Query in document (overlay)
-      const resetButton = document.querySelector(
-        '[data-testid="reset-from-template-locked-line-1"]',
-      ) as HTMLButtonElement;
-
-      resetButton?.click();
-      fixture.detectChanges();
-
-      expect(mockDialog.open).toHaveBeenCalledWith(
-        ConfirmationDialog,
-        expect.objectContaining({
-          width: '400px',
-          data: expect.objectContaining({
-            title: 'Réinitialiser depuis le modèle',
-            confirmText: 'Réinitialiser',
-          }),
-        }),
-      );
-    });
-
-    it('should emit resetFromTemplate when dialog is confirmed', () => {
-      mockDialog.open.mockReturnValue({
-        afterClosed: vi.fn().mockReturnValue(of(true)),
-      });
-
-      const resetSpy = vi.spyOn(component.resetFromTemplate, 'emit');
-
-      signalSetFn(component.budgetLines[SIGNAL], lockedBudgetLines);
-      fixture.detectChanges();
-
-      const compiled = fixture.nativeElement as HTMLElement;
-
-      // Open the card menu (new card-based UI)
-      const menuTrigger = compiled.querySelector(
-        '[data-testid="card-menu-locked-line-1"]',
-      ) as HTMLButtonElement;
-      menuTrigger?.click();
-      fixture.detectChanges();
-
-      // Query in document (overlay)
-      const resetButton = document.querySelector(
-        '[data-testid="reset-from-template-locked-line-1"]',
-      ) as HTMLButtonElement;
-
-      resetButton?.click();
-      fixture.detectChanges();
-
-      expect(resetSpy).toHaveBeenCalledWith('locked-line-1');
-    });
-
-    it('should not emit resetFromTemplate when dialog is cancelled', () => {
-      mockDialog.open.mockReturnValue({
-        afterClosed: vi.fn().mockReturnValue(of(false)),
-      });
-
-      const resetSpy = vi.spyOn(component.resetFromTemplate, 'emit');
-
-      signalSetFn(component.budgetLines[SIGNAL], lockedBudgetLines);
-      fixture.detectChanges();
-
-      const compiled = fixture.nativeElement as HTMLElement;
-
-      // Open the card menu (new card-based UI)
-      const menuTrigger = compiled.querySelector(
-        '[data-testid="card-menu-locked-line-1"]',
-      ) as HTMLButtonElement;
-      menuTrigger?.click();
-      fixture.detectChanges();
-
-      // Query in document (overlay)
-      const resetButton = document.querySelector(
-        '[data-testid="reset-from-template-locked-line-1"]',
-      ) as HTMLButtonElement;
-
-      resetButton?.click();
-      fixture.detectChanges();
-
-      expect(resetSpy).not.toHaveBeenCalled();
     });
   });
 });

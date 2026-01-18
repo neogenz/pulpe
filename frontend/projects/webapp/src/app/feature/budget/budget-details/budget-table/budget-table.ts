@@ -10,7 +10,6 @@ import {
   input,
   output,
   signal,
-  untracked,
 } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -930,12 +929,9 @@ export class BudgetTable {
     effect(() => {
       const mode = this.viewMode();
       const mobile = this.isMobile();
-      // Use untracked to prevent re-triggering on localStorage side-effect
-      untracked(() => {
-        if (!mobile) {
-          localStorage.setItem(this.#VIEW_MODE_KEY, mode);
-        }
-      });
+      if (!mobile) {
+        localStorage.setItem(this.#VIEW_MODE_KEY, mode);
+      }
     });
   }
 
