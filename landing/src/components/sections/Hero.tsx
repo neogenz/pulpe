@@ -20,7 +20,7 @@ const TYPEWRITER_STRINGS = [
 
 export function Hero() {
   return (
-    <section className="relative pt-28 pb-0 md:pt-32">
+    <section className="relative pt-24 pb-0 md:pt-28">
       {/* Background card with rounded bottom corners and side margins */}
       <div className="absolute inset-y-0 inset-x-3 md:inset-x-6 lg:inset-x-8 bg-background rounded-b-[2rem] md:rounded-b-[3rem] lg:rounded-b-[4rem]" />
 
@@ -34,7 +34,7 @@ export function Hero() {
       <div className="relative z-10 w-full max-w-6xl mx-auto px-4 md:px-6 lg:px-8">
         {/* Centered text content */}
         <FadeIn animateOnMount noYMovement>
-          <div className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
+          <div className="text-center max-w-3xl mx-auto mb-8 md:mb-10">
             <p className="text-sm font-medium text-primary mb-3 tracking-wide uppercase">
               L'app budget simple
             </p>
@@ -49,7 +49,7 @@ export function Hero() {
                 <TypeWriter strings={TYPEWRITER_STRINGS} />
               </span>
             </h1>
-            <p className="text-lg md:text-xl text-text-secondary mb-8 max-w-xl mx-auto">
+            <p className="text-lg md:text-xl text-text-secondary mb-6 max-w-xl mx-auto">
               Fini le stress des dépenses oubliées. Anticipe tout et note en 2
               clics.
             </p>
@@ -77,7 +77,7 @@ export function Hero() {
 
         {/* Mockup positioned to bleed into next section */}
         <FadeIn animateOnMount noYMovement delay={0.2}>
-          <div className="relative translate-y-16 md:translate-y-24 lg:translate-y-32">
+          <div className="relative translate-y-12 md:translate-y-16 lg:translate-y-20 max-w-3xl mx-auto">
             <MockupComposition
               screenshot={{
                 src: '/screenshots/webapp/dashboard.png',
