@@ -5,6 +5,8 @@ import { PostHogService } from '../analytics/posthog';
 import { StorageService } from '../storage';
 import { Logger } from '../logging/logger';
 
+// Debounce delay before allowing another cleanup. Prevents duplicate calls
+// when multiple logout events fire in quick succession (e.g., auth state change + manual signOut).
 const CLEANUP_RESET_DELAY_MS = 100;
 
 @Injectable({
