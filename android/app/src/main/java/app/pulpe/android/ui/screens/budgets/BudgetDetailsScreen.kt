@@ -1,8 +1,13 @@
 package app.pulpe.android.ui.screens.budgets
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -11,6 +16,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -315,9 +321,25 @@ private fun BudgetLineItem(
         TransactionKind.SAVING -> Icons.Default.Savings
     }
 
-    Card(
+    // Expressive press animation with spring physics
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.98f else 1f,
+        animationSpec = spring(dampingRatio = 0.4f, stiffness = 400f),
+        label = "scale"
+    )
+
+    OutlinedCard(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            },
+        shape = RoundedCornerShape(24.dp),
+        interactionSource = interactionSource
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp)
@@ -349,10 +371,10 @@ private fun BudgetLineItem(
                     Spacer(modifier = Modifier.width(4.dp))
                 }
 
-                // Icon
+                // Icon with rounded shape
                 Surface(
                     color = color.copy(alpha = 0.12f),
-                    shape = MaterialTheme.shapes.medium,
+                    shape = RoundedCornerShape(50),
                     modifier = Modifier.size(40.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {

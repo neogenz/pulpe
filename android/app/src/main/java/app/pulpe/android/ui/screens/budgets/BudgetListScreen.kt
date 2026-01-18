@@ -1,8 +1,13 @@
 package app.pulpe.android.ui.screens.budgets
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -11,6 +16,8 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -109,9 +116,31 @@ private fun BudgetListItem(
     val remaining = budget.remaining ?: 0.0
     val isNegative = remaining < 0
 
-    Card(
+    // Expressive press animation with spring physics
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.98f else 1f,
+        animationSpec = spring(dampingRatio = 0.4f, stiffness = 400f),
+        label = "scale"
+    )
+    val translationY by animateFloatAsState(
+        targetValue = if (isPressed) 2f else 0f,
+        animationSpec = spring(dampingRatio = 0.4f, stiffness = 400f),
+        label = "translationY"
+    )
+
+    OutlinedCard(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                this.translationY = translationY
+            },
+        shape = RoundedCornerShape(24.dp),
+        interactionSource = interactionSource
     ) {
         Row(
             modifier = Modifier
@@ -119,17 +148,17 @@ private fun BudgetListItem(
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Icon
+            // Icon with secondary container (softer color)
             Surface(
-                color = MaterialTheme.colorScheme.primaryContainer,
-                shape = MaterialTheme.shapes.medium,
-                modifier = Modifier.size(48.dp)
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                shape = RoundedCornerShape(50),
+                modifier = Modifier.size(44.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = Icons.Default.CalendarMonth,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                 }
             }
