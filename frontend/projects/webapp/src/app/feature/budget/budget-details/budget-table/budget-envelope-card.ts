@@ -52,7 +52,7 @@ import { type BudgetLineTableItem } from './budget-table-models';
     <div
       class="bg-surface rounded-2xl border border-outline-variant/50 p-5 cursor-pointer
              transition-all duration-200 hover:shadow-md hover:border-outline-variant
-             min-h-[200px] flex flex-col"
+             min-h-[200px] h-full flex flex-col"
       [class.ring-2]="isSelected()"
       [class.ring-primary]="isSelected()"
       [class.opacity-60]="item().metadata.isLoading"

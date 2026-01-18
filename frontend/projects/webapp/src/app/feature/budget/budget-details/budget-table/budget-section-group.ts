@@ -39,7 +39,9 @@ import { MatIconModule } from '@angular/material/icon';
       </mat-expansion-panel-header>
 
       <!-- Grid container for cards -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
+      <div
+        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4 items-stretch"
+      >
         <ng-content />
       </div>
     </mat-expansion-panel>
