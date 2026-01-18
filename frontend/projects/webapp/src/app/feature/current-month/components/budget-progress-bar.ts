@@ -32,7 +32,10 @@ import { MatTooltipModule } from '@angular/material/tooltip';
     MatTooltipModule,
   ],
   template: `
-    <mat-card appearance="outlined">
+    <mat-card
+      appearance="outlined"
+      class="rounded-3xl expressive-progress-card"
+    >
       <mat-card-header class="mb-4">
         <div class="flex flex-col gap-3 w-full">
           <!-- Main line: Expenses over Available -->
@@ -42,7 +45,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
                 >Dépenses CHF
                 @if (isOverBudget()) {
                   <mat-icon
-                    class="ph-no-capture"
+                    class="ph-no-capture warning-icon"
                     matTooltipClass="ph-no-capture"
                     [matTooltip]="
                       'Tu es en dépassement de ' +
@@ -54,7 +57,9 @@ import { MatTooltipModule } from '@angular/material/tooltip';
                   >
                 }
               </span>
-              <span class="text-headline-small md:text-headline-large">
+              <span
+                class="text-headline-small md:text-headline-large expenses-value"
+              >
                 <div
                   class="flex flex-col ph-no-capture"
                   data-testid="expenses-amount"
@@ -63,10 +68,14 @@ import { MatTooltipModule } from '@angular/material/tooltip';
                 </div>
               </span>
             </div>
-            <div class="flex flex-col text-right text-outline">
-              <span class="text-body-small md:text-body">Disponible CHF</span>
+            <div class="flex flex-col text-right">
+              <span class="text-body-small md:text-body text-on-surface-variant"
+                >Disponible CHF</span
+              >
               <span
-                class="text-headline-small md:text-headline-large ph-no-capture"
+                class="text-headline-small md:text-headline-large ph-no-capture available-value"
+                [class.text-primary]="!isOverBudget() && remaining() > 0"
+                [class.text-error]="isOverBudget()"
                 data-testid="remaining-amount"
               >
                 {{ remaining() | number: '1.2-2' : 'de-CH' }}
@@ -75,21 +84,33 @@ import { MatTooltipModule } from '@angular/material/tooltip';
           </div>
         </div>
       </mat-card-header>
-      <mat-card-content class="space-y-2">
+      <mat-card-content class="space-y-3">
         <div class="space-y-2">
-          <mat-progress-bar
-            mode="determinate"
-            [value]="budgetUsedPercentage()"
-            [class.over-budget]="isOverBudget()"
-          />
+          <div class="progress-container">
+            <mat-progress-bar
+              mode="determinate"
+              [value]="budgetUsedPercentage()"
+              [class.over-budget]="isOverBudget()"
+              [class.near-limit]="
+                budgetUsedPercentage() >= 80 && !isOverBudget()
+              "
+            />
+          </div>
           <div
-            class="text-label-small text-on-surface-variant ph-no-capture"
+            class="text-label-small text-on-surface-variant ph-no-capture flex items-center gap-1"
             [class.text-error!]="isOverBudget()"
           >
             @if (displayPercentage() === -1) {
+              <mat-icon class="text-base!">warning</mat-icon>
               Budget totalement dépassé
             } @else {
-              {{ displayPercentage() }}% du budget dépensé (Limite CHF :
+              <span
+                class="percentage-badge"
+                [class.warning]="budgetUsedPercentage() >= 80"
+              >
+                {{ displayPercentage() }}%
+              </span>
+              du budget dépensé (Limite CHF :
               {{ available() | number: '1.2-2' : 'de-CH' }})
             }
           </div>
@@ -104,10 +125,92 @@ import { MatTooltipModule } from '@angular/material/tooltip';
       display: block;
       @include mat.progress-bar-overrides(
         (
-          track-height: 10px,
-          active-indicator-height: 10px,
+          track-height: 12px,
+          active-indicator-height: 12px,
         )
       );
+    }
+
+    /* MD3 Expressive Card */
+    .expressive-progress-card {
+      transition:
+        transform var(--expressive-spatial-default-duration, 500ms)
+          var(
+            --expressive-spatial-default-easing,
+            cubic-bezier(0.38, 1.21, 0.22, 1)
+          ),
+        box-shadow var(--expressive-effect-default-duration, 200ms)
+          var(
+            --expressive-effect-default-easing,
+            cubic-bezier(0.34, 0.8, 0.34, 1)
+          );
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--elevation-level2, 0 1px 3px 0 rgba(0, 0, 0, 0.1));
+      }
+    }
+
+    /* Progress bar container with rounded corners */
+    .progress-container {
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    /* Warning icon animation */
+    .warning-icon {
+      animation: shake 0.5s ease-in-out;
+    }
+
+    @keyframes shake {
+      0%,
+      100% {
+        transform: translateX(0);
+      }
+      25% {
+        transform: translateX(-2px);
+      }
+      75% {
+        transform: translateX(2px);
+      }
+    }
+
+    /* Percentage badge */
+    .percentage-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px 8px;
+      border-radius: 12px;
+      background-color: var(--mat-sys-primary-container);
+      color: var(--mat-sys-on-primary-container);
+      font-weight: 500;
+      transition: background-color
+        var(--expressive-effect-default-duration, 200ms)
+        var(
+          --expressive-effect-default-easing,
+          cubic-bezier(0.34, 0.8, 0.34, 1)
+        );
+
+      &.warning {
+        background-color: var(--mat-sys-error-container);
+        color: var(--mat-sys-on-error-container);
+      }
+    }
+
+    /* Near limit pulse animation */
+    .near-limit {
+      animation: pulse-warning 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-warning {
+      0%,
+      100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.7;
+      }
     }
 
     .over-budget {
@@ -116,6 +219,11 @@ import { MatTooltipModule } from '@angular/material/tooltip';
           active-indicator-color: var(--mat-sys-error),
         )
       );
+    }
+
+    /* Available value styling */
+    .available-value {
+      font-weight: 600;
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

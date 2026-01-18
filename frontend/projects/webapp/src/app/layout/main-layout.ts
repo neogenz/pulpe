@@ -348,17 +348,66 @@ interface NavigationItem {
         );
       }
 
-      /* Smooth transition for icon fill and scale */
+      /* MD3 Expressive Motion for icons - Spring with bounce */
       mat-icon {
         transition:
-          font-variation-settings 200ms ease-in-out,
-          transform 200ms ease-in-out;
+          font-variation-settings var(--expressive-spatial-fast-duration, 350ms)
+            var(
+              --expressive-spatial-fast-easing,
+              cubic-bezier(0.42, 1.85, 0.21, 0.9)
+            ),
+          transform var(--expressive-spatial-fast-duration, 350ms)
+            var(
+              --expressive-spatial-fast-easing,
+              cubic-bezier(0.42, 1.85, 0.21, 0.9)
+            );
+      }
+
+      /* Navigation rail item - expressive hover */
+      nav a {
+        transition: transform var(--expressive-spatial-default-duration, 500ms)
+          var(
+            --expressive-spatial-default-easing,
+            cubic-bezier(0.38, 1.21, 0.22, 1)
+          );
+
+        &:active {
+          transform: scale(0.95);
+        }
+      }
+
+      /* Indicator pill animation */
+      nav a div:first-child {
+        transition:
+          background-color var(--expressive-effect-default-duration, 200ms)
+            var(
+              --expressive-effect-default-easing,
+              cubic-bezier(0.34, 0.8, 0.34, 1)
+            ),
+          transform var(--expressive-spatial-fast-duration, 350ms)
+            var(
+              --expressive-spatial-fast-easing,
+              cubic-bezier(0.42, 1.85, 0.21, 0.9)
+            );
       }
 
       /* Prevent layout shift on scale */
       .group:hover mat-icon,
       .active mat-icon {
         will-change: transform;
+      }
+
+      /* Pulpe logo subtle animation */
+      .pulpe-gradient {
+        transition: transform var(--expressive-spatial-default-duration, 500ms)
+          var(
+            --expressive-spatial-default-easing,
+            cubic-bezier(0.38, 1.21, 0.22, 1)
+          );
+
+        &:hover {
+          transform: scale(1.1) rotate(5deg);
+        }
       }
     `,
   ],

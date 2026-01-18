@@ -1,0 +1,91 @@
+// Material Design 3 Expressive Motion System
+// Based on official Google MD3 Expressive guidelines (2025)
+// Springs with visible bounce for delightful, natural-feeling interactions
+
+:root {
+  // ============================================
+  // SPATIAL EASING (position, size, shape)
+  // Use for movement animations with overshoot
+  // ============================================
+
+  // Fast - Quick interactions with pronounced bounce
+  --expressive-spatial-fast-easing: cubic-bezier(0.42, 1.85, 0.21, 0.9);
+  --expressive-spatial-fast-duration: 350ms;
+
+  // Default - Standard transitions with subtle bounce
+  --expressive-spatial-default-easing: cubic-bezier(0.38, 1.21, 0.22, 1);
+  --expressive-spatial-default-duration: 500ms;
+
+  // Slow - Large/hero transitions with gentle bounce
+  --expressive-spatial-slow-easing: cubic-bezier(0.39, 1.29, 0.35, 0.98);
+  --expressive-spatial-slow-duration: 650ms;
+
+  // ============================================
+  // EFFECT EASING (color, opacity)
+  // No bounce - quick resolution
+  // ============================================
+
+  --expressive-effect-fast-easing: cubic-bezier(0.31, 0.94, 0.34, 1);
+  --expressive-effect-fast-duration: 150ms;
+
+  --expressive-effect-default-easing: cubic-bezier(0.34, 0.8, 0.34, 1);
+  --expressive-effect-default-duration: 200ms;
+
+  --expressive-effect-slow-easing: cubic-bezier(0.34, 0.88, 0.34, 1);
+  --expressive-effect-slow-duration: 300ms;
+
+  // ============================================
+  // COMPOSITE TRANSITIONS (shorthand)
+  // ============================================
+
+  // Interactive elements (buttons, FABs, cards)
+  --expressive-interactive:
+    transform var(--expressive-spatial-fast-duration)
+      var(--expressive-spatial-fast-easing),
+    box-shadow var(--expressive-effect-default-duration)
+      var(--expressive-effect-default-easing);
+
+  // Hover states
+  --expressive-hover:
+    transform var(--expressive-spatial-default-duration)
+      var(--expressive-spatial-default-easing),
+    background-color var(--expressive-effect-default-duration)
+      var(--expressive-effect-default-easing);
+
+  // Large movements (modals, sheets)
+  --expressive-entrance:
+    transform var(--expressive-spatial-slow-duration)
+      var(--expressive-spatial-slow-easing),
+    opacity var(--expressive-effect-slow-duration)
+      var(--expressive-effect-slow-easing);
+
+  // ============================================
+  // ELEVATION LEVELS (MD3)
+  // ============================================
+
+  --elevation-level0: none;
+  --elevation-level1: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --elevation-level2:
+    0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --elevation-level3:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --elevation-level4:
+    0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --elevation-level5:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+
+// Dark mode elevation adjustments
+@media (prefers-color-scheme: dark) {
+  :root {
+    --elevation-level1: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    --elevation-level2:
+      0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px -1px rgba(0, 0, 0, 0.3);
+    --elevation-level3:
+      0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+    --elevation-level4:
+      0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+    --elevation-level5:
+      0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+  }
+}

@@ -38,7 +38,7 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
       class="min-h-screen pulpe-gradient flex items-center justify-center p-4"
     >
       <div
-        class="w-full max-w-3xl min-h-[600px] md:h-[800px] bg-surface rounded-2xl md:p-16 p-8 flex flex-col items-center justify-center gap-6 md:gap-10"
+        class="welcome-card w-full max-w-3xl min-h-[600px] md:h-[800px] bg-surface rounded-3xl md:p-16 p-8 flex flex-col items-center justify-center gap-6 md:gap-10"
         data-testid="welcome-page"
       >
         <div class="text-center">
@@ -176,6 +176,29 @@ import { NgxTurnstileModule, type NgxTurnstileComponent } from 'ngx-turnstile';
         </div>
       </div>
     </div>
+  `,
+  styles: `
+    /* MD3 Expressive Welcome Card */
+    .welcome-card {
+      box-shadow: var(--elevation-level4, 0 10px 15px -3px rgba(0, 0, 0, 0.1));
+      animation: card-entrance 800ms
+        var(
+          --expressive-spatial-slow-easing,
+          cubic-bezier(0.39, 1.29, 0.35, 0.98)
+        )
+        forwards;
+    }
+
+    @keyframes card-entrance {
+      0% {
+        opacity: 0;
+        transform: translateY(30px) scale(0.95);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
   `,
 })
 export default class WelcomePage {

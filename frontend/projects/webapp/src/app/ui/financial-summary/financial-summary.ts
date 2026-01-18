@@ -17,7 +17,7 @@ export interface FinancialSummaryData {
   template: `
     <mat-card
       appearance="outlined"
-      class="rounded-2xl"
+      class="rounded-3xl expressive-card"
       [attr.data-type]="data().type"
     >
       <mat-card-content class="p-4">
@@ -53,6 +53,42 @@ export interface FinancialSummaryData {
   `,
   styles: [
     `
+      /* MD3 Expressive Card - Dynamic elevation on hover */
+      .expressive-card {
+        transition:
+          transform var(--expressive-spatial-default-duration, 500ms)
+            var(
+              --expressive-spatial-default-easing,
+              cubic-bezier(0.38, 1.21, 0.22, 1)
+            ),
+          box-shadow var(--expressive-effect-default-duration, 200ms)
+            var(
+              --expressive-effect-default-easing,
+              cubic-bezier(0.34, 0.8, 0.34, 1)
+            );
+
+        &:hover {
+          transform: translateY(-4px);
+          box-shadow: var(
+            --elevation-level3,
+            0 4px 6px -1px rgba(0, 0, 0, 0.1)
+          );
+        }
+      }
+
+      .icon-container {
+        /* Expressive scale on card hover */
+        transition: transform var(--expressive-spatial-fast-duration, 350ms)
+          var(
+            --expressive-spatial-fast-easing,
+            cubic-bezier(0.42, 1.85, 0.21, 0.9)
+          );
+
+        .expressive-card:hover & {
+          transform: scale(1.1);
+        }
+      }
+
       .icon-container[data-type='income'] {
         background-color: var(--pulpe-financial-income);
       }

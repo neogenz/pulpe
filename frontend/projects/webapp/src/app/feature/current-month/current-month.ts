@@ -25,6 +25,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { RouterLink } from '@angular/router';
 import { Logger } from '@core/logging/logger';
 import {
   ProductTourService,
@@ -84,6 +85,7 @@ type EditTransactionFormData = Pick<
     DashboardError,
     BaseLoading,
     OneTimeExpensesList,
+    RouterLink,
   ],
   template: `
     <div class="flex flex-col gap-4 min-w-0" data-testid="current-month-page">
@@ -185,18 +187,45 @@ type EditTransactionFormData = Pick<
             />
           </div>
         } @else {
-          <div class="empty-state" data-testid="empty-state">
-            <h2 class="text-title-large mt-4" data-testid="empty-state-title">
+          <div
+            class="empty-state flex flex-col items-center justify-center py-12 px-6 text-center"
+            data-testid="empty-state"
+          >
+            <!-- Expressive illustration container -->
+            <div
+              class="empty-state-icon w-24 h-24 rounded-full bg-tertiary-container flex items-center justify-center mb-6"
+            >
+              <mat-icon class="text-5xl! text-tertiary icon-filled"
+                >calendar_add_on</mat-icon
+              >
+            </div>
+
+            <h2
+              class="text-headline-medium text-on-surface mb-2"
+              data-testid="empty-state-title"
+            >
               Pas encore de budget ce mois-ci
             </h2>
             <p
-              class="text-body-large text-on-surface-variant mt-2"
+              class="text-body-large text-on-surface-variant max-w-md mb-8"
               data-testid="empty-state-description"
             >
               Crée ton budget pour
-              {{ store.budgetDate() | date: 'MMMM yyyy' : '' : 'fr-CH' }}
-              et reprends le contrôle.
+              <span class="font-semibold text-primary">{{
+                store.budgetDate() | date: 'MMMM yyyy' : '' : 'fr-CH'
+              }}</span>
+              et reprends le contrôle de tes finances.
             </p>
+
+            <!-- CTA Button -->
+            <a
+              matButton="filled"
+              class="empty-state-cta px-8 py-3"
+              [routerLink]="['/app/budget']"
+            >
+              <mat-icon>add</mat-icon>
+              Créer mon budget
+            </a>
           </div>
         }
       }
@@ -226,6 +255,83 @@ type EditTransactionFormData = Pick<
       bottom: 24px;
       right: 24px;
       z-index: 1000;
+
+      /* MD3 Expressive Motion - Spring with bounce */
+      transition:
+        transform var(--expressive-spatial-fast-duration, 350ms)
+          var(
+            --expressive-spatial-fast-easing,
+            cubic-bezier(0.42, 1.85, 0.21, 0.9)
+          ),
+        box-shadow var(--expressive-effect-default-duration, 200ms)
+          var(
+            --expressive-effect-default-easing,
+            cubic-bezier(0.34, 0.8, 0.34, 1)
+          );
+
+      &:hover {
+        transform: scale(1.08);
+        box-shadow: var(--elevation-level4);
+      }
+
+      &:active {
+        transform: scale(0.92);
+        box-shadow: var(--elevation-level2);
+      }
+
+      /* Subtle pulse animation for discoverability */
+      &:not(:hover):not(:active) {
+        animation: fab-pulse 3s ease-in-out infinite;
+        animation-delay: 2s;
+      }
+    }
+
+    @keyframes fab-pulse {
+      0%,
+      100% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.05);
+      }
+    }
+
+    /* Empty State Expressive Styles */
+    .empty-state-icon {
+      animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-8px);
+      }
+    }
+
+    .empty-state-cta {
+      transition:
+        transform var(--expressive-spatial-fast-duration, 350ms)
+          var(
+            --expressive-spatial-fast-easing,
+            cubic-bezier(0.42, 1.85, 0.21, 0.9)
+          ),
+        box-shadow var(--expressive-effect-default-duration, 200ms)
+          var(
+            --expressive-effect-default-easing,
+            cubic-bezier(0.34, 0.8, 0.34, 1)
+          );
+
+      &:hover {
+        transform: scale(1.05);
+        box-shadow: var(--elevation-level3);
+      }
+
+      &:active {
+        transform: scale(0.98);
+      }
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
