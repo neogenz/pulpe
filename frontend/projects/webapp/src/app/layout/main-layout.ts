@@ -84,13 +84,13 @@ interface NavigationItem {
         <!-- Sidenav Header -->
         @if (isHandset()) {
           <div class="py-4 px-6 flex items-center gap-3">
-            <div class="w-10 h-10 pulpe-gradient rounded-full"></div>
+            <img src="logo.svg" alt="Pulpe" class="w-10 h-auto" />
             <span class="text-lg font-medium text-on-surface">Pulpe</span>
           </div>
         } @else {
           <!-- Rail Mode Header -->
           <div class="py-6 flex justify-center items-center">
-            <div class="w-10 h-10 pulpe-gradient rounded-full"></div>
+            <img src="logo.svg" alt="Pulpe" class="w-10 h-auto" />
           </div>
         }
 
