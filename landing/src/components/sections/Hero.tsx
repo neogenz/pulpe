@@ -209,7 +209,7 @@ export function Hero() {
               clics.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 items-center sm:items-start justify-center">
-              <div className="flex flex-col items-center gap-1">
+              <div className="flex flex-col items-center gap-3">
                 <ShineBorder
                   color={["#006E25", "#2B883B", "#0061A6"]}
                   borderWidth={2}
