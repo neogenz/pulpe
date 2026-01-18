@@ -1,5 +1,6 @@
 import { HttpClient } from '@angular/common/http';
-import { computed, inject, Injectable, resource, signal } from '@angular/core';
+import { computed, inject, Injectable, signal } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
 import { BudgetApi } from '@core/budget';
 import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
@@ -7,7 +8,6 @@ import { TransactionApi } from '@core/transaction';
 import { UserSettingsApi } from '@core/user-settings';
 import { createRolloverLine } from '@core/rollover/rollover-types';
 import {
-  type Budget,
   type BudgetLine,
   type Transaction,
   type TransactionCreate,
@@ -15,7 +15,7 @@ import {
   BudgetFormulas,
   getBudgetPeriodForDate,
 } from 'pulpe-shared';
-import { firstValueFrom, type Observable } from 'rxjs';
+import { firstValueFrom, map, of, switchMap, type Observable } from 'rxjs';
 import {
   type CurrentMonthState,
   type DashboardData,
@@ -32,7 +32,8 @@ import { createInitialCurrentMonthInternalState } from './current-month-state';
  * - Calculated financial metrics
  *
  * Architecture:
- * - Uses Angular's resource() API for async data loading
+ * - Uses Angular's rxResource() API for async data loading with RxJS integration
+ * - Automatic request cancellation when parameters change
  * - Simplified state management without complex optimistic updates
  * - Relies on resource reload for data consistency after mutations
  */
@@ -71,8 +72,9 @@ export class CurrentMonthStore {
   /**
    * Resource for loading dashboard data - single source of truth for async data.
    * Includes invalidation version to auto-reload when budgets are mutated.
+   * Uses rxResource for automatic request cancellation and RxJS integration.
    */
-  readonly #dashboardResource = resource<
+  readonly #dashboardResource = rxResource<
     DashboardData,
     { month: string; year: string; version: number }
   >({
@@ -84,7 +86,7 @@ export class CurrentMonthStore {
         version: this.#invalidationService.version(),
       };
     },
-    loader: async ({ params }) => this.#loadDashboardData(params),
+    stream: ({ params }) => this.#loadDashboardData$(params),
   });
 
   /**
@@ -488,31 +490,26 @@ export class CurrentMonthStore {
   }
 
   /**
-   * Load dashboard data from API
-   * Note: Uses two sequential calls for now. Could be optimized with a single endpoint.
+   * Load dashboard data from API as Observable
+   * Chains two API calls: getBudgetForMonth → getBudgetWithDetails
    */
-  async #loadDashboardData(params: {
+  #loadDashboardData$(params: {
     month: string;
     year: string;
-  }): Promise<DashboardData> {
-    // Load budget first to get its ID
-    const budget = await firstValueFrom<Budget | null>(
-      this.#budgetApi.getBudgetForMonth$(params.month, params.year),
+  }): Observable<DashboardData> {
+    return this.#budgetApi.getBudgetForMonth$(params.month, params.year).pipe(
+      switchMap((budget) => {
+        if (!budget) {
+          return of({ budget: null, transactions: [], budgetLines: [] });
+        }
+        return this.#budgetApi.getBudgetWithDetails$(budget.id).pipe(
+          map((response) => ({
+            budget: response.data.budget,
+            transactions: response.data.transactions,
+            budgetLines: response.data.budgetLines,
+          })),
+        );
+      }),
     );
-
-    if (!budget) {
-      return { budget: null, transactions: [], budgetLines: [] };
-    }
-
-    // Use the budget ID to fetch everything in a single request
-    const detailsResponse = await firstValueFrom(
-      this.#budgetApi.getBudgetWithDetails$(budget.id),
-    );
-
-    return {
-      budget: detailsResponse.data.budget,
-      transactions: detailsResponse.data.transactions,
-      budgetLines: detailsResponse.data.budgetLines,
-    };
   }
 }
