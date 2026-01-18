@@ -52,7 +52,7 @@ export class AuthSessionService {
     if (this.#isE2EBypass()) {
       const mockState = this.#getE2EMockState();
       if (mockState) {
-        this.#logger.info(
+        this.#logger.debug(
           '🎭 Mode test E2E détecté, utilisation des mocks auth',
         );
         this.#state.setSession(mockState.session);
@@ -223,7 +223,7 @@ export class AuthSessionService {
 
     try {
       if (this.#isE2EBypass()) {
-        this.#logger.info('🎭 Mode test E2E: Simulation du logout');
+        this.#logger.debug('🎭 Mode test E2E: Simulation du logout');
         return;
       }
 
