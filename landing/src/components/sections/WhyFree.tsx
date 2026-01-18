@@ -15,7 +15,7 @@ export function WhyFree() {
             <div>
               <h3 className="font-semibold text-text mb-2">Un projet né d'un vrai besoin</h3>
               <p>
-                J'ai créé Pulpe parce que j'en avais marre de mon Excel budget sur mobile.
+                J'ai créé Pulpe parce que j'en avais marre de galérer à suivre mon budget sur mobile.
                 Ça m'aide beaucoup au quotidien, quelques amis aussi — je me dis que ça peut aider d'autres personnes.
               </p>
             </div>

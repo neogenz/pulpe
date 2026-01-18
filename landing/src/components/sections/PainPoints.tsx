@@ -5,17 +5,17 @@ const PAIN_POINTS = [
   {
     icon: CalendarX,
     title: 'Mauvaises surprises',
-    text: 'Être surpris par les impôts ou une grosse dépense oubliée',
+    text: 'Les impôts qui tombent au pire moment, une grosse dépense oubliée',
   },
   {
     icon: TableProperties,
     title: 'Prise de tête',
-    text: 'Ouvrir Excel sur mobile pour noter une dépense... et abandonner',
+    text: 'Noter une dépense = une corvée. Résultat : on laisse tomber.',
   },
   {
     icon: CircleHelp,
     title: 'Budget flou',
-    text: 'Ne jamais savoir combien tu peux vraiment dépenser ce mois-ci',
+    text: 'Jamais vraiment sûr de ce que tu peux dépenser ce mois-ci',
   },
 ]
 
