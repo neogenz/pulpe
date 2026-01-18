@@ -38,6 +38,12 @@ val StepPhone = Color(0xFF6A1B9A)
 val StepTransport = Color(0xFFEF6C00)
 val StepCredit = Color(0xFF37474F)
 
+// Warning Colors (Orange) - for budget alerts and attention states
+val WarningContainer = Color(0xFFFFF3E0)
+val OnWarningContainer = Color(0xFFE65100)
+val WarningContainerDark = Color(0xFF4E2600)
+val OnWarningContainerDark = Color(0xFFFFDDB3)
+
 // Material 3 Color Scheme - Light
 val md_theme_light_primary = Color(0xFF006E25)
 val md_theme_light_onPrimary = Color(0xFFFFFFFF)

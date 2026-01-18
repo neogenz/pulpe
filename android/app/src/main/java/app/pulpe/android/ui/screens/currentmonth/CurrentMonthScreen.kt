@@ -15,7 +15,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.Warning
 import app.pulpe.android.ui.components.EmptyStateView
+import app.pulpe.android.ui.theme.PulpeTheme
 import app.pulpe.android.ui.components.ErrorView
 import app.pulpe.android.ui.components.HeroBalanceCard
 import app.pulpe.android.ui.components.LoadingView
@@ -126,28 +129,44 @@ fun CurrentMonthScreen(
                         if (uiState.alertBudgetLines.isNotEmpty()) {
                             item {
                                 Card(
+                                    shape = RoundedCornerShape(24.dp),
                                     colors = CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.errorContainer
+                                        containerColor = PulpeTheme.colors.warningContainer
                                     )
                                 ) {
-                                    Column(modifier = Modifier.padding(16.dp)) {
-                                        Text(
-                                            text = "Attention",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            color = MaterialTheme.colorScheme.onErrorContainer
+                                    Row(
+                                        modifier = Modifier.padding(16.dp),
+                                        verticalAlignment = Alignment.Top
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Warning,
+                                            contentDescription = null,
+                                            tint = PulpeTheme.colors.onWarningContainer,
+                                            modifier = Modifier.size(24.dp)
                                         )
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        Text(
-                                            text = "${uiState.alertBudgetLines.size} catégorie(s) à plus de 80%",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onErrorContainer
-                                        )
-                                        TextButton(
-                                            onClick = {
-                                                uiState.budget?.id?.let { onNavigateToBudget(it) }
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = "Attention",
+                                                style = MaterialTheme.typography.titleMedium,
+                                                color = PulpeTheme.colors.onWarningContainer
+                                            )
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Text(
+                                                text = "${uiState.alertBudgetLines.size} catégorie(s) à plus de 80%",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = PulpeTheme.colors.onWarningContainer
+                                            )
+                                            TextButton(
+                                                onClick = {
+                                                    uiState.budget?.id?.let { onNavigateToBudget(it) }
+                                                },
+                                                colors = ButtonDefaults.textButtonColors(
+                                                    contentColor = PulpeTheme.colors.onWarningContainer
+                                                )
+                                            ) {
+                                                Text("Voir le budget")
                                             }
-                                        ) {
-                                            Text("Voir le budget")
                                         }
                                     }
                                 }

@@ -86,19 +86,23 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 /**
- * Extended color palette for financial indicators
+ * Extended color palette for financial indicators and semantic colors
  */
 data class PulpeColors(
     val financialIncome: Color,
     val financialExpense: Color,
-    val financialSavings: Color
+    val financialSavings: Color,
+    val warningContainer: Color,
+    val onWarningContainer: Color
 )
 
 val LocalPulpeColors = staticCompositionLocalOf {
     PulpeColors(
         financialIncome = FinancialIncome,
         financialExpense = FinancialExpense,
-        financialSavings = FinancialSavings
+        financialSavings = FinancialSavings,
+        warningContainer = WarningContainer,
+        onWarningContainer = OnWarningContainer
     )
 }
 
@@ -121,13 +125,17 @@ fun PulpeTheme(
         PulpeColors(
             financialIncome = FinancialIncomeDark,
             financialExpense = FinancialExpenseDark,
-            financialSavings = FinancialSavingsDark
+            financialSavings = FinancialSavingsDark,
+            warningContainer = WarningContainerDark,
+            onWarningContainer = OnWarningContainerDark
         )
     } else {
         PulpeColors(
             financialIncome = FinancialIncome,
             financialExpense = FinancialExpense,
-            financialSavings = FinancialSavings
+            financialSavings = FinancialSavings,
+            warningContainer = WarningContainer,
+            onWarningContainer = OnWarningContainer
         )
     }
 

@@ -160,15 +160,16 @@ private fun QuickActionButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    OutlinedButton(
+    FilledTonalButton(
         onClick = onClick,
         modifier = modifier,
-        contentPadding = PaddingValues(vertical = 12.dp)
+        shape = RoundedCornerShape(16.dp),
+        contentPadding = PaddingValues(vertical = 16.dp, horizontal = 12.dp)
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(label, style = MaterialTheme.typography.labelSmall)
+            Icon(icon, contentDescription = null, modifier = Modifier.size(24.dp))
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(label, style = MaterialTheme.typography.labelMedium)
         }
     }
 }
