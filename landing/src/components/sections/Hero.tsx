@@ -1,10 +1,10 @@
 import {
   Button,
-  Screenshot,
+  HeroScreenshot,
   FadeIn,
   ShineBorder,
   TypeWriter,
-  CanvasTrail,
+  GridBackground,
 } from '../ui'
 
 const TYPEWRITER_STRINGS = [
@@ -17,12 +17,8 @@ const TYPEWRITER_STRINGS = [
 export function Hero() {
   return (
     <section className="relative min-h-screen flex items-center pt-28 pb-16 md:pt-32 md:pb-24 bg-background overflow-hidden">
-      {/* Interactive canvas trail effect */}
-      <CanvasTrail
-        trails={25}
-        hueOffset={140} // Green hue to match primary
-        opacity={0.025}
-      />
+      {/* Subtle grid background */}
+      <GridBackground />
 
       <div className="relative z-10 w-full max-w-6xl mx-auto px-4 md:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
@@ -66,12 +62,10 @@ export function Hero() {
             </div>
           </FadeIn>
 
-          <FadeIn animateOnMount noYMovement delay={0.2} className="relative">
-            <Screenshot
-              src="/screenshots/webapp/dashboard.png"
-              label="Dashboard Pulpe - Vue du mois en cours"
-            />
-          </FadeIn>
+          <HeroScreenshot
+            screenshotSrc="/screenshots/webapp/dashboard.png"
+            screenshotLabel="Dashboard Pulpe - Vue du mois en cours"
+          />
         </div>
       </div>
     </section>

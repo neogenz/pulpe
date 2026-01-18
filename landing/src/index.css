@@ -20,6 +20,7 @@
     0 2px 4px rgba(0, 0, 0, 0.02),
     0 8px 16px rgba(0, 0, 0, 0.04),
     0 16px 32px rgba(0, 0, 0, 0.06);
+  --shadow-floating: 0 8px 24px rgba(0, 0, 0, 0.12);
 
   --radius-button: 12px;
   --radius-card: 16px;
@@ -89,5 +90,32 @@ body {
   }
   100% {
     background-position: 0% 0%;
+  }
+}
+
+/* Floating card bob animation */
+@keyframes float-bob {
+  0%, 100% {
+    transform: translateY(0) rotate(var(--rotation, 0deg));
+  }
+  50% {
+    transform: translateY(-6px) rotate(var(--rotation, 0deg));
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .float-bob {
+    animation: float-bob 4s ease-in-out infinite;
+  }
+}
+
+/* Grid background responsive size */
+:root {
+  --grid-size: 60px;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --grid-size: 100px;
   }
 }
