@@ -188,7 +188,7 @@ export function Hero() {
           <FadeIn
             animateOnMount
             noYMovement
-            className="text-center md:text-left"
+            className="text-center lg:text-left"
           >
             <p className="text-sm font-medium text-primary mb-3 tracking-wide uppercase">
               L'app budget simple
@@ -204,11 +204,11 @@ export function Hero() {
                 <TypeWriter strings={TYPEWRITER_STRINGS} />
               </span>
             </h1>
-            <p className="text-lg md:text-xl text-text-secondary mb-8 max-w-lg mx-auto md:mx-0">
+            <p className="text-lg md:text-xl text-text-secondary mb-8 max-w-lg mx-auto lg:mx-0">
               Fini le stress des dépenses oubliées. Anticipe tout et note en 2
               clics.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 items-center justify-center md:justify-start">
+            <div className="flex flex-col sm:flex-row gap-4 items-center justify-center lg:justify-start">
               <div className="flex flex-col items-center gap-1">
                 <ShineBorder
                   color={["#006E25", "#2B883B", "#0061A6"]}
