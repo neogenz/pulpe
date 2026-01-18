@@ -114,32 +114,37 @@ function createDisplayItems(
   return items;
 }
 
-function calculateCumulativeBalances(
-  items: BudgetItemWithBalance[],
+function calculateBalancesInDisplayOrder(
+  items: TableRowItem[],
   consumptionMap: Map<string, { consumed: number }>,
 ): void {
   let runningBalance = 0;
 
   items.forEach((item) => {
-    const kind = item.item.kind;
-    let effectiveAmount = item.item.amount;
+    // Skip group headers
+    if (item.metadata.itemType === 'group_header') return;
 
-    if (item.itemType === 'budget_line') {
-      const consumption = consumptionMap.get(item.item.id);
+    const dataItem = item as BudgetLineTableItem | TransactionTableItem;
+    const kind = dataItem.data.kind;
+    let effectiveAmount = dataItem.data.amount;
+
+    if (dataItem.metadata.itemType === 'budget_line') {
+      const consumption = consumptionMap.get(dataItem.data.id);
       if (consumption) {
-        effectiveAmount = Math.max(item.item.amount, consumption.consumed);
+        effectiveAmount = Math.max(dataItem.data.amount, consumption.consumed);
       }
     }
 
     const isAllocatedTransaction =
-      item.itemType === 'transaction' && !!item.item.budgetLineId;
+      dataItem.metadata.itemType === 'transaction' &&
+      !!(dataItem.data as Transaction).budgetLineId;
 
     if (!isAllocatedTransaction) {
       const signedAmount = getSignedAmount(kind, effectiveAmount);
       runningBalance += signedAmount;
     }
 
-    item.cumulativeBalance = runningBalance;
+    dataItem.metadata.cumulativeBalance = runningBalance;
   });
 }
 
@@ -192,7 +197,6 @@ export function buildEnvelopesViewData(params: {
   const consumptionMap = calculateAllConsumptions(budgetLines, transactions);
   const items = createDisplayItems(budgetLines, transactions);
   items.sort(compareItems);
-  calculateCumulativeBalances(items, consumptionMap);
 
   const mappedItems = items.map((item) => {
     const isRollover = isRolloverLine(item.item);
@@ -253,5 +257,7 @@ export function buildEnvelopesViewData(params: {
     } satisfies TransactionTableItem;
   });
 
-  return insertGroupHeaders(mappedItems);
+  const result = insertGroupHeaders(mappedItems);
+  calculateBalancesInDisplayOrder(result, consumptionMap);
+  return result;
 }

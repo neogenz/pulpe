@@ -16,7 +16,6 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
@@ -25,6 +24,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
@@ -34,7 +34,6 @@ import {
   type BudgetLineConsumption,
 } from '@core/budget';
 import { Logger } from '@core/logging/logger';
-import { type BudgetLine, type BudgetLineUpdate } from 'pulpe-shared';
 import {
   ConfirmationDialog,
   type ConfirmationDialogData,
@@ -43,6 +42,7 @@ import {
   RecurrenceLabelPipe,
   TransactionLabelPipe,
 } from '@ui/transaction-display';
+import { type BudgetLine, type BudgetLineUpdate } from 'pulpe-shared';
 import { map } from 'rxjs/operators';
 import { EditBudgetLineDialog } from '../edit-budget-line/edit-budget-line-dialog';
 import { type BudgetLineViewModel } from '../models/budget-line-view-model';
@@ -109,7 +109,7 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
           }
         </div>
       </mat-card-header>
-      <mat-card-content class="!pt-4">
+      <mat-card-content class="py-4!">
         @if (isMobile()) {
           <!-- Mobile view -->
           <div class="flex flex-col gap-3">
@@ -812,15 +812,13 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
       </mat-card-content>
       @if (budgetTableData().length > 0) {
         <mat-card-actions
-          class="!px-5 !py-4 border-t border-outline-variant/50"
+          class="!px-5 !py-4 border-t border-outline-variant/50 justify-center"
         >
           <button
             matButton
             (click)="add.emit()"
             data-testid="add-budget-line"
-            class="w-full justify-center gap-2 !h-11 !rounded-full
-                   bg-primary-container/50 text-on-primary-container
-                   hover:bg-primary-container/70 transition-colors"
+            class="gap-2 !h-11 !rounded-full !px-6"
           >
             <mat-icon>add</mat-icon>
             Ajouter une enveloppe
@@ -845,7 +843,6 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
     }
 
     .mat-mdc-row:hover {
-      cursor: pointer;
       background-color: var(--mat-sys-surface-container-lowest);
     }
 
