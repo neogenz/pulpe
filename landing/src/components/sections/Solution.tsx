@@ -1,4 +1,4 @@
-import { Section, Screenshot, FadeIn } from '../ui'
+import { Section, AppMockup, FadeIn } from '../ui'
 
 export function Solution() {
   return (
@@ -18,9 +18,11 @@ export function Solution() {
       </div>
 
       <FadeIn delay={0.2}>
-        <Screenshot
+        <AppMockup
           src="/screenshots/webapp/vue-calendrier-annuel.png"
-          label="Vue annuelle des budgets"
+          alt="Vue annuelle des budgets"
+          perspective
+          shadow="elevated"
           className="w-full max-w-4xl mx-auto"
         />
       </FadeIn>

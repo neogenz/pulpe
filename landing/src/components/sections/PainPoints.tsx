@@ -21,7 +21,7 @@ const PAIN_POINTS = [
 
 export function PainPoints() {
   return (
-    <Section background="alt" id="pain-points">
+    <Section background="alt" id="pain-points" className="pt-32 md:pt-44 lg:pt-56">
       <FadeIn>
         <h2 className="text-2xl md:text-4xl font-bold text-center mb-12">
           Tu connais cette sensation ?

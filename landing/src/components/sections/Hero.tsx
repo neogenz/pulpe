@@ -1,10 +1,14 @@
+import { Check, Wallet } from 'lucide-react'
 import {
   Button,
-  Screenshot,
   FadeIn,
   ShineBorder,
   TypeWriter,
   CanvasTrail,
+  MockupComposition,
+  NotificationCard,
+  StatCard,
+  MiniChartCard,
 } from '../ui'
 
 const TYPEWRITER_STRINGS = [
@@ -16,7 +20,10 @@ const TYPEWRITER_STRINGS = [
 
 export function Hero() {
   return (
-    <section className="relative min-h-screen flex items-center pt-28 pb-16 md:pt-32 md:pb-24 bg-background overflow-hidden">
+    <section className="relative pt-28 pb-0 md:pt-32">
+      {/* Background card with rounded bottom corners and side margins */}
+      <div className="absolute inset-y-0 inset-x-3 md:inset-x-6 lg:inset-x-8 bg-background rounded-b-[2rem] md:rounded-b-[3rem] lg:rounded-b-[4rem]" />
+
       {/* Interactive canvas trail effect */}
       <CanvasTrail
         trails={25}
@@ -25,8 +32,9 @@ export function Hero() {
       />
 
       <div className="relative z-10 w-full max-w-6xl mx-auto px-4 md:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-          <FadeIn animateOnMount noYMovement>
+        {/* Centered text content */}
+        <FadeIn animateOnMount noYMovement>
+          <div className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
             <p className="text-sm font-medium text-primary mb-3 tracking-wide uppercase">
               L'app budget simple
             </p>
@@ -37,15 +45,15 @@ export function Hero() {
               <span className="text-primary md:hidden">
                 Profite de ton mois.
               </span>
-              <span className="text-primary hidden md:block min-h-[7.5rem] lg:min-h-[9.375rem]">
+              <span className="text-primary hidden md:inline">
                 <TypeWriter strings={TYPEWRITER_STRINGS} />
               </span>
             </h1>
-            <p className="text-lg md:text-xl text-text-secondary mb-8 max-w-lg">
+            <p className="text-lg md:text-xl text-text-secondary mb-8 max-w-xl mx-auto">
               Fini le stress des dépenses oubliées. Anticipe tout et note en 2
               clics.
             </p>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 items-center">
               <div className="flex flex-col sm:flex-row gap-4 items-center">
                 <ShineBorder
                   color={['#006E25', '#2B883B', '#0061A6']}
@@ -64,15 +72,53 @@ export function Hero() {
               </div>
               <span className="text-sm text-text-secondary">C'est gratuit</span>
             </div>
-          </FadeIn>
+          </div>
+        </FadeIn>
 
-          <FadeIn animateOnMount noYMovement delay={0.2} className="relative">
-            <Screenshot
-              src="/screenshots/webapp/dashboard.png"
-              label="Dashboard Pulpe - Vue du mois en cours"
+        {/* Mockup positioned to bleed into next section */}
+        <FadeIn animateOnMount noYMovement delay={0.2}>
+          <div className="relative translate-y-16 md:translate-y-24 lg:translate-y-32">
+            <MockupComposition
+              screenshot={{
+                src: '/screenshots/webapp/dashboard.png',
+                alt: 'Dashboard Pulpe - Vue du mois en cours',
+              }}
+              variant="hero"
+              floatingCards={[
+                {
+                  position: 'top-right',
+                  rotation: 2,
+                  delay: 0.5,
+                  content: (
+                    <NotificationCard
+                      icon={<Check size={14} />}
+                      text="Budget mis à jour"
+                    />
+                  ),
+                },
+                {
+                  position: 'bottom-left',
+                  rotation: -3,
+                  delay: 1,
+                  content: (
+                    <StatCard
+                      icon={<Wallet size={16} />}
+                      label="Disponible"
+                      value="847 CHF"
+                    />
+                  ),
+                },
+                {
+                  position: 'bottom-right',
+                  rotation: 2,
+                  delay: 1.5,
+                  hideOnTablet: true,
+                  content: <MiniChartCard label="Épargne" />,
+                },
+              ]}
             />
-          </FadeIn>
-        </div>
+          </div>
+        </FadeIn>
       </div>
     </section>
   )

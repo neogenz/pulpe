@@ -1,4 +1,4 @@
-import { Section, Badge, Screenshot, FadeIn } from '../ui'
+import { Section, Badge, AppMockup, FadeIn } from '../ui'
 
 const FEATURES = [
   {
@@ -57,9 +57,11 @@ export function Features() {
                 </p>
               </div>
               <div className={index % 2 === 1 ? 'lg:order-1' : ''}>
-                <Screenshot
+                <AppMockup
                   src={feature.screenshot.src}
-                  label={feature.screenshot.label}
+                  alt={feature.screenshot.label}
+                  perspective
+                  perspectiveDirection={index % 2 === 0 ? 'right' : 'left'}
                 />
               </div>
             </div>

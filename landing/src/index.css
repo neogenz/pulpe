@@ -21,6 +21,18 @@
     0 8px 16px rgba(0, 0, 0, 0.04),
     0 16px 32px rgba(0, 0, 0, 0.06);
 
+  --shadow-mockup:
+    0 4px 6px rgba(0, 110, 37, 0.04),
+    0 8px 24px rgba(0, 0, 0, 0.08),
+    0 16px 48px rgba(0, 0, 0, 0.06);
+  --shadow-mockup-elevated:
+    0 8px 16px rgba(0, 110, 37, 0.06),
+    0 16px 48px rgba(0, 0, 0, 0.1),
+    0 32px 80px rgba(0, 0, 0, 0.08);
+  --shadow-floating:
+    0 4px 12px rgba(0, 110, 37, 0.06),
+    0 8px 24px rgba(0, 0, 0, 0.1);
+
   --radius-button: 12px;
   --radius-card: 16px;
   --radius-large: 24px;
@@ -33,7 +45,7 @@ html {
 
 body {
   font-family: var(--font-family-sans);
-  background-color: var(--color-background);
+  background-color: var(--color-surface-alt);
   color: var(--color-text);
   margin: 0;
   min-height: 100vh;
@@ -89,5 +101,20 @@ body {
   }
   100% {
     background-position: 0% 0%;
+  }
+}
+
+@keyframes float-bob {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .animate-float-bob {
+    animation: float-bob 3.5s ease-in-out infinite;
   }
 }
