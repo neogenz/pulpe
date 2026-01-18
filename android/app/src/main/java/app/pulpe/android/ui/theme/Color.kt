@@ -67,6 +67,14 @@ val md_theme_light_inverseSurface = Color(0xFF2E312D)
 val md_theme_light_inversePrimary = Color(0xFF79DC82)
 val md_theme_light_surfaceTint = Color(0xFF006E25)
 
+// Material 3 Surface Container Hierarchy - Light
+// Used for layered surfaces following MD3 container elevation
+val md_theme_light_surfaceContainerLowest = Color(0xFFFFFFFF)
+val md_theme_light_surfaceContainerLow = Color(0xFFF6F7F2)
+val md_theme_light_surfaceContainer = Color(0xFFF0F1EC)
+val md_theme_light_surfaceContainerHigh = Color(0xFFEAEBE6)
+val md_theme_light_surfaceContainerHighest = Color(0xFFE5E6E1)
+
 // Material 3 Color Scheme - Dark
 val md_theme_dark_primary = Color(0xFF79DC82)
 val md_theme_dark_onPrimary = Color(0xFF00390F)
@@ -95,3 +103,10 @@ val md_theme_dark_inverseOnSurface = Color(0xFF1A1C19)
 val md_theme_dark_inverseSurface = Color(0xFFE2E3DD)
 val md_theme_dark_inversePrimary = Color(0xFF006E25)
 val md_theme_dark_surfaceTint = Color(0xFF79DC82)
+
+// Material 3 Surface Container Hierarchy - Dark
+val md_theme_dark_surfaceContainerLowest = Color(0xFF0D0F0D)
+val md_theme_dark_surfaceContainerLow = Color(0xFF1A1C19)
+val md_theme_dark_surfaceContainer = Color(0xFF1E201D)
+val md_theme_dark_surfaceContainerHigh = Color(0xFF282A27)
+val md_theme_dark_surfaceContainerHighest = Color(0xFF333532)
