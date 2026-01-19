@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) for the frontend application.
 
-## Commands
+## Commands test
 
 ```bash
 pnpm run dev                        # ng serve (http://localhost:4200)
