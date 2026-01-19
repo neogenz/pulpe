@@ -29,7 +29,7 @@ export class BudgetListStore {
    * Resource that auto-reloads when budget invalidation version changes.
    * This enables automatic cache invalidation across stores.
    */
-  budgets = resource<Budget[], { version: number }>({
+  readonly budgets = resource<Budget[], { version: number }>({
     params: () => ({ version: this.#invalidationService.version() }),
     loader: async () => this.#loadBudgets(),
   });
@@ -38,7 +38,7 @@ export class BudgetListStore {
   readonly hasValue = computed(() => this.budgets.hasValue());
   readonly error = computed(() => this.budgets.error());
 
-  plannedYears = computed(() => {
+  readonly plannedYears = computed(() => {
     const months = this.budgets.value() ?? [];
     const years = [...new Set(months.map((month) => month.year))];
     return years.sort((a, b) => a - b); // Tri croissant
@@ -47,7 +47,7 @@ export class BudgetListStore {
   /**
    * Mensual budget planned, grouped by year
    */
-  plannedBudgetsGroupedByYears = computed(() => {
+  readonly plannedBudgetsGroupedByYears = computed(() => {
     const months = this.budgets.value() ?? [];
     const groupedByYear = new Map<number, Budget[]>();
 
@@ -98,7 +98,7 @@ export class BudgetListStore {
     return allMonthsGroupedByYears;
   });
 
-  selectedYear = linkedSignal<number[], number | null>({
+  readonly selectedYear = linkedSignal<number[], number | null>({
     source: this.plannedYears,
     computation: (years, previous) => {
       // Garder la sélection précédente si elle existe encore
@@ -113,7 +113,7 @@ export class BudgetListStore {
     },
   });
 
-  selectedYearIndex = computed(() => {
+  readonly selectedYearIndex = computed(() => {
     const year = this.selectedYear();
     const years = this.plannedYears();
 
@@ -126,7 +126,7 @@ export class BudgetListStore {
    * Calcule le prochain mois disponible sans budget existant
    * Recherche à partir du mois actuel jusqu'à 3 ans dans le futur
    */
-  nextAvailableMonth = computed(() => {
+  readonly nextAvailableMonth = computed(() => {
     const budgetsValue = this.budgets.value();
     const now = new Date();
     const currentMonth = now.getMonth() + 1; // getMonth() retourne 0-11

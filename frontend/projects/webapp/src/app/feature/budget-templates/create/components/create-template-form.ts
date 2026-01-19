@@ -258,22 +258,24 @@ export class CreateTemplateForm {
   });
 
   // Form signals
-  formValues = toSignal(this.templateForm.valueChanges, {
+  readonly formValues = toSignal(this.templateForm.valueChanges, {
     initialValue: this.templateForm.getRawValue(),
   });
-  formStatus = toSignal(this.templateForm.statusChanges, {
+  readonly formStatus = toSignal(this.templateForm.statusChanges, {
     initialValue: this.templateForm.status,
   });
-  isFormValid = computed(() => this.formStatus() === 'VALID');
-  isDefaultChecked = computed(() => this.formValues()?.isDefault ?? false);
+  readonly isFormValid = computed(() => this.formStatus() === 'VALID');
+  readonly isDefaultChecked = computed(
+    () => this.formValues()?.isDefault ?? false,
+  );
 
   // Computed: limit reached based on input (hidden during creation to avoid flicker)
-  isLimitReached = computed(
+  readonly isLimitReached = computed(
     () => !this.isCreating() && this.templateCount() >= this.maxTemplates,
   );
 
   // Computed: warning message when overriding default
-  overrideDefaultWarning = computed(() => {
+  readonly overrideDefaultWarning = computed(() => {
     const defaultName = this.defaultTemplateName();
     const isDefaultChecked = this.isDefaultChecked();
 
@@ -284,14 +286,14 @@ export class CreateTemplateForm {
   });
 
   // Submit button text
-  submitButtonText = computed(() => {
+  readonly submitButtonText = computed(() => {
     if (this.isCreating()) return 'Création...';
     if (this.isLimitReached()) return 'Limite atteinte';
     return 'Créer';
   });
 
   // Form valid for submission
-  isFormValidForSubmission = computed(() => {
+  readonly isFormValidForSubmission = computed(() => {
     return this.isFormValid() && !this.isCreating() && !this.isLimitReached();
   });
 

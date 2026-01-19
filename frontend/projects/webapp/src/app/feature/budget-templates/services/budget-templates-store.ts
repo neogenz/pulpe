@@ -18,7 +18,7 @@ export class BudgetTemplatesStore {
   readonly MAX_TEMPLATES = 5;
 
   // Using rxResource for better error handling with HTTP errors
-  budgetTemplates = rxResource<BudgetTemplate[], void>({
+  readonly budgetTemplates = rxResource<BudgetTemplate[], void>({
     stream: () =>
       this.#budgetTemplatesApi.getAll$().pipe(
         map((response) => (Array.isArray(response.data) ? response.data : [])),
@@ -29,7 +29,7 @@ export class BudgetTemplatesStore {
         }),
       ),
   });
-  selectedTemplate = signal<BudgetTemplate | null>(null);
+  readonly selectedTemplate = signal<BudgetTemplate | null>(null);
 
   // Filter out optimistic (temporary) templates for business logic computations
   // Temporary templates have IDs starting with "temp-"
@@ -39,15 +39,15 @@ export class BudgetTemplatesStore {
       [],
   );
 
-  templateCount = computed(() => this.#persistedTemplates().length);
+  readonly templateCount = computed(() => this.#persistedTemplates().length);
 
-  isTemplateLimitReached = computed(
+  readonly isTemplateLimitReached = computed(
     () => this.templateCount() >= this.MAX_TEMPLATES,
   );
-  remainingTemplates = computed(
+  readonly remainingTemplates = computed(
     () => this.MAX_TEMPLATES - this.templateCount(),
   );
-  defaultBudgetTemplate = computed(
+  readonly defaultBudgetTemplate = computed(
     () => this.#persistedTemplates().find((t) => t.isDefault) ?? null,
   );
 

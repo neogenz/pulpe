@@ -264,7 +264,7 @@ export default class BudgetDetailsPage {
     { initialValue: false },
   );
 
-  id = input.required<string>();
+  readonly id = input.required<string>();
 
   constructor() {
     effect(() => {
@@ -308,14 +308,14 @@ export default class BudgetDetailsPage {
     this.#router.navigate(['..'], { relativeTo: this.#route });
   }
 
-  displayName = computed(() => {
+  readonly displayName = computed(() => {
     const budget = this.store.budgetDetails();
     if (!budget) return '';
     const date = new Date(budget.year, budget.month - 1, 1);
     return formatDate(date, 'MMMM yyyy', { locale: frCH });
   });
 
-  periodDisplay = computed(() => {
+  readonly periodDisplay = computed(() => {
     const budget = this.store.budgetDetails();
     const payDayOfMonth = this.#userSettingsApi.payDayOfMonth();
     if (!budget || !payDayOfMonth || payDayOfMonth === 1) return null;

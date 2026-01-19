@@ -31,20 +31,20 @@ import { type FinancialEntryModel } from '../models/financial-entry.model';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RecurringExpensesList {
-  readonly breakpointObserver = inject(BreakpointObserver);
+  readonly #breakpointObserver = inject(BreakpointObserver);
 
-  financialEntries = input.required<FinancialEntryModel[]>();
+  readonly financialEntries = input.required<FinancialEntryModel[]>();
   readonly toggleCheckFinancialEntry = output<string>();
 
   protected readonly isHandset = toSignal(
-    this.breakpointObserver.observe(Breakpoints.Handset).pipe(
+    this.#breakpointObserver.observe(Breakpoints.Handset).pipe(
       map((result) => result.matches),
       shareReplay(),
     ),
     { initialValue: false },
   );
 
-  config = computed(
+  readonly config = computed(
     (): FinancialAccordionConfig => ({
       title: 'Récurrentes',
       totalAmount: this.financialEntries().reduce((total, financialEntry) => {

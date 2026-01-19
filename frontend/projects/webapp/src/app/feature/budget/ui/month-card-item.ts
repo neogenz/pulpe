@@ -81,12 +81,12 @@ import { CurrencyPipe } from '@angular/common';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MonthCardItem {
-  displayName = input.required<string>();
-  parentTemplate = input<{
+  readonly displayName = input.required<string>();
+  readonly parentTemplate = input<{
     id: string;
     name: string;
   }>();
-  totalAmount = input.required<number>();
-  id = input.required<string>();
-  detailsClick = output<string>();
+  readonly totalAmount = input.required<number>();
+  readonly id = input.required<string>();
+  readonly detailsClick = output<string>();
 }

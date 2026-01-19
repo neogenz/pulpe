@@ -167,14 +167,14 @@ export class BudgetFinancialOverview {
   readonly Math = Math;
   readonly #budgetCalculator = inject(BudgetCalculator);
 
-  budgetLines = input.required<BudgetLine[]>();
-  transactions = input.required<Transaction[]>();
-  realizedBalance = input.required<number>();
-  realizedExpenses = input.required<number>();
-  checkedCount = input.required<number>();
-  totalCount = input.required<number>();
+  readonly budgetLines = input.required<BudgetLine[]>();
+  readonly transactions = input.required<Transaction[]>();
+  readonly realizedBalance = input.required<number>();
+  readonly realizedExpenses = input.required<number>();
+  readonly checkedCount = input.required<number>();
+  readonly totalCount = input.required<number>();
 
-  totals = computed(() => {
+  readonly totals = computed(() => {
     const lines = this.budgetLines();
     const transactions = this.transactions();
 

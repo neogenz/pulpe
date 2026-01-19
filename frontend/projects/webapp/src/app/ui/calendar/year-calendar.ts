@@ -78,17 +78,17 @@ import { type CalendarMonth, type CalendarYear } from './calendar-types';
   `,
 })
 export class YearCalendar {
-  calendarYear = input.required<CalendarYear>();
+  readonly calendarYear = input.required<CalendarYear>();
 
   // Optional inputs
-  currentDate = input<{ month: number; year: number }>();
+  readonly currentDate = input<{ month: number; year: number }>();
 
   // Outputs
-  monthClick = output<CalendarMonth>();
-  createMonth = output<{ month: number; year: number }>();
+  readonly monthClick = output<CalendarMonth>();
+  readonly createMonth = output<{ month: number; year: number }>();
 
   // Computed properties
-  displayMonths = computed(() => this.calendarYear().months);
+  readonly displayMonths = computed(() => this.calendarYear().months);
 
   isCurrentMonth(month: CalendarMonth): boolean {
     const current = this.currentDate();

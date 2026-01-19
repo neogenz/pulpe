@@ -166,13 +166,13 @@ export interface FinancialAccordionConfig {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FinancialAccordion {
-  financialEntries = input.required<FinancialEntryModel[]>();
-  config = input.required<FinancialAccordionConfig>();
+  readonly financialEntries = input.required<FinancialEntryModel[]>();
+  readonly config = input.required<FinancialAccordionConfig>();
   readonly selectedFinancialEntries = model<string[]>([]);
   readonly deleteFinancialEntry = output<string>();
   readonly editFinancialEntry = output<string>();
   readonly toggleCheckFinancialEntry = output<string>();
-  isHandset = input<boolean>(false);
+  readonly isHandset = input<boolean>(false);
 
   private readonly expandedState = signal<boolean | null>(null);
   protected readonly showAllItems = signal(false);

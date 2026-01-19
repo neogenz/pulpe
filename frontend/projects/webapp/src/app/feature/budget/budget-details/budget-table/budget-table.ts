@@ -882,22 +882,22 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
 })
 export class BudgetTable {
   // Signal inputs
-  budgetLines = input.required<BudgetLineViewModel[]>();
-  transactions = input.required<TransactionViewModel[]>();
+  readonly budgetLines = input.required<BudgetLineViewModel[]>();
+  readonly transactions = input.required<TransactionViewModel[]>();
 
   // Outputs
-  update = output<BudgetLineUpdate>();
-  delete = output<string>();
-  deleteTransaction = output<string>();
-  add = output<void>();
-  viewAllocatedTransactions = output<{
+  readonly update = output<BudgetLineUpdate>();
+  readonly delete = output<string>();
+  readonly deleteTransaction = output<string>();
+  readonly add = output<void>();
+  readonly viewAllocatedTransactions = output<{
     budgetLine: BudgetLine;
     consumption: BudgetLineConsumption;
   }>();
-  createAllocatedTransaction = output<BudgetLine>();
-  resetFromTemplate = output<string>();
-  toggleCheck = output<string>();
-  toggleTransactionCheck = output<string>();
+  readonly createAllocatedTransaction = output<BudgetLine>();
+  readonly resetFromTemplate = output<string>();
+  readonly toggleCheck = output<string>();
+  readonly toggleTransactionCheck = output<string>();
 
   // Services
   readonly #breakpointObserver = inject(BreakpointObserver);
@@ -951,7 +951,7 @@ export class BudgetTable {
   });
 
   // Responsive
-  isMobile = toSignal(
+  readonly isMobile = toSignal(
     this.#breakpointObserver
       .observe(Breakpoints.Handset)
       .pipe(map((result) => result.matches)),
@@ -964,7 +964,7 @@ export class BudgetTable {
   );
 
   // View Model with pre-computed values
-  budgetTableData = computed(() => {
+  readonly budgetTableData = computed(() => {
     const editingLine = this.inlineFormEditingItem();
     return this.#budgetTableDataProvider.provideTableData({
       budgetLines: this.budgetLines(),
