@@ -1,5 +1,4 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { ScrollDispatcher } from '@angular/cdk/scrolling';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -39,14 +38,7 @@ import { BreadcrumbState } from '@core/routing/breadcrumb-state';
 import { ROUTES } from '@core/routing/routes-constants';
 import { PulpeBreadcrumb } from '@ui/breadcrumb/breadcrumb';
 import { of } from 'rxjs';
-import {
-  delay,
-  filter,
-  map,
-  shareReplay,
-  startWith,
-  switchMap,
-} from 'rxjs/operators';
+import { delay, filter, map, shareReplay, switchMap } from 'rxjs/operators';
 import { AboutDialog } from './about-dialog';
 
 interface NavigationItem {
@@ -227,6 +219,7 @@ interface NavigationItem {
             color="primary"
             class="shrink-0"
             [class.rounded-t-xl]="!isHandset()"
+            [class.scrolled]="showToolbarShadow()"
           >
             @if (isHandset()) {
               <button
@@ -322,21 +315,23 @@ interface NavigationItem {
 
           <!-- Breadcrumb (mobile only) -->
           @if (isHandset() && breadcrumbState.breadcrumbs().length > 1) {
-            <pulpe-breadcrumb
-              class="px-4 py-3"
-              [items]="breadcrumbState.breadcrumbs()"
-            />
+            <div class="breadcrumb-mobile" [class.scrolled]="isScrolled()">
+              <pulpe-breadcrumb
+                class="px-4 py-3"
+                [items]="breadcrumbState.breadcrumbs()"
+              />
+            </div>
           }
 
           <!-- Page Content - Scrollable Container -->
           <main
-            cdkScrollable
             class="flex-1 overflow-y-auto overflow-x-hidden bg-surface text-on-surface pt-2! min-w-0"
             [class.p-6]="!isHandset()"
             [class.md:p-8]="!isHandset()"
             [class.p-4]="isHandset()"
             data-testid="page-content"
             data-tour="page-content"
+            (scroll)="onScroll($event)"
           >
             <router-outlet />
           </main>
@@ -382,6 +377,30 @@ interface NavigationItem {
       .active mat-icon {
         will-change: transform;
       }
+
+      /* Shadow on scroll - projects onto content below */
+      mat-toolbar,
+      .breadcrumb-mobile {
+        position: relative;
+        z-index: 10;
+      }
+
+      mat-toolbar.scrolled::after,
+      .breadcrumb-mobile.scrolled::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: -8px;
+        height: 8px;
+        background: linear-gradient(
+          to bottom,
+          rgba(0, 0, 0, 0.08),
+          transparent
+        );
+        pointer-events: none;
+        z-index: 10;
+      }
     `,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -389,7 +408,6 @@ interface NavigationItem {
 export default class MainLayout {
   readonly #breakpointObserver = inject(BreakpointObserver);
   readonly #router = inject(Router);
-  readonly #scrollDispatcher = inject(ScrollDispatcher);
   readonly #authState = inject(AuthStateService);
   readonly #authSession = inject(AuthSessionService);
   readonly #applicationConfig = inject(ApplicationConfiguration);
@@ -462,19 +480,19 @@ export default class MainLayout {
     return navigationItem?.label || 'Pulpe Budget';
   });
 
-  // Scroll detection for header border
-  protected isScrolled = toSignal(
-    this.#scrollDispatcher.scrolled(100).pipe(
-      map((scrollable) => {
-        const top = scrollable
-          ? scrollable.getElementRef().nativeElement.scrollTop
-          : 0;
-        return top > 0;
-      }),
-      startWith(false),
-    ),
-    { initialValue: false },
+  // Scroll detection for toolbar shadow
+  protected readonly isScrolled = signal(false);
+
+  protected readonly showToolbarShadow = computed(
+    () =>
+      this.isScrolled() &&
+      (!this.isHandset() || this.breadcrumbState.breadcrumbs().length <= 1),
   );
+
+  protected onScroll(event: Event) {
+    const target = event.target as HTMLElement;
+    this.isScrolled.set(target.scrollTop > 0);
+  }
 
   // Navigation state for progress bar feedback (debounced to prevent flicker)
   protected readonly isNavigating = toSignal(
