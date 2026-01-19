@@ -61,6 +61,9 @@ export interface BreadcrumbItemViewModel {
                   <a
                     mat-button
                     [routerLink]="item.url"
+                    [style.--mat-button-text-label-text-color]="
+                      'var(--mat-sys-primary)'
+                    "
                     class="min-w-0 px-2 text-on-surface-variant hover:text-primary max-w-[150px] sm:max-w-none"
                   >
                     @if (item.icon) {

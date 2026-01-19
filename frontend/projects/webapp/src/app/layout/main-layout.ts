@@ -9,11 +9,12 @@ import {
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
-import { MatDialog } from '@angular/material/dialog';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -27,6 +28,17 @@ import {
   RouterLinkActive,
   RouterOutlet,
 } from '@angular/router';
+import { AuthSessionService } from '@core/auth/auth-session.service';
+import { AuthStateService } from '@core/auth/auth-state.service';
+import { ApplicationConfiguration } from '@core/config/application-configuration';
+import { DemoInitializerService } from '@core/demo/demo-initializer.service';
+import { DemoModeService } from '@core/demo/demo-mode.service';
+import { LoadingIndicator } from '@core/loading/loading-indicator';
+import { Logger } from '@core/logging/logger';
+import { BreadcrumbState } from '@core/routing/breadcrumb-state';
+import { ROUTES } from '@core/routing/routes-constants';
+import { PulpeBreadcrumb } from '@ui/breadcrumb/breadcrumb';
+import { of } from 'rxjs';
 import {
   delay,
   filter,
@@ -35,18 +47,6 @@ import {
   startWith,
   switchMap,
 } from 'rxjs/operators';
-import { of } from 'rxjs';
-import { PulpeBreadcrumb } from '@ui/breadcrumb/breadcrumb';
-import { BreadcrumbState } from '@core/routing/breadcrumb-state';
-import { AuthStateService } from '@core/auth/auth-state.service';
-import { AuthSessionService } from '@core/auth/auth-session.service';
-import { ROUTES } from '@core/routing/routes-constants';
-import { ApplicationConfiguration } from '@core/config/application-configuration';
-import { Logger } from '@core/logging/logger';
-import { DemoModeService } from '@core/demo/demo-mode.service';
-import { DemoInitializerService } from '@core/demo/demo-initializer.service';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { LoadingIndicator } from '@core/loading/loading-indicator';
 import { AboutDialog } from './about-dialog';
 
 interface NavigationItem {
@@ -238,14 +238,10 @@ interface NavigationItem {
                 <mat-icon>menu</mat-icon>
               </button>
             }
-
-            <!-- Desktop: breadcrumb in toolbar | Mobile/Tablet: spacer -->
-            @if (breadcrumbState.breadcrumbs().length > 1) {
-              <pulpe-breadcrumb
-                class="hidden lg:block flex-1 min-w-0 overflow-x-auto scrollbar-hide"
-                [items]="breadcrumbState.breadcrumbs()"
-              />
-              <span class="flex-1 lg:hidden"></span>
+            @if (!isHandset() && breadcrumbState.breadcrumbs().length > 1) {
+              <div class="flex-1 min-w-0 overflow-x-auto scrollbar-hide">
+                <pulpe-breadcrumb [items]="breadcrumbState.breadcrumbs()" />
+              </div>
             } @else {
               <span class="flex-1"></span>
             }
@@ -324,10 +320,10 @@ interface NavigationItem {
             </div>
           </mat-toolbar>
 
-          <!-- Breadcrumb (Mobile/Tablet only - hidden on desktop lg:) -->
-          @if (breadcrumbState.breadcrumbs().length > 1) {
+          <!-- Breadcrumb (mobile only) -->
+          @if (isHandset() && breadcrumbState.breadcrumbs().length > 1) {
             <pulpe-breadcrumb
-              class="px-4 py-3 lg:hidden"
+              class="px-4 py-3"
               [items]="breadcrumbState.breadcrumbs()"
             />
           }
