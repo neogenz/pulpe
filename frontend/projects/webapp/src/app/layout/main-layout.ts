@@ -238,7 +238,17 @@ interface NavigationItem {
                 <mat-icon>menu</mat-icon>
               </button>
             }
-            <span class="flex-1"></span>
+
+            <!-- Desktop: breadcrumb in toolbar | Mobile/Tablet: spacer -->
+            @if (breadcrumbState.breadcrumbs().length > 1) {
+              <pulpe-breadcrumb
+                class="hidden lg:block flex-1 min-w-0 overflow-x-auto scrollbar-hide"
+                [items]="breadcrumbState.breadcrumbs()"
+              />
+              <span class="flex-1 lg:hidden"></span>
+            } @else {
+              <span class="flex-1"></span>
+            }
 
             <!-- Toolbar Actions -->
             <button
@@ -314,10 +324,10 @@ interface NavigationItem {
             </div>
           </mat-toolbar>
 
-          <!-- Breadcrumb -->
+          <!-- Breadcrumb (Mobile/Tablet only - hidden on desktop lg:) -->
           @if (breadcrumbState.breadcrumbs().length > 1) {
             <pulpe-breadcrumb
-              class="px-4 py-3"
+              class="px-4 py-3 lg:hidden"
               [items]="breadcrumbState.breadcrumbs()"
             />
           }
