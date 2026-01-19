@@ -45,7 +45,7 @@ import { MatIconModule } from '@angular/material/icon';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BudgetTableCheckedFilter {
-  readonly isShowingOnlyUnchecked = input<boolean>(true);
+  readonly isShowingOnlyUnchecked = input(true);
   readonly isShowingOnlyUncheckedChange = output<boolean>();
 
   onFilterChange(

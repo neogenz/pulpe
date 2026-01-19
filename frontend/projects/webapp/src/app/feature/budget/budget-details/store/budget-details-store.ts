@@ -262,13 +262,6 @@ export class BudgetDetailsStore {
   });
 
   /**
-   * Toggle the isShowingOnlyUnchecked filter
-   */
-  toggleIsShowingOnlyUnchecked(): void {
-    this.#isShowingOnlyUnchecked.update((value) => !value);
-  }
-
-  /**
    * Set the isShowingOnlyUnchecked filter value
    */
   setIsShowingOnlyUnchecked(value: boolean): void {
