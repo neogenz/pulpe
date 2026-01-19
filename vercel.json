@@ -4,6 +4,38 @@
   "outputDirectory": "frontend/dist/webapp/browser",
   "installCommand": "pnpm install --frozen-lockfile --filter=pulpe-frontend --filter=pulpe-shared --ignore-scripts",
   "framework": "angular",
+  "redirects": [
+    {
+      "source": "/app/current-month",
+      "destination": "/dashboard",
+      "permanent": true
+    },
+    {
+      "source": "/app/budget/:path*",
+      "destination": "/budget/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/app/budget-templates/:path*",
+      "destination": "/budget-templates/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/app/settings/:path*",
+      "destination": "/settings/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/app/complete-profile",
+      "destination": "/complete-profile",
+      "permanent": true
+    },
+    {
+      "source": "/app",
+      "destination": "/dashboard",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",

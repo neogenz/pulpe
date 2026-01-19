@@ -257,7 +257,7 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                         ) {
                           <a
                             [routerLink]="[
-                              '/app/budget',
+                              '/budget',
                               line.metadata.rolloverSourceBudgetId,
                             ]"
                             matButton

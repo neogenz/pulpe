@@ -26,7 +26,7 @@ const NAVIGATION_CONFIG: NavigationSection[] = [
     items: [
       {
         label: 'Mois en cours',
-        route: ROUTES.CURRENT_MONTH,
+        route: ROUTES.DASHBOARD,
         icon: 'today',
       },
       {

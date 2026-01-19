@@ -16,8 +16,8 @@ import { Logger } from '@core/logging/logger';
 
 // Constants
 const ROUTES = {
-  BUDGET_TEMPLATES: '/app/budget-templates',
-  TEMPLATE_DETAILS: (id: string) => `/app/budget-templates/details/${id}`,
+  BUDGET_TEMPLATES: '/budget-templates',
+  TEMPLATE_DETAILS: (id: string) => `/budget-templates/details/${id}`,
 } as const;
 
 const MESSAGES = {

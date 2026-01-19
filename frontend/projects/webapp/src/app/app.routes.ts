@@ -40,18 +40,17 @@ export const routes: Routes = [
     loadChildren: () => import('./feature/legal/legal.routes'),
   },
   {
-    path: ROUTES.APP,
+    path: '',
     title: PAGE_TITLES.DASHBOARD,
     canActivate: [maintenanceGuard, authGuard],
     loadComponent: () => import('@layout/main-layout'),
     children: [
       {
         path: '',
-        redirectTo: ROUTES.CURRENT_MONTH,
+        redirectTo: ROUTES.DASHBOARD,
         pathMatch: 'full',
       },
       {
-        // Complete profile route - no hasBudgetGuard (would cause infinite loop)
         path: ROUTES.COMPLETE_PROFILE,
         title: PAGE_TITLES.COMPLETE_PROFILE,
         data: { breadcrumb: 'Finaliser mon profil', icon: 'person_add' },
@@ -59,8 +58,8 @@ export const routes: Routes = [
           import('./feature/complete-profile/complete-profile.routes'),
       },
       {
-        path: ROUTES.CURRENT_MONTH,
-        title: PAGE_TITLES.CURRENT_MONTH,
+        path: ROUTES.DASHBOARD,
+        title: PAGE_TITLES.DASHBOARD,
         canActivate: [hasBudgetGuard],
         data: { breadcrumb: 'Mois en cours', icon: 'today' },
         loadChildren: () =>
@@ -90,7 +89,7 @@ export const routes: Routes = [
     ],
   },
   {
-    path: '**', // fallback route (can be used to display dedicated 404 lazy feature)
-    redirectTo: '',
+    path: '**',
+    redirectTo: ROUTES.WELCOME,
   },
 ];

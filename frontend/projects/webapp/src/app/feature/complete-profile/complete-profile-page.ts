@@ -221,7 +221,7 @@ export default class CompleteProfilePage {
   async #initPage(): Promise<void> {
     const hasExisting = await this.store.checkExistingBudgets();
     if (hasExisting) {
-      this.#router.navigate(['/', ROUTES.APP, ROUTES.CURRENT_MONTH]);
+      this.#router.navigate(['/', ROUTES.DASHBOARD]);
     }
   }
 
@@ -236,7 +236,7 @@ export default class CompleteProfilePage {
     const success = await this.store.submitProfile();
 
     if (success) {
-      this.#router.navigate(['/', ROUTES.APP, ROUTES.CURRENT_MONTH]);
+      this.#router.navigate(['/', ROUTES.DASHBOARD]);
     }
   }
 

@@ -145,7 +145,7 @@ describe('MainLayout', () => {
     mockRouter = {
       navigate: vi.fn().mockResolvedValue(true),
       events: new Subject<NavigationEnd>(),
-      url: ROUTES.CURRENT_MONTH,
+      url: ROUTES.DASHBOARD,
       createUrlTree: vi.fn().mockReturnValue({}),
       serializeUrl: vi.fn().mockReturnValue('/test-url'),
     };

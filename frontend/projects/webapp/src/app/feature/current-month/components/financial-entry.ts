@@ -67,7 +67,7 @@ export type FinancialEntryViewModel = FinancialEntryModel & {
       <div matListItemTitle [class.rollover-text]="isRollover()">
         @if (isRollover() && rolloverSourceBudgetId()) {
           <a
-            [routerLink]="['/app/budget', rolloverSourceBudgetId()]"
+            [routerLink]="['/budget', rolloverSourceBudgetId()]"
             matButton
             class="ph-no-capture inline-flex items-center font-semibold"
             matTooltip="Voir le mois d'origine"

@@ -357,7 +357,7 @@ export default class TemplateDetail implements OnInit {
   }
 
   navigateBack() {
-    this.#router.navigate(['/app/budget-templates']);
+    this.#router.navigate(['/budget-templates']);
   }
 
   editTemplate() {
