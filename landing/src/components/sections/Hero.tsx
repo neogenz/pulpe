@@ -59,7 +59,7 @@ export function Hero() {
 
         {/* Top-left edge of screenshot zone */}
         <motion.div
-          className="absolute top-8 right-[35%] hidden lg:block"
+          className="absolute top-8 right-[35%] hidden lg:block z-20"
           variants={floatingVariants}
           initial="hidden"
           animate="visible"
@@ -73,7 +73,7 @@ export function Hero() {
 
         {/* Top center-right, floating above */}
         <motion.div
-          className="absolute -top-2 right-[20%] hidden lg:block"
+          className="absolute -top-2 right-[20%] hidden lg:block z-20"
           variants={floatingVariants}
           initial="hidden"
           animate="visible"
@@ -87,7 +87,7 @@ export function Hero() {
 
         {/* Top-right corner */}
         <motion.div
-          className="absolute top-4 -right-2 hidden lg:block"
+          className="absolute top-4 -right-2 hidden lg:block z-20"
           variants={floatingVariants}
           initial="hidden"
           animate="visible"
@@ -106,7 +106,7 @@ export function Hero() {
 
         {/* Left edge of screenshot, safe from text */}
         <motion.div
-          className="absolute top-[30%] right-[38%] hidden lg:block"
+          className="absolute top-[30%] right-[38%] hidden lg:block z-20"
           variants={floatingVariants}
           initial="hidden"
           animate="visible"
@@ -129,7 +129,7 @@ export function Hero() {
 
         {/* Right side, mid-height */}
         <motion.div
-          className="absolute top-[48%] right-[-5%] hidden lg:block"
+          className="absolute top-[48%] right-[-5%] hidden lg:block z-20"
           variants={floatingVariants}
           initial="hidden"
           animate="visible"
@@ -143,7 +143,7 @@ export function Hero() {
 
         {/* Bottom-left of screenshot zone */}
         <motion.div
-          className="absolute bottom-14 right-[38%] hidden lg:block"
+          className="absolute bottom-14 right-[38%] hidden lg:block z-20"
           variants={floatingVariants}
           initial="hidden"
           animate="visible"
@@ -157,7 +157,7 @@ export function Hero() {
 
         {/* Bottom center-right */}
         <motion.div
-          className="absolute bottom-0 right-[24%] hidden lg:block"
+          className="absolute bottom-0 right-[24%] hidden lg:block z-20"
           variants={floatingVariants}
           initial="hidden"
           animate="visible"
@@ -171,7 +171,7 @@ export function Hero() {
 
         {/* Bottom-right, drifting */}
         <motion.div
-          className="absolute bottom-12 right-[-4%] hidden lg:block"
+          className="absolute bottom-12 right-[-4%] hidden lg:block z-20"
           variants={floatingVariants}
           initial="hidden"
           animate="visible"
