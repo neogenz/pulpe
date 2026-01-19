@@ -18,7 +18,7 @@ test.describe('Budget Line Edit - Mobile', () => {
     page,
   }) => {
     // Wait for the budget items table to load
-    await page.waitForSelector('pulpe-budget-items-table', {
+    await page.waitForSelector('pulpe-budget-items', {
       state: 'visible',
     });
 
@@ -68,7 +68,7 @@ test.describe('Budget Line Edit - Mobile', () => {
     page,
   }) => {
     // Wait for the budget items table to load
-    await page.waitForSelector('pulpe-budget-items-table', {
+    await page.waitForSelector('pulpe-budget-items', {
       state: 'visible',
     });
 
@@ -112,14 +112,14 @@ test.describe('Budget Line Edit - Mobile', () => {
     await expect(dialog).not.toBeVisible();
 
     // Check that the table has been updated
-    const table = page.locator('pulpe-budget-items-table');
+    const table = page.locator('pulpe-budget-items');
     await expect(table).toContainText('Updated Budget Line');
     await expect(table).toContainText('250');
   });
 
   test('should cancel edit dialog without saving changes', async ({ page }) => {
     // Wait for the budget items table to load
-    await page.waitForSelector('pulpe-budget-items-table', {
+    await page.waitForSelector('pulpe-budget-items', {
       state: 'visible',
     });
 
@@ -140,7 +140,7 @@ test.describe('Budget Line Edit - Mobile', () => {
     }
 
     // Get the original name from the table
-    const table = page.locator('pulpe-budget-items-table');
+    const table = page.locator('pulpe-budget-items');
     const originalText = await table.textContent();
 
     // Click on the first edit button
@@ -179,9 +179,9 @@ test.describe('Budget Line Edit - Desktop', () => {
     await loginHelper.login(page, '/dashboard');
   });
 
-  test('should use inline editing on desktop, not dialog', async ({ page }) => {
+  test('should use dialog editing on desktop', async ({ page }) => {
     // Wait for the budget items table to load
-    await page.waitForSelector('pulpe-budget-items-table', {
+    await page.waitForSelector('pulpe-budget-items', {
       state: 'visible',
     });
 
@@ -205,22 +205,24 @@ test.describe('Budget Line Edit - Desktop', () => {
     const editButton = page.locator('[data-testid^="edit-"]').first();
     await editButton.click();
 
-    // On desktop, it should NOT open a dialog
+    // On desktop, it should open a dialog (same as mobile after migration)
     const dialog = page.locator('mat-dialog-container');
+    await expect(dialog).toBeVisible();
+
+    // Check that the dialog title is correct
+    const dialogTitle = dialog.locator('h2');
+    await expect(dialogTitle).toHaveText('Modifier la prévision');
+
+    // Check that all form fields are present
+    await expect(dialog.locator('[data-testid="edit-line-name"]')).toBeVisible();
+    await expect(dialog.locator('[data-testid="edit-line-amount"]')).toBeVisible();
+
+    // Check that cancel and save buttons are present
+    await expect(dialog.locator('[data-testid="cancel-edit-line"]')).toBeVisible();
+    await expect(dialog.locator('[data-testid="save-edit-line"]')).toBeVisible();
+
+    // Close the dialog
+    await dialog.locator('[data-testid="cancel-edit-line"]').click();
     await expect(dialog).not.toBeVisible();
-
-    // Instead, inline editing fields should appear in the table
-    const inlineNameField = page.locator('[data-testid^="edit-name-"]').first();
-    await expect(inlineNameField).toBeVisible();
-
-    const inlineAmountField = page.locator('[data-testid^="edit-amount-"]').first();
-    await expect(inlineAmountField).toBeVisible();
-
-    // Save and Cancel buttons should be visible inline
-    const saveButton = page.locator('[data-testid^="save-"]').first();
-    await expect(saveButton).toBeVisible();
-
-    const cancelButton = page.locator('[data-testid^="cancel-"]').first();
-    await expect(cancelButton).toBeVisible();
   });
 });

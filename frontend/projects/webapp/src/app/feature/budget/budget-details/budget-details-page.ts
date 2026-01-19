@@ -164,6 +164,7 @@ import { UserSettingsApi } from '@core/user-settings/user-settings-api';
           [transactions]="transactions"
           (update)="handleUpdateBudgetLine($event)"
           (delete)="handleDeleteItem($event)"
+          (deleteTransaction)="handleDeleteItem($event)"
           (add)="openAddBudgetLineDialog()"
           (viewAllocatedTransactions)="openAllocatedTransactionsDialog($event)"
           (createAllocatedTransaction)="

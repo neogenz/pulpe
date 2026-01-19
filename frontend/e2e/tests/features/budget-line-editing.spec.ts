@@ -80,24 +80,23 @@ test.describe('Budget Line Editing', () => {
     await budgetDetailsPage.expectPageLoaded();
     await budgetDetailsPage.switchToTableView();
 
-    // Find the inputs directly using data-testid
-    const nameInput = authenticatedPage.locator(`[data-testid="edit-name-${TEST_UUIDS.LINE_1}"]`);
-    const amountInput = authenticatedPage.locator(`[data-testid="edit-amount-${TEST_UUIDS.LINE_1}"]`);
+    // Open the actions menu first
+    const menuButton = authenticatedPage.locator(`[data-testid="actions-menu-${TEST_UUIDS.LINE_1}"]`);
+    await menuButton.click();
 
-    // Check if already in edit mode, if not open the menu and click the edit option
-    const isInEditMode = await nameInput.isVisible({ timeout: 1000 }).catch(() => false);
+    // Click the edit menu item
+    const editMenuItem = authenticatedPage.locator('button[mat-menu-item]').filter({ hasText: 'Éditer' });
+    await editMenuItem.click();
 
-    if (!isInEditMode) {
-      // Open the actions menu first
-      const menuButton = authenticatedPage.locator(`[data-testid="actions-menu-${TEST_UUIDS.LINE_1}"]`);
-      await menuButton.click();
+    // Wait for the edit dialog to open
+    const dialog = authenticatedPage.locator('mat-dialog-container');
+    await expect(dialog).toBeVisible();
 
-      // Click the edit menu item
-      const editMenuItem = authenticatedPage.locator('button[mat-menu-item]').filter({ hasText: 'Éditer' });
-      await editMenuItem.click();
-    }
+    // Find the inputs in the dialog using their data-testid
+    const nameInput = authenticatedPage.locator('[data-testid="edit-line-name"]');
+    const amountInput = authenticatedPage.locator('[data-testid="edit-line-amount"]');
 
-    // Verify we're in edit mode
+    // Verify dialog inputs are visible
     await expect(nameInput).toBeVisible();
     await expect(amountInput).toBeVisible();
 
@@ -109,8 +108,8 @@ test.describe('Budget Line Editing', () => {
     await amountInput.clear();
     await amountInput.fill(updatedAmount.toString());
 
-    // Save the changes using data-testid
-    const saveButton = authenticatedPage.locator(`[data-testid="save-${TEST_UUIDS.LINE_1}"]`);
+    // Save the changes using the dialog save button
+    const saveButton = authenticatedPage.locator('[data-testid="save-edit-line"]');
     await saveButton.click();
 
     // Wait for the API request to complete by waiting for the success message
@@ -172,21 +171,25 @@ test.describe('Budget Line Editing', () => {
     const editMenuItem = authenticatedPage.locator('button[mat-menu-item]').filter({ hasText: 'Éditer' });
     await editMenuItem.click();
 
-    // Wait for edit mode to be active
-    const nameInput = authenticatedPage.locator(`[data-testid="edit-name-${TEST_UUIDS.LINE_1}"]`);
+    // Wait for the edit dialog to open
+    const dialog = authenticatedPage.locator('mat-dialog-container');
+    await expect(dialog).toBeVisible();
+
+    // Find the name input in the dialog
+    const nameInput = authenticatedPage.locator('[data-testid="edit-line-name"]');
     await expect(nameInput).toBeVisible();
 
     // Make some changes
     await nameInput.clear();
     await nameInput.fill('Changed Name That Should Not Be Saved');
 
-    // Cancel the changes using data-testid
-    const cancelButton = authenticatedPage.locator(`[data-testid="cancel-${TEST_UUIDS.LINE_1}"]`);
+    // Cancel the changes using the dialog cancel button
+    const cancelButton = authenticatedPage.locator('[data-testid="cancel-edit-line"]');
     await expect(cancelButton).toBeVisible();
     await cancelButton.click();
 
-    // Verify we're no longer in edit mode
-    await expect(nameInput).not.toBeVisible();
+    // Verify the dialog is closed
+    await expect(dialog).not.toBeVisible();
 
     // Verify the original values are still displayed
     const budgetLineRow = authenticatedPage.locator('tr').filter({ hasText: originalName });
