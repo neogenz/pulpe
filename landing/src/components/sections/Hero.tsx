@@ -1,4 +1,6 @@
+import { useMemo } from "react";
 import { motion, useReducedMotion } from "framer-motion";
+import type { Variants } from "framer-motion";
 import {
   Check,
   Gamepad2,
@@ -24,10 +26,8 @@ const TYPEWRITER_STRINGS = [
   "Reprends le contrôle.",
 ];
 
-export function Hero() {
-  const shouldReduceMotion = useReducedMotion();
-
-  const floatingVariants = {
+function createFloatingVariants(shouldReduceMotion: boolean | null): Variants {
+  return {
     hidden: shouldReduceMotion ? {} : { opacity: 0, scale: 0.8 },
     visible: (delay: number) => ({
       opacity: 1,
@@ -39,6 +39,15 @@ export function Hero() {
       },
     }),
   };
+}
+
+export function Hero() {
+  const shouldReduceMotion = useReducedMotion();
+
+  const floatingVariants = useMemo(
+    () => createFloatingVariants(shouldReduceMotion),
+    [shouldReduceMotion]
+  );
 
   return (
     <section className="relative min-h-screen flex items-center pt-28 pb-16 md:pt-32 md:pb-24 bg-background overflow-hidden">

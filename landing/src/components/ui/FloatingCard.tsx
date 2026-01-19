@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react'
 import type { ReactNode, CSSProperties } from 'react'
 
 type FloatingCardVariant =
@@ -16,47 +17,40 @@ interface FloatingCardProps {
   className?: string
 }
 
-const variantStyles: Record<
+const VARIANT_STYLES: Record<
   FloatingCardVariant,
   { base: string; colors: string; radius: string }
 > = {
-  // Small icon + text badge (white bg)
   mini: {
     base: 'px-3 py-2 text-xs font-medium flex items-center gap-2',
     colors: 'bg-surface text-text',
     radius: 'rounded-xl',
   },
-  // Rounded pill for categories (white bg)
   pill: {
     base: 'px-4 py-2 text-sm font-medium flex items-center gap-2',
     colors: 'bg-surface text-text',
     radius: 'rounded-full',
   },
-  // Icon + message notification (white bg)
   notification: {
     base: 'px-4 py-3 text-sm flex items-center gap-3',
     colors: 'bg-surface text-text',
     radius: 'rounded-2xl',
   },
-  // Medium stat display (white bg)
   stat: {
     base: 'px-5 py-4 text-sm font-medium',
     colors: 'bg-surface text-text',
     radius: 'rounded-2xl',
   },
-  // Large prominent card (white bg, bigger)
   large: {
     base: 'px-6 py-5 text-base font-semibold',
     colors: 'bg-surface text-text',
     radius: 'rounded-2xl',
   },
-  // Soft highlight card (light green bg, focal point)
   highlight: {
     base: 'px-6 py-5 text-sm font-semibold',
     colors: 'bg-surface-alt text-primary',
     radius: 'rounded-2xl',
   },
-  // Small accent badge for trends/percentages (light green)
   trend: {
     base: 'px-3 py-1.5 text-xs font-bold flex items-center gap-1.5',
     colors: 'bg-surface-alt text-primary',
@@ -64,17 +58,18 @@ const variantStyles: Record<
   },
 }
 
-export function FloatingCard({
+export const FloatingCard = memo(function FloatingCard({
   variant,
   children,
   animationDelay = 0,
   className = '',
 }: FloatingCardProps) {
-  const style: CSSProperties = animationDelay
-    ? { animationDelay: `${animationDelay}s` }
-    : {}
+  const style: CSSProperties = useMemo(
+    () => (animationDelay ? { animationDelay: `${animationDelay}s` } : {}),
+    [animationDelay]
+  )
 
-  const { base, colors, radius } = variantStyles[variant]
+  const { base, colors, radius } = VARIANT_STYLES[variant]
 
   return (
     <div
@@ -92,4 +87,4 @@ export function FloatingCard({
       {children}
     </div>
   )
-}
+})

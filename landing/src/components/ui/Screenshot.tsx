@@ -1,3 +1,4 @@
+import { memo, useCallback, useSyncExternalStore } from 'react'
 import { useImageLightbox } from '../../hooks/useImageLightbox'
 
 interface ScreenshotProps {
@@ -7,15 +8,42 @@ interface ScreenshotProps {
   className?: string
 }
 
-export function Screenshot({ src, desktopSrc, label, className = '' }: ScreenshotProps) {
-  const { openLightbox } = useImageLightbox()
+const DESKTOP_MEDIA_QUERY = '(min-width: 768px)'
 
-  const handleClick = () => {
+function subscribeToMediaQuery(callback: () => void) {
+  const mediaQuery = window.matchMedia(DESKTOP_MEDIA_QUERY)
+  mediaQuery.addEventListener('change', callback)
+  return () => mediaQuery.removeEventListener('change', callback)
+}
+
+function getIsDesktop() {
+  return typeof window !== 'undefined'
+    ? window.matchMedia(DESKTOP_MEDIA_QUERY).matches
+    : false
+}
+
+function getServerSnapshot() {
+  return false
+}
+
+export const Screenshot = memo(function Screenshot({
+  src,
+  desktopSrc,
+  label,
+  className = '',
+}: ScreenshotProps) {
+  const { openLightbox } = useImageLightbox()
+  const isDesktop = useSyncExternalStore(
+    subscribeToMediaQuery,
+    getIsDesktop,
+    getServerSnapshot
+  )
+
+  const handleClick = useCallback(() => {
     if (!src) return
-    const isDesktop = window.matchMedia('(min-width: 768px)').matches
     const imageSrc = isDesktop && desktopSrc ? desktopSrc : src
     openLightbox(imageSrc, label)
-  }
+  }, [src, desktopSrc, label, isDesktop, openLightbox])
 
   if (src) {
     return (
@@ -33,7 +61,7 @@ export function Screenshot({ src, desktopSrc, label, className = '' }: Screensho
             src={src}
             alt={label}
             loading="lazy"
-            className={`rounded-xl md:rounded-[var(--radius-large)] shadow-[var(--shadow-screenshot)] w-full aspect-[9/14] ${className}`}
+            className={`rounded-xl md:rounded-[var(--radius-large)] shadow-[var(--shadow-screenshot)] w-full ${className}`}
           />
         </picture>
       </button>
@@ -49,4 +77,4 @@ export function Screenshot({ src, desktopSrc, label, className = '' }: Screensho
       [Screenshot: {label}]
     </div>
   )
-}
+})

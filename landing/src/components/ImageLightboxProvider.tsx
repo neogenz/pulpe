@@ -1,4 +1,4 @@
-import { useState, useCallback, type ReactNode } from 'react'
+import { useState, useCallback, useMemo, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { ImageLightboxContext } from '../contexts/ImageLightboxContext'
 import { ImageLightbox } from './ui/ImageLightbox'
@@ -22,17 +22,18 @@ export function ImageLightboxProvider({ children }: ImageLightboxProviderProps) 
     setIsOpen(false)
   }, [])
 
-  const lightboxRoot = document.getElementById('lightbox-root')
+  const contextValue = useMemo(
+    () => ({ openLightbox, closeLightbox }),
+    [openLightbox, closeLightbox]
+  )
 
-  if (!lightboxRoot && import.meta.env.DEV) {
-    console.warn(
-      '[ImageLightboxProvider] Missing #lightbox-root element. ' +
-        'Lightbox will not render. Add <div id="lightbox-root"></div> to index.html.'
-    )
-  }
+  const lightboxRoot =
+    typeof document !== 'undefined'
+      ? document.getElementById('lightbox-root')
+      : null
 
   return (
-    <ImageLightboxContext.Provider value={{ openLightbox, closeLightbox }}>
+    <ImageLightboxContext.Provider value={contextValue}>
       {children}
       {lightboxRoot &&
         createPortal(

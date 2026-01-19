@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import type { ReactNode } from 'react'
 
@@ -5,13 +6,13 @@ interface FadeInProps {
   children: ReactNode
   delay?: number
   className?: string
-  /** Use animate instead of whileInView for above-the-fold content (fixes Safari mobile timing issues) */
   animateOnMount?: boolean
-  /** Disable Y movement to prevent layout shift on page refresh */
   noYMovement?: boolean
 }
 
-export function FadeIn({
+const VIEWPORT_CONFIG = { once: true, margin: '-50px' } as const
+
+export const FadeIn = memo(function FadeIn({
   children,
   delay = 0,
   className = '',
@@ -20,9 +21,19 @@ export function FadeIn({
 }: FadeInProps) {
   const shouldReduceMotion = useReducedMotion()
 
-  const initial = shouldReduceMotion
-    ? {}
-    : { opacity: 0, ...(noYMovement ? {} : { y: 20 }) }
+  const initial = useMemo(
+    () =>
+      shouldReduceMotion
+        ? {}
+        : { opacity: 0, ...(noYMovement ? {} : { y: 20 }) },
+    [shouldReduceMotion, noYMovement]
+  )
+
+  const transition = useMemo(
+    () => ({ duration: 0.5, delay, ease: 'easeOut' as const }),
+    [delay]
+  )
+
   const animateTo = { opacity: 1, y: 0 }
 
   if (animateOnMount) {
@@ -30,7 +41,7 @@ export function FadeIn({
       <motion.div
         initial={initial}
         animate={animateTo}
-        transition={{ duration: 0.5, delay, ease: 'easeOut' }}
+        transition={transition}
         className={className}
       >
         {children}
@@ -42,11 +53,11 @@ export function FadeIn({
     <motion.div
       initial={initial}
       whileInView={animateTo}
-      viewport={{ once: true, margin: '-50px' }}
-      transition={{ duration: 0.5, delay, ease: 'easeOut' }}
+      viewport={VIEWPORT_CONFIG}
+      transition={transition}
       className={className}
     >
       {children}
     </motion.div>
   )
-}
+})

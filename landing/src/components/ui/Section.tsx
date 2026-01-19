@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import type { HTMLAttributes, ReactNode } from 'react'
 import { Container } from './Container'
 
@@ -6,24 +7,24 @@ interface SectionProps extends HTMLAttributes<HTMLElement> {
   background?: 'default' | 'alt' | 'primary'
 }
 
-export function Section({
+const BACKGROUND_STYLES = {
+  default: 'bg-background',
+  alt: 'bg-surface-alt',
+  primary: 'bg-primary text-white',
+} as const
+
+export const Section = memo(function Section({
   children,
   background = 'default',
   className = '',
   ...props
 }: SectionProps) {
-  const backgroundStyles = {
-    default: 'bg-background',
-    alt: 'bg-surface-alt',
-    primary: 'bg-primary text-white',
-  }
-
   return (
     <section
-      className={`py-16 md:py-20 lg:py-24 ${backgroundStyles[background]} ${className}`}
+      className={`py-16 md:py-20 lg:py-24 ${BACKGROUND_STYLES[background]} ${className}`}
       {...props}
     >
       <Container>{children}</Container>
     </section>
   )
-}
+})

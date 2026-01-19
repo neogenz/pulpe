@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react'
 import type { ReactNode, CSSProperties } from 'react'
 import { cn } from '../../lib/cn'
 
@@ -12,11 +13,7 @@ interface ShineBorderProps {
   children: ReactNode
 }
 
-/**
- * Animated shine border effect component.
- * Creates a rotating gradient border animation around its children.
- */
-export function ShineBorder({
+export const ShineBorder = memo(function ShineBorder({
   borderRadius = 12,
   borderWidth = 2,
   duration = 8,
@@ -24,18 +21,19 @@ export function ShineBorder({
   className,
   children,
 }: ShineBorderProps) {
-  const colorValue = Array.isArray(color) ? color.join(',') : color
+  const style = useMemo(() => {
+    const colorValue = Array.isArray(color) ? color.join(',') : color
+    return {
+      '--shine-border-radius': `${borderRadius}px`,
+      '--shine-border-width': `${borderWidth}px`,
+      '--shine-duration': `${duration}s`,
+      '--shine-gradient': `radial-gradient(transparent, transparent, ${colorValue}, transparent, transparent)`,
+    } as CSSProperties
+  }, [borderRadius, borderWidth, duration, color])
 
   return (
     <div
-      style={
-        {
-          '--shine-border-radius': `${borderRadius}px`,
-          '--shine-border-width': `${borderWidth}px`,
-          '--shine-duration': `${duration}s`,
-          '--shine-gradient': `radial-gradient(transparent, transparent, ${colorValue}, transparent, transparent)`,
-        } as CSSProperties
-      }
+      style={style}
       className={cn(
         'shine-border-wrapper relative grid place-items-center rounded-[var(--shine-border-radius)]',
         className
@@ -48,4 +46,4 @@ export function ShineBorder({
       {children}
     </div>
   )
-}
+})

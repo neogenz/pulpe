@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import type { HTMLAttributes, ReactNode } from 'react'
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
@@ -5,22 +6,25 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
   variant?: 'default' | 'elevated'
 }
 
-export function Card({
+const BASE_STYLES = 'bg-surface rounded-[var(--radius-card)] p-6'
+
+const VARIANT_STYLES = {
+  default: 'border border-text/5',
+  elevated: 'shadow-[var(--shadow-card)]',
+} as const
+
+export const Card = memo(function Card({
   children,
   variant = 'default',
   className = '',
   ...props
 }: CardProps) {
-  const baseStyles = 'bg-surface rounded-[var(--radius-card)] p-6'
-
-  const variantStyles = {
-    default: 'border border-text/5',
-    elevated: 'shadow-[var(--shadow-card)]',
-  }
-
   return (
-    <div className={`${baseStyles} ${variantStyles[variant]} ${className}`} {...props}>
+    <div
+      className={`${BASE_STYLES} ${VARIANT_STYLES[variant]} ${className}`}
+      {...props}
+    >
       {children}
     </div>
   )
-}
+})

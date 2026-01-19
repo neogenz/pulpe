@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { ReactTyped } from 'react-typed'
 
 interface TypeWriterProps {
@@ -9,10 +10,7 @@ interface TypeWriterProps {
   className?: string
 }
 
-/**
- * Animated typing effect that cycles through an array of strings.
- */
-export function TypeWriter({
+export const TypeWriter = memo(function TypeWriter({
   strings,
   typeSpeed = 80,
   backSpeed = 40,
@@ -33,4 +31,4 @@ export function TypeWriter({
       className={className}
     />
   )
-}
+})
