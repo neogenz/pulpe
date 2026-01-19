@@ -56,6 +56,7 @@ import {
 } from './budget-table-models';
 import type { BudgetTableViewMode } from './budget-table-view-mode';
 import { BudgetTableViewToggle } from './budget-table-view-toggle';
+import { BudgetTableCheckedFilter } from './budget-table-checked-filter';
 
 @Component({
   selector: 'pulpe-budget-table',
@@ -82,6 +83,7 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
     RolloverFormatPipe,
     BudgetTableViewToggle,
     BudgetTableMobileCard,
+    BudgetTableCheckedFilter,
   ],
   template: `
     <mat-card appearance="outlined">
@@ -92,7 +94,15 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
         </mat-card-subtitle>
       </mat-card-header>
       <mat-card-content>
-        <pulpe-budget-table-view-toggle [(viewMode)]="viewMode" class="mb-4" />
+        <div class="flex flex-wrap items-center gap-4 mb-4">
+          <pulpe-budget-table-view-toggle [(viewMode)]="viewMode" />
+          <pulpe-budget-table-checked-filter
+            [isShowingOnlyUnchecked]="isShowingOnlyUnchecked()"
+            (isShowingOnlyUncheckedChange)="
+              isShowingOnlyUncheckedChange.emit($event)
+            "
+          />
+        </div>
 
         @if (isMobile()) {
           <!-- Mobile view -->
@@ -732,6 +742,10 @@ export class BudgetTable {
   // Signal inputs
   budgetLines = input.required<BudgetLineViewModel[]>();
   transactions = input.required<TransactionViewModel[]>();
+
+  // Filter state - input/output pattern for unidirectional data flow
+  readonly isShowingOnlyUnchecked = input<boolean>(true);
+  readonly isShowingOnlyUncheckedChange = output<boolean>();
 
   // Outputs
   update = output<BudgetLineUpdate>();

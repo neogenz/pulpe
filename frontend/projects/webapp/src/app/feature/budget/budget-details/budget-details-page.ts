@@ -156,8 +156,12 @@ import { UserSettingsApi } from '@core/user-settings/user-settings-api';
 
         <!-- Budget Items Table -->
         <pulpe-budget-table
-          [budgetLines]="budgetLines"
-          [transactions]="transactions"
+          [budgetLines]="store.filteredBudgetLines()"
+          [transactions]="store.filteredTransactions()"
+          [isShowingOnlyUnchecked]="store.isShowingOnlyUnchecked()"
+          (isShowingOnlyUncheckedChange)="
+            store.setIsShowingOnlyUnchecked($event)
+          "
           (update)="handleUpdateBudgetLine($event)"
           (delete)="handleDeleteItem($event)"
           (add)="openAddBudgetLineDialog()"

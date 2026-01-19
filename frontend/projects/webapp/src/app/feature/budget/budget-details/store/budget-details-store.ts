@@ -1,7 +1,16 @@
-import { computed, inject, Injectable, resource } from '@angular/core';
+import {
+  computed,
+  effect,
+  inject,
+  Injectable,
+  resource,
+  signal,
+} from '@angular/core';
 import { BudgetApi } from '@core/budget/budget-api';
 import { Logger } from '@core/logging/logger';
 import { createRolloverLine } from '@core/rollover/rollover-types';
+import { StorageService } from '@core/storage/storage.service';
+import { STORAGE_KEYS } from '@core/storage/storage-keys';
 import { TransactionApi } from '@core/transaction/transaction-api';
 import {
   type BudgetLine,
@@ -32,9 +41,26 @@ export class BudgetDetailsStore {
   readonly #budgetApi = inject(BudgetApi);
   readonly #transactionApi = inject(TransactionApi);
   readonly #logger = inject(Logger);
+  readonly #storage = inject(StorageService);
 
   // Single source of truth - private state signal for non-resource data
   readonly #state = createInitialBudgetDetailsState();
+
+  // Filter state - show only unchecked items by default
+  readonly #isShowingOnlyUnchecked = signal<boolean>(
+    this.#storage.get<boolean>(STORAGE_KEYS.BUDGET_SHOW_ONLY_UNCHECKED) ?? true,
+  );
+  readonly isShowingOnlyUnchecked = this.#isShowingOnlyUnchecked.asReadonly();
+
+  constructor() {
+    // Persist filter preference to localStorage
+    effect(() => {
+      this.#storage.set(
+        STORAGE_KEYS.BUDGET_SHOW_ONLY_UNCHECKED,
+        this.#isShowingOnlyUnchecked(),
+      );
+    });
+  }
 
   readonly #budgetDetailsResource = resource<
     BudgetDetailsViewModel,
@@ -148,6 +174,60 @@ export class BudgetDetailsStore {
     const transactions = details.transactions ?? [];
     return lines.length + transactions.length;
   });
+
+  /**
+   * Filtered budget lines based on showOnlyUnchecked preference
+   * When showOnlyUnchecked is true, only returns lines where checkedAt === null
+   */
+  readonly filteredBudgetLines = computed<BudgetLine[]>(() => {
+    const lines = this.displayBudgetLines();
+    if (!this.#isShowingOnlyUnchecked()) {
+      return lines;
+    }
+    return lines.filter((line) => line.checkedAt === null);
+  });
+
+  /**
+   * Filtered transactions based on showOnlyUnchecked preference
+   * - Allocated transactions: follow their parent budget line's visibility
+   * - Free transactions: filtered by their own checkedAt
+   */
+  readonly filteredTransactions = computed<Transaction[]>(() => {
+    const details = this.budgetDetails();
+    if (!details) return [];
+
+    const transactions = details.transactions ?? [];
+    if (!this.#isShowingOnlyUnchecked()) {
+      return transactions;
+    }
+
+    const visibleBudgetLineIds = new Set(
+      this.filteredBudgetLines().map((line) => line.id),
+    );
+
+    return transactions.filter((tx) => {
+      if (tx.budgetLineId) {
+        // Allocated transaction: visible if parent is visible
+        return visibleBudgetLineIds.has(tx.budgetLineId);
+      }
+      // Free transaction: filtered by its own checkedAt
+      return tx.checkedAt === null;
+    });
+  });
+
+  /**
+   * Toggle the isShowingOnlyUnchecked filter
+   */
+  toggleIsShowingOnlyUnchecked(): void {
+    this.#isShowingOnlyUnchecked.update((value) => !value);
+  }
+
+  /**
+   * Set the isShowingOnlyUnchecked filter value
+   */
+  setIsShowingOnlyUnchecked(value: boolean): void {
+    this.#isShowingOnlyUnchecked.set(value);
+  }
 
   setBudgetId(budgetId: string): void {
     this.#state.budgetId.set(budgetId);
