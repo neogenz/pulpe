@@ -65,6 +65,10 @@ describe('AuthSessionService', () => {
   };
 
   beforeEach(async () => {
+    // Clean up E2E flags to prevent state leakage between tests
+    delete (window as E2EWindow).__E2E_AUTH_BYPASS__;
+    delete (window as E2EWindow).__E2E_MOCK_AUTH_STATE__;
+
     mockUserSignal = signal<User | null>(null);
 
     mockAuthState = {
@@ -312,7 +316,7 @@ describe('AuthSessionService', () => {
 
     await service.initializeAuthState();
 
-    expect(mockLogger.info).toHaveBeenCalledWith(
+    expect(mockLogger.debug).toHaveBeenCalledWith(
       '🎭 Mode test E2E détecté, utilisation des mocks auth',
     );
     expect(mockAuthState.setSession).toHaveBeenCalledWith(mockSession);
@@ -546,7 +550,7 @@ describe('AuthSessionService', () => {
 
     await service.signOut();
 
-    expect(mockLogger.info).toHaveBeenCalledWith(
+    expect(mockLogger.debug).toHaveBeenCalledWith(
       '🎭 Mode test E2E: Simulation du logout',
     );
     expect(mockAuthState.setSession).toHaveBeenCalledWith(null);
