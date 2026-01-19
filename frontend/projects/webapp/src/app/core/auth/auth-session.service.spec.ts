@@ -21,10 +21,13 @@ import {
   createMockSupabaseClient,
   type MockSupabaseClient,
 } from '../testing/test-utils';
-import * as supabaseJs from '@supabase/supabase-js';
+
+const { createClientMock } = vi.hoisted(() => ({
+  createClientMock: vi.fn(),
+}));
 
 vi.mock('@supabase/supabase-js', () => ({
-  createClient: vi.fn(),
+  createClient: createClientMock,
 }));
 
 describe('AuthSessionService', () => {
@@ -108,11 +111,7 @@ describe('AuthSessionService', () => {
     mockSupabaseClient = createMockSupabaseClient();
 
     // Configure the mock BEFORE creating the service
-    vi.mocked(supabaseJs.createClient).mockReturnValue(
-      mockSupabaseClient as unknown as ReturnType<
-        typeof supabaseJs.createClient
-      >,
-    );
+    createClientMock.mockReturnValue(mockSupabaseClient);
 
     TestBed.configureTestingModule({
       providers: [
