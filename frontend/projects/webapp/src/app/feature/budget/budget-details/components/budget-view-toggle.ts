@@ -4,10 +4,10 @@ import {
   MatChipsModule,
 } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
-import type { BudgetTableViewMode } from './budget-table-view-mode';
+import type { BudgetViewMode } from '../data-core';
 
 @Component({
-  selector: 'pulpe-budget-table-view-toggle',
+  selector: 'pulpe-budget-view-toggle',
   imports: [MatChipsModule, MatIconModule],
   template: `
     <mat-chip-listbox
@@ -40,13 +40,10 @@ import type { BudgetTableViewMode } from './budget-table-view-mode';
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class BudgetTableViewToggle {
-  viewMode = model<BudgetTableViewMode>('envelopes');
+export class BudgetViewToggle {
+  viewMode = model<BudgetViewMode>('envelopes');
 
-  onViewModeChange(
-    mode: BudgetTableViewMode,
-    event: MatChipSelectionChange,
-  ): void {
+  onViewModeChange(mode: BudgetViewMode, event: MatChipSelectionChange): void {
     if (!event.isUserInput || !event.selected) {
       return;
     }

@@ -5,19 +5,14 @@ import {
   input,
   output,
 } from '@angular/core';
-import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatIconModule } from '@angular/material/icon';
-import { MatMenuModule } from '@angular/material/menu';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { type BudgetLine } from 'pulpe-shared';
-import {
-  RecurrenceLabelPipe,
-  TransactionLabelPipe,
-} from '@ui/transaction-display';
-import { type BudgetLineTableItem } from './budget-table-models';
+import { RecurrenceLabelPipe } from '@ui/transaction-display';
+import type { BudgetLineTableItem } from '../data-core';
+import { BudgetProgressBar } from '../components/budget-progress-bar';
+import { BudgetKindIndicator } from '../components/budget-kind-indicator';
+import { BudgetActionMenu } from '../components/budget-action-menu';
 
 /**
  * Desktop envelope card component following M3 Expressive design
@@ -35,18 +30,15 @@ import { type BudgetLineTableItem } from './budget-table-models';
  * └─────────────────────────────────────────────────┘
  */
 @Component({
-  selector: 'pulpe-budget-envelope-card',
+  selector: 'pulpe-budget-grid-card',
   imports: [
-    MatButtonModule,
-    MatIconModule,
-    MatMenuModule,
     MatChipsModule,
     MatSlideToggleModule,
-    MatTooltipModule,
-    MatDividerModule,
     CurrencyPipe,
-    TransactionLabelPipe,
     RecurrenceLabelPipe,
+    BudgetProgressBar,
+    BudgetKindIndicator,
+    BudgetActionMenu,
   ],
   template: `
     <div
@@ -66,17 +58,7 @@ import { type BudgetLineTableItem } from './budget-table-models';
       <!-- Header: Name + Menu -->
       <div class="flex items-start justify-between mb-4">
         <div class="flex items-center gap-2.5 min-w-0 flex-1">
-          <div
-            class="w-3 h-3 rounded-full flex-shrink-0"
-            [style.background-color]="
-              item().data.kind === 'income'
-                ? 'var(--pulpe-financial-income)'
-                : item().data.kind === 'expense'
-                  ? 'var(--pulpe-financial-expense)'
-                  : 'var(--pulpe-financial-savings)'
-            "
-            [matTooltip]="item().data.kind | transactionLabel"
-          ></div>
+          <pulpe-budget-kind-indicator [kind]="item().data.kind" />
           <span
             class="text-title-medium font-medium truncate"
             [class.line-through]="item().data.checkedAt"
@@ -87,61 +69,14 @@ import { type BudgetLineTableItem } from './budget-table-models';
         </div>
 
         @if (!item().metadata.isRollover) {
-          <button
-            matIconButton
-            [matMenuTriggerFor]="cardMenu"
-            (click)="$event.stopPropagation()"
-            class="shrink-0 !-mr-2 !-mt-1"
-            [attr.data-testid]="'card-menu-' + item().data.id"
-          >
-            <mat-icon>more_vert</mat-icon>
-          </button>
-
-          <mat-menu #cardMenu="matMenu" xPosition="before">
-            <div
-              class="px-4 py-2 text-label-medium text-on-surface-variant max-w-48 truncate"
-              [matTooltip]="item().data.name"
-              matTooltipShowDelay="500"
-            >
-              {{ item().data.name }}
-            </div>
-            <mat-divider />
-            <button
-              mat-menu-item
-              (click)="addTransaction.emit(item().data)"
-              [attr.data-testid]="'add-transaction-' + item().data.id"
-            >
-              <mat-icon matMenuItemIcon>add</mat-icon>
-              <span>{{ item().metadata.allocationLabel }}</span>
-            </button>
-            <button
-              mat-menu-item
-              (click)="edit.emit(item())"
-              [attr.data-testid]="'edit-' + item().data.id"
-            >
-              <mat-icon matMenuItemIcon>edit</mat-icon>
-              <span>Éditer</span>
-            </button>
-            @if (item().metadata.canResetFromTemplate) {
-              <button
-                mat-menu-item
-                (click)="resetFromTemplate.emit(item())"
-                [attr.data-testid]="'reset-from-template-' + item().data.id"
-              >
-                <mat-icon matMenuItemIcon>refresh</mat-icon>
-                <span>Réinitialiser</span>
-              </button>
-            }
-            <button
-              mat-menu-item
-              (click)="delete.emit(item().data.id)"
-              [attr.data-testid]="'delete-' + item().data.id"
-              class="text-error"
-            >
-              <mat-icon matMenuItemIcon class="text-error">delete</mat-icon>
-              <span>Supprimer</span>
-            </button>
-          </mat-menu>
+          <pulpe-budget-action-menu
+            [item]="item()"
+            buttonClass="!-mr-2 !-mt-1"
+            (edit)="edit.emit($event)"
+            (delete)="delete.emit($event)"
+            (addTransaction)="addTransaction.emit($event)"
+            (resetFromTemplate)="resetFromTemplate.emit($event)"
+          />
         }
       </div>
 
@@ -161,22 +96,11 @@ import { type BudgetLineTableItem } from './budget-table-models';
       <!-- Segmented Progress -->
       @if (item().consumption?.hasTransactions && !item().metadata.isRollover) {
         <div class="mb-4">
-          <div class="flex gap-0.5 h-2">
-            @for (i of progressSegments; track i) {
-              <div
-                class="flex-1 rounded-full transition-colors"
-                [class.bg-primary]="
-                  i <= item().consumption!.percentage / 10 &&
-                  item().consumption!.percentage <= 100
-                "
-                [class.bg-error]="item().consumption!.percentage > 100"
-                [class.bg-outline-variant/40]="
-                  i > item().consumption!.percentage / 10 ||
-                  (item().consumption!.percentage > 100 && i > 10)
-                "
-              ></div>
-            }
-          </div>
+          <pulpe-budget-progress-bar
+            [percentage]="item().consumption!.percentage"
+            [segmentCount]="10"
+            [height]="8"
+          />
           <div class="flex justify-between items-center mt-2">
             <span class="text-body-small text-on-surface-variant">
               {{
@@ -222,19 +146,14 @@ import { type BudgetLineTableItem } from './budget-table-models';
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class BudgetEnvelopeCard {
-  // Inputs
+export class BudgetGridCard {
   readonly item = input.required<BudgetLineTableItem>();
   readonly isSelected = input<boolean>(false);
 
-  // Outputs
   readonly cardClick = output<BudgetLineTableItem>();
   readonly edit = output<BudgetLineTableItem>();
   readonly delete = output<string>();
   readonly addTransaction = output<BudgetLine>();
   readonly resetFromTemplate = output<BudgetLineTableItem>();
   readonly toggleCheck = output<string>();
-
-  // Progress segments (10 segments for visual clarity)
-  readonly progressSegments = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 }

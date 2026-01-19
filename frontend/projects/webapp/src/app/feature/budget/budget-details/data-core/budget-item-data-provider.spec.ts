@@ -1,7 +1,7 @@
 import { describe, beforeEach, it, expect } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
-import { BudgetTableDataProvider } from './budget-table-data-provider';
+import { BudgetItemDataProvider } from './budget-item-data-provider';
 import type { BudgetLine, Transaction } from 'pulpe-shared';
 import {
   createMockBudgetLine,
@@ -12,7 +12,7 @@ import type {
   BudgetLineTableItem,
   TableRowItem,
   TransactionTableItem,
-} from './budget-table-models';
+} from './budget-item-models';
 
 /**
  * Helper to filter out group headers and get only data items
@@ -25,15 +25,15 @@ const filterDataItems = (
       item.metadata.itemType !== 'group_header',
   );
 
-describe('BudgetTableDataProvider', () => {
-  let service: BudgetTableDataProvider;
+describe('BudgetItemDataProvider', () => {
+  let service: BudgetItemDataProvider;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [BudgetTableDataProvider, provideZonelessChangeDetection()],
+      providers: [BudgetItemDataProvider, provideZonelessChangeDetection()],
     });
 
-    service = TestBed.inject(BudgetTableDataProvider);
+    service = TestBed.inject(BudgetItemDataProvider);
   });
 
   describe('Display Order Business Rules', () => {

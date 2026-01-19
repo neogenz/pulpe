@@ -6,7 +6,7 @@ import type {
   GroupHeaderTableItem,
   TableRowItem,
   TransactionTableItem,
-} from './budget-table-models';
+} from './budget-item-models';
 import {
   KIND_ICONS,
   GROUP_LABELS,
@@ -18,7 +18,7 @@ import {
   calculatePercentage,
   getRolloverSourceBudgetId,
   safeParseDate,
-} from './budget-table-constants';
+} from './budget-item-constants';
 
 type BudgetItemWithBalance =
   | { item: BudgetLine; cumulativeBalance: number; itemType: 'budget_line' }
@@ -187,7 +187,7 @@ function insertGroupHeaders(
   return result;
 }
 
-export function buildEnvelopesViewData(params: {
+export function buildViewData(params: {
   budgetLines: BudgetLine[];
   transactions: Transaction[];
   editingLineId: string | null;

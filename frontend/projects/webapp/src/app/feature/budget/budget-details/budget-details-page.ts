@@ -27,7 +27,7 @@ import { formatDate } from 'date-fns';
 import { frCH } from 'date-fns/locale';
 import { BudgetDetailsStore } from './store/budget-details-store';
 import { BudgetLineApi } from './budget-line-api/budget-line-api';
-import { BudgetTable } from './budget-table/budget-table';
+import { BudgetItemsContainer } from './budget-items-container';
 import { BudgetFinancialOverview } from './budget-financial-overview';
 import {
   AddBudgetLineDialog,
@@ -72,7 +72,7 @@ import { UserSettingsApi } from '@core/user-settings/user-settings-api';
     MatDialogModule,
     MatTooltipModule,
     DatePipe,
-    BudgetTable,
+    BudgetItemsContainer,
     BudgetFinancialOverview,
     BaseLoading,
   ],
@@ -158,8 +158,8 @@ import { UserSettingsApi } from '@core/user-settings/user-settings-api';
           data-tour="financial-overview"
         />
 
-        <!-- Budget Items Table -->
-        <pulpe-budget-table
+        <!-- Budget Items -->
+        <pulpe-budget-items
           [budgetLines]="budgetLines"
           [transactions]="transactions"
           (update)="handleUpdateBudgetLine($event)"

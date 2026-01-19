@@ -15,7 +15,7 @@ import { MatIconModule } from '@angular/material/icon';
  * └──────────────────────────────────────────────────────────────┘
  */
 @Component({
-  selector: 'pulpe-budget-section-group',
+  selector: 'pulpe-budget-grid-section',
   imports: [MatExpansionModule, MatIconModule],
   template: `
     <mat-expansion-panel
@@ -51,10 +51,10 @@ import { MatIconModule } from '@angular/material/icon';
       display: block;
     }
   `,
-  host: { class: 'pulpe-budget-section-group' },
+  host: { class: 'pulpe-budget-grid-section' },
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class BudgetSectionGroup {
+export class BudgetGridSection {
   readonly title = input.required<string>();
   readonly icon = input.required<string>();
   readonly itemCount = input.required<number>();

@@ -18,15 +18,19 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { type BudgetLine, type Transaction } from 'pulpe-shared';
 import { TransactionLabelPipe } from '@ui/transaction-display';
-import { type BudgetLineTableItem } from './budget-table-models';
+import type { BudgetLineTableItem } from '../data-core';
+import { BudgetProgressBar } from '../components/budget-progress-bar';
+import { BudgetKindIndicator } from '../components/budget-kind-indicator';
 
-export interface BudgetEnvelopeDetailDialogData {
+export interface BudgetDetailPanelData {
   item: BudgetLineTableItem;
   transactions: Signal<Transaction[]>;
   onAddTransaction: (budgetLine: BudgetLine) => void;
   onDeleteTransaction: (id: string) => void;
   onToggleTransactionCheck: (id: string) => void;
 }
+
+const DETAIL_SEGMENT_COUNT = 12;
 
 /**
  * Side panel showing envelope details and allocated transactions
@@ -47,7 +51,7 @@ export interface BudgetEnvelopeDetailDialogData {
  * └────────────────────────────────────┘
  */
 @Component({
-  selector: 'pulpe-budget-envelope-detail-panel',
+  selector: 'pulpe-budget-detail-panel',
   imports: [
     MatButtonModule,
     MatDialogModule,
@@ -58,6 +62,8 @@ export interface BudgetEnvelopeDetailDialogData {
     CurrencyPipe,
     DatePipe,
     TransactionLabelPipe,
+    BudgetProgressBar,
+    BudgetKindIndicator,
   ],
   template: `
     @let envelope = data.item;
@@ -66,16 +72,7 @@ export interface BudgetEnvelopeDetailDialogData {
       <div class="p-5 border-b border-outline-variant">
         <div class="flex items-start justify-between">
           <div class="flex items-center gap-3 min-w-0 flex-1">
-            <div
-              class="w-3 h-3 rounded-full flex-shrink-0"
-              [style.background-color]="
-                envelope.data.kind === 'income'
-                  ? 'var(--pulpe-financial-income)'
-                  : envelope.data.kind === 'expense'
-                    ? 'var(--pulpe-financial-expense)'
-                    : 'var(--pulpe-financial-savings)'
-              "
-            ></div>
+            <pulpe-budget-kind-indicator [kind]="envelope.data.kind" />
             <div class="min-w-0">
               <h2 class="text-title-large font-semibold truncate">
                 {{ envelope.data.name }}
@@ -135,22 +132,12 @@ export interface BudgetEnvelopeDetailDialogData {
 
         <!-- Progress Bar (12 segments for more detail) -->
         @if (envelope.consumption?.hasTransactions) {
-          <div class="flex gap-0.5 h-2.5 mb-2">
-            @for (i of progressSegments; track i) {
-              <div
-                class="flex-1 rounded-full transition-colors"
-                [class.bg-primary]="
-                  i <= envelope.consumption!.percentage / (100 / 12) &&
-                  envelope.consumption!.percentage <= 100
-                "
-                [class.bg-error]="envelope.consumption!.percentage > 100"
-                [class.bg-outline-variant/40]="
-                  i > envelope.consumption!.percentage / (100 / 12) ||
-                  (envelope.consumption!.percentage > 100 && i > 12)
-                "
-              ></div>
-            }
-          </div>
+          <pulpe-budget-progress-bar
+            [percentage]="envelope.consumption!.percentage"
+            [segmentCount]="detailSegmentCount"
+            [height]="10"
+            class="mb-2"
+          />
           <div class="text-center text-label-medium text-on-surface-variant">
             @if (envelope.consumption!.percentage > 100) {
               Dépassé de
@@ -257,15 +244,12 @@ export interface BudgetEnvelopeDetailDialogData {
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class BudgetEnvelopeDetailPanel {
-  readonly #dialogRef = inject(MatDialogRef<BudgetEnvelopeDetailPanel>);
-  protected readonly data =
-    inject<BudgetEnvelopeDetailDialogData>(MAT_DIALOG_DATA);
+export class BudgetDetailPanel {
+  readonly #dialogRef = inject(MatDialogRef<BudgetDetailPanel>);
+  protected readonly data = inject<BudgetDetailPanelData>(MAT_DIALOG_DATA);
 
-  // Progress segments (12 for more detail in the panel)
-  readonly progressSegments = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+  readonly detailSegmentCount = DETAIL_SEGMENT_COUNT;
 
-  // Computed: filter transactions allocated to this envelope
   readonly allocatedTransactions = computed(() => {
     const budgetLineId = this.data.item.data.id;
     return this.data
