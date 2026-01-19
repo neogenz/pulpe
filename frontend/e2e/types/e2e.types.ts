@@ -1,43 +1,42 @@
 import type { Request, Route } from '@playwright/test';
 
+export { type E2EWindow, type DemoSession } from '../../projects/webapp/src/app/core/auth';
+
 /**
- * Extended Window interface for E2E testing
+ * Minimal user shape for E2E mocks
  */
-/**
- * OAuth user metadata from identity providers (Google, Apple, etc.)
- */
-export interface OAuthUserMetadata {
-  given_name?: string;
-  full_name?: string;
-  avatar_url?: string;
-  [key: string]: unknown;
+export interface E2EUser {
+  id: string;
+  email: string;
 }
 
-export interface E2EWindow extends Window {
+/**
+ * Minimal session shape for E2E mocks
+ */
+export interface E2ESession {
+  access_token: string;
+  user: E2EUser;
+}
+
+/**
+ * E2E-specific auth state with relaxed types for mocking
+ */
+export interface E2EAuthState {
+  user: E2EUser;
+  session: E2ESession;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+}
+
+/**
+ * Extended window interface for E2E testing with relaxed mock types
+ */
+export interface E2ETestWindow extends Window {
   __E2E_AUTH_BYPASS__?: boolean;
-  __E2E_MOCK_AUTH_STATE__?: {
-    user: {
-      id: string;
-      email: string;
-      user_metadata?: OAuthUserMetadata;
-    };
-    session: {
-      access_token: string;
-      user: {
-        id: string;
-        email: string;
-        user_metadata?: OAuthUserMetadata;
-      };
-    };
-    isLoading: boolean;
-    isAuthenticated: boolean;
-  };
+  __E2E_MOCK_AUTH_STATE__?: E2EAuthState;
   __E2E_DEMO_BYPASS__?: boolean;
   __E2E_DEMO_SESSION__?: {
-    user: {
-      id: string;
-      email: string;
-    };
+    user: E2EUser;
     access_token: string;
     refresh_token: string;
   };
@@ -64,7 +63,7 @@ export type ErrorHandler = (error: Error) => void;
 export interface MockApiResponse {
   status: number;
   body?: string;
-  json?: any;
+  json?: unknown;
 }
 
 /**

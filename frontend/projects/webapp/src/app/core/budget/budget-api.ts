@@ -10,15 +10,15 @@ import {
   budgetExportResponseSchema,
   budgetListResponseSchema,
   budgetResponseSchema,
-  budgetSchema,
   type ErrorResponse,
   errorResponseSchema,
 } from 'pulpe-shared';
 import { type Observable, throwError } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, map, switchMap } from 'rxjs/operators';
 import { ApplicationConfiguration } from '../config/application-configuration';
 import { Logger } from '../logging/logger';
-import { StorageService, STORAGE_KEYS } from '../storage';
+import { HasBudgetCache } from '../auth/has-budget-cache';
+import { BudgetInvalidationService } from './budget-invalidation.service';
 
 export interface CreateBudgetApiResponse {
   readonly budget: Budget;
@@ -42,7 +42,8 @@ export class BudgetApi {
   readonly #httpClient = inject(HttpClient);
   readonly #applicationConfig = inject(ApplicationConfiguration);
   readonly #logger = inject(Logger);
-  readonly #storageService = inject(StorageService);
+  readonly #hasBudgetCache = inject(HasBudgetCache);
+  readonly #invalidationService = inject(BudgetInvalidationService);
 
   get #apiUrl(): string {
     return `${this.#applicationConfig.backendApiUrl()}/budgets`;
@@ -65,7 +66,8 @@ export class BudgetApi {
             budget: validated.data,
             message: 'Budget créé avec succès à partir du template',
           };
-          this.#saveBudgetToStorage(validated.data);
+          this.#hasBudgetCache.setHasBudget(true);
+          this.#invalidationService.invalidate();
           return result;
         }),
         catchError((error) =>
@@ -82,7 +84,11 @@ export class BudgetApi {
    */
   getAllBudgets$(): Observable<Budget[]> {
     return this.#httpClient.get<unknown>(this.#apiUrl).pipe(
-      map((response) => budgetListResponseSchema.parse(response).data),
+      map((response) => {
+        const budgets = budgetListResponseSchema.parse(response).data;
+        this.#hasBudgetCache.setHasBudget(budgets.length > 0);
+        return budgets;
+      }),
       catchError((error) =>
         this.#handleApiError(
           error,
@@ -90,6 +96,27 @@ export class BudgetApi {
         ),
       ),
     );
+  }
+
+  /**
+   * Vérifie si l'utilisateur a au moins un budget (endpoint optimisé).
+   * Auto-sync le cache pour les guards et composants.
+   */
+  checkBudgetExists$(): Observable<boolean> {
+    return this.#httpClient
+      .get<{ hasBudget: boolean }>(`${this.#apiUrl}/exists`)
+      .pipe(
+        map((response) => {
+          this.#hasBudgetCache.setHasBudget(response.hasBudget);
+          return response.hasBudget;
+        }),
+        catchError((error) =>
+          this.#handleApiError(
+            error,
+            'Erreur lors de la vérification des budgets',
+          ),
+        ),
+      );
   }
 
   /**
@@ -111,11 +138,7 @@ export class BudgetApi {
     return this.#httpClient
       .get<unknown>(`${this.#apiUrl}/${budgetId}/details`)
       .pipe(
-        map((response) => {
-          const validated = budgetDetailsResponseSchema.parse(response);
-          this.#saveBudgetToStorage(validated.data.budget);
-          return validated;
-        }),
+        map((response) => budgetDetailsResponseSchema.parse(response)),
         catchError((error) =>
           this.#handleApiError(
             error,
@@ -162,7 +185,7 @@ export class BudgetApi {
       .pipe(
         map((response) => {
           const validated = budgetResponseSchema.parse(response);
-          this.#saveBudgetToStorage(validated.data);
+          this.#invalidationService.invalidate();
           return validated.data;
         }),
         catchError((error) =>
@@ -175,12 +198,16 @@ export class BudgetApi {
   }
 
   /**
-   * Supprime un budget
+   * Supprime un budget et resynchronise le cache HasBudgetCache.
    */
   deleteBudget$(budgetId: string): Observable<void> {
     return this.#httpClient.delete(`${this.#apiUrl}/${budgetId}`).pipe(
-      map(() => {
-        this.#removeBudgetFromStorage(budgetId);
+      switchMap(() =>
+        this.#httpClient.get<{ hasBudget: boolean }>(`${this.#apiUrl}/exists`),
+      ),
+      map((response) => {
+        this.#hasBudgetCache.setHasBudget(response.hasBudget);
+        this.#invalidationService.invalidate();
       }),
       catchError((error) =>
         this.#handleApiError(error, 'Erreur lors de la suppression du budget'),
@@ -198,41 +225,6 @@ export class BudgetApi {
         this.#handleApiError(error, "Erreur lors de l'export des budgets"),
       ),
     );
-  }
-
-  /**
-   * Récupère le budget actuel depuis le localStorage
-   */
-  getCurrentBudgetFromStorage(): Budget | null {
-    const parsedData = this.#storageService.get<unknown>(
-      STORAGE_KEYS.CURRENT_BUDGET,
-    );
-    if (!parsedData) {
-      return null;
-    }
-
-    // Utiliser la validation Zod du schéma partagé
-    const result = budgetSchema.safeParse(parsedData);
-    if (result.success && result.data) {
-      return result.data;
-    }
-
-    this.#logger.warn(
-      'Données de budget invalides dans localStorage, suppression',
-    );
-    this.#storageService.remove(STORAGE_KEYS.CURRENT_BUDGET);
-    return null;
-  }
-
-  #saveBudgetToStorage(budget: Budget): void {
-    this.#storageService.set(STORAGE_KEYS.CURRENT_BUDGET, budget);
-  }
-
-  #removeBudgetFromStorage(budgetId: string): void {
-    const currentBudget = this.getCurrentBudgetFromStorage();
-    if (currentBudget?.id === budgetId) {
-      this.#storageService.remove(STORAGE_KEYS.CURRENT_BUDGET);
-    }
   }
 
   #getLocalizedErrorMessage(code?: string): string | null {

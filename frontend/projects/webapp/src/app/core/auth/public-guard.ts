@@ -3,7 +3,7 @@ import { type CanActivateFn, Router } from '@angular/router';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { filter, map, take } from 'rxjs/operators';
 
-import { AuthApi } from './auth-api';
+import { AuthStateService } from './auth-state.service';
 import { ROUTES } from '@core/routing/routes-constants';
 
 /**
@@ -14,10 +14,10 @@ import { ROUTES } from '@core/routing/routes-constants';
  * Child route guards (hasBudgetGuard) will handle further routing decisions.
  */
 export const publicGuard: CanActivateFn = () => {
-  const authApi = inject(AuthApi);
+  const authState = inject(AuthStateService);
   const router = inject(Router);
 
-  return toObservable(authApi.authState).pipe(
+  return toObservable(authState.authState).pipe(
     filter((state) => !state.isLoading),
     take(1),
     map((state) => {

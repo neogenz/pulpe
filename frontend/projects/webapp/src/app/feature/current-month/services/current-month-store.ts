@@ -1,12 +1,13 @@
 import { HttpClient } from '@angular/common/http';
-import { computed, inject, Injectable, resource, signal } from '@angular/core';
+import { computed, inject, Injectable, signal } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
 import { BudgetApi } from '@core/budget';
+import { BudgetInvalidationService } from '@core/budget/budget-invalidation.service';
 import { ApplicationConfiguration } from '@core/config/application-configuration';
 import { TransactionApi } from '@core/transaction';
 import { UserSettingsApi } from '@core/user-settings';
 import { createRolloverLine } from '@core/rollover/rollover-types';
 import {
-  type Budget,
   type BudgetLine,
   type Transaction,
   type TransactionCreate,
@@ -14,7 +15,7 @@ import {
   BudgetFormulas,
   getBudgetPeriodForDate,
 } from 'pulpe-shared';
-import { firstValueFrom, type Observable } from 'rxjs';
+import { firstValueFrom, map, of, switchMap, type Observable } from 'rxjs';
 import {
   type CurrentMonthState,
   type DashboardData,
@@ -31,7 +32,8 @@ import { createInitialCurrentMonthInternalState } from './current-month-state';
  * - Calculated financial metrics
  *
  * Architecture:
- * - Uses Angular's resource() API for async data loading
+ * - Uses Angular's rxResource() API for async data loading with RxJS integration
+ * - Automatic request cancellation when parameters change
  * - Simplified state management without complex optimistic updates
  * - Relies on resource reload for data consistency after mutations
  */
@@ -42,6 +44,7 @@ export class CurrentMonthStore {
   #httpClient = inject(HttpClient);
   #appConfig = inject(ApplicationConfiguration);
   #userSettingsApi = inject(UserSettingsApi);
+  #invalidationService = inject(BudgetInvalidationService);
 
   /**
    * Simple state signal for UI feedback during operations
@@ -67,20 +70,23 @@ export class CurrentMonthStore {
   });
 
   /**
-   * Resource for loading dashboard data - single source of truth for async data
+   * Resource for loading dashboard data - single source of truth for async data.
+   * Includes invalidation version to auto-reload when budgets are mutated.
+   * Uses rxResource for automatic request cancellation and RxJS integration.
    */
-  readonly #dashboardResource = resource<
+  readonly #dashboardResource = rxResource<
     DashboardData,
-    { month: string; year: string }
+    { month: string; year: string; version: number }
   >({
     params: () => {
       const period = this.currentBudgetPeriod();
       return {
         month: period.month.toString().padStart(2, '0'),
         year: period.year.toString(),
+        version: this.#invalidationService.version(),
       };
     },
-    loader: async ({ params }) => this.#loadDashboardData(params),
+    stream: ({ params }) => this.#loadDashboardData$(params),
   });
 
   /**
@@ -141,6 +147,23 @@ export class CurrentMonthStore {
   );
   readonly hasValue = computed(() => this.#dashboardResource.hasValue());
   readonly error = computed(() => this.#dashboardResource.error());
+  readonly status = computed(() => this.#dashboardResource.status());
+
+  /**
+   * Initial loading state - determines when to show full-page spinner.
+   *
+   * Returns true only when:
+   * - Dashboard resource is in initial 'loading' state (not 'reloading')
+   * - OR settings are still loading and we have no cached data yet
+   *
+   * This enables "stale-while-revalidate": show cached data immediately
+   * while refreshing in background (status === 'reloading').
+   */
+  readonly isInitialLoading = computed(
+    () =>
+      this.status() === 'loading' ||
+      (this.isSettingsLoading() && !this.hasValue()),
+  );
 
   /**
    * Current date selector
@@ -221,15 +244,12 @@ export class CurrentMonthStore {
    * Uses optimistic update with local calculation + backend sync
    */
   async addTransaction(transactionData: TransactionCreate): Promise<void> {
-    return this.#performOptimisticUpdate<Transaction>(
+    return this.#performOptimisticMutation<Transaction>(
       () => this.#transactionApi.create$(transactionData),
-      (currentData, response) => {
-        if (!response.data) return currentData;
-        return {
-          ...currentData,
-          transactions: [...currentData.transactions, response.data],
-        };
-      },
+      (currentData, response) => ({
+        ...currentData,
+        transactions: [...currentData.transactions, response],
+      }),
     );
   }
 
@@ -238,9 +258,9 @@ export class CurrentMonthStore {
    * Uses optimistic update with local calculation + backend sync
    */
   async deleteTransaction(transactionId: string): Promise<void> {
-    return this.#performOptimisticUpdateDelete(
+    return this.#performOptimisticMutation(
       () => this.#transactionApi.remove$(transactionId),
-      (currentData: DashboardData) => ({
+      (currentData) => ({
         ...currentData,
         transactions: currentData.transactions.filter(
           (t: Transaction) => t.id !== transactionId,
@@ -257,26 +277,32 @@ export class CurrentMonthStore {
     transactionId: string,
     transactionData: TransactionUpdate,
   ): Promise<void> {
-    return this.#performOptimisticUpdate<Transaction>(
+    return this.#performOptimisticMutation<Transaction>(
       () => this.#transactionApi.update$(transactionId, transactionData),
       (currentData, response) => ({
         ...currentData,
         transactions: currentData.transactions.map((t: Transaction) =>
-          t.id === transactionId ? response.data : t,
+          t.id === transactionId ? response : t,
         ),
       }),
     );
   }
 
   /**
-   * Generic optimistic update pattern for operations returning data
+   * Generic optimistic update pattern for mutations
+   * Overloaded for operations returning data (create, update) and void operations (delete)
    */
-  async #performOptimisticUpdate<T>(
+  async #performOptimisticMutation<T>(
     operation: () => Observable<{ data: T }>,
-    updateData: (
-      currentData: DashboardData,
-      response: { data: T },
-    ) => DashboardData,
+    updateData: (currentData: DashboardData, response: T) => DashboardData,
+  ): Promise<void>;
+  async #performOptimisticMutation(
+    operation: () => Observable<void>,
+    updateData: (currentData: DashboardData) => DashboardData,
+  ): Promise<void>;
+  async #performOptimisticMutation<T>(
+    operation: () => Observable<{ data: T } | void>,
+    updateData: (currentData: DashboardData, response?: T) => DashboardData,
   ): Promise<void> {
     const originalData = this.#dashboardResource.value();
 
@@ -287,23 +313,27 @@ export class CurrentMonthStore {
       // 2. Apply optimistic update
       const currentData = this.#dashboardResource.value();
       if (currentData && currentData.budget) {
-        const updatedData = updateData(currentData, response);
+        // Extract response data if present (create/update), undefined for delete
+        const responseData =
+          response && typeof response === 'object' && 'data' in response
+            ? response.data
+            : undefined;
+        const updatedData = updateData(currentData, responseData);
 
-        // Recalculate ending balance locally avec les formules partagées (envelope-aware)
+        // Recalculate ending balance locally (envelope-aware)
         const rollover = updatedData.budget?.rollover || 0;
         const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
           updatedData.budgetLines,
           updatedData.transactions,
           rollover,
         );
-        const newEndingBalance = metrics.endingBalance;
 
         // Apply optimistic update
         this.#dashboardResource.set({
           ...updatedData,
           budget: {
             ...currentData.budget,
-            endingBalance: newEndingBalance,
+            endingBalance: metrics.endingBalance,
           },
         });
 
@@ -320,74 +350,8 @@ export class CurrentMonthStore {
             ...latestData,
             budget: {
               ...updatedBudget,
-              rollover: latestData.budget.rollover, // Préserver le rollover existant
-              previousBudgetId: latestData.budget.previousBudgetId, // Préserver aussi
-            },
-          });
-        }
-      }
-    } catch (error) {
-      // Rollback on error
-      if (originalData) {
-        this.#dashboardResource.set(originalData);
-      } else {
-        this.refreshData();
-      }
-      throw error;
-    }
-  }
-
-  /**
-   * Generic optimistic update pattern for delete operations
-   */
-  async #performOptimisticUpdateDelete(
-    operation: () => Observable<void>,
-    updateData: (currentData: DashboardData) => DashboardData,
-  ): Promise<void> {
-    const originalData = this.#dashboardResource.value();
-
-    try {
-      // 1. Execute backend operation first
-      await firstValueFrom(operation());
-
-      // 2. Apply optimistic update after successful backend operation
-      const currentData = this.#dashboardResource.value();
-      if (currentData && currentData.budget) {
-        const updatedData = updateData(currentData);
-
-        // Recalculate ending balance locally avec les formules partagées (envelope-aware)
-        const rollover = updatedData.budget?.rollover || 0;
-        const metrics = BudgetFormulas.calculateAllMetricsWithEnvelopes(
-          updatedData.budgetLines,
-          updatedData.transactions,
-          rollover,
-        );
-        const newEndingBalance = metrics.endingBalance;
-
-        // Apply optimistic update
-        this.#dashboardResource.set({
-          ...updatedData,
-          budget: {
-            ...currentData.budget,
-            endingBalance: newEndingBalance,
-          },
-        });
-
-        // 3. Sync with backend for accurate ending balance
-        const budgetId = currentData.budget.id;
-        const updatedBudget = await firstValueFrom(
-          this.#budgetApi.getBudgetById$(budgetId),
-        );
-
-        // 4. Update with real backend value
-        const latestData = this.#dashboardResource.value();
-        if (latestData && latestData.budget && updatedBudget) {
-          this.#dashboardResource.set({
-            ...latestData,
-            budget: {
-              ...updatedBudget,
-              rollover: latestData.budget.rollover, // Préserver le rollover existant
-              previousBudgetId: latestData.budget.previousBudgetId, // Préserver aussi
+              rollover: latestData.budget.rollover,
+              previousBudgetId: latestData.budget.previousBudgetId,
             },
           });
         }
@@ -467,31 +431,26 @@ export class CurrentMonthStore {
   }
 
   /**
-   * Load dashboard data from API
-   * Note: Uses two sequential calls for now. Could be optimized with a single endpoint.
+   * Load dashboard data from API as Observable
+   * Chains two API calls: getBudgetForMonth → getBudgetWithDetails
    */
-  async #loadDashboardData(params: {
+  #loadDashboardData$(params: {
     month: string;
     year: string;
-  }): Promise<DashboardData> {
-    // Load budget first to get its ID
-    const budget = await firstValueFrom<Budget | null>(
-      this.#budgetApi.getBudgetForMonth$(params.month, params.year),
+  }): Observable<DashboardData> {
+    return this.#budgetApi.getBudgetForMonth$(params.month, params.year).pipe(
+      switchMap((budget) => {
+        if (!budget) {
+          return of({ budget: null, transactions: [], budgetLines: [] });
+        }
+        return this.#budgetApi.getBudgetWithDetails$(budget.id).pipe(
+          map((response) => ({
+            budget: response.data.budget,
+            transactions: response.data.transactions,
+            budgetLines: response.data.budgetLines,
+          })),
+        );
+      }),
     );
-
-    if (!budget) {
-      return { budget: null, transactions: [], budgetLines: [] };
-    }
-
-    // Use the budget ID to fetch everything in a single request
-    const detailsResponse = await firstValueFrom(
-      this.#budgetApi.getBudgetWithDetails$(budget.id),
-    );
-
-    return {
-      budget: detailsResponse.data.budget,
-      transactions: detailsResponse.data.transactions,
-      budgetLines: detailsResponse.data.budgetLines,
-    };
   }
 }

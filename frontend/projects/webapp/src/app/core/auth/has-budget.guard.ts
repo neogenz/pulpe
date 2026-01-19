@@ -1,39 +1,43 @@
 import { inject } from '@angular/core';
-import { HttpErrorResponse } from '@angular/common/http';
 import { type CanActivateFn, Router } from '@angular/router';
-import { firstValueFrom, retry, timer } from 'rxjs';
 import { BudgetApi } from '@core/budget';
 import { Logger } from '@core/logging/logger';
 import { ROUTES } from '@core/routing/routes-constants';
+import { firstValueFrom } from 'rxjs';
+import { HasBudgetCache } from './has-budget-cache';
 
+/**
+ * Protects routes that require the user to have at least one budget.
+ * Fast path: Uses cache (instant 90% of cases after pre-load at login).
+ * Slow path: Fetches from API if cache miss (auto-syncs cache).
+ * Fail-safe: Allows navigation on network errors.
+ */
 export const hasBudgetGuard: CanActivateFn = async () => {
+  const hasBudgetCache = inject(HasBudgetCache);
   const budgetApi = inject(BudgetApi);
   const router = inject(Router);
   const logger = inject(Logger);
 
+  const redirectToCompleteProfile = () =>
+    router.createUrlTree(['/', ROUTES.APP, ROUTES.COMPLETE_PROFILE]);
+
+  const hasBudgetFromCache = hasBudgetCache.hasBudget();
+
+  // Fast path: cache hit (90% of cases after pre-load)
+  if (hasBudgetFromCache !== null) {
+    return hasBudgetFromCache ? true : redirectToCompleteProfile();
+  }
+
+  // Slow path: cache miss - fetch from API
+  // Router automatically shows loading indicator during async operation
   try {
-    const budgets = await firstValueFrom(
-      budgetApi
-        .getAllBudgets$()
-        .pipe(retry({ count: 2, delay: () => timer(1000) })),
-    );
-
-    if (budgets.length === 0) {
-      return router.createUrlTree(['/', ROUTES.APP, ROUTES.COMPLETE_PROFILE]);
-    }
-
-    return true;
+    const hasBudget = await firstValueFrom(budgetApi.checkBudgetExists$());
+    return hasBudget ? true : redirectToCompleteProfile();
   } catch (error) {
-    if (error instanceof HttpErrorResponse) {
-      if (error.status === 0 || error.status >= 500) {
-        logger.warn(
-          'hasBudgetGuard: Network or server error, allowing navigation',
-          { status: error.status },
-        );
-        return true;
-      }
-    }
-
-    return router.createUrlTree(['/', ROUTES.APP, ROUTES.COMPLETE_PROFILE]);
+    logger.warn(
+      'hasBudgetGuard: API error during cache miss, allowing navigation (fail-safe)',
+      error,
+    );
+    return true;
   }
 };

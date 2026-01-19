@@ -10,7 +10,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { type BudgetTemplateCreate } from 'pulpe-shared';
-import { BudgetTemplatesState } from '../services/budget-templates-state';
+import { BudgetTemplatesStore } from '../services/budget-templates-store';
 import { CreateTemplateForm } from './components/create-template-form';
 import { Logger } from '@core/logging/logger';
 
@@ -94,7 +94,7 @@ const SNACKBAR_CONFIG = {
 export default class CreateTemplatePage {
   // Injected dependencies
   #router = inject(Router);
-  #state = inject(BudgetTemplatesState);
+  #store = inject(BudgetTemplatesStore);
   #snackBar = inject(MatSnackBar);
   #logger = inject(Logger);
 
@@ -103,23 +103,23 @@ export default class CreateTemplatePage {
 
   // Computed values to pass to child form (smart/dumb pattern)
   // These are computed ONCE from state and passed as stable inputs
-  templateCount = computed(() => this.#state.templateCount());
+  templateCount = computed(() => this.#store.templateCount());
   existingTemplateNames = computed(
     () =>
-      this.#state.budgetTemplates
+      this.#store.budgetTemplates
         .value()
         ?.filter((t) => !t.id.startsWith('temp-'))
         .map((t) => t.name.toLowerCase()) ?? [],
   );
   defaultTemplateName = computed(
-    () => this.#state.defaultBudgetTemplate()?.name ?? null,
+    () => this.#store.defaultBudgetTemplate()?.name ?? null,
   );
 
   async onAddTemplate(template: BudgetTemplateCreate) {
     this.isCreatingTemplate.set(true);
 
     try {
-      const response = await this.#state.addTemplate(template);
+      const response = await this.#store.addTemplate(template);
 
       // Show success message
       this.#snackBar.open(MESSAGES.SUCCESS, 'Fermer', SNACKBAR_CONFIG.SUCCESS);

@@ -1,5 +1,4 @@
 import { TestBed } from '@angular/core/testing';
-import { HttpErrorResponse } from '@angular/common/http';
 import {
   Router,
   type UrlTree,
@@ -11,18 +10,25 @@ import { of, throwError } from 'rxjs';
 import { hasBudgetGuard } from './has-budget.guard';
 import { BudgetApi } from '@core/budget';
 import { Logger } from '@core/logging/logger';
+import { HasBudgetCache } from './has-budget-cache';
 
 describe('hasBudgetGuard', () => {
-  let mockBudgetApi: { getAllBudgets$: ReturnType<typeof vi.fn> };
+  let mockBudgetApi: {
+    checkBudgetExists$: ReturnType<typeof vi.fn>;
+  };
   let mockRouter: { createUrlTree: ReturnType<typeof vi.fn> };
   let mockLogger: { warn: ReturnType<typeof vi.fn> };
+  let mockHasBudgetCache: {
+    hasBudget: ReturnType<typeof vi.fn>;
+    setHasBudget: ReturnType<typeof vi.fn>;
+  };
 
   const mockRoute = {} as ActivatedRouteSnapshot;
   const mockState = {} as RouterStateSnapshot;
 
   beforeEach(() => {
     mockBudgetApi = {
-      getAllBudgets$: vi.fn(),
+      checkBudgetExists$: vi.fn(),
     };
 
     mockRouter = {
@@ -33,19 +39,24 @@ describe('hasBudgetGuard', () => {
       warn: vi.fn(),
     };
 
+    mockHasBudgetCache = {
+      hasBudget: vi.fn().mockReturnValue(null),
+      setHasBudget: vi.fn(),
+    };
+
     TestBed.configureTestingModule({
       providers: [
         { provide: BudgetApi, useValue: mockBudgetApi },
         { provide: Router, useValue: mockRouter },
         { provide: Logger, useValue: mockLogger },
+        { provide: HasBudgetCache, useValue: mockHasBudgetCache },
       ],
     });
   });
 
   it('should allow navigation when user has budgets', async () => {
-    mockBudgetApi.getAllBudgets$.mockReturnValue(
-      of([{ id: 'budget-1', name: 'Test Budget' }]),
-    );
+    mockHasBudgetCache.hasBudget.mockReturnValue(null);
+    mockBudgetApi.checkBudgetExists$.mockReturnValue(of(true));
 
     const result = await TestBed.runInInjectionContext(() =>
       hasBudgetGuard(mockRoute, mockState),
@@ -56,7 +67,8 @@ describe('hasBudgetGuard', () => {
   });
 
   it('should redirect to complete-profile when user has no budgets', async () => {
-    mockBudgetApi.getAllBudgets$.mockReturnValue(of([]));
+    mockHasBudgetCache.hasBudget.mockReturnValue(null);
+    mockBudgetApi.checkBudgetExists$.mockReturnValue(of(false));
 
     const result = await TestBed.runInInjectionContext(() =>
       hasBudgetGuard(mockRoute, mockState),
@@ -70,30 +82,10 @@ describe('hasBudgetGuard', () => {
     ]);
   });
 
-  it('should redirect to complete-profile on validation error', async () => {
-    mockBudgetApi.getAllBudgets$.mockReturnValue(
-      throwError(() => new Error('Validation Error')),
-    );
-
-    const result = await TestBed.runInInjectionContext(() =>
-      hasBudgetGuard(mockRoute, mockState),
-    );
-
-    expect(result).toEqual({});
-    expect(mockRouter.createUrlTree).toHaveBeenCalledWith([
-      '/',
-      'app',
-      'complete-profile',
-    ]);
-  });
-
-  it('should allow navigation on network error (status 0)', async () => {
-    const networkError = new HttpErrorResponse({
-      status: 0,
-      statusText: 'Unknown Error',
-    });
-    mockBudgetApi.getAllBudgets$.mockReturnValue(
-      throwError(() => networkError),
+  it('should allow navigation on API error (fail-safe)', async () => {
+    mockHasBudgetCache.hasBudget.mockReturnValue(null);
+    mockBudgetApi.checkBudgetExists$.mockReturnValue(
+      throwError(() => new Error('API Error')),
     );
 
     const result = await TestBed.runInInjectionContext(() =>
@@ -103,46 +95,48 @@ describe('hasBudgetGuard', () => {
     expect(result).toBe(true);
     expect(mockRouter.createUrlTree).not.toHaveBeenCalled();
     expect(mockLogger.warn).toHaveBeenCalledWith(
-      'hasBudgetGuard: Network or server error, allowing navigation',
-      { status: 0 },
+      'hasBudgetGuard: API error during cache miss, allowing navigation (fail-safe)',
+      expect.any(Error),
     );
   });
 
-  it('should allow navigation on server error (status 500+)', async () => {
-    const serverError = new HttpErrorResponse({
-      status: 503,
-      statusText: 'Service Unavailable',
+  describe('cache behavior', () => {
+    it('should return true immediately when cache indicates user has budget (fast path)', async () => {
+      mockHasBudgetCache.hasBudget.mockReturnValue(true);
+
+      const result = await TestBed.runInInjectionContext(() =>
+        hasBudgetGuard(mockRoute, mockState),
+      );
+
+      expect(result).toBe(true);
+      expect(mockBudgetApi.checkBudgetExists$).not.toHaveBeenCalled();
     });
-    mockBudgetApi.getAllBudgets$.mockReturnValue(throwError(() => serverError));
 
-    const result = await TestBed.runInInjectionContext(() =>
-      hasBudgetGuard(mockRoute, mockState),
-    );
+    it('should redirect immediately when cache indicates no budget (fast path)', async () => {
+      mockHasBudgetCache.hasBudget.mockReturnValue(false);
 
-    expect(result).toBe(true);
-    expect(mockRouter.createUrlTree).not.toHaveBeenCalled();
-    expect(mockLogger.warn).toHaveBeenCalledWith(
-      'hasBudgetGuard: Network or server error, allowing navigation',
-      { status: 503 },
-    );
-  });
+      const result = await TestBed.runInInjectionContext(() =>
+        hasBudgetGuard(mockRoute, mockState),
+      );
 
-  it('should redirect to complete-profile on client error (4xx)', async () => {
-    const clientError = new HttpErrorResponse({
-      status: 403,
-      statusText: 'Forbidden',
+      expect(result).toEqual({});
+      expect(mockRouter.createUrlTree).toHaveBeenCalledWith([
+        '/',
+        'app',
+        'complete-profile',
+      ]);
+      expect(mockBudgetApi.checkBudgetExists$).not.toHaveBeenCalled();
     });
-    mockBudgetApi.getAllBudgets$.mockReturnValue(throwError(() => clientError));
 
-    const result = await TestBed.runInInjectionContext(() =>
-      hasBudgetGuard(mockRoute, mockState),
-    );
+    it('should fetch from API when cache is empty (slow path)', async () => {
+      mockHasBudgetCache.hasBudget.mockReturnValue(null);
+      mockBudgetApi.checkBudgetExists$.mockReturnValue(of(true));
 
-    expect(result).toEqual({});
-    expect(mockRouter.createUrlTree).toHaveBeenCalledWith([
-      '/',
-      'app',
-      'complete-profile',
-    ]);
+      await TestBed.runInInjectionContext(() =>
+        hasBudgetGuard(mockRoute, mockState),
+      );
+
+      expect(mockBudgetApi.checkBudgetExists$).toHaveBeenCalled();
+    });
   });
 });

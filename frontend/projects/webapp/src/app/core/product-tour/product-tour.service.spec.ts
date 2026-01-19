@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ProductTourService, type TourPageId } from './product-tour.service';
-import { AuthApi } from '@core/auth/auth-api';
+import { AuthStateService } from '@core/auth';
 
 const TEST_USER_ID = 'test-user-123';
 
@@ -28,17 +28,15 @@ describe('ProductTourService', () => {
     localStorage.clear();
     mockCurrentUser = { id: TEST_USER_ID };
 
-    const mockAuthApi = {
-      get currentUser() {
-        return mockCurrentUser;
-      },
+    const mockAuthState = {
+      user: () => mockCurrentUser,
     };
 
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
         ProductTourService,
-        { provide: AuthApi, useValue: mockAuthApi },
+        { provide: AuthStateService, useValue: mockAuthState },
       ],
     });
 

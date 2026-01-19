@@ -7,7 +7,7 @@ import { BudgetApi } from '@core/budget';
 import { Logger } from '@core/logging/logger';
 import { PostHogService } from '@core/analytics/posthog';
 import { UserSettingsApi } from '@core/user-settings';
-import { AuthApi } from '@core/auth/auth-api';
+import { AuthOAuthService } from '@core/auth';
 
 describe('CompleteProfileStore', () => {
   let store: CompleteProfileStore;
@@ -20,7 +20,7 @@ describe('CompleteProfileStore', () => {
   let mockUserSettingsApi: {
     updateSettings: ReturnType<typeof vi.fn>;
   };
-  let mockAuthApi: {
+  let mockAuthOAuth: {
     getOAuthUserMetadata: ReturnType<typeof vi.fn>;
   };
   let mockLogger: {
@@ -46,7 +46,7 @@ describe('CompleteProfileStore', () => {
       updateSettings: vi.fn().mockResolvedValue({ payDayOfMonth: null }),
     };
 
-    mockAuthApi = {
+    mockAuthOAuth = {
       getOAuthUserMetadata: vi.fn().mockReturnValue(null),
     };
 
@@ -67,7 +67,7 @@ describe('CompleteProfileStore', () => {
         { provide: ProfileSetupService, useValue: mockProfileSetupService },
         { provide: BudgetApi, useValue: mockBudgetApi },
         { provide: UserSettingsApi, useValue: mockUserSettingsApi },
-        { provide: AuthApi, useValue: mockAuthApi },
+        { provide: AuthOAuthService, useValue: mockAuthOAuth },
         { provide: Logger, useValue: mockLogger },
         { provide: PostHogService, useValue: mockPostHogService },
       ],
@@ -158,7 +158,7 @@ describe('CompleteProfileStore', () => {
 
   describe('prefillFromOAuthMetadata', () => {
     it('should not change firstName when no OAuth metadata', () => {
-      mockAuthApi.getOAuthUserMetadata.mockReturnValue(null);
+      mockAuthOAuth.getOAuthUserMetadata.mockReturnValue(null);
 
       store.prefillFromOAuthMetadata();
 
@@ -166,7 +166,7 @@ describe('CompleteProfileStore', () => {
     });
 
     it('should prefill firstName from givenName', () => {
-      mockAuthApi.getOAuthUserMetadata.mockReturnValue({
+      mockAuthOAuth.getOAuthUserMetadata.mockReturnValue({
         givenName: 'John',
         fullName: 'John Doe',
       });
@@ -181,7 +181,7 @@ describe('CompleteProfileStore', () => {
     });
 
     it('should prefill firstName from fullName first word when givenName missing', () => {
-      mockAuthApi.getOAuthUserMetadata.mockReturnValue({
+      mockAuthOAuth.getOAuthUserMetadata.mockReturnValue({
         fullName: 'Jane Smith',
       });
 
@@ -195,7 +195,7 @@ describe('CompleteProfileStore', () => {
     });
 
     it('should not change firstName when metadata has no name fields', () => {
-      mockAuthApi.getOAuthUserMetadata.mockReturnValue({});
+      mockAuthOAuth.getOAuthUserMetadata.mockReturnValue({});
 
       store.prefillFromOAuthMetadata();
 
@@ -204,7 +204,7 @@ describe('CompleteProfileStore', () => {
     });
 
     it('should prefer givenName over fullName', () => {
-      mockAuthApi.getOAuthUserMetadata.mockReturnValue({
+      mockAuthOAuth.getOAuthUserMetadata.mockReturnValue({
         givenName: 'Johnny',
         fullName: 'John Doe',
       });
@@ -406,7 +406,7 @@ describe('CompleteProfileStore', () => {
       mockProfileSetupService.createInitialBudget.mockResolvedValue({
         success: true,
       });
-      mockAuthApi.getOAuthUserMetadata.mockReturnValue({
+      mockAuthOAuth.getOAuthUserMetadata.mockReturnValue({
         givenName: 'John',
       });
 

@@ -257,6 +257,8 @@ import { ROUTES } from '@core/routing';
   styles: `
     :host {
       display: block;
+      height: 100dvh;
+      overflow-y: auto;
     }
   `,
 })
