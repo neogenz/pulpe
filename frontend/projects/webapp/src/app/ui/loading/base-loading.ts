@@ -63,15 +63,15 @@ export class BaseLoading {
     }
   });
 
-  protected spinnerSizeClass = computed(() => {
+  protected readonly spinnerSizeClass = computed(() => {
     return `pulpe-loading-${this.size()}`;
   });
 
-  protected messageId = computed(() => {
+  protected readonly messageId = computed(() => {
     return `loading-message-${this.testId()}`;
   });
 
-  protected actualHeight = computed(() => {
+  protected readonly actualHeight = computed(() => {
     return this.fullHeight() ? '100vh' : '256px';
   });
 }

@@ -13,9 +13,9 @@ import { Logger } from '@core/logging/logger';
 
 @Injectable()
 export class BudgetLineApi {
-  #http = inject(HttpClient);
-  #applicationConfig = inject(ApplicationConfiguration);
-  #logger = inject(Logger);
+  readonly #http = inject(HttpClient);
+  readonly #applicationConfig = inject(ApplicationConfiguration);
+  readonly #logger = inject(Logger);
 
   get #apiUrl(): string {
     return `${this.#applicationConfig.backendApiUrl()}/budget-lines`;

@@ -88,10 +88,10 @@ const SNACKBAR_CONFIG = {
 })
 export default class CreateTemplatePage {
   // Injected dependencies
-  #router = inject(Router);
-  #store = inject(BudgetTemplatesStore);
-  #snackBar = inject(MatSnackBar);
-  #logger = inject(Logger);
+  readonly #router = inject(Router);
+  readonly #store = inject(BudgetTemplatesStore);
+  readonly #snackBar = inject(MatSnackBar);
+  readonly #logger = inject(Logger);
 
   // Local state
   readonly isCreatingTemplate = signal(false);

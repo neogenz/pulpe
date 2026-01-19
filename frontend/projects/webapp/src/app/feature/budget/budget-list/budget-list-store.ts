@@ -18,9 +18,9 @@ export interface BudgetPlaceholder {
 
 @Injectable()
 export class BudgetListStore {
-  #budgetApi = inject(BudgetApi);
-  #logger = inject(Logger);
-  #invalidationService = inject(BudgetInvalidationService);
+  readonly #budgetApi = inject(BudgetApi);
+  readonly #logger = inject(Logger);
+  readonly #invalidationService = inject(BudgetInvalidationService);
 
   // Maximum de mois à rechercher dans le futur (3 ans)
   private static readonly MAX_FUTURE_MONTHS_TO_SEARCH = 36;
@@ -70,7 +70,7 @@ export class BudgetListStore {
   /**
    * All months grouped by year, with empty months for years with unplanned budgets
    */
-  allMonthsGroupedByYears = computed<
+  readonly allMonthsGroupedByYears = computed<
     Map<number, (Budget | BudgetPlaceholder)[]>
   >(() => {
     const allMonths = Array.from({ length: 12 }, (_, i) => i + 1);

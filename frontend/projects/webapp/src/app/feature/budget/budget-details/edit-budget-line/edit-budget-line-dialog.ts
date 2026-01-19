@@ -143,11 +143,11 @@ export interface EditBudgetLineDialogData {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EditBudgetLineDialog {
-  #dialogRef = inject(MatDialogRef<EditBudgetLineDialog>);
-  #data = inject<EditBudgetLineDialogData>(MAT_DIALOG_DATA);
-  #fb = inject(FormBuilder);
+  readonly #dialogRef = inject(MatDialogRef<EditBudgetLineDialog>);
+  readonly #data = inject<EditBudgetLineDialogData>(MAT_DIALOG_DATA);
+  readonly #fb = inject(FormBuilder);
 
-  form = this.#fb.group({
+  readonly form = this.#fb.group({
     name: [
       this.#data.budgetLine.name,
       [Validators.required, Validators.minLength(1)],
