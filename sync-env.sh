@@ -10,12 +10,27 @@
 set -e
 
 # ==============================================================================
+# Couleurs
+# ==============================================================================
+
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+# ==============================================================================
 # Configuration
 # ==============================================================================
 
 # Workspace principal contenant les .env de référence
-# Définir PULPE_MAIN_WORKSPACE dans ton shell ou modifier ce fallback
-SOURCE_WORKSPACE="${PULPE_MAIN_WORKSPACE:-$HOME/workspace/perso/_projets/pulpe-workspace}"
+# Utilise CONDUCTOR_ROOT_PATH (fourni par Conductor) ou PULPE_MAIN_WORKSPACE en fallback
+SOURCE_WORKSPACE="${CONDUCTOR_ROOT_PATH:-${PULPE_MAIN_WORKSPACE:-}}"
+
+if [[ -z "$SOURCE_WORKSPACE" ]]; then
+    echo -e "${RED}Erreur: Aucun workspace source défini.${NC}"
+    echo "Définir CONDUCTOR_ROOT_PATH (automatique avec Conductor) ou PULPE_MAIN_WORKSPACE."
+    exit 1
+fi
 
 # Répertoire du worktree courant
 CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -29,15 +44,6 @@ ENV_FILES=(
 )
 
 # ==============================================================================
-# Couleurs
-# ==============================================================================
-
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
-
-# ==============================================================================
 # Fonctions
 # ==============================================================================
 
@@ -47,8 +53,8 @@ copy_env() {
     local dest="$CURRENT_DIR/$relative_path"
 
     if [[ ! -f "$source" ]]; then
-        echo -e "${RED}⚠️  Non trouvé: $relative_path${NC}"
-        return 1
+        echo -e "${YELLOW}⚠️  Non trouvé: $relative_path${NC}"
+        return 0  # Continue even if file not found
     fi
 
     mkdir -p "$(dirname "$dest")"
