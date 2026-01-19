@@ -227,26 +227,26 @@ const MAX_TEMPLATES = 5;
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CreateTemplateForm {
-  #fb = inject(FormBuilder);
+  readonly #fb = inject(FormBuilder);
 
   // All data comes via inputs - NO state injection
-  isCreating = input(false);
-  templateCount = input(0);
-  existingTemplateNames = input<string[]>([]);
-  defaultTemplateName = input<string | null>(null);
+  readonly isCreating = input(false);
+  readonly templateCount = input(0);
+  readonly existingTemplateNames = input<string[]>([]);
+  readonly defaultTemplateName = input<string | null>(null);
 
   // Outputs
-  addTemplate = output<BudgetTemplateCreate>();
-  cancelForm = output<void>();
+  readonly addTemplate = output<BudgetTemplateCreate>();
+  readonly cancelForm = output<void>();
 
   // Constants
   readonly maxTemplates = MAX_TEMPLATES;
 
   // Local state
-  globalFormError = signal<string | null>(null);
+  readonly globalFormError = signal<string | null>(null);
 
   // Form definition - validators set initially, updated via effect when inputs change
-  templateForm = this.#fb.group({
+  readonly templateForm = this.#fb.group({
     name: [
       '',
       {

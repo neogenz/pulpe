@@ -160,7 +160,7 @@ export interface FinancialEntry {
 })
 export class TransactionsTable {
   /** Immutable list of entries to display. */
-  entries = input.required<readonly FinancialEntry[]>();
+  readonly entries = input.required<readonly FinancialEntry[]>();
 
   // Material table determines column order via this array.
   readonly displayedColumns = [
