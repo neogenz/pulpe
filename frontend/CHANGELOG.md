@@ -1,5 +1,15 @@
 # pulpe-frontend
 
+## 0.13.0
+
+### Minor Changes
+
+- Mode maintenance, nouvelles icônes iOS, correction navigation et conformité RGPD
+  - Nouvelle page de maintenance avec animation affichée automatiquement
+  - Design citron moderne pour l'icône iOS
+  - Correction d'un problème de navigation bloquée au démarrage
+  - Anonymisation des IPs pour la conformité RGPD
+
 ## 0.12.0
 
 ### Minor Changes
