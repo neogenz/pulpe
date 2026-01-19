@@ -94,7 +94,7 @@ export default class CreateTemplatePage {
   #logger = inject(Logger);
 
   // Local state
-  isCreatingTemplate = signal(false);
+  readonly isCreatingTemplate = signal(false);
 
   // Computed values to pass to child form (smart/dumb pattern)
   // These are computed ONCE from state and passed as stable inputs

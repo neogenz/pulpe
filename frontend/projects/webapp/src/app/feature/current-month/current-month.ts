@@ -247,8 +247,8 @@ type EditTransactionFormData = Pick<
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export default class CurrentMonth {
-  isCreatingTransaction = signal(false);
-  selectedTransactions = signal<string[]>([]);
+  readonly isCreatingTransaction = signal(false);
+  readonly selectedTransactions = signal<string[]>([]);
   protected readonly store = inject(CurrentMonthStore);
   protected readonly titleDisplay = inject(TitleDisplay);
   readonly #productTourService = inject(ProductTourService);

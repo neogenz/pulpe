@@ -245,7 +245,7 @@ import { UserSettingsApi } from '@core/user-settings/user-settings-api';
 })
 export default class BudgetDetailsPage {
   readonly isDevMode = isDevMode();
-  store = inject(BudgetDetailsStore);
+  readonly store = inject(BudgetDetailsStore);
   readonly #router = inject(Router);
   readonly #route = inject(ActivatedRoute);
   readonly #dialog = inject(MatDialog);
