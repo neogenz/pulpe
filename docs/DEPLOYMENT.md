@@ -20,6 +20,7 @@ git push origin main      # Déclenche CI/CD automatique
 - Compte Railway (backend)
 - Compte Vercel (frontend)
 - CLIs installées : `supabase`, `railway`, `vercel`
+- Domaine `pulpe.app` (optionnel, voir [Domaine personnalisé](#domaine-personnalisé-pulpeapp))
 
 ## ⚙️ Configuration Initiale
 
@@ -149,6 +150,63 @@ cd frontend
 node scripts/generate-config.js
 ```
 
+### Domaine personnalisé (pulpe.app)
+
+#### Achat du domaine
+
+Registrars recommandés :
+- **Cloudflare** (~$14/an) - Prix coûtant, DNS performant
+- **Infomaniak** (~CHF 18/an) - Suisse, support FR
+
+#### Configuration DNS
+
+Chez ton registrar, ajouter ces records :
+
+| Type | Name | Value |
+|------|------|-------|
+| A | @ | 76.76.21.21 |
+| CNAME | www | cname.vercel-dns.com |
+| CNAME | api | [SERVICE].up.railway.app |
+
+#### Vercel (Frontend)
+
+1. **Settings > Domains** → Ajouter `pulpe.app` et `www.pulpe.app`
+2. Vercel configure automatiquement le SSL
+
+#### Railway (Backend API)
+
+1. **Service > Settings > Networking > Custom Domain** → Ajouter `api.pulpe.app`
+2. Mettre à jour la variable Vercel :
+   ```
+   PUBLIC_BACKEND_API_URL=https://api.pulpe.app/api/v1
+   ```
+3. Mettre à jour CORS dans Railway :
+   ```
+   CORS_ORIGIN=https://pulpe.app
+   ```
+
+#### Supabase (Auth)
+
+**Dashboard > Authentication > URL Configuration** :
+- **Site URL** : `https://pulpe.app`
+- **Redirect URLs** (ajouter) :
+  - `https://pulpe.app/**`
+  - `https://www.pulpe.app/**`
+  - `https://*.vercel.app/**` (previews)
+
+#### Checklist domaine personnalisé
+
+- [ ] Domaine acheté
+- [ ] DNS configuré (A + CNAME)
+- [ ] Domaine ajouté dans Vercel
+- [ ] `api.pulpe.app` ajouté dans Railway
+- [ ] `PUBLIC_BACKEND_API_URL` mis à jour dans Vercel
+- [ ] `CORS_ORIGIN` mis à jour dans Railway
+- [ ] Supabase URL Configuration mis à jour
+- [ ] Propagation DNS (~5-30 min)
+- [ ] SSL actif (cadenas vert)
+- [ ] Test auth flow complet
+
 ## 📋 Processus de Release Complet
 
 ### 1. Pré-Release Checks
@@ -255,6 +313,7 @@ curl https://pulpe-backend.railway.app/api/v1/health
 - [ ] Supabase : projet créé + migrations appliquées
 - [ ] Railway : variables d'environnement configurées + backend déployé
 - [ ] Vercel : variables `PUBLIC_*` et PostHog configurées
+- [ ] Domaine personnalisé configuré (DNS, Vercel, Railway, Supabase)
 - [ ] Tests E2E passent sur staging
 - [ ] PostHog sourcemaps upload configuré
 - [ ] Monitoring alerts configurés

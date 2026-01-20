@@ -19,6 +19,7 @@
 
 ### ⚙️ Configuration (Setup & maintenance)
 - **[FRONTEND_CONFIG.md](./FRONTEND_CONFIG.md)** - Configuration Angular + variables E2E + tests
+- **[VERCEL_ROUTING.md](./VERCEL_ROUTING.md)** - Routing Vercel (landing React + Angular SPA)
 - **[MONITORING.md](./MONITORING.md)** - PostHog sourcemaps + error tracking complet
 - **[BACKEND_PRACTICES.md](./BACKEND_PRACTICES.md)** - Error handling + guidelines NestJS
 - **[IOS_VERSIONING.md](./IOS_VERSIONING.md)** - Versioning iOS selon standards Apple
@@ -32,6 +33,7 @@
 ### Infrastructure & Déploiement
 - **Railway ne démarre pas** → [TROUBLESHOOTING.md#railway](./TROUBLESHOOTING.md#railway)
 - **Vercel build fail** → [TROUBLESHOOTING.md#vercel](./TROUBLESHOOTING.md#vercel)
+- **Vercel routing (landing + Angular)** → [VERCEL_ROUTING.md](./VERCEL_ROUTING.md)
 - **Supabase migration** → [DEPLOYMENT.md#supabase](./DEPLOYMENT.md#supabase)
 
 ### Configuration Frontend
