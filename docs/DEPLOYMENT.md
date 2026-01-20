@@ -152,35 +152,30 @@ node scripts/generate-config.js
 
 ### Domaine personnalisé (pulpe.app)
 
-#### Achat du domaine
+#### Registrar
 
-Registrars recommandés :
-- **Cloudflare** (~$14/an) - Prix coûtant, DNS performant
-- **Infomaniak** (~CHF 18/an) - Suisse, support FR
+Domaine acheté chez **Infomaniak**.
 
-#### Configuration DNS
-
-Chez ton registrar, ajouter ces records :
+#### Configuration DNS (Infomaniak)
 
 | Type | Name | Value |
 |------|------|-------|
-| A | @ | 76.76.21.21 |
-| CNAME | www | cname.vercel-dns.com |
-| CNAME | api | [SERVICE].up.railway.app |
+| A | @ | `76.76.21.21` |
+| CNAME | www | `cname.vercel-dns.com` |
+| CNAME | api | `backend-production-e7df.up.railway.app` |
 
 #### Vercel (Frontend)
 
-1. **Settings > Domains** → Ajouter `pulpe.app` et `www.pulpe.app`
-2. Vercel configure automatiquement le SSL
-
-#### Railway (Backend API)
-
-1. **Service > Settings > Networking > Custom Domain** → Ajouter `api.pulpe.app`
-2. Mettre à jour la variable Vercel :
+1. **Settings > Domains** → `pulpe.app` et `www.pulpe.app` ajoutés
+2. **Variable Production** :
    ```
    PUBLIC_BACKEND_API_URL=https://api.pulpe.app/api/v1
    ```
-3. Mettre à jour CORS dans Railway :
+
+#### Railway (Backend API)
+
+1. **Settings > Networking > Custom Domain** → `api.pulpe.app` (port 8080)
+2. **Variable** :
    ```
    CORS_ORIGIN=https://pulpe.app
    ```
@@ -189,23 +184,42 @@ Chez ton registrar, ajouter ces records :
 
 **Dashboard > Authentication > URL Configuration** :
 - **Site URL** : `https://pulpe.app`
-- **Redirect URLs** (ajouter) :
+- **Redirect URLs** :
   - `https://pulpe.app/**`
   - `https://www.pulpe.app/**`
   - `https://*.vercel.app/**` (previews)
 
+#### Google OAuth (Cloud Console)
+
+**APIs & Services > Credentials > OAuth 2.0 Client IDs** :
+- **Authorized JavaScript origins** : `https://pulpe.app`
+- **Redirect URI** : `https://[PROJECT_ID].supabase.co/auth/v1/callback` (inchangé)
+
+#### Cloudflare Turnstile
+
+**Dashboard > Turnstile > Widget** :
+- Domaine ajouté : `pulpe.app`
+
+#### PostHog
+
+**Settings > Toolbar Authorized URLs** :
+- URL ajoutée : `https://pulpe.app`
+
 #### Checklist domaine personnalisé
 
-- [ ] Domaine acheté
-- [ ] DNS configuré (A + CNAME)
-- [ ] Domaine ajouté dans Vercel
-- [ ] `api.pulpe.app` ajouté dans Railway
-- [ ] `PUBLIC_BACKEND_API_URL` mis à jour dans Vercel
-- [ ] `CORS_ORIGIN` mis à jour dans Railway
-- [ ] Supabase URL Configuration mis à jour
-- [ ] Propagation DNS (~5-30 min)
-- [ ] SSL actif (cadenas vert)
+- [x] Domaine acheté (Infomaniak)
+- [x] DNS configuré (A + CNAME)
+- [x] Domaines ajoutés dans Vercel
+- [x] `api.pulpe.app` ajouté dans Railway
+- [x] `PUBLIC_BACKEND_API_URL` mis à jour dans Vercel
+- [x] `CORS_ORIGIN` mis à jour dans Railway
+- [x] Supabase URL Configuration mis à jour
+- [x] Google OAuth origins mis à jour
+- [x] Turnstile domaine ajouté
+- [x] PostHog toolbar URL ajoutée
 - [ ] Test auth flow complet
+
+> **Note** : Les environnements Preview (Vercel, Railway, Supabase) n'ont pas besoin de modification — ils utilisent leurs propres URLs auto-générées.
 
 ## 📋 Processus de Release Complet
 
