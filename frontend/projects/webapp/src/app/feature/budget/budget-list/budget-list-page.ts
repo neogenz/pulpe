@@ -19,7 +19,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 import { BudgetApi } from '@core/budget/budget-api';
 import { downloadAsJsonFile } from '@core/file-download';
-import { TitleDisplay } from '@core/routing';
+import { ROUTES, TitleDisplay } from '@core/routing';
 import { type CalendarMonth, YearCalendar } from '@ui/calendar';
 import { type CalendarYear } from '@ui/calendar/calendar-types';
 import { BaseLoading } from '@ui/loading';
@@ -259,7 +259,7 @@ export default class BudgetListPage {
 
   navigateToDetails(month: CalendarMonth): void {
     if (month.hasContent && month.id) {
-      this.#router.navigate(['/budget', month.id]);
+      this.#router.navigate(['/', ROUTES.BUDGET, month.id]);
     }
   }
 
@@ -359,7 +359,7 @@ export default class BudgetListPage {
       );
 
       if (result) {
-        this.#router.navigate(['/budget', result.budgetId]);
+        this.#router.navigate(['/', ROUTES.BUDGET, result.budgetId]);
       }
     } catch (error) {
       this.#logger.error('Error opening search dialog', error);

@@ -17,6 +17,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ActivatedRoute, Router } from '@angular/router';
+import { ROUTES } from '@core/routing';
 import { Logger } from '@core/logging/logger';
 import { PulpeTitleStrategy } from '@core/routing/title-strategy';
 import {
@@ -357,7 +358,7 @@ export default class TemplateDetail implements OnInit {
   }
 
   navigateBack() {
-    this.#router.navigate(['/budget-templates']);
+    this.#router.navigate(['/', ROUTES.BUDGET_TEMPLATES]);
   }
 
   editTemplate() {
