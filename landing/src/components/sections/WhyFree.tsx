@@ -58,8 +58,8 @@ export function WhyFree() {
             >
               Voir le code source
             </a>
-            <a href="/cgu" className="text-accent hover:underline">CGU</a>
-            <a href="/privacy" className="text-accent hover:underline">Confidentialité</a>
+            <a href="/legal/cgu" className="text-accent hover:underline">CGU</a>
+            <a href="/legal/confidentialite" className="text-accent hover:underline">Confidentialité</a>
           </div>
         </FadeIn>
       </div>

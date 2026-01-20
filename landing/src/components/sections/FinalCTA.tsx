@@ -11,12 +11,14 @@ export function FinalCTA() {
           <p className="text-white/80 mb-8">
             Essaie Pulpe gratuitement. Pas de carte bancaire, pas d'engagement.
           </p>
-          <Button
-            variant="secondary"
-            className="bg-white text-primary hover:bg-white/90"
-          >
-            Commencer maintenant
-          </Button>
+          <a href="/signup">
+            <Button
+              variant="secondary"
+              className="bg-white text-primary hover:bg-white/90"
+            >
+              Commencer maintenant
+            </Button>
+          </a>
         </FadeIn>
       </div>
     </section>

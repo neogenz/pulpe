@@ -1,8 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "turbo build --filter=pulpe-frontend && pnpm --filter=pulpe-frontend upload:sourcemaps",
-  "outputDirectory": "frontend/dist/webapp/browser",
-  "installCommand": "pnpm install --frozen-lockfile --filter=pulpe-frontend --filter=pulpe-shared --ignore-scripts",
+  "buildCommand": "turbo build --filter=pulpe-frontend && pnpm --filter=pulpe-frontend upload:sourcemaps && pnpm build:landing && pnpm build:merge",
+  "outputDirectory": "dist",
+  "installCommand": "pnpm install --frozen-lockfile --filter=pulpe-frontend --filter=pulpe-shared --filter=landing --ignore-scripts",
   "framework": "angular",
   "redirects": [
     {
@@ -38,8 +38,12 @@
   ],
   "rewrites": [
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "source": "/",
+      "destination": "/landing/index.html"
+    },
+    {
+      "source": "/:path*",
+      "destination": "/app/index.html"
     }
   ],
   "headers": [

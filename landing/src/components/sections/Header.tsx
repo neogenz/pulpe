@@ -136,9 +136,11 @@ export function Header() {
           </div>
 
           <div className="relative z-10 flex items-center gap-2">
-            <Button className="text-sm px-4 py-2 min-h-[40px] rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-shadow">
-              Essayer
-            </Button>
+            <a href="/welcome">
+              <Button className="text-sm px-4 py-2 min-h-[40px] rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-shadow">
+                Essayer
+              </Button>
+            </a>
 
             <button
               type="button"

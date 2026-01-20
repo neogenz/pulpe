@@ -19,10 +19,10 @@ export function Footer() {
             >
               Code source
             </a>
-            <a href="/cgu" className="hover:text-text transition-colors">
+            <a href="/legal/cgu" className="hover:text-text transition-colors">
               Conditions d'utilisation
             </a>
-            <a href="/privacy" className="hover:text-text transition-colors">
+            <a href="/legal/confidentialite" className="hover:text-text transition-colors">
               Politique de confidentialité
             </a>
             <a

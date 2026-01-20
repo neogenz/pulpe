@@ -26,9 +26,11 @@ export function Platforms() {
             <p className="text-text-secondary mb-6 flex-1">
               Utilise Pulpe directement dans ton navigateur, sur ordinateur ou téléphone. Aucune installation requise.
             </p>
-            <Button variant="secondary" className="w-full">
-              Ouvrir dans le navigateur
-            </Button>
+            <a href="/welcome">
+              <Button variant="secondary" className="w-full">
+                Ouvrir dans le navigateur
+              </Button>
+            </a>
           </div>
         </FadeIn>
 
