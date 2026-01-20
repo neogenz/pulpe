@@ -219,7 +219,7 @@ interface NavigationItem {
             color="primary"
             class="shrink-0"
             [class.rounded-t-xl]="!isHandset()"
-            [class.scrolled]="showToolbarShadow()"
+            [class.scrolled]="shouldShowToolbarShadow()"
           >
             @if (isHandset()) {
               <button
@@ -483,7 +483,7 @@ export default class MainLayout {
   // Scroll detection for toolbar shadow
   protected readonly isScrolled = signal(false);
 
-  protected readonly showToolbarShadow = computed(
+  protected readonly shouldShowToolbarShadow = computed(
     () =>
       this.isScrolled() &&
       (!this.isHandset() || this.breadcrumbState.breadcrumbs().length <= 1),
