@@ -14,13 +14,13 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import type { BudgetLine, Transaction } from 'pulpe-shared';
 import type { BudgetLineTableItem } from '../data-core';
-import { BudgetGridCard } from './budget-grid-card';
-import { BudgetGridMobileCard } from './budget-grid-mobile-card';
-import { BudgetGridSection } from './budget-grid-section';
 import {
   BudgetDetailPanel,
   type BudgetDetailPanelData,
 } from './budget-detail-panel';
+import { BudgetGridCard } from './budget-grid-card';
+import { BudgetGridMobileCard } from './budget-grid-mobile-card';
+import { BudgetGridSection } from './budget-grid-section';
 
 /**
  * Grid view component displaying budget lines as cards.
@@ -78,67 +78,26 @@ import {
         <ng-container *ngTemplateOutlet="emptyState" />
       } @else {
         <div class="space-y-4">
-          <!-- Income Section -->
-          @if (groupedBudgetLines().income.length > 0) {
-            <pulpe-budget-grid-section
-              title="Revenus"
-              icon="trending_up"
-              [itemCount]="groupedBudgetLines().income.length"
-            >
-              @for (item of groupedBudgetLines().income; track item.data.id) {
-                <pulpe-budget-grid-card
-                  [item]="item"
-                  (cardClick)="openDetailPanel($event)"
-                  (edit)="edit.emit($event)"
-                  (delete)="delete.emit($event)"
-                  (addTransaction)="addTransaction.emit($event)"
-                  (resetFromTemplate)="resetFromTemplate.emit($event)"
-                  (toggleCheck)="toggleCheck.emit($event)"
-                />
-              }
-            </pulpe-budget-grid-section>
-          }
-
-          <!-- Savings Section -->
-          @if (groupedBudgetLines().saving.length > 0) {
-            <pulpe-budget-grid-section
-              title="Épargne"
-              icon="savings"
-              [itemCount]="groupedBudgetLines().saving.length"
-            >
-              @for (item of groupedBudgetLines().saving; track item.data.id) {
-                <pulpe-budget-grid-card
-                  [item]="item"
-                  (cardClick)="openDetailPanel($event)"
-                  (edit)="edit.emit($event)"
-                  (delete)="delete.emit($event)"
-                  (addTransaction)="addTransaction.emit($event)"
-                  (resetFromTemplate)="resetFromTemplate.emit($event)"
-                  (toggleCheck)="toggleCheck.emit($event)"
-                />
-              }
-            </pulpe-budget-grid-section>
-          }
-
-          <!-- Expenses Section -->
-          @if (groupedBudgetLines().expense.length > 0) {
-            <pulpe-budget-grid-section
-              title="Dépenses"
-              icon="shopping_cart"
-              [itemCount]="groupedBudgetLines().expense.length"
-            >
-              @for (item of groupedBudgetLines().expense; track item.data.id) {
-                <pulpe-budget-grid-card
-                  [item]="item"
-                  (cardClick)="openDetailPanel($event)"
-                  (edit)="edit.emit($event)"
-                  (delete)="delete.emit($event)"
-                  (addTransaction)="addTransaction.emit($event)"
-                  (resetFromTemplate)="resetFromTemplate.emit($event)"
-                  (toggleCheck)="toggleCheck.emit($event)"
-                />
-              }
-            </pulpe-budget-grid-section>
+          @for (category of categories; track category.id) {
+            @if (category.hasItems) {
+              <pulpe-budget-grid-section
+                title="{{ category.name }}"
+                icon="{{ category.icon }}"
+                [itemCount]="category.items.length"
+              >
+                @for (item of category.items; track item.data.id) {
+                  <pulpe-budget-grid-card
+                    [item]="item"
+                    (cardClick)="openDetailPanel($event)"
+                    (edit)="edit.emit($event)"
+                    (delete)="delete.emit($event)"
+                    (addTransaction)="addTransaction.emit($event)"
+                    (resetFromTemplate)="resetFromTemplate.emit($event)"
+                    (toggleCheck)="toggleCheck.emit($event)"
+                  />
+                }
+              </pulpe-budget-grid-section>
+            }
           }
         </div>
       }
@@ -150,7 +109,7 @@ import {
         <div
           class="w-16 h-16 mx-auto mb-4 rounded-full bg-primary-container/30 flex items-center justify-center"
         >
-          <mat-icon class="text-primary !text-3xl"
+          <mat-icon class="text-primary text-3xl!"
             >account_balance_wallet</mat-icon
           >
         </div>
@@ -163,7 +122,7 @@ import {
         <button
           matButton="filled"
           (click)="add.emit()"
-          class="!rounded-full !px-6"
+          class="px-6"
           data-testid="add-first-line"
         >
           <mat-icon>add</mat-icon>
@@ -255,14 +214,24 @@ export class BudgetGrid {
   readonly toggleCheck = output<string>();
   readonly toggleTransactionCheck = output<string>();
 
-  // Desktop card grid: grouped budget lines by kind
-  protected readonly groupedBudgetLines = computed(() => {
+  protected readonly categories = computed(() => {
     const items = this.budgetLineItems();
-    return {
-      income: items.filter((item) => item.data.kind === 'income'),
-      saving: items.filter((item) => item.data.kind === 'saving'),
-      expense: items.filter((item) => item.data.kind === 'expense'),
+    const income = {
+      title: 'Revenus',
+      icon: 'trending_up',
+      items: items.filter((item) => item.data.kind === 'income'),
     };
+    const saving = {
+      title: 'Épargnes',
+      icon: 'savings',
+      items: items.filter((item) => item.data.kind === 'saving'),
+    };
+    const expense = {
+      title: 'Dépenses',
+      icon: 'shopping_cart',
+      items: items.filter((item) => item.data.kind === 'expense'),
+    };
+    return [income, saving, expense];
   });
 
   protected openDetailPanel(item: BudgetLineTableItem): void {

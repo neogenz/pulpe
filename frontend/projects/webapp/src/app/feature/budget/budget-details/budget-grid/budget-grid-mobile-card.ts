@@ -15,6 +15,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 import { RolloverFormatPipe } from '@app/ui/rollover-format';
 import { type BudgetLine } from 'pulpe-shared';
+import { FinancialKindDirective } from '@ui/financial-kind';
 import { RecurrenceLabelPipe } from '@ui/transaction-display';
 import type { BudgetLineTableItem } from '../data-core';
 import { BudgetProgressBar } from '../components/budget-progress-bar';
@@ -37,6 +38,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
     MatTooltipModule,
     RouterLink,
     CurrencyPipe,
+    FinancialKindDirective,
     RecurrenceLabelPipe,
     RolloverFormatPipe,
     BudgetProgressBar,
@@ -107,9 +109,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
           <div>
             <div
               class="text-headline-medium font-bold"
-              [class.text-financial-income]="item().data.kind === 'income'"
-              [class.text-financial-expense]="item().data.kind === 'expense'"
-              [class.text-financial-savings]="item().data.kind === 'saving'"
+              [pulpeFinancialKind]="item().data.kind"
             >
               {{ item().data.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
             </div>

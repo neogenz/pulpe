@@ -30,6 +30,7 @@ import {
   ConfirmationDialog,
   type ConfirmationDialogData,
 } from '@ui/dialogs/confirmation-dialog';
+import { FinancialKindDirective } from '@ui/financial-kind';
 import {
   RecurrenceLabelPipe,
   TransactionLabelPipe,
@@ -66,6 +67,7 @@ import type {
     RouterLink,
     CurrencyPipe,
     DatePipe,
+    FinancialKindDirective,
     TransactionLabelPipe,
     RecurrenceLabelPipe,
     RolloverFormatPipe,
@@ -109,11 +111,7 @@ import type {
                 } @else {
                   <mat-icon
                     class="text-base! shrink-0"
-                    [class.text-financial-income]="line.data.kind === 'income'"
-                    [class.text-financial-expense]="
-                      line.data.kind === 'expense'
-                    "
-                    [class.text-financial-savings]="line.data.kind === 'saving'"
+                    [pulpeFinancialKind]="line.data.kind"
                     [matTooltip]="line.data.kind | transactionLabel"
                     matTooltipPosition="above"
                   >
@@ -143,15 +141,7 @@ import type {
                     <div class="flex flex-col">
                       <span
                         class="ph-no-capture text-body-medium font-semibold flex items-center gap-1"
-                        [class.text-financial-income]="
-                          line.data.kind === 'income'
-                        "
-                        [class.text-financial-expense]="
-                          line.data.kind === 'expense'
-                        "
-                        [class.text-financial-savings]="
-                          line.data.kind === 'saving'
-                        "
+                        [pulpeFinancialKind]="line.data.kind"
                       >
                         {{ line.data.name | rolloverFormat }}
                         @if (line.metadata.isPropagationLocked) {
@@ -219,9 +209,7 @@ import type {
               <span
                 class="text-body-medium font-bold"
                 [class.italic]="line.metadata.isRollover"
-                [class.text-financial-income]="line.data.kind === 'income'"
-                [class.text-financial-expense]="line.data.kind === 'expense'"
-                [class.text-financial-savings]="line.data.kind === 'saving'"
+                [pulpeFinancialKind]="line.data.kind"
               >
                 {{ line.data.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
               </span>

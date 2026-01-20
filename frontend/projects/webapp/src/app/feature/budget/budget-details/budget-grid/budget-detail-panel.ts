@@ -17,6 +17,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { type BudgetLine, type Transaction } from 'pulpe-shared';
+import { FinancialKindDirective } from '@ui/financial-kind';
 import { TransactionLabelPipe } from '@ui/transaction-display';
 import type { BudgetLineTableItem } from '../data-core';
 import { BudgetProgressBar } from '../components/budget-progress-bar';
@@ -61,6 +62,7 @@ const DETAIL_SEGMENT_COUNT = 12;
     MatTooltipModule,
     CurrencyPipe,
     DatePipe,
+    FinancialKindDirective,
     TransactionLabelPipe,
     BudgetProgressBar,
     BudgetKindIndicator,
@@ -100,9 +102,7 @@ const DETAIL_SEGMENT_COUNT = 12;
             <div class="text-label-medium text-on-surface-variant">Prévu</div>
             <div
               class="text-title-medium font-bold"
-              [class.text-financial-income]="envelope.data.kind === 'income'"
-              [class.text-financial-expense]="envelope.data.kind === 'expense'"
-              [class.text-financial-savings]="envelope.data.kind === 'saving'"
+              [pulpeFinancialKind]="envelope.data.kind"
             >
               {{ envelope.data.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
             </div>

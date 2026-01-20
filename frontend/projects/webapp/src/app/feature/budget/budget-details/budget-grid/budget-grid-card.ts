@@ -8,6 +8,7 @@ import {
 import { MatChipsModule } from '@angular/material/chips';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { type BudgetLine } from 'pulpe-shared';
+import { FinancialKindDirective } from '@ui/financial-kind';
 import { RecurrenceLabelPipe } from '@ui/transaction-display';
 import type { BudgetLineTableItem } from '../data-core';
 import { BudgetProgressBar } from '../components/budget-progress-bar';
@@ -35,6 +36,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
     MatChipsModule,
     MatSlideToggleModule,
     CurrencyPipe,
+    FinancialKindDirective,
     RecurrenceLabelPipe,
     BudgetProgressBar,
     BudgetKindIndicator,
@@ -84,9 +86,7 @@ import { BudgetActionMenu } from '../components/budget-action-menu';
       <div class="text-center mb-4 flex-1 flex flex-col justify-center">
         <div
           class="text-headline-large font-bold"
-          [class.text-financial-income]="item().data.kind === 'income'"
-          [class.text-financial-expense]="item().data.kind === 'expense'"
-          [class.text-financial-savings]="item().data.kind === 'saving'"
+          [pulpeFinancialKind]="item().data.kind"
         >
           {{ item().data.amount | currency: 'CHF' : 'symbol' : '1.0-0' }}
         </div>
