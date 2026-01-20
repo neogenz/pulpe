@@ -42,6 +42,18 @@
       "destination": "/landing/index.html"
     },
     {
+      "source": "/screenshots/:path*",
+      "destination": "/landing/screenshots/:path*"
+    },
+    {
+      "source": "/icon.png",
+      "destination": "/landing/icon.png"
+    },
+    {
+      "source": "/icon-original.png",
+      "destination": "/landing/icon-original.png"
+    },
+    {
       "source": "/:path*",
       "destination": "/_app.html"
     }
