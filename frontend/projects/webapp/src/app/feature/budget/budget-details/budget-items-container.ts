@@ -17,6 +17,7 @@ import {
   calculateAllEnrichedConsumptions,
   type BudgetLineConsumption,
 } from '@core/budget';
+import { STORAGE_KEYS, StorageService } from '@core/storage';
 import { type BudgetLine, type BudgetLineUpdate } from 'pulpe-shared';
 import { map } from 'rxjs/operators';
 import { BudgetGrid } from './budget-grid';
@@ -30,8 +31,6 @@ import {
   type TransactionTableItem,
 } from './data-core';
 import { BudgetViewToggle } from './components';
-
-const VIEW_MODE_STORAGE_KEY = 'pulpe-budget-desktop-view';
 
 /**
  * Unified container component for displaying budget items.
@@ -125,6 +124,7 @@ const VIEW_MODE_STORAGE_KEY = 'pulpe-budget-desktop-view';
 export class BudgetItemsContainer {
   readonly #breakpointObserver = inject(BreakpointObserver);
   readonly #budgetItemDataProvider = inject(BudgetItemDataProvider);
+  readonly #storageService = inject(StorageService);
 
   // Signal inputs
   readonly budgetLines = input.required<BudgetLineViewModel[]>();
@@ -198,13 +198,15 @@ export class BudgetItemsContainer {
       const mode = this.viewMode();
       const mobile = this.isMobile();
       if (!mobile) {
-        localStorage.setItem(VIEW_MODE_STORAGE_KEY, mode);
+        this.#storageService.setString(STORAGE_KEYS.BUDGET_DESKTOP_VIEW, mode);
       }
     });
   }
 
   #getInitialViewMode(): BudgetViewMode {
-    const stored = localStorage.getItem(VIEW_MODE_STORAGE_KEY);
+    const stored = this.#storageService.getString(
+      STORAGE_KEYS.BUDGET_DESKTOP_VIEW,
+    );
     if (stored === 'table') {
       return 'table';
     }

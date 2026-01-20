@@ -78,10 +78,10 @@ import { BudgetGridSection } from './budget-grid-section';
         <ng-container *ngTemplateOutlet="emptyState" />
       } @else {
         <div class="space-y-4">
-          @for (category of categories; track category.id) {
-            @if (category.hasItems) {
+          @for (category of categories(); track category.title) {
+            @if (category.items.length > 0) {
               <pulpe-budget-grid-section
-                title="{{ category.name }}"
+                title="{{ category.title }}"
                 icon="{{ category.icon }}"
                 [itemCount]="category.items.length"
               >
