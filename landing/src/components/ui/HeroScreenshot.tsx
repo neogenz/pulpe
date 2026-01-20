@@ -29,6 +29,8 @@ export const HeroScreenshot = memo(function HeroScreenshot({
         src={screenshotSrc}
         desktopSrc={screenshotDesktopSrc}
         label={screenshotLabel}
+        isLCP
+        fetchPriority="high"
       />
     </motion.div>
   )

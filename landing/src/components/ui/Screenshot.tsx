@@ -6,9 +6,17 @@ interface ScreenshotProps {
   desktopSrc?: string
   label: string
   className?: string
+  /** Set to true for LCP image to disable lazy loading */
+  isLCP?: boolean
+  /** Fetch priority hint for the browser */
+  fetchPriority?: 'high' | 'low' | 'auto'
 }
 
 const DESKTOP_MEDIA_QUERY = '(min-width: 768px)'
+
+function toWebP(path: string): string {
+  return path.replace(/\.png$/, '.webp')
+}
 
 function subscribeToMediaQuery(callback: () => void) {
   const mediaQuery = window.matchMedia(DESKTOP_MEDIA_QUERY)
@@ -31,6 +39,8 @@ export const Screenshot = memo(function Screenshot({
   desktopSrc,
   label,
   className = '',
+  isLCP = false,
+  fetchPriority,
 }: ScreenshotProps) {
   const { openLightbox } = useImageLightbox()
   const isDesktop = useSyncExternalStore(
@@ -41,7 +51,7 @@ export const Screenshot = memo(function Screenshot({
 
   const handleClick = useCallback(() => {
     if (!src) return
-    const imageSrc = isDesktop && desktopSrc ? desktopSrc : src
+    const imageSrc = isDesktop && desktopSrc ? toWebP(desktopSrc) : toWebP(src)
     openLightbox(imageSrc, label)
   }, [src, desktopSrc, label, isDesktop, openLightbox])
 
@@ -54,13 +64,24 @@ export const Screenshot = memo(function Screenshot({
         aria-label={`Agrandir : ${label}`}
       >
         <picture>
+          {/* WebP sources (modern browsers) */}
+          {desktopSrc && (
+            <source
+              media="(min-width: 768px)"
+              srcSet={toWebP(desktopSrc)}
+              type="image/webp"
+            />
+          )}
+          <source srcSet={toWebP(src)} type="image/webp" />
+          {/* PNG fallback (older browsers) */}
           {desktopSrc && (
             <source media="(min-width: 768px)" srcSet={desktopSrc} />
           )}
           <img
             src={src}
             alt={label}
-            loading="lazy"
+            loading={isLCP ? 'eager' : 'lazy'}
+            fetchPriority={fetchPriority}
             className={`rounded-xl md:rounded-[var(--radius-large)] shadow-[var(--shadow-screenshot)] w-full ${className}`}
           />
         </picture>

@@ -16,6 +16,11 @@
     "defaultMode": "acceptEdits"
   },
   "enableAllProjectMcpServers": true,
-  "enabledMcpjsonServers": ["supabase", "vercel"],
-  "enabledPlugins": {}
+  "enabledMcpjsonServers": [
+    "supabase",
+    "vercel"
+  ],
+  "enabledPlugins": {
+    "figma@claude-plugins-official": false
+  }
 }
