@@ -1,4 +1,5 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
+import { NgClass } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -64,6 +65,7 @@ interface NavigationItem {
     RouterOutlet,
     PulpeBreadcrumb,
     MatProgressBarModule,
+    NgClass,
   ],
   template: `
     <mat-sidenav-container class="h-dvh bg-surface-container!">
@@ -169,6 +171,7 @@ interface NavigationItem {
         <div
           class="flex flex-col h-full bg-surface relative overflow-hidden min-w-0"
           [class.p-2]="!isHandset()"
+          [class.pt-0]="!isHandset() && !isDemoMode()"
           [class.rounded-xl]="!isHandset()"
         >
           @if (loadingIndicator.isLoading() || isNavigating()) {
@@ -217,9 +220,11 @@ interface NavigationItem {
           <!-- Top App Bar - Fixed Header -->
           <mat-toolbar
             color="primary"
+            [ngClass]="{
+              '-mx-2! w-auto!': !isHandset(),
+            }"
             class="shrink-0"
-            [class.rounded-t-xl]="!isHandset()"
-            [class.scrolled]="shouldShowToolbarShadow()"
+            [class.scrolled]="showToolbarShadow()"
           >
             @if (isHandset()) {
               <button
@@ -231,7 +236,7 @@ interface NavigationItem {
                 <mat-icon>menu</mat-icon>
               </button>
             }
-            @if (!isHandset() && breadcrumbState.breadcrumbs().length > 1) {
+            @if (!isHandset() && hasBreadcrumb()) {
               <div class="flex-1 min-w-0 overflow-x-auto scrollbar-hide">
                 <pulpe-breadcrumb [items]="breadcrumbState.breadcrumbs()" />
               </div>
@@ -317,7 +322,7 @@ interface NavigationItem {
           @if (isHandset() && breadcrumbState.breadcrumbs().length > 1) {
             <div class="breadcrumb-mobile" [class.scrolled]="isScrolled()">
               <pulpe-breadcrumb
-                class="px-4 py-3"
+                class="px-4 pb-3"
                 [items]="breadcrumbState.breadcrumbs()"
               />
             </div>
@@ -385,20 +390,15 @@ interface NavigationItem {
         z-index: 10;
       }
 
-      mat-toolbar.scrolled::after,
-      .breadcrumb-mobile.scrolled::after {
-        content: '';
-        position: absolute;
-        left: 0;
-        right: 0;
-        bottom: -8px;
-        height: 8px;
-        background: linear-gradient(
-          to bottom,
-          rgba(0, 0, 0, 0.08),
-          transparent
-        );
-        pointer-events: none;
+      mat-toolbar.scrolled,
+      .breadcrumb-mobile.scrolled {
+        box-shadow: var(--mat-sys-level2);
+
+        /* Coupe tout ce qui dépasse en HAUT (0), mais laisse passer le reste (-20px) */
+        /* Ordre : Top, Right, Bottom, Left */
+        clip-path: inset(0px -20px -20px -20px);
+
+        position: relative;
         z-index: 10;
       }
     `,
@@ -414,6 +414,9 @@ export default class MainLayout {
   readonly #demoModeService = inject(DemoModeService);
   readonly #demoInitializer = inject(DemoInitializerService);
   readonly breadcrumbState = inject(BreadcrumbState);
+  protected readonly hasBreadcrumb = computed(
+    () => this.breadcrumbState.breadcrumbs().length > 1,
+  );
   readonly #logger = inject(Logger);
   readonly #dialog = inject(MatDialog);
   protected readonly loadingIndicator = inject(LoadingIndicator);
@@ -483,11 +486,14 @@ export default class MainLayout {
   // Scroll detection for toolbar shadow
   protected readonly isScrolled = signal(false);
 
-  protected readonly shouldShowToolbarShadow = computed(
-    () =>
-      this.isScrolled() &&
-      (!this.isHandset() || this.breadcrumbState.breadcrumbs().length <= 1),
-  );
+  // Desktop: shadow on toolbar (breadcrumb inside)
+  // Mobile: shadow on toolbar only if no breadcrumb (otherwise breadcrumb has shadow)
+  protected readonly showToolbarShadow = computed(() => {
+    const isScrolled = this.isScrolled();
+    const isHandset = this.isHandset();
+    const hasBreadcrumb = this.hasBreadcrumb();
+    return isScrolled && (!isHandset || !hasBreadcrumb);
+  });
 
   protected onScroll(event: Event) {
     const target = event.target as HTMLElement;
