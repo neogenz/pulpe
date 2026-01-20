@@ -43,7 +43,7 @@
     },
     {
       "source": "/:path*",
-      "destination": "/index.html"
+      "destination": "/_app.html"
     }
   ],
   "headers": [
