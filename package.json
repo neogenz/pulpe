@@ -35,7 +35,7 @@
     "changeset": "changeset",
     "changeset:version": "changeset version && pnpm install",
     "build:landing": "cd landing && pnpm build",
-    "build:merge": "mkdir -p dist && cp -r landing/dist dist/landing && cp -r frontend/dist/webapp/browser dist/app"
+    "build:merge": "mkdir -p dist/landing && cp landing/dist/index.html dist/landing/ && cp -r landing/dist/assets dist/ && cp -r landing/dist/icon.png landing/dist/icon-original.png landing/dist/screenshots dist/ 2>/dev/null || true && cp -r frontend/dist/webapp/browser/* dist/"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.5",
