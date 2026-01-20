@@ -76,6 +76,7 @@ export interface BreadcrumbItemViewModel {
                 } @else {
                   <span
                     class="flex items-center gap-1 text-on-surface font-medium px-2"
+                    aria-current="page"
                   >
                     @if (item.icon) {
                       <mat-icon class="!text-base flex-shrink-0">{{
