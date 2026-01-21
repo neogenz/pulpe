@@ -1,7 +1,9 @@
-import type { MetadataRoute } from 'next'
+import type { MetadataRoute } from "next";
+
+export const dynamic = "force-static";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://pulpe.app'
+  const baseUrl = "https://pulpe.app";
 
   return [
     {
@@ -10,11 +12,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     {
       url: `${baseUrl}/legal/cgu`,
-      lastModified: new Date('2025-01-01'),
+      lastModified: new Date("2025-01-01"),
     },
     {
       url: `${baseUrl}/legal/confidentialite`,
-      lastModified: new Date('2025-01-01'),
+      lastModified: new Date("2025-01-01"),
     },
-  ]
+  ];
 }
