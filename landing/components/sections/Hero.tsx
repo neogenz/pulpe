@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { motion, useReducedMotion } from 'framer-motion'
+import { m, useReducedMotion } from 'framer-motion'
 import type { Variants } from 'framer-motion'
 import {
   Check,
@@ -61,7 +61,7 @@ export function Hero() {
         {/* Floating cards - organic gravitational arrangement around screenshot (right side only) */}
 
         {/* Top-left edge of screenshot zone */}
-        <motion.div
+        <m.div
           className="absolute top-8 right-[35%] hidden lg:block z-20"
           variants={floatingVariants}
           initial="hidden"
@@ -72,10 +72,10 @@ export function Hero() {
             <ShoppingBag className="w-4 h-4 text-primary" />
             <span>Courses</span>
           </FloatingCard>
-        </motion.div>
+        </m.div>
 
         {/* Top center-right, floating above */}
-        <motion.div
+        <m.div
           className="absolute -top-2 right-[20%] hidden lg:block z-20"
           variants={floatingVariants}
           initial="hidden"
@@ -86,10 +86,10 @@ export function Hero() {
             <TrendingUp className="w-3.5 h-3.5" />
             <span>+12%</span>
           </FloatingCard>
-        </motion.div>
+        </m.div>
 
         {/* Top-right corner */}
-        <motion.div
+        <m.div
           className="absolute top-4 -right-2 hidden lg:block z-20"
           variants={floatingVariants}
           initial="hidden"
@@ -105,10 +105,10 @@ export function Hero() {
               </div>
             </div>
           </FloatingCard>
-        </motion.div>
+        </m.div>
 
         {/* Left edge of screenshot, safe from text */}
-        <motion.div
+        <m.div
           className="absolute top-[30%] right-[38%] hidden lg:block z-20"
           variants={floatingVariants}
           initial="hidden"
@@ -128,10 +128,10 @@ export function Hero() {
               </div>
             </div>
           </FloatingCard>
-        </motion.div>
+        </m.div>
 
         {/* Right side, mid-height */}
-        <motion.div
+        <m.div
           className="absolute top-[48%] right-[-5%] hidden lg:block z-20"
           variants={floatingVariants}
           initial="hidden"
@@ -142,10 +142,10 @@ export function Hero() {
             <Gamepad2 className="w-4 h-4 text-primary" />
             <span>Loisirs</span>
           </FloatingCard>
-        </motion.div>
+        </m.div>
 
         {/* Bottom-left of screenshot zone */}
-        <motion.div
+        <m.div
           className="absolute bottom-14 right-[38%] hidden lg:block z-20"
           variants={floatingVariants}
           initial="hidden"
@@ -156,10 +156,10 @@ export function Hero() {
             <PiggyBank className="w-4 h-4 text-primary" />
             <span>Épargne</span>
           </FloatingCard>
-        </motion.div>
+        </m.div>
 
         {/* Bottom center-right */}
-        <motion.div
+        <m.div
           className="absolute bottom-0 right-[24%] hidden lg:block z-20"
           variants={floatingVariants}
           initial="hidden"
@@ -170,10 +170,10 @@ export function Hero() {
             <Check className="w-3.5 h-3.5" />
             <span>À jour</span>
           </FloatingCard>
-        </motion.div>
+        </m.div>
 
         {/* Bottom-right, drifting */}
-        <motion.div
+        <m.div
           className="absolute bottom-12 right-[-4%] hidden lg:block z-20"
           variants={floatingVariants}
           initial="hidden"
@@ -189,7 +189,7 @@ export function Hero() {
               <div className="text-xs text-text-secondary">Il y a 2 min</div>
             </div>
           </FloatingCard>
-        </motion.div>
+        </m.div>
 
         {/* Main content grid */}
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">

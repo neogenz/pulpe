@@ -1,7 +1,7 @@
 'use client'
 
 import { memo, useMemo } from 'react'
-import { motion, useReducedMotion } from 'framer-motion'
+import { m, useReducedMotion } from 'framer-motion'
 import type { ReactNode } from 'react'
 
 interface FadeInProps {
@@ -40,19 +40,19 @@ export const FadeIn = memo(function FadeIn({
 
   if (animateOnMount) {
     return (
-      <motion.div
+      <m.div
         initial={initial}
         animate={animateTo}
         transition={transition}
         className={className}
       >
         {children}
-      </motion.div>
+      </m.div>
     )
   }
 
   return (
-    <motion.div
+    <m.div
       initial={initial}
       whileInView={animateTo}
       viewport={VIEWPORT_CONFIG}
@@ -60,6 +60,6 @@ export const FadeIn = memo(function FadeIn({
       className={className}
     >
       {children}
-    </motion.div>
+    </m.div>
   )
 })

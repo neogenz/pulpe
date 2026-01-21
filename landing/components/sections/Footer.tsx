@@ -7,7 +7,7 @@ export function Footer() {
       <Container>
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2 font-bold text-xl text-text">
-            <img src="/icon.png" alt="" aria-hidden="true" className="h-8 w-auto" />
+            <img src="/icon-64.webp" alt="" aria-hidden="true" width={32} height={32} className="h-8 w-auto" />
             <span>Pulpe</span>
           </div>
 

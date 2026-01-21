@@ -55,8 +55,10 @@ export function Platforms() {
               className="block"
             >
               <img
-                src="https://toolbox.marketingtools.apple.com/api/badges/download-on-the-app-store/black/fr-fr?size=250x83"
+                src="/app-store-badge.svg"
                 alt="Télécharger sur l'App Store"
+                width={120}
+                height={40}
                 className="h-12 mx-auto"
               />
             </a>

@@ -12,6 +12,10 @@ interface ScreenshotProps {
   isLCP?: boolean
   /** Fetch priority hint for the browser */
   fetchPriority?: 'high' | 'low' | 'auto'
+  /** Intrinsic width for the mobile image (default: 1548) */
+  width?: number
+  /** Intrinsic height for the mobile image (default: 2456) */
+  height?: number
 }
 
 const DESKTOP_MEDIA_QUERY = '(min-width: 768px)'
@@ -43,6 +47,8 @@ export const Screenshot = memo(function Screenshot({
   className = '',
   isLCP = false,
   fetchPriority,
+  width = 1548,
+  height = 2456,
 }: ScreenshotProps) {
   const { openLightbox } = useImageLightbox()
   const isDesktop = useSyncExternalStore(
@@ -82,6 +88,8 @@ export const Screenshot = memo(function Screenshot({
           <img
             src={src}
             alt={label}
+            width={width}
+            height={height}
             loading={isLCP ? 'eager' : 'lazy'}
             fetchPriority={fetchPriority}
             className={`rounded-xl md:rounded-[var(--radius-large)] shadow-[var(--shadow-screenshot)] w-full ${className}`}

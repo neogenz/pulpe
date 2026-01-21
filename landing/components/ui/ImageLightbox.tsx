@@ -1,7 +1,7 @@
 'use client'
 
 import { memo, useEffect, useRef, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
 
 interface ImageLightboxProps {
@@ -58,7 +58,7 @@ export const ImageLightbox = memo(function ImageLightbox({
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div
+        <m.div
           initial={OVERLAY_INITIAL}
           animate={OVERLAY_ANIMATE}
           exit={OVERLAY_INITIAL}
@@ -78,7 +78,7 @@ export const ImageLightbox = memo(function ImageLightbox({
             <X className="w-8 h-8" />
           </button>
 
-          <motion.img
+          <m.img
             initial={IMAGE_INITIAL}
             animate={IMAGE_ANIMATE}
             exit={IMAGE_INITIAL}
@@ -88,7 +88,7 @@ export const ImageLightbox = memo(function ImageLightbox({
             className="max-w-[95vw] max-h-[95vh] object-contain rounded-lg"
             onClick={handleImageClick}
           />
-        </motion.div>
+        </m.div>
       )}
     </AnimatePresence>
   )

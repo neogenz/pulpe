@@ -1,7 +1,7 @@
 'use client'
 
 import { memo, useMemo } from 'react'
-import { motion, useReducedMotion } from 'framer-motion'
+import { m, useReducedMotion } from 'framer-motion'
 import { Screenshot } from './Screenshot'
 
 interface HeroScreenshotProps {
@@ -26,7 +26,7 @@ export const HeroScreenshot = memo(function HeroScreenshot({
   )
 
   return (
-    <motion.div initial={initial} animate={ANIMATE_TO} transition={TRANSITION}>
+    <m.div initial={initial} animate={ANIMATE_TO} transition={TRANSITION}>
       <Screenshot
         src={screenshotSrc}
         desktopSrc={screenshotDesktopSrc}
@@ -34,6 +34,6 @@ export const HeroScreenshot = memo(function HeroScreenshot({
         isLCP
         fetchPriority="high"
       />
-    </motion.div>
+    </m.div>
   )
 })

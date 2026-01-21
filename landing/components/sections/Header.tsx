@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { m, AnimatePresence } from 'framer-motion'
 import { Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui'
 import { ANGULAR_APP_URL } from '@/lib/config'
@@ -72,7 +72,7 @@ export function Header() {
       </svg>
 
       <header className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-4xl">
-        <motion.nav
+        <m.nav
           initial={false}
           animate={{
             scale: scrolled ? 0.98 : 1,
@@ -122,7 +122,7 @@ export function Header() {
 
           {/* Content */}
           <a href="#" className="relative z-10 flex items-center gap-2 font-bold text-lg text-text">
-            <img src="/icon.png" alt="" aria-hidden="true" className="h-7 w-auto" />
+            <img src="/icon-64.webp" alt="" aria-hidden="true" width={28} height={28} className="h-7 w-auto" />
             <span>Pulpe</span>
           </a>
 
@@ -155,12 +155,12 @@ export function Header() {
               {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
-        </motion.nav>
+        </m.nav>
 
         {/* Mobile Menu - Liquid Glass */}
         <AnimatePresence>
           {mobileMenuOpen && (
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: -10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -217,7 +217,7 @@ export function Header() {
                   </a>
                 ))}
               </div>
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
       </header>
