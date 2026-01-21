@@ -149,53 +149,55 @@ Middleware Edge (Vercel)
 
 - **Pas de "blink"** : La redirection HTTP 307 se fait avant que le HTML soit envoyé au navigateur
 - **Edge-level** : S'exécute sur le réseau Vercel (rapide, géographiquement distribué)
-- **Sécurisé** : Utilise `getUser()` pour vérifier la session côté serveur (pas juste le JWT local)
+- **Edge-compatible** : Parse directement les cookies Supabase (pas de dépendance Node.js)
 
 ### Configuration requise
 
-Variables d'environnement dans Vercel Dashboard :
+Variable d'environnement dans Vercel Dashboard :
 
 ```
 PUBLIC_SUPABASE_URL=https://[PROJECT_REF].supabase.co
-PUBLIC_SUPABASE_ANON_KEY=[ANON_KEY]
 ```
 
-Ces variables sont déjà configurées pour le frontend Angular et sont réutilisées par le middleware.
+Cette variable est déjà configurée pour le frontend Angular et réutilisée par le middleware.
 
 ### Code (`middleware.ts`)
 
 ```typescript
-import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-export async function middleware(request: NextRequest) {
-  const response = NextResponse.next({ request: { headers: request.headers } });
+export function middleware(request: NextRequest) {
+  const supabaseUrl = process.env.PUBLIC_SUPABASE_URL;
+  if (!supabaseUrl) return NextResponse.next();
 
-  const supabase = createServerClient(
-    process.env.PUBLIC_SUPABASE_URL!,
-    process.env.PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => request.cookies.getAll(),
-        setAll: (cookiesToSet) =>
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          ),
-      },
-    }
-  );
+  // Extract project ref from Supabase URL
+  const projectRef = supabaseUrl.match(/https:\/\/([^.]+)\.supabase/)?.[1];
+  if (!projectRef) return NextResponse.next();
 
-  const { data: { user } } = await supabase.auth.getUser();
+  // Supabase auth cookie: "sb-<project-ref>-auth-token"
+  const authCookie = request.cookies.get(`sb-${projectRef}-auth-token`);
+  if (!authCookie?.value) return NextResponse.next();
 
-  if (user) {
-    return NextResponse.redirect(new URL('/dashboard', request.url), { status: 307 });
+  let session: { access_token?: string; expires_at?: number } | null = null;
+  try {
+    session = JSON.parse(authCookie.value);
+  } catch {
+    return NextResponse.next();
   }
 
-  return response;
+  if (!session?.access_token) return NextResponse.next();
+
+  // Check expiration (60s buffer)
+  const now = Math.floor(Date.now() / 1000);
+  if (session.expires_at && session.expires_at < now + 60) {
+    return NextResponse.next(); // Let Angular handle refresh
+  }
+
+  return NextResponse.redirect(new URL('/dashboard', request.url), { status: 307 });
 }
 
 export const config = {
-  matcher: ['/'], // Uniquement la page d'accueil
+  matcher: ['/'],
 };
 ```
 
