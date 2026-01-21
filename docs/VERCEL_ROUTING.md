@@ -24,9 +24,10 @@ pulpe.app/
 
 ```bash
 # vercel.json > buildCommand
-turbo build --filter=pulpe-frontend    # → frontend/dist/webapp/browser/
-pnpm build:landing                      # → landing/dist/
-pnpm build:merge                        # → dist/ (merge final)
+turbo build --filter=pulpe-frontend           # → frontend/dist/webapp/browser/
+pnpm --filter=pulpe-frontend upload:sourcemaps  # Upload sourcemaps to observability
+pnpm build:landing                            # → landing/dist/
+pnpm build:merge                              # → dist/ (merge final)
 ```
 
 **Script `build:merge` :**
@@ -50,6 +51,16 @@ dist/
 └── styles-*.css
 ```
 
+**Installation sélective :**
+
+Pour optimiser le temps de build, Vercel installe uniquement les packages nécessaires :
+
+```json
+"installCommand": "pnpm install --frozen-lockfile --filter=pulpe-frontend --filter=pulpe-shared --filter=pulpe-landing --ignore-scripts"
+```
+
+Cette commande évite d'installer les dépendances du backend (non nécessaires pour le déploiement frontend).
+
 ## Configuration Vercel
 
 ### Rewrites
@@ -62,6 +73,7 @@ Les rewrites routent les requêtes sans changer l'URL visible.
   { "source": "/screenshots/:path*", "destination": "/landing/screenshots/:path*" },
   { "source": "/icon.png", "destination": "/landing/icon.png" },
   { "source": "/icon-original.png", "destination": "/landing/icon-original.png" },
+  { "source": "/landing/_next/:path*", "destination": "/landing/_next/:path*" },
   { "source": "/:path*", "destination": "/_app.html" }
 ]
 ```
@@ -73,7 +85,8 @@ Les rewrites routent les requêtes sans changer l'URL visible.
 | 1 | `/` | Landing page |
 | 2 | `/screenshots/webapp/dashboard.png` | Image landing |
 | 3-4 | `/icon.png` | Icône landing |
-| 5 | `/welcome`, `/dashboard`, etc. | Angular SPA |
+| 5 | `/landing/_next/...` | Assets Next.js landing |
+| 6 | `/welcome`, `/dashboard`, etc. | Angular SPA |
 
 ### Redirects
 
@@ -83,6 +96,9 @@ Redirections permanentes (301) pour les anciennes URLs.
 "redirects": [
   { "source": "/app/current-month", "destination": "/dashboard", "permanent": true },
   { "source": "/app/budget/:path*", "destination": "/budget/:path*", "permanent": true },
+  { "source": "/app/budget-templates/:path*", "destination": "/budget-templates/:path*", "permanent": true },
+  { "source": "/app/settings/:path*", "destination": "/settings/:path*", "permanent": true },
+  { "source": "/app/complete-profile", "destination": "/complete-profile", "permanent": true },
   { "source": "/app", "destination": "/dashboard", "permanent": true }
 ]
 ```
