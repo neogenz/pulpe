@@ -1,6 +1,6 @@
 # Backend and mobile (not deployed on Vercel)
 backend-nest/
-mobile/
+/mobile/
 
 # Development and test files
 **/*.spec.ts
