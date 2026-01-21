@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Poppins } from 'next/font/google'
 import { PreloadLCPImage } from '@/components/ui'
+import { AuthRedirectWrapper } from '@/components/AuthRedirectWrapper'
 import './globals.css'
 
 const poppins = Poppins({
@@ -52,12 +53,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="fr" className={poppins.variable}>
       <body className="font-sans antialiased">
-        <PreloadLCPImage
-          mobileSrc="/screenshots/mobile/dashboard.webp"
-          desktopSrc="/screenshots/webapp/dashboard.webp"
-        />
-        {children}
-        <div id="lightbox-root" />
+        <AuthRedirectWrapper>
+          <PreloadLCPImage
+            mobileSrc="/screenshots/mobile/dashboard.webp"
+            desktopSrc="/screenshots/webapp/dashboard.webp"
+          />
+          {children}
+          <div id="lightbox-root" />
+        </AuthRedirectWrapper>
       </body>
     </html>
   )

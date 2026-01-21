@@ -124,9 +124,9 @@ Redirections permanentes (301) pour les anciennes URLs.
 ]
 ```
 
-## Middleware (Auth Redirect)
+## Auth Redirect (Client-Side)
 
-Un Edge Middleware (`middleware.ts` à la racine du projet) intercepte les requêtes sur `/` pour rediriger automatiquement les utilisateurs connectés vers `/dashboard`.
+La landing page Next.js utilise un wrapper client-side pour rediriger automatiquement les utilisateurs connectés vers `/dashboard`.
 
 ### Fonctionnement
 
@@ -134,81 +134,73 @@ Un Edge Middleware (`middleware.ts` à la racine du projet) intercepte les requ�
 GET /
   │
   ▼
-Middleware Edge (Vercel)
+Vercel → Landing Page HTML
+  │
+  ▼
+AuthRedirectWrapper (client)
   │
   ├─ Lecture cookies Supabase
   │
   ├─ Si authentifié:
-  │     └─ HTTP 307 → /dashboard (pas de HTML envoyé)
+  │     └─ window.location.replace('/dashboard')
   │
   └─ Si non authentifié:
-        └─ Continuer → Landing page
+        └─ Afficher la landing page
 ```
 
-### Avantages
+### Pourquoi client-side ?
 
-- **Pas de "blink"** : La redirection HTTP 307 se fait avant que le HTML soit envoyé au navigateur
-- **Edge-level** : S'exécute sur le réseau Vercel (rapide, géographiquement distribué)
-- **Edge-compatible** : Parse directement les cookies Supabase (pas de dépendance Node.js)
+La landing utilise `output: 'export'` (static HTML) dans Next.js, ce qui est incompatible avec Edge Middleware (qui nécessite un runtime serveur). La solution client-side :
+
+- **Fonctionne avec le static export** : Pas de runtime serveur requis
+- **Loading state** : Affiche un spinner pendant la vérification (évite le flash de contenu)
+- **Même logique** : Parse les cookies Supabase côté client
 
 ### Configuration requise
 
 Variable d'environnement dans Vercel Dashboard :
 
 ```
-PUBLIC_SUPABASE_URL=https://[PROJECT_REF].supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://[PROJECT_REF].supabase.co
 ```
 
-Cette variable est déjà configurée pour le frontend Angular et réutilisée par le middleware.
+Cette variable doit avoir la même valeur que `PUBLIC_SUPABASE_URL` du frontend Angular.
 
-### Code (`middleware.ts`)
+### Architecture
+
+```
+landing/
+├── lib/auth.ts                      # Lecture cookies Supabase
+├── components/AuthRedirectWrapper.tsx  # Wrapper avec loading state
+└── app/layout.tsx                   # Intègre le wrapper
+```
+
+### Code (`AuthRedirectWrapper.tsx`)
 
 ```typescript
-import { NextResponse, type NextRequest } from 'next/server';
+'use client'
 
-export function middleware(request: NextRequest) {
-  const supabaseUrl = process.env.PUBLIC_SUPABASE_URL;
-  if (!supabaseUrl) return NextResponse.next();
+import { useEffect, useState } from 'react'
+import { isAuthenticated } from '@/lib/auth'
 
-  // Extract project ref from Supabase URL
-  const projectRef = supabaseUrl.match(/https:\/\/([^.]+)\.supabase/)?.[1];
-  if (!projectRef) return NextResponse.next();
+export function AuthRedirectWrapper({ children }) {
+  const [isChecking, setIsChecking] = useState(true)
 
-  // Supabase auth cookie: "sb-<project-ref>-auth-token"
-  const authCookie = request.cookies.get(`sb-${projectRef}-auth-token`);
-  if (!authCookie?.value) return NextResponse.next();
+  useEffect(() => {
+    if (isAuthenticated()) {
+      window.location.replace('/dashboard')
+    } else {
+      setIsChecking(false)
+    }
+  }, [])
 
-  let session: { access_token?: string; expires_at?: number } | null = null;
-  try {
-    session = JSON.parse(authCookie.value);
-  } catch {
-    return NextResponse.next();
+  if (isChecking) {
+    return <LoadingSpinner />
   }
 
-  if (!session?.access_token) return NextResponse.next();
-
-  // Check expiration (60s buffer)
-  const now = Math.floor(Date.now() / 1000);
-  if (session.expires_at && session.expires_at < now + 60) {
-    return NextResponse.next(); // Let Angular handle refresh
-  }
-
-  return NextResponse.redirect(new URL('/dashboard', request.url), { status: 307 });
+  return children
 }
-
-export const config = {
-  matcher: ['/'],
-};
 ```
-
-### Ordre d'exécution Vercel
-
-1. **Middleware** (si matcher correspond)
-2. **Redirects** (`vercel.json`)
-3. **Rewrites** (`vercel.json`)
-4. **Fichiers statiques** (si existants)
-
-Le middleware s'exécute en premier, ce qui permet de rediriger avant que les rewrites ne renvoient vers la landing page.
 
 ## Vite Base Path
 
