@@ -46,7 +46,6 @@
   },
   "dependencies": {
     "driver.js": "^1.4.0",
-    "next": "^15.3.4",
     "turbo": "^2.5.4"
   }
 }

@@ -1,56 +1,49 @@
-import { NextResponse, type NextRequest } from 'next/server';
+export const config = {
+  matcher: ['/'],
+};
 
 /**
  * Vercel Edge Middleware - Auth Redirect
  *
- * Checks Supabase auth cookies and redirects authenticated users
- * from landing page to dashboard before any HTML is sent.
- *
- * Uses direct cookie parsing (Edge-compatible) instead of @supabase/ssr.
+ * Uses Web Standard APIs only (no Next.js dependency).
+ * Checks Supabase auth cookie and redirects authenticated users to dashboard.
  */
-export function middleware(request: NextRequest) {
+export default function middleware(request: Request): Response | undefined {
   const supabaseUrl = process.env.PUBLIC_SUPABASE_URL;
   if (!supabaseUrl) {
-    return NextResponse.next();
+    return undefined;
   }
 
-  // Extract project ref from Supabase URL (e.g., "abc123" from "https://abc123.supabase.co")
   const projectRef = supabaseUrl.match(/https:\/\/([^.]+)\.supabase/)?.[1];
   if (!projectRef) {
-    return NextResponse.next();
+    return undefined;
   }
 
-  // Supabase stores auth in cookie named "sb-<project-ref>-auth-token"
+  const cookieHeader = request.headers.get('cookie') || '';
   const authCookieName = `sb-${projectRef}-auth-token`;
-  const authCookie = request.cookies.get(authCookieName);
+  const cookieMatch = cookieHeader.match(new RegExp(`${authCookieName}=([^;]+)`));
 
-  if (!authCookie?.value) {
-    return NextResponse.next();
+  if (!cookieMatch) {
+    return undefined;
   }
 
-  // Parse the auth cookie JSON
   let session: { access_token?: string; expires_at?: number } | null = null;
   try {
-    session = JSON.parse(authCookie.value);
+    session = JSON.parse(decodeURIComponent(cookieMatch[1]));
   } catch {
-    return NextResponse.next();
+    return undefined;
   }
 
   if (!session?.access_token) {
-    return NextResponse.next();
+    return undefined;
   }
 
-  // Check if token is expired (with 60s buffer)
   const now = Math.floor(Date.now() / 1000);
   if (session.expires_at && session.expires_at < now + 60) {
-    // Token expired, let Angular handle refresh
-    return NextResponse.next();
+    return undefined;
   }
 
-  // User has valid session - redirect to dashboard
-  return NextResponse.redirect(new URL('/dashboard', request.url), { status: 307 });
+  const url = new URL(request.url);
+  url.pathname = '/dashboard';
+  return Response.redirect(url.toString(), 307);
 }
-
-export const config = {
-  matcher: ['/'],
-};
