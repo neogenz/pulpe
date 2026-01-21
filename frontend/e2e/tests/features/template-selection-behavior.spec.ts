@@ -77,7 +77,7 @@ test.describe('Template Selection', () => {
     });
 
     // Navigate to budget-related page (use current month as it's more reliable)
-    await authenticatedPage.goto('/app/current-month');
+    await authenticatedPage.goto('/dashboard');
     await authenticatedPage.waitForLoadState('domcontentloaded');
     
     // Wait for page content to be ready
@@ -124,7 +124,7 @@ test.describe('Template Selection', () => {
         const hasDialog = await authenticatedPage.locator('mat-dialog-container, mat-bottom-sheet-container, .cdk-overlay-pane').count() > 0;
         const hasForm = await authenticatedPage.locator('form, .form-container, [data-testid*="form"]').count() > 0;
         const hasTemplateContent = await authenticatedPage.locator('text=/template|modèle/i').count() > 0;
-        const navigationChanged = !authenticatedPage.url().includes('/current-month');
+        const navigationChanged = !authenticatedPage.url().includes('/dashboard');
         
         const hasTemplateWorkflow = hasDialog || hasForm || hasTemplateContent || navigationChanged;
         expect(hasTemplateWorkflow).toBeTruthy();

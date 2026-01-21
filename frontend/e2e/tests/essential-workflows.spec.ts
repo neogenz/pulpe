@@ -7,7 +7,7 @@ test.describe('Essential Workflows', () => {
     await currentMonthPage.expectPageLoaded();
     
     // Navigate to templates
-    await authenticatedPage.goto('/app/budget-templates');
+    await authenticatedPage.goto('/budget-templates');
     await expect(authenticatedPage.locator('body')).toBeVisible();
     
     // Navigate back to current month
@@ -24,11 +24,11 @@ test.describe('Essential Workflows', () => {
   test('User can view current month', async ({ authenticatedPage, currentMonthPage }) => {
     await currentMonthPage.goto();
     await currentMonthPage.expectPageLoaded();
-    expect(authenticatedPage.url()).toContain('/current-month');
+    expect(authenticatedPage.url()).toContain('/dashboard');
   });
 
   test('User can logout', async ({ authenticatedPage, mainLayoutPage }) => {
-    await authenticatedPage.goto('/app/current-month');
+    await authenticatedPage.goto('/dashboard');
     await mainLayoutPage.performLogout();
     await mainLayoutPage.expectLogoutSuccess();
   });

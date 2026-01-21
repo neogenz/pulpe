@@ -12,7 +12,7 @@ export class LoginPage {
     await this.page.getByTestId('email-input').fill(email);
     await this.page.getByTestId('password-input').fill(password);
     await this.page.getByTestId('login-submit-button').click();
-    await this.page.waitForURL(/\/app/, { timeout: 10000 });
+    await this.page.waitForURL(/\/(dashboard|budget)/, { timeout: 10000 });
   }
 
   async fillEmail(email: string) {

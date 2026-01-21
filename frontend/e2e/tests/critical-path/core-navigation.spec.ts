@@ -13,7 +13,7 @@ test.describe('Core Application Navigation (Unauthenticated)', () => {
   });
 
   test('should redirect unauthenticated users to welcome page', async ({ page }) => {
-    await page.goto('/app/current-month');
+    await page.goto('/dashboard');
     await expect(page).toHaveURL(/.*welcome.*/);
   });
 });
@@ -21,7 +21,7 @@ test.describe('Core Application Navigation (Unauthenticated)', () => {
 test.describe('Core Application Navigation (Authenticated)', () => {
   test('should allow access to current month page', async ({ authenticatedPage, currentMonthPage }) => {
     await currentMonthPage.goto();
-    await expect(authenticatedPage).toHaveURL(/\/current-month/);
+    await expect(authenticatedPage).toHaveURL(/\/dashboard/);
   });
 
   test('should allow access to budget templates', async ({ authenticatedPage, budgetTemplatesPage }) => {
@@ -30,7 +30,7 @@ test.describe('Core Application Navigation (Authenticated)', () => {
   });
 
   test('should show user menu and allow logout', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto('/app/current-month');
+    await authenticatedPage.goto('/dashboard');
     await expect(authenticatedPage.getByTestId('user-menu-trigger')).toBeVisible();
     
     await authenticatedPage.getByTestId('user-menu-trigger').click();

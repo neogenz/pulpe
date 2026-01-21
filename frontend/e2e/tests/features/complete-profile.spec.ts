@@ -84,10 +84,10 @@ base.describe('Complete Profile Flow', () => {
       setLocalStorage: true,
     });
 
-    await page.goto('/app/complete-profile');
+    await page.goto('/complete-profile');
     await page.waitForLoadState('domcontentloaded');
 
-    await expect(page).toHaveURL(/\/app\/current-month/, { timeout: 10000 });
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
   });
 
   base('should display complete profile form for first-time user', async ({ page }) => {
@@ -122,10 +122,10 @@ base.describe('Complete Profile Flow', () => {
       setLocalStorage: true,
     });
 
-    await page.goto('/app/complete-profile');
+    await page.goto('/complete-profile');
     await page.waitForLoadState('domcontentloaded');
 
-    await expect(page).toHaveURL(/\/app\/complete-profile/);
+    await expect(page).toHaveURL(/\/complete-profile/);
 
     await expect(page.getByTestId('first-name-input')).toBeVisible();
     await expect(page.getByTestId('monthly-income-input')).toBeVisible();
@@ -224,7 +224,7 @@ base.describe('Complete Profile Flow', () => {
       setLocalStorage: true,
     });
 
-    await page.goto('/app/complete-profile');
+    await page.goto('/complete-profile');
     await page.waitForLoadState('domcontentloaded');
 
     // Step 1: Fill required fields
@@ -239,6 +239,6 @@ base.describe('Complete Profile Flow', () => {
     await page.getByTestId('submit-button').click();
 
     // User should be redirected to dashboard
-    await expect(page).toHaveURL(/\/app\/current-month/, { timeout: 10000 });
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
   });
 });

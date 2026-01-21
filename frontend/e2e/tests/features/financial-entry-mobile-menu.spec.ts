@@ -113,7 +113,7 @@ test.describe('Financial Entry Mobile Menu', () => {
       await setupBudgetMocks(page);
 
       // Navigate to current month page
-      await page.goto('/app/current-month', { waitUntil: 'domcontentloaded' });
+      await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
     });
 
     test('should show menu button instead of separate edit/delete buttons on mobile', async ({ authenticatedPage: page }) => {
@@ -246,7 +246,7 @@ test.describe('Financial Entry Mobile Menu', () => {
       await setupBudgetMocks(page);
 
       // Navigate to current month page
-      await page.goto('/app/current-month', { waitUntil: 'domcontentloaded' });
+      await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
     });
 
     test('should show separate edit and delete buttons instead of menu on desktop', async ({
@@ -292,7 +292,7 @@ test.describe('Financial Entry Mobile Menu', () => {
       await setupBudgetMocks(page);
 
       // Navigate to current month page
-      await page.goto('/app/current-month', { waitUntil: 'domcontentloaded' });
+      await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
     });
 
     test('should switch between menu and separate buttons when viewport changes', async ({

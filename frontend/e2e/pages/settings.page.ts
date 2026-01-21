@@ -4,7 +4,7 @@ export class SettingsPage {
   constructor(private readonly page: Page) {}
 
   async goto(): Promise<void> {
-    await this.page.goto('/app/settings');
+    await this.page.goto('/settings');
     await this.expectPageLoaded();
   }
 

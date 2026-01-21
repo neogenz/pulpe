@@ -12,6 +12,6 @@ setup('authenticate', async ({ page }) => {
   });
   
   // Navigate and save mocked auth state for critical path tests
-  await page.goto('/app/current-month');
+  await page.goto('/dashboard');
   await page.context().storageState({ path: authFile });
 });
