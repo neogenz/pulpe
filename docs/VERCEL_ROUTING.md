@@ -74,6 +74,7 @@ Les rewrites routent les requêtes sans changer l'URL visible.
   { "source": "/icon.png", "destination": "/landing/icon.png" },
   { "source": "/icon-original.png", "destination": "/landing/icon-original.png" },
   { "source": "/landing/_next/:path*", "destination": "/landing/_next/:path*" },
+  { "source": "/_next/:path*", "destination": "/landing/_next/:path*" },
   { "source": "/:path*", "destination": "/_app.html" }
 ]
 ```
@@ -85,8 +86,11 @@ Les rewrites routent les requêtes sans changer l'URL visible.
 | 1 | `/` | Landing page |
 | 2 | `/screenshots/webapp/dashboard.png` | Image landing |
 | 3-4 | `/icon.png` | Icône landing |
-| 5 | `/landing/_next/...` | Assets Next.js landing |
-| 6 | `/welcome`, `/dashboard`, etc. | Angular SPA |
+| 5 | `/landing/_next/...` | Assets Next.js landing (avec prefix) |
+| 6 | `/_next/...` | Assets Next.js landing (sans prefix) |
+| 7 | `/welcome`, `/dashboard`, etc. | Angular SPA |
+
+**Note importante sur `/_next/*` :** La règle 6 est essentielle pour éviter que les assets statiques (CSS/JS) de la landing page soient interceptés par la règle catch-all (règle 7). Sans elle, les requêtes vers `/_next/static/css/...` retourneraient du HTML (`_app.html`) au lieu des fichiers CSS/JS, causant des erreurs MIME type et un rendu cassé.
 
 ### Redirects
 

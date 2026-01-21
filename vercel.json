@@ -58,6 +58,10 @@
       "destination": "/landing/_next/:path*"
     },
     {
+      "source": "/_next/:path*",
+      "destination": "/landing/_next/:path*"
+    },
+    {
       "source": "/:path*",
       "destination": "/_app.html"
     }
