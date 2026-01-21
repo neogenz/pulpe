@@ -52,7 +52,7 @@ export function WhyFree() {
         <FadeIn delay={0.3}>
           <div className="flex flex-wrap gap-4 justify-center mt-8 text-sm">
             <a
-              href="https://github.com/maximedesogus/pulpe"
+              href="https://github.com/neogenz/pulpe"
               target="_blank"
               rel="noopener noreferrer"
               className="text-accent hover:underline"
