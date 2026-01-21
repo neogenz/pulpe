@@ -16,6 +16,7 @@
 
 const { execSync } = require('child_process');
 const fs = require('fs');
+const path = require('path');
 
 // Configuration
 const DIST_DIR = './dist/webapp/browser';
@@ -27,9 +28,59 @@ const apiKey = process.env.POSTHOG_PERSONAL_API_KEY;
 const envId = process.env.POSTHOG_CLI_ENV_ID;
 const host = process.env.POSTHOG_HOST || 'https://eu.i.posthog.com';
 
-function main() {
-  console.log('🚀 PostHog Source Maps Upload');
-  console.log('===============================');
+function getVersionInfo() {
+  let version, commitHash;
+
+  try {
+    const packageJsonPath = path.join(__dirname, '..', 'package.json');
+    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+
+    if (!packageJson.version) {
+      throw new Error('package.json is missing "version" field');
+    }
+
+    version = packageJson.version;
+  } catch (error) {
+    console.error('❌ Failed to read version from package.json:', error.message);
+    process.exit(1);
+  }
+
+  try {
+    commitHash = execSync('git rev-parse HEAD', { encoding: 'utf8' }).trim();
+  } catch {
+    console.warn('⚠️  Could not get git commit hash');
+    commitHash = 'unknown';
+  }
+
+  return { version, commitHash };
+}
+
+async function createPostHogRelease(version, commitHash) {
+  const url = `${host}/api/projects/${envId}/error_tracking/releases/`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      version: version,
+      hash_id: commitHash
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to create release: ${response.status} - ${errorText}`);
+  }
+
+  return response.json();
+}
+
+async function main() {
+  console.log('🚀 PostHog Source Maps Upload & Release');
+  console.log('========================================');
   console.log(`Environment: ${isCI ? 'CI/CD' : 'Local'}`);
   console.log(`Host: ${host}`);
 
@@ -123,9 +174,22 @@ function main() {
     });
     console.log('✅ Source maps uploaded successfully');
 
+    // Step 3: Create PostHog release for version tracking
+    console.log('\n📦 Step 3: Creating PostHog release...');
+    const { version, commitHash } = getVersionInfo();
+    console.log(`   Version: ${version}`);
+    console.log(`   Commit: ${commitHash.substring(0, 7)}`);
+
+    try {
+      await createPostHogRelease(version, commitHash);
+      console.log('✅ PostHog release created successfully');
+    } catch (releaseError) {
+      console.warn(`⚠️  Release creation failed (non-blocking): ${releaseError.message}`);
+    }
+
     console.log('\n🎉 PostHog source maps processing completed!');
     console.log('Your error tracking will now show readable stack traces.');
-    console.log('Symbol sets are retained for 90 days and will not be overwritten by future deployments.');
+    console.log('Errors will be grouped by release version.');
 
   } catch (error) {
     console.error('\n❌ Error during source maps processing:', error.message);
@@ -150,4 +214,7 @@ function main() {
   }
 }
 
-main();
+main().catch((error) => {
+  console.error('❌ Unhandled error:', error.message);
+  process.exit(1);
+});

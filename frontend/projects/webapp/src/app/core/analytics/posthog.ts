@@ -95,15 +95,15 @@ export class PostHogService {
     try {
       posthog.opt_in_capturing();
 
-      // Enable automatic pageview and pageleave tracking for web analytics
+      // Enable SPA navigation tracking via History API (pushState/popstate)
       posthog.set_config({
-        capture_pageview: true,
-        capture_pageleave: true,
+        capture_pageview: 'history_change',
+        capture_pageleave: 'if_capture_pageview',
       });
 
-      // Capture the initial pageview
+      // Capture the initial pageview (subsequent navigations are auto-tracked)
       posthog.capture('$pageview');
-      this.#logger.info('PostHog tracking enabled with web analytics');
+      this.#logger.info('PostHog tracking enabled with SPA navigation support');
     } catch (error) {
       this.#logger.error('Failed to enable tracking', error);
     }
