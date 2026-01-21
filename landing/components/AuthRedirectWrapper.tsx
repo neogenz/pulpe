@@ -9,18 +9,22 @@ interface AuthRedirectWrapperProps {
 
 /**
  * Client-side auth redirect wrapper.
- * Checks Supabase auth cookie and redirects authenticated users to /dashboard.
+ * Checks Supabase auth session and redirects authenticated users to /dashboard.
  * Shows a brief loading state while checking to avoid content flash.
  */
 export function AuthRedirectWrapper({ children }: AuthRedirectWrapperProps) {
   const [isChecking, setIsChecking] = useState(true)
 
   useEffect(() => {
-    if (isAuthenticated()) {
-      window.location.replace('/dashboard')
-    } else {
-      setIsChecking(false)
+    async function checkAuth() {
+      const authenticated = await isAuthenticated()
+      if (authenticated) {
+        window.location.replace('/dashboard')
+      } else {
+        setIsChecking(false)
+      }
     }
+    checkAuth()
   }, [])
 
   if (isChecking) {

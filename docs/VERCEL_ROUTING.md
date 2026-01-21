@@ -139,7 +139,7 @@ Vercel → Landing Page HTML
   ▼
 AuthRedirectWrapper (client)
   │
-  ├─ Lecture cookies Supabase
+  ├─ Supabase JS client getSession()
   │
   ├─ Si authentifié:
   │     └─ window.location.replace('/dashboard')
@@ -154,23 +154,24 @@ La landing utilise `output: 'export'` (static HTML) dans Next.js, ce qui est inc
 
 - **Fonctionne avec le static export** : Pas de runtime serveur requis
 - **Loading state** : Affiche un spinner pendant la vérification (évite le flash de contenu)
-- **Même logique** : Parse les cookies Supabase côté client
+- **Supabase JS client** : Gère automatiquement localStorage/sessionStorage pour l'auth
 
 ### Configuration requise
 
-Variable d'environnement dans Vercel Dashboard :
+Variables d'environnement dans Vercel Dashboard :
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://[PROJECT_REF].supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 ```
 
-Cette variable doit avoir la même valeur que `PUBLIC_SUPABASE_URL` du frontend Angular.
+Ces variables doivent avoir les mêmes valeurs que `PUBLIC_SUPABASE_URL` et `PUBLIC_SUPABASE_ANON_KEY` du frontend Angular.
 
 ### Architecture
 
 ```
 landing/
-├── lib/auth.ts                      # Lecture cookies Supabase
+├── lib/auth.ts                      # Client Supabase + getSession()
 ├── components/AuthRedirectWrapper.tsx  # Wrapper avec loading state
 └── app/layout.tsx                   # Intègre le wrapper
 ```
@@ -187,11 +188,15 @@ export function AuthRedirectWrapper({ children }) {
   const [isChecking, setIsChecking] = useState(true)
 
   useEffect(() => {
-    if (isAuthenticated()) {
-      window.location.replace('/dashboard')
-    } else {
-      setIsChecking(false)
+    async function checkAuth() {
+      const authenticated = await isAuthenticated()
+      if (authenticated) {
+        window.location.replace('/dashboard')
+      } else {
+        setIsChecking(false)
+      }
     }
+    checkAuth()
   }, [])
 
   if (isChecking) {
