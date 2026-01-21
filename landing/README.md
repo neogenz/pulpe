@@ -122,6 +122,17 @@ Vercel rewrites:
 - `/` → `/landing/index.html` (landing page)
 - `/:path*` → `/_app.html` (Angular app catch-all)
 
+### Auth Redirect
+
+Authenticated users visiting `/` are automatically redirected to `/dashboard` via Vercel Edge Middleware (see `middleware.ts` at project root). This prevents the landing page from flashing before the Angular app redirects.
+
+The middleware:
+1. Checks Supabase auth cookies
+2. If authenticated → HTTP 307 redirect to `/dashboard`
+3. If not authenticated → serves landing page normally
+
+See [VERCEL_ROUTING.md](../docs/VERCEL_ROUTING.md#middleware-auth-redirect) for details.
+
 ## Development Notes
 
 - Port 3001 avoids conflict with Angular (4200) and backend (3000)

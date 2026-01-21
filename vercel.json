@@ -66,6 +66,14 @@
       "destination": "/landing/_next/:path*"
     },
     {
+      "source": "/robots.txt",
+      "destination": "/landing/robots.txt"
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "/landing/sitemap.xml"
+    },
+    {
       "source": "/:path*",
       "destination": "/_app.html"
     }

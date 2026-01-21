@@ -6,7 +6,8 @@ Configuration du routing Vercel pour servir la landing page (React) et l'applica
 
 ```
 pulpe.app/
-├── /                    → Landing page (React/Vite)
+├── /                    → Landing page (React/Vite) [si non connecté]
+├── /                    → Redirect vers /dashboard [si connecté]
 ├── /screenshots/*       → Assets landing
 ├── /icon.png            → Assets landing
 ├── /welcome, /dashboard → Angular SPA
@@ -121,6 +122,89 @@ Redirections permanentes (301) pour les anciennes URLs.
     ]
   }
 ]
+```
+
+## Auth Redirect (Client-Side)
+
+La landing page Next.js utilise un wrapper client-side pour rediriger automatiquement les utilisateurs connectés vers `/dashboard`.
+
+### Fonctionnement
+
+```
+GET /
+  │
+  ▼
+Vercel → Landing Page HTML
+  │
+  ▼
+AuthRedirectWrapper (client)
+  │
+  ├─ Supabase JS client getSession()
+  │
+  ├─ Si authentifié:
+  │     └─ window.location.replace('/dashboard')
+  │
+  └─ Si non authentifié:
+        └─ Afficher la landing page
+```
+
+### Pourquoi client-side ?
+
+La landing utilise `output: 'export'` (static HTML) dans Next.js, ce qui est incompatible avec Edge Middleware (qui nécessite un runtime serveur). La solution client-side :
+
+- **Fonctionne avec le static export** : Pas de runtime serveur requis
+- **Loading state** : Affiche un spinner pendant la vérification (évite le flash de contenu)
+- **Supabase JS client** : Gère automatiquement localStorage/sessionStorage pour l'auth
+
+### Configuration requise
+
+Variables d'environnement dans Vercel Dashboard :
+
+```
+NEXT_PUBLIC_SUPABASE_URL=https://[PROJECT_REF].supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+```
+
+Ces variables doivent avoir les mêmes valeurs que `PUBLIC_SUPABASE_URL` et `PUBLIC_SUPABASE_ANON_KEY` du frontend Angular.
+
+### Architecture
+
+```
+landing/
+├── lib/auth.ts                      # Client Supabase + getSession()
+├── components/AuthRedirectWrapper.tsx  # Wrapper avec loading state
+└── app/layout.tsx                   # Intègre le wrapper
+```
+
+### Code (`AuthRedirectWrapper.tsx`)
+
+```typescript
+'use client'
+
+import { useEffect, useState } from 'react'
+import { isAuthenticated } from '@/lib/auth'
+
+export function AuthRedirectWrapper({ children }) {
+  const [isChecking, setIsChecking] = useState(true)
+
+  useEffect(() => {
+    async function checkAuth() {
+      const authenticated = await isAuthenticated()
+      if (authenticated) {
+        window.location.replace('/dashboard')
+      } else {
+        setIsChecking(false)
+      }
+    }
+    checkAuth()
+  }, [])
+
+  if (isChecking) {
+    return <LoadingSpinner />
+  }
+
+  return children
+}
 ```
 
 ## Vite Base Path
