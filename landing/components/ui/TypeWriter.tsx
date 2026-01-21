@@ -19,38 +19,52 @@ export const TypeWriter = memo(function TypeWriter({
   loop = true,
   className,
 }: TypeWriterProps) {
-  const [text, setText] = useState('')
-  const [isDeleting, setIsDeleting] = useState(false)
+  // Start with first string to avoid hydration mismatch
+  const [text, setText] = useState(strings[0])
+  const [phase, setPhase] = useState<'idle' | 'deleting' | 'typing'>('idle')
   const stringIndex = useRef(0)
-  const charIndex = useRef(0)
+  const charIndex = useRef(strings[0].length)
+
+  // Start animation after hydration with a delay
+  useEffect(() => {
+    const timer = setTimeout(() => setPhase('deleting'), backDelay)
+    return () => clearTimeout(timer)
+  }, [backDelay])
 
   useEffect(() => {
+    if (phase === 'idle') return
+
     const currentString = strings[stringIndex.current]
 
     const tick = () => {
-      if (isDeleting) {
+      if (phase === 'deleting') {
         charIndex.current--
         setText(currentString.substring(0, charIndex.current))
 
         if (charIndex.current === 0) {
-          setIsDeleting(false)
           stringIndex.current = (stringIndex.current + 1) % strings.length
+          setPhase('typing')
         }
-      } else {
+      } else if (phase === 'typing') {
+        const nextString = strings[stringIndex.current]
         charIndex.current++
-        setText(currentString.substring(0, charIndex.current))
+        setText(nextString.substring(0, charIndex.current))
 
-        if (charIndex.current === currentString.length) {
-          if (!loop && stringIndex.current === strings.length - 1) return
-          setTimeout(() => setIsDeleting(true), backDelay)
-          return
+        if (charIndex.current === nextString.length) {
+          if (!loop && stringIndex.current === strings.length - 1) {
+            setPhase('idle')
+            return
+          }
+          setTimeout(() => setPhase('deleting'), backDelay)
+          setPhase('idle')
         }
       }
     }
 
-    const timeout = setTimeout(tick, isDeleting ? backSpeed : typeSpeed)
+    const speed = phase === 'deleting' ? backSpeed : typeSpeed
+    const timeout = setTimeout(tick, speed)
     return () => clearTimeout(timeout)
-  }, [text, isDeleting, strings, typeSpeed, backSpeed, backDelay, loop])
+  }, [text, phase, strings, typeSpeed, backSpeed, backDelay, loop])
 
   return (
     <span className={className}>

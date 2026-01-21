@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useMemo, type ReactNode } from 'react'
+import { useState, useCallback, useMemo, useEffect, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { ImageLightboxContext } from './ImageLightboxContext'
 import { ImageLightbox } from '@/components/ui/ImageLightbox'
@@ -13,6 +13,12 @@ export function ImageLightboxProvider({ children }: ImageLightboxProviderProps) 
   const [isOpen, setIsOpen] = useState(false)
   const [imageSrc, setImageSrc] = useState('')
   const [imageAlt, setImageAlt] = useState('')
+  const [lightboxRoot, setLightboxRoot] = useState<HTMLElement | null>(null)
+
+  // Only access DOM after hydration
+  useEffect(() => {
+    setLightboxRoot(document.getElementById('lightbox-root'))
+  }, [])
 
   const openLightbox = useCallback((src: string, alt: string) => {
     setImageSrc(src)
@@ -28,11 +34,6 @@ export function ImageLightboxProvider({ children }: ImageLightboxProviderProps) 
     () => ({ openLightbox, closeLightbox }),
     [openLightbox, closeLightbox]
   )
-
-  const lightboxRoot =
-    typeof document !== 'undefined'
-      ? document.getElementById('lightbox-root')
-      : null
 
   return (
     <ImageLightboxContext.Provider value={contextValue}>
