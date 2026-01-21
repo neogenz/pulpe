@@ -1,4 +1,5 @@
 import { Button, FadeIn } from '@/components/ui'
+import { ANGULAR_APP_URL } from '@/lib/config'
 
 export function FinalCTA() {
   return (
@@ -11,7 +12,7 @@ export function FinalCTA() {
           <p className="text-white/80 mb-8">
             Essaie Pulpe gratuitement. Pas de carte bancaire, pas d'engagement.
           </p>
-          <a href="/signup">
+          <a href={`${ANGULAR_APP_URL}/signup`}>
             <Button
               variant="secondary"
               className="bg-white text-primary hover:bg-white/90"

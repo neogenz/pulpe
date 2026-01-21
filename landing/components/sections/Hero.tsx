@@ -20,6 +20,7 @@ import {
   ShineBorder,
   TypeWriter,
 } from '@/components/ui'
+import { ANGULAR_APP_URL } from '@/lib/config'
 
 const TYPEWRITER_STRINGS = [
   'Profite de ton mois.',
@@ -217,7 +218,7 @@ export function Hero() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 items-center sm:items-start justify-center">
               <div className="flex flex-col items-center gap-3">
-                <a href="/signup">
+                <a href={`${ANGULAR_APP_URL}/signup`}>
                   <ShineBorder
                     color={['#006E25', '#2B883B', '#0061A6']}
                     borderWidth={2}

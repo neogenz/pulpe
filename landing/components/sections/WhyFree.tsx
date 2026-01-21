@@ -1,4 +1,5 @@
 import { Section, Badge, FadeIn } from '@/components/ui'
+import { ANGULAR_APP_URL } from '@/lib/config'
 
 export function WhyFree() {
   return (
@@ -58,8 +59,8 @@ export function WhyFree() {
             >
               Voir le code source
             </a>
-            <a href="/legal/cgu" className="text-accent hover:underline">CGU</a>
-            <a href="/legal/confidentialite" className="text-accent hover:underline">Confidentialité</a>
+            <a href={`${ANGULAR_APP_URL}/legal/cgu`} className="text-accent hover:underline">CGU</a>
+            <a href={`${ANGULAR_APP_URL}/legal/confidentialite`} className="text-accent hover:underline">Confidentialité</a>
           </div>
         </FadeIn>
       </div>

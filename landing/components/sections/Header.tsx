@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui'
+import { ANGULAR_APP_URL } from '@/lib/config'
 
 const navLinks = [
   { href: '#features', label: 'Fonctionnalités' },
@@ -138,7 +139,7 @@ export function Header() {
           </div>
 
           <div className="relative z-10 flex items-center gap-2">
-            <a href="/welcome">
+            <a href={`${ANGULAR_APP_URL}/welcome`}>
               <Button className="text-sm px-4 py-2 min-h-[40px] rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-shadow">
                 Essayer
               </Button>

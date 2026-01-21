@@ -1,5 +1,6 @@
 import { Globe, Smartphone, Apple } from 'lucide-react'
 import { Section, Badge, Button, FadeIn } from '@/components/ui'
+import { ANGULAR_APP_URL } from '@/lib/config'
 
 const IOS_APP_URL = '#' // TODO: Remplacer par le lien App Store
 
@@ -26,7 +27,7 @@ export function Platforms() {
             <p className="text-text-secondary mb-6 flex-1">
               Utilise Pulpe directement dans ton navigateur, sur ordinateur ou téléphone. Aucune installation requise.
             </p>
-            <a href="/welcome">
+            <a href={`${ANGULAR_APP_URL}/welcome`}>
               <Button variant="secondary" className="w-full">
                 Ouvrir dans le navigateur
               </Button>

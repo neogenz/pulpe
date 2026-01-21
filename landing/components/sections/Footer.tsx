@@ -1,4 +1,5 @@
 import { Container } from '@/components/ui'
+import { ANGULAR_APP_URL } from '@/lib/config'
 
 export function Footer() {
   return (
@@ -19,10 +20,10 @@ export function Footer() {
             >
               Code source
             </a>
-            <a href="/legal/cgu" className="hover:text-text transition-colors">
+            <a href={`${ANGULAR_APP_URL}/legal/cgu`} className="hover:text-text transition-colors">
               Conditions d'utilisation
             </a>
-            <a href="/legal/confidentialite" className="hover:text-text transition-colors">
+            <a href={`${ANGULAR_APP_URL}/legal/confidentialite`} className="hover:text-text transition-colors">
               Politique de confidentialité
             </a>
             <a
