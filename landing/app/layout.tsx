@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { Poppins } from 'next/font/google'
-import { MotionProvider } from '@/components/ui'
+import { PreloadLCPImage } from '@/components/ui'
 import './globals.css'
 
 const poppins = Poppins({
@@ -52,9 +52,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="fr" className={poppins.variable}>
       <body className="font-sans antialiased">
-        <MotionProvider>
-          {children}
-        </MotionProvider>
+        <PreloadLCPImage
+          mobileSrc="/screenshots/mobile/dashboard.webp"
+          desktopSrc="/screenshots/webapp/dashboard.webp"
+        />
+        {children}
         <div id="lightbox-root" />
       </body>
     </html>

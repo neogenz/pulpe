@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { m, AnimatePresence } from 'framer-motion'
 import { Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui'
 import { ANGULAR_APP_URL } from '@/lib/config'
@@ -72,14 +71,11 @@ export function Header() {
       </svg>
 
       <header className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-4xl">
-        <m.nav
-          initial={false}
-          animate={{
-            scale: scrolled ? 0.98 : 1,
-            y: scrolled ? -2 : 0,
+        <nav
+          className="liquidGlass-wrapper relative flex items-center justify-between gap-4 px-4 py-3 md:px-6 md:py-4 rounded-full transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+          style={{
+            transform: scrolled ? 'scale(0.98) translateY(-2px)' : 'scale(1) translateY(0)',
           }}
-          transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-          className="liquidGlass-wrapper relative flex items-center justify-between gap-4 px-4 py-3 md:px-6 md:py-4 rounded-full"
           aria-label="Navigation principale"
         >
           {/* Layer 1: Distortion effect */}
@@ -94,7 +90,7 @@ export function Header() {
 
           {/* Layer 2: Tint */}
           <div
-            className="liquidGlass-tint absolute inset-0 rounded-full"
+            className="liquidGlass-tint absolute inset-0 rounded-full transition-colors duration-300"
             style={{
               background: `rgba(255, 255, 255, ${scrolled ? 0.2 : 0.15})`,
             }}
@@ -155,71 +151,67 @@ export function Header() {
               {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
-        </m.nav>
+        </nav>
 
-        {/* Mobile Menu - Liquid Glass */}
-        <AnimatePresence>
-          {mobileMenuOpen && (
-            <m.div
-              initial={{ opacity: 0, y: -10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-              className="md:hidden mt-2 rounded-2xl relative"
-            >
-              {/* Mobile: Distortion */}
-              <div
-                className="absolute inset-0 rounded-2xl overflow-hidden"
-                style={{
-                  backdropFilter: 'blur(2px)',
-                  WebkitBackdropFilter: 'blur(2px)',
-                  filter: 'url(#liquid-glass)',
-                }}
-              />
+        {/* Mobile Menu - CSS transitions */}
+        <div
+          className={`md:hidden mt-2 rounded-2xl relative transition-all duration-250 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+            mobileMenuOpen
+              ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
+              : 'opacity-0 -translate-y-2.5 scale-95 pointer-events-none'
+          }`}
+        >
+          {/* Mobile: Distortion */}
+          <div
+            className="absolute inset-0 rounded-2xl overflow-hidden"
+            style={{
+              backdropFilter: 'blur(2px)',
+              WebkitBackdropFilter: 'blur(2px)',
+              filter: 'url(#liquid-glass)',
+            }}
+          />
 
-              {/* Mobile: Tint */}
-              <div
-                className="absolute inset-0 rounded-2xl"
-                style={{
-                  background: 'rgba(255, 255, 255, 0.8)',
-                }}
-              />
+          {/* Mobile: Tint */}
+          <div
+            className="absolute inset-0 rounded-2xl"
+            style={{
+              background: 'rgba(255, 255, 255, 0.8)',
+            }}
+          />
 
-              {/* Mobile: Shine */}
-              <div
-                className="absolute inset-0 rounded-2xl pointer-events-none"
-                style={{
-                  boxShadow: `
-                    inset 0 1px 1px 0 rgba(255, 255, 255, 0.6),
-                    inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3),
-                    0 4px 24px rgba(0, 0, 0, 0.08)
-                  `,
-                }}
-              />
+          {/* Mobile: Shine */}
+          <div
+            className="absolute inset-0 rounded-2xl pointer-events-none"
+            style={{
+              boxShadow: `
+                inset 0 1px 1px 0 rgba(255, 255, 255, 0.6),
+                inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3),
+                0 4px 24px rgba(0, 0, 0, 0.08)
+              `,
+            }}
+          />
 
-              {/* Mobile: Top highlight */}
-              <div
-                className="absolute inset-x-0 top-0 h-1/3 rounded-t-2xl pointer-events-none"
-                style={{
-                  background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0) 100%)',
-                }}
-              />
+          {/* Mobile: Top highlight */}
+          <div
+            className="absolute inset-x-0 top-0 h-1/3 rounded-t-2xl pointer-events-none"
+            style={{
+              background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0) 100%)',
+            }}
+          />
 
-              <div className="relative z-10 flex flex-col gap-1 p-4">
-                {navLinks.map((link) => (
-                  <a
-                    key={link.href}
-                    href={link.href}
-                    className="px-4 py-3 text-base font-semibold text-text hover:bg-white/40 active:bg-white/60 rounded-xl transition-all duration-200 active:scale-[0.98]"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    {link.label}
-                  </a>
-                ))}
-              </div>
-            </m.div>
-          )}
-        </AnimatePresence>
+          <div className="relative z-10 flex flex-col gap-1 p-4">
+            {navLinks.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                className="px-4 py-3 text-base font-semibold text-text hover:bg-white/40 active:bg-white/60 rounded-xl transition-all duration-200 active:scale-[0.98]"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {link.label}
+              </a>
+            ))}
+          </div>
+        </div>
       </header>
     </>
   )

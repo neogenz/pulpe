@@ -1,16 +1,31 @@
+import dynamic from 'next/dynamic'
 import { ImageLightboxProvider } from '@/contexts/ImageLightboxProvider'
-import {
-  Header,
-  Hero,
-  PainPoints,
-  Solution,
-  Features,
-  HowItWorks,
-  Platforms,
-  WhyFree,
-  FinalCTA,
-  Footer,
-} from '@/components/sections'
+import { Header, Hero } from '@/components/sections'
+
+const PainPoints = dynamic(() =>
+  import('@/components/sections').then((mod) => mod.PainPoints)
+)
+const Solution = dynamic(() =>
+  import('@/components/sections').then((mod) => mod.Solution)
+)
+const Features = dynamic(() =>
+  import('@/components/sections').then((mod) => mod.Features)
+)
+const HowItWorks = dynamic(() =>
+  import('@/components/sections').then((mod) => mod.HowItWorks)
+)
+const Platforms = dynamic(() =>
+  import('@/components/sections').then((mod) => mod.Platforms)
+)
+const WhyFree = dynamic(() =>
+  import('@/components/sections').then((mod) => mod.WhyFree)
+)
+const FinalCTA = dynamic(() =>
+  import('@/components/sections').then((mod) => mod.FinalCTA)
+)
+const Footer = dynamic(() =>
+  import('@/components/sections').then((mod) => mod.Footer)
+)
 
 export default function LandingPage() {
   return (

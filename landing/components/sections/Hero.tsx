@@ -1,8 +1,5 @@
 'use client'
 
-import { useMemo } from 'react'
-import { m, useReducedMotion } from 'framer-motion'
-import type { Variants } from 'framer-motion'
 import {
   Check,
   Gamepad2,
@@ -29,29 +26,7 @@ const TYPEWRITER_STRINGS = [
   'Reprends le contrôle.',
 ]
 
-function createFloatingVariants(shouldReduceMotion: boolean | null): Variants {
-  return {
-    hidden: shouldReduceMotion ? {} : { opacity: 0, scale: 0.8 },
-    visible: (delay: number) => ({
-      opacity: 1,
-      scale: 1,
-      transition: {
-        duration: 0.5,
-        delay: shouldReduceMotion ? 0 : delay,
-        ease: 'easeOut' as const,
-      },
-    }),
-  }
-}
-
 export function Hero() {
-  const shouldReduceMotion = useReducedMotion()
-
-  const floatingVariants = useMemo(
-    () => createFloatingVariants(shouldReduceMotion),
-    [shouldReduceMotion]
-  )
-
   return (
     <section className="relative min-h-screen flex items-center pt-28 pb-16 md:pt-32 md:pb-24 bg-background overflow-hidden">
       {/* Subtle grid background */}
@@ -61,41 +36,23 @@ export function Hero() {
         {/* Floating cards - organic gravitational arrangement around screenshot (right side only) */}
 
         {/* Top-left edge of screenshot zone */}
-        <m.div
-          className="absolute top-8 right-[35%] hidden lg:block z-20"
-          variants={floatingVariants}
-          initial="hidden"
-          animate="visible"
-          custom={0.2}
-        >
+        <div className="absolute top-8 right-[35%] hidden lg:block z-20 animate-fade-in-float delay-200">
           <FloatingCard variant="pill" animationDelay={-0.5}>
             <ShoppingBag className="w-4 h-4 text-primary" />
             <span>Courses</span>
           </FloatingCard>
-        </m.div>
+        </div>
 
         {/* Top center-right, floating above */}
-        <m.div
-          className="absolute -top-2 right-[20%] hidden lg:block z-20"
-          variants={floatingVariants}
-          initial="hidden"
-          animate="visible"
-          custom={0.4}
-        >
+        <div className="absolute -top-2 right-[20%] hidden lg:block z-20 animate-fade-in-float delay-400">
           <FloatingCard variant="trend" animationDelay={-1}>
             <TrendingUp className="w-3.5 h-3.5" />
             <span>+12%</span>
           </FloatingCard>
-        </m.div>
+        </div>
 
         {/* Top-right corner */}
-        <m.div
-          className="absolute top-4 -right-2 hidden lg:block z-20"
-          variants={floatingVariants}
-          initial="hidden"
-          animate="visible"
-          custom={0.6}
-        >
+        <div className="absolute top-4 -right-2 hidden lg:block z-20 animate-fade-in-float delay-600">
           <FloatingCard variant="highlight" animationDelay={-1.5}>
             <div className="flex items-center gap-3">
               <Wallet className="w-5 h-5" />
@@ -105,16 +62,10 @@ export function Hero() {
               </div>
             </div>
           </FloatingCard>
-        </m.div>
+        </div>
 
         {/* Left edge of screenshot, safe from text */}
-        <m.div
-          className="absolute top-[30%] right-[38%] hidden lg:block z-20"
-          variants={floatingVariants}
-          initial="hidden"
-          animate="visible"
-          custom={0.8}
-        >
+        <div className="absolute top-[30%] right-[38%] hidden lg:block z-20 animate-fade-in-float delay-800">
           <FloatingCard variant="large" animationDelay={-2}>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -128,58 +79,34 @@ export function Hero() {
               </div>
             </div>
           </FloatingCard>
-        </m.div>
+        </div>
 
         {/* Right side, mid-height */}
-        <m.div
-          className="absolute top-[48%] right-[-5%] hidden lg:block z-20"
-          variants={floatingVariants}
-          initial="hidden"
-          animate="visible"
-          custom={1.0}
-        >
+        <div className="absolute top-[48%] right-[-5%] hidden lg:block z-20 animate-fade-in-float delay-1000">
           <FloatingCard variant="pill" animationDelay={-2.5}>
             <Gamepad2 className="w-4 h-4 text-primary" />
             <span>Loisirs</span>
           </FloatingCard>
-        </m.div>
+        </div>
 
         {/* Bottom-left of screenshot zone */}
-        <m.div
-          className="absolute bottom-14 right-[38%] hidden lg:block z-20"
-          variants={floatingVariants}
-          initial="hidden"
-          animate="visible"
-          custom={1.2}
-        >
+        <div className="absolute bottom-14 right-[38%] hidden lg:block z-20 animate-fade-in-float delay-1200">
           <FloatingCard variant="pill" animationDelay={-3}>
             <PiggyBank className="w-4 h-4 text-primary" />
             <span>Épargne</span>
           </FloatingCard>
-        </m.div>
+        </div>
 
         {/* Bottom center-right */}
-        <m.div
-          className="absolute bottom-0 right-[24%] hidden lg:block z-20"
-          variants={floatingVariants}
-          initial="hidden"
-          animate="visible"
-          custom={1.3}
-        >
+        <div className="absolute bottom-0 right-[24%] hidden lg:block z-20 animate-fade-in-float delay-1300">
           <FloatingCard variant="trend" animationDelay={-3.5}>
             <Check className="w-3.5 h-3.5" />
             <span>À jour</span>
           </FloatingCard>
-        </m.div>
+        </div>
 
         {/* Bottom-right, drifting */}
-        <m.div
-          className="absolute bottom-12 right-[-4%] hidden lg:block z-20"
-          variants={floatingVariants}
-          initial="hidden"
-          animate="visible"
-          custom={1.4}
-        >
+        <div className="absolute bottom-12 right-[-4%] hidden lg:block z-20 animate-fade-in-float delay-1400">
           <FloatingCard variant="notification" animationDelay={-4}>
             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
               <Check className="w-4 h-4 text-primary" />
@@ -189,7 +116,7 @@ export function Hero() {
               <div className="text-xs text-text-secondary">Il y a 2 min</div>
             </div>
           </FloatingCard>
-        </m.div>
+        </div>
 
         {/* Main content grid */}
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">

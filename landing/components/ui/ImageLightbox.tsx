@@ -1,7 +1,6 @@
 'use client'
 
 import { memo, useEffect, useRef, useCallback } from 'react'
-import { m, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
 
 interface ImageLightboxProps {
@@ -10,12 +9,6 @@ interface ImageLightboxProps {
   imageAlt: string
   onClose: () => void
 }
-
-const OVERLAY_TRANSITION = { duration: 0.2 }
-const OVERLAY_INITIAL = { opacity: 0 }
-const OVERLAY_ANIMATE = { opacity: 1 }
-const IMAGE_INITIAL = { scale: 0.9, opacity: 0 }
-const IMAGE_ANIMATE = { scale: 1, opacity: 1 }
 
 export const ImageLightbox = memo(function ImageLightbox({
   isOpen,
@@ -56,40 +49,34 @@ export const ImageLightbox = memo(function ImageLightbox({
   )
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <m.div
-          initial={OVERLAY_INITIAL}
-          animate={OVERLAY_ANIMATE}
-          exit={OVERLAY_INITIAL}
-          transition={OVERLAY_TRANSITION}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"
-          onClick={onClose}
-          role="dialog"
-          aria-modal="true"
-          aria-label={imageAlt}
-        >
-          <button
-            ref={closeButtonRef}
-            onClick={onClose}
-            className="absolute top-4 right-4 p-2 text-white/80 hover:text-white transition-colors rounded-full hover:bg-white/10"
-            aria-label="Fermer"
-          >
-            <X className="w-8 h-8" />
-          </button>
+    <div
+      className={`fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm transition-opacity duration-200 ${
+        isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+      }`}
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={imageAlt}
+      aria-hidden={!isOpen}
+    >
+      <button
+        ref={closeButtonRef}
+        onClick={onClose}
+        className="absolute top-4 right-4 p-2 text-white/80 hover:text-white transition-colors rounded-full hover:bg-white/10"
+        aria-label="Fermer"
+        tabIndex={isOpen ? 0 : -1}
+      >
+        <X className="w-8 h-8" />
+      </button>
 
-          <m.img
-            initial={IMAGE_INITIAL}
-            animate={IMAGE_ANIMATE}
-            exit={IMAGE_INITIAL}
-            transition={OVERLAY_TRANSITION}
-            src={imageSrc}
-            alt={imageAlt}
-            className="max-w-[95vw] max-h-[95vh] object-contain rounded-lg"
-            onClick={handleImageClick}
-          />
-        </m.div>
-      )}
-    </AnimatePresence>
+      <img
+        src={imageSrc}
+        alt={imageAlt}
+        className={`max-w-[95vw] max-h-[95vh] object-contain rounded-lg transition-all duration-200 ${
+          isOpen ? 'scale-100 opacity-100' : 'scale-90 opacity-0'
+        }`}
+        onClick={handleImageClick}
+      />
+    </div>
   )
 })

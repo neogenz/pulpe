@@ -1,7 +1,6 @@
 'use client'
 
-import { memo, useMemo } from 'react'
-import { m, useReducedMotion } from 'framer-motion'
+import { memo } from 'react'
 import { Screenshot } from './Screenshot'
 
 interface HeroScreenshotProps {
@@ -10,23 +9,13 @@ interface HeroScreenshotProps {
   screenshotLabel: string
 }
 
-const TRANSITION = { duration: 0.6, ease: 'easeOut' } as const
-const ANIMATE_TO = { opacity: 1, scale: 1 }
-
 export const HeroScreenshot = memo(function HeroScreenshot({
   screenshotSrc,
   screenshotDesktopSrc,
   screenshotLabel,
 }: HeroScreenshotProps) {
-  const shouldReduceMotion = useReducedMotion()
-
-  const initial = useMemo(
-    () => (shouldReduceMotion ? {} : { opacity: 0, scale: 0.95 }),
-    [shouldReduceMotion]
-  )
-
   return (
-    <m.div initial={initial} animate={ANIMATE_TO} transition={TRANSITION}>
+    <div className="animate-fade-in-scale">
       <Screenshot
         src={screenshotSrc}
         desktopSrc={screenshotDesktopSrc}
@@ -34,6 +23,6 @@ export const HeroScreenshot = memo(function HeroScreenshot({
         isLCP
         fetchPriority="high"
       />
-    </m.div>
+    </div>
   )
 })

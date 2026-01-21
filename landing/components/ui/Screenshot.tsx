@@ -8,20 +8,22 @@ interface ScreenshotProps {
   desktopSrc?: string
   label: string
   className?: string
-  /** Set to true for LCP image to disable lazy loading */
   isLCP?: boolean
-  /** Fetch priority hint for the browser */
   fetchPriority?: 'high' | 'low' | 'auto'
-  /** Intrinsic width for the mobile image (default: 1548) */
   width?: number
-  /** Intrinsic height for the mobile image (default: 2456) */
   height?: number
 }
 
 const DESKTOP_MEDIA_QUERY = '(min-width: 768px)'
+const MOBILE_IMAGE_WIDTH = 750
+const TABLET_IMAGE_WIDTH = 1548
 
 function toWebP(path: string): string {
   return path.replace(/\.png$/, '.webp')
+}
+
+function toMobileWebP(path: string): string {
+  return path.replace('/responsive/', '/mobile/').replace(/\.png$/, '.webp')
 }
 
 function subscribeToMediaQuery(callback: () => void) {
@@ -47,7 +49,7 @@ export const Screenshot = memo(function Screenshot({
   className = '',
   isLCP = false,
   fetchPriority,
-  width = 1548,
+  width = TABLET_IMAGE_WIDTH,
   height = 2456,
 }: ScreenshotProps) {
   const { openLightbox } = useImageLightbox()
@@ -64,6 +66,10 @@ export const Screenshot = memo(function Screenshot({
   }, [src, desktopSrc, label, isDesktop, openLightbox])
 
   if (src) {
+    const mobileWebP = toMobileWebP(src)
+    const tabletWebP = toWebP(src)
+    const mobileSrcSet = `${mobileWebP} ${MOBILE_IMAGE_WIDTH}w, ${tabletWebP} ${TABLET_IMAGE_WIDTH}w`
+
     return (
       <button
         type="button"
@@ -72,7 +78,6 @@ export const Screenshot = memo(function Screenshot({
         aria-label={`Agrandir : ${label}`}
       >
         <picture>
-          {/* WebP sources (modern browsers) */}
           {desktopSrc && (
             <source
               media="(min-width: 768px)"
@@ -80,16 +85,19 @@ export const Screenshot = memo(function Screenshot({
               type="image/webp"
             />
           )}
-          <source srcSet={toWebP(src)} type="image/webp" />
-          {/* PNG fallback (older browsers) */}
+          <source
+            srcSet={mobileSrcSet}
+            sizes="(max-width: 767px) 100vw, 50vw"
+            type="image/webp"
+          />
           {desktopSrc && (
             <source media="(min-width: 768px)" srcSet={desktopSrc} />
           )}
           <img
-            src={src}
+            src={mobileWebP}
             alt={label}
-            width={width}
-            height={height}
+            width={MOBILE_IMAGE_WIDTH}
+            height={Math.round((height / width) * MOBILE_IMAGE_WIDTH)}
             loading={isLCP ? 'eager' : 'lazy'}
             fetchPriority={fetchPriority}
             className={`rounded-xl md:rounded-[var(--radius-large)] shadow-[var(--shadow-screenshot)] w-full ${className}`}

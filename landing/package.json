@@ -3,6 +3,14 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "browserslist": [
+    "Chrome >= 100",
+    "Firefox >= 100",
+    "Safari >= 15",
+    "Edge >= 100",
+    "iOS >= 15",
+    "not dead"
+  ],
   "scripts": {
     "dev": "next dev --port 3001",
     "build": "next build",
@@ -14,9 +22,7 @@
     "next": "^15.3.4",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "framer-motion": "^12.26.2",
-    "lucide-react": "^0.562.0",
-    "react-typed": "^2.0.12"
+    "lucide-react": "^0.562.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",

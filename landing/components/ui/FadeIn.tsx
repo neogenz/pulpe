@@ -1,8 +1,6 @@
 'use client'
 
-import { memo, useMemo } from 'react'
-import { m, useReducedMotion } from 'framer-motion'
-import type { ReactNode } from 'react'
+import { memo, useEffect, useRef, type ReactNode } from 'react'
 
 interface FadeInProps {
   children: ReactNode
@@ -12,8 +10,6 @@ interface FadeInProps {
   noYMovement?: boolean
 }
 
-const VIEWPORT_CONFIG = { once: true, margin: '-50px' } as const
-
 export const FadeIn = memo(function FadeIn({
   children,
   delay = 0,
@@ -21,45 +17,50 @@ export const FadeIn = memo(function FadeIn({
   animateOnMount = false,
   noYMovement = false,
 }: FadeInProps) {
-  const shouldReduceMotion = useReducedMotion()
+  const ref = useRef<HTMLDivElement>(null)
 
-  const initial = useMemo(
-    () =>
-      shouldReduceMotion
-        ? {}
-        : { opacity: 0, ...(noYMovement ? {} : { y: 20 }) },
-    [shouldReduceMotion, noYMovement]
-  )
+  useEffect(() => {
+    if (animateOnMount) return
 
-  const transition = useMemo(
-    () => ({ duration: 0.5, delay, ease: 'easeOut' as const }),
-    [delay]
-  )
+    const element = ref.current
+    if (!element) return
 
-  const animateTo = { opacity: 1, y: 0 }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible')
+            observer.unobserve(entry.target)
+          }
+        })
+      },
+      { rootMargin: '-50px', threshold: 0 }
+    )
+
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [animateOnMount])
+
+  const delayStyle = delay > 0 ? { transitionDelay: `${delay}s` } : undefined
 
   if (animateOnMount) {
     return (
-      <m.div
-        initial={initial}
-        animate={animateTo}
-        transition={transition}
-        className={className}
+      <div
+        className={`animate-fade-in ${noYMovement ? 'no-y' : ''} ${className}`}
+        style={delay > 0 ? { animationDelay: `${delay}s` } : undefined}
       >
         {children}
-      </m.div>
+      </div>
     )
   }
 
   return (
-    <m.div
-      initial={initial}
-      whileInView={animateTo}
-      viewport={VIEWPORT_CONFIG}
-      transition={transition}
-      className={className}
+    <div
+      ref={ref}
+      className={`fade-in-view ${noYMovement ? 'no-y' : ''} ${className}`}
+      style={delayStyle}
     >
       {children}
-    </m.div>
+    </div>
   )
 })
