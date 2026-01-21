@@ -4,7 +4,7 @@ export class BudgetTemplatesPage {
   constructor(private page: Page) {}
 
   async goto() {
-    await this.page.goto('/app/budget-templates');
+    await this.page.goto('/budget-templates');
     await this.expectPageLoaded();
   }
 

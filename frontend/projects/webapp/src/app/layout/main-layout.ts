@@ -402,12 +402,12 @@ export default class MainLayout {
   });
 
   // Route to settings page
-  protected readonly settingsRoute = `/${ROUTES.APP}/${ROUTES.SETTINGS}`;
+  protected readonly settingsRoute = `/${ROUTES.SETTINGS}`;
 
   // Navigation items configuration
   protected readonly navigationItems: readonly NavigationItem[] = [
     {
-      route: ROUTES.CURRENT_MONTH,
+      route: ROUTES.DASHBOARD,
       label: 'Ce mois-ci',
       icon: 'today',
       tooltip: 'Suivez vos dépenses du mois',

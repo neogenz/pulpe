@@ -259,7 +259,7 @@ export default class BudgetListPage {
 
   navigateToDetails(month: CalendarMonth): void {
     if (month.hasContent && month.id) {
-      this.#router.navigate([ROUTES.APP, ROUTES.BUDGET, month.id]);
+      this.#router.navigate(['/', ROUTES.BUDGET, month.id]);
     }
   }
 
@@ -359,7 +359,7 @@ export default class BudgetListPage {
       );
 
       if (result) {
-        this.#router.navigate([ROUTES.APP, ROUTES.BUDGET, result.budgetId]);
+        this.#router.navigate(['/', ROUTES.BUDGET, result.budgetId]);
       }
     } catch (error) {
       this.#logger.error('Error opening search dialog', error);

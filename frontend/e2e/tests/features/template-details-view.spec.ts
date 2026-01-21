@@ -14,7 +14,7 @@ test.describe('Template Details View', () => {
     // Act - Navigate directly to template details page
     // Using the default template ID from global mocks
     await authenticatedPage.goto(
-      '/app/budget-templates/details/e2e-template-default',
+      '/budget-templates/details/e2e-template-default',
     );
     await authenticatedPage.waitForLoadState('domcontentloaded');
 
@@ -104,6 +104,24 @@ test.describe('Template Details View', () => {
       },
     );
 
+    // Mock maintenance status endpoint (required for all navigation)
+    await page.route('**/maintenance/status', (route) => {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ maintenanceMode: false, message: null }),
+      });
+    });
+
+    // Mock budgets/exists endpoint (required for hasBudgetGuard)
+    await page.route('**/api/v1/budgets/exists', (route) => {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ hasBudget: true }),
+      });
+    });
+
     // Mock budgets endpoint to pass hasBudgetGuard (required for protected routes)
     await page.route('**/api/v1/budgets', (route) => {
       return route.fulfill({
@@ -127,7 +145,7 @@ test.describe('Template Details View', () => {
     );
 
     await page.goto(
-      'http://localhost:4200/app/budget-templates/details/error-template',
+      'http://localhost:4200/budget-templates/details/error-template',
     );
     await responsePromise;
 
@@ -161,7 +179,7 @@ test.describe('Template Details View', () => {
   }) => {
     // Navigate directly to template details page using default template
     await authenticatedPage.goto(
-      '/app/budget-templates/details/e2e-template-default',
+      '/budget-templates/details/e2e-template-default',
     );
     await authenticatedPage.waitForLoadState('domcontentloaded');
     await expect(

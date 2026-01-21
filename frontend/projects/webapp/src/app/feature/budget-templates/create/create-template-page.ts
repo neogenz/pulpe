@@ -6,6 +6,7 @@ import {
   signal,
 } from '@angular/core';
 import { Router } from '@angular/router';
+import { ROUTES } from '@core/routing';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -13,12 +14,6 @@ import { type BudgetTemplateCreate } from 'pulpe-shared';
 import { BudgetTemplatesStore } from '../services/budget-templates-store';
 import { CreateTemplateForm } from './components/create-template-form';
 import { Logger } from '@core/logging/logger';
-
-// Constants
-const ROUTES = {
-  BUDGET_TEMPLATES: '/app/budget-templates',
-  TEMPLATE_DETAILS: (id: string) => `/app/budget-templates/details/${id}`,
-} as const;
 
 const MESSAGES = {
   SUCCESS: 'Modèle créé avec succès',
@@ -130,7 +125,7 @@ export default class CreateTemplatePage {
       if (response?.template.id) {
         // Pass POST response as router state for SWR (instant display)
         await this.#router.navigate(
-          [ROUTES.TEMPLATE_DETAILS(response.template.id)],
+          ['/', ROUTES.BUDGET_TEMPLATES, 'details', response.template.id],
           {
             state: {
               initialData: {
@@ -141,7 +136,7 @@ export default class CreateTemplatePage {
           },
         );
       } else {
-        await this.#router.navigate([ROUTES.BUDGET_TEMPLATES]);
+        await this.#router.navigate(['/', ROUTES.BUDGET_TEMPLATES]);
       }
     } catch (error) {
       // Only reset isCreating on error (user stays on page to retry)
@@ -151,7 +146,7 @@ export default class CreateTemplatePage {
   }
 
   navigateBack() {
-    this.#router.navigate([ROUTES.BUDGET_TEMPLATES]);
+    this.#router.navigate(['/', ROUTES.BUDGET_TEMPLATES]);
   }
 
   private handleError(error: unknown): void {

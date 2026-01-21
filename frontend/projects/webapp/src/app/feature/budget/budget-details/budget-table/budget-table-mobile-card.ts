@@ -82,7 +82,7 @@ import { type BudgetLineTableItem } from './budget-table-models';
               ) {
                 <a
                   [routerLink]="[
-                    '/app/budget',
+                    '/budget',
                     item().metadata.rolloverSourceBudgetId,
                   ]"
                   class="text-primary underline"

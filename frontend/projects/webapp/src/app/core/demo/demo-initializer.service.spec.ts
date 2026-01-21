@@ -9,8 +9,8 @@ import { DemoInitializerService } from './demo-initializer.service';
 import { DemoModeService } from './demo-mode.service';
 import { AuthSessionService } from '../auth/auth-session.service';
 import { ApplicationConfiguration } from '../config/application-configuration';
-import { Logger } from '../logging/logger';
 import { ROUTES } from '../routing/routes-constants';
+import { Logger } from '../logging/logger';
 
 describe('DemoInitializerService', () => {
   let service: DemoInitializerService;
@@ -106,10 +106,7 @@ describe('DemoInitializerService', () => {
       );
 
       // AND: User is redirected to dashboard
-      expect(mockRouter.navigate).toHaveBeenCalledWith([
-        ROUTES.APP,
-        ROUTES.CURRENT_MONTH,
-      ]);
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/', ROUTES.DASHBOARD]);
     });
 
     it('should show loading state during session creation', async () => {
@@ -338,10 +335,7 @@ describe('DemoInitializerService', () => {
       );
 
       // AND: User is redirected to dashboard
-      expect(mockRouter.navigate).toHaveBeenCalledWith([
-        ROUTES.APP,
-        ROUTES.CURRENT_MONTH,
-      ]);
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/', ROUTES.DASHBOARD]);
     });
   });
 });

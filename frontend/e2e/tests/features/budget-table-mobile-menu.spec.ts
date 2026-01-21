@@ -42,7 +42,7 @@ test.describe('Budget Table Mobile Menu', () => {
       // Navigate and wait for the API response to ensure data is loaded
       await Promise.all([
         page.waitForResponse(resp => resp.url().includes('/api/v1/budgets/') && resp.url().includes('/details')),
-        page.goto(`/app/budget/${budgetId}`),
+        page.goto(`/budget/${budgetId}`),
       ]);
       await expect(page.locator('pulpe-budget-table')).toBeVisible();
     });
@@ -190,7 +190,7 @@ test.describe('Budget Table Mobile Menu', () => {
       );
 
       // Reload page to get new mock data
-      await page.goto(`/app/budget/${testBudgetId}`);
+      await page.goto(`/budget/${testBudgetId}`);
       await page.waitForLoadState('domcontentloaded');
       await expect(page.locator('pulpe-budget-table')).toBeVisible();
 
@@ -212,7 +212,7 @@ test.describe('Budget Table Mobile Menu', () => {
       // Navigate and wait for the API response to ensure data is loaded
       await Promise.all([
         page.waitForResponse(resp => resp.url().includes('/api/v1/budgets/') && resp.url().includes('/details')),
-        page.goto(`/app/budget/${budgetId}`),
+        page.goto(`/budget/${budgetId}`),
       ]);
       await expect(page.locator('pulpe-budget-table')).toBeVisible();
     });
@@ -285,7 +285,7 @@ test.describe('Budget Table Mobile Menu', () => {
       // Navigate and wait for the API response to ensure data is loaded
       await Promise.all([
         page.waitForResponse(resp => resp.url().includes('/api/v1/budgets/') && resp.url().includes('/details')),
-        page.goto(`/app/budget/${budgetId}`),
+        page.goto(`/budget/${budgetId}`),
       ]);
       await expect(page.locator('pulpe-budget-table')).toBeVisible();
 
@@ -311,7 +311,7 @@ test.describe('Budget Table Mobile Menu', () => {
       // Navigate and wait for the API response to ensure data is loaded
       await Promise.all([
         page.waitForResponse(resp => resp.url().includes('/api/v1/budgets/') && resp.url().includes('/details')),
-        page.goto(`/app/budget/${budgetId}`),
+        page.goto(`/budget/${budgetId}`),
       ]);
       await expect(page.locator('pulpe-budget-table')).toBeVisible();
     });

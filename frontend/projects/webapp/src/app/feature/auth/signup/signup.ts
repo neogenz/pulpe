@@ -350,7 +350,7 @@ export default class Signup {
         this.#postHogService.captureEvent('signup_completed', {
           method: 'email',
         });
-        this.#router.navigate(['/', ROUTES.APP, ROUTES.CURRENT_MONTH]);
+        this.#router.navigate(['/', ROUTES.DASHBOARD]);
       } else {
         this.errorMessage.set(
           result.error || 'La création du compte a échoué — on réessaie ?',

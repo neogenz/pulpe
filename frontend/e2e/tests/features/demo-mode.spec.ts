@@ -46,10 +46,10 @@ test.describe('Demo Mode', () => {
     });
 
     // Navigate to dashboard
-    await authenticatedPage.goto('/app/current-month', { waitUntil: 'domcontentloaded', timeout: 15000 });
+    await authenticatedPage.goto('/dashboard', { waitUntil: 'domcontentloaded', timeout: 15000 });
 
     // IMPORTANT: Verify we're actually on the protected route (not redirected)
-    await expect(authenticatedPage).toHaveURL(/\/app\/current-month/, {
+    await expect(authenticatedPage).toHaveURL(/\/dashboard/, {
       timeout: 5000,
     });
 
@@ -65,7 +65,7 @@ test.describe('Demo Mode', () => {
     });
 
     // Navigate to dashboard
-    await authenticatedPage.goto('/app/current-month', { waitUntil: 'domcontentloaded', timeout: 15000 });
+    await authenticatedPage.goto('/dashboard', { waitUntil: 'domcontentloaded', timeout: 15000 });
 
     // Verify page loads successfully
     await expect(authenticatedPage.getByTestId('current-month-page')).toBeVisible();

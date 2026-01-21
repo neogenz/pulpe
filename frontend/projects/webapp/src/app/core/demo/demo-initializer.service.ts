@@ -98,7 +98,7 @@ export class DemoInitializerService {
       this.#logger.info('Demo mode activated successfully');
 
       // Redirect to dashboard
-      await this.#router.navigate([ROUTES.APP, ROUTES.CURRENT_MONTH]);
+      await this.#router.navigate(['/', ROUTES.DASHBOARD]);
     } catch (error) {
       this.#logger.error('Failed to start demo session', { error });
 
@@ -170,6 +170,6 @@ export class DemoInitializerService {
     this.#logger.info('E2E Demo mode activated successfully');
 
     // Navigate to dashboard
-    await this.#router.navigate([ROUTES.APP, ROUTES.CURRENT_MONTH]);
+    await this.#router.navigate(['/', ROUTES.DASHBOARD]);
   }
 }

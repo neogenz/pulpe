@@ -11,7 +11,7 @@ test.describe('Budget Line Edit - Mobile', () => {
   });
 
   test.beforeEach(async ({ page }) => {
-    await loginHelper.login(page, '/app/current-month');
+    await loginHelper.login(page, '/dashboard');
   });
 
   test('should open edit dialog on mobile when clicking edit button', async ({
@@ -176,7 +176,7 @@ test.describe('Budget Line Edit - Desktop', () => {
   });
 
   test.beforeEach(async ({ page }) => {
-    await loginHelper.login(page, '/app/current-month');
+    await loginHelper.login(page, '/dashboard');
   });
 
   test('should use inline editing on desktop, not dialog', async ({ page }) => {

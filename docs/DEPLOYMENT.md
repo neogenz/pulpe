@@ -20,6 +20,7 @@ git push origin main      # Déclenche CI/CD automatique
 - Compte Railway (backend)
 - Compte Vercel (frontend)
 - CLIs installées : `supabase`, `railway`, `vercel`
+- Domaine `pulpe.app` (optionnel, voir [Domaine personnalisé](#domaine-personnalisé-pulpeapp))
 
 ## ⚙️ Configuration Initiale
 
@@ -149,6 +150,77 @@ cd frontend
 node scripts/generate-config.js
 ```
 
+### Domaine personnalisé (pulpe.app)
+
+#### Registrar
+
+Domaine acheté chez **Infomaniak**.
+
+#### Configuration DNS (Infomaniak)
+
+| Type | Name | Value |
+|------|------|-------|
+| A | @ | `76.76.21.21` |
+| CNAME | www | `cname.vercel-dns.com` |
+| CNAME | api | `backend-production-e7df.up.railway.app` |
+
+#### Vercel (Frontend)
+
+1. **Settings > Domains** → `pulpe.app` et `www.pulpe.app` ajoutés
+2. **Variable Production** :
+   ```
+   PUBLIC_BACKEND_API_URL=https://api.pulpe.app/api/v1
+   ```
+
+#### Railway (Backend API)
+
+1. **Settings > Networking > Custom Domain** → `api.pulpe.app` (port 8080)
+2. **Variable** :
+   ```
+   CORS_ORIGIN=https://pulpe.app
+   ```
+
+#### Supabase (Auth)
+
+**Dashboard > Authentication > URL Configuration** :
+- **Site URL** : `https://pulpe.app`
+- **Redirect URLs** :
+  - `https://pulpe.app/**`
+  - `https://www.pulpe.app/**`
+  - `https://*.vercel.app/**` (previews)
+
+#### Google OAuth (Cloud Console)
+
+**APIs & Services > Credentials > OAuth 2.0 Client IDs** :
+- **Authorized JavaScript origins** : `https://pulpe.app`
+- **Redirect URI** : `https://[PROJECT_ID].supabase.co/auth/v1/callback` (inchangé)
+
+#### Cloudflare Turnstile
+
+**Dashboard > Turnstile > Widget** :
+- Domaine ajouté : `pulpe.app`
+
+#### PostHog
+
+**Settings > Toolbar Authorized URLs** :
+- URL ajoutée : `https://pulpe.app`
+
+#### Checklist domaine personnalisé
+
+- [x] Domaine acheté (Infomaniak)
+- [x] DNS configuré (A + CNAME)
+- [x] Domaines ajoutés dans Vercel
+- [x] `api.pulpe.app` ajouté dans Railway
+- [x] `PUBLIC_BACKEND_API_URL` mis à jour dans Vercel
+- [x] `CORS_ORIGIN` mis à jour dans Railway
+- [x] Supabase URL Configuration mis à jour
+- [x] Google OAuth origins mis à jour
+- [x] Turnstile domaine ajouté
+- [x] PostHog toolbar URL ajoutée
+- [ ] Test auth flow complet
+
+> **Note** : Les environnements Preview (Vercel, Railway, Supabase) n'ont pas besoin de modification — ils utilisent leurs propres URLs auto-générées.
+
 ## 📋 Processus de Release Complet
 
 ### 1. Pré-Release Checks
@@ -255,6 +327,7 @@ curl https://pulpe-backend.railway.app/api/v1/health
 - [ ] Supabase : projet créé + migrations appliquées
 - [ ] Railway : variables d'environnement configurées + backend déployé
 - [ ] Vercel : variables `PUBLIC_*` et PostHog configurées
+- [ ] Domaine personnalisé configuré (DNS, Vercel, Railway, Supabase)
 - [ ] Tests E2E passent sur staging
 - [ ] PostHog sourcemaps upload configuré
 - [ ] Monitoring alerts configurés

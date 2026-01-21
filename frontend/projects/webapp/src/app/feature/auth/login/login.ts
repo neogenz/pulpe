@@ -225,7 +225,7 @@ export default class Login {
       );
 
       if (result.success) {
-        this.#router.navigate(['/', ROUTES.APP, ROUTES.CURRENT_MONTH]);
+        this.#router.navigate(['/', ROUTES.DASHBOARD]);
       } else {
         this.errorMessage.set(
           result.error || 'Email ou mot de passe incorrect — on réessaie ?',

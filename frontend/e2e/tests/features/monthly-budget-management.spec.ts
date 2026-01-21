@@ -51,9 +51,9 @@ test.describe('Monthly Budget Management', () => {
       })
     );
 
-    await authenticatedPage.goto('/app/current-month');
+    await authenticatedPage.goto('/dashboard');
     // Guard allows navigation on 500 errors (resilient behavior)
-    await expect(authenticatedPage).toHaveURL(/current-month/);
+    await expect(authenticatedPage).toHaveURL(/dashboard/);
     await expect(authenticatedPage.locator('body')).toBeVisible();
   });
 
@@ -69,7 +69,7 @@ test.describe('Monthly Budget Management', () => {
       })
     );
 
-    await authenticatedPage.goto('/app/current-month');
+    await authenticatedPage.goto('/dashboard');
     // Should be redirected to complete-profile page (no budgets = must complete profile)
     await expect(authenticatedPage).toHaveURL(/complete-profile/);
   });

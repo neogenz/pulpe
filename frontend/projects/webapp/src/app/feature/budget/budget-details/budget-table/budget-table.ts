@@ -27,6 +27,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
+import { ROUTES } from '@core/routing';
 import { RolloverFormatPipe } from '@app/ui/rollover-format';
 import {
   calculateAllEnrichedConsumptions,
@@ -257,7 +258,8 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
                         ) {
                           <a
                             [routerLink]="[
-                              '/app/budget',
+                              '/',
+                              ROUTES.BUDGET,
                               line.metadata.rolloverSourceBudgetId,
                             ]"
                             matButton
@@ -729,6 +731,8 @@ import { BudgetTableViewToggle } from './budget-table-view-toggle';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BudgetTable {
+  protected readonly ROUTES = ROUTES;
+
   // Signal inputs
   budgetLines = input.required<BudgetLineViewModel[]>();
   transactions = input.required<TransactionViewModel[]>();

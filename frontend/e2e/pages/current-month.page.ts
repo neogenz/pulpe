@@ -4,7 +4,7 @@ export class CurrentMonthPage {
   constructor(private page: Page) {}
 
   async goto() {
-    await this.page.goto('/app/current-month');
+    await this.page.goto('/dashboard');
     await this.expectPageLoaded();
   }
 

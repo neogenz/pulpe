@@ -2,7 +2,7 @@ import type { Page } from '@playwright/test';
 import { test, expect } from '../../fixtures/test-fixtures';
 
 test.describe('Template propagation choices', () => {
-  const templateDetailUrl = '/app/budget-templates/details/e2e-template-default';
+  const templateDetailUrl = '/budget-templates/details/e2e-template-default';
   const bulkOperationsEndpoint =
     '**/api/v1/budget-templates/*/lines/bulk-operations';
 

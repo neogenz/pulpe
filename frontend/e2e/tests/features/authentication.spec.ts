@@ -16,7 +16,7 @@ test.describe('Authentication', () => {
     });
     
     // Try to access protected route
-    await page.goto('/app/current-month');
+    await page.goto('/dashboard');
     
     // Should redirect to login or welcome page
     await expect(page).toHaveURL(/(\/login|\/welcome)/);
@@ -58,19 +58,19 @@ test.describe('Authentication', () => {
 
   test('should maintain session after refresh', async ({ authenticatedPage }) => {
     // Navigate to protected route
-    await authenticatedPage.goto('/app/current-month');
+    await authenticatedPage.goto('/dashboard');
     await authenticatedPage.waitForLoadState('domcontentloaded');
     
     // Refresh the page
     await authenticatedPage.reload();
     
     // Should still be on the same page (not redirected to login)
-    await expect(authenticatedPage).toHaveURL(/\/app\//);
+    await expect(authenticatedPage).toHaveURL(/\/(dashboard|budget)/);
   });
 
   test('should handle logout properly', async ({ authenticatedPage }) => {
     // Navigate to app
-    await authenticatedPage.goto('/app/current-month');
+    await authenticatedPage.goto('/dashboard');
     await authenticatedPage.waitForLoadState('domcontentloaded');
 
     // Perform logout directly on authenticatedPage

@@ -60,7 +60,7 @@ test.describe('Mobile scroll behavior', () => {
       }),
     );
 
-    await page.goto('/app/current-month');
+    await page.goto('/dashboard');
     await page.waitForLoadState('domcontentloaded');
     await page.waitForSelector('[data-testid="page-content"]');
   });

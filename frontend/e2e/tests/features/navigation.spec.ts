@@ -23,7 +23,7 @@ test.describe('Core Application Navigation (Unauthenticated)', () => {
           await expect(page).toHaveURL(/.*login.*/);
         }
       } else {
-        await expect(page).toHaveURL(/\/(app|welcome)/);
+        await expect(page).toHaveURL(/\/(dashboard|welcome)/);
       }
     });
   });
@@ -48,7 +48,7 @@ test.describe('Core Application Navigation (Unauthenticated)', () => {
     page,
   }) => {
     await test.step('Attempt to access protected route', async () => {
-      await page.goto('/app/current-month');
+      await page.goto('/dashboard');
       // Wait for redirect to complete
       await page.waitForLoadState('domcontentloaded');
     });

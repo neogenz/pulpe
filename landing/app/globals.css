@@ -1,0 +1,228 @@
+@import "tailwindcss";
+
+@theme {
+  --font-family-sans: var(--font-poppins), 'Poppins', system-ui, sans-serif;
+
+  --color-primary: #006E25;
+  --color-primary-hover: #2B883B;
+  --color-background: #F6FFF0;
+  --color-surface: #FFFFFF;
+  --color-surface-alt: #EBFFE6;
+  --color-text: #1A1C19;
+  --color-text-secondary: #5D5F5B;
+  --color-accent: #0061A6;
+
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.08);
+  --shadow-screenshot: 0 8px 32px rgba(0, 0, 0, 0.12);
+  --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.1);
+  --shadow-liquid-glass:
+    0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 2px 4px rgba(0, 0, 0, 0.02),
+    0 8px 16px rgba(0, 0, 0, 0.04),
+    0 16px 32px rgba(0, 0, 0, 0.06);
+  --shadow-floating: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+  --radius-button: 12px;
+  --radius-card: 16px;
+  --radius-large: 24px;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 80px;
+}
+
+body {
+  font-family: var(--font-family-sans);
+  background-color: var(--color-background);
+  color: var(--color-text);
+  margin: 0;
+  min-height: 100vh;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ShineBorder animation */
+.shine-border-effect {
+  padding: var(--shine-border-width);
+  background-image: var(--shine-gradient);
+  background-size: 300% 300%;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .shine-border-effect {
+    animation: shine-pulse var(--shine-duration) infinite linear;
+  }
+}
+
+@keyframes shine-pulse {
+  0% {
+    background-position: 0% 0%;
+  }
+  50% {
+    background-position: 100% 100%;
+  }
+  100% {
+    background-position: 0% 0%;
+  }
+}
+
+/* Floating card bob animation */
+@keyframes float-bob {
+  0%, 100% {
+    transform: translateY(0) rotate(var(--rotation, 0deg));
+  }
+  50% {
+    transform: translateY(-6px) rotate(var(--rotation, 0deg));
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .float-bob {
+    animation: float-bob 4s ease-in-out infinite;
+  }
+}
+
+/* Grid background responsive size */
+:root {
+  --grid-size: 60px;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --grid-size: 100px;
+  }
+}
+
+/* CSS-based fade-in animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in-scale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fade-in-float {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out both;
+}
+
+.animate-fade-in-scale {
+  animation: fade-in-scale 0.6s ease-out both;
+}
+
+.animate-fade-in-float {
+  animation: fade-in-float 0.5s ease-out both;
+}
+
+/* Staggered delays for floating cards */
+.delay-200 { animation-delay: 0.2s; }
+.delay-400 { animation-delay: 0.4s; }
+.delay-600 { animation-delay: 0.6s; }
+.delay-800 { animation-delay: 0.8s; }
+.delay-1000 { animation-delay: 1.0s; }
+.delay-1200 { animation-delay: 1.2s; }
+.delay-1300 { animation-delay: 1.3s; }
+.delay-1400 { animation-delay: 1.4s; }
+
+/* Intersection Observer based fade-in */
+.fade-in-view {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+
+.fade-in-view.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.fade-in-view.no-y {
+  transform: none;
+}
+
+.fade-in-view.no-y.is-visible {
+  transform: none;
+}
+
+/* TypeWriter cursor blink animation */
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.animate-blink {
+  animation: blink 1s step-end infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .animate-fade-in-scale,
+  .animate-fade-in-float {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .fade-in-view {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .animate-blink {
+    animation: none;
+    opacity: 1;
+  }
+}

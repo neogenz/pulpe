@@ -9,7 +9,7 @@ export class BudgetDetailsPage {
       this.page.waitForResponse(resp =>
         resp.url().includes('/api/v1/budgets/') && resp.url().includes('/details')
       ),
-      this.page.goto(`/app/budget/${budgetId}`),
+      this.page.goto(`/budget/${budgetId}`),
     ]);
     await this.expectPageLoaded();
   }

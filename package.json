@@ -33,7 +33,9 @@
     "dev:frontend-only": "turbo dev --filter=pulpe-frontend",
     "dev:backend-only": "turbo build --filter=pulpe-shared && cd backend-nest && bun run dev",
     "changeset": "changeset",
-    "changeset:version": "changeset version && pnpm install"
+    "changeset:version": "changeset version && pnpm install",
+    "build:landing": "cd landing && pnpm build",
+    "build:merge": "mkdir -p dist && cp -r landing/dist dist/landing && cp -r frontend/dist/webapp/browser/* dist/ && mv dist/index.html dist/_app.html"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.5",

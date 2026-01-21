@@ -5,7 +5,7 @@ test.describe('Authenticated Session Management', () => {
     authenticatedPage: page,
   }) => {
     // Authenticated users should access protected content directly
-    await page.goto('/app/current-month');
+    await page.goto('/dashboard');
     await page.waitForLoadState('domcontentloaded');
 
     // Should successfully reach the current month page
@@ -19,12 +19,12 @@ test.describe('Authenticated Session Management', () => {
     authenticatedPage: page,
   }) => {
     // Test current month access
-    await page.goto('/app/current-month');
+    await page.goto('/dashboard');
     await expect(page.getByTestId('current-month-page')).toBeVisible();
-    expect(page.url()).toMatch(/\/current-month/);
+    expect(page.url()).toMatch(/\/dashboard/);
 
     // Test budget templates access  
-    await page.goto('/app/budget-templates');
+    await page.goto('/budget-templates');
     await expect(page.getByTestId('budget-templates-page')).toBeVisible();
     expect(page.url()).toMatch(/\/budget-templates/);
   });
@@ -32,7 +32,7 @@ test.describe('Authenticated Session Management', () => {
   test('should maintain user session across page refreshes', async ({
     authenticatedPage: page,
   }) => {
-    await page.goto('/app/current-month');
+    await page.goto('/dashboard');
     await expect(page.getByTestId('current-month-page')).toBeVisible();
 
     // Refresh page
@@ -40,13 +40,13 @@ test.describe('Authenticated Session Management', () => {
 
     // Should remain on current month page
     await expect(page.getByTestId('current-month-page')).toBeVisible();
-    expect(page.url()).toMatch(/\/current-month/);
+    expect(page.url()).toMatch(/\/dashboard/);
   });
 
   test('should display logout option in user menu', async ({
     authenticatedPage: page,
   }) => {
-    await page.goto('/app/current-month');
+    await page.goto('/dashboard');
     await expect(page.getByTestId('current-month-page')).toBeVisible();
 
     // Open user menu
@@ -59,7 +59,7 @@ test.describe('Authenticated Session Management', () => {
   test('should successfully log out user', async ({
     authenticatedPage: page,
   }) => {
-    await page.goto('/app/current-month');
+    await page.goto('/dashboard');
     await expect(page.getByTestId('current-month-page')).toBeVisible();
 
     // Perform logout

@@ -10,7 +10,7 @@ import { ROUTES } from '@core/routing/routes-constants';
  * Prevents authenticated users from accessing routes.
  *
  * This guard is intended for public-only pages like login or registration.
- * If the user is authenticated, it redirects them to the main application.
+ * If the user is authenticated, it redirects them to the dashboard.
  * Child route guards (hasBudgetGuard) will handle further routing decisions.
  */
 export const publicGuard: CanActivateFn = () => {
@@ -22,8 +22,7 @@ export const publicGuard: CanActivateFn = () => {
     take(1),
     map((state) => {
       if (state.isAuthenticated) {
-        // Redirect to /app - child guards (hasBudgetGuard) will handle further routing
-        return router.createUrlTree(['/', ROUTES.APP]);
+        return router.createUrlTree(['/', ROUTES.DASHBOARD]);
       }
       return true;
     }),
